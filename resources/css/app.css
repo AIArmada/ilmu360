@@ -1,0 +1,339 @@
+@import 'tailwindcss';
+@import '../../vendor/livewire/flux/dist/flux.css';
+@import '../../vendor/filament/schemas/resources/css/index.css';
+@import '../../public/css/filament/filament/app.css';
+
+@source '../../vendor/filament/**/*.blade.php';
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../vendor/livewire/flux/stubs/resources/views/flux/**/*.blade.php';
+@source '../**/*.blade.php';
+@source '../**/*.js';
+
+@theme {
+    --font-heading: 'Outfit', ui-sans-serif, system-ui, sans-serif;
+    --font-sans: 'Outfit', ui-sans-serif, system-ui, sans-serif;
+
+    /* Filament compatibility - 'color' is used internally */
+    --color-color-50: oklch(0.985 0 0);
+    --color-color-100: oklch(0.97 0 0);
+    --color-color-200: oklch(0.92 0 0);
+    --color-color-300: oklch(0.87 0 0);
+    --color-color-400: oklch(0.71 0 0);
+    --color-color-500: oklch(0.55 0 0);
+    --color-color-600: oklch(0.44 0 0);
+    --color-color-700: oklch(0.37 0 0);
+    --color-color-800: oklch(0.27 0 0);
+    --color-color-900: oklch(0.21 0 0);
+    --color-color-950: oklch(0.14 0 0);
+
+    /* Premium Emerald Palette - Deep & Rich */
+    --color-emerald-50: oklch(0.985 0.012 165);
+    --color-emerald-100: oklch(0.96 0.03 165);
+    --color-emerald-200: oklch(0.92 0.06 165);
+    --color-emerald-300: oklch(0.86 0.1 165);
+    --color-emerald-400: oklch(0.78 0.15 165);
+    --color-emerald-500: oklch(0.68 0.19 165);
+    --color-emerald-600: oklch(0.58 0.2 165);
+    --color-emerald-700: oklch(0.48 0.18 165);
+    --color-emerald-800: oklch(0.38 0.14 165);
+    --color-emerald-900: oklch(0.28 0.1 165);
+    --color-emerald-950: oklch(0.18 0.06 165);
+
+    /* Royal Gold & Warm Sand - The Islamic Aesthetic */
+    --color-gold-50: oklch(0.97 0.02 85);
+    --color-gold-100: oklch(0.95 0.05 85);
+    --color-gold-200: oklch(0.90 0.08 85);
+    --color-gold-300: oklch(0.84 0.12 85);
+    --color-gold-400: oklch(0.75 0.15 85);
+    --color-gold-500: oklch(0.65 0.18 85);
+    --color-gold-600: oklch(0.55 0.16 85);
+    --color-gold-700: oklch(0.45 0.14 85);
+    --color-gold-800: oklch(0.35 0.10 85);
+    --color-gold-900: oklch(0.25 0.08 85);
+
+    /* Sophisticated Slate - Cool & crisp */
+    --color-slate-50: oklch(0.99 0.002 250);
+    --color-slate-100: oklch(0.97 0.005 250);
+    --color-slate-200: oklch(0.92 0.01 250);
+    --color-slate-300: oklch(0.86 0.02 250);
+    --color-slate-400: oklch(0.72 0.035 250);
+    --color-slate-500: oklch(0.58 0.045 250);
+    --color-slate-600: oklch(0.45 0.045 250);
+    --color-slate-700: oklch(0.35 0.04 250);
+    --color-slate-800: oklch(0.25 0.035 250);
+    --color-slate-900: oklch(0.18 0.03 250);
+    --color-slate-950: oklch(0.12 0.025 250);
+
+    /* Semantic Colors */
+    --color-primary: var(--color-emerald-600);
+    --color-primary-50: var(--color-emerald-50);
+    --color-primary-100: var(--color-emerald-100);
+    --color-primary-200: var(--color-emerald-200);
+    --color-primary-300: var(--color-emerald-300);
+    --color-primary-400: var(--color-emerald-400);
+    --color-primary-500: var(--color-emerald-500);
+    --color-primary-600: var(--color-emerald-600);
+    --color-primary-700: var(--color-emerald-700);
+    --color-primary-800: var(--color-emerald-800);
+    --color-primary-900: var(--color-emerald-900);
+    --color-primary-950: var(--color-emerald-950);
+    --color-primary-dark: var(--color-emerald-800);
+    --color-primary-light: var(--color-emerald-400);
+    --color-secondary: var(--color-gold-500);
+    --color-secondary-dark: var(--color-gold-600);
+    --color-background: var(--color-emerald-100);
+    --color-surface: var(--color-white);
+    --color-text-main: var(--color-slate-900);
+    --color-text-muted: var(--color-slate-500);
+
+    /* Accents for that "Premium" feel */
+    --color-accent-gold: var(--color-gold-500);
+    --color-accent-purple: oklch(0.7 0.18 300);
+}
+
+[x-cloak] {
+    display: none !important;
+}
+
+@layer utilities {
+    .glass {
+        @apply bg-white/70 backdrop-blur-lg border border-white/20 shadow-xl shadow-slate-200/20;
+    }
+
+    .glass-dark {
+        @apply bg-slate-900/80 backdrop-blur-lg border border-white/10 shadow-2xl;
+    }
+
+    .card-hover {
+        @apply transition-all duration-300 hover:shadow-2xl hover:shadow-emerald-900/5 hover:-translate-y-1;
+    }
+
+    .text-balance {
+        text-wrap: balance;
+    }
+
+    /* Refined Scrollbar */
+    .scrollbar-hide::-webkit-scrollbar {
+        display: none;
+    }
+
+    .scrollbar-hide {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+
+    .mask-gradient-b {
+        mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
+    }
+
+    .bg-pattern-islamic {
+        background-repeat: repeat;
+        background-size: 300px;
+    }
+
+    .border-b-arch {
+        border-bottom-left-radius: 50% 20px;
+        border-bottom-right-radius: 50% 20px;
+    }
+
+}
+
+/* Animations */
+@keyframes fade-in-up {
+    0% {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes scale-in {
+    0% {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.animate-fade-in-up {
+    animation: fade-in-up 0.5s ease-out forwards;
+}
+
+.animate-scale-in {
+    animation: scale-in 0.4s ease-out forwards;
+}
+
+/* ── Scroll-triggered reveal animations ── */
+.scroll-reveal {
+    opacity: 0;
+    will-change: transform, opacity;
+    transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+                transform 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+                filter 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.scroll-reveal.reveal-up {
+    transform: translateY(28px);
+}
+
+.scroll-reveal.reveal-scale {
+    transform: scale(0.92);
+}
+
+.scroll-reveal.reveal-left {
+    transform: translateX(-24px);
+}
+
+.scroll-reveal.reveal-right {
+    transform: translateX(24px);
+}
+
+.scroll-reveal.reveal-blur {
+    transform: translateY(14px);
+    filter: blur(6px);
+}
+
+/* Activated state – applied by x-intersect */
+.scroll-reveal.revealed {
+    opacity: 1;
+    transform: translateY(0) translateX(0) scale(1);
+    filter: blur(0);
+}
+
+/* Stagger children: use [style*="--reveal-d"] for per-element delay */
+.scroll-reveal {
+    transition-delay: var(--reveal-d, 0ms);
+}
+
+/* Speaker hero — ambient floating orbs */
+@keyframes float-drift {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    25% { transform: translate(12px, -18px) scale(1.05); }
+    50% { transform: translate(-8px, 10px) scale(0.97); }
+    75% { transform: translate(6px, -6px) scale(1.02); }
+}
+@keyframes float-drift-alt {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    30% { transform: translate(-15px, 12px) scale(1.04); }
+    60% { transform: translate(10px, -14px) scale(0.96); }
+    80% { transform: translate(-5px, 8px) scale(1.01); }
+}
+@keyframes float-drift-slow {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    40% { transform: translate(8px, 14px) scale(1.06); }
+    70% { transform: translate(-12px, -8px) scale(0.98); }
+}
+
+.animate-float-drift {
+    animation: float-drift 20s ease-in-out infinite;
+}
+.animate-float-drift-alt {
+    animation: float-drift-alt 25s ease-in-out infinite;
+}
+.animate-float-drift-slow {
+    animation: float-drift-slow 30s ease-in-out infinite;
+}
+
+/* Avatar glow breathing */
+@keyframes glow-breathe {
+    0%, 100% { opacity: 0.35; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(1.06); }
+}
+.animate-glow-breathe {
+    animation: glow-breathe 4s ease-in-out infinite;
+}
+
+/* Gold shimmer line */
+@keyframes shimmer-slide {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(200%); }
+}
+.shimmer-line {
+    position: relative;
+    overflow: hidden;
+}
+.shimmer-line::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    animation: shimmer-slide 3s ease-in-out infinite;
+}
+
+/* Subtle text glow for hero name */
+.text-hero-glow {
+    text-shadow: 0 0 40px rgba(52, 211, 153, 0.15), 0 0 80px rgba(52, 211, 153, 0.08);
+}
+
+/* Noise texture overlay */
+.noise-overlay::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0.03;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 128px;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.delay-100 {
+    animation-delay: 100ms;
+}
+
+.delay-200 {
+    animation-delay: 200ms;
+}
+
+.delay-300 {
+    animation-delay: 300ms;
+}
+
+/* Flux UI Overrides for Premium Feel */
+html.light [data-flux-button][data-variant="primary"] {
+    background-color: var(--color-emerald-600) !important;
+    color: white !important;
+    box-shadow: 0 4px 12px -2px rgba(5, 150, 105, 0.4);
+}
+
+html.light [data-flux-button][data-variant="primary"]:hover {
+    background-color: var(--color-emerald-700) !important;
+    transform: translateY(-1px);
+}
+
+/* Filament select chevron aligned to the Flux select style */
+.fi-select-input .fi-select-input-btn {
+    background-image: url("data:image/svg+xml,%3csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M8 9L12 5L16 9' stroke='%23d4d4d4' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3e%3cpath d='M16 15L12 19L8 15' stroke='%23d4d4d4' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3e%3c/svg%3e") !important;
+    background-position: right 0.5rem center !important;
+    background-repeat: no-repeat !important;
+    background-size: 1.5em 1.5em !important;
+    padding-inline-end: 2.5rem !important;
+}
+
+[dir="rtl"] .fi-select-input .fi-select-input-btn {
+    background-position: left 0.5rem center !important;
+}
+
+.fi-select-input .fi-select-input-btn:hover:not(:disabled) {
+    background-image: url("data:image/svg+xml,%3csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M8 9L12 5L16 9' stroke='%2327272a' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3e%3cpath d='M16 15L12 19L8 15' stroke='%2327272a' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3e%3c/svg%3e") !important;
+}
+
+.dark .fi-select-input .fi-select-input-btn {
+    background-image: url("data:image/svg+xml,%3csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M8 9L12 5L16 9' stroke='%23A1A1AA' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3e%3cpath d='M16 15L12 19L8 15' stroke='%23A1A1AA' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3e%3c/svg%3e") !important;
+}
+
+.dark .fi-select-input .fi-select-input-btn:hover:not(:disabled) {
+    background-image: url("data:image/svg+xml,%3csvg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M8 9L12 5L16 9' stroke='%23ffffff' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3e%3cpath d='M16 15L12 19L8 15' stroke='%23ffffff' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3e%3c/svg%3e") !important;
+}
+
+.fi-select-input .fi-select-input-ctn-clearable .fi-select-input-btn {
+    padding-inline-end: 3.5rem !important;
+}

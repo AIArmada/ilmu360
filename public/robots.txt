@@ -1,0 +1,6 @@
+User-agent: *
+Disallow: /admin/
+Disallow: /filament/
+Disallow: /api/
+
+Sitemap: https://ilmu360.com/sitemap.xml

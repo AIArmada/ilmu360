@@ -1,0 +1,315 @@
+name: Quality
+
+on:
+  push:
+
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rector:
+    name: Rector
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+          extensions: mbstring, dom, fileinfo, intl, pcntl, pdo_sqlite, sqlite3, pgsql
+          ini-values: memory_limit=-1
+
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v5
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Prepare application environment
+        run: cp .env.example .env
+
+      - name: Verify Composer private repository auth
+        env:
+          COMPOSER_AUTH: ${{ secrets.COMPOSER_AUTH }}
+        run: |
+          if [ -z "$COMPOSER_AUTH" ]; then
+            echo "::error::Missing COMPOSER_AUTH GitHub secret. Set it to a Composer auth JSON payload that includes http-basic credentials for packages.filamentphp.com."
+            exit 1
+          fi
+
+          python3 - <<'PY'
+          import json
+          import os
+          import sys
+
+          try:
+              auth = json.loads(os.environ['COMPOSER_AUTH'])
+          except json.JSONDecodeError as error:
+              print(f"::error::COMPOSER_AUTH is not valid JSON: {error}")
+              sys.exit(1)
+
+          credentials = auth.get('http-basic', {}).get('packages.filamentphp.com', {})
+
+          if not credentials.get('username') or not credentials.get('password'):
+              print('::error::COMPOSER_AUTH must include http-basic credentials for packages.filamentphp.com.')
+              sys.exit(1)
+          PY
+
+      - name: Install Composer dependencies
+        env:
+          COMPOSER_AUTH: ${{ secrets.COMPOSER_AUTH }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          composer config --global github-oauth.github.com "$GITHUB_TOKEN"
+          composer install --no-interaction --no-progress --prefer-dist --optimize-autoloader
+
+      - name: Generate application key
+        run: php artisan key:generate --ansi --force
+
+      - name: Clear config cache
+        run: php artisan config:clear --ansi
+
+      - name: Run Rector
+        run: vendor/bin/rector process --dry-run --ansi
+
+  pint:
+    name: Pint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+          extensions: mbstring, dom, fileinfo, intl, pcntl, pdo_sqlite, sqlite3, pgsql
+          ini-values: memory_limit=-1
+
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v5
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Prepare application environment
+        run: cp .env.example .env
+
+      - name: Verify Composer private repository auth
+        env:
+          COMPOSER_AUTH: ${{ secrets.COMPOSER_AUTH }}
+        run: |
+          if [ -z "$COMPOSER_AUTH" ]; then
+            echo "::error::Missing COMPOSER_AUTH GitHub secret. Set it to a Composer auth JSON payload that includes http-basic credentials for packages.filamentphp.com."
+            exit 1
+          fi
+
+          python3 - <<'PY'
+          import json
+          import os
+          import sys
+
+          try:
+              auth = json.loads(os.environ['COMPOSER_AUTH'])
+          except json.JSONDecodeError as error:
+              print(f"::error::COMPOSER_AUTH is not valid JSON: {error}")
+              sys.exit(1)
+
+          credentials = auth.get('http-basic', {}).get('packages.filamentphp.com', {})
+
+          if not credentials.get('username') or not credentials.get('password'):
+              print('::error::COMPOSER_AUTH must include http-basic credentials for packages.filamentphp.com.')
+              sys.exit(1)
+          PY
+
+      - name: Install Composer dependencies
+        env:
+          COMPOSER_AUTH: ${{ secrets.COMPOSER_AUTH }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          composer config --global github-oauth.github.com "$GITHUB_TOKEN"
+          composer install --no-interaction --no-progress --prefer-dist --optimize-autoloader
+
+      - name: Run Pint
+        run: vendor/bin/pint --test
+
+  phpstan:
+    name: PHPStan
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+          extensions: mbstring, dom, fileinfo, intl, pcntl, pdo_sqlite, sqlite3, pgsql
+          ini-values: memory_limit=-1
+
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v5
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Prepare application environment
+        run: cp .env.example .env
+
+      - name: Verify Composer private repository auth
+        env:
+          COMPOSER_AUTH: ${{ secrets.COMPOSER_AUTH }}
+        run: |
+          if [ -z "$COMPOSER_AUTH" ]; then
+            echo "::error::Missing COMPOSER_AUTH GitHub secret. Set it to a Composer auth JSON payload that includes http-basic credentials for packages.filamentphp.com."
+            exit 1
+          fi
+
+          python3 - <<'PY'
+          import json
+          import os
+          import sys
+
+          try:
+              auth = json.loads(os.environ['COMPOSER_AUTH'])
+          except json.JSONDecodeError as error:
+              print(f"::error::COMPOSER_AUTH is not valid JSON: {error}")
+              sys.exit(1)
+
+          credentials = auth.get('http-basic', {}).get('packages.filamentphp.com', {})
+
+          if not credentials.get('username') or not credentials.get('password'):
+              print('::error::COMPOSER_AUTH must include http-basic credentials for packages.filamentphp.com.')
+              sys.exit(1)
+          PY
+
+      - name: Install Composer dependencies
+        env:
+          COMPOSER_AUTH: ${{ secrets.COMPOSER_AUTH }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          composer config --global github-oauth.github.com "$GITHUB_TOKEN"
+          composer install --no-interaction --no-progress --prefer-dist --optimize-autoloader
+
+      - name: Generate application key
+        run: php artisan key:generate --ansi --force
+
+      - name: Clear config cache
+        run: php artisan config:clear --ansi
+
+      - name: Run PHPStan
+        run: vendor/bin/phpstan analyse --ansi --no-progress
+
+  pest:
+    name: Pest (Shard ${{ matrix.shard }}/4)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+          extensions: mbstring, dom, fileinfo, intl, pcntl, pdo_sqlite, sqlite3, pgsql
+          ini-values: memory_limit=-1
+
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v5
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Prepare application environment
+        run: cp .env.example .env
+
+      - name: Verify Composer private repository auth
+        env:
+          COMPOSER_AUTH: ${{ secrets.COMPOSER_AUTH }}
+        run: |
+          if [ -z "$COMPOSER_AUTH" ]; then
+            echo "::error::Missing COMPOSER_AUTH GitHub secret. Set it to a Composer auth JSON payload that includes http-basic credentials for packages.filamentphp.com."
+            exit 1
+          fi
+
+          python3 - <<'PY'
+          import json
+          import os
+          import sys
+
+          try:
+              auth = json.loads(os.environ['COMPOSER_AUTH'])
+          except json.JSONDecodeError as error:
+              print(f"::error::COMPOSER_AUTH is not valid JSON: {error}")
+              sys.exit(1)
+
+          credentials = auth.get('http-basic', {}).get('packages.filamentphp.com', {})
+
+          if not credentials.get('username') or not credentials.get('password'):
+              print('::error::COMPOSER_AUTH must include http-basic credentials for packages.filamentphp.com.')
+              sys.exit(1)
+          PY
+
+      - name: Install Composer dependencies
+        env:
+          COMPOSER_AUTH: ${{ secrets.COMPOSER_AUTH }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          composer config --global github-oauth.github.com "$GITHUB_TOKEN"
+          composer install --no-interaction --no-progress --prefer-dist --optimize-autoloader
+
+      - name: Generate application key
+        run: php artisan key:generate --ansi --force
+
+      - name: Clear config cache
+        run: php artisan config:clear --ansi
+
+      - name: Run Pest shard
+        run: vendor/bin/pest --parallel --shard=${{ matrix.shard }}/4 --compact
