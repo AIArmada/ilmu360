@@ -174,4 +174,4 @@ Route::get('/peta-laman-penceramah.xml', [SitemapController::class, 'speakers'])
 
 Route::view('/welcome', 'welcome', [
     'canRegister' => Features::enabled(Features::registration()),
-])->name('home');
+])->name('welcome');

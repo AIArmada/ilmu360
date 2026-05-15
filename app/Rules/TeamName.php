@@ -26,6 +26,7 @@ class TeamName implements ValidationRule
 
     /**
      * Get a list of all reserved names.     *
+     *
      * @return array<int, string>     */
     protected function reservedNames(): array
     {
