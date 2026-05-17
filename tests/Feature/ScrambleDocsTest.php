@@ -4,6 +4,8 @@ use App\Support\ApiDocumentation\ApiDocumentationUrlResolver;
 use App\Support\ApiDocumentation\ApiDocumentationVersionResolver;
 use Dedoc\Scramble\Generator;
 use Illuminate\Auth\Middleware\Authenticate;
+use Illuminate\Cache\Lock;
+use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
@@ -108,6 +110,48 @@ it('caches docs json generation between requests', function () {
     } finally {
         forgetDocsJsonCacheKeys('release-a');
     }
+});
+
+it('serves stale docs json when lock acquisition times out', function () {
+    forgetDocsJsonCacheKeys('lock-timeout-current', 'lock-timeout-previous');
+
+    mock(ApiDocumentationVersionResolver::class, function (MockInterface $mock): void {
+        $mock->shouldReceive('current')->once()->andReturn('lock-timeout-current');
+    });
+
+    mock(Generator::class, function (MockInterface $mock): void {
+        $mock->shouldNotReceive('__invoke');
+    });
+
+    $currentCacheKey = docsJsonCacheKey('lock-timeout-current');
+    $previousCacheKey = docsJsonCacheKey('lock-timeout-previous');
+    $latestCacheKeyPointer = docsJsonLatestKeyPointer();
+
+    Cache::forever($previousCacheKey, [
+        'openapi' => '3.1.0',
+        'info' => ['title' => 'ilmu360° API Stale'],
+        'servers' => [['url' => 'https://api.ilmu360.test/api/v1']],
+    ]);
+    Cache::forever($latestCacheKeyPointer, $previousCacheKey);
+
+    $lock = mock(Lock::class, function (MockInterface $mock): void {
+        $mock->shouldReceive('block')->once()->andThrow(new LockTimeoutException);
+    });
+
+    Cache::partialMock()->shouldReceive('lock')->once()->andReturn($lock);
+
+    try {
+        $this->getJson('https://api.ilmu360.test/docs.json', [
+            'Host' => 'api.ilmu360.test',
+        ])
+            ->assertOk()
+            ->assertJsonPath('info.title', 'ilmu360° API Stale');
+    } finally {
+        Cache::clearResolvedInstances();
+        forgetDocsJsonCacheKeys('lock-timeout-current', 'lock-timeout-previous');
+    }
+
+    expect(Cache::get($currentCacheKey))->toBeNull();
 });
 
 it('busts docs json cache automatically when the documentation fingerprint changes', function () {

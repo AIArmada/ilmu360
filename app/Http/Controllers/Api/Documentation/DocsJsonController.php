@@ -10,6 +10,7 @@ use App\Support\ApiDocumentation\ApiDocumentationUrlResolver;
 use App\Support\ApiDocumentation\ApiDocumentationVersionResolver;
 use App\Support\ApiDocumentation\ReconnectCachedDatabaseConnections;
 use Dedoc\Scramble\Generator;
+use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -40,25 +41,13 @@ class DocsJsonController extends Controller
         /** @var array<string, mixed> $document */
         $document = is_array($cachedDocument)
             ? $cachedDocument
-            : Cache::lock($cacheKey.':lock', 120)->block(10, function () use ($cacheKey, $reconnectCachedDatabaseConnections, $configFactory, $generator): array {
-                $lockedCachedDocument = Cache::get($cacheKey);
-
-                if (is_array($lockedCachedDocument)) {
-                    return $lockedCachedDocument;
-                }
-
-                if (function_exists('set_time_limit')) {
-                    @set_time_limit(120);
-                }
-
-                $reconnectCachedDatabaseConnections();
-
-                /** @var array<string, mixed> $generatedDocument */
-                $generatedDocument = $generator($configFactory->make());
-                Cache::forever($cacheKey, $generatedDocument);
-
-                return $generatedDocument;
-            });
+            : $this->resolveDocument(
+                $cacheKey,
+                $previousCacheKey,
+                $reconnectCachedDatabaseConnections,
+                $configFactory,
+                $generator,
+            );
 
         if ($previousCacheKey !== $cacheKey) {
             if (is_string($previousCacheKey) && $previousCacheKey !== '') {
@@ -79,5 +68,71 @@ class DocsJsonController extends Controller
         $response->isNotModified($request);
 
         return $response;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function resolveDocument(
+        string $cacheKey,
+        ?string $previousCacheKey,
+        ReconnectCachedDatabaseConnections $reconnectCachedDatabaseConnections,
+        ApiDocumentationConfigFactory $configFactory,
+        Generator $generator,
+    ): array {
+        try {
+            $document = Cache::lock($cacheKey.':lock', 120)->block(10, function () use ($cacheKey, $reconnectCachedDatabaseConnections, $configFactory, $generator): array {
+                $lockedCachedDocument = Cache::get($cacheKey);
+
+                if (is_array($lockedCachedDocument)) {
+                    return $lockedCachedDocument;
+                }
+
+                return $this->generateDocument($cacheKey, $reconnectCachedDatabaseConnections, $configFactory, $generator);
+            });
+
+            if (is_array($document)) {
+                return $document;
+            }
+        } catch (LockTimeoutException) {
+        }
+
+        $cachedDocument = Cache::get($cacheKey);
+
+        if (is_array($cachedDocument)) {
+            return $cachedDocument;
+        }
+
+        if (is_string($previousCacheKey) && $previousCacheKey !== '') {
+            $previousDocument = Cache::get($previousCacheKey);
+
+            if (is_array($previousDocument)) {
+                return $previousDocument;
+            }
+        }
+
+        return $this->generateDocument($cacheKey, $reconnectCachedDatabaseConnections, $configFactory, $generator);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function generateDocument(
+        string $cacheKey,
+        ReconnectCachedDatabaseConnections $reconnectCachedDatabaseConnections,
+        ApiDocumentationConfigFactory $configFactory,
+        Generator $generator,
+    ): array {
+        if (function_exists('set_time_limit')) {
+            @set_time_limit(120);
+        }
+
+        $reconnectCachedDatabaseConnections();
+
+        /** @var array<string, mixed> $generatedDocument */
+        $generatedDocument = $generator($configFactory->make());
+        Cache::forever($cacheKey, $generatedDocument);
+
+        return $generatedDocument;
     }
 }
