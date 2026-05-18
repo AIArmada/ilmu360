@@ -3449,6 +3449,57 @@ it('supports sparse event updates while replacing submitted relation collections
         ->and(collect($event->keyPeople->modelKeys())->intersect($originalKeyPeopleIds)->all())->toBe([]);
 });
 
+it('clears event poster when clear_poster is submitted as a form-style boolean', function () {
+    ensureAdminApiMalaysiaCountryExists();
+
+    $admin = adminApiUser('super_admin');
+    Sanctum::actingAs($admin);
+
+    $institution = Institution::factory()->create([
+        'status' => 'verified',
+        'is_active' => true,
+    ]);
+    $speaker = Speaker::factory()->create([
+        'status' => 'verified',
+        'is_active' => true,
+    ]);
+    $reference = Reference::factory()->verified()->create();
+    $series = Series::factory()->create();
+    $domainTag = Tag::factory()->domain()->verified()->create();
+    $disciplineTag = Tag::factory()->discipline()->verified()->create();
+
+    $createResponse = $this->postJson('/api/v1/admin/events', adminApiEventPayload([
+        'institution' => $institution,
+        'speaker' => $speaker,
+        'reference' => $reference,
+        'series' => $series,
+        'domain_tag' => $domainTag,
+        'discipline_tag' => $disciplineTag,
+    ], [
+        'poster' => fakeGeneratedImageUpload('admin-api-event-poster.png', 1200, 1500),
+    ]))->assertCreated()
+        ->assertJsonPath('data.record.attributes.has_poster', true);
+
+    $eventRouteKey = (string) $createResponse->json('data.record.route_key');
+    $event = Event::query()->findOrFail($eventRouteKey);
+
+    expect($event->getMedia('poster'))->toHaveCount(1);
+
+    $this->putJson('/api/v1/admin/events/'.$eventRouteKey, [
+        'clear_poster' => '1',
+    ])->assertOk()
+        ->assertJsonPath('data.record.attributes.has_poster', false)
+        ->assertJsonPath('data.record.attributes.poster_url', null);
+
+    $event->refresh();
+
+    expect($event->getMedia('poster'))->toHaveCount(0);
+
+    $this->getJson('/api/v1/admin/events/schema?operation=update&recordKey='.$eventRouteKey)
+        ->assertOk()
+        ->assertJsonPath('data.schema.current_media.poster', []);
+});
+
 it('rejects admin event writes that omit required speakers for speaker-led event types', function () {
     ensureAdminApiMalaysiaCountryExists();
 
