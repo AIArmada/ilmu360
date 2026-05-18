@@ -425,15 +425,15 @@ final readonly class SaveAdminEventAction
      */
     private function syncMedia(Event $event, array $data): void
     {
-        if (($data['clear_cover'] ?? false) === true) {
+        if ($this->shouldClearMediaCollection($data['clear_cover'] ?? false)) {
             $this->mediaSyncService->clearCollection($event, 'cover');
         }
 
-        if (($data['clear_poster'] ?? false) === true) {
+        if ($this->shouldClearMediaCollection($data['clear_poster'] ?? false)) {
             $this->mediaSyncService->clearCollection($event, 'poster');
         }
 
-        if (($data['clear_gallery'] ?? false) === true) {
+        if ($this->shouldClearMediaCollection($data['clear_gallery'] ?? false)) {
             $this->mediaSyncService->clearCollection($event, 'gallery');
         }
 
@@ -457,6 +457,19 @@ final readonly class SaveAdminEventAction
             'gallery',
             replace: is_array($gallery),
         );
+    }
+
+    private function shouldClearMediaCollection(mixed $value): bool
+    {
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        if (! is_string($value) && ! is_int($value)) {
+            return false;
+        }
+
+        return filter_var($value, FILTER_VALIDATE_BOOLEAN) === true;
     }
 
     private function normalizeOrganizerType(mixed $value): ?string

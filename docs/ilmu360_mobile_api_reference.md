@@ -980,6 +980,7 @@ Nested collection item contracts for institutions:
 - Admin event writes accept `status` values `draft`, `pending`, and `approved`. When omitted on create, the default is `draft`. `approved` sets `published_at`, while `draft` and `pending` clear it.
 - Event enum write values must use backing values from the schema. Do not submit display labels for `event_type`, `age_group`, `timing_mode`, `prayer_reference`, or `prayer_offset`.
 - Event `cover` uploads are validated as `16:9`, and event `poster` uploads are validated as `4:5` on admin write paths.
+- Event media clear flags (`clear_cover`, `clear_poster`, `clear_gallery`) remove existing media when truthy (`true`, `1`, `"1"`, `"true"`). Poster clears are reflected immediately in the update response (`has_poster=false`, `poster_url=null`) and in update schema `current_media.poster`.
 - Optional URL scalars like `event_url`, `live_url`, and `recording_url` preserve the current value when omitted and clear to `null` when you send `null` or `""`.
 - The relation arrays `languages`, `references`, `series`, `domain_tags`, `discipline_tags`, `source_tags`, and `issue_tags` use server-merged replacement semantics on update: omit to preserve the current set, send `null` or `[]` to clear, and send the full replacement list when changing them.
 - `speakers` and `other_key_people` also preserve on omission, but any submitted array rebuilds the underlying `key_people` rows. Stable item ids are not preserved, and payload order becomes the new `order_column` sequence (speaker rows first, then `other_key_people`).
