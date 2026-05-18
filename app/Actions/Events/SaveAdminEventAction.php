@@ -469,7 +469,7 @@ final readonly class SaveAdminEventAction
             return false;
         }
 
-        return filter_var($value, FILTER_VALIDATE_BOOLEAN) === true;
+        return filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) === true;
     }
 
     private function normalizeOrganizerType(mixed $value): ?string
