@@ -1,3 +1,120 @@
+# Commerce Events Package Compatibility Assessment
+
+- [x] Inspect `/Users/Saiffil/Herd/commerce/packages/events` package scope, dependencies, config, migrations, models, actions, and docs
+- [x] Compare the package event model against ilmu360° event domain requirements and current schema
+- [x] Identify installation and table-name compatibility risks
+- [x] Assess which package capabilities are useful as long-term extension points
+- [x] Record recommendation
+
+## Review
+
+- `aiarmada/events` is Laravel/PHP compatible at a runtime level (`php:^8.4`) and follows UUID/no-FK/no-SoftDeletes style closely enough for this codebase.
+- It is not safe or suitable as a direct replacement for `App\Models\Event`; the package defaults its event table to `events` and its series table to `event_series`, colliding with existing ilmu360° tables.
+- Its domain model is commerce-oriented: reusable event definition, occurrence, venue, registration, and order/customer/product links. ilmu360° events are richer moderated public records with organizer, speaker, taxonomy, media, prayer-relative timing, discovery, and contribution workflows.
+- The package has useful registration/occurrence lifecycle ideas, especially capacity windows, locked capacity checks, registration statuses, and check-in state transitions.
+- Recommendation: keep ilmu360°'s current `Event` model as the canonical public event/majlis record. Do not adopt the package as-is. If reused, extend/refactor the package into optional occurrence/registration infrastructure that can attach to an external host event model and run under non-conflicting table names.
+
+# Commerce Events Package Hardening Pass
+
+- [x] Replace collision-prone default table names with package-specific defaults
+- [x] Add configurable model seams for host event and venue relationships
+- [x] Add generic attendee identity support independent of customer/order packages
+- [x] Move occurrence and registration lifecycle rules behind config-backed policy seams
+- [x] Normalize package-written timestamps to UTC
+- [x] Add fulfillment resolver configuration with a no-op default implementation
+- [x] Document scope, invariants, migration safety, and extension points
+- [x] Add focused regression tests and run package verification
+
+## Review
+
+- Changed `aiarmada/events` defaults from collision-prone names to package-specific names: `commerce_events`, `commerce_event_series`, `commerce_event_venues`, `commerce_event_occurrences`, and `commerce_event_registrations`.
+- Added config-backed adapter seams for occurrence event/venue relationships, generic attendee morph identity on registrations, lifecycle status policy, and order-item fulfillment resolver behavior.
+- Kept the domain boundary explicit: the package is for scheduled occurrences, registration/ticketing lifecycle, capacity, check-in, cancellation, and optional commerce fulfillment, not a replacement for a rich public event discovery model.
+- Added `docs/05-invariants.md` plus configuration, installation, usage, overview, and troubleshooting updates for ownership, UTC storage, migration safety, cancellation, waitlists, recurrence, and fulfillment expectations.
+- Added regression coverage in `tests/src/Events/PackageContractHardeningTest.php` and kept the earlier optional-commerce tests.
+- Verification:
+  - `composer validate --strict --no-check-publish` in `packages/events` => pass
+  - `./vendor/bin/pest --parallel --compact tests/src/Events` => 23 passed, 114 assertions
+  - `./vendor/bin/pint --test --config pint.json ...changed PHP files...` => pass
+  - `./vendor/bin/phpstan analyse --ansi` => pass
+  - `git diff --check` => pass
+  - `rg -n -- "constrained\(|cascadeOnDelete\(" packages/events/database` => no matches
+  - `rg -n -- "softDeletes\(\)|SoftDeletes" packages/events` => no matches
+
+# Commerce Events Participation Modes
+
+- [x] Add explicit occurrence participation modes for no-registration, registration-required, walk-in-only, and hybrid events
+- [x] Add walk-in attendance recording without requiring email
+- [x] Keep registration-required as the default for backward behavior
+- [x] Ensure hybrid events allow both pre-registration and walk-ins while sharing occurrence capacity
+- [x] Document participation modes, walk-in invariants, and troubleshooting guidance
+- [x] Add focused regression tests and run verification
+
+## Review
+
+- Added `OccurrenceParticipationMode` with `none`, `registration_required`, `walk_in_only`, and `hybrid`.
+- Added `RegistrationAttendanceSource` so registration rows can distinguish pre-registration from walk-in attendance.
+- Added `RegistrationService::recordWalkInForOccurrence()` for walk-in-only and hybrid occurrences. Walk-ins are stored as checked-in attendance rows, can be anonymous, and share occurrence capacity with registrations.
+- Added `WalkInRecorded` so walk-ins do not reuse the order-backed `RegistrationCheckedIn` event path.
+- Added migration coverage for `participation_mode`, `attendance_source`, attendee morph columns on existing installs, and nullable registration email.
+- Audit fixes:
+  - Exposed occurrence participation mode in the Filament occurrence form, table, filter, and infolist.
+  - Updated Filament registration forms, tables, relation managers, and infolists so walk-ins without email render safely and email is only required for registration-sourced attendance.
+  - Hardened the participation migration for partial attendee morph columns on existing installs.
+  - Renamed the `none` mode label to `No Attendance Tracking` so it is not confused with walk-in-only events.
+- Verification:
+  - `composer validate --strict --no-check-publish` in `packages/events` => pass
+  - `./vendor/bin/pest --parallel --compact tests/src/Events` => 28 passed, 143 assertions
+  - `./vendor/bin/pest --parallel --compact tests/src/FilamentEvents/Integration/CoverageTest.php` => 6 passed, 72 assertions
+  - `./vendor/bin/pint --test --config pint.json ...changed PHP files...` => pass
+  - `./vendor/bin/phpstan analyse --ansi` => pass
+  - `git diff --check` => pass
+  - `rg -n -- "constrained\(|cascadeOnDelete\(" packages/events/database` => no matches
+  - `rg -n -- "softDeletes\(\)|SoftDeletes" packages/events` => no matches
+
+# AIArmada Events Domain Package Upgrade
+
+- [x] Review current uncommitted `aiarmada/events` package changes before extending them
+- [x] Promote reusable event-domain primitives without copying ilmu360-specific workflows
+- [x] Add configurable seams for speakers, organizers, media, taxonomy, moderation, public visibility, search, and timezone/display behavior
+- [x] Keep commerce packages optional and compatible when installed together
+- [x] Add focused regression tests for the new package contracts
+- [x] Update package docs to explain base-package usage for applications like ilmu360
+- [x] Run review -> audit -> fix loops until no issues are found
+- [x] Commit the verified package upgrade
+
+## Review
+
+- Upgraded `aiarmada/events` from a narrow occurrence/registration package into a reusable event-domain base while keeping ilmu360-specific submission/editorial behavior outside the package.
+- Commerce package commit: `7662c1ccc` (`Upgrade events package domain model`).
+- Added package-owned public event primitives:
+  - `EventModerationStatus` and `EventVisibility`
+  - organizer morphs on events
+  - ordered `EventSpeaker` links for host speaker models or display-only speakers
+  - publication windows, media references, taxonomy payloads, and search keywords
+  - venue location metadata for physical, online, and hybrid locations
+- Added extension seams:
+  - `EventSearchPayloadResolver`
+  - `EventDisplayTimezoneResolver`
+  - configurable media collections, taxonomy groups, and default event visibility/moderation config
+- Updated `EnsureOccurrenceAction` so structured imports can upsert organizer, speaker, media reference, taxonomy, moderation, visibility, publication-window, and venue location data.
+- Updated `aiarmada/filament-events` so admin resources expose the new event, speaker, registration, occurrence, and venue surfaces safely.
+- Audit fixes made during the review loop:
+  - Avoided a `media` column because it would collide with Spatie Media Library's common `media()` relation; storage is now `media_references` while search payloads can still expose a `media` key.
+  - Replaced flat Filament `KeyValue` editing for nested media/taxonomy payloads with JSON textarea helpers.
+  - Fixed a stale PHPStan docblock after the speaker-sync implementation.
+  - Corrected an owner-scope read in the new structured-import regression test.
+- Verification:
+  - `composer validate --strict --no-check-publish` in `packages/events` => pass
+  - `./vendor/bin/pest --parallel --compact tests/src/Events` => 32 passed, 206 assertions
+  - `./vendor/bin/pest --parallel --compact tests/src/FilamentEvents/Integration/CoverageTest.php` => 7 passed, 87 assertions
+  - `./vendor/bin/pint --test --config pint.json ...changed package/test files...` => pass
+  - `./vendor/bin/phpstan analyse --ansi` => pass
+  - `git diff --check` in `/Users/Saiffil/Herd/commerce` => pass
+  - `rg -n -- "constrained\(|cascadeOnDelete\(" packages/events/database` => no matches
+  - `rg -n -- "softDeletes\(\)|SoftDeletes" packages/events` => no matches
+  - `tests/Feature/Migrations/MigrationsRunTest.php` was also probed and still fails on an existing non-events `docs` table expectation; no events-package migration failure was found.
+
 # Docs Restoration And Access Hardening
 
 - [ ] Audit `docs/trash` against live rebranded docs and identify content drift
