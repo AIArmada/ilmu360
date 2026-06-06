@@ -240,12 +240,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/AIArmada/signals.git",
-                "reference": "cb73f0e13563706bd941435a4adbfea09d086bda"
+                "reference": "182875fd01667f3f4b4869b8d3ec5381dc41eb4b"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/AIArmada/signals/zipball/cb73f0e13563706bd941435a4adbfea09d086bda",
-                "reference": "cb73f0e13563706bd941435a4adbfea09d086bda",
+                "url": "https://api.github.com/repos/AIArmada/signals/zipball/182875fd01667f3f4b4869b8d3ec5381dc41eb4b",
+                "reference": "182875fd01667f3f4b4869b8d3ec5381dc41eb4b",
                 "shasum": ""
             },
             "require": {
@@ -289,7 +289,7 @@
                 "issues": "https://github.com/AIArmada/signals/issues",
                 "source": "https://github.com/AIArmada/signals/tree/main"
             },
-            "time": "2026-06-05T01:04:15+00:00"
+            "time": "2026-06-06T16:10:13+00:00"
         },
         {
             "name": "akaunting/laravel-money",
