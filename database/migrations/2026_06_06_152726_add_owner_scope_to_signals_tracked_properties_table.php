@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -22,8 +23,16 @@ return new class extends Migration
             $legacyIndex = 'signal_tracked_properties_owner_type_owner_id_slug_unique';
 
             if (Schema::hasColumn($tableName, 'owner_scope')) {
-                $table->dropUnique($legacyIndex);
-                $table->unique(['owner_scope', 'slug']);
+                $indexes = DB::select('SELECT indexname FROM pg_indexes WHERE tablename = ?', [$tableName]);
+                $indexNames = array_column($indexes, 'indexname');
+
+                if (in_array($legacyIndex, $indexNames, true)) {
+                    $table->dropUnique($legacyIndex);
+                }
+
+                if (! in_array('signal_tracked_properties_owner_scope_slug_unique', $indexNames, true)) {
+                    $table->unique(['owner_scope', 'slug']);
+                }
             }
         });
     }
