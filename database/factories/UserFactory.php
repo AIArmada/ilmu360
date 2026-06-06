@@ -103,6 +103,7 @@ class UserFactory extends Factory
             ]);
 
             $team->members()->attach($user, [
+                'id' => Str::uuid(),
                 'role' => TeamRole::Owner->value,
             ]);
 
