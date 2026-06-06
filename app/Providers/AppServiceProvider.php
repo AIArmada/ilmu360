@@ -2,7 +2,6 @@
 
 namespace App\Providers;
 
-use AIArmada\Affiliates\Models\Affiliate;
 use App\Actions\Slugs\ResolvePublicSlugAction;
 use App\Ai\Listeners\RecordAiUsage;
 use App\Http\Controllers\Mcp\OAuthRegisterController;
@@ -199,7 +198,6 @@ class AppServiceProvider extends ServiceProvider
             'event_submission' => EventSubmission::class,
             'event_settings' => EventSettings::class,
             'contribution_request' => ContributionRequest::class,
-            'affiliate' => Affiliate::class,
             'membership_claim' => MembershipClaim::class,
             'moderation_review' => ModerationReview::class,
             'institution' => Institution::class,
