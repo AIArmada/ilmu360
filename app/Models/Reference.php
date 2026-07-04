@@ -2,20 +2,21 @@
 
 namespace App\Models;
 
+use AIArmada\Contacting\Concerns\HasSocialProfiles;
+use AIArmada\References\Models\Reference as PackageReference;
 use App\Actions\References\GenerateReferenceSlugAction;
 use App\Enums\MemberSubjectType;
 use App\Enums\ReferencePartType;
 use App\Enums\ReferenceType;
+use App\Models\Builders\ReferenceBuilder;
 use App\Models\Concerns\AuditsModelChanges;
 use App\Models\Concerns\HasFollowers;
-use App\Models\Concerns\HasSocialMedia;
+use App\Models\Concerns\HasPackageSocialAliases;
 use BackedEnum;
 use Database\Factories\ReferenceFactory;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -29,10 +30,47 @@ use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
-class Reference extends Model implements AuditableContract, HasMedia
+/**
+ * @property string $id
+ * @property string $title
+ * @property string $slug
+ * @property string|null $author
+ * @property ReferenceType|string|null $type
+ * @property string|null $parent_reference_id
+ * @property string|null $parent_id
+ * @property string|null $part_type
+ * @property int|null $part_number
+ * @property string|null $part_label
+ * @property int|null $publication_year
+ * @property int|null $year
+ * @property string|null $publisher
+ * @property string|null $description
+ * @property bool|null $is_canonical
+ * @property string|null $status
+ * @property bool|null $is_active
+ * @property string|null $url
+ * @property string|null $language
+ * @property array<int, mixed>|null $reference_parts
+ * @property array<string, mixed>|null $metadata
+ */
+class Reference extends PackageReference implements AuditableContract, HasMedia
 {
     /** @use HasFactory<ReferenceFactory> */
-    use AuditsModelChanges, HasFactory, HasFollowers, HasSocialMedia, HasUuids, InteractsWithMedia, KeepsDeletedModels, Searchable;
+    use AuditsModelChanges, HasFactory, HasFollowers, HasPackageSocialAliases, HasSocialProfiles, InteractsWithMedia, KeepsDeletedModels, Searchable;
+
+    #[\Override]
+    protected static function newFactory(): ReferenceFactory
+    {
+        return ReferenceFactory::new();
+    }
+
+    protected static function bootHasSlug(): void {}
+
+    #[\Override]
+    public function newEloquentBuilder($query): ReferenceBuilder
+    {
+        return new ReferenceBuilder($query);
+    }
 
     #[\Override]
     protected static function booted(): void
@@ -50,26 +88,79 @@ class Reference extends Model implements AuditableContract, HasMedia
         'title',
         'slug',
         'parent_reference_id',
+        'parent_id',
         'author',
         'type',
         'part_type',
         'part_number',
         'part_label',
         'publication_year',
+        'year',
         'publisher',
         'description',
         'is_canonical',
         'status',
         'is_active',
+        'url',
+        'language',
+        'reference_parts',
+        'metadata',
     ];
 
     #[\Override]
     protected function casts(): array
     {
         return [
-            'is_canonical' => 'boolean',
-            'is_active' => 'boolean',
+            'year' => 'integer',
+            'reference_parts' => 'array',
+            'metadata' => 'array',
         ];
+    }
+
+    #[\Override]
+    public function setAttribute($key, $value): mixed
+    {
+        if ($key === 'publication_year') {
+            return parent::setAttribute('year', $value);
+        }
+
+        if ($key === 'parent_reference_id') {
+            return parent::setAttribute('parent_id', $value);
+        }
+
+        if ($key === 'reference_url') {
+            return parent::setAttribute('url', $value);
+        }
+
+        if (in_array($key, ['part_type', 'part_number', 'part_label', 'is_canonical', 'is_active'], true)) {
+            $this->setMetadataValue($key, $value);
+
+            return $this;
+        }
+
+        return parent::setAttribute($key, $value);
+    }
+
+    #[\Override]
+    public function getAttribute($key): mixed
+    {
+        if ($key === 'publication_year') {
+            return parent::getAttribute('year');
+        }
+
+        if ($key === 'parent_reference_id') {
+            return parent::getAttribute('parent_id');
+        }
+
+        if ($key === 'reference_url') {
+            return parent::getAttribute('url');
+        }
+
+        if (in_array($key, ['part_type', 'part_number', 'part_label', 'is_canonical', 'is_active'], true)) {
+            return $this->metadataValue($key);
+        }
+
+        return parent::getAttribute($key);
     }
 
     /**
@@ -91,7 +182,7 @@ class Reference extends Model implements AuditableContract, HasMedia
         /** @var Collection<int, self> $selectedReferences */
         $selectedReferences = self::query()
             ->whereIn('id', $normalizedReferenceIds->all())
-            ->get(['id', 'parent_reference_id']);
+            ->get(['id', 'parent_id']);
 
         $selectedRootIds = $selectedReferences
             ->filter(static fn (self $reference): bool => blank($reference->parent_reference_id))
@@ -139,7 +230,9 @@ class Reference extends Model implements AuditableContract, HasMedia
     #[Scope]
     protected function active(Builder $query): void
     {
-        $query->where('is_active', true);
+        $query
+            ->where('is_active', true)
+            ->whereIn('status', ['verified', 'pending', 'published']);
     }
 
     /**
@@ -150,7 +243,7 @@ class Reference extends Model implements AuditableContract, HasMedia
     #[Scope]
     protected function root(Builder $query): void
     {
-        $query->whereNull('parent_reference_id');
+        $query->whereNull('parent_id');
     }
 
     /**
@@ -161,7 +254,7 @@ class Reference extends Model implements AuditableContract, HasMedia
     #[Scope]
     protected function part(Builder $query): void
     {
-        $query->whereNotNull('parent_reference_id');
+        $query->whereNotNull('parent_id');
     }
 
     public function shouldBeSearchable(): bool
@@ -196,7 +289,6 @@ class Reference extends Model implements AuditableContract, HasMedia
     protected function makeAllSearchableUsing(Builder $query): Builder
     {
         return $query
-            ->where('references.is_active', true)
             ->whereIn('references.status', ['verified', 'pending']);
     }
 
@@ -280,7 +372,7 @@ class Reference extends Model implements AuditableContract, HasMedia
      */
     public function parentReference(): BelongsTo
     {
-        return $this->belongsTo(self::class, 'parent_reference_id');
+        return $this->belongsTo(self::class, 'parent_id');
     }
 
     /**
@@ -288,9 +380,7 @@ class Reference extends Model implements AuditableContract, HasMedia
      */
     public function childReferences(): HasMany
     {
-        return $this->hasMany(self::class, 'parent_reference_id')
-            ->orderBy('part_type')
-            ->orderBy('part_number')
+        return $this->hasMany(self::class, 'parent_id')
             ->orderBy('title');
     }
 
@@ -328,7 +418,7 @@ class Reference extends Model implements AuditableContract, HasMedia
 
         return self::query()
             ->where('id', $rootId)
-            ->orWhere('parent_reference_id', $rootId)
+            ->orWhere('parent_id', $rootId)
             ->pluck('id')
             ->map(static fn (mixed $id): string => (string) $id)
             ->values()
@@ -447,7 +537,7 @@ class Reference extends Model implements AuditableContract, HasMedia
         }
 
         $this->part_type = (ReferencePartType::tryFrom((string) $this->partTypeValue()) ?? ReferencePartType::Jilid)->value;
-        $this->part_number = $this->nullableTrimmedString($this->part_number);
+        $this->part_number = $this->part_number !== null ? (int) $this->nullableTrimmedString((string) $this->part_number) : null;
         $this->part_label = $this->nullableTrimmedString($this->part_label);
 
         $this->ensureValidParentReference();
@@ -469,7 +559,7 @@ class Reference extends Model implements AuditableContract, HasMedia
 
         $parentReference = self::query()
             ->whereKey($this->parent_reference_id)
-            ->first(['id', 'parent_reference_id', 'type']);
+            ->first(['id', 'parent_id', 'type']);
 
         if (! $parentReference instanceof self) {
             throw ValidationException::withMessages([
@@ -486,6 +576,18 @@ class Reference extends Model implements AuditableContract, HasMedia
 
     private function optionalStringAttribute(string $key): ?string
     {
+        if ($key === 'parent_reference_id') {
+            return $this->normalizeStringValue($this->getAttribute('parent_reference_id'));
+        }
+
+        if ($key === 'publication_year') {
+            return $this->normalizeStringValue($this->getAttribute('publication_year'));
+        }
+
+        if (in_array($key, ['part_type', 'part_number', 'part_label'], true)) {
+            return $this->normalizeStringValue($this->metadataValue($key));
+        }
+
         $attributes = $this->getAttributes();
 
         if (! array_key_exists($key, $attributes)) {
@@ -493,6 +595,35 @@ class Reference extends Model implements AuditableContract, HasMedia
         }
 
         return $this->normalizeStringValue($attributes[$key]);
+    }
+
+    private function setMetadataValue(string $key, mixed $value): void
+    {
+        $metadata = $this->metadata;
+        $metadata = is_array($metadata) ? $metadata : [];
+        $metadata[$key] = $this->metadataSerializableValue($value);
+
+        parent::setAttribute('metadata', $metadata);
+    }
+
+    private function metadataValue(string $key): mixed
+    {
+        $metadata = $this->metadata;
+
+        if (! is_array($metadata) || ! array_key_exists($key, $metadata)) {
+            return null;
+        }
+
+        return $metadata[$key];
+    }
+
+    private function metadataSerializableValue(mixed $value): mixed
+    {
+        if ($value instanceof BackedEnum) {
+            return $value->value;
+        }
+
+        return $value;
     }
 
     private function normalizeStringValue(mixed $value): ?string

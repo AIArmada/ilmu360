@@ -2,9 +2,9 @@
 
 namespace App\Livewire\Pages\Contributions;
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Actions\Contributions\SubmitStagedContributionCreateAction;
 use App\Enums\ContributionSubjectType;
-use App\Forms\SharedFormSchema;
 use App\Forms\SpeakerContributionFormSchema;
 use App\Models\Speaker;
 use App\Models\User;
@@ -32,16 +32,18 @@ class SubmitSpeaker extends Component implements HasActions, HasForms
 
     public function mount(): void
     {
-        $this->contributionForm()->fill([
-            'gender' => 'male',
-            'address' => [
-                'country_id' => SharedFormSchema::preferredPublicCountryId(),
-                'state_id' => null,
-                'district_id' => null,
-                'subdistrict_id' => null,
-                'cascade_reset_guard' => 0,
-            ],
-        ]);
+        OwnerContext::withOwner(null, function (): void {
+            $this->contributionForm()->fill([
+                'gender' => 'male',
+                'address' => [
+                    'country_id' => null,
+                    'admin_area_1_id' => null,
+                    'admin_area_2_id' => null,
+                    'admin_area_3_id' => null,
+                    'cascade_reset_guard' => 0,
+                ],
+            ]);
+        });
     }
 
     public function form(Schema $schema): Schema
@@ -59,37 +61,39 @@ class SubmitSpeaker extends Component implements HasActions, HasForms
 
     public function submit(SubmitStagedContributionCreateAction $submitStagedContributionCreateAction): void
     {
-        $user = auth()->user();
+        OwnerContext::withOwner(null, function () use ($submitStagedContributionCreateAction): void {
+            $user = auth()->user();
 
-        abort_unless($user instanceof User, 403);
+            abort_unless($user instanceof User, 403);
 
-        $submittedName = data_get($this->data, 'name');
-        $displayName = is_string($submittedName) && filled($submittedName)
-            ? Speaker::formatDisplayedName(
-                $submittedName,
-                data_get($this->data, 'honorific'),
-                data_get($this->data, 'pre_nominal'),
-                data_get($this->data, 'post_nominal'),
-            )
-            : null;
+            $submittedName = data_get($this->data, 'name');
+            $displayName = is_string($submittedName) && filled($submittedName)
+                ? Speaker::formatDisplayedName(
+                    $submittedName,
+                    data_get($this->data, 'honorific'),
+                    data_get($this->data, 'pre_nominal'),
+                    data_get($this->data, 'post_nominal'),
+                )
+                : null;
 
-        $submitStagedContributionCreateAction->handle(
-            ContributionSubjectType::Speaker,
-            $this->contributionForm()->getState(),
-            $user,
-            function (Speaker $speaker): void {
-                $this->contributionForm()->model($speaker)->saveRelationships();
-            },
-            'data',
-        );
+            $submitStagedContributionCreateAction->handle(
+                ContributionSubjectType::Speaker,
+                $this->contributionForm()->getState(),
+                $user,
+                function (Speaker $speaker): void {
+                    $this->contributionForm()->model($speaker)->saveRelationships();
+                },
+                'data',
+            );
 
-        if (is_string($displayName) && filled($displayName)) {
-            session()->flash('contribution_submission_name', $displayName);
-        }
+            if (is_string($displayName) && filled($displayName)) {
+                session()->flash('contribution_submission_name', $displayName);
+            }
 
-        $this->redirect(route('contributions.submission-success', [
-            'subjectType' => ContributionSubjectType::Speaker->publicRouteSegment(),
-        ]), navigate: true);
+            $this->redirect(route('contributions.submission-success', [
+                'subjectType' => ContributionSubjectType::Speaker->publicRouteSegment(),
+            ]), navigate: true);
+        });
     }
 
     protected function contributionForm(): Schema

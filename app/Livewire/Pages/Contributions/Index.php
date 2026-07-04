@@ -25,6 +25,8 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema as SchemaFacade;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -112,13 +114,21 @@ class Index extends Component implements HasForms
         $user = auth()->user();
 
         return EventSubmission::query()
-            ->where('submitted_by', $user->id)
+            ->where('submitter_id', $user->id)
             ->whereHas('event', function (Builder $query) use ($user): void {
-                $query->where(function (Builder $eventQuery) use ($user): void {
-                    $eventQuery->whereNull('institution_id')
-                        ->orWhereDoesntHave('institution.members', function (Builder $memberQuery) use ($user): void {
-                            $memberQuery->where('users.id', $user->getKey());
-                        });
+                $institutionIdSelector = $this->eventInstitutionIdSelector();
+
+                $query->where(function (Builder $eventQuery) use ($institutionIdSelector, $user): void {
+                    $eventQuery->whereRaw("{$institutionIdSelector} is null")
+                        ->orWhereRaw(
+                            "not exists (
+                                select 1
+                                from institution_user
+                                where institution_user.institution_id = {$institutionIdSelector}
+                                  and institution_user.user_id = ?
+                            )",
+                            [$user->getKey()],
+                        );
                 });
             })
             ->with([
@@ -259,7 +269,7 @@ class Index extends Component implements HasForms
                 ->where('status', 'verified')
                 ->where('is_active', true)
                 ->tap(fn (Builder $query): Builder => filled($search) ? $query->searchNameOrNickname($search) : $query)
-                ->with(['address.state', 'address.district', 'address.subdistrict'])
+                ->with(['addresses'])
                 ->orderBy('name')
                 ->limit(50)
                 ->get(['id', 'slug', 'name', 'nickname'])
@@ -328,9 +338,27 @@ class Index extends Component implements HasForms
         return $normalized !== '' ? $normalized : null;
     }
 
+    private function eventInstitutionIdSelector(): string
+    {
+        $metadataSelector = match (DB::connection()->getDriverName()) {
+            'pgsql' => "(events.metadata->>'institution_id')::uuid",
+            'mysql', 'mariadb' => "json_unquote(json_extract(events.metadata, '$.\"institution_id\"'))",
+            default => "json_extract(events.metadata, '$.\"institution_id\"')",
+        };
+
+        if (! SchemaFacade::hasColumn('events', 'institution_id')) {
+            return $metadataSelector;
+        }
+
+        return match (DB::connection()->getDriverName()) {
+            'pgsql' => "coalesce(events.institution_id, {$metadataSelector})",
+            default => "coalesce(events.institution_id, {$metadataSelector})",
+        };
+    }
+
     private function institutionMembershipClaimLabel(Institution $institution): string
     {
-        $location = AddressHierarchyFormatter::format($institution->address);
+        $location = AddressHierarchyFormatter::format($institution->addressModel);
 
         if ($location === '') {
             return $institution->display_name;
@@ -345,7 +373,7 @@ class Index extends Component implements HasForms
             ->where('status', 'verified')
             ->where('is_active', true)
             ->where('slug', $subjectSlug)
-            ->with(['address.state', 'address.district', 'address.subdistrict'])
+            ->with(['addresses'])
             ->first(['id', 'name', 'nickname']);
 
         if (! $institution instanceof Institution) {

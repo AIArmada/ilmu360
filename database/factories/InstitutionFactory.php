@@ -2,10 +2,12 @@
 
 namespace Database\Factories;
 
-use App\Enums\ContactCategory;
-use App\Enums\ContactType;
+use AIArmada\Addressing\Models\Address;
+use AIArmada\Addressing\Models\AddressCountry;
+use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Contacting\Enums\ContactMethodType;
+use AIArmada\Contacting\Enums\ContactPurpose;
 use App\Models\Institution;
-use Database\Factories\Concerns\EnsuresMalaysiaCountry;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
@@ -14,8 +16,6 @@ use Illuminate\Support\Str;
  */
 class InstitutionFactory extends Factory
 {
-    use EnsuresMalaysiaCountry;
-
     /**
      * Define the model's default state.
      *
@@ -121,30 +121,39 @@ class InstitutionFactory extends Factory
     public function configure(): static
     {
         return $this->afterCreating(function (Institution $institution) {
-            $malaysia = $this->ensureMalaysiaCountry();
+            OwnerContext::withOwner(null, function () use ($institution): void {
+                $country = AddressCountry::query()->firstOrCreate(
+                    ['iso2' => 'MY'],
+                    ['name' => 'Malaysia', 'iso3' => 'MYS', 'entity_type' => 'country', 'region' => 'Asia', 'subregion' => 'South-Eastern Asia', 'timezones' => ['Asia/Kuala_Lumpur'], 'phone_code' => '60'],
+                );
+                $address = Address::create([
+                    'country_id' => (string) $country->getKey(),
+                    'country_code' => 'MY',
+                    'line1' => fake()->streetAddress(),
+                    'line2' => fake()->optional()->words(2, true),
+                    'postcode' => fake()->postcode(),
+                    'city' => fake()->city(),
+                    // @phpstan-ignore-next-line Faker dynamic provider method
+                    'state' => fake()->state(),
+                    'latitude' => fake()->randomFloat(7, 1.0, 7.0),
+                    'longitude' => fake()->randomFloat(7, 99.0, 119.0),
+                ]);
+                $institution->attachAddress($address, 'primary', true);
 
-            $institution->address()->create([
-                'line1' => fake()->streetAddress(),
-                'line2' => fake()->optional()->words(2, true),
-                'postcode' => fake()->postcode(),
-                'country_id' => (int) $malaysia->getKey(),
-                'lat' => fake()->randomFloat(7, 1.0, 7.0),
-                'lng' => fake()->randomFloat(7, 99.0, 119.0),
-            ]);
+                $institution->contactMethods()->create([
+                    'type' => ContactMethodType::Email->value,
+                    'value' => fake()->safeEmail(),
+                    'purpose' => ContactPurpose::General->value,
+                ]);
 
-            $institution->contacts()->create([
-                'category' => ContactCategory::Email->value,
-                'value' => fake()->safeEmail(),
-                'type' => ContactType::Work->value,
-            ]);
+                $institution->contactMethods()->create([
+                    'type' => ContactMethodType::Phone->value,
+                    'value' => fake()->phoneNumber(),
+                    'purpose' => ContactPurpose::General->value,
+                ]);
 
-            $institution->contacts()->create([
-                'category' => ContactCategory::Phone->value,
-                'value' => fake()->phoneNumber(),
-                'type' => ContactType::Work->value,
-            ]);
-
-            $institution->refresh();
+                $institution->refresh();
+            });
         });
     }
 }

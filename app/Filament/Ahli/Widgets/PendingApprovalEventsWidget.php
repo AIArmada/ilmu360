@@ -2,6 +2,7 @@
 
 namespace App\Filament\Ahli\Widgets;
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Filament\Ahli\Resources\Events\EventResource;
 use App\Models\Event;
 use App\Models\EventSubmission;
@@ -19,6 +20,11 @@ use Illuminate\Database\Eloquent\Builder;
 class PendingApprovalEventsWidget extends TableWidget
 {
     protected static bool $isLazy = false;
+
+    public function boot(): void
+    {
+        OwnerContext::setForRequest(null);
+    }
 
     protected static ?int $sort = 1;
 
@@ -79,9 +85,8 @@ class PendingApprovalEventsWidget extends TableWidget
         /** @var Builder<Event> $query */
         $query = Event::query()
             ->with([
-                'organizer',
+                'primaryOrganizerInvolvement.involveable',
                 'institution',
-                'submissions.contacts',
                 'submissions.submitter',
             ])
             ->where('status', 'pending')
@@ -92,22 +97,21 @@ class PendingApprovalEventsWidget extends TableWidget
         }
 
         return $query->where(function (Builder $eventQuery) use ($user): void {
-            $eventQuery->orWhere(function (Builder $institutionOrganizerQuery) use ($user): void {
-                $institutionOrganizerQuery
-                    ->whereIn('events.organizer_type', [Institution::class, 'institution'])
-                    ->whereIn(
-                        'events.organizer_id',
-                        $user->institutions()->select('institutions.id')
-                    );
-            });
-
-            $eventQuery->orWhere(function (Builder $speakerOrganizerQuery) use ($user): void {
-                $speakerOrganizerQuery
-                    ->whereIn('events.organizer_type', [Speaker::class, 'speaker'])
-                    ->whereIn(
-                        'events.organizer_id',
-                        $user->speakers()->select('speakers.id')
-                    );
+            $eventQuery->orWhere(function (Builder $involvementOrganizerQuery) use ($user): void {
+                $involvementOrganizerQuery->whereHas('involvements', function (Builder $involvementQuery) use ($user): void {
+                    $involvementQuery
+                        ->where('role_code', 'organizer')
+                        ->where('is_primary', true)
+                        ->where(function (Builder $q) use ($user): void {
+                            $q->where(function (Builder $instQuery) use ($user): void {
+                                $instQuery->whereIn('involveable_type', [Institution::class, 'institution'])
+                                    ->whereIn('involveable_id', $user->institutions()->select('institutions.id'));
+                            })->orWhere(function (Builder $spkQuery) use ($user): void {
+                                $spkQuery->whereIn('involveable_type', [Speaker::class, 'speaker'])
+                                    ->whereIn('involveable_id', $user->speakers()->select('speakers.id'));
+                            });
+                        });
+                });
             });
 
             $eventQuery->orWhere(function (Builder $institutionLinkedQuery) use ($user): void {

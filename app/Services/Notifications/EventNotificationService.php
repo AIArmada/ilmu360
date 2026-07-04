@@ -350,7 +350,7 @@ class EventNotificationService
 
     public function notifyRegistrationConfirmed(Registration $registration): void
     {
-        $user = $registration->user;
+        $user = $registration->registrant;
         $event = $registration->event;
 
         if (! $user instanceof User || ! $event instanceof Event) {
@@ -436,7 +436,7 @@ class EventNotificationService
      */
     protected function changeAnnouncementRecipients(Event $event): Collection
     {
-        $event->loadMissing(['institution', 'organizer', 'speakers']);
+        $event->loadMissing(['institution', 'primaryOrganizerInvolvement.involveable', 'speakers']);
 
         $recipients = collect()
             ->merge($this->trackedUsers($event))
@@ -481,10 +481,10 @@ class EventNotificationService
     {
         $registrations = Registration::query()
             ->where('event_id', $event->id)
-            ->where('status', '!=', 'cancelled')
-            ->with('user')
+            ->active()
+            ->with('registrant')
             ->get()
-            ->pluck('user');
+            ->pluck('registrant');
 
         return collect()
             ->merge($event->savedBy()->get())
@@ -502,10 +502,10 @@ class EventNotificationService
     {
         return Registration::query()
             ->where('event_id', $event->id)
-            ->where('status', '!=', 'cancelled')
-            ->with('user')
+            ->active()
+            ->with('registrant')
             ->get()
-            ->pluck('user')
+            ->pluck('registrant')
             ->filter(fn (mixed $user): bool => $user instanceof User)
             ->unique('id')
             ->values();

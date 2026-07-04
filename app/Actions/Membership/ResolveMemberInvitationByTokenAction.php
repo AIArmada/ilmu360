@@ -11,9 +11,17 @@ final class ResolveMemberInvitationByTokenAction
 
     public function handle(string $token): MemberInvitation
     {
+        $storedToken = MemberInvitation::tokenForStorage($token);
+
         return MemberInvitation::query()
             ->with(['inviter', 'acceptedBy', 'revokedBy'])
-            ->where('token', $token)
+            ->where(function ($query) use ($storedToken, $token): void {
+                $query->where('token', $storedToken);
+
+                if ($storedToken !== $token) {
+                    $query->orWhere('token', $token);
+                }
+            })
             ->firstOrFail();
     }
 }

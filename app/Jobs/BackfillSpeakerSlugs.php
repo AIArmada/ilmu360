@@ -27,7 +27,7 @@ class BackfillSpeakerSlugs implements ShouldBeUnique, ShouldQueue
 
         Speaker::query()
             ->with([
-                'address.country',
+                'addresses.country',
             ])
             ->orderBy('name')
             ->orderBy('id')

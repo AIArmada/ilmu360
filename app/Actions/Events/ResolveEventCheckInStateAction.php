@@ -76,7 +76,7 @@ final class ResolveEventCheckInStateAction
             ];
         }
 
-        $registrationRequired = (bool) data_get($event, 'settings.registration_required', false);
+        $registrationRequired = (bool) data_get($event, 'accessPolicy.registration_required', false);
 
         if (! $registrationRequired) {
             return [
@@ -90,8 +90,8 @@ final class ResolveEventCheckInStateAction
         /** @var Registration|null $registration */
         $registration = Registration::query()
             ->where('event_id', $event->id)
-            ->where('user_id', $user->id)
-            ->where('status', '!=', 'cancelled')
+            ->forUser($user)
+            ->active()
             ->latest('created_at')
             ->first();
 

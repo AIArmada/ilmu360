@@ -17,6 +17,21 @@ use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
+/**
+ * @property string $id
+ * @property string|null $owner_type
+ * @property string|null $owner_id
+ * @property string $title
+ * @property string $slug
+ * @property string|null $description
+ * @property string|null $series_type
+ * @property string|null $status
+ * @property string|null $visibility
+ * @property bool|null $is_dynamic
+ * @property array<string, mixed>|null $dynamic_rule_json
+ * @property array<string, mixed>|null $metadata
+ * @property bool $is_active
+ */
 class Series extends Model implements AuditableContract, HasMedia
 {
     /** @use HasFactory<SeriesFactory> */
@@ -30,10 +45,24 @@ class Series extends Model implements AuditableContract, HasMedia
      * @var list<string>
      */
     protected $fillable = [
+        'owner_type',
+        'owner_id',
         'title',
         'slug',
         'description',
+        'series_type',
+        'status',
         'visibility',
+        'is_dynamic',
+        'dynamic_rule_json',
+        'metadata',
+        'is_active',
+    ];
+
+    /**
+     * @var list<string>
+     */
+    protected $appends = [
         'is_active',
     ];
 
@@ -41,8 +70,41 @@ class Series extends Model implements AuditableContract, HasMedia
     protected function casts(): array
     {
         return [
-            'is_active' => 'boolean',
+            'is_dynamic' => 'boolean',
+            'dynamic_rule_json' => 'array',
+            'metadata' => 'array',
         ];
+    }
+
+    #[\Override]
+    public function getTable(): string
+    {
+        return config('events.database.tables.event_series', 'event_series');
+    }
+
+    #[\Override]
+    public function setAttribute($key, $value): mixed
+    {
+        if ($key === 'is_active') {
+            return parent::setAttribute('status', $value ? 'active' : 'inactive');
+        }
+
+        return parent::setAttribute($key, $value);
+    }
+
+    #[\Override]
+    public function getAttribute($key): mixed
+    {
+        if ($key === 'is_active') {
+            return $this->isActiveFromAttributes();
+        }
+
+        return parent::getAttribute($key);
+    }
+
+    public function getIsActiveAttribute(): bool
+    {
+        return $this->isActiveFromAttributes();
     }
 
     /**
@@ -50,11 +112,18 @@ class Series extends Model implements AuditableContract, HasMedia
      */
     public function events(): BelongsToMany
     {
-        return $this->belongsToMany(Event::class, 'event_series')
+        return $this->belongsToMany(
+            Event::class,
+            config('events.database.tables.event_series_items', 'event_series_items'),
+            'event_series_id',
+            'event_id',
+        )
             ->using(EventSeries::class)
-            ->withPivot('id', 'order_column')
+            ->withPivot('id', 'seriesable_type', 'seriesable_id', 'sort_order')
+            ->wherePivot('seriesable_type', Event::class)
+            ->withPivotValue('seriesable_type', Event::class)
             ->withTimestamps()
-            ->orderByPivot('order_column');
+            ->orderByPivot('sort_order');
     }
 
     /**
@@ -93,6 +162,11 @@ class Series extends Model implements AuditableContract, HasMedia
     #[Scope]
     protected function active(Builder $query): void
     {
-        $query->where('is_active', true);
+        $query->where('status', 'active');
+    }
+
+    private function isActiveFromAttributes(): bool
+    {
+        return ($this->attributes['status'] ?? null) === 'active';
     }
 }

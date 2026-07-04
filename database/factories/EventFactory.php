@@ -2,6 +2,8 @@
 
 namespace Database\Factories;
 
+use AIArmada\Events\Enums\RegistrationMode as PackageRegistrationMode;
+use AIArmada\Events\Database\Factories\EventFactory as PackageEventFactory;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
@@ -13,15 +15,13 @@ use App\Enums\PrayerReference;
 use App\Enums\TimingMode;
 use App\Models\Event;
 use App\Models\Institution;
-use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
-/**
- * @extends Factory<Event>
- */
-class EventFactory extends Factory
+class EventFactory extends PackageEventFactory
 {
+    protected $model = Event::class;
+
     /**
      * Define the model's default state.
      *
@@ -178,13 +178,18 @@ class EventFactory extends Factory
             if (
                 $event->eventStructure() !== EventStructure::ParentProgram
                 && fake()->boolean(30)
-                && ! $event->settings()->exists()
+                && ! $event->accessPolicy()->exists()
             ) {
-                $event->settings()->create([
+                $event->forceFill([
+                    'registration_mode' => PackageRegistrationMode::Required->value,
+                ])->save();
+
+                $event->accessPolicy()->create([
                     'registration_required' => true,
                     'capacity' => fake()->numberBetween(30, 300),
-                    'registration_opens_at' => $event->starts_at->copy()->subDays(7),
-                    'registration_closes_at' => $event->starts_at->copy()->subDays(1),
+                    'walk_in_allowed' => false,
+                    'opens_at' => $event->starts_at->copy()->subDays(7),
+                    'closes_at' => $event->starts_at->copy()->subDays(1),
                 ]);
             }
         });

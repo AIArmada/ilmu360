@@ -2,8 +2,8 @@
 
 namespace App\Support\Authz;
 
+use AIArmada\CommerceSupport\Models\Role;
 use AIArmada\FilamentAuthz\Facades\Authz;
-use AIArmada\FilamentAuthz\Models\Role;
 use App\Enums\MemberSubjectType;
 use App\Models\User;
 use Illuminate\Support\Arr;

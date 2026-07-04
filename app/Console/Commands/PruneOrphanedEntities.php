@@ -50,11 +50,13 @@ class PruneOrphanedEntities extends Command
             Institution::query()
                 ->where('status', 'pending')
                 ->where('created_at', '<', $threshold)
-                ->whereDoesntHave('events')
                 ->whereNotIn('id', function ($query) {
-                    $query->select('organizer_id')
-                        ->from('events')
-                        ->where('organizer_type', Institution::class);
+                    $involvementsTable = config('events.database.tables.event_involvements', 'event_involvements');
+                    $query->select('involveable_id')
+                        ->from($involvementsTable)
+                        ->where('involveable_type', Institution::class)
+                        ->where('role_code', 'organizer')
+                        ->where('is_primary', true);
                 }),
             $dryRun,
         );

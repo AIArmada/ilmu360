@@ -32,7 +32,7 @@ class CatalogController extends Controller
         ]);
     }
 
-    #[QueryParameter('country_id', 'Optional country filter required by dependent state selectors.', required: false, type: 'integer', infer: false, example: 132)]
+    #[QueryParameter('country_id', 'Optional package country UUID required by dependent first-level address-area selectors.', required: false, type: 'string', infer: false)]
     #[Endpoint(
         title: 'List admin states catalog',
         description: 'Returns state options for an admin write flow. '
@@ -41,11 +41,11 @@ class CatalogController extends Controller
     public function states(Request $request): JsonResponse
     {
         return response()->json([
-            'data' => $this->catalogs->states($request->filled('country_id') ? $request->integer('country_id') : null),
+            'data' => $this->catalogs->states($request->filled('country_id') ? $request->string('country_id')->toString() : null),
         ]);
     }
 
-    #[QueryParameter('state_id', 'Optional state filter required by dependent district selectors.', required: false, type: 'integer', infer: false, example: 14)]
+    #[QueryParameter('admin_area_1_id', 'Optional package first-level address-area UUID required by dependent second-level selectors.', required: false, type: 'string', infer: false)]
     #[Endpoint(
         title: 'List admin districts catalog',
         description: 'Returns district options for an admin write flow. '
@@ -54,12 +54,16 @@ class CatalogController extends Controller
     public function districts(Request $request): JsonResponse
     {
         return response()->json([
-            'data' => $this->catalogs->districts($request->filled('state_id') ? $request->integer('state_id') : null),
+            'data' => $this->catalogs->districts(
+                $request->filled('admin_area_1_id')
+                    ? $request->string('admin_area_1_id')->toString()
+                    : ($request->filled('state_id') ? $request->string('state_id')->toString() : null),
+            ),
         ]);
     }
 
-    #[QueryParameter('state_id', 'Optional state filter used when the target state is a federal territory.', required: false, type: 'integer', infer: false, example: 16)]
-    #[QueryParameter('district_id', 'Optional district filter used for regular state or district scoped subdistrict lookups.', required: false, type: 'integer', infer: false, example: 103)]
+    #[QueryParameter('admin_area_1_id', 'Optional package first-level address-area UUID.', required: false, type: 'string', infer: false)]
+    #[QueryParameter('admin_area_2_id', 'Optional package second-level address-area UUID.', required: false, type: 'string', infer: false)]
     #[Endpoint(
         title: 'List admin subdistricts catalog',
         description: 'Returns subdistrict options for an admin write flow. '
@@ -69,8 +73,12 @@ class CatalogController extends Controller
     {
         return response()->json([
             'data' => $this->catalogs->subdistricts(
-                $request->filled('state_id') ? $request->integer('state_id') : null,
-                $request->filled('district_id') ? $request->integer('district_id') : null,
+                $request->filled('admin_area_1_id')
+                    ? $request->string('admin_area_1_id')->toString()
+                    : ($request->filled('state_id') ? $request->string('state_id')->toString() : null),
+                $request->filled('admin_area_2_id')
+                    ? $request->string('admin_area_2_id')->toString()
+                    : ($request->filled('district_id') ? $request->string('district_id')->toString() : null),
             ),
         ]);
     }

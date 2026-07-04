@@ -1,5 +1,9 @@
 <?php
 
+use AIArmada\Addressing\Models\Address;
+use AIArmada\Addressing\Models\AddressArea;
+use AIArmada\Addressing\Models\AddressCountry;
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Signals\Models\TrackedProperty;
 use App\Support\Cache\PublicListingsCache;
 use App\Support\Signals\ProductSignalsSurfaceResolver;
@@ -15,6 +19,7 @@ use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\ParallelTesting;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
 /*
@@ -32,6 +37,10 @@ pest()->extend(TestCase::class)
     ->use(RefreshDatabase::class)
     ->beforeEach(function () {
         PreventRequestForgery::except('*');
+
+        setPermissionsTeamId(null);
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+        OwnerContext::setForRequest(null);
 
         $compiledViewPath = storage_path('framework/views/testing_'.ParallelTesting::token());
 
@@ -147,6 +156,70 @@ expect()->extend('toBeOne', fn () => $this->toBe(1));
 function something()
 {
     // ..
+}
+
+/**
+ * @template TReturn
+ *
+ * @param  callable(): TReturn  $callback
+ * @return TReturn
+ */
+function withGlobalOwnerContext(callable $callback): mixed
+{
+    return OwnerContext::withOwner(null, $callback);
+}
+
+/**
+ * @param  array<string, mixed>  $attributes
+ */
+function syncPrimaryAddressForTest(mixed $model, array $attributes): Address
+{
+    if (! method_exists($model, 'primaryAddress') || ! method_exists($model, 'attachAddress')) {
+        throw new InvalidArgumentException('Model does not support primary-address syncing in tests.');
+    }
+
+    $normalizedAttributes = normalizeTestAddressAttributes($attributes);
+
+    /** @var Address|null $existingAddress */
+    $existingAddress = $model->primaryAddress();
+
+    if ($existingAddress instanceof Address) {
+        $existingAddress->fill($normalizedAttributes)->save();
+        $model->refresh();
+
+        return $existingAddress->fresh() ?? $existingAddress;
+    }
+
+    $address = Address::query()->create($normalizedAttributes);
+
+    $model->attachAddress($address, type: 'primary', isPrimary: true);
+    $model->refresh();
+
+    return $address;
+}
+
+/**
+ * @param  array<string, mixed>  $attributes
+ * @return array<string, mixed>
+ */
+function normalizeTestAddressAttributes(array $attributes): array
+{
+    $normalized = $attributes;
+
+    foreach ([
+        'state_id' => 'admin_area_1_id',
+        'district_id' => 'admin_area_2_id',
+        'subdistrict_id' => 'admin_area_3_id',
+        'city_id' => 'admin_area_4_id',
+    ] as $legacyKey => $packageKey) {
+        if (! array_key_exists($packageKey, $normalized) && array_key_exists($legacyKey, $normalized)) {
+            $normalized[$packageKey] = $normalized[$legacyKey];
+        }
+
+        unset($normalized[$legacyKey]);
+    }
+
+    return $normalized;
 }
 
 function fakeGeneratedImageUpload(string $name = 'image.png', int $width = 1200, int $height = 800): UploadedFile
@@ -266,4 +339,78 @@ function setSubmitEventFormState(mixed $component, array $state): mixed
     }
 
     return $component;
+}
+
+function ensureTestAddressCountry(
+    string $iso2,
+    string $name,
+    ?string $iso3 = null,
+    array $timezones = ['UTC'],
+    ?string $phoneCode = null,
+): AddressCountry {
+    $iso2 = strtoupper($iso2);
+
+    /** @var AddressCountry|null $country */
+    $country = AddressCountry::query()->where('iso2', $iso2)->first();
+
+    if ($country instanceof AddressCountry) {
+        return $country;
+    }
+
+    return AddressCountry::query()->create([
+        'entity_type' => 'country',
+        'name' => $name,
+        'iso2' => $iso2,
+        'iso3' => $iso3,
+        'phone_code' => $phoneCode,
+        'region' => 'Asia',
+        'subregion' => 'South-Eastern Asia',
+        'timezones' => $timezones,
+    ]);
+}
+
+function ensureTestMalaysiaCountry(): AddressCountry
+{
+    return ensureTestAddressCountry(
+        iso2: 'MY',
+        name: 'Malaysia',
+        iso3: 'MYS',
+        timezones: ['Asia/Kuala_Lumpur'],
+        phoneCode: '60',
+    );
+}
+
+function testMalaysiaCountryId(): string
+{
+    return (string) ensureTestMalaysiaCountry()->getKey();
+}
+
+function createTestAddressArea(
+    string $name,
+    int $level,
+    ?AddressArea $parent = null,
+    ?AddressCountry $country = null,
+    ?string $type = null,
+): AddressArea {
+    $country ??= ensureTestMalaysiaCountry();
+    $type ??= match ($level) {
+        1 => 'state',
+        2 => 'district',
+        3 => 'subdistrict',
+        4 => 'locality',
+        default => 'area',
+    };
+
+    return AddressArea::query()->create([
+        'country_id' => (string) $country->getKey(),
+        'parent_id' => $parent?->getKey(),
+        'country_code' => $country->iso2,
+        'type' => $type,
+        'level' => $level,
+        'name' => $name,
+        'slug' => Str::slug($name.'-'.$type.'-'.Str::lower(Str::random(6))),
+        'source' => 'tests',
+        'source_id' => (string) Str::ulid(),
+        'parent_source_id' => $parent?->source_id,
+    ]);
 }

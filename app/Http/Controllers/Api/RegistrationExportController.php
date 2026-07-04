@@ -4,11 +4,13 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Event;
+use App\Models\Registration;
+use App\Models\User;
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use OwenIt\Auditing\Models\Audit;
@@ -37,20 +39,14 @@ class RegistrationExportController extends Controller
             ], 403);
         }
 
-        $registrationsQuery = DB::table('registrations')
-            ->where('registrations.event_id', $event->id)
-            ->leftJoin('users', 'users.id', '=', 'registrations.user_id')
-            ->orderBy('registrations.created_at')
-            ->select([
-                'registrations.id',
-                'registrations.name',
-                'registrations.email',
-                'registrations.phone',
-                'registrations.status',
-                'registrations.created_at',
-                'users.name as user_name',
-                'users.email as user_email',
-            ]);
+        $registrationsQuery = Registration::query()
+            ->where('event_id', $event->id)
+            ->active()
+            ->with([
+                'registrant',
+                'primaryParticipant.contactMethods',
+            ])
+            ->orderBy('created_at');
 
         // Log the export action using Laravel Auditing (per B9d)
         Audit::create([
@@ -62,7 +58,7 @@ class RegistrationExportController extends Controller
             'auditable_id' => $event->id,
             'old_values' => [],
             'new_values' => [
-                'count' => (clone $registrationsQuery)->count('registrations.id'),
+                'count' => (clone $registrationsQuery)->count(),
                 'exported_at' => now()->toIso8601String(),
             ],
             'url' => $request->fullUrl(),
@@ -73,34 +69,44 @@ class RegistrationExportController extends Controller
         $filename = "registrations-{$event->slug}-".now()->format('Ymd-His').'.csv';
 
         return response()->streamDownload(function () use ($registrationsQuery) {
-            $handle = fopen('php://output', 'w');
+            OwnerContext::withOwner(null, function () use ($registrationsQuery): void {
+                $handle = fopen('php://output', 'w');
 
-            // Header row
-            fputcsv($handle, [
-                'Registration ID',
-                'Name',
-                'Email',
-                'Phone',
-                'Status',
-                'Registered At',
-            ],
-                escape: '\\');
-
-            foreach ($registrationsQuery->cursor() as $registration) {
+                // Header row
                 fputcsv($handle, [
-                    $registration->id,
-                    $registration->name ?? $registration->user_name,
-                    $registration->email ?? $registration->user_email,
-                    $registration->phone,
-                    $registration->status,
-                    $registration->created_at instanceof \DateTimeInterface
-                        ? $registration->created_at->format(\DateTimeInterface::ATOM)
-                        : (string) $registration->created_at,
+                    'Registration ID',
+                    'Name',
+                    'Email',
+                    'Phone',
+                    'Status',
+                    'Registered At',
                 ],
                     escape: '\\');
-            }
 
-            fclose($handle);
+                foreach ($registrationsQuery->cursor() as $registration) {
+                    if (! $registration instanceof Registration) {
+                        continue;
+                    }
+
+                    $registrant = $registration->registrant;
+                    $registrantName = $registrant instanceof User ? $registrant->name : null;
+                    $registrantEmail = $registrant instanceof User ? $registrant->email : null;
+
+                    fputcsv($handle, [
+                        $registration->id,
+                        $registration->resolvedName() ?? $registrantName,
+                        $registration->resolvedEmail() ?? $registrantEmail,
+                        $registration->resolvedPhone(),
+                        $registration->statusValue(),
+                        $registration->registered_at?->toIso8601String()
+                            ?? $registration->created_at?->toIso8601String()
+                            ?? '',
+                    ],
+                        escape: '\\');
+                }
+
+                fclose($handle);
+            });
         }, $filename, [
             'Content-Type' => 'text/csv',
         ]);

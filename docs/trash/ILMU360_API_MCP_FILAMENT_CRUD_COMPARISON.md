@@ -1,6 +1,6 @@
 ---
 title: API / MCP / Filament Capability Matrix
-verified_at: 2026-05-03
+verified_at: 2026-07-01
 purpose: Canonical parity map for public workflow API, generic admin HTTP API, admin/member MCP, and the Filament admin/Ahli panels.
 machine_readable_companion: docs/ilmu360_api_mcp_filament_crud_comparison.json
 ---
@@ -156,8 +156,10 @@ Use **curated parity**, not full symmetry at any cost.
 	- `replicate`
 	- `reorder`
 - Keep these resource groups out of parity expansion by default:
-	- geography base tables: `countries`, `states`, `districts`
-	- system and vendor surfaces: `ai-model-pricings`, `ai-usage-logs`, `audits`, `users`, `slug-redirects`, `roles`, `permissions`, `tracked-properties`, `signal-goals`, `signal-segments`, `saved-signal-reports`, `signal-alert-rules`, `signal-alert-logs`
+	- geography reference catalogs: `address-countries`
+	- engagement read models: `bookmark-collections`, `bookmarks`, `follows`, `reactions`, `reminders`, `responses`, `subscriptions`
+	- communications operations: `communications`, `communication-batches`, `communication-deliveries`, `communication-preferences`, `communication-suppressions`, `communication-templates`, `communication-threads`
+	- system and admin ops: `ai-model-pricings`, `ai-usage-logs`, `audits`, `users`, `slug-redirects`, `roles`, `permissions`, `tracked-properties`, `signal-goals`, `signal-segments`, `signal-interaction-rules`, `saved-signal-reports`, `signal-alert-rules`, `signal-alert-logs`
 - Every parity-affecting change should answer the same checklist in the PR or change description:
 	- Does the admin panel surface change?
 	- Does the admin API surface change?
@@ -167,9 +169,9 @@ Use **curated parity**, not full symmetry at any cost.
 	- Does the public or authenticated workflow API surface change?
 	- If a surface does not change, is the gap intentional and documented?
 
-## Runtime admin resource inventory (30 registered resources)
+## Runtime admin resource inventory (41 registered resources)
 
-This is the runtime admin panel inventory, not just the local `app/Filament/Resources` directory. The generic admin HTTP API and Admin MCP sit on top of this inventory and then filter it per actor.
+This is the runtime admin panel inventory, not just the local `app/Filament/Resources` directory. The generic admin HTTP API and Admin MCP start from this inventory but may append explicit fallback plugin resources such as `address-countries` and `address-areas` when they are enabled outside the cached panel registration.
 
 ### Local app resources
 
@@ -179,8 +181,6 @@ This is the runtime admin panel inventory, not just the local `app/Filament/Reso
 | `ai-usage-logs` | app | `index` | no |
 | `audits` | app | `index`, `view` | no |
 | `contribution-requests` | app | `index`, `view` | no |
-| `countries` | app | `index`, `create`, `edit` | no |
-| `districts` | app | `index`, `create`, `edit` | no |
 | `donation-channels` | app | `index`, `create`, `edit` | yes |
 | `events` | app | `index`, `create`, `view`, `edit` | yes |
 | `inspirations` | app | `index`, `create`, `edit` | yes |
@@ -192,8 +192,6 @@ This is the runtime admin panel inventory, not just the local `app/Filament/Reso
 | `slug-redirects` | app | `index`, `create`, `view`, `edit` | no |
 | `spaces` | app | `index`, `create`, `view`, `edit` | yes |
 | `speakers` | app | `index`, `create`, `view`, `edit` | yes |
-| `states` | app | `index`, `create`, `edit` | no |
-| `subdistricts` | app | `index`, `create`, `edit` | yes |
 | `tags` | app | `index`, `create`, `edit` | yes |
 | `users` | app | `index`, `create`, `view`, `edit` | no |
 | `venues` | app | `index`, `create`, `view`, `edit` | yes |
@@ -204,13 +202,28 @@ These are registered at runtime and therefore part of the admin registry surface
 
 | Resource key | Package family | Pages | Generic admin write |
 | --- | --- | --- | --- |
+| `bookmark-collections` | `aiarmada/filament-engagement` | `index`, `create`, `edit` | no |
+| `bookmarks` | `aiarmada/filament-engagement` | `index`, `view` | no |
+| `communication-batches` | `aiarmada/filament-communications` | `index`, `view` | no |
+| `communication-deliveries` | `aiarmada/filament-communications` | `index`, `view` | no |
+| `communication-preferences` | `aiarmada/filament-communications` | `index`, `view` | no |
+| `communication-suppressions` | `aiarmada/filament-communications` | `index`, `view` | no |
+| `communication-templates` | `aiarmada/filament-communications` | `index`, `view` | no |
+| `communication-threads` | `aiarmada/filament-communications` | `index`, `view` | no |
+| `communications` | `aiarmada/filament-communications` | `index`, `view` | no |
+| `follows` | `aiarmada/filament-engagement` | `index` | no |
 | `permissions` | `aiarmada/filament-authz` | `index`, `create`, `edit` | no |
+| `reactions` | `aiarmada/filament-engagement` | `index`, `view` | no |
+| `reminders` | `aiarmada/filament-engagement` | `index`, `view` | no |
+| `responses` | `aiarmada/filament-engagement` | `index`, `view` | no |
 | `roles` | `aiarmada/filament-authz` | `index`, `create`, `edit` | no |
 | `saved-signal-reports` | `aiarmada/filament-signals` | `index`, `create`, `edit` | no |
 | `signal-alert-logs` | `aiarmada/filament-signals` | `index` | no |
 | `signal-alert-rules` | `aiarmada/filament-signals` | `index`, `create`, `edit` | no |
 | `signal-goals` | `aiarmada/filament-signals` | `index`, `create`, `edit` | no |
+| `signal-interaction-rules` | `aiarmada/filament-signals` | `index`, `create`, `edit` | no |
 | `signal-segments` | `aiarmada/filament-signals` | `index`, `create`, `edit` | no |
+| `subscriptions` | `aiarmada/filament-engagement` | `index`, `view` | no |
 | `tracked-properties` | `aiarmada/filament-signals` | `index`, `create`, `edit` | no |
 
 ### What “generic admin write” means here
@@ -249,28 +262,34 @@ All four Ahli resources are update-capable through Member MCP. None expose gener
 
 These twelve resources are the entire current generic admin write whitelist.
 
+This write whitelist is sourced from the admin registry plus mutation service, so it can include fallback resources that are not present in the cached Filament panel inventory.
+
 > **Legend:** `R` = read/list, `S` = schema, `C` = create, `BC` = batch create, `U` = update, `BU` = batch update, `P` = preview/validate-only, `meta` = resource metadata, `related` = related record traversal.
 
 | Resource | Admin API | Admin MCP | Member MCP | Admin panel pages | Ahli panel pages | Workflow overlap |
 | --- | --- | --- | --- | --- | --- | --- |
+| `address-areas` | `R + meta + related + S + C + BC + U + BU + P` | `R + meta + related + S + C + BC + U + BU + P` | not exposed | not registered | not exposed | public and admin catalog lookups only |
+| `donation-channels` | `R + meta + related + S + C + BC + U + BU + P` | `R + meta + related + S + C + BC + U + BU + P` | not exposed | `index`, `create`, `edit` | not exposed | public institution donation details; event default donation detail |
 | `events` | `R + meta + related + S + C + BC + U + BU + P` | `R + meta + related + S + C + BC + U + BU + P` | `R + related + S + U + P` | `index`, `create`, `view`, `edit` | `index`, `view`, `edit` | public read/search/detail with event-change projections; public submit-event create; authenticated saved/going/check-ins/registrations |
 | `inspirations` | `R + meta + related + S + C + BC + U + BU + P` | `R + meta + related + S + C + BC + U + BU + P` | not exposed | `index`, `create`, `edit` | not exposed | public random inspiration discovery |
 | `institutions` | `R + meta + related + S + C + BC + U + BU + P` | `R + meta + related + S + C + BC + U + BU + P` | `R + related + S + U + P` | `index`, `create`, `view`, `edit` | `edit` | public read/detail; authenticated contribution create/suggest; institution workspace; follows |
-| `speakers` | `R + meta + related + S + C + BC + U + BU + P` | `R + meta + related + S + C + BC + U + BU + P` | `R + related + S + U + P` | `index`, `create`, `view`, `edit` | `index`, `view`, `edit` | public read/detail; authenticated contribution create/suggest; follows |
 | `references` | `R + meta + related + S + C + BC + U + BU + P` | `R + meta + related + S + C + BC + U + BU + P` | `R + related + S + U + P` | `index`, `create`, `edit` | `index`, `edit` | public read/list/detail; authenticated suggest update; follows |
 | `reports` | `R + meta + related + S + C + BC + U + BU + P` | `R + meta + related + S + C + BC + U + BU + P` | not exposed | `index`, `create`, `edit` | not exposed | authenticated report submission; explicit admin report triage |
-| `donation-channels` | `R + meta + related + S + C + BC + U + BU + P` | `R + meta + related + S + C + BC + U + BU + P` | not exposed | `index`, `create`, `edit` | not exposed | public institution donation details; event default donation detail |
 | `series` | `R + meta + related + S + C + BC + U + BU + P` | `R + meta + related + S + C + BC + U + BU + P` | not exposed | `index`, `create`, `edit` | not exposed | public read/detail; authenticated follows; event-series assignment |
 | `spaces` | `R + meta + related + S + C + BC + U + BU + P` | `R + meta + related + S + C + BC + U + BU + P` | not exposed | `index`, `create`, `view`, `edit` | not exposed | public space catalogs; event space assignment |
-| `venues` | `R + meta + related + S + C + BC + U + BU + P` | `R + meta + related + S + C + BC + U + BU + P` | not exposed | `index`, `create`, `view`, `edit` | not exposed | public read/detail plus public venue catalogs |
-| `subdistricts` | `R + meta + related + S + C + BC + U + BU + P` | `R + meta + related + S + C + BC + U + BU + P` | not exposed | `index`, `create`, `edit` | not exposed | public and admin catalog lookups only |
+| `speakers` | `R + meta + related + S + C + BC + U + BU + P` | `R + meta + related + S + C + BC + U + BU + P` | `R + related + S + U + P` | `index`, `create`, `view`, `edit` | `index`, `view`, `edit` | public read/detail; authenticated contribution create/suggest; follows |
 | `tags` | `R + meta + related + S + C + BC + U + BU + P` | `R + meta + related + S + C + BC + U + BU + P` | not exposed | `index`, `create`, `edit` | not exposed | taxonomy and event-tagging management |
+| `venues` | `R + meta + related + S + C + BC + U + BU + P` | `R + meta + related + S + C + BC + U + BU + P` | not exposed | `index`, `create`, `view`, `edit` | not exposed | public read/detail plus public venue catalogs |
 
 ## Read-only generic admin groups
 
 These resources are readable through the generic admin registry, but not writable through the current generic admin HTTP/MCP write path.
 
-- **Geography:** `countries`, `states`, `districts`
+- **Geography:** `address-countries`
+- **Moderation/workflow records:** `membership-claims`, `contribution-requests`
+- **Engagement read models:** `bookmark-collections`, `bookmarks`, `follows`, `reactions`, `reminders`, `responses`, `subscriptions`
+- **Communications operations:** `communications`, `communication-batches`, `communication-deliveries`, `communication-preferences`, `communication-suppressions`, `communication-templates`, `communication-threads`
+- **System/auth/ops:** `ai-model-pricings`, `ai-usage-logs`, `audits`, `users`, `slug-redirects`, `roles`, `permissions`, `tracked-properties`, `signal-goals`, `signal-segments`, `signal-interaction-rules`, `saved-signal-reports`, `signal-alert-rules`, `signal-alert-logs`
 
 ## Explicit admin workflow actions
 
@@ -345,7 +364,7 @@ This is the area where the previous version drifted the most.
 
 - Schema `content_type` is resource-specific:
 	- `multipart/form-data` for media-capable resources such as `events`, `institutions`, `reports`, `speakers`, `references`, and `venues`
-	- `application/json` for `subdistricts`
+	- `application/json` for `address-areas`, `spaces`, and `tags`
 
 ### Admin MCP
 

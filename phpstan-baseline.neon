@@ -4,9 +4,6 @@ parameters:
             message: '#Trait App\\Concerns\\ProfileValidationRules is used zero times#'
             path: app/Concerns/ProfileValidationRules.php
         -
-            message: '#Method Database\\Factories\\.*::configure\(\) should return.*#'
-            path: database/factories/*.php
-        -
             message: '#Method App\\Actions\\Fortify\\.*::passwordRules.*should return#'
             path: app/Concerns/PasswordValidationRules.php
         -

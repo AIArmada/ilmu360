@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Mcp\Tools\Member;
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Models\User;
 use App\Support\Mcp\McpAuthenticatedUserResolver;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -135,7 +136,7 @@ abstract class AbstractMemberTool extends Tool
     protected function safeResponse(callable $callback): ResponseFactory|Response
     {
         try {
-            return $callback();
+            return OwnerContext::withOwner(null, $callback);
         } catch (ValidationException $exception) {
             return $this->errorResponse(
                 ValidationMessages::from($exception),

@@ -2,10 +2,12 @@
 
 namespace Database\Seeders;
 
+use AIArmada\Addressing\Models\AddressArea;
+use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Contacting\Enums\ContactMethodType;
+use AIArmada\Contacting\Enums\ContactPurpose;
 use App\Actions\Events\GenerateEventSlugAction;
 use App\Actions\Speakers\GenerateSpeakerSlugAction;
-use App\Enums\ContactCategory;
-use App\Enums\ContactType;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
@@ -18,15 +20,14 @@ use App\Enums\ScheduleKind;
 use App\Enums\ScheduleState;
 use App\Enums\TagType;
 use App\Enums\TimingMode;
-use App\Models\Country;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Series;
 use App\Models\Speaker;
-use App\Models\State;
 use App\Models\Tag;
 use App\Models\Venue;
 use App\Services\EventKeyPersonSyncService;
+use Database\Seeders\Concerns\SeedsPackageAddresses;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -36,6 +37,8 @@ use Nnjeim\World\Models\Language;
 
 class EventSeeder extends Seeder
 {
+    use SeedsPackageAddresses;
+
     /**
      * @var array<string, string>
      */
@@ -51,23 +54,15 @@ class EventSeeder extends Seeder
      */
     public function run(): void
     {
-        // Temporarily disable the EventObserver to speed up seeding
-        Event::unsetEventDispatcher();
+        $hadEvents = Event::query()->exists();
 
-        try {
-            $hadEvents = Event::query()->exists();
+        $this->seedIlmu360Schedule();
 
-            $this->seedIlmu360Schedule();
-
-            if (! $hadEvents) {
-                $this->seedBulkEvents();
-            }
-
-            $this->backfillSeededEventRequiredFields();
-        } finally {
-            // Re-enable event dispatcher after seeding
-            Event::setEventDispatcher(app('events'));
+        if (! $hadEvents) {
+            $this->seedBulkEvents();
         }
+
+        $this->backfillSeededEventRequiredFields();
     }
 
     private function seedBulkEvents(): void
@@ -140,11 +135,18 @@ class EventSeeder extends Seeder
                 if ($randomSeriesId) {
                     $order = 1;
                     foreach ($events as $event) {
-                        DB::table('event_series')->insert([
+                        DB::table(config('events.database.tables.event_series_items', 'event_series_items'))->insert([
                             'id' => (string) Str::uuid(),
+                            'event_series_id' => $randomSeriesId,
+                            'seriesable_type' => Event::class,
+                            'seriesable_id' => $event->id,
                             'event_id' => $event->id,
-                            'series_id' => $randomSeriesId,
-                            'order_column' => $order++,
+                            'event_occurrence_id' => null,
+                            'event_session_id' => null,
+                            'title_override' => null,
+                            'starts_at' => $event->starts_at,
+                            'sort_order' => $order++,
+                            'metadata' => json_encode(['source' => 'ilmu360_seed']),
                             'created_at' => now(),
                             'updated_at' => now(),
                         ]);
@@ -188,9 +190,7 @@ class EventSeeder extends Seeder
 
     private function seedIlmu360Schedule(): void
     {
-        $malaysia = Country::where('iso2', 'MY')->first();
-        $malaysiaCountryId = $malaysia instanceof Country ? $malaysia->id : 132;
-        $likeOperator = $this->databaseLikeOperator();
+        $malaysia = $this->malaysiaCountry();
 
         $institution = Institution::query()
             ->where('name', 'Masjid Tengku Ampuan Jemaah Bukit Jelutong')
@@ -207,39 +207,27 @@ class EventSeeder extends Seeder
         }
 
         $institution->contacts()->firstOrCreate(
-            ['category' => ContactCategory::Email->value],
-            ['value' => 'mtajbj@gmail.com', 'type' => ContactType::Work->value]
+            ['type' => ContactMethodType::Email->value],
+            ['value' => 'mtajbj@gmail.com', 'purpose' => ContactPurpose::General->value]
         );
 
         $institution->contacts()->firstOrCreate(
-            ['category' => ContactCategory::Phone->value],
-            ['value' => '03-78313641', 'type' => ContactType::Work->value]
+            ['type' => ContactMethodType::Phone->value],
+            ['value' => '03-78313641', 'purpose' => ContactPurpose::General->value]
         );
 
-        if (! $institution->address) {
-            $institution->address()->create([
+        if (! $institution->addressModel) {
+            $state = $this->malaysiaAreaByName('Selangor', 1);
+            $district = $state instanceof AddressArea ? $this->malaysiaAreaByName('Petaling', 2, $state->id) : null;
+
+            $this->seedPrimaryPackageAddress($institution, [
                 'line1' => 'Bukit Jelutong',
-                'lat' => 3.0991666,
-                'lng' => 101.529892,
-                'country_id' => $malaysiaCountryId,
-            ]);
-
-            $state = State::query()
-                ->where('name', $likeOperator, '%selangor%')
-                ->first();
-
-            $district = $state?->districts()
-                ->where('name', $likeOperator, '%petaling%')
-                ->first();
-
-            $city = $state?->cities()
-                ->where('name', $likeOperator, '%shah alam%')
-                ->first();
-
-            $institution->address()->update([
-                'state_id' => $state?->getKey(),
-                'district_id' => $district?->getKey(),
-                'city_id' => $city?->getKey(),
+                'city' => 'Shah Alam',
+                'country_id' => $malaysia?->id,
+                'admin_area_1_id' => $state?->id,
+                'admin_area_2_id' => $district?->id,
+                'latitude' => 3.0991666,
+                'longitude' => 101.529892,
             ]);
         }
 
@@ -252,16 +240,24 @@ class EventSeeder extends Seeder
             $venue = Venue::query()->create([
                 'name' => 'Dewan Solat Utama',
                 'slug' => 'dewan-solat-utama-mtaj',
+                'venue_type' => 'dewan',
+                'status' => 'verified',
+                'visibility' => 'public',
+                'is_active' => true,
             ]);
         }
 
-        if (! $venue->address) {
-            $venue->address()->create([
-                'line1' => $institution->address?->line1,
-                'country_id' => data_get($institution, 'address.country_id', 132),
-                'state_id' => $institution->address?->state_id,
-                'district_id' => $institution->address?->district_id,
-                'city_id' => $institution->address?->city_id,
+        if (! $venue->addressModel) {
+            $institutionAddress = $institution->addressModel;
+
+            $this->seedPrimaryPackageAddress($venue, [
+                'line1' => $institutionAddress?->line1,
+                'city' => $institutionAddress?->city,
+                'country_id' => $institutionAddress->country_id ?? $malaysia?->id,
+                'admin_area_1_id' => $institutionAddress?->admin_area_1_id,
+                'admin_area_2_id' => $institutionAddress?->admin_area_2_id,
+                'latitude' => $institutionAddress?->latitude,
+                'longitude' => $institutionAddress?->longitude,
             ]);
         }
 
@@ -418,8 +414,6 @@ class EventSeeder extends Seeder
 
             $existingScheduleEvent = $this->resolveExistingScheduleEvent($eventAttributes, $entry['speaker'] ?? null);
             $speaker = $this->resolveScheduleSpeaker($entry['speaker'] ?? null, $existingScheduleEvent);
-            $organizerType = $speaker instanceof Speaker ? Speaker::class : Institution::class;
-            $organizerId = $speaker?->getKey() ?? $institution->getKey();
 
             $eventAttributes['slug'] = app(GenerateEventSlugAction::class)->handle(
                 $title,
@@ -430,8 +424,6 @@ class EventSeeder extends Seeder
                     ? [$speaker->slug]
                     : [],
             );
-            $eventAttributes['organizer_type'] = $organizerType;
-            $eventAttributes['organizer_id'] = $organizerId;
 
             $event = $existingScheduleEvent;
 
@@ -441,6 +433,8 @@ class EventSeeder extends Seeder
             } else {
                 $event = Event::query()->create($eventAttributes);
             }
+
+            OwnerContext::withOwner(null, fn () => $event->setPrimaryOrganizer($speaker ?? $institution));
 
             // Attach default language (Malay) if exists
             if (class_exists(Language::class)) {
@@ -467,13 +461,12 @@ class EventSeeder extends Seeder
                 return null;
             }
 
-            $organizerSpeaker = $existingScheduleEvent->organizer_type === Speaker::class
-                ? Speaker::query()->find($existingScheduleEvent->organizer_id)
-                : null;
+            $organizerInvolveable = $existingScheduleEvent->primaryOrganizerInvolvement?->involveable;
+            $organizerSpeaker = $organizerInvolveable instanceof Speaker ? $organizerInvolveable : null;
 
             if ($organizerSpeaker instanceof Speaker && $organizerSpeaker->name === $speakerName) {
                 app(GenerateSpeakerSlugAction::class)->syncSpeakerSlug(
-                    $organizerSpeaker->loadMissing('address.country'),
+                    $organizerSpeaker->loadMissing('addresses.country'),
                 );
                 app(GenerateEventSlugAction::class)->syncEventSlugsForSpeakerId((string) $organizerSpeaker->getKey());
                 $this->scheduleSpeakerIds[$speakerName] = (string) $organizerSpeaker->getKey();
@@ -490,7 +483,7 @@ class EventSeeder extends Seeder
                 && $existingSpeaker->name === $speakerName
             ) {
                 app(GenerateSpeakerSlugAction::class)->syncSpeakerSlug(
-                    $existingSpeaker->loadMissing('address.country'),
+                    $existingSpeaker->loadMissing('addresses.country'),
                 );
                 app(GenerateEventSlugAction::class)->syncEventSlugsForSpeakerId((string) $existingSpeaker->getKey());
                 $this->scheduleSpeakerIds[$speakerName] = (string) $existingSpeaker->getKey();
@@ -535,11 +528,13 @@ class EventSeeder extends Seeder
         $matchingEvents = Event::query()
             ->with(['keyPeople.speaker'])
             ->where('title', $eventAttributes['title'])
-            ->where('starts_at', $eventAttributes['starts_at'])
-            ->where('schedule_kind', $eventAttributes['schedule_kind'])
-            ->where('schedule_state', $eventAttributes['schedule_state'])
+            ->whereHas('occurrences', function ($query) use ($eventAttributes): void {
+                $query->where('starts_at', $eventAttributes['starts_at']);
+            })
             ->orderBy('id')
-            ->get();
+            ->get()
+            ->filter(fn (Event $event): bool => $event->schedule_kind === $eventAttributes['schedule_kind']
+                && $event->schedule_state === $eventAttributes['schedule_state']);
 
         if (is_string($speakerName) && $speakerName !== '') {
             $matchedEvent = $matchingEvents->first(fn (Event $event): bool => $event->keyPeople
@@ -556,11 +551,7 @@ class EventSeeder extends Seeder
             }
 
             $organizerMatchedEvent = $matchingEvents->first(function (Event $event) use ($speakerName): bool {
-                if ($event->organizer_type !== Speaker::class || ! is_string($event->organizer_id) || $event->organizer_id === '') {
-                    return false;
-                }
-
-                $organizerSpeaker = Speaker::query()->find($event->organizer_id);
+                $organizerSpeaker = $event->primaryOrganizerInvolvement?->involveable;
 
                 return $organizerSpeaker instanceof Speaker && $organizerSpeaker->name === $speakerName;
             });
@@ -728,11 +719,6 @@ class EventSeeder extends Seeder
         return $this->tagIdMap[$type->value.':'.$slug] ?? null;
     }
 
-    private function databaseLikeOperator(): string
-    {
-        return DB::connection()->getDriverName() === 'pgsql' ? 'ILIKE' : 'LIKE';
-    }
-
     private function backfillSeededEventRequiredFields(): void
     {
         $defaultDomainTagId = Tag::query()
@@ -754,11 +740,10 @@ class EventSeeder extends Seeder
             ->value('id');
 
         Event::query()
-            ->whereNull('submitter_id')
-            ->whereNull('user_id')
             ->with([
                 'speakers:id',
                 'tags:id,type',
+                'primaryOrganizerInvolvement',
             ])
             ->chunk(200, function (Collection $events) use (
                 $defaultDomainTagId,
@@ -804,15 +789,17 @@ class EventSeeder extends Seeder
                         $updates['space_id'] = null;
                     }
 
-                    if (empty($event->organizer_type) || empty($event->organizer_id)) {
-                        $firstSpeakerId = $event->speakers->first()?->getKey();
+                    if ($event->primaryOrganizerInvolvement === null) {
+                        $firstSpeaker = $event->speakers->first();
 
-                        if (is_string($firstSpeakerId) && $firstSpeakerId !== '') {
-                            $updates['organizer_type'] = Speaker::class;
-                            $updates['organizer_id'] = $firstSpeakerId;
-                        } elseif (! empty($event->institution_id)) {
-                            $updates['organizer_type'] = Institution::class;
-                            $updates['organizer_id'] = $event->institution_id;
+                        $organizer = match (true) {
+                            $firstSpeaker !== null => $firstSpeaker,
+                            ! empty($event->institution_id) => Institution::query()->find($event->institution_id),
+                            default => null,
+                        };
+
+                        if ($organizer !== null) {
+                            OwnerContext::withOwner(null, fn () => $event->setPrimaryOrganizer($organizer));
                         }
                     }
 

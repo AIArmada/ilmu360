@@ -50,8 +50,7 @@ function submitEventTimingFormData(array $fixtures, array $overrides = []): arra
         'gender' => EventGenderRestriction::All->value,
         'age_group' => [EventAgeGroup::AllAges->value],
         'languages' => [101],
-        'organizer_type' => 'institution',
-        'organizer_institution_id' => $fixtures['institution']->id,
+        'primary_organizer_id' => $fixtures['institution']->id,
         'speakers' => [$fixtures['speaker']->id],
         'submitter_name' => 'Test User',
         'submitter_email' => 'test@example.com',
@@ -74,7 +73,7 @@ it('can submit event with custom prayer time (lain_waktu)', function () {
         ->assertRedirect(route('submit-event.success'));
 
     $event = Event::where('title', 'Custom Time Event')->firstOrFail();
-    expect($event->timing_mode)->toBe(TimingMode::Absolute);
+    expect($event->timing_mode)->toBe(TimingMode::Absolute->value);
 });
 
 it('requires custom_time when prayer_time is lain_waktu', function () {
@@ -108,8 +107,8 @@ it('saves timing mode as prayer_relative when using prayer time', function () {
         ->assertRedirect(route('submit-event.success'));
 
     $event = Event::where('title', 'Prayer Time Event')->firstOrFail();
-    expect($event->timing_mode)->toBe(TimingMode::PrayerRelative);
-    expect($event->prayer_reference)->toBe(PrayerReference::Maghrib);
+    expect($event->timing_mode)->toBe(TimingMode::PrayerRelative->value);
+    expect($event->prayer_reference)->toBe(PrayerReference::Maghrib->value);
 });
 
 it('can submit event for future dates', function () {

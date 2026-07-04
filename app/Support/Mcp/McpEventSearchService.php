@@ -273,16 +273,16 @@ class McpEventSearchService
                 'Search radius in kilometres when lat+lng are provided. Default 15, max 1000.'
             ),
             'country_id' => $schema->string()->nullable()->description(
-                'Integer ID of the country (from the geography tables). Use the get-countries tool or geography endpoints to obtain valid IDs.'
+                'UUID of the package-backed country record. Use the catalogs or addressing-backed discovery endpoints to obtain valid IDs.'
             ),
             'state_id' => $schema->string()->nullable()->description(
-                'Integer ID of the state/region within the country.'
+                'UUID of the selected first-level address area within the country.'
             ),
             'district_id' => $schema->string()->nullable()->description(
-                'Integer ID of the district within the state.'
+                'UUID of the selected second-level address area within the first-level area.'
             ),
             'subdistrict_id' => $schema->string()->nullable()->description(
-                'Integer ID of the subdistrict within the district.'
+                'UUID of the selected third-level address area within the second-level area.'
             ),
             'language_codes' => $stringArray->description(
                 'Array of BCP-47 language codes. Example: ["ms", "en", "ar"]. Events that are conducted in any of the given languages will be returned.'

@@ -2,6 +2,8 @@
 
 namespace App\Livewire\Pages\SavedSearches;
 
+use AIArmada\Addressing\Models\AddressArea;
+use AIArmada\Addressing\Models\AddressCountry;
 use App\Actions\SavedSearches\CreateSavedSearchAction;
 use App\Actions\SavedSearches\UpdateSavedSearchAction;
 use App\Enums\EventAgeGroup;
@@ -14,14 +16,10 @@ use App\Enums\NotificationFrequency;
 use App\Enums\TimingMode;
 use App\Exceptions\SavedSearchLimitReachedException;
 use App\Livewire\Concerns\InteractsWithToasts;
-use App\Models\Country;
-use App\Models\District;
 use App\Models\Institution;
 use App\Models\Reference;
 use App\Models\SavedSearch;
 use App\Models\Speaker;
-use App\Models\State;
-use App\Models\Subdistrict;
 use App\Models\Tag;
 use App\Models\User;
 use App\Models\Venue;
@@ -64,22 +62,22 @@ class Index extends Component
     public string $editNotify = 'daily';
 
     /**
-     * @var array<int, string|null>
+     * @var array<string, string|null>
      */
     private array $countryNames = [];
 
     /**
-     * @var array<int, string|null>
+     * @var array<string, string|null>
      */
     private array $stateNames = [];
 
     /**
-     * @var array<int, string|null>
+     * @var array<string, string|null>
      */
     private array $districtNames = [];
 
     /**
-     * @var array<int, string|null>
+     * @var array<string, string|null>
      */
     private array $subdistrictNames = [];
 
@@ -565,62 +563,54 @@ class Index extends Component
 
     private function stateName(string $id): ?string
     {
-        $stateId = (int) $id;
-
-        if ($stateId <= 0) {
+        if (! Str::isUuid($id)) {
             return null;
         }
 
-        if (! array_key_exists($stateId, $this->stateNames)) {
-            $this->stateNames[$stateId] = State::query()->whereKey($stateId)->value('name');
+        if (! array_key_exists($id, $this->stateNames)) {
+            $this->stateNames[$id] = AddressArea::query()->whereKey($id)->value('name');
         }
 
-        return $this->stateNames[$stateId];
+        return $this->stateNames[$id];
     }
 
     private function countryName(string $id): ?string
     {
-        $countryId = (int) $id;
-
-        if ($countryId <= 0) {
+        if (! Str::isUuid($id)) {
             return null;
         }
 
-        if (! array_key_exists($countryId, $this->countryNames)) {
-            $this->countryNames[$countryId] = Country::query()->whereKey($countryId)->value('name');
+        if (! array_key_exists($id, $this->countryNames)) {
+            $this->countryNames[$id] = AddressCountry::query()->whereKey($id)->value('name');
         }
 
-        return $this->countryNames[$countryId];
+        return $this->countryNames[$id];
     }
 
     private function districtName(string $id): ?string
     {
-        $districtId = (int) $id;
-
-        if ($districtId <= 0) {
+        if (! Str::isUuid($id)) {
             return null;
         }
 
-        if (! array_key_exists($districtId, $this->districtNames)) {
-            $this->districtNames[$districtId] = District::query()->whereKey($districtId)->value('name');
+        if (! array_key_exists($id, $this->districtNames)) {
+            $this->districtNames[$id] = AddressArea::query()->whereKey($id)->value('name');
         }
 
-        return $this->districtNames[$districtId];
+        return $this->districtNames[$id];
     }
 
     private function subdistrictName(string $id): ?string
     {
-        $subdistrictId = (int) $id;
-
-        if ($subdistrictId <= 0) {
+        if (! Str::isUuid($id)) {
             return null;
         }
 
-        if (! array_key_exists($subdistrictId, $this->subdistrictNames)) {
-            $this->subdistrictNames[$subdistrictId] = Subdistrict::query()->whereKey($subdistrictId)->value('name');
+        if (! array_key_exists($id, $this->subdistrictNames)) {
+            $this->subdistrictNames[$id] = AddressArea::query()->whereKey($id)->value('name');
         }
 
-        return $this->subdistrictNames[$subdistrictId];
+        return $this->subdistrictNames[$id];
     }
 
     private function institutionName(string $id): ?string

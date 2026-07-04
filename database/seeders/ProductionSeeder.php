@@ -13,11 +13,11 @@ class ProductionSeeder extends Seeder
      */
     public function run(): void
     {
+        $this->call([WorldSeeder::class]);
+        $this->call([MalaysiaCitySeeder::class]);
+        $this->call([DistrictSeeder::class]);
+        $this->call([SubdistrictSeeder::class]);
         $this->call([
-            WorldSeeder::class,
-            MalaysiaCitySeeder::class,
-            DistrictSeeder::class,
-            SubdistrictSeeder::class,
             PermissionSeeder::class,
             RoleSeeder::class,
             ScopedMemberRolesSeeder::class,

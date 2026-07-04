@@ -265,8 +265,9 @@ class UserDashboard extends Component
     public function registeredEvents(): Collection
     {
         /** @var Collection<int, Registration> $registrations */
-        $registrations = Registration::query()
-            ->where('user_id', $this->user()->id)
+        $registrations = $this->user()
+            ->registrations()
+            ->active()
             ->with([
                 'event' => fn ($query) => $query->with($this->plannerEventRelations()),
             ])
@@ -288,7 +289,7 @@ class UserDashboard extends Component
         $entries = collect();
 
         $submissions = EventSubmission::query()
-            ->where('submitted_by', $this->user()->id)
+            ->where('submitter_id', $this->user()->id)
             ->with([
                 'event' => fn ($query) => $query->with($this->plannerEventRelations()),
             ])
@@ -311,7 +312,7 @@ class UserDashboard extends Component
         $directEvents = Event::query()
             ->where('submitter_id', $this->user()->id)
             ->with($this->plannerEventRelations())
-            ->whereDoesntHave('submissions', fn ($query) => $query->where('submitted_by', $this->user()->id))
+            ->whereDoesntHave('submissions', fn ($query) => $query->where('submitter_id', $this->user()->id))
             ->latest('created_at')
             ->get();
 

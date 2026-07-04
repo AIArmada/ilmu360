@@ -23,6 +23,10 @@ return new class extends Migration
             $legacyIndex = 'signal_tracked_properties_owner_type_owner_id_slug_unique';
 
             if (Schema::hasColumn($tableName, 'owner_scope')) {
+                if (DB::getDriverName() !== 'pgsql') {
+                    return;
+                }
+
                 $indexes = DB::select('SELECT indexname FROM pg_indexes WHERE tablename = ?', [$tableName]);
                 $indexNames = array_column($indexes, 'indexname');
 

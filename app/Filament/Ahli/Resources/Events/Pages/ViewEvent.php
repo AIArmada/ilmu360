@@ -2,6 +2,7 @@
 
 namespace App\Filament\Ahli\Resources\Events\Pages;
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Filament\Ahli\Resources\Events\EventResource;
 use App\Filament\Resources\Events\Concerns\PublishesEventChanges;
 use App\Models\Event;
@@ -19,6 +20,11 @@ class ViewEvent extends ViewRecord
     use PublishesEventChanges;
 
     protected static string $resource = EventResource::class;
+
+    public function boot(): void
+    {
+        OwnerContext::setForRequest(null);
+    }
 
     protected Width|string|null $maxContentWidth = Width::Full;
 
@@ -66,8 +72,9 @@ class ViewEvent extends ViewRecord
             return null;
         }
 
-        $organizerInstitutionId = $event->organizer_type === Institution::class && is_string($event->organizer_id)
-            ? $event->organizer_id
+        $organizer = $event->primaryOrganizerInvolvement?->involveable;
+        $organizerInstitutionId = $organizer instanceof Institution
+            ? (string) $organizer->getKey()
             : null;
 
         if ($organizerInstitutionId !== null) {

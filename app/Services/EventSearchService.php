@@ -2,15 +2,20 @@
 
 namespace App\Services;
 
+use AIArmada\Events\Models\EventLanguage;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventPrayerTime;
+use App\Enums\EventStructure;
+use App\Enums\EventVisibility;
 use App\Enums\PrayerReference;
 use App\Enums\TimingMode;
+use App\Models\Builders\EventBuilder;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Reference;
 use App\Models\Venue;
 use App\Support\Cache\SafeModelCache;
+use App\Support\Events\PrimaryOccurrenceSql;
 use App\Support\Search\InstitutionSearchService;
 use App\Support\Search\ReferenceSearchService;
 use App\Support\Search\SpeakerSearchService;
@@ -21,6 +26,7 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Connection;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator as Paginator;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
@@ -44,19 +50,14 @@ class EventSearchService
                 ->ordered(),
             'references',
             'tags',
-            'languages',
             'speakers.media' => fn ($query) => $query
                 ->where('collection_name', 'avatar')
                 ->ordered(),
             'institution.media' => fn ($query) => $query
                 ->where('collection_name', 'logo')
                 ->ordered(),
-            'institution.address.state',
-            'institution.address.district',
-            'institution.address.subdistrict',
-            'venue.address.state',
-            'venue.address.district',
-            'venue.address.subdistrict',
+            'institution.addresses.country',
+            'venue.addresses.country',
             'latestPublishedChangeAnnouncement',
         ];
     }
@@ -156,10 +157,14 @@ class EventSearchService
             ->with($this->cardRelationships())
             ->whereKey($payload['ids'])
             ->get()
-            ->keyBy(fn (Event $event): string => (string) $event->getKey());
+            ->keyBy('id');
 
         $orderedEvents = collect($payload['ids'])
-            ->map(fn (string $eventId): ?Event => $events->get($eventId))
+            ->map(static function (string $eventId) use ($events): ?Event {
+                $event = $events->get($eventId);
+
+                return $event instanceof Event ? $event : null;
+            })
             ->filter()
             ->values();
 
@@ -497,14 +502,19 @@ class EventSearchService
 
     /**
      * @param  array<string, mixed>  $filters
-     * @return Builder<Event>
      */
-    protected function buildDatabaseQuery(?string $query, array $filters): Builder
+    protected function buildDatabaseQuery(?string $query, array $filters): EventBuilder
     {
         $timeScope = $this->normalizeTimeScope($filters['time_scope'] ?? null);
 
-        $queryBuilder = Event::query()->active();
+        $queryBuilder = Event::query();
         $table = $queryBuilder->getModel()->getTable();
+
+        $queryBuilder
+            ->whereIn("{$table}.status", Event::PUBLIC_STATUSES)
+            ->where("{$table}.visibility", EventVisibility::Public->value)
+            ->where("{$table}.is_active", true)
+            ->where("{$table}.event_structure", '!=', EventStructure::ParentProgram->value);
 
         $startsAfter = $this->startsAfterDateTime($filters, $timeScope);
 
@@ -563,8 +573,15 @@ class EventSearchService
         $languageCodes = $this->normalizeArrayFilter($filters['language_codes'] ?? null);
 
         if ($languageCodes !== []) {
-            $queryBuilder->whereHas('languages', function (Builder $languageQuery) use ($languageCodes) {
-                $languageQuery->whereIn('code', $languageCodes);
+            $eventTable = $queryBuilder->getModel()->getTable();
+            $languageTable = (new EventLanguage)->getTable();
+
+            $queryBuilder->whereExists(function ($languageQuery) use ($eventTable, $languageCodes, $languageTable): void {
+                $languageQuery
+                    ->selectRaw('1')
+                    ->from("{$languageTable} as event_language_filters")
+                    ->whereColumn('event_language_filters.event_id', "{$eventTable}.id")
+                    ->whereIn('event_language_filters.language_code', $languageCodes);
             });
         }
 
@@ -801,11 +818,8 @@ class EventSearchService
         return $queryBuilder;
     }
 
-    /**
-     * @param  Builder<Event>  $queryBuilder
-     */
     protected function applyDirectSearch(
-        Builder $queryBuilder,
+        EventBuilder $queryBuilder,
         string $search,
         bool $includeInstitutions = true,
         bool $includeSpeakers = true,
@@ -850,7 +864,19 @@ class EventSearchService
 
             // Institution name match.
             if ($institutionIds !== []) {
-                $nestedQuery->orWhereIn('events.institution_id', $institutionIds);
+                $institutionIdExpression = $this->eventUuidMetadataSqlSelector('institution_id');
+
+                $nestedQuery->orWhere(function (Builder $institutionQuery) use ($institutionIdExpression, $institutionIds): void {
+                    foreach ($institutionIds as $index => $institutionId) {
+                        if ($index === 0) {
+                            $institutionQuery->whereRaw("{$institutionIdExpression} = ?", [$institutionId]);
+
+                            continue;
+                        }
+
+                        $institutionQuery->orWhereRaw("{$institutionIdExpression} = ?", [$institutionId]);
+                    }
+                });
             }
 
             // Key people: linked speaker IDs (all roles) + free-text name match.
@@ -883,13 +909,15 @@ class EventSearchService
         if ($sort === 'relevance' && is_string($query) && $query !== '') {
             $operator = $this->databaseLikeOperator();
 
-            $queryBuilder->orderByRaw(
-                "CASE
-                    WHEN events.title {$operator} ? THEN 1
-                    ELSE 2
-                END, events.starts_at ASC",
-                ["%{$query}%"]
-            );
+            $queryBuilder
+                ->orderByRaw(
+                    "CASE
+                        WHEN events.title {$operator} ? THEN 1
+                        ELSE 2
+                    END",
+                    ["%{$query}%"]
+                )
+                ->orderBy('starts_at');
 
             return;
         }
@@ -971,21 +999,28 @@ class EventSearchService
         array $filters,
         int $perPage
     ): LengthAwarePaginator {
-        $latitudeExpression = 'coalesce(venue_addresses.lat, institution_addresses.lat)';
-        $longitudeExpression = 'coalesce(venue_addresses.lng, institution_addresses.lng)';
+        $addressablesTable = config('addressing.tables.addressables', 'addressables');
+        $addressesTable = config('addressing.tables.addresses', 'addresses');
+        $institutionIdExpression = $this->eventUuidMetadataSqlSelector('institution_id');
+        $latitudeExpression = 'coalesce(venue_addresses.latitude, institution_addresses.latitude)';
+        $longitudeExpression = 'coalesce(venue_addresses.longitude, institution_addresses.longitude)';
         $distanceSql = "(6371 * acos(cos(radians(?)) * cos(radians({$latitudeExpression})) * cos(radians({$longitudeExpression}) - radians(?)) + sin(radians(?)) * sin(radians({$latitudeExpression}))))";
         $venueMorphType = (new Venue)->getMorphClass();
         $institutionMorphType = (new Institution)->getMorphClass();
 
         $queryBuilder = $this->buildDatabaseQuery(null, $filters)
-            ->leftJoin('addresses as venue_addresses', function ($join) use ($venueMorphType) {
-                $join->on('venue_addresses.addressable_id', '=', 'events.venue_id')
-                    ->where('venue_addresses.addressable_type', $venueMorphType);
+            ->leftJoin("{$addressablesTable} as venue_addressables", function ($join) use ($venueMorphType) {
+                $join->on('venue_addressables.addressable_id', '=', 'events.default_venue_id')
+                    ->where('venue_addressables.addressable_type', $venueMorphType)
+                    ->where('venue_addressables.is_primary', true);
             })
-            ->leftJoin('addresses as institution_addresses', function ($join) use ($institutionMorphType) {
-                $join->on('institution_addresses.addressable_id', '=', 'events.institution_id')
-                    ->where('institution_addresses.addressable_type', $institutionMorphType);
+            ->leftJoin("{$addressesTable} as venue_addresses", 'venue_addresses.id', '=', 'venue_addressables.address_id')
+            ->leftJoin("{$addressablesTable} as institution_addressables", function ($join) use ($institutionIdExpression, $institutionMorphType) {
+                $join->whereRaw("institution_addressables.addressable_id = {$institutionIdExpression}")
+                    ->where('institution_addressables.addressable_type', $institutionMorphType)
+                    ->where('institution_addressables.is_primary', true);
             })
+            ->leftJoin("{$addressesTable} as institution_addresses", 'institution_addresses.id', '=', 'institution_addressables.address_id')
             ->whereRaw("{$latitudeExpression} is not null")
             ->whereRaw("{$longitudeExpression} is not null")
             ->select('events.*')
@@ -1041,8 +1076,11 @@ class EventSearchService
         array $filters,
         int $perPage
     ): LengthAwarePaginator {
-        $latitudeExpression = 'coalesce(venue_addresses.lat, institution_addresses.lat)';
-        $longitudeExpression = 'coalesce(venue_addresses.lng, institution_addresses.lng)';
+        $addressablesTable = config('addressing.tables.addressables', 'addressables');
+        $addressesTable = config('addressing.tables.addresses', 'addresses');
+        $institutionIdExpression = $this->eventUuidMetadataSqlSelector('institution_id');
+        $latitudeExpression = 'coalesce(venue_addresses.latitude, institution_addresses.latitude)';
+        $longitudeExpression = 'coalesce(venue_addresses.longitude, institution_addresses.longitude)';
         $distanceSql = "(6371 * acos(cos(radians(?)) * cos(radians({$latitudeExpression})) * cos(radians({$longitudeExpression}) - radians(?)) + sin(radians(?)) * sin(radians({$latitudeExpression}))))";
         $venueMorphType = (new Venue)->getMorphClass();
         $institutionMorphType = (new Institution)->getMorphClass();
@@ -1051,14 +1089,18 @@ class EventSearchService
         $this->applyDirectSearch($queryBuilder, $query);
 
         $queryBuilder
-            ->leftJoin('addresses as venue_addresses', function ($join) use ($venueMorphType) {
-                $join->on('venue_addresses.addressable_id', '=', 'events.venue_id')
-                    ->where('venue_addresses.addressable_type', $venueMorphType);
+            ->leftJoin("{$addressablesTable} as venue_addressables", function ($join) use ($venueMorphType) {
+                $join->on('venue_addressables.addressable_id', '=', 'events.default_venue_id')
+                    ->where('venue_addressables.addressable_type', $venueMorphType)
+                    ->where('venue_addressables.is_primary', true);
             })
-            ->leftJoin('addresses as institution_addresses', function ($join) use ($institutionMorphType) {
-                $join->on('institution_addresses.addressable_id', '=', 'events.institution_id')
-                    ->where('institution_addresses.addressable_type', $institutionMorphType);
+            ->leftJoin("{$addressesTable} as venue_addresses", 'venue_addresses.id', '=', 'venue_addressables.address_id')
+            ->leftJoin("{$addressablesTable} as institution_addressables", function ($join) use ($institutionIdExpression, $institutionMorphType) {
+                $join->whereRaw("institution_addressables.addressable_id = {$institutionIdExpression}")
+                    ->where('institution_addressables.addressable_type', $institutionMorphType)
+                    ->where('institution_addressables.is_primary', true);
             })
+            ->leftJoin("{$addressesTable} as institution_addresses", 'institution_addresses.id', '=', 'institution_addressables.address_id')
             ->whereRaw("{$latitudeExpression} is not null")
             ->whereRaw("{$longitudeExpression} is not null")
             ->select('events.*')
@@ -1093,18 +1135,49 @@ class EventSearchService
         return null;
     }
 
-    /**
-     * @param  Builder<Event>  $queryBuilder
-     */
-    protected function applyLocationAddressFilter(Builder $queryBuilder, string $column, mixed $value): void
+    protected function applyLocationAddressFilter(EventBuilder $queryBuilder, string $column, mixed $value): void
     {
-        $queryBuilder->where(function (Builder $locationQuery) use ($column, $value): void {
+        $addressColumn = match ($column) {
+            'state_id' => 'admin_area_1_id',
+            'district_id' => 'admin_area_2_id',
+            'subdistrict_id' => 'admin_area_3_id',
+            default => $column,
+        };
+        $addressesTable = config('addressing.tables.addresses', 'addresses');
+        $addressablesTable = config('addressing.tables.addressables', 'addressables');
+        $institutionIdExpression = $this->eventUuidMetadataSqlSelector('institution_id');
+        $venueMorphType = (new Venue)->getMorphClass();
+        $institutionMorphType = (new Institution)->getMorphClass();
+
+        $queryBuilder->where(function (Builder $locationQuery) use (
+            $addressColumn,
+            $value,
+            $addressesTable,
+            $addressablesTable,
+            $institutionIdExpression,
+            $venueMorphType,
+            $institutionMorphType,
+        ): void {
             $locationQuery
-                ->whereHas('venue.address', function (Builder $addressQuery) use ($column, $value): void {
-                    $addressQuery->where($column, $value);
+                ->whereExists(function ($addressQuery) use ($addressColumn, $value, $addressesTable, $addressablesTable, $venueMorphType): void {
+                    $addressQuery
+                        ->select(DB::raw(1))
+                        ->from($addressesTable)
+                        ->join($addressablesTable, "{$addressesTable}.id", '=', "{$addressablesTable}.address_id")
+                        ->whereColumn("{$addressablesTable}.addressable_id", 'events.default_venue_id')
+                        ->where("{$addressablesTable}.addressable_type", $venueMorphType)
+                        ->where("{$addressablesTable}.is_primary", true)
+                        ->where("{$addressesTable}.{$addressColumn}", $value);
                 })
-                ->orWhereHas('institution.address', function (Builder $addressQuery) use ($column, $value): void {
-                    $addressQuery->where($column, $value);
+                ->orWhereExists(function ($addressQuery) use ($addressColumn, $value, $addressesTable, $addressablesTable, $institutionIdExpression, $institutionMorphType): void {
+                    $addressQuery
+                        ->select(DB::raw(1))
+                        ->from($addressesTable)
+                        ->join($addressablesTable, "{$addressesTable}.id", '=', "{$addressablesTable}.address_id")
+                        ->whereRaw("{$addressablesTable}.addressable_id = {$institutionIdExpression}")
+                        ->where("{$addressablesTable}.addressable_type", $institutionMorphType)
+                        ->where("{$addressablesTable}.is_primary", true)
+                        ->where("{$addressesTable}.{$addressColumn}", $value);
                 });
         });
     }
@@ -1300,11 +1373,8 @@ class EventSearchService
         }
     }
 
-    /**
-     * @param  Builder<Event>  $queryBuilder
-     */
     protected function applyAbsoluteTimeRangeFilter(
-        Builder $queryBuilder,
+        EventBuilder $queryBuilder,
         ?string $startsTimeFrom,
         ?string $startsTimeUntil
     ): void {
@@ -1403,12 +1473,23 @@ class EventSearchService
 
     private function startsAtUserTimeSqlExpression(int $offsetMinutes): string
     {
-        $safeOffsetMinutes = $offsetMinutes;
+        return PrimaryOccurrenceSql::startsAtUserTimeExpression($offsetMinutes);
+    }
 
+    private function eventMetadataSqlSelector(string $key): string
+    {
         return match ($this->databaseDriver()) {
-            'pgsql' => "to_char(events.starts_at + interval '{$safeOffsetMinutes} minutes', 'HH24:MI')",
-            'mysql', 'mariadb' => "DATE_FORMAT(DATE_ADD(events.starts_at, INTERVAL {$safeOffsetMinutes} MINUTE), '%H:%i')",
-            default => "strftime('%H:%M', datetime(events.starts_at, '{$safeOffsetMinutes} minutes'))",
+            'pgsql' => "events.metadata->>'{$key}'",
+            'mysql', 'mariadb' => "json_unquote(json_extract(events.metadata, '$.\"{$key}\"'))",
+            default => "json_extract(events.metadata, '$.\"{$key}\"')",
+        };
+    }
+
+    private function eventUuidMetadataSqlSelector(string $key): string
+    {
+        return match ($this->databaseDriver()) {
+            'pgsql' => "(events.metadata->>'{$key}')::uuid",
+            default => $this->eventMetadataSqlSelector($key),
         };
     }
 
@@ -1476,7 +1557,7 @@ class EventSearchService
             )
             ->orderByRaw("length(coalesce(events.title, ''))")
             ->orderBy('events.title')
-            ->orderBy('events.starts_at')
+            ->orderBy('starts_at')
             ->orderBy('events.id');
     }
 

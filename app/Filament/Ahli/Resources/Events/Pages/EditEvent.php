@@ -2,6 +2,7 @@
 
 namespace App\Filament\Ahli\Resources\Events\Pages;
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Actions\Events\GenerateEventSlugAction;
 use App\Actions\Events\SyncEventResourceRelationsAction;
 use App\Enums\EventKeyPersonRole;
@@ -12,6 +13,7 @@ use App\Filament\Pages\Concerns\AuditsRelatedStateChanges;
 use App\Filament\Resources\Events\Concerns\PublishesEventChanges;
 use App\Models\Event;
 use App\Models\EventKeyPerson;
+use App\Models\Institution;
 use App\Models\Reference;
 use App\Models\Series;
 use App\Models\Speaker;
@@ -42,6 +44,11 @@ class EditEvent extends EditRecord
     protected static string $resource = EventResource::class;
 
     protected Width|string|null $maxContentWidth = Width::Full;
+
+    public function boot(): void
+    {
+        OwnerContext::setForRequest(null);
+    }
 
     #[\Override]
     protected function mutateFormDataBeforeFill(array $data): array
@@ -95,14 +102,13 @@ class EditEvent extends EditRecord
             is_array($data['speakers'] ?? null) ? $data['speakers'] : [],
         );
 
-        if (
-            $speakerSlugSegments === []
-            && ($data['organizer_type'] ?? null) === Speaker::class
-            && filled($data['organizer_id'] ?? null)
-        ) {
-            $speakerSlugSegments = app(GenerateEventSlugAction::class)->speakerSlugSegmentsForSpeakerIds([
-                (string) $data['organizer_id'],
-            ]);
+        if ($speakerSlugSegments === []) {
+            $organizer = $this->eventRecord()->primaryOrganizerInvolvement?->involveable;
+            if ($organizer instanceof Speaker) {
+                $speakerSlugSegments = app(GenerateEventSlugAction::class)->speakerSlugSegmentsForSpeakerIds([
+                    (string) $organizer->getKey(),
+                ]);
+            }
         }
 
         $data['slug'] = app(GenerateEventSlugAction::class)->handle(
@@ -126,6 +132,7 @@ class EditEvent extends EditRecord
             $data['registration_mode'],
             $data['speakers'],
             $data['other_key_people'],
+            $data['primary_organizer_id'],
         );
 
         return $data;
@@ -135,6 +142,12 @@ class EditEvent extends EditRecord
     {
         $event = $this->eventRecord();
         $changedFields = array_keys($event->getChanges());
+
+        $primaryOrganizerId = $this->form->getState()['primary_organizer_id'] ?? null;
+        if ($primaryOrganizerId) {
+            $organizer = Institution::query()->find($primaryOrganizerId) ?? Speaker::query()->find($primaryOrganizerId);
+            $event->setPrimaryOrganizer($organizer);
+        }
 
         app(SyncEventResourceRelationsAction::class)->handle(
             $event,
@@ -160,6 +173,8 @@ class EditEvent extends EditRecord
             return [];
         }
 
+        $seriesTable = (new Series)->getTable();
+
         return [
             'speakers' => $record->speakerKeyPeople()
                 ->with('speaker:id,name')
@@ -181,8 +196,8 @@ class EditEvent extends EditRecord
                 ->values()
                 ->all(),
             'series' => $record->series()
-                ->orderBy('series.title')
-                ->get(['series.id', 'series.title'])
+                ->orderBy("{$seriesTable}.title")
+                ->get(["{$seriesTable}.id", "{$seriesTable}.title"])
                 ->map(fn (Series $series): array => [
                     'id' => (string) $series->getKey(),
                     'title' => $series->title,

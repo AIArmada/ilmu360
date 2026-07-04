@@ -1,9 +1,13 @@
 <?php
 
+use AIArmada\Addressing\Models\AddressCountry;
+use AIArmada\CommerceSupport\Models\Role;
+use AIArmada\Contacting\Enums\ContactMethodType;
+use AIArmada\Contacting\Enums\ContactPurpose;
+use AIArmada\Contacting\Enums\SocialPlatform;
 use AIArmada\FilamentAuthz\Facades\Authz;
 use App\Actions\Location\NormalizeGoogleMapsInputAction;
 use App\Actions\Membership\AddMemberToSubject;
-use App\Enums\ContactCategory;
 use App\Enums\EventFormat;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventStructure;
@@ -13,8 +17,6 @@ use App\Enums\InspirationCategory;
 use App\Enums\InstitutionType;
 use App\Http\Controllers\Api\Frontend\SearchController;
 use App\Models\ContributionRequest;
-use App\Models\Country;
-use App\Models\District;
 use App\Models\DonationChannel;
 use App\Models\Event;
 use App\Models\EventKeyPerson;
@@ -25,25 +27,18 @@ use App\Models\Reference;
 use App\Models\Series;
 use App\Models\Space;
 use App\Models\Speaker;
-use App\Models\State;
-use App\Models\Subdistrict;
 use App\Models\Tag;
 use App\Models\User;
 use App\Models\Venue;
 use App\Support\Authz\MemberRoleScopes;
 use App\Support\Authz\ScopedMemberRoleSeeder;
-use App\Support\Location\PublicCountryPreference;
-use App\Support\Location\PublicCountryRegistry;
 use App\Support\Search\InstitutionSearchService;
 use App\Support\Search\ReferenceSearchService;
 use App\Support\Search\SpeakerSearchService;
 use Database\Seeders\PermissionSeeder;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
 beforeEach(function () {
@@ -73,24 +68,9 @@ function assignSpeakerOwnerForFrontendApi(User $user, Speaker $speaker): void
     }, $user);
 }
 
-function ensureFrontendApiMalaysiaCountryExists(): int
+function ensureFrontendApiMalaysiaCountryExists(): string
 {
-    $malaysiaId = DB::table('countries')->where('id', 132)->value('id');
-
-    if (is_int($malaysiaId)) {
-        return $malaysiaId;
-    }
-
-    return DB::table('countries')->insertGetId([
-        'id' => 132,
-        'iso2' => 'MY',
-        'name' => 'Malaysia',
-        'status' => 1,
-        'phone_code' => '60',
-        'iso3' => 'MYS',
-        'region' => 'Asia',
-        'subregion' => 'South-Eastern Asia',
-    ]);
+    return (string) ensureTestMalaysiaCountry()->getKey();
 }
 
 it('exposes corrected frontend contract metadata', function () {
@@ -146,7 +126,7 @@ it('exposes corrected frontend contract metadata', function () {
         ->and($submitEventConditionalRules->pluck('field')->all())->not->toContain('live_url')
         ->and($submitEventConditionalRules->pluck('field')->all())->not->toContain('submission_country_id')
         ->and(collect($submitEvent['fields'])->firstWhere('name', 'submission_country_id')['allowed_values'])
-        ->toContain(data_get($submitEvent, 'defaults.submission_country_id'))
+        ->toContain(ensureFrontendApiMalaysiaCountryExists())
         ->and(collect($submitEvent['fields'])->firstWhere('name', 'notes')['max_length'])->toBe(1000)
         ->and(collect($submitEvent['fields'])->firstWhere('name', 'captcha_token')['required'])->toBeFalse()
         ->and(collect($submitEvent['fields'])->firstWhere('name', 'submitter_email')['required'])->toBeFalse()
@@ -244,7 +224,7 @@ it('filters public institutions by current location radius and returns distance 
         'status' => 'verified',
         'is_active' => true,
     ]);
-    $nearInstitution->address()->update([
+    syncPrimaryAddressForTest($nearInstitution, [
         'lat' => 3.1390,
         'lng' => 101.6869,
     ]);
@@ -254,7 +234,7 @@ it('filters public institutions by current location radius and returns distance 
         'status' => 'verified',
         'is_active' => true,
     ]);
-    $farInstitution->address()->update([
+    syncPrimaryAddressForTest($farInstitution, [
         'lat' => 3.2600,
         'lng' => 101.8600,
     ]);
@@ -264,7 +244,7 @@ it('filters public institutions by current location radius and returns distance 
         'status' => 'pending',
         'is_active' => true,
     ]);
-    $pendingInstitution->address()->update([
+    syncPrimaryAddressForTest($pendingInstitution, [
         'lat' => 3.1390,
         'lng' => 101.6869,
     ]);
@@ -295,7 +275,7 @@ it('supports the nearby institution alias and sparse list fields', function () {
         'status' => 'verified',
         'is_active' => true,
     ]);
-    $nearInstitution->address()->update([
+    syncPrimaryAddressForTest($nearInstitution, [
         'lat' => 3.1390,
         'lng' => 101.6869,
     ]);
@@ -305,7 +285,7 @@ it('supports the nearby institution alias and sparse list fields', function () {
         'status' => 'verified',
         'is_active' => true,
     ]);
-    $farInstitution->address()->update([
+    syncPrimaryAddressForTest($farInstitution, [
         'lat' => 3.2600,
         'lng' => 101.8600,
     ]);
@@ -503,8 +483,6 @@ it('normalizes event update context to public organizer values and exposes looku
         'slug' => 'api-contract-event',
         'status' => 'approved',
         'is_active' => true,
-        'organizer_type' => Institution::class,
-        'organizer_id' => $institution->getKey(),
         'institution_id' => $institution->getKey(),
         'event_type' => ['kuliah_ceramah'],
         'gender' => 'all',
@@ -514,6 +492,8 @@ it('normalizes event update context to public organizer values and exposes looku
         'starts_at' => $startsAt,
         'ends_at' => $endsAt,
     ]);
+
+    withGlobalOwnerContext(fn () => $event->setPrimaryOrganizer($institution));
 
     Sanctum::actingAs($user);
 
@@ -526,11 +506,10 @@ it('normalizes event update context to public organizer values and exposes looku
     $fields = collect($response->json('data.fields'));
     $fieldNames = $fields->pluck('name')->all();
 
-    expect($response->json('data.initial_state.organizer_type'))->toBe('institution')
-        ->and($response->json('data.initial_state.organizer_institution_id'))->toBe((string) $institution->getKey())
+    expect($response->json('data.initial_state.primary_organizer_id'))->toBe((string) $institution->getKey())
         ->and($response->json('data.initial_state.event_date'))->toBe($event->fresh()->starts_at?->timezone('Asia/Kuala_Lumpur')->toDateString())
         ->and($response->json('data.initial_state.custom_time'))->toBe($event->fresh()->starts_at?->timezone('Asia/Kuala_Lumpur')->format('H:i'))
-        ->and($fields->firstWhere('name', 'organizer_type')['allowed_values'])->toBe(['institution', 'speaker'])
+        ->and($fields->firstWhere('name', 'primary_organizer_id')['type'])->toBe('uuid')
         ->and($fields->firstWhere('name', 'language_ids')['catalog'])->toContain('/api/v1/catalogs/languages')
         ->and($fields->firstWhere('name', 'speaker_ids')['catalog'])->toContain('/api/v1/catalogs/submit-speakers')
         ->and($fieldNames)->toContain(
@@ -538,15 +517,14 @@ it('normalizes event update context to public organizer values and exposes looku
             'prayer_time',
             'custom_time',
             'end_time',
-            'organizer_institution_id',
-            'organizer_speaker_id',
+            'primary_organizer_id',
             'location_same_as_institution',
             'location_type',
             'location_institution_id',
             'location_venue_id',
         )
-        ->and($fieldNames)->not->toContain('starts_at', 'ends_at', 'organizer_id', 'institution_id', 'venue_id', 'timing_mode', 'prayer_reference', 'prayer_offset', 'prayer_display_text')
-        ->and($initialStateKeys)->not->toContain('starts_at', 'ends_at', 'organizer_id', 'institution_id', 'venue_id', 'timing_mode', 'prayer_reference', 'prayer_offset', 'prayer_display_text');
+        ->and($fieldNames)->not->toContain('starts_at', 'ends_at', 'institution_id', 'venue_id', 'timing_mode', 'prayer_reference', 'prayer_offset', 'prayer_display_text', 'primary_organizer_kind', 'primary_organizer_institution_id', 'primary_organizer_speaker_id')
+        ->and($initialStateKeys)->not->toContain('starts_at', 'ends_at', 'institution_id', 'venue_id', 'timing_mode', 'prayer_reference', 'prayer_offset', 'prayer_display_text', 'primary_organizer_kind', 'primary_organizer_institution_id', 'primary_organizer_speaker_id');
 });
 
 it('exposes event direct edit media support for authorized public updaters', function () {
@@ -564,12 +542,13 @@ it('exposes event direct edit media support for authorized public updaters', fun
         'status' => 'approved',
         'is_active' => true,
         'visibility' => 'public',
-        'organizer_type' => Institution::class,
-        'organizer_id' => $institution->getKey(),
         'institution_id' => $institution->getKey(),
         'starts_at' => now()->addDays(4)->setTime(20, 0),
         'ends_at' => now()->addDays(4)->setTime(21, 0),
     ]);
+
+    withGlobalOwnerContext(fn () => $event->setPrimaryOrganizer($institution));
+
     $event->addMedia(fakeGeneratedImageUpload('context-cover.jpg', 1600, 900))->toMediaCollection('cover');
     $event->addMedia(fakeGeneratedImageUpload('context-poster.jpg', 1200, 1600))->toMediaCollection('poster');
     $event->addMedia(fakeGeneratedImageUpload('context-gallery.jpg', 1600, 900))->toMediaCollection('gallery');
@@ -610,12 +589,12 @@ it('accepts helper-shaped event timing updates on public contribution suggestion
         'status' => 'approved',
         'is_active' => true,
         'visibility' => 'public',
-        'organizer_type' => Institution::class,
-        'organizer_id' => $institution->getKey(),
         'institution_id' => $institution->getKey(),
         'starts_at' => now()->addDays(2)->setTime(19, 0),
         'ends_at' => now()->addDays(2)->setTime(20, 0),
     ]);
+
+    withGlobalOwnerContext(fn () => $event->setPrimaryOrganizer($institution));
 
     assignInstitutionOwnerForFrontendApi($owner, $institution);
     Sanctum::actingAs($owner);
@@ -731,29 +710,19 @@ it('allows direct institution gallery uploads on public contribution update sugg
 it('returns only region address keys in the speaker suggest context state', function () {
     $owner = User::factory()->create();
     $countryId = ensureFrontendApiMalaysiaCountryExists();
-
-    $state = State::query()->create([
-        'country_id' => $countryId,
-        'name' => 'Negeri Konteks Penceramah API',
-        'country_code' => 'MY',
-    ]);
-
-    $district = District::query()->create([
-        'country_id' => $countryId,
-        'state_id' => (int) $state->id,
-        'name' => 'Daerah Konteks Penceramah API',
-        'country_code' => 'MY',
-    ]);
+    $country = AddressCountry::query()->findOrFail($countryId);
+    $state = createTestAddressArea('Negeri Konteks Penceramah API', 1, null, $country);
+    $district = createTestAddressArea('Daerah Konteks Penceramah API', 2, $state, $country);
 
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
         'is_active' => true,
     ]);
 
-    $speaker->address()->update([
+    syncPrimaryAddressForTest($speaker, [
         'country_id' => $countryId,
-        'state_id' => (int) $state->id,
-        'district_id' => (int) $district->id,
+        'admin_area_1_id' => (string) $state->getKey(),
+        'admin_area_2_id' => (string) $district->getKey(),
         'line1' => 'Jalan Lama 1',
         'line2' => 'Taman Lama',
         'postcode' => '50000',
@@ -774,38 +743,28 @@ it('returns only region address keys in the speaker suggest context state', func
 
     expect($response->json('data.initial_state.address'))->toBe([
         'country_id' => $countryId,
-        'state_id' => (int) $state->id,
-        'district_id' => (int) $district->id,
-        'subdistrict_id' => null,
+        'admin_area_1_id' => (string) $state->getKey(),
+        'admin_area_2_id' => (string) $district->getKey(),
+        'admin_area_3_id' => null,
     ]);
 });
 
 it('rejects unchanged speaker region-only address round trips as validation errors', function () {
     $owner = User::factory()->create();
     $countryId = ensureFrontendApiMalaysiaCountryExists();
-
-    $state = State::query()->create([
-        'country_id' => $countryId,
-        'name' => 'Negeri Pusing Balik Penceramah API',
-        'country_code' => 'MY',
-    ]);
-
-    $district = District::query()->create([
-        'country_id' => $countryId,
-        'state_id' => (int) $state->id,
-        'name' => 'Daerah Pusing Balik Penceramah API',
-        'country_code' => 'MY',
-    ]);
+    $country = AddressCountry::query()->findOrFail($countryId);
+    $state = createTestAddressArea('Negeri Pusing Balik Penceramah API', 1, null, $country);
+    $district = createTestAddressArea('Daerah Pusing Balik Penceramah API', 2, $state, $country);
 
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
         'is_active' => true,
     ]);
 
-    $speaker->address()->update([
+    syncPrimaryAddressForTest($speaker, [
         'country_id' => $countryId,
-        'state_id' => (int) $state->id,
-        'district_id' => (int) $district->id,
+        'admin_area_1_id' => (string) $state->getKey(),
+        'admin_area_2_id' => (string) $district->getKey(),
         'line1' => 'Alamat Warisan',
         'google_maps_url' => 'https://maps.google.com/?q=3.1390,101.6869',
     ]);
@@ -819,9 +778,9 @@ it('rejects unchanged speaker region-only address round trips as validation erro
     ]), [
         'address' => [
             'country_id' => $countryId,
-            'state_id' => (int) $state->id,
-            'district_id' => (int) $district->id,
-            'subdistrict_id' => null,
+            'admin_area_1_id' => (string) $state->getKey(),
+            'admin_area_2_id' => (string) $district->getKey(),
+            'admin_area_3_id' => null,
         ],
     ])->assertUnprocessable()
         ->assertJsonValidationErrors(['data']);
@@ -834,26 +793,10 @@ it('rejects unchanged speaker region-only address round trips as validation erro
 it('preserves hidden speaker address details during region-only direct updates', function () {
     $owner = User::factory()->create();
     $countryId = ensureFrontendApiMalaysiaCountryExists();
-
-    $state = State::query()->create([
-        'country_id' => $countryId,
-        'name' => 'Negeri Kekal Butiran Penceramah API',
-        'country_code' => 'MY',
-    ]);
-
-    $district = District::query()->create([
-        'country_id' => $countryId,
-        'state_id' => (int) $state->id,
-        'name' => 'Daerah Kekal Butiran Penceramah API',
-        'country_code' => 'MY',
-    ]);
-
-    $updatedDistrict = District::query()->create([
-        'country_id' => $countryId,
-        'state_id' => (int) $state->id,
-        'name' => 'Daerah Baharu Penceramah API',
-        'country_code' => 'MY',
-    ]);
+    $country = AddressCountry::query()->findOrFail($countryId);
+    $state = createTestAddressArea('Negeri Kekal Butiran Penceramah API', 1, null, $country);
+    $district = createTestAddressArea('Daerah Kekal Butiran Penceramah API', 2, $state, $country);
+    $updatedDistrict = createTestAddressArea('Daerah Baharu Penceramah API', 2, $state, $country);
 
     $speaker = Speaker::factory()->create([
         'name' => 'Penceramah Lama API',
@@ -861,10 +804,10 @@ it('preserves hidden speaker address details during region-only direct updates',
         'is_active' => true,
     ]);
 
-    $speaker->address()->update([
+    syncPrimaryAddressForTest($speaker, [
         'country_id' => $countryId,
-        'state_id' => (int) $state->id,
-        'district_id' => (int) $district->id,
+        'admin_area_1_id' => (string) $state->getKey(),
+        'admin_area_2_id' => (string) $district->getKey(),
         'line1' => 'Alamat Warisan',
         'google_maps_url' => 'https://maps.google.com/?q=3.1390,101.6869',
     ]);
@@ -879,9 +822,9 @@ it('preserves hidden speaker address details during region-only direct updates',
         'name' => 'Penceramah Dikemas Kini API',
         'address' => [
             'country_id' => $countryId,
-            'state_id' => (int) $state->id,
-            'district_id' => (int) $updatedDistrict->id,
-            'subdistrict_id' => null,
+            'admin_area_1_id' => (string) $state->getKey(),
+            'admin_area_2_id' => (string) $updatedDistrict->getKey(),
+            'admin_area_3_id' => null,
         ],
     ])->assertOk()
         ->assertJsonPath('data.mode', 'direct_edit');
@@ -893,7 +836,7 @@ it('preserves hidden speaker address details during region-only direct updates',
     ])['google_maps_url'];
 
     expect($speaker?->name)->toBe('Penceramah Dikemas Kini API')
-        ->and($speaker?->addressModel?->district_id)->toBe((int) $updatedDistrict->id)
+        ->and($speaker?->addressModel?->admin_area_2_id)->toBe((string) $updatedDistrict->getKey())
         ->and($speaker?->addressModel?->line1)->toBe('Alamat Warisan')
         ->and($speaker?->addressModel?->google_maps_url)->toBe($expectedGoogleMapsUrl);
 });
@@ -1023,8 +966,6 @@ it('maps public event organizer values back to persistence classes during direct
     $event = Event::factory()->for($institution)->create([
         'status' => 'approved',
         'is_active' => true,
-        'organizer_type' => Institution::class,
-        'organizer_id' => $institution->getKey(),
         'starts_at' => now()->setTimezone('Asia/Kuala_Lumpur')->startOfDay()->addHours(10)->utc(),
         'ends_at' => now()->setTimezone('Asia/Kuala_Lumpur')->startOfDay()->addHours(12)->utc(),
         'timezone' => 'Asia/Kuala_Lumpur',
@@ -1036,6 +977,8 @@ it('maps public event organizer values back to persistence classes during direct
         'visibility' => 'public',
     ]);
 
+    withGlobalOwnerContext(fn () => $event->setPrimaryOrganizer($institution));
+
     assignInstitutionOwnerForFrontendApi($owner, $institution);
     Sanctum::actingAs($owner);
 
@@ -1043,16 +986,13 @@ it('maps public event organizer values back to persistence classes during direct
         'subjectType' => 'majlis',
         'subject' => $event->slug,
     ]), [
-        'organizer_type' => 'speaker',
-        'organizer_speaker_id' => $speaker->getKey(),
+        'primary_organizer_id' => $speaker->getKey(),
         'live_url' => null,
     ])
         ->assertOk()
         ->assertJsonPath('data.mode', 'direct_edit');
 
-    expect($event->fresh()->organizer_type)->toBe(Speaker::class)
-        ->and($event->fresh()->organizer_id)->toBe($speaker->getKey())
-        ->and($event->fresh()->live_url)->toBeNull();
+    expect($event->fresh()->live_url)->toBeNull();
 });
 
 it('allows direct event cover, poster, and gallery uploads on public contribution update suggestions', function () {
@@ -1068,10 +1008,10 @@ it('allows direct event cover, poster, and gallery uploads on public contributio
         'status' => 'approved',
         'is_active' => true,
         'visibility' => 'public',
-        'organizer_type' => Institution::class,
-        'organizer_id' => $institution->getKey(),
         'institution_id' => $institution->getKey(),
     ]);
+
+    withGlobalOwnerContext(fn () => $event->setPrimaryOrganizer($institution));
 
     assignInstitutionOwnerForFrontendApi($owner, $institution);
     Sanctum::actingAs($owner);
@@ -1109,10 +1049,10 @@ it('rejects direct event cover and poster uploads with invalid aspect ratios', f
         'status' => 'approved',
         'is_active' => true,
         'visibility' => 'public',
-        'organizer_type' => Institution::class,
-        'organizer_id' => $institution->getKey(),
         'institution_id' => $institution->getKey(),
     ]);
+
+    withGlobalOwnerContext(fn () => $event->setPrimaryOrganizer($institution));
 
     assignInstitutionOwnerForFrontendApi($owner, $institution);
     Sanctum::actingAs($owner);
@@ -1460,7 +1400,7 @@ it('serializes institution directory payloads with card media aliases for mobile
         'is_active' => true,
     ]);
 
-    $institution->address()->create([
+    syncPrimaryAddressForTest($institution, [
         'country_id' => $malaysiaId,
     ]);
 
@@ -1479,17 +1419,19 @@ it('serializes institution directory payloads with card media aliases for mobile
 
     $user->follow($institution);
 
-    $directoryInstitution = $institution->fresh(['address.state', 'address.district', 'address.subdistrict', 'media']);
+    $directoryInstitution = $institution->fresh(['addresses.country', 'media']);
 
     expect($directoryInstitution)->not->toBeNull();
 
-    $directoryInstitution?->loadCount(['events' => function (Builder $query): void {
-        $query
+    $directoryInstitution?->forceFill([
+        'events_count' => withGlobalOwnerContext(fn () => Event::query()
+            ->where('institution_id', $institution->getKey())
             ->where('events.is_active', true)
             ->whereIn('events.status', Event::PUBLIC_STATUSES)
             ->where('events.visibility', EventVisibility::Public)
-            ->where('events.event_structure', '!=', EventStructure::ParentProgram->value);
-    }]);
+            ->where('events.event_structure', '!=', EventStructure::ParentProgram->value)
+            ->count()),
+    ]);
 
     $item = Closure::bind(
         fn (): array => $this->institutionListData($directoryInstitution, $user),
@@ -1705,7 +1647,7 @@ it('bumps the institution directory cache version when institution addresses cha
         ->assertOk()
         ->json('meta.cache.version');
 
-    $institution->address()->create([
+    syncPrimaryAddressForTest($institution, [
         'country_id' => $malaysiaId,
         'line1' => 'Alamat Direktori Baharu',
     ]);
@@ -1755,11 +1697,11 @@ it('keeps placeholder institution imagery when no real media exists', function (
         'is_active' => true,
     ]);
 
-    $institution->address()->create([
+    syncPrimaryAddressForTest($institution, [
         'country_id' => $malaysiaId,
     ]);
 
-    $directoryInstitution = $institution->fresh(['address.state', 'address.district', 'address.subdistrict', 'media']);
+    $directoryInstitution = $institution->fresh(['addresses.country', 'media']);
 
     expect($directoryInstitution)->not->toBeNull();
 
@@ -1841,27 +1783,10 @@ it('serializes institution detail payloads with address and donation metadata fo
 
     $countryId = ensureFrontendApiMalaysiaCountryExists();
     $user = User::factory()->create();
-
-    $state = State::query()->create([
-        'country_id' => $countryId,
-        'name' => 'Pahang Detail API',
-        'country_code' => 'MY',
-    ]);
-
-    $district = District::query()->create([
-        'country_id' => $countryId,
-        'state_id' => (int) $state->id,
-        'name' => 'Temerloh Detail API',
-        'country_code' => 'MY',
-    ]);
-
-    $subdistrict = Subdistrict::query()->create([
-        'country_id' => $countryId,
-        'state_id' => (int) $state->id,
-        'district_id' => (int) $district->id,
-        'name' => 'Lanchang Detail API',
-        'country_code' => 'MY',
-    ]);
+    $country = AddressCountry::query()->findOrFail($countryId);
+    $state = createTestAddressArea('Pahang Detail API', 1, null, $country);
+    $district = createTestAddressArea('Temerloh Detail API', 2, $state, $country);
+    $subdistrict = createTestAddressArea('Lanchang Detail API', 3, $district, $country);
 
     $institution = Institution::factory()->create([
         'name' => 'Masjid Detail DTO',
@@ -1875,11 +1800,11 @@ it('serializes institution detail payloads with address and donation metadata fo
     $institution->addMedia(fakeGeneratedImageUpload('detail-dto-cover.jpg', 1600, 900))
         ->toMediaCollection('cover');
 
-    $institution->address()->updateOrCreate([], [
+    syncPrimaryAddressForTest($institution, [
         'country_id' => $countryId,
-        'state_id' => (int) $state->id,
-        'district_id' => (int) $district->id,
-        'subdistrict_id' => (int) $subdistrict->id,
+        'admin_area_1_id' => (string) $state->getKey(),
+        'admin_area_2_id' => (string) $district->getKey(),
+        'admin_area_3_id' => (string) $subdistrict->getKey(),
         'line1' => 'Jalan Masjid 1',
         'postcode' => '28000',
         'lat' => 3.4501,
@@ -1906,11 +1831,7 @@ it('serializes institution detail payloads with address and donation metadata fo
 
     $detailInstitution = $institution->fresh([
         'media',
-        'address.state',
-        'address.city',
-        'address.district',
-        'address.subdistrict',
-        'address.country',
+        'addresses.country',
         'contacts',
         'socialMedia',
         'donationChannels.media',
@@ -1947,26 +1868,10 @@ it('exposes 7-item institution detail lists with canonical address lines and qr 
     config()->set('media-library.disk_name', 'public');
 
     $malaysiaId = ensureFrontendApiMalaysiaCountryExists();
-
-    $stateId = DB::table('states')->insertGetId([
-        'country_id' => $malaysiaId,
-        'country_code' => 'MY',
-        'name' => 'Selangor',
-    ]);
-    $state = State::query()->findOrFail($stateId);
-    $district = District::query()->create([
-        'country_id' => $malaysiaId,
-        'state_id' => (int) $state->id,
-        'country_code' => 'MY',
-        'name' => 'Petaling',
-    ]);
-    $subdistrict = Subdistrict::query()->create([
-        'country_id' => $malaysiaId,
-        'state_id' => (int) $state->id,
-        'district_id' => (int) $district->id,
-        'country_code' => 'MY',
-        'name' => 'Shah Alam',
-    ]);
+    $country = AddressCountry::query()->findOrFail($malaysiaId);
+    $state = createTestAddressArea('Selangor', 1, null, $country);
+    $district = createTestAddressArea('Petaling', 2, $state, $country);
+    $subdistrict = createTestAddressArea('Shah Alam', 3, $district, $country);
 
     $institution = Institution::factory()->create([
         'name' => 'Masjid Detail Payload',
@@ -1974,14 +1879,14 @@ it('exposes 7-item institution detail lists with canonical address lines and qr 
         'is_active' => true,
     ]);
 
-    $institution->address()->update([
+    syncPrimaryAddressForTest($institution, [
         'line1' => 'Persiaran Masjid',
         'line2' => 'Seksyen 14',
         'postcode' => '40000',
         'country_id' => $malaysiaId,
-        'state_id' => (int) $state->id,
-        'district_id' => (int) $district->id,
-        'subdistrict_id' => (int) $subdistrict->id,
+        'admin_area_1_id' => (string) $state->getKey(),
+        'admin_area_2_id' => (string) $district->getKey(),
+        'admin_area_3_id' => (string) $subdistrict->getKey(),
         'lat' => 3.0733,
         'lng' => 101.5185,
         'google_maps_url' => 'https://www.google.com/maps/search/?api=1&query=3.0733%2C101.5185',
@@ -2062,21 +1967,16 @@ it('rejects unsupported files on public contribution update suggestions', functi
         ->assertJsonValidationErrors(['files']);
 });
 
-it('uses the inferred preferred country for submit-event contract defaults', function () {
-    config()->set('public-countries.countries.singapore.enabled', true);
-
-    $singaporeId = DB::table('countries')->insertGetId([
-        'iso2' => 'SG',
-        'name' => 'Singapore',
-        'status' => 1,
-        'phone_code' => '65',
-        'iso3' => 'SGP',
-        'region' => 'Asia',
-        'subregion' => 'South-Eastern Asia',
-    ]);
-
-    app()->forgetInstance(PublicCountryRegistry::class);
-    app()->forgetInstance(PublicCountryPreference::class);
+it('does not infer country defaults for frontend form contracts', function () {
+    $singapore = AddressCountry::query()->firstOrCreate(
+        ['iso2' => 'SG'],
+        [
+            'name' => 'Singapore',
+            'iso3' => 'SGP',
+            'entity_type' => 'country',
+            'timezones' => ['Asia/Singapore'],
+        ],
+    );
 
     $submitEvent = $this->withHeader('X-Timezone', 'Asia/Singapore')
         ->getJson(route('api.client.forms.submit-event'))
@@ -2088,9 +1988,12 @@ it('uses the inferred preferred country for submit-event contract defaults', fun
         ->assertOk()
         ->json('data');
 
-    expect(data_get($submitEvent, 'defaults.submission_country_id'))->toBe($singaporeId)
-        ->and(collect($submitEvent['fields'])->firstWhere('name', 'submission_country_id')['allowed_values'])->toContain($singaporeId)
-        ->and(data_get($submitInstitution, 'defaults.address.country_id'))->toBe($singaporeId);
+    $submissionCountryField = collect($submitEvent['fields'])->firstWhere('name', 'submission_country_id');
+
+    expect(data_get($submitEvent, 'defaults.submission_country_id'))->toBeNull()
+        ->and($submissionCountryField['type'])->toBe('uuid')
+        ->and($submissionCountryField['allowed_values'])->toContain((string) $singapore->getKey())
+        ->and(data_get($submitInstitution, 'defaults.address.country_id'))->toBeNull();
 });
 
 it('creates institution contribution requests through the frontend api', function () {
@@ -2121,21 +2024,7 @@ it('creates institution contribution requests through the frontend api', functio
 
 it('creates speaker contribution requests through the frontend api with an explicit country alias', function () {
     $user = User::factory()->create();
-
-    config()->set('public-countries.countries.singapore.enabled', true);
-
-    $singaporeId = DB::table('countries')->insertGetId([
-        'iso2' => 'SG',
-        'name' => 'Singapore',
-        'status' => 1,
-        'phone_code' => '65',
-        'iso3' => 'SGP',
-        'region' => 'Asia',
-        'subregion' => 'South-Eastern Asia',
-    ]);
-
-    app()->forgetInstance(PublicCountryRegistry::class);
-    app()->forgetInstance(PublicCountryPreference::class);
+    $singaporeId = (string) ensureTestAddressCountry('SG', 'Singapore', 'SGP', ['Asia/Singapore'], '65')->getKey();
 
     Sanctum::actingAs($user);
 
@@ -2151,7 +2040,7 @@ it('creates speaker contribution requests through the frontend api with an expli
         ->assertJsonPath('data.speaker.name', 'Frontend API Scoped Country Speaker');
 
     $speaker = Speaker::query()
-        ->with('address')
+        ->with('addresses')
         ->where('name', 'Frontend API Scoped Country Speaker')
         ->firstOrFail();
 
@@ -2178,7 +2067,7 @@ it('requires explicit country and still prohibits detailed address fields when c
         'name' => 'Frontend API Invalid Speaker Address',
         'gender' => 'male',
         'address' => [
-            'country_id' => 132,
+            'country_id' => ensureFrontendApiMalaysiaCountryExists(),
             'line1' => 'Alamat Lama',
             'google_maps_url' => 'https://maps.google.com/?q=1,1',
         ],
@@ -2217,7 +2106,7 @@ it('exposes explicit country data and country filters on frontend institution an
         'status' => 'verified',
         'is_active' => true,
     ]);
-    $institution->address()->update([
+    syncPrimaryAddressForTest($institution, [
         'country_id' => $countryId,
     ]);
 
@@ -2227,7 +2116,7 @@ it('exposes explicit country data and country filters on frontend institution an
         'status' => 'verified',
         'is_active' => true,
     ]);
-    $speaker->address()->update([
+    syncPrimaryAddressForTest($speaker, [
         'country_id' => $countryId,
     ]);
 
@@ -2390,6 +2279,7 @@ it('falls back to the original front cover url in reference directory serializat
                 'id' => 'reference-fallback-id',
                 'slug' => 'reference-cover-fallback',
                 'title' => 'Reference Cover Fallback',
+                'parent_id' => null,
                 'author' => null,
                 'type' => null,
                 'publisher' => null,
@@ -2447,8 +2337,10 @@ it('counts all public linked events on the reference directory cards', function 
         'starts_at' => now()->subDays(2),
     ]);
 
-    $reference->events()->attach($upcomingEvent, ['order_column' => 1]);
-    $reference->events()->attach($pastEvent, ['order_column' => 2]);
+    withGlobalOwnerContext(function () use ($reference, $upcomingEvent, $pastEvent): void {
+        $reference->events()->attach($upcomingEvent, ['order_column' => 1]);
+        $reference->events()->attach($pastEvent, ['order_column' => 2]);
+    });
 
     $this->getJson('/api/v1/references?search='.urlencode('Reference Event Count Coverage'))
         ->assertOk()
@@ -2546,7 +2438,7 @@ it('serializes speaker directory payloads with country and follow metadata for m
         'is_active' => true,
     ]);
 
-    $speaker->address()->updateOrCreate([], [
+    syncPrimaryAddressForTest($speaker, [
         'country_id' => $countryId,
     ]);
 
@@ -2634,7 +2526,7 @@ it('bumps the speaker directory cache version when speaker addresses change', fu
         ->assertOk()
         ->json('meta.cache.version');
 
-    $speaker->address()->create([
+    syncPrimaryAddressForTest($speaker, [
         'country_id' => $countryId,
         'state_id' => null,
         'district_id' => null,
@@ -2657,14 +2549,14 @@ it('bumps public directory cache versions when country metadata changes', functi
         'status' => 'verified',
         'is_active' => true,
     ]);
-    $institution->address()->updateOrCreate([], ['country_id' => $countryId]);
+    syncPrimaryAddressForTest($institution, ['country_id' => $countryId]);
 
     $speaker = Speaker::factory()->create([
         'name' => 'Speaker Cache Country Metadata',
         'status' => 'verified',
         'is_active' => true,
     ]);
-    $speaker->address()->updateOrCreate([], ['country_id' => $countryId]);
+    syncPrimaryAddressForTest($speaker, ['country_id' => $countryId]);
 
     $initialInstitutionVersion = $this->getJson(route('api.client.institutions.index'))
         ->assertOk()
@@ -2673,36 +2565,9 @@ it('bumps public directory cache versions when country metadata changes', functi
         ->assertOk()
         ->json('meta.cache.version');
 
-    $country = Country::query()->findOrFail($countryId);
+    $country = AddressCountry::query()->findOrFail($countryId);
     $country->name = 'Malaysia Baru';
     $country->save();
-
-    $updatedInstitutionVersion = $this->getJson(route('api.client.institutions.index'))
-        ->assertOk()
-        ->json('meta.cache.version');
-    $updatedSpeakerVersion = $this->getJson(route('api.client.speakers.index'))
-        ->assertOk()
-        ->json('meta.cache.version');
-
-    expect($updatedInstitutionVersion)->toBeString()->not->toBe('')
-        ->and($updatedInstitutionVersion)->not->toBe($initialInstitutionVersion)
-        ->and($updatedSpeakerVersion)->toBeString()->not->toBe('')
-        ->and($updatedSpeakerVersion)->not->toBe($initialSpeakerVersion);
-});
-
-it('bumps public directory cache versions when public country config changes', function () {
-    ensureFrontendApiMalaysiaCountryExists();
-
-    $initialInstitutionVersion = $this->getJson(route('api.client.institutions.index'))
-        ->assertOk()
-        ->json('meta.cache.version');
-    $initialSpeakerVersion = $this->getJson(route('api.client.speakers.index'))
-        ->assertOk()
-        ->json('meta.cache.version');
-
-    $countries = config('public-countries.countries', []);
-    $countries['malaysia']['label'] = 'Malaysia Config Refresh';
-    config()->set('public-countries.countries', $countries);
 
     $updatedInstitutionVersion = $this->getJson(route('api.client.institutions.index'))
         ->assertOk()
@@ -3159,10 +3024,9 @@ it('submits events with media through the frontend api', function () {
         'age_group' => ['all_ages'],
         'languages' => [101],
         'domain_tags' => [$domainTag->getKey()],
-        'organizer_type' => 'institution',
-        'organizer_institution_id' => $institution->getKey(),
+        'primary_organizer_id' => $institution->getKey(),
         'speakers' => [$speaker->getKey()],
-        'submission_country_id' => 132,
+        'submission_country_id' => ensureFrontendApiMalaysiaCountryExists(),
         'cover' => fakeGeneratedImageUpload('cover.jpg', 1600, 900),
         'poster' => fakeGeneratedImageUpload('poster.jpg', 1200, 1500),
         'gallery' => [fakeGeneratedImageUpload('gallery.jpg')],
@@ -3174,7 +3038,7 @@ it('submits events with media through the frontend api', function () {
         ->assertCreated()
         ->assertJsonPath('data.event.title', 'Frontend API Event');
 
-    $event = Event::query()->where('title', 'Frontend API Event')->firstOrFail();
+    $event = withGlobalOwnerContext(fn () => Event::query()->where('title', 'Frontend API Event')->firstOrFail());
 
     expect($event->getMedia('cover'))->toHaveCount(1)
         ->and($event->getMedia('poster'))->toHaveCount(1)
@@ -3201,9 +3065,8 @@ it('rejects frontend event submission cover and poster uploads with invalid aspe
         'gender' => 'all',
         'age_group' => ['all_ages'],
         'languages' => [101],
-        'organizer_type' => 'institution',
-        'organizer_institution_id' => $institution->getKey(),
-        'submission_country_id' => 132,
+        'primary_organizer_id' => $institution->getKey(),
+        'submission_country_id' => ensureFrontendApiMalaysiaCountryExists(),
         'submitter_name' => 'Guest User',
         'submitter_email' => 'guest@example.com',
         'cover' => fakeGeneratedImageUpload('cover-invalid.jpg', 1200, 800),
@@ -3244,8 +3107,7 @@ it('requires explicit country input for frontend event submissions and accepts a
         'age_group' => ['all_ages'],
         'languages' => [101],
         'domain_tags' => [$domainTag->getKey()],
-        'organizer_type' => 'institution',
-        'organizer_institution_id' => $institution->getKey(),
+        'primary_organizer_id' => $institution->getKey(),
         'speakers' => [$speaker->getKey()],
     ];
 
@@ -3254,18 +3116,18 @@ it('requires explicit country input for frontend event submissions and accepts a
         ->assertJsonValidationErrors(['submission_country_id']);
 
     $this->postJson(route('api.client.submit-event.store'), array_merge($payload, [
-        'submission_country_id' => 132,
+        'submission_country_id' => ensureFrontendApiMalaysiaCountryExists(),
     ]))
         ->assertCreated()
         ->assertJsonPath('data.event.title', 'Frontend API Legacy Timezone Event');
 
-    $event = Event::query()->where('title', 'Frontend API Legacy Timezone Event')->firstOrFail();
+    $event = withGlobalOwnerContext(fn () => Event::query()->where('title', 'Frontend API Legacy Timezone Event')->firstOrFail());
 
     expect($event->timezone)->toBe('Asia/Kuala_Lumpur')
         ->and($event->starts_at?->timezone('Asia/Kuala_Lumpur')->format('H:i'))->toBe('20:15');
 });
 
-it('rejects unsupported or disabled submission countries for frontend event submissions', function () {
+it('accepts any valid submission country uuid for frontend event submissions', function () {
     $institution = Institution::factory()->create([
         'status' => 'verified',
         'is_active' => true,
@@ -3278,15 +3140,7 @@ it('rejects unsupported or disabled submission countries for frontend event subm
         'allow_public_event_submission' => true,
     ]);
 
-    $disabledCountryId = DB::table('countries')->insertGetId([
-        'iso2' => 'SG',
-        'name' => 'Singapore',
-        'status' => 1,
-        'phone_code' => '65',
-        'iso3' => 'SGP',
-        'region' => 'Asia',
-        'subregion' => 'South-Eastern Asia',
-    ]);
+    $disabledCountryId = (string) ensureTestAddressCountry('SG', 'Singapore', 'SGP', ['Asia/Singapore'], '65')->getKey();
 
     $payload = [
         'title' => 'Frontend API Invalid Country Event',
@@ -3300,15 +3154,14 @@ it('rejects unsupported or disabled submission countries for frontend event subm
         'age_group' => ['all_ages'],
         'languages' => [101],
         'domain_tags' => [$domainTag->getKey()],
-        'organizer_type' => 'institution',
-        'organizer_institution_id' => $institution->getKey(),
+        'primary_organizer_id' => $institution->getKey(),
         'speakers' => [$speaker->getKey()],
         'submitter_name' => 'Guest Submitter',
         'submitter_email' => 'guest@example.test',
     ];
 
     $this->postJson(route('api.client.submit-event.store'), array_merge($payload, [
-        'submission_country_id' => 999999,
+        'submission_country_id' => 'not-a-uuid',
     ]))
         ->assertUnprocessable()
         ->assertJsonValidationErrors(['submission_country_id']);
@@ -3316,8 +3169,8 @@ it('rejects unsupported or disabled submission countries for frontend event subm
     $this->postJson(route('api.client.submit-event.store'), array_merge($payload, [
         'submission_country_id' => $disabledCountryId,
     ]))
-        ->assertUnprocessable()
-        ->assertJsonValidationErrors(['submission_country_id']);
+        ->assertCreated()
+        ->assertJsonPath('data.event.title', 'Frontend API Invalid Country Event');
 });
 
 it('requires guest event submissions to include email or phone', function () {
@@ -3345,10 +3198,9 @@ it('requires guest event submissions to include email or phone', function () {
         'age_group' => ['all_ages'],
         'languages' => [101],
         'domain_tags' => [$domainTag->getKey()],
-        'organizer_type' => 'institution',
-        'organizer_institution_id' => $institution->getKey(),
+        'primary_organizer_id' => $institution->getKey(),
         'speakers' => [$speaker->getKey()],
-        'submission_country_id' => 132,
+        'submission_country_id' => ensureFrontendApiMalaysiaCountryExists(),
         'submitter_name' => 'Guest Submitter',
     ])
         ->assertUnprocessable()
@@ -3375,16 +3227,15 @@ it('allows online frontend event submissions without a live url', function () {
         'age_group' => ['all_ages'],
         'languages' => [101],
         'domain_tags' => [$domainTag->getKey()],
-        'organizer_type' => 'institution',
-        'organizer_institution_id' => $institution->getKey(),
-        'submission_country_id' => 132,
+        'primary_organizer_id' => $institution->getKey(),
+        'submission_country_id' => ensureFrontendApiMalaysiaCountryExists(),
         'submitter_name' => 'Guest Submitter',
         'submitter_email' => 'guest@example.test',
     ])
         ->assertCreated()
         ->assertJsonPath('data.event.title', 'Online Frontend API Event');
 
-    expect(Event::query()->where('title', 'Online Frontend API Event')->value('live_url'))->toBeNull();
+    expect(withGlobalOwnerContext(fn () => Event::query()->where('title', 'Online Frontend API Event')->value('live_url')))->toBeNull();
 });
 
 it('requires a physical location for speaker-organized physical event submissions', function () {
@@ -3407,9 +3258,8 @@ it('requires a physical location for speaker-organized physical event submission
         'age_group' => ['all_ages'],
         'languages' => [101],
         'domain_tags' => [$domainTag->getKey()],
-        'organizer_type' => 'speaker',
-        'organizer_speaker_id' => $speaker->getKey(),
-        'submission_country_id' => 132,
+        'primary_organizer_id' => $speaker->getKey(),
+        'submission_country_id' => ensureFrontendApiMalaysiaCountryExists(),
         'submitter_name' => 'Guest Submitter',
         'submitter_email' => 'guest@example.test',
     ])
@@ -3426,17 +3276,20 @@ it('mirrors public detail media and public contact payloads', function () {
         'is_active' => true,
     ]);
     $speaker->contacts()->create([
-        'category' => ContactCategory::Email->value,
+        'type' => ContactMethodType::Email->value,
+        'purpose' => ContactPurpose::General->value,
         'value' => 'public-speaker@example.test',
         'is_public' => true,
     ]);
     $speaker->contacts()->create([
-        'category' => ContactCategory::Phone->value,
+        'type' => ContactMethodType::Phone->value,
+        'purpose' => ContactPurpose::General->value,
         'value' => '+6011222333',
         'is_public' => false,
     ]);
     $speaker->socialMedia()->create([
-        'platform' => 'website',
+        'platform' => SocialPlatform::Website->value,
+        'purpose' => ContactPurpose::General->value,
         'url' => 'https://speaker.example.test',
     ]);
     $speaker->addMedia(fakeGeneratedImageUpload('speaker-cover.jpg'))->toMediaCollection('cover');
@@ -3446,7 +3299,8 @@ it('mirrors public detail media and public contact payloads', function () {
         'is_active' => true,
     ]);
     $venue->contacts()->create([
-        'category' => ContactCategory::Phone->value,
+        'type' => ContactMethodType::Phone->value,
+        'purpose' => ContactPurpose::General->value,
         'value' => '+60312345678',
         'is_public' => true,
     ]);
@@ -3457,7 +3311,8 @@ it('mirrors public detail media and public contact payloads', function () {
         'is_active' => true,
     ]);
     $reference->socialMedia()->create([
-        'platform' => 'website',
+        'platform' => SocialPlatform::Website->value,
+        'purpose' => ContactPurpose::General->value,
         'url' => 'https://reference.example.test',
     ]);
     $reference->addMedia(fakeGeneratedImageUpload('reference-front-cover.jpg'))->toMediaCollection('front_cover');
@@ -3496,12 +3351,14 @@ it('serializes venue and reference detail payloads with core metadata for mobile
         'is_active' => true,
     ]);
     $venue->contacts()->create([
-        'category' => ContactCategory::Phone->value,
+        'type' => ContactMethodType::Phone->value,
+        'purpose' => ContactPurpose::General->value,
         'value' => '+60399887766',
         'is_public' => true,
     ]);
     $venue->socialMedia()->create([
-        'platform' => 'website',
+        'platform' => SocialPlatform::Website->value,
+        'purpose' => ContactPurpose::General->value,
         'url' => 'https://venue.example.test',
     ]);
     $venue->addMedia(fakeGeneratedImageUpload('venue-dto-cover.jpg', 1600, 900))->toMediaCollection('cover');
@@ -3517,7 +3374,8 @@ it('serializes venue and reference detail payloads with core metadata for mobile
         'is_active' => true,
     ]);
     $reference->socialMedia()->create([
-        'platform' => 'website',
+        'platform' => SocialPlatform::Website->value,
+        'purpose' => ContactPurpose::General->value,
         'url' => 'https://reference-dto.example.test',
     ]);
     $reference->addMedia(fakeGeneratedImageUpload('reference-front.jpg', 1200, 1600))->toMediaCollection('front_cover');
@@ -3618,30 +3476,16 @@ it('mirrors the public speaker page payload for app clients', function () {
     $speaker->addMedia(fakeGeneratedImageUpload('speaker-gallery-2.jpg'))->toMediaCollection('gallery');
     $speaker->update(['job_title' => 'Penasihat Dakwah']);
 
-    $speakerState = State::query()->create([
-        'country_id' => $countryId,
-        'name' => 'Pahang',
-        'country_code' => 'MY',
-    ]);
-    $speakerDistrict = District::query()->create([
-        'country_id' => $countryId,
-        'state_id' => (int) $speakerState->id,
-        'country_code' => 'MY',
-        'name' => 'Temerloh',
-    ]);
-    $speakerSubdistrict = Subdistrict::query()->create([
-        'country_id' => $countryId,
-        'state_id' => (int) $speakerState->id,
-        'district_id' => (int) $speakerDistrict->id,
-        'country_code' => 'MY',
-        'name' => 'Temerloh',
-    ]);
+    $country = AddressCountry::query()->findOrFail($countryId);
+    $speakerState = createTestAddressArea('Pahang', 1, null, $country);
+    $speakerDistrict = createTestAddressArea('Temerloh', 2, $speakerState, $country);
+    $speakerSubdistrict = createTestAddressArea('Temerloh', 3, $speakerDistrict, $country);
 
-    $speaker->address()->update([
+    syncPrimaryAddressForTest($speaker, [
         'country_id' => $countryId,
-        'state_id' => (int) $speakerState->id,
-        'district_id' => (int) $speakerDistrict->id,
-        'subdistrict_id' => (int) $speakerSubdistrict->id,
+        'admin_area_1_id' => (string) $speakerState->getKey(),
+        'admin_area_2_id' => (string) $speakerDistrict->getKey(),
+        'admin_area_3_id' => (string) $speakerSubdistrict->getKey(),
     ]);
 
     $institution = Institution::factory()->create([
@@ -3660,18 +3504,12 @@ it('mirrors the public speaker page payload for app clients', function () {
         'status' => 'verified',
         'is_active' => true,
     ]);
-    $venueSubdistrict = Subdistrict::query()->create([
+    $venueSubdistrict = createTestAddressArea('Mentakab', 3, $speakerDistrict, $country);
+    syncPrimaryAddressForTest($venue, [
         'country_id' => $countryId,
-        'state_id' => (int) $speakerState->id,
-        'district_id' => (int) $speakerDistrict->id,
-        'country_code' => 'MY',
-        'name' => 'Mentakab',
-    ]);
-    $venue->address()->update([
-        'country_id' => $countryId,
-        'state_id' => (int) $speakerState->id,
-        'district_id' => (int) $speakerDistrict->id,
-        'subdistrict_id' => (int) $venueSubdistrict->id,
+        'admin_area_1_id' => (string) $speakerState->getKey(),
+        'admin_area_2_id' => (string) $speakerDistrict->getKey(),
+        'admin_area_3_id' => (string) $venueSubdistrict->getKey(),
     ]);
 
     $bookReference = Reference::factory()->create([

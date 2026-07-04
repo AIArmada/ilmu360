@@ -1,5 +1,6 @@
 <?php
 
+use AIArmada\CommerceSupport\Models\Role;
 use App\Models\Event;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -10,7 +11,6 @@ use Laravel\Sanctum\Sanctum;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\User as SocialiteUser;
 use Spatie\DeletedModels\Models\DeletedModel;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
 uses(RefreshDatabase::class);
@@ -235,11 +235,10 @@ it('deletes the authenticated user account, revokes tokens, and keeps a sanitize
         'event_id' => $engagementEvent->id,
         'user_id' => $user->id,
     ]);
-    $this->assertDatabaseHas('events', [
-        'id' => $engagementEvent->id,
-        'saves_count' => 0,
-        'going_count' => 0,
-    ]);
+    expect($engagementEvent->fresh())
+        ->not->toBeNull()
+        ->and($engagementEvent->fresh()?->saves_count)->toBe(0)
+        ->and($engagementEvent->fresh()?->going_count)->toBe(0);
 
     $deletedModel = DeletedModel::query()
         ->where('key', $user->id)

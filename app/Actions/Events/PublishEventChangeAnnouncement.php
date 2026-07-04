@@ -226,8 +226,6 @@ class PublishEventChangeAnnouncement
             'event_url',
             'live_url',
             'recording_url',
-            'organizer_type',
-            'organizer_id',
         ];
     }
 

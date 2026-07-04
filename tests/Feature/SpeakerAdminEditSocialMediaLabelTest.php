@@ -1,5 +1,6 @@
 <?php
 
+use AIArmada\Addressing\Models\Address;
 use App\Filament\Resources\Speakers\Pages\EditSpeaker;
 use App\Filament\Resources\Speakers\SpeakerResource;
 use App\Models\Speaker;
@@ -19,7 +20,7 @@ it('loads speaker edit page when speaker has social media row', function () {
 
     $speaker->socialMedia()->create([
         'platform' => 'facebook',
-        'username' => 'atiqah',
+        'handle' => 'atiqah',
         'url' => 'https://www.facebook.com/atiqah',
     ]);
 
@@ -36,13 +37,15 @@ it('saves the speaker edit page when a social media row only has a username', fu
     $administrator->assignRole('super_admin');
 
     $speaker = Speaker::factory()->create();
-    $speaker->address()->update([
-        'country_id' => 132,
+    $address = Address::query()->create([
+        'country_id' => (string) ensureTestMalaysiaCountry()->getKey(),
+        'country_code' => 'MY',
     ]);
+    $speaker->attachAddress($address, type: 'primary', isPrimary: true);
 
     $speaker->socialMedia()->create([
         'platform' => 'facebook',
-        'username' => 'atiqah',
+        'handle' => 'atiqah',
         'url' => null,
     ]);
 
@@ -51,5 +54,5 @@ it('saves the speaker edit page when a social media row only has a username', fu
         ->call('save')
         ->assertHasNoErrors();
 
-    expect($speaker->fresh()->socialMedia()->where('platform', 'facebook')->value('username'))->toBe('atiqah');
+    expect($speaker->fresh()->socialMedia()->where('platform', 'facebook')->value('handle'))->toBe('atiqah');
 });

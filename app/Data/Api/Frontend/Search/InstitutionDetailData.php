@@ -11,8 +11,8 @@ use Spatie\LaravelData\Data;
 class InstitutionDetailData extends Data
 {
     /**
-     * @param  array{country_id: ?int, state_id: ?int, district_id: ?int, subdistrict_id: ?int}|null  $address
-     * @param  array{id: int, name: string, iso2: string, key: ?string}|null  $country
+     * @param  array{country_id: ?string, admin_area_1_id: ?string, admin_area_2_id: ?string, admin_area_3_id: ?string, admin_area_4_id: ?string}|null  $address
+     * @param  array{id: string, name: string, iso2: string, key: ?string}|null  $country
      * @param  array{public_image_url: string, logo_url: string, cover_url: ?string}  $media
      * @param  list<array<string, mixed>>  $contacts
      * @param  list<array<string, mixed>>  $social_media
@@ -45,8 +45,8 @@ class InstitutionDetailData extends Data
     ) {}
 
     /**
-     * @param  array{country_id: ?int, state_id: ?int, district_id: ?int, subdistrict_id: ?int}|null  $address
-     * @param  array{id: int, name: string, iso2: string, key: ?string}|null  $country
+     * @param  array{country_id: ?string, admin_area_1_id: ?string, admin_area_2_id: ?string, admin_area_3_id: ?string, admin_area_4_id: ?string}|null  $address
+     * @param  array{id: string, name: string, iso2: string, key: ?string}|null  $country
      * @param  array{public_image_url: string, logo_url: string, cover_url: ?string}  $media
      * @param  list<array<string, mixed>>  $contacts
      * @param  list<array<string, mixed>>  $socialMedia
@@ -83,8 +83,8 @@ class InstitutionDetailData extends Data
             address: $address,
             country: $country,
             map_url: $institution->addressModel?->google_maps_url,
-            map_lat: $institution->addressModel?->lat,
-            map_lng: $institution->addressModel?->lng,
+            map_lat: $institution->addressModel?->latitude,
+            map_lng: $institution->addressModel?->longitude,
             followers_count: $institution->followersCount(),
             speaker_count: $speakerCount,
             is_following: $user?->isFollowing($institution) ?? false,

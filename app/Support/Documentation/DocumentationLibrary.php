@@ -91,7 +91,7 @@ class DocumentationLibrary
                 'relative_path' => 'docs/ilmu360_mcp_event_csv_json_creation_guide.md',
                 'resource_uri' => 'file://docs/ilmu360_mcp_event_csv_json_creation_guide.md',
                 'mime_type' => 'text/markdown',
-                'audiences' => [self::AUDIENCE_API, self::AUDIENCE_MCP_ADMIN],
+                'audiences' => [self::AUDIENCE_API, self::AUDIENCE_MCP_ADMIN, self::AUDIENCE_MCP_MEMBER],
                 'tags' => ['mcp', 'admin', 'events', 'csv', 'json', 'batch-create'],
             ],
             [

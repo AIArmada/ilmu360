@@ -2,9 +2,9 @@
 
 namespace App\Actions\Events;
 
-use App\Enums\RegistrationMode;
+use AIArmada\Events\Enums\RegistrationMode;
+use AIArmada\Events\Models\EventAccessPolicy;
 use App\Models\Event;
-use App\Models\EventSettings;
 use App\Services\EventKeyPersonSyncService;
 use Lorisleiva\Actions\Concerns\AsAction;
 
@@ -27,14 +27,14 @@ class SyncEventResourceRelationsAction
         bool $syncKeyPeople = true,
     ): array {
         $eventHasRegistrations = $event->registrations()->exists();
-        $requestedRegistrationMode = is_string($state['registration_mode'] ?? null) && $state['registration_mode'] !== ''
-            ? $state['registration_mode']
-            : RegistrationMode::Event->value;
         $requestedRegistrationRequired = filter_var(
             $state['registration_required'] ?? false,
             FILTER_VALIDATE_BOOL,
             FILTER_NULL_ON_FAILURE,
         ) ?? false;
+        $requestedRegistrationMode = $requestedRegistrationRequired
+            ? RegistrationMode::Required->value
+            : RegistrationMode::None->value;
 
         $currentRegistrationMode = $this->resolveRegistrationMode($event)->value;
         $currentRegistrationRequired = $this->resolveRegistrationRequired($event);
@@ -49,11 +49,15 @@ class SyncEventResourceRelationsAction
             ? $currentRegistrationRequired
             : $requestedRegistrationRequired;
 
-        $event->settings()->updateOrCreate(
+        $event->forceFill([
+            'registration_mode' => $modeToPersist,
+        ])->save();
+
+        $event->accessPolicy()->updateOrCreate(
             ['event_id' => $event->id],
             [
                 'registration_required' => $registrationRequiredToPersist,
-                'registration_mode' => $modeToPersist,
+                'walk_in_allowed' => ! $registrationRequiredToPersist,
             ]
         );
 
@@ -97,27 +101,17 @@ class SyncEventResourceRelationsAction
 
     protected function resolveRegistrationMode(Event $event): RegistrationMode
     {
-        $rawMode = $event->settings?->registration_mode;
-
-        if ($rawMode instanceof RegistrationMode) {
-            return $rawMode;
-        }
-
-        if (is_string($rawMode)) {
-            return RegistrationMode::tryFrom($rawMode) ?? RegistrationMode::Event;
-        }
-
-        return RegistrationMode::Event;
+        return $event->resolvedRegistrationMode();
     }
 
     protected function resolveRegistrationRequired(Event $event): bool
     {
-        $settings = $event->settings;
+        $accessPolicy = $event->accessPolicy;
 
-        if (! $settings instanceof EventSettings) {
+        if (! $accessPolicy instanceof EventAccessPolicy) {
             return false;
         }
 
-        return (bool) $settings->registration_required;
+        return (bool) $accessPolicy->registration_required;
     }
 }

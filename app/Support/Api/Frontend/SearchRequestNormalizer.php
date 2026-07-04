@@ -3,16 +3,12 @@
 namespace App\Support\Api\Frontend;
 
 use App\Enums\InstitutionType;
-use App\Support\Location\PublicCountryRegistry;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class SearchRequestNormalizer
 {
-    public function __construct(
-        private readonly PublicCountryRegistry $publicCountryRegistry,
-    ) {}
-
     /**
      * @param  list<string>  $allowedFields
      * @return list<string>|null
@@ -174,6 +170,17 @@ class SearchRequestNormalizer
         return (int) $normalized;
     }
 
+    public function normalizedUuid(mixed $value): ?string
+    {
+        if (! is_scalar($value)) {
+            return null;
+        }
+
+        $normalized = trim((string) $value);
+
+        return Str::isUuid($normalized) ? $normalized : null;
+    }
+
     public function normalizedInstitutionType(mixed $value): ?InstitutionType
     {
         $normalized = $this->normalizedString($value);
@@ -185,10 +192,8 @@ class SearchRequestNormalizer
         return InstitutionType::tryFrom($normalized);
     }
 
-    public function requestedCountryId(Request $request): ?int
+    public function requestedCountryId(Request $request): ?string
     {
-        return $this->publicCountryRegistry->resolveCountryId(
-            $request->query('country_id'),
-        );
+        return $this->normalizedUuid($request->query('country_id'));
     }
 }

@@ -1,58 +1,35 @@
 <?php
 
+use AIArmada\Addressing\Models\AddressArea;
+use AIArmada\Addressing\Models\AddressCountry;
 use App\Livewire\Pages\Contributions\SubmitInstitution;
-use App\Models\District;
 use App\Models\Institution;
-use App\Models\State;
-use App\Models\Subdistrict;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
 
-function ensureCountryForLocationPicker(string $iso2, string $name, ?int $id = null): int
+function ensureCountryForLocationPicker(string $iso2, string $name): AddressCountry
 {
-    $countryId = DB::table('countries')
-        ->when($id !== null, fn ($query) => $query->where('id', $id), fn ($query) => $query->where('iso2', $iso2))
-        ->value('id');
-
-    if (is_int($countryId)) {
-        return $countryId;
-    }
-
-    return DB::table('countries')->insertGetId(array_filter([
-        'id' => $id,
-        'iso2' => $iso2,
-        'name' => $name,
-        'status' => 1,
-        'phone_code' => $iso2 === 'ID' ? '62' : '60',
-        'iso3' => $iso2 === 'ID' ? 'IDN' : 'MYS',
-        'region' => 'Asia',
-        'subregion' => 'South-Eastern Asia',
-    ], static fn (mixed $value): bool => $value !== null));
+    return ensureTestAddressCountry(
+        iso2: $iso2,
+        name: $name,
+        iso3: $iso2 === 'ID' ? 'IDN' : 'MYS',
+        timezones: [$iso2 === 'ID' ? 'Asia/Jakarta' : 'Asia/Kuala_Lumpur'],
+        phoneCode: $iso2 === 'ID' ? '62' : '60',
+    );
 }
 
-function ensureMalaysiaStateForLocationPicker(string $name = 'Selangor'): State
+function ensureMalaysiaStateForLocationPicker(string $name = 'Selangor'): AddressArea
 {
-    $countryId = ensureCountryForLocationPicker('MY', 'Malaysia', 132);
-
-    $stateId = DB::table('states')
-        ->where('country_id', $countryId)
-        ->where('name', $name)
-        ->value('id');
-
-    if (! is_int($stateId)) {
-        $stateId = DB::table('states')->insertGetId([
-            'country_id' => $countryId,
-            'name' => $name,
-            'country_code' => 'MY',
-        ]);
-    }
-
-    return State::query()->findOrFail($stateId);
+    return createTestAddressArea(
+        $name,
+        1,
+        country: ensureCountryForLocationPicker('MY', 'Malaysia'),
+        type: 'state',
+    );
 }
 
 it('renders the institution location picker when google places is enabled', function () {
@@ -92,7 +69,7 @@ it('falls back to the manual location fields when google places is disabled', fu
         ->assertSee(__('Google Maps URL'));
 });
 
-it('seeds Malaysia for institution contributions when timezone resolves outside enabled countries', function () {
+it('does not seed a country for institution contributions from timezone cookies', function () {
     $user = User::factory()->create();
 
     $this->actingAs($user)
@@ -103,25 +80,7 @@ it('seeds Malaysia for institution contributions when timezone resolves outside 
     Livewire::withCookie('user_timezone', 'Asia/Jakarta')
         ->actingAs($user)
         ->test(SubmitInstitution::class)
-        ->assertSet('data.address.country_id', 132);
-});
-
-it('pins the hidden institution contribution country to the selected public country preference', function () {
-    config()->set('public-countries.countries.indonesia.enabled', true);
-    config()->set('public-countries.countries.indonesia.coming_soon', false);
-
-    $indonesiaId = ensureCountryForLocationPicker('ID', 'Indonesia');
-    $user = User::factory()->create();
-
-    $this->actingAs($user)
-        ->withUnencryptedCookie('public_country', 'indonesia')
-        ->get(route('contributions.submit-institution'))
-        ->assertOk();
-
-    Livewire::withCookie('public_country', 'indonesia')
-        ->actingAs($user)
-        ->test(SubmitInstitution::class)
-        ->assertSet('data.address.country_id', $indonesiaId);
+        ->assertSet('data.address.country_id', null);
 });
 
 it('still requires a selected location when the picker is enabled', function () {
@@ -144,7 +103,7 @@ it('keeps manual fallback mode off the places api while still normalizing pasted
     config()->set('services.google.place_link_resolution_enabled', true);
     config()->set('services.google.places_server_api_key', 'server-test-key');
 
-    ensureCountryForLocationPicker('MY', 'Malaysia', 132);
+    $country = ensureCountryForLocationPicker('MY', 'Malaysia');
 
     Http::fake([
         'https://maps.app.goo.gl/*' => Http::response('', 302, [
@@ -168,6 +127,7 @@ it('keeps manual fallback mode off the places api while still normalizing pasted
         ->test(SubmitInstitution::class)
         ->set('data.name', 'Manual Fallback Maps URL')
         ->set('data.type', 'masjid')
+        ->set('data.address.country_id', (string) $country->getKey())
         ->set('data.address.google_maps_url', 'https://maps.app.goo.gl/KWFQuuxAmSK3kRFM8')
         ->call('submit')
         ->assertHasNoErrors();
@@ -188,20 +148,10 @@ it('keeps manual fallback mode off the places api while still normalizing pasted
 });
 
 it('applies a google place selection into the nested institution address state', function () {
+    $country = ensureCountryForLocationPicker('MY', 'Malaysia');
     $state = ensureMalaysiaStateForLocationPicker();
-    $district = District::query()->create([
-        'country_id' => (int) $state->country_id,
-        'state_id' => (int) $state->id,
-        'country_code' => 'MY',
-        'name' => 'Petaling',
-    ]);
-    $subdistrict = Subdistrict::query()->create([
-        'country_id' => (int) $state->country_id,
-        'state_id' => (int) $state->id,
-        'district_id' => (int) $district->id,
-        'country_code' => 'MY',
-        'name' => 'Shah Alam',
-    ]);
+    $district = createTestAddressArea('Petaling', 2, parent: $state, country: $country, type: 'district');
+    $subdistrict = createTestAddressArea('Shah Alam', 3, parent: $district, country: $country, type: 'subdistrict');
 
     config()->set('services.google.place_link_resolution_enabled', true);
     config()->set('services.google.places_server_api_key', 'server-test-key');
@@ -212,7 +162,7 @@ it('applies a google place selection into the nested institution address state',
 
     Livewire::actingAs($user)
         ->test(SubmitInstitution::class)
-        ->assertSet('data.address.country_id', 132)
+        ->set('data.address.country_id', (string) $country->getKey())
         ->call('applyPlaceSelection', [
             'placeId' => 'place_abc123',
             'googleMapsURI' => 'https://www.google.com/maps/place/?q=place_id:place_abc123',
@@ -229,18 +179,19 @@ it('applies a google place selection into the nested institution address state',
                 ['longText' => 'Selangor', 'shortText' => 'Selangor', 'types' => ['administrative_area_level_1', 'political']],
             ],
         ])
+        ->assertSet('data.address.country_id', (string) $country->getKey())
         ->assertSet('data.address.line1', 'Persiaran Masjid')
         ->assertSet('data.address.line2', 'Seksyen 14')
         ->assertSet('data.address.postcode', '40000')
-        ->assertSet('data.address.state_id', (int) $state->id)
-        ->assertSet('data.address.district_id', (int) $district->id)
-        ->assertSet('data.address.subdistrict_id', (int) $subdistrict->id)
-        ->assertSet('data.address.google_place_id', 'place_abc123')
+        ->assertSet('data.address.admin_area_1_id', (string) $state->id)
+        ->assertSet('data.address.admin_area_2_id', (string) $district->id)
+        ->assertSet('data.address.admin_area_3_id', (string) $subdistrict->id)
+        ->assertSet('data.address.provider_place_id', 'place_abc123')
         ->assertSet('data.address.google_maps_url', 'https://www.google.com/maps/search/?api=1&query=3.07853%2C101.52073&query_place_id=place_abc123')
         ->assertSet('data.address.google_resolution_source', 'picker')
         ->assertSet('data.address.google_resolution_status', 'resolved')
-        ->assertSet('data.address.lat', 3.07853)
-        ->assertSet('data.address.lng', 101.52073)
+        ->assertSet('data.address.latitude', 3.07853)
+        ->assertSet('data.address.longitude', 101.52073)
         ->assertDontSee(__('Paste the full Google Maps link from your browser'));
 
     Http::assertNothingSent();

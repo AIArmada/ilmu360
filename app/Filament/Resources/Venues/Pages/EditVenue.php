@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Venues\Pages;
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Actions\Venues\SaveVenueAction;
 use App\Filament\Resources\Venues\VenueResource;
 use App\Models\Venue;
@@ -12,6 +13,19 @@ use Illuminate\Database\Eloquent\Model;
 class EditVenue extends EditRecord
 {
     protected static string $resource = VenueResource::class;
+
+    public function boot(): void
+    {
+        OwnerContext::setForRequest(null);
+    }
+
+    #[\Override]
+    public function mount(int|string $record): void
+    {
+        OwnerContext::withOwner(null, function () use ($record): void {
+            parent::mount($record);
+        });
+    }
 
     #[\Override]
     protected function getHeaderActions(): array
@@ -28,6 +42,6 @@ class EditVenue extends EditRecord
             abort(403);
         }
 
-        return app(SaveVenueAction::class)->handle($data, $record);
+        return OwnerContext::withOwner(null, fn (): Model => app(SaveVenueAction::class)->handle($data, $record));
     }
 }

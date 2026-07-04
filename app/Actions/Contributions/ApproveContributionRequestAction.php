@@ -179,16 +179,17 @@ class ApproveContributionRequestAction
 
         $addressKeys = [
             'country_id',
-            'state_id',
-            'district_id',
-            'subdistrict_id',
+            'admin_area_1_id',
+            'admin_area_2_id',
+            'admin_area_3_id',
+            'admin_area_4_id',
             'line1',
             'line2',
             'postcode',
-            'lat',
-            'lng',
+            'latitude',
+            'longitude',
             'google_maps_url',
-            'google_place_id',
+            'provider_place_id',
             'waze_url',
         ];
 

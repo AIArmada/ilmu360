@@ -41,6 +41,7 @@ class ApproveEvent extends Transition implements HasColor, HasIcon, HasLabel
 
             // Update event status
             $this->event->status = Approved::class;
+            // @phpstan-ignore-next-line now() returns CarbonImmutable, property expects Carbon
             $this->event->published_at = now();
             $this->event->save();
 
@@ -70,8 +71,9 @@ class ApproveEvent extends Transition implements HasColor, HasIcon, HasLabel
     {
         $speakerIds = $event->keyPeople()->whereNotNull('speaker_id')->pluck('speaker_id');
 
-        if ($event->organizer_type === Speaker::class && $event->organizer_id) {
-            $speakerIds->push($event->organizer_id);
+        $organizer = $event->primaryOrganizerInvolvement?->involveable;
+        if ($organizer instanceof Speaker) {
+            $speakerIds->push((string) $organizer->getKey());
         }
 
         // Verify linked speaker profiles across all event roles.
@@ -85,8 +87,8 @@ class ApproveEvent extends Transition implements HasColor, HasIcon, HasLabel
 
         $institutionIds = collect();
 
-        if ($event->organizer_type === Institution::class && $event->organizer_id) {
-            $institutionIds->push($event->organizer_id);
+        if ($organizer instanceof Institution) {
+            $institutionIds->push((string) $organizer->getKey());
         }
 
         if ($event->institution_id) {

@@ -2,13 +2,13 @@
 
 namespace App\Filament\Resources\Speakers\Schemas;
 
-use App\Enums\ContactCategory;
-use App\Enums\ContactType;
+use AIArmada\Contacting\Enums\ContactMethodType;
+use AIArmada\Contacting\Enums\ContactPurpose;
+use AIArmada\Contacting\Enums\SocialPlatform;
 use App\Enums\Gender;
 use App\Enums\Honorific;
 use App\Enums\PostNominal;
 use App\Enums\PreNominal;
-use App\Enums\SocialMediaPlatform;
 use App\Forms\SharedFormSchema;
 use App\Models\Speaker;
 use App\Models\User;
@@ -85,14 +85,11 @@ class SpeakerForm
                     ])
                     ->columns(2),
                 Section::make(__('Location / Base'))
-                    ->relationship('address')
-                    ->mutateRelationshipDataBeforeFillUsing(fn (array $data): array => SharedFormSchema::hydrateAddressFormState($data))
-                    ->mutateRelationshipDataBeforeCreateUsing(fn (array $data): array => SharedFormSchema::prepareAddressPersistenceData($data))
-                    ->mutateRelationshipDataBeforeSaveUsing(fn (array $data): array => SharedFormSchema::prepareAddressPersistenceData($data))
+                    ->statePath('address')
                     ->components(SharedFormSchema::regionAddressFields(
                         includeCountryField: true,
                         showCountryField: false,
-                        defaultCountryId: SharedFormSchema::preferredPublicCountryId(),
+                        defaultCountryId: null,
                         requireCountryField: false,
                     ))
                     ->columns(2),
@@ -125,16 +122,16 @@ class SpeakerForm
                             ->relationship()
                             ->default([])
                             ->schema([
-                                Select::make('category')
-                                    ->label(__('Category'))
-                                    ->options(ContactCategory::class)
+                                Select::make('type')
+                                    ->label(__('Type'))
+                                    ->options(ContactMethodType::options())
                                     ->required()
                                     ->live(),
                                 ...SharedFormSchema::contactValueFields(),
-                                Select::make('type')
-                                    ->label(__('Type'))
-                                    ->options(ContactType::class)
-                                    ->default(ContactType::Main)
+                                Select::make('purpose')
+                                    ->label(__('Purpose'))
+                                    ->options(ContactPurpose::options())
+                                    ->default(ContactPurpose::General->value)
                                     ->required(),
                                 Toggle::make('is_public')
                                     ->label(__('Public'))
@@ -190,19 +187,19 @@ class SpeakerForm
                             ->schema([
                                 Select::make('platform')
                                     ->label(__('Platform'))
-                                    ->options(SocialMediaPlatform::class)
+                                    ->options(SocialPlatform::options())
                                     ->searchable()
                                     ->required()
                                     ->columnSpan(1),
-                                TextInput::make('username')
-                                    ->label(__('Username / Handle'))
+                                TextInput::make('handle')
+                                    ->label(__('Handle'))
                                     ->requiredWithout('url')
                                     ->maxLength(255)
                                     ->placeholder(__('@username / https://...'))
                                     ->columnSpan(1),
                                 TextInput::make('url')
                                     ->label(__('URL'))
-                                    ->requiredWithout('username')
+                                    ->requiredWithout('handle')
                                     ->url()
                                     ->maxLength(255)
                                     ->columnSpanFull(),
@@ -212,12 +209,12 @@ class SpeakerForm
                             ->itemLabel(function (array $state): ?string {
                                 $platform = $state['platform'] ?? null;
 
-                                if ($platform instanceof SocialMediaPlatform) {
-                                    return $platform->getLabel();
+                                if ($platform instanceof SocialPlatform) {
+                                    return $platform->label();
                                 }
 
                                 if (is_string($platform) && $platform !== '') {
-                                    return SocialMediaPlatform::tryFrom($platform)?->getLabel() ?? $platform;
+                                    return SocialPlatform::tryFrom($platform)?->label() ?? $platform;
                                 }
 
                                 return null;

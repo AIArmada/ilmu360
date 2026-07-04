@@ -1,9 +1,9 @@
 <?php
 
+use AIArmada\CommerceSupport\Models\Role;
+use AIArmada\Contacting\Enums\ContactMethodType;
+use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\FilamentAuthz\Facades\Authz;
-use AIArmada\FilamentAuthz\Models\Role;
-use App\Enums\ContactCategory;
-use App\Enums\ContactType;
 use App\Filament\Resources\Institutions\Pages\EditInstitution;
 use App\Filament\Resources\Institutions\RelationManagers\MembersRelationManager as InstitutionMembersRelationManager;
 use App\Filament\Resources\Speakers\Pages\EditSpeaker;
@@ -38,7 +38,7 @@ function assignGlobalRole(User $user, string $role): void
 function normalizeInstitutionContactsForAdminForm(Institution $institution): void
 {
     $institution->contacts()
-        ->where('category', 'phone')
+        ->where('type', ContactMethodType::Phone->value)
         ->update(['value' => '+60112223344']);
 }
 
@@ -218,8 +218,8 @@ it('saves institution contact phone values on the edit page without nulling the 
 
     $institution = Institution::factory()->create();
     $institution->contacts()->create([
-        'category' => ContactCategory::Phone->value,
-        'type' => ContactType::Main->value,
+        'type' => ContactMethodType::Phone->value,
+        'purpose' => ContactPurpose::General->value,
         'value' => '+60112223344',
         'is_public' => true,
     ]);
@@ -230,7 +230,7 @@ it('saves institution contact phone values on the edit page without nulling the 
         ->call('save')
         ->assertHasNoErrors();
 
-    expect($institution->fresh()->contacts()->where('category', ContactCategory::Phone->value)->value('value'))
+    expect($institution->fresh()->contacts()->where('type', ContactMethodType::Phone->value)->value('value'))
         ->not->toBeNull()
         ->not->toBeEmpty();
 });
@@ -322,8 +322,8 @@ it('supports locking and unlocking speaker records through the toggle', function
     $speaker = Speaker::factory()->create([
         'allow_public_event_submission' => true,
     ]);
-    $speaker->address()->update([
-        'country_id' => 132,
+    syncPrimaryAddressForTest($speaker, [
+        'country_id' => (string) ensureTestMalaysiaCountry()->getKey(),
     ]);
 
     $member = User::factory()->create([
@@ -367,8 +367,8 @@ it('refreshes speaker public submission toggle eligibility without remounting th
     $speaker = Speaker::factory()->create([
         'allow_public_event_submission' => true,
     ]);
-    $speaker->address()->update([
-        'country_id' => 132,
+    syncPrimaryAddressForTest($speaker, [
+        'country_id' => (string) ensureTestMalaysiaCountry()->getKey(),
     ]);
 
     $this->actingAs($admin);

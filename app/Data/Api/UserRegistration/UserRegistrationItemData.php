@@ -27,15 +27,17 @@ class UserRegistrationItemData extends Data
 
     public static function fromModel(Registration $registration): self
     {
+        $registrant = $registration->registrant;
+
         return new self(
             id: (string) $registration->id,
             event_id: (string) $registration->event_id,
-            user_id: is_string($registration->user_id) ? $registration->user_id : null,
-            name: (string) $registration->name,
-            email: is_string($registration->email) ? $registration->email : null,
-            phone: is_string($registration->phone) ? $registration->phone : null,
-            status: (string) $registration->status,
-            checkin_token: is_string($registration->checkin_token) ? $registration->checkin_token : null,
+            user_id: $registrant instanceof \App\Models\User ? (string) $registrant->getKey() : null,
+            name: $registration->resolvedName() ?? '',
+            email: $registration->resolvedEmail(),
+            phone: $registration->resolvedPhone(),
+            status: $registration->statusValue(),
+            checkin_token: $registration->resolvedCheckinToken(),
             created_at: $registration->created_at?->toIso8601String(),
             updated_at: $registration->updated_at?->toIso8601String(),
             event: $registration->event instanceof Event

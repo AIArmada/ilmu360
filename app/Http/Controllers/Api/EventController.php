@@ -21,9 +21,11 @@ use App\Models\Event;
 use App\Models\EventCheckin;
 use App\Models\Reference;
 use App\Models\Registration;
+use App\Models\Series;
 use App\Models\User;
 use App\Services\Signals\ProductSignalsService;
 use App\Support\Api\ApiPagination;
+use App\Support\Events\PrimaryOccurrenceSql;
 use App\Support\Timezone\UserDateTimeFormatter;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\QueryParameter;
@@ -184,8 +186,8 @@ class EventController extends Controller
                     return;
                 }
 
-                $query->whereHas('venue.address', function (Builder $addressQuery) use ($stateIds): void {
-                    $addressQuery->whereIn('state_id', $stateIds);
+                $query->whereHas('venue.addresses', function (Builder $addressQuery) use ($stateIds): void {
+                    $addressQuery->whereIn('admin_area_1_id', $stateIds);
                 });
             }),
             AllowedFilter::callback('district_id', function (Builder $query, mixed $value): void {
@@ -194,8 +196,8 @@ class EventController extends Controller
                     return;
                 }
 
-                $query->whereHas('venue.address', function (Builder $addressQuery) use ($districtIds): void {
-                    $addressQuery->whereIn('district_id', $districtIds);
+                $query->whereHas('venue.addresses', function (Builder $addressQuery) use ($districtIds): void {
+                    $addressQuery->whereIn('admin_area_2_id', $districtIds);
                 });
             }),
             AllowedFilter::callback('subdistrict_id', function (Builder $query, mixed $value): void {
@@ -204,8 +206,8 @@ class EventController extends Controller
                     return;
                 }
 
-                $query->whereHas('venue.address', function (Builder $addressQuery) use ($subdistrictIds): void {
-                    $addressQuery->whereIn('subdistrict_id', $subdistrictIds);
+                $query->whereHas('venue.addresses', function (Builder $addressQuery) use ($subdistrictIds): void {
+                    $addressQuery->whereIn('admin_area_3_id', $subdistrictIds);
                 });
             }),
             AllowedFilter::callback('city_id', function (Builder $query, mixed $value): void {
@@ -214,8 +216,8 @@ class EventController extends Controller
                     return;
                 }
 
-                $query->whereHas('venue.address', function (Builder $addressQuery) use ($cityIds): void {
-                    $addressQuery->whereIn('city_id', $cityIds);
+                $query->whereHas('venue.addresses', function (Builder $addressQuery) use ($cityIds): void {
+                    $addressQuery->whereIn('admin_area_4_id', $cityIds);
                 });
             }),
             AllowedFilter::callback('speaker', function (Builder $query, mixed $value): void {
@@ -334,7 +336,7 @@ class EventController extends Controller
                 }
 
                 $query->whereHas('series', function (Builder $seriesQuery) use ($seriesIds): void {
-                    $seriesQuery->whereIn('series.id', $seriesIds);
+                    $seriesQuery->whereIn((new Series)->qualifyColumn('id'), $seriesIds);
                 });
             }),
             AllowedFilter::callback('reference_ids', function (Builder $query, mixed $value): void {
@@ -394,7 +396,7 @@ class EventController extends Controller
                 $query
                     ->where('timing_mode', 'prayer_relative')
                     ->where(function (Builder $prayerQuery) use ($normalized, $operator): void {
-                        $prayerQuery->whereRaw('LOWER(prayer_display_text) '.$operator.' ?', ["%{$normalized}%"]);
+                        $prayerQuery->where('prayer_display_text', $operator, "%{$normalized}%");
 
                         $reference = $this->resolvePrayerReference($normalized);
 
@@ -407,10 +409,11 @@ class EventController extends Controller
         /** @var list<string> $allowedIncludes */
         $allowedIncludes = [
             'venue',
-            'venue.address',
-            'venue.address.district',
-            'venue.address.subdistrict',
+            'venue.addresses',
+            'venue.addresses.country',
             'institution',
+            'institution.addresses',
+            'institution.addresses.country',
             'keyPeople',
             'keyPeople.speaker',
             'speakers',
@@ -418,11 +421,8 @@ class EventController extends Controller
             'mediaLinks',
             'settings',
             'languages',
-            'address',
-            'address.state',
-            'address.district',
-            'address.subdistrict',
-            'address.city',
+            'addresses',
+            'addresses.country',
         ];
         /** @var list<string> $allowedSorts */
         $allowedSorts = [
@@ -435,9 +435,9 @@ class EventController extends Controller
         ];
 
         $events = QueryBuilder::for(Event::query()->with([
-            'institution.address',
+            'institution.addresses.country',
             'institution.media' => fn ($query) => $query->whereIn('collection_name', ['logo', 'cover']),
-            'venue.address',
+            'venue.addresses.country',
             'speakers.media' => fn ($query) => $query->where('collection_name', 'avatar'),
             'media' => fn ($query) => $query->where('collection_name', 'poster'),
             'references',
@@ -488,13 +488,11 @@ class EventController extends Controller
         /** @var list<string> $allowedIncludes */
         $allowedIncludes = [
             'venue',
-            'venue.address',
-            'venue.address.state',
-            'venue.address.district',
-            'venue.address.subdistrict',
-            'venue.address.city',
+            'venue.addresses',
+            'venue.addresses.country',
             'institution',
-            'institution.address',
+            'institution.addresses',
+            'institution.addresses.country',
             'keyPeople',
             'keyPeople.speaker',
             'speakers',
@@ -503,16 +501,21 @@ class EventController extends Controller
             'settings',
             'languages',
             'donationChannels',
-            'address',
-            'address.state',
-            'address.district',
-            'address.subdistrict',
-            'address.city',
+            'addresses',
+            'addresses.country',
         ];
 
         $this->abortUnlessShowVisibleEvent($event);
 
-        $event = QueryBuilder::for(Event::query()->with(['keyPeople.speaker', 'institution.media', 'media', 'references.media']))
+        $event = QueryBuilder::for(Event::query()->with([
+            'keyPeople.speaker',
+            'institution.media',
+            'institution.addresses.country',
+            'venue.addresses.country',
+            'addresses.country',
+            'media',
+            'references.media',
+        ]))
             ->allowedIncludes(...$allowedIncludes)
             ->whereKey($event->getKey())
             ->firstOrFail();
@@ -532,8 +535,8 @@ class EventController extends Controller
 
         $registration = Registration::query()
             ->where('event_id', $event->getKey())
-            ->where('user_id', $user->getKey())
-            ->where('status', '!=', 'cancelled')
+            ->forUser($user)
+            ->active()
             ->latest('created_at')
             ->first();
 
@@ -783,12 +786,12 @@ class EventController extends Controller
                 ->orWhere(function (Builder $labelQuery) use ($terms, $operator): void {
                     foreach ($terms as $index => $term) {
                         if ($index === 0) {
-                            $labelQuery->whereRaw('LOWER(prayer_display_text) '.$operator.' ?', ["%{$term}%"]);
+                            $labelQuery->where('prayer_display_text', $operator, "%{$term}%");
 
                             continue;
                         }
 
-                        $labelQuery->orWhereRaw('LOWER(prayer_display_text) '.$operator.' ?', ["%{$term}%"]);
+                        $labelQuery->orWhere('prayer_display_text', $operator, "%{$term}%");
                     }
                 });
         });
@@ -808,9 +811,9 @@ class EventController extends Controller
                     $relativeQuery
                         ->where('timing_mode', TimingMode::PrayerRelative->value)
                         ->where(function (Builder $labelQuery) use ($operator): void {
-                            $labelQuery->whereRaw('LOWER(prayer_display_text) '.$operator.' ?', ['%dhuha%'])
-                                ->orWhereRaw('LOWER(prayer_display_text) '.$operator.' ?', ['%pagi%'])
-                                ->orWhereRaw('LOWER(prayer_display_text) '.$operator.' ?', ['%morning%']);
+                            $labelQuery->where('prayer_display_text', $operator, '%dhuha%')
+                                ->orWhere('prayer_display_text', $operator, '%pagi%')
+                                ->orWhere('prayer_display_text', $operator, '%morning%');
                         })
                         ->where(function (Builder $excludeQuery): void {
                             $excludeQuery->whereNull('prayer_reference')
@@ -899,13 +902,7 @@ class EventController extends Controller
 
     private function startsAtUserTimeSqlExpression(int $offsetMinutes): string
     {
-        $safeOffsetMinutes = $offsetMinutes;
-
-        return match ($this->databaseDriver()) {
-            'pgsql' => "to_char(events.starts_at + interval '{$safeOffsetMinutes} minutes', 'HH24:MI')",
-            'mysql', 'mariadb' => "DATE_FORMAT(DATE_ADD(events.starts_at, INTERVAL {$safeOffsetMinutes} MINUTE), '%H:%i')",
-            default => "strftime('%H:%M', datetime(events.starts_at, '{$safeOffsetMinutes} minutes'))",
-        };
+        return PrimaryOccurrenceSql::startsAtUserTimeExpression($offsetMinutes);
     }
 
     private function userUtcOffsetMinutes(?Request $request = null): int

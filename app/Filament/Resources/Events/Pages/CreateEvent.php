@@ -2,11 +2,13 @@
 
 namespace App\Filament\Resources\Events\Pages;
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Actions\Events\GenerateEventSlugAction;
 use App\Actions\Events\SyncEventResourceRelationsAction;
 use App\Filament\Pages\Concerns\AuditsRelatedStateChanges;
 use App\Filament\Resources\Events\EventResource;
 use App\Models\Event;
+use App\Models\Institution;
 use App\Models\Reference;
 use App\Models\Series;
 use App\Models\Speaker;
@@ -23,6 +25,11 @@ class CreateEvent extends CreateRecord
 
     protected Width|string|null $maxContentWidth = Width::Full;
 
+    public function boot(): void
+    {
+        OwnerContext::setForRequest(null);
+    }
+
     #[\Override]
     protected function mutateFormDataBeforeCreate(array $data): array
     {
@@ -32,14 +39,14 @@ class CreateEvent extends CreateRecord
             is_array($data['speakers'] ?? null) ? $data['speakers'] : [],
         );
 
-        if (
-            $speakerSlugSegments === []
-            && ($data['organizer_type'] ?? null) === Speaker::class
-            && filled($data['organizer_id'] ?? null)
-        ) {
-            $speakerSlugSegments = app(GenerateEventSlugAction::class)->speakerSlugSegmentsForSpeakerIds([
-                (string) $data['organizer_id'],
-            ]);
+        if ($speakerSlugSegments === [] && filled($data['primary_organizer_id'] ?? null)) {
+            $organizer = Institution::query()->find($data['primary_organizer_id'])
+                ?? Speaker::query()->find($data['primary_organizer_id']);
+            if ($organizer instanceof Speaker) {
+                $speakerSlugSegments = app(GenerateEventSlugAction::class)->speakerSlugSegmentsForSpeakerIds([
+                    (string) $organizer->getKey(),
+                ]);
+            }
         }
 
         $data['slug'] = app(GenerateEventSlugAction::class)->handle(
@@ -60,6 +67,7 @@ class CreateEvent extends CreateRecord
             $data['registration_mode'],
             $data['speakers'],
             $data['other_key_people'],
+            $data['primary_organizer_id'],
         );
 
         return $data;
@@ -68,6 +76,12 @@ class CreateEvent extends CreateRecord
     protected function afterCreate(): void
     {
         $event = $this->eventRecord();
+
+        $primaryOrganizerId = $this->form->getState()['primary_organizer_id'] ?? null;
+        if ($primaryOrganizerId) {
+            $organizer = Institution::query()->find($primaryOrganizerId) ?? Speaker::query()->find($primaryOrganizerId);
+            $event->setPrimaryOrganizer($organizer);
+        }
 
         app(SyncEventResourceRelationsAction::class)->handle(
             $event,
@@ -99,6 +113,8 @@ class CreateEvent extends CreateRecord
             return [];
         }
 
+        $seriesTable = (new Series)->getTable();
+
         return [
             'references' => $record->references()
                 ->orderBy('references.title')
@@ -110,8 +126,8 @@ class CreateEvent extends CreateRecord
                 ->values()
                 ->all(),
             'series' => $record->series()
-                ->orderBy('series.title')
-                ->get(['series.id', 'series.title'])
+                ->orderBy("{$seriesTable}.title")
+                ->get(["{$seriesTable}.id", "{$seriesTable}.title"])
                 ->map(fn (Series $series): array => [
                     'id' => (string) $series->getKey(),
                     'title' => $series->title,

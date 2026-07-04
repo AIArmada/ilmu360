@@ -2,15 +2,19 @@
 
 namespace App\Models;
 
+use AIArmada\Addressing\Traits\HasAddresses;
+use AIArmada\Contacting\Concerns\HasContactMethods;
+use AIArmada\Contacting\Concerns\HasSocialProfiles;
 use App\Enums\InstitutionType;
 use App\Enums\MemberSubjectType;
+use App\Models\Builders\EventBuilder;
 use App\Models\Concerns\AuditsModelChanges;
-use App\Models\Concerns\HasAddress;
-use App\Models\Concerns\HasContacts;
 use App\Models\Concerns\HasDonationChannels;
 use App\Models\Concerns\HasFollowers;
 use App\Models\Concerns\HasLanguages;
-use App\Models\Concerns\HasSocialMedia;
+use App\Models\Concerns\HasPackageContactAliases;
+use App\Models\Concerns\HasPackageSocialAliases;
+use App\Models\Concerns\HasPrimaryAddressAccessors;
 use Carbon\CarbonInterface;
 use Database\Factories\InstitutionFactory;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -36,7 +40,7 @@ class Institution extends Model implements AuditableContract, HasMedia
     public const string PUBLIC_DIRECTORY_SESSION_KEY = 'public_institutions_directory_seed';
 
     /** @use HasFactory<InstitutionFactory> */
-    use AuditsModelChanges, HasAddress, HasContacts, HasDonationChannels, HasFactory, HasFollowers, HasLanguages, HasSocialMedia, HasUuids, InteractsWithMedia, KeepsDeletedModels, Searchable;
+    use AuditsModelChanges, HasAddresses, HasContactMethods, HasDonationChannels, HasFactory, HasFollowers, HasLanguages, HasPackageContactAliases, HasPackageSocialAliases, HasPrimaryAddressAccessors, HasSocialProfiles, HasUuids, InteractsWithMedia, KeepsDeletedModels, Searchable;
 
     public $incrementing = false;
 
@@ -96,7 +100,6 @@ class Institution extends Model implements AuditableContract, HasMedia
     protected function makeAllSearchableUsing(Builder $query): Builder
     {
         return $query
-            ->with('address')
             ->where('institutions.is_active', true)
             ->whereIn('institutions.status', ['verified', 'pending']);
     }
@@ -110,9 +113,7 @@ class Institution extends Model implements AuditableContract, HasMedia
             return $this->toScoutDatabaseSearchableArray();
         }
 
-        $this->loadMissing('address');
-
-        $address = $this->addressModel;
+        $address = $this->primaryAddress();
         $type = $this->type;
         $updatedAt = $this->updated_at ?? now();
 
@@ -127,10 +128,10 @@ class Institution extends Model implements AuditableContract, HasMedia
             'slug' => (string) $this->slug,
             'status' => (string) $this->status,
             'is_active' => (bool) $this->is_active,
-            'country_id' => $address?->country_id,
-            'state_id' => $address?->state_id,
-            'district_id' => $address?->district_id,
-            'subdistrict_id' => $address?->subdistrict_id,
+            'country_code' => $address?->country_code,
+            'city' => $address?->city,
+            'state' => $address?->state,
+            'postcode' => $address?->postcode,
             'updated_at' => $updatedAt->timestamp,
         ];
     }
@@ -244,11 +245,11 @@ class Institution extends Model implements AuditableContract, HasMedia
     }
 
     /**
-     * @return HasMany<Event, $this>
+     * Metadata-backed event query for this institution.
      */
-    public function events(): HasMany
+    public function events(): EventBuilder
     {
-        return $this->hasMany(Event::class);
+        return Event::query()->where('institution_id', (string) $this->getKey());
     }
 
     /**

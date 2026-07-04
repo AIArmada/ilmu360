@@ -36,8 +36,7 @@ function submitEventOrganizerFixtures(): array
 function submitEventOrganizerFormData(array $fixtures, array $overrides = []): array
 {
     return array_merge([
-        'organizer_type' => 'speaker',
-        'organizer_speaker_id' => $fixtures['speaker']->id,
+        'primary_organizer_id' => $fixtures['speaker']->id,
         'speakers' => [$fixtures['speaker']->id],
         'title' => 'Auto Select Speaker Event',
         'event_date' => now()->addDay()->toDateString(),
@@ -71,8 +70,10 @@ it('assigns the speaker as event speaker when speaker is the organizer', functio
     $event = Event::where('title', 'Auto Select Speaker Event')->firstOrFail();
     expect($event->speakers)->toHaveCount(1);
     expect($event->speakers->first()->id)->toBe($fixtures['speaker']->id);
-    expect($event->organizer_type)->toBe(Speaker::class);
-    expect($event->organizer_id)->toBe($fixtures['speaker']->id);
+
+    $involvement = $event->primaryOrganizerInvolvement;
+    expect($involvement->involveable_type)->toBe(Speaker::class);
+    expect($involvement->involveable_id)->toBe((string) $fixtures['speaker']->id);
 });
 
 it('shows formatted speaker names in submit event speaker selectors', function () {

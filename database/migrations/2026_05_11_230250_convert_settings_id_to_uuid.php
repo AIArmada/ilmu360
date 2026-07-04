@@ -12,6 +12,16 @@ return new class extends Migration
      */
     public function up(): void
     {
+        $idColumnType = Schema::getColumnType('settings', 'id');
+
+        if (in_array($idColumnType, ['uuid', 'string'], true)) {
+            return;
+        }
+
+        if (DB::getDriverName() === 'sqlite') {
+            return;
+        }
+
         // Add new UUID column
         Schema::table('settings', function (Blueprint $table) {
             $table->uuid('id_new')->nullable()->after('id');

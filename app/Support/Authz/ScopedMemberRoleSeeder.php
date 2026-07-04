@@ -2,11 +2,13 @@
 
 namespace App\Support\Authz;
 
+use AIArmada\CommerceSupport\Models\AuthzScope;
+use AIArmada\CommerceSupport\Models\Permission;
+use AIArmada\CommerceSupport\Models\Role;
 use AIArmada\FilamentAuthz\Facades\Authz;
-use AIArmada\FilamentAuthz\Models\AuthzScope;
-use AIArmada\FilamentAuthz\Models\Permission;
-use AIArmada\FilamentAuthz\Models\Role;
 use App\Enums\MemberSubjectType;
+use Illuminate\Support\Str;
+use Spatie\Permission\PermissionRegistrar;
 
 class ScopedMemberRoleSeeder
 {
@@ -54,12 +56,30 @@ class ScopedMemberRoleSeeder
             ->unique()
             ->values()
             ->all();
+        $teamsKey = app(PermissionRegistrar::class)->teamsKey;
 
-        $this->ensurePermissions($allPermissions);
+        Authz::withScope($scope, function () use ($rolePermissions, $syncExisting, $teamsKey, $allPermissions): void {
+            $this->ensurePermissions($allPermissions);
+            $scopeTeamId = getPermissionsTeamId();
 
-        Authz::withScope($scope, function () use ($rolePermissions, $syncExisting): void {
             foreach ($rolePermissions as $roleName => $permissions) {
-                $role = Role::findOrCreate($roleName, 'web');
+                $roleAttributes = [
+                    'name' => $roleName,
+                    'guard_name' => 'web',
+                ];
+
+                if (is_string($teamsKey) && $teamsKey !== '') {
+                    $roleAttributes[$teamsKey] = $scopeTeamId;
+                }
+
+                /** @var Role $role */
+                $role = Role::query()->firstOrNew($roleAttributes);
+
+                if (! $role->exists) {
+                    $role->forceFill([
+                        'id' => (string) Str::uuid(),
+                    ])->save();
+                }
 
                 if (! $syncExisting && $role->permissions()->exists()) {
                     continue;

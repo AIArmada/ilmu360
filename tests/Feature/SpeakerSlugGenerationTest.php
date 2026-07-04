@@ -1,5 +1,7 @@
 <?php
 
+use AIArmada\Addressing\Models\Address;
+use AIArmada\Addressing\Models\AddressCountry;
 use App\Actions\Contributions\ApproveContributionRequestAction;
 use App\Actions\Events\GenerateEventSlugAction;
 use App\Actions\Speakers\GenerateSpeakerSlugAction;
@@ -16,7 +18,6 @@ use App\Filament\Resources\Speakers\Pages\EditSpeaker;
 use App\Forms\SpeakerFormSchema;
 use App\Jobs\BackfillSpeakerSlugs;
 use App\Models\ContributionRequest;
-use App\Models\Country;
 use App\Models\Event;
 use App\Models\Speaker;
 use App\Models\User;
@@ -46,7 +47,7 @@ it('generates country-based slugs for speaker quick-create flows', function () {
         ->findOrFail($speakerId);
 
     expect($speaker->slug)->toBe('ustaz-ahmad-fauzi-my')
-        ->and($speaker->addressModel?->country_id)->toBe((int) $country->getKey());
+        ->and($speaker->addressModel?->country_id)->toBe((string) $country->getKey());
 });
 
 it('includes displayed speaker titles in the generated slug', function () {
@@ -274,7 +275,7 @@ it('adds duplicate numbering only when the same speaker name reuses the same cou
     ], $proposer);
 
     expect($first->slug)->toBe('ustaz-ahmad-fauzi-my')
-        ->and($first->addressModel?->country_id)->toBe((int) $malaysia->getKey())
+        ->and($first->addressModel?->country_id)->toBe((string) $malaysia->getKey())
         ->and($second->slug)->toBe('ustaz-ahmad-fauzi-2-my')
         ->and($third->slug)->toBe('ustaz-ahmad-fauzi-sg');
 });
@@ -386,7 +387,7 @@ it('uses the submitted address country when approving unstaged speaker create re
         ->findOrFail($approvedRequest->entity_id);
 
     expect($speaker->slug)->toBe('ustaz-ahmad-approval-my')
-        ->and($speaker->addressModel?->country_id)->toBe((int) $country->getKey());
+        ->and($speaker->addressModel?->country_id)->toBe((string) $country->getKey());
 });
 
 it('recomputes speaker slugs when the speaker country changes', function () {
@@ -407,7 +408,7 @@ it('recomputes speaker slugs when the speaker country changes', function () {
     ], $proposer);
 
     $speaker->addressModel?->update([
-        'country_id' => (int) $singapore->getKey(),
+        'country_id' => (string) $singapore->getKey(),
     ]);
 
     expect($speaker->fresh()?->slug)->toBe('ustaz-ahmad-fauzi-sg');
@@ -578,7 +579,7 @@ it('updates related event slugs when a speaker address change changes the speake
     expect($event->fresh()?->slug)->toBe("forum-alamat-penceramah-ustaz-ahmad-fauzi-my-{$expectedSuffix}");
 
     $speaker->address()->firstOrFail()->update([
-        'country_id' => (int) $singapore->getKey(),
+        'country_id' => (string) $singapore->getKey(),
     ]);
 
     expect($speaker->fresh()?->slug)->toBe('ustaz-ahmad-fauzi-sg')
@@ -586,8 +587,8 @@ it('updates related event slugs when a speaker address change changes the speake
 
     $speaker->address()->firstOrFail()->delete();
 
-    expect($speaker->fresh()?->slug)->toBe('ustaz-ahmad-fauzi-my')
-        ->and($event->fresh()?->slug)->toBe("forum-alamat-penceramah-ustaz-ahmad-fauzi-my-{$expectedSuffix}");
+    expect($speaker->fresh()?->slug)->toBe('ustaz-ahmad-fauzi')
+        ->and($event->fresh()?->slug)->toBe("forum-alamat-penceramah-ustaz-ahmad-fauzi-{$expectedSuffix}");
 });
 
 it('queues the speaker slug backfill command', function () {
@@ -600,11 +601,11 @@ it('queues the speaker slug backfill command', function () {
     Queue::assertPushed(BackfillSpeakerSlugs::class);
 });
 
-it('falls back to the preferred country suffix when speaker country data is missing', function () {
+it('uses a country suffix only when speaker country data is present', function () {
     $country = createSpeakerSlugCountry();
     $generator = app(GenerateSpeakerSlugAction::class);
 
-    expect($generator->handle('Ustaz Tanpa Negara'))->toBe('ustaz-tanpa-negara-my')
+    expect($generator->handle('Ustaz Tanpa Negara'))->toBe('ustaz-tanpa-negara')
         ->and($generator->handle('Ustaz Malaysia', [
             'country_id' => (string) $country->getKey(),
         ]))->toBe('ustaz-malaysia-my')
@@ -619,30 +620,27 @@ function createSpeakerSlugCountry(
     string $countryIso3 = 'MYS',
     int $countryId = 132,
     string $phoneCode = '60',
-): Country {
-    $country = Country::query()->find($countryId);
+): AddressCountry {
+    $country = AddressCountry::query()->where('iso2', $countryIso2)->first();
 
-    if ($country instanceof Country) {
+    if ($country instanceof AddressCountry) {
         return $country;
     }
 
-    $country = new Country;
-    $country->forceFill([
-        'id' => $countryId,
+    return AddressCountry::query()->create([
+        'entity_type' => 'country',
         'name' => $countryName,
         'iso2' => $countryIso2,
         'iso3' => $countryIso3,
+        'numeric_code' => (string) $countryId,
         'phone_code' => $phoneCode,
         'region' => 'Asia',
         'subregion' => 'South-Eastern Asia',
-        'status' => 1,
+        'timezones' => $countryIso2 === 'MY' ? ['Asia/Kuala_Lumpur'] : ['Asia/Singapore'],
     ]);
-    $country->save();
-
-    return $country;
 }
 
-function createSpeakerForSlugBackfill(string $id, string $name, string $slug, Country $country): Speaker
+function createSpeakerForSlugBackfill(string $id, string $name, string $slug, AddressCountry $country): Speaker
 {
     $speaker = Speaker::unguarded(fn () => Speaker::query()->create([
         'id' => $id,
@@ -653,10 +651,11 @@ function createSpeakerForSlugBackfill(string $id, string $name, string $slug, Co
         'is_active' => true,
     ]));
 
-    $speaker->address()->create([
-        'type' => 'main',
-        'country_id' => (int) $country->getKey(),
+    $address = Address::query()->create([
+        'country_id' => (string) $country->getKey(),
+        'country_code' => $country->iso2,
     ]);
+    $speaker->attachAddress($address, type: 'primary', isPrimary: true);
 
     return $speaker->fresh(['address']) ?? $speaker;
 }

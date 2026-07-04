@@ -2,18 +2,21 @@
 
 namespace App\Models;
 
+use AIArmada\Addressing\Traits\HasAddresses;
+use AIArmada\Contacting\Concerns\HasContactMethods;
+use AIArmada\Contacting\Concerns\HasSocialProfiles;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\Honorific;
 use App\Enums\MemberSubjectType;
 use App\Enums\PostNominal;
 use App\Enums\PreNominal;
 use App\Models\Concerns\AuditsModelChanges;
-use App\Models\Concerns\HasAddress;
-use App\Models\Concerns\HasContacts;
 use App\Models\Concerns\HasDonationChannels;
 use App\Models\Concerns\HasFollowers;
 use App\Models\Concerns\HasLanguages;
-use App\Models\Concerns\HasSocialMedia;
+use App\Models\Concerns\HasPackageContactAliases;
+use App\Models\Concerns\HasPackageSocialAliases;
+use App\Models\Concerns\HasPrimaryAddressAccessors;
 use Carbon\CarbonInterface;
 use Database\Factories\SpeakerFactory;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -45,7 +48,7 @@ class Speaker extends Model implements AuditableContract, HasMedia
     public const string PUBLIC_DIRECTORY_SESSION_KEY = 'public_speakers_directory_seed';
 
     /** @use HasFactory<SpeakerFactory> */
-    use AuditsModelChanges, HasAddress, HasContacts, HasDonationChannels, HasFactory, HasFollowers, HasLanguages, HasSocialMedia, HasUuids, InteractsWithMedia, KeepsDeletedModels, Searchable;
+    use AuditsModelChanges, HasAddresses, HasContactMethods, HasDonationChannels, HasFactory, HasFollowers, HasLanguages, HasPackageContactAliases, HasPackageSocialAliases, HasPrimaryAddressAccessors, HasSocialProfiles, HasUuids, InteractsWithMedia, KeepsDeletedModels, Searchable;
 
     public $incrementing = false;
 
@@ -116,7 +119,6 @@ class Speaker extends Model implements AuditableContract, HasMedia
     protected function makeAllSearchableUsing(Builder $query): Builder
     {
         return $query
-            ->with('address')
             ->where('speakers.is_active', true)
             ->whereIn('speakers.status', ['verified', 'pending']);
     }
@@ -130,9 +132,7 @@ class Speaker extends Model implements AuditableContract, HasMedia
             return $this->toScoutDatabaseSearchableArray();
         }
 
-        $this->loadMissing('address');
-
-        $address = $this->addressModel;
+        $address = $this->primaryAddress();
         $updatedAt = $this->updated_at ?? now();
 
         return [
@@ -145,10 +145,10 @@ class Speaker extends Model implements AuditableContract, HasMedia
             'status' => (string) $this->status,
             'is_active' => (bool) $this->is_active,
             'gender' => filled($this->gender) ? (string) $this->gender : null,
-            'country_id' => $address?->country_id,
-            'state_id' => $address?->state_id,
-            'district_id' => $address?->district_id,
-            'subdistrict_id' => $address?->subdistrict_id,
+            'country_code' => $address?->country_code,
+            'city' => $address?->city,
+            'state' => $address?->state,
+            'postcode' => $address?->postcode,
             'updated_at' => $updatedAt->timestamp,
         ];
     }

@@ -232,7 +232,6 @@ Passport              → OAuth routes for token issuance
 | GET/LW | `/` | `home` | ⚡home SFC | web | Guest+ |
 | GET/LW | `/tentang-kami` | `about` | About\Show | web | Guest+ |
 | GET | `/bahasa/{locale}` | `locale.switch` | LocaleController | web | Guest+ |
-| GET | `/negara/{country}` | `country.switch` | PublicCountryController | web | Guest+ |
 | GET | `/oauth/{provider}/redirect` | `socialite.redirect` | SocialiteController@redirect | web | Guest |
 | GET | `/oauth/{provider}/callback` | `socialite.callback` | SocialiteController@callback | web | Guest |
 | GET | `/kongsi/payload` | `dawah-share.payload` | DawahShareController@payload | throttle:share-tracking | Guest+ |

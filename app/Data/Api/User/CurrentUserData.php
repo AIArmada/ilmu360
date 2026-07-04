@@ -20,7 +20,7 @@ class CurrentUserData extends Data
     public static function fromModel(User $user): self
     {
         /** @var array<string, mixed> $payload */
-        $payload = $user->toArray();
+        $payload = $user->withoutRelations()->toArray();
         $payload['roles'] = Authz::withScope(
             null,
             fn (): array => $user->getRoleNames()->sort()->values()->all(),

@@ -8,9 +8,9 @@ describe('Event Going Feature', function () {
     it('allows a user to mark as going to an event', function () {
         $user = User::factory()->create();
         $event = Event::factory()->create(['going_count' => 0]);
-
         $event->goingBy()->attach($user->id);
-        $event->increment('going_count');
+        $event->going_count++;
+        $event->save();
 
         expect($event->fresh()->going_count)->toBe(1);
         expect($event->goingBy()->where('user_id', $user->id)->exists())->toBeTrue();
@@ -23,9 +23,11 @@ describe('Event Going Feature', function () {
         $event->goingBy()->attach($user->id);
 
         $event->goingBy()->detach($user->id);
-        $event->decrement('going_count');
+        $event->going_count--;
+        $event->save();
 
         expect($event->fresh()->going_count)->toBe(0);
+
         expect($event->goingBy()->where('user_id', $user->id)->exists())->toBeFalse();
     });
 
@@ -48,14 +50,16 @@ describe('Event Going Feature', function () {
 
         // User can be going but not saved
         $event->goingBy()->attach($user->id);
-        $event->increment('going_count');
+        $event->going_count++;
+        $event->save();
 
         expect($event->fresh()->going_count)->toBe(1);
         expect($event->fresh()->saves_count)->toBe(0);
 
         // User can also save independently
         $event->savedBy()->attach($user->id);
-        $event->increment('saves_count');
+        $event->saves_count++;
+        $event->save();
 
         expect($event->fresh()->going_count)->toBe(1);
         expect($event->fresh()->saves_count)->toBe(1);
@@ -71,7 +75,8 @@ describe('Event Going Feature', function () {
 
         foreach ($users as $user) {
             $event->goingBy()->attach($user->id);
-            $event->increment('going_count');
+            $event->going_count++;
+            $event->save();
         }
 
         expect($event->fresh()->going_count)->toBe(3);
@@ -81,6 +86,8 @@ describe('Event Going Feature', function () {
     it('user cannot be going to the same event twice', function () {
         $user = User::factory()->create();
         $event = Event::factory()->create(['going_count' => 0]);
+        $event->going_count = 0;
+        $event->save();
 
         $event->goingBy()->attach($user->id);
 

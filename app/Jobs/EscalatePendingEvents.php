@@ -45,7 +45,7 @@ class EscalatePendingEvents implements ShouldQueue
         $events = Event::query()
             ->where('status', 'pending')
             ->where('created_at', '<=', now()->subHours(48))
-            ->whereNull('escalated_at')
+            ->whereNull('metadata->escalated_at')
             ->get();
 
         if ($events->isEmpty()) {
@@ -74,8 +74,8 @@ class EscalatePendingEvents implements ShouldQueue
         $events = Event::query()
             ->where('status', 'pending')
             ->where('created_at', '<=', now()->subHours(72))
-            ->whereNotNull('escalated_at')
-            ->where('escalated_at', '<=', now()->subHours(24))
+            ->whereNotNull('metadata->escalated_at')
+            ->where('metadata->escalated_at', '<=', now()->subHours(24)->toIso8601String())
             ->get();
 
         if ($events->isEmpty()) {
@@ -107,8 +107,8 @@ class EscalatePendingEvents implements ShouldQueue
             ->where('starts_at', '<=', now()->addHours(24))
             ->where('starts_at', '>', now()->addHours(6)) // Not yet priority
             ->where('starts_at', '>', now()) // Not past
-            ->whereNull('is_priority')
-            ->whereNull('escalated_at') // Not already escalated via SLA
+            ->whereNull('metadata->is_priority')
+            ->whereNull('metadata->escalated_at') // Not already escalated via SLA
             ->get();
 
         if ($events->isEmpty()) {
@@ -140,8 +140,8 @@ class EscalatePendingEvents implements ShouldQueue
             ->where('starts_at', '<=', now()->addHours(6))
             ->where('starts_at', '>', now()) // Not past
             ->where(function ($query) {
-                $query->whereNull('is_priority')
-                    ->orWhere('is_priority', false);
+                $query->whereNull('metadata->is_priority')
+                    ->orWhere('metadata->is_priority', 'false');
             })
             ->get();
 

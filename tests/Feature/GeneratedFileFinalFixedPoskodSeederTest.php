@@ -18,50 +18,50 @@ it('imports the postcode csv against the production geography seed', function ()
     $postcodeInstitutions = fn () => Institution::query()->whereIn('slug', $postcodeSlugs);
     $findInstitution = fn (string $slug): ?Institution => Institution::query()
         ->where('slug', $slug)
-        ->with(['address.state', 'address.district', 'address.subdistrict'])
+        ->with(['address.stateArea', 'address.districtArea', 'address.subdistrictArea'])
         ->first();
 
     expect($expectedInstitutionCount)->toBe(6935)
         ->and($postcodeInstitutions()->count())->toBe($expectedInstitutionCount)
         ->and($postcodeInstitutions()->whereHas('address')->count())->toBe($expectedInstitutionCount)
-        ->and($postcodeInstitutions()->whereHas('address', fn ($query) => $query->whereNull('district_id'))->count())->toBeGreaterThan(1);
+        ->and($postcodeInstitutions()->whereHas('address', fn ($query) => $query->whereNull('admin_area_2_id'))->count())->toBeGreaterThan(1);
 
     $menora = $findInstitution(GeneratedPoskodInstitutionData::canonicalSlug('MASJID AL - MUNARIAH', '500'));
     expect($menora)->not()->toBeNull();
-    expect($menora?->address?->state?->name)->toBe('Perak');
-    expect($menora?->address?->district?->name)->toBe('Kuala Kangsar');
+    expect($menora?->address?->stateArea?->name)->toBe('Perak');
+    expect($menora?->address?->districtArea?->name)->toBe('Kuala Kangsar');
 
     $tekam = $findInstitution(GeneratedPoskodInstitutionData::canonicalSlug('MASJID RIDZUANIAH FELDA SG TEKAM GETAH', '1880'));
     expect($tekam)->not()->toBeNull();
-    expect($tekam?->address?->district?->name)->toBe('Jerantut');
-    expect($tekam?->address?->subdistrict?->name)->toBe('Bandar Pusat Jengka');
+    expect($tekam?->address?->districtArea?->name)->toBe('Jerantut');
+    expect($tekam?->address?->subdistrictArea?->name)->toBe('Bandar Pusat Jengka');
 
     $jengka = $findInstitution(GeneratedPoskodInstitutionData::canonicalSlug('MASJID ARRAHMANIAH FELDA JENGKA 17', '1882'));
     expect($jengka)->not()->toBeNull();
-    expect($jengka?->address?->district?->name)->toBe('Maran');
-    expect($jengka?->address?->subdistrict?->name)->toBe('Bandar Tun Abdul Razak');
+    expect($jengka?->address?->districtArea?->name)->toBe('Maran');
+    expect($jengka?->address?->subdistrictArea?->name)->toBe('Bandar Tun Abdul Razak');
 
     $pusa = $findInstitution(GeneratedPoskodInstitutionData::canonicalSlug('MASJID RAHMANIAH,', '4437'));
     expect($pusa)->not()->toBeNull();
-    expect($pusa?->address?->district?->name)->toBe('Betong');
-    expect($pusa?->address?->subdistrict?->name)->toBe('Pusa');
+    expect($pusa?->address?->districtArea?->name)->toBe('Betong');
+    expect($pusa?->address?->subdistrictArea?->name)->toBe('Pusa');
 
     $maludam = $findInstitution(GeneratedPoskodInstitutionData::canonicalSlug('MASJID DARUL MUALIMIN MALUDAM', '4448'));
     expect($maludam)->not()->toBeNull();
-    expect($maludam?->address?->district?->name)->toBe('Betong');
-    expect($maludam?->address?->subdistrict?->name)->toBe('Maludam');
+    expect($maludam?->address?->districtArea?->name)->toBe('Betong');
+    expect($maludam?->address?->subdistrictArea?->name)->toBe('Maludam');
 
     $padangRengas = $findInstitution(GeneratedPoskodInstitutionData::canonicalSlug('masjid al hadri', '6091'));
     expect($padangRengas)->not()->toBeNull();
-    expect($padangRengas?->address?->district?->name)->toBe('Kuala Kangsar');
-    expect($padangRengas?->address?->subdistrict?->name)->toBe('Padang Rengas');
+    expect($padangRengas?->address?->districtArea?->name)->toBe('Kuala Kangsar');
+    expect($padangRengas?->address?->subdistrictArea?->name)->toBe('Padang Rengas');
 
     $ajil = $findInstitution(GeneratedPoskodInstitutionData::canonicalSlug('MASJID AJIL', '28'));
     expect($ajil)->not()->toBeNull();
     expect($ajil?->name)->toBe('Masjid Ajil');
     expect($ajil?->address?->line1)->toBe('Ajil, Hulu Terengganu');
-    expect($ajil?->address?->district?->name)->toBe('Hulu Terengganu');
-    expect($ajil?->address?->subdistrict?->name)->toBe('Ajil');
+    expect($ajil?->address?->districtArea?->name)->toBe('Hulu Terengganu');
+    expect($ajil?->address?->subdistrictArea?->name)->toBe('Ajil');
 
     $temerloh = $findInstitution(GeneratedPoskodInstitutionData::canonicalSlug('MASJID ABU BAKAR TEMERLOH', '106'));
     expect($temerloh)->not()->toBeNull();
@@ -80,19 +80,27 @@ it('imports the postcode csv against the production geography seed', function ()
     expect($junkSarawak)->not()->toBeNull();
     expect($junkSarawak?->slug)->toBe('masjid-nurulllllllllllll-6082');
     expect($junkSarawak)->not()->toBeNull();
-    expect($junkSarawak?->address?->state?->name)->toBe('Sarawak');
-    expect($junkSarawak?->address?->district)->toBeNull();
-    expect($junkSarawak?->address?->subdistrict)->toBeNull();
+    expect($junkSarawak?->address?->stateArea?->name)->toBe('Sarawak');
+    expect($junkSarawak?->address?->districtArea)->toBeNull();
+    expect($junkSarawak?->address?->subdistrictArea)->toBeNull();
 
     $federalTerritoryInstitutionCount = Institution::query()
         ->whereIn('slug', $postcodeSlugs)
-        ->whereHas('address.state', fn ($query) => $query->whereIn('name', ['Kuala Lumpur', 'Putrajaya', 'Labuan']))
+        ->whereHas('address.stateArea', fn ($query) => $query->whereIn('name', [
+            'Wilayah Persekutuan Kuala Lumpur',
+            'Wilayah Persekutuan Putrajaya',
+            'Wilayah Persekutuan Labuan',
+        ]))
         ->count();
 
     $federalTerritoryInstitutionsWithDistrictCount = Institution::query()
         ->whereIn('slug', $postcodeSlugs)
-        ->whereHas('address.state', fn ($query) => $query->whereIn('name', ['Kuala Lumpur', 'Putrajaya', 'Labuan']))
-        ->whereHas('address', fn ($query) => $query->whereNotNull('district_id'))
+        ->whereHas('address.stateArea', fn ($query) => $query->whereIn('name', [
+            'Wilayah Persekutuan Kuala Lumpur',
+            'Wilayah Persekutuan Putrajaya',
+            'Wilayah Persekutuan Labuan',
+        ]))
+        ->whereHas('address', fn ($query) => $query->whereNotNull('admin_area_2_id'))
         ->count();
 
     expect($federalTerritoryInstitutionCount)->toBeGreaterThan(0)

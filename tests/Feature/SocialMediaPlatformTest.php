@@ -1,23 +1,16 @@
 <?php
 
-use App\Enums\SocialMediaPlatform;
+use AIArmada\Contacting\Enums\SocialPlatform;
 
 it('exposes only supported social media platforms', function () {
-    expect(array_map(
-        static fn (SocialMediaPlatform $platform): string => $platform->value,
-        SocialMediaPlatform::cases(),
-    ))->toBe([
-        'facebook',
-        'twitter',
-        'instagram',
-        'youtube',
-        'tiktok',
-        'telegram',
-        'whatsapp',
-        'linkedin',
-        'wikipedia',
-        'website',
-        'threads',
-        'other',
-    ]);
+    $enumPlatforms = array_map(
+        static fn (SocialPlatform $platform): string => $platform->value,
+        SocialPlatform::cases(),
+    );
+    $configuredPlatforms = array_keys(config('contacting.social_profiles.platforms'));
+
+    sort($enumPlatforms);
+    sort($configuredPlatforms);
+
+    expect($enumPlatforms)->toBe($configuredPlatforms);
 });

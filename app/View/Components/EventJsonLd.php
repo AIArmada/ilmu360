@@ -2,15 +2,14 @@
 
 namespace App\View\Components;
 
+use AIArmada\Addressing\Models\Address;
+use AIArmada\Events\Models\EventAccessPolicy;
 use App\Enums\EventChangeType;
 use App\Enums\ScheduleState;
-use App\Models\Address;
 use App\Models\Event;
 use App\Models\EventChangeAnnouncement;
-use App\Models\EventSettings;
 use App\Models\Institution;
 use App\Models\Speaker;
-use App\Models\State;
 use App\Models\Venue;
 use Illuminate\View\Component;
 use Illuminate\View\View;
@@ -61,8 +60,8 @@ class EventJsonLd extends Component
             $venueAddress = $venue->addressModel;
             $region = '';
 
-            if ($venueAddress instanceof Address && $venueAddress->state instanceof State) {
-                $region = $venueAddress->state->name;
+            if ($venueAddress instanceof Address && is_string($venueAddress->state)) {
+                $region = $venueAddress->state;
             }
 
             $jsonLd['location'] = [
@@ -77,11 +76,11 @@ class EventJsonLd extends Component
                 ],
             ];
 
-            if ($venueAddress instanceof Address && $venueAddress->lat !== null && $venueAddress->lng !== null) {
+            if ($venueAddress instanceof Address && $venueAddress->latitude !== null && $venueAddress->longitude !== null) {
                 $jsonLd['location']['geo'] = [
                     '@type' => 'GeoCoordinates',
-                    'latitude' => $venueAddress->lat,
-                    'longitude' => $venueAddress->lng,
+                    'latitude' => $venueAddress->latitude,
+                    'longitude' => $venueAddress->longitude,
                 ];
             }
         } elseif ($institution instanceof Institution) {
@@ -186,7 +185,7 @@ class EventJsonLd extends Component
     protected function getAvailability(): string
     {
         $event = $this->event;
-        $settings = $event->settings;
+        $accessPolicy = $event->accessPolicy;
 
         if (in_array((string) $event->status, ['rejected', 'cancelled'], true)) {
             return 'https://schema.org/Discontinued';
@@ -196,10 +195,10 @@ class EventJsonLd extends Component
             return 'https://schema.org/Discontinued';
         }
 
-        if ($settings instanceof EventSettings
-            && $settings->registration_required
-            && $settings->capacity !== null
-            && $event->registrations_count >= $settings->capacity) {
+        if ($accessPolicy instanceof EventAccessPolicy
+            && $accessPolicy->registration_required
+            && $accessPolicy->capacity !== null
+            && $event->registrations_count >= $accessPolicy->capacity) {
             return 'https://schema.org/SoldOut';
         }
 

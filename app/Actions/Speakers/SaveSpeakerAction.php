@@ -50,7 +50,7 @@ final readonly class SaveSpeakerAction
                 ]);
             }
 
-            if (! is_int($address['country_id'] ?? null)) {
+            if (! is_string($address['country_id'] ?? null)) {
                 throw ValidationException::withMessages([
                     'address.country_id' => __('The selected country is invalid.'),
                 ]);
@@ -109,7 +109,7 @@ final readonly class SaveSpeakerAction
         }
 
         return $speaker->fresh([
-            'address',
+            'addresses',
             'contacts',
             'socialMedia',
             'languages',

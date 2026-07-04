@@ -38,6 +38,7 @@ final readonly class SaveVenueAction
                 : $this->normalizeVenueType($venue->type),
             'description' => array_key_exists('description', $data) ? $data['description'] : $venue->description,
             'status' => (string) ($data['status'] ?? $venue->status ?? ($creating ? 'verified' : '')),
+            'visibility' => (string) ($data['visibility'] ?? $venue->visibility ?? 'public'),
             'is_active' => array_key_exists('is_active', $data) ? (bool) $data['is_active'] : ($creating ? true : (bool) $venue->is_active),
             'facilities' => array_key_exists('facilities', $data)
                 ? $this->normalizeFacilities($data['facilities'])
@@ -46,9 +47,10 @@ final readonly class SaveVenueAction
 
         if ($creating) {
             $venue->slug = $this->generateVenueSlugAction->handle($venue->name, $address);
+            Venue::withoutEvents(fn () => $venue->save());
+        } else {
+            $venue->save();
         }
-
-        $venue->save();
 
         $relationPayload = Arr::only($data, ['address', 'contacts', 'social_media']);
 
@@ -59,8 +61,15 @@ final readonly class SaveVenueAction
         $this->contributionEntityMutationService->syncVenueRelations($venue, $relationPayload);
         $this->syncMedia($venue, $data);
 
+        // ponytail: slug was calculated before address was linked; re-sync now that address exists.
+        if ($creating) {
+            $venue = $venue->fresh(['addresses']) ?? $venue;
+            $venue->slug = $this->generateVenueSlugAction->forVenue($venue);
+            Venue::withoutEvents(fn () => $venue->saveQuietly());
+        }
+
         return $venue->fresh([
-            'address',
+            'addresses',
             'contacts',
             'socialMedia',
             'media',

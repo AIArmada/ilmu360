@@ -50,8 +50,6 @@ it('prefills the submit-event form from a duplicated public event', function () 
         'ends_at' => Carbon::parse('2026-05-10 22:00:00', 'Asia/Kuala_Lumpur')->utc(),
         'event_type' => [EventType::KuliahCeramah->value],
         'event_format' => EventFormat::Physical->value,
-        'organizer_type' => Institution::class,
-        'organizer_id' => $institution->id,
         'institution_id' => $institution->id,
         'venue_id' => $venue->id,
         'gender' => EventGenderRestriction::MenOnly->value,
@@ -61,6 +59,7 @@ it('prefills the submit-event form from a duplicated public event', function () 
         'event_url' => 'https://example.test/event',
         'live_url' => 'https://example.test/live',
     ]);
+    $event->setPrimaryOrganizer($institution);
 
     $event->syncTags([$domainTag, $disciplineTag, $sourceTag, $issueTag]);
     $event->references()->attach($reference->id);
@@ -95,8 +94,9 @@ it('prefills the submit-event form from a duplicated public event', function () 
         ->and($component->get('data.event_type'))->toBe([EventType::KuliahCeramah->value])
         ->and($component->get('data.event_format'))->toBe(EventFormat::Physical->value)
         ->and($component->get('data.visibility'))->toBe(EventVisibility::Public->value)
-        ->and($component->get('data.organizer_type'))->toBe('institution')
-        ->and($component->get('data.organizer_institution_id'))->toBe($institution->id)
+        ->and($component->get('data.primary_organizer_id'))->toBe($institution->id)
+        ->and($component->get('data.primary_organizer_kind'))->toBe('institution')
+        ->and($component->get('data.primary_organizer_institution_id'))->toBe($institution->id)
         ->and($component->get('data.location_same_as_institution'))->toBeFalse()
         ->and($component->get('data.location_type'))->toBe('venue')
         ->and($component->get('data.location_venue_id'))->toBe($venue->id)
@@ -138,10 +138,9 @@ it('filters inaccessible organizer and speaker defaults when duplicating an even
         'starts_at' => Carbon::parse('2026-06-12 19:30:00', 'Asia/Kuala_Lumpur')->utc(),
         'event_type' => [EventType::KuliahCeramah->value],
         'event_format' => EventFormat::Physical->value,
-        'organizer_type' => Institution::class,
-        'organizer_id' => $institution->id,
         'institution_id' => $institution->id,
     ]);
+    $event->setPrimaryOrganizer($institution);
 
     app(EventKeyPersonSyncService::class)->sync(
         $event,
@@ -158,7 +157,9 @@ it('filters inaccessible organizer and speaker defaults when duplicating an even
     $component = Livewire::withQueryParams(['duplicate' => $event->id])
         ->test('pages.submit-event.create');
 
-    expect($component->get('data.organizer_institution_id'))->toBeNull()
+    expect($component->get('data.primary_organizer_id'))->toBeNull()
+        ->and($component->get('data.primary_organizer_kind'))->toBeNull()
+        ->and($component->get('data.primary_organizer_institution_id'))->toBeNull()
         ->and($component->get('data.speakers'))->toBe([])
         ->and(array_values($component->get('data.other_key_people')))->toBe([
             [
@@ -193,20 +194,20 @@ it('allows institution admins to duplicate managed non-public events', function 
         'status' => 'draft',
         'visibility' => EventVisibility::Private->value,
         'is_active' => false,
-        'organizer_type' => Institution::class,
-        'organizer_id' => $institution->id,
         'institution_id' => $institution->id,
     ]);
+    $event->setPrimaryOrganizer($institution);
 
     Livewire::actingAs($user)
         ->withQueryParams(['duplicate' => $event->id])
         ->test('pages.submit-event.create')
         ->assertSet('data.title', 'Majlis Dalaman Untuk Duplikasi')
-        ->assertSet('data.organizer_type', 'institution')
-        ->assertSet('data.organizer_institution_id', $institution->id);
+        ->assertSet('data.primary_organizer_id', $institution->id)
+        ->assertSet('data.primary_organizer_kind', 'institution')
+        ->assertSet('data.primary_organizer_institution_id', $institution->id);
 });
 
-it('prefills duplicated event times in the selected public country timezone instead of the viewer timezone', function () {
+it('prefills duplicated event times in the event timezone instead of the viewer timezone', function () {
     $institution = Institution::factory()->create([
         'name' => 'Masjid Rentas Zon',
         'allow_public_event_submission' => true,
@@ -222,13 +223,11 @@ it('prefills duplicated event times in the selected public country timezone inst
         'ends_at' => Carbon::parse('2026-05-10 02:00:00', 'Asia/Kuala_Lumpur')->utc(),
         'event_type' => [EventType::KuliahCeramah->value],
         'event_format' => EventFormat::Physical->value,
-        'organizer_type' => Institution::class,
-        'organizer_id' => $institution->id,
         'institution_id' => $institution->id,
     ]);
+    $event->setPrimaryOrganizer($institution);
 
     $component = Livewire::withCookie('user_timezone', 'America/Los_Angeles')
-        ->withCookie('public_country', 'malaysia')
         ->withQueryParams(['duplicate' => $event->id])
         ->test('pages.submit-event.create');
 

@@ -1,6 +1,7 @@
 <?php
 
-use App\Enums\ContactCategory;
+use AIArmada\Contacting\Enums\ContactMethodType;
+use AIArmada\Contacting\Enums\ContactPurpose;
 use App\Filament\Resources\Events\Pages\EditEvent;
 use App\Models\Event;
 use App\Models\EventSubmission;
@@ -51,12 +52,14 @@ it('shows the latest submission as read-only moderation data', function () {
     ]);
 
     $submission->contacts()->create([
-        'category' => ContactCategory::Email->value,
+        'type' => ContactMethodType::Email->value,
+        'purpose' => ContactPurpose::General->value,
         'value' => 'guest@example.com',
     ]);
 
     $submission->contacts()->create([
-        'category' => ContactCategory::Phone->value,
+        'type' => ContactMethodType::Phone->value,
+        'purpose' => ContactPurpose::General->value,
         'value' => '+60112223344',
     ]);
 

@@ -2,6 +2,13 @@
 
 namespace App\Support\Api\Admin;
 
+use AIArmada\Addressing\Models\AddressArea;
+use AIArmada\Addressing\Models\AddressCountry;
+use AIArmada\Contacting\Enums\ContactMethodType;
+use AIArmada\Contacting\Enums\ContactPurpose;
+use AIArmada\Contacting\Enums\SocialPlatform;
+use AIArmada\FilamentAddressing\Resources\AddressAreaResource;
+use App\Actions\AddressAreas\SaveAddressAreaAction;
 use App\Actions\DonationChannels\SaveDonationChannelAction;
 use App\Actions\Events\SaveAdminEventAction;
 use App\Actions\Inspirations\SaveInspirationAction;
@@ -13,11 +20,8 @@ use App\Actions\Reports\SaveReportAction;
 use App\Actions\Series\SaveSeriesAction;
 use App\Actions\Spaces\SaveSpaceAction;
 use App\Actions\Speakers\SaveSpeakerAction;
-use App\Actions\Subdistricts\SaveSubdistrictAction;
 use App\Actions\Tags\SaveTagAction;
 use App\Actions\Venues\SaveVenueAction;
-use App\Enums\ContactCategory;
-use App\Enums\ContactType;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
@@ -34,7 +38,6 @@ use App\Enums\PreNominal;
 use App\Enums\ReferencePartType;
 use App\Enums\ReferenceType;
 use App\Enums\RegistrationMode;
-use App\Enums\SocialMediaPlatform;
 use App\Enums\TagType;
 use App\Enums\VenueType;
 use App\Filament\Resources\DonationChannels\DonationChannelResource;
@@ -46,7 +49,6 @@ use App\Filament\Resources\Reports\ReportResource;
 use App\Filament\Resources\Series\SeriesResource;
 use App\Filament\Resources\Spaces\SpaceResource;
 use App\Filament\Resources\Speakers\SpeakerResource;
-use App\Filament\Resources\Subdistricts\SubdistrictResource;
 use App\Filament\Resources\Tags\TagResource;
 use App\Filament\Resources\Venues\VenueResource;
 use App\Forms\SharedFormSchema;
@@ -59,13 +61,10 @@ use App\Models\Report;
 use App\Models\Series;
 use App\Models\Space;
 use App\Models\Speaker;
-use App\Models\Subdistrict;
 use App\Models\Tag;
 use App\Models\User;
 use App\Models\Venue;
 use App\Services\ContributionEntityMutationService;
-use App\Support\Location\FederalTerritoryLocation;
-use App\Support\Location\PreferredCountryResolver;
 use BackedEnum;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
@@ -79,6 +78,7 @@ class AdminResourceMutationService
         private readonly ContributionEntityMutationService $contributionEntityMutationService,
         private readonly ResolveReportCategoryOptionsAction $resolveReportCategoryOptionsAction,
         private readonly ResolveReportEntityMetadataAction $resolveReportEntityMetadataAction,
+        private readonly SaveAddressAreaAction $saveAddressAreaAction,
         private readonly SaveDonationChannelAction $saveDonationChannelAction,
         private readonly SaveAdminEventAction $saveAdminEventAction,
         private readonly SaveInspirationAction $saveInspirationAction,
@@ -88,7 +88,6 @@ class AdminResourceMutationService
         private readonly SaveSeriesAction $saveSeriesAction,
         private readonly SaveSpeakerAction $saveSpeakerAction,
         private readonly SaveSpaceAction $saveSpaceAction,
-        private readonly SaveSubdistrictAction $saveSubdistrictAction,
         private readonly SaveTagAction $saveTagAction,
         private readonly SaveVenueAction $saveVenueAction,
     ) {}
@@ -99,6 +98,7 @@ class AdminResourceMutationService
     public function supports(string $resourceClass): bool
     {
         return in_array($resourceClass, [
+            AddressAreaResource::class,
             DonationChannelResource::class,
             EventResource::class,
             InspirationResource::class,
@@ -108,7 +108,6 @@ class AdminResourceMutationService
             SeriesResource::class,
             SpeakerResource::class,
             SpaceResource::class,
-            SubdistrictResource::class,
             TagResource::class,
             VenueResource::class,
         ], true);
@@ -126,6 +125,22 @@ class AdminResourceMutationService
             : $this->defaultsForCreate($resourceClass);
 
         return match ($resourceClass) {
+            AddressAreaResource::class => [
+                'resource_key' => $resourceKey,
+                'operation' => $operation,
+                'method' => $updating ? 'PUT' : 'POST',
+                'endpoint' => $updating && $record instanceof Model
+                    ? route('api.admin.resources.update', ['resourceKey' => $resourceKey, 'recordKey' => $this->recordKey($record)], false)
+                    : route('api.admin.resources.store', ['resourceKey' => $resourceKey], false),
+                'content_type' => 'application/json',
+                'slug_behavior' => 'auto_managed',
+                'defaults' => $defaults,
+                'fields' => $this->addressAreaFields($updating),
+                'catalogs' => [
+                    $this->catalog('country_id', route('api.admin.catalogs.countries', [], false)),
+                ],
+                'conditional_rules' => [],
+            ],
             DonationChannelResource::class => [
                 'resource_key' => $resourceKey,
                 'operation' => $operation,
@@ -162,7 +177,6 @@ class AdminResourceMutationService
                 'catalogs' => [],
                 'conditional_rules' => [
                     ['field' => 'custom_time', 'required_when' => ['prayer_time' => [EventPrayerTime::LainWaktu->value]]],
-                    ['field' => 'organizer_id', 'required_when' => ['organizer_type' => [Institution::class, Speaker::class]]],
                 ],
             ],
             InspirationResource::class => [
@@ -288,22 +302,6 @@ class AdminResourceMutationService
                 'catalogs' => $this->addressCatalogs('address'),
                 'conditional_rules' => [],
             ],
-            SubdistrictResource::class => [
-                'resource_key' => $resourceKey,
-                'operation' => $operation,
-                'method' => $updating ? 'PUT' : 'POST',
-                'endpoint' => $updating && $record instanceof Model
-                    ? route('api.admin.resources.update', ['resourceKey' => $resourceKey, 'recordKey' => $this->recordKey($record)], false)
-                    : route('api.admin.resources.store', ['resourceKey' => $resourceKey], false),
-                'content_type' => 'application/json',
-                'slug_behavior' => 'not_applicable',
-                'defaults' => $defaults,
-                'fields' => $this->subdistrictFields(),
-                'catalogs' => $this->subdistrictCatalogs(),
-                'conditional_rules' => [
-                    ['field' => 'district_id', 'required_unless' => ['state_id' => $this->federalTerritoryStateIds()]],
-                ],
-            ],
             TagResource::class => [
                 'resource_key' => $resourceKey,
                 'operation' => $operation,
@@ -329,6 +327,7 @@ class AdminResourceMutationService
     public function rules(string $resourceClass, bool $updating = false): array
     {
         return match ($resourceClass) {
+            AddressAreaResource::class => $this->addressAreaRules($updating),
             DonationChannelResource::class => $this->donationChannelRules($updating),
             EventResource::class => $this->eventRules($updating),
             InspirationResource::class => $this->inspirationRules($updating),
@@ -338,7 +337,6 @@ class AdminResourceMutationService
             SeriesResource::class => $this->seriesRules($updating),
             SpeakerResource::class => $this->speakerRules($updating),
             SpaceResource::class => $this->spaceRules($updating),
-            SubdistrictResource::class => $this->subdistrictRules($updating),
             TagResource::class => $this->tagRules($updating),
             VenueResource::class => $this->venueRules($updating),
             default => [],
@@ -375,7 +373,7 @@ class AdminResourceMutationService
             $resourceClass === InstitutionResource::class
             && ! $countryProvided
             && $record instanceof Institution
-            && is_int($record->addressModel?->country_id)
+            && is_string($record->addressModel?->country_id)
         ) {
             $validated['address']['country_id'] = $record->addressModel->country_id;
             $countryProvided = true;
@@ -387,7 +385,7 @@ class AdminResourceMutationService
             ]);
         }
 
-        if (! is_int($validated['address']['country_id'] ?? null)) {
+        if (! is_string($validated['address']['country_id'] ?? null)) {
             throw ValidationException::withMessages([
                 'address.country_id' => __('The selected country is invalid.'),
             ]);
@@ -403,6 +401,7 @@ class AdminResourceMutationService
     public function store(string $resourceClass, array $validated, User $actor): Model
     {
         return match ($resourceClass) {
+            AddressAreaResource::class => $this->saveAddressAreaAction->handle($validated),
             DonationChannelResource::class => $this->saveDonationChannelAction->handle($validated),
             EventResource::class => $this->saveAdminEventAction->handle($validated, $actor),
             InspirationResource::class => $this->saveInspirationAction->handle($validated),
@@ -412,7 +411,6 @@ class AdminResourceMutationService
             SeriesResource::class => $this->saveSeriesAction->handle($validated),
             SpeakerResource::class => $this->saveSpeakerAction->handle($validated, $actor),
             SpaceResource::class => $this->saveSpaceAction->handle($validated),
-            SubdistrictResource::class => $this->saveSubdistrictAction->handle($validated),
             TagResource::class => $this->saveTagAction->handle($validated),
             VenueResource::class => $this->saveVenueAction->handle($validated),
             default => throw new \RuntimeException('Unsupported admin write resource.'),
@@ -426,6 +424,9 @@ class AdminResourceMutationService
     public function update(string $resourceClass, Model $record, array $validated, User $actor): Model
     {
         return match ($resourceClass) {
+            AddressAreaResource::class => $record instanceof AddressArea
+                ? $this->saveAddressAreaAction->handle($validated, $record)
+                : throw new \RuntimeException('Expected address area record.'),
             DonationChannelResource::class => $record instanceof DonationChannel
                 ? $this->saveDonationChannelAction->handle($validated, $record)
                 : throw new \RuntimeException('Expected donation channel record.'),
@@ -453,9 +454,6 @@ class AdminResourceMutationService
             SpaceResource::class => $record instanceof Space
                 ? $this->saveSpaceAction->handle($validated, $record)
                 : throw new \RuntimeException('Expected space record.'),
-            SubdistrictResource::class => $record instanceof Subdistrict
-                ? $this->saveSubdistrictAction->handle($validated, $record)
-                : throw new \RuntimeException('Expected subdistrict record.'),
             TagResource::class => $record instanceof Tag
                 ? $this->saveTagAction->handle($validated, $record)
                 : throw new \RuntimeException('Expected tag record.'),
@@ -494,9 +492,21 @@ class AdminResourceMutationService
      */
     private function defaultsForCreate(string $resourceClass): array
     {
-        $defaultCountryId = app(PreferredCountryResolver::class)->resolveId();
-
         return match ($resourceClass) {
+            AddressAreaResource::class => [
+                'country_id' => null,
+                'parent_id' => null,
+                'type' => 'area',
+                'level' => 1,
+                'name' => '',
+                'native_name' => null,
+                'code' => null,
+                'latitude' => null,
+                'longitude' => null,
+                'source' => 'manual',
+                'source_id' => null,
+                'parent_source_id' => null,
+            ],
             DonationChannelResource::class => [
                 'donatable_type' => (string) (new Institution)->getMorphClass(),
                 'donatable_id' => null,
@@ -529,9 +539,6 @@ class AdminResourceMutationService
             InstitutionResource::class => [
                 'type' => InstitutionType::Masjid->value,
                 'is_active' => true,
-                'address' => [
-                    'country_id' => $defaultCountryId,
-                ],
                 'clear_logo' => false,
                 'clear_cover' => false,
                 'clear_gallery' => false,
@@ -571,12 +578,6 @@ class AdminResourceMutationService
                 'gender' => Gender::Male->value,
                 'is_freelance' => false,
                 'is_active' => true,
-                'address' => [
-                    'country_id' => $defaultCountryId,
-                    'state_id' => null,
-                    'district_id' => null,
-                    'subdistrict_id' => null,
-                ],
                 'clear_avatar' => false,
                 'clear_cover' => false,
                 'clear_gallery' => false,
@@ -586,9 +587,6 @@ class AdminResourceMutationService
                 'status' => 'verified',
                 'is_active' => true,
                 'facilities' => [],
-                'address' => [
-                    'country_id' => 132,
-                ],
                 'clear_cover' => false,
                 'clear_gallery' => false,
             ],
@@ -598,9 +596,6 @@ class AdminResourceMutationService
                 'capacity' => null,
                 'is_active' => true,
                 'institutions' => [],
-            ],
-            SubdistrictResource::class => [
-                'district_id' => null,
             ],
             TagResource::class => [
                 'name' => [
@@ -620,9 +615,26 @@ class AdminResourceMutationService
      */
     private function defaultsForRecord(Model $record): array
     {
-        $defaults = $record instanceof DonationChannel || $record instanceof Inspiration || $record instanceof Report || $record instanceof Subdistrict || $record instanceof Tag || $record instanceof Series || $record instanceof Space
+        $defaults = $record instanceof AddressArea || $record instanceof DonationChannel || $record instanceof Inspiration || $record instanceof Report || $record instanceof Tag || $record instanceof Series || $record instanceof Space
             ? []
             : $this->contributionEntityMutationService->stateFor($record);
+
+        if ($record instanceof AddressArea) {
+            $defaults = [
+                'country_id' => $record->country_id,
+                'parent_id' => $record->parent_id,
+                'type' => $record->type,
+                'level' => $record->level,
+                'name' => $record->name,
+                'native_name' => $record->native_name,
+                'code' => $record->code,
+                'latitude' => $record->latitude,
+                'longitude' => $record->longitude,
+                'source' => $record->source,
+                'source_id' => $record->source_id,
+                'parent_source_id' => $record->parent_source_id,
+            ];
+        }
 
         if ($record instanceof Inspiration) {
             $category = $record->category;
@@ -691,10 +703,10 @@ class AdminResourceMutationService
                     $defaults['address']['line1'],
                     $defaults['address']['line2'],
                     $defaults['address']['postcode'],
-                    $defaults['address']['lat'],
-                    $defaults['address']['lng'],
+                    $defaults['address']['latitude'],
+                    $defaults['address']['longitude'],
                     $defaults['address']['google_maps_url'],
-                    $defaults['address']['google_place_id'],
+                    $defaults['address']['provider_place_id'],
                     $defaults['address']['waze_url'],
                 );
             }
@@ -755,15 +767,6 @@ class AdminResourceMutationService
             ];
         }
 
-        if ($record instanceof Subdistrict) {
-            $defaults = [
-                'country_id' => (int) $record->country_id,
-                'state_id' => (int) $record->state_id,
-                'district_id' => $record->district_id !== null ? (int) $record->district_id : null,
-                'name' => $record->name,
-            ];
-        }
-
         if ($record instanceof Tag) {
             $defaults = [
                 'name' => [
@@ -782,6 +785,79 @@ class AdminResourceMutationService
     private function recordKey(Model $record): string
     {
         return (string) $record->getRouteKey();
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function addressAreaFields(bool $updating): array
+    {
+        return [
+            $this->field('country_id', 'uuid', required: ! $updating, meta: [
+                'mutation_semantics' => 'replace_scalar',
+                'relation' => 'address-countries',
+                'clear_semantics' => [
+                    'omitted' => 'preserve_existing',
+                    'explicit_null' => 'invalid_country_selection',
+                ],
+            ]),
+            $this->field('parent_id', 'uuid', required: false, meta: [
+                'mutation_semantics' => 'replace_scalar',
+                'relation' => 'address-areas',
+                'clear_semantics' => [
+                    'omitted' => 'preserve_existing',
+                    'explicit_null' => 'clear_to_null',
+                ],
+            ]),
+            $this->field('type', 'string', required: ! $updating, maxLength: 100, meta: $this->trimmedStringMutationMeta()),
+            $this->field('level', 'integer', required: false, meta: [
+                'input_type' => 'integer',
+                'mutation_semantics' => 'replace_scalar',
+                'clear_semantics' => [
+                    'omitted' => 'preserve_existing',
+                    'explicit_null' => 'clear_to_null',
+                ],
+                'normalization' => [
+                    'integer_cast' => true,
+                    'minimum' => 1,
+                    'maximum' => 10,
+                ],
+            ]),
+            $this->field('name', 'string', required: ! $updating, maxLength: 255, meta: [
+                'mutation_semantics' => 'replace_scalar',
+                'normalization' => ['trim' => true],
+            ]),
+            $this->field('native_name', 'string', required: false, maxLength: 255, meta: $this->trimmedStringMutationMeta()),
+            $this->field('code', 'string', required: false, maxLength: 100, meta: $this->trimmedStringMutationMeta()),
+            $this->field('latitude', 'number', required: false, meta: [
+                'input_type' => 'decimal',
+                'mutation_semantics' => 'replace_scalar',
+                'clear_semantics' => [
+                    'omitted' => 'preserve_existing',
+                    'explicit_null' => 'clear_to_null',
+                ],
+            ]),
+            $this->field('longitude', 'number', required: false, meta: [
+                'input_type' => 'decimal',
+                'mutation_semantics' => 'replace_scalar',
+                'clear_semantics' => [
+                    'omitted' => 'preserve_existing',
+                    'explicit_null' => 'clear_to_null',
+                ],
+            ]),
+            $this->field('source', 'string', required: false, maxLength: 100, meta: array_merge(
+                $this->trimmedStringMutationMeta(),
+                ['default_when_omitted_on_create' => 'manual']
+            )),
+            $this->field('source_id', 'string', required: false, maxLength: 255, meta: array_merge(
+                $this->trimmedStringMutationMeta(),
+                ['default_when_omitted_on_create' => 'generated_from_country_type_name']
+            )),
+            $this->field('parent_source_id', 'string', required: false, maxLength: 255, meta: array_merge(
+                $this->trimmedStringMutationMeta(),
+                ['default_when_omitted' => 'parent.source_id']
+            )),
+        ];
     }
 
     /**
@@ -1065,7 +1141,7 @@ class AdminResourceMutationService
                 'safe_client_strategy' => 'send_only_nested_fields_that_should_change',
                 'nested_field_omission' => 'preserve_existing',
             ]),
-            $this->field('address.country_id', 'integer', required: ! $updating, default: SharedFormSchema::preferredPublicCountryId(), meta: [
+            $this->field('address.country_id', 'uuid', required: ! $updating, meta: [
                 'required_on_create' => true,
                 'required_on_update' => false,
                 'mutation_semantics' => 'replace_scalar',
@@ -1074,6 +1150,9 @@ class AdminResourceMutationService
                     'explicit_null' => 'invalid_without_existing_country',
                 ],
             ]),
+            $this->field('address.admin_area_1_id', 'uuid', required: false),
+            $this->field('address.admin_area_2_id', 'uuid', required: false),
+            $this->field('address.admin_area_3_id', 'uuid', required: false),
             $this->field('contacts', 'array<object>', required: false, meta: $this->contactCollectionMeta()),
             $this->field('social_media', 'array<object>', required: false, meta: $this->socialMediaCollectionMeta()),
             $this->field('logo', 'file', required: false, acceptedMimeTypes: $this->logoMimeTypes(), maxFileSizeKb: $this->maxUploadSizeKb()),
@@ -1114,12 +1193,12 @@ class AdminResourceMutationService
                 'handle_platforms' => $this->socialHandlePlatforms(),
                 'platform_aliases' => [
                     'x' => [
-                        'normalizes_to' => SocialMediaPlatform::Twitter->value,
+                        'normalizes_to' => SocialPlatform::X->value,
                         'accepted_by_write_validation' => false,
                     ],
                 ],
                 'canonical_storage' => [
-                    'identifier_field' => 'username',
+                    'identifier_field' => 'handle',
                     'url_field' => 'url',
                     'handle_platform_url_storage' => 'may_be_null_after_normalization',
                 ],
@@ -1134,15 +1213,15 @@ class AdminResourceMutationService
     private function socialHandlePlatforms(): array
     {
         return [
-            SocialMediaPlatform::Facebook->value,
-            SocialMediaPlatform::Twitter->value,
-            SocialMediaPlatform::Instagram->value,
-            SocialMediaPlatform::YouTube->value,
-            SocialMediaPlatform::TikTok->value,
-            SocialMediaPlatform::Telegram->value,
-            SocialMediaPlatform::WhatsApp->value,
-            SocialMediaPlatform::LinkedIn->value,
-            SocialMediaPlatform::Threads->value,
+            SocialPlatform::Facebook->value,
+            SocialPlatform::X->value,
+            SocialPlatform::Instagram->value,
+            SocialPlatform::Youtube->value,
+            SocialPlatform::Tiktok->value,
+            SocialPlatform::Telegram->value,
+            SocialPlatform::WhatsApp->value,
+            SocialPlatform::Linkedin->value,
+            SocialPlatform::Threads->value,
         ];
     }
 
@@ -1267,15 +1346,15 @@ class AdminResourceMutationService
                     'line1',
                     'line2',
                     'postcode',
-                    'lat',
-                    'lng',
+                    'latitude',
+                    'longitude',
                     'google_maps_url',
-                    'google_place_id',
+                    'provider_place_id',
                     'waze_url',
                 ],
                 'safe_client_strategy' => 'omit_address_to_preserve_or_resend_country_when_mutating',
             ]),
-            $this->field('address.country_id', 'integer', required: ! $updating, default: SharedFormSchema::preferredPublicCountryId(), meta: [
+            $this->field('address.country_id', 'uuid', required: ! $updating, meta: [
                 'required_on_create' => true,
                 'required_on_update' => false,
                 'required_when_parent_present_on_update' => true,
@@ -1285,6 +1364,9 @@ class AdminResourceMutationService
                     'explicit_null' => 'invalid_without_country',
                 ],
             ]),
+            $this->field('address.admin_area_1_id', 'uuid', required: false),
+            $this->field('address.admin_area_2_id', 'uuid', required: false),
+            $this->field('address.admin_area_3_id', 'uuid', required: false),
             $this->field('contacts', 'array<object>', required: false, meta: $this->contactCollectionMeta()),
             $this->field('social_media', 'array<object>', required: false, meta: $this->socialMediaCollectionMeta()),
             $this->field('avatar', 'file', required: false, acceptedMimeTypes: $this->imageMimeTypes(), maxFileSizeKb: $this->maxUploadSizeKb()),
@@ -1448,7 +1530,7 @@ class AdminResourceMutationService
                 'safe_client_strategy' => 'fetch_current_record_before_editing_nested_address',
                 'nested_field_omission' => 'preserve_existing',
             ]),
-            $this->field('address.country_id', 'integer', required: ! $updating, default: SharedFormSchema::preferredPublicCountryId(), meta: [
+            $this->field('address.country_id', 'uuid', required: ! $updating, meta: [
                 'required_on_create' => true,
                 'required_on_update' => false,
                 'mutation_semantics' => 'replace_scalar',
@@ -1457,46 +1539,15 @@ class AdminResourceMutationService
                     'explicit_null' => 'invalid_country_selection',
                 ],
             ]),
+            $this->field('address.admin_area_1_id', 'uuid', required: false),
+            $this->field('address.admin_area_2_id', 'uuid', required: false),
+            $this->field('address.admin_area_3_id', 'uuid', required: false),
             $this->field('contacts', 'array<object>', required: false, meta: $this->contactCollectionMeta()),
             $this->field('social_media', 'array<object>', required: false, meta: $this->socialMediaCollectionMeta()),
             $this->field('cover', 'file', required: false, acceptedMimeTypes: $this->imageMimeTypes(), maxFileSizeKb: $this->maxUploadSizeKb()),
             $this->field('gallery', 'array<file>', required: false, acceptedMimeTypes: $this->imageMimeTypes(), maxFileSizeKb: $this->maxUploadSizeKb()),
             $this->field('clear_cover', 'boolean', required: false, default: false),
             $this->field('clear_gallery', 'boolean', required: false, default: false),
-        ];
-    }
-
-    /**
-     * @return array<int, array<string, mixed>>
-     */
-    private function subdistrictFields(): array
-    {
-        return [
-            $this->field('country_id', 'integer', required: true, meta: [
-                'mutation_semantics' => 'replace_scalar',
-                'relation' => 'countries',
-            ]),
-            $this->field('state_id', 'integer', required: true, meta: [
-                'mutation_semantics' => 'replace_scalar',
-                'relation' => 'states',
-                'must_match' => ['country_id'],
-            ]),
-            $this->field('district_id', 'integer', required: false, meta: [
-                'mutation_semantics' => 'replace_scalar',
-                'relation' => 'districts',
-                'clear_semantics' => [
-                    'omitted' => 'preserve_existing',
-                    'explicit_null' => 'allowed_only_for_federal_territory_state',
-                ],
-                'required_unless' => [
-                    'state_id' => $this->federalTerritoryStateIds(),
-                ],
-                'must_match' => ['country_id', 'state_id'],
-            ]),
-            $this->field('name', 'string', required: true, maxLength: 255, meta: [
-                'mutation_semantics' => 'replace_scalar',
-                'normalization' => ['trim' => true],
-            ]),
         ];
     }
 
@@ -1646,26 +1697,6 @@ class AdminResourceMutationService
                 safeClientStrategy: 'omit_field_to_preserve_or_send_full_reference_ids',
                 omitted: 'preserve_existing_collection_via_server_state_merge',
             )),
-            $this->field('organizer_type', 'string', required: false, allowedValues: [Institution::class, Speaker::class], meta: [
-                'mutation_semantics' => 'replace_scalar_with_alias_normalization',
-                'clear_semantics' => [
-                    'omitted' => 'preserve_existing_via_server_state_merge',
-                    'explicit_null' => 'clear_to_null_when_organizer_id_is_null',
-                ],
-                'accepted_aliases' => [
-                    'institution' => Institution::class,
-                    'speaker' => Speaker::class,
-                ],
-                'paired_with' => 'organizer_id',
-            ]),
-            $this->field('organizer_id', 'string', required: false, meta: [
-                'mutation_semantics' => 'replace_scalar',
-                'clear_semantics' => [
-                    'omitted' => 'preserve_existing_via_server_state_merge',
-                    'explicit_null' => 'clear_to_null_when_organizer_type_is_null',
-                ],
-                'paired_with' => 'organizer_type',
-            ]),
             $this->field('series', 'array<string>', required: false, meta: $this->relationCollectionMeta(
                 'series',
                 submittedArray: 'replace_relation_sync',
@@ -1674,6 +1705,17 @@ class AdminResourceMutationService
                 safeClientStrategy: 'omit_field_to_preserve_or_send_full_series_ids',
                 omitted: 'preserve_existing_collection_via_server_state_merge',
             )),
+            $this->field('primary_organizer_id', 'string', required: ! $updating, meta: [
+                'mutation_semantics' => 'replace_scalar',
+                'clear_semantics' => [
+                    'omitted' => 'preserve_existing_via_server_state_merge',
+                    'explicit_null' => 'invalid_required_value',
+                ],
+                'accepted_models' => [
+                    Institution::class,
+                    Speaker::class,
+                ],
+            ]),
             $this->field('institution_id', 'string', required: false, meta: [
                 'mutation_semantics' => 'replace_scalar',
                 'clear_semantics' => [
@@ -1801,23 +1843,23 @@ class AdminResourceMutationService
         return [
             'type' => 'object',
             'paired_required_fields' => [
-                ['category', 'value'],
+                ['type', 'value'],
             ],
             'fields' => [
-                $this->field('category', 'string', required: false, allowedValues: $this->enumValues(ContactCategory::class), meta: [
+                $this->field('type', 'string', required: false, allowedValues: $this->enumValues(ContactMethodType::class), meta: [
                     'required_with' => ['value'],
                 ]),
                 $this->field('value', 'string', required: false, maxLength: 255, meta: [
-                    'required_with' => ['category'],
-                    'used_for_categories' => [
-                        ContactCategory::Phone->value,
-                        ContactCategory::WhatsApp->value,
-                        ContactCategory::Email->value,
+                    'required_with' => ['type'],
+                    'used_for_types' => [
+                        ContactMethodType::Phone->value,
+                        ContactMethodType::Whatsapp->value,
+                        ContactMethodType::Email->value,
                     ],
                 ]),
-                $this->field('type', 'string', required: false, default: ContactType::Main->value, allowedValues: $this->enumValues(ContactType::class)),
+                $this->field('purpose', 'string', required: false, default: ContactPurpose::General->value, allowedValues: $this->enumValues(ContactPurpose::class)),
                 $this->field('is_public', 'boolean', required: false, default: true),
-                $this->field('order_column', 'integer', required: false, meta: [
+                $this->field('sort_order', 'integer', required: false, meta: [
                     'omitted' => 'assigned_from_payload_order_starting_at_1',
                 ]),
             ],
@@ -1832,19 +1874,19 @@ class AdminResourceMutationService
         return [
             'type' => 'object',
             'required_fields' => ['platform'],
-            'at_least_one_of' => ['username', 'url'],
+            'at_least_one_of' => ['handle', 'url'],
             'fields' => [
-                $this->field('platform', 'string', required: false, allowedValues: $this->enumValues(SocialMediaPlatform::class), meta: [
-                    'required_with' => ['username', 'url'],
+                $this->field('platform', 'string', required: false, allowedValues: $this->enumValues(SocialPlatform::class), meta: [
+                    'required_with' => ['handle', 'url'],
                 ]),
-                $this->field('username', 'string', required: false, maxLength: 255, meta: [
+                $this->field('handle', 'string', required: false, maxLength: 255, meta: [
                     'required_without' => ['url'],
                 ]),
                 $this->field('url', 'string', required: false, maxLength: 255, meta: [
-                    'required_without' => ['username'],
+                    'required_without' => ['handle'],
                     'format' => 'url',
                 ]),
-                $this->field('order_column', 'integer', required: false, meta: [
+                $this->field('sort_order', 'integer', required: false, meta: [
                     'omitted' => 'assigned_from_payload_order_starting_at_1',
                 ]),
             ],
@@ -2094,27 +2136,27 @@ class AdminResourceMutationService
             'is_active' => ['sometimes', 'boolean'],
             'allow_public_event_submission' => $updating ? ['sometimes', 'boolean'] : ['prohibited'],
             'address' => $addressRule,
-            'address.country_id' => $updating ? ['nullable', 'integer', 'exists:countries,id'] : ['required', 'integer', 'exists:countries,id'],
-            'address.state_id' => ['nullable', 'integer', 'exists:states,id'],
-            'address.district_id' => ['nullable', 'integer', 'exists:districts,id'],
-            'address.subdistrict_id' => ['nullable', 'integer', 'exists:subdistricts,id'],
+            'address.country_id' => $updating ? ['nullable', 'uuid', 'exists:address_countries,id'] : ['required', 'uuid', 'exists:address_countries,id'],
+            'address.admin_area_1_id' => ['nullable', 'uuid', 'exists:address_areas,id'],
+            'address.admin_area_2_id' => ['nullable', 'uuid', 'exists:address_areas,id'],
+            'address.admin_area_3_id' => ['nullable', 'uuid', 'exists:address_areas,id'],
             'address.line1' => ['nullable', 'string', 'max:255'],
             'address.line2' => ['nullable', 'string', 'max:255'],
             'address.postcode' => ['nullable', 'string', 'max:16'],
-            'address.lat' => ['nullable', 'numeric', 'between:-90,90'],
-            'address.lng' => ['nullable', 'numeric', 'between:-180,180'],
+            'address.latitude' => ['nullable', 'numeric', 'between:-90,90'],
+            'address.longitude' => ['nullable', 'numeric', 'between:-180,180'],
             'address.google_maps_url' => ['nullable', 'url', 'max:2048'],
-            'address.google_place_id' => ['nullable', 'string', 'max:255'],
+            'address.provider_place_id' => ['nullable', 'string', 'max:255'],
             'address.waze_url' => ['nullable', 'url', 'max:255'],
             'contacts' => ['nullable', 'array'],
-            'contacts.*.category' => ['required_with:contacts.*.value', Rule::enum(ContactCategory::class)],
-            'contacts.*.value' => ['required_with:contacts.*.category', 'string', 'max:255'],
-            'contacts.*.type' => ['nullable', Rule::enum(ContactType::class)],
+            'contacts.*.type' => ['required_with:contacts.*.value', Rule::enum(ContactMethodType::class)],
+            'contacts.*.value' => ['required_with:contacts.*.type', 'string', 'max:255'],
+            'contacts.*.purpose' => ['nullable', Rule::enum(ContactPurpose::class)],
             'contacts.*.is_public' => ['sometimes', 'boolean'],
             'social_media' => ['nullable', 'array'],
-            'social_media.*.platform' => ['required_with:social_media.*.username,social_media.*.url', Rule::enum(SocialMediaPlatform::class)],
-            'social_media.*.username' => ['nullable', 'string', 'max:255', 'required_without:social_media.*.url'],
-            'social_media.*.url' => ['nullable', 'url', 'max:255', 'required_without:social_media.*.username'],
+            'social_media.*.platform' => ['required_with:social_media.*.handle,social_media.*.url', Rule::enum(SocialPlatform::class)],
+            'social_media.*.handle' => ['nullable', 'string', 'max:255', 'required_without:social_media.*.url'],
+            'social_media.*.url' => ['nullable', 'url', 'max:255', 'required_without:social_media.*.handle'],
             'logo' => ['nullable', 'file', 'mimetypes:image/jpeg,image/png,image/webp,image/svg+xml', $maxUploadSize],
             'cover' => ['nullable', 'file', 'mimetypes:image/jpeg,image/png,image/webp', $maxUploadSize],
             'gallery' => ['nullable', 'array'],
@@ -2181,6 +2223,31 @@ class AdminResourceMutationService
     /**
      * @return array<string, mixed>
      */
+    private function addressAreaRules(bool $updating): array
+    {
+        $countryTable = (new AddressCountry)->getTable();
+        $areaTable = (new AddressArea)->getTable();
+        $required = $updating ? 'sometimes' : 'required';
+
+        return [
+            'country_id' => [$required, 'uuid', Rule::exists($countryTable, 'id')],
+            'parent_id' => ['nullable', 'uuid', Rule::exists($areaTable, 'id')],
+            'type' => [$required, 'string', 'max:100'],
+            'level' => ['nullable', 'integer', 'min:1', 'max:10'],
+            'name' => [$required, 'string', 'max:255'],
+            'native_name' => ['nullable', 'string', 'max:255'],
+            'code' => ['nullable', 'string', 'max:100'],
+            'latitude' => ['nullable', 'numeric', 'between:-90,90'],
+            'longitude' => ['nullable', 'numeric', 'between:-180,180'],
+            'source' => ['nullable', 'string', 'max:100'],
+            'source_id' => ['nullable', 'string', 'max:255'],
+            'parent_source_id' => ['nullable', 'string', 'max:255'],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
     private function eventRules(bool $updating): array
     {
         $required = $updating ? 'sometimes' : 'required';
@@ -2218,10 +2285,26 @@ class AdminResourceMutationService
             'issue_tags.*' => ['uuid', 'exists:tags,id'],
             'references' => ['nullable', 'array'],
             'references.*' => ['uuid', 'exists:references,id'],
-            'organizer_type' => ['nullable', 'string', Rule::in([Institution::class, Speaker::class, 'institution', 'speaker'])],
-            'organizer_id' => ['nullable', 'uuid'],
             'series' => ['nullable', 'array'],
-            'series.*' => ['uuid', 'exists:series,id'],
+            'series.*' => ['uuid', Rule::exists((new Series)->getTable(), 'id')],
+            'primary_organizer_id' => [
+                $required,
+                'uuid',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if (! is_string($value)) {
+                        return;
+                    }
+
+                    if (
+                        Institution::query()->whereKey($value)->exists()
+                        || Speaker::query()->whereKey($value)->exists()
+                    ) {
+                        return;
+                    }
+
+                    $fail(__('The selected primary organizer is invalid.'));
+                },
+            ],
             'institution_id' => ['nullable', 'uuid', 'exists:institutions,id'],
             'venue_id' => ['nullable', 'uuid', 'exists:venues,id'],
             'space_id' => ['nullable', 'uuid', 'exists:spaces,id'],
@@ -2278,9 +2361,9 @@ class AdminResourceMutationService
             'status' => [$required, Rule::in(['pending', 'verified'])],
             'is_active' => ['sometimes', 'boolean'],
             'social_media' => ['nullable', 'array'],
-            'social_media.*.platform' => ['required_with:social_media.*.username,social_media.*.url', Rule::enum(SocialMediaPlatform::class)],
-            'social_media.*.username' => ['nullable', 'string', 'max:255', 'required_without:social_media.*.url'],
-            'social_media.*.url' => ['nullable', 'url', 'max:255', 'required_without:social_media.*.username'],
+            'social_media.*.platform' => ['required_with:social_media.*.handle,social_media.*.url', Rule::enum(SocialPlatform::class)],
+            'social_media.*.handle' => ['nullable', 'string', 'max:255', 'required_without:social_media.*.url'],
+            'social_media.*.url' => ['nullable', 'url', 'max:255', 'required_without:social_media.*.handle'],
             'front_cover' => ['nullable', 'file', 'mimetypes:image/jpeg,image/png,image/webp', $maxUploadSize],
             'back_cover' => ['nullable', 'file', 'mimetypes:image/jpeg,image/png,image/webp', $maxUploadSize],
             'gallery' => ['nullable', 'array', 'max:10'],
@@ -2366,27 +2449,27 @@ class AdminResourceMutationService
             'is_active' => ['sometimes', 'boolean'],
             'allow_public_event_submission' => $updating ? ['sometimes', 'boolean'] : ['prohibited'],
             'address' => $addressRule,
-            'address.country_id' => $updating ? ['nullable', 'integer', 'exists:countries,id'] : ['required', 'integer', 'exists:countries,id'],
-            'address.state_id' => ['nullable', 'integer', 'exists:states,id'],
-            'address.district_id' => ['nullable', 'integer', 'exists:districts,id'],
-            'address.subdistrict_id' => ['nullable', 'integer', 'exists:subdistricts,id'],
+            'address.country_id' => $updating ? ['nullable', 'uuid', 'exists:address_countries,id'] : ['required', 'uuid', 'exists:address_countries,id'],
+            'address.admin_area_1_id' => ['nullable', 'uuid', 'exists:address_areas,id'],
+            'address.admin_area_2_id' => ['nullable', 'uuid', 'exists:address_areas,id'],
+            'address.admin_area_3_id' => ['nullable', 'uuid', 'exists:address_areas,id'],
             'address.line1' => ['prohibited'],
             'address.line2' => ['prohibited'],
             'address.postcode' => ['prohibited'],
-            'address.lat' => ['prohibited'],
-            'address.lng' => ['prohibited'],
+            'address.latitude' => ['prohibited'],
+            'address.longitude' => ['prohibited'],
             'address.google_maps_url' => ['prohibited'],
-            'address.google_place_id' => ['prohibited'],
+            'address.provider_place_id' => ['prohibited'],
             'address.waze_url' => ['prohibited'],
             'contacts' => ['nullable', 'array'],
-            'contacts.*.category' => ['required_with:contacts.*.value', Rule::enum(ContactCategory::class)],
-            'contacts.*.value' => ['required_with:contacts.*.category', 'string', 'max:255'],
-            'contacts.*.type' => ['nullable', Rule::enum(ContactType::class)],
+            'contacts.*.type' => ['required_with:contacts.*.value', Rule::enum(ContactMethodType::class)],
+            'contacts.*.value' => ['required_with:contacts.*.type', 'string', 'max:255'],
+            'contacts.*.purpose' => ['nullable', Rule::enum(ContactPurpose::class)],
             'contacts.*.is_public' => ['sometimes', 'boolean'],
             'social_media' => ['nullable', 'array'],
-            'social_media.*.platform' => ['required_with:social_media.*.username,social_media.*.url', Rule::enum(SocialMediaPlatform::class)],
-            'social_media.*.username' => ['nullable', 'string', 'max:255', 'required_without:social_media.*.url'],
-            'social_media.*.url' => ['nullable', 'url', 'max:255', 'required_without:social_media.*.username'],
+            'social_media.*.platform' => ['required_with:social_media.*.handle,social_media.*.url', Rule::enum(SocialPlatform::class)],
+            'social_media.*.handle' => ['nullable', 'string', 'max:255', 'required_without:social_media.*.url'],
+            'social_media.*.url' => ['nullable', 'url', 'max:255', 'required_without:social_media.*.handle'],
             'avatar' => ['nullable', 'file', 'mimetypes:image/jpeg,image/png,image/webp', $maxUploadSize],
             'cover' => ['nullable', 'file', 'mimetypes:image/jpeg,image/png,image/webp', $maxUploadSize],
             'gallery' => ['nullable', 'array'],
@@ -2411,21 +2494,6 @@ class AdminResourceMutationService
             'is_active' => ['sometimes', 'boolean'],
             'institutions' => ['nullable', 'array'],
             'institutions.*' => ['uuid', 'exists:institutions,id'],
-        ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function subdistrictRules(bool $updating): array
-    {
-        $required = $updating ? 'required' : 'required';
-
-        return [
-            'country_id' => [$required, 'integer', 'exists:countries,id'],
-            'state_id' => [$required, 'integer', 'exists:states,id'],
-            'district_id' => ['nullable', 'integer', 'exists:districts,id'],
-            'name' => [$required, 'string', 'max:255'],
         ];
     }
 
@@ -2463,27 +2531,27 @@ class AdminResourceMutationService
             'facilities' => ['nullable', 'array'],
             'facilities.*' => ['string', Rule::in($this->venueFacilityValues())],
             'address' => $addressRule,
-            'address.country_id' => [$updating ? 'sometimes' : 'required', 'integer', 'exists:countries,id'],
-            'address.state_id' => ['nullable', 'integer', 'exists:states,id'],
-            'address.district_id' => ['nullable', 'integer', 'exists:districts,id'],
-            'address.subdistrict_id' => ['nullable', 'integer', 'exists:subdistricts,id'],
+            'address.country_id' => [$updating ? 'sometimes' : 'required', 'uuid', 'exists:address_countries,id'],
+            'address.admin_area_1_id' => ['nullable', 'uuid', 'exists:address_areas,id'],
+            'address.admin_area_2_id' => ['nullable', 'uuid', 'exists:address_areas,id'],
+            'address.admin_area_3_id' => ['nullable', 'uuid', 'exists:address_areas,id'],
             'address.line1' => ['nullable', 'string', 'max:255'],
             'address.line2' => ['nullable', 'string', 'max:255'],
             'address.postcode' => ['nullable', 'string', 'max:16'],
-            'address.lat' => ['nullable', 'numeric', 'between:-90,90'],
-            'address.lng' => ['nullable', 'numeric', 'between:-180,180'],
+            'address.latitude' => ['nullable', 'numeric', 'between:-90,90'],
+            'address.longitude' => ['nullable', 'numeric', 'between:-180,180'],
             'address.google_maps_url' => ['nullable', 'url', 'max:2048'],
-            'address.google_place_id' => ['nullable', 'string', 'max:255'],
+            'address.provider_place_id' => ['nullable', 'string', 'max:255'],
             'address.waze_url' => ['nullable', 'url', 'max:255'],
             'contacts' => ['nullable', 'array'],
-            'contacts.*.category' => ['required_with:contacts.*.value', Rule::enum(ContactCategory::class)],
-            'contacts.*.value' => ['required_with:contacts.*.category', 'string', 'max:255'],
-            'contacts.*.type' => ['nullable', Rule::enum(ContactType::class)],
+            'contacts.*.type' => ['required_with:contacts.*.value', Rule::enum(ContactMethodType::class)],
+            'contacts.*.value' => ['required_with:contacts.*.type', 'string', 'max:255'],
+            'contacts.*.purpose' => ['nullable', Rule::enum(ContactPurpose::class)],
             'contacts.*.is_public' => ['sometimes', 'boolean'],
             'social_media' => ['nullable', 'array'],
-            'social_media.*.platform' => ['required_with:social_media.*.username,social_media.*.url', Rule::enum(SocialMediaPlatform::class)],
-            'social_media.*.username' => ['nullable', 'string', 'max:255', 'required_without:social_media.*.url'],
-            'social_media.*.url' => ['nullable', 'url', 'max:255', 'required_without:social_media.*.username'],
+            'social_media.*.platform' => ['required_with:social_media.*.handle,social_media.*.url', Rule::enum(SocialPlatform::class)],
+            'social_media.*.handle' => ['nullable', 'string', 'max:255', 'required_without:social_media.*.url'],
+            'social_media.*.url' => ['nullable', 'url', 'max:255', 'required_without:social_media.*.handle'],
             'cover' => ['nullable', 'file', 'mimetypes:image/jpeg,image/png,image/webp', $maxUploadSize],
             'gallery' => ['nullable', 'array'],
             'gallery.*' => ['file', 'mimetypes:image/jpeg,image/png,image/webp', $maxUploadSize],
@@ -2525,42 +2593,22 @@ class AdminResourceMutationService
         return [
             $this->catalog($prefix.'.country_id', route('api.admin.catalogs.countries', [], false)),
             $this->catalog(
-                $prefix.'.state_id',
+                $prefix.'.admin_area_1_id',
                 route('api.admin.catalogs.states', [], false),
                 ['country_id' => '{'.$prefix.'.country_id}'],
             ),
             $this->catalog(
-                $prefix.'.district_id',
+                $prefix.'.admin_area_2_id',
                 route('api.admin.catalogs.districts', [], false),
-                ['state_id' => '{'.$prefix.'.state_id}'],
+                ['admin_area_1_id' => '{'.$prefix.'.admin_area_1_id}'],
             ),
             $this->catalog(
-                $prefix.'.subdistrict_id',
+                $prefix.'.admin_area_3_id',
                 route('api.admin.catalogs.subdistricts', [], false),
                 [
-                    'state_id' => '{'.$prefix.'.state_id}',
-                    'district_id' => '{'.$prefix.'.district_id}',
+                    'admin_area_1_id' => '{'.$prefix.'.admin_area_1_id}',
+                    'admin_area_2_id' => '{'.$prefix.'.admin_area_2_id}',
                 ],
-            ),
-        ];
-    }
-
-    /**
-     * @return list<array<string, mixed>>
-     */
-    private function subdistrictCatalogs(): array
-    {
-        return [
-            $this->catalog('country_id', route('api.admin.catalogs.countries', [], false)),
-            $this->catalog(
-                'state_id',
-                route('api.admin.catalogs.states', [], false),
-                ['country_id' => '{country_id}'],
-            ),
-            $this->catalog(
-                'district_id',
-                route('api.admin.catalogs.districts', [], false),
-                ['state_id' => '{state_id}'],
             ),
         ];
     }
@@ -2576,14 +2624,6 @@ class AdminResourceMutationService
             'endpoint' => $endpoint,
             'query' => $query,
         ], static fn (mixed $value): bool => $value !== []);
-    }
-
-    /**
-     * @return list<int>
-     */
-    private function federalTerritoryStateIds(): array
-    {
-        return array_keys(FederalTerritoryLocation::stateIds());
     }
 
     /**

@@ -2,11 +2,10 @@
 
 namespace App\Actions\Speakers;
 
+use AIArmada\Addressing\Models\AddressCountry;
 use App\Actions\Slugs\Concerns\InteractsWithOrderedSlugModels;
 use App\Actions\Slugs\SyncCanonicalSlugAction;
 use App\Models\Speaker;
-use App\Support\Location\PreferredCountryResolver;
-use App\Support\Location\PublicCountryRegistry;
 use Illuminate\Support\Str;
 use Lorisleiva\Actions\Concerns\AsAction;
 
@@ -29,9 +28,7 @@ class GenerateSpeakerSlugAction
 
         $speakers = Speaker::query()
             ->where('speakers.name', $normalizedName)
-            ->with([
-                'address.country',
-            ])
+            ->with(['addresses'])
             ->get();
 
         return $this->syncOrderedModels($speakers, fn (Speaker $speaker): bool => $this->syncSpeakerSlug($speaker));
@@ -57,8 +54,8 @@ class GenerateSpeakerSlugAction
             $nameSlug = 'speaker';
         }
 
-        $countrySuffix = $this->countrySuffix($payload);
-        $sequence = $this->nextSequenceForExactIdentity($normalizedName, $displayName, $countrySuffix, $ignoreSpeakerId);
+        $locationSuffix = $this->locationSuffix($payload);
+        $sequence = $this->nextSequenceForExactIdentity($normalizedName, $displayName, $locationSuffix, $ignoreSpeakerId);
 
         do {
             $candidateParts = [$nameSlug];
@@ -67,8 +64,8 @@ class GenerateSpeakerSlugAction
                 $candidateParts[] = (string) $sequence;
             }
 
-            if ($countrySuffix !== '') {
-                $candidateParts[] = $countrySuffix;
+            if ($locationSuffix !== '') {
+                $candidateParts[] = $locationSuffix;
             }
 
             $candidate = implode('-', $candidateParts);
@@ -80,11 +77,9 @@ class GenerateSpeakerSlugAction
 
     public function forSpeaker(Speaker $speaker): string
     {
-        $speaker->loadMissing([
-            'address.country',
-        ]);
+        $speaker->loadMissing(['addresses']);
 
-        $address = $speaker->addressModel;
+        $address = $speaker->primaryAddress();
 
         return $this->handle(
             $speaker->name,
@@ -92,22 +87,22 @@ class GenerateSpeakerSlugAction
                 'honorific' => $speaker->honorific,
                 'pre_nominal' => $speaker->pre_nominal,
                 'post_nominal' => $speaker->post_nominal,
+                'city' => $address?->city,
+                'state' => $address?->state,
                 'country_id' => $address?->country_id,
-                'country_code' => $address?->country?->iso2,
+                'country_code' => $address?->country_code,
             ],
             (string) $speaker->getKey(),
         );
     }
 
-    private function nextSequenceForExactIdentity(string $name, string $displayName, string $countrySuffix, ?string $ignoreSpeakerId): int
+    private function nextSequenceForExactIdentity(string $name, string $displayName, string $locationSuffix, ?string $ignoreSpeakerId): int
     {
         $matchingSpeakers = Speaker::query()
             ->where('speakers.name', $name)
-            ->with([
-                'address.country',
-            ])
+            ->with(['addresses'])
             ->get()
-            ->filter(fn (Speaker $speaker): bool => $this->countrySuffixForSpeaker($speaker) === $countrySuffix
+            ->filter(fn (Speaker $speaker): bool => $this->locationSuffixForSpeaker($speaker) === $locationSuffix
                 && $this->displayNameForSpeaker($speaker) === $displayName);
 
         if ($ignoreSpeakerId !== null && $ignoreSpeakerId !== '') {
@@ -130,71 +125,41 @@ class GenerateSpeakerSlugAction
     /**
      * @param  array<string, mixed>  $payload
      */
-    private function countrySuffix(array $payload): string
+    private function locationSuffix(array $payload): string
     {
-        $registry = app(PublicCountryRegistry::class);
         $countryCode = $this->resolveCountryCode($payload);
-        $countryProvided = $this->countrySelectionProvided($payload);
-        $countryId = $registry->resolveCountryId(
-            $payload['country_id'] ?? null,
-            $countryCode,
-            $payload['country_key'] ?? null,
-        );
+        $segments = [];
 
-        if (($countryCode === null || $countryId === null) && is_array($payload['address'] ?? null)) {
-            /** @var array<string, mixed> $address */
-            $address = $payload['address'];
-            $countryProvided = $countryProvided || $this->countrySelectionProvided($address);
-            $countryCode ??= $this->resolveCountryCode($address);
-            $countryId ??= $registry->resolveCountryId(
-                $address['country_id'] ?? null,
-                $countryCode,
-                $address['country_key'] ?? null,
-            );
-        }
-
-        if (! $countryProvided && $countryCode === null && $countryId === null) {
-            $countryId = $registry->normalizeCountryId(app(PreferredCountryResolver::class)->resolveId());
-        }
-
-        if ($countryCode === null && $countryId !== null) {
-            $countryCode = $registry->countryDataForId($countryId)['iso2'] ?? null;
-        }
-
-        return $this->countryCodeSegment($countryCode) ?? '';
-    }
-
-    /**
-     * @param  array<string, mixed>  $payload
-     */
-    private function countrySelectionProvided(array $payload): bool
-    {
-        foreach (['country_id', 'country_code', 'country_key'] as $field) {
-            $value = $payload[$field] ?? null;
-
-            if (is_int($value)) {
-                return true;
+        foreach ([
+            $this->slugSegment($payload['city'] ?? null),
+            $this->slugSegment($payload['state'] ?? null),
+            $this->countryCodeSegment($countryCode),
+        ] as $segment) {
+            if ($segment === null) {
+                continue;
             }
 
-            if (is_string($value) && trim($value) !== '') {
-                return true;
+            if (($segments[array_key_last($segments)] ?? null) === $segment) {
+                continue;
             }
+
+            $segments[] = $segment;
         }
 
-        return false;
+        return implode('-', $segments);
     }
 
-    private function countrySuffixForSpeaker(Speaker $speaker): string
+    private function locationSuffixForSpeaker(Speaker $speaker): string
     {
-        $speaker->loadMissing([
-            'address.country',
-        ]);
+        $speaker->loadMissing(['addresses']);
 
-        $address = $speaker->addressModel;
+        $address = $speaker->primaryAddress();
 
-        return $this->countrySuffix([
+        return $this->locationSuffix([
+            'city' => $address?->city,
+            'state' => $address?->state,
             'country_id' => $address?->country_id,
-            'country_code' => $address?->country?->iso2,
+            'country_code' => $address?->country_code,
         ]);
     }
 
@@ -221,22 +186,6 @@ class GenerateSpeakerSlugAction
         );
     }
 
-    /**
-     * @param  array<string, mixed>  $address
-     */
-    private function resolveCountryCode(array $address): ?string
-    {
-        $countryCode = $address['country_code'] ?? null;
-
-        if (! is_string($countryCode)) {
-            return null;
-        }
-
-        $countryCode = trim($countryCode);
-
-        return $countryCode !== '' ? $countryCode : null;
-    }
-
     private function slugExists(string $slug, ?string $ignoreSpeakerId): bool
     {
         return Speaker::query()
@@ -248,6 +197,17 @@ class GenerateSpeakerSlugAction
             ->exists();
     }
 
+    private function slugSegment(mixed $value): ?string
+    {
+        if (! is_string($value)) {
+            return null;
+        }
+
+        $segment = Str::slug($value);
+
+        return $segment !== '' ? $segment : null;
+    }
+
     private function countryCodeSegment(mixed $value): ?string
     {
         if (! is_string($value)) {
@@ -257,5 +217,34 @@ class GenerateSpeakerSlugAction
         $segment = Str::lower(trim($value));
 
         return $segment !== '' ? $segment : null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function resolveCountryCode(array $payload): ?string
+    {
+        $countryId = $this->uuidValue($payload['country_id'] ?? null);
+
+        if ($countryId !== null) {
+            $resolved = AddressCountry::query()->whereKey($countryId)->value('iso2');
+
+            if (is_string($resolved) && trim($resolved) !== '') {
+                return trim($resolved);
+            }
+        }
+
+        $countryCode = $payload['country_code'] ?? null;
+
+        if (is_string($countryCode) && trim($countryCode) !== '') {
+            return trim($countryCode);
+        }
+
+        return null;
+    }
+
+    private function uuidValue(mixed $value): ?string
+    {
+        return is_string($value) && Str::isUuid($value) ? $value : null;
     }
 }

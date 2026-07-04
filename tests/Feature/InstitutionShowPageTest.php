@@ -1,7 +1,7 @@
 <?php
 
-use App\Enums\ContactCategory;
-use App\Enums\ContactType;
+use AIArmada\Contacting\Enums\ContactMethodType;
+use AIArmada\Contacting\Enums\ContactPurpose;
 use App\Enums\EventFormat;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventVisibility;
@@ -10,20 +10,16 @@ use App\Enums\PrayerOffset;
 use App\Enums\PrayerReference;
 use App\Enums\ReferenceType;
 use App\Enums\TimingMode;
-use App\Models\District;
 use App\Models\Event;
 use App\Models\Inspiration;
 use App\Models\Institution;
 use App\Models\Reference;
 use App\Models\Space;
 use App\Models\Speaker;
-use App\Models\State;
-use App\Models\Subdistrict;
 use App\Models\User;
 use App\Models\Venue;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use Spatie\Permission\PermissionRegistrar;
@@ -98,124 +94,44 @@ it('uses the institution logo as the public preview image when no cover exists',
 });
 
 it('deduplicates matching district and subdistrict labels on institution show page', function () {
-    $state = State::query()
-        ->where('country_code', 'MY')
-        ->where('name', 'Pahang')
-        ->first();
-
-    if (! $state) {
-        $countryId = DB::table('countries')->insertGetId([
-            'iso2' => 'MY',
-            'name' => 'Malaysia',
-            'status' => 1,
-            'phone_code' => '60',
-            'iso3' => 'MYS',
-            'region' => 'Asia',
-            'subregion' => 'South-Eastern Asia',
-        ]);
-
-        $stateId = DB::table('states')->insertGetId([
-            'country_id' => $countryId,
-            'name' => 'Pahang',
-            'country_code' => 'MY',
-        ]);
-
-        $state = State::query()->findOrFail($stateId);
-    }
-
-    $district = District::query()->create([
-        'country_id' => (int) $state->country_id,
-        'state_id' => (int) $state->id,
-        'country_code' => 'MY',
-        'name' => 'Temerloh',
-    ]);
-
-    $subdistrict = Subdistrict::query()->create([
-        'country_id' => (int) $state->country_id,
-        'state_id' => (int) $state->id,
-        'district_id' => (int) $district->id,
-        'country_code' => 'MY',
-        'name' => 'Temerloh',
-    ]);
-
     $institution = Institution::factory()->create([
         'name' => 'Masjid Temerloh',
         'status' => 'verified',
     ]);
 
-    $institution->address()->update([
-        'state_id' => (int) $state->id,
-        'district_id' => (int) $district->id,
-        'subdistrict_id' => (int) $subdistrict->id,
+    $institution->primaryAddress()->update([
+        'city' => 'Temerloh',
+        'state' => 'Pahang',
+        'country_code' => 'MY',
     ]);
 
-    $this->get(route('institutions.show', $institution))
+    $this->get(route('institutions.show', $institution->fresh()))
         ->assertSuccessful()
         ->assertSee('Temerloh, Pahang')
         ->assertDontSee('Temerloh, Temerloh, Pahang');
 });
 
 it('displays the institution contact address block in street locality and regional lines', function () {
-    $state = State::query()
-        ->where('country_code', 'MY')
-        ->where('name', 'Selangor')
-        ->first();
-
-    if (! $state) {
-        $countryId = DB::table('countries')->insertGetId([
-            'iso2' => 'MY',
-            'name' => 'Malaysia',
-            'status' => 1,
-            'phone_code' => '60',
-            'iso3' => 'MYS',
-            'region' => 'Asia',
-            'subregion' => 'South-Eastern Asia',
-        ]);
-
-        $stateId = DB::table('states')->insertGetId([
-            'country_id' => $countryId,
-            'name' => 'Selangor',
-            'country_code' => 'MY',
-        ]);
-
-        $state = State::query()->findOrFail($stateId);
-    }
-
-    $district = District::query()->create([
-        'country_id' => (int) $state->country_id,
-        'state_id' => (int) $state->id,
-        'country_code' => 'MY',
-        'name' => 'Petaling',
-    ]);
-
-    $subdistrict = Subdistrict::query()->create([
-        'country_id' => (int) $state->country_id,
-        'state_id' => (int) $state->id,
-        'district_id' => (int) $district->id,
-        'country_code' => 'MY',
-        'name' => 'Shah Alam',
-    ]);
-
     $institution = Institution::factory()->create([
         'name' => 'Masjid Shah Alam',
         'status' => 'verified',
     ]);
 
-    $institution->address()->update([
+    $institution->primaryAddress()->update([
         'line1' => 'Persiaran Masjid',
         'line2' => 'Seksyen 14',
         'postcode' => '40000',
-        'state_id' => (int) $state->id,
-        'district_id' => (int) $district->id,
-        'subdistrict_id' => (int) $subdistrict->id,
+        'city' => 'Shah Alam',
+        'state' => 'Selangor',
+        'country_code' => 'MY',
     ]);
 
-    $this->get(route('institutions.show', $institution))
+    $this->get(route('institutions.show', $institution->fresh()))
         ->assertSuccessful()
         ->assertSeeInOrder([
             'Persiaran Masjid, Seksyen 14',
             'Shah Alam, 40000',
-            'Petaling, Selangor',
+            'Selangor',
         ]);
 });
 
@@ -227,15 +143,15 @@ it('uses a public google maps embed on institution show pages instead of platfor
         'status' => 'verified',
     ]);
 
-    $institution->address()->update([
+    $institution->primaryAddress()->update([
         'line1' => 'Persiaran Masjid',
         'google_maps_url' => 'https://www.google.com/maps/search/?api=1&query=3.139%2C101.6869&query_place_id=place_123',
         'waze_url' => 'https://ul.waze.com/ul?place=ChIJ-test',
-        'lat' => 3.139,
-        'lng' => 101.6869,
+        'latitude' => 3.139,
+        'longitude' => 101.6869,
     ]);
 
-    $this->get(route('institutions.show', $institution))
+    $this->get(route('institutions.show', $institution->fresh()))
         ->assertSuccessful()
         ->assertSee('https://www.google.com/maps?q=3.139%2C101.6869&amp;output=embed', false)
         ->assertSeeInOrder([
@@ -281,55 +197,20 @@ it('renders institution event cards with localized prayer timing stacked speaker
     $originalLocale = app()->getLocale();
     app()->setLocale('en');
 
-    $state = State::query()
-        ->where('country_code', 'MY')
-        ->where('name', 'Selangor')
-        ->first();
-
-    if (! $state) {
-        $countryId = DB::table('countries')->insertGetId([
-            'iso2' => 'MY',
-            'name' => 'Malaysia',
-            'status' => 1,
-            'phone_code' => '60',
-            'iso3' => 'MYS',
-            'region' => 'Asia',
-            'subregion' => 'South-Eastern Asia',
-        ]);
-
-        $stateId = DB::table('states')->insertGetId([
-            'country_id' => $countryId,
-            'name' => 'Selangor',
-            'country_code' => 'MY',
-        ]);
-
-        $state = State::query()->findOrFail($stateId);
-    }
-
-    $district = District::query()->create([
-        'country_id' => (int) $state->country_id,
-        'state_id' => (int) $state->id,
-        'country_code' => 'MY',
-        'name' => 'Petaling',
-    ]);
-
-    $subdistrict = Subdistrict::query()->create([
-        'country_id' => (int) $state->country_id,
-        'state_id' => (int) $state->id,
-        'district_id' => (int) $district->id,
-        'country_code' => 'MY',
-        'name' => 'Shah Alam',
-    ]);
+    $malaysia = ensureTestMalaysiaCountry();
+    $state = createTestAddressArea('Selangor', 1, country: $malaysia);
+    $district = createTestAddressArea('Petaling', 2, parent: $state, country: $malaysia);
+    $subdistrict = createTestAddressArea('Shah Alam', 3, parent: $district, country: $malaysia);
 
     $institution = Institution::factory()->create([
         'name' => 'Masjid Sultan Salahuddin Abdul Aziz Shah',
         'status' => 'verified',
     ]);
 
-    $institution->address()->update([
-        'state_id' => (int) $state->id,
-        'district_id' => (int) $district->id,
-        'subdistrict_id' => (int) $subdistrict->id,
+    syncPrimaryAddressForTest($institution, [
+        'state_id' => (string) $state->getKey(),
+        'district_id' => (string) $district->getKey(),
+        'subdistrict_id' => (string) $subdistrict->getKey(),
     ]);
 
     try {
@@ -395,7 +276,7 @@ it('renders institution event cards with localized prayer timing stacked speaker
             'is_public' => true,
         ]);
 
-        $response = $this->get(route('institutions.show', $institution));
+        $response = $this->get(route('institutions.show', $institution->fresh()));
         $response->assertSuccessful();
 
         $html = $response->getContent();
@@ -620,23 +501,23 @@ it('renders donation qr thumbnails without the rounded border shell', function (
 it('displays public contacts', function () {
     $institution = Institution::factory()->create(['status' => 'verified']);
 
-    $institution->contacts()->create([
-        'category' => ContactCategory::Phone->value,
-        'type' => ContactType::Work->value,
+    $institution->contactMethods()->create([
+        'type' => ContactMethodType::Phone->value,
+        'purpose' => ContactPurpose::General->value,
         'value' => '03-12345678',
         'is_public' => true,
     ]);
 
-    $institution->contacts()->create([
-        'category' => ContactCategory::Email->value,
-        'type' => ContactType::Main->value,
+    $institution->contactMethods()->create([
+        'type' => ContactMethodType::Email->value,
+        'purpose' => ContactPurpose::General->value,
         'value' => 'contact@test.com',
         'is_public' => true,
     ]);
 
-    $institution->contacts()->create([
-        'category' => ContactCategory::Email->value,
-        'type' => ContactType::Main->value,
+    $institution->contactMethods()->create([
+        'type' => ContactMethodType::Email->value,
+        'purpose' => ContactPurpose::General->value,
         'value' => 'private@test.com',
         'is_public' => false,
     ]);
@@ -872,24 +753,14 @@ it('hides duplicated state for kuala lumpur putrajaya and labuan in institution 
     $institution = Institution::factory()->create(['status' => 'verified']);
     $venue = Venue::factory()->create(['name' => 'Dewan Utama KL']);
 
-    $stateId = DB::table('states')->insertGetId([
-        'country_id' => 132,
-        'name' => 'Kuala Lumpur',
-        'country_code' => 'MY',
-    ]);
+    $malaysia = ensureTestMalaysiaCountry();
+    $state = createTestAddressArea('Kuala Lumpur', 1, country: $malaysia);
+    $subdistrict = createTestAddressArea('Setiawangsa', 3, parent: $state, country: $malaysia);
 
-    $subdistrict = Subdistrict::query()->create([
-        'country_id' => 132,
-        'state_id' => (int) $stateId,
+    syncPrimaryAddressForTest($venue, [
+        'state_id' => (string) $state->getKey(),
         'district_id' => null,
-        'country_code' => 'MY',
-        'name' => 'Setiawangsa',
-    ]);
-
-    $venue->address()->update([
-        'state_id' => (int) $stateId,
-        'district_id' => null,
-        'subdistrict_id' => $subdistrict->id,
+        'subdistrict_id' => (string) $subdistrict->getKey(),
     ]);
 
     Event::factory()

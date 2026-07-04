@@ -1,5 +1,6 @@
 <?php
 
+use AIArmada\CommerceSupport\Models\Role;
 use App\Actions\Membership\AddMemberToSubject;
 use App\Enums\ContributionRequestStatus;
 use App\Enums\ContributionRequestType;
@@ -49,7 +50,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Laravel\Passport\Passport;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
 beforeEach(function (): void {
@@ -569,7 +569,7 @@ it('returns member update schema and updates institutions through member MCP wri
                     && data_get($fieldMap->get('contacts'), 'collection_semantics.explicit_null') === 'clear_collection'
                     && $contactItemFields->has('type')
                     && $contactItemFields->has('value')
-                    && data_get($fieldMap->get('social_media'), 'input_normalization.platform_aliases.x.normalizes_to') === 'twitter'
+                    && data_get($fieldMap->get('social_media'), 'input_normalization.platform_aliases.x.normalizes_to') === 'x'
                     && data_get($fieldMap->get('social_media'), 'input_normalization.platform_aliases.x.accepted_by_write_validation') === false;
             })
             ->etc());
@@ -591,7 +591,7 @@ it('returns member update schema and updates institutions through member MCP wri
                     memberMcpImageDescriptor('member-mcp-gallery.png'),
                 ],
                 'address' => [
-                    'country_id' => 132,
+                    'country_id' => ensureMemberMcpMalaysiaCountryExists(),
                 ],
             ],
         ])
@@ -642,7 +642,7 @@ it('returns member update schema for speakers with surfaced mutation semantics',
                     && data_get($fieldMap->get('address'), 'clear_semantics.empty_object') === 'invalid_without_country'
                     && data_get($fieldMap->get('address.country_id'), 'required_when_parent_present_on_update') === true
                     && data_get($fieldMap->get('language_ids'), 'collection_semantics.submitted_array') === 'replace_relation_sync'
-                    && data_get($fieldMap->get('social_media'), 'input_normalization.platform_aliases.x.normalizes_to') === 'twitter'
+                    && data_get($fieldMap->get('social_media'), 'input_normalization.platform_aliases.x.normalizes_to') === 'x'
                     && data_get($fieldMap->get('social_media'), 'input_normalization.platform_aliases.x.accepted_by_write_validation') === false
                     && $qualificationItemFields->has('institution')
                     && $qualificationItemFields->has('degree');
@@ -690,7 +690,7 @@ it('returns member update schema for references with surfaced mutation semantics
                     && data_get($fieldMap->get('author'), 'clear_semantics.explicit_null') === 'clear_to_null'
                     && data_get($fieldMap->get('publication_year'), 'normalization.empty_string_at_mutation_layer') === 'null'
                     && data_get($fieldMap->get('social_media'), 'collection_semantics.submitted_array') === 'replace_collection'
-                    && data_get($fieldMap->get('social_media'), 'input_normalization.platform_aliases.x.normalizes_to') === 'twitter'
+                    && data_get($fieldMap->get('social_media'), 'input_normalization.platform_aliases.x.normalizes_to') === 'x'
                     && data_get($fieldMap->get('social_media'), 'input_normalization.platform_aliases.x.accepted_by_write_validation') === false;
             })
             ->etc());
@@ -720,7 +720,7 @@ it('returns member update schema for events with surfaced mutation semantics', f
                 return data_get($fieldMap->get('title'), 'required') === false
                     && data_get($fieldMap->get('references'), 'collection_semantics.explicit_null') === 'clear_collection'
                     && data_get($fieldMap->get('speakers'), 'collection_semantics.submitted_array') === 'replace_speaker_subset_and_rebuild_key_people'
-                    && data_get($fieldMap->get('organizer_type'), 'accepted_aliases.speaker') === Speaker::class
+                    && data_get($fieldMap->get('primary_organizer_id'), 'accepted_models') === [Institution::class, Speaker::class]
                     && data_get($fieldMap->get('registration_mode'), 'lock_behavior.when_event_has_registrations') === 'retain_current_value'
                     && $otherKeyPeopleFields->has('role')
                     && $otherKeyPeopleFields->has('name');
@@ -758,7 +758,7 @@ it('previews member institution updates without persisting the record', function
                 'is_active' => true,
                 'allow_public_event_submission' => true,
                 'address' => [
-                    'country_id' => 132,
+                    'country_id' => ensureMemberMcpMalaysiaCountryExists(),
                 ],
             ],
         ])
@@ -1748,24 +1748,9 @@ function memberMcpImageDescriptor(string $name): array
     ];
 }
 
-function ensureMemberMcpMalaysiaCountryExists(): int
+function ensureMemberMcpMalaysiaCountryExists(): string
 {
-    $malaysiaId = DB::table('countries')->where('id', 132)->value('id');
-
-    if (is_int($malaysiaId)) {
-        return $malaysiaId;
-    }
-
-    return DB::table('countries')->insertGetId([
-        'id' => 132,
-        'iso2' => 'MY',
-        'name' => 'Malaysia',
-        'status' => 1,
-        'phone_code' => '60',
-        'iso3' => 'MYS',
-        'region' => 'Asia',
-        'subregion' => 'South-Eastern Asia',
-    ]);
+    return (string) ensureTestMalaysiaCountry()->getKey();
 }
 
 /**

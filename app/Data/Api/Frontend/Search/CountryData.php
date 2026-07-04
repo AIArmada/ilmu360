@@ -2,14 +2,15 @@
 
 namespace App\Data\Api\Frontend\Search;
 
-use App\Models\Address;
-use App\Support\Location\PublicCountryRegistry;
+use AIArmada\Addressing\Models\Address;
+use AIArmada\Addressing\Models\AddressCountry;
+use Illuminate\Support\Str;
 use Spatie\LaravelData\Data;
 
 class CountryData extends Data
 {
     public function __construct(
-        public int $id,
+        public string $id,
         public string $name,
         public string $iso2,
         public ?string $key,
@@ -17,23 +18,22 @@ class CountryData extends Data
 
     public static function fromAddress(?Address $address): ?self
     {
-        if (! $address instanceof Address || ! is_numeric($address->country_id)) {
+        if (! $address instanceof Address || ! is_string($address->country_id)) {
             return null;
         }
 
         $address->loadMissing('country');
+        $country = $address->getRelation('country');
 
-        if ($address->country === null) {
+        if (! $country instanceof AddressCountry) {
             return null;
         }
 
-        $countryId = (int) $address->country->id;
-
         return new self(
-            id: $countryId,
-            name: (string) $address->country->name,
-            iso2: strtoupper((string) $address->country->iso2),
-            key: app(PublicCountryRegistry::class)->keyForCountryId($countryId),
+            id: (string) $country->id,
+            name: (string) $country->name,
+            iso2: strtoupper((string) $country->iso2),
+            key: Str::slug((string) $country->name),
         );
     }
 }

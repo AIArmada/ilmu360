@@ -169,8 +169,8 @@ it('sends 2-hour and check-in reminders exactly once to going and registered use
     ]);
 
     $goingUser->goingEvents()->attach($event->id);
-    Registration::factory()->for($event)->for($registeredUser)->create([
-        'status' => 'registered',
+    Registration::factory()->for($event)->forRegistrant($registeredUser)->create([
+        'status' => 'confirmed',
     ]);
 
     try {
@@ -201,8 +201,8 @@ it('creates registration and check-in confirmation notifications', function () {
         'starts_at' => now()->addDay(),
     ]);
 
-    $registration = Registration::factory()->for($event)->for($user)->create([
-        'status' => 'registered',
+    $registration = Registration::factory()->for($event)->forRegistrant($user)->create([
+        'status' => 'confirmed',
     ]);
 
     $checkin = EventCheckin::factory()->for($event)->for($user)->create();

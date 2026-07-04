@@ -54,21 +54,21 @@ it('prefills parent program organizer context on the submit-event page', functio
 
     $parentProgram = Event::factory()->for($institution)->create([
         'title' => 'Induk Ramadan',
-        'organizer_type' => Institution::class,
-        'organizer_id' => $institution->id,
         'institution_id' => $institution->id,
         'event_structure' => EventStructure::ParentProgram->value,
         'event_format' => EventFormat::Physical->value,
         'visibility' => EventVisibility::Public->value,
         'status' => 'draft',
     ]);
+    $parentProgram->setPrimaryOrganizer($institution);
 
     $component = Livewire::withQueryParams(['parent' => $parentProgram->id])
         ->actingAs($user)
         ->test('pages.submit-event.create');
 
-    expect($component->get('data.organizer_type'))->toBe('institution')
-        ->and($component->get('data.organizer_institution_id'))->toBe($institution->id)
+    expect($component->get('data.primary_organizer_id'))->toBe($institution->id)
+        ->and($component->get('data.primary_organizer_kind'))->toBe('institution')
+        ->and($component->get('data.primary_organizer_institution_id'))->toBe($institution->id)
         ->and($component->get('data.location_institution_id'))->toBe($institution->id)
         ->and($component->get('data.visibility'))->toBe(EventVisibility::Public->value);
 
@@ -93,14 +93,13 @@ it('attaches submitted child events to the selected parent program', function ()
 
     $parentProgram = Event::factory()->for($institution)->create([
         'title' => 'Induk Ramadan',
-        'organizer_type' => Institution::class,
-        'organizer_id' => $institution->id,
         'institution_id' => $institution->id,
         'event_structure' => EventStructure::ParentProgram->value,
         'event_format' => EventFormat::Physical->value,
         'visibility' => EventVisibility::Public->value,
         'status' => 'draft',
     ]);
+    $parentProgram->setPrimaryOrganizer($institution);
 
     $parentProgram->settings()->create([
         'registration_required' => true,

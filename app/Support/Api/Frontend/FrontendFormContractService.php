@@ -2,6 +2,7 @@
 
 namespace App\Support\Api\Frontend;
 
+use AIArmada\Addressing\Models\AddressCountry;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
@@ -24,8 +25,6 @@ use App\Support\ApiDocumentation\ApiDocumentationUrlResolver;
 use App\Support\Documentation\DocumentationLibrary;
 use App\Support\GitHub\GitHubIssueReportContract;
 use App\Support\Location\GooglePlacesConfiguration;
-use App\Support\Location\PreferredCountryResolver;
-use App\Support\Location\PublicCountryRegistry;
 use App\Support\Mcp\McpTokenManager;
 
 class FrontendFormContractService
@@ -322,19 +321,11 @@ class FrontendFormContractService
      */
     public function submitEvent(?User $user): array
     {
-        $publicCountryRegistry = app(PublicCountryRegistry::class);
-        $submissionCountryIds = collect($publicCountryRegistry->all())
-            ->filter(static fn (array $country): bool => $country['enabled'])
-            ->keys()
-            ->map(fn (string $countryKey): ?int => $publicCountryRegistry->countryIdForKey($countryKey))
-            ->filter(static fn (?int $countryId): bool => is_int($countryId))
-            ->values()
+        $submissionCountryIds = AddressCountry::query()
+            ->orderBy('name')
+            ->pluck('id')
+            ->map(static fn (mixed $id): string => (string) $id)
             ->all();
-        $submissionCountryId = $publicCountryRegistry->normalizeCountryId(
-            app(PreferredCountryResolver::class)->resolveId(),
-        ) ?? $publicCountryRegistry->countryIdForKey($publicCountryRegistry->defaultKey())
-            ?? $publicCountryRegistry->countryIdFromIso2('MY')
-            ?? 132;
 
         return [
             'flow' => 'submit_event',
@@ -353,12 +344,13 @@ class FrontendFormContractService
                 'languages' => [101],
                 'event_format' => EventFormat::Physical->value,
                 'visibility' => EventVisibility::Public->value,
+                'primary_organizer_id' => null,
                 'location_same_as_institution' => true,
                 'location_type' => 'institution',
                 'is_muslim_only' => false,
                 'other_key_people' => [],
                 'captcha_token' => null,
-                'submission_country_id' => $submissionCountryId,
+                'submission_country_id' => null,
             ],
             'fields' => [
                 $this->field('title', 'string', required: true, maxLength: 255),
@@ -384,9 +376,12 @@ class FrontendFormContractService
                 $this->field('source_tags', 'array<string>', required: false, catalog: route('api.client.catalogs.tags', ['type' => TagType::Source->value])),
                 $this->field('issue_tags', 'array<string>', required: false, catalog: route('api.client.catalogs.tags', ['type' => TagType::Issue->value])),
                 $this->field('references', 'array<string>', required: false, catalog: route('api.client.catalogs.references')),
-                $this->field('organizer_type', 'string', required: true, default: 'institution', allowedValues: ['institution', 'speaker']),
-                $this->field('organizer_institution_id', 'uuid', required: false, catalog: route('api.client.catalogs.submit-institutions')),
-                $this->field('organizer_speaker_id', 'uuid', required: false, catalog: route('api.client.catalogs.submit-speakers')),
+                $this->field('primary_organizer_id', 'uuid', required: true, meta: [
+                    'catalogs' => [
+                        'institution' => route('api.client.catalogs.submit-institutions'),
+                        'speaker' => route('api.client.catalogs.submit-speakers'),
+                    ],
+                ]),
                 $this->field('location_same_as_institution', 'boolean', required: false, default: true),
                 $this->field('location_type', 'string', required: false, default: 'institution', allowedValues: ['institution', 'venue']),
                 $this->field('location_institution_id', 'uuid', required: false, catalog: route('api.client.catalogs.submit-institutions')),
@@ -394,7 +389,7 @@ class FrontendFormContractService
                 $this->field('space_id', 'uuid', required: false, catalog: route('api.client.catalogs.spaces')),
                 $this->field('speakers', 'array<string>', required: false, catalog: route('api.client.catalogs.submit-speakers')),
                 $this->field('other_key_people', 'array<object>', required: false),
-                $this->field('submission_country_id', 'integer', required: true, default: $submissionCountryId, allowedValues: $submissionCountryIds),
+                $this->field('submission_country_id', 'uuid', required: true, allowedValues: $submissionCountryIds),
                 $this->field('submitter_name', 'string', required: ! $user instanceof User, maxLength: 255),
                 $this->field('submitter_email', 'email', required: false),
                 $this->field('submitter_phone', 'string', required: false),
@@ -411,8 +406,7 @@ class FrontendFormContractService
                 $this->field('gallery', 'array<file>', required: false, acceptedMimeTypes: $this->imageMimeTypes(), maxFileSizeKb: $this->maxUploadSizeKb(), maxFiles: 10),
             ],
             'conditional_rules' => [
-                ['field' => 'organizer_institution_id', 'required_when' => ['organizer_type' => ['institution']]],
-                ['field' => 'organizer_speaker_id', 'required_when' => ['organizer_type' => ['speaker']]],
+                ['field' => 'location_type', 'required_when' => ['location_same_as_institution' => [false]]],
                 ['field' => 'location_institution_id', 'required_when' => ['location_type' => ['institution']]],
                 ['field' => 'location_venue_id', 'required_when' => ['location_type' => ['venue']]],
                 ['field' => 'submitter_email', 'required_when_missing' => ['submitter_phone']],
@@ -426,8 +420,6 @@ class FrontendFormContractService
      */
     public function submitInstitution(): array
     {
-        $preferredCountryId = app(PreferredCountryResolver::class)->resolveId() ?? PreferredCountryResolver::MALAYSIA_ID;
-
         return [
             'flow' => 'submit_institution',
             'method' => 'POST',
@@ -436,16 +428,18 @@ class FrontendFormContractService
             'defaults' => [
                 'type' => InstitutionType::Masjid->value,
                 'address' => [
-                    'country_id' => $preferredCountryId,
-                    'state_id' => null,
-                    'district_id' => null,
-                    'subdistrict_id' => null,
+                    'country_id' => null,
+                    'admin_area_1_id' => null,
+                    'admin_area_2_id' => null,
+                    'admin_area_3_id' => null,
+                    'admin_area_4_id' => null,
                     'line1' => null,
                     'line2' => null,
                     'postcode' => null,
-                    'lat' => null,
-                    'lng' => null,
+                    'latitude' => null,
+                    'longitude' => null,
                     'google_maps_url' => null,
+                    'provider_place_id' => null,
                     'google_maps_normalization_enabled' => true,
                     'google_maps_remote_lookup_enabled' => GooglePlacesConfiguration::isEnabled(),
                 ],
@@ -456,7 +450,7 @@ class FrontendFormContractService
                 $this->field('type', 'string', required: true, default: InstitutionType::Masjid->value, allowedValues: $this->enumValues(InstitutionType::class)),
                 $this->field('description', 'rich_text', required: false),
                 $this->field('address', 'object', required: true),
-                $this->field('address.country_id', 'integer', required: true, default: $preferredCountryId, catalog: route('api.client.catalogs.countries')),
+                $this->field('address.country_id', 'uuid', required: true, catalog: route('api.client.catalogs.countries')),
                 $this->field('contacts', 'array<object>', required: false),
                 $this->field('social_media', 'array<object>', required: false),
                 $this->field('cover', 'file', required: false, acceptedMimeTypes: $this->imageMimeTypes(), maxFileSizeKb: $this->maxUploadSizeKb()),
@@ -482,10 +476,10 @@ class FrontendFormContractService
                 'gender' => Gender::Male->value,
                 'is_freelance' => false,
                 'address' => [
-                    'country_id' => app(PreferredCountryResolver::class)->resolveId(),
-                    'state_id' => null,
-                    'district_id' => null,
-                    'subdistrict_id' => null,
+                    'country_id' => null,
+                    'admin_area_1_id' => null,
+                    'admin_area_2_id' => null,
+                    'admin_area_3_id' => null,
                 ],
             ],
             'fields' => [
@@ -500,10 +494,10 @@ class FrontendFormContractService
                 $this->field('institution_id', 'uuid', required: false, catalog: route('api.client.catalogs.submit-institutions')),
                 $this->field('institution_position', 'string', required: false, maxLength: 255),
                 $this->field('address', 'object', required: true),
-                $this->field('address.country_id', 'integer', required: true, catalog: route('api.client.catalogs.countries')),
-                $this->field('address.state_id', 'integer', required: false),
-                $this->field('address.district_id', 'integer', required: false),
-                $this->field('address.subdistrict_id', 'integer', required: false),
+                $this->field('address.country_id', 'uuid', required: true, catalog: route('api.client.catalogs.countries')),
+                $this->field('address.admin_area_1_id', 'uuid', required: false),
+                $this->field('address.admin_area_2_id', 'uuid', required: false),
+                $this->field('address.admin_area_3_id', 'uuid', required: false),
                 $this->field('qualifications', 'array<object>', required: false),
                 $this->field('language_ids', 'array<int>', required: false, catalog: route('api.client.catalogs.languages')),
                 $this->field('contacts', 'array<object>', required: false),
@@ -722,8 +716,7 @@ class FrontendFormContractService
                 $this->field('timezone', 'timezone', required: true, default: 'Asia/Kuala_Lumpur'),
                 $this->field('program_starts_at', 'datetime', required: true),
                 $this->field('program_ends_at', 'datetime', required: true),
-                $this->field('organizer_type', 'string', required: true, allowedValues: ['institution', 'speaker']),
-                $this->field('organizer_id', 'uuid', required: true),
+                $this->field('primary_organizer_id', 'uuid', required: true),
                 $this->field('location_institution_id', 'uuid', required: false),
                 $this->field('default_event_type', 'string', required: true, allowedValues: $this->enumValues(EventType::class)),
                 $this->field('default_event_format', 'string', required: true, allowedValues: $this->enumValues(EventFormat::class)),
@@ -732,8 +725,11 @@ class FrontendFormContractService
                 $this->field('registration_mode', 'string', required: true, allowedValues: $this->enumValues(RegistrationMode::class)),
             ],
             'options' => [
-                'institution_options' => $builderContext['institution_options'],
-                'speaker_options' => $builderContext['speaker_options'],
+                'primary_organizer_options' => [
+                    'institution' => $builderContext['institution_options'],
+                    'speaker' => $builderContext['speaker_options'],
+                ],
+                'location_institution_options' => $builderContext['institution_options'],
             ],
         ];
     }

@@ -2,12 +2,13 @@
 
 namespace Database\Factories;
 
-use App\Enums\ContactCategory;
-use App\Enums\ContactType;
+use AIArmada\Addressing\Models\Address;
+use AIArmada\Addressing\Models\AddressCountry;
+use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Contacting\Enums\ContactMethodType;
+use AIArmada\Contacting\Enums\ContactPurpose;
 use App\Models\Institution;
 use App\Models\Speaker;
-use App\Models\State;
-use Database\Factories\Concerns\EnsuresMalaysiaCountry;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 use Nnjeim\World\Models\Language;
@@ -17,8 +18,6 @@ use Nnjeim\World\Models\Language;
  */
 class SpeakerFactory extends Factory
 {
-    use EnsuresMalaysiaCountry;
-
     /**
      * Define the model's default state.
      *
@@ -251,51 +250,48 @@ class SpeakerFactory extends Factory
     public function configure(): static
     {
         return $this->afterCreating(function (Speaker $speaker) {
-            $malaysia = $this->ensureMalaysiaCountry();
-
-            // Create Address
-            $state = State::inRandomOrder()->first();
-            $speaker->address()->create([
-                'country_id' => (int) ($state->country_id ?? $malaysia->getKey()),
-                'state_id' => $state?->id,
-                'district_id' => $state?->districts()->inRandomOrder()->first()?->id,
-            ]);
-
-            $speaker->contacts()->create([
-                'category' => ContactCategory::Email->value,
-                'value' => fake()->safeEmail(),
-                'type' => ContactType::Work->value,
-            ]);
-
-            $speaker->contacts()->create([
-                'category' => ContactCategory::Phone->value,
-                'value' => fake()->phoneNumber(),
-                'type' => ContactType::Work->value,
-            ]);
-
-            // Attach Languages
-            if (class_exists(Language::class)) {
-                $languages = Language::inRandomOrder()->limit(random_int(1, 3))->pluck('id');
-                $speaker->languages()->attach($languages);
-            }
-
-            // Attach Institutions
-            if (! $speaker->is_freelance) {
-                $institutions = Institution::inRandomOrder()->limit(random_int(1, 2))->get();
-                foreach ($institutions as $institution) {
-                    $speaker->institutions()->attach($institution->id, [
-                        'position' => fake()->randomElement(['Imam', 'Lecturer', 'Guest Speaker', 'Advisor']),
-                        'is_primary' => fake()->boolean(30),
-                        'joined_at' => fake()->date(),
-                    ]);
-                }
-            } else {
-                $speaker->update([
-                    'job_title' => fake()->randomElement(['Freelance Da\'i', 'Independent Scholar', 'Religious Columnist', 'Motivation Speaker']),
+            OwnerContext::withOwner(null, function () use ($speaker): void {
+                $country = AddressCountry::query()->firstOrCreate(
+                    ['iso2' => 'MY'],
+                    ['name' => 'Malaysia', 'iso3' => 'MYS', 'entity_type' => 'country', 'region' => 'Asia', 'subregion' => 'South-Eastern Asia', 'timezones' => ['Asia/Kuala_Lumpur'], 'phone_code' => '60'],
+                );
+                $address = Address::create([
+                    'country_id' => (string) $country->getKey(),
+                    'country_code' => 'MY',
+                    'city' => fake()->city(),
+                    // @phpstan-ignore-next-line Faker dynamic provider method
+                    'state' => fake()->state(),
                 ]);
-            }
+                $speaker->attachAddress($address, 'primary', true);
 
-            $speaker->refresh();
+                $speaker->contactMethods()->create([
+                    'type' => ContactMethodType::Email->value,
+                    'value' => fake()->safeEmail(),
+                    'purpose' => ContactPurpose::General->value,
+                ]);
+
+                $speaker->contactMethods()->create([
+                    'type' => ContactMethodType::Phone->value,
+                    'value' => fake()->phoneNumber(),
+                    'purpose' => ContactPurpose::General->value,
+                ]);
+
+                // Attach Languages
+                if (class_exists(Language::class)) {
+                    $languages = Language::inRandomOrder()->limit(random_int(1, 3))->pluck('id');
+                    $speaker->languages()->attach($languages);
+                }
+
+                // Attach Institutions
+                if (! $speaker->is_freelance) {
+                    $institutions = Institution::inRandomOrder()->limit(random_int(1, 2))->get();
+                    foreach ($institutions as $institution) {
+                        $speaker->institutions()->attach($institution);
+                    }
+                }
+
+                $speaker->refresh();
+            });
         });
     }
 }

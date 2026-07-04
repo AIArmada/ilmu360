@@ -14,6 +14,6 @@ it('keeps the membership teams relation on the user model', function (): void {
 
     expect($attachedTeam)->toBeInstanceOf(Team::class)
         ->and($attachedTeam->is($team))->toBeTrue()
-        ->and(data_get($attachedTeam, 'pivot.role'))->toBe(TeamRole::Member->value)
+        ->and(data_get($attachedTeam, 'pivot.role'))->toBe(TeamRole::Member)
         ->and($user->teams()->toBase()->toSql())->toContain('team_members');
 });

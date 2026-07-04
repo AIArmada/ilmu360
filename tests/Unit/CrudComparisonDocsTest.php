@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Support\Api\Admin\AdminResourceMutationService;
+use App\Support\Api\Admin\AdminResourceRegistry;
 use App\Support\Api\Member\MemberResourceMutationService;
 use App\Support\Api\SurfaceSyncPolicy;
 use Filament\Facades\Filament;
@@ -21,6 +22,7 @@ it('keeps the CRUD comparison JSON aligned with runtime panel resources and writ
     );
 
     $adminMutationService = app(AdminResourceMutationService::class);
+    $adminRegistry = app(AdminResourceRegistry::class);
     $memberMutationService = app(MemberResourceMutationService::class);
 
     $runtimeAdminResources = collect(Filament::getPanel('admin')->getResources())
@@ -59,6 +61,13 @@ it('keeps the CRUD comparison JSON aligned with runtime panel resources and writ
         ->values()
         ->all();
 
+    $runtimeAdminWriteResources = collect($adminRegistry->resources())
+        ->filter(fn (string $resourceClass): bool => $adminMutationService->supports($resourceClass))
+        ->map(fn (string $resourceClass): string => Str::kebab(Str::pluralStudly(class_basename($resourceClass::getModel()))))
+        ->sort()
+        ->values()
+        ->all();
+
     $documentedAdminResources = collect(data_get($document, 'runtime_inventory.admin_panel.resources', []))
         ->sortBy('resource_key')
         ->values()
@@ -92,13 +101,7 @@ it('keeps the CRUD comparison JSON aligned with runtime panel resources and writ
         ->and(data_get($document, 'runtime_inventory.ahli_panel.resource_count'))->toBe(count($runtimeAhliResources))
         ->and($documentedAdminResources)->toEqual($runtimeAdminResources)
         ->and($documentedAhliResources)->toEqual($runtimeAhliResources)
-        ->and(data_get($document, 'generic_admin_write_support.resource_keys'))->toEqual(
-            collect($runtimeAdminResources)
-                ->filter(fn (array $resource): bool => $resource['generic_admin_write'])
-                ->pluck('resource_key')
-                ->values()
-                ->all()
-        )
+        ->and(data_get($document, 'generic_admin_write_support.resource_keys'))->toEqual($runtimeAdminWriteResources)
         ->and(data_get($document, 'generic_member_write_support.resource_keys'))->toEqual(
             collect($runtimeAhliResources)
                 ->filter(fn (array $resource): bool => $resource['generic_member_write'])
@@ -134,6 +137,8 @@ it('keeps the CRUD comparison JSON aligned with runtime panel resources and writ
 
 it('keeps the markdown companion anchored to the verified runtime model', function () {
     $markdown = file_get_contents(base_path('docs/ilmu360_api_mcp_filament_crud_comparison.md')) ?: '';
+    $adminPanelResourceCount = count(Filament::getPanel('admin')->getResources());
+    $ahliPanelResourceCount = count(Filament::getPanel('ahli')->getResources());
 
     expect($markdown)
         ->toContain('Runtime panel registration wins.')
@@ -147,8 +152,8 @@ it('keeps the markdown companion anchored to the verified runtime model', functi
         ->toContain('Surface sync operating model')
         ->toContain('curated parity')
         ->toContain('workflow-first capabilities')
-        ->toContain('Runtime admin resource inventory (30 registered resources)')
-        ->toContain('Runtime Ahli resource inventory (4 registered resources)')
+        ->toContain("Runtime admin resource inventory ({$adminPanelResourceCount} registered resources)")
+        ->toContain("Runtime Ahli resource inventory ({$ahliPanelResourceCount} registered resources)")
         ->toContain('MCP media and preview semantics')
         ->toContain('`apply_defaults=1` is supported during preview requests')
         ->toContain('`apply_defaults` is supported on admin preview tools')

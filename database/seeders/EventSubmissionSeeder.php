@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Enums\ContactCategory;
-use App\Enums\ContactType;
+use AIArmada\Contacting\Enums\ContactMethodType;
+use AIArmada\Contacting\Enums\ContactPurpose;
 use App\Models\Event;
 use App\Models\EventSubmission;
 use App\Models\User;
@@ -26,30 +26,40 @@ class EventSubmissionSeeder extends Seeder
 
         try {
             DB::transaction(function (): void {
-                $eventIds = Event::query()->pluck('id')->toArray();
+                $events = Event::query()
+                    ->with('occurrences:id,event_id')
+                    ->get(['id']);
                 $userIds = User::query()->pluck('id')->toArray();
 
                 $submissionsToInsert = [];
                 $contactsToInsert = [];
 
-                foreach ($eventIds as $eventId) {
+                foreach ($events as $event) {
                     $isPublic = random_int(0, 4) === 0;
                     $submitterId = (! $isPublic && ! empty($userIds)) ? $userIds[array_rand($userIds)] : null;
 
                     $submissionId = (string) Str::uuid();
+                    $submitterName = $submitterId ? null : fake()->name();
 
-                    $submissionsToInsert[] = array_merge(
-                        EventSubmission::factory()->make([
-                            'event_id' => $eventId,
-                            'submitted_by' => $submitterId,
-                            'submitter_name' => $submitterId ? null : fake()->name(),
-                        ])->toArray(),
-                        [
-                            'id' => $submissionId,
-                            'created_at' => now(),
-                            'updated_at' => now(),
-                        ]
-                    );
+                    $submissionsToInsert[] = [
+                        'id' => $submissionId,
+                        'submitter_type' => $submitterId ? User::class : null,
+                        'submitter_id' => $submitterId,
+                        'target_type' => Event::class,
+                        'target_id' => $event->id,
+                        'event_id' => $event->id,
+                        'event_occurrence_id' => $event->occurrences->first()?->id,
+                        'submission_data' => json_encode([
+                            'submitter_name' => $submitterName,
+                        ], JSON_THROW_ON_ERROR),
+                        'status' => 'pending',
+                        'submitted_at' => now(),
+                        'metadata' => json_encode([
+                            'source' => 'database_seed',
+                        ], JSON_THROW_ON_ERROR),
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
 
                     // Add contact for public submissions (no user)
                     if (! $submitterId) {
@@ -57,9 +67,11 @@ class EventSubmissionSeeder extends Seeder
                             'id' => (string) Str::uuid(),
                             'contactable_type' => 'event_submission',
                             'contactable_id' => $submissionId,
-                            'type' => ContactType::Main->value,
-                            'category' => ContactCategory::Email->value,
+                            'type' => ContactMethodType::Email->value,
+                            'purpose' => ContactPurpose::General->value,
                             'value' => fake()->safeEmail(),
+                            'is_primary' => true,
+                            'is_public' => false,
                             'created_at' => now(),
                             'updated_at' => now(),
                         ];
@@ -74,7 +86,7 @@ class EventSubmissionSeeder extends Seeder
                 // Bulk insert contacts
                 if ($contactsToInsert !== []) {
                     foreach (array_chunk($contactsToInsert, 200) as $chunk) {
-                        DB::table('contacts')->insert($chunk);
+                        DB::table(config('contacting.database.tables.contact_methods', 'contact_methods'))->insert($chunk);
                     }
                 }
             });

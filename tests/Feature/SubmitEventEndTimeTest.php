@@ -1,5 +1,6 @@
 <?php
 
+use AIArmada\Addressing\Models\AddressCountry;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
@@ -10,9 +11,7 @@ use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Speaker;
 use App\Models\Tag;
-use App\Support\Location\PublicCountryPreference;
-use App\Support\Location\PublicCountryRegistry;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Livewire\Livewire;
 
 beforeEach(function () {
@@ -30,6 +29,19 @@ function submitEventEndTimeFixtures(): array
         'institution' => Institution::factory()->create(['status' => 'verified']),
         'speaker' => Speaker::factory()->create(['status' => 'verified']),
     ];
+}
+
+function submitEventAddressCountry(string $iso2 = 'MY', string $name = 'Malaysia', array $timezones = ['Asia/Kuala_Lumpur']): AddressCountry
+{
+    return AddressCountry::query()->firstOrCreate(
+        ['iso2' => $iso2],
+        [
+            'name' => $name,
+            'iso3' => Str::upper($iso2).'S',
+            'entity_type' => 'country',
+            'timezones' => $timezones,
+        ],
+    );
 }
 
 /**
@@ -51,11 +63,11 @@ function submitEventEndTimeFormData(array $fixtures, array $overrides = []): arr
         'gender' => EventGenderRestriction::All->value,
         'age_group' => [EventAgeGroup::AllAges->value],
         'languages' => [101],
-        'organizer_type' => 'institution',
-        'organizer_institution_id' => $fixtures['institution']->id,
+        'primary_organizer_id' => $fixtures['institution']->id,
         'speakers' => [$fixtures['speaker']->id],
         'submitter_name' => 'Test User',
         'submitter_email' => 'test@example.com',
+        'submission_country_id' => (string) submitEventAddressCountry()->getKey(),
     ], $overrides);
 }
 
@@ -124,12 +136,11 @@ it('can submit event with custom time and end time', function () {
     expect($event->ends_at->toDateString())->toBe($event->starts_at->toDateString());
 });
 
-it('uses the selected public country timezone instead of the browser timezone when submitting', function () {
+it('uses the selected submission country timezone instead of the browser timezone when submitting', function () {
     $fixtures = submitEventEndTimeFixtures();
 
     setSubmitEventFormState(
         Livewire::withCookie('user_timezone', 'America/Los_Angeles')
-            ->withCookie('public_country', 'malaysia')
             ->test('pages.submit-event.create'),
         submitEventEndTimeFormData($fixtures, [
             'title' => 'Selected Country Timezone Wins',
@@ -150,27 +161,6 @@ it('uses the selected public country timezone instead of the browser timezone wh
         ->and($event->ends_at?->timezone('Asia/Kuala_Lumpur')->format('H:i'))->toBe('02:00');
 });
 
-it('defaults the submit-event form to the inferred preferred country when no explicit country is selected', function () {
-    config()->set('public-countries.countries.singapore.enabled', true);
-
-    $singaporeId = DB::table('countries')->insertGetId([
-        'iso2' => 'SG',
-        'name' => 'Singapore',
-        'status' => 1,
-        'phone_code' => '65',
-        'iso3' => 'SGP',
-        'region' => 'Asia',
-        'subregion' => 'South-Eastern Asia',
-    ]);
-
-    app()->forgetInstance(PublicCountryRegistry::class);
-    app()->forgetInstance(PublicCountryPreference::class);
-
-    Livewire::withQueryParams(['user_timezone' => 'Asia/Singapore'])
-        ->test('pages.submit-event.create')
-        ->assertSet('data.submission_country_id', $singaporeId);
-});
-
 it('rejects unsupported submission country ids in the public submit flow', function () {
     $fixtures = submitEventEndTimeFixtures();
 
@@ -180,7 +170,7 @@ it('rejects unsupported submission country ids in the public submit flow', funct
             'title' => 'Unsupported Submission Country Invalid',
             'prayer_time' => EventPrayerTime::LainWaktu->value,
             'custom_time' => '10:00',
-            'submission_country_id' => 999999,
+            'submission_country_id' => (string) Str::uuid(),
         ]),
     )
         ->call('submit')

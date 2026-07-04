@@ -47,21 +47,21 @@ class EventContributionUpdateStateMapper
      */
     private static function injectOrganizerLocationFields(array $state): array
     {
-        $organizerType = self::normalizeOrganizerType($state['organizer_type'] ?? null);
-        $organizerId = self::normalizeOptionalString($state['organizer_id'] ?? null);
+        $primaryOrganizerId = self::normalizeOptionalString($state['primary_organizer_id'] ?? null);
+        $organizerType = self::resolvedPrimaryOrganizerType($primaryOrganizerId);
         $institutionId = self::normalizeOptionalString($state['institution_id'] ?? null);
         $venueId = self::normalizeOptionalString($state['venue_id'] ?? null);
 
-        $state['organizer_type'] = $organizerType;
-        $state['organizer_institution_id'] = $organizerType === 'institution' ? $organizerId : null;
-        $state['organizer_speaker_id'] = $organizerType === 'speaker' ? $organizerId : null;
+        $state['primary_organizer_kind'] = $organizerType;
+        $state['primary_organizer_institution_id'] = $organizerType === 'institution' ? $primaryOrganizerId : null;
+        $state['primary_organizer_speaker_id'] = $organizerType === 'speaker' ? $primaryOrganizerId : null;
 
         if ($organizerType === 'institution') {
-            $sameAsInstitution = $venueId === null && $institutionId !== null && $institutionId === $organizerId;
+            $sameAsInstitution = $venueId === null && $institutionId !== null && $institutionId === $primaryOrganizerId;
 
             $state['location_same_as_institution'] = $sameAsInstitution;
             $state['location_type'] = $venueId !== null ? 'venue' : 'institution';
-            $state['location_institution_id'] = $sameAsInstitution ? $organizerId : $institutionId;
+            $state['location_institution_id'] = $sameAsInstitution ? $primaryOrganizerId : $institutionId;
             $state['location_venue_id'] = $venueId;
 
             return $state;
@@ -81,9 +81,8 @@ class EventContributionUpdateStateMapper
      */
     private static function normalizeOrganizerLocationState(array $state): array
     {
-        $organizerType = self::normalizeOrganizerType($state['organizer_type'] ?? null);
-        $organizerInstitutionId = self::normalizeOptionalString($state['organizer_institution_id'] ?? null);
-        $organizerSpeakerId = self::normalizeOptionalString($state['organizer_speaker_id'] ?? null);
+        $primaryOrganizerId = self::normalizeOptionalString($state['primary_organizer_id'] ?? null);
+        $organizerType = self::resolvedPrimaryOrganizerType($primaryOrganizerId);
         $locationInstitutionId = self::normalizeOptionalString($state['location_institution_id'] ?? null);
         $locationVenueId = self::normalizeOptionalString($state['location_venue_id'] ?? null);
         $spaceId = self::normalizeOptionalString($state['space_id'] ?? null);
@@ -92,24 +91,18 @@ class EventContributionUpdateStateMapper
             ? $state['location_type']
             : 'institution';
 
-        $state['organizer_type'] = $organizerType;
-        $state['organizer_id'] = null;
         $state['institution_id'] = null;
         $state['venue_id'] = null;
 
         if ($organizerType === 'institution') {
-            $state['organizer_id'] = $organizerInstitutionId;
-
             if ($sameAsInstitution) {
-                $state['institution_id'] = $organizerInstitutionId;
+                $state['institution_id'] = $primaryOrganizerId;
             } elseif ($locationType === 'institution') {
                 $state['institution_id'] = $locationInstitutionId;
             } elseif ($locationType === 'venue') {
                 $state['venue_id'] = $locationVenueId;
             }
         } elseif ($organizerType === 'speaker') {
-            $state['organizer_id'] = $organizerSpeakerId;
-
             if ($locationType === 'institution') {
                 $state['institution_id'] = $locationInstitutionId;
             } elseif ($locationType === 'venue') {
@@ -122,8 +115,9 @@ class EventContributionUpdateStateMapper
             : null;
 
         unset(
-            $state['organizer_institution_id'],
-            $state['organizer_speaker_id'],
+            $state['primary_organizer_kind'],
+            $state['primary_organizer_institution_id'],
+            $state['primary_organizer_speaker_id'],
             $state['location_same_as_institution'],
             $state['location_type'],
             $state['location_institution_id'],
@@ -133,13 +127,21 @@ class EventContributionUpdateStateMapper
         return $state;
     }
 
-    private static function normalizeOrganizerType(mixed $value): ?string
+    private static function resolvedPrimaryOrganizerType(?string $primaryOrganizerId): ?string
     {
-        return match ($value) {
-            'institution', Institution::class => 'institution',
-            'speaker', Speaker::class => 'speaker',
-            default => null,
-        };
+        if ($primaryOrganizerId === null) {
+            return null;
+        }
+
+        if (Institution::query()->whereKey($primaryOrganizerId)->exists()) {
+            return 'institution';
+        }
+
+        if (Speaker::query()->whereKey($primaryOrganizerId)->exists()) {
+            return 'speaker';
+        }
+
+        return null;
     }
 
     private static function normalizeOptionalString(mixed $value): ?string

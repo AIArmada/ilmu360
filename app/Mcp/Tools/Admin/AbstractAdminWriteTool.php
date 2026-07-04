@@ -191,13 +191,19 @@ abstract class AbstractAdminWriteTool extends AbstractAdminTool
         return $normalized !== '' ? $normalized : null;
     }
 
-    protected function normalizeOrganizerType(mixed $value): ?string
+    protected function resolvePrimaryOrganizerIdentifier(string $field, string $key): string
     {
-        return match ($value) {
-            'institution', Institution::class => Institution::class,
-            'speaker', Speaker::class => Speaker::class,
-            default => null,
-        };
+        foreach ([Institution::class, Speaker::class] as $modelClass) {
+            try {
+                return $this->resolveRecordIdentifier($field, $modelClass, $key);
+            } catch (ValidationException) {
+                continue;
+            }
+        }
+
+        throw ValidationException::withMessages([
+            $field => __('The selected record key is invalid.'),
+        ]);
     }
 
     /**

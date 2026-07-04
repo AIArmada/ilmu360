@@ -1,5 +1,6 @@
 <?php
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
@@ -335,6 +336,14 @@ it('persists registration-required changes for existing admin events without reg
         ->test(EditEvent::class, ['record' => $event->id])
         ->assertFormFieldExists('registration_required')
         ->fillForm([
+            'event_date' => '2026-05-12',
+            'prayer_time' => EventPrayerTime::LainWaktu->value,
+            'custom_time' => '20:00',
+            'end_time' => '22:00',
+            'event_format' => EventFormat::Physical->value,
+            'gender' => EventGenderRestriction::All->value,
+            'age_group' => [EventAgeGroup::AllAges->value],
+            'event_type' => [EventType::Other->value],
             'registration_required' => false,
         ])
         ->call('save')
@@ -406,6 +415,10 @@ it('accepts cover and poster uploads on the admin event edit form', function () 
             'prayer_time' => EventPrayerTime::LainWaktu->value,
             'custom_time' => '20:00',
             'end_time' => '22:00',
+            'event_format' => EventFormat::Physical->value,
+            'gender' => EventGenderRestriction::All->value,
+            'age_group' => [EventAgeGroup::AllAges->value],
+            'event_type' => [EventType::Other->value],
             'cover' => UploadedFile::fake()->image('cover-wide.jpg', 320, 180),
             'poster' => UploadedFile::fake()->image('poster-portrait.jpg', 320, 400),
         ])
@@ -454,14 +467,12 @@ it('shows a duplicate event action on the admin event view page', function () {
     $event = Event::factory()->for($institution)->create([
         'status' => 'approved',
         'visibility' => 'public',
-        'organizer_type' => Institution::class,
-        'organizer_id' => $institution->id,
-        'institution_id' => $institution->id,
     ]);
+    OwnerContext::withOwner(null, fn () => $event->setPrimaryOrganizer($institution));
 
-    $component = Livewire::actingAs($administrator)
+    $component = OwnerContext::withOwner(null, fn () => Livewire::actingAs($administrator)
         ->test(ViewEvent::class, ['record' => $event->id])
-        ->assertActionVisible('duplicate_event');
+        ->assertActionVisible('duplicate_event'));
 
     $duplicateUrl = (fn (): string => $this->duplicateEventUrl())->call($component->instance());
 
@@ -486,12 +497,11 @@ it('uses the institution-scoped duplicate route for admin viewers who are instit
     $event = Event::factory()->for($institution)->create([
         'status' => 'approved',
         'visibility' => 'public',
-        'organizer_type' => Institution::class,
-        'organizer_id' => $institution->id,
     ]);
+    OwnerContext::withOwner(null, fn () => $event->setPrimaryOrganizer($institution));
 
-    $component = Livewire::actingAs($administrator)
-        ->test(ViewEvent::class, ['record' => $event->id]);
+    $component = OwnerContext::withOwner(null, fn () => Livewire::actingAs($administrator)
+        ->test(ViewEvent::class, ['record' => $event->id]));
 
     $duplicateUrl = (fn (): string => $this->duplicateEventUrl())->call($component->instance());
 
@@ -523,13 +533,11 @@ it('falls back to the generic duplicate route for admin viewers who only belong 
     $event = Event::factory()->for($institution)->create([
         'status' => 'approved',
         'visibility' => 'public',
-        'organizer_type' => Institution::class,
-        'organizer_id' => $institution->id,
-        'institution_id' => $institution->id,
     ]);
+    OwnerContext::withOwner(null, fn () => $event->setPrimaryOrganizer($institution));
 
-    $component = Livewire::actingAs($administrator)
-        ->test(ViewEvent::class, ['record' => $event->id]);
+    $component = OwnerContext::withOwner(null, fn () => Livewire::actingAs($administrator)
+        ->test(ViewEvent::class, ['record' => $event->id]));
 
     $duplicateUrl = (fn (): string => $this->duplicateEventUrl())->call($component->instance());
 

@@ -83,7 +83,7 @@ class ContributionController extends FrontendController
             .'The proposer is not automatically added as an institution owner, admin, editor, or member; they only receive review outcome notifications. '
             .'Duplicate institutions are rejected when the normalized name and locality match an existing institution. '
             .'Institution payloads must include an explicit address country via `address.country_id`. '
-            .'Any provided `address.google_maps_url` is normalized server-side into a canonical Google Maps URL and may populate `address.google_place_id`, `address.lat`, and `address.lng` before persistence. '
+            .'Any provided `address.google_maps_url` is normalized server-side into a canonical Google Maps URL and may populate `address.provider_place_id`, `address.latitude`, and `address.longitude` before persistence. '
             .'Fetch `GET /forms/contributions/institutions` first to discover required fields, defaults, media support, and conditional rules.',
     )]
     public function storeInstitution(
@@ -101,26 +101,26 @@ class ContributionController extends FrontendController
             'nickname' => ['nullable', 'string', 'max:255'],
             'description' => ['nullable'],
             'address' => ['present', 'array'],
-            'address.country_id' => ['required', 'integer', 'exists:countries,id'],
-            'address.state_id' => ['nullable', 'integer'],
-            'address.district_id' => ['nullable', 'integer'],
-            'address.subdistrict_id' => ['nullable', 'integer'],
+            'address.country_id' => ['required', 'uuid', 'exists:address_countries,id'],
+            'address.admin_area_1_id' => ['nullable', 'uuid', 'exists:address_areas,id'],
+            'address.admin_area_2_id' => ['nullable', 'uuid', 'exists:address_areas,id'],
+            'address.admin_area_3_id' => ['nullable', 'uuid', 'exists:address_areas,id'],
             'address.line1' => ['nullable', 'string', 'max:255'],
             'address.line2' => ['nullable', 'string', 'max:255'],
             'address.postcode' => ['nullable', 'string', 'max:16'],
-            'address.lat' => ['nullable', 'numeric'],
-            'address.lng' => ['nullable', 'numeric'],
+            'address.latitude' => ['nullable', 'numeric'],
+            'address.longitude' => ['nullable', 'numeric'],
             'address.google_maps_url' => ['required', 'url', 'max:255'],
-            'address.google_place_id' => ['nullable', 'string', 'max:255'],
+            'address.provider_place_id' => ['nullable', 'string', 'max:255'],
             'address.waze_url' => ['nullable', 'url', 'max:255'],
             'contacts' => ['nullable', 'array'],
-            'contacts.*.category' => ['required_with:contacts', 'string', 'max:255'],
+            'contacts.*.type' => ['required_with:contacts', 'string', 'max:255'],
             'contacts.*.value' => ['required_with:contacts', 'string', 'max:255'],
-            'contacts.*.type' => ['nullable', 'string', 'max:255'],
+            'contacts.*.purpose' => ['nullable', 'string', 'max:255'],
             'contacts.*.is_public' => ['nullable', 'boolean'],
             'social_media' => ['nullable', 'array'],
             'social_media.*.platform' => ['required_with:social_media', 'string', 'max:255'],
-            'social_media.*.username' => ['nullable', 'string', 'max:255'],
+            'social_media.*.handle' => ['nullable', 'string', 'max:255'],
             'social_media.*.url' => ['nullable', 'url', 'max:255'],
             'cover' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', "max:{$maxUploadSizeKb}"],
             'gallery' => ['nullable', 'array'],
@@ -190,17 +190,17 @@ class ContributionController extends FrontendController
             'institution_id' => ['nullable', 'uuid', 'exists:institutions,id'],
             'institution_position' => ['nullable', 'string', 'max:255'],
             'address' => ['required', 'array'],
-            'address.country_id' => ['required', 'integer', 'exists:countries,id'],
-            'address.state_id' => ['nullable', 'integer'],
-            'address.district_id' => ['nullable', 'integer'],
-            'address.subdistrict_id' => ['nullable', 'integer'],
+            'address.country_id' => ['required', 'uuid', 'exists:address_countries,id'],
+            'address.admin_area_1_id' => ['nullable', 'uuid', 'exists:address_areas,id'],
+            'address.admin_area_2_id' => ['nullable', 'uuid', 'exists:address_areas,id'],
+            'address.admin_area_3_id' => ['nullable', 'uuid', 'exists:address_areas,id'],
             'address.line1' => ['prohibited'],
             'address.line2' => ['prohibited'],
             'address.postcode' => ['prohibited'],
-            'address.lat' => ['prohibited'],
-            'address.lng' => ['prohibited'],
+            'address.latitude' => ['prohibited'],
+            'address.longitude' => ['prohibited'],
             'address.google_maps_url' => ['prohibited'],
-            'address.google_place_id' => ['prohibited'],
+            'address.provider_place_id' => ['prohibited'],
             'address.waze_url' => ['prohibited'],
             'qualifications' => ['nullable', 'array'],
             'qualifications.*.institution' => ['required_with:qualifications.*.degree', 'nullable', 'string', 'max:255'],
@@ -210,13 +210,13 @@ class ContributionController extends FrontendController
             'language_ids' => ['nullable', 'array'],
             'language_ids.*' => ['integer'],
             'contacts' => ['nullable', 'array'],
-            'contacts.*.category' => ['required_with:contacts', 'string', 'max:255'],
+            'contacts.*.type' => ['required_with:contacts', 'string', 'max:255'],
             'contacts.*.value' => ['required_with:contacts', 'string', 'max:255'],
-            'contacts.*.type' => ['nullable', 'string', 'max:255'],
+            'contacts.*.purpose' => ['nullable', 'string', 'max:255'],
             'contacts.*.is_public' => ['nullable', 'boolean'],
             'social_media' => ['nullable', 'array'],
             'social_media.*.platform' => ['required_with:social_media', 'string', 'max:255'],
-            'social_media.*.username' => ['nullable', 'string', 'max:255'],
+            'social_media.*.handle' => ['nullable', 'string', 'max:255'],
             'social_media.*.url' => ['nullable', 'url', 'max:255'],
             'avatar' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', "max:{$maxUploadSizeKb}"],
             'cover' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', "max:{$maxUploadSizeKb}"],
@@ -404,7 +404,10 @@ class ContributionController extends FrontendController
         $normalizedState = $entity instanceof Event && $submissionState['state'] !== []
             ? EventContributionUpdateStateMapper::toPersistenceState(array_replace_recursive($publicInitialState, $submissionState['state']))
             : $submissionState['state'];
-        $changes = $resolveContributionChangedPayloadAction->handle($normalizedState, $comparableOriginalData);
+        $comparableSubmissionState = $entity instanceof Speaker
+            ? $this->apiInitialState($entity, $normalizedState)
+            : $normalizedState;
+        $changes = $resolveContributionChangedPayloadAction->handle($comparableSubmissionState, $comparableOriginalData);
         $hasDirectEditMediaChange = collect($directEditMediaFields)
             ->contains(fn (string $field): bool => $request->hasFile($field));
 
@@ -560,7 +563,9 @@ class ContributionController extends FrontendController
                 $helperState['prayer_reference'],
                 $helperState['prayer_offset'],
                 $helperState['prayer_display_text'],
-                $helperState['organizer_id'],
+                $helperState['primary_organizer_kind'],
+                $helperState['primary_organizer_institution_id'],
+                $helperState['primary_organizer_speaker_id'],
                 $helperState['institution_id'],
                 $helperState['venue_id'],
             );
@@ -578,9 +583,9 @@ class ContributionController extends FrontendController
 
         $initialState['address'] = [
             'country_id' => $speakerAddress['country_id'] ?? null,
-            'state_id' => $speakerAddress['state_id'] ?? null,
-            'district_id' => $speakerAddress['district_id'] ?? null,
-            'subdistrict_id' => $speakerAddress['subdistrict_id'] ?? null,
+            'admin_area_1_id' => $speakerAddress['admin_area_1_id'] ?? null,
+            'admin_area_2_id' => $speakerAddress['admin_area_2_id'] ?? null,
+            'admin_area_3_id' => $speakerAddress['admin_area_3_id'] ?? null,
         ];
 
         return $initialState;
@@ -606,7 +611,7 @@ class ContributionController extends FrontendController
             ]);
         }
 
-        if (! is_int($payload['address']['country_id'] ?? null)) {
+        if (! is_string($payload['address']['country_id'] ?? null)) {
             throw ValidationException::withMessages([
                 'address.country_id' => __('The selected country is invalid.'),
             ]);

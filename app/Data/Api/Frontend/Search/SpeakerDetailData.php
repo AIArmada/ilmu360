@@ -11,8 +11,8 @@ class SpeakerDetailData extends Data
     /**
      * @param  array<string, mixed>|string|null  $bio
      * @param  list<array<string, mixed>>  $qualifications
-     * @param  array{country_id: ?int, state_id: ?int, district_id: ?int, subdistrict_id: ?int}|null  $address
-     * @param  array{id: int, name: string, iso2: string, key: ?string}|null  $country
+     * @param  array{country_id: ?string, admin_area_1_id: ?string, admin_area_2_id: ?string, admin_area_3_id: ?string, admin_area_4_id: ?string}|null  $address
+     * @param  array{id: string, name: string, iso2: string, key: ?string}|null  $country
      * @param  array{avatar_url: string, cover_url: string, share_image_url: string}  $media
      * @param  list<array{id: string, name: string, url: string, thumb_url: string}>  $gallery
      * @param  list<array<string, mixed>>  $institutions
@@ -44,8 +44,8 @@ class SpeakerDetailData extends Data
     ) {}
 
     /**
-     * @param  array{country_id: ?int, state_id: ?int, district_id: ?int, subdistrict_id: ?int}|null  $address
-     * @param  array{id: int, name: string, iso2: string, key: ?string}|null  $country
+     * @param  array{country_id: ?string, admin_area_1_id: ?string, admin_area_2_id: ?string, admin_area_3_id: ?string, admin_area_4_id: ?string}|null  $address
+     * @param  array{id: string, name: string, iso2: string, key: ?string}|null  $country
      * @param  array<string, string>  $media
      * @param  list<array<string, string>>  $gallery
      * @param  list<array<string, mixed>>  $institutions

@@ -1,5 +1,6 @@
 <?php
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Signals\Models\SignalEvent;
 use App\Models\Event;
 use App\Models\Institution;
@@ -140,17 +141,16 @@ describe('Event Approval', function () {
 
         $event = Event::factory()->create([
             'status' => 'pending',
-            'organizer_type' => Institution::class,
-            'organizer_id' => $organizerInstitution->id,
             'institution_id' => $locationInstitution->id,
             'venue_id' => $venue->id,
         ]);
+        OwnerContext::withOwner(null, fn () => $event->setPrimaryOrganizer($organizerInstitution));
 
         $event->speakers()->attach($speaker->id);
         $event->syncTags([$disciplineTag, $issueTag]);
 
         // Approve event
-        $this->service->approve($event, $moderator);
+        OwnerContext::withOwner(null, fn () => $this->service->approve($event, $moderator));
 
         // Verify all related records are now verified
         expect($speaker->fresh()->status)->toBe('verified')

@@ -1,7 +1,7 @@
 <?php
 
+use AIArmada\CommerceSupport\Models\Permission;
 use AIArmada\FilamentAuthz\Facades\Authz;
-use AIArmada\FilamentAuthz\Models\Permission;
 use App\Enums\ContributionSubjectType;
 use App\Filament\Ahli\Resources\Events\EventResource;
 use App\Filament\Ahli\Resources\Events\Pages\ViewEvent as AhliViewEvent;
@@ -33,6 +33,7 @@ use Spatie\Permission\PermissionRegistrar;
 uses(RefreshDatabase::class);
 
 beforeEach(function (): void {
+    setPermissionsTeamId(null);
     app(PermissionRegistrar::class)->forgetCachedPermissions();
 });
 
@@ -43,9 +44,8 @@ it('allows institution admins to open ahli edit pages for their institution and 
         'title' => 'Ahli Managed Event',
         'status' => 'draft',
         'visibility' => 'private',
-        'organizer_type' => Institution::class,
-        'organizer_id' => $institution->id,
     ]);
+    $event->setPrimaryOrganizer($institution);
 
     $institution->members()->syncWithoutDetaching([$user->id]);
 
@@ -81,9 +81,8 @@ it('opens the ahli view public page action in a new tab', function () {
         'title' => 'Ahli View Public Event',
         'status' => 'approved',
         'visibility' => 'public',
-        'organizer_type' => Institution::class,
-        'organizer_id' => $institution->id,
     ]);
+    $event->setPrimaryOrganizer($institution);
 
     $institution->members()->syncWithoutDetaching([$user->id]);
 
@@ -112,9 +111,8 @@ it('shows a duplicate event action on the ahli event view page', function () {
         'title' => 'Ahli Duplicate Event',
         'status' => 'approved',
         'visibility' => 'public',
-        'organizer_type' => Institution::class,
-        'organizer_id' => $institution->id,
     ]);
+    $event->setPrimaryOrganizer($institution);
 
     $institution->members()->syncWithoutDetaching([$user->id]);
 
@@ -153,9 +151,8 @@ it('hides the duplicate event action on the ahli event view page for institution
         'title' => 'Ahli Viewer Duplicate Event',
         'status' => 'approved',
         'visibility' => 'public',
-        'organizer_type' => Institution::class,
-        'organizer_id' => $institution->id,
     ]);
+    $event->setPrimaryOrganizer($institution);
 
     $institution->members()->syncWithoutDetaching([$user->id]);
 
@@ -180,10 +177,8 @@ it('uses the institution-scoped duplicate route for speaker-organized events lin
         'title' => 'Ahli Speaker Organized Duplicate Event',
         'status' => 'approved',
         'visibility' => 'public',
-        'organizer_type' => Speaker::class,
-        'organizer_id' => $speaker->id,
-        'institution_id' => $institution->id,
     ]);
+    $event->setPrimaryOrganizer($speaker);
 
     $institution->members()->syncWithoutDetaching([$user->id]);
 
@@ -215,10 +210,9 @@ it('prefers the organizer institution when duplicating institution-organized eve
         'title' => 'Ahli Organizer Institution Wins Duplicate Event',
         'status' => 'approved',
         'visibility' => 'public',
-        'organizer_type' => Institution::class,
-        'organizer_id' => $organizerInstitution->id,
         'institution_id' => $linkedInstitution->id,
     ]);
+    $event->setPrimaryOrganizer($organizerInstitution);
 
     $organizerInstitution->members()->syncWithoutDetaching([$user->id]);
     $linkedInstitution->members()->syncWithoutDetaching([$user->id]);
@@ -253,10 +247,9 @@ it('falls back to the generic duplicate route when an institution-organized even
         'title' => 'Ahli Generic Duplicate Fallback Event',
         'status' => 'approved',
         'visibility' => 'public',
-        'organizer_type' => Institution::class,
-        'organizer_id' => $organizerInstitution->id,
         'institution_id' => $linkedInstitution->id,
     ]);
+    $event->setPrimaryOrganizer($organizerInstitution);
 
     $linkedInstitution->members()->syncWithoutDetaching([$user->id]);
 
@@ -287,10 +280,9 @@ it('renders submitter phone numbers as whatsapp links on the ahli event edit pag
         'title' => 'Ahli Submitter Contact Event',
         'status' => 'pending',
         'visibility' => 'public',
-        'organizer_type' => Institution::class,
-        'organizer_id' => $institution->id,
         'submitter_id' => $submitter->id,
     ]);
+    $event->setPrimaryOrganizer($institution);
 
     EventSubmission::factory()
         ->for($event)
@@ -325,9 +317,8 @@ it('allows institution admins to open ahli edit page for speaker-organized event
         'title' => 'Institution Scoped Speaker Event',
         'status' => 'draft',
         'visibility' => 'private',
-        'organizer_type' => Speaker::class,
-        'organizer_id' => $speaker->id,
     ]);
+    $event->setPrimaryOrganizer($speaker);
 
     $institution->members()->syncWithoutDetaching([$user->id]);
 
@@ -370,9 +361,8 @@ it('allows speaker members to open ahli edit page for speaker-organized events',
         'title' => 'Speaker Organized Event',
         'status' => 'draft',
         'visibility' => 'private',
-        'organizer_type' => Speaker::class,
-        'organizer_id' => $speaker->id,
     ]);
+    $event->setPrimaryOrganizer($speaker);
 
     $speaker->members()->syncWithoutDetaching([$user->id]);
 
@@ -447,45 +437,40 @@ it('lists only scoped events on ahli events index', function () {
         'submitter_id' => $user->id,
     ]);
 
-    Event::factory()->create([
+    $institutionOrganized = Event::factory()->create([
         'title' => $institutionTitle,
         'status' => 'draft',
         'visibility' => 'private',
-        'organizer_type' => Institution::class,
-        'organizer_id' => $memberInstitution->id,
     ]);
+    $institutionOrganized->setPrimaryOrganizer($memberInstitution);
 
-    Event::factory()->create([
+    $speakerOrganized = Event::factory()->create([
         'title' => $speakerTitle,
         'status' => 'draft',
         'visibility' => 'private',
-        'organizer_type' => Speaker::class,
-        'organizer_id' => $memberSpeaker->id,
     ]);
+    $speakerOrganized->setPrimaryOrganizer($memberSpeaker);
 
-    Event::factory()->for($memberInstitution)->create([
+    $institutionLinked = Event::factory()->for($memberInstitution)->create([
         'title' => $institutionLinkedSpeakerTitle,
         'status' => 'draft',
         'visibility' => 'private',
-        'organizer_type' => Speaker::class,
-        'organizer_id' => $otherSpeaker->id,
     ]);
+    $institutionLinked->setPrimaryOrganizer($otherSpeaker);
 
-    Event::factory()->create([
+    $outsideOrganized = Event::factory()->create([
         'title' => $outsideTitle,
         'status' => 'draft',
         'visibility' => 'private',
-        'organizer_type' => Institution::class,
-        'organizer_id' => $otherInstitution->id,
     ]);
+    $outsideOrganized->setPrimaryOrganizer($otherInstitution);
 
-    Event::factory()->create([
+    $otherSpeakerOrganized = Event::factory()->create([
         'title' => 'Outside Speaker Scope Event',
         'status' => 'draft',
         'visibility' => 'private',
-        'organizer_type' => Speaker::class,
-        'organizer_id' => $otherSpeaker->id,
     ]);
+    $otherSpeakerOrganized->setPrimaryOrganizer($otherSpeaker);
 
     $eventsIndexUrl = EventResource::getUrl('index', panel: 'ahli');
 
@@ -528,9 +513,8 @@ it('does not allow editing institutions outside user membership in ahli panel', 
         'title' => 'External Event',
         'status' => 'draft',
         'visibility' => 'private',
-        'organizer_type' => Institution::class,
-        'organizer_id' => $otherInstitution->id,
     ]);
+    $otherEvent->setPrimaryOrganizer($otherInstitution);
 
     $memberInstitution->members()->syncWithoutDetaching([$user->id]);
 
@@ -568,11 +552,13 @@ it('shows dashboard edit links only when user can update', function () {
         ['event_id' => $event->id],
         ['registration_required' => true],
     );
-    Registration::factory()->for($event)->for($registrant)->create([
-        'name' => 'Registrations Table User',
-        'email' => 'registrations-table@example.test',
-        'status' => 'registered',
-    ]);
+    Registration::factory()
+        ->for($event)
+        ->forRegistrant($registrant)
+        ->withPrimaryParticipant('Registrations Table User', 'registrations-table@example.test')
+        ->create([
+            'status' => 'confirmed',
+        ]);
 
     $institution->members()->syncWithoutDetaching([$adminUser->id, $viewerUser->id]);
 
@@ -753,9 +739,8 @@ it('renders the ahli event view page when related resources do not exist in the 
         'title' => 'Ahli View Safe Related Links Event',
         'status' => 'draft',
         'visibility' => 'private',
-        'organizer_type' => Speaker::class,
-        'organizer_id' => $speaker->id,
     ]);
+    $event->setPrimaryOrganizer($speaker);
 
     $event->speakers()->attach($speaker->id);
     $event->series()->attach($series->id);

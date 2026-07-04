@@ -1,16 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Database\Seeders;
 
+use AIArmada\Addressing\Models\Addressable;
+use AIArmada\Addressing\Models\AddressArea;
+use AIArmada\Addressing\Models\AddressCountry;
 use App\Enums\InstitutionType;
-use App\Models\Address;
-use App\Models\Country;
-use App\Models\District;
 use App\Models\Institution;
-use App\Models\State;
-use App\Models\Subdistrict;
 use App\Support\Institutions\GeneratedPoskodInstitutionData;
-use App\Support\Location\FederalTerritoryLocation;
+use Database\Seeders\Concerns\SeedsPackageAddresses;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\File;
@@ -21,6 +21,8 @@ use RuntimeException;
  */
 class GeneratedFileFinalFixedPoskodSeeder extends Seeder
 {
+    use SeedsPackageAddresses;
+
     private const string CSV_PATH = 'seeders/Generated_File_Final_Fixed_Poskod.csv';
 
     /**
@@ -28,24 +30,25 @@ class GeneratedFileFinalFixedPoskodSeeder extends Seeder
      */
     private const array STATE_ALIASES = [
         'N SEMBILAN' => 'Negeri Sembilan',
-        'PULAU PINANG' => 'Penang',
-        'MELAKA' => 'Malacca',
-        'W P KUALA LUMPUR' => 'Kuala Lumpur',
-        'W P PUTRAJAYA' => 'Putrajaya',
-        'W P LABUAN' => 'Labuan',
+        'PULAU PINANG' => 'Pulau Pinang',
+        'PENANG' => 'Pulau Pinang',
+        'MELAKA' => 'Melaka',
+        'MALACCA' => 'Melaka',
+        'KUALA LUMPUR' => 'Wilayah Persekutuan Kuala Lumpur',
+        'PUTRAJAYA' => 'Wilayah Persekutuan Putrajaya',
+        'LABUAN' => 'Wilayah Persekutuan Labuan',
+        'W P KUALA LUMPUR' => 'Wilayah Persekutuan Kuala Lumpur',
+        'W P PUTRAJAYA' => 'Wilayah Persekutuan Putrajaya',
+        'W P LABUAN' => 'Wilayah Persekutuan Labuan',
     ];
 
     /**
-     * Rows whose source data is too incomplete to resolve a district safely.
-     *
      * @var list<string>
      */
     private const array ALLOWED_NULL_DISTRICT_ROWS = ['6082'];
 
     /**
-     * Explicit district fixes for blank / non-canonical source rows.
-     *
-     * @var array<int, string>
+     * @var array<int|string, string>
      */
     private const array DISTRICT_OVERRIDES = [
         '500' => 'Kuala Kangsar',
@@ -65,10 +68,7 @@ class GeneratedFileFinalFixedPoskodSeeder extends Seeder
     ];
 
     /**
-     * Explicit subdistrict fixes for rows that do not expose the locality in a way we can
-     * safely discover from the text alone.
-     *
-     * @var array<int, string>
+     * @var array<int|string, string>
      */
     private const array SUBDISTRICT_OVERRIDES = [
         '1880' => 'Bandar Pusat Jengka',
@@ -79,32 +79,27 @@ class GeneratedFileFinalFixedPoskodSeeder extends Seeder
         '6093' => 'Padang Rengas',
     ];
 
-    private Country $malaysia;
+    private AddressCountry $malaysia;
 
     /**
-     * @var array<string, State>
+     * @var array<string, AddressArea>
      */
     private array $statesByKey = [];
 
     /**
-     * @var array<int, array<string, District>>
+     * @var array<string, array<string, AddressArea>>
      */
     private array $districtsByState = [];
 
     /**
-     * @var array<int, array<string, Subdistrict>>
+     * @var array<string, array<string, AddressArea>>
      */
     private array $subdistrictsByDistrict = [];
 
     /**
-     * @var array<int, array<string, Subdistrict>>
+     * @var array<string, array<string, AddressArea>>
      */
     private array $subdistrictsByState = [];
-
-    /**
-     * @var array<string, true>
-     */
-    private array $canonicalSlugs = [];
 
     public function run(): void
     {
@@ -115,7 +110,6 @@ class GeneratedFileFinalFixedPoskodSeeder extends Seeder
         }
 
         $this->bootGeographyLookups();
-        $this->canonicalSlugs = array_fill_keys(GeneratedPoskodInstitutionData::allCanonicalSlugs(), true);
 
         $handle = fopen($csvPath, 'r');
 
@@ -131,13 +125,9 @@ class GeneratedFileFinalFixedPoskodSeeder extends Seeder
             throw new RuntimeException('Unable to read CSV header: '.$csvPath);
         }
 
-        $imported = 0;
-        $resolvedSubdistricts = 0;
-
-        /**
-         * @var list<string> $nullDistrictRows
-         */
         $nullDistrictRows = [];
+        $resolvedSubdistricts = 0;
+        $imported = 0;
 
         while (($row = fgetcsv($handle, escape: '\\')) !== false) {
             $record = $this->mapCsvRow($header, $row);
@@ -146,77 +136,41 @@ class GeneratedFileFinalFixedPoskodSeeder extends Seeder
             $subdistrict = $this->resolveSubdistrict($state, $district, $record);
             $slug = GeneratedPoskodInstitutionData::canonicalSlug($record['Nama'], $record['No.']);
 
-            if (! $district instanceof District && ! FederalTerritoryLocation::isFederalTerritoryStateId($state->getKey())) {
+            if (! $district instanceof AddressArea && ! $this->isFederalTerritory($state)) {
                 $nullDistrictRows[] = $record['No.'];
             }
 
-            $line1 = $this->nullableString($record['Alamat']);
-            $postcode = $this->normalizePostcode($record['Poskod']);
-
-            $institution = Institution::query()
-                ->where('slug', $slug)
-                ->first();
-
-            if (! $institution instanceof Institution) {
-                $institution = Institution::query()
-                    ->where('name', $record['Nama'])
-                    ->whereHas('address', function ($addressQuery) use ($line1, $postcode, $state, $district, $subdistrict): void {
-                        $addressQuery
-                            ->where('type', 'main')
-                            ->where('line1', $line1)
-                            ->where('postcode', $postcode)
-                            ->where('country_id', $this->malaysia->getKey())
-                            ->where('state_id', $state->getKey())
-                            ->where('district_id', $district?->getKey())
-                            ->where('subdistrict_id', $subdistrict?->getKey());
-                    })
-                    ->get()
-                    ->first(function (Institution $candidate): bool {
-                        $candidateSlug = $candidate->slug;
-
-                        return ! is_string($candidateSlug)
-                            || ! isset($this->canonicalSlugs[$candidateSlug]);
-                    });
-            }
-
-            if ($institution instanceof Institution) {
-                Institution::withoutEvents(function () use ($institution, $slug, $record): void {
-                    $institution->forceFill([
-                        'slug' => $slug,
-                        'name' => $record['Nama'],
-                        'type' => InstitutionType::Masjid->value,
-                        'status' => 'verified',
-                        'is_active' => true,
-                    ])->saveQuietly();
-                });
-            } else {
-                $institution = Institution::withoutEvents(fn (): Institution => Institution::query()->create([
+            $institution = Institution::withoutEvents(function () use ($slug, $record): Institution {
+                /** @var Institution $institution */
+                $institution = Institution::query()->firstOrNew(['slug' => $slug]);
+                $institution->fill([
                     'slug' => $slug,
                     'name' => $record['Nama'],
                     'type' => InstitutionType::Masjid->value,
                     'status' => 'verified',
                     'is_active' => true,
-                ]));
-            }
+                ]);
+                $institution->saveQuietly();
 
-            Address::withoutEvents(function () use ($institution, $line1, $postcode, $state, $district, $subdistrict): void {
-                $institution->address()->updateOrCreate(
-                    ['type' => 'main'],
-                    [
-                        'line1' => $line1,
-                        'postcode' => $postcode,
-                        'country_id' => $this->malaysia->getKey(),
-                        'state_id' => $state->getKey(),
-                        'district_id' => $district?->getKey(),
-                        'subdistrict_id' => $subdistrict?->getKey(),
-                        'city_id' => null,
-                        'lat' => null,
-                        'lng' => null,
-                    ]
-                );
+                return $institution;
             });
 
-            if ($subdistrict instanceof Subdistrict) {
+            Addressable::withoutEvents(function () use ($institution, $record, $state, $district, $subdistrict): void {
+                $this->seedPrimaryPackageAddress($institution, [
+                    'line1' => $this->nullableString($record['Alamat']),
+                    'postcode' => $this->normalizePostcode($record['Poskod']),
+                    'country_id' => (string) $this->malaysia->getKey(),
+                    'admin_area_1_id' => (string) $state->getKey(),
+                    'admin_area_2_id' => $district?->getKey(),
+                    'admin_area_3_id' => $subdistrict?->getKey(),
+                ]);
+            });
+
+            if ($institution->slug !== $slug) {
+                $institution->forceFill(['slug' => $slug])->saveQuietly();
+            }
+
+            if ($subdistrict instanceof AddressArea) {
                 $resolvedSubdistricts++;
             }
 
@@ -231,46 +185,76 @@ class GeneratedFileFinalFixedPoskodSeeder extends Seeder
             throw new RuntimeException('Unexpected rows without a district mapping: '.implode(', ', $nullDistrictRows));
         }
 
-        $this->command->info(sprintf(
-            'Imported %d postcode rows (%d rows with district mapping, %d rows with subdistrict mapping).',
-            $imported,
-            $imported - count($nullDistrictRows),
-            $resolvedSubdistricts,
-        ));
+        if ($this->command !== null) {
+            $this->command->info(sprintf(
+                'Imported %d postcode rows (%d rows with district mapping, %d rows with subdistrict mapping).',
+                $imported,
+                $imported - count($nullDistrictRows),
+                $resolvedSubdistricts,
+            ));
+        }
     }
 
     private function bootGeographyLookups(): void
     {
-        $malaysia = Country::query()->where('iso2', 'MY')->first();
+        $malaysia = $this->malaysiaCountry();
 
-        if (! $malaysia instanceof Country) {
+        if (! $malaysia instanceof AddressCountry) {
             throw new RuntimeException('Malaysia was not found. Run ProductionSeeder first.');
         }
 
         $this->malaysia = $malaysia;
 
-        /** @var Collection<int, State> $states */
-        $states = State::query()
-            ->where('country_id', $malaysia->getKey())
-            ->with(['districts.subdistricts', 'subdistricts'])
+        /** @var Collection<int, AddressArea> $states */
+        $states = AddressArea::query()
+            ->where('country_code', 'MY')
+            ->where('level', 1)
+            ->orderBy('name')
             ->get();
 
         foreach ($states as $state) {
-            $this->statesByKey[$this->normalizeKey($state->name)] = $state;
-            $this->districtsByState[$state->getKey()] = [];
-            $this->subdistrictsByState[$state->getKey()] = [];
+            $stateId = (string) $state->getKey();
+            $stateNameKey = $this->normalizeKey($state->name);
 
-            foreach ($state->districts as $district) {
-                $this->districtsByState[$state->getKey()][$this->normalizeKey($district->name)] = $district;
-                $this->subdistrictsByDistrict[$district->getKey()] = [];
+            $this->statesByKey[$stateNameKey] = $state;
 
-                foreach ($district->subdistricts as $subdistrict) {
-                    $this->subdistrictsByDistrict[$district->getKey()][$this->normalizeKey($subdistrict->name)] = $subdistrict;
+            if (str_starts_with($stateNameKey, 'WILAYAH PERSEKUTUAN ')) {
+                $this->statesByKey[str_replace('WILAYAH PERSEKUTUAN ', '', $stateNameKey)] = $state;
+            }
+
+            $this->districtsByState[$stateId] = [];
+            $this->subdistrictsByState[$stateId] = [];
+
+            $districts = AddressArea::query()
+                ->where('parent_id', $stateId)
+                ->where('level', 2)
+                ->orderBy('name')
+                ->get();
+
+            foreach ($districts as $district) {
+                $districtId = (string) $district->getKey();
+                $this->districtsByState[$stateId][$this->normalizeKey($district->name)] = $district;
+                $this->subdistrictsByDistrict[$districtId] = [];
+
+                $subdistricts = AddressArea::query()
+                    ->where('parent_id', $districtId)
+                    ->where('level', 3)
+                    ->orderBy('name')
+                    ->get();
+
+                foreach ($subdistricts as $subdistrict) {
+                    $this->subdistrictsByDistrict[$districtId][$this->normalizeKey($subdistrict->name)] = $subdistrict;
                 }
             }
 
-            foreach ($state->subdistricts()->whereNull('district_id')->get() as $subdistrict) {
-                $this->subdistrictsByState[$state->getKey()][$this->normalizeKey($subdistrict->name)] = $subdistrict;
+            $stateSubdistricts = AddressArea::query()
+                ->where('parent_id', $stateId)
+                ->where('level', 3)
+                ->orderBy('name')
+                ->get();
+
+            foreach ($stateSubdistricts as $subdistrict) {
+                $this->subdistrictsByState[$stateId][$this->normalizeKey($subdistrict->name)] = $subdistrict;
             }
         }
 
@@ -280,8 +264,7 @@ class GeneratedFileFinalFixedPoskodSeeder extends Seeder
     /**
      * @param  array<int, string>  $header
      * @param  array<int, string|null>  $row
-     *
-     * @phpstan-return CsvRecord
+     * @return CsvRecord
      */
     private function mapCsvRow(array $header, array $row): array
     {
@@ -292,7 +275,6 @@ class GeneratedFileFinalFixedPoskodSeeder extends Seeder
 
         $mapped = array_combine($normalizedHeader, array_pad($row, count($normalizedHeader), ''));
 
-        /** @var CsvRecord $normalized */
         $normalized = [
             'No.' => trim((string) ($mapped['No.'] ?? '')),
             'Nama' => GeneratedPoskodInstitutionData::normalizeInstitutionName((string) ($mapped['Nama'] ?? '')),
@@ -309,13 +291,13 @@ class GeneratedFileFinalFixedPoskodSeeder extends Seeder
         return $normalized;
     }
 
-    private function resolveState(string $rawState): State
+    private function resolveState(string $rawState): AddressArea
     {
         $key = $this->normalizeKey($rawState);
         $canonicalName = self::STATE_ALIASES[$key] ?? $rawState;
         $state = $this->statesByKey[$this->normalizeKey($canonicalName)] ?? null;
 
-        if (! $state instanceof State) {
+        if (! $state instanceof AddressArea) {
             throw new RuntimeException('Unable to resolve state: '.$rawState);
         }
 
@@ -323,11 +305,11 @@ class GeneratedFileFinalFixedPoskodSeeder extends Seeder
     }
 
     /**
-     * @phpstan-param CsvRecord $record
+     * @param  CsvRecord  $record
      */
-    private function resolveDistrict(State $state, array $record): ?District
+    private function resolveDistrict(AddressArea $state, array $record): ?AddressArea
     {
-        if (FederalTerritoryLocation::isFederalTerritoryStateId($state->getKey())) {
+        if ($this->isFederalTerritory($state)) {
             return null;
         }
 
@@ -337,9 +319,9 @@ class GeneratedFileFinalFixedPoskodSeeder extends Seeder
             return null;
         }
 
-        $district = $this->districtsByState[$state->getKey()][$this->normalizeKey($districtName)] ?? null;
+        $district = $this->districtsByState[(string) $state->getKey()][$this->normalizeKey($districtName)] ?? null;
 
-        if ($district instanceof District) {
+        if ($district instanceof AddressArea) {
             return $district;
         }
 
@@ -352,7 +334,7 @@ class GeneratedFileFinalFixedPoskodSeeder extends Seeder
     }
 
     /**
-     * @phpstan-param CsvRecord $record
+     * @param  CsvRecord  $record
      */
     private function resolveDistrictName(array $record): ?string
     {
@@ -360,8 +342,7 @@ class GeneratedFileFinalFixedPoskodSeeder extends Seeder
             return self::DISTRICT_OVERRIDES[$record['No.']];
         }
 
-        $rawDistrict = $record['Daerah'];
-        $districtKey = $this->normalizeKey($rawDistrict);
+        $districtKey = $this->normalizeKey($record['Daerah']);
 
         if ($districtKey === '') {
             return null;
@@ -375,11 +356,11 @@ class GeneratedFileFinalFixedPoskodSeeder extends Seeder
             return $this->inferJengkaDistrict($record);
         }
 
-        return $rawDistrict;
+        return $record['Daerah'];
     }
 
     /**
-     * @phpstan-param CsvRecord $record
+     * @param  CsvRecord  $record
      */
     private function inferJengkaDistrict(array $record): string
     {
@@ -397,31 +378,25 @@ class GeneratedFileFinalFixedPoskodSeeder extends Seeder
     }
 
     /**
-     * @phpstan-param CsvRecord $record
+     * @param  CsvRecord  $record
      */
-    private function resolveSubdistrict(State $state, ?District $district, array $record): ?Subdistrict
+    private function resolveSubdistrict(AddressArea $state, ?AddressArea $district, array $record): ?AddressArea
     {
-        if (FederalTerritoryLocation::isFederalTerritoryStateId($state->getKey())) {
+        if ($this->isFederalTerritory($state)) {
             $overrideName = self::SUBDISTRICT_OVERRIDES[$record['No.']] ?? null;
 
             if (is_string($overrideName)) {
                 $subdistrict = $this->lookupSubdistrictByState($state, $overrideName);
 
-                if ($subdistrict instanceof Subdistrict) {
+                if ($subdistrict instanceof AddressArea) {
                     return $subdistrict;
                 }
             }
 
-            $searchText = $this->searchableText($record);
-
-            if ($searchText === '') {
-                return null;
-            }
-
-            return $this->matchSubdistrictFromState($state, $searchText);
+            return $this->matchSubdistrictFromState($state, $this->searchableText($record));
         }
 
-        if (! $district instanceof District) {
+        if (! $district instanceof AddressArea) {
             return null;
         }
 
@@ -430,24 +405,18 @@ class GeneratedFileFinalFixedPoskodSeeder extends Seeder
         if (is_string($overrideName)) {
             $subdistrict = $this->lookupSubdistrict($district, $overrideName);
 
-            if ($subdistrict instanceof Subdistrict) {
+            if ($subdistrict instanceof AddressArea) {
                 return $subdistrict;
             }
         }
 
-        $searchText = $this->searchableText($record);
-
-        if ($searchText === '') {
-            return null;
-        }
-
-        return $this->matchSubdistrictFromText($district, $searchText);
+        return $this->matchSubdistrictFromText($district, $this->searchableText($record));
     }
 
     /**
-     * @phpstan-param CsvRecord $record
+     * @param  CsvRecord  $record
      */
-    private function resolveSpecialSubdistrictName(District $district, array $record): ?string
+    private function resolveSpecialSubdistrictName(AddressArea $district, array $record): ?string
     {
         $districtNameKey = $this->normalizeKey($district->name);
         $districtKey = $this->normalizeKey($record['Daerah']);
@@ -492,24 +461,22 @@ class GeneratedFileFinalFixedPoskodSeeder extends Seeder
         return null;
     }
 
-    private function lookupSubdistrict(District $district, string $subdistrictName): ?Subdistrict
+    private function lookupSubdistrict(AddressArea $district, string $subdistrictName): ?AddressArea
     {
-        return $this->subdistrictsByDistrict[$district->getKey()][$this->normalizeKey($subdistrictName)] ?? null;
+        return $this->subdistrictsByDistrict[(string) $district->getKey()][$this->normalizeKey($subdistrictName)] ?? null;
     }
 
-    private function lookupSubdistrictByState(State $state, string $subdistrictName): ?Subdistrict
+    private function lookupSubdistrictByState(AddressArea $state, string $subdistrictName): ?AddressArea
     {
-        return $this->subdistrictsByState[$state->getKey()][$this->normalizeKey($subdistrictName)] ?? null;
+        return $this->subdistrictsByState[(string) $state->getKey()][$this->normalizeKey($subdistrictName)] ?? null;
     }
 
-    private function matchSubdistrictFromText(District $district, string $searchText): ?Subdistrict
+    private function matchSubdistrictFromText(AddressArea $district, string $searchText): ?AddressArea
     {
         $districtKey = $this->normalizeKey($district->name);
-
-        /** @var list<array{key: string, subdistrict: Subdistrict, is_same_as_district: bool}> $matches */
         $matches = [];
 
-        foreach ($this->subdistrictsByDistrict[$district->getKey()] ?? [] as $key => $subdistrict) {
+        foreach ($this->subdistrictsByDistrict[(string) $district->getKey()] ?? [] as $key => $subdistrict) {
             if ($key === '' || in_array($key, ['BANDAR', 'KAMPUNG', 'KOTA', 'KUALA', 'MUKIM', 'PEKAN'], true)) {
                 continue;
             }
@@ -538,12 +505,11 @@ class GeneratedFileFinalFixedPoskodSeeder extends Seeder
         return $matches[0]['subdistrict'];
     }
 
-    private function matchSubdistrictFromState(State $state, string $searchText): ?Subdistrict
+    private function matchSubdistrictFromState(AddressArea $state, string $searchText): ?AddressArea
     {
-        /** @var list<array{key: string, subdistrict: Subdistrict}> $matches */
         $matches = [];
 
-        foreach ($this->subdistrictsByState[$state->getKey()] ?? [] as $key => $subdistrict) {
+        foreach ($this->subdistrictsByState[(string) $state->getKey()] ?? [] as $key => $subdistrict) {
             if ($key === '' || in_array($key, ['BANDAR', 'KAMPUNG', 'KOTA', 'KUALA', 'MUKIM', 'PEKAN', 'PRECINCT'], true)) {
                 continue;
             }
@@ -573,19 +539,23 @@ class GeneratedFileFinalFixedPoskodSeeder extends Seeder
                     continue;
                 }
 
-                $subdistrict = Subdistrict::query()->firstOrCreate(
-                    [
-                        'district_id' => $district->getKey(),
-                        'name' => $subdistrictName,
-                    ],
+                $subdistrict = AddressArea::query()->firstOrCreate(
                     [
                         'country_id' => $district->country_id,
-                        'state_id' => $district->state_id,
+                        'parent_id' => $district->getKey(),
                         'country_code' => 'MY',
-                    ]
+                        'type' => 'subdistrict',
+                        'level' => 3,
+                        'name' => $subdistrictName,
+                        'source' => 'generated_poskod_import',
+                        'source_id' => 'generated-poskod-'.strtolower($this->normalizeKey($districtName.'-'.$subdistrictName)),
+                    ],
+                    [
+                        'slug' => str($subdistrictName)->slug()->value(),
+                    ],
                 );
 
-                $this->subdistrictsByDistrict[$district->getKey()][$this->normalizeKey($subdistrict->name)] = $subdistrict;
+                $this->subdistrictsByDistrict[(string) $district->getKey()][$this->normalizeKey($subdistrict->name)] = $subdistrict;
 
                 return;
             }
@@ -595,7 +565,7 @@ class GeneratedFileFinalFixedPoskodSeeder extends Seeder
     }
 
     /**
-     * @phpstan-param CsvRecord $record
+     * @param  CsvRecord  $record
      */
     private function searchableText(array $record): string
     {
@@ -635,5 +605,17 @@ class GeneratedFileFinalFixedPoskodSeeder extends Seeder
         $trimmed = trim((string) $value);
 
         return $trimmed === '' ? null : $trimmed;
+    }
+
+    private function isFederalTerritory(AddressArea $state): bool
+    {
+        return in_array($this->normalizeKey($state->name), [
+            'KUALA LUMPUR',
+            'PUTRAJAYA',
+            'LABUAN',
+            'WILAYAH PERSEKUTUAN KUALA LUMPUR',
+            'WILAYAH PERSEKUTUAN PUTRAJAYA',
+            'WILAYAH PERSEKUTUAN LABUAN',
+        ], true);
     }
 }

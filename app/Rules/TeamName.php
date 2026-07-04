@@ -17,7 +17,7 @@ class TeamName implements ValidationRule
      */
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
-        $name = strtolower(trim($value));
+        $name = strtolower(trim((string) $value));
 
         if (in_array($name, $this->reservedNames(), true)) {
             $fail(__('This team name is reserved and cannot be used.'));

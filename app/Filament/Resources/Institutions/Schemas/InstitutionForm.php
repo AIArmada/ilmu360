@@ -2,16 +2,14 @@
 
 namespace App\Filament\Resources\Institutions\Schemas;
 
-use App\Enums\ContactCategory;
-use App\Enums\ContactType;
+use AIArmada\Contacting\Enums\ContactMethodType;
+use AIArmada\Contacting\Enums\ContactPurpose;
+use AIArmada\Contacting\Enums\SocialPlatform;
 use App\Enums\InstitutionType;
-use App\Enums\SocialMediaPlatform;
 use App\Forms\SharedFormSchema;
 use App\Models\Institution;
 use App\Models\User;
-use App\Support\Location\FederalTerritoryLocation;
 use App\Support\Submission\PublicSubmissionLockService;
-use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
@@ -19,8 +17,6 @@ use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
-use Filament\Schemas\Components\Utilities\Get;
-use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 
 class InstitutionForm
@@ -87,14 +83,14 @@ class InstitutionForm
                         Repeater::make('contacts')
                             ->relationship()
                             ->schema([
-                                Select::make('category')
-                                    ->options(ContactCategory::class)
+                                Select::make('type')
+                                    ->options(ContactMethodType::options())
                                     ->required()
                                     ->live(),
                                 ...SharedFormSchema::contactValueFields(),
-                                Select::make('type')
-                                    ->options(ContactType::class)
-                                    ->default(ContactType::Main)
+                                Select::make('purpose')
+                                    ->options(ContactPurpose::options())
+                                    ->default(ContactPurpose::General->value)
                                     ->required(),
                                 Toggle::make('is_public')
                                     ->label('Public')
@@ -108,76 +104,12 @@ class InstitutionForm
                             ->itemLabel(fn (array $state): string => SharedFormSchema::contactItemLabel($state)),
                     ]),
                 Section::make('Location')
-                    ->relationship('address')
-                    ->mutateRelationshipDataBeforeFillUsing(fn (array $data): array => SharedFormSchema::hydrateAddressFormState($data))
-                    ->mutateRelationshipDataBeforeCreateUsing(fn (array $data): array => SharedFormSchema::prepareAddressPersistenceData($data))
-                    ->mutateRelationshipDataBeforeSaveUsing(fn (array $data): array => SharedFormSchema::prepareAddressPersistenceData($data))
-                    ->components([
-                        Select::make('country_id')
-                            ->relationship('country', 'name')
-                            ->default(132) // Malaysia
-                            ->required()
-                            ->searchable()
-                            ->preload()
-                            ->live()
-                            ->afterStateUpdated(function (Set $set) {
-                                $set('state_id', null);
-                                $set('district_id', null);
-                                $set('subdistrict_id', null);
-                            }),
-                        Select::make('state_id')
-                            ->label('State')
-                            ->relationship('state', 'name', fn ($query, $get) => $query->where('country_id', $get('country_id')))
-                            ->searchable()
-                            ->preload()
-                            ->live()
-                            ->afterStateUpdated(function (Set $set) {
-                                $set('district_id', null);
-                                $set('subdistrict_id', null);
-                            }),
-                        Select::make('district_id')
-                            ->label('District')
-                            ->relationship('district', 'name', fn ($query, $get) => $query->where('state_id', $get('state_id')))
-                            ->searchable()
-                            ->preload()
-                            ->live()
-                            ->afterStateUpdated(fn (Set $set) => $set('subdistrict_id', null))
-                            ->visible(fn (Get $get): bool => filled($get('state_id')) && ! FederalTerritoryLocation::isFederalTerritoryStateId($get('state_id'))),
-                        Select::make('subdistrict_id')
-                            ->label('Subdistrict / Mukim')
-                            ->options(fn (Get $get): array => SharedFormSchema::subdistrictOptionsForSelection($get('state_id'), $get('district_id')))
-                            ->searchable()
-                            ->preload()
-                            ->visible(fn (Get $get): bool => SharedFormSchema::shouldShowSubdistrictField($get('state_id'), $get('district_id'))),
-                        TextInput::make('line1')
-                            ->maxLength(255),
-                        TextInput::make('line2')
-                            ->maxLength(255),
-                        TextInput::make('postcode')
-                            ->maxLength(16),
-                        Hidden::make('google_display_name'),
-                        Hidden::make('google_resolution_source'),
-                        Hidden::make('google_resolution_status'),
-                        Hidden::make('google_resolution_fingerprint'),
-                        Hidden::make('google_resolution_message'),
-                        TextInput::make('lat')
-                            ->numeric()
-                            ->minValue(-90)
-                            ->maxValue(90),
-                        TextInput::make('lng')
-                            ->numeric()
-                            ->minValue(-180)
-                            ->maxValue(180),
-                        SharedFormSchema::googleMapsUrlField(defaultHelperText: 'Paste the full Google Maps link from your browser'),
-                        TextInput::make('google_place_id')
-                            ->label('Google Place ID')
-                            ->maxLength(255)
-                            ->helperText('Optional: For advanced integrations'),
-                        TextInput::make('waze_url')
-                            ->label('Waze URL')
-                            ->url()
-                            ->maxLength(255),
-                    ])
+                    ->statePath('address')
+                    ->components(SharedFormSchema::addressFields(
+                        includeCountryField: true,
+                        showCountryField: false,
+                        requireCountryField: true,
+                    ))
                     ->columns(2),
                 Section::make('Status')
                     ->components([
@@ -204,18 +136,18 @@ class InstitutionForm
                             ->relationship()
                             ->schema([
                                 Select::make('platform')
-                                    ->options(SocialMediaPlatform::class)
+                                    ->options(SocialPlatform::options())
                                     ->searchable()
                                     ->required()
                                     ->columnSpan(1),
-                                TextInput::make('username')
-                                    ->label('Username / Handle')
+                                TextInput::make('handle')
+                                    ->label('Handle')
                                     ->requiredWithout('url')
                                     ->placeholder('@username / https://...')
                                     ->columnSpan(1),
                                 TextInput::make('url')
                                     ->label('URL')
-                                    ->requiredWithout('username')
+                                    ->requiredWithout('handle')
                                     ->url()
                                     ->columnSpanFull(),
                             ])
@@ -224,12 +156,12 @@ class InstitutionForm
                             ->itemLabel(function (array $state): ?string {
                                 $platform = $state['platform'] ?? null;
 
-                                if ($platform instanceof SocialMediaPlatform) {
-                                    return $platform->getLabel();
+                                if ($platform instanceof SocialPlatform) {
+                                    return $platform->label();
                                 }
 
                                 if (is_string($platform)) {
-                                    return SocialMediaPlatform::tryFrom($platform)?->getLabel() ?? $platform;
+                                    return SocialPlatform::tryFrom($platform)?->label() ?? $platform;
                                 }
 
                                 return null;

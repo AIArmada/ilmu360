@@ -2,9 +2,9 @@
 
 namespace App\Filament\Resources\References\Schemas;
 
+use AIArmada\Contacting\Enums\SocialPlatform;
 use App\Enums\ReferencePartType;
 use App\Enums\ReferenceType;
-use App\Enums\SocialMediaPlatform;
 use App\Models\Reference;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
@@ -118,18 +118,18 @@ class ReferenceForm
                             ->relationship()
                             ->schema([
                                 Select::make('platform')
-                                    ->options(SocialMediaPlatform::class)
+                                    ->options(SocialPlatform::options())
                                     ->searchable()
                                     ->required()
                                     ->columnSpan(1),
-                                TextInput::make('username')
-                                    ->label('Username / Handle')
+                                TextInput::make('handle')
+                                    ->label('Handle')
                                     ->requiredWithout('url')
                                     ->placeholder('@username / https://...')
                                     ->columnSpan(1),
                                 TextInput::make('url')
                                     ->label('URL')
-                                    ->requiredWithout('username')
+                                    ->requiredWithout('handle')
                                     ->url()
                                     ->columnSpanFull(),
                             ])
@@ -141,12 +141,12 @@ class ReferenceForm
                             ->itemLabel(function (array $state): ?string {
                                 $platform = $state['platform'] ?? null;
 
-                                if ($platform instanceof SocialMediaPlatform) {
-                                    return $platform->getLabel();
+                                if ($platform instanceof SocialPlatform) {
+                                    return $platform->label();
                                 }
 
                                 if (is_string($platform)) {
-                                    return SocialMediaPlatform::tryFrom($platform)?->getLabel() ?? $platform;
+                                    return SocialPlatform::tryFrom($platform)?->label() ?? $platform;
                                 }
 
                                 return null;

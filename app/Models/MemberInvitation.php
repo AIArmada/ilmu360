@@ -2,21 +2,31 @@
 
 namespace App\Models;
 
+use AIArmada\Membership\Models\MembershipInvitation as PackageMembershipInvitation;
 use App\Enums\MemberSubjectType;
 use App\Models\Concerns\AuditsModelChanges;
 use Carbon\CarbonInterface;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
-class MemberInvitation extends Model implements AuditableContract
+/**
+ * @property MemberSubjectType|null $subject_type
+ * @property string|null $role_slug
+ * @property string|null $subject_id
+ * @property string|null $email
+ * @property string|null $token
+ * @property Carbon|null $expires_at
+ * @property Carbon|null $accepted_at
+ * @property Carbon|null $revoked_at
+ */
+class MemberInvitation extends PackageMembershipInvitation implements AuditableContract
 {
-    use AuditsModelChanges, HasUuids;
+    use AuditsModelChanges;
 
-    public $incrementing = false;
+    protected static string $ownerScopeConfigKey = '';
 
-    protected $keyType = 'string';
+    protected static bool $ownerScopeEnabledByDefault = false;
 
     /**
      * @var list<string>
@@ -25,6 +35,7 @@ class MemberInvitation extends Model implements AuditableContract
         'subject_type',
         'subject_id',
         'email',
+        'role',
         'role_slug',
         'token',
         'invited_by',
@@ -44,6 +55,24 @@ class MemberInvitation extends Model implements AuditableContract
             'accepted_at' => 'datetime',
             'revoked_at' => 'datetime',
         ];
+    }
+
+    #[\Override]
+    public function setAttribute($key, $value): mixed
+    {
+        return match ($key) {
+            'role_slug' => parent::setAttribute('role', $value),
+            default => parent::setAttribute($key, $value),
+        };
+    }
+
+    #[\Override]
+    public function getAttribute($key): mixed
+    {
+        return match ($key) {
+            'role_slug' => parent::getAttribute('role'),
+            default => parent::getAttribute($key),
+        };
     }
 
     /**
@@ -83,5 +112,14 @@ class MemberInvitation extends Model implements AuditableContract
     public function isRevoked(): bool
     {
         return $this->revoked_at !== null;
+    }
+
+    #[\Override]
+    public function matchesToken(string $token): bool
+    {
+        $storedToken = (string) $this->getRawOriginal('token', $this->token);
+
+        return hash_equals($storedToken, static::tokenForStorage($token))
+            || hash_equals($storedToken, $token);
     }
 }

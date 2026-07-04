@@ -40,8 +40,7 @@ class AdvancedEventController extends FrontendController
             'timezone' => ['required', 'timezone'],
             'program_starts_at' => ['required', 'date'],
             'program_ends_at' => ['required', 'date'],
-            'organizer_type' => ['required', Rule::in(['institution', 'speaker'])],
-            'organizer_id' => ['required', 'uuid'],
+            'primary_organizer_id' => ['required', 'uuid'],
             'location_institution_id' => ['nullable', 'uuid'],
             'default_event_type' => ['required', Rule::in(array_column(EventType::cases(), 'value'))],
             'default_event_format' => ['required', Rule::in(array_column(EventFormat::cases(), 'value'))],
@@ -57,8 +56,7 @@ class AdvancedEventController extends FrontendController
             $preparedSubmission['program_starts_at'],
             $preparedSubmission['program_ends_at'],
             $preparedSubmission['timezone'],
-            $preparedSubmission['organizer_type'],
-            $preparedSubmission['organizer_id'],
+            $preparedSubmission['primary_organizer'],
             $preparedSubmission['location_institution_id'],
         );
 

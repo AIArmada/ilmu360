@@ -9,14 +9,14 @@ use App\Support\Mcp\McpDocumentationPreflight;
 use App\Support\Mcp\VerifiedDocumentationCatalog;
 use Generator;
 use Illuminate\Container\Container;
+use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Server\Contracts\Errable;
 use Laravel\Mcp\Server\Contracts\Method;
-use Laravel\Mcp\Server\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\Methods\CallTool;
 use Laravel\Mcp\Server\ServerContext;
-use Laravel\Mcp\Server\Transport\JsonRpcRequest;
-use Laravel\Mcp\Server\Transport\JsonRpcResponse;
+use Laravel\Mcp\Transport\JsonRpcRequest;
+use Laravel\Mcp\Transport\JsonRpcResponse;
 use Throwable;
 
 class CallToolWithDocumentationPreflight extends CallTool implements Errable, Method

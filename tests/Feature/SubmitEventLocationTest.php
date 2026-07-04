@@ -50,8 +50,7 @@ it('can submit an event as a speaker with an institution location', function () 
         Livewire::actingAs($this->user)->test('pages.submit-event.create'),
         submitEventLocationFormData([
             'title' => 'Speaker at Institution',
-            'organizer_type' => 'speaker',
-            'organizer_speaker_id' => $speaker->id,
+            'primary_organizer_id' => $speaker->id,
             'speakers' => [$speaker->id],
             'location_type' => 'institution',
             'location_institution_id' => $institution->id,
@@ -63,11 +62,10 @@ it('can submit an event as a speaker with an institution location', function () 
         ->assertHasNoErrors()
         ->assertRedirect();
 
-    $this->assertDatabaseHas(Event::class, [
-        'title' => 'Speaker at Institution',
-        'institution_id' => $institution->id,
-        'venue_id' => null,
-    ]);
+    $event = Event::query()->where('title', 'Speaker at Institution')->sole();
+
+    expect($event->institution_id)->toBe($institution->id)
+        ->and($event->venue_id)->toBeNull();
 });
 
 it('can submit an event as a speaker with a venue location', function () {
@@ -78,8 +76,7 @@ it('can submit an event as a speaker with a venue location', function () {
         Livewire::actingAs($this->user)->test('pages.submit-event.create'),
         submitEventLocationFormData([
             'title' => 'Speaker at Venue',
-            'organizer_type' => 'speaker',
-            'organizer_speaker_id' => $speaker->id,
+            'primary_organizer_id' => $speaker->id,
             'speakers' => [$speaker->id],
             'location_type' => 'venue',
             'location_venue_id' => $venue->id,
@@ -91,11 +88,10 @@ it('can submit an event as a speaker with a venue location', function () {
         ->assertHasNoErrors()
         ->assertRedirect();
 
-    $this->assertDatabaseHas(Event::class, [
-        'title' => 'Speaker at Venue',
-        'institution_id' => null,
-        'venue_id' => $venue->id,
-    ]);
+    $event = Event::query()->where('title', 'Speaker at Venue')->sole();
+
+    expect($event->institution_id)->toBeNull()
+        ->and($event->venue_id)->toBe($venue->id);
 });
 
 it('automatically sets location to institution when organizer is an institution', function () {
@@ -106,8 +102,7 @@ it('automatically sets location to institution when organizer is an institution'
         Livewire::actingAs($this->user)->test('pages.submit-event.create'),
         submitEventLocationFormData([
             'title' => 'Institution Event',
-            'organizer_type' => 'institution',
-            'organizer_institution_id' => $institution->id,
+            'primary_organizer_id' => $institution->id,
             'speakers' => [$speaker->id],
             'domain_tags' => [$this->domainTag->id],
             'discipline_tags' => [$this->disciplineTag->id],
@@ -117,11 +112,10 @@ it('automatically sets location to institution when organizer is an institution'
         ->assertHasNoErrors()
         ->assertRedirect();
 
-    $this->assertDatabaseHas(Event::class, [
-        'title' => 'Institution Event',
-        'institution_id' => $institution->id,
-        'venue_id' => null,
-    ]);
+    $event = Event::query()->where('title', 'Institution Event')->sole();
+
+    expect($event->institution_id)->toBe($institution->id)
+        ->and($event->venue_id)->toBeNull();
 });
 
 it('requires location type when organizer is speaker', function () {
@@ -129,7 +123,9 @@ it('requires location type when organizer is speaker', function () {
 
     Livewire::actingAs($this->user)
         ->test('pages.submit-event.create')
-        ->set('data.organizer_type', 'speaker')
+        ->set('data.primary_organizer_kind', 'speaker')
+        ->set('data.primary_organizer_id', $speaker->id)
+        ->set('data.primary_organizer_speaker_id', $speaker->id)
         ->set('data.location_type')
         ->set('data.visibility', EventVisibility::Public->value)
         ->call('submit')
@@ -147,8 +143,7 @@ it('allows institution organizer to choose a different location', function () {
         Livewire::actingAs($this->user)->test('pages.submit-event.create'),
         submitEventLocationFormData([
             'title' => 'Institution at Other Venue',
-            'organizer_type' => 'institution',
-            'organizer_institution_id' => $organizerInstitution->id,
+            'primary_organizer_id' => $organizerInstitution->id,
             'location_same_as_institution' => false,
             'location_type' => 'venue',
             'location_venue_id' => $otherVenue->id,
@@ -161,11 +156,10 @@ it('allows institution organizer to choose a different location', function () {
         ->assertHasNoErrors()
         ->assertRedirect();
 
-    $this->assertDatabaseHas(Event::class, [
-        'title' => 'Institution at Other Venue',
-        'institution_id' => null, // Since it's a venue
-        'venue_id' => $otherVenue->id,
-    ]);
+    $event = Event::query()->where('title', 'Institution at Other Venue')->sole();
+
+    expect($event->institution_id)->toBeNull()
+        ->and($event->venue_id)->toBe($otherVenue->id);
 });
 
 it('includes institution nicknames in submit-event option labels', function () {

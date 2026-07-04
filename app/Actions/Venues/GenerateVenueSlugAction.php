@@ -2,12 +2,10 @@
 
 namespace App\Actions\Venues;
 
+use AIArmada\Addressing\Models\AddressArea;
+use AIArmada\Addressing\Models\AddressCountry;
 use App\Actions\Slugs\Concerns\InteractsWithOrderedSlugModels;
 use App\Actions\Slugs\SyncCanonicalSlugAction;
-use App\Models\Country;
-use App\Models\District;
-use App\Models\State;
-use App\Models\Subdistrict;
 use App\Models\Venue;
 use Illuminate\Support\Str;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -31,12 +29,7 @@ class GenerateVenueSlugAction
 
         $venues = Venue::query()
             ->where('venues.name', $normalizedName)
-            ->with([
-                'address.country',
-                'address.state',
-                'address.district',
-                'address.subdistrict',
-            ])
+            ->with(['addresses'])
             ->get();
 
         return $this->syncOrderedModels($venues, fn (Venue $venue): bool => $this->syncVenueSlug($venue));
@@ -88,12 +81,7 @@ class GenerateVenueSlugAction
 
     public function forVenue(Venue $venue): string
     {
-        $venue->loadMissing([
-            'address.country',
-            'address.state',
-            'address.district',
-            'address.subdistrict',
-        ]);
+        $venue->loadMissing(['addresses']);
 
         $address = $venue->addressModel;
 
@@ -101,13 +89,12 @@ class GenerateVenueSlugAction
             $venue->name,
             [
                 'country_id' => $address?->country_id,
-                'country_code' => $address?->country?->iso2,
-                'state_id' => $address?->state_id,
-                'state_name' => $address?->state?->name,
-                'district_id' => $address?->district_id,
-                'district_name' => $address?->district?->name,
-                'subdistrict_id' => $address?->subdistrict_id,
-                'subdistrict_name' => $address?->subdistrict?->name,
+                'country_code' => $address?->country_code,
+                'state' => $address?->state,
+                'city' => $address?->city,
+                'admin_area_1_id' => $address?->admin_area_1_id,
+                'admin_area_2_id' => $address?->admin_area_2_id,
+                'admin_area_3_id' => $address?->admin_area_3_id,
             ],
             (string) $venue->getKey(),
         );
@@ -117,12 +104,7 @@ class GenerateVenueSlugAction
     {
         $matchingVenues = Venue::query()
             ->where('venues.name', $name)
-            ->with([
-                'address.country',
-                'address.state',
-                'address.district',
-                'address.subdistrict',
-            ])
+            ->with(['addresses'])
             ->get()
             ->filter(fn (Venue $venue): bool => $this->locationSuffixForVenue($venue) === $locationSuffix);
 
@@ -148,44 +130,25 @@ class GenerateVenueSlugAction
      */
     private function locationSuffix(array $address): string
     {
-        $subdistrict = $this->resolveSubdistrict($address);
-        $district = $this->resolveDistrict($address);
-        $state = $this->resolveState($address);
+        $city = $this->firstFilled([
+            $address['city'] ?? null,
+            $address['admin_area_3_name'] ?? null,
+            $this->areaName($address['admin_area_3_id'] ?? null),
+            $address['admin_area_2_name'] ?? null,
+            $this->areaName($address['admin_area_2_id'] ?? null),
+        ]);
+        $state = $this->firstFilled([
+            $address['state'] ?? null,
+            $address['admin_area_1_name'] ?? null,
+            $this->areaName($address['admin_area_1_id'] ?? null),
+        ]);
         $countryCode = $this->resolveCountryCode($address);
-
-        if ($subdistrict instanceof Subdistrict) {
-            if (! $district instanceof District && $subdistrict->district_id !== null) {
-                $district = District::query()->find($subdistrict->district_id);
-            }
-
-            if (! $state instanceof State && $subdistrict->state_id !== null) {
-                $state = State::query()->find($subdistrict->state_id);
-            }
-        }
-
-        if ($district instanceof District && $state === null && $district->state_id !== null) {
-            $state = State::query()->find($district->state_id);
-        }
-
-        if ($countryCode === null) {
-            $countryId = $this->integerValue($address['country_id'] ?? null)
-                ?? ($subdistrict instanceof Subdistrict ? $subdistrict->country_id : null)
-                ?? ($district instanceof District ? $district->country_id : null)
-                ?? ($state instanceof State ? $state->country_id : null);
-
-            if ($countryId !== null) {
-                $countryCode = Country::query()
-                    ->whereKey($countryId)
-                    ->value('iso2');
-            }
-        }
 
         $segments = [];
 
         foreach ([
-            $this->slugSegment($subdistrict instanceof Subdistrict ? $subdistrict->name : ($address['subdistrict_name'] ?? null)),
-            $this->slugSegment($district instanceof District ? $district->name : ($address['district_name'] ?? null)),
-            $this->slugSegment($state instanceof State ? $state->name : ($address['state_name'] ?? null)),
+            $this->slugSegment($city),
+            $this->slugSegment($state),
             $this->countryCodeSegment($countryCode),
         ] as $segment) {
             if ($segment === null) {
@@ -204,67 +167,19 @@ class GenerateVenueSlugAction
 
     private function locationSuffixForVenue(Venue $venue): string
     {
-        $venue->loadMissing([
-            'address.country',
-            'address.state',
-            'address.district',
-            'address.subdistrict',
-        ]);
+        $venue->loadMissing(['addresses']);
 
         $address = $venue->addressModel;
 
         return $this->locationSuffix([
             'country_id' => $address?->country_id,
-            'country_code' => $address?->country?->iso2,
-            'state_id' => $address?->state_id,
-            'state_name' => $address?->state?->name,
-            'district_id' => $address?->district_id,
-            'district_name' => $address?->district?->name,
-            'subdistrict_id' => $address?->subdistrict_id,
-            'subdistrict_name' => $address?->subdistrict?->name,
+            'country_code' => $address?->country_code,
+            'state' => $address?->state,
+            'city' => $address?->city,
+            'admin_area_1_id' => $address?->admin_area_1_id,
+            'admin_area_2_id' => $address?->admin_area_2_id,
+            'admin_area_3_id' => $address?->admin_area_3_id,
         ]);
-    }
-
-    /**
-     * @param  array<string, mixed>  $address
-     */
-    private function resolveState(array $address): ?State
-    {
-        $stateId = $this->integerValue($address['state_id'] ?? null);
-
-        if ($stateId === null) {
-            return null;
-        }
-
-        return State::query()->find($stateId);
-    }
-
-    /**
-     * @param  array<string, mixed>  $address
-     */
-    private function resolveDistrict(array $address): ?District
-    {
-        $districtId = $this->integerValue($address['district_id'] ?? null);
-
-        if ($districtId === null) {
-            return null;
-        }
-
-        return District::query()->find($districtId);
-    }
-
-    /**
-     * @param  array<string, mixed>  $address
-     */
-    private function resolveSubdistrict(array $address): ?Subdistrict
-    {
-        $subdistrictId = $this->integerValue($address['subdistrict_id'] ?? null);
-
-        if ($subdistrictId === null) {
-            return null;
-        }
-
-        return Subdistrict::query()->find($subdistrictId);
     }
 
     /**
@@ -278,7 +193,15 @@ class GenerateVenueSlugAction
             return trim($countryCode);
         }
 
-        return null;
+        $countryId = $this->uuidValue($address['country_id'] ?? null);
+
+        if ($countryId === null) {
+            return null;
+        }
+
+        $resolved = AddressCountry::query()->whereKey($countryId)->value('iso2');
+
+        return is_string($resolved) && trim($resolved) !== '' ? $resolved : null;
     }
 
     private function slugExists(string $slug, ?string $ignoreVenueId): bool
@@ -303,6 +226,33 @@ class GenerateVenueSlugAction
         return $segment !== '' ? $segment : null;
     }
 
+    /**
+     * @param  list<mixed>  $values
+     */
+    private function firstFilled(array $values): ?string
+    {
+        foreach ($values as $value) {
+            if (is_string($value) && trim($value) !== '') {
+                return trim($value);
+            }
+        }
+
+        return null;
+    }
+
+    private function areaName(mixed $value): ?string
+    {
+        $areaId = $this->uuidValue($value);
+
+        if ($areaId === null) {
+            return null;
+        }
+
+        $name = AddressArea::query()->whereKey($areaId)->value('name');
+
+        return is_string($name) && trim($name) !== '' ? $name : null;
+    }
+
     private function countryCodeSegment(mixed $value): ?string
     {
         if (! is_string($value)) {
@@ -314,24 +264,14 @@ class GenerateVenueSlugAction
         return $segment !== '' ? $segment : null;
     }
 
-    private function integerValue(mixed $value): ?int
+    private function uuidValue(mixed $value): ?string
     {
-        if (is_int($value)) {
-            return $value > 0 ? $value : null;
-        }
-
         if (! is_string($value)) {
             return null;
         }
 
         $trimmed = trim($value);
 
-        if ($trimmed === '' || ! ctype_digit($trimmed)) {
-            return null;
-        }
-
-        $integer = (int) $trimmed;
-
-        return $integer > 0 ? $integer : null;
+        return Str::isUuid($trimmed) ? $trimmed : null;
     }
 }

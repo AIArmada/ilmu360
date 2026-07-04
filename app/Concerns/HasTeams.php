@@ -20,11 +20,12 @@ trait HasTeams
     /**
      * Get all of the teams the user belongs to.
      *
-     * @return BelongsToMany<Team, $this>
+     * @return BelongsToMany<Team, $this, Membership>
      */
     public function teams(): BelongsToMany
     {
         return $this->belongsToMany(Team::class, 'team_members', 'user_id', 'team_id')
+            ->using(Membership::class)
             ->withPivot(['role'])
             ->withTimestamps();
     }

@@ -70,12 +70,38 @@ final class SurfaceSyncPolicy
             ],
             'default_excluded_resource_groups' => [
                 [
-                    'key' => 'geography_base_tables',
-                    'resource_keys' => ['countries', 'states', 'districts'],
-                    'rule' => 'Keep these out of parity expansion by default unless there is an explicit integration need.',
+                    'key' => 'geography_reference_catalogs',
+                    'resource_keys' => ['address-countries'],
+                    'rule' => 'Keep read-only geography reference catalogs out of parity expansion by default unless there is an explicit integration need.',
                 ],
                 [
-                    'key' => 'system_and_vendor_surfaces',
+                    'key' => 'engagement_read_models',
+                    'resource_keys' => [
+                        'bookmark-collections',
+                        'bookmarks',
+                        'follows',
+                        'reactions',
+                        'reminders',
+                        'responses',
+                        'subscriptions',
+                    ],
+                    'rule' => 'Keep package-owned engagement read models panel-led by default; only expose them when there is a concrete product workflow that needs parity.',
+                ],
+                [
+                    'key' => 'communication_delivery_ops',
+                    'resource_keys' => [
+                        'communications',
+                        'communication-batches',
+                        'communication-deliveries',
+                        'communication-preferences',
+                        'communication-suppressions',
+                        'communication-templates',
+                        'communication-threads',
+                    ],
+                    'rule' => 'Keep communication delivery and template operations out of generic parity expansion unless a user-facing workflow requires them.',
+                ],
+                [
+                    'key' => 'system_and_admin_ops',
                     'resource_keys' => [
                         'ai-model-pricings',
                         'ai-usage-logs',
@@ -87,6 +113,7 @@ final class SurfaceSyncPolicy
                         'tracked-properties',
                         'signal-goals',
                         'signal-segments',
+                        'signal-interaction-rules',
                         'saved-signal-reports',
                         'signal-alert-rules',
                         'signal-alert-logs',

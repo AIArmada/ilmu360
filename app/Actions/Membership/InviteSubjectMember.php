@@ -49,12 +49,14 @@ final readonly class InviteSubjectMember
 
         $this->memberRoleCatalog->resolveRoleId($subjectType, $roleSlug);
 
+        $plainToken = Str::random(max(32, (int) config('membership.invitations.token_length', 64)));
+
         $invitation = MemberInvitation::create([
             'subject_type' => $subjectType,
             'subject_id' => $subject->getKey(),
             'email' => $normalizedEmail,
             'role_slug' => $roleSlug,
-            'token' => Str::random(64),
+            'token' => MemberInvitation::tokenForStorage($plainToken),
             'invited_by' => $inviter->getKey(),
             'expires_at' => $expiresAt,
         ]);
@@ -66,7 +68,7 @@ final readonly class InviteSubjectMember
                 subjectName: $this->subjectName($subject),
                 roleLabel: $this->memberRoleCatalog->roleLabel($subjectType, $roleSlug),
                 invitedEmail: $normalizedEmail,
-                acceptUrl: route('member-invitations.show', ['token' => $invitation->token]),
+                acceptUrl: route('member-invitations.show', ['token' => $plainToken]),
                 expiresAt: $expiresAt,
             ));
 

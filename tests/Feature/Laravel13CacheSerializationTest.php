@@ -8,29 +8,29 @@ use App\Services\EventSearchService;
 use App\Services\PrayerTimeService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Livewire\Livewire;
+use Nnjeim\World\Models\Language;
 
-it('hydrates the events index state cache into the current safe payload format', function () {
+it('hydrates the events index language cache into the current safe payload format', function () {
     config()->set('cache.default', 'database');
     app('cache')->setDefaultDriver('database');
     Cache::flush();
 
-    DB::table('states')->insert([
-        'id' => 999,
-        'country_id' => 132,
-        'name' => 'Selangor',
-        'country_code' => 'MY',
+    Language::query()->create([
+        'code' => 'ms',
+        'name' => 'Malay',
+        'name_native' => 'Bahasa Melayu',
+        'dir' => 'ltr',
     ]);
 
     Livewire::test(Index::class)
         ->assertSee('Cari Majlis Ilmu');
 
-    expect(Cache::get('states_all_v1'))
+    expect(Cache::get('event_filter_languages_v2'))
         ->toBeArray()
-        ->and(Cache::get('states_all_v1'))
-        ->toHaveCount(1);
+        ->and(Cache::get('event_filter_languages_v2'))
+        ->toHaveKey('ms');
 });
 
 it('hydrates the submit event safe option caches into the current payload format', function () {

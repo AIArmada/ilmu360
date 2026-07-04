@@ -173,11 +173,11 @@ class ModerationService
             'prayer_offset',
             'registration_required',
             'capacity',
-            'state_id',
-            'district_id',
-            'subdistrict_id',
-            'lat',
-            'lng',
+            'admin_area_1_id',
+            'admin_area_2_id',
+            'admin_area_3_id',
+            'latitude',
+            'longitude',
         ];
 
         return (bool) array_intersect($sensitiveFields, array_keys($changes));

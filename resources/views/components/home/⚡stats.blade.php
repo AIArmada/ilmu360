@@ -24,7 +24,7 @@ new class extends Component {
     {
         return Cache::remember('home.stats.speakers.upcoming', 300, function () {
             return Speaker::active()
-                ->whereHas('events', function ($query) {
+                ->whereHas('speakerEvents', function ($query) {
                     $query->active()
                         ->where('starts_at', '>=', now());
                 })->count('id');
@@ -35,11 +35,13 @@ new class extends Component {
     public function institutions(): int
     {
         return Cache::remember('home.stats.institutions.upcoming', 300, function () {
-            return Institution::active()
-                ->whereHas('events', function ($query) {
-                    $query->active()
-                        ->where('starts_at', '>=', now());
-                })->count('id');
+            return Event::active()
+                ->where('starts_at', '>=', now())
+                ->get()
+                ->pluck('institution_id')
+                ->filter()
+                ->unique()
+                ->count();
         });
     }
 };

@@ -2,13 +2,12 @@
 
 namespace Database\Seeders;
 
-use App\Enums\ContactCategory;
-use App\Enums\ContactType;
-use App\Models\Country;
-use App\Models\District;
+use AIArmada\Addressing\Models\AddressArea;
+use AIArmada\Contacting\Enums\ContactMethodType;
+use AIArmada\Contacting\Enums\ContactPurpose;
 use App\Models\Institution;
-use App\Models\State;
 use App\Models\User;
+use Database\Seeders\Concerns\SeedsPackageAddresses;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\File;
@@ -16,6 +15,8 @@ use Illuminate\Support\Str;
 
 class MasjidSeeder extends Seeder
 {
+    use SeedsPackageAddresses;
+
     /**
      * Run the database seeds.
      */
@@ -36,9 +37,12 @@ class MasjidSeeder extends Seeder
             User::factory()->count(300 - $existingUserCount)->create();
         }
 
-        $countries = Country::query()->get();
-        $malaysia = $countries->where('iso2', 'MY')->first() ?? $countries->first();
-        $states = State::query()->where('country_id', $malaysia->id)->with(['districts'])->get();
+        $malaysia = $this->malaysiaCountry();
+        $states = AddressArea::query()
+            ->where('country_code', 'MY')
+            ->where('level', 1)
+            ->orderBy('name')
+            ->get();
         User::query()->get();
 
         // Read CSV file
@@ -68,7 +72,7 @@ class MasjidSeeder extends Seeder
 
             // Find matching state
             $state = $this->findState($states, $negeri);
-            if (! $state instanceof State) {
+            if (! $state instanceof AddressArea) {
                 // If we can't find the state, skip this mosque
                 $skipped++;
 
@@ -77,9 +81,14 @@ class MasjidSeeder extends Seeder
 
             // Find matching district
             $district = null;
-            if ($daerah && $state->districts) {
-                $district = $state->districts->first(fn (District $district): bool => Str::contains(strtolower((string) $district->name), strtolower($daerah)) ||
-                    Str::contains(strtolower($daerah), strtolower((string) $district->name)));
+            if ($daerah !== '') {
+                $district = AddressArea::query()
+                    ->where('parent_id', $state->id)
+                    ->where('level', 2)
+                    ->orderBy('name')
+                    ->get()
+                    ->first(fn (AddressArea $area): bool => Str::contains(strtolower($area->name), strtolower($daerah)) ||
+                        Str::contains(strtolower($daerah), strtolower($area->name)));
             }
 
             // Create or update institution
@@ -111,9 +120,9 @@ class MasjidSeeder extends Seeder
                 if ($cleanedPhone) {
                     try {
                         $inst->contacts()->create([
-                            'category' => ContactCategory::Phone->value,
+                            'type' => ContactMethodType::Phone->value,
                             'value' => $cleanedPhone,
-                            'type' => ContactType::Work->value,
+                            'purpose' => ContactPurpose::General->value,
                         ]);
                     } catch (\Exception $e) {
                         $this->command->warn("Failed to create contact for {$nama}: ".$e->getMessage());
@@ -123,15 +132,14 @@ class MasjidSeeder extends Seeder
 
             // Create address
             try {
-                $inst->address()->create([
+                $this->seedPrimaryPackageAddress($inst, [
                     'line1' => $alamat ?: null,
                     'postcode' => null,
-                    'country_id' => $malaysia?->getKey(),
-                    'state_id' => $state->getKey(),
-                    'district_id' => $district?->getKey(),
-                    'city_id' => null,
-                    'lat' => null,
-                    'lng' => null,
+                    'country_id' => $malaysia?->id,
+                    'admin_area_1_id' => $state->id,
+                    'admin_area_2_id' => $district?->id,
+                    'latitude' => null,
+                    'longitude' => null,
                 ]);
             } catch (\Exception $e) {
                 $this->command->warn("Failed to create address for {$nama}: ".$e->getMessage());
@@ -164,9 +172,9 @@ class MasjidSeeder extends Seeder
     /**
      * Find state from CSV state name
      *
-     * @param  Collection<int, State>  $states
+     * @param  Collection<int, AddressArea>  $states
      */
-    protected function findState(Collection $states, string $negeri): ?State
+    protected function findState(Collection $states, string $negeri): ?AddressArea
     {
         // State name mappings
         $stateMap = [
@@ -182,7 +190,7 @@ class MasjidSeeder extends Seeder
         // Use mapping if available
         $searchName = $stateMap[strtoupper($negeri)] ?? $negeri;
 
-        return $states->first(function (State $state) use ($searchName, $negeri): bool {
+        return $states->first(function (AddressArea $state) use ($searchName, $negeri): bool {
             $stateLower = strtolower((string) $state->name);
             $searchLower = strtolower($searchName);
             $negeriLower = strtolower($negeri);

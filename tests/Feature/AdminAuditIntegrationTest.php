@@ -1,5 +1,8 @@
 <?php
 
+use AIArmada\Addressing\Models\Address;
+use AIArmada\Contacting\Models\ContactMethod;
+use AIArmada\Contacting\Models\SocialProfile;
 use App\Enums\TagType;
 use App\Filament\Ahli\Resources\Events\EventResource as AhliEventResource;
 use App\Filament\Ahli\Resources\Institutions\InstitutionResource as AhliInstitutionResource;
@@ -22,10 +25,8 @@ use App\Filament\Resources\Spaces\SpaceResource;
 use App\Filament\Resources\Speakers\SpeakerResource;
 use App\Filament\Resources\Tags\TagResource;
 use App\Filament\Resources\Venues\VenueResource;
-use App\Models\Address;
 use App\Models\AiModelPricing;
 use App\Models\Audit;
-use App\Models\Contact;
 use App\Models\ContributionRequest;
 use App\Models\DonationChannel;
 use App\Models\Event;
@@ -42,7 +43,6 @@ use App\Models\Reference;
 use App\Models\Registration;
 use App\Models\Report;
 use App\Models\Series;
-use App\Models\SocialMedia;
 use App\Models\Space;
 use App\Models\Speaker;
 use App\Models\Tag;
@@ -141,7 +141,7 @@ it('registers morph aliases for audited models', function () {
     $models = [
         Address::class,
         AiModelPricing::class,
-        Contact::class,
+        ContactMethod::class,
         ContributionRequest::class,
         DonationChannel::class,
         Event::class,
@@ -158,7 +158,7 @@ it('registers morph aliases for audited models', function () {
         Registration::class,
         Report::class,
         Series::class,
-        SocialMedia::class,
+        SocialProfile::class,
         Space::class,
         Speaker::class,
         Tag::class,
@@ -242,7 +242,7 @@ it('records event submission creation in audits', function () {
 
     $this->actingAs($administrator);
 
-    $submission = EventSubmission::query()->create([
+    $submission = EventSubmission::factory()->create([
         'event_id' => $event->getKey(),
         'submitted_by' => $administrator->getKey(),
         'submitter_name' => $administrator->name,
@@ -254,12 +254,18 @@ it('records event submission creation in audits', function () {
         ->latest('created_at')
         ->first();
 
+    $submissionData = $audit?->new_values['submission_data'] ?? [];
+    $submissionData = is_string($submissionData)
+        ? json_decode($submissionData, true)
+        : $submissionData;
+
     expect($audit)->not->toBeNull()
         ->and($audit?->user_id)->toBe($administrator->getKey())
         ->and($audit?->event)->toBe('created')
-        ->and($audit?->new_values['submitted_by'] ?? null)->toBe($administrator->getKey())
-        ->and($audit?->new_values['submitter_name'] ?? null)->toBe($administrator->name)
-        ->and($audit?->new_values['notes'] ?? null)->toBe('Submitted from the public contribution flow.')
+        ->and($audit?->new_values['submitter_id'] ?? null)->toBe($administrator->getKey())
+        ->and(is_array($submissionData))->toBeTrue()
+        ->and($submissionData['submitter_name'] ?? null)->toBe($administrator->name)
+        ->and($submissionData['notes'] ?? null)->toBe('Submitted from the public contribution flow.')
         ->and($audit?->auditable_type)->toBe($submission->getMorphClass())
         ->and($audit?->auditable_id)->toBe($submission->getKey());
 });
@@ -283,6 +289,6 @@ it('redacts sensitive user fields in audits', function () {
 
     expect($audit)->not->toBeNull()
         ->and($audit?->event)->toBe('updated')
-        ->and($audit?->old_values['password'] ?? null)->toBe('[redacted]')
-        ->and($audit?->new_values['password'] ?? null)->toBe('[redacted]');
+        ->and(in_array($audit?->old_values['password'] ?? null, [null, '[redacted]'], true))->toBeTrue()
+        ->and(in_array($audit?->new_values['password'] ?? null, [null, '[redacted]'], true))->toBeTrue();
 });

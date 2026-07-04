@@ -2,8 +2,8 @@
 
 namespace App\Support\Authz;
 
+use AIArmada\CommerceSupport\Models\AuthzScope;
 use AIArmada\FilamentAuthz\Facades\Authz;
-use AIArmada\FilamentAuthz\Models\AuthzScope;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Reference;

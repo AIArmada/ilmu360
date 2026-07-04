@@ -15,11 +15,22 @@ final readonly class SyncCanonicalSlugAction
 
     public function persist(Model $model, string $slug): bool
     {
-        if ($this->normalizeComparableString($model->getAttribute('slug')) === $this->normalizeComparableString($slug)) {
+        $currentSlug = $this->currentSlug($model);
+        $normalizedCurrentSlug = $this->normalizeComparableString($currentSlug);
+        $normalizedTargetSlug = $this->normalizeComparableString($slug);
+
+        if ($this->normalizeComparableString($model->getAttribute('slug')) !== $normalizedCurrentSlug) {
+            $model->forceFill([
+                'slug' => $currentSlug,
+            ]);
+            $model->syncOriginal();
+        }
+
+        if ($normalizedCurrentSlug === $normalizedTargetSlug) {
             return false;
         }
 
-        $previousSlug = $this->normalizeComparableString($model->getAttribute('slug'));
+        $previousSlug = $normalizedCurrentSlug;
         $modelClass = $model::class;
 
         $modelClass::withoutTimestamps(function () use ($model, $slug): void {
@@ -37,5 +48,18 @@ final readonly class SyncCanonicalSlugAction
             $model,
             $this->normalizeComparableString($previousSlug),
         );
+    }
+
+    private function currentSlug(Model $model): mixed
+    {
+        if (! $model->exists || $model->getKey() === null) {
+            return $model->getAttribute('slug');
+        }
+
+        $resolved = $model::query()
+            ->whereKey($model->getKey())
+            ->value('slug');
+
+        return $resolved ?? $model->getAttribute('slug');
     }
 }

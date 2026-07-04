@@ -23,6 +23,7 @@ class SpeakerFormSchema
         return SpeakerContributionFormSchema::components(
             includeMedia: true,
             regionOnlyAddress: true,
+            showCountryField: false,
         );
     }
 
@@ -57,6 +58,7 @@ class SpeakerFormSchema
         $schema?->model($speaker)->saveRelationships();
 
         app(ContributionEntityMutationService::class)->syncSpeakerRelations($speaker, $data);
+        app(GenerateSpeakerSlugAction::class)->syncSpeakerSlug($speaker);
 
         return (string) $speaker->getKey();
     }

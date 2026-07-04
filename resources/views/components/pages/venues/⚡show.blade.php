@@ -28,11 +28,7 @@ new class extends Component
 
         $this->venue = $venue->load([
             'media',
-            'address.state',
-            'address.city',
-            'address.district',
-            'address.subdistrict',
-            'address.country',
+            'addresses.country',
             'contacts',
             'socialMedia',
         ]);
@@ -58,9 +54,7 @@ new class extends Component
             ->where('starts_at', '>=', now())
             ->with([
                 'institution.media',
-                'institution.address.state',
-                'institution.address.district',
-                'institution.address.subdistrict',
+                'institution.addresses.country',
                 'speakers.media',
                 'keyPeople.speaker.media',
                 'media',
@@ -88,9 +82,7 @@ new class extends Component
             ->where('starts_at', '<', now())
             ->with([
                 'institution.media',
-                'institution.address.state',
-                'institution.address.district',
-                'institution.address.subdistrict',
+                'institution.addresses.country',
                 'speakers.media',
                 'keyPeople.speaker.media',
                 'media',
@@ -132,19 +124,43 @@ new class extends Component
     $coverUrl = $venue->getFirstMediaUrl('cover', 'banner') ?: asset('images/placeholders/venue.png');
     $thumbUrl = $venue->getFirstMediaUrl('cover', 'thumb') ?: asset('images/placeholders/venue.png');
     $address = $venue->addressModel;
+    $addressHierarchyParts = \App\Support\Location\AddressHierarchyFormatter::parts($address);
     $addressParts = array_values(array_filter([
         $address?->line1,
         $address?->line2,
         $address?->postcode,
-        $address?->subdistrict?->name,
-        $address?->district?->name,
-        $address?->state?->name,
-        $address?->country?->name,
+        $addressHierarchyParts[0] ?? null,
+        $addressHierarchyParts[1] ?? null,
+        $address?->country,
     ], fn (mixed $value): bool => filled($value)));
     $addressText = $addressParts !== [] ? implode(', ', $addressParts) : __('Alamat akan dikemas kini kemudian.');
     $contactCards = $venue->contacts->where('is_public', true)->values();
+    $resolveSocialUrl = static function (mixed $social): ?string {
+        if ($social instanceof \AIArmada\Contacting\Models\SocialProfile) {
+            $resolved = $social->profileUrl() ?? $social->url;
+
+            return is_string($resolved) && trim($resolved) !== '' ? $resolved : null;
+        }
+
+        $resolved = data_get($social, 'resolved_url', data_get($social, 'url'));
+
+        return is_string($resolved) && trim($resolved) !== '' ? $resolved : null;
+    };
     $socialLinks = $venue->socialMedia
-        ->filter(fn ($social) => filled($social->resolved_url) && filled($social->platform))
+        ->map(function ($social) use ($resolveSocialUrl): ?object {
+            $platform = strtolower((string) data_get($social, 'platform'));
+            $resolvedUrl = $resolveSocialUrl($social);
+
+            if ($platform === '' || $resolvedUrl === null) {
+                return null;
+            }
+
+            return (object) [
+                'platform' => $platform,
+                'resolved_url' => $resolvedUrl,
+            ];
+        })
+        ->filter()
         ->values();
     $facilityLabels = collect((array) $venue->facilities)
         ->filter(fn (mixed $enabled): bool => (bool) $enabled)
@@ -279,7 +295,7 @@ new class extends Component
                     <div class="mt-4 space-y-3">
                         @foreach ($contactCards as $contact)
                             <div class="rounded-2xl bg-slate-50 p-4">
-                                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{{ $contact->category_label }}</p>
+                                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{{ \AIArmada\Contacting\Enums\ContactMethodType::tryFrom((string) $contact->type)?->label() ?? str((string) $contact->type)->headline() }}</p>
                                 <p class="mt-2 break-all text-sm font-medium text-slate-900">{{ $contact->value }}</p>
                             </div>
                         @endforeach

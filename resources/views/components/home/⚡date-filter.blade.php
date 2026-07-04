@@ -17,7 +17,7 @@ new class extends Component {
         $eventCounts = Event::query()
             ->active()
             ->whereBetween('starts_at', [$startDate->copy()->utc(), $endDate->copy()->utc()])
-            ->get(['starts_at'])
+            ->get(['id', 'starts_at'])
             ->countBy(fn (Event $event): string => UserDateTimeFormatter::format($event->starts_at, 'Y-m-d'));
 
         $dates = collect();

@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
+use AIArmada\Contacting\Enums\SocialPlatform;
 use App\Enums\ReferenceType;
-use App\Enums\SocialMediaPlatform;
 use App\Models\Event;
 use App\Models\Reference;
 use Illuminate\Database\Seeder;
@@ -221,10 +221,10 @@ class ReferenceSeeder extends Seeder
             $reference->save();
 
             $reference->socialMedia()->updateOrCreate(
-                ['platform' => SocialMediaPlatform::Website->value],
+                ['platform' => SocialPlatform::Website->value],
                 [
                     'url' => $referenceData['reference_url'],
-                    'username' => null,
+                    'handle' => null,
                 ],
             );
 
@@ -246,8 +246,8 @@ class ReferenceSeeder extends Seeder
         }
 
         $events = Event::query()
-            ->where('status', 'approved')
-            ->latest('starts_at')
+            ->whereIn('status', Event::PUBLIC_STATUSES)
+            ->latest('created_at')
             ->limit(180)
             ->get(['id', 'title']);
 

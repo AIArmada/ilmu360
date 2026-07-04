@@ -2,6 +2,8 @@
 
 namespace App\Livewire\Pages\Events;
 
+use AIArmada\Addressing\Models\AddressArea;
+use AIArmada\Addressing\Models\AddressCountry;
 use App\Actions\Events\SaveEventAction;
 use App\Actions\Events\UnsaveEventAction;
 use App\Enums\EventAgeGroup;
@@ -10,22 +12,16 @@ use App\Enums\EventKeyPersonRole;
 use App\Enums\EventPrayerTime;
 use App\Enums\TagType;
 use App\Enums\TimingMode;
-use App\Models\Country;
-use App\Models\District;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Reference;
 use App\Models\Speaker;
-use App\Models\State;
-use App\Models\Subdistrict;
 use App\Models\Tag;
 use App\Models\User;
 use App\Models\Venue;
 use App\Services\EventSearchService;
 use App\Support\Auth\IntendedRedirect;
 use App\Support\Cache\SafeModelCache;
-use App\Support\Location\FederalTerritoryLocation;
-use App\Support\Location\PreferredCountryResolver;
 use App\Support\Location\PublicGeolocationPermission;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -715,22 +711,18 @@ class Index extends Component implements HasForms
     }
 
     /**
-     * @return Collection<int, Country>
+     * @return Collection<int, AddressCountry>
      */
     #[Computed]
     public function countries(): Collection
     {
-        return app(SafeModelCache::class)->rememberCollection(
-            key: 'countries_all_v1',
-            ttl: 3600,
-            query: Country::query()
-                ->orderBy('name')
-                ->select(['id', 'name', 'iso2']),
-        );
+        return AddressCountry::query()
+            ->orderBy('name')
+            ->get(['id', 'name', 'iso2']);
     }
 
     /**
-     * @return Collection<int, State>
+     * @return Collection<int, AddressArea>
      */
     #[Computed]
     public function states(): Collection
@@ -739,56 +731,45 @@ class Index extends Component implements HasForms
             return collect();
         }
 
-        return app(SafeModelCache::class)->rememberCollection(
-            key: 'states_all_v1',
-            ttl: 3600,
-            query: State::query()
-                ->orderBy('name'),
-        )
-            ->where('country_id', (int) $this->country_id)
-            ->values();
+        return AddressArea::query()
+            ->where('country_id', $this->country_id)
+            ->where('level', 1)
+            ->orderBy('name')
+            ->get();
     }
 
     /**
-     * @return Collection<int, District>
+     * @return Collection<int, AddressArea>
      */
     #[Computed]
     public function districts(): Collection
     {
         $stateId = $this->state_id;
 
-        if (! filled($stateId) || FederalTerritoryLocation::isFederalTerritoryStateId($stateId)) {
+        if (! filled($stateId)) {
             return collect();
         }
 
-        return District::query()
-            ->where('state_id', $stateId)
+        return AddressArea::query()
+            ->where('parent_id', $stateId)
             ->orderBy('name')
             ->get();
     }
 
     /**
-     * @return Collection<int, Subdistrict>
+     * @return Collection<int, AddressArea>
      */
     #[Computed]
     public function subdistricts(): Collection
     {
-        if (FederalTerritoryLocation::isFederalTerritoryStateId($this->state_id)) {
-            return Subdistrict::query()
-                ->where('state_id', $this->state_id)
-                ->whereNull('district_id')
-                ->orderBy('name')
-                ->get();
-        }
-
-        $districtId = $this->district_id;
+        $districtId = filled($this->district_id) ? $this->district_id : $this->state_id;
 
         if (! filled($districtId)) {
             return collect();
         }
 
-        return Subdistrict::query()
-            ->where('district_id', $districtId)
+        return AddressArea::query()
+            ->where('parent_id', $districtId)
             ->orderBy('name')
             ->get();
     }
@@ -1100,7 +1081,7 @@ class Index extends Component implements HasForms
         /** @var Collection<int, Reference> $references */
         $references = $query
             ->limit($limit)
-            ->get(['id', 'title', 'parent_reference_id', 'part_type', 'part_number', 'part_label']);
+            ->get(['id', 'title', 'parent_id', 'metadata']);
 
         return $references
             ->mapWithKeys(fn (Reference $reference): array => [(string) $reference->id => $reference->displayTitle()])
@@ -1217,21 +1198,21 @@ class Index extends Component implements HasForms
             return;
         }
 
-        $query->whereHas('address', function (Builder $addressQuery) use ($countryId, $stateId, $districtId, $subdistrictId): void {
+        $query->whereHas('addresses', function (Builder $addressQuery) use ($countryId, $stateId, $districtId, $subdistrictId): void {
             if (filled($countryId)) {
                 $addressQuery->where('country_id', $countryId);
             }
 
             if (filled($stateId)) {
-                $addressQuery->where('state_id', $stateId);
+                $addressQuery->where('admin_area_1_id', $stateId);
             }
 
             if (filled($districtId)) {
-                $addressQuery->where('district_id', $districtId);
+                $addressQuery->where('admin_area_2_id', $districtId);
             }
 
             if (filled($subdistrictId)) {
-                $addressQuery->where('subdistrict_id', $subdistrictId);
+                $addressQuery->where('admin_area_3_id', $subdistrictId);
             }
         });
     }
@@ -1392,7 +1373,7 @@ class Index extends Component implements HasForms
 
         return [
             'search' => null,
-            'country_id' => (string) app(PreferredCountryResolver::class)->resolveId(),
+            'country_id' => null,
             'state_id' => null,
             'district_id' => null,
             'subdistrict_id' => null,
@@ -1456,7 +1437,7 @@ class Index extends Component implements HasForms
 
         return [
             'search' => filled($this->search) ? trim($this->search) : null,
-            'country_id' => filled($this->country_id) ? $this->country_id : $defaults['country_id'],
+            'country_id' => filled($this->country_id) ? $this->country_id : null,
             'state_id' => filled($this->state_id) ? $this->state_id : null,
             'district_id' => filled($this->district_id) ? $this->district_id : null,
             'subdistrict_id' => filled($this->subdistrict_id) ? $this->subdistrict_id : null,
@@ -1602,7 +1583,7 @@ class Index extends Component implements HasForms
 
         return [
             'search' => filled($normalized['search']) ? trim((string) $normalized['search']) : null,
-            'country_id' => filled($normalized['country_id']) ? (string) $normalized['country_id'] : $defaults['country_id'],
+            'country_id' => filled($normalized['country_id']) ? (string) $normalized['country_id'] : null,
             'state_id' => filled($normalized['state_id']) ? (string) $normalized['state_id'] : null,
             'district_id' => filled($normalized['district_id']) ? (string) $normalized['district_id'] : null,
             'subdistrict_id' => filled($normalized['subdistrict_id']) ? (string) $normalized['subdistrict_id'] : null,

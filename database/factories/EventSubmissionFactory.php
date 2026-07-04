@@ -27,6 +27,8 @@ class EventSubmissionFactory extends Factory
             'event_id' => Event::factory(),
             'submitted_by' => $submitter,
             'submitter_name' => fake()->name(),
+            'status' => 'pending',
+            'submitted_at' => now(),
         ];
     }
 }

@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Enums\ContactCategory;
-use App\Enums\ContactType;
+use AIArmada\Contacting\Enums\ContactMethodType;
+use AIArmada\Contacting\Enums\ContactPurpose;
 use App\Models\Speaker;
 use App\Models\User;
 use Illuminate\Database\Seeder;
@@ -74,13 +74,13 @@ class SpeakerSeeder extends Seeder
             );
 
             $speaker->contacts()->updateOrCreate(
-                ['category' => ContactCategory::Email->value],
-                ['value' => Str::slug($name).'@example.com', 'type' => ContactType::Work->value]
+                ['type' => ContactMethodType::Email->value],
+                ['value' => Str::slug($name).'@example.com', 'purpose' => ContactPurpose::General->value]
             );
 
             $speaker->contacts()->updateOrCreate(
-                ['category' => ContactCategory::Phone->value],
-                ['value' => $this->deterministicPhoneNumber($name), 'type' => ContactType::Work->value]
+                ['type' => ContactMethodType::Phone->value],
+                ['value' => $this->deterministicPhoneNumber($name), 'purpose' => ContactPurpose::General->value]
             );
 
             if (! empty($userIds)) {

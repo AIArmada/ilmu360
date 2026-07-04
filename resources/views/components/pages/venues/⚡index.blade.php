@@ -1,16 +1,11 @@
 <?php
 
-use App\Models\District;
-use App\Models\State;
-use App\Models\Subdistrict;
+use AIArmada\Addressing\Models\AddressArea;
 use App\Models\Venue;
-use App\Support\Cache\SafeModelCache;
-use App\Support\Location\FederalTerritoryLocation;
-use App\Support\Location\PreferredCountryResolver;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator as LengthAwarePaginatorContract;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
@@ -38,13 +33,6 @@ new
         #[Url]
         public ?string $subdistrict_id = null;
 
-        public function mount(): void
-        {
-            if (! filled($this->country_id)) {
-                $this->country_id = $this->defaultCountryId();
-            }
-        }
-
         #[Computed]
         public function venues(): LengthAwarePaginatorContract
         {
@@ -70,15 +58,10 @@ new
                 return [];
             }
 
-            /** @var Collection<int, State> $states */
-            $states = app(SafeModelCache::class)->rememberCollection(
-                key: 'states_all_v1',
-                ttl: 3600,
-                query: State::query()->orderBy('name'),
-            );
-
-            return $states
+            return AddressArea::query()
                 ->where('country_id', $countryId)
+                ->where('level', 1)
+                ->orderBy('name')
                 ->pluck('name', 'id')
                 ->all();
         }
@@ -88,12 +71,12 @@ new
         {
             $stateId = $this->normalizedLocationId($this->state_id);
 
-            if ($stateId === null || FederalTerritoryLocation::isFederalTerritoryStateId($stateId)) {
+            if ($stateId === null) {
                 return [];
             }
 
-            return District::query()
-                ->where('state_id', $stateId)
+            return AddressArea::query()
+                ->where('parent_id', $stateId)
                 ->orderBy('name')
                 ->pluck('name', 'id')
                 ->all();
@@ -102,25 +85,14 @@ new
         #[Computed]
         public function subdistricts(): array
         {
-            $stateId = $this->normalizedLocationId($this->state_id);
-
-            if ($stateId !== null && FederalTerritoryLocation::isFederalTerritoryStateId($stateId)) {
-                return Subdistrict::query()
-                    ->where('state_id', $stateId)
-                    ->whereNull('district_id')
-                    ->orderBy('name')
-                    ->pluck('name', 'id')
-                    ->all();
-            }
-
-            $districtId = $this->normalizedLocationId($this->district_id);
+            $districtId = $this->normalizedLocationId($this->district_id) ?? $this->normalizedLocationId($this->state_id);
 
             if ($districtId === null) {
                 return [];
             }
 
-            return Subdistrict::query()
-                ->where('district_id', $districtId)
+            return AddressArea::query()
+                ->where('parent_id', $districtId)
                 ->orderBy('name')
                 ->pluck('name', 'id')
                 ->all();
@@ -128,7 +100,7 @@ new
 
         public function isFederalTerritoryStateSelected(): bool
         {
-            return FederalTerritoryLocation::isFederalTerritoryStateId($this->normalizedLocationId($this->state_id));
+            return false;
         }
 
         public function updatedSearch(): void
@@ -171,7 +143,7 @@ new
         public function clearFilters(): void
         {
             $this->search = null;
-            $this->country_id = $this->defaultCountryId();
+            $this->country_id = null;
             $this->state_id = null;
             $this->district_id = null;
             $this->subdistrict_id = null;
@@ -187,9 +159,7 @@ new
                     $query->active();
                 }])
                 ->with([
-                    'address.state',
-                    'address.district',
-                    'address.subdistrict',
+                    'addresses',
                     'media',
                 ]);
 
@@ -208,15 +178,15 @@ new
                     ->orWhere('venues.slug', $operator, "%{$search}%")
                     ->orWhere('venues.description', $operator, "%{$search}%")
                     ->orWhere('venues.description', $operator, $collapsedWildcardSearch)
-                    ->orWhereHas('address', function (Builder $addressQuery) use ($operator, $search, $collapsedWildcardSearch): void {
+                    ->orWhereHas('addresses', function (Builder $addressQuery) use ($operator, $search, $collapsedWildcardSearch): void {
                         $addressQuery
                             ->where('line1', $operator, "%{$search}%")
                             ->orWhere('line1', $operator, $collapsedWildcardSearch)
                             ->orWhere('line2', $operator, "%{$search}%")
                             ->orWhere('postcode', $operator, "%{$search}%")
-                            ->orWhereHas('state', fn (Builder $stateQuery): Builder => $stateQuery->where('name', $operator, "%{$search}%"))
-                            ->orWhereHas('district', fn (Builder $districtQuery): Builder => $districtQuery->where('name', $operator, "%{$search}%"))
-                            ->orWhereHas('subdistrict', fn (Builder $subdistrictQuery): Builder => $subdistrictQuery->where('name', $operator, "%{$search}%"));
+                            ->orWhere('city', $operator, "%{$search}%")
+                            ->orWhere('state', $operator, "%{$search}%")
+                            ->orWhere('country', $operator, "%{$search}%");
                     });
             });
         }
@@ -232,21 +202,21 @@ new
                 return $query;
             }
 
-            return $query->whereHas('address', function (Builder $addressQuery) use ($countryId, $stateId, $districtId, $subdistrictId): void {
+            return $query->whereHas('addresses', function (Builder $addressQuery) use ($countryId, $stateId, $districtId, $subdistrictId): void {
                 if ($countryId !== null) {
                     $addressQuery->where('country_id', $countryId);
                 }
 
                 if ($stateId !== null) {
-                    $addressQuery->where('state_id', $stateId);
+                    $addressQuery->where('admin_area_1_id', $stateId);
                 }
 
                 if ($districtId !== null) {
-                    $addressQuery->where('district_id', $districtId);
+                    $addressQuery->where('admin_area_2_id', $districtId);
                 }
 
                 if ($subdistrictId !== null) {
-                    $addressQuery->where('subdistrict_id', $subdistrictId);
+                    $addressQuery->where('admin_area_3_id', $subdistrictId);
                 }
             });
         }
@@ -262,7 +232,7 @@ new
             return $search === '' ? null : $search;
         }
 
-        private function normalizedLocationId(?string $value): ?int
+        private function normalizedLocationId(?string $value): ?string
         {
             if (! is_string($value)) {
                 return null;
@@ -270,17 +240,13 @@ new
 
             $normalized = trim($value);
 
-            if ($normalized === '' || ! ctype_digit($normalized)) {
+            if ($normalized === '' || ! Str::isUuid($normalized)) {
                 return null;
             }
 
-            return (int) $normalized;
+            return $normalized;
         }
 
-        private function defaultCountryId(): string
-        {
-            return (string) app(PreferredCountryResolver::class)->resolveId();
-        }
     };
 ?>
 
@@ -303,8 +269,7 @@ new
     $districtId = $this->district_id;
     $subdistrictId = $this->subdistrict_id;
     $isFederalTerritoryState = $this->isFederalTerritoryStateSelected();
-    $defaultCountryId = (string) app(\App\Support\Location\PreferredCountryResolver::class)->resolveId();
-    $hasScopedFilters = ($countryId !== null && $countryId !== $defaultCountryId) || filled($stateId) || filled($districtId) || filled($subdistrictId);
+    $hasScopedFilters = filled($countryId) || filled($stateId) || filled($districtId) || filled($subdistrictId);
     $venueTotal = $venues->total();
     $venueLoadingTarget = 'search,country_id,state_id,district_id,subdistrict_id,clearSearch,clearFilters';
     $formatVenueLocation = static function ($addressModel): string {
@@ -325,7 +290,7 @@ new
                 <span class="bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent">{{ __('Knowledge & Community') }}</span>
             </h1>
             <p class="mx-auto max-w-2xl text-balance text-lg text-slate-600 md:text-xl">
-                {{ __('Find halls, auditoriums, libraries, and trusted spaces where knowledge gatherings happen.') }}
+                {{ __('Find halls, auditoriums, libraries, and trusted spaces where Majlis Ilmu happens.') }}
             </p>
 
             <div class="mx-auto mt-8 max-w-xl">

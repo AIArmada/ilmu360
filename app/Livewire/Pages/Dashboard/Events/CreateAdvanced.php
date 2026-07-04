@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Pages\Dashboard\Events;
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Actions\Events\CreateAdvancedParentProgramAction;
 use App\Actions\Events\PrepareAdvancedParentProgramSubmissionAction;
 use App\Actions\Events\ResolveAdvancedBuilderContextAction;
@@ -9,6 +10,7 @@ use App\Enums\EventFormat;
 use App\Enums\EventType;
 use App\Enums\EventVisibility;
 use App\Enums\RegistrationMode;
+use App\Models\Event;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
 use Illuminate\Validation\Rule;
@@ -113,17 +115,17 @@ class CreateAdvanced extends Component
         $this->activeStep = 2;
     }
 
-    public function updatedFormOrganizerType(string $value): void
+    public function updatedFormPrimaryOrganizerId(mixed $value): void
     {
-        if ($value === 'institution') {
-            $organizerId = array_key_first($this->institutionOptions);
-            $this->form['organizer_id'] = $organizerId;
-            $this->form['location_institution_id'] = $organizerId;
-
+        if (! is_string($value) || $value === '') {
             return;
         }
 
-        $this->form['organizer_id'] = array_key_first($this->speakerOptions);
+        if (array_key_exists($value, $this->institutionOptions)) {
+            $this->form['location_institution_id'] = $value;
+
+            return;
+        }
 
         if (! filled($this->form['location_institution_id'] ?? null)) {
             $this->form['location_institution_id'] = array_key_first($this->institutionOptions);
@@ -143,16 +145,15 @@ class CreateAdvanced extends Component
         $preparedSubmission = $prepareAdvancedParentProgramSubmissionAction->handle($user, $validated['form']);
 
         try {
-            $parentEvent = $createAdvancedParentProgramAction->handle(
+            $parentEvent = OwnerContext::withOwner(null, fn (): Event => $createAdvancedParentProgramAction->handle(
                 $user,
                 $validated['form'],
                 $preparedSubmission['program_starts_at'],
                 $preparedSubmission['program_ends_at'],
                 $preparedSubmission['timezone'],
-                $preparedSubmission['organizer_type'],
-                $preparedSubmission['organizer_id'],
+                $preparedSubmission['primary_organizer'],
                 $preparedSubmission['location_institution_id'],
-            );
+            ));
         } catch (Throwable $throwable) {
             report($throwable);
 
@@ -175,8 +176,7 @@ class CreateAdvanced extends Component
             'form.timezone' => ['required', 'string', 'max:64'],
             'form.program_starts_at' => ['required', 'date'],
             'form.program_ends_at' => ['required', 'date'],
-            'form.organizer_type' => ['required', Rule::in(['institution', 'speaker'])],
-            'form.organizer_id' => ['required', 'string'],
+            'form.primary_organizer_id' => ['required', 'string'],
             'form.location_institution_id' => ['nullable', 'string'],
             'form.default_event_type' => ['required', Rule::in(array_column(EventType::cases(), 'value'))],
             'form.default_event_format' => ['required', Rule::in(array_column(EventFormat::cases(), 'value'))],
@@ -196,6 +196,25 @@ class CreateAdvanced extends Component
         $user = auth()->user();
 
         return $user instanceof User ? $user : null;
+    }
+
+    protected function selectedOrganizerType(): ?string
+    {
+        $organizerId = $this->form['primary_organizer_id'] ?? null;
+
+        if (! is_string($organizerId) || $organizerId === '') {
+            return null;
+        }
+
+        if (array_key_exists($organizerId, $this->institutionOptions)) {
+            return 'institution';
+        }
+
+        if (array_key_exists($organizerId, $this->speakerOptions)) {
+            return 'speaker';
+        }
+
+        return null;
     }
 
     /**
@@ -227,6 +246,7 @@ class CreateAdvanced extends Component
         return view('livewire.pages.dashboard.events.create-advanced', [
             'institutionOptions' => $this->institutionOptions,
             'speakerOptions' => $this->speakerOptions,
+            'selectedOrganizerType' => $this->selectedOrganizerType(),
             'eventTypeOptions' => collect(EventType::cases())->mapWithKeys(fn (EventType $type): array => [$type->value => $type->getLabel()])->all(),
             'eventFormatOptions' => collect(EventFormat::cases())->mapWithKeys(fn (EventFormat $format): array => [$format->value => $format->label()])->all(),
             'visibilityOptions' => collect(EventVisibility::cases())->mapWithKeys(fn (EventVisibility $visibility): array => [$visibility->value => $visibility->getLabel()])->all(),

@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\Institutions\Schemas;
 
-use App\Enums\SocialMediaPlatform;
+use AIArmada\Contacting\Enums\SocialPlatform;
 use Filament\Infolists\Components\IconEntry;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\SpatieMediaLibraryImageEntry;
@@ -92,26 +92,23 @@ class InstitutionInfolist
                                         TextEntry::make('address.postcode')
                                             ->label('Poskod')
                                             ->placeholder('-'),
-                                        TextEntry::make('address.city.name')
-                                            ->label('Bandar')
+                                        TextEntry::make('address.city')
+                                            ->label('Bandar / Kawasan')
                                             ->placeholder('-'),
-                                        TextEntry::make('address.district.name')
-                                            ->label('Daerah')
-                                            ->placeholder('-'),
-                                        TextEntry::make('address.state.name')
+                                        TextEntry::make('address.state')
                                             ->label('Negeri')
                                             ->placeholder('-'),
-                                        TextEntry::make('address.country.name')
+                                        TextEntry::make('address.country')
                                             ->label('Negara')
                                             ->placeholder('-'),
                                     ])
                                     ->columns(2),
                                 Section::make('Koordinat')
                                     ->schema([
-                                        TextEntry::make('address.lat')
+                                        TextEntry::make('address.latitude')
                                             ->label('Latitud')
                                             ->placeholder('-'),
-                                        TextEntry::make('address.lng')
+                                        TextEntry::make('address.longitude')
                                             ->label('Longitud')
                                             ->placeholder('-'),
                                         TextEntry::make('address.google_maps_url')
@@ -163,19 +160,19 @@ class InstitutionInfolist
                                                 TextEntry::make('platform')
                                                     ->label('Platform')
                                                     ->formatStateUsing(function (mixed $state): string {
-                                                        if ($state instanceof SocialMediaPlatform) {
-                                                            return $state->getLabel();
+                                                        if ($state instanceof SocialPlatform) {
+                                                            return $state->label();
                                                         }
                                                         if (is_string($state)) {
-                                                            return SocialMediaPlatform::tryFrom($state)?->getLabel() ?? $state;
+                                                            return SocialPlatform::tryFrom($state)?->label() ?? $state;
                                                         }
 
                                                         return '-';
                                                     })
                                                     ->badge(),
-                                                TextEntry::make('username')
-                                                    ->label('Username'),
-                                                TextEntry::make('resolved_url')
+                                                TextEntry::make('handle')
+                                                    ->label('Handle'),
+                                                TextEntry::make('url')
                                                     ->label('URL')
                                                     ->url(fn (?string $state): ?string => filled($state) ? $state : null)
                                                     ->openUrlInNewTab(),

@@ -171,7 +171,7 @@ new
                     class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500">{{ __('Knowledge & Wisdom') }}</span>
             </h1>
             <p class="text-slate-600 text-lg md:text-xl max-w-2xl mx-auto text-balance">
-                {{ __('Scholars, teachers, and speakers sharing their knowledge with the community.') }}
+                {{ __('Scholars, teachers, and speakers sharing Majlis Ilmu with the community.') }}
             </p>
 
             <!-- Search Box -->

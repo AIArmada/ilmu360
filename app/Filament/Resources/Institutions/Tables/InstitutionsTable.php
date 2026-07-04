@@ -32,12 +32,12 @@ class InstitutionsTable
                 TextColumn::make('type')
                     ->badge()
                     ->sortable(),
-                TextColumn::make('address.state.name')
+                TextColumn::make('address.state')
                     ->label('State')
-                    ->sortable(),
-                TextColumn::make('address.district.name')
-                    ->label('District')
-                    ->sortable(),
+                    ->placeholder('-'),
+                TextColumn::make('address.city')
+                    ->label('City')
+                    ->placeholder('-'),
                 TextColumn::make('status')
                     ->badge()
                     ->sortable(),

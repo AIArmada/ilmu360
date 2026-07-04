@@ -16,6 +16,6 @@ it('renders the events index with content', function () {
     $response = get(route('events.index'));
 
     $response->assertStatus(200);
-    $response->assertSee(__('Find Your Next'));
+    $response->assertSee(__('Cari Majlis Ilmu'));
     $response->assertSee(__('Circle of Knowledge'));
 });

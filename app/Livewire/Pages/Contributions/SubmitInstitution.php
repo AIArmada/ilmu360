@@ -2,11 +2,11 @@
 
 namespace App\Livewire\Pages\Contributions;
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Actions\Contributions\SubmitStagedContributionCreateAction;
 use App\Actions\Location\ResolveGooglePlaceSelectionAction;
 use App\Enums\ContributionSubjectType;
 use App\Forms\InstitutionContributionFormSchema;
-use App\Forms\SharedFormSchema;
 use App\Livewire\Concerns\InteractsWithLocationPickerSelection;
 use App\Models\Institution;
 use App\Models\User;
@@ -34,31 +34,33 @@ class SubmitInstitution extends Component implements HasActions, HasForms
 
     public function mount(): void
     {
-        $this->contributionForm()->fill([
-            'type' => 'masjid',
-            'address' => [
-                'country_id' => SharedFormSchema::preferredPublicCountryId(),
-                'state_id' => null,
-                'district_id' => null,
-                'subdistrict_id' => null,
-                'line1' => null,
-                'line2' => null,
-                'postcode' => null,
-                'lat' => null,
-                'lng' => null,
-                'google_maps_url' => null,
-                'google_place_id' => null,
-                'google_display_name' => null,
-                'google_resolution_source' => null,
-                'google_resolution_status' => null,
-                'google_resolution_fingerprint' => null,
-                'google_resolution_message' => null,
-                'google_maps_normalization_enabled' => true,
-                'google_maps_remote_lookup_enabled' => GooglePlacesConfiguration::isEnabled(),
-                'cascade_reset_guard' => 0,
-                'waze_url' => null,
-            ],
-        ]);
+        OwnerContext::withOwner(null, function (): void {
+            $this->contributionForm()->fill([
+                'type' => 'masjid',
+                'address' => [
+                    'country_id' => null,
+                    'admin_area_1_id' => null,
+                    'admin_area_2_id' => null,
+                    'admin_area_3_id' => null,
+                    'line1' => null,
+                    'line2' => null,
+                    'postcode' => null,
+                    'latitude' => null,
+                    'longitude' => null,
+                    'google_maps_url' => null,
+                    'provider_place_id' => null,
+                    'google_display_name' => null,
+                    'google_resolution_source' => null,
+                    'google_resolution_status' => null,
+                    'google_resolution_fingerprint' => null,
+                    'google_resolution_message' => null,
+                    'google_maps_normalization_enabled' => true,
+                    'google_maps_remote_lookup_enabled' => GooglePlacesConfiguration::isEnabled(),
+                    'cascade_reset_guard' => 0,
+                    'waze_url' => null,
+                ],
+            ]);
+        });
     }
 
     public function form(Schema $schema): Schema
@@ -85,29 +87,31 @@ class SubmitInstitution extends Component implements HasActions, HasForms
 
     public function submit(SubmitStagedContributionCreateAction $submitStagedContributionCreateAction): void
     {
-        $user = auth()->user();
+        OwnerContext::withOwner(null, function () use ($submitStagedContributionCreateAction): void {
+            $user = auth()->user();
 
-        abort_unless($user instanceof User, 403);
+            abort_unless($user instanceof User, 403);
 
-        $submittedName = data_get($this->data, 'name');
+            $submittedName = data_get($this->data, 'name');
 
-        $submitStagedContributionCreateAction->handle(
-            ContributionSubjectType::Institution,
-            $this->contributionForm()->getState(),
-            $user,
-            function (Institution $institution): void {
-                $this->contributionForm()->model($institution)->saveRelationships();
-            },
-            'data',
-        );
+            $submitStagedContributionCreateAction->handle(
+                ContributionSubjectType::Institution,
+                $this->contributionForm()->getState(),
+                $user,
+                function (Institution $institution): void {
+                    $this->contributionForm()->model($institution)->saveRelationships();
+                },
+                'data',
+            );
 
-        if (is_string($submittedName) && filled($submittedName)) {
-            session()->flash('contribution_submission_name', $submittedName);
-        }
+            if (is_string($submittedName) && filled($submittedName)) {
+                session()->flash('contribution_submission_name', $submittedName);
+            }
 
-        $this->redirect(route('contributions.submission-success', [
-            'subjectType' => ContributionSubjectType::Institution->publicRouteSegment(),
-        ]), navigate: true);
+            $this->redirect(route('contributions.submission-success', [
+                'subjectType' => ContributionSubjectType::Institution->publicRouteSegment(),
+            ]), navigate: true);
+        });
     }
 
     public function rendering(object $view): void

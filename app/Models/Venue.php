@@ -2,17 +2,20 @@
 
 namespace App\Models;
 
+use AIArmada\Addressing\Traits\HasAddresses;
+use AIArmada\Contacting\Concerns\HasContactMethods;
+use AIArmada\Contacting\Concerns\HasSocialProfiles;
+use AIArmada\Events\Models\Venue as PackageVenue;
 use App\Enums\VenueType;
+use App\Models\Builders\VenueBuilder;
 use App\Models\Concerns\AuditsModelChanges;
-use App\Models\Concerns\HasAddress;
-use App\Models\Concerns\HasContacts;
-use App\Models\Concerns\HasSocialMedia;
+use App\Models\Concerns\HasPackageContactAliases;
+use App\Models\Concerns\HasPackageSocialAliases;
+use App\Models\Concerns\HasPrimaryAddressAccessors;
 use Database\Factories\VenueFactory;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 use Spatie\DeletedModels\Models\Concerns\KeepsDeletedModels;
@@ -21,10 +24,27 @@ use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
-class Venue extends Model implements AuditableContract, HasMedia
+/**
+ * @property string $id
+ * @property string $name
+ * @property string $slug
+ * @property string|null $description
+ * @property VenueType|string|null $type
+ * @property VenueType|string|null $venue_type
+ * @property array<int, mixed>|string|null $facilities
+ * @property string|null $status
+ * @property string|null $visibility
+ * @property float|int|string|null $latitude
+ * @property float|int|string|null $longitude
+ * @property string|null $google_maps_url
+ * @property string|null $map_url
+ * @property array<string, mixed>|null $metadata
+ * @property bool|null $is_active
+ */
+class Venue extends PackageVenue implements AuditableContract, HasMedia
 {
     /** @use HasFactory<VenueFactory> */
-    use AuditsModelChanges, HasAddress, HasContacts, HasFactory, HasSocialMedia, HasUuids, InteractsWithMedia, KeepsDeletedModels;
+    use AuditsModelChanges, HasAddresses, HasContactMethods, HasFactory, HasPackageContactAliases, HasPackageSocialAliases, HasPrimaryAddressAccessors, HasSocialProfiles, InteractsWithMedia, KeepsDeletedModels;
 
     public $incrementing = false;
 
@@ -33,13 +53,42 @@ class Venue extends Model implements AuditableContract, HasMedia
     /**
      * @var list<string>
      */
+    private const array MetadataBackedAttributes = [
+        'description',
+        'facilities',
+        'is_active',
+    ];
+
+    /**
+     * @var list<string>
+     */
     protected $fillable = [
+        'parent_venue_id',
         'name',
         'slug',
         'description',
         'type',
+        'venue_type',
         'facilities',
+        'line1',
+        'line2',
+        'city',
+        'state',
+        'postcode',
+        'country_code',
+        'country',
+        'latitude',
+        'longitude',
+        'google_place_id',
+        'google_maps_url',
+        'waze_url',
+        'map_url',
+        'directions',
+        'geocoded_at',
+        'geocoding_source',
         'status',
+        'visibility',
+        'metadata',
         'is_active',
     ];
 
@@ -47,10 +96,51 @@ class Venue extends Model implements AuditableContract, HasMedia
     protected function casts(): array
     {
         return [
-            'type' => VenueType::class,
-            'facilities' => 'array',
-            'is_active' => 'boolean',
+            'venue_type' => VenueType::class,
+            'metadata' => 'array',
         ];
+    }
+
+    #[\Override]
+    public function newEloquentBuilder($query): VenueBuilder
+    {
+        return new VenueBuilder($query);
+    }
+
+    #[\Override]
+    protected static function newFactory(): VenueFactory
+    {
+        return VenueFactory::new();
+    }
+
+    #[\Override]
+    public function setAttribute($key, $value): mixed
+    {
+        if ($key === 'type') {
+            return parent::setAttribute('venue_type', $value);
+        }
+
+        if (in_array($key, self::MetadataBackedAttributes, true)) {
+            $this->setMetadataValue($key, $value);
+
+            return $this;
+        }
+
+        return parent::setAttribute($key, $value);
+    }
+
+    #[\Override]
+    public function getAttribute($key): mixed
+    {
+        if ($key === 'type') {
+            return parent::getAttribute('venue_type');
+        }
+
+        if (in_array($key, self::MetadataBackedAttributes, true)) {
+            return $this->metadataValue($key);
+        }
+
+        return parent::getAttribute($key);
     }
 
     /**
@@ -58,7 +148,7 @@ class Venue extends Model implements AuditableContract, HasMedia
      */
     public function events(): HasMany
     {
-        return $this->hasMany(Event::class);
+        return $this->hasMany(Event::class, 'default_venue_id');
     }
 
     /**
@@ -104,5 +194,25 @@ class Venue extends Model implements AuditableContract, HasMedia
             ->performOnCollections('cover')
             ->fit(Fit::Crop, 1200, 675)
             ->format('webp');
+    }
+
+    private function setMetadataValue(string $key, mixed $value): void
+    {
+        $metadata = parent::getAttribute('metadata');
+        $metadata = is_array($metadata) ? $metadata : [];
+        $metadata[$key] = $value;
+
+        parent::setAttribute('metadata', $metadata);
+    }
+
+    private function metadataValue(string $key): mixed
+    {
+        $metadata = parent::getAttribute('metadata');
+
+        if (! is_array($metadata) || ! array_key_exists($key, $metadata)) {
+            return null;
+        }
+
+        return $metadata[$key];
     }
 }

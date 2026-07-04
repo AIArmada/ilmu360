@@ -23,10 +23,7 @@ class BackfillInstitutionSlugs implements ShouldBeUnique, ShouldQueue
     ): void {
         Institution::query()
             ->with([
-                'address.country',
-                'address.state',
-                'address.district',
-                'address.subdistrict',
+                'addresses.country',
             ])
             ->orderBy('name')
             ->orderBy('id')

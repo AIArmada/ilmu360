@@ -6,16 +6,12 @@ use App\Enums\PrayerOffset;
 use App\Enums\PrayerReference;
 use App\Enums\ReferenceType;
 use App\Enums\TimingMode;
-use App\Models\District;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Reference;
 use App\Models\Speaker;
-use App\Models\State;
-use App\Models\Subdistrict;
 use App\Models\Venue;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
 
 it('shows prayer-relative timing text on speaker page instead of absolute time', function () {
     $speaker = Speaker::factory()->create([
@@ -237,24 +233,14 @@ it('hides state when district is kuala lumpur putrajaya or labuan', function () 
         'name' => 'Dewan Utama Test',
     ]);
 
-    $stateId = DB::table('states')->insertGetId([
-        'country_id' => 132,
-        'name' => 'Kuala Lumpur',
-        'country_code' => 'MY',
-    ]);
+    $malaysia = ensureTestMalaysiaCountry();
+    $state = createTestAddressArea('Kuala Lumpur', 1, country: $malaysia);
+    $subdistrict = createTestAddressArea('Setiawangsa', 3, parent: $state, country: $malaysia);
 
-    $subdistrict = Subdistrict::query()->create([
-        'country_id' => 132,
-        'state_id' => (int) $stateId,
+    syncPrimaryAddressForTest($venue, [
+        'state_id' => (string) $state->getKey(),
         'district_id' => null,
-        'country_code' => 'MY',
-        'name' => 'Setiawangsa',
-    ]);
-
-    $venue->address()->update([
-        'state_id' => (int) $stateId,
-        'district_id' => null,
-        'subdistrict_id' => $subdistrict->id,
+        'subdistrict_id' => (string) $subdistrict->getKey(),
     ]);
 
     $event = Event::factory()->create([
@@ -283,31 +269,15 @@ it('deduplicates matching speaker subdistrict and district labels in the speaker
         'status' => 'verified',
     ]);
 
-    $state = State::query()->create([
-        'country_id' => 132,
-        'name' => 'Pahang',
-        'country_code' => 'MY',
-    ]);
+    $malaysia = ensureTestMalaysiaCountry();
+    $state = createTestAddressArea('Pahang', 1, country: $malaysia);
+    $district = createTestAddressArea('Temerloh', 2, parent: $state, country: $malaysia);
+    $subdistrict = createTestAddressArea('Temerloh', 3, parent: $district, country: $malaysia);
 
-    $district = District::query()->create([
-        'country_id' => 132,
-        'state_id' => (int) $state->id,
-        'country_code' => 'MY',
-        'name' => 'Temerloh',
-    ]);
-
-    $subdistrict = Subdistrict::query()->create([
-        'country_id' => 132,
-        'state_id' => (int) $state->id,
-        'district_id' => (int) $district->id,
-        'country_code' => 'MY',
-        'name' => 'Temerloh',
-    ]);
-
-    $speaker->address()->update([
-        'state_id' => (int) $state->id,
-        'district_id' => (int) $district->id,
-        'subdistrict_id' => (int) $subdistrict->id,
+    syncPrimaryAddressForTest($speaker, [
+        'state_id' => (string) $state->getKey(),
+        'district_id' => (string) $district->getKey(),
+        'subdistrict_id' => (string) $subdistrict->getKey(),
     ]);
 
     $this->get(route('speakers.show', $speaker))

@@ -48,7 +48,7 @@ class InstitutionListData extends Data
         $resolvedLogoUrl = $logoUrl !== ''
             ? $logoUrl
             : ($logoFallbackUrl !== '' ? $logoFallbackUrl : $publicImageUrl);
-        $location = AddressHierarchyFormatter::format($institution->address);
+        $location = AddressHierarchyFormatter::format($institution->addressModel);
         $distanceKm = self::distanceKm($attributes['distance_km'] ?? null);
 
         return new self(
@@ -62,7 +62,7 @@ class InstitutionListData extends Data
             public_image_url: $publicImageUrl,
             logo_url: $resolvedLogoUrl,
             cover_url: $coverUrl !== '' ? $coverUrl : null,
-            country: CountryData::fromAddress($institution->address)?->toArray(),
+            country: CountryData::fromAddress($institution->addressModel)?->toArray(),
             location: $location !== '' ? $location : null,
             distance_km: $distanceKm,
             is_following: $isFollowing,

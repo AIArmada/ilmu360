@@ -71,8 +71,8 @@ it('exposes quick-add actions for every update-form event select that supports c
         'discipline_tags',
         'issue_tags',
         'reference_ids',
-        'organizer_institution_id',
-        'organizer_speaker_id',
+        'primary_organizer_institution_id',
+        'primary_organizer_speaker_id',
         'location_institution_id',
         'location_venue_id',
         'speaker_ids',
@@ -88,7 +88,7 @@ it('exposes quick-add actions for every update-form event select that supports c
 });
 
 it('creates pending related records from event update quick-add actions', function () {
-    $institutionId = (eventContributionSelect('organizer_institution_id')->getCreateOptionUsing())(
+    $institutionId = (eventContributionSelect('primary_organizer_institution_id')->getCreateOptionUsing())(
         [
             'name' => 'Masjid Quick Add Update',
             'type' => 'masjid',
@@ -96,7 +96,7 @@ it('creates pending related records from event update quick-add actions', functi
         Schema::make(),
     );
 
-    $speakerId = (eventContributionSelect('organizer_speaker_id')->getCreateOptionUsing())(
+    $speakerId = (eventContributionSelect('primary_organizer_speaker_id')->getCreateOptionUsing())(
         [
             'name' => 'Ustaz Quick Add Update',
             'gender' => 'male',

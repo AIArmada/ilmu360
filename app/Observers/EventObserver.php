@@ -2,6 +2,8 @@
 
 namespace App\Observers;
 
+use AIArmada\Addressing\Models\Address;
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Actions\Events\GenerateEventSlugAction;
 use App\Actions\Slugs\SyncCanonicalSlugAction;
 use App\Actions\Slugs\SyncSlugRedirectAction;
@@ -9,9 +11,7 @@ use App\Enums\EventPrayerTime;
 use App\Enums\PrayerOffset;
 use App\Enums\PrayerReference;
 use App\Enums\TimingMode;
-use App\Models\Address;
 use App\Models\Event;
-use App\Models\Speaker;
 use App\Observers\Concerns\SyncsCurrentAndPreviousValues;
 use App\Services\PrayerTimeService;
 use App\Support\Cache\PublicDirectoryCacheVersion;
@@ -38,18 +38,12 @@ class EventObserver
         $this->calculatePrayerRelativeTime($event);
 
         if (blank($event->slug)) {
-            $speakerSlugSegments = [];
-
-            if ($event->organizer_type === Speaker::class && is_string($event->organizer_id) && $event->organizer_id !== '') {
-                $speakerSlugSegments = $this->generateEventSlugAction->speakerSlugSegmentsForSpeakerIds([$event->organizer_id]);
-            }
-
             $event->slug = $this->generateEventSlugAction->handle(
                 $event->title,
                 $event->starts_at,
                 is_string($event->timezone) ? $event->timezone : null,
                 (string) $event->getKey(),
-                $speakerSlugSegments,
+                [],
             );
         }
     }
@@ -97,12 +91,22 @@ class EventObserver
             );
         }
 
-        if ($event->wasChanged(['title', 'starts_at', 'timezone', 'organizer_type', 'organizer_id'])) {
-            $this->syncCurrentAndPreviousString(
-                $event->title,
-                $event->getPrevious()['title'] ?? null,
-                fn (string $title): bool => $this->generateEventSlugAction->syncEventSlugsForTitle($title),
-            );
+        $needsSlugSync = $event->wasChanged(['title', 'starts_at', 'timezone']);
+
+        if (! $needsSlugSync && $event->wasChanged('metadata')) {
+            $previousMeta = $this->normalizedMetadataPayload($event->getPrevious()['metadata'] ?? null);
+            $currentMeta = $this->normalizedMetadataPayload($event->metadata);
+            $needsSlugSync = ($previousMeta['starts_at'] ?? null) !== ($currentMeta['starts_at'] ?? null);
+        }
+
+        if ($needsSlugSync) {
+            OwnerContext::withOwner(null, function () use ($event): void {
+                $this->syncCurrentAndPreviousString(
+                    $event->title,
+                    $event->getPrevious()['title'] ?? null,
+                    fn (string $title): bool => $this->generateEventSlugAction->syncEventSlugsForTitle($title),
+                );
+            });
         }
 
         if ($event->searchIndexShouldBeUpdated()) {
@@ -126,18 +130,34 @@ class EventObserver
     }
 
     /**
+     * @return array<string, mixed>
+     */
+    private function normalizedMetadataPayload(mixed $metadata): array
+    {
+        $metadata = is_string($metadata) ? json_decode($metadata, true) : $metadata;
+
+        return is_array($metadata) ? $metadata : [];
+    }
+
+    /**
      * Calculate and set the starts_at time for prayer-relative events.
      */
     protected function calculatePrayerRelativeTime(Event $event): void
     {
-        // Only process prayer-relative events
-        if ($event->timing_mode !== TimingMode::PrayerRelative) {
+        $timingMode = $event->timing_mode instanceof TimingMode
+            ? $event->timing_mode
+            : TimingMode::tryFrom((string) $event->timing_mode);
+
+        if ($timingMode !== TimingMode::PrayerRelative) {
             return;
         }
 
-        // Ensure we have prayer reference and offset
-        $prayerReference = $event->prayer_reference;
-        $prayerOffset = $event->prayer_offset;
+        $prayerReference = $event->prayer_reference instanceof PrayerReference
+            ? $event->prayer_reference
+            : PrayerReference::tryFrom((string) $event->prayer_reference);
+        $prayerOffset = $event->prayer_offset instanceof PrayerOffset
+            ? $event->prayer_offset
+            : PrayerOffset::tryFrom((string) $event->prayer_offset);
 
         if (! $prayerReference instanceof PrayerReference || ! $prayerOffset instanceof PrayerOffset) {
             Log::warning('Prayer-relative event missing prayer_reference or prayer_offset', [
@@ -214,19 +234,19 @@ class EventObserver
      */
     protected function getCoordinates(Event $event): ?array
     {
-        // Load venue if not loaded (with address)
+        // Load venue if not loaded (with package addresses)
         if ($event->venue_id && ! $event->relationLoaded('venue')) {
-            $event->load('venue.address');
+            $event->load('venue.addresses');
         }
 
         $venueAddress = $event->venue?->addressModel;
 
         if ($venueAddress instanceof Address
-            && $venueAddress->lat !== null
-            && $venueAddress->lng !== null) {
+            && $venueAddress->latitude !== null
+            && $venueAddress->longitude !== null) {
             return [
-                'lat' => (float) $venueAddress->lat,
-                'lng' => (float) $venueAddress->lng,
+                'lat' => (float) $venueAddress->latitude,
+                'lng' => (float) $venueAddress->longitude,
             ];
         }
 

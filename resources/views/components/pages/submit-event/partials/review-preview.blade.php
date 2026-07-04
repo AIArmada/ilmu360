@@ -12,7 +12,7 @@
     use App\Models\Speaker;
     use App\Models\Tag;
     use App\Models\Venue;
-    use App\Support\Location\PublicCountryRegistry;
+    use App\Support\Location\AddressingCountryResolver;
     use Illuminate\Support\Carbon;
     use Illuminate\Support\Collection;
     use Illuminate\Support\Str;
@@ -75,11 +75,9 @@
         return (string) $value;
     };
 
-    $publicCountryRegistry = app(PublicCountryRegistry::class);
-    $submissionCountryId = is_numeric($get('submission_country_id')) ? (int) $get('submission_country_id') : null;
-    $previewTimezone = $publicCountryRegistry->defaultTimezoneForCountryId(
-        $publicCountryRegistry->normalizeCountryId($submissionCountryId),
-    );
+    $submissionCountryId = is_string($get('submission_country_id')) ? $get('submission_country_id') : null;
+    $previewTimezone = app(AddressingCountryResolver::class)->timezoneFor($submissionCountryId)
+        ?? config('app.timezone', 'UTC');
 
     $toTimeLabel = static function (mixed $value) use ($dash, $previewTimezone): string {
         if (! filled($value)) {
@@ -245,7 +243,21 @@
         ->values()
         ->all();
 
-    $institutionIds = collect([$get('organizer_institution_id'), $get('location_institution_id')])
+    $primaryOrganizerId = $get('primary_organizer_id');
+    $primaryOrganizerKind = $get('primary_organizer_kind');
+
+    if (! in_array($primaryOrganizerKind, ['institution', 'speaker'], true) && filled($primaryOrganizerId)) {
+        if (Institution::query()->whereKey($primaryOrganizerId)->exists()) {
+            $primaryOrganizerKind = 'institution';
+        } elseif (Speaker::query()->whereKey($primaryOrganizerId)->exists()) {
+            $primaryOrganizerKind = 'speaker';
+        }
+    }
+
+    $institutionIds = collect([
+        $primaryOrganizerKind === 'institution' ? $primaryOrganizerId : $get('primary_organizer_institution_id'),
+        $get('location_institution_id'),
+    ])
         ->filter()
         ->values()
         ->all();
@@ -260,16 +272,15 @@
     $spaceId = $get('space_id');
     $spaceName = filled($spaceId) ? Space::query()->whereKey($spaceId)->value('name') : null;
 
-    $organizerType = (string) $get('organizer_type');
-    $organizerName = $organizerType === 'institution'
-        ? ($institutionMap[(string) $get('organizer_institution_id')] ?? null)
-        : (Speaker::query()->whereKey($get('organizer_speaker_id'))->value('name'));
+    $organizerName = $primaryOrganizerKind === 'institution'
+        ? ($institutionMap[(string) $primaryOrganizerId] ?? null)
+        : (Speaker::query()->whereKey($get('primary_organizer_speaker_id') ?: $primaryOrganizerId)->value('name'));
 
     $locationLabel = null;
     if ($toScalar($get('event_format')) === EventFormat::Online->value) {
         $locationLabel = __('Online');
-    } elseif ($organizerType === 'institution' && (bool) $get('location_same_as_institution')) {
-        $locationLabel = $institutionMap[(string) $get('organizer_institution_id')] ?? null;
+    } elseif ($primaryOrganizerKind === 'institution' && (bool) $get('location_same_as_institution')) {
+        $locationLabel = $institutionMap[(string) $primaryOrganizerId] ?? null;
     } elseif ((string) $get('location_type') === 'institution') {
         $locationLabel = $institutionMap[(string) $get('location_institution_id')] ?? null;
     } elseif ((string) $get('location_type') === 'venue') {
@@ -383,7 +394,9 @@
         <dl class="mt-3 grid gap-3 text-sm md:grid-cols-2">
             <div>
                 <dt class="text-slate-500">{{ __('Jenis Penganjur') }}</dt>
-                <dd class="font-medium text-slate-900">{{ $organizerType === 'speaker' ? __('Penceramah') : __('Institusi') }}</dd>
+                <dd class="font-medium text-slate-900">
+                    {{ $primaryOrganizerKind === 'speaker' ? __('Penceramah') : ($primaryOrganizerKind === 'institution' ? __('Institusi') : $dash) }}
+                </dd>
             </div>
             <div>
                 <dt class="text-slate-500">{{ __('Penganjur') }}</dt>

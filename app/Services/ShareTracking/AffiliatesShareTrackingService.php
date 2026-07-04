@@ -429,6 +429,7 @@ final readonly class AffiliatesShareTrackingService
                     'subject_key' => $target['subject_key'],
                     'share_origin' => $resolvedOrigin,
                 ]),
+                'deactivated_at' => null,
             ]);
 
             if (! $this->isCurrentShareToken($link->custom_slug)) {
@@ -458,7 +459,7 @@ final readonly class AffiliatesShareTrackingService
                 'subject_key' => $target['subject_key'],
                 'share_origin' => $resolvedOrigin,
             ]),
-            'is_active' => true,
+            'deactivated_at' => null,
         ]);
     }
 

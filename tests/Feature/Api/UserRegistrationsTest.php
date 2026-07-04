@@ -37,17 +37,21 @@ test('authenticated user can list own registrations', function () {
         'visibility' => 'public',
     ]);
 
-    $registration = Registration::factory()->for($event)->for($user)->create([
-        'name' => 'Ahmad Registrant',
-        'email' => 'ahmad@example.test',
-        'phone' => '+60123456789',
-        'status' => 'registered',
-        'checkin_token' => 'checkin-token-123',
-    ]);
+    $registration = Registration::factory()
+        ->for($event)
+        ->forRegistrant($user)
+        ->withPrimaryParticipant('Ahmad Registrant', 'ahmad@example.test', '+60123456789')
+        ->withCheckinToken('checkin-token-123')
+        ->create([
+            'status' => 'confirmed',
+        ]);
 
-    Registration::factory()->for($otherEvent)->for($otherUser)->create([
-        'status' => 'registered',
-    ]);
+    Registration::factory()
+        ->for($otherEvent)
+        ->forRegistrant($otherUser)
+        ->create([
+            'status' => 'confirmed',
+        ]);
 
     Sanctum::actingAs($user);
 
@@ -63,7 +67,7 @@ test('authenticated user can list own registrations', function () {
         ->assertJsonPath('data.0.name', 'Ahmad Registrant')
         ->assertJsonPath('data.0.email', 'ahmad@example.test')
         ->assertJsonPath('data.0.phone', '+60123456789')
-        ->assertJsonPath('data.0.status', 'registered')
+        ->assertJsonPath('data.0.status', 'confirmed')
         ->assertJsonPath('data.0.checkin_token', 'checkin-token-123')
         ->assertJsonPath('data.0.created_at', $registration->created_at?->toIso8601String())
         ->assertJsonPath('data.0.updated_at', $registration->updated_at?->toIso8601String())

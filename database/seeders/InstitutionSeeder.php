@@ -2,16 +2,18 @@
 
 namespace Database\Seeders;
 
-use App\Enums\ContactCategory;
-use App\Enums\ContactType;
-use App\Models\Country;
+use AIArmada\Addressing\Models\AddressArea;
+use AIArmada\Contacting\Enums\ContactMethodType;
+use AIArmada\Contacting\Enums\ContactPurpose;
 use App\Models\Institution;
-use App\Models\State;
+use Database\Seeders\Concerns\SeedsPackageAddresses;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
 class InstitutionSeeder extends Seeder
 {
+    use SeedsPackageAddresses;
+
     /**
      * Run the database seeds.
      */
@@ -56,9 +58,12 @@ class InstitutionSeeder extends Seeder
             ],
         ];
 
-        $countries = Country::query()->get();
-        $malaysia = $countries->where('iso2', 'MY')->first() ?? $countries->first();
-        $states = State::query()->where('country_id', $malaysia->id)->with(['districts', 'cities'])->get();
+        $malaysia = $this->malaysiaCountry();
+        $states = AddressArea::query()
+            ->where('country_code', 'MY')
+            ->where('level', 1)
+            ->orderBy('name')
+            ->get();
 
         $this->command->info('Seeding featured institutions with coordinates...');
 
@@ -66,10 +71,10 @@ class InstitutionSeeder extends Seeder
         foreach ($realInstitutions as $data) {
             $stateMatch = $states->filter(fn ($s) => Str::contains(strtolower((string) $s->name), strtolower($data['state_name'])))->first();
 
-            // Fallback to random if not found, or skip? better to random.
-            $state = $stateMatch ?? $states->random();
-            $district = collect($state->districts)->isNotEmpty() ? collect($state->districts)->random() : null;
-            $city = collect($state->cities)->isNotEmpty() ? collect($state->cities)->random() : null;
+            $state = $stateMatch ?? ($states->isNotEmpty() ? $states->random() : null);
+            $district = $state instanceof AddressArea
+                ? AddressArea::query()->where('parent_id', $state->id)->inRandomOrder()->first()
+                : null;
 
             $inst = Institution::firstOrCreate(
                 ['name' => $data['name']],
@@ -83,25 +88,24 @@ class InstitutionSeeder extends Seeder
 
             // Create contacts
             $inst->contacts()->firstOrCreate(
-                ['category' => ContactCategory::Email->value],
-                ['value' => Str::slug($data['name']).'@example.com', 'type' => ContactType::Work->value]
+                ['type' => ContactMethodType::Email->value],
+                ['value' => Str::slug($data['name']).'@example.com', 'purpose' => ContactPurpose::General->value]
             );
 
             $inst->contacts()->firstOrCreate(
-                ['category' => ContactCategory::Phone->value],
-                ['value' => '03-'.fake()->numberBetween(1000000, 9999999), 'type' => ContactType::Work->value]
+                ['type' => ContactMethodType::Phone->value],
+                ['value' => '03-'.fake()->numberBetween(1000000, 9999999), 'purpose' => ContactPurpose::General->value]
             );
 
             // Create or update address
-            $inst->address()->updateOrCreate([], [
+            $this->seedPrimaryPackageAddress($inst, [
                 'line1' => $data['line1'],
                 'postcode' => fake()->postcode(),
-                'country_id' => $malaysia?->getKey(),
-                'state_id' => $state->getKey(),
-                'district_id' => $district?->getKey(),
-                'city_id' => $city?->getKey(),
-                'lat' => $data['lat'],
-                'lng' => $data['lng'],
+                'country_id' => $malaysia?->id,
+                'admin_area_1_id' => $state instanceof AddressArea ? $state->id : null,
+                'admin_area_2_id' => $district instanceof AddressArea ? $district->id : null,
+                'latitude' => $data['lat'],
+                'longitude' => $data['lng'],
             ]);
 
             // Skip authorization for speed
@@ -137,14 +141,17 @@ class InstitutionSeeder extends Seeder
             $institutions->each(function (Institution $institution) use ($malaysia, $states): void {
                 if ($states->isNotEmpty()) {
                     $state = $states->random();
-                    $district = collect($state->districts)->isNotEmpty() ? collect($state->districts)->random() : null;
-                    $city = collect($state->cities)->isNotEmpty() ? collect($state->cities)->random() : null;
+                    $district = AddressArea::query()->where('parent_id', $state->id)->inRandomOrder()->first();
 
-                    $institution->address()->update([
-                        'country_id' => $malaysia?->getKey(),
-                        'state_id' => $state->getKey(),
-                        'district_id' => $district?->getKey(),
-                        'city_id' => $city?->getKey(),
+                    $this->seedPrimaryPackageAddress($institution, [
+                        'line1' => $institution->addressModel?->line1,
+                        'line2' => $institution->addressModel?->line2,
+                        'postcode' => $institution->addressModel?->postcode,
+                        'country_id' => $malaysia?->id,
+                        'admin_area_1_id' => $state->id,
+                        'admin_area_2_id' => $district instanceof AddressArea ? $district->id : null,
+                        'latitude' => $institution->addressModel?->latitude,
+                        'longitude' => $institution->addressModel?->longitude,
                     ]);
                 }
 

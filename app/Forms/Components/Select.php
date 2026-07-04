@@ -2,6 +2,8 @@
 
 namespace App\Forms\Components;
 
+use App\Enums\ReferenceType;
+use App\Models\Reference;
 use Closure;
 use Filament\Forms\Components\Select as FilamentSelect;
 use Illuminate\Contracts\Support\Arrayable;
@@ -177,12 +179,26 @@ class Select extends FilamentSelect
         }
 
         $record = $relatedModel->newInstance();
-        $record->fill([
-            $titleAttribute => $search,
-        ]);
+        $record->fill($this->quickAddPayloadFor($relatedModel, $titleAttribute, $search));
         $record->save();
 
         return (string) $record->getKey();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function quickAddPayloadFor(Model $relatedModel, string $titleAttribute, string $search): array
+    {
+        $payload = [
+            $titleAttribute => $search,
+        ];
+
+        if ($relatedModel instanceof Reference) {
+            $payload['type'] = ReferenceType::Book->value;
+        }
+
+        return $payload;
     }
 
     protected function buildQuickAddState(string $search): string

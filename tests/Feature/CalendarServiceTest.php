@@ -137,7 +137,7 @@ describe('CalendarService', function () {
         $venue = Venue::factory()->create([
             'name' => 'Masjid Negara',
         ]);
-        $venue->address()->update([
+        syncPrimaryAddressForTest($venue, [
             'line1' => 'Jalan Perdana, KL',
         ]);
 
@@ -155,7 +155,7 @@ describe('CalendarService', function () {
         $institution = Institution::factory()->create([
             'name' => 'Masjid Jamek',
         ]);
-        $institution->address()->update([
+        syncPrimaryAddressForTest($institution, [
             'line1' => 'Jalan Tun Perak',
         ]);
 

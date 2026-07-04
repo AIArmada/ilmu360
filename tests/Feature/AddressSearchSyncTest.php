@@ -21,7 +21,7 @@ it('queues speaker reindexing when a speaker address changes', function () {
         'is_active' => true,
     ]);
 
-    $speaker->address()->update([
+    syncPrimaryAddressForTest($speaker, [
         'line1' => 'Jalan Baru 1',
     ]);
 
@@ -48,7 +48,7 @@ it('queues institution and related event reindexing when an institution address 
         'is_active' => true,
     ]);
 
-    $institution->address()->update([
+    syncPrimaryAddressForTest($institution, [
         'line1' => 'Jalan Baru 2',
     ]);
 

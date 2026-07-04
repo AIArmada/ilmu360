@@ -15,6 +15,7 @@ use App\Support\Search\SpeakerSearchService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -224,19 +225,50 @@ class Index extends Component
     {
         return app(InstitutionSearchService::class)->applySearch(
             Institution::query()
+                ->select('institutions.*')
                 ->active()
                 ->where('status', 'verified')
-                ->withCount(['events' => function (Builder $query): void {
-                    $query
-                        ->where('events.is_active', true)
-                        ->whereIn('events.status', Event::PUBLIC_STATUSES)
-                        ->where('events.visibility', EventVisibility::Public)
-                        ->where('events.event_structure', '!=', EventStructure::ParentProgram->value)
-                        ->where('events.starts_at', '>=', now());
-                }])
-                ->with(['address.state', 'address.district', 'address.subdistrict', 'media']),
+                ->selectSub($this->institutionPublicEventCountSubquery(), 'events_count')
+                ->with(['addresses', 'media']),
             $search,
         );
+    }
+
+    /**
+     * @return Builder<Event>
+     */
+    private function institutionPublicEventCountSubquery(): Builder
+    {
+        return Event::query()
+            ->selectRaw('count(*)')
+            ->whereRaw("{$this->eventInstitutionIdSelector()} = institutions.id")
+            ->where('events.is_active', true)
+            ->whereIn('events.status', Event::PUBLIC_STATUSES)
+            ->where('events.visibility', EventVisibility::Public)
+            ->where('events.event_structure', '!=', EventStructure::ParentProgram->value)
+            ->where('events.starts_at', '>=', now());
+    }
+
+    private function eventInstitutionIdSelector(): string
+    {
+        return match ($this->databaseDriver()) {
+            'pgsql' => "(events.metadata->>'institution_id')::uuid",
+            default => $this->eventMetadataSqlSelector('institution_id'),
+        };
+    }
+
+    private function eventMetadataSqlSelector(string $key): string
+    {
+        return match ($this->databaseDriver()) {
+            'pgsql' => "events.metadata->>'{$key}'",
+            'mysql', 'mariadb' => "json_unquote(json_extract(events.metadata, '$.\"{$key}\"'))",
+            default => "json_extract(events.metadata, '$.\"{$key}\"')",
+        };
+    }
+
+    private function databaseDriver(): string
+    {
+        return DB::connection()->getDriverName();
     }
 
     /**

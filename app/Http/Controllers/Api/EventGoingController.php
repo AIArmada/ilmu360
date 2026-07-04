@@ -53,10 +53,14 @@ class EventGoingController extends Controller
     )]
     public function store(Request $request, Event $event, MarkEventGoingAction $markEventGoingAction): JsonResponse
     {
+        $scheduleState = $event->schedule_state instanceof ScheduleState
+            ? $event->schedule_state
+            : ScheduleState::tryFrom((string) $event->schedule_state);
+
         if (! $event->is_active
             || ! in_array((string) $event->status, Event::ENGAGEABLE_STATUSES, true)
             || $event->visibility !== EventVisibility::Public
-            || $event->schedule_state === ScheduleState::Postponed) {
+            || $scheduleState === ScheduleState::Postponed) {
             return response()->json([
                 'error' => [
                     'code' => 'forbidden',

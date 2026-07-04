@@ -2,9 +2,9 @@
 
 namespace App\Data\Api\Frontend\Search;
 
+use AIArmada\Addressing\Models\Address;
 use App\Enums\EventFormat;
 use App\Enums\EventType;
-use App\Models\Address;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Speaker;

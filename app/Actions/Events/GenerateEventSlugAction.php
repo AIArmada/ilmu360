@@ -54,10 +54,12 @@ class GenerateEventSlugAction
             ->where(function ($query) use ($normalizedSpeakerName, $speakerIds): void {
                 $query->whereHas('speakers', function ($speakerQuery) use ($normalizedSpeakerName): void {
                     $speakerQuery->where('speakers.name', $normalizedSpeakerName);
-                })->orWhere(function ($organizerQuery) use ($speakerIds): void {
-                    $organizerQuery
-                        ->where('organizer_type', Speaker::class)
-                        ->whereIn('organizer_id', $speakerIds);
+                })->orWhereHas('involvements', function ($involvementQuery) use ($speakerIds): void {
+                    $involvementQuery
+                        ->where('involveable_type', Speaker::class)
+                        ->whereIn('involveable_id', $speakerIds)
+                        ->where('role_code', 'organizer')
+                        ->where('is_primary', true);
                 });
             })
             ->pluck('title');
@@ -79,10 +81,12 @@ class GenerateEventSlugAction
                     $keyPeopleQuery
                         ->where('event_key_people.speaker_id', $normalizedSpeakerId)
                         ->where('event_key_people.role', EventKeyPersonRole::Speaker->value);
-                })->orWhere(function ($organizerQuery) use ($normalizedSpeakerId): void {
-                    $organizerQuery
-                        ->where('organizer_type', Speaker::class)
-                        ->where('organizer_id', $normalizedSpeakerId);
+                })->orWhereHas('involvements', function ($involvementQuery) use ($normalizedSpeakerId): void {
+                    $involvementQuery
+                        ->where('involveable_type', Speaker::class)
+                        ->where('involveable_id', $normalizedSpeakerId)
+                        ->where('role_code', 'organizer')
+                        ->where('is_primary', true);
                 });
             })
             ->pluck('title');
@@ -142,7 +146,7 @@ class GenerateEventSlugAction
     {
         return $this->handle(
             $event->title,
-            $event->starts_at,
+            $this->slugDateForEvent($event),
             is_string($event->timezone) ? $event->timezone : null,
             (string) $event->getKey(),
             $this->speakerSlugSegmentsForEvent($event),
@@ -193,6 +197,23 @@ class GenerateEventSlugAction
                 && $this->speakerSlugSegmentsForEvent($event) === $speakerSlugs);
 
         return $matchingEvents->count() + 1;
+    }
+
+    private function slugDateForEvent(Event $event): CarbonInterface|string|null
+    {
+        $metadataStartsAt = is_array($event->metadata)
+            ? ($event->metadata['starts_at'] ?? null)
+            : null;
+
+        if ($metadataStartsAt instanceof CarbonInterface) {
+            return $metadataStartsAt;
+        }
+
+        if (is_string($metadataStartsAt) && trim($metadataStartsAt) !== '') {
+            return $metadataStartsAt;
+        }
+
+        return $event->starts_at;
     }
 
     private function dateSuffix(CarbonInterface|string|null $date, ?string $timezone): string
@@ -264,7 +285,7 @@ class GenerateEventSlugAction
      */
     private function speakerSlugSegmentsForEvent(Event $event): array
     {
-        $event->loadMissing(['speakers:id,slug', 'organizer']);
+        $event->loadMissing(['speakers:id,slug', 'primaryOrganizerInvolvement.involveable']);
 
         $speakerSlugSegments = $event->speakers
             ->map(function (Speaker $speaker): ?string {
@@ -282,7 +303,7 @@ class GenerateEventSlugAction
             return $speakerSlugSegments;
         }
 
-        $organizer = $event->organizer;
+        $organizer = $event->primaryOrganizerInvolvement?->involveable;
 
         if ($organizer instanceof Speaker && is_string($organizer->slug) && $organizer->slug !== '') {
             return [$organizer->slug];

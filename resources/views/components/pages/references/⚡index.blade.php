@@ -209,7 +209,7 @@ new
                 <span class="bg-linear-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent">{{ __('Knowledge & Guidance') }}</span>
             </h1>
             <p class="mx-auto max-w-2xl text-balance text-lg text-slate-600 md:text-xl">
-                {{ __('Books, articles, videos, and reference works used across the ilmu360° community.') }}
+                {{ __('Books, articles, videos, and reference works used across Majlis Ilmu in the ilmu360° community.') }}
             </p>
 
             <div class="mx-auto mt-8 max-w-xl">

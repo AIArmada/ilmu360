@@ -2,7 +2,7 @@
 
 namespace App\Support\Authz;
 
-use AIArmada\FilamentAuthz\Models\AuthzScope;
+use AIArmada\CommerceSupport\Models\AuthzScope;
 use Illuminate\Support\Facades\Schema;
 
 final class MemberRoleScopes

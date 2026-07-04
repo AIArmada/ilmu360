@@ -175,24 +175,27 @@ class EventInfolist
                             ->schema([
                                 Section::make('Penganjur')
                                     ->schema([
-                                        TextEntry::make('organizer_type')
-                                            ->label('Jenis Penganjur')
-                                            ->formatStateUsing(fn (?string $state): string => self::formatOrganizerType($state))
-                                            ->placeholder('-'),
-                                        TextEntry::make('organizer.name')
+                                        TextEntry::make('organizer')
                                             ->label('Penganjur')
                                             ->placeholder('-')
+                                            ->state(function (Event $record): ?string {
+                                                $organizer = $record->primaryOrganizerInvolvement?->involveable;
+                                                if ($organizer instanceof Institution) {
+                                                    return 'Institusi: '.$organizer->name;
+                                                }
+                                                if ($organizer instanceof Speaker) {
+                                                    return 'Penceramah: '.$organizer->formatted_name;
+                                                }
+
+                                                return null;
+                                            })
                                             ->url(function (Event $record): ?string {
-                                                if (! $record->organizer) {
-                                                    return null;
+                                                $organizer = $record->primaryOrganizerInvolvement?->involveable;
+                                                if ($organizer instanceof Institution) {
+                                                    return self::resourceEditUrl((string) $organizer->getKey(), AdminInstitutionResource::class, AhliInstitutionResource::class);
                                                 }
-
-                                                if ($record->organizer_type === Institution::class) {
-                                                    return self::resourceEditUrl($record->organizer_id, AdminInstitutionResource::class, AhliInstitutionResource::class);
-                                                }
-
-                                                if ($record->organizer_type === Speaker::class) {
-                                                    return self::resourceEditUrl($record->organizer_id, AdminSpeakerResource::class);
+                                                if ($organizer instanceof Speaker) {
+                                                    return self::resourceEditUrl((string) $organizer->getKey(), AdminSpeakerResource::class);
                                                 }
 
                                                 return null;

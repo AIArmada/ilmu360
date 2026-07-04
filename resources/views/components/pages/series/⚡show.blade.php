@@ -72,12 +72,8 @@ new
             ->with([
                 'references',
                 'institution',
-                'institution.address.state',
-                'institution.address.district',
-                'institution.address.subdistrict',
-                'venue.address.state',
-                'venue.address.district',
-                'venue.address.subdistrict',
+                'institution.addresses.country',
+                'venue.addresses.country',
                 'media',
             ])
             ->orderBy('starts_at', 'asc')
@@ -104,12 +100,8 @@ new
             ->with([
                 'references',
                 'institution',
-                'institution.address.state',
-                'institution.address.district',
-                'institution.address.subdistrict',
-                'venue.address.state',
-                'venue.address.district',
-                'venue.address.subdistrict',
+                'institution.addresses.country',
+                'venue.addresses.country',
                 'media',
             ])
             ->orderBy('starts_at', 'desc')

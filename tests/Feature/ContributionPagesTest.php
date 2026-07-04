@@ -1,9 +1,9 @@
 <?php
 
+use AIArmada\Contacting\Enums\ContactMethodType;
+use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\FilamentAuthz\Facades\Authz;
 use AIArmada\Signals\Models\SignalEvent;
-use App\Enums\ContactCategory;
-use App\Enums\ContactType;
 use App\Enums\ContributionRequestStatus;
 use App\Enums\ContributionRequestType;
 use App\Enums\ContributionSubjectType;
@@ -17,25 +17,19 @@ use App\Livewire\Pages\Contributions\SubmitSpeaker;
 use App\Livewire\Pages\Contributions\SuggestUpdate;
 use App\Livewire\Pages\Reports\Create as CreateReportPage;
 use App\Models\ContributionRequest;
-use App\Models\District;
 use App\Models\Event;
 use App\Models\EventSubmission;
 use App\Models\Institution;
 use App\Models\Reference;
 use App\Models\Report;
 use App\Models\Speaker;
-use App\Models\State;
-use App\Models\Subdistrict;
 use App\Models\User;
 use App\Models\Venue;
 use App\Support\Authz\MemberRoleScopes;
 use App\Support\Authz\ScopedMemberRoleSeeder;
-use App\Support\Location\PublicCountryPreference;
-use App\Support\Location\PublicCountryRegistry;
 use Database\Seeders\PermissionSeeder;
 use Filament\Forms\Components\FileUpload;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use Spatie\Permission\PermissionRegistrar;
@@ -330,11 +324,10 @@ it('renders the action modal stack on event update pages for create-option field
         'visibility' => 'public',
         'published_at' => now()->subMinute(),
         'event_type' => [EventType::Iftar->value],
-        'organizer_type' => Institution::class,
-        'organizer_id' => $institution->id,
         'institution_id' => $institution->id,
         'starts_at' => now()->addDays(3)->setTime(20, 0),
     ]);
+    $event->setPrimaryOrganizer($institution);
 
     $this->actingAs($user);
 
@@ -358,11 +351,10 @@ it('renders the suggest update page with translated event form copy when the loc
         'visibility' => 'public',
         'published_at' => now()->subMinute(),
         'event_type' => [EventType::Iftar->value],
-        'organizer_type' => Institution::class,
-        'organizer_id' => $institution->id,
         'institution_id' => $institution->id,
         'starts_at' => now()->addDays(3)->setTime(20, 0),
     ]);
+    $event->setPrimaryOrganizer($institution);
 
     app()->setLocale('ms');
     $this->actingAs($user);
@@ -598,7 +590,7 @@ it('applies direct institution edits for owner maintainers from the suggest upda
         'nickname' => null,
         'status' => 'verified',
     ]);
-    $institution->contacts()->delete();
+    withGlobalOwnerContext(fn () => $institution->contacts()->delete());
 
     assignInstitutionOwner($user, $institution);
     $this->actingAs($user);
@@ -624,13 +616,15 @@ it('applies direct institution edits when an existing phone contact is present o
         'nickname' => null,
         'status' => 'verified',
     ]);
-    $institution->contacts()->delete();
-    $institution->contacts()->create([
-        'category' => ContactCategory::Phone->value,
-        'type' => ContactType::Main->value,
-        'value' => '+60112223344',
-        'is_public' => true,
-    ]);
+    withGlobalOwnerContext(function () use ($institution): void {
+        $institution->contacts()->delete();
+        $institution->contacts()->create([
+            'type' => ContactMethodType::Phone->value,
+            'purpose' => ContactPurpose::General->value,
+            'value' => '+60112223344',
+            'is_public' => true,
+        ]);
+    });
 
     assignInstitutionOwner($user, $institution);
     $this->actingAs($user);
@@ -644,7 +638,7 @@ it('applies direct institution edits when an existing phone contact is present o
         ->assertHasNoErrors();
 
     expect($institution->fresh()->nickname)->toBe('Masjid Telefon')
-        ->and($institution->fresh()->contacts()->where('category', ContactCategory::Phone->value)->value('value'))
+        ->and(withGlobalOwnerContext(fn () => $institution->fresh()->contacts()->where('type', ContactMethodType::Phone->value)->value('value')))
         ->not->toBeNull()
         ->not->toBeEmpty()
         ->and(ContributionRequest::query()->count())->toBe(0);
@@ -655,7 +649,7 @@ it('applies direct institution address edits for owner maintainers from the sugg
     $institution = Institution::factory()->create([
         'status' => 'verified',
     ]);
-    $institution->contacts()->delete();
+    withGlobalOwnerContext(fn () => $institution->contacts()->delete());
 
     assignInstitutionOwner($user, $institution);
     $this->actingAs($user);
@@ -726,6 +720,7 @@ it('applies direct institution gallery edits for owner maintainers from the sugg
 });
 
 it('keeps approved events approved when maintainers apply sensitive ordinary edits from the suggest update page', function () {
+    config(['events.features.owner.enabled' => false]);
     $user = User::factory()->create();
     $institution = Institution::factory()->create([
         'status' => 'verified',
@@ -737,6 +732,7 @@ it('keeps approved events approved when maintainers apply sensitive ordinary edi
         'starts_at' => now()->addDays(4)->setTime(20, 0),
         'ends_at' => now()->addDays(4)->setTime(21, 0),
     ]);
+    $event->setPrimaryOrganizer($institution);
 
     assignInstitutionOwner($user, $institution);
     $this->actingAs($user);
@@ -765,11 +761,10 @@ it('shows the richer event update controls for maintainers', function () {
         'title' => 'Majlis Dengan Media',
         'status' => 'approved',
         'event_type' => [EventType::Iftar->value],
-        'organizer_type' => Institution::class,
-        'organizer_id' => $institution->id,
         'institution_id' => $institution->id,
         'starts_at' => now()->addDays(4)->setTime(20, 0),
     ]);
+    $event->setPrimaryOrganizer($institution);
 
     assignInstitutionOwner($user, $institution);
 
@@ -781,7 +776,7 @@ it('shows the richer event update controls for maintainers', function () {
     ])
         ->assertFormFieldVisible('event_date')
         ->assertFormFieldVisible('prayer_time')
-        ->assertFormFieldVisible('organizer_institution_id')
+        ->assertFormFieldVisible('primary_organizer_institution_id')
         ->assertFormFieldVisible('cover')
         ->assertFormFieldVisible('poster')
         ->assertFormFieldVisible('gallery');
@@ -796,11 +791,10 @@ it('shows visible aspect ratio options for direct event media edits on the kemas
         'title' => 'Majlis Dengan Nisbah Media',
         'status' => 'approved',
         'event_type' => [EventType::Iftar->value],
-        'organizer_type' => Institution::class,
-        'organizer_id' => $institution->id,
         'institution_id' => $institution->id,
         'starts_at' => now()->addDays(4)->setTime(20, 0),
     ]);
+    $event->setPrimaryOrganizer($institution);
 
     assignInstitutionOwner($user, $institution);
 
@@ -843,11 +837,10 @@ it('renders the submit-style waktu field on the event update page', function () 
         'title' => 'Majlis Ada Waktu',
         'status' => 'approved',
         'event_type' => [EventType::Iftar->value],
-        'organizer_type' => Institution::class,
-        'organizer_id' => $institution->id,
         'institution_id' => $institution->id,
         'starts_at' => now()->addDays(3)->setTime(20, 0),
     ]);
+    $event->setPrimaryOrganizer($institution);
 
     $this->actingAs($user);
 
@@ -874,12 +867,11 @@ it('prefills submit-style organizer and location fields on the event update page
         'title' => 'Majlis Dengan Lokasi Venue',
         'status' => 'approved',
         'event_format' => EventFormat::Physical,
-        'organizer_type' => Institution::class,
-        'organizer_id' => $organizerInstitution->id,
         'institution_id' => null,
         'venue_id' => $venue->id,
         'starts_at' => now()->addDays(4)->setTime(20, 0),
     ]);
+    $event->setPrimaryOrganizer($organizerInstitution);
 
     assignInstitutionOwner($user, $organizerInstitution);
 
@@ -889,14 +881,16 @@ it('prefills submit-style organizer and location fields on the event update page
         'subjectType' => ContributionSubjectType::Event->publicRouteSegment(),
         'subjectId' => $event->slug,
     ])
-        ->assertSet('data.organizer_type', 'institution')
-        ->assertSet('data.organizer_institution_id', $organizerInstitution->id)
+        ->assertSet('data.primary_organizer_id', $organizerInstitution->id)
+        ->assertSet('data.primary_organizer_kind', 'institution')
+        ->assertSet('data.primary_organizer_institution_id', $organizerInstitution->id)
         ->assertSet('data.location_same_as_institution', false)
         ->assertSet('data.location_type', 'venue')
         ->assertSet('data.location_venue_id', $venue->id);
 });
 
 it('normalizes submit-style organizer and location changes on the event update page', function () {
+    config(['events.features.owner.enabled' => false]);
     $user = User::factory()->create();
     $institution = Institution::factory()->create([
         'status' => 'verified',
@@ -913,13 +907,12 @@ it('normalizes submit-style organizer and location changes on the event update p
         'status' => 'approved',
         'event_type' => [EventType::Iftar->value],
         'event_format' => EventFormat::Physical,
-        'organizer_type' => Institution::class,
-        'organizer_id' => $institution->id,
         'institution_id' => $institution->id,
         'venue_id' => null,
         'starts_at' => now()->addDays(5)->setTime(20, 0),
         'ends_at' => now()->addDays(5)->setTime(21, 0),
     ]);
+    $event->setPrimaryOrganizer($institution);
 
     assignInstitutionOwner($user, $institution);
     $this->actingAs($user);
@@ -928,16 +921,18 @@ it('normalizes submit-style organizer and location changes on the event update p
         'subjectType' => ContributionSubjectType::Event->publicRouteSegment(),
         'subjectId' => $event->slug,
     ])
-        ->set('data.organizer_type', 'speaker')
-        ->set('data.organizer_speaker_id', $speaker->id)
+        ->set('data.primary_organizer_kind', 'speaker')
+        ->set('data.primary_organizer_id', $speaker->id)
+        ->set('data.primary_organizer_speaker_id', $speaker->id)
         ->set('data.location_same_as_institution', false)
         ->set('data.location_type', 'venue')
         ->set('data.location_venue_id', $venue->id)
         ->call('submit')
         ->assertHasNoErrors();
 
-    expect($event->fresh()->organizer_type)->toBe(Speaker::class)
-        ->and($event->fresh()->organizer_id)->toBe($speaker->id)
+    $involvement = $event->fresh()->primaryOrganizerInvolvement;
+    expect($involvement?->involveable_type)->toBe(Speaker::class)
+        ->and($involvement?->involveable_id)->toBe((string) $speaker->getKey())
         ->and($event->fresh()->institution_id)->toBeNull()
         ->and($event->fresh()->venue_id)->toBe($venue->id)
         ->and($event->fresh()->space_id)->toBeNull()
@@ -967,88 +962,13 @@ it('removes the workflow explainer from the event update page', function () {
         ->assertDontSee(__('History is preserved'));
 });
 
-it('pins the event update timezone to the single-timezone public country scope', function () {
-    $user = User::factory()->create();
-    $institution = Institution::factory()->create([
-        'status' => 'verified',
-    ]);
-    $event = Event::factory()->for($institution)->create([
-        'title' => 'Kelas Daurah Bersama Asatizah',
-        'status' => 'approved',
-        'visibility' => 'public',
-        'published_at' => now()->subDay(),
-        'event_type' => [EventType::Iftar->value],
-        'organizer_type' => Institution::class,
-        'organizer_id' => $institution->id,
-        'institution_id' => $institution->id,
-        'timezone' => 'America/New_York',
-        'starts_at' => now()->addDays(7)->setTime(19, 0),
-        'ends_at' => now()->addDays(7)->setTime(20, 0),
-    ]);
-
-    Livewire::withCookie(PublicCountryPreference::COOKIE_NAME, 'malaysia')
-        ->actingAs($user)
-        ->test(SuggestUpdate::class, [
-            'subjectType' => ContributionSubjectType::Event->publicRouteSegment(),
-            'subjectId' => $event->slug,
-        ])
-        ->set('data.proposer_note', 'Pin timezone to the public country scope.')
-        ->call('submit')
-        ->assertHasNoErrors();
-
-    $request = ContributionRequest::query()->latest('created_at')->first();
-
-    expect($request)->not->toBeNull()
-        ->and(data_get($request?->proposed_data, 'timezone'))->toBe('Asia/Kuala_Lumpur');
-});
-
-it('keeps the event update timezone editable for multi-timezone public countries', function () {
-    config()->set('public-countries.countries.indonesia.enabled', true);
-    config()->set('public-countries.countries.indonesia.coming_soon', false);
-
-    DB::table('countries')->insertGetId([
-        'iso2' => 'ID',
-        'name' => 'Indonesia',
-        'status' => 1,
-        'phone_code' => '62',
-        'iso3' => 'IDN',
-        'region' => 'Asia',
-        'subregion' => 'South-Eastern Asia',
-    ]);
-
-    app()->forgetInstance(PublicCountryRegistry::class);
-    app()->forgetInstance(PublicCountryPreference::class);
-
-    $user = User::factory()->create();
-    $institution = Institution::factory()->create([
-        'status' => 'verified',
-    ]);
-    $event = Event::factory()->for($institution)->create([
-        'title' => 'Majlis Rentas Zon Indonesia',
-        'status' => 'approved',
-        'visibility' => 'public',
-        'published_at' => now()->subDay(),
-        'timezone' => 'Asia/Jayapura',
-        'starts_at' => now()->addDays(7),
-    ]);
-
-    Livewire::withCookie(PublicCountryPreference::COOKIE_NAME, 'indonesia')
-        ->actingAs($user)
-        ->test(SuggestUpdate::class, [
-            'subjectType' => ContributionSubjectType::Event->publicRouteSegment(),
-            'subjectId' => $event->slug,
-        ])
-        ->assertFormFieldVisible('timezone')
-        ->assertSchemaComponentStateSet('timezone', 'Asia/Jayapura', 'form');
-});
-
 it('creates pending update requests for non-maintainer suggestions', function () {
     $user = User::factory()->create();
     $institution = Institution::factory()->create([
         'description' => 'Old description',
         'status' => 'verified',
     ]);
-    $institution->contacts()->delete();
+    withGlobalOwnerContext(fn () => $institution->contacts()->delete());
 
     $this->actingAs($user);
 
@@ -1243,35 +1163,16 @@ it('formats institution membership claim options with the location hierarchy', f
         'status' => 'verified',
         'is_active' => true,
     ]);
-    $countryId = (int) $institution->address()->value('country_id');
+    $country = ensureTestMalaysiaCountry();
+    $state = createTestAddressArea('Selangor', 1, null, $country);
+    $district = createTestAddressArea('Petaling', 2, $state, $country);
+    $subdistrict = createTestAddressArea('Shah Alam', 3, $district, $country);
 
-    $state = State::query()->findOrFail(
-        DB::table('states')->insertGetId([
-            'country_id' => $countryId,
-            'name' => 'Selangor',
-            'country_code' => 'MY',
-        ])
-    );
-
-    $district = District::query()->create([
-        'country_id' => $countryId,
-        'state_id' => (int) $state->getKey(),
-        'country_code' => 'MY',
-        'name' => 'Petaling',
-    ]);
-
-    $subdistrict = Subdistrict::query()->create([
-        'country_id' => $countryId,
-        'state_id' => (int) $state->getKey(),
-        'district_id' => (int) $district->getKey(),
-        'country_code' => 'MY',
-        'name' => 'Shah Alam',
-    ]);
-
-    $institution->address()->update([
-        'state_id' => (int) $state->getKey(),
-        'district_id' => (int) $district->getKey(),
-        'subdistrict_id' => (int) $subdistrict->getKey(),
+    syncPrimaryAddressForTest($institution, [
+        'country_id' => (string) $country->getKey(),
+        'admin_area_1_id' => (string) $state->getKey(),
+        'admin_area_2_id' => (string) $district->getKey(),
+        'admin_area_3_id' => (string) $subdistrict->getKey(),
     ]);
 
     $component = Livewire::actingAs($user)->test(ContributionsIndex::class);
@@ -1514,30 +1415,30 @@ it('keeps speaker update suggestions on a region-only address form', function ()
 
 it('does not treat unchanged speaker update forms as changes when legacy address fields exist', function () {
     $owner = User::factory()->create();
+    $country = ensureTestMalaysiaCountry();
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
         'is_active' => true,
     ]);
 
-    $speaker->contacts()->delete();
-    $speaker->contacts()->create([
-        'category' => ContactCategory::Email->value,
-        'type' => ContactType::Work->value,
-        'value' => 'speaker@example.test',
-        'is_public' => true,
-    ]);
-    $speaker->contacts()->create([
-        'category' => ContactCategory::Phone->value,
-        'type' => ContactType::Work->value,
-        'value' => '+1-878-669-9223',
-        'is_public' => true,
-    ]);
+    withGlobalOwnerContext(function () use ($speaker): void {
+        $speaker->contacts()->delete();
+        $speaker->contacts()->create([
+            'type' => ContactMethodType::Email->value,
+            'purpose' => ContactPurpose::General->value,
+            'value' => 'speaker@example.test',
+            'is_public' => true,
+        ]);
+        $speaker->contacts()->create([
+            'type' => ContactMethodType::Phone->value,
+            'purpose' => ContactPurpose::General->value,
+            'value' => '+1-878-669-9223',
+            'is_public' => true,
+        ]);
+    });
 
-    $speaker->address()->update([
-        'country_id' => 132,
-        'state_id' => null,
-        'district_id' => null,
-        'subdistrict_id' => null,
+    syncPrimaryAddressForTest($speaker, [
+        'country_id' => (string) $country->getKey(),
         'line1' => 'Alamat Warisan',
         'google_maps_url' => 'https://maps.google.com/?q=3.1390,101.6869',
     ]);

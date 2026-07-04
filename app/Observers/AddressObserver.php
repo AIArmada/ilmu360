@@ -2,17 +2,18 @@
 
 namespace App\Observers;
 
+use AIArmada\Addressing\Models\Address;
 use App\Actions\Events\GenerateEventSlugAction;
 use App\Actions\Institutions\GenerateInstitutionSlugAction;
 use App\Actions\Speakers\GenerateSpeakerSlugAction;
 use App\Actions\Venues\GenerateVenueSlugAction;
-use App\Models\Address;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Speaker;
 use App\Models\Venue;
 use App\Support\Cache\PublicDirectoryCacheVersion;
 use App\Support\Cache\PublicListingsCache;
+use App\Support\Location\AddressingCountryResolver;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
 class AddressObserver
@@ -24,7 +25,17 @@ class AddressObserver
         protected GenerateVenueSlugAction $generateVenueSlugAction,
         protected PublicDirectoryCacheVersion $publicDirectoryCacheVersion,
         protected PublicListingsCache $publicListingsCache,
+        protected AddressingCountryResolver $addressingCountryResolver,
     ) {}
+
+    public function saving(Address $address): void
+    {
+        if (filled($address->country_id)) {
+            return;
+        }
+
+        $address->country_id = $this->addressingCountryResolver->resolveId('MY');
+    }
 
     public function saved(Address $address): void
     {
@@ -40,32 +51,34 @@ class AddressObserver
 
     private function syncInstitutionSlug(Address $address): void
     {
-        $address->loadMissing('addressable');
+        $address->loadMissing('addressableLinks.addressable');
 
-        $addressable = $address->addressable;
+        foreach ($address->addressableLinks as $link) {
+            $addressable = $link->addressable;
 
-        if ($addressable instanceof Institution) {
-            $this->generateInstitutionSlugAction->syncInstitutionSlugsForName($addressable->name);
-            $this->syncSearchableModel($addressable);
-            $this->syncSearchableEvents($addressable->events()->get(['events.*']));
-            $this->publicListingsCache->bustMajlisListing();
+            if ($addressable instanceof Institution) {
+                $this->generateInstitutionSlugAction->syncInstitutionSlugsForName($addressable->name);
+                $this->syncSearchableModel($addressable);
+                $this->syncSearchableEvents($addressable->events()->get(['events.*']));
+                $this->publicListingsCache->bustMajlisListing();
 
-            return;
-        }
+                continue;
+            }
 
-        if ($addressable instanceof Speaker) {
-            $this->generateSpeakerSlugAction->syncSpeakerSlugsForName($addressable->name);
-            $this->generateEventSlugAction->syncEventSlugsForSpeakerName($addressable->name);
-            $this->syncSearchableModel($addressable);
-            $this->publicListingsCache->bustMajlisListing();
+            if ($addressable instanceof Speaker) {
+                $this->generateSpeakerSlugAction->syncSpeakerSlugsForName($addressable->name);
+                $this->generateEventSlugAction->syncEventSlugsForSpeakerName($addressable->name);
+                $this->syncSearchableModel($addressable);
+                $this->publicListingsCache->bustMajlisListing();
 
-            return;
-        }
+                continue;
+            }
 
-        if ($addressable instanceof Venue) {
-            $this->generateVenueSlugAction->syncVenueSlugsForName($addressable->name);
-            $this->syncSearchableEvents($addressable->events()->get(['events.*']));
-            $this->publicListingsCache->bustMajlisListing();
+            if ($addressable instanceof Venue) {
+                $this->generateVenueSlugAction->syncVenueSlugsForName($addressable->name);
+                $this->syncSearchableEvents($addressable->events()->get(['events.*']));
+                $this->publicListingsCache->bustMajlisListing();
+            }
         }
     }
 

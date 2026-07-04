@@ -2,18 +2,17 @@
 
 namespace App\Actions\Events;
 
+use AIArmada\Events\Models\EventAccessPolicy;
 use App\Enums\DawahShareOutcomeType;
 use App\Enums\ScheduleState;
 use App\Models\Event;
-use App\Models\EventSettings;
 use App\Models\Registration;
 use App\Models\User;
 use App\Services\Notifications\EventNotificationService;
 use App\Services\ShareTrackingService;
-use Illuminate\Database\Eloquent\Builder;
+use Carbon\CarbonInterface;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -32,11 +31,11 @@ final readonly class RegisterForEventAction
      */
     public function handle(Event $event, array $attributes, ?User $user = null, ?Request $request = null): Registration
     {
-        $event->loadMissing('settings');
+        $event->loadMissing('accessPolicy');
 
-        $settings = $event->settings;
+        $accessPolicy = $event->accessPolicy;
 
-        $this->ensureEventCanBeRegistered($event, $settings);
+        $this->ensureEventCanBeRegistered($event, $accessPolicy);
         $this->ensureGuestHasContact($attributes, $user);
 
         try {
@@ -48,24 +47,28 @@ final readonly class RegisterForEventAction
                     ->lockForUpdate()
                     ->firstOrFail();
 
-                $lockedEvent->load('settings');
+                $lockedEvent->load('accessPolicy');
 
-                $this->ensureCapacityAvailable($lockedEvent, $lockedEvent->settings);
+                $this->ensureCapacityAvailable($lockedEvent, $lockedEvent->accessPolicy);
                 $this->ensureNotAlreadyRegistered($lockedEvent, $attributes, $user);
 
-                $registration = Registration::query()->create([
+                $registration = new Registration([
                     'event_id' => $lockedEvent->getKey(),
-                    'user_id' => $user?->getKey(),
-                    'name' => (string) $attributes['name'],
-                    'email' => $this->nullableString($attributes['email'] ?? null),
-                    'phone' => $this->nullableString($attributes['phone'] ?? null),
-                    'status' => 'registered',
+                    'registrant_type' => $user?->getMorphClass(),
+                    'registrant_id' => $user?->getKey(),
+                    'status' => 'confirmed',
                 ]);
+                $registration->stagePrimaryParticipant(
+                    (string) $attributes['name'],
+                    $this->nullableString($attributes['email'] ?? null),
+                    $this->nullableString($attributes['phone'] ?? null),
+                );
+                $registration->save();
 
                 $lockedEvent->update([
                     'registrations_count' => Registration::query()
                         ->where('event_id', $lockedEvent->getKey())
-                        ->where('status', '!=', 'cancelled')
+                        ->active()
                         ->count(),
                 ]);
 
@@ -100,7 +103,7 @@ final readonly class RegisterForEventAction
         return $registration;
     }
 
-    private function ensureEventCanBeRegistered(Event $event, ?EventSettings $settings): void
+    private function ensureEventCanBeRegistered(Event $event, ?EventAccessPolicy $accessPolicy): void
     {
         if (! in_array((string) $event->status, ['approved', 'pending'], true)) {
             throw ValidationException::withMessages([
@@ -114,19 +117,19 @@ final readonly class RegisterForEventAction
             ]);
         }
 
-        if (! $settings instanceof EventSettings || ! $settings->registration_required) {
+        if (! $accessPolicy instanceof EventAccessPolicy || ! $accessPolicy->registration_required) {
             throw ValidationException::withMessages([
                 'registration' => 'This event does not require registration.',
             ]);
         }
 
-        if ($settings->registration_opens_at instanceof Carbon && $settings->registration_opens_at->isFuture()) {
+        if ($accessPolicy->opens_at instanceof CarbonInterface && $accessPolicy->opens_at->isFuture()) {
             throw ValidationException::withMessages([
                 'registration' => 'Registration has not opened yet.',
             ]);
         }
 
-        if ($settings->registration_closes_at instanceof Carbon && $settings->registration_closes_at->isPast()) {
+        if ($accessPolicy->closes_at instanceof CarbonInterface && $accessPolicy->closes_at->isPast()) {
             throw ValidationException::withMessages([
                 'registration' => 'Registration has closed.',
             ]);
@@ -151,17 +154,17 @@ final readonly class RegisterForEventAction
         ]);
     }
 
-    private function ensureCapacityAvailable(Event $event, ?EventSettings $settings): void
+    private function ensureCapacityAvailable(Event $event, ?EventAccessPolicy $accessPolicy): void
     {
-        $capacity = $settings?->capacity;
+        $capacity = $accessPolicy?->capacity;
 
-        if (! $settings instanceof EventSettings || ! is_int($capacity)) {
+        if (! $accessPolicy instanceof EventAccessPolicy || ! is_int($capacity)) {
             return;
         }
 
         $activeRegistrationsCount = Registration::query()
             ->where('event_id', $event->getKey())
-            ->where('status', '!=', 'cancelled')
+            ->active()
             ->count();
 
         if ($activeRegistrationsCount >= $capacity) {
@@ -178,29 +181,17 @@ final readonly class RegisterForEventAction
     {
         $existingRegistrationQuery = Registration::query()
             ->where('event_id', $event->getKey())
-            ->where('status', '!=', 'cancelled');
+            ->active();
 
         $existingRegistration = $user instanceof User
             ? (clone $existingRegistrationQuery)
-                ->where('user_id', $user->getKey())
+                ->forUser($user)
                 ->exists()
             : (clone $existingRegistrationQuery)
-                ->where(function (Builder $query) use ($attributes): void {
-                    $email = $this->nullableString($attributes['email'] ?? null);
-                    $phone = $this->nullableString($attributes['phone'] ?? null);
-
-                    if ($email !== null) {
-                        $query->where('email', $email);
-                    }
-
-                    if ($phone !== null) {
-                        if ($email !== null) {
-                            $query->orWhere('phone', $phone);
-                        } else {
-                            $query->where('phone', $phone);
-                        }
-                    }
-                })
+                ->forPrimaryContact(
+                    $this->nullableString($attributes['email'] ?? null),
+                    $this->nullableString($attributes['phone'] ?? null),
+                )
                 ->exists();
 
         if ($existingRegistration) {
@@ -225,11 +216,11 @@ final readonly class RegisterForEventAction
     {
         $message = strtolower($exception->getMessage());
 
-        if (str_contains($message, 'registrations_event_id_email_unique')) {
+        if (str_contains($message, 'event_registrations')) {
             return true;
         }
 
-        return str_contains($message, 'registrations')
+        return str_contains($message, 'event_registration')
             && str_contains($message, 'unique');
     }
 }

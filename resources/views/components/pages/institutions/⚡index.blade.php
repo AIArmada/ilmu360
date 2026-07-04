@@ -1,17 +1,16 @@
 <?php
 
-use App\Models\District;
+use App\Enums\EventStructure;
+use App\Enums\EventVisibility;
+use App\Models\Event;
+use AIArmada\Addressing\Models\AddressArea;
 use App\Models\Institution;
-use App\Models\State;
-use App\Models\Subdistrict;
-use App\Support\Cache\SafeModelCache;
-use App\Support\Location\FederalTerritoryLocation;
-use App\Support\Location\PreferredCountryResolver;
 use App\Support\Search\InstitutionSearchService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator as LengthAwarePaginatorContract;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
@@ -39,13 +38,6 @@ class extends Component
     #[Url]
     public ?string $subdistrict_id = null;
 
-    public function mount(): void
-    {
-        if (! filled($this->country_id)) {
-            $this->country_id = $this->defaultCountryId();
-        }
-    }
-
     #[Computed]
     public function institutions(): LengthAwarePaginatorContract
     {
@@ -71,14 +63,49 @@ class extends Component
     private function baseInstitutionsQuery(): Builder
     {
         $query = Institution::query()
+            ->select('institutions.*')
             ->active()
             ->where('status', 'verified')
-            ->withCount(['events' => function ($query) {
-                $query->active();
-            }])
-            ->with(['address.state', 'address.district', 'address.subdistrict', 'media']);
+            ->selectSub($this->publicEventCountSubquery(), 'events_count')
+            ->with(['addresses', 'media']);
 
         return $this->applyLocationScope($query);
+    }
+
+    /**
+     * @return Builder<Event>
+     */
+    private function publicEventCountSubquery(): Builder
+    {
+        return Event::query()
+            ->selectRaw('count(*)')
+            ->whereRaw("{$this->eventInstitutionIdSelector()} = institutions.id")
+            ->where('events.is_active', true)
+            ->whereIn('events.status', Event::PUBLIC_STATUSES)
+            ->where('events.visibility', EventVisibility::Public->value)
+            ->where('events.event_structure', '!=', EventStructure::ParentProgram->value);
+    }
+
+    private function eventInstitutionIdSelector(): string
+    {
+        return match ($this->databaseDriver()) {
+            'pgsql' => "(events.metadata->>'institution_id')::uuid",
+            default => $this->eventMetadataSqlSelector('institution_id'),
+        };
+    }
+
+    private function eventMetadataSqlSelector(string $key): string
+    {
+        return match ($this->databaseDriver()) {
+            'pgsql' => "events.metadata->>'{$key}'",
+            'mysql', 'mariadb' => "json_unquote(json_extract(events.metadata, '$.\"{$key}\"'))",
+            default => "json_extract(events.metadata, '$.\"{$key}\"')",
+        };
+    }
+
+    private function databaseDriver(): string
+    {
+        return DB::connection()->getDriverName();
     }
 
     private function directSearch(string $search): LengthAwarePaginatorContract
@@ -185,15 +212,10 @@ class extends Component
             return [];
         }
 
-        /** @var Collection<int, State> $states */
-        $states = app(SafeModelCache::class)->rememberCollection(
-            key: 'states_all_v1',
-            ttl: 3600,
-            query: State::query()->orderBy('name'),
-        );
-
-        return $states
+        return AddressArea::query()
             ->where('country_id', $countryId)
+            ->where('level', 1)
+            ->orderBy('name')
             ->pluck('name', 'id')
             ->all();
     }
@@ -203,12 +225,12 @@ class extends Component
     {
         $stateId = $this->normalizedLocationId($this->state_id);
 
-        if ($stateId === null || FederalTerritoryLocation::isFederalTerritoryStateId($stateId)) {
+        if ($stateId === null) {
             return [];
         }
 
-        return District::query()
-            ->where('state_id', $stateId)
+        return AddressArea::query()
+            ->where('parent_id', $stateId)
             ->orderBy('name')
             ->pluck('name', 'id')
             ->all();
@@ -217,25 +239,14 @@ class extends Component
     #[Computed]
     public function subdistricts(): array
     {
-        $stateId = $this->normalizedLocationId($this->state_id);
-
-        if ($stateId !== null && FederalTerritoryLocation::isFederalTerritoryStateId($stateId)) {
-            return Subdistrict::query()
-                ->where('state_id', $stateId)
-                ->whereNull('district_id')
-                ->orderBy('name')
-                ->pluck('name', 'id')
-                ->all();
-        }
-
-        $districtId = $this->normalizedLocationId($this->district_id);
+        $districtId = $this->normalizedLocationId($this->district_id) ?? $this->normalizedLocationId($this->state_id);
 
         if ($districtId === null) {
             return [];
         }
 
-        return Subdistrict::query()
-            ->where('district_id', $districtId)
+        return AddressArea::query()
+            ->where('parent_id', $districtId)
             ->orderBy('name')
             ->pluck('name', 'id')
             ->all();
@@ -243,7 +254,7 @@ class extends Component
 
     public function isFederalTerritoryStateSelected(): bool
     {
-        return FederalTerritoryLocation::isFederalTerritoryStateId($this->normalizedLocationId($this->state_id));
+        return false;
     }
 
     private function normalizedSearch(): ?string
@@ -297,7 +308,7 @@ class extends Component
     public function clearFilters(): void
     {
         $this->search = null;
-        $this->country_id = $this->defaultCountryId();
+        $this->country_id = null;
         $this->state_id = null;
         $this->district_id = null;
         $this->subdistrict_id = null;
@@ -315,26 +326,26 @@ class extends Component
             return $query;
         }
 
-        return $query->whereHas('address', function (Builder $addressQuery) use ($countryId, $stateId, $districtId, $subdistrictId): void {
+        return $query->whereHas('addresses', function (Builder $addressQuery) use ($countryId, $stateId, $districtId, $subdistrictId): void {
             if ($countryId !== null) {
                 $addressQuery->where('country_id', $countryId);
             }
 
             if ($stateId !== null) {
-                $addressQuery->where('state_id', $stateId);
+                $addressQuery->where('admin_area_1_id', $stateId);
             }
 
             if ($districtId !== null) {
-                $addressQuery->where('district_id', $districtId);
+                $addressQuery->where('admin_area_2_id', $districtId);
             }
 
             if ($subdistrictId !== null) {
-                $addressQuery->where('subdistrict_id', $subdistrictId);
+                $addressQuery->where('admin_area_3_id', $subdistrictId);
             }
         });
     }
 
-    private function normalizedLocationId(?string $value): ?int
+    private function normalizedLocationId(?string $value): ?string
     {
         if (! is_string($value)) {
             return null;
@@ -342,17 +353,13 @@ class extends Component
 
         $normalized = trim($value);
 
-        if ($normalized === '' || ! ctype_digit($normalized)) {
+        if ($normalized === '' || ! Str::isUuid($normalized)) {
             return null;
         }
 
-        return (int) $normalized;
+        return $normalized;
     }
 
-    private function defaultCountryId(): string
-    {
-        return (string) app(PreferredCountryResolver::class)->resolveId();
-    }
 };
 ?>
 
@@ -375,8 +382,7 @@ class extends Component
     $districtId = $this->district_id;
     $subdistrictId = $this->subdistrict_id;
     $isFederalTerritoryState = $this->isFederalTerritoryStateSelected();
-    $defaultCountryId = (string) app(\App\Support\Location\PreferredCountryResolver::class)->resolveId();
-    $hasScopedFilters = ($countryId !== null && $countryId !== $defaultCountryId) || filled($stateId) || filled($districtId) || filled($subdistrictId);
+    $hasScopedFilters = filled($countryId) || filled($stateId) || filled($districtId) || filled($subdistrictId);
     $submitInstitutionUrl = route('contributions.submit-institution');
     $institutionTotal = $institutions->total();
     $formatInstitutionLocation = static function ($addressModel): string {
@@ -398,7 +404,7 @@ class extends Component
                     <span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500">{{ __('Knowledge & Community') }}</span>
                 </h1>
                 <p class="text-slate-600 text-lg md:text-xl max-w-2xl mx-auto text-balance">
-                    {{ __('Connect with the mosques, suraus, and educational centers nurturing our community.') }}
+                    {{ __('Connect with the mosques, suraus, and educational centers hosting Majlis Ilmu and nurturing our community.') }}
                 </p>
                 
                  <!-- Search Box -->

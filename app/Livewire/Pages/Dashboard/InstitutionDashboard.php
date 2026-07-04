@@ -32,6 +32,8 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema as SchemaFacade;
 use Illuminate\Support\HtmlString;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
@@ -299,28 +301,30 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
 
         return $this->availableInstitutionsQuery($user)
             ->with('media')
-            ->withCount([
-                'events',
-                'members',
-                'followers',
-                'events as public_events_count' => function (Builder $query): void {
+            ->addSelect([
+                'events_count' => $this->institutionEventCountSubquery(),
+                'public_events_count' => $this->institutionEventCountSubquery(function (Builder $query): void {
                     $query
                         ->where('events.is_active', true)
                         ->whereIn('events.status', Event::PUBLIC_STATUSES)
                         ->where('events.visibility', EventVisibility::Public->value);
-                },
-                'events as upcoming_events_count' => function (Builder $query): void {
+                }),
+                'upcoming_events_count' => $this->institutionEventCountSubquery(function (Builder $query): void {
                     $query
                         ->whereNotNull('events.starts_at')
                         ->where('events.starts_at', '>=', now())
                         ->where('events.starts_at', '<=', now()->addDays(30));
-                },
-                'events as draft_events_count' => function (Builder $query): void {
+                }),
+                'draft_events_count' => $this->institutionEventCountSubquery(function (Builder $query): void {
                     $query->where('events.status', 'draft');
-                },
-                'events as pending_events_count' => function (Builder $query): void {
+                }),
+                'pending_events_count' => $this->institutionEventCountSubquery(function (Builder $query): void {
                     $query->whereIn('events.status', ['pending', 'needs_changes']);
-                },
+                }),
+            ])
+            ->withCount([
+                'members',
+                'followers',
             ])
             ->orderBy('name')
             ->get();
@@ -700,6 +704,23 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
     }
 
     /**
+     * @param  (callable(Builder<Event>): void)|null  $callback
+     * @return Builder<Event>
+     */
+    protected function institutionEventCountSubquery(?callable $callback = null): Builder
+    {
+        $query = Event::query()
+            ->selectRaw('count(*)')
+            ->whereRaw("{$this->eventInstitutionIdSelector()} = institutions.id");
+
+        if ($callback !== null) {
+            $callback($query);
+        }
+
+        return $query;
+    }
+
+    /**
      * @return Builder<Event>
      */
     protected function institutionEventCardQuery(Institution $institution): Builder
@@ -777,6 +798,21 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
         return array_key_exists($value, $this->eventVisibilityOptions())
             ? $value
             : 'all';
+    }
+
+    protected function eventInstitutionIdSelector(): string
+    {
+        $metadataSelector = match (DB::connection()->getDriverName()) {
+            'pgsql' => "(events.metadata->>'institution_id')::uuid",
+            'mysql', 'mariadb' => "json_unquote(json_extract(events.metadata, '$.\"institution_id\"'))",
+            default => "json_extract(events.metadata, '$.\"institution_id\"')",
+        };
+
+        if (! SchemaFacade::hasColumn('events', 'institution_id')) {
+            return $metadataSelector;
+        }
+
+        return "coalesce(events.institution_id, {$metadataSelector})";
     }
 
     protected function normalizeEventSort(string $value): string

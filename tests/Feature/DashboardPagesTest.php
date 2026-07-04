@@ -1,7 +1,7 @@
 <?php
 
+use AIArmada\CommerceSupport\Models\Role;
 use AIArmada\FilamentAuthz\Facades\Authz;
-use AIArmada\FilamentAuthz\Models\Role;
 use App\Enums\ContributionSubjectType;
 use App\Enums\EventStructure;
 use App\Enums\EventVisibility;
@@ -122,8 +122,8 @@ it('renders the reference-inspired user dashboard with real saved search and not
         'starts_at' => now()->addDays(9),
     ]);
 
-    Registration::factory()->for($registeredEvent)->for($user)->create([
-        'status' => 'registered',
+    Registration::factory()->for($registeredEvent)->forRegistrant($user)->create([
+        'status' => 'confirmed',
     ]);
 
     $user->savedEvents()->attach($savedEvent->id);
@@ -623,8 +623,8 @@ it('merges overlapping planner relationships into one calendar entry', function 
     $user->savedEvents()->attach($event->id);
     $user->goingEvents()->attach($event->id);
 
-    Registration::factory()->for($event)->for($user)->create([
-        'status' => 'registered',
+    Registration::factory()->for($event)->forRegistrant($user)->create([
+        'status' => 'confirmed',
     ]);
 
     $component = Livewire::actingAs($user)->test(UserDashboard::class);
@@ -694,16 +694,20 @@ it('shows institution profile and events for members without a separate registra
         'starts_at' => now()->addDays(6),
     ]);
 
-    Registration::factory()->for($eventInInstitution)->for($attendee)->create([
-        'name' => 'Ahmad Registrant',
-        'email' => 'ahmad@example.com',
-        'status' => 'registered',
-    ]);
+    Registration::factory()
+        ->for($eventInInstitution)
+        ->forRegistrant($attendee)
+        ->withPrimaryParticipant('Ahmad Registrant', 'ahmad@example.com')
+        ->create([
+            'status' => 'confirmed',
+        ]);
 
-    Registration::factory()->for($eventOutsideInstitution)->create([
-        'name' => 'External Registrant',
-        'status' => 'registered',
-    ]);
+    Registration::factory()
+        ->for($eventOutsideInstitution)
+        ->withPrimaryParticipant('External Registrant')
+        ->create([
+            'status' => 'confirmed',
+        ]);
 
     $response = $this->withSession(['locale' => 'en'])
         ->actingAs($user)
@@ -1117,15 +1121,21 @@ it('clearly distinguishes public and internal institution data for members', fun
         'starts_at' => now()->addDays(4),
     ]);
 
-    Registration::factory()->for($publicEvent)->for($attendee)->create([
-        'name' => 'Public Event Registrant',
-        'status' => 'registered',
-    ]);
+    Registration::factory()
+        ->for($publicEvent)
+        ->forRegistrant($attendee)
+        ->withPrimaryParticipant('Public Event Registrant')
+        ->create([
+            'status' => 'confirmed',
+        ]);
 
-    Registration::factory()->for($internalEvent)->for($attendee)->create([
-        'name' => 'Internal Event Registrant',
-        'status' => 'registered',
-    ]);
+    Registration::factory()
+        ->for($internalEvent)
+        ->forRegistrant($attendee)
+        ->withPrimaryParticipant('Internal Event Registrant')
+        ->create([
+            'status' => 'confirmed',
+        ]);
 
     $response = $this->withSession(['locale' => 'en'])
         ->actingAs($user)

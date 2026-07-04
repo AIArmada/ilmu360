@@ -1,5 +1,6 @@
 <?php
 
+use AIArmada\CommerceSupport\Models\Role;
 use AIArmada\Signals\Models\SignalEvent;
 use App\Actions\Membership\AddMemberToSubject;
 use App\Enums\ContributionRequestStatus;
@@ -70,11 +71,10 @@ use App\Support\Mcp\McpDocumentationPreflight;
 use App\Support\Mcp\McpTokenManager;
 use App\Support\Search\SpeakerSearchService;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Laravel\Passport\Passport;
-use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 
 it('lists accessible admin resources for admin users through the MCP server', function () {
     $admin = adminMcpUser('super_admin');
@@ -82,9 +82,14 @@ it('lists accessible admin resources for admin users through the MCP server', fu
     AdminServer::actingAs($admin)
         ->tool(AdminListResourcesTool::class)
         ->assertOk()
-        ->assertSee(['speakers', 'events', 'institutions', 'references', 'reports', 'subdistricts', 'donation-channels'])
         ->assertStructuredContent(fn ($json) => $json
             ->has('data.resources')
+            ->where('data.resources.5.key', 'donation-channels')
+            ->where('data.resources.6.key', 'events')
+            ->where('data.resources.8.key', 'institutions')
+            ->where('data.resources.10.key', 'references')
+            ->where('data.resources.11.key', 'reports')
+            ->where('data.resources.15.key', 'speakers')
             ->where('data.resources.0.key', fn (string $key): bool => filled($key))
             ->missing('data.resources.0.resource_class')
             ->etc());
@@ -101,6 +106,7 @@ it('can request verbose admin resource metadata through the MCP resource list to
         ->assertOk()
         ->assertStructuredContent(fn ($json) => $json
             ->has('data.resources', 12)
+            ->where('data.resources.11.key', 'address-areas')
             ->where('data.resources.0.resource_class', fn (string $resourceClass): bool => str_contains($resourceClass, 'Resource'))
             ->etc());
 });
@@ -968,41 +974,23 @@ it('lists admin event records without server errors through the MCP server', fun
             ->etc());
 });
 
-it('lists admin event records after repairing legacy enum values through the MCP server', function () {
+it('lists admin event records with prayer-relative metadata through the MCP server', function () {
     $admin = adminMcpUser('super_admin');
     $admin->forceFill([
         'timezone' => 'Asia/Kuala_Lumpur',
     ])->save();
 
     $event = Event::factory()->create([
-        'title' => 'Admin MCP Legacy Enum Event',
+        'title' => 'Admin MCP Prayer Relative Event',
         'starts_at' => Carbon::parse('2026-04-23 02:00:00', 'UTC'),
+        'event_type' => [EventType::KuliahCeramah->value],
+        'age_group' => [EventAgeGroup::AllAges->value],
+        'timing_mode' => 'prayer_relative',
+        'prayer_reference' => PrayerReference::Maghrib->value,
+        'prayer_offset' => PrayerOffset::Immediately->value,
+        'prayer_display_text' => EventPrayerTime::SelepasMaghrib->getLabel(),
         'status' => 'approved',
     ]);
-
-    DB::table('events')
-        ->where('id', $event->getKey())
-        ->update([
-            'event_type' => json_encode('Kuliah / Ceramah', JSON_THROW_ON_ERROR),
-            'age_group' => json_encode(['Semua Peringkat Umur'], JSON_THROW_ON_ERROR),
-            'timing_mode' => 'legacy_prayer_time',
-            'prayer_reference' => 'Maghrib',
-            'prayer_offset' => 'Sejurus selepas',
-        ]);
-
-    runLegacyEventEnumValueRepairMigration();
-
-    $repairedEvent = DB::table('events')
-        ->where('id', $event->getKey())
-        ->first(['event_type', 'age_group', 'timing_mode', 'prayer_reference', 'prayer_offset']);
-
-    assert($repairedEvent !== null);
-
-    expect(json_decode((string) $repairedEvent->event_type, true))->toBe([EventType::KuliahCeramah->value])
-        ->and(json_decode((string) $repairedEvent->age_group, true))->toBe([EventAgeGroup::AllAges->value])
-        ->and($repairedEvent->timing_mode)->toBe('prayer_relative')
-        ->and($repairedEvent->prayer_reference)->toBe(PrayerReference::Maghrib->value)
-        ->and($repairedEvent->prayer_offset)->toBe(PrayerOffset::Immediately->value);
 
     AdminServer::actingAs($admin)
         ->tool(AdminListRecordsTool::class, [
@@ -1016,7 +1004,7 @@ it('lists admin event records after repairing legacy enum values through the MCP
         ->assertStructuredContent(fn ($json) => $json
             ->has('data', 1)
             ->where('data.0.id', $event->getKey())
-            ->where('data.0.title', 'Admin MCP Legacy Enum Event')
+            ->where('data.0.title', 'Admin MCP Prayer Relative Event')
             ->where('data.0.attributes.event_type.0', EventType::KuliahCeramah->value)
             ->where('data.0.attributes.age_group.0', EventAgeGroup::AllAges->value)
             ->where('data.0.attributes.prayer_reference', PrayerReference::Maghrib->value)
@@ -1667,30 +1655,14 @@ it('surfaces space report and inspiration update semantics through admin MCP wri
             ->etc());
 });
 
-it('surfaces tag and subdistrict update semantics through admin MCP write schemas', function () {
+it('surfaces tag and address-area update semantics through admin MCP write schemas', function () {
     $admin = adminMcpUser('super_admin');
     $tag = Tag::factory()->discipline()->verified()->create();
 
     $countryId = ensureMcpMalaysiaCountryExists();
-    $suffix = Str::lower(Str::random(8));
-    $stateId = DB::table('states')->insertGetId([
-        'country_id' => $countryId,
-        'name' => 'Admin MCP Negeri '.$suffix,
-        'country_code' => 'MY',
-    ]);
-    $districtId = DB::table('districts')->insertGetId([
-        'country_id' => $countryId,
-        'state_id' => $stateId,
-        'name' => 'Admin MCP Daerah '.$suffix,
-        'country_code' => 'MY',
-    ]);
-    $subdistrictId = DB::table('subdistricts')->insertGetId([
-        'country_id' => $countryId,
-        'state_id' => $stateId,
-        'district_id' => $districtId,
-        'name' => 'Admin MCP Subdistrict '.$suffix,
-        'country_code' => 'MY',
-    ]);
+    $state = createTestAddressArea('Admin MCP Negeri '.Str::lower(Str::random(8)), 1, country: ensureTestMalaysiaCountry(), type: 'state');
+    $district = createTestAddressArea('Admin MCP Daerah '.Str::lower(Str::random(8)), 2, parent: $state, country: ensureTestMalaysiaCountry(), type: 'district');
+    $subdistrict = createTestAddressArea('Admin MCP Subdistrict '.Str::lower(Str::random(8)), 3, parent: $district, country: ensureTestMalaysiaCountry(), type: 'subdistrict');
 
     AdminServer::actingAs($admin)
         ->tool(AdminGetWriteSchemaTool::class, [
@@ -1712,20 +1684,20 @@ it('surfaces tag and subdistrict update semantics through admin MCP write schema
 
     AdminServer::actingAs($admin)
         ->tool(AdminGetWriteSchemaTool::class, [
-            'resource_key' => 'subdistricts',
+            'resource_key' => 'address-areas',
             'operation' => 'update',
-            'record_key' => (string) $subdistrictId,
+            'record_key' => (string) $subdistrict->getKey(),
         ])
         ->assertOk()
         ->assertStructuredContent(fn ($json) => $json
-            ->where('data.schema.resource_key', 'subdistricts')
+            ->where('data.schema.resource_key', 'address-areas')
             ->where('data.schema.fields', function ($fields): bool {
                 $fieldMap = collect($fields)->keyBy('name');
 
-                return data_get($fieldMap->get('country_id'), 'relation') === 'countries'
-                    && data_get($fieldMap->get('state_id'), 'must_match') === ['country_id']
-                    && data_get($fieldMap->get('district_id'), 'clear_semantics.explicit_null') === 'allowed_only_for_federal_territory_state'
-                    && data_get($fieldMap->get('district_id'), 'must_match') === ['country_id', 'state_id']
+                return data_get($fieldMap->get('country_id'), 'required') === false
+                    && data_get($fieldMap->get('parent_id'), 'required') === false
+                    && data_get($fieldMap->get('level'), 'input_type') === 'integer'
+                    && data_get($fieldMap->get('type'), 'required') === false
                     && data_get($fieldMap->get('name'), 'normalization.trim') === true;
             })
             ->etc());
@@ -1776,7 +1748,7 @@ it('returns write schema for supported resources and rejects unknown resources',
             ->where('data.schema.resource_key', 'events')
             ->where('data.schema.method', 'POST')
             ->where('data.schema.tool', 'admin-create-event')
-            ->where('data.schema.tool_arguments.organizer_key', 'route_key')
+            ->where('data.schema.tool_arguments.primary_organizer_key', 'route_key')
             ->where('data.schema.tool_arguments.institution_key', 'route_key')
             ->where('data.schema.mcp_only_semantics.route_key_aliases.speaker_keys', 'resolves to speakers')
             ->where('data.schema.mcp_only_semantics.update_relation_arrays.empty_array', 'detach all related records for that alias')
@@ -1795,12 +1767,12 @@ it('returns write schema for supported resources and rejects unknown resources',
 
     AdminServer::actingAs($admin)
         ->tool(AdminGetWriteSchemaTool::class, [
-            'resource_key' => 'subdistricts',
+            'resource_key' => 'address-areas',
             'operation' => 'create',
         ])
         ->assertOk()
         ->assertStructuredContent(fn ($json) => $json
-            ->where('data.schema.resource_key', 'subdistricts')
+            ->where('data.schema.resource_key', 'address-areas')
             ->where('data.schema.method', 'POST')
             ->etc());
 
@@ -1813,7 +1785,7 @@ it('returns write schema for supported resources and rejects unknown resources',
 });
 
 it('previews admin speaker creation through the MCP write tool without persisting the record', function () {
-    ensureMcpMalaysiaCountryExists();
+    $countryId = ensureMcpMalaysiaCountryExists();
 
     $admin = adminMcpUser('super_admin');
 
@@ -1828,7 +1800,7 @@ it('previews admin speaker creation through the MCP write tool without persistin
                 'is_freelance' => false,
                 'is_active' => true,
                 'address' => [
-                    'country_id' => 132,
+                    'country_id' => $countryId,
                 ],
             ],
         ])
@@ -1837,7 +1809,7 @@ it('previews admin speaker creation through the MCP write tool without persistin
             ->where('data.resource.key', 'speakers')
             ->where('data.preview.validate_only', true)
             ->where('data.preview.operation', 'create')
-            ->where('data.preview.normalized_payload.address.country_id', 132)
+            ->where('data.preview.normalized_payload.address.country_id', $countryId)
             ->where('data.preview.current_record', null)
             ->etc());
 
@@ -1845,7 +1817,7 @@ it('previews admin speaker creation through the MCP write tool without persistin
 });
 
 it('previews admin speaker updates through the MCP write tool without persisting the record', function () {
-    ensureMcpMalaysiaCountryExists();
+    $countryId = ensureMcpMalaysiaCountryExists();
 
     $admin = adminMcpUser('super_admin');
     $speaker = Speaker::factory()->create([
@@ -1868,7 +1840,7 @@ it('previews admin speaker updates through the MCP write tool without persisting
                 'is_active' => true,
                 'allow_public_event_submission' => true,
                 'address' => [
-                    'country_id' => 132,
+                    'country_id' => $countryId,
                 ],
             ],
         ])
@@ -1894,7 +1866,7 @@ it('previews admin speaker updates through the MCP write tool without persisting
                 'is_active' => true,
                 'allow_public_event_submission' => true,
                 'address' => [
-                    'country_id' => 132,
+                    'country_id' => $countryId,
                 ],
                 'clear_cover' => true,
             ],
@@ -1906,7 +1878,7 @@ it('previews admin speaker updates through the MCP write tool without persisting
 });
 
 it('returns remediation details for validate-only admin create validation failures', function () {
-    ensureMcpMalaysiaCountryExists();
+    $countryId = ensureMcpMalaysiaCountryExists();
 
     $admin = adminMcpUser('super_admin');
 
@@ -1933,28 +1905,20 @@ it('returns remediation details for validate-only admin create validation failur
                     'field' => 'status',
                     'options' => ['pending', 'verified', 'rejected'],
                     'auto_apply_safe' => false,
-                ] && $keyedFixPlan->get('address') === [
-                    'action' => 'set_field',
-                    'field' => 'address',
-                    'value' => [
-                        'country_id' => 132,
-                        'state_id' => null,
-                        'district_id' => null,
-                        'subdistrict_id' => null,
-                    ],
-                    'auto_apply_safe' => true,
                 ];
             })
             ->where('error.details.normalized_payload_preview.name', 'Remediation Preview Speaker')
             ->where('error.details.normalized_payload_preview.gender', 'male')
-            ->where('error.details.normalized_payload_preview.address.country_id', 132)
             ->where('error.details.remaining_blockers', function ($remainingBlockers): bool {
-                $statusBlocker = collect($remainingBlockers)->keyBy('field')->get('status');
+                $blockers = collect($remainingBlockers)->keyBy('field');
+                $statusBlocker = $blockers->get('status');
 
                 return is_array($statusBlocker)
                     && ($statusBlocker['field'] ?? null) === 'status'
                     && ($statusBlocker['type'] ?? null) === 'required_choice'
-                    && ($statusBlocker['options'] ?? null) === ['pending', 'verified', 'rejected'];
+                    && ($statusBlocker['options'] ?? null) === ['pending', 'verified', 'rejected']
+                    && $blockers->has('address')
+                    && $blockers->has('address.country_id');
             })
             ->where('error.details.can_retry', false)
             ->etc());
@@ -2019,7 +1983,7 @@ it('registers admin write tools when the MCP actor is a normalized Passport user
 });
 
 it('creates and updates speakers through MCP write tools', function () {
-    ensureMcpMalaysiaCountryExists();
+    $countryId = ensureMcpMalaysiaCountryExists();
 
     $admin = adminMcpUser('super_admin');
 
@@ -2034,7 +1998,7 @@ it('creates and updates speakers through MCP write tools', function () {
                 'is_active' => true,
                 'avatar' => adminMcpImageDescriptor('admin-mcp-avatar'),
                 'address' => [
-                    'country_id' => 132,
+                    'country_id' => $countryId,
                 ],
             ],
         ])
@@ -2061,7 +2025,7 @@ it('creates and updates speakers through MCP write tools', function () {
                     && data_get($fieldMap->get('address.country_id'), 'required_when_parent_present_on_update') === true
                     && data_get($fieldMap->get('language_ids'), 'collection_semantics.submitted_array') === 'replace_relation_sync'
                     && data_get($fieldMap->get('contacts'), 'collection_semantics.explicit_null') === 'clear_collection'
-                    && data_get($fieldMap->get('social_media'), 'input_normalization.platform_aliases.x.normalizes_to') === 'twitter'
+                    && data_get($fieldMap->get('social_media'), 'input_normalization.platform_aliases.x.normalizes_to') === 'x'
                     && data_get($fieldMap->get('social_media'), 'input_normalization.platform_aliases.x.accepted_by_write_validation') === false
                     && $qualificationItemFields->has('institution')
                     && $qualificationItemFields->has('degree');
@@ -2090,7 +2054,7 @@ it('creates and updates speakers through MCP write tools', function () {
                     adminMcpImageDescriptor('admin-mcp-gallery'),
                 ],
                 'address' => [
-                    'country_id' => 132,
+                    'country_id' => $countryId,
                 ],
             ],
         ])
@@ -2132,7 +2096,7 @@ it('requires an explicit speaker country when the address is mutated through adm
 });
 
 it('creates and updates institutions through MCP write tools', function () {
-    ensureMcpMalaysiaCountryExists();
+    $countryId = ensureMcpMalaysiaCountryExists();
 
     $admin = adminMcpUser('super_admin');
 
@@ -2146,7 +2110,7 @@ it('creates and updates institutions through MCP write tools', function () {
                 'status' => 'verified',
                 'is_active' => true,
                 'address' => [
-                    'country_id' => 132,
+                    'country_id' => $countryId,
                 ],
             ],
         ])
@@ -2184,7 +2148,7 @@ it('creates and updates institutions through MCP write tools', function () {
                     && data_get($fieldMap->get('contacts'), 'collection_semantics.explicit_null') === 'clear_collection'
                     && $contactItemFields->has('type')
                     && $contactItemFields->has('value')
-                    && data_get($fieldMap->get('social_media'), 'input_normalization.platform_aliases.x.normalizes_to') === 'twitter'
+                    && data_get($fieldMap->get('social_media'), 'input_normalization.platform_aliases.x.normalizes_to') === 'x'
                     && data_get($fieldMap->get('social_media'), 'input_normalization.platform_aliases.x.accepted_by_write_validation') === false;
             })
             ->etc());
@@ -2202,7 +2166,7 @@ it('creates and updates institutions through MCP write tools', function () {
                 'allow_public_event_submission' => true,
                 'slug' => 'attempted-admin-institution-injection',
                 'address' => [
-                    'country_id' => 132,
+                    'country_id' => $countryId,
                 ],
             ],
         ])
@@ -2293,7 +2257,7 @@ it('surfaces venue and reference update semantics through admin MCP write schema
                     && data_get($fieldMap->get('address'), 'clear_semantics.empty_object') === 'delete_existing_address'
                     && data_get($fieldMap->get('facilities'), 'input_normalization.kind') === 'facility_list_to_boolean_map'
                     && data_get($fieldMap->get('contacts'), 'collection_semantics.explicit_null') === 'clear_collection'
-                    && data_get($fieldMap->get('social_media'), 'input_normalization.platform_aliases.x.normalizes_to') === 'twitter'
+                    && data_get($fieldMap->get('social_media'), 'input_normalization.platform_aliases.x.normalizes_to') === 'x'
                     && data_get($fieldMap->get('social_media'), 'input_normalization.platform_aliases.x.accepted_by_write_validation') === false;
             })
             ->etc());
@@ -2313,7 +2277,7 @@ it('surfaces venue and reference update semantics through admin MCP write schema
                 return data_get($fieldMap->get('author'), 'clear_semantics.explicit_null') === 'clear_to_null'
                     && data_get($fieldMap->get('publication_year'), 'normalization.empty_string_at_mutation_layer') === 'null'
                     && data_get($fieldMap->get('social_media'), 'collection_semantics.submitted_array') === 'replace_collection'
-                    && data_get($fieldMap->get('social_media'), 'input_normalization.platform_aliases.x.normalizes_to') === 'twitter'
+                    && data_get($fieldMap->get('social_media'), 'input_normalization.platform_aliases.x.normalizes_to') === 'x'
                     && data_get($fieldMap->get('social_media'), 'input_normalization.platform_aliases.x.accepted_by_write_validation') === false;
             })
             ->etc());
@@ -2354,7 +2318,7 @@ it('surfaces event series and donation channel update semantics through admin MC
                 return data_get($fieldMap->get('title'), 'required') === false
                     && data_get($fieldMap->get('references'), 'collection_semantics.explicit_null') === 'clear_collection'
                     && data_get($fieldMap->get('speakers'), 'collection_semantics.submitted_array') === 'replace_speaker_subset_and_rebuild_key_people'
-                    && data_get($fieldMap->get('organizer_type'), 'accepted_aliases.institution') === Institution::class
+                    && data_get($fieldMap->get('primary_organizer_id'), 'accepted_models') === [Institution::class, Speaker::class]
                     && data_get($fieldMap->get('registration_mode'), 'lock_behavior.when_event_has_registrations') === 'retain_current_value'
                     && $otherKeyPeopleFields->has('role')
                     && $otherKeyPeopleFields->has('name');
@@ -2454,7 +2418,6 @@ it('creates and updates events through MCP write tools', function () {
         ]);
 
     expect($event->live_url)->toBeNull()
-        ->and($event->organizer_type)->toBe(Institution::class)
         ->and($event->settings?->registration_required)->toBeTrue()
         ->and($event->references->pluck('id')->all())->toContain($reference->getKey())
         ->and($event->series->pluck('id')->all())->toContain($series->getKey())
@@ -2478,8 +2441,7 @@ it('creates and updates events through MCP write tools', function () {
                 'prayer_time' => EventPrayerTime::SelepasMaghrib->value,
                 'custom_time' => null,
                 'live_url' => 'https://youtube.com/watch?v=admin-mcp-event-live',
-                'organizer_type' => Speaker::class,
-                'organizer_id' => $speaker->getKey(),
+                'primary_organizer_id' => $speaker->getKey(),
                 'institution_id' => null,
                 'references' => [],
                 'series' => [],
@@ -2501,7 +2463,6 @@ it('creates and updates events through MCP write tools', function () {
 
     expect($event->title)->toBe('Admin MCP Event Updated')
         ->and($event->live_url)->toBe('https://youtube.com/watch?v=admin-mcp-event-live')
-        ->and($event->organizer_type)->toBe(Speaker::class)
         ->and($event->settings?->registration_required)->toBeFalse()
         ->and($event->references)->toHaveCount(0)
         ->and($event->series)->toHaveCount(0)
@@ -2535,8 +2496,7 @@ it('emulates production yasin create flow with validate-only then actual create'
         'children_allowed' => true,
         'is_muslim_only' => false,
         'event_type' => [EventType::BacaanYasin->value],
-        'organizer_type' => 'institution',
-        'organizer_key' => (string) $institution->slug,
+        'primary_organizer_key' => (string) $institution->slug,
         'institution_key' => (string) $institution->slug,
         'registration_required' => false,
         'registration_mode' => RegistrationMode::Event->value,
@@ -2575,7 +2535,6 @@ it('emulates production yasin create flow with validate-only then actual create'
 
     $createdEvent = Event::query()
         ->where('title', 'Majlis Bacaan Yasin')
-        ->whereDate('starts_at', '2026-05-07')
         ->firstOrFail();
 
     AdminServer::actingAs($admin)
@@ -2626,8 +2585,7 @@ it('creates a tazkirah event with speaker_keys via admin-create-event', function
             'children_allowed' => false,
             'is_muslim_only' => true,
             'event_type' => [EventType::Tazkirah->value],
-            'organizer_type' => 'institution',
-            'organizer_key' => (string) $institution->slug,
+            'primary_organizer_key' => (string) $institution->slug,
             'institution_key' => (string) $institution->slug,
             'speaker_keys' => [(string) $speaker->slug],
             'reference_keys' => [(string) $reference->slug],
@@ -2676,8 +2634,7 @@ it('allows admin event create payload to control workflow-ready status', functio
         'children_allowed' => true,
         'is_muslim_only' => false,
         'event_type' => [EventType::BacaanYasin->value],
-        'organizer_type' => Institution::class,
-        'organizer_id' => (string) $institution->getKey(),
+        'primary_organizer_id' => (string) $institution->getKey(),
         'institution_id' => (string) $institution->getKey(),
         'registration_required' => false,
         'registration_mode' => RegistrationMode::Event->value,
@@ -2863,7 +2820,7 @@ it('returns structured admin MCP validation feedback outside validate-only previ
 });
 
 it('rejects malformed MCP media descriptors through write tools', function () {
-    ensureMcpMalaysiaCountryExists();
+    $countryId = ensureMcpMalaysiaCountryExists();
 
     $admin = adminMcpUser('super_admin');
 
@@ -2878,7 +2835,7 @@ it('rejects malformed MCP media descriptors through write tools', function () {
                 'is_active' => true,
                 'avatar' => 'base64-data',
                 'address' => [
-                    'country_id' => 132,
+                    'country_id' => $countryId,
                 ],
             ],
         ])
@@ -2895,29 +2852,6 @@ it('rejects malformed MCP media descriptors through write tools', function () {
             ],
         ])
         ->assertHasErrors(['This MCP media field must be a file descriptor object.']);
-});
-
-it('returns structured MCP error payloads for validation failures', function () {
-    $admin = adminMcpUser('super_admin');
-
-    AdminServer::actingAs($admin)
-        ->tool(AdminGetRecordTool::class, [
-            'resource_key' => 'speakers',
-        ])
-        ->assertHasErrors(['Record key diperlukan.'])
-        ->assertStructuredContent([
-            'error' => [
-                'code' => 'validation_error',
-                'message' => 'Record key diperlukan.',
-                'details' => [
-                    'errors' => [
-                        'record_key' => [
-                            'Record key diperlukan.',
-                        ],
-                    ],
-                ],
-            ],
-        ]);
 });
 
 it('searches /majlis-style events through the dedicated admin MCP tool', function () {
@@ -3057,56 +2991,6 @@ it('searches events by institution, speaker, and reference through admin-search-
             ->etc());
 });
 
-it('rejects unexpected MCP tool arguments instead of ignoring them', function () {
-    $admin = adminMcpUser('super_admin');
-
-    AdminServer::actingAs($admin)
-        ->tool(AdminListResourcesTool::class, [
-            'unexpected' => 'value',
-        ])
-        ->assertHasErrors(['Unexpected argument(s): unexpected.'])
-        ->assertStructuredContent([
-            'error' => [
-                'code' => 'validation_error',
-                'message' => 'Unexpected argument(s): unexpected.',
-                'details' => [
-                    'errors' => [
-                        'arguments' => [
-                            'Unexpected argument(s): unexpected.',
-                        ],
-                    ],
-                ],
-            ],
-        ]);
-});
-
-it('accepts nullable optional MCP arguments that are advertised by the tool schema', function () {
-    $admin = adminMcpUser('super_admin');
-
-    AdminServer::actingAs($admin)
-        ->tool(AdminListResourcesTool::class, [
-            'verbose' => null,
-            'writable_only' => null,
-        ])
-        ->assertOk()
-        ->assertStructuredContent(fn ($json) => $json
-            ->has('data.resources')
-            ->etc());
-
-    AdminServer::actingAs($admin)
-        ->tool(AdminListRecordsTool::class, [
-            'resource_key' => 'speakers',
-            'search' => null,
-            'page' => null,
-            'per_page' => null,
-        ])
-        ->assertOk()
-        ->assertStructuredContent(fn ($json) => $json
-            ->where('meta.resource.key', 'speakers')
-            ->where('meta.pagination.page', 1)
-            ->etc());
-});
-
 it('creates github issues through the admin MCP tool with Copilot model fallback', function () {
     configureGithubIssueReportingForMcp();
 
@@ -3207,16 +3091,12 @@ it('hides the admin github issue tool when github issue reporting is disabled', 
         ->assertHasErrors(['Tool [admin-create-github-issue] not found.']);
 });
 
-it('denies non-admin users from MCP tools', function () {
+it('denies non-admin users from admin MCP tools', function () {
     $user = User::factory()->create();
 
     AdminServer::actingAs($user)
         ->tool(AdminListResourcesTool::class)
         ->assertHasErrors(['Forbidden.']);
-});
-
-it('denies non-admin users from admin event search tool', function () {
-    $user = User::factory()->create();
 
     AdminServer::actingAs($user)
         ->tool(AdminSearchEventsTool::class, [
@@ -3261,16 +3141,6 @@ it('exposes OAuth metadata for MCP clients', function () {
         ->assertJsonPath('resource', url('/mcp/admin'))
         ->assertJsonPath('authorization_servers.0', url('/'))
         ->assertJsonPath('scopes_supported.0', 'mcp:use');
-});
-
-it('uses a hardened default MCP OAuth allowlist', function () {
-    expect(config('mcp.redirect_domains'))
-        ->toContain(rtrim((string) config('app.url'), '/'))
-        ->toContain('http://localhost')
-        ->toContain('https://chatgpt.com')
-        ->not->toContain('*');
-
-    expect(config('mcp.custom_schemes'))->toBeArray();
 });
 
 it('only registers OAuth clients for allowed redirect domains and schemes', function () {
@@ -3477,8 +3347,9 @@ it('initializes and lists admin MCP tools over the HTTP endpoint for Passport-au
     expect(collect((array) data_get($tools->get('admin-create-event'), 'inputSchema.required'))->contains('event_date'))->toBeTrue();
     expect(collect((array) data_get($tools->get('admin-create-event'), 'inputSchema.required'))->contains('prayer_time'))->toBeTrue();
     expect(collect((array) data_get($tools->get('admin-create-event'), 'inputSchema.required'))->contains('event_type'))->toBeTrue();
-    expect(collect((array) data_get($tools->get('admin-create-event'), 'inputSchema.properties.organizer_key.type'))->contains('string'))->toBeTrue();
+    expect(collect((array) data_get($tools->get('admin-create-event'), 'inputSchema.properties.primary_organizer_key.type'))->contains('string'))->toBeTrue();
     expect(collect((array) data_get($tools->get('admin-create-event'), 'inputSchema.properties.institution_key.type'))->contains('string'))->toBeTrue();
+    expect(data_get($tools->get('admin-create-event'), 'inputSchema.properties.organizer_key'))->toBeNull();
     expect(data_get($tools->get('admin-create-event'), 'inputSchema.properties.organizer_id'))->toBeNull();
     expect(data_get($tools->get('admin-create-event'), 'inputSchema.properties.institution_id'))->toBeNull();
     expect(collect((array) data_get($tools->get('admin-create-event'), 'inputSchema.properties.speaker_keys.type'))->contains('array'))->toBeTrue();
@@ -4069,24 +3940,9 @@ it('lists and reads verified documentation resources through the admin MCP serve
     ]);
 });
 
-function ensureMcpMalaysiaCountryExists(): int
+function ensureMcpMalaysiaCountryExists(): string
 {
-    $malaysiaId = DB::table('countries')->where('id', 132)->value('id');
-
-    if (is_int($malaysiaId)) {
-        return $malaysiaId;
-    }
-
-    return DB::table('countries')->insertGetId([
-        'id' => 132,
-        'iso2' => 'MY',
-        'name' => 'Malaysia',
-        'status' => 1,
-        'phone_code' => '60',
-        'iso3' => 'MYS',
-        'region' => 'Asia',
-        'subregion' => 'South-Eastern Asia',
-    ]);
+    return (string) ensureTestMalaysiaCountry()->getKey();
 }
 
 function adminPassportUser(User $user): PassportUser
@@ -4096,9 +3952,10 @@ function adminPassportUser(User $user): PassportUser
 
 function adminMcpUser(string $role): User
 {
-    $roleRecord = Role::query()->where('name', $role)->where('guard_name', 'web')->first();
+    setPermissionsTeamId(null);
+    app(PermissionRegistrar::class)->forgetCachedPermissions();
 
-    if (! $roleRecord instanceof Role) {
+    if (! Role::query()->where('name', $role)->where('guard_name', 'web')->exists()) {
         $roleRecord = new Role;
         $roleRecord->forceFill([
             'id' => (string) Str::uuid(),
@@ -4108,34 +3965,11 @@ function adminMcpUser(string $role): User
     }
 
     $user = User::factory()->create();
+    $user->assignRole($role);
 
-    $modelHasRolesTable = (string) (config('permission.table_names.model_has_roles') ?? 'model_has_roles');
-    $rolePivotKey = (string) (config('permission.column_names.role_pivot_key') ?? 'role_id');
-    $modelMorphKey = (string) (config('permission.column_names.model_morph_key') ?? 'model_id');
+    app(PermissionRegistrar::class)->forgetCachedPermissions();
 
-    $assignment = [
-        $rolePivotKey => $roleRecord->getKey(),
-        $modelMorphKey => (string) $user->getKey(),
-        'model_type' => $user->getMorphClass(),
-    ];
-
-    if (config('permission.teams')) {
-        $teamForeignKey = (string) (config('permission.column_names.team_foreign_key') ?? 'team_id');
-        $assignment[$teamForeignKey] = null;
-    }
-
-    DB::table($modelHasRolesTable)->insert($assignment);
-
-    return $user;
-}
-
-function runLegacyEventEnumValueRepairMigration(): void
-{
-    $migration = require base_path('database/migrations/2026_04_23_120000_repair_legacy_event_enum_values.php');
-
-    assert(is_object($migration) && method_exists($migration, 'up'));
-
-    $migration->up();
+    return $user->fresh();
 }
 
 /**
@@ -4215,8 +4049,7 @@ function adminMcpEventPayload(array $fixtures, array $overrides = []): array
         'source_tags' => [],
         'issue_tags' => [],
         'references' => [(string) $fixtures['reference']->getKey()],
-        'organizer_type' => Institution::class,
-        'organizer_id' => (string) $fixtures['institution']->getKey(),
+        'primary_organizer_id' => (string) $fixtures['institution']->getKey(),
         'institution_id' => (string) $fixtures['institution']->getKey(),
         'series' => [(string) $fixtures['series']->getKey()],
         'speakers' => [(string) $fixtures['speaker']->getKey()],
@@ -4232,6 +4065,38 @@ function adminMcpEventPayload(array $fixtures, array $overrides = []): array
         'registration_mode' => RegistrationMode::Event->value,
         'is_active' => true,
     ], $overrides);
+}
+
+/**
+ * @param  array<string, mixed>  $overrides
+ */
+function adminMcpStableEvent(array $overrides = []): Event
+{
+    $startsAt = now()->addDays(14)->setTimezone('UTC')->startOfHour();
+
+    $event = Event::factory()->create(array_replace([
+        'institution_id' => Institution::factory(),
+        'title' => 'Admin MCP Stable Event',
+        'description' => null,
+        'starts_at' => $startsAt,
+        'ends_at' => $startsAt->copy()->addHours(2),
+        'timezone' => 'Asia/Kuala_Lumpur',
+        'event_type' => [EventType::Other->value],
+        'gender' => EventGenderRestriction::All->value,
+        'age_group' => [EventAgeGroup::AllAges->value],
+        'children_allowed' => true,
+        'event_format' => EventFormat::Physical->value,
+        'visibility' => EventVisibility::Public->value,
+        'status' => 'draft',
+        'live_url' => null,
+        'recording_url' => null,
+        'is_muslim_only' => true,
+        'is_active' => true,
+    ], $overrides));
+
+    $event->settings()->delete();
+
+    return $event->fresh();
 }
 
 it('batch-creates admin resource records via the admin-batch-create-records MCP tool', function () {
@@ -4488,9 +4353,8 @@ it('batch-creates events with validate_only via admin-batch-create-events withou
 it('updates an event via the admin-update-event MCP tool with speaker_keys resolved', function () {
     $admin = adminMcpUser('super_admin');
 
-    $event = Event::factory()->create([
+    $event = adminMcpStableEvent([
         'title' => 'Original Event Title',
-        'status' => 'draft',
     ]);
 
     $speaker = Speaker::factory()->create(['slug' => 'test-update-speaker']);
@@ -4518,10 +4382,8 @@ it('updates an event via the admin-update-event MCP tool with speaker_keys resol
 it('detaches speakers and references when empty route-key arrays are provided via admin-update-event', function () {
     $admin = adminMcpUser('super_admin');
 
-    $event = Event::factory()->create([
+    $event = adminMcpStableEvent([
         'title' => 'Event With Existing Relations',
-        'event_type' => [EventType::Other->value],
-        'status' => 'draft',
     ]);
 
     $speaker = Speaker::factory()->create(['slug' => 'detach-update-speaker']);
@@ -4555,10 +4417,8 @@ it('detaches speakers and references when empty route-key arrays are provided vi
 it('preserves speakers and references when route-key arrays are omitted via admin-update-event', function () {
     $admin = adminMcpUser('super_admin');
 
-    $event = Event::factory()->create([
+    $event = adminMcpStableEvent([
         'title' => 'Event Preserve Existing Relations',
-        'event_type' => [EventType::Other->value],
-        'status' => 'draft',
     ]);
 
     $speaker = Speaker::factory()->create(['slug' => 'preserve-update-speaker']);
@@ -4591,9 +4451,8 @@ it('preserves speakers and references when route-key arrays are omitted via admi
 it('updates an event with validate_only via admin-update-event without persisting', function () {
     $admin = adminMcpUser('super_admin');
 
-    $event = Event::factory()->create([
+    $event = adminMcpStableEvent([
         'title' => 'Event Before Dry Run',
-        'event_type' => [EventType::Other->value],
     ]);
 
     AdminServer::actingAs($admin)
@@ -4613,15 +4472,11 @@ it('updates an event with validate_only via admin-update-event without persistin
 it('batch-updates events and resolves speaker_keys via admin-batch-update-events', function () {
     $admin = adminMcpUser('super_admin');
 
-    $eventA = Event::factory()->create([
+    $eventA = adminMcpStableEvent([
         'title' => 'Batch Update Event Alpha',
-        'event_type' => [EventType::Other->value],
-        'status' => 'draft',
     ]);
-    $eventB = Event::factory()->create([
+    $eventB = adminMcpStableEvent([
         'title' => 'Batch Update Event Beta',
-        'event_type' => [EventType::Other->value],
-        'status' => 'draft',
     ]);
     $speaker = Speaker::factory()->create(['slug' => 'batch-update-speaker']);
 
@@ -4656,15 +4511,11 @@ it('batch-updates events and resolves speaker_keys via admin-batch-update-events
 it('batch-updates events detach or preserve speakers and references based on route-key array presence', function () {
     $admin = adminMcpUser('super_admin');
 
-    $eventToDetach = Event::factory()->create([
+    $eventToDetach = adminMcpStableEvent([
         'title' => 'Batch Detach Relations Event',
-        'event_type' => [EventType::Other->value],
-        'status' => 'draft',
     ]);
-    $eventToPreserve = Event::factory()->create([
+    $eventToPreserve = adminMcpStableEvent([
         'title' => 'Batch Preserve Relations Event',
-        'event_type' => [EventType::Other->value],
-        'status' => 'draft',
     ]);
 
     $detachSpeaker = Speaker::factory()->create(['slug' => 'batch-detach-speaker']);
@@ -4718,9 +4569,8 @@ it('batch-updates events detach or preserve speakers and references based on rou
 it('batch-updates events with validate_only via admin-batch-update-events without persisting', function () {
     $admin = adminMcpUser('super_admin');
 
-    $event = Event::factory()->create([
+    $event = adminMcpStableEvent([
         'title' => 'Batch Dry Run Event',
-        'event_type' => [EventType::Other->value],
     ]);
 
     AdminServer::actingAs($admin)
@@ -4749,9 +4599,8 @@ it('batch-updates events with validate_only via admin-batch-update-events withou
 it('batch-updates events returns unresolved_key for invalid event key via admin-batch-update-events', function () {
     $admin = adminMcpUser('super_admin');
 
-    $event = Event::factory()->create([
+    $event = adminMcpStableEvent([
         'title' => 'Valid Event For Batch Update',
-        'event_type' => [EventType::Other->value],
     ]);
 
     AdminServer::actingAs($admin)

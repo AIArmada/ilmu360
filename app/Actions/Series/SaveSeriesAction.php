@@ -32,6 +32,7 @@ final readonly class SaveSeriesAction
             'description' => array_key_exists('description', $data)
                 ? $this->normalizeOptionalString($data['description'])
                 : $series->description,
+            'series_type' => $this->normalizeSeriesType($data['series_type'] ?? $series->series_type ?? 'recurring'),
             'visibility' => array_key_exists('visibility', $data)
                 ? $this->normalizeVisibility($data['visibility'])
                 : $this->normalizeVisibility($series->visibility ?? ($creating ? 'public' : null)),
@@ -126,6 +127,19 @@ final readonly class SaveSeriesAction
         }
 
         return $visibility;
+    }
+
+    private function normalizeSeriesType(mixed $value): string
+    {
+        $seriesType = is_scalar($value) ? trim((string) $value) : '';
+
+        if ($seriesType === '') {
+            throw ValidationException::withMessages([
+                'series_type' => __('This field is required.'),
+            ]);
+        }
+
+        return $seriesType;
     }
 
     private function normalizeRequiredString(mixed $value, string $field): string

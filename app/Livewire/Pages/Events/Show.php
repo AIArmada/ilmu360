@@ -2,13 +2,18 @@
 
 namespace App\Livewire\Pages\Events;
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Events\Enums\RegistrationMode;
+use App\Actions\Events\MarkEventGoingAction;
 use App\Actions\Events\RecordEventCheckInAction;
+use App\Actions\Events\RemoveEventGoingAction;
 use App\Actions\Events\ResolveEventCheckInStateAction;
+use App\Actions\Events\SaveEventAction;
+use App\Actions\Events\UnsaveEventAction;
 use App\Enums\DawahShareOutcomeType;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventStructure;
 use App\Enums\EventVisibility;
-use App\Enums\RegistrationMode;
 use App\Enums\ScheduleState;
 use App\Filament\Ahli\Resources\Events\EventResource as AhliEventResource;
 use App\Models\Event;
@@ -19,7 +24,6 @@ use App\Models\EventSubmission;
 use App\Models\Institution;
 use App\Models\Speaker;
 use App\Models\User;
-use App\Models\Venue;
 use App\Services\CalendarService;
 use App\Services\ShareTrackingService;
 use App\States\EventStatus\Approved;
@@ -42,6 +46,11 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 class Show extends Component
 {
     public Event $event;
+
+    public function boot(): void
+    {
+        OwnerContext::setForRequest(null);
+    }
 
     public bool $isSaved = false;
 
@@ -73,49 +82,45 @@ class Show extends Component
             abort(404);
         }
 
-        $event->load([
-            'media',
-            'organizer',
-            'institution.media',
-            'institution.address.state',
-            'institution.address.city',
-            'institution.address.district',
-            'institution.address.subdistrict',
-            'institution.contacts',
-            'venue.media',
-            'venue.address.state',
-            'venue.address.city',
-            'venue.address.district',
-            'venue.address.subdistrict',
-            'speakers.media',
-            'keyPeople.speaker.media',
-            'tags',
-            'donationChannel.media',
-            'settings',
-            'series',
-            'references.media',
-            'languages',
-            'latestPublishedChangeAnnouncement.replacementEvent.media',
-            'latestPublishedChangeAnnouncement.replacementEvent.institution.media',
-            'latestPublishedChangeAnnouncement.replacementEvent.speakers.media',
-            'latestPublishedReplacementAnnouncement.replacementEvent.media',
-            'latestPublishedReplacementAnnouncement.replacementEvent.institution.media',
-            'latestPublishedReplacementAnnouncement.replacementEvent.speakers.media',
-            'publishedChangeAnnouncements.replacementEvent',
-            'childEvents.media',
-            'childEvents.institution.media',
-            'childEvents.institution.address.state',
-            'childEvents.institution.address.district',
-            'childEvents.venue.media',
-            'childEvents.venue.address.state',
-            'childEvents.venue.address.district',
-        ]);
+        OwnerContext::withOwner(null, function () use ($event): void {
+            $event->load([
+                'media',
+                'primaryOrganizerInvolvement.involveable',
+                'institution.media',
+                'institution.addresses.country',
+                'institution.contacts',
+                'venue.media',
+                'venue.addresses.country',
+                'speakers.media',
+                'keyPeople.speaker.media',
+                'tags',
+                'donationChannel.media',
+                'accessPolicy',
+                'series',
+                'references.media',
+                'languages',
+                'latestPublishedChangeAnnouncement.replacementEvent.media',
+                'latestPublishedChangeAnnouncement.replacementEvent.institution.media',
+                'latestPublishedChangeAnnouncement.replacementEvent.speakers.media',
+                'latestPublishedReplacementAnnouncement.replacementEvent.media',
+                'latestPublishedReplacementAnnouncement.replacementEvent.institution.media',
+                'latestPublishedReplacementAnnouncement.replacementEvent.speakers.media',
+                'publishedChangeAnnouncements.replacementEvent',
+                'childEvents.media',
+                'childEvents.institution.media',
+                'childEvents.institution.addresses.country',
+                'childEvents.venue.media',
+                'childEvents.venue.addresses.country',
+            ]);
 
-        $event->loadMorph('organizer', [
-            Institution::class => ['media', 'contacts'],
-            Speaker::class => ['media'],
-            Venue::class => ['media'],
-        ]);
+            if ($involveable = $event->primaryOrganizerInvolvement?->involveable) {
+                if ($involveable instanceof Institution) {
+                    $involveable->loadMissing(['media', 'contacts']);
+                } elseif ($involveable instanceof Speaker) {
+                    $involveable->loadMissing(['media']);
+                }
+            }
+        });
 
         $this->event = $event;
         $this->syncEngagementStates();
@@ -213,13 +218,7 @@ class Show extends Component
 
     public function registrationMode(): RegistrationMode
     {
-        $mode = $this->event->settings?->registration_mode;
-
-        if ($mode instanceof RegistrationMode) {
-            return $mode;
-        }
-
-        return RegistrationMode::Event;
+        return $this->event->resolvedRegistrationMode();
     }
 
     /**
@@ -480,24 +479,35 @@ class Show extends Component
         }
 
         if ($this->{$stateProperty}) {
-            $user->{$relation}()->detach($this->event->id);
-            $this->event->decrement($countColumn);
+            $result = match ($relation) {
+                'savedEvents' => app(UnsaveEventAction::class)->handle((string) $this->event->getKey(), $user),
+                'goingEvents' => app(RemoveEventGoingAction::class)->handle((string) $this->event->getKey(), $user),
+                default => ['deleted' => false, $countColumn => max(0, (int) ($this->event->{$countColumn} ?? 0))],
+            };
+
+            $updatedCount = max(0, (int) ($result[$countColumn] ?? 0));
+            $this->event->forceFill([$countColumn => $updatedCount]);
 
             if ($countProperty) {
-                $this->{$countProperty} = max(0, $this->{$countProperty} - 1);
+                $this->{$countProperty} = $updatedCount;
             }
 
             $this->{$stateProperty} = false;
         } else {
-            $user->{$relation}()->syncWithoutDetaching([$this->event->id]);
-            $this->event->increment($countColumn);
+            $result = match ($relation) {
+                'savedEvents' => app(SaveEventAction::class)->handle($this->event, $user, request()),
+                'goingEvents' => app(MarkEventGoingAction::class)->handle($this->event, $user, request()),
+                default => ['status' => 'conflict', $countColumn => (int) ($this->event->{$countColumn} ?? 0)],
+            };
+
+            $updatedCount = max(0, (int) ($result[$countColumn] ?? 0));
+            $this->event->forceFill([$countColumn => $updatedCount]);
 
             if ($countProperty) {
-                $this->{$countProperty}++;
+                $this->{$countProperty} = $updatedCount;
             }
 
             $this->{$stateProperty} = true;
-            $this->recordEngagementOutcome($relation, $user);
         }
     }
 
@@ -539,8 +549,8 @@ class Show extends Component
             return;
         }
 
-        $this->isSaved = $user->savedEvents()->where('event_id', $this->event->id)->exists();
-        $this->isGoing = $user->goingEvents()->where('event_id', $this->event->id)->exists();
+        $this->isSaved = $user->savedEvents()->whereKey($this->event->getKey())->exists();
+        $this->isGoing = $user->goingEvents()->whereKey($this->event->getKey())->exists();
         $this->isCheckedIn = EventCheckin::query()
             ->where('event_id', $this->event->id)
             ->where('user_id', $user->id)
@@ -638,7 +648,7 @@ class Show extends Component
         }
 
         return EventSubmission::where('event_id', $event->id)
-            ->where('submitted_by', $user->id)
+            ->where('submitter_id', $user->id)
             ->exists();
     }
 
@@ -653,7 +663,7 @@ class Show extends Component
     protected function resolveCheckInState(User $user): array
     {
         return app(ResolveEventCheckInStateAction::class)->handle(
-            $this->event->loadMissing('settings'),
+            $this->event->loadMissing('accessPolicy'),
             $user,
         );
     }

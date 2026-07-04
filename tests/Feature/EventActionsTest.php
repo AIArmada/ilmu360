@@ -14,6 +14,7 @@ use App\Models\Institution;
 use App\Models\Speaker;
 use App\Models\Tag;
 use App\Models\User;
+use App\Support\Api\Frontend\FrontendFormContractService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -28,15 +29,16 @@ it('prepares advanced parent program submissions with utc timestamps and resolve
 
     $prepared = app(PrepareAdvancedParentProgramSubmissionAction::class)->handle($user, [
         'timezone' => 'Asia/Kuala_Lumpur',
-        'organizer_type' => 'speaker',
-        'organizer_id' => $speaker->id,
+        'primary_organizer_id' => $speaker->id,
         'location_institution_id' => $locationInstitution->id,
         'program_starts_at' => '2026-04-10T20:00',
         'program_ends_at' => '2026-04-10T22:00',
     ]);
 
-    expect($prepared['organizer_type'])->toBe('speaker')
-        ->and($prepared['organizer_id'])->toBe($speaker->id)
+    expect($prepared)->not->toHaveKey('organizer_type')
+        ->and($prepared)->not->toHaveKey('organizer_id')
+        ->and($prepared['primary_organizer'])->toBeInstanceOf(Speaker::class)
+        ->and($prepared['primary_organizer']->is($speaker))->toBeTrue()
         ->and($prepared['location_institution_id'])->toBe($locationInstitution->id)
         ->and($prepared['program_starts_at']->format('Y-m-d H:i:s'))->toBe('2026-04-10 12:00:00')
         ->and($prepared['program_ends_at']->format('Y-m-d H:i:s'))->toBe('2026-04-10 14:00:00');
@@ -52,10 +54,30 @@ it('resolves advanced builder context with requested institution defaults', func
     $context = app(ResolveAdvancedBuilderContextAction::class)->handle($user, $preferredInstitution->id);
 
     expect($context['institution_options'])->toHaveKey($preferredInstitution->id, 'Masjid Pilihan')
-        ->and($context['default_form']['organizer_type'])->toBe('institution')
-        ->and($context['default_form']['organizer_id'])->toBe($preferredInstitution->id)
+        ->and($context['default_form'])->not->toHaveKey('organizer_type')
+        ->and($context['default_form'])->not->toHaveKey('organizer_id')
+        ->and($context['default_form']['primary_organizer_id'])->toBe($preferredInstitution->id)
         ->and($context['default_form']['location_institution_id'])->toBe($preferredInstitution->id)
         ->and($context['default_form']['registration_required'])->toBeFalse();
+});
+
+it('publishes the advanced event contract with the primary organizer field and grouped options', function () {
+    $user = User::factory()->create();
+    $institution = Institution::factory()->create(['name' => 'Masjid Kontrak', 'status' => 'verified', 'is_active' => true]);
+    $speaker = Speaker::factory()->create(['name' => 'Penceramah Kontrak', 'status' => 'verified', 'is_active' => true]);
+
+    $user->institutions()->syncWithoutDetaching([$institution->id]);
+    $user->speakers()->syncWithoutDetaching([$speaker->id]);
+
+    $contract = app(FrontendFormContractService::class)->advancedEvent($user);
+
+    expect($contract['defaults'])->not->toHaveKey('organizer_type')
+        ->and($contract['defaults'])->not->toHaveKey('organizer_id')
+        ->and($contract['defaults']['primary_organizer_id'])->toBe($institution->id)
+        ->and(collect($contract['fields'])->pluck('name'))->toContain('primary_organizer_id')
+        ->and($contract['options']['primary_organizer_options']['institution'])->toHaveKey($institution->id, 'Masjid Kontrak')
+        ->and($contract['options']['primary_organizer_options']['speaker'])->toHaveKey($speaker->id, 'Penceramah Kontrak')
+        ->and($contract['options']['location_institution_options'])->toHaveKey($institution->id, 'Masjid Kontrak');
 });
 
 it('resolves advanced builder membership options from active member organizers only', function () {

@@ -38,7 +38,7 @@ it('allows an authenticated user to register through the api', function () {
 
     $registration = Registration::query()
         ->where('event_id', $event->id)
-        ->where('user_id', $user->id)
+        ->forUser($user)
         ->latest('created_at')
         ->firstOrFail();
 
@@ -47,7 +47,7 @@ it('allows an authenticated user to register through the api', function () {
         ->assertJsonPath('data.event_id', $event->id)
         ->assertJsonPath('data.user_id', $user->id)
         ->assertJsonPath('data.name', 'Registered Mobile User')
-        ->assertJsonPath('data.status', 'registered')
+        ->assertJsonPath('data.status', 'confirmed')
         ->assertJsonPath('data.created_at', $registration->created_at?->toIso8601String())
         ->assertJsonPath('meta.request_id', fn (string $requestId) => filled($requestId));
 
@@ -72,7 +72,7 @@ it('allows a guest to register through the api when contact info is provided', f
 
     $registration = Registration::query()
         ->where('event_id', $event->id)
-        ->where('email', 'guest@example.test')
+        ->forPrimaryContact('guest@example.test')
         ->latest('created_at')
         ->firstOrFail();
 
@@ -82,6 +82,7 @@ it('allows a guest to register through the api when contact info is provided', f
         ->assertJsonPath('data.email', 'guest@example.test')
         ->assertJsonPath('data.phone', null)
         ->assertJsonPath('data.user_id', null)
+        ->assertJsonPath('data.status', 'confirmed')
         ->assertJsonPath('data.created_at', $registration->created_at?->toIso8601String())
         ->assertJsonPath('meta.request_id', fn (string $requestId) => filled($requestId));
 });

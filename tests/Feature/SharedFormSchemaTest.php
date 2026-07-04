@@ -10,18 +10,13 @@ use App\Forms\SharedFormSchema;
 use App\Forms\SpeakerContributionFormSchema;
 use App\Forms\SpeakerFormSchema;
 use App\Forms\VenueFormSchema;
-use App\Models\Country;
-use App\Models\District;
 use App\Models\Institution;
 use App\Models\Speaker;
-use App\Models\State;
-use App\Models\Subdistrict;
 use App\Models\Venue;
 use App\Support\Location\FederalTerritoryLocation;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\RichEditor;
-use Filament\Forms\Components\Select;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
@@ -39,19 +34,7 @@ uses(RefreshDatabase::class);
 
 beforeEach(function () {
     FederalTerritoryLocation::flushStateIdCache();
-
-    Country::query()->firstOrCreate(
-        ['id' => 132],
-        [
-            'iso2' => 'MY',
-            'name' => 'Malaysia',
-            'status' => 1,
-            'phone_code' => '60',
-            'iso3' => 'MYS',
-            'region' => 'Asia',
-            'subregion' => 'South-Eastern Asia',
-        ],
-    );
+    ensureTestMalaysiaCountry();
 });
 
 it('creates an address when only a google maps url is provided', function () {
@@ -59,7 +42,7 @@ it('creates an address when only a google maps url is provided', function () {
     $institution->address()->delete();
 
     SharedFormSchema::createAddressFromData($institution, [
-        'country_id' => 132,
+        'country_id' => testMalaysiaCountryId(),
         'google_maps_url' => 'https://www.google.com/maps/@3.139003,101.686855,17z',
     ]);
 
@@ -73,7 +56,7 @@ it('creates an address when only a google maps url is provided', function () {
 
 it('preserves omitted address geo fields when preparing partial update payloads', function () {
     $prepared = SharedFormSchema::prepareAddressPersistenceData([
-        'country_id' => 132,
+        'country_id' => testMalaysiaCountryId(),
         'line1' => 'Jalan Duta',
     ]);
 
@@ -91,7 +74,7 @@ it('preserves explicit google place metadata when creating an address from form 
     $institution->address()->delete();
 
     SharedFormSchema::createAddressFromData($institution, [
-        'country_id' => 132,
+        'country_id' => testMalaysiaCountryId(),
         'line1' => 'Persiaran Masjid',
         'google_maps_url' => 'https://www.google.com/maps/place/?q=place_id:place_123',
         'google_place_id' => 'place_123',
@@ -115,7 +98,7 @@ it('preserves raw google maps urls without enrichment when normalization is disa
     Http::fake();
 
     SharedFormSchema::createAddressFromData($institution, [
-        'country_id' => 132,
+        'country_id' => testMalaysiaCountryId(),
         'google_maps_url' => 'https://maps.app.goo.gl/KWFQuuxAmSK3kRFM8',
         'google_maps_normalization_enabled' => false,
     ]);
@@ -155,7 +138,7 @@ it('still canonicalizes google maps urls locally when remote lookup is disabled'
     ]);
 
     SharedFormSchema::createAddressFromData($institution, [
-        'country_id' => 132,
+        'country_id' => testMalaysiaCountryId(),
         'google_maps_url' => 'https://maps.app.goo.gl/KWFQuuxAmSK3kRFM8',
         'google_maps_remote_lookup_enabled' => false,
     ]);
@@ -173,26 +156,10 @@ it('still canonicalizes google maps urls locally when remote lookup is disabled'
 });
 
 it('loads subdistricts directly from federal territory states and clears district persistence', function () {
-    $kualaLumpur = State::query()->create([
-        'country_id' => 132,
-        'name' => 'Kuala Lumpur',
-        'country_code' => 'MY',
-    ]);
-
-    $stateSubdistrict = Subdistrict::query()->create([
-        'country_id' => 132,
-        'state_id' => (int) $kualaLumpur->id,
-        'district_id' => null,
-        'country_code' => 'MY',
-        'name' => 'Setiawangsa',
-    ]);
-
-    $legacyDistrict = District::query()->create([
-        'country_id' => 132,
-        'state_id' => (int) $kualaLumpur->id,
-        'country_code' => 'MY',
-        'name' => 'Legacy Kuala Lumpur District',
-    ]);
+    $malaysia = ensureTestMalaysiaCountry();
+    $kualaLumpur = createTestAddressArea('Kuala Lumpur', 1, country: $malaysia);
+    $stateSubdistrict = createTestAddressArea('Setiawangsa', 3, parent: $kualaLumpur, country: $malaysia);
+    $legacyDistrict = createTestAddressArea('Legacy Kuala Lumpur District', 2, parent: $kualaLumpur, country: $malaysia);
 
     expect(SharedFormSchema::districtOptionsForState($kualaLumpur->id))->toBe([]);
     expect(SharedFormSchema::subdistrictOptionsForSelection($kualaLumpur->id, null))
@@ -200,36 +167,20 @@ it('loads subdistricts directly from federal territory states and clears distric
     expect(SharedFormSchema::shouldShowSubdistrictField($kualaLumpur->id, null))->toBeTrue();
 
     $prepared = SharedFormSchema::prepareAddressPersistenceData([
-        'state_id' => $kualaLumpur->id,
-        'district_id' => $legacyDistrict->id,
-        'subdistrict_id' => $stateSubdistrict->id,
+        'admin_area_1_id' => $kualaLumpur->id,
+        'admin_area_2_id' => $legacyDistrict->id,
+        'admin_area_3_id' => $stateSubdistrict->id,
     ]);
 
-    expect($prepared['district_id'])->toBeNull()
-        ->and($prepared['subdistrict_id'])->toBe((int) $stateSubdistrict->id);
+    expect($prepared['admin_area_2_id'])->toBeNull()
+        ->and($prepared['admin_area_3_id'])->toBe((string) $stateSubdistrict->id);
 });
 
 it('still requires districts for non federal territory subdistrict selection', function () {
-    $selangor = State::query()->create([
-        'country_id' => 132,
-        'name' => 'Selangor',
-        'country_code' => 'MY',
-    ]);
-
-    $district = District::query()->create([
-        'country_id' => 132,
-        'state_id' => (int) $selangor->id,
-        'country_code' => 'MY',
-        'name' => 'Petaling',
-    ]);
-
-    $subdistrict = Subdistrict::query()->create([
-        'country_id' => 132,
-        'state_id' => (int) $selangor->id,
-        'district_id' => (int) $district->id,
-        'country_code' => 'MY',
-        'name' => 'Shah Alam',
-    ]);
+    $malaysia = ensureTestMalaysiaCountry();
+    $selangor = createTestAddressArea('Selangor', 1, country: $malaysia);
+    $district = createTestAddressArea('Petaling', 2, parent: $selangor, country: $malaysia);
+    $subdistrict = createTestAddressArea('Shah Alam', 3, parent: $district, country: $malaysia);
 
     expect(SharedFormSchema::districtOptionsForState($selangor->id))
         ->toBe([(string) $district->id => 'Petaling']);
@@ -241,26 +192,16 @@ it('still requires districts for non federal territory subdistrict selection', f
 });
 
 it('does not skip districts for non malaysian states with federal territory names', function () {
-    $jakartaKualaLumpur = State::query()->create([
-        'country_id' => 360,
-        'name' => 'Kuala Lumpur',
-        'country_code' => 'ID',
-    ]);
-
-    $district = District::query()->create([
-        'country_id' => 360,
-        'state_id' => (int) $jakartaKualaLumpur->id,
-        'country_code' => 'ID',
-        'name' => 'Kecamatan Example',
-    ]);
-
-    $subdistrict = Subdistrict::query()->create([
-        'country_id' => 360,
-        'state_id' => (int) $jakartaKualaLumpur->id,
-        'district_id' => (int) $district->id,
-        'country_code' => 'ID',
-        'name' => 'Kelurahan Example',
-    ]);
+    $indonesia = ensureTestAddressCountry(
+        iso2: 'ID',
+        name: 'Indonesia',
+        iso3: 'IDN',
+        timezones: ['Asia/Jakarta'],
+        phoneCode: '62',
+    );
+    $jakartaKualaLumpur = createTestAddressArea('Kuala Lumpur', 1, country: $indonesia);
+    $district = createTestAddressArea('Kecamatan Example', 2, parent: $jakartaKualaLumpur, country: $indonesia);
+    $subdistrict = createTestAddressArea('Kelurahan Example', 3, parent: $district, country: $indonesia);
 
     expect(FederalTerritoryLocation::isFederalTerritoryStateId($jakartaKualaLumpur->id))->toBeFalse();
     expect(SharedFormSchema::districtOptionsForState($jakartaKualaLumpur->id))
@@ -283,7 +224,7 @@ it('defaults address country_id to malaysia when null is submitted directly to t
         'country_id' => null,
     ])->save();
 
-    expect($institution->fresh()->addressModel?->country_id)->toBe(132);
+    expect($institution->fresh()->addressModel?->country_id)->toBe(testMalaysiaCountryId());
 });
 
 it('pins hidden country fields in institution and venue public creation forms', function () {
@@ -721,7 +662,7 @@ it('stores description and contacts when creating an institution via quick-creat
         'name' => 'Masjid Quick Create',
         'nickname' => 'Masjid QC',
         'type' => 'masjid',
-        'country_id' => 132,
+        'country_id' => testMalaysiaCountryId(),
         'description' => '<p>Institusi komuniti yang aktif.</p>',
         'contacts' => [[
             'category' => 'phone',
@@ -884,7 +825,7 @@ it('stores nested institution quick-create address data when picker mode is used
         'name' => 'Masjid Event Quick Create',
         'type' => 'masjid',
         'address' => [
-            'country_id' => 132,
+            'country_id' => testMalaysiaCountryId(),
             'google_maps_url' => 'https://maps.app.goo.gl/KWFQuuxAmSK3kRFM8',
             'google_maps_remote_lookup_enabled' => false,
         ],
@@ -916,7 +857,7 @@ it('stores nested venue quick-create address data when picker mode is used', fun
         'name' => 'Dewan Event Quick Create',
         'type' => 'dewan',
         'address' => [
-            'country_id' => 132,
+            'country_id' => testMalaysiaCountryId(),
             'google_maps_url' => 'https://maps.app.goo.gl/KWFQuuxAmSK3kRFM8',
             'google_maps_remote_lookup_enabled' => false,
         ],
@@ -935,22 +876,7 @@ it('stores nested venue quick-create address data when picker mode is used', fun
 });
 
 it('stores country-only address data in institution and venue quick-create flows', function () {
-    $country = Country::query()->find(132);
-
-    if (! $country instanceof Country) {
-        $country = new Country;
-        $country->forceFill([
-            'id' => 132,
-            'name' => 'Malaysia',
-            'iso2' => 'MY',
-            'iso3' => 'MYS',
-            'phone_code' => '60',
-            'region' => 'Asia',
-            'subregion' => 'South-Eastern Asia',
-            'status' => 1,
-        ]);
-        $country->save();
-    }
+    $country = ensureTestMalaysiaCountry();
 
     $institutionId = InstitutionFormSchema::createOptionUsing([
         'name' => 'Masjid Country Only',
@@ -975,8 +901,8 @@ it('stores country-only address data in institution and venue quick-create flows
         ->with('address')
         ->findOrFail($venueId);
 
-    expect($institution->addressModel?->country_id)->toBe((int) $country->getKey())
-        ->and($venue->addressModel?->country_id)->toBe((int) $country->getKey());
+    expect($institution->addressModel?->country_id)->toBe((string) $country->getKey())
+        ->and($venue->addressModel?->country_id)->toBe((string) $country->getKey());
 });
 
 it('uses rich description and no logo upload in the institution contribution form', function () {
@@ -1259,7 +1185,7 @@ it('uses a reduced country-plus-region address contract across speaker create an
         expect($contributionComponents->has($field))->toBeTrue();
     }
 
-    foreach (['country_id', 'state_id', 'district_id', 'subdistrict_id'] as $field) {
+    foreach (['country_id', 'admin_area_1_id', 'admin_area_2_id', 'admin_area_3_id'] as $field) {
         expect($quickCreateComponents->has($field))->toBeTrue();
         expect($contributionComponents->has($field))->toBeTrue();
     }
@@ -1281,7 +1207,7 @@ it('stores structured speaker quick-create details when creating a speaker via q
     $speakerId = SpeakerFormSchema::createOptionUsing([
         'name' => 'Ustaz Quick Create',
         'gender' => 'male',
-        'country_id' => 132,
+        'country_id' => testMalaysiaCountryId(),
         'bio' => ['type' => 'doc', 'content' => []],
         'qualifications' => [[
             'institution' => 'Universiti Islam',
@@ -1290,11 +1216,11 @@ it('stores structured speaker quick-create details when creating a speaker via q
             'year' => '2020',
         ]],
         'language_ids' => [$language->id],
-        'state_id' => 1,
+        'admin_area_1_id' => '1',
         'contacts' => [[
-            'category' => 'phone',
-            'value' => '0123456789',
-            'type' => 'main',
+            'type' => 'phone',
+            'phone_value' => '0123456789',
+            'purpose' => 'general',
             'is_public' => true,
         ]],
         'social_media' => [[
@@ -1311,8 +1237,8 @@ it('stores structured speaker quick-create details when creating a speaker via q
         ->findOrFail($speakerId);
 
     expect($speaker->qualifications)->toBeArray()
-        ->and($speaker->addressModel?->country_id)->toBe(132)
-        ->and($speaker->addressModel?->state_id)->toBe(1)
+        ->and($speaker->addressModel?->country_id)->toBe(testMalaysiaCountryId())
+        ->and($speaker->addressModel?->admin_area_1_id)->toBe('1')
         ->and($speaker->addressModel?->line1)->toBeNull()
         ->and($speaker->addressModel?->google_maps_url)->toBeNull()
         ->and($speaker->contacts->pluck('value')->all())->toContain('0123456789')
@@ -1413,7 +1339,7 @@ it('hides country fields in the admin speaker form', function () {
 
     expect($country)->toBeInstanceOf(Hidden::class);
 
-    foreach (['state_id', 'district_id', 'subdistrict_id'] as $field) {
+    foreach (['admin_area_1_id', 'admin_area_2_id', 'admin_area_3_id'] as $field) {
         expect($adminComponents->has($field))->toBeTrue();
     }
 
@@ -1422,7 +1348,7 @@ it('hides country fields in the admin speaker form', function () {
     }
 });
 
-it('requires country fields in the admin institution and venue forms', function () {
+it('hides country fields in the admin institution and venue forms', function () {
     $flatten = function (array $components) use (&$flatten): array {
         $flattened = [];
 
@@ -1464,10 +1390,6 @@ it('requires country fields in the admin institution and venue forms', function 
         ->keyBy(fn (mixed $component): ?string => method_exists($component, 'getName') ? $component->getName() : null)
         ->get('country_id');
 
-    expect($institutionCountry)->toBeInstanceOf(Select::class)
-        ->and($venueCountry)->toBeInstanceOf(Select::class);
-    expect(method_exists($institutionCountry, 'isRequired'))->toBeTrue();
-    expect(method_exists($venueCountry, 'isRequired'))->toBeTrue();
-    expect($institutionCountry?->isRequired())->toBeTrue();
-    expect($venueCountry?->isRequired())->toBeTrue();
+    expect($institutionCountry)->toBeInstanceOf(Hidden::class)
+        ->and($venueCountry)->toBeInstanceOf(Hidden::class);
 });

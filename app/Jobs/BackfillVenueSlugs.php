@@ -23,10 +23,7 @@ class BackfillVenueSlugs implements ShouldQueue
     {
         $query = Venue::query()
             ->with([
-                'address.country',
-                'address.state',
-                'address.district',
-                'address.subdistrict',
+                'addresses.country',
             ])
             ->orderBy('name')
             ->orderBy('id');

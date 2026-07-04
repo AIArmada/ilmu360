@@ -1,10 +1,13 @@
 <?php
 
+use AIArmada\Addressing\Models\AddressCountry;
+use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Events\Enums\RegistrationMode;
 use App\Actions\Events\SubmitFrontendEventAction;
 use App\Actions\Location\ResolveGooglePlaceSelectionAction;
 use App\Actions\References\GenerateReferenceSlugAction;
-use App\Enums\ContactCategory;
-use App\Enums\ContactType;
+use AIArmada\Contacting\Enums\ContactMethodType;
+use AIArmada\Contacting\Enums\ContactPurpose;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
@@ -13,7 +16,6 @@ use App\Enums\EventPrayerTime;
 use App\Enums\EventType;
 use App\Enums\EventVisibility;
 use App\Enums\ReferenceType;
-use App\Enums\RegistrationMode;
 use App\Enums\TagType;
 use App\Filament\Ahli\Resources\Events\EventResource;
 use App\Forms\Components\Select;
@@ -23,7 +25,6 @@ use App\Forms\SpeakerFormSchema;
 use App\Forms\VenueFormSchema;
 use App\Models\Event;
 use App\Models\EventKeyPerson;
-use App\Models\EventSettings;
 use App\Models\EventSubmission;
 use App\Models\Institution;
 use App\Models\Reference;
@@ -38,8 +39,7 @@ use App\States\EventStatus\Approved;
 use App\States\EventStatus\Cancelled;
 use App\States\EventStatus\EventStatus;
 use App\States\EventStatus\Pending;
-use App\Support\Location\PreferredCountryResolver;
-use App\Support\Location\PublicCountryRegistry;
+use App\Support\Location\AddressingCountryResolver;
 use App\Support\Submission\EntitySubmissionAccess;
 use Carbon\CarbonInterface;
 use Filament\Actions\Action;
@@ -95,6 +95,11 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
     /** @var array<string, mixed>|null */
     public ?array $data = [];
 
+    public function boot(): void
+    {
+        OwnerContext::setForRequest(null);
+    }
+
     #[Url(as: 'step')]
     public ?string $wizardStep = null;
 
@@ -115,7 +120,6 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
 
     public function mount(): void
     {
-        $submissionCountryId = $this->resolveSubmissionCountryId();
         $this->parentEventId = request()->query('parent');
         $this->duplicateEventId = request()->query('duplicate');
         $scopedInstitution = $this->resolveScopedInstitution(request()->query('institution'));
@@ -139,7 +143,7 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
             'is_muslim_only' => false,
             'other_key_people' => [],
             'captcha_token' => null,
-            'submission_country_id' => $submissionCountryId,
+            'submission_country_id' => $this->defaultSubmissionCountryId(),
         ];
 
         if ($parentEvent = $this->selectedParentEvent()) {
@@ -211,8 +215,10 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
     protected function scopedInstitutionDefaults(Institution $institution): array
     {
         return [
-            'organizer_type' => 'institution',
-            'organizer_institution_id' => $institution->id,
+            'primary_organizer_kind' => 'institution',
+            'primary_organizer_id' => $institution->id,
+            'primary_organizer_institution_id' => $institution->id,
+            'primary_organizer_speaker_id' => null,
             'location_same_as_institution' => true,
             'location_type' => 'institution',
             'location_institution_id' => $institution->id,
@@ -559,8 +565,25 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
                         ->floatingToolbars([])
                         ->placeholder(__('Terangkan mengenai majlis, topik yang akan dikupas, dll.')),
 
-                    Grid::make(['default' => 1, 'sm' => 2, 'md' => 6])
+                    Grid::make(['default' => 1, 'sm' => 2, 'md' => 8])
                         ->schema([
+                            Select::make('submission_country_id')
+                                ->label(__('Country'))
+                                ->required()
+                                ->options(fn (): array => AddressCountry::query()
+                                    ->orderBy('name')
+                                    ->pluck('name', 'id')
+                                    ->all())
+                                ->searchable()
+                                ->preload()
+                                ->live()
+                                ->afterStateUpdatedJs(<<<'JS'
+                                    $set('prayer_time', null)
+                                    $set('custom_time', null)
+                                    $set('end_time', null)
+                                JS)
+                                ->columnSpan(['default' => 1, 'md' => 2]),
+
                             DatePicker::make('event_date')
                                 ->label(__('Tarikh'))
                                 ->required()
@@ -602,11 +625,11 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
                                             }
 
                                             if ($case === EventPrayerTime::SebelumMaghrib) {
-                                                return $this->isRamadhan($date);
+                                                return $this->isRamadhan($date, $timezone);
                                             }
 
                                             if ($case === EventPrayerTime::SelepasTarawih) {
-                                                return $this->isRamadhan($date);
+                                                return $this->isRamadhan($date, $timezone);
                                             }
 
                                             return true;
@@ -1170,36 +1193,62 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
                 ->schema([
                     Section::make(__('Penganjur'))
                         ->schema([
-                            Radio::make('organizer_type')
+                            Hidden::make('primary_organizer_id'),
+
+                            Radio::make('primary_organizer_kind')
                                 ->label(__('Jenis Penganjur'))
-                                ->required()
+                                ->required(fn (Get $get): bool => ! $hasScopedInstitution && ! filled($get('primary_organizer_id')))
                                 ->options([
                                     'institution' => __('Institusi'),
                                     'speaker' => __('Penceramah'),
                                 ])
                                 ->default('institution')
                                 ->inline()
-                                ->visible(! $hasScopedInstitution),
+                                ->visible(! $hasScopedInstitution)
+                                ->afterStateUpdated(function (Set $set, ?string $state): void {
+                                    if ($state !== 'institution') {
+                                        $set('primary_organizer_institution_id', null);
+                                    }
 
-                            Select::make('organizer_institution_id')
+                                    if ($state !== 'speaker') {
+                                        $set('primary_organizer_speaker_id', null);
+                                    }
+
+                                    $set('primary_organizer_id', null);
+                                }),
+
+                            Select::make('primary_organizer_institution_id')
                                 ->label(__('Institusi'))
                                 ->options(fn (): array => $this->availableInstitutionOptions())
                                 ->searchable()
                                 ->preload()
                                 ->disabled($hasScopedInstitution)
                                 ->dehydrated()
-                                ->visibleJs($hasScopedInstitutionJs." || \$get('organizer_type') === 'institution'")
-                                ->required(fn (Get $get): bool => $get('organizer_type') === 'institution')
+                                ->visibleJs($hasScopedInstitutionJs." || \$get('primary_organizer_kind') === 'institution'")
+                                ->required(fn (Get $get): bool => $this->selectedPrimaryOrganizerKind($get('primary_organizer_kind'), $get('primary_organizer_id')) === 'institution' && ! filled($get('primary_organizer_id')))
+                                ->afterStateUpdated(function (Get $get, Set $set, mixed $state): void {
+                                    $organizerId = is_scalar($state) && trim((string) $state) !== '' ? trim((string) $state) : null;
+
+                                    $set('primary_organizer_id', $organizerId);
+
+                                    if ((bool) $get('location_same_as_institution')) {
+                                        $set('location_institution_id', $organizerId);
+                                        $set('location_venue_id', null);
+                                    }
+                                })
                                 ->createOptionForm(InstitutionFormSchema::createOptionForm(includeLocationPicker: true))
                                 ->createOptionUsing(fn (array $data, Schema $schema): string => InstitutionFormSchema::createOptionUsing($data, $schema)),
 
-                            Select::make('organizer_speaker_id')
+                            Select::make('primary_organizer_speaker_id')
                                 ->label(__('Penceramah'))
                                 ->options(fn (): array => $this->availableSpeakerOptions())
                                 ->searchable()
                                 ->preload()
-                                ->visibleJs("! {$hasScopedInstitutionJs} && \$get('organizer_type') === 'speaker'")
-                                ->required(fn (Get $get): bool => $get('organizer_type') === 'speaker')
+                                ->visibleJs("! {$hasScopedInstitutionJs} && \$get('primary_organizer_kind') === 'speaker'")
+                                ->required(fn (Get $get): bool => $this->selectedPrimaryOrganizerKind($get('primary_organizer_kind'), $get('primary_organizer_id')) === 'speaker' && ! filled($get('primary_organizer_id')))
+                                ->afterStateUpdated(function (Set $set, mixed $state): void {
+                                    $set('primary_organizer_id', is_scalar($state) && trim((string) $state) !== '' ? trim((string) $state) : null);
+                                })
                                 ->afterStateUpdatedJs(<<<'JS'
                                                             if ($state) {
                                                                 const currentSpeakers = $get('speakers') || []
@@ -1216,21 +1265,21 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
 
                     Section::make(__('Lokasi'))
                         ->visibleJs(<<<'JS'
-                                                    $get('event_format') !== 'online' && $get('organizer_type')
+                                                    $get('event_format') !== 'online' && ($get('primary_organizer_kind') || $get('primary_organizer_id'))
                                                     JS)
                         ->schema([
                             Toggle::make('location_same_as_institution')
                                 ->label(__('Sama seperti institusi penganjur'))
                                 ->default(true)
                                 ->inline(false)
-                                ->visibleJs($hasScopedInstitutionJs." || \$get('organizer_type') === 'institution'")
+                                ->visibleJs($hasScopedInstitutionJs." || \$get('primary_organizer_kind') === 'institution'")
                                 ->afterStateUpdatedJs("if (! {$hasScopedInstitutionJs}) {
                                                 return
                                             }
 
                                             if (\$state) {
                                                 \$set('location_type', 'institution')
-                                                \$set('location_institution_id', \$get('organizer_institution_id'))
+                                                \$set('location_institution_id', \$get('primary_organizer_institution_id'))
                                                 \$set('location_venue_id', null)
                                                 return
                                             }
@@ -1247,16 +1296,16 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
                                 ])
                                 ->inline()
                                 ->default('institution')
-                                ->visibleJs("! {$hasScopedInstitutionJs} && (\$get('organizer_type') === 'speaker' || !\$get('location_same_as_institution'))")
-                                ->required(fn (Get $get): bool => ($get('organizer_type') === 'speaker' || ! $get('location_same_as_institution')) && $get('event_format') !== 'online'),
+                                ->visibleJs("! {$hasScopedInstitutionJs} && (\$get('primary_organizer_kind') === 'speaker' || !\$get('location_same_as_institution'))")
+                                ->required(fn (Get $get): bool => ($this->selectedPrimaryOrganizerKind($get('primary_organizer_kind'), $get('primary_organizer_id')) === 'speaker' || ! $get('location_same_as_institution')) && $get('event_format') !== 'online'),
 
                             Select::make('location_institution_id')
                                 ->label(__('Institusi'))
                                 ->options(fn (): array => $this->availableInstitutionOptions())
                                 ->searchable()
                                 ->preload()
-                                ->visibleJs("! {$hasScopedInstitutionJs} && (\$get('organizer_type') === 'speaker' || !\$get('location_same_as_institution')) && \$get('location_type') === 'institution'")
-                                ->required(fn (Get $get): bool => ($get('organizer_type') === 'speaker' || ! $get('location_same_as_institution')) && $get('location_type') === 'institution')
+                                ->visibleJs("! {$hasScopedInstitutionJs} && (\$get('primary_organizer_kind') === 'speaker' || !\$get('location_same_as_institution')) && \$get('location_type') === 'institution'")
+                                ->required(fn (Get $get): bool => ($this->selectedPrimaryOrganizerKind($get('primary_organizer_kind'), $get('primary_organizer_id')) === 'speaker' || ! $get('location_same_as_institution')) && $get('location_type') === 'institution')
                                 ->createOptionForm(InstitutionFormSchema::createOptionForm(includeLocationPicker: true))
                                 ->createOptionUsing(fn (array $data, Schema $schema): string => InstitutionFormSchema::createOptionUsing($data, $schema)),
 
@@ -1265,8 +1314,8 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
                                 ->options(fn (): array => $this->cachedSubmitVenueOptions())
                                 ->searchable()
                                 ->preload()
-                                ->visibleJs("({$hasScopedInstitutionJs} && !\$get('location_same_as_institution')) || (! {$hasScopedInstitutionJs} && (\$get('organizer_type') === 'speaker' || !\$get('location_same_as_institution')) && \$get('location_type') === 'venue')")
-                                ->required(fn (Get $get): bool => ($get('organizer_type') === 'speaker' || ! $get('location_same_as_institution')) && $get('location_type') === 'venue')
+                                ->visibleJs("({$hasScopedInstitutionJs} && !\$get('location_same_as_institution')) || (! {$hasScopedInstitutionJs} && (\$get('primary_organizer_kind') === 'speaker' || !\$get('location_same_as_institution')) && \$get('location_type') === 'venue')")
+                                ->required(fn (Get $get): bool => ($this->selectedPrimaryOrganizerKind($get('primary_organizer_kind'), $get('primary_organizer_id')) === 'speaker' || ! $get('location_same_as_institution')) && $get('location_type') === 'venue')
                                 ->createOptionForm(VenueFormSchema::createOptionForm(includeLocationPicker: true))
                                 ->createOptionUsing(fn (array $data, Schema $schema): string => VenueFormSchema::createOptionUsing($data, $schema)),
 
@@ -1276,7 +1325,7 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
                                 ->placeholder(__('Pilih ruang…'))
                                 ->searchable()
                                 ->preload()
-                                ->visibleJs("({$hasScopedInstitutionJs} && (\$get('location_same_as_institution') !== false)) || (\$get('organizer_type') === 'institution' && (\$get('location_same_as_institution') !== false)) || ((\$get('organizer_type') === 'speaker' || !\$get('location_same_as_institution')) && \$get('location_type') === 'institution')")
+                                ->visibleJs("({$hasScopedInstitutionJs} && (\$get('location_same_as_institution') !== false)) || (\$get('primary_organizer_kind') === 'institution' && (\$get('location_same_as_institution') !== false)) || ((\$get('primary_organizer_kind') === 'speaker' || !\$get('location_same_as_institution')) && \$get('location_type') === 'institution')")
                                 ->options(
                                     fn (): array => Space::query()
                                         ->where('is_active', true)
@@ -1399,10 +1448,6 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
                 ->id(self::REVIEW_STEP_ID)
                 ->icon('heroicon-o-paper-airplane')
                 ->schema([
-                    Hidden::make('submission_country_id')
-                        ->dehydrated()
-                        ->default(fn (): int => $this->resolveSubmissionCountryId()),
-
                     Hidden::make('captcha_token')
                         ->dehydrated(),
 
@@ -1526,8 +1571,10 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
             return $validated;
         }
 
-        $validated['organizer_type'] = 'institution';
-        $validated['organizer_institution_id'] = $institution->id;
+        $validated['primary_organizer_kind'] = 'institution';
+        $validated['primary_organizer_id'] = $institution->id;
+        $validated['primary_organizer_institution_id'] = $institution->id;
+        $validated['primary_organizer_speaker_id'] = null;
         $validated['location_same_as_institution'] = (bool) ($validated['location_same_as_institution'] ?? true);
 
         if (($validated['event_format'] ?? EventFormat::Physical->value) === EventFormat::Online->value) {
@@ -1562,28 +1609,33 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
     {
         $parentEvent = $this->selectedParentEvent();
 
-        if ($parentEvent instanceof Event && $parentEvent->settings !== null) {
-            $registrationMode = $parentEvent->settings->registration_mode;
-            $resolvedRegistrationMode = $registrationMode instanceof RegistrationMode
-                ? $registrationMode->value
-                : (is_string($registrationMode) && $registrationMode !== '' ? $registrationMode : RegistrationMode::Event->value);
+        if ($parentEvent instanceof Event && $parentEvent->accessPolicy !== null) {
+            $resolvedRegistrationMode = $parentEvent->resolvedRegistrationMode();
 
-            EventSettings::query()->updateOrCreate(
+            $event->forceFill([
+                'registration_mode' => $resolvedRegistrationMode->value,
+            ])->save();
+
+            $event->accessPolicy()->updateOrCreate(
                 ['event_id' => $event->id],
                 [
-                    'registration_required' => (bool) $parentEvent->settings->registration_required,
-                    'registration_mode' => $resolvedRegistrationMode,
+                    'registration_required' => (bool) $parentEvent->accessPolicy->registration_required,
+                    'walk_in_allowed' => ! $parentEvent->accessPolicy->registration_required,
                 ]
             );
 
             return;
         }
 
-        EventSettings::query()->updateOrCreate(
+        $event->forceFill([
+            'registration_mode' => RegistrationMode::None->value,
+        ])->save();
+
+        $event->accessPolicy()->updateOrCreate(
             ['event_id' => $event->id],
             [
                 'registration_required' => false,
-                'registration_mode' => RegistrationMode::Event->value,
+                'walk_in_allowed' => true,
             ]
         );
     }
@@ -1626,8 +1678,8 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
             return true;
         }
 
-        return $parentEvent->organizer_type === Institution::class
-            && $parentEvent->organizer_id === $institution->id;
+        return $parentEvent->primaryOrganizerInvolvement?->involveable_type === Institution::class
+            && $parentEvent->primaryOrganizerInvolvement?->involveable_id === $institution->id;
     }
 
     /**
@@ -1643,17 +1695,23 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
                 : (is_string($parentVisibility) && $parentVisibility !== '' ? $parentVisibility : EventVisibility::Public->value),
         ];
 
-        if ($parentEvent->organizer_type === Institution::class && filled($parentEvent->organizer_id)) {
-            $defaults['organizer_type'] = 'institution';
-            $defaults['organizer_institution_id'] = $parentEvent->organizer_id;
+        $organizer = $parentEvent->primaryOrganizerInvolvement;
+
+        if ($organizer?->involveable_type === Institution::class && filled($organizer->involveable_id)) {
+            $defaults['primary_organizer_kind'] = 'institution';
+            $defaults['primary_organizer_id'] = $organizer->involveable_id;
+            $defaults['primary_organizer_institution_id'] = $organizer->involveable_id;
+            $defaults['primary_organizer_speaker_id'] = null;
             $defaults['location_same_as_institution'] = true;
             $defaults['location_type'] = 'institution';
-            $defaults['location_institution_id'] = $parentEvent->institution_id ?: $parentEvent->organizer_id;
+            $defaults['location_institution_id'] = $parentEvent->institution_id ?: $organizer->involveable_id;
         }
 
-        if ($parentEvent->organizer_type === Speaker::class && filled($parentEvent->organizer_id)) {
-            $defaults['organizer_type'] = 'speaker';
-            $defaults['organizer_speaker_id'] = $parentEvent->organizer_id;
+        if ($organizer?->involveable_type === Speaker::class && filled($organizer->involveable_id)) {
+            $defaults['primary_organizer_kind'] = 'speaker';
+            $defaults['primary_organizer_id'] = $organizer->involveable_id;
+            $defaults['primary_organizer_institution_id'] = null;
+            $defaults['primary_organizer_speaker_id'] = $organizer->involveable_id;
             $defaults['location_type'] = $parentEvent->venue_id ? 'venue' : 'institution';
             $defaults['location_institution_id'] = $parentEvent->institution_id;
 
@@ -1948,17 +2006,22 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
         $eventFormat = $duplicateEvent->event_format instanceof EventFormat
             ? $duplicateEvent->event_format->value
             : (is_string($duplicateEvent->event_format) ? $duplicateEvent->event_format : EventFormat::Physical->value);
-        $organizerId = is_string($duplicateEvent->organizer_id) ? $duplicateEvent->organizer_id : null;
+        $organizer = $duplicateEvent->primaryOrganizerInvolvement;
+        $organizerId = $organizer !== null ? $organizer->involveable_id : null;
         $institutionId = is_string($duplicateEvent->institution_id) ? $duplicateEvent->institution_id : null;
 
-        if ($duplicateEvent->organizer_type === Institution::class && $organizerId !== null && $access->canUseInstitution($submitter, $organizerId)) {
-            $defaults['organizer_type'] = 'institution';
-            $defaults['organizer_institution_id'] = $organizerId;
+        if ($organizer?->involveable_type === Institution::class && $organizerId !== null && $access->canUseInstitution($submitter, $organizerId)) {
+            $defaults['primary_organizer_kind'] = 'institution';
+            $defaults['primary_organizer_id'] = $organizerId;
+            $defaults['primary_organizer_institution_id'] = $organizerId;
+            $defaults['primary_organizer_speaker_id'] = null;
         }
 
-        if ($duplicateEvent->organizer_type === Speaker::class && $organizerId !== null && $access->canUseSpeaker($submitter, $organizerId)) {
-            $defaults['organizer_type'] = 'speaker';
-            $defaults['organizer_speaker_id'] = $organizerId;
+        if ($organizer?->involveable_type === Speaker::class && $organizerId !== null && $access->canUseSpeaker($submitter, $organizerId)) {
+            $defaults['primary_organizer_kind'] = 'speaker';
+            $defaults['primary_organizer_id'] = $organizerId;
+            $defaults['primary_organizer_institution_id'] = null;
+            $defaults['primary_organizer_speaker_id'] = $organizerId;
         }
 
         if ($eventFormat === EventFormat::Online->value) {
@@ -1977,8 +2040,8 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
         if ($institutionId !== null && $access->canUseInstitution($submitter, $institutionId)) {
             $defaults['location_type'] = 'institution';
             $defaults['location_institution_id'] = $institutionId;
-            $defaults['location_same_as_institution'] = ($defaults['organizer_type'] ?? null) === 'institution'
-                && ($defaults['organizer_institution_id'] ?? null) === $institutionId;
+            $defaults['location_same_as_institution'] = ($defaults['primary_organizer_kind'] ?? null) === 'institution'
+                && ($defaults['primary_organizer_id'] ?? null) === $institutionId;
         }
 
         return $defaults;
@@ -2080,6 +2143,45 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
             ->all();
     }
 
+    protected function selectedPrimaryOrganizerKind(mixed $organizerKind, mixed $primaryOrganizerId): ?string
+    {
+        if (in_array($organizerKind, ['institution', 'speaker'], true)) {
+            return $organizerKind;
+        }
+
+        return $this->resolvedPrimaryOrganizerType($primaryOrganizerId);
+    }
+
+    protected function resolvedPrimaryOrganizerInstitutionId(mixed $primaryOrganizerId): ?string
+    {
+        return $this->resolvedPrimaryOrganizerType($primaryOrganizerId) === 'institution'
+            ? (is_scalar($primaryOrganizerId) && trim((string) $primaryOrganizerId) !== '' ? trim((string) $primaryOrganizerId) : null)
+            : null;
+    }
+
+    protected function resolvedPrimaryOrganizerType(mixed $primaryOrganizerId): ?string
+    {
+        if (! is_scalar($primaryOrganizerId)) {
+            return null;
+        }
+
+        $organizerId = trim((string) $primaryOrganizerId);
+
+        if ($organizerId === '') {
+            return null;
+        }
+
+        if (Institution::query()->whereKey($organizerId)->exists()) {
+            return 'institution';
+        }
+
+        if (Speaker::query()->whereKey($organizerId)->exists()) {
+            return 'speaker';
+        }
+
+        return null;
+    }
+
     /**
      * @param  array<string, mixed>  $validated
      */
@@ -2088,23 +2190,25 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
         $access = app(EntitySubmissionAccess::class);
         $submitter = $this->submitterUser();
 
-        $organizerType = $validated['organizer_type'] ?? ($this->data['organizer_type'] ?? null);
-        $organizerInstitutionId = (string) ($validated['organizer_institution_id'] ?? ($this->data['organizer_institution_id'] ?? ''));
-        $organizerSpeakerId = (string) ($validated['organizer_speaker_id'] ?? ($this->data['organizer_speaker_id'] ?? ''));
+        $organizerType = $this->selectedPrimaryOrganizerKind(
+            $validated['primary_organizer_kind'] ?? ($this->data['primary_organizer_kind'] ?? null),
+            $validated['primary_organizer_id'] ?? ($this->data['primary_organizer_id'] ?? null),
+        );
+        $primaryOrganizerId = (string) ($validated['primary_organizer_id'] ?? ($this->data['primary_organizer_id'] ?? ''));
         $locationInstitutionId = (string) ($validated['location_institution_id'] ?? ($this->data['location_institution_id'] ?? ''));
 
-        if ($organizerType === 'institution' && $organizerInstitutionId !== '') {
-            if (! $access->canUseInstitution($submitter, $organizerInstitutionId)) {
+        if ($organizerType === 'institution' && $primaryOrganizerId !== '') {
+            if (! $access->canUseInstitution($submitter, $primaryOrganizerId)) {
                 throw ValidationException::withMessages([
-                    'data.organizer_institution_id' => __('Anda tidak dibenarkan memilih institusi ini untuk penghantaran majlis.'),
+                    'data.primary_organizer_id' => __('Anda tidak dibenarkan memilih institusi ini untuk penghantaran majlis.'),
                 ]);
             }
         }
 
-        if ($organizerType === 'speaker' && $organizerSpeakerId !== '') {
-            if (! $access->canUseSpeaker($submitter, $organizerSpeakerId)) {
+        if ($organizerType === 'speaker' && $primaryOrganizerId !== '') {
+            if (! $access->canUseSpeaker($submitter, $primaryOrganizerId)) {
                 throw ValidationException::withMessages([
-                    'data.organizer_speaker_id' => __('Anda tidak dibenarkan memilih penceramah ini untuk penghantaran majlis.'),
+                    'data.primary_organizer_id' => __('Anda tidak dibenarkan memilih penceramah ini untuk penghantaran majlis.'),
                 ]);
             }
         }
@@ -2193,7 +2297,7 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
     /**
      * Resolve the starts_at datetime from event_date and prayer_time/custom_time.
      *
-     * @param  array{event_date: string, prayer_time: string|EventPrayerTime, custom_time?: string|null, submission_country_id?: int|string|null}  $validated
+     * @param  array{event_date: string, prayer_time: string|EventPrayerTime, custom_time?: string|null, submission_country_id?: string|null}  $validated
      */
     protected function resolveStartsAt(array $validated): Carbon
     {
@@ -2323,37 +2427,30 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
         return $date->between($startDate, $endDate);
     }
 
-    protected function resolveSubmissionCountryId(mixed $countryId = null): int
+    protected function resolveSubmissionCountryId(mixed $countryId = null): ?string
     {
-        $registry = app(PublicCountryRegistry::class);
+        $resolvedCountryId = app(AddressingCountryResolver::class)->resolveId($countryId);
 
-        $normalizedCountryId = $registry->resolveCountryId(
-            $countryId,
-            null,
-            null,
-            enabledOnly: true,
-        );
-
-        if (is_int($normalizedCountryId)) {
-            return $normalizedCountryId;
+        if (is_string($resolvedCountryId)) {
+            return $resolvedCountryId;
         }
 
-        $currentCountryId = $registry->normalizeCountryId(app(PreferredCountryResolver::class)->resolveId(request()));
-
-        if (is_int($currentCountryId)) {
-            return $currentCountryId;
+        if ($countryId === null || (is_string($countryId) && trim($countryId) === '')) {
+            return $this->defaultSubmissionCountryId();
         }
 
-        return $registry->countryIdForKey($registry->defaultKey())
-            ?? $registry->countryIdFromIso2('MY')
-            ?? 132;
+        return null;
     }
 
     protected function resolveSubmissionTimezone(mixed $countryId = null): string
     {
-        return app(PublicCountryRegistry::class)->defaultTimezoneForCountryId(
-            $this->resolveSubmissionCountryId($countryId),
-        );
+        return app(AddressingCountryResolver::class)->timezoneFor($this->resolveSubmissionCountryId($countryId))
+            ?? config('app.timezone', 'UTC');
+    }
+
+    protected function defaultSubmissionCountryId(): ?string
+    {
+        return app(AddressingCountryResolver::class)->resolveId('MY');
     }
 
     /**
@@ -2366,8 +2463,8 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
 
         if (filled($email)) {
             $submission->contacts()->create([
-                'type' => ContactType::Main->value,
-                'category' => ContactCategory::Email->value,
+                'type' => ContactMethodType::Email->value,
+                'purpose' => ContactPurpose::General->value,
                 'value' => $email,
                 'is_public' => false,
             ]);
@@ -2375,8 +2472,8 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
 
         if (filled($phone)) {
             $submission->contacts()->create([
-                'type' => ContactType::Main->value,
-                'category' => ContactCategory::Phone->value,
+                'type' => ContactMethodType::Phone->value,
+                'purpose' => ContactPurpose::General->value,
                 'value' => $phone,
                 'is_public' => false,
             ]);

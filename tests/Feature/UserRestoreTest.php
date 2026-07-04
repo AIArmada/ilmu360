@@ -8,8 +8,8 @@ use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 use AIArmada\Affiliates\States\Active;
 use AIArmada\Affiliates\States\PendingConversion;
+use AIArmada\CommerceSupport\Models\Role;
 use AIArmada\FilamentAuthz\Facades\Authz;
-use AIArmada\FilamentAuthz\Models\Role;
 use App\Filament\Pages\DeletedUsers;
 use App\Models\AiUsageLog;
 use App\Models\ContributionRequest;
@@ -101,11 +101,12 @@ it('restores a deleted user together with key relationships and child records', 
         'provider_id' => 'google-restore-user',
     ]);
 
-    $registration = Registration::factory()->create([
-        'event_id' => $sharedEvent->id,
-        'user_id' => $user->id,
-        'status' => 'registered',
-    ]);
+    $registration = Registration::factory()
+        ->forRegistrant($user)
+        ->create([
+            'event_id' => $sharedEvent->id,
+            'status' => 'confirmed',
+        ]);
     $ownCheckin = EventCheckin::factory()->create([
         'event_id' => $sharedEvent->id,
         'registration_id' => $registration->id,
@@ -223,7 +224,6 @@ it('restores a deleted user together with key relationships and child records', 
         'subject_metadata' => [
             'source' => 'test',
         ],
-        'is_active' => true,
     ]);
 
     $affiliateAttribution = AffiliateAttribution::query()->create([
@@ -337,14 +337,8 @@ it('restores a deleted user together with key relationships and child records', 
     assertDatabaseHas('speakers', ['id' => $speaker->id]);
     assertDatabaseHas('references', ['id' => $reference->id]);
     assertDatabaseHas('venues', ['id' => $venue->id]);
-    assertDatabaseHas('events', [
-        'id' => $ownedEvent->id,
-        'user_id' => null,
-    ]);
-    assertDatabaseHas('events', [
-        'id' => $submittedEvent->id,
-        'submitter_id' => null,
-    ]);
+    expect($ownedEvent->fresh()->user_id)->toBeNull()
+        ->and($submittedEvent->fresh()->submitter_id)->toBeNull();
     assertDatabaseHas('donation_channels', [
         'id' => $donationChannel->id,
         'verified_by' => null,
@@ -370,7 +364,7 @@ it('restores a deleted user together with key relationships and child records', 
         'venue_id' => $venue->id,
         'user_id' => $user->id,
     ]);
-    assertDatabaseMissing('registrations', ['id' => $registration->id]);
+    expect(Registration::query()->whereKey($registration->id)->exists())->toBeFalse();
     assertDatabaseMissing('event_checkins', ['id' => $ownCheckin->id]);
     assertDatabaseMissing('saved_searches', ['id' => $savedSearch->id]);
     assertDatabaseMissing('notification_rules', ['id' => $notificationRule->id]);
@@ -481,11 +475,8 @@ it('restores a deleted user together with key relationships and child records', 
         'user_id' => $user->id,
     ]);
 
-    assertDatabaseHas('events', [
-        'id' => $sharedEvent->id,
-        'saves_count' => 1,
-        'going_count' => 1,
-    ]);
+    expect($sharedEvent->fresh()->saves_count)->toBe(1)
+        ->and($sharedEvent->fresh()->going_count)->toBe(1);
 
     assertDatabaseHas('event_user', [
         'event_id' => $sharedEvent->id,
@@ -493,19 +484,10 @@ it('restores a deleted user together with key relationships and child records', 
         'joined_at' => $memberJoinedAt->toDateTimeString(),
     ]);
 
-    assertDatabaseHas('events', [
-        'id' => $ownedEvent->id,
-        'user_id' => $user->id,
-    ]);
-    assertDatabaseHas('events', [
-        'id' => $submittedEvent->id,
-        'submitter_id' => $user->id,
-    ]);
+    expect($ownedEvent->fresh()->user_id)->toBe($user->id)
+        ->and($submittedEvent->fresh()->submitter_id)->toBe($user->id);
 
-    assertDatabaseHas('event_submissions', [
-        'id' => $eventSubmission->id,
-        'submitted_by' => $user->id,
-    ]);
+    expect($eventSubmission->fresh()->submitted_by)->toBe($user->id);
     assertDatabaseHas('contribution_requests', [
         'id' => $contributionRequest->id,
         'proposer_id' => $user->id,
@@ -533,10 +515,10 @@ it('restores a deleted user together with key relationships and child records', 
         'id' => $verifiedCheckin->id,
         'verified_by_user_id' => $user->id,
     ]);
-    assertDatabaseHas('registrations', [
-        'id' => $registration->id,
-        'user_id' => $user->id,
-    ]);
+    $restoredRegistration = Registration::query()->find($registration->id);
+
+    expect($restoredRegistration)->not->toBeNull()
+        ->and($restoredRegistration?->isForUser($user))->toBeTrue();
     assertDatabaseHas('event_checkins', [
         'id' => $ownCheckin->id,
         'user_id' => $user->id,
@@ -685,10 +667,11 @@ it('restores an api self-deleted user from the deleted users admin page', functi
     $user->goingEvents()->attach($sharedEvent->id);
     $user->memberEvents()->attach($sharedEvent->id, ['joined_at' => $eventJoinedAt]);
 
-    $registration = Registration::factory()->create([
-        'event_id' => $sharedEvent->id,
-        'user_id' => $user->id,
-    ]);
+    $registration = Registration::factory()
+        ->forRegistrant($user)
+        ->create([
+            'event_id' => $sharedEvent->id,
+        ]);
     $ownCheckin = EventCheckin::factory()->create([
         'event_id' => $sharedEvent->id,
         'registration_id' => $registration->id,
@@ -735,15 +718,9 @@ it('restores an api self-deleted user from the deleted users admin page', functi
         'tokenable_type' => User::class,
         'tokenable_id' => $user->id,
     ]);
-    assertDatabaseHas('events', [
-        'id' => $ownedEvent->id,
-        'user_id' => null,
-    ]);
-    assertDatabaseHas('events', [
-        'id' => $submittedEvent->id,
-        'submitter_id' => null,
-    ]);
-    assertDatabaseMissing('registrations', ['id' => $registration->id]);
+    expect($ownedEvent->fresh()->user_id)->toBeNull()
+        ->and($submittedEvent->fresh()->submitter_id)->toBeNull();
+    expect(Registration::query()->whereKey($registration->id)->exists())->toBeFalse();
     assertDatabaseMissing('event_checkins', ['id' => $ownCheckin->id]);
     assertDatabaseMissing('saved_searches', ['id' => $savedSearch->id]);
     assertDatabaseMissing('notification_rules', ['id' => $notificationRule->id]);
@@ -781,14 +758,8 @@ it('restores an api self-deleted user from the deleted users admin page', functi
         'name' => 'API Restore Target',
         'email' => 'api-restore-target@example.test',
     ]);
-    assertDatabaseHas('events', [
-        'id' => $ownedEvent->id,
-        'user_id' => $user->id,
-    ]);
-    assertDatabaseHas('events', [
-        'id' => $submittedEvent->id,
-        'submitter_id' => $user->id,
-    ]);
+    expect($ownedEvent->fresh()->user_id)->toBe($user->id)
+        ->and($submittedEvent->fresh()->submitter_id)->toBe($user->id);
     assertDatabaseHas('institution_user', [
         'institution_id' => $institution->id,
         'user_id' => $user->id,
@@ -822,10 +793,10 @@ it('restores an api self-deleted user from the deleted users admin page', functi
         'user_id' => $user->id,
         'joined_at' => $eventJoinedAt->toDateTimeString(),
     ]);
-    assertDatabaseHas('registrations', [
-        'id' => $registration->id,
-        'user_id' => $user->id,
-    ]);
+    $restoredRegistration = Registration::query()->find($registration->id);
+
+    expect($restoredRegistration)->not->toBeNull()
+        ->and($restoredRegistration?->isForUser($user))->toBeTrue();
     assertDatabaseHas('event_checkins', [
         'id' => $ownCheckin->id,
         'user_id' => $user->id,
@@ -881,10 +852,7 @@ it('does not overwrite records reassigned after the user was deleted', function 
 
     User::restoreDeletedUser($deletedUser->id);
 
-    assertDatabaseHas('events', [
-        'id' => $event->id,
-        'user_id' => $newOwner->id,
-    ]);
+    expect($event->fresh()->user_id)->toBe($newOwner->id);
 });
 
 it('rolls back the user restore when restoring a related snapshot fails', function (): void {

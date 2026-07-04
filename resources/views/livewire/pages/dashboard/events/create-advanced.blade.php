@@ -105,28 +105,27 @@
                                 </div>
 
                                 <div class="xl:col-span-2">
-                                    <label class="mb-2 block text-sm font-semibold text-slate-800">{{ __('Organizer Type') }}</label>
-                                    <select wire:model.live="form.organizer_type" class="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-4 focus:ring-emerald-100">
+                                    <label class="mb-2 block text-sm font-semibold text-slate-800">{{ __('Organizer') }}</label>
+                                    <select wire:model.live="form.primary_organizer_id" class="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-4 focus:ring-emerald-100">
                                         @if($institutionOptions !== [])
-                                            <option value="institution">{{ __('Institution') }}</option>
+                                            <optgroup label="{{ __('Institutions') }}">
+                                                @foreach($institutionOptions as $value => $label)
+                                                    <option value="{{ $value }}">{{ $label }}</option>
+                                                @endforeach
+                                            </optgroup>
                                         @endif
                                         @if($speakerOptions !== [])
-                                            <option value="speaker">{{ __('Speaker') }}</option>
+                                            <optgroup label="{{ __('Speakers') }}">
+                                                @foreach($speakerOptions as $value => $label)
+                                                    <option value="{{ $value }}">{{ $label }}</option>
+                                                @endforeach
+                                            </optgroup>
                                         @endif
                                     </select>
+                                    @error('form.primary_organizer_id')<p class="mt-2 text-sm text-rose-600">{{ $message }}</p>@enderror
                                 </div>
 
-                                <div class="xl:col-span-3">
-                                    <label class="mb-2 block text-sm font-semibold text-slate-800">{{ __('Organizer') }}</label>
-                                    <select wire:model.defer="form.organizer_id" class="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-4 focus:ring-emerald-100">
-                                        @foreach(($form['organizer_type'] ?? 'institution') === 'institution' ? $institutionOptions : $speakerOptions as $value => $label)
-                                            <option value="{{ $value }}">{{ $label }}</option>
-                                        @endforeach
-                                    </select>
-                                    @error('form.organizer_id')<p class="mt-2 text-sm text-rose-600">{{ $message }}</p>@enderror
-                                </div>
-
-                                @if(($form['organizer_type'] ?? 'institution') === 'speaker' && $institutionOptions !== [])
+                                @if($selectedOrganizerType === 'speaker' && $institutionOptions !== [])
                                     <div class="xl:col-span-3">
                                         <label class="mb-2 block text-sm font-semibold text-slate-800">{{ __('Location Institution') }}</label>
                                         <select wire:model.defer="form.location_institution_id" class="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-4 focus:ring-emerald-100">

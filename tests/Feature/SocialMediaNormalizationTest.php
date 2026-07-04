@@ -1,6 +1,6 @@
 <?php
 
-use App\Enums\SocialMediaPlatform;
+use AIArmada\Contacting\Enums\SocialPlatform;
 use App\Models\Institution;
 use App\Models\Speaker;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -11,82 +11,81 @@ it('extracts instagram username from full profile url and resolves canonical url
     $speaker = Speaker::factory()->create();
 
     $social = $speaker->socialMedia()->create([
-        'platform' => SocialMediaPlatform::Instagram->value,
+        'platform' => SocialPlatform::Instagram->value,
         'url' => 'https://www.instagram.com/ustazah.aminah/?hl=en',
     ])->fresh();
 
-    expect($social->username)->toBe('ustazah.aminah')
-        ->and($social->url)->toBeNull()
-        ->and($social->resolved_url)->toBe('https://www.instagram.com/ustazah.aminah');
+    expect($social->handle)->toBe('ustazah.aminah')
+        ->and($social->url)->toBe('https://www.instagram.com/ustazah.aminah/?hl=en')
+        ->and($social->profileUrl())->toBe('https://www.instagram.com/ustazah.aminah');
 });
 
 it('accepts @handle input and resolves a tiktok url', function () {
     $speaker = Speaker::factory()->create();
 
     $social = $speaker->socialMedia()->create([
-        'platform' => SocialMediaPlatform::TikTok->value,
-        'username' => '@ilmu360',
+        'platform' => SocialPlatform::Tiktok->value,
+        'handle' => '@ilmu360',
     ])->fresh();
 
-    expect($social->username)->toBe('ilmu360')
-        ->and($social->url)->toBeNull()
-        ->and($social->resolved_url)->toBe('https://www.tiktok.com/@ilmu360');
+    expect($social->handle)->toBe('ilmu360')
+        ->and($social->url)->toBe('https://www.tiktok.com/@ilmu360')
+        ->and($social->profileUrl())->toBe('https://www.tiktok.com/@ilmu360');
 });
 
-it('normalizes x links under twitter platform and canonical x url', function () {
+it('normalizes x links and preserves the x platform key', function () {
     $institution = Institution::factory()->create();
 
     $social = $institution->socialMedia()->create([
-        'platform' => 'x',
+        'platform' => SocialPlatform::X->value,
         'url' => 'https://x.com/ilmu360',
     ])->fresh();
 
-    expect($social->platform)->toBe(SocialMediaPlatform::Twitter->value)
-        ->and($social->username)->toBe('ilmu360')
-        ->and($social->url)->toBeNull()
-        ->and($social->resolved_url)->toBe('https://x.com/ilmu360');
+    expect($social->platform)->toBe(SocialPlatform::X->value)
+        ->and($social->handle)->toBe('ilmu360')
+        ->and($social->url)->toBe('https://x.com/ilmu360')
+        ->and($social->profileUrl())->toBe('https://x.com/ilmu360');
 });
 
-it('keeps selected handle platform when platform is given as enum instance', function () {
+it('builds canonical facebook links from handles', function () {
     $speaker = Speaker::factory()->create();
 
     $social = $speaker->socialMedia()->create([
-        'platform' => SocialMediaPlatform::Facebook,
-        'username' => 'nurul',
-        'url' => null,
+        'platform' => SocialPlatform::Facebook->value,
+        'handle' => 'nurul',
     ])->fresh();
 
-    expect($social->platform)->toBe(SocialMediaPlatform::Facebook->value)
-        ->and($social->username)->toBe('nurul')
-        ->and($social->url)->toBeNull()
-        ->and($social->resolved_url)->toBe('https://www.facebook.com/nurul');
+    expect($social->platform)->toBe(SocialPlatform::Facebook->value)
+        ->and($social->handle)->toBe('nurul')
+        ->and($social->url)->toBe('https://www.facebook.com/nurul')
+        ->and($social->profileUrl())->toBe('https://www.facebook.com/nurul');
 });
 
-it('normalizes website url when pasted into username field', function () {
+it('normalizes website urls when given as direct links', function () {
     $institution = Institution::factory()->create();
 
     $social = $institution->socialMedia()->create([
-        'platform' => SocialMediaPlatform::Website->value,
-        'username' => 'ilmu360.test/profile',
+        'platform' => SocialPlatform::Website->value,
+        'url' => 'ilmu360.test/profile',
     ])->fresh();
 
-    expect($social->username)->toBeNull()
+    expect($social->handle)->toBeNull()
         ->and($social->url)->toBe('https://ilmu360.test/profile')
-        ->and($social->resolved_url)->toBe('https://ilmu360.test/profile');
+        ->and($social->profileUrl())->toBe('https://ilmu360.test/profile');
 });
 
-it('keeps wikipedia urls as standard resolved links', function () {
+it('keeps custom social links under the other platform', function () {
     $institution = Institution::factory()->create();
 
     $social = $institution->socialMedia()->create([
-        'platform' => SocialMediaPlatform::Wikipedia->value,
+        'platform' => SocialPlatform::Other->value,
         'url' => 'https://en.wikipedia.org/wiki/Imam_al-Nawawi',
     ])->fresh();
 
-    expect($social->platform)->toBe(SocialMediaPlatform::Wikipedia->value)
-        ->and($social->username)->toBeNull()
+    expect($social->platform)->toBe(SocialPlatform::Other->value)
+        ->and($social->handle)->toBeNull()
         ->and($social->url)->toBe('https://en.wikipedia.org/wiki/Imam_al-Nawawi')
-        ->and($social->resolved_url)->toBe('https://en.wikipedia.org/wiki/Imam_al-Nawawi');
+        ->and($social->profileUrl())->toBe('https://en.wikipedia.org/wiki/Imam_al-Nawawi');
 });
 
 it('renders resolved social url on speaker page when url column is null', function () {
@@ -95,8 +94,8 @@ it('renders resolved social url on speaker page when url column is null', functi
     ]);
 
     $speaker->socialMedia()->create([
-        'platform' => SocialMediaPlatform::Instagram->value,
-        'username' => 'ustazah.aminah',
+        'platform' => SocialPlatform::Instagram->value,
+        'handle' => 'ustazah.aminah',
     ]);
 
     $this->get(route('speakers.show', $speaker))

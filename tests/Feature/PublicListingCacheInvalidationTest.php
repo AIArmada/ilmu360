@@ -7,14 +7,10 @@ use App\Enums\EventKeyPersonRole;
 use App\Enums\EventPrayerTime;
 use App\Enums\EventType;
 use App\Enums\EventVisibility;
-use App\Models\Country;
-use App\Models\District;
 use App\Models\Event;
 use App\Models\EventKeyPerson;
 use App\Models\Institution;
 use App\Models\Speaker;
-use App\Models\State;
-use App\Models\Subdistrict;
 use App\Models\Tag;
 use App\Models\Venue;
 use Illuminate\Support\Facades\Cache;
@@ -123,8 +119,7 @@ it('clears majlis listing cache when event is submitted from public submit form'
             'gender' => EventGenderRestriction::All->value,
             'age_group' => [EventAgeGroup::AllAges->value],
             'languages' => [101],
-            'organizer_type' => 'institution',
-            'organizer_institution_id' => $institution->id,
+            'primary_organizer_id' => $institution->id,
             'speakers' => [$speaker->id],
             'domain_tags' => [$domainTag->id],
             'discipline_tags' => [$disciplineTag->id],
@@ -202,31 +197,22 @@ it('clears homepage stats cache when event key people are created or deleted', f
 });
 
 it('clears majlis listing cache when geography records are created updated or deleted', function () {
-    $country = new Country;
-    $country->forceFill([
-        'name' => 'Testland',
-        'iso2' => 'TL',
-        'iso3' => 'TST',
-        'phone_code' => '999',
-        'region' => 'Test Region',
-        'subregion' => 'Test Subregion',
-        'status' => 1,
-    ]);
-
     $keysAfterCountryCreate = primeMajlisListingCache();
-    $country->save();
+    $country = ensureTestAddressCountry(
+        iso2: 'TL',
+        name: 'Testland',
+        iso3: 'TST',
+        timezones: ['UTC'],
+        phoneCode: '999',
+    );
     assertMajlisCacheWasCleared($keysAfterCountryCreate);
 
     $keysAfterCountryUpdate = primeMajlisListingCache();
-    $country->forceFill(['name' => 'Updated Testland'])->save();
+    $country->update(['name' => 'Updated Testland']);
     assertMajlisCacheWasCleared($keysAfterCountryUpdate);
 
     $keysAfterStateCreate = primeMajlisListingCache();
-    $state = State::query()->create([
-        'country_id' => $country->getKey(),
-        'name' => 'Alpha State',
-        'country_code' => 'TL',
-    ]);
+    $state = createTestAddressArea('Alpha State', 1, country: $country);
     assertMajlisCacheWasCleared($keysAfterStateCreate);
 
     $keysAfterStateUpdate = primeMajlisListingCache();
@@ -234,12 +220,7 @@ it('clears majlis listing cache when geography records are created updated or de
     assertMajlisCacheWasCleared($keysAfterStateUpdate);
 
     $keysAfterDistrictCreate = primeMajlisListingCache();
-    $district = District::query()->create([
-        'country_id' => $country->getKey(),
-        'state_id' => $state->getKey(),
-        'name' => 'Alpha District',
-        'country_code' => 'TL',
-    ]);
+    $district = createTestAddressArea('Alpha District', 2, parent: $state, country: $country);
     assertMajlisCacheWasCleared($keysAfterDistrictCreate);
 
     $keysAfterDistrictUpdate = primeMajlisListingCache();
@@ -247,13 +228,7 @@ it('clears majlis listing cache when geography records are created updated or de
     assertMajlisCacheWasCleared($keysAfterDistrictUpdate);
 
     $keysAfterSubdistrictCreate = primeMajlisListingCache();
-    $subdistrict = Subdistrict::query()->create([
-        'country_id' => $country->getKey(),
-        'state_id' => $state->getKey(),
-        'district_id' => $district->getKey(),
-        'name' => 'Alpha Subdistrict',
-        'country_code' => 'TL',
-    ]);
+    $subdistrict = createTestAddressArea('Alpha Subdistrict', 3, parent: $district, country: $country);
     assertMajlisCacheWasCleared($keysAfterSubdistrictCreate);
 
     $keysAfterSubdistrictUpdate = primeMajlisListingCache();

@@ -11,6 +11,7 @@ use App\Models\Reference;
 use App\Models\Speaker;
 use App\Support\Location\AddressHierarchyFormatter;
 use App\Support\Timezone\UserDateTimeFormatter;
+use BackedEnum;
 use Carbon\CarbonInterface;
 use DateTimeInterface;
 use Illuminate\Support\Arr;
@@ -40,6 +41,31 @@ class EventPayloadData extends Data
         /** @var array<string, mixed> $payload */
         $payload = Arr::except([
             ...$event->toArray(),
+            'institution_id' => $event->institution_id,
+            'venue_id' => $event->venue_id,
+            'event_structure' => self::enumValue($event->event_structure),
+            'schedule_kind' => $event->schedule_kind,
+            'schedule_state' => self::enumValue($event->schedule_state),
+            'timing_mode' => self::enumValue($event->timing_mode),
+            'prayer_reference' => self::enumValue($event->prayer_reference),
+            'prayer_offset' => self::enumValue($event->prayer_offset),
+            'prayer_display_text' => $event->prayer_display_text,
+            'event_type' => self::enumListValues($event->event_type),
+            'gender' => self::enumValue($event->gender),
+            'age_group' => self::enumListValues($event->age_group),
+            'children_allowed' => $event->children_allowed,
+            'event_format' => self::enumValue($event->event_format),
+            'event_url' => $event->event_url,
+            'live_url' => $event->live_url,
+            'recording_url' => $event->recording_url,
+            'views_count' => $event->views_count,
+            'saves_count' => $event->saves_count,
+            'registrations_count' => $event->registrations_count,
+            'going_count' => $event->going_count,
+            'is_priority' => $event->is_priority,
+            'is_featured' => $event->is_featured,
+            'is_active' => $event->is_active,
+            'is_muslim_only' => $event->is_muslim_only,
             'reference_study_subtitle' => $event->reference_study_subtitle,
             'card_image_url' => $event->card_image_url,
             'poster_url' => self::preferredMediaUrl($event->getFirstMedia('poster'), ['preview', 'card', 'thumb']),
@@ -132,6 +158,34 @@ class EventPayloadData extends Data
         return null;
     }
 
+    private static function enumValue(mixed $value): mixed
+    {
+        return $value instanceof BackedEnum ? $value->value : $value;
+    }
+
+    /**
+     * @return list<mixed>|null
+     */
+    private static function enumListValues(mixed $value): ?array
+    {
+        if ($value instanceof Collection) {
+            return $value
+                ->map(static fn (mixed $item): mixed => self::enumValue($item))
+                ->values()
+                ->all();
+        }
+
+        if (is_array($value)) {
+            return array_values(array_map(self::enumValue(...), $value));
+        }
+
+        if ($value === null) {
+            return null;
+        }
+
+        return [self::enumValue($value)];
+    }
+
     /**
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed>
@@ -145,8 +199,8 @@ class EventPayloadData extends Data
             ...Arr::except($payload, ['media']),
             'address_line' => $addressLine !== '' ? $addressLine : null,
             'map_url' => $address?->google_maps_url,
-            'map_lat' => $address?->lat,
-            'map_lng' => $address?->lng,
+            'map_lat' => $address?->latitude,
+            'map_lng' => $address?->longitude,
             'waze_url' => $address?->waze_url,
         ];
     }

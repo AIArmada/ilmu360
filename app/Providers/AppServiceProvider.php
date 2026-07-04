@@ -2,20 +2,24 @@
 
 namespace App\Providers;
 
+use AIArmada\Addressing\Models\Address;
+use AIArmada\Addressing\Models\Addressable;
+use AIArmada\Addressing\Models\AddressArea;
+use AIArmada\Addressing\Models\AddressCountry;
+use AIArmada\Contacting\Models\ContactMethod;
+use AIArmada\Contacting\Models\SocialProfile;
+use AIArmada\Events\Models\EventRegistrationParticipant;
+use AIArmada\FilamentSignals\Policies\TrackedPropertyPolicy;
+use AIArmada\Signals\Models\TrackedProperty;
 use App\Actions\Slugs\ResolvePublicSlugAction;
 use App\Ai\Listeners\RecordAiUsage;
 use App\Http\Controllers\Mcp\OAuthRegisterController;
-use App\Models\Address;
 use App\Models\AiModelPricing;
 use App\Models\Audit as FilamentAudit;
-use App\Models\Contact;
 use App\Models\ContributionRequest;
-use App\Models\Country;
-use App\Models\District;
 use App\Models\DonationChannel;
 use App\Models\Event;
 use App\Models\EventKeyPerson;
-use App\Models\EventSettings;
 use App\Models\EventSubmission;
 use App\Models\Inspiration;
 use App\Models\Institution;
@@ -27,23 +31,24 @@ use App\Models\Reference;
 use App\Models\Registration;
 use App\Models\Report;
 use App\Models\Series;
-use App\Models\SocialMedia;
 use App\Models\Space;
 use App\Models\Speaker;
-use App\Models\State;
-use App\Models\Subdistrict;
 use App\Models\Tag;
 use App\Models\User;
 use App\Models\Venue;
+use App\Observers\AddressAreaObserver;
+use App\Observers\AddressableObserver;
+use App\Observers\AddressCountryObserver;
 use App\Observers\AddressObserver;
 use App\Observers\EventKeyPersonObserver;
 use App\Observers\EventObserver;
-use App\Observers\GeographyObserver;
 use App\Observers\InstitutionObserver;
 use App\Observers\ReferenceObserver;
 use App\Observers\SpeakerObserver;
 use App\Observers\TagObserver;
 use App\Observers\VenueObserver;
+use App\Policies\AddressAreaPolicy;
+use App\Policies\AddressCountryPolicy;
 use App\Policies\FilamentAuditPolicy;
 use App\Support\Media\MediaFileNamer;
 use App\Support\Passport\PassportKeyProvisioner;
@@ -95,14 +100,29 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(McpOAuthRegisterController::class, OAuthRegisterController::class);
 
         $filamentAuditingViews = base_path('vendor/tapp/filament-auditing/resources/views');
-        $filamentSignalsViews = base_path('../commerce/packages/filament-signals/resources/views');
 
         if (is_dir($filamentAuditingViews)) {
             $this->loadViewsFrom($filamentAuditingViews, 'filament-auditing');
         }
 
-        if (is_dir($filamentSignalsViews)) {
-            $this->loadViewsFrom($filamentSignalsViews, 'filament-signals');
+        $this->registerPackageMigrations();
+    }
+
+    /**
+     * Ensure all installed AIArmada package migrations are loaded.
+     *
+     * Some packages use spatie/laravel-package-tools runsMigrations() which
+     * doesn't reliably register in the test (SQLite) environment. This
+     * explicitly loads migrations from every installed package directory.
+     */
+    private function registerPackageMigrations(): void
+    {
+        foreach (glob(base_path('vendor/aiarmada/*')) as $packagePath) {
+            $migrationDir = $packagePath.'/database/migrations';
+
+            if (is_dir($migrationDir)) {
+                $this->loadMigrationsFrom($migrationDir);
+            }
         }
     }
 
@@ -123,12 +143,6 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('api-auth-password', static fn (Request $request): Limit => Limit::perMinute(5)->by(sprintf('%s|%s|%s', $request->ip(), $request->path(), strtolower(trim((string) $request->input('email'))))));
 
-        $signalsRoutes = base_path('../commerce/packages/signals/routes/api.php');
-
-        if (! $this->app->routesAreCached() && is_file($signalsRoutes) && ! app('router')->has('signals.collect.pageview')) {
-            $this->loadRoutesFrom($signalsRoutes);
-        }
-
         // Register custom scripts
         FilamentAsset::register([
             Js::make('close-on-select', __DIR__.'/../../resources/js/filament/close-on-select.js'),
@@ -145,17 +159,15 @@ class AppServiceProvider extends ServiceProvider
 
         if (app()->runningUnitTests() || ! self::$publicListingObserversRegistered) {
             Address::observe(AddressObserver::class);
+            AddressArea::observe(AddressAreaObserver::class);
+            Addressable::observe(AddressableObserver::class);
+            AddressCountry::observe(AddressCountryObserver::class);
             EventKeyPerson::observe(EventKeyPersonObserver::class);
             Institution::observe(InstitutionObserver::class);
             Reference::observe(ReferenceObserver::class);
             Speaker::observe(SpeakerObserver::class);
             Venue::observe(VenueObserver::class);
             Tag::observe(TagObserver::class);
-            Country::observe(GeographyObserver::class);
-            State::observe(GeographyObserver::class);
-            District::observe(GeographyObserver::class);
-            Subdistrict::observe(GeographyObserver::class);
-
             if (! app()->runningUnitTests()) {
                 self::$publicListingObserversRegistered = true;
             }
@@ -191,13 +203,13 @@ class AppServiceProvider extends ServiceProvider
         Relation::enforceMorphMap([
             'address' => Address::class,
             'ai_model_pricing' => AiModelPricing::class,
-            'contact' => Contact::class,
+            'contact' => ContactMethod::class,
             'user' => User::class,
             'event' => Event::class,
             'event_key_person' => EventKeyPerson::class,
             'event_submission' => EventSubmission::class,
-            'event_settings' => EventSettings::class,
             'contribution_request' => ContributionRequest::class,
+            'event_registration_participant' => EventRegistrationParticipant::class,
             'membership_claim' => MembershipClaim::class,
             'moderation_review' => ModerationReview::class,
             'institution' => Institution::class,
@@ -206,7 +218,7 @@ class AppServiceProvider extends ServiceProvider
             'registration' => Registration::class,
             'speaker' => Speaker::class,
             'series' => Series::class,
-            'social_media' => SocialMedia::class,
+            'social_media' => SocialProfile::class,
             'space' => Space::class,
             'tag' => Tag::class,
             'venue' => Venue::class,
@@ -217,6 +229,9 @@ class AppServiceProvider extends ServiceProvider
         ]);
 
         Gate::policy(FilamentAudit::class, FilamentAuditPolicy::class);
+        Gate::policy(AddressArea::class, AddressAreaPolicy::class);
+        Gate::policy(AddressCountry::class, AddressCountryPolicy::class);
+        Gate::policy(TrackedProperty::class, TrackedPropertyPolicy::class);
 
         Gate::define('audit', static fn (mixed $user, mixed $resource): bool => $user instanceof User
             && $user->hasAnyRole(['super_admin', 'admin', 'moderator']));

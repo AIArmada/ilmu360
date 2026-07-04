@@ -1,10 +1,10 @@
 <?php
 
+use AIArmada\CommerceSupport\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Laravel\Sanctum\Sanctum;
-use Spatie\Permission\Models\Role;
 
 uses(RefreshDatabase::class);
 

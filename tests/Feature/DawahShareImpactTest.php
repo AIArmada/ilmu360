@@ -17,6 +17,7 @@ use App\Enums\RegistrationMode;
 use App\Livewire\Pages\Dashboard\DawahImpactIndex;
 use App\Models\Event;
 use App\Models\EventCheckin;
+use App\Models\Registration;
 use App\Models\EventSubmission;
 use App\Models\Institution;
 use App\Models\Reference;
@@ -115,6 +116,7 @@ function dawahShareSubmitEventFormData(array $fixtures, array $overrides = []): 
 {
     return array_merge([
         'title' => 'Attributed Submitted Event',
+        'submission_country_id' => (string) ensureTestMalaysiaCountry()->getKey(),
         'domain_tags' => [$fixtures['domain_tag']->id],
         'discipline_tags' => [$fixtures['discipline_tag']->id],
         'event_type' => [EventType::KuliahCeramah->value],
@@ -126,8 +128,7 @@ function dawahShareSubmitEventFormData(array $fixtures, array $overrides = []): 
         'gender' => EventGenderRestriction::All->value,
         'age_group' => [EventAgeGroup::AllAges->value],
         'languages' => [101],
-        'organizer_type' => 'institution',
-        'organizer_institution_id' => $fixtures['institution']->id,
+        'primary_organizer_id' => $fixtures['institution']->id,
         'speakers' => [$fixtures['speaker']->id],
         'submitter_name' => 'Guest Submitter',
         'submitter_email' => 'guest-submitter@example.com',
@@ -704,11 +705,14 @@ test('event registrations are attributed after a shared landing', function () {
 
     $response->assertRedirect(route('events.show', $event));
 
-    $this->assertDatabaseHas('registrations', [
-        'event_id' => $event->id,
-        'email' => 'guest-registrant@example.com',
-        'status' => 'registered',
-    ]);
+    $registration = Registration::query()
+        ->where('event_id', $event->id)
+        ->forPrimaryContact('guest-registrant@example.com')
+        ->first();
+
+    expect($registration)->not->toBeNull()
+        ->and($registration?->resolvedEmail())->toBe('guest-registrant@example.com')
+        ->and($registration?->statusValue())->toBe('confirmed');
 
     $this->assertDatabaseHas('affiliate_conversions', [
         'conversion_type' => 'event_registration',

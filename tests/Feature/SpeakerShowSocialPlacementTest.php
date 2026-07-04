@@ -18,9 +18,9 @@ it('renders social media section below biodata on speaker show page', function (
     ]);
 
     $speaker->socialMedia()->create([
-        'platform' => 'website',
+        'platform' => 'facebook',
         'url' => 'https://example.com',
-        'username' => 'example',
+        'handle' => 'example',
     ]);
 
     $this->get(route('speakers.show', $speaker))

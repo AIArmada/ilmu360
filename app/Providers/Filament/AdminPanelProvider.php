@@ -2,7 +2,11 @@
 
 namespace App\Providers\Filament;
 
+use AIArmada\Filament\Communications\FilamentCommunicationsPlugin;
+use AIArmada\FilamentAddressing\FilamentAddressingPlugin;
 use AIArmada\FilamentAuthz\FilamentAuthzPlugin;
+use AIArmada\FilamentContacting\FilamentContactingPlugin;
+use AIArmada\FilamentEngagement\FilamentEngagementPlugin;
 use AIArmada\FilamentSignals\FilamentSignalsPlugin;
 use App\Filament\Pages\AdminDashboard;
 use App\Providers\Filament\Concerns\ResolvesPanelDomain;
@@ -72,6 +76,10 @@ class AdminPanelProvider extends PanelProvider
                 FilamentSignalsPlugin::make(),
                 $authzPlugin,
                 FilamentAuditingPlugin::make(),
+                FilamentAddressingPlugin::make(),
+                FilamentContactingPlugin::make(),
+                FilamentEngagementPlugin::make(),
+                FilamentCommunicationsPlugin::make(),
             ])
             ->middleware([
                 EncryptCookies::class,

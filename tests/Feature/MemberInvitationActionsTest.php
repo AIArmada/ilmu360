@@ -3,6 +3,7 @@
 use App\Actions\Membership\AcceptSubjectMemberInvitation;
 use App\Actions\Membership\InviteSubjectMember;
 use App\Actions\Membership\RevokeSubjectMemberInvitation;
+use App\Actions\Membership\ResolveMemberInvitationByTokenAction;
 use App\Enums\MemberSubjectType;
 use App\Models\Institution;
 use App\Models\MemberInvitation;
@@ -12,6 +13,7 @@ use App\Support\Authz\MemberRoleCatalog;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
 use Spatie\Permission\PermissionRegistrar;
+use Illuminate\Support\Str;
 
 beforeEach(function (): void {
     app(PermissionRegistrar::class)->forgetCachedPermissions();
@@ -41,7 +43,37 @@ it('creates a member invitation with the requested subject and role', function (
     Notification::assertSentOnDemand(MemberInvitationNotification::class, fn (MemberInvitationNotification $notification, array $channels, object $notifiable): bool => method_exists($notifiable, 'routeNotificationFor')
         && $notifiable->routeNotificationFor('mail', $notification) === 'invitee@example.com'
         && $notification->subjectName === $institution->name
-        && $notification->roleLabel === 'Admin');
+        && $notification->roleLabel === 'Admin'
+        && $invitation->matchesToken(Str::afterLast($notification->acceptUrl, '/'))
+        && Str::afterLast($notification->acceptUrl, '/') !== $invitation->token);
+});
+
+it('resolves raw invitation links against hashed stored tokens', function () {
+    $institution = Institution::factory()->create();
+    $inviter = User::factory()->create();
+
+    $invitation = app(InviteSubjectMember::class)->handle(
+        $institution,
+        'invitee@example.com',
+        'viewer',
+        $inviter,
+        now()->addWeek(),
+    );
+
+    $plainToken = null;
+
+    Notification::assertSentOnDemand(MemberInvitationNotification::class, function (MemberInvitationNotification $notification) use (&$plainToken): bool {
+        $plainToken = Str::afterLast($notification->acceptUrl, '/');
+
+        return $plainToken !== '';
+    });
+
+    expect($plainToken)->toBeString();
+
+    $resolvedInvitation = app(ResolveMemberInvitationByTokenAction::class)->handle($plainToken);
+
+    expect($resolvedInvitation->is($invitation))->toBeTrue()
+        ->and($resolvedInvitation->token)->not->toBe($plainToken);
 });
 
 it('rejects protected ownership roles for member invitations', function () {

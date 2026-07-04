@@ -183,7 +183,7 @@ class AdminBatchCreateEventsTool extends AbstractAdminWriteTool
         unset(
             $payload['validate_only'],
             $payload['apply_defaults'],
-            $payload['organizer_key'],
+            $payload['primary_organizer_key'],
             $payload['institution_key'],
             $payload['venue_key'],
             $payload['space_key'],
@@ -191,19 +191,12 @@ class AdminBatchCreateEventsTool extends AbstractAdminWriteTool
             $payload['reference_keys'],
         );
 
-        $organizerType = $this->normalizeOrganizerType($item['organizer_type'] ?? null);
+        $primaryOrganizerKey = $this->normalizeOptionalString($item['primary_organizer_key'] ?? null);
 
-        if ($organizerType !== null) {
-            $payload['organizer_type'] = $organizerType;
-        }
-
-        $organizerKey = $this->normalizeOptionalString($item['organizer_key'] ?? null);
-
-        if ($organizerKey !== null) {
-            $payload['organizer_id'] = $this->resolveRecordIdentifier(
-                field: 'organizer_key',
-                modelClass: $organizerType === Speaker::class ? Speaker::class : Institution::class,
-                key: $organizerKey,
+        if ($primaryOrganizerKey !== null) {
+            $payload['primary_organizer_id'] = $this->resolvePrimaryOrganizerIdentifier(
+                field: 'primary_organizer_key',
+                key: $primaryOrganizerKey,
             );
         }
 
@@ -307,8 +300,7 @@ class AdminBatchCreateEventsTool extends AbstractAdminWriteTool
             'children_allowed' => $schema->boolean()->default(false),
             'is_muslim_only' => $schema->boolean()->default(false),
             'event_type' => $schema->array()->required()->items($schema->string()->enum($this->enumValues(EventType::class))),
-            'organizer_type' => $schema->string()->enum(['institution', 'speaker', Institution::class, Speaker::class])->description('Organizer model type.'),
-            'organizer_key' => $schema->string()->nullable()->description('Organizer route key (slug preferred, UUID allowed).'),
+            'primary_organizer_key' => $schema->string()->required()->description('Primary organizer route key (institution or speaker slug preferred, UUID allowed).'),
             'institution_key' => $schema->string()->nullable()->description('Institution route key (slug preferred, UUID allowed).'),
             'venue_key' => $schema->string()->nullable()->description('Venue route key (slug preferred, UUID allowed).'),
             'space_key' => $schema->string()->nullable()->description('Space route key (slug preferred, UUID allowed).'),

@@ -157,8 +157,15 @@ class AdminResourceService
         ?string $startsOnLocalDate = null,
     ): array {
         $resourceClass = $this->resolveAccessibleResource($resourceKey);
+        $user = auth()->user();
+        $modelClass = $resourceClass::getModel();
 
-        abort_unless($resourceClass::canViewAny(), 403);
+        abort_unless(
+            $user instanceof User
+                ? $user->can('viewAny', $modelClass)
+                : $resourceClass::canViewAny(),
+            403,
+        );
 
         $query = $this->registry->queryFor($resourceClass);
         $normalizedSearch = trim($search);

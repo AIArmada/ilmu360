@@ -20,14 +20,16 @@ class EventRegistrationData extends Data
 
     public static function fromModel(Registration $registration): self
     {
+        $registrant = $registration->registrant;
+
         return new self(
             id: (string) $registration->id,
             event_id: (string) $registration->event_id,
-            user_id: is_string($registration->user_id) ? $registration->user_id : null,
-            name: (string) $registration->name,
-            email: is_string($registration->email) ? $registration->email : null,
-            phone: is_string($registration->phone) ? $registration->phone : null,
-            status: (string) $registration->status,
+            user_id: $registrant instanceof \App\Models\User ? (string) $registrant->getKey() : null,
+            name: $registration->resolvedName() ?? '',
+            email: $registration->resolvedEmail(),
+            phone: $registration->resolvedPhone(),
+            status: $registration->statusValue(),
             created_at: $registration->created_at?->toIso8601String(),
         );
     }

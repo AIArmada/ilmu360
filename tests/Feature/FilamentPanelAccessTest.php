@@ -1,7 +1,7 @@
 <?php
 
+use AIArmada\CommerceSupport\Models\Role;
 use AIArmada\FilamentAuthz\Facades\Authz;
-use AIArmada\FilamentAuthz\Models\Role;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Reference;

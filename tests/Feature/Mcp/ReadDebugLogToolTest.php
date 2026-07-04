@@ -1,5 +1,6 @@
 <?php
 
+use AIArmada\CommerceSupport\Models\Role;
 use App\Actions\Membership\AddMemberToSubject;
 use App\Mcp\Servers\AdminServer;
 use App\Mcp\Servers\MemberServer;
@@ -9,7 +10,6 @@ use App\Models\Institution;
 use App\Models\User;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
 /**

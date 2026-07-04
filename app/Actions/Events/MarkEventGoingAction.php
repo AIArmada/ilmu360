@@ -77,7 +77,9 @@ final readonly class MarkEventGoingAction
 
         Event::query()
             ->whereKey($eventId)
-            ->update(['going_count' => $goingCount]);
+            ->first()
+            ?->forceFill(['going_count' => $goingCount])
+            ->saveQuietly();
 
         return $goingCount;
     }

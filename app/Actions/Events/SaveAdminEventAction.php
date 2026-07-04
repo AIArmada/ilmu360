@@ -2,6 +2,7 @@
 
 namespace App\Actions\Events;
 
+use AIArmada\Events\Enums\RegistrationMode;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
@@ -9,9 +10,9 @@ use App\Enums\EventKeyPersonRole;
 use App\Enums\EventPrayerTime;
 use App\Enums\EventType;
 use App\Enums\EventVisibility;
-use App\Enums\RegistrationMode;
 use App\Models\Event;
 use App\Models\Institution;
+use App\Models\Series;
 use App\Models\Space;
 use App\Models\Speaker;
 use App\Models\User;
@@ -59,10 +60,11 @@ final readonly class SaveAdminEventAction
             'discipline_tags' => [],
             'source_tags' => [],
             'issue_tags' => [],
+            'primary_organizer_id' => null,
             'speakers' => [],
             'other_key_people' => [],
             'registration_required' => false,
-            'registration_mode' => RegistrationMode::Event->value,
+            'registration_mode' => RegistrationMode::None->value,
             'is_priority' => false,
             'is_featured' => false,
             'is_active' => true,
@@ -77,7 +79,7 @@ final readonly class SaveAdminEventAction
      */
     public function formStateForRecord(Event $event): array
     {
-        $event->loadMissing(['references:id,title', 'series:id,title', 'tags:id,type', 'keyPeople', 'languages:id', 'settings']);
+        $event->loadMissing(['references:id,title', 'series:id,title', 'tags:id,type', 'keyPeople', 'languages:id', 'accessPolicy']);
 
         $timeFields = AdminEventTimeMapper::injectFormTimeFields([
             'starts_at' => $event->starts_at?->toDateTimeString(),
@@ -109,8 +111,7 @@ final readonly class SaveAdminEventAction
             'event_url' => $event->event_url,
             'live_url' => $event->live_url,
             'recording_url' => $event->recording_url,
-            'organizer_type' => $this->normalizeOrganizerType($event->organizer_type),
-            'organizer_id' => $event->organizer_id,
+            'primary_organizer_id' => $event->primaryOrganizerInvolvement?->involveable_id,
             'institution_id' => $event->institution_id,
             'venue_id' => $event->venue_id,
             'space_id' => $event->space_id,
@@ -138,12 +139,8 @@ final readonly class SaveAdminEventAction
                 ])
                 ->values()
                 ->all(),
-            'registration_required' => (bool) $event->settings?->registration_required,
-            'registration_mode' => $this->normalizeEnumValue(
-                $event->settings?->registration_mode,
-                RegistrationMode::class,
-                RegistrationMode::Event->value,
-            ),
+            'registration_required' => (bool) $event->accessPolicy?->registration_required,
+            'registration_mode' => $event->resolvedRegistrationMode()->value,
             'is_priority' => (bool) $event->is_priority,
             'is_featured' => (bool) $event->is_featured,
             'is_active' => (bool) $event->is_active,
@@ -168,7 +165,6 @@ final readonly class SaveAdminEventAction
             ? array_replace($this->defaultsForCreate(), $data)
             : array_replace($this->formStateForRecord($event), $data);
 
-        $state['organizer_type'] = $this->normalizeOrganizerType($state['organizer_type'] ?? null);
         $this->validateState($state);
 
         $persistence = AdminEventTimeMapper::normalizeForPersistence($state);
@@ -222,8 +218,6 @@ final readonly class SaveAdminEventAction
             'event_url' => $this->normalizeOptionalString($state['event_url'] ?? $event->event_url),
             'live_url' => $this->normalizeOptionalString($state['live_url'] ?? $event->live_url),
             'recording_url' => $this->normalizeOptionalString($state['recording_url'] ?? $event->recording_url),
-            'organizer_type' => $state['organizer_type'],
-            'organizer_id' => $this->normalizeOptionalString($state['organizer_id'] ?? $event->organizer_id),
             'institution_id' => $institutionId,
             'venue_id' => $venueId,
             'space_id' => $spaceId,
@@ -242,6 +236,14 @@ final readonly class SaveAdminEventAction
         } else {
             $event->fill($attributes);
             $event->save();
+        }
+
+        $organizerId = $this->normalizeOptionalString($state['primary_organizer_id'] ?? $event->primaryOrganizerInvolvement?->involveable_id);
+        if ($organizerId) {
+            $organizer = Institution::query()->find($organizerId) ?? Speaker::query()->find($organizerId);
+            $event->setPrimaryOrganizer($organizer);
+        } else {
+            $event->setPrimaryOrganizer(null);
         }
 
         $this->syncReferences($event, $state);
@@ -306,27 +308,19 @@ final readonly class SaveAdminEventAction
     private function validateState(array $state): void
     {
         $errors = [];
-        $organizerType = $this->normalizeOrganizerType($state['organizer_type'] ?? null);
-        $organizerId = $this->normalizeOptionalString($state['organizer_id'] ?? null);
+        $primaryOrganizerId = $this->normalizeOptionalString($state['primary_organizer_id'] ?? null);
         $institutionId = $this->normalizeOptionalString($state['institution_id'] ?? null);
         $venueId = $this->normalizeOptionalString($state['venue_id'] ?? null);
         $spaceId = $this->normalizeOptionalString($state['space_id'] ?? null);
         $speakerIds = $this->normalizeStringArray($state['speakers'] ?? []);
 
-        if ($organizerId !== null && $organizerType === null) {
-            $errors['organizer_type'][] = __('Sila pilih jenis penganjur untuk ID penganjur yang diberikan.');
-        }
-
-        if ($organizerType !== null && $organizerId === null) {
-            $errors['organizer_id'][] = __('Sila pilih penganjur untuk jenis penganjur yang dipilih.');
-        }
-
-        if ($organizerType === Institution::class && $organizerId !== null && ! Institution::query()->whereKey($organizerId)->exists()) {
-            $errors['organizer_id'][] = __('Penganjur institusi yang dipilih tidak wujud.');
-        }
-
-        if ($organizerType === Speaker::class && $organizerId !== null && ! Speaker::query()->whereKey($organizerId)->exists()) {
-            $errors['organizer_id'][] = __('Penganjur penceramah yang dipilih tidak wujud.');
+        if ($primaryOrganizerId === null) {
+            $errors['primary_organizer_id'][] = __('Penganjur utama diperlukan.');
+        } elseif (
+            ! Institution::query()->whereKey($primaryOrganizerId)->exists()
+            && ! Speaker::query()->whereKey($primaryOrganizerId)->exists()
+        ) {
+            $errors['primary_organizer_id'][] = __('Penganjur utama yang dipilih tidak sah.');
         }
 
         if ($institutionId !== null && $venueId !== null) {
@@ -375,11 +369,11 @@ final readonly class SaveAdminEventAction
 
         if (
             $speakerSlugSegments === []
-            && ($state['organizer_type'] ?? null) === Speaker::class
-            && filled($state['organizer_id'] ?? null)
+            && filled($state['primary_organizer_id'] ?? null)
+            && Speaker::query()->whereKey($state['primary_organizer_id'])->exists()
         ) {
             $speakerSlugSegments = $this->generateEventSlugAction->speakerSlugSegmentsForSpeakerIds([
-                (string) $state['organizer_id'],
+                (string) $state['primary_organizer_id'],
             ]);
         }
 
@@ -416,8 +410,9 @@ final readonly class SaveAdminEventAction
         }
 
         $seriesIds = $this->normalizeStringArray($state['series'] ?? []);
+        $series = new Series;
 
-        $event->auditSync('series', $seriesIds, true, ['series.id', 'series.title']);
+        $event->auditSync('series', $seriesIds, true, [$series->qualifyColumn('id'), $series->qualifyColumn('title')]);
     }
 
     /**
@@ -470,15 +465,6 @@ final readonly class SaveAdminEventAction
         }
 
         return filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) === true;
-    }
-
-    private function normalizeOrganizerType(mixed $value): ?string
-    {
-        return match ($value) {
-            Institution::class, 'institution' => Institution::class,
-            Speaker::class, 'speaker' => Speaker::class,
-            default => null,
-        };
     }
 
     private function requiresSpeakers(mixed $eventTypes): bool

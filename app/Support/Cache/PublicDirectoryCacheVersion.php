@@ -2,7 +2,7 @@
 
 namespace App\Support\Cache;
 
-use App\Models\Address;
+use AIArmada\Addressing\Models\Address;
 use App\Models\Event;
 use App\Models\EventKeyPerson;
 use App\Models\Institution;
@@ -55,18 +55,20 @@ class PublicDirectoryCacheVersion
 
     public function bumpForAddress(Address $address): void
     {
-        $address->loadMissing('addressable');
+        $address->loadMissing('addressableLinks.addressable');
 
-        $addressable = $address->addressable;
+        foreach ($address->addressableLinks as $link) {
+            $addressable = $link->addressable;
 
-        if ($addressable instanceof Institution) {
-            $this->bumpInstitution();
+            if ($addressable instanceof Institution) {
+                $this->bumpInstitution();
 
-            return;
-        }
+                continue;
+            }
 
-        if ($addressable instanceof Speaker) {
-            $this->bumpSpeaker();
+            if ($addressable instanceof Speaker) {
+                $this->bumpSpeaker();
+            }
         }
     }
 
@@ -106,15 +108,7 @@ class PublicDirectoryCacheVersion
 
     private function compositeVersion(string $key): string
     {
-        return sha1(implode('|', [
-            $this->versionFor($key),
-            $this->publicCountryFingerprint(),
-        ]));
-    }
-
-    private function publicCountryFingerprint(): string
-    {
-        return sha1(json_encode(config('public-countries', [])) ?: '');
+        return $this->versionFor($key);
     }
 
     private function storeVersion(string $key): void

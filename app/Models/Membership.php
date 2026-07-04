@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 
-#[Fillable(['team_id', 'user_id', 'role'])]
+#[Fillable(['id', 'team_id', 'user_id', 'role'])]
 class Membership extends Pivot
 {
     use HasUuids;
@@ -60,6 +60,7 @@ class Membership extends Pivot
      *
      * @return array<string, string>
      */
+    #[\Override]
     protected function casts(): array
     {
         return [

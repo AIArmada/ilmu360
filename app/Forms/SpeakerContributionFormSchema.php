@@ -31,8 +31,7 @@ class SpeakerContributionFormSchema
         bool $regionOnlyAddress = true,
         ?bool $showCountryField = null,
     ): array {
-        $publicCountryId = SharedFormSchema::preferredPublicCountryId();
-        $showCountryField ??= false;
+        $showCountryField ??= true;
 
         $components = [
             Section::make(__('Profil Penceramah'))
@@ -91,28 +90,28 @@ class SpeakerContributionFormSchema
                             ? SharedFormSchema::regionAddressFields(
                                 includeCountryField: true,
                                 showCountryField: $showCountryField,
-                                defaultCountryId: $publicCountryId,
+                                defaultCountryId: null,
                                 requireCountryField: false,
                             )
                             : [SharedFormSchema::regionAddressGroup(
                                 statePath: $addressStatePath,
                                 includeCountryField: true,
                                 showCountryField: $showCountryField,
-                                defaultCountryId: $publicCountryId,
+                                defaultCountryId: null,
                                 requireCountryField: false,
                             )])
                         : ($addressStatePath === null
                             ? SharedFormSchema::addressFields(
                                 includeCountryField: true,
                                 showCountryField: $showCountryField,
-                                defaultCountryId: $publicCountryId,
+                                defaultCountryId: null,
                                 requireCountryField: false,
                             )
                             : [SharedFormSchema::addressGroup(
                                 statePath: $addressStatePath,
                                 includeCountryField: true,
                                 showCountryField: $showCountryField,
-                                defaultCountryId: $publicCountryId,
+                                defaultCountryId: null,
                                 requireCountryField: false,
                             )])),
                 ])

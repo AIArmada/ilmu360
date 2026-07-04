@@ -69,12 +69,9 @@ abstract class MemberInvitationsRelationManager extends RelationManager
                     ->badge()
                     ->getStateUsing(fn (MemberInvitation $record): string => $this->statusLabel($record))
                     ->color(fn (string $state): string => $this->statusColor($state)),
-                TextColumn::make('accept_link')
-                    ->label('Accept link')
-                    ->state(fn (MemberInvitation $record): string => route('member-invitations.show', ['token' => $record->token]))
-                    ->copyable()
-                    ->copyMessage('Invitation link copied')
-                    ->limit(36),
+                TextColumn::make('delivery')
+                    ->label('Delivery')
+                    ->state('Email only'),
             ])
             ->headerActions([
                 Action::make('inviteMember')

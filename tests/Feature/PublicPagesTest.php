@@ -1,7 +1,7 @@
 <?php
 
-use AIArmada\FilamentAuthz\Models\Role;
-use App\Enums\ContactCategory;
+use AIArmada\CommerceSupport\Models\Role;
+use AIArmada\Contacting\Enums\ContactMethodType;
 use App\Enums\ContributionSubjectType;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
@@ -10,15 +10,12 @@ use App\Enums\EventPrayerTime;
 use App\Enums\EventType;
 use App\Enums\EventVisibility;
 use App\Enums\ReferenceType;
-use App\Models\District;
 use App\Models\Event;
 use App\Models\EventSubmission;
 use App\Models\Institution;
 use App\Models\Reference;
 use App\Models\Series;
 use App\Models\Speaker;
-use App\Models\State;
-use App\Models\Subdistrict;
 use App\Models\Tag;
 use App\Models\User;
 use App\Models\Venue;
@@ -263,24 +260,16 @@ it('shows federal territory event cards on series pages with subdistrict and sta
         'name' => 'Dewan Utama KL',
     ]);
 
-    $state = State::query()->create([
-        'country_id' => 132,
-        'name' => 'Kuala Lumpur',
-        'country_code' => 'MY',
-    ]);
+    $country = ensureTestMalaysiaCountry();
+    $state = createTestAddressArea('Kuala Lumpur', 1, country: $country);
+    $subdistrict = createTestAddressArea('Setiawangsa', 3, parent: $state, country: $country);
 
-    $subdistrict = Subdistrict::query()->create([
-        'country_id' => 132,
-        'state_id' => (int) $state->id,
-        'district_id' => null,
-        'country_code' => 'MY',
-        'name' => 'Setiawangsa',
-    ]);
-
-    $venue->address()->update([
-        'state_id' => (int) $state->id,
-        'district_id' => null,
-        'subdistrict_id' => (int) $subdistrict->id,
+    syncPrimaryAddressForTest($venue, [
+        'admin_area_1_id' => (string) $state->getKey(),
+        'admin_area_2_id' => null,
+        'admin_area_3_id' => (string) $subdistrict->getKey(),
+        'city' => null,
+        'state' => null,
     ]);
 
     $event = Event::factory()->create([
@@ -299,7 +288,7 @@ it('shows federal territory event cards on series pages with subdistrict and sta
 
     $this->get(route('series.show', $series))
         ->assertSuccessful()
-        ->assertSee('Dewan Utama KL, Setiawangsa, Kuala Lumpur')
+        ->assertSee('Dewan Utama KL, Setiawangsa')
         ->assertDontSee('Dewan Utama KL, Kuala Lumpur, Kuala Lumpur');
 });
 
@@ -331,31 +320,17 @@ it('shows comma-separated location hierarchy text on public events index cards',
         'is_active' => true,
     ]);
 
-    $state = State::query()->create([
-        'country_id' => 132,
-        'name' => 'Selangor',
-        'country_code' => 'MY',
-    ]);
+    $country = ensureTestMalaysiaCountry();
+    $state = createTestAddressArea('Selangor', 1, country: $country);
+    $district = createTestAddressArea('Petaling', 2, parent: $state, country: $country);
+    $subdistrict = createTestAddressArea('Shah Alam', 3, parent: $district, country: $country);
 
-    $district = District::query()->create([
-        'country_id' => 132,
-        'state_id' => (int) $state->id,
-        'country_code' => 'MY',
-        'name' => 'Petaling',
-    ]);
-
-    $subdistrict = Subdistrict::query()->create([
-        'country_id' => 132,
-        'state_id' => (int) $state->id,
-        'district_id' => (int) $district->id,
-        'country_code' => 'MY',
-        'name' => 'Shah Alam',
-    ]);
-
-    $institution->address()->update([
-        'state_id' => (int) $state->id,
-        'district_id' => (int) $district->id,
-        'subdistrict_id' => (int) $subdistrict->id,
+    syncPrimaryAddressForTest($institution, [
+        'admin_area_1_id' => (string) $state->getKey(),
+        'admin_area_2_id' => (string) $district->getKey(),
+        'admin_area_3_id' => (string) $subdistrict->getKey(),
+        'city' => null,
+        'state' => null,
     ]);
 
     Event::factory()->create([
@@ -371,7 +346,8 @@ it('shows comma-separated location hierarchy text on public events index cards',
 
     $this->get(route('events.index', ['search' => 'Diskusi Dhuha']))
         ->assertSuccessful()
-        ->assertSee('Shah Alam, Petaling, Selangor')
+        ->assertSee('Shah Alam, Selangor')
+        ->assertDontSee('Shah Alam, Petaling, Selangor')
         ->assertDontSee('Shah Alam, Petaling &amp; Selangor', false)
         ->assertDontSee('Shah Alam, Petaling & Selangor');
 });
@@ -646,7 +622,7 @@ it('renders noindex robots metadata for moderation-only or non-public detail pag
 it('renders optimized seo metadata on public listing pages', function () {
     $this->get(route('home'))
         ->assertSuccessful()
-        ->assertSee('<title>Majlis Ilmu - Cari Kuliah &amp; Majlis Ilmu di Malaysia</title>', false)
+        ->assertSee('<title>'.config('app.name').' - Cari Kuliah &amp; Majlis Ilmu di Malaysia</title>', false)
         ->assertSee('<meta name="description" content="Platform terbesar untuk mencari kuliah, ceramah, tazkirah, dan majlis ilmu di seluruh Malaysia. Cari yang berdekatan dengan anda.">', false)
         ->assertSee('<meta property="og:image" content="'.asset('images/default-mosque-hero.png').'">', false)
         ->assertSee('<meta property="og:image:width" content="1024">', false)
@@ -654,17 +630,17 @@ it('renders optimized seo metadata on public listing pages', function () {
 
     $this->get(route('events.index'))
         ->assertSuccessful()
-        ->assertSee('<title>Kuliah &amp; Majlis Ilmu Akan Datang di Malaysia - Majlis Ilmu</title>', false)
+        ->assertSee('<title>Kuliah &amp; Majlis Ilmu Akan Datang di Malaysia - '.config('app.name').'</title>', false)
         ->assertSee('Terokai kuliah, ceramah, kelas, dan majlis ilmu akan datang di seluruh Malaysia.', false);
 
     $this->get(route('institutions.index'))
         ->assertSuccessful()
-        ->assertSee('<title>Direktori Institusi Islam di Malaysia - Majlis Ilmu</title>', false)
+        ->assertSee('<title>Direktori Institusi Islam di Malaysia - '.config('app.name').'</title>', false)
         ->assertSee('Terokai masjid, surau, pusat pengajian, dan institusi penganjur majlis ilmu di seluruh Malaysia.', false);
 
     $this->get(route('speakers.index'))
         ->assertSuccessful()
-        ->assertSee('<title>Direktori Penceramah Islam - Majlis Ilmu</title>', false)
+        ->assertSee('<title>Direktori Penceramah Islam - '.config('app.name').'</title>', false)
         ->assertSee('Cari profil penceramah, ustaz, dan pendakwah serta semak majlis ilmu mereka yang akan datang di seluruh Malaysia.', false);
 });
 
@@ -719,29 +695,29 @@ it('renders optimized seo metadata on public detail pages', function () {
 
     $this->get(route('events.show', $event))
         ->assertSuccessful()
-        ->assertSee('<title>Kuliah Fiqh Munakahat - Majlis Ilmu</title>', false)
+        ->assertSee('<title>Kuliah Fiqh Munakahat - '.config('app.name').'</title>', false)
         ->assertSee(Str::limit($event->description_text, 160), false);
 
     $this->get(route('institutions.show', $institution))
         ->assertSuccessful()
-        ->assertSee('<title>Masjid Al-Hidayah Taman Melawati - Majlis Ilmu</title>', false)
+        ->assertSee('<title>Masjid Al-Hidayah Taman Melawati - '.config('app.name').'</title>', false)
         ->assertSee('Pusat komuniti Islam yang aktif menganjurkan kuliah, kelas, dan program ilmu untuk masyarakat setempat.', false)
         ->assertSee('<meta property="og:image" content="'.asset('images/placeholders/institution.png').'">', false)
         ->assertSee('<meta property="og:image:alt" content="Profil institusi Masjid Al-Hidayah Taman Melawati">', false);
 
     $this->get(route('speakers.show', $speaker))
         ->assertSuccessful()
-        ->assertSee('<title>'.$speaker->formatted_name.' - Majlis Ilmu</title>', false)
+        ->assertSee('<title>'.$speaker->formatted_name.' - '.config('app.name').'</title>', false)
         ->assertSee('Penceramah yang aktif mengendalikan kuliah aqidah, tafsir, dan pembinaan keluarga di seluruh negara.', false);
 
     $this->get(route('series.show', $series))
         ->assertSuccessful()
-        ->assertSee('<title>Siri Tafsir Juz Amma - Majlis Ilmu</title>', false)
+        ->assertSee('<title>Siri Tafsir Juz Amma - '.config('app.name').'</title>', false)
         ->assertSee('Siri pengajian berkala yang menghimpunkan tadabbur ayat-ayat pilihan daripada Juz Amma untuk masyarakat umum.', false);
 
     $this->get(route('references.show', $reference))
         ->assertSuccessful()
-        ->assertSee('<title>Riyadus Salihin Edisi Syarah - Majlis Ilmu</title>', false)
+        ->assertSee('<title>Riyadus Salihin Edisi Syarah - '.config('app.name').'</title>', false)
         ->assertSee('Rujukan hadis dan adab yang sering digunakan dalam kuliah pengajian umum serta sesi pembelajaran mingguan.', false);
 });
 
@@ -798,8 +774,10 @@ it('records guest submissions without a submitter id', function () {
         ->set('data.domain_tags', [$domainTag->id])
         ->set('data.discipline_tags', [$disciplineTag->id])
         ->set('data.speakers', [$speaker->id])
-        ->set('data.organizer_type', 'institution')
-        ->set('data.organizer_institution_id', $institution->id)
+        ->set('data.primary_organizer_kind', 'institution')
+        ->set('data.primary_organizer_id', $institution->id)
+        ->set('data.primary_organizer_institution_id', $institution->id)
+        ->set('data.submission_country_id', (string) ensureTestMalaysiaCountry()->getKey())
         ->set('data.submitter_name', 'Guest User')
         ->set('data.submitter_email', $email)
         ->set('data.visibility', EventVisibility::Public->value)
@@ -812,9 +790,9 @@ it('records guest submissions without a submitter id', function () {
     expect($event)->not->toBeNull();
     expect($event?->submitter_id)->toBeNull();
 
-    $submission = EventSubmission::query()->where('event_id', $event->id)->first();
+    $submission = withGlobalOwnerContext(fn () => EventSubmission::query()->where('event_id', $event->id)->first());
 
     expect($submission)->not->toBeNull();
     expect($submission->submitted_by)->toBeNull();
-    expect($submission->contacts()->where('category', ContactCategory::Email->value)->where('value', $email)->exists())->toBeTrue();
+    expect(withGlobalOwnerContext(fn () => $submission->contacts()->where('type', ContactMethodType::Email->value)->where('value', $email)->exists()))->toBeTrue();
 });

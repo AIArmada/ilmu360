@@ -53,8 +53,13 @@ class SeriesFactory extends Factory
             'title' => $title,
             'slug' => Str::slug($title).'-'.Str::lower(Str::random(7)),
             'description' => fake()->optional()->paragraph(),
+            'series_type' => 'recurring',
+            'status' => 'active',
             'visibility' => fake()->randomElement(['public', 'unlisted', 'private']),
-            'is_active' => true,
+            'is_dynamic' => false,
+            'metadata' => [
+                'source' => 'ilmu360_seed',
+            ],
         ];
     }
 }

@@ -2,6 +2,8 @@
 
 namespace App\Actions\Membership;
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Membership\Support\MembershipSubjectGuard;
 use App\Enums\MembershipClaimStatus;
 use App\Enums\MemberSubjectType;
 use App\Models\Institution;
@@ -24,47 +26,51 @@ class SubmitMembershipClaimAction
             throw new RuntimeException('membership_claim_out_of_scope');
         }
 
-        if ($subject->members()->whereKey($claimant->getKey())->exists()) {
-            throw new RuntimeException('membership_claim_already_member');
-        }
+        return OwnerContext::withOwner(null, function () use ($subject, $claimant, $justification, $subjectType): MembershipClaim {
+            app(MembershipSubjectGuard::class)->validate($subject);
 
-        $normalizedEmail = is_string($claimant->email) ? mb_strtolower(trim($claimant->email)) : null;
+            if ($subject->members()->whereKey($claimant->getKey())->exists()) {
+                throw new RuntimeException('membership_claim_already_member');
+            }
 
-        if ($normalizedEmail !== null && $normalizedEmail !== '') {
-            $hasPendingInvitation = MemberInvitation::query()
+            $normalizedEmail = is_string($claimant->email) ? mb_strtolower(trim($claimant->email)) : null;
+
+            if ($normalizedEmail !== null && $normalizedEmail !== '') {
+                $hasPendingInvitation = MemberInvitation::query()
+                    ->where('subject_type', $subjectType)
+                    ->where('subject_id', $subject->getKey())
+                    ->where('email', $normalizedEmail)
+                    ->whereNull('accepted_at')
+                    ->whereNull('revoked_at')
+                    ->where(function ($query): void {
+                        $query->whereNull('expires_at')
+                            ->orWhere('expires_at', '>', now());
+                    })
+                    ->exists();
+
+                if ($hasPendingInvitation) {
+                    throw new RuntimeException('membership_claim_pending_invitation');
+                }
+            }
+
+            $hasPendingClaim = MembershipClaim::query()
                 ->where('subject_type', $subjectType)
                 ->where('subject_id', $subject->getKey())
-                ->where('email', $normalizedEmail)
-                ->whereNull('accepted_at')
-                ->whereNull('revoked_at')
-                ->where(function ($query): void {
-                    $query->whereNull('expires_at')
-                        ->orWhere('expires_at', '>', now());
-                })
+                ->where('claimant_id', $claimant->getKey())
+                ->where('status', MembershipClaimStatus::Pending)
                 ->exists();
 
-            if ($hasPendingInvitation) {
-                throw new RuntimeException('membership_claim_pending_invitation');
+            if ($hasPendingClaim) {
+                throw new RuntimeException('membership_claim_duplicate_pending');
             }
-        }
 
-        $hasPendingClaim = MembershipClaim::query()
-            ->where('subject_type', $subjectType)
-            ->where('subject_id', $subject->getKey())
-            ->where('claimant_id', $claimant->getKey())
-            ->where('status', MembershipClaimStatus::Pending)
-            ->exists();
-
-        if ($hasPendingClaim) {
-            throw new RuntimeException('membership_claim_duplicate_pending');
-        }
-
-        return MembershipClaim::create([
-            'subject_type' => $subjectType,
-            'subject_id' => $subject->getKey(),
-            'claimant_id' => $claimant->getKey(),
-            'status' => MembershipClaimStatus::Pending,
-            'justification' => trim($justification),
-        ]);
+            return MembershipClaim::create([
+                'subject_type' => $subjectType,
+                'subject_id' => $subject->getKey(),
+                'claimant_id' => $claimant->getKey(),
+                'status' => MembershipClaimStatus::Pending,
+                'justification' => trim($justification),
+            ]);
+        });
     }
 }

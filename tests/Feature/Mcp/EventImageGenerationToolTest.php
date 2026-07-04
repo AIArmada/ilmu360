@@ -1,5 +1,6 @@
 <?php
 
+use AIArmada\CommerceSupport\Models\Role;
 use App\Actions\Membership\AddMemberToSubject;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
@@ -26,8 +27,6 @@ use App\Models\Speaker;
 use App\Models\User;
 use App\Support\Mcp\EventCoverPromptBuilder;
 use App\Support\Mcp\EventImageGenerationService;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
@@ -36,7 +35,6 @@ use Laravel\Ai\Files\RemoteImage;
 use Laravel\Ai\Files\StoredImage;
 use Laravel\Mcp\Response;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
 beforeEach(function (): void {
@@ -401,8 +399,6 @@ it('includes linked institution media fallback links when organizer is missing',
 
     $event = Event::factory()->create([
         'institution_id' => $institution->getKey(),
-        'organizer_type' => null,
-        'organizer_id' => null,
         'title' => 'Kuliah Subuh Al-Ihsan',
         'slug' => 'kuliah-subuh-al-ihsan',
         'status' => 'approved',
@@ -597,8 +593,6 @@ function eventImageGenerationEventFixture(?Institution $institution = null): arr
 
     $event = Event::factory()->create([
         'institution_id' => $institution->getKey(),
-        'organizer_type' => Institution::class,
-        'organizer_id' => $institution->getKey(),
         'title' => 'Tadabbur: Isu Semasa Ummah',
         'slug' => 'tadabbur-isu-semasa-ummah-qdkhqqn',
         'description' => 'Kupasan tadabbur al-Quran untuk memahami isu semasa umat.',
@@ -615,12 +609,12 @@ function eventImageGenerationEventFixture(?Institution $institution = null): arr
         'is_active' => true,
     ]);
 
-    /** @var MorphTo<Model, Event> $organizerRelation */
-    $organizerRelation = $event->organizer();
+    withGlobalOwnerContext(function () use ($event, $institution): void {
+        $event->setPrimaryOrganizer($institution);
 
-    expect($organizerRelation->getMorphType())->toBe('organizer_type')
-        ->and($event->organizer_type)->toBe(Institution::class)
-        ->and($event->organizer_id)->toBe($institution->getKey());
+        expect($event->primaryOrganizerInvolvement?->involveable_type)->toBe(Institution::class)
+            ->and($event->primaryOrganizerInvolvement?->involveable_id)->toBe((string) $institution->getKey());
+    });
 
     EventKeyPerson::factory()->create([
         'event_id' => $event->getKey(),

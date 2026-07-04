@@ -221,7 +221,7 @@ class EventContributionFormSchema
                         ->label(__('Rujukan Kitab / Buku'))
                         ->options(fn (): array => Reference::query()
                             ->orderBy('title')
-                            ->get(['id', 'title', 'parent_reference_id', 'part_type', 'part_number', 'part_label'])
+                            ->get(['id', 'title', 'parent_id', 'metadata'])
                             ->mapWithKeys(fn (Reference $reference): array => [(string) $reference->id => $reference->displayTitle()])
                             ->all())
                         ->multiple()
@@ -311,7 +311,8 @@ class EventContributionFormSchema
                 ->schema([
                     Section::make(__('Penganjur'))
                         ->schema([
-                            Radio::make('organizer_type')
+                            Hidden::make('primary_organizer_id'),
+                            Radio::make('primary_organizer_kind')
                                 ->label(__('Jenis Penganjur'))
                                 ->options([
                                     'institution' => __('Institusi'),
@@ -319,17 +320,46 @@ class EventContributionFormSchema
                                 ])
                                 ->default('institution')
                                 ->inline()
-                                ->live(),
-                            Select::make('organizer_institution_id')
+                                ->live()
+                                ->afterStateUpdated(function (Set $set, Get $get, mixed $state): void {
+                                    if ($state === 'institution') {
+                                        $organizerId = self::normalizedString($get('primary_organizer_institution_id'))
+                                            ?? self::resolvedPrimaryOrganizerInstitutionId($get('primary_organizer_id'));
+
+                                        $set('primary_organizer_id', $organizerId);
+
+                                        if ($get('location_same_as_institution') !== false) {
+                                            $set('location_type', 'institution');
+                                            $set('location_institution_id', $organizerId);
+                                            $set('location_venue_id', null);
+                                        }
+
+                                        return;
+                                    }
+
+                                    $organizerId = self::normalizedString($get('primary_organizer_speaker_id'));
+                                    $set('primary_organizer_id', $organizerId);
+                                    $set('location_same_as_institution', false);
+                                }),
+                            Select::make('primary_organizer_institution_id')
                                 ->label(__('Institusi'))
                                 ->options(fn (): array => self::institutionOptions())
                                 ->searchable()
                                 ->preload()
-                                ->visible(fn (Get $get): bool => $get('organizer_type') === 'institution')
-                                ->required(fn (Get $get): bool => $get('organizer_type') === 'institution')
+                                ->visible(fn (Get $get): bool => self::selectedPrimaryOrganizerKind(
+                                    $get('primary_organizer_kind'),
+                                    $get('primary_organizer_id'),
+                                ) === 'institution')
+                                ->required(fn (Get $get): bool => self::selectedPrimaryOrganizerKind(
+                                    $get('primary_organizer_kind'),
+                                    $get('primary_organizer_id'),
+                                ) === 'institution' && ! filled($get('primary_organizer_id')))
                                 ->live()
                                 ->afterStateUpdated(function (Set $set, Get $get, mixed $state): void {
-                                    if ($get('organizer_type') !== 'institution' || $get('location_same_as_institution') === false) {
+                                    $set('primary_organizer_id', self::normalizedString($state));
+
+                                    if (self::selectedPrimaryOrganizerKind($get('primary_organizer_kind'), $get('primary_organizer_id')) !== 'institution'
+                                        || $get('location_same_as_institution') === false) {
                                         return;
                                     }
 
@@ -339,14 +369,23 @@ class EventContributionFormSchema
                                 })
                                 ->createOptionForm(InstitutionFormSchema::createOptionForm(includeLocationPicker: true))
                                 ->createOptionUsing(fn (array $data, ?Schema $schema = null): string => InstitutionFormSchema::createOptionUsing($data, $schema)),
-                            Select::make('organizer_speaker_id')
+                            Select::make('primary_organizer_speaker_id')
                                 ->label(__('Penceramah'))
                                 ->options(fn (): array => self::speakerOptions())
                                 ->searchable()
                                 ->preload()
-                                ->visible(fn (Get $get): bool => $get('organizer_type') === 'speaker')
-                                ->required(fn (Get $get): bool => $get('organizer_type') === 'speaker')
+                                ->visible(fn (Get $get): bool => self::selectedPrimaryOrganizerKind(
+                                    $get('primary_organizer_kind'),
+                                    $get('primary_organizer_id'),
+                                ) === 'speaker')
+                                ->required(fn (Get $get): bool => self::selectedPrimaryOrganizerKind(
+                                    $get('primary_organizer_kind'),
+                                    $get('primary_organizer_id'),
+                                ) === 'speaker' && ! filled($get('primary_organizer_id')))
                                 ->afterStateUpdated(function (mixed $state, Get $get, Set $set): void {
+                                    $set('primary_organizer_id', self::normalizedString($state));
+                                    $set('location_same_as_institution', false);
+
                                     if (! is_string($state) || $state === '') {
                                         return;
                                     }
@@ -368,13 +407,19 @@ class EventContributionFormSchema
                                 ->preload(),
                         ]),
                     Section::make(__('Lokasi'))
-                        ->visible(fn (Get $get): bool => self::shouldShowLocationSection($get('organizer_type'), $get('event_format')))
+                        ->visible(fn (Get $get): bool => self::shouldShowLocationSection(
+                            self::selectedPrimaryOrganizerKind($get('primary_organizer_kind'), $get('primary_organizer_id')),
+                            $get('event_format'),
+                        ))
                         ->schema([
                             Toggle::make('location_same_as_institution')
                                 ->label(__('Sama seperti institusi penganjur'))
                                 ->default(true)
                                 ->inline(false)
-                                ->visible(fn (Get $get): bool => $get('organizer_type') === 'institution')
+                                ->visible(fn (Get $get): bool => self::selectedPrimaryOrganizerKind(
+                                    $get('primary_organizer_kind'),
+                                    $get('primary_organizer_id'),
+                                ) === 'institution')
                                 ->live()
                                 ->afterStateUpdated(function (Set $set, Get $get, mixed $state): void {
                                     if ($state === false) {
@@ -382,7 +427,8 @@ class EventContributionFormSchema
                                     }
 
                                     $set('location_type', 'institution');
-                                    $set('location_institution_id', $get('organizer_institution_id'));
+                                    $set('location_institution_id', self::resolvedPrimaryOrganizerInstitutionId($get('primary_organizer_id'))
+                                        ?? $get('primary_organizer_institution_id'));
                                     $set('location_venue_id', null);
                                 }),
                             Radio::make('location_type')
@@ -393,8 +439,14 @@ class EventContributionFormSchema
                                 ])
                                 ->inline()
                                 ->default('institution')
-                                ->visible(fn (Get $get): bool => self::requiresSeparateLocationChoice($get('organizer_type'), $get('location_same_as_institution')))
-                                ->required(fn (Get $get): bool => self::requiresSeparateLocationChoice($get('organizer_type'), $get('location_same_as_institution')))
+                                ->visible(fn (Get $get): bool => self::requiresSeparateLocationChoice(
+                                    self::selectedPrimaryOrganizerKind($get('primary_organizer_kind'), $get('primary_organizer_id')),
+                                    $get('location_same_as_institution'),
+                                ))
+                                ->required(fn (Get $get): bool => self::requiresSeparateLocationChoice(
+                                    self::selectedPrimaryOrganizerKind($get('primary_organizer_kind'), $get('primary_organizer_id')),
+                                    $get('location_same_as_institution'),
+                                ))
                                 ->live()
                                 ->afterStateUpdated(function (Set $set, mixed $state): void {
                                     if ($state === 'venue') {
@@ -413,10 +465,22 @@ class EventContributionFormSchema
                                 ->options(fn (): array => self::institutionOptions())
                                 ->searchable()
                                 ->preload()
-                                ->visible(fn (Get $get): bool => self::requiresSeparateLocationChoice($get('organizer_type'), $get('location_same_as_institution'))
-                                    && self::resolvedLocationType($get('organizer_type'), $get('location_same_as_institution'), $get('location_type')) === 'institution')
-                                ->required(fn (Get $get): bool => self::requiresSeparateLocationChoice($get('organizer_type'), $get('location_same_as_institution'))
-                                    && self::resolvedLocationType($get('organizer_type'), $get('location_same_as_institution'), $get('location_type')) === 'institution')
+                                ->visible(fn (Get $get): bool => self::requiresSeparateLocationChoice(
+                                    self::selectedPrimaryOrganizerKind($get('primary_organizer_kind'), $get('primary_organizer_id')),
+                                    $get('location_same_as_institution'),
+                                ) && self::resolvedLocationType(
+                                    self::selectedPrimaryOrganizerKind($get('primary_organizer_kind'), $get('primary_organizer_id')),
+                                    $get('location_same_as_institution'),
+                                    $get('location_type'),
+                                ) === 'institution')
+                                ->required(fn (Get $get): bool => self::requiresSeparateLocationChoice(
+                                    self::selectedPrimaryOrganizerKind($get('primary_organizer_kind'), $get('primary_organizer_id')),
+                                    $get('location_same_as_institution'),
+                                ) && self::resolvedLocationType(
+                                    self::selectedPrimaryOrganizerKind($get('primary_organizer_kind'), $get('primary_organizer_id')),
+                                    $get('location_same_as_institution'),
+                                    $get('location_type'),
+                                ) === 'institution')
                                 ->live()
                                 ->createOptionForm(InstitutionFormSchema::createOptionForm(includeLocationPicker: true))
                                 ->createOptionUsing(fn (array $data, ?Schema $schema = null): string => InstitutionFormSchema::createOptionUsing($data, $schema)),
@@ -425,10 +489,22 @@ class EventContributionFormSchema
                                 ->options(fn (): array => self::venueOptions())
                                 ->searchable()
                                 ->preload()
-                                ->visible(fn (Get $get): bool => self::requiresSeparateLocationChoice($get('organizer_type'), $get('location_same_as_institution'))
-                                    && self::resolvedLocationType($get('organizer_type'), $get('location_same_as_institution'), $get('location_type')) === 'venue')
-                                ->required(fn (Get $get): bool => self::requiresSeparateLocationChoice($get('organizer_type'), $get('location_same_as_institution'))
-                                    && self::resolvedLocationType($get('organizer_type'), $get('location_same_as_institution'), $get('location_type')) === 'venue')
+                                ->visible(fn (Get $get): bool => self::requiresSeparateLocationChoice(
+                                    self::selectedPrimaryOrganizerKind($get('primary_organizer_kind'), $get('primary_organizer_id')),
+                                    $get('location_same_as_institution'),
+                                ) && self::resolvedLocationType(
+                                    self::selectedPrimaryOrganizerKind($get('primary_organizer_kind'), $get('primary_organizer_id')),
+                                    $get('location_same_as_institution'),
+                                    $get('location_type'),
+                                ) === 'venue')
+                                ->required(fn (Get $get): bool => self::requiresSeparateLocationChoice(
+                                    self::selectedPrimaryOrganizerKind($get('primary_organizer_kind'), $get('primary_organizer_id')),
+                                    $get('location_same_as_institution'),
+                                ) && self::resolvedLocationType(
+                                    self::selectedPrimaryOrganizerKind($get('primary_organizer_kind'), $get('primary_organizer_id')),
+                                    $get('location_same_as_institution'),
+                                    $get('location_type'),
+                                ) === 'venue')
                                 ->createOptionForm(VenueFormSchema::createOptionForm(includeLocationPicker: true))
                                 ->createOptionUsing(fn (array $data, ?Schema $schema = null): string => VenueFormSchema::createOptionUsing($data, $schema)),
                             Select::make('space_id')
@@ -437,15 +513,17 @@ class EventContributionFormSchema
                                 ->searchable()
                                 ->preload()
                                 ->options(fn (Get $get): array => self::spaceOptionsForInstitution(self::resolvedLocationInstitutionId(
-                                    $get('organizer_type'),
-                                    $get('organizer_institution_id'),
+                                    self::selectedPrimaryOrganizerKind($get('primary_organizer_kind'), $get('primary_organizer_id')),
+                                    $get('primary_organizer_id'),
+                                    $get('primary_organizer_institution_id'),
                                     $get('location_same_as_institution'),
                                     $get('location_type'),
                                     $get('location_institution_id'),
                                 )))
                                 ->visible(fn (Get $get): bool => self::resolvedLocationInstitutionId(
-                                    $get('organizer_type'),
-                                    $get('organizer_institution_id'),
+                                    self::selectedPrimaryOrganizerKind($get('primary_organizer_kind'), $get('primary_organizer_id')),
+                                    $get('primary_organizer_id'),
+                                    $get('primary_organizer_institution_id'),
                                     $get('location_same_as_institution'),
                                     $get('location_type'),
                                     $get('location_institution_id'),
@@ -718,13 +796,15 @@ class EventContributionFormSchema
 
     private static function resolvedLocationInstitutionId(
         mixed $organizerType,
-        mixed $organizerInstitutionId,
+        mixed $primaryOrganizerId,
+        mixed $primaryOrganizerInstitutionId,
         mixed $sameAsInstitution,
         mixed $locationType,
         mixed $locationInstitutionId,
     ): ?string {
         if ($organizerType === 'institution' && $sameAsInstitution !== false) {
-            return self::normalizedString($organizerInstitutionId);
+            return self::normalizedString($primaryOrganizerInstitutionId)
+                ?? self::resolvedPrimaryOrganizerInstitutionId($primaryOrganizerId);
         }
 
         if (self::resolvedLocationType($organizerType, $sameAsInstitution, $locationType) !== 'institution') {
@@ -732,6 +812,41 @@ class EventContributionFormSchema
         }
 
         return self::normalizedString($locationInstitutionId);
+    }
+
+    private static function selectedPrimaryOrganizerKind(mixed $organizerKind, mixed $primaryOrganizerId): ?string
+    {
+        $normalizedKind = in_array($organizerKind, ['institution', 'speaker'], true)
+            ? $organizerKind
+            : null;
+
+        return $normalizedKind ?? self::resolvedPrimaryOrganizerType($primaryOrganizerId);
+    }
+
+    private static function resolvedPrimaryOrganizerInstitutionId(mixed $primaryOrganizerId): ?string
+    {
+        return self::resolvedPrimaryOrganizerType($primaryOrganizerId) === 'institution'
+            ? self::normalizedString($primaryOrganizerId)
+            : null;
+    }
+
+    private static function resolvedPrimaryOrganizerType(mixed $primaryOrganizerId): ?string
+    {
+        $organizerId = self::normalizedString($primaryOrganizerId);
+
+        if ($organizerId === null) {
+            return null;
+        }
+
+        if (Institution::query()->whereKey($organizerId)->exists()) {
+            return 'institution';
+        }
+
+        if (Speaker::query()->whereKey($organizerId)->exists()) {
+            return 'speaker';
+        }
+
+        return null;
     }
 
     private static function isOnlineEventFormat(mixed $eventFormat): bool

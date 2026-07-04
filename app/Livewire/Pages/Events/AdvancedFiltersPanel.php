@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Pages\Events;
 
+use AIArmada\Addressing\Models\AddressArea;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
@@ -14,12 +15,8 @@ use App\Forms\SharedFormSchema;
 use App\Models\Institution;
 use App\Models\Reference;
 use App\Models\Speaker;
-use App\Models\State;
 use App\Models\Tag;
 use App\Models\Venue;
-use App\Support\Cache\SafeModelCache;
-use App\Support\Location\FederalTerritoryLocation;
-use App\Support\Location\PreferredCountryResolver;
 use App\Support\Location\PublicGeolocationPermission;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Hidden;
@@ -180,7 +177,7 @@ class AdvancedFiltersPanel extends Component implements HasForms
                                         ->mapWithKeys(fn (string $name, mixed $id): array => [(string) $id => $name])
                                         ->all())
                                     ->disabled(fn (Get $get): bool => ! filled($get('state_id')))
-                                    ->visible(fn (Get $get): bool => filled($get('state_id')) && ! FederalTerritoryLocation::isFederalTerritoryStateId($get('state_id')))
+                                    ->visible(fn (Get $get): bool => filled($get('state_id')))
                                     ->searchable()
                                     ->live()
                                     ->afterStateUpdated(function (Set $set): void {
@@ -490,7 +487,7 @@ class AdvancedFiltersPanel extends Component implements HasForms
     }
 
     /**
-     * @return Collection<int, State>
+     * @return Collection<int, AddressArea>
      */
     #[Computed]
     public function states(): Collection
@@ -501,14 +498,11 @@ class AdvancedFiltersPanel extends Component implements HasForms
             return collect();
         }
 
-        return app(SafeModelCache::class)->rememberCollection(
-            key: 'states_all_v1',
-            ttl: 3600,
-            query: State::query()
-                ->orderBy('name'),
-        )
-            ->where('country_id', (int) $countryId)
-            ->values();
+        return AddressArea::query()
+            ->where('country_id', $countryId)
+            ->where('level', 1)
+            ->orderBy('name')
+            ->get();
     }
 
     /**
@@ -619,7 +613,7 @@ class AdvancedFiltersPanel extends Component implements HasForms
     {
         return [
             'search' => null,
-            'country_id' => (string) app(PreferredCountryResolver::class)->resolveId(),
+            'country_id' => null,
             'state_id' => null,
             'district_id' => null,
             'subdistrict_id' => null,
@@ -703,7 +697,7 @@ class AdvancedFiltersPanel extends Component implements HasForms
 
         return [
             'search' => filled($normalized['search']) ? trim((string) $normalized['search']) : null,
-            'country_id' => filled($normalized['country_id']) ? (string) $normalized['country_id'] : $defaults['country_id'],
+            'country_id' => filled($normalized['country_id']) ? (string) $normalized['country_id'] : null,
             'state_id' => filled($normalized['state_id']) ? (string) $normalized['state_id'] : null,
             'district_id' => filled($normalized['district_id']) ? (string) $normalized['district_id'] : null,
             'subdistrict_id' => filled($normalized['subdistrict_id']) ? (string) $normalized['subdistrict_id'] : null,
@@ -891,7 +885,7 @@ class AdvancedFiltersPanel extends Component implements HasForms
         /** @var Collection<int, Reference> $references */
         $references = $query
             ->limit($limit)
-            ->get(['id', 'title', 'parent_reference_id', 'part_type', 'part_number', 'part_label']);
+            ->get(['id', 'title', 'parent_id', 'metadata']);
 
         return $references
             ->mapWithKeys(fn (Reference $reference): array => [(string) $reference->id => $reference->displayTitle()])
@@ -984,21 +978,21 @@ class AdvancedFiltersPanel extends Component implements HasForms
             return;
         }
 
-        $query->whereHas('address', function (Builder $addressQuery) use ($countryId, $stateId, $districtId, $subdistrictId): void {
+        $query->whereHas('addresses', function (Builder $addressQuery) use ($countryId, $stateId, $districtId, $subdistrictId): void {
             if (filled($countryId)) {
                 $addressQuery->where('country_id', $countryId);
             }
 
             if (filled($stateId)) {
-                $addressQuery->where('state_id', $stateId);
+                $addressQuery->where('admin_area_1_id', $stateId);
             }
 
             if (filled($districtId)) {
-                $addressQuery->where('district_id', $districtId);
+                $addressQuery->where('admin_area_2_id', $districtId);
             }
 
             if (filled($subdistrictId)) {
-                $addressQuery->where('subdistrict_id', $subdistrictId);
+                $addressQuery->where('admin_area_3_id', $subdistrictId);
             }
         });
     }

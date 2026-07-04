@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use RuntimeException;
 
@@ -39,17 +40,15 @@ class InstitutionWorkspaceController extends FrontendController
         $user = $this->requireUser($request);
 
         $availableInstitutions = $this->availableInstitutionsQuery($user)
-            ->withCount([
-                'events',
-                'events as public_events_count' => function (Builder $query): void {
-                    $query
-                        ->where('events.is_active', true)
-                        ->whereIn('events.status', Event::PUBLIC_STATUSES)
-                        ->where('events.visibility', EventVisibility::Public);
-                },
+            ->select([
+                'institutions.id',
+                'institutions.name',
+                'institutions.nickname',
             ])
+            ->selectSub($this->institutionEventCountSubquery(), 'events_count')
+            ->selectSub($this->institutionEventCountSubquery(publicOnly: true), 'public_events_count')
             ->orderBy('name')
-            ->get(['institutions.id', 'institutions.name', 'institutions.nickname']);
+            ->get();
 
         abort_unless($availableInstitutions->isNotEmpty(), 403);
 
@@ -370,7 +369,7 @@ class InstitutionWorkspaceController extends FrontendController
         $query = Event::query()
             ->where('institution_id', $institution->getKey())
             ->with(['venue:id,name'])
-            ->withCount('registrations');
+            ->withCount(['registrations as workspace_registrations_count']);
 
         if ($eventSearch !== '') {
             $search = '%'.mb_strtolower(trim($eventSearch)).'%';
@@ -394,7 +393,7 @@ class InstitutionWorkspaceController extends FrontendController
             'starts_asc' => $query->orderBy('starts_at')->orderBy('title'),
             'title_asc' => $query->orderBy('title')->orderBy('starts_at', 'desc'),
             'title_desc' => $query->orderByDesc('title')->orderBy('starts_at', 'desc'),
-            'registrations_desc' => $query->orderByDesc('registrations_count')->orderBy('starts_at', 'desc'),
+            'registrations_desc' => $query->orderByDesc('workspace_registrations_count')->orderBy('starts_at', 'desc'),
             'pending_first' => $query
                 ->orderByRaw("CASE WHEN status = 'pending' THEN 0 ELSE 1 END")
                 ->orderBy('starts_at')
@@ -406,6 +405,26 @@ class InstitutionWorkspaceController extends FrontendController
         $paginator = $query->paginate($eventPerPage);
 
         return $paginator;
+    }
+
+    /**
+     * @return Builder<Event>
+     */
+    private function institutionEventCountSubquery(bool $publicOnly = false): Builder
+    {
+        $institutionIdExpression = $this->eventUuidMetadataSqlSelector('institution_id');
+        $query = Event::query()
+            ->selectRaw('count(*)')
+            ->whereRaw("{$institutionIdExpression} = institutions.id");
+
+        if (! $publicOnly) {
+            return $query;
+        }
+
+        return $query
+            ->where('events.is_active', true)
+            ->whereIn('events.status', Event::PUBLIC_STATUSES)
+            ->where('events.visibility', EventVisibility::Public);
     }
 
     /**
@@ -457,5 +476,27 @@ class InstitutionWorkspaceController extends FrontendController
     private function countValue(Institution $institution, string $key): int
     {
         return (int) data_get($institution, $key, 0);
+    }
+
+    private function eventUuidMetadataSqlSelector(string $key): string
+    {
+        return match ($this->databaseDriver()) {
+            'pgsql' => "(events.metadata->>'{$key}')::uuid",
+            default => $this->eventMetadataSqlSelector($key),
+        };
+    }
+
+    private function eventMetadataSqlSelector(string $key): string
+    {
+        return match ($this->databaseDriver()) {
+            'pgsql' => "events.metadata->>'{$key}'",
+            'mysql', 'mariadb' => "json_unquote(json_extract(events.metadata, '$.\"{$key}\"'))",
+            default => "json_extract(events.metadata, '$.\"{$key}\"')",
+        };
+    }
+
+    private function databaseDriver(): string
+    {
+        return DB::connection()->getDriverName();
     }
 }

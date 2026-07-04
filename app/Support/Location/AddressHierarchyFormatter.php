@@ -2,7 +2,8 @@
 
 namespace App\Support\Location;
 
-use App\Models\Address;
+use AIArmada\Addressing\Models\Address;
+use AIArmada\Addressing\Models\AddressArea;
 
 class AddressHierarchyFormatter
 {
@@ -12,21 +13,25 @@ class AddressHierarchyFormatter
     private const array STATE_HIDDEN_DISTRICTS = ['kuala lumpur', 'putrajaya', 'labuan'];
 
     /**
-     * @param  list<'subdistrict'|'district'|'state'>  $order
+     * @param  list<'city'|'district'|'state'>  $order
      * @return list<string>
      */
-    public static function parts(?Address $address, array $order = ['subdistrict', 'district', 'state']): array
+    public static function parts(?Address $address, array $order = ['city', 'district', 'state']): array
     {
-        $districtName = self::normalizePart($address?->district?->name);
-        $stateName = self::normalizePart($address?->state?->name);
-        $subdistrictName = self::normalizePart($address?->subdistrict?->name);
+        $stateName = self::areaName($address?->admin_area_1_id)
+            ?? self::normalizePart($address?->state);
 
-        if (is_string($districtName) && in_array(mb_strtolower($districtName), self::STATE_HIDDEN_DISTRICTS, true)) {
+        if (is_string($stateName) && in_array(mb_strtolower($stateName), self::STATE_HIDDEN_DISTRICTS, true)) {
             $stateName = null;
         }
 
+        $cityName = self::areaName($address?->admin_area_3_id)
+            ?? self::areaName($address?->admin_area_2_id)
+            ?? self::normalizePart($address?->city);
+        $districtName = self::areaName($address?->admin_area_2_id);
+
         $availableParts = [
-            'subdistrict' => $subdistrictName,
+            'city' => $cityName,
             'district' => $districtName,
             'state' => $stateName,
         ];
@@ -66,24 +71,24 @@ class AddressHierarchyFormatter
             ];
         }
 
-        $locationHierarchyParts = self::parts($address);
+        $parts = self::parts($address);
         $streetAddressLine = implode(', ', array_filter([
             $address->line1,
             $address->line2,
         ]));
 
-        if ($locationHierarchyParts !== []) {
+        if ($parts !== []) {
             $localityAddressLine = implode(', ', array_filter([
-                array_shift($locationHierarchyParts),
+                $parts[0] ?? null,
                 $address->postcode,
             ]));
-            $regionalAddressLine = implode(', ', $locationHierarchyParts);
+            $regionalAddressLine = count($parts) > 1 ? implode(', ', array_slice($parts, 1)) : '';
         } else {
             $localityAddressLine = implode(', ', array_filter([
-                $address->city?->name,
+                $address->city,
                 $address->postcode,
             ]));
-            $regionalAddressLine = filled($address->state?->name) ? (string) $address->state->name : '';
+            $regionalAddressLine = filled($address->state) ? (string) $address->state : '';
         }
 
         return [
@@ -94,9 +99,9 @@ class AddressHierarchyFormatter
     }
 
     /**
-     * @param  list<'subdistrict'|'district'|'state'>  $order
+     * @param  list<'city'|'district'|'state'>  $order
      */
-    public static function format(?Address $address, array $order = ['subdistrict', 'district', 'state'], string $separator = ', '): string
+    public static function format(?Address $address, array $order = ['city', 'district', 'state'], string $separator = ', '): string
     {
         return implode($separator, self::parts($address, $order));
     }
@@ -106,5 +111,16 @@ class AddressHierarchyFormatter
         $trimmed = trim((string) $value);
 
         return $trimmed === '' ? null : $trimmed;
+    }
+
+    private static function areaName(?string $areaId): ?string
+    {
+        if (! is_string($areaId) || $areaId === '') {
+            return null;
+        }
+
+        $area = AddressArea::query()->find($areaId);
+
+        return $area instanceof AddressArea ? self::normalizePart($area->name) : null;
     }
 }

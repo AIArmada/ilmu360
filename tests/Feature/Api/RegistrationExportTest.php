@@ -20,23 +20,20 @@ test('registration export streams csv and writes audit metadata', function () {
         'starts_at' => now()->addDays(7),
     ]);
 
-    Registration::factory()->create([
-        'event_id' => $event->id,
-        'user_id' => $attendee->id,
-        'name' => null,
-        'email' => null,
-        'phone' => '0123456789',
-        'status' => 'registered',
-    ]);
+    Registration::factory()
+        ->forRegistrant($attendee)
+        ->withPrimaryParticipant($attendee->name, $attendee->email, '0123456789')
+        ->create([
+            'event_id' => $event->id,
+            'status' => 'confirmed',
+        ]);
 
-    Registration::factory()->create([
-        'event_id' => $event->id,
-        'user_id' => null,
-        'name' => 'Guest Registrant',
-        'email' => 'guest@example.com',
-        'phone' => '0199988877',
-        'status' => 'registered',
-    ]);
+    Registration::factory()
+        ->withPrimaryParticipant('Guest Registrant', 'guest@example.com', '0199988877')
+        ->create([
+            'event_id' => $event->id,
+            'status' => 'confirmed',
+        ]);
 
     Sanctum::actingAs($user);
 

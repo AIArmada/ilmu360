@@ -6,6 +6,7 @@ use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Speaker;
 use App\Models\Venue;
+use BackedEnum;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Support\Arr;
 use Spatie\LaravelData\Data;
@@ -32,27 +33,27 @@ class EventEngagementListItemData extends Data
         $pivot = $event->relationLoaded('pivot') ? $event->getRelation('pivot') : null;
 
         return new self(
-            attributes: Arr::only($event->attributesToArray(), [
-                'id',
-                'title',
-                'slug',
-                'status',
-                'visibility',
-                'starts_at',
-                'ends_at',
-                'timezone',
-                'published_at',
-                'institution_id',
-                'venue_id',
-                'event_url',
-                'live_url',
-                'event_type',
-                'event_format',
-                'language',
-                'registrations_count',
-                'going_count',
-                'saves_count',
-            ]),
+            attributes: [
+                'id' => (string) $event->getKey(),
+                'title' => (string) $event->title,
+                'slug' => (string) $event->slug,
+                'status' => self::enumValue($event->status),
+                'visibility' => self::enumValue($event->visibility),
+                'starts_at' => $event->starts_at?->toJSON(),
+                'ends_at' => $event->ends_at?->toJSON(),
+                'timezone' => $event->timezone,
+                'published_at' => $event->published_at?->toJSON(),
+                'institution_id' => $event->institution_id,
+                'venue_id' => $event->venue_id,
+                'event_url' => $event->event_url,
+                'live_url' => $event->live_url,
+                'event_type' => $event->event_type,
+                'event_format' => self::enumValue($event->event_format),
+                'language' => $event->language,
+                'registrations_count' => $event->registrations_count,
+                'going_count' => $event->going_count,
+                'saves_count' => $event->saves_count,
+            ],
             institution: $event->relationLoaded('institution') && $event->institution instanceof Institution
                 ? Arr::only($event->institution->toArray(), ['id', 'name', 'slug'])
                 : null,
@@ -80,5 +81,10 @@ class EventEngagementListItemData extends Data
             'speakers' => $this->speakers,
             'pivot' => $this->pivot,
         ]);
+    }
+
+    private static function enumValue(mixed $value): mixed
+    {
+        return $value instanceof BackedEnum ? $value->value : $value;
     }
 }

@@ -5,10 +5,10 @@ declare(strict_types=1);
 use App\Http\Middleware\NormalizeApiJsonResponse;
 use App\Http\Middleware\SetFilamentTimezone;
 use App\Http\Middleware\SetLocale;
+use App\Http\Middleware\SetOwnerContextToGlobal;
 use App\Http\Middleware\TrackDawahShareAttribution;
 use App\Support\Api\ApiJsonResponseNormalizer;
 use App\Support\Api\ApiResponseFactory;
-use App\Support\Location\PublicCountryPreference;
 use App\Support\Location\PublicGeolocationPermission;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -28,7 +28,6 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->encryptCookies(except: [
             'user_timezone',
-            PublicCountryPreference::COOKIE_NAME,
             PublicGeolocationPermission::COOKIE_NAME,
         ]);
 
@@ -43,6 +42,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Set default Filament timezone for every request (fixes Octane state persistence)
         $middleware->append(SetFilamentTimezone::class);
+        $middleware->append(SetOwnerContextToGlobal::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(static fn (Request $request): bool => ApiResponseFactory::isApiRequest($request) || $request->expectsJson());

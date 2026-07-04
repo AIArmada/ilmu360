@@ -2,28 +2,26 @@
 
 namespace App\Support\Api\Frontend;
 
+use AIArmada\Addressing\Models\AddressArea;
+use AIArmada\Addressing\Models\AddressCountry;
 use App\Actions\Events\ResolveAdvancedBuilderContextAction;
 use App\Enums\MemberSubjectType;
 use App\Enums\TagType;
-use App\Models\Country;
-use App\Models\District;
 use App\Models\Institution;
 use App\Models\Reference;
 use App\Models\Space;
 use App\Models\Speaker;
-use App\Models\State;
-use App\Models\Subdistrict;
 use App\Models\Tag;
 use App\Models\User;
 use App\Models\Venue;
 use App\Support\Authz\MemberRoleCatalog;
 use App\Support\Authz\ScopedMemberRoleSeeder;
-use App\Support\Location\PublicCountryRegistry;
 use App\Support\Search\InstitutionSearchService;
 use App\Support\Search\SpeakerSearchService;
 use App\Support\Submission\EntitySubmissionAccess;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 use Nnjeim\World\Models\Language;
 
 class FrontendCatalogService
@@ -31,92 +29,129 @@ class FrontendCatalogService
     public function __construct(
         private readonly InstitutionSearchService $institutionSearchService,
         private readonly SpeakerSearchService $speakerSearchService,
-        private readonly PublicCountryRegistry $publicCountryRegistry,
     ) {}
 
     /**
-     * @return list<array{id: int, label: string, iso2: string, key: ?string}>
+     * @return list<array{id: string, label: string, iso2: string, key: ?string}>
      */
     public function countries(): array
     {
-        return Country::query()
+        return AddressCountry::query()
             ->orderBy('name')
             ->get(['id', 'name', 'iso2'])
-            ->map(fn (Country $country): array => [
-                'id' => (int) $country->id,
+            ->map(fn (AddressCountry $country): array => [
+                'id' => (string) $country->id,
                 'label' => (string) $country->name,
                 'iso2' => strtoupper((string) $country->iso2),
-                'key' => $this->publicCountryRegistry->keyForCountryId((int) $country->id),
+                'key' => Str::slug((string) $country->name),
             ])
             ->all();
     }
 
     /**
-     * @return list<array{id: int, label: string}>
+     * @return list<array{id: string, label: string, type: string, level: int|null}>
      */
-    public function states(?int $countryId): array
+    public function states(?string $countryId): array
     {
-        if (! is_int($countryId)) {
+        if (! is_string($countryId) || $countryId === '') {
             return [];
         }
 
-        return State::query()
+        return AddressArea::query()
             ->where('country_id', $countryId)
+            ->where('level', 1)
             ->orderBy('name')
-            ->get(['id', 'name'])
-            ->map(fn (State $state): array => [
-                'id' => (int) $state->id,
-                'label' => (string) $state->name,
+            ->get(['id', 'name', 'type', 'level'])
+            ->map(fn (AddressArea $area): array => [
+                'id' => (string) $area->id,
+                'label' => (string) $area->name,
+                'type' => (string) $area->type,
+                'level' => $area->level,
             ])
             ->all();
     }
 
     /**
-     * @return list<array{id: int, label: string}>
+     * @return list<array{id: string, label: string, type: string, level: int|null}>
      */
-    public function districts(?int $stateId, ?int $countryId = null): array
+    public function districts(?string $stateId, ?string $countryId = null): array
     {
-        $query = District::query();
+        $query = AddressArea::query();
 
-        if (is_int($stateId)) {
-            $query->where('state_id', $stateId);
-        } elseif (is_int($countryId)) {
+        if (is_string($stateId) && $stateId !== '') {
+            $query->where('parent_id', $stateId);
+        } elseif (is_string($countryId) && $countryId !== '') {
+            $query->where('country_id', $countryId);
+            $query->where('level', 2);
+        } else {
+            return [];
+        }
+
+        return $query
+            ->orderBy('name')
+            ->get(['id', 'name', 'type', 'level'])
+            ->map(fn (AddressArea $area): array => [
+                'id' => (string) $area->id,
+                'label' => (string) $area->name,
+                'type' => (string) $area->type,
+                'level' => $area->level,
+            ])
+            ->all();
+    }
+
+    /**
+     * @return list<array{id: string, label: string, type: string, level: int|null}>
+     */
+    public function subdistricts(?string $stateId, ?string $districtId): array
+    {
+        $parentId = is_string($districtId) && $districtId !== ''
+            ? $districtId
+            : (is_string($stateId) && $stateId !== '' ? $stateId : null);
+
+        if ($parentId === null) {
+            return [];
+        }
+
+        return AddressArea::query()
+            ->where('parent_id', $parentId)
+            ->orderBy('name')
+            ->get(['id', 'name', 'type', 'level'])
+            ->map(fn (AddressArea $area): array => [
+                'id' => (string) $area->id,
+                'label' => (string) $area->name,
+                'type' => (string) $area->type,
+                'level' => $area->level,
+            ])
+            ->all();
+    }
+
+    /**
+     * @return list<array{id: string, label: string, type: string, level: int|null}>
+     */
+    public function addressAreas(?string $countryId = null, ?string $parentId = null, ?int $level = null): array
+    {
+        $query = AddressArea::query();
+
+        if (is_string($parentId) && $parentId !== '') {
+            $query->where('parent_id', $parentId);
+        } elseif (is_string($countryId) && $countryId !== '') {
             $query->where('country_id', $countryId);
         } else {
             return [];
         }
 
-        return $query
-            ->orderBy('name')
-            ->get(['id', 'name'])
-            ->map(fn (District $district): array => [
-                'id' => (int) $district->id,
-                'label' => (string) $district->name,
-            ])
-            ->all();
-    }
-
-    /**
-     * @return list<array{id: int, label: string}>
-     */
-    public function subdistricts(?int $stateId, ?int $districtId): array
-    {
-        $query = Subdistrict::query();
-
-        if ($districtId !== null) {
-            $query->where('district_id', $districtId);
-        } elseif ($stateId !== null) {
-            $query->where('state_id', $stateId)->whereNull('district_id');
-        } else {
-            return [];
+        if ($level !== null) {
+            $query->where('level', $level);
         }
 
         return $query
             ->orderBy('name')
-            ->get(['id', 'name'])
-            ->map(fn (Subdistrict $subdistrict): array => [
-                'id' => (int) $subdistrict->id,
-                'label' => (string) $subdistrict->name,
+            ->get(['id', 'name', 'type', 'level'])
+            ->map(fn (AddressArea $area): array => [
+                'id' => (string) $area->id,
+                'label' => (string) $area->name,
+                'type' => (string) $area->type,
+                'level' => $area->level,
             ])
             ->all();
     }
@@ -185,7 +220,7 @@ class FrontendCatalogService
 
         return $query
             ->limit($limit)
-            ->get(['id', 'title', 'parent_reference_id', 'part_type', 'part_number', 'part_label'])
+            ->get(['id', 'title', 'parent_id', 'metadata'])
             ->map(fn (Reference $reference): array => [
                 'id' => (string) $reference->id,
                 'label' => $reference->displayTitle(),

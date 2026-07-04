@@ -1,5 +1,6 @@
 <?php
 
+use AIArmada\CommerceSupport\Models\Role;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Reference;
@@ -7,7 +8,6 @@ use App\Models\Speaker;
 use App\Models\User;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
 describe('Event Search API', function () {

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
+use AIArmada\CommerceSupport\Models\Role;
 use App\Models\User;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
 it('includes the curated documentation catalog in the admin api manifest', function (): void {

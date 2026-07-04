@@ -7,7 +7,6 @@ use App\Http\Controllers\DawahShareController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\NetworkDiagnosticsController;
 use App\Http\Controllers\Public\EventsController;
-use App\Http\Controllers\PublicCountryController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Middleware\ResolvePublicSlugRedirect;
 use App\Http\Middleware\SetLocale;
@@ -38,7 +37,6 @@ use Laravel\Fortify\Features;
 Route::livewire('/', 'pages.⚡home')->name('home');
 Route::livewire('/tentang-kami', AboutPage::class)->name('about');
 Route::get('/bahasa/{locale}', LocaleController::class)->name('locale.switch');
-Route::get('/negara/{country}', PublicCountryController::class)->name('country.switch');
 
 // Socialite OAuth Routes
 Route::get('/oauth/{provider}/redirect', [SocialiteController::class, 'redirect'])

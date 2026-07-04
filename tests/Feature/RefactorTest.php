@@ -16,14 +16,14 @@ class RefactorTest extends TestCase
     public function test_schema_changes()
     {
         $this->assertFalse(Schema::hasColumn('events', 'speaker_id'), 'speaker_id should not exist in events table');
-        $this->assertTrue(Schema::hasColumn('events', 'parent_event_id'));
-        $this->assertTrue(Schema::hasColumn('events', 'event_structure'));
+        $this->assertFalse(Schema::hasColumn('events', 'parent_event_id'));
+        $this->assertFalse(Schema::hasColumn('events', 'event_structure'));
         $this->assertTrue(Schema::hasTable('event_key_people'));
         $this->assertTrue(Schema::hasTable('event_checkins'));
         $this->assertTrue(Schema::hasTable('contribution_requests'));
         $this->assertTrue(Schema::hasTable('membership_claims'));
         $this->assertTrue(Schema::hasTable('reference_user'));
-        $this->assertTrue(Schema::hasTable('member_invitations'));
+        $this->assertTrue(Schema::hasTable('membership_invitations'));
         $this->assertTrue(Schema::hasTable('notification_settings'));
         $this->assertTrue(Schema::hasTable('notification_rules'));
         $this->assertTrue(Schema::hasTable('notification_destinations'));

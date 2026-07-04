@@ -50,18 +50,19 @@ it('stores pending institution create requests for authenticated proposers', fun
 it('creates staged pending institution records with structured relation data', function () {
     $proposer = User::factory()->create();
 
+    $country = ensureTestMalaysiaCountry();
+
     $institution = app(ContributionEntityMutationService::class)->createInstitution([
         'name' => 'Masjid Al-Bayan',
         'type' => 'masjid',
         'description' => 'Pusat ilmu masyarakat.',
         'address' => [
             'line1' => 'Jalan Hikmah',
-            'state_id' => 1,
+            'country_id' => (string) $country->getKey(),
         ],
         'contacts' => [[
             'category' => 'phone',
             'value' => '0123456789',
-            'type' => 'main',
             'is_public' => true,
         ]],
     ], $proposer);
@@ -229,17 +230,15 @@ it('applies structured institution updates through approval', function () {
             'description' => 'New description',
             'address' => [
                 'line1' => 'Jalan Hikmah 5',
-                'state_id' => 1,
+                'country_id' => (string) ensureTestMalaysiaCountry()->getKey(),
             ],
             'contacts' => [[
                 'category' => 'phone',
                 'value' => '01112345678',
-                'type' => 'main',
                 'is_public' => true,
             ], [
                 'category' => 'email',
                 'value' => 'contact@masjidhikmah.test',
-                'type' => 'main',
                 'is_public' => true,
             ]],
             'social_media' => [[

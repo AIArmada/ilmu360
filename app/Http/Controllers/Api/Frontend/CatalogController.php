@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api\Frontend;
 use App\Enums\MemberSubjectType;
 use App\Enums\TagType;
 use App\Support\Api\Frontend\FrontendCatalogService;
-use App\Support\Location\PreferredCountryResolver;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
@@ -31,30 +30,28 @@ class CatalogController extends FrontendController
 
     #[Endpoint(
         title: 'List public states catalog',
-        description: 'Returns the public states catalog for a selected `country_id`, or the current public-country scope when `country_id` is omitted.',
+        description: 'Returns the public states catalog for an explicitly selected `country_id`.',
     )]
     public function states(Request $request): JsonResponse
     {
-        $countryId = $request->filled('country_id')
-            ? $request->integer('country_id')
-            : app(PreferredCountryResolver::class)->resolveId($request);
-
         return response()->json([
-            'data' => $this->catalogs->states($countryId),
+            'data' => $this->catalogs->states(
+                $request->filled('country_id') ? $request->string('country_id')->toString() : null,
+            ),
         ]);
     }
 
     #[Endpoint(
         title: 'List public districts catalog',
-        description: 'Returns the public districts catalog for a selected `state_id`, or the current public-country scope when `state_id` is omitted.',
+        description: 'Returns the public districts catalog for an explicitly selected `state_id` or `country_id`.',
     )]
     public function districts(Request $request): JsonResponse
     {
-        $stateId = $request->filled('state_id') ? $request->integer('state_id') : null;
+        $stateId = $request->filled('admin_area_1_id')
+            ? $request->string('admin_area_1_id')->toString()
+            : ($request->filled('state_id') ? $request->string('state_id')->toString() : null);
         $countryId = $stateId === null
-            ? ($request->filled('country_id')
-                ? $request->integer('country_id')
-                : app(PreferredCountryResolver::class)->resolveId($request))
+            ? ($request->filled('country_id') ? $request->string('country_id')->toString() : null)
             : null;
 
         return response()->json([
@@ -70,8 +67,12 @@ class CatalogController extends FrontendController
     {
         return response()->json([
             'data' => $this->catalogs->subdistricts(
-                $request->filled('state_id') ? $request->integer('state_id') : null,
-                $request->filled('district_id') ? $request->integer('district_id') : null,
+                $request->filled('admin_area_1_id')
+                    ? $request->string('admin_area_1_id')->toString()
+                    : ($request->filled('state_id') ? $request->string('state_id')->toString() : null),
+                $request->filled('admin_area_2_id')
+                    ? $request->string('admin_area_2_id')->toString()
+                    : ($request->filled('district_id') ? $request->string('district_id')->toString() : null),
             ),
         ]);
     }

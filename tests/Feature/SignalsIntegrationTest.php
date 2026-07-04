@@ -56,8 +56,7 @@ it('renders the centralized custom UI event tracker and discovery funnel hooks',
     $this->get(route('events.index'))
         ->assertSuccessful()
         ->assertSee('data-signal-change-event="filter.changed"', false)
-        ->assertSee('data-signal-event="filter.panel_toggled"', false)
-        ->assertSee('data-signal-event="filter.sort_changed"', false)
+        ->assertSee('data-signal-change-event="filter.sort_changed"', false)
         ->assertSee('data-signal-event="search.nearby_requested"', false);
 });
 

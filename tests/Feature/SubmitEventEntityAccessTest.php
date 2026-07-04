@@ -60,13 +60,12 @@ it('rejects guest submission when organizer institution is locked to members', f
     setSubmitEventFormState(
         Livewire::test('pages.submit-event.create'),
         submitEventEntityAccessPayload($this->domainTag, $this->disciplineTag, [
-            'organizer_type' => 'institution',
-            'organizer_institution_id' => $lockedInstitution->id,
+            'primary_organizer_id' => $lockedInstitution->id,
             'speakers' => [$publicSpeaker->id],
         ]),
     )
         ->call('submit')
-        ->assertHasErrors(['data.organizer_institution_id']);
+        ->assertHasErrors(['data.primary_organizer_id']);
 });
 
 it('rejects guest submission when selected speakers include locked speaker', function () {
@@ -85,8 +84,7 @@ it('rejects guest submission when selected speakers include locked speaker', fun
     setSubmitEventFormState(
         Livewire::test('pages.submit-event.create'),
         submitEventEntityAccessPayload($this->domainTag, $this->disciplineTag, [
-            'organizer_type' => 'institution',
-            'organizer_institution_id' => $publicInstitution->id,
+            'primary_organizer_id' => $publicInstitution->id,
             'speakers' => [$lockedSpeaker->id],
         ]),
     )
@@ -116,8 +114,7 @@ it('allows authenticated members to submit locked institution and speaker entiti
         Livewire::actingAs($user)->test('pages.submit-event.create'),
         submitEventEntityAccessPayload($this->domainTag, $this->disciplineTag, [
             'title' => 'Member Locked Access Event',
-            'organizer_type' => 'speaker',
-            'organizer_speaker_id' => $lockedSpeaker->id,
+            'primary_organizer_id' => $lockedSpeaker->id,
             'speakers' => [$lockedSpeaker->id],
             'location_type' => 'institution',
             'location_institution_id' => $lockedInstitution->id,
@@ -130,7 +127,8 @@ it('allows authenticated members to submit locked institution and speaker entiti
     $event = Event::query()->where('title', 'Member Locked Access Event')->first();
 
     expect($event)->not->toBeNull();
-    expect($event?->organizer_id)->toBe($lockedSpeaker->id);
+    $organizerInvolvement = $event?->primaryOrganizerInvolvement;
+    expect($organizerInvolvement?->involveable_id)->toBe((string) $lockedSpeaker->getKey());
     expect($event?->institution_id)->toBe($lockedInstitution->id);
 });
 
@@ -205,10 +203,13 @@ it('auto-approves institution-scoped dashboard submissions and locks the organiz
     $event = Event::query()->where('title', 'Institution Dashboard Published Event')->first();
 
     expect($event)->not->toBeNull()
-        ->and((string) $event?->status)->toBe('approved')
-        ->and($event?->organizer_type)->toBe(Institution::class)
-        ->and($event?->organizer_id)->toBe($institution->id)
-        ->and($event?->institution_id)->toBe($institution->id)
+        ->and((string) $event?->status)->toBe('approved');
+
+    $organizerInvolvement = $event?->primaryOrganizerInvolvement;
+    expect($organizerInvolvement?->involveable_type)->toBe(Institution::class)
+        ->and($organizerInvolvement?->involveable_id)->toBe((string) $institution->getKey());
+
+    expect($event?->institution_id)->toBe($institution->id)
         ->and($event?->settings)->not->toBeNull()
         ->and($event?->settings?->registration_required)->toBeFalse()
         ->and($event?->settings?->registration_mode?->value)->toBe('event')

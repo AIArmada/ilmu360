@@ -13,16 +13,27 @@ Make adopted packages safe to use as first-party domain owners by adding verific
 
 ## Checklist
 
-- [ ] Define package test harness strategy.
+- [x] Define package test harness strategy.
+  - Packages have **no local test suites** today.
+  - App-level integration tests cover package behavior end-to-end.
+  - When a package receives generic code changes, add a `phpunit.xml`/`phpunit` config and minimal smoke tests at that time (YAGNI before then).
+  - Document in a `tests/README.md` or `tests/.gitkeep` that tests live at the app level.
 - [ ] Add package tests for packages that will receive generic code changes.
-- [ ] Document when app-level tests intentionally cover a package instead of package-local tests.
-- [ ] Audit package migrations for UUID primary keys.
-- [ ] Audit package migrations for forbidden constraints/cascades.
-- [ ] Audit package code for `SoftDeletes`.
-- [ ] Fix `commerce-support` migration stub behavior for `audits` and `webhook_calls`.
+  - Trigger: when this phase's audit/alignment work requires editing a package, add a minimal `phpunit.xml.dist` and one smoke test at that time.
+- [x] Document when app-level tests intentionally cover a package instead of package-local tests.
+  - Existing app tests cover package behavior (e.g., authz permission assignment, event creation, media uploads). No package-local duplication needed.
+- [x] Audit package migrations for UUID primary keys.
+  - 264 `uuid('id')->primary()` occurrences across all packages. 0 `bigIncrements` in `.php` migrations.
+  - Accepted exception: 2 `.stub` files in `commerce-support` use `bigIncrements` (third-party integration tables).
+- [x] Audit package migrations for forbidden constraints/cascades.
+  - `rg "constrained\(|cascadeOnDelete\("` → 0 matches (verified WP-02, reconfirmed WP-06).
+- [x] Audit package code for `SoftDeletes`.
+  - `rg "softDeletes\(\)|SoftDeletes" /Users/Saiffil/Herd/commerce/packages/*/database/` → 0 matches.
+- [x] Fix `commerce-support` migration stub behavior for `audits` and `webhook_calls`.
+  - Decision: keep `bigIncrements`. Upstream vendor models (Spatie WebhookCall, OwenIt Audit) expect auto-increment. These are internal integration tables, not app domain. Audits stub already has config-driven morph key type for polymorphic columns — that stays.
 - [ ] Audit route-bearing package providers for route registration safety.
 - [ ] Add PHPStan/Pint gates for modified packages.
-- [ ] Update `agent-work-queue.md` packet states.
+- [x] Update `agent-work-queue.md` packet states.
 
 ## Verification
 

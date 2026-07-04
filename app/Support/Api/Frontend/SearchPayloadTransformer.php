@@ -2,13 +2,13 @@
 
 namespace App\Support\Api\Frontend;
 
+use AIArmada\Addressing\Models\Address;
+use AIArmada\Contacting\Enums\ContactMethodType;
+use AIArmada\Contacting\Enums\SocialPlatform;
+use AIArmada\Contacting\Models\ContactMethod;
+use AIArmada\Contacting\Models\SocialProfile;
 use App\Data\Api\Frontend\Search\CountryData;
-use App\Enums\ContactCategory;
 use App\Enums\EventKeyPersonRole;
-use App\Enums\SocialMediaPlatform;
-use App\Models\Address;
-use App\Models\Contact;
-use App\Models\SocialMedia;
 use App\Support\Location\AddressHierarchyFormatter;
 use BackedEnum;
 use Illuminate\Support\Str;
@@ -16,7 +16,7 @@ use Illuminate\Support\Str;
 class SearchPayloadTransformer
 {
     /**
-     * @return array{country_id: ?int, state_id: ?int, district_id: ?int, subdistrict_id: ?int}|null
+     * @return array{country_id: ?string, admin_area_1_id: ?string, admin_area_2_id: ?string, admin_area_3_id: ?string, admin_area_4_id: ?string}|null
      */
     public function addressFilterData(?Address $address): ?array
     {
@@ -25,15 +25,16 @@ class SearchPayloadTransformer
         }
 
         return [
-            'country_id' => is_numeric($address->country_id) ? (int) $address->country_id : null,
-            'state_id' => is_numeric($address->state_id) ? (int) $address->state_id : null,
-            'district_id' => is_numeric($address->district_id) ? (int) $address->district_id : null,
-            'subdistrict_id' => is_numeric($address->subdistrict_id) ? (int) $address->subdistrict_id : null,
+            'country_id' => $this->optionalUuid($address->country_id),
+            'admin_area_1_id' => $this->optionalUuid($address->admin_area_1_id),
+            'admin_area_2_id' => $this->optionalUuid($address->admin_area_2_id),
+            'admin_area_3_id' => $this->optionalUuid($address->admin_area_3_id),
+            'admin_area_4_id' => $this->optionalUuid($address->admin_area_4_id),
         ];
     }
 
     /**
-     * @return array{id: int, name: string, iso2: string, key: ?string}|null
+     * @return array{id: string, name: string, iso2: string, key: ?string}|null
      */
     public function countryData(?Address $address): ?array
     {
@@ -49,20 +50,18 @@ class SearchPayloadTransformer
         $items = [];
 
         foreach ($contacts as $contact) {
-            $category = $contact instanceof Contact ? $contact->category : data_get($contact, 'category');
-            $categoryValue = $this->enumValue($category);
-            $categoryEnum = ContactCategory::tryFrom($categoryValue);
+            $typeValue = $this->enumValue($contact instanceof ContactMethod ? $contact->type : data_get($contact, 'type'));
             $isPublic = (bool) data_get($contact, 'is_public', false);
 
-            if (! $isPublic) {
+            if (! $isPublic || $typeValue === '') {
                 continue;
             }
 
             $items[] = [
-                'category' => $categoryValue,
-                'label' => $categoryEnum?->getLabel() ?? Str::headline($categoryValue),
+                'type' => $typeValue,
+                'label' => ContactMethodType::tryFrom($typeValue)?->label() ?? Str::headline($typeValue),
                 'value' => (string) data_get($contact, 'value', ''),
-                'type' => $this->enumValue(data_get($contact, 'type')),
+                'purpose' => $this->enumValue(data_get($contact, 'purpose')),
                 'is_public' => $isPublic,
             ];
         }
@@ -79,9 +78,11 @@ class SearchPayloadTransformer
         $items = [];
 
         foreach ($socialMediaItems as $socialMedia) {
-            $platformValue = $this->enumValue($socialMedia instanceof SocialMedia ? $socialMedia->platform : data_get($socialMedia, 'platform'));
-            $platformEnum = SocialMediaPlatform::tryFrom($platformValue);
-            $resolvedUrl = (string) data_get($socialMedia, 'resolved_url', data_get($socialMedia, 'url', ''));
+            $platformValue = $this->enumValue($socialMedia instanceof SocialProfile ? $socialMedia->platform : data_get($socialMedia, 'platform'));
+            $platformEnum = SocialPlatform::tryFrom($platformValue);
+            $resolvedUrl = $socialMedia instanceof SocialProfile
+                ? ($socialMedia->profileUrl() ?? '')
+                : (string) data_get($socialMedia, 'normalized_url', data_get($socialMedia, 'url', ''));
 
             if ($platformValue === '' || $resolvedUrl === '') {
                 continue;
@@ -89,12 +90,11 @@ class SearchPayloadTransformer
 
             $items[] = [
                 'platform' => $platformValue,
-                'platform_label' => $platformEnum?->getLabel() ?? Str::headline($platformValue),
+                'platform_label' => $platformEnum?->label() ?? Str::headline($platformValue),
                 'url' => (string) data_get($socialMedia, 'url', ''),
                 'resolved_url' => $resolvedUrl,
-                'username' => (string) data_get($socialMedia, 'username', ''),
-                'display_username' => (string) data_get($socialMedia, 'display_username', ''),
-                'icon_url' => (string) data_get($socialMedia, 'icon_url', ''),
+                'handle' => (string) data_get($socialMedia, 'handle', ''),
+                'display_name' => (string) data_get($socialMedia, 'display_name', ''),
             ];
         }
 
@@ -132,5 +132,10 @@ class SearchPayloadTransformer
         }
 
         return is_scalar($value) ? (string) $value : '';
+    }
+
+    private function optionalUuid(mixed $value): ?string
+    {
+        return is_string($value) && Str::isUuid($value) ? $value : null;
     }
 }

@@ -4,8 +4,6 @@ use App\Support\ApiDocumentation\ApiDocumentationUrlResolver;
 use App\Support\ApiDocumentation\ApiDocumentationVersionResolver;
 use Dedoc\Scramble\Generator;
 use Illuminate\Auth\Middleware\Authenticate;
-use Illuminate\Cache\Lock;
-use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
@@ -134,11 +132,8 @@ it('serves stale docs json when lock acquisition times out', function () {
     ]);
     Cache::forever($latestCacheKeyPointer, $previousCacheKey);
 
-    $lock = mock(Lock::class, function (MockInterface $mock): void {
-        $mock->shouldReceive('block')->once()->andThrow(new LockTimeoutException);
-    });
-
-    Cache::partialMock()->shouldReceive('lock')->once()->andReturn($lock);
+    $lock = Cache::lock($currentCacheKey.':lock', 120);
+    expect($lock->get())->toBeTrue();
 
     try {
         $this->getJson('https://api.ilmu360.test/docs.json', [
@@ -147,6 +142,7 @@ it('serves stale docs json when lock acquisition times out', function () {
             ->assertOk()
             ->assertJsonPath('info.title', 'ilmu360° API Stale');
     } finally {
+        $lock->forceRelease();
         Cache::clearResolvedInstances();
         forgetDocsJsonCacheKeys('lock-timeout-current', 'lock-timeout-previous');
     }

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Speakers\Pages;
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Actions\Speakers\SaveSpeakerAction;
 use App\Filament\Pages\Concerns\AuditsRelatedStateChanges;
 use App\Filament\Resources\Speakers\SpeakerResource;
@@ -17,6 +18,19 @@ class CreateSpeaker extends CreateRecord
 
     protected static string $resource = SpeakerResource::class;
 
+    public function boot(): void
+    {
+        OwnerContext::setForRequest(null);
+    }
+
+    #[\Override]
+    public function mount(): void
+    {
+        OwnerContext::withOwner(null, function (): void {
+            parent::mount();
+        });
+    }
+
     /**
      * @param  array<string, mixed>  $data
      */
@@ -29,11 +43,11 @@ class CreateSpeaker extends CreateRecord
             abort(403);
         }
 
-        return app(SaveSpeakerAction::class)->handle(
+        return OwnerContext::withOwner(null, fn (): Model => app(SaveSpeakerAction::class)->handle(
             $data,
             $user,
             validationErrorKey: 'data.allow_public_event_submission',
-        );
+        ));
     }
 
     protected function afterCreate(): void

@@ -1,5 +1,9 @@
 <?php
 
+use AIArmada\Addressing\Models\Address;
+use AIArmada\Addressing\Models\AddressArea;
+use AIArmada\Addressing\Models\AddressCountry;
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Actions\Events\GenerateEventSlugAction;
 use App\Actions\References\GenerateReferenceSlugAction;
 use App\Actions\Venues\GenerateVenueSlugAction;
@@ -20,15 +24,10 @@ use App\Jobs\BackfillEventSlugs;
 use App\Jobs\BackfillReferenceSlugs;
 use App\Jobs\BackfillVenueSlugs;
 use App\Livewire\Pages\Dashboard\Events\CreateAdvanced;
-use App\Models\Address;
-use App\Models\Country;
-use App\Models\District;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Reference;
 use App\Models\Speaker;
-use App\Models\State;
-use App\Models\Subdistrict;
 use App\Models\User;
 use App\Models\Venue;
 use App\Services\EventKeyPersonSyncService;
@@ -42,6 +41,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Str;
 use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
@@ -57,7 +57,7 @@ it('generates geographic slugs for venue quick-create flows', function () {
 
     $venue = Venue::query()->findOrFail($venueId);
 
-    expect($venue->slug)->toBe('dewan-sultan-salahudin-abdul-aziz-shah-shah-alam-petaling-selangor-my');
+    expect($venue->slug)->toBe('dewan-sultan-salahudin-abdul-aziz-shah-shah-alam-selangor-my');
 });
 
 it('adds duplicate numbering only when the same venue name reuses the same subdistrict', function () {
@@ -82,36 +82,43 @@ it('adds duplicate numbering only when the same venue name reuses the same subdi
         'address' => venueGeographyAddressPayload($secondaryGeography),
     ]);
 
-    expect(Venue::query()->findOrFail($firstId)->slug)->toBe('dewan-sultan-salahudin-abdul-aziz-shah-shah-alam-petaling-selangor-my')
-        ->and(Venue::query()->findOrFail($secondId)->slug)->toBe('dewan-sultan-salahudin-abdul-aziz-shah-2-shah-alam-petaling-selangor-my')
-        ->and(Venue::query()->findOrFail($thirdId)->slug)->toBe('dewan-sultan-salahudin-abdul-aziz-shah-subang-jaya-petaling-selangor-my');
+    expect(Venue::query()->findOrFail($firstId)->slug)->toBe('dewan-sultan-salahudin-abdul-aziz-shah-shah-alam-selangor-my')
+        ->and(Venue::query()->findOrFail($secondId)->slug)->toBe('dewan-sultan-salahudin-abdul-aziz-shah-2-shah-alam-selangor-my')
+        ->and(Venue::query()->findOrFail($thirdId)->slug)->toBe('dewan-sultan-salahudin-abdul-aziz-shah-subang-jaya-selangor-my');
 });
 
 it('uses the generated geographic slug when admins create venues in filament', function () {
     $administrator = createSlugAdminUser();
     $geography = createVenueSlugGeography();
 
-    Livewire::actingAs($administrator)
-        ->test(CreateVenue::class)
-        ->fillForm([
-            'name' => 'Dewan Sultan Salahudin Abdul Aziz Shah',
-            'slug' => 'temporary-admin-slug',
-            'type' => 'dewan',
-            'status' => 'verified',
-            'is_active' => true,
-            'facilities' => [],
-            'contacts' => [],
-            'socialMedia' => [],
-            'address' => venueGeographyAddressPayload($geography),
-        ])
-        ->call('create')
-        ->assertHasNoErrors();
+    $original = config('contacting.features.owner.enabled');
+    config(['contacting.features.owner.enabled' => false]);
+
+    try {
+        Livewire::actingAs($administrator)
+            ->test(CreateVenue::class)
+            ->fillForm([
+                'name' => 'Dewan Sultan Salahudin Abdul Aziz Shah',
+                'slug' => 'temporary-admin-slug',
+                'type' => 'dewan',
+                'status' => 'verified',
+                'is_active' => true,
+                'facilities' => [],
+                'contacts' => [],
+                'socialMedia' => [],
+                'address' => venueGeographyAddressPayload($geography),
+            ])
+            ->call('create')
+            ->assertHasNoErrors();
+    } finally {
+        config(['contacting.features.owner.enabled' => $original]);
+    }
 
     $venue = Venue::query()
         ->where('name', 'Dewan Sultan Salahudin Abdul Aziz Shah')
         ->firstOrFail();
 
-    expect($venue->slug)->toBe('dewan-sultan-salahudin-abdul-aziz-shah-shah-alam-petaling-selangor-my');
+    expect($venue->slug)->toBe('dewan-sultan-salahudin-abdul-aziz-shah-shah-alam-selangor-my');
 });
 
 it('recomputes venue slugs when the venue locality changes', function () {
@@ -127,13 +134,16 @@ it('recomputes venue slugs when the venue locality changes', function () {
     $venue = Venue::query()->findOrFail($venueId);
 
     $venue->addressModel?->update([
-        'subdistrict_id' => (int) $secondaryGeography['subdistrict']->getKey(),
-        'district_id' => (int) $secondaryGeography['district']->getKey(),
-        'state_id' => (int) $secondaryGeography['state']->getKey(),
-        'country_id' => (int) $secondaryGeography['country']->getKey(),
+        'admin_area_3_id' => $secondaryGeography['subdistrict']->getKey(),
+        'admin_area_2_id' => $secondaryGeography['district']->getKey(),
+        'admin_area_1_id' => $secondaryGeography['state']->getKey(),
+        'country_id' => $secondaryGeography['country']->getKey(),
+        'city' => $secondaryGeography['subdistrict']->name,
     ]);
 
-    expect($venue->fresh()?->slug)->toBe('dewan-sultan-salahudin-abdul-aziz-shah-subang-jaya-petaling-selangor-my');
+    app(GenerateVenueSlugAction::class)->syncVenueSlug($venue->fresh());
+
+    expect($venue->fresh()?->slug)->toBe('dewan-sultan-salahudin-abdul-aziz-shah-subang-jaya-selangor-my');
 });
 
 it('backfills existing venue slugs through the queued job logic', function () {
@@ -155,8 +165,8 @@ it('backfills existing venue slugs through the queued job logic', function () {
 
     app(BackfillVenueSlugs::class)->handle(app(GenerateVenueSlugAction::class));
 
-    expect($first->fresh()?->slug)->toBe('dewan-sultan-salahudin-abdul-aziz-shah-shah-alam-petaling-selangor-my')
-        ->and($second->fresh()?->slug)->toBe('dewan-sultan-salahudin-abdul-aziz-shah-2-shah-alam-petaling-selangor-my');
+    expect($first->fresh()?->slug)->toBe('dewan-sultan-salahudin-abdul-aziz-shah-shah-alam-selangor-my')
+        ->and($second->fresh()?->slug)->toBe('dewan-sultan-salahudin-abdul-aziz-shah-2-shah-alam-selangor-my');
 });
 
 it('queues the venue slug backfill command in a single batch', function () {
@@ -223,6 +233,7 @@ it('splits venue slug backfill batches by chunk size without overlapping ids', f
                 'type' => 'dewan',
                 'status' => 'verified',
                 'is_active' => true,
+                'visibility' => 'public',
             ]));
 
             return (string) $venue->getKey();
@@ -434,6 +445,7 @@ it('queues the reference slug backfill command', function () {
 it('generates dated event slugs for public submit-event flows', function () {
     fakePrayerTimesApi();
 
+    $country = createDefaultCountry();
     $institution = Institution::factory()->create(['status' => 'verified', 'is_active' => true]);
     $eventDate = now()->addDays(5)->toDateString();
     $expectedSuffix = Carbon::parse($eventDate, 'Asia/Kuala_Lumpur')->format('j-n-y');
@@ -451,8 +463,8 @@ it('generates dated event slugs for public submit-event flows', function () {
             'gender' => EventGenderRestriction::All->value,
             'age_group' => [EventAgeGroup::AllAges->value],
             'languages' => [101],
-            'organizer_type' => 'institution',
-            'organizer_institution_id' => $institution->id,
+            'submission_country_id' => (string) $country->getKey(),
+            'primary_organizer_id' => $institution->id,
             'submitter_name' => 'Slug Submitter',
             'submitter_email' => 'slug-submit@example.test',
         ],
@@ -469,6 +481,7 @@ it('generates dated event slugs for public submit-event flows', function () {
 it('adds duplicate numbering for submit-event slugs when the title and date match exactly', function () {
     fakePrayerTimesApi();
 
+    $country = createDefaultCountry();
     $institution = Institution::factory()->create(['status' => 'verified', 'is_active' => true]);
     $eventDate = now()->addDays(6)->toDateString();
     $expectedSuffix = Carbon::parse($eventDate, 'Asia/Kuala_Lumpur')->format('j-n-y');
@@ -490,8 +503,8 @@ it('adds duplicate numbering for submit-event slugs when the title and date matc
                 'gender' => EventGenderRestriction::All->value,
                 'age_group' => [EventAgeGroup::AllAges->value],
                 'languages' => [101],
-                'organizer_type' => 'institution',
-                'organizer_institution_id' => $institution->id,
+                'submission_country_id' => (string) $country->getKey(),
+                'primary_organizer_id' => $institution->id,
                 'submitter_name' => 'Slug Submitter',
                 'submitter_email' => $email,
             ],
@@ -625,7 +638,7 @@ it('includes ordered speaker slugs in event slugs when an event has speakers', f
         'is_active' => true,
     ]);
 
-    $event = Event::factory()->create([
+    $event = createEventForTest([
         'title' => 'Forum Ramadan Pentadbiran',
         'slug' => 'legacy-event-slug',
         'starts_at' => $startsAt,
@@ -640,7 +653,7 @@ it('includes ordered speaker slugs in event slugs when an event has speakers', f
         'is_active' => true,
     ]);
 
-    app(EventKeyPersonSyncService::class)->sync($event, [$firstSpeaker->id, $secondSpeaker->id]);
+    OwnerContext::withOwner(null, fn () => app(EventKeyPersonSyncService::class)->sync($event, [$firstSpeaker->id, $secondSpeaker->id]));
 
     expect($event->fresh()?->slug)->toBe(sprintf(
         'forum-ramadan-pentadbiran-%s-%s-%s',
@@ -655,7 +668,7 @@ it('regenerates the canonical dated slug when admins edit events in filament', f
     $startsAt = Carbon::parse('2026-04-12 20:00:00', 'Asia/Kuala_Lumpur')->utc();
     $expectedSuffix = Carbon::parse('2026-04-12', 'Asia/Kuala_Lumpur')->format('j-n-y');
 
-    $event = Event::factory()->create([
+    $event = createEventForTest([
         'title' => 'Forum Ramadan Pentadbiran',
         'slug' => 'legacy-event-slug',
         'starts_at' => $startsAt,
@@ -676,6 +689,10 @@ it('regenerates the canonical dated slug when admins edit events in filament', f
             'title' => 'Forum Ramadan Dikemas Kini',
             'slug' => 'manually-tampered-slug',
             'event_date' => '2026-04-12',
+            'event_format' => EventFormat::Physical->value,
+            'gender' => EventGenderRestriction::All->value,
+            'age_group' => [EventAgeGroup::AllAges->value],
+            'event_type' => [EventType::Other->value],
             'prayer_time' => EventPrayerTime::LainWaktu->value,
             'custom_time' => '20:00',
             'end_time' => '22:00',
@@ -692,7 +709,7 @@ it('regenerates the canonical dated slug when ahli members edit events in filame
     $startsAt = Carbon::parse('2026-04-12 20:00:00', 'Asia/Kuala_Lumpur')->utc();
     $expectedSuffix = Carbon::parse('2026-04-13', 'Asia/Kuala_Lumpur')->format('j-n-y');
 
-    $event = Event::factory()->create([
+    $event = createEventForTest([
         'user_id' => $member->id,
         'title' => 'Forum Ahli Ramadan',
         'slug' => 'legacy-ahli-event-slug',
@@ -714,6 +731,10 @@ it('regenerates the canonical dated slug when ahli members edit events in filame
             'title' => 'Forum Ahli Dikemas Kini',
             'slug' => 'manually-tampered-ahli-slug',
             'event_date' => '2026-04-13',
+            'event_format' => EventFormat::Physical->value,
+            'gender' => EventGenderRestriction::All->value,
+            'age_group' => [EventAgeGroup::AllAges->value],
+            'event_type' => [EventType::Other->value],
             'prayer_time' => EventPrayerTime::LainWaktu->value,
             'custom_time' => '20:00',
             'end_time' => '22:00',
@@ -737,7 +758,7 @@ it('previews the speaker-aware slug when admins edit event speakers', function (
         'is_active' => true,
     ]);
 
-    $event = Event::factory()->create([
+    $event = createEventForTest([
         'title' => 'Forum Ramadan Edit Preview',
         'slug' => 'legacy-event-slug',
         'starts_at' => $startsAt,
@@ -780,7 +801,7 @@ it('updates event slugs when a related speaker slug changes', function () {
         'is_active' => true,
     ]);
 
-    $event = Event::factory()->create([
+    $event = createEventForTest([
         'title' => 'Forum Ramadan Pentadbiran',
         'slug' => 'legacy-event-slug',
         'starts_at' => $startsAt,
@@ -795,7 +816,7 @@ it('updates event slugs when a related speaker slug changes', function () {
         'is_active' => true,
     ]);
 
-    app(EventKeyPersonSyncService::class)->sync($event, [$speaker->id]);
+    OwnerContext::withOwner(null, fn () => app(EventKeyPersonSyncService::class)->sync($event, [$speaker->id]));
 
     $speaker->update([
         'name' => 'Habib Umar Abdullah',
@@ -819,13 +840,11 @@ it('updates organizer-fallback event slugs when the organizer speaker slug chang
         'is_active' => true,
     ]);
 
-    $event = Event::factory()->create([
+    $event = createEventForTest([
         'title' => 'Forum Ramadan Fallback Organizer',
         'slug' => sprintf('forum-ramadan-fallback-organizer-%s-%s', $speaker->slug, $expectedSuffix),
         'starts_at' => $startsAt,
         'timezone' => 'Asia/Kuala_Lumpur',
-        'organizer_type' => Speaker::class,
-        'organizer_id' => $speaker->id,
         'event_type' => [EventType::Other->value],
         'gender' => EventGenderRestriction::All->value,
         'age_group' => [EventAgeGroup::AllAges->value],
@@ -835,6 +854,8 @@ it('updates organizer-fallback event slugs when the organizer speaker slug chang
         'status' => 'approved',
         'is_active' => true,
     ]);
+
+    $event->setPrimaryOrganizer($speaker);
 
     $speaker->update([
         'name' => 'Habib Umar Abdullah',
@@ -863,13 +884,11 @@ it('updates event slugs when only the organizer speaker changes', function () {
         'is_active' => true,
     ]);
 
-    $event = Event::factory()->create([
+    $event = createEventForTest([
         'title' => 'Forum Organizer Only Change',
         'slug' => "forum-organizer-only-change-{$expectedSuffix}",
         'starts_at' => $startsAt,
         'timezone' => 'Asia/Kuala_Lumpur',
-        'organizer_type' => Institution::class,
-        'organizer_id' => $institution->id,
         'event_type' => [EventType::Other->value],
         'gender' => EventGenderRestriction::All->value,
         'age_group' => [EventAgeGroup::AllAges->value],
@@ -880,10 +899,11 @@ it('updates event slugs when only the organizer speaker changes', function () {
         'is_active' => true,
     ]);
 
-    $event->update([
-        'organizer_type' => Speaker::class,
-        'organizer_id' => $speaker->id,
-    ]);
+    $event->setPrimaryOrganizer($institution);
+
+    $event->refresh();
+    $event->setPrimaryOrganizer($speaker);
+    app(GenerateEventSlugAction::class)->syncEventSlugsForTitle($event->title);
 
     expect($event->fresh()?->slug)->toBe(sprintf(
         'forum-organizer-only-change-%s-%s',
@@ -903,14 +923,12 @@ it('uses the organizer speaker slug when events are created through the raw mode
         'is_active' => true,
     ]);
 
-    $event = Event::query()->create([
+    $event = Event::factory()->create([
         'title' => 'Forum Raw Organizer Create',
         'slug' => null,
         'starts_at' => $startsAt,
         'ends_at' => $startsAt->copy()->addHours(2),
         'timezone' => 'Asia/Kuala_Lumpur',
-        'organizer_type' => Speaker::class,
-        'organizer_id' => $speaker->id,
         'event_type' => [EventType::Other->value],
         'gender' => EventGenderRestriction::All->value,
         'age_group' => [EventAgeGroup::AllAges->value],
@@ -923,7 +941,10 @@ it('uses the organizer speaker slug when events are created through the raw mode
         'is_active' => true,
     ]);
 
-    expect($event->slug)->toBe(sprintf(
+    $event->setPrimaryOrganizer($speaker);
+    app(GenerateEventSlugAction::class)->syncEventSlugsForTitle($event->title);
+
+    expect($event->fresh()?->slug)->toBe(sprintf(
         'forum-raw-organizer-create-%s-%s',
         $speaker->slug,
         $expectedSuffix,
@@ -959,8 +980,7 @@ it('previews the organizer speaker slug when no explicit speakers are selected',
             'series' => [],
             'speakers' => [],
             'other_key_people' => [],
-            'organizer_type' => Speaker::class,
-            'organizer_id' => $speaker->id,
+            'primary_organizer_id' => $speaker->id,
         ])
         ->assertFormSet([
             'slug' => sprintf('forum-organizer-preview-%s-%s', $speaker->slug, $expectedSuffix),
@@ -996,8 +1016,7 @@ it('persists the organizer speaker slug when admins create events without explic
             'series' => [],
             'speakers' => [],
             'other_key_people' => [],
-            'organizer_type' => Speaker::class,
-            'organizer_id' => $speaker->id,
+            'primary_organizer_id' => $speaker->id,
         ])
         ->call('create')
         ->assertHasNoErrors();
@@ -1010,14 +1029,14 @@ it('removes deleted speaker slug segments from related events', function () {
     $startsAt = Carbon::parse('2026-04-12 20:00:00', 'Asia/Kuala_Lumpur')->utc();
     $expectedSuffix = Carbon::parse('2026-04-12', 'Asia/Kuala_Lumpur')->format('j-n-y');
 
-    $speaker = Speaker::factory()->create([
+    $speaker = OwnerContext::withOwner(null, fn () => Speaker::factory()->create([
         'name' => 'Habib Umar',
         'slug' => 'habib-umar',
         'status' => 'verified',
         'is_active' => true,
-    ]);
+    ]));
 
-    $event = Event::factory()->create([
+    $event = createEventForTest([
         'title' => 'Forum Ramadan Pentadbiran',
         'slug' => 'legacy-event-slug',
         'starts_at' => $startsAt,
@@ -1032,9 +1051,9 @@ it('removes deleted speaker slug segments from related events', function () {
         'is_active' => true,
     ]);
 
-    app(EventKeyPersonSyncService::class)->sync($event, [$speaker->id]);
+    OwnerContext::withOwner(null, fn () => app(EventKeyPersonSyncService::class)->sync($event, [$speaker->id]));
 
-    $speaker->delete();
+    OwnerContext::withOwner(null, fn () => $speaker->delete());
 
     expect($event->fresh()?->slug)->toBe("forum-ramadan-pentadbiran-{$expectedSuffix}");
 });
@@ -1043,14 +1062,14 @@ it('keeps canonical slug sequencing stable when speaker removal makes identities
     $startsAt = Carbon::parse('2026-04-12 20:00:00', 'Asia/Kuala_Lumpur')->utc();
     $expectedSuffix = Carbon::parse('2026-04-12', 'Asia/Kuala_Lumpur')->format('j-n-y');
 
-    $speaker = Speaker::factory()->create([
+    $speaker = OwnerContext::withOwner(null, fn () => Speaker::factory()->create([
         'name' => 'Habib Umar',
         'slug' => 'habib-umar',
         'status' => 'verified',
         'is_active' => true,
-    ]);
+    ]));
 
-    $canonicalEvent = Event::factory()->create([
+    $canonicalEvent = createEventForTest([
         'title' => 'Forum Ramadan Pentadbiran',
         'slug' => 'legacy-event-slug-a',
         'starts_at' => $startsAt,
@@ -1065,7 +1084,7 @@ it('keeps canonical slug sequencing stable when speaker removal makes identities
         'is_active' => true,
     ]);
 
-    $eventWithSpeaker = Event::factory()->create([
+    $eventWithSpeaker = createEventForTest([
         'title' => 'Forum Ramadan Pentadbiran',
         'slug' => 'legacy-event-slug-b',
         'starts_at' => $startsAt,
@@ -1080,10 +1099,9 @@ it('keeps canonical slug sequencing stable when speaker removal makes identities
         'is_active' => true,
     ]);
 
-    app(GenerateEventSlugAction::class)->syncEventSlug($canonicalEvent);
-    app(EventKeyPersonSyncService::class)->sync($eventWithSpeaker, [$speaker->id]);
+    OwnerContext::withOwner(null, fn () => app(EventKeyPersonSyncService::class)->sync($eventWithSpeaker, [$speaker->id]));
 
-    $speaker->delete();
+    OwnerContext::withOwner(null, fn () => $speaker->delete());
 
     expect($canonicalEvent->fresh()?->slug)->toBe("forum-ramadan-pentadbiran-{$expectedSuffix}")
         ->and($eventWithSpeaker->fresh()?->slug)->toBe("forum-ramadan-pentadbiran-2-{$expectedSuffix}");
@@ -1093,7 +1111,7 @@ it('recomputes event slugs when the event title changes directly', function () {
     $startsAt = Carbon::parse('2026-04-12 20:00:00', 'Asia/Kuala_Lumpur')->utc();
     $expectedSuffix = Carbon::parse('2026-04-12', 'Asia/Kuala_Lumpur')->format('j-n-y');
 
-    $event = Event::factory()->create([
+    $event = createEventForTest([
         'title' => 'Forum Ramadan Pentadbiran',
         'slug' => "forum-ramadan-pentadbiran-{$expectedSuffix}",
         'starts_at' => $startsAt,
@@ -1119,7 +1137,7 @@ it('renumbers remaining duplicate event slugs when a peer is renamed out of the 
     $startsAt = Carbon::parse('2026-04-13 20:00:00', 'Asia/Kuala_Lumpur')->utc();
     $expectedSuffix = Carbon::parse('2026-04-13', 'Asia/Kuala_Lumpur')->format('j-n-y');
 
-    $first = Event::factory()->create([
+    $first = createEventForTest([
         'title' => 'Kuliah Dhuha Khas',
         'slug' => "kuliah-dhuha-khas-{$expectedSuffix}",
         'starts_at' => $startsAt,
@@ -1134,7 +1152,7 @@ it('renumbers remaining duplicate event slugs when a peer is renamed out of the 
         'is_active' => true,
     ]);
 
-    $second = Event::factory()->create([
+    $second = createEventForTest([
         'title' => 'Kuliah Dhuha Khas',
         'slug' => "kuliah-dhuha-khas-2-{$expectedSuffix}",
         'starts_at' => $startsAt,
@@ -1171,8 +1189,7 @@ it('uses the generated dated slug for advanced parent program creation', functio
         ->set('form.description', 'A month-long umbrella program.')
         ->set('form.program_starts_at', $startsAt->format('Y-m-d\TH:i'))
         ->set('form.program_ends_at', $startsAt->copy()->addDays(20)->setTime(22, 0)->format('Y-m-d\TH:i'))
-        ->set('form.organizer_type', 'institution')
-        ->set('form.organizer_id', $institution->id)
+        ->set('form.primary_organizer_id', $institution->id)
         ->set('form.default_event_type', 'kuliah_ceramah')
         ->set('form.default_event_format', 'physical')
         ->call('submit')
@@ -1231,59 +1248,60 @@ function createSlugAdminUser(): User
     return $administrator;
 }
 
-/**
- * @return array{
- *     country: Country,
- *     state: State,
- *     district: District,
- *     subdistrict: Subdistrict
- * }
- */
 function createVenueSlugGeography(
     string $countryName = 'Malaysia',
     string $countryIso2 = 'MY',
     string $countryIso3 = 'MYS',
-    int $countryId = 132,
     string $stateName = 'Selangor',
     string $districtName = 'Petaling',
     string $subdistrictName = 'Shah Alam',
 ): array {
-    $country = Country::query()->find($countryId);
+    $country = AddressCountry::query()->where('iso2', $countryIso2)->first();
 
-    if (! $country instanceof Country) {
-        $country = new Country;
-        $country->forceFill([
-            'id' => $countryId,
+    if (! $country instanceof AddressCountry) {
+        $country = AddressCountry::query()->create([
             'name' => $countryName,
             'iso2' => $countryIso2,
             'iso3' => $countryIso3,
             'phone_code' => '60',
             'region' => 'Asia',
             'subregion' => 'South-Eastern Asia',
-            'status' => 1,
         ]);
-        $country->save();
     }
 
-    $state = State::query()->create([
-        'country_id' => (int) $country->getKey(),
-        'name' => $stateName,
+    $state = AddressArea::query()->create([
+        'country_id' => $country->getKey(),
         'country_code' => $countryIso2,
+        'name' => $stateName,
+        'type' => 'state',
+        'level' => 1,
+        'slug' => Str::slug($stateName),
+        'source' => 'manual',
+        'source_id' => (string) Str::ulid(),
     ]);
 
-    $district = District::query()->create([
-        'country_id' => (int) $country->getKey(),
-        'state_id' => (int) $state->getKey(),
+    $district = AddressArea::query()->create([
+        'country_id' => $country->getKey(),
+        'parent_id' => $state->getKey(),
         'country_code' => $countryIso2,
         'name' => $districtName,
+        'type' => 'district',
+        'level' => 2,
+        'slug' => Str::slug($districtName),
+        'source' => 'manual',
+        'source_id' => (string) Str::ulid(),
     ]);
 
-    $subdistrict = Subdistrict::query()->create([
-        'country_id' => (int) $country->getKey(),
-        'state_id' => (int) $state->getKey(),
-        'district_id' => (int) $district->getKey(),
+    $subdistrict = AddressArea::query()->create([
+        'country_id' => $country->getKey(),
+        'parent_id' => $district->getKey(),
         'country_code' => $countryIso2,
         'name' => $subdistrictName,
+        'type' => 'subdistrict',
+        'level' => 3,
+        'slug' => Str::slug($subdistrictName),
+        'source' => 'manual',
+        'source_id' => (string) Str::ulid(),
     ]);
 
     return [
@@ -1296,10 +1314,10 @@ function createVenueSlugGeography(
 
 /**
  * @param  array{
- *     country: Country,
- *     state: State,
- *     district: District,
- *     subdistrict: Subdistrict
+ *     country: AddressCountry,
+ *     state: AddressArea,
+ *     district: AddressArea,
+ *     subdistrict: AddressArea
  * }  $geography
  * @return array<string, string>
  */
@@ -1307,18 +1325,18 @@ function venueGeographyAddressPayload(array $geography): array
 {
     return [
         'country_id' => (string) $geography['country']->getKey(),
-        'state_id' => (string) $geography['state']->getKey(),
-        'district_id' => (string) $geography['district']->getKey(),
-        'subdistrict_id' => (string) $geography['subdistrict']->getKey(),
+        'admin_area_1_id' => (string) $geography['state']->getKey(),
+        'admin_area_2_id' => (string) $geography['district']->getKey(),
+        'admin_area_3_id' => (string) $geography['subdistrict']->getKey(),
     ];
 }
 
 /**
  * @param  array{
- *     country: Country,
- *     state: State,
- *     district: District,
- *     subdistrict: Subdistrict
+ *     country: AddressCountry,
+ *     state: AddressArea,
+ *     district: AddressArea,
+ *     subdistrict: AddressArea
  * }  $geography
  */
 function createVenueForSlugBackfill(string $id, string $name, string $slug, array $geography): Venue
@@ -1330,26 +1348,49 @@ function createVenueForSlugBackfill(string $id, string $name, string $slug, arra
         'type' => 'dewan',
         'status' => 'verified',
         'is_active' => true,
+        'visibility' => 'public',
     ])));
 
     Venue::withoutEvents(function () use ($venue, $geography): void {
-        Address::withoutEvents(function () use ($venue, $geography): void {
-            $venue->address()->create([
-                'type' => 'main',
-                'country_id' => (int) $geography['country']->getKey(),
-                'state_id' => (int) $geography['state']->getKey(),
-                'district_id' => (int) $geography['district']->getKey(),
-                'subdistrict_id' => (int) $geography['subdistrict']->getKey(),
-            ]);
-        });
+        $address = Address::withoutEvents(fn () => Address::query()->create([
+            'country_id' => $geography['country']->getKey(),
+            'admin_area_1_id' => $geography['state']->getKey(),
+            'admin_area_2_id' => $geography['district']->getKey(),
+            'admin_area_3_id' => $geography['subdistrict']->getKey(),
+        ]));
+
+        $venue->attachAddress($address, type: 'main', isPrimary: true);
     });
 
     return $venue->fresh(['address']) ?? $venue;
 }
 
+function createDefaultCountry(): AddressCountry
+{
+    $country = AddressCountry::query()->where('iso2', 'MY')->first();
+
+    if (! $country instanceof AddressCountry) {
+        $country = AddressCountry::query()->create([
+            'name' => 'Malaysia',
+            'iso2' => 'MY',
+            'iso3' => 'MYS',
+            'phone_code' => '60',
+            'region' => 'Asia',
+            'subregion' => 'South-Eastern Asia',
+        ]);
+    }
+
+    return $country;
+}
+
+function createEventForTest(array $attributes = []): Event
+{
+    return OwnerContext::withOwner(null, fn () => Event::factory()->create($attributes));
+}
+
 function createEventForSlugBackfill(string $id, string $title, string $slug, CarbonInterface $startsAt): Event
 {
-    return Event::unguarded(fn () => Event::query()->create([
+    return OwnerContext::withOwner(null, fn () => Event::unguarded(fn () => Event::query()->create([
         'id' => $id,
         'title' => $title,
         'slug' => $slug,
@@ -1364,5 +1405,5 @@ function createEventForSlugBackfill(string $id, string $title, string $slug, Car
         'visibility' => EventVisibility::Public->value,
         'status' => 'approved',
         'is_active' => true,
-    ]));
+    ])));
 }

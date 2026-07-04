@@ -198,7 +198,7 @@ class AdminBatchUpdateEventsTool extends AbstractAdminWriteTool
 
         unset(
             $payload['validate_only'],
-            $payload['organizer_key'],
+            $payload['primary_organizer_key'],
             $payload['institution_key'],
             $payload['venue_key'],
             $payload['space_key'],
@@ -206,20 +206,14 @@ class AdminBatchUpdateEventsTool extends AbstractAdminWriteTool
             $payload['reference_keys'],
         );
 
-        $organizerType = $this->normalizeOrganizerType($item['organizer_type'] ?? null);
-
-        if ($organizerType !== null) {
-            $payload['organizer_type'] = $organizerType;
-        }
-
-        $organizerKey = $this->normalizeOptionalString($item['organizer_key'] ?? null);
-
-        if ($organizerKey !== null) {
-            $payload['organizer_id'] = $this->resolveRecordIdentifier(
-                field: 'organizer_key',
-                modelClass: $organizerType === Speaker::class ? Speaker::class : Institution::class,
-                key: $organizerKey,
-            );
+        if (array_key_exists('primary_organizer_key', $item)) {
+            $primaryOrganizerKey = $this->normalizeOptionalString($item['primary_organizer_key'] ?? null);
+            $payload['primary_organizer_id'] = $primaryOrganizerKey !== null
+                ? $this->resolvePrimaryOrganizerIdentifier(
+                    field: 'primary_organizer_key',
+                    key: $primaryOrganizerKey,
+                )
+                : null;
         }
 
         $institutionKey = $this->normalizeOptionalString($item['institution_key'] ?? null);
@@ -319,8 +313,7 @@ class AdminBatchUpdateEventsTool extends AbstractAdminWriteTool
             'children_allowed' => $schema->boolean(),
             'is_muslim_only' => $schema->boolean(),
             'event_type' => $schema->array()->items($schema->string()->enum($this->enumValues(EventType::class))),
-            'organizer_type' => $schema->string()->enum(['institution', 'speaker', Institution::class, Speaker::class])->description('Organizer model type.'),
-            'organizer_key' => $schema->string()->nullable()->description('Organizer route key (slug preferred, UUID allowed).'),
+            'primary_organizer_key' => $schema->string()->nullable()->description('Primary organizer route key (institution or speaker slug preferred, UUID allowed). Omit to preserve the current organizer.'),
             'institution_key' => $schema->string()->nullable()->description('Institution route key (slug preferred, UUID allowed).'),
             'venue_key' => $schema->string()->nullable()->description('Venue route key (slug preferred, UUID allowed).'),
             'space_key' => $schema->string()->nullable()->description('Space route key (slug preferred, UUID allowed).'),

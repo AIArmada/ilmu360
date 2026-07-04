@@ -1,7 +1,7 @@
 <?php
 
-use AIArmada\FilamentAuthz\Models\Role;
-use App\Enums\SocialMediaPlatform;
+use AIArmada\CommerceSupport\Models\Role;
+use AIArmada\Contacting\Enums\SocialPlatform;
 use App\Models\Institution;
 use App\Models\User;
 use Spatie\Permission\PermissionRegistrar;
@@ -19,9 +19,9 @@ it('loads the edit institution page with social media items', function () {
 
     $institution = Institution::factory()->create();
     $institution->socialMedia()->create([
-        'platform' => SocialMediaPlatform::Facebook->value,
+        'platform' => SocialPlatform::Facebook->value,
         'url' => 'https://facebook.com/ilmu360',
-        'username' => 'ilmu360',
+        'handle' => 'ilmu360',
     ]);
 
     $this->actingAs($user)

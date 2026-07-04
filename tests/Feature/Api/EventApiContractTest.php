@@ -9,19 +9,15 @@ use App\Enums\EventVisibility;
 use App\Enums\PrayerReference;
 use App\Enums\ReferenceType;
 use App\Enums\TimingMode;
-use App\Models\District;
 use App\Models\Event;
 use App\Models\EventChangeAnnouncement;
 use App\Models\Institution;
 use App\Models\Reference;
 use App\Models\Speaker;
-use App\Models\State;
-use App\Models\Subdistrict;
 use App\Models\User;
 use App\Models\Venue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 uses(RefreshDatabase::class);
@@ -176,63 +172,26 @@ it('rejects unsupported sparse fields on the public event index', function () {
 });
 
 it('filters events by district_id and subdistrict_id', function () {
-    $state = State::where('country_code', 'MY')->first();
-
-    if (! $state) {
-        $countryId = DB::table('countries')->insertGetId([
-            'iso2' => 'MY',
-            'name' => 'Malaysia',
-            'status' => 1,
-            'phone_code' => '60',
-            'iso3' => 'MYS',
-            'region' => 'Asia',
-            'subregion' => 'South-Eastern Asia',
-        ]);
-
-        $stateId = DB::table('states')->insertGetId([
-            'country_id' => $countryId,
-            'name' => 'Selangor',
-            'country_code' => 'MY',
-        ]);
-
-        $state = State::query()->findOrFail($stateId);
-    }
-
-    $district = District::query()->create([
-        'country_id' => $state->country_id,
-        'state_id' => $state->id,
-        'country_code' => 'MY',
-        'name' => 'API District '.uniqid(),
-    ]);
-
-    $subdistrictA = Subdistrict::query()->create([
-        'country_id' => $state->country_id,
-        'state_id' => $state->id,
-        'district_id' => $district->id,
-        'country_code' => 'MY',
-        'name' => 'API Subdistrict A '.uniqid(),
-    ]);
-
-    $subdistrictB = Subdistrict::query()->create([
-        'country_id' => $state->country_id,
-        'state_id' => $state->id,
-        'district_id' => $district->id,
-        'country_code' => 'MY',
-        'name' => 'API Subdistrict B '.uniqid(),
-    ]);
+    $country = ensureTestMalaysiaCountry();
+    $state = createTestAddressArea('Selangor', 1, null, $country);
+    $district = createTestAddressArea('API District '.uniqid(), 2, $state, $country);
+    $subdistrictA = createTestAddressArea('API Subdistrict A '.uniqid(), 3, $district, $country);
+    $subdistrictB = createTestAddressArea('API Subdistrict B '.uniqid(), 3, $district, $country);
 
     $venueA = Venue::factory()->create();
-    $venueA->address()->update([
-        'state_id' => $state->id,
-        'district_id' => $district->id,
-        'subdistrict_id' => $subdistrictA->id,
+    syncPrimaryAddressForTest($venueA, [
+        'country_id' => (string) $country->getKey(),
+        'admin_area_1_id' => (string) $state->getKey(),
+        'admin_area_2_id' => (string) $district->getKey(),
+        'admin_area_3_id' => (string) $subdistrictA->getKey(),
     ]);
 
     $venueB = Venue::factory()->create();
-    $venueB->address()->update([
-        'state_id' => $state->id,
-        'district_id' => $district->id,
-        'subdistrict_id' => $subdistrictB->id,
+    syncPrimaryAddressForTest($venueB, [
+        'country_id' => (string) $country->getKey(),
+        'admin_area_1_id' => (string) $state->getKey(),
+        'admin_area_2_id' => (string) $district->getKey(),
+        'admin_area_3_id' => (string) $subdistrictB->getKey(),
     ]);
 
     $districtMatch = Event::factory()->for($venueA)->create([
@@ -247,7 +206,7 @@ it('filters events by district_id and subdistrict_id', function () {
         'is_active' => true,
     ]);
 
-    $districtResponse = $this->getJson('/api/v1/events?filter[district_id]='.$district->id);
+    $districtResponse = $this->getJson('/api/v1/events?filter[district_id]='.$district->getKey());
 
     $districtResponse->assertOk();
 
@@ -257,7 +216,7 @@ it('filters events by district_id and subdistrict_id', function () {
         ->toContain($districtMatch->id)
         ->toContain($subdistrictNonMatch->id);
 
-    $subdistrictResponse = $this->getJson('/api/v1/events?filter[subdistrict_id]='.$subdistrictA->id);
+    $subdistrictResponse = $this->getJson('/api/v1/events?filter[subdistrict_id]='.$subdistrictA->getKey());
 
     $subdistrictResponse->assertOk();
 
@@ -834,62 +793,24 @@ it('serializes event detail payloads with a stable reference front cover url', f
 });
 
 it('serializes included institution address display fields on event detail payloads', function () {
-    $countryId = DB::table('countries')->where('id', 132)->value('id');
-
-    if (! is_int($countryId)) {
-        $countryId = DB::table('countries')->insertGetId([
-            'id' => 132,
-            'iso2' => 'MY',
-            'name' => 'Malaysia',
-            'status' => 1,
-            'phone_code' => '60',
-            'iso3' => 'MYS',
-            'region' => 'Asia',
-            'subregion' => 'South-Eastern Asia',
-        ]);
-    }
-
-    $state = State::where('country_code', 'MY')->first();
-
-    if (! $state) {
-        $stateId = DB::table('states')->insertGetId([
-            'country_id' => $countryId,
-            'name' => 'Selangor',
-            'country_code' => 'MY',
-        ]);
-
-        $state = State::query()->findOrFail($stateId);
-    }
-
-    $district = District::query()->create([
-        'country_id' => $state->country_id,
-        'state_id' => $state->id,
-        'country_code' => 'MY',
-        'name' => 'API Event District '.uniqid(),
-    ]);
-
-    $subdistrict = Subdistrict::query()->create([
-        'country_id' => $state->country_id,
-        'state_id' => $state->id,
-        'district_id' => $district->id,
-        'country_code' => 'MY',
-        'name' => 'API Event Subdistrict '.uniqid(),
-    ]);
+    $country = ensureTestMalaysiaCountry();
+    $state = createTestAddressArea('Selangor', 1, null, $country);
+    $district = createTestAddressArea('API Event District '.uniqid(), 2, $state, $country);
+    $subdistrict = createTestAddressArea('API Event Subdistrict '.uniqid(), 3, $district, $country);
 
     $institution = Institution::factory()->create([
         'status' => 'verified',
         'is_active' => true,
     ]);
 
-    $institution->address()->delete();
-    $institution->address()->create([
+    syncPrimaryAddressForTest($institution, [
         'line1' => 'No. 12 Jalan Ilmu',
         'line2' => 'Blok B',
         'postcode' => '43000',
-        'country_id' => $countryId,
-        'state_id' => $state->id,
-        'district_id' => $district->id,
-        'subdistrict_id' => $subdistrict->id,
+        'country_id' => (string) $country->getKey(),
+        'admin_area_1_id' => (string) $state->getKey(),
+        'admin_area_2_id' => (string) $district->getKey(),
+        'admin_area_3_id' => (string) $subdistrict->getKey(),
         'google_maps_url' => 'https://maps.google.com/?q=3.1390,101.6869',
         'waze_url' => 'https://waze.com/ul?ll=3.1390,101.6869',
         'lat' => 3.139,
@@ -902,7 +823,7 @@ it('serializes included institution address display fields on event detail paylo
         'is_active' => true,
     ]);
 
-    $response = $this->getJson('/api/v1/events/'.$event->id.'?include=institution,institution.address');
+    $response = $this->getJson('/api/v1/events/'.$event->id.'?include=institution,institution.addresses');
 
     $response->assertOk()
         ->assertJsonPath('data.institution.id', $institution->id)

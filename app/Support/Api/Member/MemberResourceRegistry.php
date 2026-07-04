@@ -519,9 +519,9 @@ class MemberResourceRegistry
         if ($record instanceof Speaker && is_array($attributes['address'] ?? null)) {
             $attributes['address'] = Arr::only($attributes['address'], [
                 'country_id',
-                'state_id',
-                'district_id',
-                'subdistrict_id',
+                'admin_area_1_id',
+                'admin_area_2_id',
+                'admin_area_3_id',
             ]);
         }
 

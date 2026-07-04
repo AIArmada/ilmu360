@@ -22,6 +22,7 @@ class Team extends Model
     /**
      * Bootstrap the model and its traits.
      */
+    #[\Override]
     protected static function boot(): void
     {
         parent::boot();
@@ -87,6 +88,7 @@ class Team extends Model
      *
      * @return array<string, string>
      */
+    #[\Override]
     protected function casts(): array
     {
         return [
@@ -97,6 +99,7 @@ class Team extends Model
     /**
      * Get the route key for the model.
      */
+    #[\Override]
     public function getRouteKeyName(): string
     {
         return 'slug';

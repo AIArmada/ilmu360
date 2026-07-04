@@ -49,7 +49,9 @@ class UnsaveEventAction
 
         Event::query()
             ->whereKey($eventId)
-            ->update(['saves_count' => $savesCount]);
+            ->first()
+            ?->forceFill(['saves_count' => $savesCount])
+            ->saveQuietly();
 
         return $savesCount;
     }

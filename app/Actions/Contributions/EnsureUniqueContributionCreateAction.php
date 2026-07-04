@@ -10,6 +10,7 @@ use App\Models\Speaker;
 use BackedEnum;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
 
@@ -76,18 +77,18 @@ final readonly class EnsureUniqueContributionCreateAction
             ? SharedFormSchema::prepareAddressPersistenceData($state['address'])
             : [];
 
-        $countryId = $this->normalizeNullableInteger($address['country_id'] ?? null);
-        $stateId = $this->normalizeNullableInteger($address['state_id'] ?? null);
-        $districtId = $this->normalizeNullableInteger($address['district_id'] ?? null);
-        $subdistrictId = $this->normalizeNullableInteger($address['subdistrict_id'] ?? null);
+        $countryId = $this->normalizeNullableUuid($address['country_id'] ?? null);
+        $stateId = $this->normalizeNullableUuid($address['admin_area_1_id'] ?? ($address['state_id'] ?? null));
+        $districtId = $this->normalizeNullableUuid($address['admin_area_2_id'] ?? ($address['district_id'] ?? null));
+        $subdistrictId = $this->normalizeNullableUuid($address['admin_area_3_id'] ?? ($address['subdistrict_id'] ?? null));
 
         return Institution::query()
             ->whereIn('status', ['verified', 'pending'])
-            ->whereHas('address', function (Builder $query) use ($countryId, $stateId, $districtId, $subdistrictId): void {
-                $this->applyNullableIntegerMatch($query, 'country_id', $countryId);
-                $this->applyNullableIntegerMatch($query, 'state_id', $stateId);
-                $this->applyNullableIntegerMatch($query, 'district_id', $districtId);
-                $this->applyNullableIntegerMatch($query, 'subdistrict_id', $subdistrictId);
+            ->whereHas('addresses', function (Builder $query) use ($countryId, $stateId, $districtId, $subdistrictId): void {
+                $this->applyNullableUuidMatch($query, 'country_id', $countryId);
+                $this->applyNullableUuidMatch($query, 'admin_area_1_id', $stateId);
+                $this->applyNullableUuidMatch($query, 'admin_area_2_id', $districtId);
+                $this->applyNullableUuidMatch($query, 'admin_area_3_id', $subdistrictId);
             })
             ->get(['id', 'name'])
             ->contains(fn (Institution $institution): bool => $this->normalizeComparableString($institution->name) === $name);
@@ -108,7 +109,7 @@ final readonly class EnsureUniqueContributionCreateAction
         $address = is_array($state['address'] ?? null)
             ? SharedFormSchema::prepareAddressPersistenceData($state['address'])
             : [];
-        $countryId = $this->normalizeNullableInteger($address['country_id'] ?? null);
+        $countryId = $this->normalizeNullableUuid($address['country_id'] ?? null);
 
         if ($countryId === null) {
             return false;
@@ -121,7 +122,7 @@ final readonly class EnsureUniqueContributionCreateAction
         return Speaker::query()
             ->whereIn('status', ['verified', 'pending'])
             ->where('gender', $gender)
-            ->whereHas('address', fn (Builder $query): Builder => $query->where('country_id', $countryId))
+            ->whereHas('addresses', fn (Builder $query): Builder => $query->where('country_id', $countryId))
             ->get(['name', 'gender', 'honorific', 'pre_nominal', 'post_nominal'])
             ->contains(fn (Speaker $speaker): bool => $this->normalizeComparableString($speaker->name) === $name
                 && $this->normalizeComparableString($speaker->gender) === $gender
@@ -173,7 +174,7 @@ final readonly class EnsureUniqueContributionCreateAction
     /**
      * @param  Builder<Model>  $query
      */
-    private function applyNullableIntegerMatch(Builder $query, string $column, ?int $value): void
+    private function applyNullableUuidMatch(Builder $query, string $column, ?string $value): void
     {
         if ($value === null) {
             $query->whereNull($column);
@@ -229,9 +230,15 @@ final readonly class EnsureUniqueContributionCreateAction
         return $normalized;
     }
 
-    private function normalizeNullableInteger(mixed $value): ?int
+    private function normalizeNullableUuid(mixed $value): ?string
     {
-        return is_numeric($value) ? (int) $value : null;
+        if (! is_scalar($value)) {
+            return null;
+        }
+
+        $normalized = trim((string) $value);
+
+        return Str::isUuid($normalized) ? $normalized : null;
     }
 
     private function validationKey(string $key, string $validationKeyPrefix): string

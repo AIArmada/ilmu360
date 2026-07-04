@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Support\Mcp;
 
+use AIArmada\Addressing\Models\Address;
+use AIArmada\Events\Models\EventAccessPolicy;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
@@ -13,11 +15,9 @@ use App\Enums\EventType;
 use App\Enums\EventVisibility;
 use App\Enums\ReferenceType;
 use App\Enums\TagType;
-use App\Models\Address;
 use App\Models\DonationChannel;
 use App\Models\Event;
 use App\Models\EventKeyPerson;
-use App\Models\EventSettings;
 use App\Models\Institution;
 use App\Models\MediaLink;
 use App\Models\Reference;
@@ -155,25 +155,13 @@ class EventCoverPromptBuilder
     {
         $event->loadMissing([
             'media',
-            'address.country',
-            'address.state',
-            'address.district',
-            'address.subdistrict',
-            'address.city',
+            'addresses.country',
             'institution.media',
-            'institution.address.country',
-            'institution.address.state',
-            'institution.address.district',
-            'institution.address.subdistrict',
-            'institution.address.city',
+            'institution.addresses.country',
             'venue.media',
-            'venue.address.country',
-            'venue.address.state',
-            'venue.address.district',
-            'venue.address.subdistrict',
-            'venue.address.city',
+            'venue.addresses.country',
             'space',
-            'organizer',
+            'primaryOrganizerInvolvement.involveable',
             'speakers.media',
             'keyPeople.speaker.media',
             'tags',
@@ -190,10 +178,9 @@ class EventCoverPromptBuilder
             'childEvents.venue.media',
         ]);
 
-        $event->loadMorph('organizer', [
-            Institution::class => ['media'],
-            Speaker::class => ['media'],
-        ]);
+        if ($involveable = $event->primaryOrganizerInvolvement?->involveable) {
+            $involveable->loadMissing(['media']);
+        }
     }
 
     /**
@@ -565,7 +552,7 @@ class EventCoverPromptBuilder
                 'series' => $event->series->map(fn (Series $series): array => $this->modelPayload($series))->values()->all(),
                 'tags' => $this->tagsPayload($event->tags),
                 'languages' => $event->languages->map(fn (Language $language): array => $this->languagePayload($language))->values()->all(),
-                'settings' => $event->settings instanceof EventSettings ? $this->modelPayload($event->settings) : null,
+                'access_policy' => $event->accessPolicy instanceof EventAccessPolicy ? $this->modelPayload($event->accessPolicy) : null,
                 'donation_channel' => $event->donationChannel instanceof DonationChannel ? $this->modelPayload($event->donationChannel) : null,
                 'media_links' => $event->mediaLinks->map(fn (MediaLink $mediaLink): array => $this->modelPayload($mediaLink))->values()->all(),
                 'parent_event' => $event->parentEvent instanceof Event ? $this->relatedEventPayload($event->parentEvent) : null,
@@ -663,11 +650,11 @@ class EventCoverPromptBuilder
             'attributes' => $this->normalizeArray($address->getAttributes()),
             'display_line' => AddressHierarchyFormatter::format($address),
             'display_lines' => AddressHierarchyFormatter::displayLines($address),
-            'country' => $address->country?->name,
-            'state' => $address->state?->name,
-            'district' => $address->district?->name,
-            'subdistrict' => $address->subdistrict?->name,
-            'city' => $address->city?->name,
+            'country' => $address->country instanceof Model ? $address->country->name : $address->country,
+            'state' => $address->state,
+            'district' => $address->city,
+            'subdistrict' => $address->neighbourhood,
+            'city' => $address->city,
         ];
     }
 

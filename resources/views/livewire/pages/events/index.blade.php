@@ -69,7 +69,6 @@
     $states = $this->states;
     $districts = $this->districts;
     $subdistricts = $this->subdistricts;
-    $defaultCountryId = (string) app(\App\Support\Location\PreferredCountryResolver::class)->resolveId();
     $languageOptions = $this->languageOptions();
     $selectedAgeGroups = array_values(array_filter((array) $this->age_group));
     $selectedTopicIds = array_values(array_filter((array) $this->topic_ids));
@@ -119,7 +118,7 @@
     ];
     $activeFilterCount = collect([
         filled($search),
-        filled($countryId) && $countryId !== $defaultCountryId,
+        filled($countryId),
         filled($stateId),
         filled($districtId),
         filled($subdistrictId),
@@ -558,7 +557,7 @@
 
                             <label class="block">
                                 <span class="mb-1.5 block text-xs font-semibold text-slate-600">{{ __('Daerah') }}</span>
-                                <select wire:model.live="filterData.district_id" data-signal-control="district_id" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10" @disabled(! filled($stateId) || \App\Support\Location\FederalTerritoryLocation::isFederalTerritoryStateId($stateId))>
+                                <select wire:model.live="filterData.district_id" data-signal-control="district_id" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10" @disabled(! filled($stateId))>
                                     <option value="">{{ __('Pilih daerah') }}</option>
                                     @foreach($districts as $district)
                                         <option value="{{ $district->id }}">{{ $district->name }}</option>
@@ -566,7 +565,7 @@
                                 </select>
                             </label>
 
-                            @if(filled($stateId) && (filled($districtId) || \App\Support\Location\FederalTerritoryLocation::isFederalTerritoryStateId($stateId)))
+                            @if(filled($stateId))
                                 <label class="block">
                                     <span class="mb-1.5 block text-xs font-semibold text-slate-600">{{ __('Bandar / Mukim / Zon') }}</span>
                                     <select wire:model.live="filterData.subdistrict_id" data-signal-control="subdistrict_id" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10">
@@ -720,7 +719,12 @@
 
                             <label class="inline-flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-600">
                                 <span>{{ __('Susun:') }}</span>
-                                <select wire:model.live="filterData.sort" data-signal-control="sort" class="border-0 bg-transparent py-0 pl-0 pr-7 text-sm font-bold text-slate-800 focus:ring-0">
+                                <select wire:model.live="filterData.sort"
+                                    data-signal-change-event="filter.sort_changed"
+                                    data-signal-category="filter"
+                                    data-signal-component="events_index_toolbar"
+                                    data-signal-control="sort"
+                                    class="border-0 bg-transparent py-0 pl-0 pr-7 text-sm font-bold text-slate-800 focus:ring-0">
                                     <option value="time">{{ __('Terbaru') }}</option>
                                     <option value="relevance">{{ __('Relevance') }}</option>
                                     @if($lat)
@@ -912,9 +916,18 @@
                                         };
                                         $primaryLocationName = $event->venue?->name ?? $event->institution?->name;
                                         $addressModel = $event->venue?->addressModel ?? $event->institution?->addressModel;
-                                        $hierarchyText = \App\Support\Location\AddressHierarchyFormatter::format($addressModel);
                                         $locationPrimaryText = is_string($primaryLocationName) && $primaryLocationName !== '' ? $primaryLocationName : null;
-                                        $locationSecondaryText = $hierarchyText !== '' ? $hierarchyText : null;
+                                        $explicitCity = trim((string) ($addressModel?->city ?? ''));
+                                        $stateText = \App\Support\Location\AddressHierarchyFormatter::format($addressModel, ['state']);
+                                        $fallbackHierarchyText = \App\Support\Location\AddressHierarchyFormatter::format($addressModel, ['city', 'state']);
+
+                                        if ($explicitCity !== '') {
+                                            $locationSecondaryText = collect([$explicitCity, $stateText !== '' ? $stateText : null])
+                                                ->filter()
+                                                ->implode(', ');
+                                        } else {
+                                            $locationSecondaryText = $fallbackHierarchyText !== '' ? $fallbackHierarchyText : null;
+                                        }
 
                                         if ($locationPrimaryText === null && $locationSecondaryText === null) {
                                             $locationPrimaryText = $formatValue === \App\Enums\EventFormat::Online->value ? __('Online') : __('Location pending');
@@ -926,7 +939,7 @@
                                             ->filter()
                                             ->values();
                                         $speakerText = $speakerNames->isNotEmpty() ? $speakerNames->implode(', ') : __('Penceramah akan diumumkan');
-                                        $languageChips = $event->languages
+                                        $languageChips = collect($event->getAttribute('languages'))
                                             ->take(1)
                                             ->map(fn (\Nnjeim\World\Models\Language $language): string => (string) ($language->code === 'ms' ? 'BM' : strtoupper((string) $language->code)))
                                             ->filter()
@@ -950,8 +963,8 @@
                                             : $event->published_at?->diffForHumans();
                                         $mapUrl = filled($addressModel?->google_maps_url)
                                             ? (string) $addressModel->google_maps_url
-                                            : (filled($addressModel?->lat) && filled($addressModel?->lng)
-                                                ? 'https://www.google.com/maps/dir/?api=1&destination='.$addressModel->lat.','.$addressModel->lng
+                                            : (filled($addressModel?->latitude) && filled($addressModel?->longitude)
+                                                ? 'https://www.google.com/maps/dir/?api=1&destination='.$addressModel->latitude.','.$addressModel->longitude
                                                 : null);
                                         $eventUrl = route('events.show', $event);
                                         $isSaved = in_array((string) $event->getKey(), $savedEventIds, true);

@@ -47,15 +47,12 @@ class VenuesTable
                     ->sortable(),
                 ToggleColumn::make('is_active')
                     ->label('Active'),
-                TextColumn::make('address.state.name')
+                TextColumn::make('address.state')
                     ->label('State')
-                    ->sortable(),
-                TextColumn::make('address.district.name')
-                    ->label('District')
-                    ->sortable(),
-                TextColumn::make('address.city.name')
+                    ->placeholder('-'),
+                TextColumn::make('address.city')
                     ->label('City')
-                    ->sortable(),
+                    ->placeholder('-'),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

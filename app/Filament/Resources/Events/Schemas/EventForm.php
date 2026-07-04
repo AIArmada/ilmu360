@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Events\Schemas;
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Actions\Events\GenerateEventSlugAction;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
@@ -44,6 +45,7 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\HtmlString;
 use Nnjeim\World\Models\Language;
@@ -284,23 +286,31 @@ class EventForm
                                 Section::make('Penganjur')
                                     ->columnSpanFull()
                                     ->schema([
-                                        Select::make('organizer_type')
-                                            ->label('Jenis Penganjur')
-                                            ->options([
-                                                Institution::class => 'Institusi',
-                                                Speaker::class => 'Penceramah',
-                                            ])
-                                            ->live()
-                                            ->afterStateUpdated(function (Get $get, Set $set, ?Event $record): void {
-                                                self::regenerateSlug($get, $set, $record);
-                                            }),
-                                        Select::make('organizer_id')
-                                            ->label('Penganjur')
+                                        Select::make('primary_organizer_id')
+                                            ->label('Penganjur Utama')
                                             ->searchable()
                                             ->preload()
                                             ->live()
-                                            ->options(fn (Get $get): array => self::getOrganizerOptions($get('organizer_type')))
-                                            ->required(fn (Get $get): bool => filled($get('organizer_type')))
+                                            ->options(function (): array {
+                                                $institutions = Institution::query()
+                                                    ->whereIn('status', ['verified', 'pending'])
+                                                    ->orderBy('name')
+                                                    ->get()
+                                                    ->mapWithKeys(fn (Institution $inst): array => [(string) $inst->id => '🏛 '.$inst->name])
+                                                    ->toArray();
+                                                $speakers = Speaker::query()
+                                                    ->whereIn('status', ['verified', 'pending'])
+                                                    ->orderBy('name')
+                                                    ->get()
+                                                    ->mapWithKeys(fn (Speaker $speaker): array => [(string) $speaker->id => '👤 '.$speaker->formatted_name])
+                                                    ->toArray();
+
+                                                return array_merge($institutions, $speakers);
+                                            })
+                                            ->afterStateHydrated(function (Select $component, ?Event $record): void {
+                                                $organizer = $record?->primaryOrganizerInvolvement?->involveable;
+                                                $component->state($organizer instanceof Model ? (string) $organizer->getKey() : null);
+                                            })
                                             ->afterStateUpdated(function (Get $get, Set $set, ?Event $record): void {
                                                 self::regenerateSlug($get, $set, $record);
                                             }),
@@ -661,10 +671,12 @@ class EventForm
             return null;
         }
 
-        $record->loadMissing([
-            'submissions.contacts',
-            'submissions.submitter',
-        ]);
+        OwnerContext::withOwner(null, function () use ($record): void {
+            $record->loadMissing([
+                'submissions.contacts',
+                'submissions.submitter',
+            ]);
+        });
 
         /** @var EventSubmission|null $submission */
         $submission = $record->submissions
@@ -800,14 +812,11 @@ class EventForm
             is_array($get('speakers')) ? $get('speakers') : [],
         );
 
-        if (
-            $speakerSlugSegments === []
-            && $get('organizer_type') === Speaker::class
-            && filled($get('organizer_id'))
-        ) {
-            $speakerSlugSegments = app(GenerateEventSlugAction::class)->speakerSlugSegmentsForSpeakerIds([
-                (string) $get('organizer_id'),
-            ]);
+        if ($speakerSlugSegments === [] && filled($get('primary_organizer_id'))) {
+            $id = (string) $get('primary_organizer_id');
+            if (Speaker::query()->whereKey($id)->exists()) {
+                $speakerSlugSegments = app(GenerateEventSlugAction::class)->speakerSlugSegmentsForSpeakerIds([$id]);
+            }
         }
 
         $set('slug', app(GenerateEventSlugAction::class)->handle(

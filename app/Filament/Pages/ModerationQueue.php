@@ -240,9 +240,6 @@ class ModerationQueue extends Page implements HasTable
                     ->sortable(),
             ])
             ->filters([
-                SelectFilter::make('state_id')
-                    ->label('State')
-                    ->relationship('address.state', 'name'),
                 SelectFilter::make('institution_id')
                     ->label('Institution')
                     ->relationship('institution', 'name')
@@ -412,7 +409,7 @@ class ModerationQueue extends Page implements HasTable
     protected function getTableQuery(): Builder
     {
         $query = Event::query()
-            ->with(['institution', 'venue', 'speakers', 'references', 'address.state', 'latestModerationReview'])
+            ->with(['institution', 'venue', 'speakers', 'references', 'addresses.country', 'latestModerationReview'])
             ->withCount([
                 'reports as open_reports_count' => fn (Builder $reportQuery) => $reportQuery->where('status', 'open'),
             ]);
@@ -426,8 +423,8 @@ class ModerationQueue extends Page implements HasTable
         };
 
         return $query
-            ->orderByRaw('CASE WHEN events.is_priority THEN 0 ELSE 1 END')
-            ->orderBy('events.starts_at')
+            ->orderByDesc('is_priority')
+            ->orderBy('starts_at')
             ->orderByDesc('events.created_at');
     }
 

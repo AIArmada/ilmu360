@@ -9,6 +9,7 @@ use Database\Seeders\EventSeeder;
 use Database\Seeders\EventSubmissionSeeder;
 use Database\Seeders\InspirationSeeder;
 use Database\Seeders\InstitutionSeeder;
+use Database\Seeders\LanguageSeeder;
 use Database\Seeders\MalaysiaCitySeeder;
 use Database\Seeders\MasjidSeeder;
 use Database\Seeders\MediaLinkSeeder;
@@ -58,6 +59,7 @@ it('runs the full demo seeding pipeline in the expected order', function () {
         RoleSeeder::class,
         ScopedMemberRolesSeeder::class,
         TagSeeder::class,
+        LanguageSeeder::class,
         UserSeeder::class,
     ]);
 

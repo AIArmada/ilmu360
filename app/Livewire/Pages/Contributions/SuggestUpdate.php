@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Pages\Contributions;
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Actions\Contributions\ApplyDirectContributionUpdateAction;
 use App\Actions\Contributions\ResolveContributionChangedPayloadAction;
 use App\Actions\Contributions\ResolveContributionSubjectPresentationAction;
@@ -24,8 +25,6 @@ use App\Models\Reference;
 use App\Models\Speaker;
 use App\Models\User;
 use App\Support\Events\EventContributionUpdateStateMapper;
-use App\Support\Location\PreferredCountryResolver;
-use App\Support\Location\PublicCountryRegistry;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
@@ -74,51 +73,58 @@ class SuggestUpdate extends Component implements HasActions, HasForms
         ResolveContributionUpdateContextAction $resolveContributionUpdateContextAction,
         ResolveContributionSubjectPresentationAction $resolveContributionSubjectPresentationAction,
     ): void {
-        $resolvedSubjectType = ContributionSubjectType::fromRouteSegment($subjectType);
+        OwnerContext::withOwner(null, function () use (
+            $resolveContributionSubjectPresentationAction,
+            $resolveContributionUpdateContextAction,
+            $subjectId,
+            $subjectType,
+        ): void {
+            $resolvedSubjectType = ContributionSubjectType::fromRouteSegment($subjectType);
 
-        abort_unless($resolvedSubjectType instanceof ContributionSubjectType, 404);
+            abort_unless($resolvedSubjectType instanceof ContributionSubjectType, 404);
 
-        $this->subjectType = $resolvedSubjectType->value;
+            $this->subjectType = $resolvedSubjectType->value;
 
-        $context = $resolveContributionUpdateContextAction->handle($this->subjectType, $subjectId);
+            $context = $resolveContributionUpdateContextAction->handle($this->subjectType, $subjectId);
 
-        $this->entity = $context['entity'];
-        $this->originalData = $this->comparableOriginalData($context['initial_state']);
-        $this->subjectPresentation = $resolveContributionSubjectPresentationAction->handle($this->entity);
+            $this->entity = $context['entity'];
+            $this->originalData = $this->comparableOriginalData($context['initial_state']);
+            $this->subjectPresentation = $resolveContributionSubjectPresentationAction->handle($this->entity);
 
-        $user = auth()->user();
+            $user = auth()->user();
 
-        abort_unless($user instanceof User, 403);
-        abort_unless($user->can('view', $this->entity), 403);
+            abort_unless($user instanceof User, 403);
+            abort_unless($user->can('view', $this->entity), 403);
 
-        $this->directEditMediaFields = $user->can('update', $this->entity)
-            ? array_values(array_filter(
-                $context['contract']['direct_edit_media_fields'] ?? [],
-                static fn (string $field): bool => $field !== '',
-            ))
-            : [];
+            $this->directEditMediaFields = $user->can('update', $this->entity)
+                ? array_values(array_filter(
+                    $context['contract']['direct_edit_media_fields'] ?? [],
+                    static fn (string $field): bool => $field !== '',
+                ))
+                : [];
 
-        if (! $user->canSubmitDirectoryFeedback()) {
-            abort(403, $user->directoryFeedbackBanMessage());
-        }
+            if (! $user->canSubmitDirectoryFeedback()) {
+                abort(403, $user->directoryFeedbackBanMessage());
+            }
 
-        if ($this->shouldRedirectToCanonicalSubjectUrl($resolvedSubjectType, $subjectId)) {
-            $this->redirectRoute('contributions.suggest-update', [
-                'subjectType' => $resolvedSubjectType->publicRouteSegment(),
-                'subjectId' => $this->canonicalSubjectId(),
-            ], navigate: true);
+            if ($this->shouldRedirectToCanonicalSubjectUrl($resolvedSubjectType, $subjectId)) {
+                $this->redirectRoute('contributions.suggest-update', [
+                    'subjectType' => $resolvedSubjectType->publicRouteSegment(),
+                    'subjectId' => $this->canonicalSubjectId(),
+                ], navigate: true);
 
-            return;
-        }
+                return;
+            }
 
-        $formState = $this->originalData;
+            $formState = $this->originalData;
 
-        if ($this->entity instanceof Event && ($fixedTimezone = $this->fixedEventTimezone()) !== null) {
-            $formState['timezone'] = $fixedTimezone;
-            $formState = $this->eventComparableState($formState);
-        }
+            if ($this->entity instanceof Event && ($fixedTimezone = $this->fixedEventTimezone()) !== null) {
+                $formState['timezone'] = $fixedTimezone;
+                $formState = $this->eventComparableState($formState);
+            }
 
-        $this->contributionForm()->fill($formState);
+            $this->contributionForm()->fill($formState);
+        });
     }
 
     #[Computed]
@@ -163,47 +169,54 @@ class SuggestUpdate extends Component implements HasActions, HasForms
         ResolveContributionSubmissionStateAction $resolveContributionSubmissionStateAction,
         SubmitContributionUpdateRequestAction $submitContributionUpdateRequestAction,
     ): void {
-        $user = auth()->user();
+        OwnerContext::withOwner(null, function () use (
+            $applyDirectContributionUpdateAction,
+            $resolveContributionChangedPayloadAction,
+            $resolveContributionSubmissionStateAction,
+            $submitContributionUpdateRequestAction,
+        ): void {
+            $user = auth()->user();
 
-        abort_unless($user instanceof User, 403);
+            abort_unless($user instanceof User, 403);
 
-        if (! $user->canSubmitDirectoryFeedback()) {
-            abort(403, $user->directoryFeedbackBanMessage());
-        }
-
-        $submissionState = $resolveContributionSubmissionStateAction->handle($this->contributionForm()->getState());
-        $state = $this->normalizeSubmissionState($submissionState['state']);
-        $changes = $resolveContributionChangedPayloadAction->handle($state, $this->originalData);
-        $hasDirectEditMediaChange = $this->canDirectEdit() && $this->hasDirectEditMediaChange();
-
-        if ($changes === [] && ! $hasDirectEditMediaChange) {
-            $this->addError('data', __('Make at least one change before continuing.'));
-
-            return;
-        }
-
-        if ($this->canDirectEdit()) {
-            if ($changes !== []) {
-                $applyDirectContributionUpdateAction->handle($this->entity, $changes);
+            if (! $user->canSubmitDirectoryFeedback()) {
+                abort(403, $user->directoryFeedbackBanMessage());
             }
 
-            if ($hasDirectEditMediaChange) {
-                $this->saveDirectEditMediaChanges();
+            $submissionState = $resolveContributionSubmissionStateAction->handle($this->contributionForm()->getState());
+            $state = $this->normalizeSubmissionState($submissionState['state']);
+            $changes = $resolveContributionChangedPayloadAction->handle($state, $this->originalData);
+            $hasDirectEditMediaChange = $this->canDirectEdit() && $this->hasDirectEditMediaChange();
+
+            if ($changes === [] && ! $hasDirectEditMediaChange) {
+                $this->addError('data', __('Make at least one change before continuing.'));
+
+                return;
             }
 
-            $this->redirect($this->subjectPresentation['redirect_url'], navigate: true);
+            if ($this->canDirectEdit()) {
+                if ($changes !== []) {
+                    $applyDirectContributionUpdateAction->handle($this->entity, $changes);
+                }
 
-            return;
-        }
+                if ($hasDirectEditMediaChange) {
+                    $this->saveDirectEditMediaChanges();
+                }
 
-        $submitContributionUpdateRequestAction->handle(
-            $this->entity,
-            $user,
-            $changes,
-            $submissionState['proposer_note'],
-        );
+                $this->redirect($this->subjectPresentation['redirect_url'], navigate: true);
 
-        $this->redirect(route('contributions.index'), navigate: true);
+                return;
+            }
+
+            $submitContributionUpdateRequestAction->handle(
+                $this->entity,
+                $user,
+                $changes,
+                $submissionState['proposer_note'],
+            );
+
+            $this->redirect(route('contributions.index'), navigate: true);
+        });
     }
 
     public function rendering(object $view): void
@@ -260,9 +273,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
 
     private function fixedEventTimezone(): ?string
     {
-        $countryId = app(PreferredCountryResolver::class)->resolveId();
-
-        return app(PublicCountryRegistry::class)->singleTimezoneForCountryId($countryId);
+        return config('app.timezone', 'UTC');
     }
 
     /**
@@ -284,8 +295,8 @@ class SuggestUpdate extends Component implements HasActions, HasForms
             : [];
 
         $initialState['address'] = [
-            'country_id' => SharedFormSchema::normalizeLocationId($speakerAddress['country_id'] ?? null) ?? SharedFormSchema::preferredPublicCountryId(),
-            'state_id' => SharedFormSchema::normalizeLocationId($speakerAddress['state_id'] ?? null),
+            'country_id' => SharedFormSchema::normalizeLocationId($speakerAddress['country_id'] ?? null),
+            'admin_area_1_id' => SharedFormSchema::normalizeLocationId($speakerAddress['admin_area_1_id'] ?? null),
         ];
 
         if (($initialState['bio'] ?? null) === null) {
@@ -298,12 +309,12 @@ class SuggestUpdate extends Component implements HasActions, HasForms
             ];
         }
 
-        if (($districtId = SharedFormSchema::normalizeLocationId($speakerAddress['district_id'] ?? null)) !== null) {
-            $initialState['address']['district_id'] = $districtId;
+        if (($districtId = SharedFormSchema::normalizeLocationId($speakerAddress['admin_area_2_id'] ?? null)) !== null) {
+            $initialState['address']['admin_area_2_id'] = $districtId;
         }
 
-        if (($subdistrictId = SharedFormSchema::normalizeLocationId($speakerAddress['subdistrict_id'] ?? null)) !== null) {
-            $initialState['address']['subdistrict_id'] = $subdistrictId;
+        if (($subdistrictId = SharedFormSchema::normalizeLocationId($speakerAddress['admin_area_3_id'] ?? null)) !== null) {
+            $initialState['address']['admin_area_3_id'] = $subdistrictId;
         }
 
         $initialState['qualifications'] = array_map(

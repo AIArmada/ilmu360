@@ -1,5 +1,6 @@
 <?php
 
+use AIArmada\CommerceSupport\Models\Role;
 use App\Enums\ContributionRequestStatus;
 use App\Enums\ContributionRequestType;
 use App\Enums\ContributionSubjectType;
@@ -27,19 +28,15 @@ use App\Models\Report;
 use App\Models\Series;
 use App\Models\Space;
 use App\Models\Speaker;
-use App\Models\Subdistrict;
 use App\Models\Tag;
 use App\Models\User;
 use App\Models\Venue;
 use App\Services\Signals\SignalsTracker;
-use App\Support\Location\FederalTerritoryLocation;
 use App\Support\Search\SpeakerSearchService;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
 use Nnjeim\World\Models\Language;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
 it('rejects users without admin panel access from the admin api manifest', function () {
@@ -83,7 +80,7 @@ it('lists accessible admin resources for privileged users', function () {
 
     $resourceKeys = collect($response->json('data.resources'))->pluck('key')->all();
 
-    expect($resourceKeys)->toContain('speakers', 'events', 'inspirations', 'institutions', 'references', 'reports', 'series', 'spaces', 'subdistricts', 'venues', 'tags', 'donation-channels');
+    expect($resourceKeys)->toContain('speakers', 'events', 'inspirations', 'institutions', 'references', 'reports', 'series', 'spaces', 'venues', 'tags', 'donation-channels', 'address-countries', 'address-areas');
 });
 
 it('allows viewer-role users who can access the admin panel to reach the admin api manifest', function () {
@@ -445,8 +442,7 @@ it('allows admin api event create payload to control initial workflow status', f
         'children_allowed' => true,
         'is_muslim_only' => false,
         'event_type' => [EventType::BacaanYasin->value],
-        'organizer_type' => Institution::class,
-        'organizer_id' => (string) $institution->getKey(),
+        'primary_organizer_id' => (string) $institution->getKey(),
         'institution_id' => (string) $institution->getKey(),
         'registration_required' => false,
         'registration_mode' => RegistrationMode::Event->value,
@@ -653,7 +649,7 @@ it('previews admin speaker creation without persisting the record', function () 
         'is_freelance' => false,
         'is_active' => true,
         'address' => [
-            'country_id' => 132,
+            'country_id' => ensureAdminApiMalaysiaCountryExists(),
         ],
     ])->assertOk();
 
@@ -661,7 +657,7 @@ it('previews admin speaker creation without persisting the record', function () 
         ->assertJsonPath('data.resource.key', 'speakers')
         ->assertJsonPath('data.preview.validate_only', true)
         ->assertJsonPath('data.preview.operation', 'create')
-        ->assertJsonPath('data.preview.normalized_payload.address.country_id', 132)
+        ->assertJsonPath('data.preview.normalized_payload.address.country_id', ensureAdminApiMalaysiaCountryExists())
         ->assertJsonPath('data.preview.current_record', null);
 
     expect(Speaker::query()->where('name', 'Previewed Admin API Speaker')->exists())->toBeFalse();
@@ -690,7 +686,7 @@ it('previews admin speaker updates without persisting the record', function () {
         'is_active' => true,
         'allow_public_event_submission' => true,
         'address' => [
-            'country_id' => 132,
+            'country_id' => ensureAdminApiMalaysiaCountryExists(),
         ],
         'clear_cover' => true,
     ])->assertOk();
@@ -746,7 +742,7 @@ it('returns remediation details for validate-only admin api create validation fa
         ->assertJsonPath('error.code', 'validation_error')
         ->assertJsonPath('error.details.normalized_payload_preview.name', 'Remediation Preview API Speaker')
         ->assertJsonPath('error.details.normalized_payload_preview.gender', 'male')
-        ->assertJsonPath('error.details.normalized_payload_preview.address.country_id', 132)
+        ->assertJsonMissingPath('error.details.normalized_payload_preview.address')
         ->assertJsonPath('error.details.can_retry', false);
 
     expect($fixPlan->get('gender'))
@@ -762,22 +758,13 @@ it('returns remediation details for validate-only admin api create validation fa
             'options' => ['pending', 'verified', 'rejected'],
             'auto_apply_safe' => false,
         ])
-        ->and($fixPlan->get('address'))->toMatchArray([
-            'action' => 'set_field',
-            'field' => 'address',
-            'value' => [
-                'country_id' => 132,
-                'state_id' => null,
-                'district_id' => null,
-                'subdistrict_id' => null,
-            ],
-            'auto_apply_safe' => true,
-        ])
+        ->and($fixPlan->has('address'))->toBeFalse()
         ->and($remainingBlockers->get('status'))->toMatchArray([
             'field' => 'status',
             'type' => 'required_choice',
             'options' => ['pending', 'verified', 'rejected'],
-        ]);
+        ])
+        ->and($remainingBlockers->keys()->all())->toContain('address', 'address.country_id');
 });
 
 it('returns structured enum suggestions for admin api validation errors', function () {
@@ -1838,8 +1825,9 @@ it('exposes admin speaker write schema and can create and update speakers throug
 
     expect(collect($schema['catalogs'] ?? [])->pluck('field')->all())
         ->toContain('address.country_id')
-        ->toContain('address.state_id', 'address.district_id', 'address.subdistrict_id')
+        ->toContain('address.admin_area_1_id', 'address.admin_area_2_id', 'address.admin_area_3_id')
         ->and($speakerFields)->toContain('address.country_id')
+        ->and($speakerFields)->toContain('address.admin_area_1_id', 'address.admin_area_2_id', 'address.admin_area_3_id')
         ->and($speakerFields)->not->toContain('address.country_code', 'address.country_key')
         ->and(collect($schema['conditional_rules'] ?? [])->pluck('field')->all())->not->toContain('address.country_id');
 
@@ -1850,7 +1838,7 @@ it('exposes admin speaker write schema and can create and update speakers throug
         'is_freelance' => false,
         'is_active' => true,
         'address' => [
-            'country_id' => 132,
+            'country_id' => ensureAdminApiMalaysiaCountryExists(),
         ],
     ])->assertCreated();
 
@@ -1874,7 +1862,7 @@ it('exposes admin speaker write schema and can create and update speakers throug
         'is_active' => true,
         'allow_public_event_submission' => true,
         'address' => [
-            'country_id' => 132,
+            'country_id' => ensureAdminApiMalaysiaCountryExists(),
         ],
     ])->assertOk()
         ->assertJsonPath('data.record.attributes.name', 'Admin API Updated Speaker')
@@ -1906,7 +1894,7 @@ it('requires explicit country and still prohibits detailed address fields when c
         'is_freelance' => false,
         'is_active' => true,
         'address' => [
-            'country_id' => 132,
+            'country_id' => ensureAdminApiMalaysiaCountryExists(),
             'line1' => 'Alamat Lama',
             'google_maps_url' => 'https://maps.google.com/?q=1,1',
         ],
@@ -1932,8 +1920,8 @@ it('returns fresh speaker address data on admin GET requests after updates', fun
         'is_active' => true,
         'address' => [
             'country_id' => $firstFixtures['country_id'],
-            'state_id' => $firstFixtures['state_id'],
-            'district_id' => $firstFixtures['district_id'],
+            'admin_area_1_id' => $firstFixtures['state_id'],
+            'admin_area_2_id' => $firstFixtures['district_id'],
         ],
     ])->assertCreated();
 
@@ -1944,8 +1932,8 @@ it('returns fresh speaker address data on admin GET requests after updates', fun
         ->assertJsonPath('data.record.attributes.address.country_id', $firstFixtures['country_id'])
         ->assertJsonMissingPath('data.record.attributes.address.line1')
         ->assertJsonMissingPath('data.record.attributes.address.google_maps_url')
-        ->assertJsonPath('data.record.attributes.address.state_id', $firstFixtures['state_id'])
-        ->assertJsonPath('data.record.attributes.address.district_id', $firstFixtures['district_id']);
+        ->assertJsonPath('data.record.attributes.address.admin_area_1_id', $firstFixtures['state_id'])
+        ->assertJsonPath('data.record.attributes.address.admin_area_2_id', $firstFixtures['district_id']);
 
     $this->putJson('/api/v1/admin/speakers/'.$speakerRouteKey, [
         'name' => 'Admin API Address Freshness Speaker',
@@ -1955,31 +1943,31 @@ it('returns fresh speaker address data on admin GET requests after updates', fun
         'is_active' => true,
         'address' => [
             'country_id' => $secondFixtures['country_id'],
-            'state_id' => $secondFixtures['state_id'],
-            'district_id' => $secondFixtures['district_id'],
+            'admin_area_1_id' => $secondFixtures['state_id'],
+            'admin_area_2_id' => $secondFixtures['district_id'],
         ],
     ])->assertOk()
         ->assertJsonPath('data.record.attributes.address.country_id', $secondFixtures['country_id'])
         ->assertJsonMissingPath('data.record.attributes.address.line1')
         ->assertJsonMissingPath('data.record.attributes.address.google_maps_url')
-        ->assertJsonPath('data.record.attributes.address.state_id', $secondFixtures['state_id'])
-        ->assertJsonPath('data.record.attributes.address.district_id', $secondFixtures['district_id']);
+        ->assertJsonPath('data.record.attributes.address.admin_area_1_id', $secondFixtures['state_id'])
+        ->assertJsonPath('data.record.attributes.address.admin_area_2_id', $secondFixtures['district_id']);
 
     $this->getJson('/api/v1/admin/speakers/'.$speakerRouteKey)
         ->assertOk()
         ->assertJsonPath('data.record.attributes.address.country_id', $secondFixtures['country_id'])
         ->assertJsonMissingPath('data.record.attributes.address.line1')
         ->assertJsonMissingPath('data.record.attributes.address.google_maps_url')
-        ->assertJsonPath('data.record.attributes.address.state_id', $secondFixtures['state_id'])
-        ->assertJsonPath('data.record.attributes.address.district_id', $secondFixtures['district_id']);
+        ->assertJsonPath('data.record.attributes.address.admin_area_1_id', $secondFixtures['state_id'])
+        ->assertJsonPath('data.record.attributes.address.admin_area_2_id', $secondFixtures['district_id']);
 
     $this->getJson('/api/v1/admin/speakers?search=Admin%20API%20Address%20Freshness%20Speaker')
         ->assertOk()
         ->assertJsonPath('data.0.attributes.address.country_id', $secondFixtures['country_id'])
         ->assertJsonMissingPath('data.0.attributes.address.line1')
         ->assertJsonMissingPath('data.0.attributes.address.google_maps_url')
-        ->assertJsonPath('data.0.attributes.address.state_id', $secondFixtures['state_id'])
-        ->assertJsonPath('data.0.attributes.address.district_id', $secondFixtures['district_id']);
+        ->assertJsonPath('data.0.attributes.address.admin_area_1_id', $secondFixtures['state_id'])
+        ->assertJsonPath('data.0.attributes.address.admin_area_2_id', $secondFixtures['district_id']);
 });
 
 it('surfaces speaker update semantics and collection rules through the admin api schema', function () {
@@ -1995,7 +1983,7 @@ it('surfaces speaker update semantics and collection rules through the admin api
         'is_freelance' => false,
         'is_active' => true,
         'address' => [
-            'country_id' => 132,
+            'country_id' => ensureAdminApiMalaysiaCountryExists(),
         ],
     ])->assertCreated();
 
@@ -2017,7 +2005,7 @@ it('surfaces speaker update semantics and collection rules through the admin api
         ->and($qualificationItemFields->keys()->all())->toContain('institution', 'degree', 'field', 'year')
         ->and(data_get($fields->get('language_ids'), 'collection_semantics.submitted_array'))->toBe('replace_relation_sync')
         ->and(data_get($fields->get('contacts'), 'collection_semantics.explicit_null'))->toBe('clear_collection')
-        ->and(data_get($fields->get('social_media'), 'input_normalization.platform_aliases.x.normalizes_to'))->toBe('twitter')
+        ->and(data_get($fields->get('social_media'), 'input_normalization.platform_aliases.x.normalizes_to'))->toBe('x')
         ->and(data_get($fields->get('social_media'), 'input_normalization.platform_aliases.x.accepted_by_write_validation'))->toBeFalse();
 });
 
@@ -2057,12 +2045,12 @@ it('replaces speaker collections and still requires an explicit country when mut
         'language_ids' => [$languageMalay->id],
         'is_active' => true,
         'address' => [
-            'country_id' => 132,
+            'country_id' => ensureAdminApiMalaysiaCountryExists(),
         ],
         'contacts' => [[
-            'category' => 'phone',
+            'type' => 'phone',
             'value' => '0311111111',
-            'type' => 'main',
+            'purpose' => 'general',
             'is_public' => true,
         ]],
         'social_media' => [[
@@ -2070,12 +2058,14 @@ it('replaces speaker collections and still requires an explicit country when mut
             'url' => 'https://example.test/speakers/admin-api-speaker-collections',
         ], [
             'platform' => 'instagram',
-            'username' => 'asal_penceramah',
+            'handle' => 'asal_penceramah',
         ]],
     ])->assertCreated();
 
     $speakerRouteKey = (string) $createResponse->json('data.record.route_key');
-    $speaker = Speaker::query()->with(['contacts', 'socialMedia', 'languages'])->findOrFail($speakerRouteKey);
+    $speaker = withGlobalOwnerContext(
+        fn (): Speaker => Speaker::query()->with(['contacts', 'socialMedia', 'languages'])->findOrFail($speakerRouteKey),
+    );
     $originalContactIds = $speaker->contacts->modelKeys();
     $originalSocialMediaIds = $speaker->socialMedia->modelKeys();
 
@@ -2101,9 +2091,9 @@ it('replaces speaker collections and still requires an explicit country when mut
         ]],
         'language_ids' => [$languageEnglish->id],
         'contacts' => [[
-            'category' => 'whatsapp',
+            'type' => 'whatsapp',
             'value' => '+60123456789',
-            'type' => 'work',
+            'purpose' => 'support',
             'is_public' => false,
         ]],
         'social_media' => [[
@@ -2113,12 +2103,14 @@ it('replaces speaker collections and still requires an explicit country when mut
     ])->assertOk()
         ->assertJsonPath('data.record.attributes.name', 'Admin API Speaker Collections Updated')
         ->assertJsonPath('data.record.attributes.honorific.0', 'datuk')
-        ->assertJsonPath('data.record.attributes.contacts.0.category', 'whatsapp')
+        ->assertJsonPath('data.record.attributes.contacts.0.type', 'whatsapp')
         ->assertJsonPath('data.record.attributes.social_media.0.platform', 'facebook')
-        ->assertJsonPath('data.record.attributes.social_media.0.username', 'admin-api-speaker-collections-updated')
-        ->assertJsonPath('data.record.attributes.social_media.0.url', null);
+        ->assertJsonPath('data.record.attributes.social_media.0.handle', 'admin-api-speaker-collections-updated')
+        ->assertJsonPath('data.record.attributes.social_media.0.url', 'https://facebook.com/admin-api-speaker-collections-updated');
 
-    $speaker->refresh()->load(['contacts', 'socialMedia', 'languages']);
+    $speaker = withGlobalOwnerContext(
+        fn (): Speaker => $speaker->refresh()->load(['contacts', 'socialMedia', 'languages']),
+    );
 
     expect($speaker->honorific)->toBe(['datuk'])
         ->and($speaker->job_title)->toBeNull()
@@ -2126,12 +2118,13 @@ it('replaces speaker collections and still requires an explicit country when mut
         ->and(data_get($speaker->qualifications, '0.degree'))->toBe('PhD')
         ->and($speaker->languages->pluck('id')->all())->toEqual([(int) $languageEnglish->id])
         ->and($speaker->contacts)->toHaveCount(1)
-        ->and($speaker->contacts->first()?->getRawOriginal('category'))->toBe('whatsapp')
+        ->and($speaker->contacts->first()?->getRawOriginal('type'))->toBe('whatsapp')
+        ->and($speaker->contacts->first()?->getRawOriginal('purpose'))->toBe('support')
         ->and(collect($speaker->contacts->modelKeys())->intersect($originalContactIds)->all())->toBe([])
         ->and($speaker->socialMedia)->toHaveCount(1)
         ->and($speaker->socialMedia->first()?->getRawOriginal('platform'))->toBe('facebook')
-        ->and($speaker->socialMedia->first()?->username)->toBe('admin-api-speaker-collections-updated')
-        ->and($speaker->socialMedia->first()?->url)->toBeNull()
+        ->and($speaker->socialMedia->first()?->handle)->toBe('admin-api-speaker-collections-updated')
+        ->and($speaker->socialMedia->first()?->url)->toBe('https://facebook.com/admin-api-speaker-collections-updated')
         ->and(collect($speaker->socialMedia->modelKeys())->intersect($originalSocialMediaIds)->all())->toBe([]);
 
     $this->putJson('/api/v1/admin/speakers/'.$speakerRouteKey, [
@@ -2145,7 +2138,9 @@ it('replaces speaker collections and still requires an explicit country when mut
         'social_media' => [],
     ])->assertOk();
 
-    $speaker->refresh()->load(['contacts', 'socialMedia', 'languages']);
+    $speaker = withGlobalOwnerContext(
+        fn (): Speaker => $speaker->refresh()->load(['contacts', 'socialMedia', 'languages']),
+    );
 
     expect($speaker->honorific)->toBe([])
         ->and($speaker->qualifications)->toBe([])
@@ -2166,7 +2161,7 @@ it('allows sparse venue address updates without resending the existing country t
         'status' => 'verified',
         'is_active' => true,
         'address' => [
-            'country_id' => 132,
+            'country_id' => ensureAdminApiMalaysiaCountryExists(),
             'line1' => 'Alamat Asal',
         ],
     ])->assertCreated();
@@ -2182,10 +2177,10 @@ it('allows sparse venue address updates without resending the existing country t
             'line1' => 'Alamat Terkini Tanpa Country',
         ],
     ])->assertOk()
-        ->assertJsonPath('data.record.attributes.address.country_id', 132)
+        ->assertJsonPath('data.record.attributes.address.country_id', ensureAdminApiMalaysiaCountryExists())
         ->assertJsonPath('data.record.attributes.address.line1', 'Alamat Terkini Tanpa Country');
 
-    expect(Venue::query()->findOrFail($venueRouteKey)->addressModel?->country_id)->toBe(132)
+    expect(Venue::query()->findOrFail($venueRouteKey)->addressModel?->country_id)->toBe(ensureAdminApiMalaysiaCountryExists())
         ->and(Venue::query()->findOrFail($venueRouteKey)->addressModel?->line1)->toBe('Alamat Terkini Tanpa Country');
 });
 
@@ -2214,7 +2209,7 @@ it('exposes admin institution write schema and can create and update institution
         'status' => 'verified',
         'is_active' => true,
         'address' => [
-            'country_id' => 132,
+            'country_id' => ensureAdminApiMalaysiaCountryExists(),
         ],
     ])->assertCreated();
 
@@ -2233,7 +2228,7 @@ it('exposes admin institution write schema and can create and update institution
         'is_active' => true,
         'allow_public_event_submission' => true,
         'address' => [
-            'country_id' => 132,
+            'country_id' => ensureAdminApiMalaysiaCountryExists(),
         ],
     ])->assertOk()
         ->assertJsonPath('data.record.attributes.name', 'Admin API Institution Updated')
@@ -2252,7 +2247,7 @@ it('preserves institution address line1 when sparse map fields are updated throu
         'status' => 'verified',
         'is_active' => true,
         'address' => [
-            'country_id' => 132,
+            'country_id' => ensureAdminApiMalaysiaCountryExists(),
             'line1' => 'Alamat Asal Institusi',
         ],
     ])->assertCreated();
@@ -2265,22 +2260,22 @@ it('preserves institution address line1 when sparse map fields are updated throu
         'status' => 'verified',
         'address' => [
             'google_maps_url' => 'https://example.com/maps/institution',
-            'lat' => 3.123456,
-            'lng' => 101.654321,
+            'latitude' => 3.123456,
+            'longitude' => 101.654321,
         ],
     ])->assertOk()
         ->assertJsonPath('data.record.attributes.address.line1', 'Alamat Asal Institusi')
         ->assertJsonPath('data.record.attributes.address.google_maps_url', fn (string $url): bool => str_contains($url, 'google.com/maps/search'))
-        ->assertJsonPath('data.record.attributes.address.lat', 3.123456)
-        ->assertJsonPath('data.record.attributes.address.lng', 101.654321);
+        ->assertJsonPath('data.record.attributes.address.latitude', 3.123456)
+        ->assertJsonPath('data.record.attributes.address.longitude', 101.654321);
 
     $institution = Institution::query()->findOrFail($institutionRouteKey);
 
     expect($institution->addressModel)->not->toBeNull()
         ->and($institution->addressModel?->line1)->toBe('Alamat Asal Institusi')
         ->and($institution->addressModel?->google_maps_url)->toContain('google.com/maps/search')
-        ->and($institution->addressModel?->lat)->toBe(3.123456)
-        ->and($institution->addressModel?->lng)->toBe(101.654321);
+        ->and($institution->addressModel?->latitude)->toBe(3.123456)
+        ->and($institution->addressModel?->longitude)->toBe(101.654321);
 });
 
 it('surfaces institution update semantics and nested item schemas through the admin api schema', function () {
@@ -2296,7 +2291,7 @@ it('surfaces institution update semantics and nested item schemas through the ad
         'status' => 'verified',
         'is_active' => true,
         'address' => [
-            'country_id' => 132,
+            'country_id' => ensureAdminApiMalaysiaCountryExists(),
         ],
     ])->assertCreated();
 
@@ -2317,14 +2312,14 @@ it('surfaces institution update semantics and nested item schemas through the ad
         ->and(data_get($fields->get('nickname'), 'normalization.empty_string_at_mutation_layer'))->toBe('null')
         ->and(data_get($fields->get('contacts'), 'collection_semantics.explicit_null'))->toBe('clear_collection')
         ->and(data_get($fields->get('contacts'), 'collection_semantics.submitted_array'))->toBe('replace_collection')
-        ->and($contactItemFields->keys()->all())->toContain('category', 'value', 'type', 'is_public', 'order_column')
-        ->and(data_get($contactItemFields->get('value'), 'used_for_categories'))->toContain('phone', 'whatsapp', 'email')
+        ->and($contactItemFields->keys()->all())->toContain('type', 'value', 'purpose', 'is_public', 'sort_order')
+        ->and(data_get($contactItemFields->get('value'), 'used_for_types'))->toContain('phone', 'whatsapp', 'email')
         ->and(data_get($fields->get('social_media'), 'collection_semantics.empty_array'))->toBe('clear_collection')
-        ->and(data_get($fields->get('social_media'), 'input_normalization.platform_aliases.x.normalizes_to'))->toBe('twitter')
+        ->and(data_get($fields->get('social_media'), 'input_normalization.platform_aliases.x.normalizes_to'))->toBe('x')
         ->and(data_get($fields->get('social_media'), 'input_normalization.platform_aliases.x.accepted_by_write_validation'))->toBeFalse()
-        ->and(data_get($fields->get('social_media'), 'input_normalization.canonical_storage.identifier_field'))->toBe('username')
-        ->and($socialMediaItemFields->keys()->all())->toContain('platform', 'username', 'url', 'order_column')
-        ->and(data_get($fields->get('social_media'), 'item_schema.at_least_one_of'))->toBe(['username', 'url']);
+        ->and(data_get($fields->get('social_media'), 'input_normalization.canonical_storage.identifier_field'))->toBe('handle')
+        ->and($socialMediaItemFields->keys()->all())->toContain('platform', 'handle', 'url', 'sort_order')
+        ->and(data_get($fields->get('social_media'), 'item_schema.at_least_one_of'))->toBe(['handle', 'url']);
 });
 
 it('preserves institution nickname on null-like input through the admin api', function () {
@@ -2340,7 +2335,7 @@ it('preserves institution nickname on null-like input through the admin api', fu
         'status' => 'verified',
         'is_active' => true,
         'address' => [
-            'country_id' => 132,
+            'country_id' => ensureAdminApiMalaysiaCountryExists(),
         ],
     ])->assertCreated();
 
@@ -2381,7 +2376,7 @@ it('treats empty institution address objects as a no-op when the record already 
         'status' => 'verified',
         'is_active' => true,
         'address' => [
-            'country_id' => 132,
+            'country_id' => ensureAdminApiMalaysiaCountryExists(),
             'line1' => 'Alamat Tidak Patut Hilang',
         ],
     ])->assertCreated();
@@ -2395,7 +2390,7 @@ it('treats empty institution address objects as a no-op when the record already 
         'is_active' => true,
         'address' => [],
     ])->assertOk()
-        ->assertJsonPath('data.record.attributes.address.country_id', 132)
+        ->assertJsonPath('data.record.attributes.address.country_id', ensureAdminApiMalaysiaCountryExists())
         ->assertJsonPath('data.record.attributes.address.line1', 'Alamat Tidak Patut Hilang');
 
     expect(Institution::query()->findOrFail($institutionRouteKey)->addressModel?->line1)->toBe('Alamat Tidak Patut Hilang');
@@ -2413,19 +2408,19 @@ it('replaces institution contacts and social media collections and canonicalizes
         'status' => 'verified',
         'is_active' => true,
         'address' => [
-            'country_id' => 132,
+            'country_id' => ensureAdminApiMalaysiaCountryExists(),
         ],
         'contacts' => [
             [
-                'category' => 'phone',
+                'type' => 'phone',
                 'value' => '0311111111',
-                'type' => 'main',
+                'purpose' => 'general',
                 'is_public' => true,
             ],
             [
-                'category' => 'email',
+                'type' => 'email',
                 'value' => 'asal@example.test',
-                'type' => 'work',
+                'purpose' => 'admin',
                 'is_public' => false,
             ],
         ],
@@ -2436,13 +2431,15 @@ it('replaces institution contacts and social media collections and canonicalizes
             ],
             [
                 'platform' => 'instagram',
-                'username' => 'asal_handle',
+                'handle' => 'asal_handle',
             ],
         ],
     ])->assertCreated();
 
     $institutionRouteKey = (string) $createResponse->json('data.record.route_key');
-    $institution = Institution::query()->with(['contacts', 'socialMedia'])->findOrFail($institutionRouteKey);
+    $institution = withGlobalOwnerContext(
+        fn (): Institution => Institution::query()->with(['contacts', 'socialMedia'])->findOrFail($institutionRouteKey),
+    );
     $originalContactIds = $institution->contacts->modelKeys();
     $originalSocialMediaIds = $institution->socialMedia->modelKeys();
 
@@ -2452,13 +2449,13 @@ it('replaces institution contacts and social media collections and canonicalizes
         'status' => 'verified',
         'is_active' => true,
         'address' => [
-            'country_id' => 132,
+            'country_id' => ensureAdminApiMalaysiaCountryExists(),
         ],
         'contacts' => [
             [
-                'category' => 'whatsapp',
+                'type' => 'whatsapp',
                 'value' => '+60123456789',
-                'type' => 'work',
+                'purpose' => 'support',
                 'is_public' => false,
             ],
         ],
@@ -2470,24 +2467,26 @@ it('replaces institution contacts and social media collections and canonicalizes
         ],
     ])->assertOk()
         ->assertJsonPath('data.record.attributes.name', 'Admin API Institution Collections Updated')
-        ->assertJsonPath('data.record.attributes.contacts.0.category', 'whatsapp')
+        ->assertJsonPath('data.record.attributes.contacts.0.type', 'whatsapp')
         ->assertJsonPath('data.record.attributes.social_media.0.platform', 'facebook')
-        ->assertJsonPath('data.record.attributes.social_media.0.username', 'admin-api-institution-collections-updated')
-        ->assertJsonPath('data.record.attributes.social_media.0.url', null);
+        ->assertJsonPath('data.record.attributes.social_media.0.handle', 'admin-api-institution-collections-updated')
+        ->assertJsonPath('data.record.attributes.social_media.0.url', 'https://facebook.com/admin-api-institution-collections-updated');
 
-    $institution->refresh()->load(['contacts', 'socialMedia']);
+    $institution = withGlobalOwnerContext(
+        fn (): Institution => $institution->refresh()->load(['contacts', 'socialMedia']),
+    );
 
     $replacedContactIds = $institution->contacts->modelKeys();
     $replacedSocialMediaIds = $institution->socialMedia->modelKeys();
 
     expect($institution->contacts)->toHaveCount(1)
-        ->and($institution->contacts->first()?->getRawOriginal('category'))->toBe('whatsapp')
-        ->and($institution->contacts->first()?->getRawOriginal('type'))->toBe('work')
+        ->and($institution->contacts->first()?->getRawOriginal('type'))->toBe('whatsapp')
+        ->and($institution->contacts->first()?->getRawOriginal('purpose'))->toBe('support')
         ->and(collect($replacedContactIds)->intersect($originalContactIds)->all())->toBe([])
         ->and($institution->socialMedia)->toHaveCount(1)
         ->and($institution->socialMedia->first()?->getRawOriginal('platform'))->toBe('facebook')
-        ->and($institution->socialMedia->first()?->username)->toBe('admin-api-institution-collections-updated')
-        ->and($institution->socialMedia->first()?->url)->toBeNull()
+        ->and($institution->socialMedia->first()?->handle)->toBe('admin-api-institution-collections-updated')
+        ->and($institution->socialMedia->first()?->url)->toBe('https://facebook.com/admin-api-institution-collections-updated')
         ->and(collect($replacedSocialMediaIds)->intersect($originalSocialMediaIds)->all())->toBe([]);
 
     $this->putJson('/api/v1/admin/institutions/'.$institutionRouteKey, [
@@ -2496,13 +2495,15 @@ it('replaces institution contacts and social media collections and canonicalizes
         'status' => 'verified',
         'is_active' => true,
         'address' => [
-            'country_id' => 132,
+            'country_id' => ensureAdminApiMalaysiaCountryExists(),
         ],
         'contacts' => null,
         'social_media' => [],
     ])->assertOk();
 
-    $institution->refresh()->load(['contacts', 'socialMedia']);
+    $institution = withGlobalOwnerContext(
+        fn (): Institution => $institution->refresh()->load(['contacts', 'socialMedia']),
+    );
 
     expect($institution->contacts)->toHaveCount(0)
         ->and($institution->socialMedia)->toHaveCount(0);
@@ -2519,9 +2520,9 @@ it('exposes institution contacts and social_media in admin-get-record response',
         'type' => 'masjid',
         'status' => 'verified',
         'is_active' => true,
-        'address' => ['country_id' => 132],
+        'address' => ['country_id' => ensureAdminApiMalaysiaCountryExists()],
         'contacts' => [
-            ['category' => 'email', 'value' => 'get-record@example.test', 'type' => 'main', 'is_public' => true],
+            ['type' => 'email', 'value' => 'get-record@example.test', 'purpose' => 'general', 'is_public' => true],
         ],
         'social_media' => [
             ['platform' => 'facebook', 'url' => 'https://facebook.com/get-record-institution'],
@@ -2532,12 +2533,11 @@ it('exposes institution contacts and social_media in admin-get-record response',
 
     $this->getJson('/api/v1/admin/institutions/'.$institutionRouteKey)
         ->assertOk()
-        ->assertJsonPath('data.record.attributes.contacts.0.category', 'email')
+        ->assertJsonPath('data.record.attributes.contacts.0.type', 'email')
         ->assertJsonPath('data.record.attributes.contacts.0.value', 'get-record@example.test')
         ->assertJsonPath('data.record.attributes.social_media.0.platform', 'facebook')
-        // Facebook is a handle-style platform: the URL is canonicalized to a username and url is stored as null.
-        ->assertJsonPath('data.record.attributes.social_media.0.username', 'get-record-institution')
-        ->assertJsonPath('data.record.attributes.social_media.0.url', null);
+        ->assertJsonPath('data.record.attributes.social_media.0.handle', 'get-record-institution')
+        ->assertJsonPath('data.record.attributes.social_media.0.url', 'https://facebook.com/get-record-institution');
 });
 
 it('requires a record key when requesting an admin update schema', function () {
@@ -2583,14 +2583,14 @@ it('exposes admin venue write schema and can create and update venues through th
         'is_active' => true,
         'facilities' => ['parking', 'oku'],
         'address' => [
-            'country_id' => 132,
+            'country_id' => ensureAdminApiMalaysiaCountryExists(),
             'line1' => 'Dewan Serbaguna API',
         ],
         'contacts' => [
             [
-                'category' => 'phone',
+                'type' => 'phone',
                 'value' => '0312345678',
-                'type' => 'main',
+                'purpose' => 'general',
                 'is_public' => true,
             ],
         ],
@@ -2603,7 +2603,9 @@ it('exposes admin venue write schema and can create and update venues through th
     ])->assertCreated();
 
     $venueRouteKey = (string) $createResponse->json('data.record.route_key');
-    $venue = Venue::query()->with(['address', 'contacts', 'socialMedia'])->findOrFail($venueRouteKey);
+    $venue = withGlobalOwnerContext(
+        fn (): Venue => Venue::query()->with(['address', 'contacts', 'socialMedia'])->findOrFail($venueRouteKey),
+    );
 
     expect($venue->name)->toBe('Admin API Venue')
         ->and($venue->slug)->toBe('admin-api-venue-my')
@@ -2613,7 +2615,7 @@ it('exposes admin venue write schema and can create and update venues through th
             'parking' => true,
             'oku' => true,
         ])
-        ->and($venue->addressModel?->country_id)->toBe(132)
+        ->and($venue->addressModel?->country_id)->toBe(ensureAdminApiMalaysiaCountryExists())
         ->and($venue->contacts)->toHaveCount(1)
         ->and($venue->contacts->first()?->value)->toBe('0312345678')
         ->and($venue->socialMedia)->toHaveCount(1)
@@ -2626,14 +2628,14 @@ it('exposes admin venue write schema and can create and update venues through th
         'is_active' => false,
         'facilities' => ['women_section', 'ablution_area'],
         'address' => [
-            'country_id' => 132,
+            'country_id' => ensureAdminApiMalaysiaCountryExists(),
             'line1' => 'Auditorium API Baharu',
         ],
         'contacts' => [
             [
-                'category' => 'whatsapp',
+                'type' => 'whatsapp',
                 'value' => '60123456789',
-                'type' => 'work',
+                'purpose' => 'support',
                 'is_public' => false,
             ],
         ],
@@ -2646,14 +2648,16 @@ it('exposes admin venue write schema and can create and update venues through th
     ])->assertOk()
         ->assertJsonPath('data.record.attributes.name', 'Admin API Venue Updated')
         ->assertJsonPath('data.record.attributes.slug', 'admin-api-venue-updated-my')
-        ->assertJsonPath('data.record.attributes.type', 'auditorium')
-        ->assertJsonPath('data.record.attributes.is_active', false);
+        ->assertJsonPath('data.record.attributes.venue_type', 'auditorium')
+        ->assertJsonPath('data.record.attributes.metadata.is_active', false);
 
-    $venue->refresh()->load(['address', 'contacts', 'socialMedia']);
+    $venue = withGlobalOwnerContext(
+        fn (): Venue => $venue->refresh()->load(['address', 'contacts', 'socialMedia']),
+    );
 
     expect($venue->name)->toBe('Admin API Venue Updated')
         ->and($venue->slug)->toBe('admin-api-venue-updated-my')
-        ->and($venue->getRawOriginal('type'))->toBe('auditorium')
+        ->and($venue->getRawOriginal('venue_type'))->toBe('auditorium')
         ->and($venue->status)->toBe('pending')
         ->and($venue->is_active)->toBeFalse()
         ->and($venue->facilities)->toBe([
@@ -2662,7 +2666,7 @@ it('exposes admin venue write schema and can create and update venues through th
         ])
         ->and($venue->addressModel?->line1)->toBe('Auditorium API Baharu')
         ->and($venue->contacts)->toHaveCount(1)
-        ->and($venue->contacts->first()?->getRawOriginal('category'))->toBe('whatsapp')
+        ->and($venue->contacts->first()?->getRawOriginal('type'))->toBe('whatsapp')
         ->and($venue->socialMedia)->toHaveCount(1)
         ->and($venue->socialMedia->first()?->getRawOriginal('platform'))->toBe('facebook');
 
@@ -2673,14 +2677,14 @@ it('exposes admin venue write schema and can create and update venues through th
         'is_active' => false,
         'address' => [
             'google_maps_url' => 'https://example.com/venues/admin-api-venue-updated',
-            'lat' => 3.147,
-            'lng' => 101.694,
+            'latitude' => 3.147,
+            'longitude' => 101.694,
         ],
     ])->assertOk()
         ->assertJsonPath('data.record.attributes.address.line1', 'Auditorium API Baharu')
         ->assertJsonPath('data.record.attributes.address.google_maps_url', fn (string $url): bool => str_contains($url, 'google.com/maps/search'))
-        ->assertJsonPath('data.record.attributes.address.lat', 3.147)
-        ->assertJsonPath('data.record.attributes.address.lng', 101.694);
+        ->assertJsonPath('data.record.attributes.address.latitude', 3.147)
+        ->assertJsonPath('data.record.attributes.address.longitude', 101.694);
 });
 
 it('surfaces venue update semantics and destructive empty-address behavior through the admin api schema', function () {
@@ -2695,7 +2699,7 @@ it('surfaces venue update semantics and destructive empty-address behavior throu
         'status' => 'verified',
         'is_active' => true,
         'address' => [
-            'country_id' => 132,
+            'country_id' => ensureAdminApiMalaysiaCountryExists(),
             'line1' => 'Dewan Schema',
         ],
     ])->assertCreated();
@@ -2715,7 +2719,7 @@ it('surfaces venue update semantics and destructive empty-address behavior throu
         ->and(data_get($fields->get('facilities'), 'collection_semantics.explicit_null'))->toBe('clear_collection')
         ->and(data_get($fields->get('facilities'), 'input_normalization.kind'))->toBe('facility_list_to_boolean_map')
         ->and(data_get($fields->get('contacts'), 'collection_semantics.submitted_array'))->toBe('replace_collection')
-        ->and(data_get($fields->get('social_media'), 'input_normalization.platform_aliases.x.normalizes_to'))->toBe('twitter')
+        ->and(data_get($fields->get('social_media'), 'input_normalization.platform_aliases.x.normalizes_to'))->toBe('x')
         ->and(data_get($fields->get('social_media'), 'input_normalization.platform_aliases.x.accepted_by_write_validation'))->toBeFalse();
 });
 
@@ -2732,13 +2736,13 @@ it('replaces venue collections and deletes the address on an empty object throug
         'is_active' => true,
         'facilities' => ['parking', 'oku'],
         'address' => [
-            'country_id' => 132,
+            'country_id' => ensureAdminApiMalaysiaCountryExists(),
             'line1' => 'Dewan Koleksi',
         ],
         'contacts' => [[
-            'category' => 'phone',
+            'type' => 'phone',
             'value' => '0312345678',
-            'type' => 'main',
+            'purpose' => 'general',
             'is_public' => true,
         ]],
         'social_media' => [[
@@ -2746,21 +2750,23 @@ it('replaces venue collections and deletes the address on an empty object throug
             'url' => 'https://example.com/venues/admin-api-venue-collections',
         ], [
             'platform' => 'instagram',
-            'username' => 'asal_venue',
+            'handle' => 'asal_venue',
         ]],
     ])->assertCreated();
 
     $venueRouteKey = (string) $createResponse->json('data.record.route_key');
-    $venue = Venue::query()->with(['contacts', 'socialMedia'])->findOrFail($venueRouteKey);
+    $venue = withGlobalOwnerContext(
+        fn (): Venue => Venue::query()->with(['contacts', 'socialMedia'])->findOrFail($venueRouteKey),
+    );
     $originalContactIds = $venue->contacts->modelKeys();
     $originalSocialMediaIds = $venue->socialMedia->modelKeys();
 
     $this->putJson('/api/v1/admin/venues/'.$venueRouteKey, [
         'facilities' => ['women_section'],
         'contacts' => [[
-            'category' => 'whatsapp',
+            'type' => 'whatsapp',
             'value' => '+60123456789',
-            'type' => 'work',
+            'purpose' => 'support',
             'is_public' => false,
         ]],
         'social_media' => [[
@@ -2768,23 +2774,25 @@ it('replaces venue collections and deletes the address on an empty object throug
             'url' => 'https://facebook.com/admin-api-venue-collections-updated',
         ]],
     ])->assertOk()
-        ->assertJsonPath('data.record.attributes.contacts.0.category', 'whatsapp')
+        ->assertJsonPath('data.record.attributes.contacts.0.type', 'whatsapp')
         ->assertJsonPath('data.record.attributes.social_media.0.platform', 'facebook')
-        ->assertJsonPath('data.record.attributes.social_media.0.username', 'admin-api-venue-collections-updated')
-        ->assertJsonPath('data.record.attributes.social_media.0.url', null);
+        ->assertJsonPath('data.record.attributes.social_media.0.handle', 'admin-api-venue-collections-updated')
+        ->assertJsonPath('data.record.attributes.social_media.0.url', 'https://facebook.com/admin-api-venue-collections-updated');
 
-    $venue->refresh()->load(['contacts', 'socialMedia']);
+    $venue = withGlobalOwnerContext(
+        fn (): Venue => $venue->refresh()->load(['contacts', 'socialMedia']),
+    );
 
     expect($venue->facilities)->toBe([
         'women_section' => true,
     ])
         ->and($venue->contacts)->toHaveCount(1)
-        ->and($venue->contacts->first()?->getRawOriginal('category'))->toBe('whatsapp')
+        ->and($venue->contacts->first()?->getRawOriginal('type'))->toBe('whatsapp')
         ->and(collect($venue->contacts->modelKeys())->intersect($originalContactIds)->all())->toBe([])
         ->and($venue->socialMedia)->toHaveCount(1)
         ->and($venue->socialMedia->first()?->getRawOriginal('platform'))->toBe('facebook')
-        ->and($venue->socialMedia->first()?->username)->toBe('admin-api-venue-collections-updated')
-        ->and($venue->socialMedia->first()?->url)->toBeNull()
+        ->and($venue->socialMedia->first()?->handle)->toBe('admin-api-venue-collections-updated')
+        ->and($venue->socialMedia->first()?->url)->toBe('https://facebook.com/admin-api-venue-collections-updated')
         ->and(collect($venue->socialMedia->modelKeys())->intersect($originalSocialMediaIds)->all())->toBe([]);
 
     $this->putJson('/api/v1/admin/venues/'.$venueRouteKey, [
@@ -2794,7 +2802,9 @@ it('replaces venue collections and deletes the address on an empty object throug
         'social_media' => [],
     ])->assertOk();
 
-    $venue->refresh()->load(['contacts', 'socialMedia']);
+    $venue = withGlobalOwnerContext(
+        fn (): Venue => $venue->refresh()->load(['contacts', 'socialMedia']),
+    );
 
     expect($venue->addressModel)->toBeNull()
         ->and($venue->facilities)->toBe([])
@@ -2807,14 +2817,6 @@ it('lists admin geography catalogs and exposes catalog metadata through admin wr
     Sanctum::actingAs($admin);
 
     $fixtures = ensureAdminApiSubdistrictFixtures();
-
-    $subdistrictId = DB::table('subdistricts')->insertGetId([
-        'country_id' => $fixtures['country_id'],
-        'state_id' => $fixtures['state_id'],
-        'district_id' => $fixtures['district_id'],
-        'name' => 'Admin API Catalog Subdistrict',
-        'country_code' => 'MY',
-    ]);
 
     $this->getJson('/api/v1/admin/catalogs/countries')
         ->assertOk()
@@ -2831,17 +2833,17 @@ it('lists admin geography catalogs and exposes catalog metadata through admin wr
             'id' => $fixtures['state_id'],
         ]);
 
-    $this->getJson('/api/v1/admin/catalogs/districts?state_id='.$fixtures['state_id'])
+    $this->getJson('/api/v1/admin/catalogs/districts?admin_area_1_id='.$fixtures['state_id'])
         ->assertOk()
         ->assertJsonFragment([
             'id' => $fixtures['district_id'],
         ]);
 
-    $this->getJson('/api/v1/admin/catalogs/subdistricts?district_id='.$fixtures['district_id'])
+    $this->getJson('/api/v1/admin/catalogs/subdistricts?admin_area_1_id='.$fixtures['state_id'].'&admin_area_2_id='.$fixtures['district_id'])
         ->assertOk()
         ->assertJsonFragment([
-            'id' => $subdistrictId,
-            'label' => 'Admin API Catalog Subdistrict',
+            'id' => $fixtures['subdistrict_id'],
+            'label' => $fixtures['subdistrict_name'],
         ]);
 
     $institutionSchema = $this->getJson('/api/v1/admin/institutions/schema?operation=create')
@@ -2851,19 +2853,17 @@ it('lists admin geography catalogs and exposes catalog metadata through admin wr
     $institutionCatalogs = collect(is_array($institutionSchema) ? $institutionSchema : [])->keyBy('field');
 
     expect($institutionCatalogs->get('address.country_id')['endpoint'] ?? null)->toBe('/api/v1/admin/catalogs/countries')
-        ->and($institutionCatalogs->get('address.state_id')['query']['country_id'] ?? null)->toBe('{address.country_id}')
-        ->and($institutionCatalogs->get('address.district_id')['query']['state_id'] ?? null)->toBe('{address.state_id}')
-        ->and($institutionCatalogs->get('address.subdistrict_id')['query']['district_id'] ?? null)->toBe('{address.district_id}');
+        ->and($institutionCatalogs->get('address.admin_area_1_id')['query']['country_id'] ?? null)->toBe('{address.country_id}')
+        ->and($institutionCatalogs->get('address.admin_area_2_id')['query']['admin_area_1_id'] ?? null)->toBe('{address.admin_area_1_id}')
+        ->and($institutionCatalogs->get('address.admin_area_3_id')['query']['admin_area_2_id'] ?? null)->toBe('{address.admin_area_2_id}');
 
-    $subdistrictSchema = $this->getJson('/api/v1/admin/subdistricts/schema?operation=create')
+    $addressAreaSchema = $this->getJson('/api/v1/admin/address-areas/schema?operation=create')
         ->assertOk()
         ->json('data.schema.catalogs');
 
-    $subdistrictCatalogs = collect(is_array($subdistrictSchema) ? $subdistrictSchema : [])->keyBy('field');
+    $addressAreaCatalogs = collect(is_array($addressAreaSchema) ? $addressAreaSchema : [])->keyBy('field');
 
-    expect($subdistrictCatalogs->get('country_id')['endpoint'] ?? null)->toBe('/api/v1/admin/catalogs/countries')
-        ->and($subdistrictCatalogs->get('state_id')['query']['country_id'] ?? null)->toBe('{country_id}')
-        ->and($subdistrictCatalogs->get('district_id')['query']['state_id'] ?? null)->toBe('{state_id}');
+    expect($addressAreaCatalogs->get('country_id')['endpoint'] ?? null)->toBe('/api/v1/admin/catalogs/countries');
 });
 
 it('exposes admin reference write schema and can create and update references through the api', function () {
@@ -2906,7 +2906,9 @@ it('exposes admin reference write schema and can create and update references th
     ])->assertCreated();
 
     $referenceRouteKey = (string) $createResponse->json('data.record.route_key');
-    $reference = Reference::query()->with('socialMedia')->where('slug', $referenceRouteKey)->firstOrFail();
+    $reference = withGlobalOwnerContext(
+        fn (): Reference => Reference::query()->with('socialMedia')->where('slug', $referenceRouteKey)->firstOrFail(),
+    );
     $referenceId = (string) $reference->getKey();
 
     expect($reference->title)->toBe('Admin API Reference')
@@ -2951,7 +2953,9 @@ it('exposes admin reference write schema and can create and update references th
         ->assertJsonPath('data.record.attributes.slug', 'admin-api-reference-updated')
         ->assertJsonPath('data.record.attributes.type', 'article');
 
-    $reference->refresh()->load('socialMedia');
+    $reference = withGlobalOwnerContext(
+        fn (): Reference => $reference->refresh()->load('socialMedia'),
+    );
 
     expect($reference->title)->toBe('Admin API Reference Updated')
         ->and($reference->slug)->toBe('admin-api-reference-updated')
@@ -2992,7 +2996,7 @@ it('surfaces reference update semantics and social-media normalization rules thr
         ->and(data_get($fields->get('publisher'), 'clear_semantics.explicit_null'))->toBe('clear_to_null')
         ->and(data_get($fields->get('social_media'), 'collection_semantics.explicit_null'))->toBe('clear_collection')
         ->and(data_get($fields->get('social_media'), 'collection_semantics.submitted_array'))->toBe('replace_collection')
-        ->and(data_get($fields->get('social_media'), 'input_normalization.platform_aliases.x.normalizes_to'))->toBe('twitter')
+        ->and(data_get($fields->get('social_media'), 'input_normalization.platform_aliases.x.normalizes_to'))->toBe('x')
         ->and(data_get($fields->get('social_media'), 'input_normalization.platform_aliases.x.accepted_by_write_validation'))->toBeFalse();
 });
 
@@ -3013,12 +3017,14 @@ it('clears normalized reference scalars and replaces canonicalized social media 
             'url' => 'https://example.com/references/admin-api-reference-collections',
         ], [
             'platform' => 'instagram',
-            'username' => 'asal_reference',
+            'handle' => 'asal_reference',
         ]],
     ])->assertCreated();
 
     $referenceRouteKey = (string) $createResponse->json('data.record.route_key');
-    $reference = Reference::query()->with('socialMedia')->where('slug', $referenceRouteKey)->firstOrFail();
+    $reference = withGlobalOwnerContext(
+        fn (): Reference => Reference::query()->with('socialMedia')->where('slug', $referenceRouteKey)->firstOrFail(),
+    );
     $originalSocialMediaIds = $reference->socialMedia->modelKeys();
 
     $this->putJson('/api/v1/admin/references/'.$referenceRouteKey, [
@@ -3039,10 +3045,12 @@ it('clears normalized reference scalars and replaces canonicalized social media 
         ->assertJsonPath('data.record.attributes.publication_year', null)
         ->assertJsonPath('data.record.attributes.publisher', null)
         ->assertJsonPath('data.record.attributes.social_media.0.platform', 'youtube')
-        ->assertJsonPath('data.record.attributes.social_media.0.username', 'admin-api-reference-collections-updated')
-        ->assertJsonPath('data.record.attributes.social_media.0.url', null);
+        ->assertJsonPath('data.record.attributes.social_media.0.handle', 'admin-api-reference-collections-updated')
+        ->assertJsonPath('data.record.attributes.social_media.0.url', 'https://youtube.com/@admin-api-reference-collections-updated');
 
-    $reference->refresh()->load('socialMedia');
+    $reference = withGlobalOwnerContext(
+        fn (): Reference => $reference->refresh()->load('socialMedia'),
+    );
 
     $updatedReferenceRouteKey = (string) $reference->getRouteKey();
 
@@ -3051,8 +3059,8 @@ it('clears normalized reference scalars and replaces canonicalized social media 
         ->and($reference->publisher)->toBeNull()
         ->and($reference->socialMedia)->toHaveCount(1)
         ->and($reference->socialMedia->first()?->getRawOriginal('platform'))->toBe('youtube')
-        ->and($reference->socialMedia->first()?->username)->toBe('admin-api-reference-collections-updated')
-        ->and($reference->socialMedia->first()?->url)->toBeNull()
+        ->and($reference->socialMedia->first()?->handle)->toBe('admin-api-reference-collections-updated')
+        ->and($reference->socialMedia->first()?->url)->toBe('https://youtube.com/@admin-api-reference-collections-updated')
         ->and(collect($reference->socialMedia->modelKeys())->intersect($originalSocialMediaIds)->all())->toBe([]);
 
     $this->putJson('/api/v1/admin/references/'.$updatedReferenceRouteKey, [
@@ -3062,128 +3070,89 @@ it('clears normalized reference scalars and replaces canonicalized social media 
         'social_media' => null,
     ])->assertOk();
 
-    expect($reference->fresh()->socialMedia)->toHaveCount(0);
+    expect(withGlobalOwnerContext(fn (): Reference => $reference->fresh()->load('socialMedia'))->socialMedia)->toHaveCount(0);
 });
 
-it('exposes admin subdistrict write schema and can create and update subdistricts through the api', function () {
+it('exposes admin address-area write schema and can create and update address areas through the api', function () {
     $admin = adminApiUser('super_admin');
     Sanctum::actingAs($admin);
 
     $fixtures = ensureAdminApiSubdistrictFixtures();
 
-    $this->getJson('/api/v1/admin/subdistricts/meta')
+    $this->getJson('/api/v1/admin/address-areas/meta')
         ->assertOk()
-        ->assertJsonPath('data.resource.key', 'subdistricts')
+        ->assertJsonPath('data.resource.key', 'address-areas')
         ->assertJsonPath('data.resource.write_support.schema', true)
         ->assertJsonPath('data.resource.write_support.store', true)
         ->assertJsonPath('data.resource.write_support.update', true)
-        ->assertJsonPath('data.resource.api_routes.collection', '/api/v1/admin/subdistricts')
-        ->assertJsonPath('data.resource.api_routes.schema', '/api/v1/admin/subdistricts/schema');
+        ->assertJsonPath('data.resource.api_routes.collection', '/api/v1/admin/address-areas')
+        ->assertJsonPath('data.resource.api_routes.schema', '/api/v1/admin/address-areas/schema');
 
-    $this->getJson('/api/v1/admin/subdistricts/schema?operation=create')
+    $this->getJson('/api/v1/admin/address-areas/schema?operation=create')
         ->assertOk()
-        ->assertJsonPath('data.schema.resource_key', 'subdistricts')
+        ->assertJsonPath('data.schema.resource_key', 'address-areas')
         ->assertJsonPath('data.schema.method', 'POST')
-        ->assertJsonPath('data.schema.endpoint', '/api/v1/admin/subdistricts')
-        ->assertJsonPath('data.schema.content_type', 'application/json')
-        ->assertJsonPath('data.schema.conditional_rules.0.field', 'district_id');
+        ->assertJsonPath('data.schema.endpoint', '/api/v1/admin/address-areas')
+        ->assertJsonPath('data.schema.content_type', 'application/json');
 
-    $createResponse = $this->postJson('/api/v1/admin/subdistricts', [
+    $createResponse = $this->postJson('/api/v1/admin/address-areas', [
         'country_id' => $fixtures['country_id'],
-        'state_id' => $fixtures['federal_state_id'],
-        'district_id' => null,
-        'name' => 'Admin API Federal Territory Subdistrict',
+        'parent_id' => $fixtures['district_id'],
+        'type' => 'subdistrict',
+        'level' => 3,
+        'name' => '  Admin API Created Address Area  ',
     ])->assertCreated();
 
-    $subdistrictRouteKey = (string) $createResponse->json('data.record.route_key');
-    $subdistrict = Subdistrict::query()->findOrFail($subdistrictRouteKey);
+    $addressAreaRouteKey = (string) $createResponse->json('data.record.route_key');
 
-    expect((int) $subdistrict->country_id)->toBe($fixtures['country_id'])
-        ->and((int) $subdistrict->state_id)->toBe($fixtures['federal_state_id'])
-        ->and($subdistrict->district_id)->toBeNull()
-        ->and($subdistrict->country_code)->toBe('MY');
-
-    $this->getJson('/api/v1/admin/subdistricts/schema?operation=update&recordKey='.$subdistrictRouteKey)
+    $this->getJson('/api/v1/admin/address-areas/schema?operation=update&recordKey='.$addressAreaRouteKey)
         ->assertOk()
         ->assertJsonPath('data.schema.method', 'PUT')
-        ->assertJsonPath('data.schema.endpoint', '/api/v1/admin/subdistricts/'.$subdistrictRouteKey)
+        ->assertJsonPath('data.schema.endpoint', '/api/v1/admin/address-areas/'.$addressAreaRouteKey)
         ->assertJsonPath('data.schema.defaults.country_id', $fixtures['country_id'])
-        ->assertJsonPath('data.schema.defaults.state_id', $fixtures['federal_state_id'])
-        ->assertJsonPath('data.schema.defaults.district_id', null)
-        ->assertJsonPath('data.schema.defaults.name', 'Admin API Federal Territory Subdistrict');
+        ->assertJsonPath('data.schema.defaults.parent_id', $fixtures['district_id'])
+        ->assertJsonPath('data.schema.defaults.type', 'subdistrict')
+        ->assertJsonPath('data.schema.defaults.level', 3)
+        ->assertJsonPath('data.schema.defaults.name', 'Admin API Created Address Area');
 
-    $this->putJson('/api/v1/admin/subdistricts/'.$subdistrictRouteKey, [
+    $this->putJson('/api/v1/admin/address-areas/'.$addressAreaRouteKey, [
         'country_id' => $fixtures['country_id'],
-        'state_id' => $fixtures['state_id'],
-        'district_id' => $fixtures['district_id'],
-        'name' => 'Admin API Updated Subdistrict',
+        'parent_id' => $fixtures['state_id'],
+        'type' => 'district',
+        'level' => 2,
+        'name' => '  Admin API Updated Address Area  ',
     ])->assertOk()
-        ->assertJsonPath('data.record.attributes.name', 'Admin API Updated Subdistrict')
-        ->assertJsonPath('data.record.attributes.district_id', $fixtures['district_id']);
-
-    $subdistrict->refresh();
-
-    expect((int) $subdistrict->state_id)->toBe($fixtures['state_id'])
-        ->and((int) $subdistrict->district_id)->toBe($fixtures['district_id'])
-        ->and($subdistrict->name)->toBe('Admin API Updated Subdistrict');
+        ->assertJsonPath('data.record.attributes.name', 'Admin API Updated Address Area')
+        ->assertJsonPath('data.record.attributes.parent_id', $fixtures['state_id'])
+        ->assertJsonPath('data.record.attributes.type', 'district')
+        ->assertJsonPath('data.record.attributes.level', 2);
 });
 
-it('surfaces subdistrict update semantics through the admin api schema', function () {
+it('surfaces address-area update semantics through the admin api schema', function () {
     $admin = adminApiUser('super_admin');
     Sanctum::actingAs($admin);
 
     $fixtures = ensureAdminApiSubdistrictFixtures();
 
-    $createResponse = $this->postJson('/api/v1/admin/subdistricts', [
+    $createResponse = $this->postJson('/api/v1/admin/address-areas', [
         'country_id' => $fixtures['country_id'],
-        'state_id' => $fixtures['federal_state_id'],
-        'district_id' => null,
-        'name' => 'Admin API Schema Subdistrict',
+        'parent_id' => $fixtures['district_id'],
+        'type' => 'subdistrict',
+        'level' => 3,
+        'name' => 'Admin API Schema Address Area',
     ])->assertCreated();
 
-    $schema = $this->getJson('/api/v1/admin/subdistricts/schema?operation=update&recordKey='.$createResponse->json('data.record.route_key'))
+    $schema = $this->getJson('/api/v1/admin/address-areas/schema?operation=update&recordKey='.$createResponse->json('data.record.route_key'))
         ->assertOk()
         ->json('data.schema');
 
     $fields = collect($schema['fields'] ?? [])->keyBy('name');
 
-    expect(data_get($fields->get('country_id'), 'relation'))->toBe('countries')
-        ->and(data_get($fields->get('state_id'), 'must_match'))->toBe(['country_id'])
-        ->and(data_get($fields->get('district_id'), 'clear_semantics.explicit_null'))->toBe('allowed_only_for_federal_territory_state')
-        ->and(data_get($fields->get('district_id'), 'must_match'))->toBe(['country_id', 'state_id'])
+    expect(data_get($fields->get('country_id'), 'required'))->toBeFalse()
+        ->and(data_get($fields->get('parent_id'), 'required'))->toBeFalse()
+        ->and(data_get($fields->get('level'), 'input_type'))->toBe('integer')
+        ->and(data_get($fields->get('type'), 'required'))->toBeFalse()
         ->and(data_get($fields->get('name'), 'normalization.trim'))->toBeTrue();
-});
-
-it('trims subdistrict names and allows null districts for federal territory updates through the admin api', function () {
-    $admin = adminApiUser('super_admin');
-    Sanctum::actingAs($admin);
-
-    $fixtures = ensureAdminApiSubdistrictFixtures();
-
-    $createResponse = $this->postJson('/api/v1/admin/subdistricts', [
-        'country_id' => $fixtures['country_id'],
-        'state_id' => $fixtures['federal_state_id'],
-        'district_id' => null,
-        'name' => '  Admin API Trimmed Federal Territory Subdistrict  ',
-    ])->assertCreated()
-        ->assertJsonPath('data.record.attributes.name', 'Admin API Trimmed Federal Territory Subdistrict');
-
-    $subdistrictRouteKey = (string) $createResponse->json('data.record.route_key');
-    $subdistrict = Subdistrict::query()->findOrFail($subdistrictRouteKey);
-
-    $this->putJson('/api/v1/admin/subdistricts/'.$subdistrictRouteKey, [
-        'country_id' => $fixtures['country_id'],
-        'state_id' => $fixtures['federal_state_id'],
-        'district_id' => null,
-        'name' => '  Admin API Updated Federal Territory Subdistrict  ',
-    ])->assertOk()
-        ->assertJsonPath('data.record.attributes.name', 'Admin API Updated Federal Territory Subdistrict')
-        ->assertJsonPath('data.record.attributes.district_id', null);
-
-    $subdistrict->refresh();
-
-    expect($subdistrict->name)->toBe('Admin API Updated Federal Territory Subdistrict')
-        ->and($subdistrict->district_id)->toBeNull();
 });
 
 it('clamps admin collection per_page values to the supported maximum', function () {
@@ -3198,19 +3167,17 @@ it('clamps admin collection per_page values to the supported maximum', function 
         ->assertJsonCount(100, 'data');
 });
 
-it('requires district_id for non-federal-territory subdistrict writes', function () {
+it('requires country_id when creating address areas through the admin api', function () {
     $admin = adminApiUser('super_admin');
     Sanctum::actingAs($admin);
 
-    $fixtures = ensureAdminApiSubdistrictFixtures();
-
-    $this->postJson('/api/v1/admin/subdistricts', [
-        'country_id' => $fixtures['country_id'],
-        'state_id' => $fixtures['state_id'],
-        'district_id' => null,
-        'name' => 'Admin API Invalid Subdistrict',
+    $this->postJson('/api/v1/admin/address-areas', [
+        'parent_id' => null,
+        'type' => 'state',
+        'level' => 1,
+        'name' => 'Admin API Invalid Address Area',
     ])->assertUnprocessable()
-        ->assertJsonValidationErrors(['district_id']);
+        ->assertJsonValidationErrors(['country_id']);
 });
 
 it('exposes admin event write schema and can create and update events through the api', function () {
@@ -3266,8 +3233,6 @@ it('exposes admin event write schema and can create and update events through th
 
     expect($event->title)->toBe('Admin API Event Created')
         ->and($event->live_url)->toBeNull()
-        ->and($event->organizer_type)->toBe(Institution::class)
-        ->and($event->organizer_id)->toBe($institution->getKey())
         ->and($event->starts_at?->copy()->timezone('Asia/Kuala_Lumpur')->format('Y-m-d H:i'))->toBe('2026-05-20 20:00')
         ->and($event->settings?->registration_required)->toBeTrue()
         ->and($event->settings?->registration_mode)->toBe(RegistrationMode::Event)
@@ -3290,8 +3255,7 @@ it('exposes admin event write schema and can create and update events through th
         'custom_time' => null,
         'end_time' => '22:30',
         'live_url' => 'https://youtube.com/watch?v=admin-api-event-live',
-        'organizer_type' => Speaker::class,
-        'organizer_id' => $speaker->getKey(),
+        'primary_organizer_id' => $speaker->getKey(),
         'institution_id' => null,
         'references' => [],
         'series' => [],
@@ -3309,8 +3273,6 @@ it('exposes admin event write schema and can create and update events through th
 
     expect($event->title)->toBe('Admin API Event Updated')
         ->and($event->live_url)->toBe('https://youtube.com/watch?v=admin-api-event-live')
-        ->and($event->organizer_type)->toBe(Speaker::class)
-        ->and($event->organizer_id)->toBe($speaker->getKey())
         ->and($event->starts_at?->copy()->timezone('Asia/Kuala_Lumpur')->format('Y-m-d H:i'))->toBe('2026-06-01 20:00')
         ->and($event->settings?->registration_required)->toBeFalse()
         ->and($event->references)->toHaveCount(0)
@@ -3362,7 +3324,7 @@ it('surfaces event update semantics and sparse relation rules through the admin 
         ->and(data_get($fields->get('languages'), 'collection_semantics.submitted_array'))->toBe('replace_relation_sync')
         ->and(data_get($fields->get('references'), 'collection_semantics.explicit_null'))->toBe('clear_collection')
         ->and(data_get($fields->get('domain_tags'), 'tag_type'))->toBe('domain')
-        ->and(data_get($fields->get('organizer_type'), 'accepted_aliases.institution'))->toBe(Institution::class)
+        ->and(data_get($fields->get('primary_organizer_id'), 'accepted_models'))->toBe([Institution::class, Speaker::class])
         ->and(data_get($fields->get('speakers'), 'collection_semantics.submitted_array'))->toBe('replace_speaker_subset_and_rebuild_key_people')
         ->and(data_get($fields->get('speakers'), 'collection_semantics.item_ids_preserved'))->toBeFalse()
         ->and(data_get($fields->get('other_key_people'), 'collection_semantics.ordering'))->toBe('payload_order_sets_order_column_after_speakers')
@@ -3434,7 +3396,6 @@ it('supports sparse event updates while replacing submitted relation collections
 
     expect($event->title)->toBe('Admin API Event Created')
         ->and($event->live_url)->toBeNull()
-        ->and($event->organizer_type)->toBe(Institution::class)
         ->and($event->references)->toHaveCount(0)
         ->and($event->series)->toHaveCount(0)
         ->and($event->languages)->toHaveCount(0)
@@ -3533,7 +3494,7 @@ it('rejects admin event writes that omit required speakers for speaker-led event
         ->assertJsonValidationErrors(['speakers']);
 });
 
-it('rejects admin event writes with organizer ids that do not match the organizer type', function () {
+it('rejects admin event writes with organizer ids that do not resolve to institutions or speakers', function () {
     ensureAdminApiMalaysiaCountryExists();
 
     $admin = adminApiUser('super_admin');
@@ -3551,6 +3512,7 @@ it('rejects admin event writes with organizer ids that do not match the organize
     $series = Series::factory()->create();
     $domainTag = Tag::factory()->domain()->verified()->create();
     $disciplineTag = Tag::factory()->discipline()->verified()->create();
+    $venue = Venue::factory()->create();
 
     $this->postJson('/api/v1/admin/events', adminApiEventPayload([
         'institution' => $institution,
@@ -3560,10 +3522,9 @@ it('rejects admin event writes with organizer ids that do not match the organize
         'domain_tag' => $domainTag,
         'discipline_tag' => $disciplineTag,
     ], [
-        'organizer_type' => Institution::class,
-        'organizer_id' => (string) $speaker->getKey(),
+        'primary_organizer_id' => (string) $venue->getKey(),
     ]))->assertUnprocessable()
-        ->assertJsonValidationErrors(['organizer_id']);
+        ->assertJsonValidationErrors(['primary_organizer_id']);
 });
 
 it('rejects admin event writes with conflicting location selections', function () {
@@ -3606,67 +3567,36 @@ it('rejects admin event writes with conflicting location selections', function (
         ->assertJsonValidationErrors(['institution_id', 'venue_id', 'space_id']);
 });
 
-function ensureAdminApiMalaysiaCountryExists(): int
+function ensureAdminApiMalaysiaCountryExists(): string
 {
-    $malaysiaId = DB::table('countries')->where('id', 132)->value('id');
-
-    if (is_int($malaysiaId)) {
-        return $malaysiaId;
-    }
-
-    return DB::table('countries')->insertGetId([
-        'id' => 132,
-        'iso2' => 'MY',
-        'name' => 'Malaysia',
-        'status' => 1,
-        'phone_code' => '60',
-        'iso3' => 'MYS',
-        'region' => 'Asia',
-        'subregion' => 'South-Eastern Asia',
-    ]);
+    return (string) ensureTestMalaysiaCountry()->getKey();
 }
 
 /**
- * @return array{country_id: int, state_id: int, district_id: int, federal_state_id: int}
+ * @return array{
+ *     country_id: string,
+ *     state_id: string,
+ *     district_id: string,
+ *     subdistrict_id: string,
+ *     subdistrict_name: string
+ * }
  */
 function ensureAdminApiSubdistrictFixtures(): array
 {
-    $countryId = ensureAdminApiMalaysiaCountryExists();
+    $country = ensureTestMalaysiaCountry();
     $suffix = Str::lower(Str::random(8));
 
-    $stateId = DB::table('states')->insertGetId([
-        'country_id' => $countryId,
-        'name' => 'Admin API Negeri '.$suffix,
-        'country_code' => 'MY',
-    ]);
-
-    $districtId = DB::table('districts')->insertGetId([
-        'country_id' => $countryId,
-        'state_id' => $stateId,
-        'name' => 'Admin API Daerah '.$suffix,
-        'country_code' => 'MY',
-    ]);
-
-    $federalStateId = DB::table('states')
-        ->where('country_id', $countryId)
-        ->where('name', 'Kuala Lumpur')
-        ->value('id');
-
-    if (! is_int($federalStateId)) {
-        $federalStateId = DB::table('states')->insertGetId([
-            'country_id' => $countryId,
-            'name' => 'Kuala Lumpur',
-            'country_code' => 'MY',
-        ]);
-    }
-
-    FederalTerritoryLocation::flushStateIdCache();
+    $state = createTestAddressArea('Admin API Negeri '.$suffix, 1, country: $country);
+    $district = createTestAddressArea('Admin API Daerah '.$suffix, 2, parent: $state, country: $country);
+    $subdistrictName = 'Admin API Mukim '.$suffix;
+    $subdistrict = createTestAddressArea($subdistrictName, 3, parent: $district, country: $country);
 
     return [
-        'country_id' => $countryId,
-        'state_id' => $stateId,
-        'district_id' => $districtId,
-        'federal_state_id' => $federalStateId,
+        'country_id' => (string) $country->getKey(),
+        'state_id' => (string) $state->getKey(),
+        'district_id' => (string) $district->getKey(),
+        'subdistrict_id' => (string) $subdistrict->getKey(),
+        'subdistrict_name' => $subdistrictName,
     ];
 }
 
@@ -3727,8 +3657,7 @@ function adminApiEventPayload(array $fixtures, array $overrides = []): array
         'source_tags' => [],
         'issue_tags' => [],
         'references' => [(string) $fixtures['reference']->getKey()],
-        'organizer_type' => Institution::class,
-        'organizer_id' => (string) $fixtures['institution']->getKey(),
+        'primary_organizer_id' => (string) $fixtures['institution']->getKey(),
         'institution_id' => (string) $fixtures['institution']->getKey(),
         'series' => [(string) $fixtures['series']->getKey()],
         'speakers' => [(string) $fixtures['speaker']->getKey()],
@@ -3773,7 +3702,7 @@ it('batch-creates admin resource records and returns per-row results', function 
                     'gender' => 'male',
                     'status' => 'verified',
                     'is_active' => true,
-                    'address' => ['country_id' => 132],
+                    'address' => ['country_id' => ensureAdminApiMalaysiaCountryExists()],
                 ],
             ],
             [
@@ -3783,7 +3712,7 @@ it('batch-creates admin resource records and returns per-row results', function 
                     'gender' => 'female',
                     'status' => 'verified',
                     'is_active' => true,
-                    'address' => ['country_id' => 132],
+                    'address' => ['country_id' => ensureAdminApiMalaysiaCountryExists()],
                 ],
             ],
         ],
@@ -3823,7 +3752,7 @@ it('batch-creates records and returns per-row validation errors without rolling 
                     'gender' => 'male',
                     'status' => 'verified',
                     'is_active' => true,
-                    'address' => ['country_id' => 132],
+                    'address' => ['country_id' => ensureAdminApiMalaysiaCountryExists()],
                 ],
             ],
             [
@@ -3870,7 +3799,7 @@ it('batch-creates records with validate_only and returns previews without persis
                     'gender' => 'male',
                     'status' => 'verified',
                     'is_active' => true,
-                    'address' => ['country_id' => 132],
+                    'address' => ['country_id' => ensureAdminApiMalaysiaCountryExists()],
                 ],
             ],
         ],

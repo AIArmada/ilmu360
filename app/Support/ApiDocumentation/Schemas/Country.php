@@ -8,7 +8,7 @@ use Dedoc\Scramble\Attributes\SchemaName;
 use Illuminate\Contracts\Support\Arrayable;
 
 /**
- * @phpstan-type CountryArray array{id: int, name: string, iso2: string, key: ?string}
+ * @phpstan-type CountryArray array{id: string, name: string, iso2: string, key: ?string}
  *
  * @implements Arrayable<string, mixed>
  */
@@ -16,7 +16,7 @@ use Illuminate\Contracts\Support\Arrayable;
 final readonly class Country implements Arrayable
 {
     public function __construct(
-        public int $id,
+        public string $id,
         public string $name,
         public string $iso2,
         public ?string $key,

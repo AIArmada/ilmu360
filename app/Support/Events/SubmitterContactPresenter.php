@@ -2,12 +2,11 @@
 
 namespace App\Support\Events;
 
-use App\Enums\ContactCategory;
-use App\Enums\SocialMediaPlatform;
+use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Contacting\Enums\ContactMethodType;
 use App\Models\Event;
 use App\Models\EventSubmission;
 use App\Models\User;
-use App\Support\SocialMedia\SocialMediaLinkResolver;
 
 final class SubmitterContactPresenter
 {
@@ -30,27 +29,29 @@ final class SubmitterContactPresenter
      */
     private static function contactPartsForEvent(Event $event): array
     {
-        $event->loadMissing([
-            'submitter',
-            'submissions.contacts',
-            'submissions.submitter',
-        ]);
+        return OwnerContext::withOwner(null, function () use ($event): array {
+            $event->loadMissing([
+                'submitter',
+                'submissions.contacts',
+                'submissions.submitter',
+            ]);
 
-        $submission = self::latestSubmission($event);
+            $submission = self::latestSubmission($event);
 
-        if ($submission instanceof EventSubmission) {
-            return self::contactPartsForSubmission($submission);
-        }
+            if ($submission instanceof EventSubmission) {
+                return self::contactPartsForSubmission($submission);
+            }
 
-        if ($event->submitter instanceof User) {
-            return self::contactPartsForUser($event->submitter);
-        }
+            if ($event->submitter instanceof User) {
+                return self::contactPartsForUser($event->submitter);
+            }
 
-        return [
-            'name' => null,
-            'email' => null,
-            'phone' => null,
-        ];
+            return [
+                'name' => null,
+                'email' => null,
+                'phone' => null,
+            ];
+        });
     }
 
     /**
@@ -64,9 +65,9 @@ final class SubmitterContactPresenter
 
         return [
             'name' => self::filledString($submission->submitter_name),
-            'email' => self::submissionContactValue($submission, ContactCategory::Email),
-            'phone' => self::submissionContactValue($submission, ContactCategory::Phone)
-                ?? self::submissionContactValue($submission, ContactCategory::WhatsApp),
+            'email' => self::submissionContactValue($submission, ContactMethodType::Email),
+            'phone' => self::submissionContactValue($submission, ContactMethodType::Phone)
+                ?? self::submissionContactValue($submission, ContactMethodType::Whatsapp),
         ];
     }
 
@@ -91,19 +92,13 @@ final class SubmitterContactPresenter
 
     private static function whatsappUrlForPhone(?string $phone): ?string
     {
-        $normalized = SocialMediaLinkResolver::normalize(
-            SocialMediaPlatform::WhatsApp->value,
-            self::filledString($phone),
-            null,
-        );
-
-        $identifier = $normalized['username'];
+        $identifier = preg_replace('/\D+/', '', (string) self::filledString($phone));
 
         if (! is_string($identifier) || $identifier === '') {
             return null;
         }
 
-        return SocialMediaLinkResolver::resolveUrl(SocialMediaPlatform::WhatsApp->value, $identifier, null);
+        return 'https://wa.me/'.$identifier;
     }
 
     private static function latestSubmission(Event $event): ?EventSubmission
@@ -126,19 +121,19 @@ final class SubmitterContactPresenter
         return $submission;
     }
 
-    private static function submissionContactValue(EventSubmission $submission, ContactCategory $category): ?string
+    private static function submissionContactValue(EventSubmission $submission, ContactMethodType $type): ?string
     {
         if ($submission->relationLoaded('contacts')) {
             /** @var mixed $value */
             $value = $submission->contacts
-                ->firstWhere('category', $category->value)
+                ->firstWhere('type', $type->value)
                 ?->value;
 
             return self::filledString($value);
         }
 
         $value = $submission->contacts()
-            ->where('category', $category->value)
+            ->where('type', $type->value)
             ->value('value');
 
         return self::filledString($value);

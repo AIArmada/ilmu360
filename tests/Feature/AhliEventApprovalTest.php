@@ -1,5 +1,7 @@
 <?php
 
+use AIArmada\CommerceSupport\Models\Role;
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\FilamentAuthz\Facades\Authz;
 use App\Filament\Ahli\Resources\Events\Pages\EditEvent as AhliEditEvent;
 use App\Models\Event;
@@ -12,34 +14,45 @@ use App\Support\Authz\MemberRoleScopes;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Database\Seeders\ScopedMemberRolesSeeder;
+use Filament\Facades\Filament;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
 use Spatie\Permission\PermissionRegistrar;
 
 beforeEach(function (): void {
+    setPermissionsTeamId(null);
     $this->seed(PermissionSeeder::class);
     $this->seed(RoleSeeder::class);
     $this->seed(ScopedMemberRolesSeeder::class);
 
     app(PermissionRegistrar::class)->forgetCachedPermissions();
     Notification::fake();
+    Filament::setCurrentPanel('ahli');
 });
 
 function assignInstitutionRole(User $user, string $role): void
 {
     $scope = app(MemberRoleScopes::class)->institution();
+    $scopedRole = Role::query()
+        ->where('name', $role)
+        ->where(app(PermissionRegistrar::class)->teamsKey, $scope->getKey())
+        ->firstOrFail();
 
-    Authz::withScope($scope, function () use ($user, $role): void {
-        $user->syncRoles([$role]);
+    Authz::withScope($scope, function () use ($user, $scopedRole): void {
+        $user->syncRoles([$scopedRole]);
     }, $user);
 }
 
 function assignSpeakerRole(User $user, string $role): void
 {
     $scope = app(MemberRoleScopes::class)->speaker();
+    $scopedRole = Role::query()
+        ->where('name', $role)
+        ->where(app(PermissionRegistrar::class)->teamsKey, $scope->getKey())
+        ->firstOrFail();
 
-    Authz::withScope($scope, function () use ($user, $role): void {
-        $user->syncRoles([$role]);
+    Authz::withScope($scope, function () use ($user, $scopedRole): void {
+        $user->syncRoles([$scopedRole]);
     }, $user);
 }
 
@@ -51,20 +64,18 @@ it('allows institution admins to approve pending public-submitted events from th
     $event = Event::factory()->for($institution)->create([
         'status' => 'pending',
         'visibility' => 'public',
-        'organizer_type' => Institution::class,
-        'organizer_id' => $institution->id,
         'submitter_id' => $submitter->id,
         'published_at' => null,
     ]);
+    OwnerContext::withOwner(null, fn () => $event->setPrimaryOrganizer($institution));
 
     EventSubmission::factory()->for($event)->for($submitter, 'submitter')->create();
 
     $institution->members()->syncWithoutDetaching([$approver->id]);
     assignInstitutionRole($approver, 'admin');
 
-    $this->actingAs($approver);
-
-    Livewire::test(AhliEditEvent::class, ['record' => $event->id])
+    Livewire::actingAs($approver)
+        ->test(AhliEditEvent::class, ['record' => $event->id])
         ->assertActionVisible('approve')
         ->callAction('approve', ['note' => 'Approved by institution admin'])
         ->assertNotified();
@@ -94,20 +105,18 @@ it('allows institution admins to submit draft public-submitted events for review
     $event = Event::factory()->for($institution)->create([
         'status' => 'draft',
         'visibility' => 'public',
-        'organizer_type' => Institution::class,
-        'organizer_id' => $institution->id,
         'submitter_id' => $submitter->id,
         'published_at' => null,
     ]);
+    OwnerContext::withOwner(null, fn () => $event->setPrimaryOrganizer($institution));
 
     EventSubmission::factory()->for($event)->for($submitter, 'submitter')->create();
 
     $institution->members()->syncWithoutDetaching([$approver->id]);
     assignInstitutionRole($approver, 'admin');
 
-    $this->actingAs($approver);
-
-    Livewire::test(AhliEditEvent::class, ['record' => $event->id])
+    Livewire::actingAs($approver)
+        ->test(AhliEditEvent::class, ['record' => $event->id])
         ->assertActionVisible('submit_for_review')
         ->callAction('submit_for_review')
         ->assertNotified();
@@ -126,20 +135,18 @@ it('allows speaker admins to approve pending public-submitted speaker-organized 
     $event = Event::factory()->create([
         'status' => 'pending',
         'visibility' => 'public',
-        'organizer_type' => Speaker::class,
-        'organizer_id' => $speaker->id,
         'submitter_id' => $submitter->id,
         'published_at' => null,
     ]);
+    OwnerContext::withOwner(null, fn () => $event->setPrimaryOrganizer($speaker));
 
     EventSubmission::factory()->for($event)->for($submitter, 'submitter')->create();
 
     $speaker->members()->syncWithoutDetaching([$approver->id]);
     assignSpeakerRole($approver, 'admin');
 
-    $this->actingAs($approver);
-
-    Livewire::test(AhliEditEvent::class, ['record' => $event->id])
+    Livewire::actingAs($approver)
+        ->test(AhliEditEvent::class, ['record' => $event->id])
         ->assertActionVisible('approve')
         ->callAction('approve', ['note' => 'Approved by speaker admin'])
         ->assertNotified();
@@ -169,20 +176,18 @@ it('allows speaker editors to approve pending public-submitted speaker-organized
     $event = Event::factory()->create([
         'status' => 'pending',
         'visibility' => 'public',
-        'organizer_type' => Speaker::class,
-        'organizer_id' => $speaker->id,
         'submitter_id' => $submitter->id,
         'published_at' => null,
     ]);
+    OwnerContext::withOwner(null, fn () => $event->setPrimaryOrganizer($speaker));
 
     EventSubmission::factory()->for($event)->for($submitter, 'submitter')->create();
 
     $speaker->members()->syncWithoutDetaching([$editor->id]);
     assignSpeakerRole($editor, 'editor');
 
-    $this->actingAs($editor);
-
-    Livewire::test(AhliEditEvent::class, ['record' => $event->id])
+    Livewire::actingAs($editor)
+        ->test(AhliEditEvent::class, ['record' => $event->id])
         ->assertActionVisible('approve')
         ->callAction('approve', ['note' => 'Approved by speaker editor'])
         ->assertNotified();
@@ -202,20 +207,18 @@ it('allows institution admins to approve pending speaker-organized public submis
     $event = Event::factory()->for($institution)->create([
         'status' => 'pending',
         'visibility' => 'public',
-        'organizer_type' => Speaker::class,
-        'organizer_id' => $speaker->id,
         'submitter_id' => $submitter->id,
         'published_at' => null,
     ]);
+    OwnerContext::withOwner(null, fn () => $event->setPrimaryOrganizer($speaker));
 
     EventSubmission::factory()->for($event)->for($submitter, 'submitter')->create();
 
     $institution->members()->syncWithoutDetaching([$approver->id]);
     assignInstitutionRole($approver, 'admin');
 
-    $this->actingAs($approver);
-
-    Livewire::test(AhliEditEvent::class, ['record' => $event->id])
+    Livewire::actingAs($approver)
+        ->test(AhliEditEvent::class, ['record' => $event->id])
         ->assertActionVisible('approve')
         ->callAction('approve', ['note' => 'Approved by institution admin via linked speaker event'])
         ->assertNotified();
@@ -234,19 +237,17 @@ it('allows institution editors to approve pending public-submitted events from t
     $event = Event::factory()->for($institution)->create([
         'status' => 'pending',
         'visibility' => 'public',
-        'organizer_type' => Institution::class,
-        'organizer_id' => $institution->id,
         'submitter_id' => $submitter->id,
     ]);
+    OwnerContext::withOwner(null, fn () => $event->setPrimaryOrganizer($institution));
 
     EventSubmission::factory()->for($event)->for($submitter, 'submitter')->create();
 
     $institution->members()->syncWithoutDetaching([$editor->id]);
     assignInstitutionRole($editor, 'editor');
 
-    $this->actingAs($editor);
-
-    Livewire::test(AhliEditEvent::class, ['record' => $event->id])
+    Livewire::actingAs($editor)
+        ->test(AhliEditEvent::class, ['record' => $event->id])
         ->assertActionVisible('approve')
         ->callAction('approve', ['note' => 'Approved by institution editor'])
         ->assertNotified();
@@ -264,17 +265,15 @@ it('hides the ahli approve action for pending events that did not come from the 
     $event = Event::factory()->for($institution)->create([
         'status' => 'pending',
         'visibility' => 'public',
-        'organizer_type' => Institution::class,
-        'organizer_id' => $institution->id,
         'submitter_id' => null,
     ]);
+    OwnerContext::withOwner(null, fn () => $event->setPrimaryOrganizer($institution));
 
     $institution->members()->syncWithoutDetaching([$approver->id]);
     assignInstitutionRole($approver, 'admin');
 
-    $this->actingAs($approver);
-
-    Livewire::test(AhliEditEvent::class, ['record' => $event->id])
+    Livewire::actingAs($approver)
+        ->test(AhliEditEvent::class, ['record' => $event->id])
         ->assertActionHidden('approve');
 });
 
@@ -285,17 +284,15 @@ it('hides the ahli submit for review action for draft events that did not come f
     $event = Event::factory()->for($institution)->create([
         'status' => 'draft',
         'visibility' => 'public',
-        'organizer_type' => Institution::class,
-        'organizer_id' => $institution->id,
         'submitter_id' => null,
     ]);
+    OwnerContext::withOwner(null, fn () => $event->setPrimaryOrganizer($institution));
 
     $institution->members()->syncWithoutDetaching([$approver->id]);
     assignInstitutionRole($approver, 'admin');
 
-    $this->actingAs($approver);
-
-    Livewire::test(AhliEditEvent::class, ['record' => $event->id])
+    Livewire::actingAs($approver)
+        ->test(AhliEditEvent::class, ['record' => $event->id])
         ->assertActionHidden('submit_for_review');
 });
 
@@ -307,29 +304,26 @@ it('propagates approve actions from a parent program to its child events', funct
     $parentEvent = Event::factory()->parentProgram()->for($institution)->create([
         'status' => 'pending',
         'visibility' => 'public',
-        'organizer_type' => Institution::class,
-        'organizer_id' => $institution->id,
         'submitter_id' => $submitter->id,
         'published_at' => null,
     ]);
+    OwnerContext::withOwner(null, fn () => $parentEvent->setPrimaryOrganizer($institution));
 
-    Event::factory()->childEvent($parentEvent)->for($institution)->create([
+    $childEvent = Event::factory()->childEvent($parentEvent)->for($institution)->create([
         'status' => 'pending',
         'visibility' => 'public',
-        'organizer_type' => Institution::class,
-        'organizer_id' => $institution->id,
         'submitter_id' => $submitter->id,
         'published_at' => null,
     ]);
+    OwnerContext::withOwner(null, fn () => $childEvent->setPrimaryOrganizer($institution));
 
     EventSubmission::factory()->for($parentEvent)->for($submitter, 'submitter')->create();
 
     $institution->members()->syncWithoutDetaching([$approver->id]);
     assignInstitutionRole($approver, 'admin');
 
-    $this->actingAs($approver);
-
-    Livewire::test(AhliEditEvent::class, ['record' => $parentEvent->id])
+    Livewire::actingAs($approver)
+        ->test(AhliEditEvent::class, ['record' => $parentEvent->id])
         ->assertActionVisible('approve')
         ->callAction('approve', ['note' => 'Approved parent program'])
         ->assertNotified();

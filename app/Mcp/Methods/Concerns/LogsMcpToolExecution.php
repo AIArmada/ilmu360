@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Mcp\Methods\Concerns;
 
 use Illuminate\Support\Facades\Log;
-use Laravel\Mcp\Server\Transport\JsonRpcRequest;
+use Laravel\Mcp\Transport\JsonRpcRequest;
 use Throwable;
 
 trait LogsMcpToolExecution

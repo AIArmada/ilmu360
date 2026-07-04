@@ -2,7 +2,7 @@
 
 namespace App\Enums;
 
-use AIArmada\FilamentAuthz\Models\AuthzScope;
+use AIArmada\CommerceSupport\Models\AuthzScope;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Reference;

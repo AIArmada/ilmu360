@@ -36,10 +36,11 @@ class ResolveAdvancedBuilderContextAction
                 ? $requestedInstitutionId
                 : null;
 
-        $defaultOrganizerType = $institutionOptions !== [] ? 'institution' : 'speaker';
-        $defaultOrganizerId = $defaultOrganizerType === 'institution'
-            ? $preferredInstitutionId ?: array_key_first($institutionOptions)
-            : array_key_first($speakerOptions);
+        $defaultPrimaryOrganizerId = $preferredInstitutionId
+            ?: array_key_first($institutionOptions)
+            ?: array_key_first($speakerOptions);
+        $defaultPrimaryOrganizerIsInstitution = is_string($defaultPrimaryOrganizerId)
+            && array_key_exists($defaultPrimaryOrganizerId, $institutionOptions);
 
         return [
             'institution_options' => $institutionOptions,
@@ -50,10 +51,9 @@ class ResolveAdvancedBuilderContextAction
                 'timezone' => 'Asia/Kuala_Lumpur',
                 'program_starts_at' => now('Asia/Kuala_Lumpur')->addDays(2)->setTime(20, 0)->format('Y-m-d\TH:i'),
                 'program_ends_at' => now('Asia/Kuala_Lumpur')->addDays(30)->setTime(22, 0)->format('Y-m-d\TH:i'),
-                'organizer_type' => $defaultOrganizerType,
-                'organizer_id' => $defaultOrganizerId,
-                'location_institution_id' => $defaultOrganizerType === 'institution'
-                    ? $defaultOrganizerId
+                'primary_organizer_id' => $defaultPrimaryOrganizerId,
+                'location_institution_id' => $defaultPrimaryOrganizerIsInstitution
+                    ? $defaultPrimaryOrganizerId
                     : ($preferredInstitutionId ?: array_key_first($institutionOptions)),
                 'default_event_type' => EventType::KuliahCeramah->value,
                 'default_event_format' => EventFormat::Physical->value,

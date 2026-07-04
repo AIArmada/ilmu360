@@ -104,11 +104,12 @@ it('uses the registered check-in path when the user already has a registration',
         'registration_closes_at' => now()->addDay(),
     ]);
 
-    $registration = Registration::factory()->create([
-        'event_id' => $event->id,
-        'user_id' => $user->id,
-        'status' => 'registered',
-    ]);
+    $registration = Registration::factory()
+        ->forRegistrant($user)
+        ->create([
+            'event_id' => $event->id,
+            'status' => 'confirmed',
+        ]);
 
     Sanctum::actingAs($user);
 

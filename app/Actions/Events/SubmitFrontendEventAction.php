@@ -2,8 +2,9 @@
 
 namespace App\Actions\Events;
 
-use App\Enums\ContactCategory;
-use App\Enums\ContactType;
+use AIArmada\Events\Enums\RegistrationMode;
+use AIArmada\Contacting\Enums\ContactMethodType;
+use AIArmada\Contacting\Enums\ContactPurpose;
 use App\Enums\DawahShareOutcomeType;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
@@ -12,10 +13,8 @@ use App\Enums\EventPrayerTime;
 use App\Enums\EventStructure;
 use App\Enums\EventType;
 use App\Enums\EventVisibility;
-use App\Enums\RegistrationMode;
 use App\Enums\TagType;
 use App\Models\Event;
-use App\Models\EventSettings;
 use App\Models\EventSubmission;
 use App\Models\Institution;
 use App\Models\Speaker;
@@ -26,7 +25,7 @@ use App\Services\EventKeyPersonSyncService;
 use App\Services\ModerationService;
 use App\Services\ShareTrackingService;
 use App\States\EventStatus\Pending;
-use App\Support\Location\PublicCountryRegistry;
+use App\Support\Location\AddressingCountryResolver;
 use App\Support\Submission\EntitySubmissionAccess;
 use BackedEnum;
 use Illuminate\Http\Request;
@@ -120,7 +119,10 @@ class SubmitFrontendEventAction
             ]);
         }
 
-        [$organizerType, $organizerId, $targetInstitutionId, $targetVenueId] = $this->resolveOrganizerAndLocation($validated);
+        [$primaryOrganizer, $targetInstitutionId, $targetVenueId] = $this->resolveOrganizerAndLocation(
+            $validated,
+            $validationKeyPrefix,
+        );
 
         $prayerTime = $prayerTimeRaw instanceof EventPrayerTime
             ? $prayerTimeRaw
@@ -144,13 +146,9 @@ class SubmitFrontendEventAction
             is_array($validated['speakers'] ?? null) ? $validated['speakers'] : [],
         );
 
-        if (
-            $speakerSlugSegments === []
-            && ($validated['organizer_type'] ?? null) === 'speaker'
-            && filled($validated['organizer_speaker_id'] ?? null)
-        ) {
+        if ($speakerSlugSegments === [] && $primaryOrganizer instanceof Speaker) {
             $speakerSlugSegments = app(GenerateEventSlugAction::class)->speakerSlugSegmentsForSpeakerIds([
-                (string) $validated['organizer_speaker_id'],
+                (string) $primaryOrganizer->getKey(),
             ]);
         }
 
@@ -181,14 +179,14 @@ class SubmitFrontendEventAction
             'prayer_reference' => $prayerReference?->value,
             'prayer_offset' => $prayerOffset?->value,
             'prayer_display_text' => $prayerDisplayText,
-            'organizer_type' => $organizerType,
-            'organizer_id' => $organizerId,
             'event_format' => $validated['event_format'] ?? EventFormat::Physical->value,
             'event_url' => $validated['event_url'] ?? null,
             'live_url' => $validated['live_url'] ?? null,
             'visibility' => $validated['visibility'] ?? EventVisibility::Public->value,
             'submitter_id' => $submitter?->getKey(),
         ], $autoApproved ? ['status' => 'pending'] : []));
+
+        $event->setPrimaryOrganizer($primaryOrganizer);
 
         if (! empty($validated['space_id']) && ! empty($event->institution_id)) {
             $institution = Institution::query()->find($event->institution_id);
@@ -219,6 +217,8 @@ class SubmitFrontendEventAction
 
         $submission = EventSubmission::query()->create([
             'event_id' => $event->getKey(),
+            'status' => 'pending',
+            'submitted_at' => now(),
             'submitter_name' => $validated['submitter_name'] ?? $submitter?->name,
             'submitted_by' => $submitter?->getKey(),
             'notes' => $validated['notes'] ?? null,
@@ -268,8 +268,9 @@ class SubmitFrontendEventAction
             return $validated;
         }
 
-        $validated['organizer_type'] = 'institution';
-        $validated['organizer_institution_id'] = $scopedInstitution->getKey();
+        $validated['primary_organizer_id'] = $scopedInstitution->getKey();
+        $validated['primary_organizer_kind'] = 'institution';
+        $validated['primary_organizer_institution_id'] = $scopedInstitution->getKey();
         $validated['location_same_as_institution'] = (bool) ($validated['location_same_as_institution'] ?? true);
 
         if ($this->normalizeEnumValue($validated['event_format'] ?? null, EventFormat::Physical->value) === EventFormat::Online->value) {
@@ -306,19 +307,13 @@ class SubmitFrontendEventAction
     private function assertConditionalRequirements(array $validated, string $validationKeyPrefix): void
     {
         $eventFormat = $this->normalizeEnumValue($validated['event_format'] ?? null, EventFormat::Physical->value);
-        $organizerType = (string) ($validated['organizer_type'] ?? '');
+        $organizerType = $this->resolvePrimaryOrganizerKind($validated['primary_organizer_id'] ?? null);
         $sameAsInstitution = (bool) ($validated['location_same_as_institution'] ?? true);
         $locationType = (string) ($validated['location_type'] ?? '');
 
-        if ($organizerType === 'institution' && ! filled($validated['organizer_institution_id'] ?? null)) {
+        if ($organizerType === null) {
             throw ValidationException::withMessages([
-                $this->validationKey('organizer_institution_id', $validationKeyPrefix) => __('Sila pilih institusi penganjur.'),
-            ]);
-        }
-
-        if ($organizerType === 'speaker' && ! filled($validated['organizer_speaker_id'] ?? null)) {
-            throw ValidationException::withMessages([
-                $this->validationKey('organizer_speaker_id', $validationKeyPrefix) => __('Sila pilih penceramah penganjur.'),
+                $this->validationKey('primary_organizer_id', $validationKeyPrefix) => __('Sila pilih penganjur utama.'),
             ]);
         }
 
@@ -356,20 +351,19 @@ class SubmitFrontendEventAction
      */
     private function assertSubmissionEntitiesAreAccessible(array $validated, ?User $submitter, string $validationKeyPrefix = ''): void
     {
-        $organizerType = $validated['organizer_type'] ?? null;
-        $organizerInstitutionId = (string) ($validated['organizer_institution_id'] ?? '');
-        $organizerSpeakerId = (string) ($validated['organizer_speaker_id'] ?? '');
+        $organizerType = $this->resolvePrimaryOrganizerKind($validated['primary_organizer_id'] ?? null);
+        $primaryOrganizerId = (string) ($validated['primary_organizer_id'] ?? '');
         $locationInstitutionId = (string) ($validated['location_institution_id'] ?? '');
 
-        if ($organizerType === 'institution' && $organizerInstitutionId !== '' && ! $this->entitySubmissionAccess->canUseInstitution($submitter, $organizerInstitutionId)) {
+        if ($organizerType === 'institution' && $primaryOrganizerId !== '' && ! $this->entitySubmissionAccess->canUseInstitution($submitter, $primaryOrganizerId)) {
             throw ValidationException::withMessages([
-                $this->validationKey('organizer_institution_id', $validationKeyPrefix) => __('Anda tidak dibenarkan memilih institusi ini untuk penghantaran majlis.'),
+                $this->validationKey('primary_organizer_id', $validationKeyPrefix) => __('Anda tidak dibenarkan memilih institusi ini untuk penghantaran majlis.'),
             ]);
         }
 
-        if ($organizerType === 'speaker' && $organizerSpeakerId !== '' && ! $this->entitySubmissionAccess->canUseSpeaker($submitter, $organizerSpeakerId)) {
+        if ($organizerType === 'speaker' && $primaryOrganizerId !== '' && ! $this->entitySubmissionAccess->canUseSpeaker($submitter, $primaryOrganizerId)) {
             throw ValidationException::withMessages([
-                $this->validationKey('organizer_speaker_id', $validationKeyPrefix) => __('Anda tidak dibenarkan memilih penceramah ini untuk penghantaran majlis.'),
+                $this->validationKey('primary_organizer_id', $validationKeyPrefix) => __('Anda tidak dibenarkan memilih penceramah ini untuk penghantaran majlis.'),
             ]);
         }
 
@@ -427,7 +421,7 @@ class SubmitFrontendEventAction
     }
 
     /**
-     * @param  array{event_date: string, prayer_time: string|EventPrayerTime, custom_time?: string|null, submission_country_id?: int|string|null, timezone?: string|null}  $validated
+     * @param  array{event_date: string, prayer_time: string|EventPrayerTime, custom_time?: string|null, submission_country_id?: string|null, timezone?: string|null}  $validated
      */
     private function resolveStartsAt(array $validated): Carbon
     {
@@ -509,7 +503,7 @@ class SubmitFrontendEventAction
 
     private function isRamadhan(Carbon $date, ?string $timezone = null): bool
     {
-        $timezone ??= $this->resolveSubmissionTimezone([]);
+        $timezone ??= config('app.timezone', 'UTC');
         $year = $date->year;
         $ramadhanPeriods = [
             2026 => ['start' => '02-18', 'end' => '03-19'],
@@ -530,7 +524,7 @@ class SubmitFrontendEventAction
         return $date->between($startDate, $endDate);
     }
 
-    /** @param  array{submission_country_id?: int|string|null}  $validated */
+    /** @param  array{submission_country_id?: string|null}  $validated */
     private function assertValidSubmissionCountryId(array $validated, string $validationKeyPrefix): void
     {
         if (! $this->submissionCountryInputProvided($validated)) {
@@ -548,12 +542,12 @@ class SubmitFrontendEventAction
         ]);
     }
 
-    /** @param  array{submission_country_id?: int|string|null}  $validated */
-    private function resolveSubmissionCountryId(array $validated): int
+    /** @param  array{submission_country_id?: string|null}  $validated */
+    private function resolveSubmissionCountryId(array $validated): string
     {
         $normalizedCountryId = $this->normalizedSubmissionCountryId($validated);
 
-        if (is_int($normalizedCountryId)) {
+        if (is_string($normalizedCountryId)) {
             return $normalizedCountryId;
         }
 
@@ -562,35 +556,42 @@ class SubmitFrontendEventAction
         ]);
     }
 
-    /** @param  array{submission_country_id?: int|string|null}  $validated */
-    private function resolveSubmissionTimezone(array $validated, ?int $submissionCountryId = null): string
+    /** @param  array{submission_country_id?: string|null}  $validated */
+    private function resolveSubmissionTimezone(array $validated, ?string $submissionCountryId = null): string
     {
         $resolvedCountryId = $submissionCountryId ?? $this->resolveSubmissionCountryId($validated);
 
-        return app(PublicCountryRegistry::class)->defaultTimezoneForCountryId($resolvedCountryId);
+        return app(AddressingCountryResolver::class)->timezoneFor($resolvedCountryId)
+            ?? config('app.timezone', 'UTC');
     }
 
-    /** @param  array{submission_country_id?: int|string|null}  $validated */
+    /** @param  array{submission_country_id?: string|null}  $validated */
     private function submissionCountryInputProvided(array $validated): bool
     {
         $value = $validated['submission_country_id'] ?? null;
 
-        if (is_int($value)) {
-            return true;
-        }
-
         return is_string($value) && trim($value) !== '';
     }
 
-    /** @param  array{submission_country_id?: int|string|null}  $validated */
-    private function normalizedSubmissionCountryId(array $validated): ?int
+    /** @param  array{submission_country_id?: string|null}  $validated */
+    private function normalizedSubmissionCountryId(array $validated): ?string
     {
-        return app(PublicCountryRegistry::class)->resolveCountryId(
-            $validated['submission_country_id'] ?? null,
-            null,
-            null,
-            enabledOnly: true,
-        );
+        $resolvedCountryId = app(AddressingCountryResolver::class)->resolveId($validated['submission_country_id'] ?? null);
+
+        if (is_string($resolvedCountryId)) {
+            return $resolvedCountryId;
+        }
+
+        if (! $this->submissionCountryInputProvided($validated)) {
+            return $this->defaultSubmissionCountryId();
+        }
+
+        return null;
+    }
+
+    private function defaultSubmissionCountryId(): ?string
+    {
+        return app(AddressingCountryResolver::class)->resolveId('MY');
     }
 
     /**
@@ -604,21 +605,21 @@ class SubmitFrontendEventAction
 
         if (filled($email)) {
             $submission->contacts()->create([
-                'type' => ContactType::Main->value,
-                'category' => ContactCategory::Email->value,
+                'type' => ContactMethodType::Email->value,
+                'purpose' => ContactPurpose::General->value,
                 'value' => $email,
                 'is_public' => false,
-                'order_column' => $order++,
+                'sort_order' => $order++,
             ]);
         }
 
         if (filled($phone)) {
             $submission->contacts()->create([
-                'type' => ContactType::Main->value,
-                'category' => ContactCategory::Phone->value,
+                'type' => ContactMethodType::Phone->value,
+                'purpose' => ContactPurpose::General->value,
                 'value' => $phone,
                 'is_public' => false,
-                'order_column' => $order++,
+                'sort_order' => $order++,
             ]);
         }
     }
@@ -634,40 +635,51 @@ class SubmitFrontendEventAction
 
     private function persistRegistrationSettings(Event $event, ?Event $parentEvent): void
     {
-        if ($parentEvent instanceof Event && $parentEvent->settings !== null) {
-            $registrationMode = $parentEvent->settings->registration_mode;
-            $resolvedRegistrationMode = $registrationMode instanceof RegistrationMode
-                ? $registrationMode->value
-                : (is_string($registrationMode) && $registrationMode !== '' ? $registrationMode : RegistrationMode::Event->value);
+        if ($parentEvent instanceof Event && $parentEvent->accessPolicy !== null) {
+            $resolvedRegistrationMode = $parentEvent->resolvedRegistrationMode();
 
-            EventSettings::query()->updateOrCreate(
+            $event->forceFill([
+                'registration_mode' => $resolvedRegistrationMode->value,
+            ])->save();
+
+            $event->accessPolicy()->updateOrCreate(
                 ['event_id' => $event->getKey()],
                 [
-                    'registration_required' => (bool) $parentEvent->settings->registration_required,
-                    'registration_mode' => $resolvedRegistrationMode,
+                    'registration_required' => (bool) $parentEvent->accessPolicy->registration_required,
+                    'walk_in_allowed' => ! $parentEvent->accessPolicy->registration_required,
                 ],
             );
 
             return;
         }
 
-        EventSettings::query()->updateOrCreate(
+        $event->forceFill([
+            'registration_mode' => RegistrationMode::None->value,
+        ])->save();
+
+        $event->accessPolicy()->updateOrCreate(
             ['event_id' => $event->getKey()],
             [
                 'registration_required' => false,
-                'registration_mode' => RegistrationMode::Event->value,
+                'walk_in_allowed' => true,
             ],
         );
     }
 
     /**
      * @param  array<string, mixed>  $validated
-     * @return array{0: string|null, 1: string|null, 2: string|null, 3: string|null}
+     * @return array{0: Institution|Speaker, 1: string|null, 2: string|null}
      */
-    private function resolveOrganizerAndLocation(array $validated): array
+    private function resolveOrganizerAndLocation(array $validated, string $validationKeyPrefix = ''): array
     {
-        $organizerType = null;
-        $organizerId = null;
+        $primaryOrganizer = $this->resolvePrimaryOrganizer($validated['primary_organizer_id'] ?? null);
+
+        if (! $primaryOrganizer instanceof Institution && ! $primaryOrganizer instanceof Speaker) {
+            throw ValidationException::withMessages([
+                $this->validationKey('primary_organizer_id', $validationKeyPrefix) => __('Sila pilih penganjur utama.'),
+            ]);
+        }
+
         $targetInstitutionId = null;
         $targetVenueId = null;
         $locationType = $validated['location_type'] ?? 'institution';
@@ -680,21 +692,15 @@ class SubmitFrontendEventAction
             $locationInstitutionId = null;
         }
 
-        if (($validated['organizer_type'] ?? null) === 'institution' && ! empty($validated['organizer_institution_id'])) {
-            $organizerType = Institution::class;
-            $organizerId = $validated['organizer_institution_id'];
-
+        if ($primaryOrganizer instanceof Institution) {
             if (($validated['location_same_as_institution'] ?? true) == true) {
-                $targetInstitutionId = $validated['organizer_institution_id'];
+                $targetInstitutionId = (string) $primaryOrganizer->getKey();
             } elseif (($validated['location_type'] ?? null) === 'institution') {
                 $targetInstitutionId = $validated['location_institution_id'] ?? null;
             } else {
                 $targetVenueId = $validated['location_venue_id'] ?? null;
             }
-        } elseif (($validated['organizer_type'] ?? null) === 'speaker' && ! empty($validated['organizer_speaker_id'])) {
-            $organizerType = Speaker::class;
-            $organizerId = $validated['organizer_speaker_id'];
-
+        } else {
             if ($locationInstitutionId) {
                 $targetInstitutionId = $locationInstitutionId;
             } elseif ($venueId) {
@@ -702,7 +708,30 @@ class SubmitFrontendEventAction
             }
         }
 
-        return [$organizerType, $organizerId, $targetInstitutionId, $targetVenueId];
+        return [$primaryOrganizer, $targetInstitutionId, $targetVenueId];
+    }
+
+    private function resolvePrimaryOrganizer(mixed $primaryOrganizerId): Institution|Speaker|null
+    {
+        $organizerId = is_string($primaryOrganizerId) ? trim($primaryOrganizerId) : '';
+
+        if ($organizerId === '') {
+            return null;
+        }
+
+        return Institution::query()->find($organizerId)
+            ?? Speaker::query()->find($organizerId);
+    }
+
+    private function resolvePrimaryOrganizerKind(mixed $primaryOrganizerId): ?string
+    {
+        $organizer = $this->resolvePrimaryOrganizer($primaryOrganizerId);
+
+        return match (true) {
+            $organizer instanceof Institution => 'institution',
+            $organizer instanceof Speaker => 'speaker',
+            default => null,
+        };
     }
 
     /**

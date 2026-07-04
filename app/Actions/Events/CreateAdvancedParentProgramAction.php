@@ -2,6 +2,7 @@
 
 namespace App\Actions\Events;
 
+use AIArmada\Events\Enums\RegistrationMode;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Speaker;
@@ -23,14 +24,12 @@ class CreateAdvancedParentProgramAction
         Carbon $programStartsAt,
         Carbon $programEndsAt,
         string $timezone,
-        string $organizerType,
-        string $organizerId,
+        Institution|Speaker $primaryOrganizer,
         ?string $locationInstitutionId,
     ): Event {
-        return DB::transaction(function () use ($user, $form, $programStartsAt, $programEndsAt, $timezone, $organizerType, $organizerId, $locationInstitutionId): Event {
-            $organizerMorphClass = $this->organizerMorphClass($organizerType);
-            $speakerSlugSegments = $organizerMorphClass === Speaker::class
-                ? app(GenerateEventSlugAction::class)->speakerSlugSegmentsForSpeakerIds([$organizerId])
+        return DB::transaction(function () use ($user, $form, $programStartsAt, $programEndsAt, $timezone, $primaryOrganizer, $locationInstitutionId): Event {
+            $speakerSlugSegments = $primaryOrganizer instanceof Speaker
+                ? app(GenerateEventSlugAction::class)->speakerSlugSegmentsForSpeakerIds([(string) $primaryOrganizer->getKey()])
                 : [];
 
             $parentEvent = Event::query()->create([
@@ -51,28 +50,26 @@ class CreateAdvancedParentProgramAction
                 'ends_at' => $programEndsAt,
                 'timezone' => $timezone,
                 'institution_id' => $locationInstitutionId,
-                'organizer_type' => $organizerMorphClass,
-                'organizer_id' => $organizerId,
                 'event_type' => [(string) $form['default_event_type']],
                 'event_format' => (string) $form['default_event_format'],
                 'visibility' => (string) $form['visibility'],
+                'registration_mode' => ! empty($form['registration_required'])
+                    ? RegistrationMode::Required->value
+                    : RegistrationMode::None->value,
                 'schedule_kind' => 'single',
                 'schedule_state' => 'active',
                 'status' => 'draft',
                 'is_active' => true,
             ]);
 
-            $parentEvent->settings()->create([
+            $parentEvent->accessPolicy()->create([
                 'registration_required' => (bool) $form['registration_required'],
-                'registration_mode' => (string) $form['registration_mode'],
+                'walk_in_allowed' => ! (bool) $form['registration_required'],
             ]);
+
+            $parentEvent->setPrimaryOrganizer($primaryOrganizer);
 
             return $parentEvent;
         });
-    }
-
-    private function organizerMorphClass(string $organizerType): string
-    {
-        return $organizerType === 'institution' ? Institution::class : Speaker::class;
     }
 }

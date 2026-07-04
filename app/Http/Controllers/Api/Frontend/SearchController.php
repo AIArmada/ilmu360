@@ -213,10 +213,10 @@ class SearchController extends FrontendController
     #[QueryParameter('radius_km', 'Nearby search radius in kilometers. Values are clamped from 1 to 100 and default to 15 when `lat` and `lng` are present.', required: false, type: 'integer', infer: false, default: 15, example: 15)]
     #[QueryParameter('fields', 'Optional comma-separated top-level list fields to return. Supported fields: id, slug, name, type, nickname, display_name, events_count, public_image_url, logo_url, cover_url, country, location, distance_km, is_following.', required: false, type: 'string', infer: false, example: 'id,name,location')]
     #[QueryParameter('type', 'Optional institution type filter.', required: false, type: 'string', infer: false, example: 'masjid')]
-    #[QueryParameter('country_id', 'Optional country filter.', required: false, type: 'integer', infer: false, example: 132)]
-    #[QueryParameter('state_id', 'Optional state filter.', required: false, type: 'integer', infer: false, example: 14)]
-    #[QueryParameter('district_id', 'Optional district filter.', required: false, type: 'integer', infer: false, example: 103)]
-    #[QueryParameter('subdistrict_id', 'Optional subdistrict filter.', required: false, type: 'integer', infer: false, example: 1201)]
+    #[QueryParameter('country_id', 'Optional package address country UUID filter.', required: false, type: 'string', infer: false, example: '019d0000-0000-7000-8000-000000000000')]
+    #[QueryParameter('state_id', 'Optional package address area level-1 UUID filter.', required: false, type: 'string', infer: false, example: '019d0000-0000-7000-8000-000000000001')]
+    #[QueryParameter('district_id', 'Optional package address area level-2 UUID filter.', required: false, type: 'string', infer: false, example: '019d0000-0000-7000-8000-000000000002')]
+    #[QueryParameter('subdistrict_id', 'Optional package address area level-3 UUID filter.', required: false, type: 'string', infer: false, example: '019d0000-0000-7000-8000-000000000003')]
     #[QueryParameter('following', 'When authenticated, restrict results to institutions followed by the current user.', required: false, type: 'boolean', infer: false, example: false)]
     #[QueryParameter('page', 'Pagination page number.', required: false, type: 'integer', infer: false, default: 1, example: 1)]
     #[QueryParameter('per_page', 'Pagination page size. Values are clamped to the server-supported maximum.', required: false, type: 'integer', infer: false, default: 12, example: 12)]
@@ -232,9 +232,9 @@ class SearchController extends FrontendController
         $requestedFields = $this->searchRequestNormalizer->requestedFields($request, self::INSTITUTION_LIST_FIELDS, 'institution');
         $institutionType = $this->searchRequestNormalizer->normalizedInstitutionType($request->query('type'));
         $countryId = $this->searchRequestNormalizer->requestedCountryId($request);
-        $stateId = $this->searchRequestNormalizer->normalizedInt($request->query('state_id'));
-        $districtId = $this->searchRequestNormalizer->normalizedInt($request->query('district_id'));
-        $subdistrictId = $this->searchRequestNormalizer->normalizedInt($request->query('subdistrict_id'));
+        $stateId = $this->searchRequestNormalizer->normalizedUuid($request->query('state_id'));
+        $districtId = $this->searchRequestNormalizer->normalizedUuid($request->query('district_id'));
+        $subdistrictId = $this->searchRequestNormalizer->normalizedUuid($request->query('subdistrict_id'));
         $coordinates = $this->searchRequestNormalizer->resolvedNearbyCoordinates($request);
         $lat = $coordinates['lat'];
         $lng = $coordinates['lng'];
@@ -349,9 +349,9 @@ class SearchController extends FrontendController
         $directorySeed = $this->searchRequestNormalizer->normalizedString($request->query('directory_seed'));
         $perPage = ApiPagination::normalizePerPage($request->integer('per_page', 12), default: 12, max: 50);
         $countryId = $this->searchRequestNormalizer->requestedCountryId($request);
-        $stateId = $this->searchRequestNormalizer->normalizedInt($request->query('state_id'));
-        $districtId = $this->searchRequestNormalizer->normalizedInt($request->query('district_id'));
-        $subdistrictId = $this->searchRequestNormalizer->normalizedInt($request->query('subdistrict_id'));
+        $stateId = $this->searchRequestNormalizer->normalizedUuid($request->query('state_id'));
+        $districtId = $this->searchRequestNormalizer->normalizedUuid($request->query('district_id'));
+        $subdistrictId = $this->searchRequestNormalizer->normalizedUuid($request->query('subdistrict_id'));
         $gender = in_array($request->query('gender'), ['male', 'female'], true)
             ? $request->query('gender')
             : null;
@@ -449,11 +449,7 @@ class SearchController extends FrontendController
         $record = Institution::query()
             ->with([
                 'media',
-                'address.state',
-                'address.city',
-                'address.district',
-                'address.subdistrict',
-                'address.country',
+                'addresses.country',
                 'contacts',
                 'socialMedia',
                 'donationChannels.media',
@@ -469,20 +465,20 @@ class SearchController extends FrontendController
 
         $upcomingPerPage = max(1, min($request->integer('upcoming_per_page', 6), 50));
         $upcomingEvents = $this->limitedEventPayloadWithTotal(
-            $record->events()
+            $this->institutionEventsQuery($record)
                 ->active()
                 ->where('starts_at', '>=', $now)
-                ->with(['institution.media', 'venue.address.state', 'venue.address.district', 'venue.address.subdistrict', 'speakers.media', 'keyPeople.speaker', 'media', 'references'])
+                ->with(['institution.media', 'venue.addresses.country', 'speakers.media', 'keyPeople.speaker', 'media', 'references'])
                 ->orderBy('starts_at'),
             $upcomingPerPage,
         );
 
         $pastPerPage = max(1, min($request->integer('past_per_page', 6), 50));
         $pastEvents = $this->limitedEventPayloadWithTotal(
-            $record->events()
+            $this->institutionEventsQuery($record)
                 ->active()
                 ->where('starts_at', '<', $now)
-                ->with(['institution.media', 'venue.address.state', 'venue.address.district', 'venue.address.subdistrict', 'speakers.media', 'keyPeople.speaker', 'media', 'references'])
+                ->with(['institution.media', 'venue.addresses.country', 'speakers.media', 'keyPeople.speaker', 'media', 'references'])
                 ->orderByDesc('starts_at'),
             $pastPerPage,
         );
@@ -517,11 +513,7 @@ class SearchController extends FrontendController
                 'media',
                 'contacts',
                 'socialMedia',
-                'address.state',
-                'address.city',
-                'address.district',
-                'address.subdistrict',
-                'address.country',
+                'addresses.country',
                 'institutions' => fn ($query) => $query->orderByPivot('is_primary', 'desc')->limit(3),
                 'institutions.media',
             ])
@@ -543,12 +535,8 @@ class SearchController extends FrontendController
             ->with([
                 'event.institution',
                 'event.institution.media',
-                'event.institution.address.state',
-                'event.institution.address.district',
-                'event.institution.address.subdistrict',
-                'event.venue.address.state',
-                'event.venue.address.district',
-                'event.venue.address.subdistrict',
+                'event.institution.addresses.country',
+                'event.venue.addresses.country',
                 'event.media',
                 'event.references',
             ])
@@ -576,12 +564,8 @@ class SearchController extends FrontendController
             ->with([
                 'event.institution',
                 'event.institution.media',
-                'event.institution.address.state',
-                'event.institution.address.district',
-                'event.institution.address.subdistrict',
-                'event.venue.address.state',
-                'event.venue.address.district',
-                'event.venue.address.subdistrict',
+                'event.institution.addresses.country',
+                'event.venue.addresses.country',
                 'event.media',
                 'event.references',
             ])
@@ -601,7 +585,7 @@ class SearchController extends FrontendController
             $record->speakerEvents()
                 ->active()
                 ->where('starts_at', '>=', $now)
-                ->with(['institution', 'institution.media', 'institution.address.state', 'institution.address.district', 'institution.address.subdistrict', 'venue.address.state', 'venue.address.district', 'venue.address.subdistrict', 'media', 'references'])
+                ->with(['institution', 'institution.media', 'institution.addresses.country', 'venue.addresses.country', 'media', 'references'])
                 ->orderBy('starts_at'),
             $upcomingPerPage,
         );
@@ -611,7 +595,7 @@ class SearchController extends FrontendController
             $record->speakerEvents()
                 ->active()
                 ->where('starts_at', '<', $now)
-                ->with(['institution', 'institution.media', 'institution.address.state', 'institution.address.district', 'institution.address.subdistrict', 'venue.address.state', 'venue.address.district', 'venue.address.subdistrict', 'media', 'references'])
+                ->with(['institution', 'institution.media', 'institution.addresses.country', 'venue.addresses.country', 'media', 'references'])
                 ->orderByDesc('starts_at'),
             $pastPerPage,
         );
@@ -649,11 +633,7 @@ class SearchController extends FrontendController
         $record = Venue::query()
             ->with([
                 'media',
-                'address.state',
-                'address.city',
-                'address.district',
-                'address.subdistrict',
-                'address.country',
+                'addresses.country',
                 'contacts',
                 'socialMedia',
             ])
@@ -671,9 +651,7 @@ class SearchController extends FrontendController
                 ->where('starts_at', '>=', $now)
                 ->with([
                     'institution.media',
-                    'institution.address.state',
-                    'institution.address.district',
-                    'institution.address.subdistrict',
+                    'institution.addresses.country',
                     'speakers.media',
                     'keyPeople.speaker.media',
                     'media',
@@ -690,9 +668,7 @@ class SearchController extends FrontendController
                 ->where('starts_at', '<', $now)
                 ->with([
                     'institution.media',
-                    'institution.address.state',
-                    'institution.address.district',
-                    'institution.address.subdistrict',
+                    'institution.addresses.country',
                     'speakers.media',
                     'keyPeople.speaker.media',
                     'media',
@@ -808,13 +784,9 @@ class SearchController extends FrontendController
                 ->with([
                     'institution',
                     'institution.media',
-                    'institution.address.state',
-                    'institution.address.district',
-                    'institution.address.subdistrict',
+                    'institution.addresses.country',
                     'speakers.media',
-                    'venue.address.state',
-                    'venue.address.district',
-                    'venue.address.subdistrict',
+                    'venue.addresses.country',
                     'media',
                 ])
                 ->orderBy('starts_at', 'asc'),
@@ -832,13 +804,9 @@ class SearchController extends FrontendController
                 ->with([
                     'institution',
                     'institution.media',
-                    'institution.address.state',
-                    'institution.address.district',
-                    'institution.address.subdistrict',
+                    'institution.addresses.country',
                     'speakers.media',
-                    'venue.address.state',
-                    'venue.address.district',
-                    'venue.address.subdistrict',
+                    'venue.addresses.country',
                     'media',
                 ])
                 ->orderByDesc('starts_at'),
@@ -869,7 +837,7 @@ class SearchController extends FrontendController
 
         $record = Series::query()
             ->with(['media'])
-            ->tap(fn (Builder $query): Builder => $this->slugOrUuidResolver->apply($query, 'series.slug', $series))
+            ->tap(fn (Builder $query): Builder => $this->slugOrUuidResolver->apply($query, (new Series)->getTable().'.slug', $series))
             ->firstOrFail();
 
         if ($record->visibility !== 'public' && ! $canBypassVisibility) {
@@ -883,12 +851,8 @@ class SearchController extends FrontendController
                 ->where('starts_at', '>=', $now)
                 ->with([
                     'institution',
-                    'institution.address.state',
-                    'institution.address.district',
-                    'institution.address.subdistrict',
-                    'venue.address.state',
-                    'venue.address.district',
-                    'venue.address.subdistrict',
+                    'institution.addresses.country',
+                    'venue.addresses.country',
                     'media',
                 ])
                 ->orderBy('starts_at', 'asc'),
@@ -902,12 +866,8 @@ class SearchController extends FrontendController
                 ->where('starts_at', '<', $now)
                 ->with([
                     'institution',
-                    'institution.address.state',
-                    'institution.address.district',
-                    'institution.address.subdistrict',
-                    'venue.address.state',
-                    'venue.address.district',
-                    'venue.address.subdistrict',
+                    'institution.addresses.country',
+                    'venue.addresses.country',
                     'media',
                 ])
                 ->orderByDesc('starts_at'),
@@ -968,17 +928,11 @@ class SearchController extends FrontendController
     private function aggregateInstitutionSearchItemsQuery(array $institutionIds = []): Builder
     {
         $query = Institution::query()
+            ->select('institutions.*')
             ->active()
             ->where('status', 'verified')
-            ->withCount(['events' => function (Builder $query): void {
-                $query
-                    ->where('events.is_active', true)
-                    ->whereIn('events.status', Event::PUBLIC_STATUSES)
-                    ->where('events.visibility', EventVisibility::Public)
-                    ->where('events.event_structure', '!=', EventStructure::ParentProgram->value)
-                    ->where('events.starts_at', '>=', now());
-            }])
-            ->with(['address.country', 'address.state', 'address.district', 'address.subdistrict', 'media']);
+            ->selectSub($this->institutionPublicEventCountSubquery(upcomingOnly: true), 'events_count')
+            ->with(['addresses', 'media']);
 
         if ($institutionIds !== []) {
             $query->whereIn('institutions.id', $institutionIds);
@@ -992,33 +946,27 @@ class SearchController extends FrontendController
      */
     private function baseInstitutionQuery(
         ?InstitutionType $type = null,
-        ?int $countryId = null,
-        ?int $stateId = null,
-        ?int $districtId = null,
-        ?int $subdistrictId = null,
+        ?string $countryId = null,
+        ?string $stateId = null,
+        ?string $districtId = null,
+        ?string $subdistrictId = null,
         ?User $user = null,
     ): Builder {
-        $query = Institution::query();
+        $query = Institution::query()
+            ->select('institutions.*');
 
         if ($user instanceof User) {
-            $query->select('institutions.*')
-                ->selectRaw(
-                    'exists(select 1 from followings where followings.user_id = ? and followings.followable_id = institutions.id and followings.followable_type = ?) as is_following',
-                    [$user->id, (new Institution)->getMorphClass()],
-                );
+            $query->selectRaw(
+                'exists(select 1 from followings where followings.user_id = ? and followings.followable_id = institutions.id and followings.followable_type = ?) as is_following',
+                [$user->id, (new Institution)->getMorphClass()],
+            );
         }
 
         $query
             ->active()
             ->where('status', 'verified')
-            ->withCount(['events' => function (Builder $query): void {
-                $query
-                    ->where('events.is_active', true)
-                    ->whereIn('events.status', Event::PUBLIC_STATUSES)
-                    ->where('events.visibility', EventVisibility::Public)
-                    ->where('events.event_structure', '!=', EventStructure::ParentProgram->value);
-            }])
-            ->with(['address.country', 'address.state', 'address.district', 'address.subdistrict', 'media']);
+            ->selectSub($this->institutionPublicEventCountSubquery(), 'events_count')
+            ->with(['addresses', 'media']);
 
         if ($type instanceof InstitutionType) {
             $query->where('institutions.type', $type->value);
@@ -1046,27 +994,27 @@ class SearchController extends FrontendController
     /**
      * @param  Builder<Institution>  $query
      */
-    private function applyInstitutionLocationScope(Builder $query, ?int $countryId, ?int $stateId, ?int $districtId, ?int $subdistrictId): void
+    private function applyInstitutionLocationScope(Builder $query, ?string $countryId, ?string $stateId, ?string $districtId, ?string $subdistrictId): void
     {
         if ($countryId === null && $stateId === null && $districtId === null && $subdistrictId === null) {
             return;
         }
 
-        $query->whereHas('address', function (Builder $addressQuery) use ($countryId, $stateId, $districtId, $subdistrictId): void {
+        $query->whereHas('addresses', function (Builder $addressQuery) use ($countryId, $stateId, $districtId, $subdistrictId): void {
             if ($countryId !== null) {
                 $addressQuery->where('country_id', $countryId);
             }
 
             if ($stateId !== null) {
-                $addressQuery->where('state_id', $stateId);
+                $addressQuery->where('admin_area_1_id', $stateId);
             }
 
             if ($districtId !== null) {
-                $addressQuery->where('district_id', $districtId);
+                $addressQuery->where('admin_area_2_id', $districtId);
             }
 
             if ($subdistrictId !== null) {
-                $addressQuery->where('subdistrict_id', $subdistrictId);
+                $addressQuery->where('admin_area_3_id', $subdistrictId);
             }
         });
     }
@@ -1077,24 +1025,79 @@ class SearchController extends FrontendController
     private function applyInstitutionNearbyScope(Builder $query, float $lat, float $lng, int $radiusKm): void
     {
         $addressMorphType = (new Institution)->getMorphClass();
-        $distanceSql = '(6371 * acos(cos(radians(?)) * cos(radians(institution_addresses.lat)) * cos(radians(institution_addresses.lng) - radians(?)) + sin(radians(?)) * sin(radians(institution_addresses.lat))))';
+        $addressablesTable = config('addressing.tables.addressables', 'addressables');
+        $addressesTable = config('addressing.tables.addresses', 'addresses');
+        $distanceSql = '(6371 * acos(cos(radians(?)) * cos(radians(institution_addresses.latitude)) * cos(radians(institution_addresses.longitude) - radians(?)) + sin(radians(?)) * sin(radians(institution_addresses.latitude))))';
 
         if ($query->getQuery()->columns === null) {
             $query->select('institutions.*');
         }
 
         $query
-            ->join('addresses as institution_addresses', function ($join) use ($addressMorphType): void {
-                $join->on('institution_addresses.addressable_id', '=', 'institutions.id')
-                    ->where('institution_addresses.addressable_type', $addressMorphType);
+            ->join($addressablesTable.' as institution_addressables', function ($join) use ($addressMorphType): void {
+                $join->on('institution_addressables.addressable_id', '=', 'institutions.id')
+                    ->where('institution_addressables.addressable_type', $addressMorphType)
+                    ->where('institution_addressables.is_primary', true);
             })
-            ->whereRaw('institution_addresses.lat is not null')
-            ->whereRaw('institution_addresses.lng is not null')
+            ->join($addressesTable.' as institution_addresses', 'institution_addresses.id', '=', 'institution_addressables.address_id')
+            ->whereRaw('institution_addresses.latitude is not null')
+            ->whereRaw('institution_addresses.longitude is not null')
             ->selectRaw("{$distanceSql} as distance_km", [$lat, $lng, $lat])
             ->whereRaw("{$distanceSql} <= ?", [$lat, $lng, $lat, $radiusKm])
             ->orderBy('distance_km')
             ->orderBy('institutions.name')
             ->orderBy('institutions.id');
+    }
+
+    /**
+     * @return Builder<Event>
+     */
+    private function institutionEventsQuery(Institution $institution): Builder
+    {
+        return Event::query()->where('institution_id', (string) $institution->getKey());
+    }
+
+    /**
+     * @return Builder<Event>
+     */
+    private function institutionPublicEventCountSubquery(bool $upcomingOnly = false): Builder
+    {
+        $institutionIdExpression = $this->eventUuidMetadataSqlSelector('institution_id');
+        $query = Event::query()
+            ->selectRaw('count(*)')
+            ->whereRaw("{$institutionIdExpression} = institutions.id")
+            ->where('events.is_active', true)
+            ->whereIn('events.status', Event::PUBLIC_STATUSES)
+            ->where('events.visibility', EventVisibility::Public)
+            ->where('events.event_structure', '!=', EventStructure::ParentProgram->value);
+
+        if ($upcomingOnly) {
+            $query->where('events.starts_at', '>=', now());
+        }
+
+        return $query;
+    }
+
+    private function eventUuidMetadataSqlSelector(string $key): string
+    {
+        return match ($this->databaseDriver()) {
+            'pgsql' => "(events.metadata->>'{$key}')::uuid",
+            default => $this->eventMetadataSqlSelector($key),
+        };
+    }
+
+    private function eventMetadataSqlSelector(string $key): string
+    {
+        return match ($this->databaseDriver()) {
+            'pgsql' => "events.metadata->>'{$key}'",
+            'mysql', 'mariadb' => "json_unquote(json_extract(events.metadata, '$.\"{$key}\"'))",
+            default => "json_extract(events.metadata, '$.\"{$key}\"')",
+        };
+    }
+
+    private function databaseDriver(): string
+    {
+        return DB::connection()->getDriverName();
     }
 
     /**
@@ -1282,7 +1285,7 @@ class SearchController extends FrontendController
                     ->where('events.event_structure', '!=', EventStructure::ParentProgram->value)
                     ->where('events.starts_at', '>=', now());
             }])
-            ->with(['media', 'address.country']);
+            ->with(['media', 'addresses']);
     }
 
     /**
@@ -1362,27 +1365,27 @@ class SearchController extends FrontendController
     /**
      * @param  Builder<Speaker>  $query
      */
-    private function applySpeakerLocationScope(Builder $query, ?int $countryId, ?int $stateId, ?int $districtId, ?int $subdistrictId): void
+    private function applySpeakerLocationScope(Builder $query, ?string $countryId, ?string $stateId, ?string $districtId, ?string $subdistrictId): void
     {
         if ($countryId === null && $stateId === null && $districtId === null && $subdistrictId === null) {
             return;
         }
 
-        $query->whereHas('address', function (Builder $addressQuery) use ($countryId, $stateId, $districtId, $subdistrictId): void {
+        $query->whereHas('addresses', function (Builder $addressQuery) use ($countryId, $stateId, $districtId, $subdistrictId): void {
             if ($countryId !== null) {
                 $addressQuery->where('country_id', $countryId);
             }
 
             if ($stateId !== null) {
-                $addressQuery->where('state_id', $stateId);
+                $addressQuery->where('admin_area_1_id', $stateId);
             }
 
             if ($districtId !== null) {
-                $addressQuery->where('district_id', $districtId);
+                $addressQuery->where('admin_area_2_id', $districtId);
             }
 
             if ($subdistrictId !== null) {
-                $addressQuery->where('subdistrict_id', $subdistrictId);
+                $addressQuery->where('admin_area_3_id', $subdistrictId);
             }
         });
     }

@@ -1,5 +1,6 @@
 <?php
 
+use AIArmada\CommerceSupport\Models\Role;
 use App\Actions\Membership\AddMemberToSubject;
 use App\Models\Institution;
 use App\Models\User;
@@ -7,7 +8,6 @@ use App\Support\Mcp\McpTokenManager;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
-use Spatie\Permission\Models\Role;
 
 uses(RefreshDatabase::class);
 

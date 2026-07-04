@@ -33,16 +33,28 @@ class SeriesSeeder extends Seeder
                 for ($i = 0; $i < $count; $i++) {
                     $seriesToCreate[] = Series::factory()->make([
                         'visibility' => 'public',
-                    ])->toArray();
+                    ])->attributesToArray();
                 }
 
                 // Insert series in chunks
                 foreach (array_chunk($seriesToCreate, 100) as $chunk) {
-                    Series::insert(array_map(fn ($s) => array_merge($s, [
-                        'id' => (string) Str::uuid(),
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ]), $chunk));
+                    Series::insert(array_map(function ($series): array {
+                        unset($series['is_active']);
+
+                        if (is_array($series['metadata'] ?? null)) {
+                            $series['metadata'] = json_encode($series['metadata']);
+                        }
+
+                        if (is_array($series['dynamic_rule_json'] ?? null)) {
+                            $series['dynamic_rule_json'] = json_encode($series['dynamic_rule_json']);
+                        }
+
+                        return array_merge($series, [
+                            'id' => (string) Str::uuid(),
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+                    }, $chunk));
                 }
 
                 // Get created series IDs and attach languages

@@ -7,11 +7,9 @@ use App\Models\Space;
 use App\Models\Speaker;
 use App\Models\User;
 use App\Models\Venue;
-use App\Support\Location\PreferredCountryResolver;
 use Database\Seeders\EventSeeder;
 use Database\Seeders\TagSeeder;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 beforeEach(function () {
@@ -20,12 +18,14 @@ beforeEach(function () {
 
 function ensureEventSeederMalaysiaCountryExists(): void
 {
-    if (DB::table('countries')->where('id', PreferredCountryResolver::MALAYSIA_ID)->exists()) {
+    $malaysiaId = 132;
+
+    if (DB::table('countries')->where('id', $malaysiaId)->exists()) {
         return;
     }
 
     DB::table('countries')->insert([
-        'id' => PreferredCountryResolver::MALAYSIA_ID,
+        'id' => $malaysiaId,
         'iso2' => 'MY',
         'name' => 'Malaysia',
         'status' => 1,
@@ -47,17 +47,19 @@ it('seeds schedule events with required submit-event fields', function () {
     $expectedSuffix = Carbon::parse('2026-01-05', 'Asia/Kuala_Lumpur')->format('j-n-y');
 
     $event = Event::query()
-        ->where('slug', "dhuha-adab-iman-ust-mukhlisur-riyadus-my-{$expectedSuffix}")
+        ->where('slug', "dhuha-adab-iman-ust-mukhlisur-riyadus-{$expectedSuffix}")
         ->first();
 
     expect($event)->not->toBeNull();
 
     $ageGroup = $event?->age_group;
 
-    expect($ageGroup)->toBeInstanceOf(Collection::class)
-        ->and($ageGroup?->isNotEmpty())->toBeTrue()
-        ->and($event?->organizer_type)->toBeIn([Institution::class, Speaker::class])
-        ->and($event?->organizer_id)->not->toBeNull();
+    expect($ageGroup)->toBeArray()
+        ->and($ageGroup)->not->toBeEmpty();
+
+    $organizerInvolvement = $event?->primaryOrganizerInvolvement;
+    expect($organizerInvolvement?->involveable_type)->toBeIn([Institution::class, Speaker::class])
+        ->and($organizerInvolvement?->involveable_id)->not->toBeNull();
 
     $tagTypes = $event?->tags()->pluck('type')->unique()->values()->all() ?? [];
 
@@ -112,7 +114,7 @@ it('does not duplicate seeded schedule events when the seeder reruns', function 
         ->where('title', 'Dhuha: Adab Iman')
         ->where('starts_at', $startsAt)
         ->count())->toBe(1)
-        ->and(Event::query()->where('slug', "dhuha-adab-iman-ust-mukhlisur-riyadus-my-{$expectedSuffix}")->count())->toBe(1);
+        ->and(Event::query()->where('slug', "dhuha-adab-iman-ust-mukhlisur-riyadus-{$expectedSuffix}")->count())->toBe(1);
 });
 
 it('matches the original seeded schedule row after manual venue edits', function () {
@@ -144,7 +146,7 @@ it('matches the original seeded schedule row after manual venue edits', function
     $expectedSuffix = Carbon::parse('2026-01-05', 'Asia/Kuala_Lumpur')->format('j-n-y');
 
     expect($reloadedEvent)->toHaveCount(1)
-        ->and($reloadedEvent->first()?->slug)->toBe("dhuha-adab-iman-ust-mukhlisur-riyadus-my-{$expectedSuffix}")
+        ->and($reloadedEvent->first()?->slug)->toBe("dhuha-adab-iman-ust-mukhlisur-riyadus-{$expectedSuffix}")
         ->and($reloadedEvent->first()?->venue_id)->toBe($seededVenueId);
 });
 
@@ -170,7 +172,7 @@ it('does not overwrite unrelated events that share a schedule title and start ti
         ->where('starts_at', $startsAt)
         ->orderBy('id')
         ->get();
-    $seededEvent = $matchingEvents->firstWhere('slug', 'dhuha-adab-iman-ust-mukhlisur-riyadus-my-5-1-26');
+    $seededEvent = $matchingEvents->firstWhere('slug', 'dhuha-adab-iman-ust-mukhlisur-riyadus-5-1-26');
 
     expect($matchingEvents)->toHaveCount(2)
         ->and($unrelatedEvent->fresh()?->id)->toBe($unrelatedEvent->id)
@@ -205,8 +207,8 @@ it('re-canonicalizes reused schedule speaker slugs before rebuilding seeded even
 
     $this->seed(EventSeeder::class);
 
-    expect($speaker->fresh()?->slug)->toBe('ust-mukhlisur-riyadus-my')
-        ->and($event->fresh()?->slug)->toBe("dhuha-adab-iman-ust-mukhlisur-riyadus-my-{$expectedSuffix}");
+    expect($speaker->fresh()?->slug)->toBe('ust-mukhlisur-riyadus')
+        ->and($event->fresh()?->slug)->toBe("dhuha-adab-iman-ust-mukhlisur-riyadus-{$expectedSuffix}");
 });
 
 it('creates and then reuses a dedicated schedule speaker when duplicate-name speakers already exist', function () {
@@ -303,13 +305,16 @@ it('reuses the same dedicated speaker across repeated schedule rows in a fresh s
 
     $this->seed(EventSeeder::class);
 
+    $firstStartsAt = Carbon::parse('2026-01-19 10:00:00', 'Asia/Kuala_Lumpur')->utc();
+    $secondStartsAt = Carbon::parse('2026-01-26 10:00:00', 'Asia/Kuala_Lumpur')->utc();
+
     $firstEvent = Event::query()
         ->where('title', 'Dhuha: Berusrah Bersama')
-        ->whereDate('starts_at', '2026-01-19')
+        ->where('starts_at', $firstStartsAt)
         ->firstOrFail();
     $secondEvent = Event::query()
         ->where('title', 'Dhuha: Berusrah Bersama')
-        ->whereDate('starts_at', '2026-01-26')
+        ->where('starts_at', $secondStartsAt)
         ->firstOrFail();
 
     expect($firstEvent->speakers()->firstOrFail()->id)->toBe($secondEvent->speakers()->firstOrFail()->id)

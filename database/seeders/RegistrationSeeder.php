@@ -8,7 +8,6 @@ use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Str;
 
 class RegistrationSeeder extends Seeder
 {
@@ -41,7 +40,6 @@ class RegistrationSeeder extends Seeder
 
                 $users = User::query()->get($userColumns)->toArray();
 
-                $registrationsToInsert = [];
                 $eventCounts = [];
 
                 foreach ($events as $eventId) {
@@ -64,31 +62,30 @@ class RegistrationSeeder extends Seeder
                         }
                         $usedEmails[] = $email;
 
-                        $registrationsToInsert[] = array_merge(
-                            Registration::factory()->make([
-                                'event_id' => $eventId,
-                                'user_id' => $user['id'] ?? null,
-                                'name' => $user['name'] ?? fake()->name(),
-                                'email' => $email,
-                                'phone' => $user['phone'] ?? fake()->optional()->phoneNumber(),
-                                'status' => 'registered',
-                            ])->toArray(),
-                            [
-                                'id' => (string) Str::uuid(),
-                                'created_at' => now(),
-                                'updated_at' => now(),
-                            ]
-                        );
+                        $registration = new Registration([
+                            'event_id' => $eventId,
+                            'registrant_type' => isset($user['id']) ? (new User)->getMorphClass() : null,
+                            'registrant_id' => $user['id'] ?? null,
+                            'status' => 'confirmed',
+                        ]);
+                        $registration
+                            ->stagePrimaryParticipant(
+                                $user['name'] ?? fake()->name(),
+                                $email,
+                                $user['phone'] ?? fake()->optional()->phoneNumber(),
+                            )
+                            ->save();
                     }
-                }
-
-                foreach (array_chunk($registrationsToInsert, 200) as $chunk) {
-                    Registration::insert($chunk);
                 }
 
                 // Bulk update registration counts
                 foreach ($eventCounts as $eventId => $count) {
-                    Event::where('id', $eventId)->update(['registrations_count' => $count]);
+                    $event = Event::query()->find($eventId);
+
+                    if ($event instanceof Event) {
+                        $event->registrations_count = $count;
+                        $event->saveQuietly();
+                    }
                 }
             });
         } finally {

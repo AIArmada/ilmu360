@@ -2,6 +2,9 @@
 
 namespace App\Support\Api\Admin;
 
+use AIArmada\Addressing\Models\Address;
+use AIArmada\FilamentAddressing\Resources\AddressAreaResource;
+use AIArmada\FilamentAddressing\Resources\AddressCountryResource;
 use AIArmada\Signals\Models\TrackedProperty;
 use App\Data\Api\Event\EventPayloadData;
 use App\Enums\EventFormat;
@@ -13,8 +16,10 @@ use App\Enums\TimingMode;
 use App\Filament\Resources\Events\EventResource;
 use App\Filament\Resources\Speakers\SpeakerResource;
 use App\Models\Event;
+use App\Models\Institution;
 use App\Models\Speaker;
 use App\Models\User;
+use App\Models\Venue;
 use Filament\Facades\Filament;
 use Filament\Resources\Resource;
 use Illuminate\Contracts\Support\Htmlable;
@@ -23,6 +28,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Symfony\Component\Routing\Exception\RouteNotFoundException;
 use UnitEnum;
 
 /**
@@ -79,7 +85,10 @@ class AdminResourceRegistry
         /** @var array<int|string, class-string<resource>> $resources */
         $resources = Filament::getPanel('admin')->getResources();
 
-        return $this->resourcesCache = array_values($resources);
+        return $this->resourcesCache = array_values(array_unique([
+            ...array_values($resources),
+            ...$this->fallbackPluginResources(),
+        ]));
     }
 
     /**
@@ -130,6 +139,24 @@ class AdminResourceRegistry
             || $resourceClass::canForceDeleteAny()
             || $resourceClass::canRestoreAny()
             || $resourceClass::canReorder();
+    }
+
+    /**
+     * @return list<class-string<resource>>
+     */
+    private function fallbackPluginResources(): array
+    {
+        $resources = [];
+
+        if (class_exists(AddressCountryResource::class) && config('filament-addressing.resources.countries.enabled', true)) {
+            $resources[] = AddressCountryResource::class;
+        }
+
+        if (class_exists(AddressAreaResource::class) && config('filament-addressing.resources.areas.enabled', true)) {
+            $resources[] = AddressAreaResource::class;
+        }
+
+        return $resources;
     }
 
     /**
@@ -200,14 +227,31 @@ class AdminResourceRegistry
             ],
             'mcp_tools' => $this->mcpTools($key, $supportsMutation, $pages, $dateSemantics, $filters),
             'panel_routes' => [
-                'index' => array_key_exists('index', $pages) ? $resourceClass::getUrl('index', panel: 'admin') : null,
-                'create' => array_key_exists('create', $pages) ? $resourceClass::getUrl('create', panel: 'admin') : null,
-                'view_template' => array_key_exists('view', $pages) ? $resourceClass::getUrl('view', ['record' => 'record'], panel: 'admin') : null,
-                'edit_template' => array_key_exists('edit', $pages) ? $resourceClass::getUrl('edit', ['record' => 'record'], panel: 'admin') : null,
+                'index' => $this->safePanelUrl($resourceClass, 'index'),
+                'create' => $this->safePanelUrl($resourceClass, 'create'),
+                'view_template' => $this->safePanelUrl($resourceClass, 'view', ['record' => 'record']),
+                'edit_template' => $this->safePanelUrl($resourceClass, 'edit', ['record' => 'record']),
             ],
             'timezone_sensitive' => $dateSemantics !== null,
             'date_semantics' => $dateSemantics,
         ];
+    }
+
+    /**
+     * @param  class-string<resource>  $resourceClass
+     * @param  array<string, mixed>  $parameters
+     */
+    private function safePanelUrl(string $resourceClass, string $page, array $parameters = []): ?string
+    {
+        if (! array_key_exists($page, $resourceClass::getPages())) {
+            return null;
+        }
+
+        try {
+            return $resourceClass::getUrl($page, $parameters, panel: 'admin');
+        } catch (RouteNotFoundException) {
+            return null;
+        }
     }
 
     /**
@@ -532,8 +576,8 @@ class AdminResourceRegistry
                 : $this->serializeAttributes($record),
             'abilities' => $this->recordAbilities($resourceClass, $record),
             'panel_routes' => [
-                'view' => array_key_exists('view', $pages) ? $resourceClass::getUrl('view', ['record' => $record], panel: 'admin') : null,
-                'edit' => array_key_exists('edit', $pages) ? $resourceClass::getUrl('edit', ['record' => $record], panel: 'admin') : null,
+                'view' => array_key_exists('view', $pages) ? $this->resourcePanelUrl($resourceClass, 'view', $record) : null,
+                'edit' => array_key_exists('edit', $pages) ? $this->resourcePanelUrl($resourceClass, 'edit', $record) : null,
             ],
         ];
     }
@@ -563,8 +607,8 @@ class AdminResourceRegistry
             'attributes' => $this->stripResponsiveImages($attributes),
             'abilities' => $this->recordAbilities($resourceClass, $record),
             'panel_routes' => [
-                'view' => array_key_exists('view', $pages) ? $resourceClass::getUrl('view', ['record' => $record], panel: 'admin') : null,
-                'edit' => array_key_exists('edit', $pages) ? $resourceClass::getUrl('edit', ['record' => $record], panel: 'admin') : null,
+                'view' => array_key_exists('view', $pages) ? $this->resourcePanelUrl($resourceClass, 'view', $record) : null,
+                'edit' => array_key_exists('edit', $pages) ? $this->resourcePanelUrl($resourceClass, 'edit', $record) : null,
             ],
         ];
     }
@@ -742,13 +786,22 @@ class AdminResourceRegistry
             ]);
         }
 
-        if ($record instanceof Speaker && is_array($attributes['address'] ?? null)) {
-            $attributes['address'] = Arr::only($attributes['address'], [
-                'country_id',
-                'state_id',
-                'district_id',
-                'subdistrict_id',
-            ]);
+        if (method_exists($record, 'getAddressModelAttribute')) {
+            /** @var Institution|Speaker|Venue $record */
+            $address = $record->addressModel;
+
+            $attributes['address'] = $address instanceof Address
+                ? $address->toArray()
+                : [];
+
+            if ($record instanceof Speaker && is_array($attributes['address'])) {
+                $attributes['address'] = Arr::only($attributes['address'], [
+                    'country_id',
+                    'admin_area_1_id',
+                    'admin_area_2_id',
+                    'admin_area_3_id',
+                ]);
+            }
         }
 
         return $attributes;
@@ -809,5 +862,17 @@ class AdminResourceRegistry
         }
 
         return $value;
+    }
+
+    /**
+     * @param  class-string<resource>  $resourceClass
+     */
+    private function resourcePanelUrl(string $resourceClass, string $page, Model $record): ?string
+    {
+        try {
+            return $resourceClass::getUrl($page, ['record' => $record], panel: 'admin');
+        } catch (RouteNotFoundException) {
+            return null;
+        }
     }
 }

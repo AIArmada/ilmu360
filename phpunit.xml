@@ -23,9 +23,7 @@
         <env name="APP_CONFIG_CACHE" value="bootstrap/cache/config.testing.php"/>
         <env name="APP_EVENTS_CACHE" value="bootstrap/cache/events.testing.php"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
-        <env name="APP_PACKAGES_CACHE" value="bootstrap/cache/packages.testing.php"/>
         <env name="APP_ROUTES_CACHE" value="bootstrap/cache/routes.testing.php"/>
-        <env name="APP_SERVICES_CACHE" value="bootstrap/cache/services.testing.php"/>
         <env name="BLAZE_ENABLED" value="false"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null"/>

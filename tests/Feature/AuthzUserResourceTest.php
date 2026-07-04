@@ -1,7 +1,7 @@
 <?php
 
+use AIArmada\CommerceSupport\Models\Role;
 use AIArmada\FilamentAuthz\Facades\Authz;
-use AIArmada\FilamentAuthz\Models\Role;
 use App\Enums\MemberSubjectType;
 use App\Filament\Resources\Authz\UserResource;
 use App\Filament\Resources\Authz\UserResource\Pages\EditUser;
@@ -315,11 +315,12 @@ it('shows authz user activity memberships follows submissions and saved searches
     $targetUser->follow($followedSpeaker);
     $targetUser->follow($followedReference);
 
-    Registration::factory()->create([
-        'user_id' => $targetUser->id,
-        'event_id' => $registeredEvent->id,
-        'status' => 'registered',
-    ]);
+    Registration::factory()
+        ->forRegistrant($targetUser)
+        ->create([
+            'event_id' => $registeredEvent->id,
+            'status' => 'confirmed',
+        ]);
 
     EventCheckin::factory()->create([
         'user_id' => $targetUser->id,

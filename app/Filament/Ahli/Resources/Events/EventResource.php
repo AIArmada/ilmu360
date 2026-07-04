@@ -76,7 +76,7 @@ class EventResource extends AdminEventResource
                 ->orWhereIn(
                     'events.id',
                     EventSubmission::query()
-                        ->where('submitted_by', $user->id)
+                        ->where('submitter_id', $user->id)
                         ->select('event_id')
                 )
                 ->orWhereIn(
@@ -91,24 +91,22 @@ class EventResource extends AdminEventResource
                         ->select('event_id')
                 );
 
-            // Events organized by institutions where user is a member.
-            $eventQuery->orWhere(function (Builder $institutionOrganizerQuery) use ($user): void {
-                $institutionOrganizerQuery
-                    ->whereIn('events.organizer_type', [Institution::class, 'institution'])
-                    ->whereIn(
-                        'events.organizer_id',
-                        $user->institutions()->select('institutions.id')
-                    );
-            });
-
-            // Events organized by speakers where user is a member.
-            $eventQuery->orWhere(function (Builder $speakerOrganizerQuery) use ($user): void {
-                $speakerOrganizerQuery
-                    ->whereIn('events.organizer_type', [Speaker::class, 'speaker'])
-                    ->whereIn(
-                        'events.organizer_id',
-                        $user->speakers()->select('speakers.id')
-                    );
+            // Events organized by institutions or speakers where user is a member.
+            $eventQuery->orWhere(function (Builder $involvementOrganizerQuery) use ($user): void {
+                $involvementOrganizerQuery->whereHas('involvements', function (Builder $involvementQuery) use ($user): void {
+                    $involvementQuery
+                        ->where('role_code', 'organizer')
+                        ->where('is_primary', true)
+                        ->where(function (Builder $q) use ($user): void {
+                            $q->where(function (Builder $instQuery) use ($user): void {
+                                $instQuery->whereIn('involveable_type', [Institution::class, 'institution'])
+                                    ->whereIn('involveable_id', $user->institutions()->select('institutions.id'));
+                            })->orWhere(function (Builder $spkQuery) use ($user): void {
+                                $spkQuery->whereIn('involveable_type', [Speaker::class, 'speaker'])
+                                    ->whereIn('involveable_id', $user->speakers()->select('speakers.id'));
+                            });
+                        });
+                });
             });
 
             // Any event linked to a member institution, including speaker-organized and legacy records.

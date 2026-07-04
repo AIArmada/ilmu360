@@ -16,7 +16,9 @@ new class extends Component
             ->where('starts_at', '>=', $now)
             ->where('starts_at', '<=', $now->copy()->addDays(7))
             ->orderByDesc('is_featured')
-            ->orderByRaw('(going_count * 5 + saves_count * 2 + views_count * 0.1) DESC')
+            ->orderByDesc('going_count')
+            ->orderByDesc('saves_count')
+            ->orderByDesc('views_count')
             ->orderBy('starts_at')
             ->with([
                 'references',
@@ -78,6 +80,9 @@ new class extends Component
                 @foreach($this->events as $event)
                     @php
                         $eventCoverAspectClass = 'aspect-[16/9]';
+                        $eventGender = $event->gender instanceof \App\Enums\EventGenderRestriction
+                            ? $event->gender
+                            : \App\Enums\EventGenderRestriction::tryFrom((string) $event->gender);
                     @endphp
                     <div wire:key="featured-{{ $event->id }}" class="flex-shrink-0">
                         <article class="w-80 lg:w-96 snap-start">
@@ -106,10 +111,10 @@ new class extends Component
                                                 class="inline-block rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
                                                 {{ $event->eventType?->name ?? __('Kuliah') }}
                                             </span>
-                                            @if($event->gender && $event->gender->value !== 'all')
+                                            @if($eventGender && $eventGender->value !== 'all')
                                                 <span
                                                     class="inline-block rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600">
-                                                    {{ $event->gender->getLabel() }}
+                                                    {{ $eventGender->getLabel() }}
                                                 </span>
                                             @endif
                                         </div>

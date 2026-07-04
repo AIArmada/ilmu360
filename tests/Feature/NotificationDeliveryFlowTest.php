@@ -209,8 +209,8 @@ it('creates reminder notifications only for going and registered users, not save
 
     $savedUser->savedEvents()->attach($event->id);
     $goingUser->goingEvents()->attach($event->id);
-    Registration::factory()->for($event)->for($registeredUser)->create([
-        'status' => 'registered',
+    Registration::factory()->for($event)->forRegistrant($registeredUser)->create([
+        'status' => 'confirmed',
     ]);
 
     app(EventNotificationService::class)->dispatchDueReminderNotifications(now()->toImmutable());

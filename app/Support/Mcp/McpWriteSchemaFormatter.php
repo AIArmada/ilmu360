@@ -89,7 +89,7 @@ final class McpWriteSchemaFormatter
         return [
             'wrapper' => 'This tool accepts route-key convenience aliases, then calls the shared admin events write path.',
             'route_key_aliases' => [
-                'organizer_key' => 'resolves to organizer_id',
+                'primary_organizer_key' => 'resolves to the primary organizer via event_involvements (role_code=organizer, is_primary=true)',
                 'institution_key' => 'resolves to institution_id',
                 'venue_key' => 'resolves to venue_id',
                 'space_key' => 'resolves to space_id',

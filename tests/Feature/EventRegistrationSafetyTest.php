@@ -24,12 +24,12 @@ it('enforces capacity using live registration rows when counter is stale', funct
             'registrations_count' => 0,
         ]);
 
-    Registration::factory()->create([
-        'event_id' => $event->id,
-        'status' => 'registered',
-        'name' => 'Existing Registrant',
-        'email' => 'existing@example.com',
-    ]);
+    Registration::factory()
+        ->withPrimaryParticipant('Existing Registrant', 'existing@example.com')
+        ->create([
+            'event_id' => $event->id,
+            'status' => 'confirmed',
+        ]);
 
     $response = $this
         ->withSession(['_token' => 'test-token'])
@@ -117,7 +117,7 @@ it('allows distinct registrants for the same event', function () {
     expect(
         Registration::query()
             ->where('event_id', $event->id)
-            ->where('status', 'registered')
+            ->where('status', 'confirmed')
             ->count()
     )->toBe(2);
 });
@@ -148,12 +148,15 @@ it('allows authenticated users to register without email or phone', function () 
 
     $response->assertSessionHasNoErrors();
 
-    $this->assertDatabaseHas('registrations', [
-        'event_id' => $event->id,
-        'user_id' => $user->id,
-        'name' => 'Authenticated Registrant',
-        'status' => 'registered',
-    ]);
+    $registration = Registration::query()
+        ->where('event_id', $event->id)
+        ->forUser($user)
+        ->active()
+        ->firstOrFail();
+
+    expect($registration->resolvedName())
+        ->toBe('Authenticated Registrant')
+        ->and($registration->statusValue())->toBe('confirmed');
 });
 
 it('allows registration for unlisted events when registration is enabled', function () {
@@ -180,10 +183,14 @@ it('allows registration for unlisted events when registration is enabled', funct
 
     $response->assertSessionHasNoErrors();
 
-    $this->assertDatabaseHas('registrations', [
-        'event_id' => $event->id,
-        'name' => 'Unlisted Registrant',
-        'email' => 'unlisted@example.com',
-        'status' => 'registered',
-    ]);
+    $registration = Registration::query()
+        ->where('event_id', $event->id)
+        ->forPrimaryContact('unlisted@example.com')
+        ->active()
+        ->firstOrFail();
+
+    expect($registration->resolvedName())
+        ->toBe('Unlisted Registrant')
+        ->and($registration->resolvedEmail())->toBe('unlisted@example.com')
+        ->and($registration->statusValue())->toBe('confirmed');
 });

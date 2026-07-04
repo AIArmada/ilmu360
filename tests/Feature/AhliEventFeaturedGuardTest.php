@@ -1,6 +1,13 @@
 <?php
 
+use AIArmada\CommerceSupport\Models\Role;
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\FilamentAuthz\Facades\Authz;
+use App\Enums\EventAgeGroup;
+use App\Enums\EventFormat;
+use App\Enums\EventGenderRestriction;
+use App\Enums\EventType;
+use App\Enums\EventVisibility;
 use App\Enums\RegistrationMode;
 use App\Filament\Ahli\Resources\Events\Pages\EditEvent as AhliEditEvent;
 use App\Filament\Ahli\Resources\Events\Pages\ListEvents as AhliListEvents;
@@ -15,10 +22,12 @@ use App\Support\Authz\MemberRoleScopes;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Database\Seeders\ScopedMemberRolesSeeder;
+use Filament\Facades\Filament;
 use Livewire\Livewire;
 use Spatie\Permission\PermissionRegistrar;
 
 beforeEach(function (): void {
+    setPermissionsTeamId(null);
     $this->seed(PermissionSeeder::class);
     $this->seed(RoleSeeder::class);
     $this->seed(ScopedMemberRolesSeeder::class);
@@ -42,29 +51,58 @@ function createAhliInstitutionAdmin(): array
     $endsAt = now('Asia/Kuala_Lumpur')->addDays(2)->setTime(22, 0)->utc();
 
     $event = Event::factory()->for($institution)->create([
-        'organizer_type' => Institution::class,
-        'organizer_id' => $institution->id,
         'is_featured' => false,
         'timezone' => 'Asia/Kuala_Lumpur',
         'starts_at' => $startsAt,
         'ends_at' => $endsAt,
+        'event_type' => [EventType::Other->value],
+        'gender' => EventGenderRestriction::All->value,
+        'age_group' => [EventAgeGroup::AllAges->value],
+        'children_allowed' => true,
+        'event_format' => EventFormat::Physical->value,
+        'visibility' => EventVisibility::Public->value,
+        'status' => 'approved',
+        'is_active' => true,
     ]);
+    OwnerContext::withOwner(null, fn () => $event->setPrimaryOrganizer($institution));
 
     app(EventKeyPersonSyncService::class)->sync($event, [$speaker->id], []);
 
     $institution->members()->syncWithoutDetaching([$user->id]);
 
     $scope = app(MemberRoleScopes::class)->institution();
+    $scopedRole = Role::query()
+        ->where('name', 'admin')
+        ->where(app(PermissionRegistrar::class)->teamsKey, $scope->getKey())
+        ->firstOrFail();
 
-    Authz::withScope($scope, function () use ($user): void {
-        $user->syncRoles(['admin']);
+    Authz::withScope($scope, function () use ($user, $scopedRole): void {
+        $user->syncRoles([$scopedRole]);
     }, $user);
 
     return [$user, $event];
 }
 
+/**
+ * @return array<string, mixed>
+ */
+function featuredGuardEventEditPayload(Event $event): array
+{
+    return [
+        'event_date' => $event->starts_at?->clone()->setTimezone('Asia/Kuala_Lumpur')->toDateString(),
+        'prayer_time' => 'lain_waktu',
+        'custom_time' => $event->starts_at?->clone()->setTimezone('Asia/Kuala_Lumpur')->format('H:i'),
+        'end_time' => $event->ends_at?->clone()->setTimezone('Asia/Kuala_Lumpur')->format('H:i'),
+        'event_format' => EventFormat::Physical->value,
+        'gender' => EventGenderRestriction::All->value,
+        'age_group' => [EventAgeGroup::AllAges->value],
+        'event_type' => [EventType::Other->value],
+    ];
+}
+
 it('hides the featured field and column from ahli event surfaces', function () {
     [$member, $event] = createAhliInstitutionAdmin();
+    Filament::setCurrentPanel('ahli');
 
     Livewire::actingAs($member)
         ->test(AhliEditEvent::class, ['record' => $event->id])
@@ -79,6 +117,7 @@ it('hides the featured field and column from ahli event surfaces', function () {
 
 it('keeps the featured field hidden on ahli surfaces even for application admins', function () {
     [$member, $event] = createAhliInstitutionAdmin();
+    Filament::setCurrentPanel('ahli');
 
     assignGlobalRoleForFeaturedGuard($member, 'super_admin');
 
@@ -96,6 +135,7 @@ it('keeps the featured field hidden on ahli surfaces even for application admins
 it('shows the featured field and column to application admins', function () {
     $administrator = User::factory()->create();
     assignGlobalRoleForFeaturedGuard($administrator, 'super_admin');
+    Filament::setCurrentPanel('admin');
 
     $event = Event::factory()->create([
         'is_featured' => false,
@@ -115,6 +155,7 @@ it('shows the featured field and column to application admins', function () {
 it('allows application admins to save events without mass assigning speakers', function () {
     $administrator = User::factory()->create();
     assignGlobalRoleForFeaturedGuard($administrator, 'super_admin');
+    Filament::setCurrentPanel('admin');
 
     $speaker = Speaker::factory()->create();
     $startsAt = now('Asia/Kuala_Lumpur')->addDays(2)->setTime(20, 0)->utc();
@@ -125,13 +166,24 @@ it('allows application admins to save events without mass assigning speakers', f
         'timezone' => 'Asia/Kuala_Lumpur',
         'starts_at' => $startsAt,
         'ends_at' => $endsAt,
+        'event_type' => [EventType::Other->value],
+        'gender' => EventGenderRestriction::All->value,
+        'age_group' => [EventAgeGroup::AllAges->value],
+        'children_allowed' => true,
+        'event_format' => EventFormat::Physical->value,
+        'visibility' => EventVisibility::Public->value,
+        'status' => 'approved',
+        'is_active' => true,
     ]);
 
     app(EventKeyPersonSyncService::class)->sync($event, [$speaker->id], []);
 
     Livewire::actingAs($administrator)
         ->test(AdminEditEvent::class, ['record' => $event->id])
-        ->set('data.speakers', [$speaker->id])
+        ->fillForm([
+            ...featuredGuardEventEditPayload($event),
+            'speakers' => [$speaker->id],
+        ])
         ->call('save')
         ->assertHasNoErrors();
 
@@ -140,9 +192,11 @@ it('allows application admins to save events without mass assigning speakers', f
 
 it('ignores crafted ahli payloads that try to set featured on save', function () {
     [$member, $event] = createAhliInstitutionAdmin();
+    Filament::setCurrentPanel('ahli');
 
     Livewire::actingAs($member)
         ->test(AhliEditEvent::class, ['record' => $event->id])
+        ->fillForm(featuredGuardEventEditPayload($event))
         ->set('data.is_featured', true)
         ->set('data.escalated_at', now()->addDay()->toDateTimeString())
         ->call('save')
@@ -154,6 +208,7 @@ it('ignores crafted ahli payloads that try to set featured on save', function ()
 
 it('persists ahli registration settings without mass assigning the event model', function () {
     [$member, $event] = createAhliInstitutionAdmin();
+    Filament::setCurrentPanel('ahli');
 
     $event->settings()->updateOrCreate(
         ['event_id' => $event->id],
@@ -170,6 +225,14 @@ it('persists ahli registration settings without mass assigning the event model',
             'registration_mode' => RegistrationMode::Event->value,
         ])
         ->fillForm([
+            'event_date' => $event->starts_at?->clone()->setTimezone('Asia/Kuala_Lumpur')->toDateString(),
+            'prayer_time' => 'lain_waktu',
+            'custom_time' => '20:00',
+            'end_time' => '22:00',
+            'event_format' => EventFormat::Physical->value,
+            'gender' => EventGenderRestriction::All->value,
+            'age_group' => [EventAgeGroup::AllAges->value],
+            'event_type' => [EventType::Other->value],
             'registration_required' => false,
         ])
         ->call('save')
@@ -185,10 +248,14 @@ it('persists ahli registration settings without mass assigning the event model',
 it('persists ahli speaker updates through the shared event sync action', function () {
     [$member, $event] = createAhliInstitutionAdmin();
     $replacementSpeaker = Speaker::factory()->create();
+    Filament::setCurrentPanel('ahli');
 
     Livewire::actingAs($member)
         ->test(AhliEditEvent::class, ['record' => $event->id])
-        ->set('data.speakers', [$replacementSpeaker->id])
+        ->fillForm([
+            ...featuredGuardEventEditPayload($event),
+            'speakers' => [$replacementSpeaker->id],
+        ])
         ->call('save')
         ->assertHasNoErrors();
 

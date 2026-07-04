@@ -27,11 +27,7 @@ final class SavedSearchFilterNormalizer
 
         $normalizedFilters = Arr::only($filters, $this->allowedFilterKeys());
 
-        foreach (['country_id', 'state_id', 'district_id', 'subdistrict_id'] as $integerFilter) {
-            $this->normalizePositiveIntegerScalarFilter($normalizedFilters, $integerFilter);
-        }
-
-        foreach (['institution_id', 'venue_id'] as $uuidFilter) {
+        foreach (['country_id', 'state_id', 'district_id', 'subdistrict_id', 'institution_id', 'venue_id'] as $uuidFilter) {
             $this->normalizeUuidScalarFilter($normalizedFilters, $uuidFilter);
         }
 
@@ -170,33 +166,6 @@ final class SavedSearchFilterNormalizer
         }
 
         $filters[$key] = $values;
-    }
-
-    /**
-     * @param  array<string, mixed>  $filters
-     */
-    private function normalizePositiveIntegerScalarFilter(array &$filters, string $key): void
-    {
-        if (! array_key_exists($key, $filters)) {
-            return;
-        }
-
-        if (is_int($filters[$key])) {
-            $value = $filters[$key];
-        } elseif (is_scalar($filters[$key])) {
-            $normalized = trim((string) $filters[$key]);
-            $value = ctype_digit($normalized) ? (int) $normalized : null;
-        } else {
-            $value = null;
-        }
-
-        if (! is_int($value) || $value <= 0) {
-            unset($filters[$key]);
-
-            return;
-        }
-
-        $filters[$key] = $value;
     }
 
     /**

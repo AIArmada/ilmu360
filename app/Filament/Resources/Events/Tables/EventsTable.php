@@ -14,6 +14,7 @@ use App\Enums\PrayerReference;
 use App\Enums\TimingMode;
 use App\Filament\Resources\Institutions\InstitutionResource;
 use App\Models\Event;
+use App\Models\Institution;
 use App\Models\User;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -63,7 +64,11 @@ class EventsTable
                     ->sortable(),
                 TextColumn::make('institution.name')
                     ->sortable()
-                    ->searchable()
+                    ->searchable(query: fn (Builder $query, string $search): Builder => self::applyRelatedIdSearch(
+                        $query,
+                        'institution_id',
+                        Institution::query()->where('name', 'like', '%'.$search.'%')->pluck('id')->all(),
+                    ))
                     ->url(function (Event $record): ?string {
                         if (! $record->institution) {
                             return null;
@@ -178,7 +183,11 @@ class EventsTable
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('submitter.email')
                     ->label('Submitter')
-                    ->searchable()
+                    ->searchable(query: fn (Builder $query, string $search): Builder => self::applyRelatedIdSearch(
+                        $query,
+                        'submitter_id',
+                        User::query()->where('email', 'like', '%'.$search.'%')->pluck('id')->all(),
+                    ))
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('published_at')
                     ->dateTime()
@@ -206,8 +215,14 @@ class EventsTable
                         EventStructure::ParentProgram->value => EventStructure::ParentProgram->label(),
                         EventStructure::ChildEvent->value => EventStructure::ChildEvent->label(),
                     ]),
-                SelectFilter::make('institution')
-                    ->relationship('institution', 'name'),
+                SelectFilter::make('institution_id')
+                    ->label('Institution')
+                    ->searchable()
+                    ->options(fn (): array => Institution::query()->orderBy('name')->pluck('name', 'id')->all())
+                    ->query(fn (Builder $query, array $data): Builder => $query->when(
+                        filled($data['value'] ?? null),
+                        fn (Builder $builder): Builder => $builder->where('institution_id', (string) $data['value']),
+                    )),
                 TernaryFilter::make('is_active')
                     ->label('Active'),
                 TernaryFilter::make('has_active_notice')
@@ -459,6 +474,20 @@ class EventsTable
         return $user instanceof User
             && $user->hasApplicationAdminAccess()
             && Filament::getCurrentPanel()?->getId() === 'admin';
+    }
+
+    /**
+     * @param  Builder<Event>  $query
+     * @param  list<string>  $relatedIds
+     * @return Builder<Event>
+     */
+    private static function applyRelatedIdSearch(Builder $query, string $legacyColumn, array $relatedIds): Builder
+    {
+        if ($relatedIds === []) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->whereIn($legacyColumn, $relatedIds);
     }
 
     protected static function formatEnumCollection(mixed $state, string $enumClass): string

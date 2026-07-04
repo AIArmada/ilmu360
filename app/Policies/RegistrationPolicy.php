@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Models\Event;
 use App\Models\Registration;
 use App\Models\User;
 use App\Support\Authz\MemberPermissionGate;
@@ -35,19 +36,19 @@ class RegistrationPolicy
         }
 
         // User can view their own registration
-        if ($registration->user_id === $user->id) {
+        if ($registration->isForUser($user)) {
             return true;
         }
 
         $memberPermissions = app(MemberPermissionGate::class);
 
         $event = $registration->event;
-        if ($event && $memberPermissions->canEvent($user, 'event.view-registrations', $event)) {
+        if ($event instanceof Event && $memberPermissions->canEvent($user, 'event.view-registrations', $event)) {
             return true;
         }
 
         // Institution members can view registrations for their events
-        if ($event?->institution) {
+        if ($event instanceof Event && $event->institution) {
             return $memberPermissions->canInstitution($user, 'event.view-registrations', $event->institution);
         }
 
@@ -65,19 +66,19 @@ class RegistrationPolicy
         }
 
         // User can cancel their own registration
-        if ($registration->user_id === $user->id) {
+        if ($registration->isForUser($user)) {
             return true;
         }
 
         $memberPermissions = app(MemberPermissionGate::class);
 
         $event = $registration->event;
-        if ($event && $memberPermissions->canEvent($user, 'event.export-registrations', $event)) {
+        if ($event instanceof Event && $memberPermissions->canEvent($user, 'event.export-registrations', $event)) {
             return true;
         }
 
         // Institution admins can update registrations
-        if ($event?->institution) {
+        if ($event instanceof Event && $event->institution) {
             return $memberPermissions->canInstitution($user, 'event.export-registrations', $event->institution);
         }
 

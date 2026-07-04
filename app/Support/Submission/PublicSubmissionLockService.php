@@ -2,8 +2,8 @@
 
 namespace App\Support\Submission;
 
+use AIArmada\CommerceSupport\Models\AuthzScope;
 use AIArmada\FilamentAuthz\Facades\Authz;
-use AIArmada\FilamentAuthz\Models\AuthzScope;
 use App\Models\Institution;
 use App\Models\Speaker;
 use App\Models\User;

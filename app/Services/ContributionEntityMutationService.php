@@ -2,11 +2,17 @@
 
 namespace App\Services;
 
+use AIArmada\Addressing\Models\Address;
+use AIArmada\Addressing\Models\AddressArea;
+use AIArmada\Addressing\Models\AddressCountry;
+use AIArmada\Contacting\Enums\ContactMethodType;
+use AIArmada\Contacting\Enums\ContactPurpose;
+use AIArmada\Contacting\Enums\SocialPlatform;
+use AIArmada\Contacting\Models\ContactMethod;
+use AIArmada\Contacting\Models\SocialProfile;
 use App\Actions\Institutions\GenerateInstitutionSlugAction;
 use App\Actions\Membership\AddMemberToSubject;
 use App\Actions\Speakers\GenerateSpeakerSlugAction;
-use App\Enums\ContactCategory;
-use App\Enums\ContactType;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
@@ -21,19 +27,17 @@ use App\Enums\PostNominal;
 use App\Enums\PreNominal;
 use App\Enums\ReferencePartType;
 use App\Enums\ReferenceType;
-use App\Enums\SocialMediaPlatform;
 use App\Enums\TagType;
 use App\Forms\SharedFormSchema;
-use App\Models\Address;
-use App\Models\Contact;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Reference;
-use App\Models\SocialMedia;
+use App\Models\Series;
 use App\Models\Speaker;
 use App\Models\Tag;
 use App\Models\User;
 use App\Models\Venue;
+use App\Support\Location\AddressingCountryResolver;
 use BackedEnum;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
@@ -49,6 +53,7 @@ class ContributionEntityMutationService
         private readonly AddMemberToSubject $addMemberToSubject,
         private readonly GenerateInstitutionSlugAction $generateInstitutionSlugAction,
         private readonly GenerateSpeakerSlugAction $generateSpeakerSlugAction,
+        private readonly AddressingCountryResolver $addressingCountryResolver,
     ) {}
 
     /**
@@ -85,7 +90,7 @@ class ContributionEntityMutationService
                     $this->field('type', 'string', allowedValues: $this->enumValues(InstitutionType::class)),
                     $this->field('description', 'rich_text'),
                     $this->field('address', 'object'),
-                    $this->field('address.country_id', 'integer', catalog: route('api.client.catalogs.countries')),
+                    $this->field('address.country_id', 'uuid', catalog: route('api.client.catalogs.countries')),
                     $this->field('contacts', 'array<object>'),
                     $this->field('social_media', 'array<object>'),
                 ],
@@ -108,7 +113,7 @@ class ContributionEntityMutationService
                     $this->field('institution_id', 'uuid', catalog: route('api.client.catalogs.submit-institutions')),
                     $this->field('institution_position', 'string', maxLength: 255),
                     $this->field('address', 'object'),
-                    $this->field('address.country_id', 'integer', catalog: route('api.client.catalogs.countries')),
+                    $this->field('address.country_id', 'uuid', catalog: route('api.client.catalogs.countries')),
                     $this->field('contacts', 'array<object>'),
                     $this->field('social_media', 'array<object>'),
                 ],
@@ -149,9 +154,7 @@ class ContributionEntityMutationService
                     $this->field('event_url', 'url'),
                     $this->field('live_url', 'url'),
                     $this->field('recording_url', 'url'),
-                    $this->field('organizer_type', 'string', allowedValues: ['institution', 'speaker']),
-                    $this->field('organizer_institution_id', 'uuid', catalog: route('api.client.catalogs.submit-institutions')),
-                    $this->field('organizer_speaker_id', 'uuid', catalog: route('api.client.catalogs.submit-speakers')),
+                    $this->field('primary_organizer_id', 'uuid'),
                     $this->field('location_same_as_institution', 'boolean'),
                     $this->field('location_type', 'string', allowedValues: ['institution', 'venue']),
                     $this->field('location_institution_id', 'uuid', catalog: route('api.client.catalogs.submit-institutions')),
@@ -169,9 +172,6 @@ class ContributionEntityMutationService
                 ],
                 'conditional_rules' => [
                     ['field' => 'custom_time', 'required_when' => ['prayer_time' => [EventPrayerTime::LainWaktu->value]]],
-                    ['field' => 'organizer_institution_id', 'required_when' => ['organizer_type' => ['institution']]],
-                    ['field' => 'organizer_speaker_id', 'required_when' => ['organizer_type' => ['speaker']]],
-                    ['field' => 'location_type', 'required_when' => ['organizer_type' => ['speaker']]],
                     ['field' => 'location_type', 'required_when' => ['location_same_as_institution' => [false]]],
                     ['field' => 'location_institution_id', 'required_when' => ['location_type' => ['institution']]],
                     ['field' => 'location_venue_id', 'required_when' => ['location_type' => ['venue']]],
@@ -194,27 +194,27 @@ class ContributionEntityMutationService
                 'type' => ['sometimes', Rule::in($this->enumValues(InstitutionType::class))],
                 'description' => ['nullable'],
                 'address' => ['sometimes', 'array'],
-                'address.country_id' => ['sometimes', 'integer', 'exists:countries,id'],
-                'address.state_id' => ['nullable', 'integer', 'exists:states,id'],
-                'address.district_id' => ['nullable', 'integer', 'exists:districts,id'],
-                'address.subdistrict_id' => ['nullable', 'integer', 'exists:subdistricts,id'],
+                'address.country_id' => ['sometimes', 'uuid', 'exists:address_countries,id'],
+                'address.admin_area_1_id' => ['nullable', 'uuid', 'exists:address_areas,id'],
+                'address.admin_area_2_id' => ['nullable', 'uuid', 'exists:address_areas,id'],
+                'address.admin_area_3_id' => ['nullable', 'uuid', 'exists:address_areas,id'],
                 'address.line1' => ['nullable', 'string', 'max:255'],
                 'address.line2' => ['nullable', 'string', 'max:255'],
                 'address.postcode' => ['nullable', 'string', 'max:16'],
-                'address.lat' => ['nullable', 'numeric', 'between:-90,90'],
-                'address.lng' => ['nullable', 'numeric', 'between:-180,180'],
+                'address.latitude' => ['nullable', 'numeric', 'between:-90,90'],
+                'address.longitude' => ['nullable', 'numeric', 'between:-180,180'],
                 'address.google_maps_url' => ['nullable', 'url', 'max:255'],
-                'address.google_place_id' => ['nullable', 'string', 'max:255'],
+                'address.provider_place_id' => ['nullable', 'string', 'max:255'],
                 'address.waze_url' => ['nullable', 'url', 'max:255'],
                 'contacts' => ['sometimes', 'array'],
-                'contacts.*.category' => ['required_with:contacts.*.value', Rule::in($this->enumValues(ContactCategory::class))],
-                'contacts.*.value' => ['required_with:contacts.*.category', 'string', 'max:255'],
-                'contacts.*.type' => ['nullable', Rule::in($this->enumValues(ContactType::class))],
+                'contacts.*.type' => ['required_with:contacts.*.value', Rule::in($this->enumValues(ContactMethodType::class))],
+                'contacts.*.value' => ['required_with:contacts.*.type', 'string', 'max:255'],
+                'contacts.*.purpose' => ['nullable', Rule::in($this->enumValues(ContactPurpose::class))],
                 'contacts.*.is_public' => ['nullable', 'boolean'],
                 'social_media' => ['sometimes', 'array'],
-                'social_media.*.platform' => ['required_with:social_media.*.username,social_media.*.url', Rule::in($this->enumValues(SocialMediaPlatform::class))],
-                'social_media.*.username' => ['nullable', 'string', 'max:255', 'required_without:social_media.*.url'],
-                'social_media.*.url' => ['nullable', 'url', 'max:255', 'required_without:social_media.*.username'],
+                'social_media.*.platform' => ['required_with:social_media.*.handle,social_media.*.url', Rule::in($this->enumValues(SocialPlatform::class))],
+                'social_media.*.handle' => ['nullable', 'string', 'max:255', 'required_without:social_media.*.url'],
+                'social_media.*.url' => ['nullable', 'url', 'max:255', 'required_without:social_media.*.handle'],
             ],
             $entity instanceof Speaker => [
                 'name' => ['sometimes', 'string', 'max:255'],
@@ -231,17 +231,17 @@ class ContributionEntityMutationService
                 'institution_id' => ['nullable', 'uuid', 'exists:institutions,id'],
                 'institution_position' => ['nullable', 'string', 'max:255'],
                 'address' => ['sometimes', 'array'],
-                'address.country_id' => ['nullable', 'integer', 'exists:countries,id'],
-                'address.state_id' => ['nullable', 'integer', 'exists:states,id'],
-                'address.district_id' => ['nullable', 'integer', 'exists:districts,id'],
-                'address.subdistrict_id' => ['nullable', 'integer', 'exists:subdistricts,id'],
+                'address.country_id' => ['nullable', 'uuid', 'exists:address_countries,id'],
+                'address.admin_area_1_id' => ['nullable', 'uuid', 'exists:address_areas,id'],
+                'address.admin_area_2_id' => ['nullable', 'uuid', 'exists:address_areas,id'],
+                'address.admin_area_3_id' => ['nullable', 'uuid', 'exists:address_areas,id'],
                 'address.line1' => ['prohibited'],
                 'address.line2' => ['prohibited'],
                 'address.postcode' => ['prohibited'],
-                'address.lat' => ['prohibited'],
-                'address.lng' => ['prohibited'],
+                'address.latitude' => ['prohibited'],
+                'address.longitude' => ['prohibited'],
                 'address.google_maps_url' => ['prohibited'],
-                'address.google_place_id' => ['prohibited'],
+                'address.provider_place_id' => ['prohibited'],
                 'address.waze_url' => ['prohibited'],
                 'qualifications' => ['sometimes', 'array'],
                 'qualifications.*.institution' => ['required_with:qualifications.*.degree', 'nullable', 'string', 'max:255'],
@@ -251,14 +251,14 @@ class ContributionEntityMutationService
                 'language_ids' => ['sometimes', 'array'],
                 'language_ids.*' => ['integer', 'exists:languages,id'],
                 'contacts' => ['sometimes', 'array'],
-                'contacts.*.category' => ['required_with:contacts.*.value', Rule::in($this->enumValues(ContactCategory::class))],
-                'contacts.*.value' => ['required_with:contacts.*.category', 'string', 'max:255'],
-                'contacts.*.type' => ['nullable', Rule::in($this->enumValues(ContactType::class))],
+                'contacts.*.type' => ['required_with:contacts.*.value', Rule::in($this->enumValues(ContactMethodType::class))],
+                'contacts.*.value' => ['required_with:contacts.*.type', 'string', 'max:255'],
+                'contacts.*.purpose' => ['nullable', Rule::in($this->enumValues(ContactPurpose::class))],
                 'contacts.*.is_public' => ['nullable', 'boolean'],
                 'social_media' => ['sometimes', 'array'],
-                'social_media.*.platform' => ['required_with:social_media.*.username,social_media.*.url', Rule::in($this->enumValues(SocialMediaPlatform::class))],
-                'social_media.*.username' => ['nullable', 'string', 'max:255', 'required_without:social_media.*.url'],
-                'social_media.*.url' => ['nullable', 'url', 'max:255', 'required_without:social_media.*.username'],
+                'social_media.*.platform' => ['required_with:social_media.*.handle,social_media.*.url', Rule::in($this->enumValues(SocialPlatform::class))],
+                'social_media.*.handle' => ['nullable', 'string', 'max:255', 'required_without:social_media.*.url'],
+                'social_media.*.url' => ['nullable', 'url', 'max:255', 'required_without:social_media.*.handle'],
             ],
             $entity instanceof Reference => [
                 'title' => ['sometimes', 'string', 'max:255'],
@@ -272,9 +272,9 @@ class ContributionEntityMutationService
                 'publisher' => ['nullable', 'string', 'max:255'],
                 'description' => ['nullable', 'string'],
                 'social_media' => ['sometimes', 'array'],
-                'social_media.*.platform' => ['required_with:social_media.*.username,social_media.*.url', Rule::in($this->enumValues(SocialMediaPlatform::class))],
-                'social_media.*.username' => ['nullable', 'string', 'max:255', 'required_without:social_media.*.url'],
-                'social_media.*.url' => ['nullable', 'url', 'max:255', 'required_without:social_media.*.username'],
+                'social_media.*.platform' => ['required_with:social_media.*.handle,social_media.*.url', Rule::in($this->enumValues(SocialPlatform::class))],
+                'social_media.*.handle' => ['nullable', 'string', 'max:255', 'required_without:social_media.*.url'],
+                'social_media.*.url' => ['nullable', 'url', 'max:255', 'required_without:social_media.*.handle'],
             ],
             $entity instanceof Event => [
                 'title' => ['sometimes', 'string', 'max:255'],
@@ -296,10 +296,7 @@ class ContributionEntityMutationService
                 'event_url' => ['nullable', 'url', 'max:255'],
                 'live_url' => ['nullable', 'url', 'max:255'],
                 'recording_url' => ['nullable', 'url', 'max:255'],
-                'organizer_type' => ['sometimes', Rule::in(['institution', 'speaker', Institution::class, Speaker::class])],
-                'organizer_id' => ['nullable', 'uuid'],
-                'organizer_institution_id' => ['nullable', 'uuid', 'exists:institutions,id'],
-                'organizer_speaker_id' => ['nullable', 'uuid', 'exists:speakers,id'],
+                'primary_organizer_id' => ['sometimes', 'nullable', 'uuid'],
                 'location_same_as_institution' => ['sometimes', 'boolean'],
                 'location_type' => ['sometimes', 'string', Rule::in(['institution', 'venue'])],
                 'location_institution_id' => ['nullable', 'uuid', 'exists:institutions,id'],
@@ -383,6 +380,7 @@ class ContributionEntityMutationService
         $this->addMemberToSubject->handle($speaker, $proposer);
 
         $this->syncSpeakerRelations($speaker, $payload);
+        $this->generateSpeakerSlugAction->syncSpeakerSlug($speaker);
 
         return $speaker;
     }
@@ -452,6 +450,7 @@ class ContributionEntityMutationService
         $speaker->save();
 
         $this->syncSpeakerRelations($speaker, $payload);
+        $this->generateSpeakerSlugAction->syncSpeakerSlug($speaker);
 
         return $dirty;
     }
@@ -493,24 +492,6 @@ class ContributionEntityMutationService
         }
 
         return ReferenceType::Book->value;
-    }
-
-    private function normalizeEventOrganizerTypeForPublicApi(mixed $value): ?string
-    {
-        return match ($value) {
-            Institution::class, 'institution' => 'institution',
-            Speaker::class, 'speaker' => 'speaker',
-            default => null,
-        };
-    }
-
-    private function normalizeEventOrganizerTypeForPersistence(mixed $value): ?string
-    {
-        return match ($value) {
-            Institution::class, 'institution' => Institution::class,
-            Speaker::class, 'speaker' => Speaker::class,
-            default => null,
-        };
     }
 
     private function normalizeOptionalString(mixed $value): ?string
@@ -581,10 +562,6 @@ class ContributionEntityMutationService
             'event_url' => array_key_exists('event_url', $payload) ? $this->normalizeOptionalString($payload['event_url']) : $event->event_url,
             'live_url' => array_key_exists('live_url', $payload) ? $this->normalizeOptionalString($payload['live_url']) : $event->live_url,
             'recording_url' => array_key_exists('recording_url', $payload) ? $this->normalizeOptionalString($payload['recording_url']) : $event->recording_url,
-            'organizer_type' => array_key_exists('organizer_type', $payload)
-                ? $this->normalizeEventOrganizerTypeForPersistence($payload['organizer_type'])
-                : $event->organizer_type,
-            'organizer_id' => array_key_exists('organizer_id', $payload) ? $this->normalizeOptionalString($payload['organizer_id']) : $event->organizer_id,
             'institution_id' => array_key_exists('institution_id', $payload) ? $this->normalizeOptionalString($payload['institution_id']) : $event->institution_id,
             'venue_id' => array_key_exists('venue_id', $payload) ? $this->normalizeOptionalString($payload['venue_id']) : $event->venue_id,
             'space_id' => array_key_exists('space_id', $payload) ? $this->normalizeOptionalString($payload['space_id']) : $event->space_id,
@@ -592,6 +569,15 @@ class ContributionEntityMutationService
 
         $dirty = $event->getDirty();
         $event->save();
+
+        if (array_key_exists('primary_organizer_id', $payload)) {
+            $organizerId = $this->normalizeOptionalString($payload['primary_organizer_id']);
+            $organizer = $organizerId === null
+                ? null
+                : (Institution::query()->find($organizerId) ?? Speaker::query()->find($organizerId));
+
+            $event->setPrimaryOrganizer($organizer);
+        }
 
         if (array_key_exists('language_ids', $payload)) {
             $languageIds = $this->normalizeIntegerArray($payload['language_ids']);
@@ -605,7 +591,8 @@ class ContributionEntityMutationService
 
         if (array_key_exists('series_ids', $payload)) {
             $seriesIds = $this->normalizeStringArray($payload['series_ids']);
-            $event->auditSync('series', $seriesIds, true, ['series.id', 'series.title']);
+            $series = new Series;
+            $event->auditSync('series', $seriesIds, true, [$series->qualifyColumn('id'), $series->qualifyColumn('title')]);
         }
 
         if (
@@ -740,8 +727,7 @@ class ContributionEntityMutationService
             'event_url' => $event->event_url,
             'live_url' => $event->live_url,
             'recording_url' => $event->recording_url,
-            'organizer_type' => $this->normalizeEventOrganizerTypeForPublicApi($event->organizer_type),
-            'organizer_id' => $event->organizer_id,
+            'primary_organizer_id' => $event->primaryOrganizerInvolvement?->involveable_id,
             'institution_id' => $event->institution_id,
             'venue_id' => $event->venue_id,
             'space_id' => $event->space_id,
@@ -1003,7 +989,7 @@ class ContributionEntityMutationService
 
     private function syncAddress(Model $model, mixed $addressPayload, bool $allowCountryOnly = false): void
     {
-        if (! method_exists($model, 'address')) {
+        if (! method_exists($model, 'primaryAddress') || ! method_exists($model, 'attachAddress')) {
             return;
         }
 
@@ -1012,34 +998,37 @@ class ContributionEntityMutationService
             $payload['line1'] ?? null,
             $payload['line2'] ?? null,
             $payload['postcode'] ?? null,
-            $payload['state_id'] ?? null,
-            $payload['district_id'] ?? null,
-            $payload['subdistrict_id'] ?? null,
-            $payload['lat'] ?? null,
-            $payload['lng'] ?? null,
+            $payload['admin_area_1_id'] ?? $payload['state_id'] ?? null,
+            $payload['admin_area_2_id'] ?? $payload['district_id'] ?? null,
+            $payload['admin_area_3_id'] ?? $payload['subdistrict_id'] ?? null,
+            $payload['admin_area_4_id'] ?? null,
+            $payload['latitude'] ?? $payload['lat'] ?? null,
+            $payload['longitude'] ?? $payload['lng'] ?? null,
             $payload['google_maps_url'] ?? null,
-            $payload['google_place_id'] ?? null,
+            $payload['provider_place_id'] ?? $payload['google_place_id'] ?? null,
             $payload['waze_url'] ?? null,
             $allowCountryOnly ? ($payload['country_id'] ?? $payload['country_code'] ?? $payload['country_key'] ?? null) : null,
         ])->contains(fn (mixed $value): bool => filled($value));
 
         /** @var Address|null $existingAddress */
-        $existingAddress = $model->address()->first();
+        $existingAddress = $model->primaryAddress();
 
         if (! $hasContent) {
-            $existingAddress?->delete();
+            if ($existingAddress instanceof Address && method_exists($model, 'addresses')) {
+                $model->addresses()->detach($existingAddress->getKey());
+                $existingAddress->delete();
+            }
 
             return;
         }
 
         $countryProvided = SharedFormSchema::countrySelectionProvided($payload);
         $payload = SharedFormSchema::prepareAddressPersistenceData($payload);
-        $countryId = SharedFormSchema::normalizeLocationId($payload['country_id'] ?? null);
+        $countryId = $this->normalizeUuid($payload['country_id'] ?? null);
 
         if ($countryId === null && ! $countryProvided) {
-            $countryId = is_numeric($existingAddress?->country_id)
-                ? (int) $existingAddress->country_id
-                : SharedFormSchema::preferredPublicCountryId();
+            $countryId = $this->normalizeUuid($existingAddress?->country_id)
+                ?? $this->addressingCountryResolver->resolveId($existingAddress?->country_code);
         }
 
         if ($countryId === null) {
@@ -1050,41 +1039,56 @@ class ContributionEntityMutationService
             ]);
         }
 
-        $attributes = [
-            'type' => 'main',
-            'country_id' => $countryId,
-            'state_id' => isset($payload['state_id']) && $payload['state_id'] !== '' ? (int) $payload['state_id'] : null,
-            'district_id' => isset($payload['district_id']) && $payload['district_id'] !== '' ? (int) $payload['district_id'] : null,
-            'subdistrict_id' => isset($payload['subdistrict_id']) && $payload['subdistrict_id'] !== '' ? (int) $payload['subdistrict_id'] : null,
-            'line1' => $payload['line1'] ?? null,
-            'line2' => $payload['line2'] ?? null,
-            'postcode' => $payload['postcode'] ?? null,
-            'lat' => isset($payload['lat']) && $payload['lat'] !== '' ? (float) $payload['lat'] : null,
-            'lng' => isset($payload['lng']) && $payload['lng'] !== '' ? (float) $payload['lng'] : null,
-            'google_maps_url' => $payload['google_maps_url'] ?? null,
-            'google_place_id' => $payload['google_place_id'] ?? null,
-            'waze_url' => $payload['waze_url'] ?? null,
-        ];
-
         if ($existingAddress instanceof Address) {
             foreach ([
                 'line1',
                 'line2',
                 'postcode',
-                'state_id',
-                'district_id',
-                'subdistrict_id',
-                'lat',
-                'lng',
+                'admin_area_1_id',
+                'admin_area_2_id',
+                'admin_area_3_id',
+                'admin_area_4_id',
+                'latitude',
+                'longitude',
                 'google_maps_url',
-                'google_place_id',
+                'provider_place_id',
                 'waze_url',
             ] as $field) {
-                if (! array_key_exists($field, $payload)) {
-                    $attributes[$field] = $existingAddress->{$field};
+                if (! array_key_exists($field, $payload) && ! array_key_exists($this->legacyAddressField($field), $payload)) {
+                    $payload[$field] = $existingAddress->{$field};
                 }
             }
         }
+
+        $adminArea1Id = $this->normalizeUuid($payload['admin_area_1_id'] ?? $payload['state_id'] ?? null);
+        $adminArea2Id = $this->normalizeUuid($payload['admin_area_2_id'] ?? $payload['district_id'] ?? null);
+        $adminArea3Id = $this->normalizeUuid($payload['admin_area_3_id'] ?? $payload['subdistrict_id'] ?? null);
+        $adminArea4Id = $this->normalizeUuid($payload['admin_area_4_id'] ?? null);
+        $latitude = $payload['latitude'] ?? $payload['lat'] ?? null;
+        $longitude = $payload['longitude'] ?? $payload['lng'] ?? null;
+        $providerPlaceId = $payload['provider_place_id'] ?? $payload['google_place_id'] ?? null;
+        $addressMetadata = $this->resolveAddressMetadata($countryId, $adminArea1Id, $adminArea2Id, $adminArea3Id);
+
+        $attributes = [
+            'country_id' => $countryId,
+            'admin_area_1_id' => $adminArea1Id,
+            'admin_area_2_id' => $adminArea2Id,
+            'admin_area_3_id' => $adminArea3Id,
+            'admin_area_4_id' => $adminArea4Id,
+            'line1' => $payload['line1'] ?? null,
+            'line2' => $payload['line2'] ?? null,
+            'postcode' => $payload['postcode'] ?? null,
+            'country' => $addressMetadata['country'],
+            'country_code' => $addressMetadata['country_code'],
+            'state' => $addressMetadata['state'],
+            'city' => $addressMetadata['city'],
+            'latitude' => $latitude !== null && $latitude !== '' ? (float) $latitude : null,
+            'longitude' => $longitude !== null && $longitude !== '' ? (float) $longitude : null,
+            'google_maps_url' => $payload['google_maps_url'] ?? null,
+            'provider' => filled($providerPlaceId) ? 'google' : null,
+            'provider_place_id' => $providerPlaceId,
+            'waze_url' => $payload['waze_url'] ?? null,
+        ];
 
         if ($existingAddress instanceof Address) {
             $existingAddress->fill($attributes)->save();
@@ -1092,7 +1096,39 @@ class ContributionEntityMutationService
             return;
         }
 
-        $model->address()->create($attributes);
+        $address = Address::query()->create($attributes);
+
+        $model->attachAddress($address, type: 'primary', isPrimary: true);
+    }
+
+    /**
+     * @return array{country: ?string, country_code: ?string, state: ?string, city: ?string}
+     */
+    private function resolveAddressMetadata(
+        ?string $countryId,
+        ?string $adminArea1Id,
+        ?string $adminArea2Id,
+        ?string $adminArea3Id,
+    ): array {
+        $country = $countryId !== null
+            ? AddressCountry::query()->find($countryId)
+            : null;
+        $stateArea = $adminArea1Id !== null
+            ? AddressArea::query()->find($adminArea1Id)
+            : null;
+        $districtArea = $adminArea2Id !== null
+            ? AddressArea::query()->find($adminArea2Id)
+            : null;
+        $cityArea = $adminArea3Id !== null
+            ? AddressArea::query()->find($adminArea3Id)
+            : null;
+
+        return [
+            'country' => $country?->name,
+            'country_code' => $country?->iso2,
+            'state' => $stateArea?->name,
+            'city' => $cityArea->name ?? $districtArea?->name,
+        ];
     }
 
     /**
@@ -1107,9 +1143,26 @@ class ContributionEntityMutationService
 
         $addressKeys = [
             'country_id',
+            'country_code',
+            'country_key',
+            'admin_area_1_id',
+            'admin_area_2_id',
+            'admin_area_3_id',
+            'admin_area_4_id',
             'state_id',
             'district_id',
             'subdistrict_id',
+            'line1',
+            'line2',
+            'postcode',
+            'latitude',
+            'longitude',
+            'lat',
+            'lng',
+            'google_maps_url',
+            'provider_place_id',
+            'google_place_id',
+            'waze_url',
         ];
 
         if (! collect($addressKeys)->contains(fn (string $key): bool => array_key_exists($key, $payload))) {
@@ -1133,7 +1186,7 @@ class ContributionEntityMutationService
      */
     private function preserveHiddenSpeakerAddressFields(Speaker $speaker, array $addressPayload): array
     {
-        $speaker->loadMissing('address');
+        $speaker->loadMissing('addresses');
 
         $existingAddress = $speaker->addressModel;
 
@@ -1145,10 +1198,10 @@ class ContributionEntityMutationService
             'line1',
             'line2',
             'postcode',
-            'lat',
-            'lng',
+            'latitude',
+            'longitude',
             'google_maps_url',
-            'google_place_id',
+            'provider_place_id',
             'waze_url',
         ] as $field) {
             if (! array_key_exists($field, $addressPayload) || $addressPayload[$field] === null) {
@@ -1169,6 +1222,34 @@ class ContributionEntityMutationService
             static fn (BackedEnum $case): string|int => $case->value,
             $enumClass::cases(),
         );
+    }
+
+    private function normalizeUuid(mixed $value): ?string
+    {
+        if (! is_string($value) && ! is_int($value)) {
+            return null;
+        }
+
+        $trimmed = trim((string) $value);
+
+        if ($trimmed === '') {
+            return null;
+        }
+
+        return Str::isUuid($trimmed) || ctype_digit($trimmed) ? $trimmed : null;
+    }
+
+    private function legacyAddressField(string $field): string
+    {
+        return match ($field) {
+            'admin_area_1_id' => 'state_id',
+            'admin_area_2_id' => 'district_id',
+            'admin_area_3_id' => 'subdistrict_id',
+            'latitude' => 'lat',
+            'longitude' => 'lng',
+            'provider_place_id' => 'google_place_id',
+            default => $field,
+        };
     }
 
     /**
@@ -1194,7 +1275,7 @@ class ContributionEntityMutationService
 
     private function syncContacts(Model $model, mixed $contactPayload): void
     {
-        if (! method_exists($model, 'contacts')) {
+        if (! method_exists($model, 'contactMethods')) {
             return;
         }
 
@@ -1205,42 +1286,42 @@ class ContributionEntityMutationService
                     return null;
                 }
 
-                $category = $this->normalizeContactCategory($contact['category'] ?? null);
-                $value = match ($category) {
-                    ContactCategory::Phone, ContactCategory::WhatsApp => is_string($contact['phone_value'] ?? null)
+                $type = $this->normalizeContactMethodType($contact['type'] ?? $contact['category'] ?? null);
+                $value = match ($type) {
+                    ContactMethodType::Phone, ContactMethodType::Whatsapp, ContactMethodType::Mobile => is_string($contact['phone_value'] ?? null)
                         ? trim($contact['phone_value'])
                         : (is_string($contact['value'] ?? null) ? trim($contact['value']) : null),
                     default => is_string($contact['value'] ?? null)
                         ? trim($contact['value'])
                         : null,
                 };
-                $type = $this->normalizeContactType($contact['type'] ?? null);
+                $purpose = $this->normalizeContactPurpose($contact['purpose'] ?? null);
 
-                if ($category === null || $value === null || $value === '') {
+                if (! $type instanceof ContactMethodType || $value === null || $value === '') {
                     return null;
                 }
 
                 return [
-                    'category' => $category->value,
-                    'value' => $value,
                     'type' => $type->value,
+                    'purpose' => $purpose->value,
+                    'value' => $value,
                     'is_public' => (bool) ($contact['is_public'] ?? true),
-                    'order_column' => is_numeric($contact['order_column'] ?? null)
-                        ? (int) $contact['order_column']
+                    'sort_order' => is_numeric($contact['sort_order'] ?? $contact['order_column'] ?? null)
+                        ? (int) ($contact['sort_order'] ?? $contact['order_column'])
                         : $index + 1,
                 ];
             })
             ->filter()
             ->values();
 
-        $model->contacts()->delete();
+        $model->contactMethods()->delete();
 
-        $contacts->each(fn (array $contact): Contact => $model->contacts()->create($contact));
+        $contacts->each(fn (array $contact): ContactMethod => $model->contactMethods()->create($contact));
     }
 
-    private function normalizeContactCategory(mixed $value): ?ContactCategory
+    private function normalizeContactMethodType(mixed $value): ?ContactMethodType
     {
-        if ($value instanceof ContactCategory) {
+        if ($value instanceof ContactMethodType) {
             return $value;
         }
 
@@ -1248,25 +1329,25 @@ class ContributionEntityMutationService
             return null;
         }
 
-        return ContactCategory::tryFrom(trim($value));
+        return ContactMethodType::tryFrom(trim($value));
     }
 
-    private function normalizeContactType(mixed $value): ContactType
+    private function normalizeContactPurpose(mixed $value): ContactPurpose
     {
-        if ($value instanceof ContactType) {
+        if ($value instanceof ContactPurpose) {
             return $value;
         }
 
         if (! is_string($value)) {
-            return ContactType::Main;
+            return ContactPurpose::General;
         }
 
-        return ContactType::tryFrom(trim($value)) ?? ContactType::Main;
+        return ContactPurpose::tryFrom(trim($value)) ?? ContactPurpose::General;
     }
 
     private function syncSocialMedia(Model $model, mixed $socialMediaPayload): void
     {
-        if (! method_exists($model, 'socialMedia')) {
+        if (! method_exists($model, 'socialProfiles')) {
             return;
         }
 
@@ -1278,28 +1359,29 @@ class ContributionEntityMutationService
                 }
 
                 $platform = is_string($entry['platform'] ?? null) ? trim($entry['platform']) : null;
-                $username = is_string($entry['username'] ?? null) ? trim($entry['username']) : null;
+                $handle = is_string($entry['handle'] ?? $entry['username'] ?? null) ? trim($entry['handle'] ?? $entry['username']) : null;
                 $url = is_string($entry['url'] ?? null) ? trim($entry['url']) : null;
 
-                if ($platform === null || $platform === '' || ($username === null || $username === '') && ($url === null || $url === '')) {
+                if ($platform === null || $platform === '' || ($handle === null || $handle === '') && ($url === null || $url === '')) {
                     return null;
                 }
 
                 return [
                     'platform' => $platform,
-                    'username' => $username !== '' ? $username : null,
+                    'purpose' => ContactPurpose::General->value,
+                    'handle' => $handle !== '' ? $handle : null,
                     'url' => $url !== '' ? $url : null,
-                    'order_column' => is_numeric($entry['order_column'] ?? null)
-                        ? (int) $entry['order_column']
+                    'sort_order' => is_numeric($entry['sort_order'] ?? $entry['order_column'] ?? null)
+                        ? (int) ($entry['sort_order'] ?? $entry['order_column'])
                         : $index + 1,
                 ];
             })
             ->filter()
             ->values();
 
-        $model->socialMedia()->delete();
+        $model->socialProfiles()->delete();
 
-        $entries->each(fn (array $entry): SocialMedia => $model->socialMedia()->create($entry));
+        $entries->each(fn (array $entry): SocialProfile => $model->socialProfiles()->create($entry));
     }
 
     /**
@@ -1474,53 +1556,53 @@ class ContributionEntityMutationService
      */
     private function addressState(?Address $address): array
     {
-        $defaultCountryId = SharedFormSchema::preferredPublicCountryId();
-
         if (! $address instanceof Address) {
             return SharedFormSchema::hydrateAddressFormState([
-                'country_id' => $defaultCountryId,
-                'state_id' => null,
-                'district_id' => null,
-                'subdistrict_id' => null,
+                'country_id' => null,
+                'admin_area_1_id' => null,
+                'admin_area_2_id' => null,
+                'admin_area_3_id' => null,
+                'admin_area_4_id' => null,
                 'line1' => null,
                 'line2' => null,
                 'postcode' => null,
-                'lat' => null,
-                'lng' => null,
+                'latitude' => null,
+                'longitude' => null,
                 'google_maps_url' => null,
-                'google_place_id' => null,
+                'provider_place_id' => null,
                 'waze_url' => null,
             ]);
         }
 
         return SharedFormSchema::hydrateAddressFormState([
-            'country_id' => $address->country_id ?? $defaultCountryId,
-            'state_id' => $address->state_id,
-            'district_id' => $address->district_id,
-            'subdistrict_id' => $address->subdistrict_id,
+            'country_id' => $address->country_id ?? $this->addressingCountryResolver->resolveId($address->country_code),
+            'admin_area_1_id' => $address->admin_area_1_id,
+            'admin_area_2_id' => $address->admin_area_2_id,
+            'admin_area_3_id' => $address->admin_area_3_id,
+            'admin_area_4_id' => $address->admin_area_4_id,
             'line1' => $address->line1,
             'line2' => $address->line2,
             'postcode' => $address->postcode,
-            'lat' => $address->lat,
-            'lng' => $address->lng,
+            'latitude' => $address->latitude,
+            'longitude' => $address->longitude,
             'google_maps_url' => $address->google_maps_url,
-            'google_place_id' => $address->google_place_id,
+            'provider_place_id' => $address->provider_place_id,
             'waze_url' => $address->waze_url,
         ]);
     }
 
     /**
-     * @param  Collection<int, Contact>  $contacts
+     * @param  Collection<int, ContactMethod>  $contacts
      * @return list<array<string, mixed>>
      */
     private function contactsState(Collection $contacts): array
     {
         return $contacts
             ->sortBy('created_at')
-            ->map(fn (Contact $contact): array => [
-                'category' => $contact->category instanceof BackedEnum ? $contact->category->value : (string) $contact->category,
-                'value' => $contact->value,
+            ->map(fn (ContactMethod $contact): array => [
                 'type' => $contact->type instanceof BackedEnum ? $contact->type->value : (string) $contact->type,
+                'purpose' => $contact->purpose instanceof BackedEnum ? $contact->purpose->value : (string) $contact->purpose,
+                'value' => $contact->value,
                 'is_public' => (bool) $contact->is_public,
             ])
             ->values()
@@ -1528,16 +1610,16 @@ class ContributionEntityMutationService
     }
 
     /**
-     * @param  Collection<int, SocialMedia>  $entries
+     * @param  Collection<int, SocialProfile>  $entries
      * @return list<array<string, mixed>>
      */
     private function socialMediaState(Collection $entries): array
     {
         return $entries
             ->sortBy('created_at')
-            ->map(fn (SocialMedia $entry): array => [
+            ->map(fn (SocialProfile $entry): array => [
                 'platform' => $entry->platform instanceof BackedEnum ? $entry->platform->value : (string) $entry->platform,
-                'username' => $entry->username,
+                'handle' => $entry->handle,
                 'url' => $entry->url,
             ])
             ->values()

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
-use AIArmada\FilamentAuthz\Models\Role;
+use AIArmada\CommerceSupport\Models\Role;
 use Illuminate\Database\Seeder;
 
 class RoleSeeder extends Seeder

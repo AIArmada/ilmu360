@@ -25,7 +25,7 @@ The app currently requires these AIArmada packages:
 - `aiarmada/filament-signals`
 - `aiarmada/signals`
 
-The app does not yet have Composer path repositories for `/Users/Saiffil/Herd/commerce/packages/*`.
+The app now has Composer path repositories pointing to `/Users/Saiffil/Herd/commerce/packages/*`. All installed AIArmada packages resolve from local source via symlinks.
 
 ## Adoption Tiers
 
@@ -44,14 +44,14 @@ The app does not yet have Composer path repositories for `/Users/Saiffil/Herd/co
 | --- | ---: | ---: | --- | --- | --- |
 | `addressing` | 5 | 4 | Domain Replacement | `Ready` after dependency resolve | Target UUID geography replacement; must support global discovery and country-specific address-area hierarchies without app-wide country switching. |
 | `affiliate-network` | 6 | 6 | Commerce Capability | `Deferred` | Relevant only if real affiliate network workflows are introduced. |
-| `affiliates` | 26 | 27 | Foundation | `Assessing` | Already installed; move to local path and reconcile source/vendor drift. |
-| `authz` | 2 | 0 | Foundation | `Blocked` | Permission package v8 conflict must be resolved. |
+| `affiliates` | 26 | 27 | Foundation | `Ready` | Local path source active. Symlinked at vendor/aiarmada/affiliates. |
+| `authz` | 2 | 0 | Foundation | `Ready` | Permission v8 resolved. Installed automatically as dependency. |
 | `cart` | 2 | 2 | Commerce Capability | `Assessing` | Needed for approved paid event ticket workflow. |
 | `cashier` | 0 | 2 | Commerce Capability | `Deferred` | Payment/billing capability only. |
 | `cashier-chip` | 3 | 3 | Commerce Capability | `Deferred` | Requires payment workflow decision. |
 | `checkout` | 1 | 1 | Commerce Capability | `Assessing` | Needed for approved paid event ticket workflow; pulls cart, customers, docs, orders, pricing, products, shipping. |
 | `chip` | 10 | 2 | Commerce Capability | `Deferred` | Route-bearing payment provider package. |
-| `commerce-support` | 7 | 4 | Foundation | `Assessing` | Hub dependency for 54 packages; migration stubs need review. |
+| `commerce-support` | 7 | 4 | Foundation | `Ready` | Local path source active. Migration stubs deferred to WP-07. |
 | `communications` | 16 | 16 | Domain Replacement | `Ready` after dependency resolve | Replaces app notification engine; custom FCM/WhatsApp/digest remain app-owned. |
 | `contacting` | 3 | 3 | Domain Replacement | `Ready` after dependency resolve | Replaces contact/social profile storage and normalization. |
 | `csuite` / `aiarmada/commerce` | 0 | 0 | Meta | `Deferred` | Do not use for initial adoption. |
@@ -69,7 +69,7 @@ The app does not yet have Composer path repositories for `/Users/Saiffil/Herd/co
 | `pricing` | 3 | 3 | Commerce Capability | `Assessing` | Needed for approved paid event ticket workflow. |
 | `products` | 14 | 10 | Commerce Capability | `Assessing` | Assess for event ticket/product bundling and donation products. |
 | `promotions` | 1 | 1 | Commerce Capability | `Deferred` | Needed for vouchers/promotions. |
-| `references` | 1 | 1 | Domain Replacement | `Blocked` | Sluggable v3/v4 constraint must be fixed generically. |
+| `references` | 1 | 1 | Domain Replacement | `Ready` | Sluggable v4 constraint resolved; API compatible. |
 | `shipping` | 7 | 8 | Commerce Capability | `Deferred` | Needed only if physical delivery/logistics enter scope. |
 | `signals` | 11 | 11 | Foundation | `Assessing` | Already installed; move to local path and keep privacy-first event curation. |
 | `tax` | 4 | 4 | Commerce Capability | `Deferred` | Needed only for taxable commerce workflows. |

@@ -4,7 +4,7 @@ Updated: May 4, 2026
 Audience: developers and AI-client integrators.
 
 This is the human setup and broader integration guide.
-The MCP-facing guides consumed by agents are `docs/ilmu360_mcp_admin_agent_guide.md` and `docs/ilmu360_mcp_member_agent_guide.md`.
+The MCP-facing guides consumed by agents are `docs/ilmu360_mcp_admin_agent_guide.md`, `docs/ilmu360_mcp_member_agent_guide.md`, and `docs/ilmu360_mcp_event_csv_json_creation_guide.md` for spreadsheet-style event creation workflows.
 
 ## What MCP Means in ilmu360°
 
@@ -173,6 +173,7 @@ Each MCP server exposes its own read-only markdown guide through MCP `resources/
 | Resource | URI | Purpose |
 |---|---|---|
 | `docs-admin-mcp-guide` | `file://docs/ilmu360_mcp_admin_agent_guide.md` | Verified guide for admin MCP auth, transport, discovery primitives, capability matrix, media rules, and admin write behavior |
+| `docs-admin-event-csv-json-create-guide` | `file://docs/ilmu360_mcp_event_csv_json_creation_guide.md` | Verified playbook for CSV/JSON event creation, validation-retry loops, and batch-safe MCP ingestion workflows |
 | `docs-member-mcp-guide` | `file://docs/ilmu360_mcp_member_agent_guide.md` | Verified guide for member MCP auth, transport, discovery primitives, capability matrix, media rules, and member write behavior |
 
 Treat the matching server guide as the model-readable documentation page for that MCP surface, not as a replacement for the live tool/resource descriptors.

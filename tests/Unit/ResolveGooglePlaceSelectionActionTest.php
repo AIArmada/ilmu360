@@ -1,93 +1,49 @@
 <?php
 
+use AIArmada\Addressing\Models\AddressArea;
+use AIArmada\Addressing\Models\AddressCountry;
 use App\Actions\Location\ResolveGooglePlaceSelectionAction;
-use App\Models\District;
-use App\Models\State;
-use App\Models\Subdistrict;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 uses(TestCase::class, RefreshDatabase::class);
 
-function ensureCountryForPlaceResolution(string $iso2, string $name, ?int $id = null): int
+function ensureCountryForPlaceResolution(string $iso2, string $name): AddressCountry
 {
-    $countryId = DB::table('countries')
-        ->when($id !== null, fn ($query) => $query->where('id', $id), fn ($query) => $query->where('iso2', $iso2))
-        ->value('id');
-
-    if (is_int($countryId)) {
-        return $countryId;
-    }
-
-    return DB::table('countries')->insertGetId(array_filter([
-        'id' => $id,
-        'iso2' => $iso2,
-        'name' => $name,
-        'status' => 1,
-        'phone_code' => $iso2 === 'ID' ? '62' : '60',
-        'iso3' => $iso2 === 'ID' ? 'IDN' : 'MYS',
-        'region' => 'Asia',
-        'subregion' => 'South-Eastern Asia',
-    ], static fn (mixed $value): bool => $value !== null));
+    return ensureTestAddressCountry(
+        iso2: $iso2,
+        name: $name,
+        iso3: $iso2 === 'ID' ? 'IDN' : 'MYS',
+        timezones: [$iso2 === 'ID' ? 'Asia/Jakarta' : 'Asia/Kuala_Lumpur'],
+        phoneCode: $iso2 === 'ID' ? '62' : '60',
+    );
 }
 
-function ensureMalaysiaStateForPlaceResolution(string $name = 'Selangor'): State
+function ensureMalaysiaStateForPlaceResolution(string $name = 'Selangor'): AddressArea
 {
-    $countryId = ensureCountryForPlaceResolution('MY', 'Malaysia', 132);
-
-    $stateId = DB::table('states')
-        ->where('country_id', $countryId)
-        ->where('name', $name)
-        ->value('id');
-
-    if (! is_int($stateId)) {
-        $stateId = DB::table('states')->insertGetId([
-            'country_id' => $countryId,
-            'name' => $name,
-            'country_code' => 'MY',
-        ]);
-    }
-
-    return State::query()->findOrFail($stateId);
+    return createTestAddressArea(
+        $name,
+        1,
+        country: ensureCountryForPlaceResolution('MY', 'Malaysia'),
+        type: 'state',
+    );
 }
 
-function ensureStateForPlaceResolution(string $countryIso2, string $countryName, string $stateName, ?int $countryId = null): State
+function ensureStateForPlaceResolution(string $countryIso2, string $countryName, string $stateName, ?AddressCountry $country = null): AddressArea
 {
-    $countryId ??= ensureCountryForPlaceResolution($countryIso2, $countryName);
-
-    $stateId = DB::table('states')
-        ->where('country_id', $countryId)
-        ->where('name', $stateName)
-        ->value('id');
-
-    if (! is_int($stateId)) {
-        $stateId = DB::table('states')->insertGetId([
-            'country_id' => $countryId,
-            'name' => $stateName,
-            'country_code' => $countryIso2,
-        ]);
-    }
-
-    return State::query()->findOrFail($stateId);
+    return createTestAddressArea(
+        $stateName,
+        1,
+        country: $country ?? ensureCountryForPlaceResolution($countryIso2, $countryName),
+        type: 'state',
+    );
 }
 
 it('maps a google place selection into local geography ids and address fields', function () {
     $state = ensureMalaysiaStateForPlaceResolution();
-    $district = District::query()->create([
-        'country_id' => (int) $state->country_id,
-        'state_id' => (int) $state->id,
-        'country_code' => 'MY',
-        'name' => 'Petaling',
-    ]);
-    $subdistrict = Subdistrict::query()->create([
-        'country_id' => (int) $state->country_id,
-        'state_id' => (int) $state->id,
-        'district_id' => (int) $district->id,
-        'country_code' => 'MY',
-        'name' => 'Shah Alam',
-    ]);
+    $district = createTestAddressArea('Petaling', 2, parent: $state, country: ensureCountryForPlaceResolution('MY', 'Malaysia'), type: 'district');
+    $subdistrict = createTestAddressArea('Shah Alam', 3, parent: $district, country: ensureCountryForPlaceResolution('MY', 'Malaysia'), type: 'subdistrict');
 
     config()->set('services.google.place_link_resolution_enabled', true);
     config()->set('services.google.places_server_api_key', 'server-test-key');
@@ -112,20 +68,20 @@ it('maps a google place selection into local geography ids and address fields', 
         ],
     ]);
 
-    expect($payload['country_id'])->toBe(132)
-        ->and($payload['state_id'])->toBe((int) $state->id)
-        ->and($payload['district_id'])->toBe((int) $district->id)
-        ->and($payload['subdistrict_id'])->toBe((int) $subdistrict->id)
+    expect($payload['country_id'])->toBe((string) $state->country_id)
+        ->and($payload['admin_area_1_id'])->toBe((string) $state->id)
+        ->and($payload['admin_area_2_id'])->toBe((string) $district->id)
+        ->and($payload['admin_area_3_id'])->toBe((string) $subdistrict->id)
         ->and($payload['line1'])->toBe('Persiaran Masjid')
         ->and($payload['line2'])->toBe('Seksyen 14')
         ->and($payload['postcode'])->toBe('40000')
         ->and($payload['google_maps_url'])->toBe('https://www.google.com/maps/search/?api=1&query=3.07853%2C101.52073&query_place_id=place_abc123')
-        ->and($payload['google_place_id'])->toBe('place_abc123')
+        ->and($payload['provider_place_id'])->toBe('place_abc123')
         ->and($payload['google_display_name'])->toBe('Masjid Sultan Salahuddin Abdul Aziz Shah')
         ->and($payload['google_resolution_source'])->toBe('picker')
         ->and($payload['google_resolution_status'])->toBe('resolved')
-        ->and(abs(((float) $payload['lat']) - 3.07853))->toBeLessThan(0.000001)
-        ->and(abs(((float) $payload['lng']) - 101.52073))->toBeLessThan(0.000001);
+        ->and(abs(((float) $payload['latitude']) - 3.07853))->toBeLessThan(0.000001)
+        ->and(abs(((float) $payload['longitude']) - 101.52073))->toBeLessThan(0.000001);
 
     Http::assertNothingSent();
 });
@@ -133,19 +89,8 @@ it('maps a google place selection into local geography ids and address fields', 
 it('leaves ambiguous geography ids empty instead of guessing', function () {
     $state = ensureMalaysiaStateForPlaceResolution();
 
-    District::query()->create([
-        'country_id' => (int) $state->country_id,
-        'state_id' => (int) $state->id,
-        'country_code' => 'MY',
-        'name' => 'Petaling',
-    ]);
-
-    District::query()->create([
-        'country_id' => (int) $state->country_id,
-        'state_id' => (int) $state->id,
-        'country_code' => 'MY',
-        'name' => 'Petaling',
-    ]);
+    createTestAddressArea('Petaling', 2, parent: $state, country: ensureCountryForPlaceResolution('MY', 'Malaysia'), type: 'district');
+    createTestAddressArea('Petaling', 2, parent: $state, country: ensureCountryForPlaceResolution('MY', 'Malaysia'), type: 'district');
 
     $payload = app(ResolveGooglePlaceSelectionAction::class)->handle([
         'location' => [
@@ -158,21 +103,15 @@ it('leaves ambiguous geography ids empty instead of guessing', function () {
         ],
     ]);
 
-    expect($payload['state_id'])->toBe((int) $state->id)
-        ->and($payload['district_id'])->toBeNull()
-        ->and($payload['subdistrict_id'])->toBeNull();
+    expect($payload['admin_area_1_id'])->toBe((string) $state->id)
+        ->and($payload['admin_area_2_id'])->toBeNull()
+        ->and($payload['admin_area_3_id'])->toBeNull();
 });
 
 it('resolves federal territory subdistricts directly from the state without a district', function () {
     $state = ensureMalaysiaStateForPlaceResolution('Kuala Lumpur');
 
-    $subdistrict = Subdistrict::query()->create([
-        'country_id' => (int) $state->country_id,
-        'state_id' => (int) $state->id,
-        'district_id' => null,
-        'country_code' => 'MY',
-        'name' => 'Setiawangsa',
-    ]);
+    $subdistrict = createTestAddressArea('Setiawangsa', 3, parent: $state, country: ensureCountryForPlaceResolution('MY', 'Malaysia'), type: 'subdistrict');
 
     $payload = app(ResolveGooglePlaceSelectionAction::class)->handle([
         'location' => [
@@ -188,30 +127,19 @@ it('resolves federal territory subdistricts directly from the state without a di
         ],
     ]);
 
-    expect($payload['state_id'])->toBe((int) $state->id)
-        ->and($payload['district_id'])->toBeNull()
-        ->and($payload['subdistrict_id'])->toBe((int) $subdistrict->id)
+    expect($payload['admin_area_1_id'])->toBe((string) $state->id)
+        ->and($payload['admin_area_2_id'])->toBe((string) $state->id)
+        ->and($payload['admin_area_3_id'])->toBe((string) $subdistrict->id)
         ->and($payload['line1'])->toBe('Jalan Setiawangsa')
         ->and($payload['line2'])->toBe('Taman Setiawangsa')
         ->and($payload['postcode'])->toBe('54200');
 });
 
 it('resolves non-malaysia geography using the picker country component', function () {
-    $countryId = ensureCountryForPlaceResolution('ID', 'Indonesia');
-    $state = ensureStateForPlaceResolution('ID', 'Indonesia', 'DKI Jakarta', $countryId);
-    $district = District::query()->create([
-        'country_id' => $countryId,
-        'state_id' => (int) $state->id,
-        'country_code' => 'ID',
-        'name' => 'Jakarta Pusat',
-    ]);
-    $subdistrict = Subdistrict::query()->create([
-        'country_id' => $countryId,
-        'state_id' => (int) $state->id,
-        'district_id' => (int) $district->id,
-        'country_code' => 'ID',
-        'name' => 'Gambir',
-    ]);
+    $country = ensureCountryForPlaceResolution('ID', 'Indonesia');
+    $state = ensureStateForPlaceResolution('ID', 'Indonesia', 'DKI Jakarta', $country);
+    $district = createTestAddressArea('Jakarta Pusat', 2, parent: $state, country: $country, type: 'district');
+    $subdistrict = createTestAddressArea('Gambir', 3, parent: $district, country: $country, type: 'subdistrict');
 
     $payload = app(ResolveGooglePlaceSelectionAction::class)->handle([
         'location' => [
@@ -228,32 +156,21 @@ it('resolves non-malaysia geography using the picker country component', functio
         ],
     ]);
 
-    expect($payload['country_id'])->toBe($countryId)
-        ->and($payload['state_id'])->toBe((int) $state->id)
-        ->and($payload['district_id'])->toBe((int) $district->id)
-        ->and($payload['subdistrict_id'])->toBe((int) $subdistrict->id)
+    expect($payload['country_id'])->toBe((string) $country->id)
+        ->and($payload['admin_area_1_id'])->toBe((string) $state->id)
+        ->and($payload['admin_area_2_id'])->toBe((string) $district->id)
+        ->and($payload['admin_area_3_id'])->toBe((string) $subdistrict->id)
         ->and($payload['postcode'])->toBe('10110');
 });
 
 it('uses the current country fallback when the picker payload omits the country component', function () {
-    $countryId = ensureCountryForPlaceResolution('ID', 'Indonesia');
-    $state = ensureStateForPlaceResolution('ID', 'Indonesia', 'DKI Jakarta', $countryId);
-    $district = District::query()->create([
-        'country_id' => $countryId,
-        'state_id' => (int) $state->id,
-        'country_code' => 'ID',
-        'name' => 'Jakarta Pusat',
-    ]);
-    $subdistrict = Subdistrict::query()->create([
-        'country_id' => $countryId,
-        'state_id' => (int) $state->id,
-        'district_id' => (int) $district->id,
-        'country_code' => 'ID',
-        'name' => 'Gambir',
-    ]);
+    $country = ensureCountryForPlaceResolution('ID', 'Indonesia');
+    $state = ensureStateForPlaceResolution('ID', 'Indonesia', 'DKI Jakarta', $country);
+    $district = createTestAddressArea('Jakarta Pusat', 2, parent: $state, country: $country, type: 'district');
+    $subdistrict = createTestAddressArea('Gambir', 3, parent: $district, country: $country, type: 'subdistrict');
 
     $payload = app(ResolveGooglePlaceSelectionAction::class)->handle([
-        'fallbackCountryId' => (string) $countryId,
+        'fallbackCountryId' => (string) $country->id,
         'location' => [
             'lat' => -6.1754,
             'lng' => 106.8272,
@@ -267,8 +184,8 @@ it('uses the current country fallback when the picker payload omits the country 
         ],
     ]);
 
-    expect($payload['country_id'])->toBe($countryId)
-        ->and($payload['state_id'])->toBe((int) $state->id)
-        ->and($payload['district_id'])->toBe((int) $district->id)
-        ->and($payload['subdistrict_id'])->toBe((int) $subdistrict->id);
+    expect($payload['country_id'])->toBe((string) $country->id)
+        ->and($payload['admin_area_1_id'])->toBe((string) $state->id)
+        ->and($payload['admin_area_2_id'])->toBe((string) $district->id)
+        ->and($payload['admin_area_3_id'])->toBe((string) $subdistrict->id);
 });

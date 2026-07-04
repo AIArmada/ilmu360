@@ -1,5 +1,6 @@
 <?php
 
+use AIArmada\CommerceSupport\Models\Role;
 use App\Enums\ContributionRequestType;
 use App\Enums\ContributionSubjectType;
 use App\Enums\EventFormat;
@@ -27,11 +28,9 @@ use App\Models\Speaker;
 use App\Models\Tag;
 use App\Models\User;
 use App\Support\Search\SpeakerSearchService;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Laravel\Mcp\Server\Testing\TestResponse as McpTestResponse;
 use Laravel\Sanctum\Sanctum;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
 it('keeps admin api and admin mcp speaker search results aligned', function () {
@@ -167,7 +166,7 @@ it('keeps admin api and admin mcp validate-only update previews aligned', functi
         'is_active' => true,
         'allow_public_event_submission' => true,
         'address' => [
-            'country_id' => 132,
+            'country_id' => parityEnsureMalaysiaCountryExists(),
         ],
     ];
 
@@ -556,24 +555,9 @@ function parityAdminUser(string $role): User
     return $user;
 }
 
-function parityEnsureMalaysiaCountryExists(): int
+function parityEnsureMalaysiaCountryExists(): string
 {
-    $malaysiaId = DB::table('countries')->where('id', 132)->value('id');
-
-    if (is_int($malaysiaId)) {
-        return $malaysiaId;
-    }
-
-    return DB::table('countries')->insertGetId([
-        'id' => 132,
-        'iso2' => 'MY',
-        'name' => 'Malaysia',
-        'status' => 1,
-        'phone_code' => '60',
-        'iso3' => 'MYS',
-        'region' => 'Asia',
-        'subregion' => 'South-Eastern Asia',
-    ]);
+    return (string) ensureTestMalaysiaCountry()->getKey();
 }
 
 /**

@@ -252,8 +252,9 @@ class ViewUser extends ViewRecord
     public function registrationStatusBadgeColor(?string $state): string
     {
         return match ($state) {
-            'registered', 'attended' => 'success',
-            'cancelled', 'no_show' => 'danger',
+            'confirmed', 'checked_in', 'completed' => 'success',
+            'pending', 'waitlisted' => 'warning',
+            'cancelled', 'no_show', 'rejected', 'refunded', 'expired' => 'danger',
             default => 'gray',
         };
     }

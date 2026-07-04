@@ -1,11 +1,11 @@
 <?php
 
+use AIArmada\CommerceSupport\Models\Role;
 use App\Actions\Membership\AddMemberToSubject;
 use App\Models\Institution;
 use App\Models\User;
 use App\Support\Mcp\McpTokenManager;
 use Illuminate\Support\Str;
-use Spatie\Permission\Models\Role;
 
 it('issues a bearer token for an admin-capable user', function () {
     $user = tokenCommandUser('super_admin');

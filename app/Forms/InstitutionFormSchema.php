@@ -121,14 +121,12 @@ class InstitutionFormSchema
      */
     private static function addressSchema(bool $includeLocationPicker): array
     {
-        $publicCountryId = SharedFormSchema::preferredPublicCountryId();
-
         if (! $includeLocationPicker) {
             return SharedFormSchema::addressFields(
                 requireGoogleMaps: true,
                 includeCountryField: true,
                 showCountryField: false,
-                defaultCountryId: $publicCountryId,
+                defaultCountryId: null,
                 requireCountryField: true,
             );
         }
@@ -155,7 +153,7 @@ class InstitutionFormSchema
                     enableGoogleMapsRemoteLookup: $shouldRenderLocationPicker,
                     includeCountryField: true,
                     showCountryField: false,
-                    defaultCountryId: $publicCountryId,
+                    defaultCountryId: null,
                     requireCountryField: true,
                 ),
             ])

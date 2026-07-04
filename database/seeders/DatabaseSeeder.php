@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Models\Institution;
 use App\Models\Speaker;
 use App\Models\User;
@@ -18,16 +19,18 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        if (app()->isProduction()) {
-            $this->call([ProductionSeeder::class]);
+        OwnerContext::withOwner(null, function (): void {
+            if (app()->isProduction()) {
+                $this->call([ProductionSeeder::class]);
 
-            return;
-        }
+                return;
+            }
 
-        $this->seedGeography();
-        $this->seedAuthAndTaxonomy();
-        $this->seedPrimaryEntities();
-        $this->seedActivityAndModeration();
+            $this->seedGeography();
+            $this->seedAuthAndTaxonomy();
+            $this->seedPrimaryEntities();
+            $this->seedActivityAndModeration();
+        });
     }
 
     private function seedGeography(): void
@@ -47,6 +50,7 @@ class DatabaseSeeder extends Seeder
             RoleSeeder::class,
             ScopedMemberRolesSeeder::class,
             TagSeeder::class,
+            LanguageSeeder::class,
             UserSeeder::class,
         ]);
 

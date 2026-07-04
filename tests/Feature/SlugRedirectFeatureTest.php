@@ -1,5 +1,8 @@
 <?php
 
+use AIArmada\Addressing\Models\AddressArea;
+use AIArmada\Addressing\Models\AddressCountry;
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Signals\Models\SignalEvent;
 use App\Actions\Slugs\SyncCanonicalSlugAction;
 use App\Enums\EventPrayerTime;
@@ -8,14 +11,10 @@ use App\Filament\Resources\SlugRedirects\Pages\CreateSlugRedirect;
 use App\Filament\Resources\SlugRedirects\Pages\EditSlugRedirect;
 use App\Filament\Resources\SlugRedirects\Pages\ListSlugRedirects;
 use App\Forms\VenueFormSchema;
-use App\Models\Country;
-use App\Models\District;
 use App\Models\Event;
 use App\Models\Reference;
 use App\Models\SlugRedirect;
 use App\Models\Speaker;
-use App\Models\State;
-use App\Models\Subdistrict;
 use App\Models\User;
 use App\Models\Venue;
 use App\Services\ContributionEntityMutationService;
@@ -201,10 +200,17 @@ it('redirects old event slugs when administrators change the event date', functi
     Livewire::actingAs($administrator)
         ->test(EditEvent::class, ['record' => $event->id])
         ->fillForm([
+            'title' => 'Majlis Tukar Tarikh Admin',
+            'slug' => 'majlis-tukar-tarikh-admin-12-4-26',
             'event_date' => '2026-04-15',
             'prayer_time' => EventPrayerTime::LainWaktu->value,
             'custom_time' => '20:00',
             'end_time' => '22:00',
+            'timezone' => 'Asia/Kuala_Lumpur',
+            'event_format' => 'physical',
+            'gender' => 'all',
+            'age_group' => ['all_ages'],
+            'event_type' => ['other'],
         ])
         ->call('save')
         ->assertHasNoErrors();
@@ -275,10 +281,11 @@ it('redirects old event slugs when only the organizer speaker changes', function
     $oldPath = route('events.show', $event, false);
     recordVisitedPath($oldPath);
 
-    $event->update([
-        'organizer_type' => Speaker::class,
-        'organizer_id' => $speaker->id,
-    ]);
+    $event->refresh();
+    OwnerContext::withOwner(null, function () use ($event, $speaker): void {
+        $event->setPrimaryOrganizer($speaker);
+        app(\App\Actions\Events\GenerateEventSlugAction::class)->syncEventSlugsForTitle($event->title);
+    });
 
     $redirect = SlugRedirect::query()->where('source_path', $oldPath)->firstOrFail();
 
@@ -528,26 +535,40 @@ function createSlugRedirectCountry(
     string $countryName = 'Malaysia',
     string $countryIso2 = 'MY',
     string $countryIso3 = 'MYS',
-    int $countryId = 132,
+    int|string|null $countryId = 132,
     string $phoneCode = '60',
-): Country {
-    $country = Country::query()->find($countryId);
+): AddressCountry {
+    $country = $countryId !== null
+        ? AddressCountry::query()->find((string) $countryId)
+        : null;
 
-    if ($country instanceof Country) {
+    if ($country instanceof AddressCountry) {
         return $country;
     }
 
-    $country = new Country;
+    $country = AddressCountry::query()->where('iso2', strtoupper($countryIso2))->first();
+
+    if ($country instanceof AddressCountry) {
+        return $country;
+    }
+
+    $country = new AddressCountry;
     $country->forceFill([
-        'id' => $countryId,
         'name' => $countryName,
+        'entity_type' => 'country',
         'iso2' => $countryIso2,
         'iso3' => $countryIso3,
         'phone_code' => $phoneCode,
         'region' => 'Asia',
         'subregion' => 'South-Eastern Asia',
-        'status' => 1,
     ]);
+
+    if ($countryId !== null) {
+        $country->forceFill([
+            'id' => (string) $countryId,
+        ]);
+    }
+
     $country->save();
 
     return $country;
@@ -565,32 +586,14 @@ function slugRedirectAdministrator(): User
 }
 
 /**
- * @return array{country: Country, state: State, district: District, subdistrict: Subdistrict}
+ * @return array{country: AddressCountry, state: AddressArea, district: AddressArea, subdistrict: AddressArea}
  */
 function createSlugRedirectGeography(): array
 {
     $country = createSlugRedirectCountry();
-
-    $state = State::query()->create([
-        'country_id' => (int) $country->getKey(),
-        'name' => 'Selangor',
-        'country_code' => 'MY',
-    ]);
-
-    $district = District::query()->create([
-        'country_id' => (int) $country->getKey(),
-        'state_id' => (int) $state->getKey(),
-        'country_code' => 'MY',
-        'name' => 'Petaling',
-    ]);
-
-    $subdistrict = Subdistrict::query()->create([
-        'country_id' => (int) $country->getKey(),
-        'state_id' => (int) $state->getKey(),
-        'district_id' => (int) $district->getKey(),
-        'country_code' => 'MY',
-        'name' => 'Shah Alam',
-    ]);
+    $state = createTestAddressArea('Selangor', 1, country: $country);
+    $district = createTestAddressArea('Petaling', 2, parent: $state, country: $country);
+    $subdistrict = createTestAddressArea('Shah Alam', 3, parent: $district, country: $country);
 
     return [
         'country' => $country,
@@ -601,7 +604,7 @@ function createSlugRedirectGeography(): array
 }
 
 /**
- * @param  array{country: Country, state: State, district: District, subdistrict: Subdistrict}  $geography
+ * @param  array{country: AddressCountry, state: AddressArea, district: AddressArea, subdistrict: AddressArea}  $geography
  * @return array<string, string>
  */
 function slugRedirectAddressPayload(array $geography): array

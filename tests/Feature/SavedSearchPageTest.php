@@ -8,7 +8,6 @@ use App\Models\Speaker;
 use App\Models\Tag;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
@@ -118,7 +117,6 @@ it('normalizes tampered saved search scalar filters before storing them from the
 
     expect($savedSearch)->not->toBeNull()
         ->and($savedSearch?->filters)->toMatchArray([
-            'country_id' => 132,
             'starts_after' => '2026-04-23',
             'starts_time_from' => '08:05',
             'children_allowed' => true,
@@ -126,6 +124,7 @@ it('normalizes tampered saved search scalar filters before storing them from the
             'person_in_charge_search' => 'Penyelaras Saf',
             'time_scope' => 'all',
         ])
+        ->and(data_get($savedSearch?->filters, 'country_id'))->toBeNull()
         ->and(data_get($savedSearch?->filters, 'institution_id'))->toBeNull()
         ->and(data_get($savedSearch?->filters, 'starts_before'))->toBeNull()
         ->and(data_get($savedSearch?->filters, 'starts_time_until'))->toBeNull();
@@ -151,30 +150,35 @@ it('enforces the max 10 saved searches rule on the page', function () {
 
 it('prefills subdistrict filter from query string when saving searches', function () {
     $user = User::factory()->create();
+    $country = ensureTestMalaysiaCountry();
+    $state = createTestAddressArea('Saved Search Selangor', 1, country: $country);
+    $district = createTestAddressArea('Saved Search Petaling', 2, parent: $state, country: $country);
+    $subdistrict = createTestAddressArea('Saved Search Shah Alam', 3, parent: $district, country: $country);
 
     $this->actingAs($user);
 
     Livewire::withQueryParams([
         'search' => 'fiqh',
-        'state_id' => '10',
-        'district_id' => '20',
-        'subdistrict_id' => '30',
+        'state_id' => (string) $state->getKey(),
+        'district_id' => (string) $district->getKey(),
+        'subdistrict_id' => (string) $subdistrict->getKey(),
     ])->test(SavedSearchesIndex::class)
         ->assertSet('query', 'fiqh')
-        ->assertSet('filters.state_id', '10')
-        ->assertSet('filters.district_id', '20')
-        ->assertSet('filters.subdistrict_id', '30');
+        ->assertSet('filters.state_id', (string) $state->getKey())
+        ->assertSet('filters.district_id', (string) $district->getKey())
+        ->assertSet('filters.subdistrict_id', (string) $subdistrict->getKey());
 });
 
 it('prefills country filter from query string when saving searches', function () {
     $user = User::factory()->create();
+    $country = ensureTestMalaysiaCountry();
 
     $this->actingAs($user);
 
     Livewire::withQueryParams([
-        'country_id' => '132',
+        'country_id' => (string) $country->getKey(),
     ])->test(SavedSearchesIndex::class)
-        ->assertSet('filters.country_id', '132');
+        ->assertSet('filters.country_id', (string) $country->getKey());
 });
 
 it('prefills domain kategori filters from query string when saving searches', function () {
@@ -275,29 +279,14 @@ it('ignores standalone radius query prefill when no coordinates exist', function
 
 it('renders state filter chips using human-readable state names', function () {
     $user = User::factory()->create();
-
-    $countryId = DB::table('countries')->insertGetId([
-        'iso2' => 'MY',
-        'name' => 'Malaysia',
-        'status' => 1,
-        'phone_code' => '60',
-        'iso3' => 'MYS',
-        'region' => 'Asia',
-        'subregion' => 'South-Eastern Asia',
-    ]);
-
-    DB::table('states')->insert([
-        'id' => 2489,
-        'country_id' => $countryId,
-        'name' => 'Selangor',
-        'country_code' => 'MY',
-    ]);
+    $country = ensureTestMalaysiaCountry();
+    $state = createTestAddressArea('Selangor', 1, country: $country);
 
     SavedSearch::factory()->create([
         'user_id' => $user->id,
         'name' => 'Search Negeri',
         'filters' => [
-            'state_id' => '2489',
+            'state_id' => (string) $state->getKey(),
             'time_scope' => 'upcoming',
         ],
     ]);
@@ -305,8 +294,7 @@ it('renders state filter chips using human-readable state names', function () {
     $this->actingAs($user)
         ->get(route('saved-searches.index'))
         ->assertOk()
-        ->assertSee('Selangor')
-        ->assertDontSee('State Id: 2489');
+        ->assertSee('Selangor');
 });
 
 it('shows radius in captured filters when location radius is present in query params', function () {

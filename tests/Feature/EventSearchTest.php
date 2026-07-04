@@ -1,5 +1,8 @@
 <?php
 
+use AIArmada\Addressing\Models\Address;
+use AIArmada\Addressing\Models\AddressArea;
+use AIArmada\Addressing\Models\AddressCountry;
 use App\Enums\EventFormat;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventPrayerTime;
@@ -8,16 +11,12 @@ use App\Enums\PrayerReference;
 use App\Enums\TimingMode;
 use App\Livewire\Pages\Events\AdvancedFiltersPanel;
 use App\Livewire\Pages\Events\Index;
-use App\Models\Country;
-use App\Models\District;
 use App\Models\Event;
 use App\Models\EventSettings;
 use App\Models\Institution;
 use App\Models\Reference;
 use App\Models\Registration;
 use App\Models\Speaker;
-use App\Models\State;
-use App\Models\Subdistrict;
 use App\Models\Tag;
 use App\Models\User;
 use App\Models\Venue;
@@ -29,8 +28,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Livewire\Livewire;
 use Nnjeim\World\Models\Language;
 
@@ -76,37 +75,98 @@ function eventRegistrationUrl(Event $event): string
     return route('events.register', ['event' => $event->slug], false);
 }
 
-function ensureMalaysiaStateForTests(string $name = 'Selangor'): State
-{
-    $country = Country::query()->find(132);
-
-    if (! $country instanceof Country) {
-        $country = new Country;
-        $country->forceFill([
-            'id' => 132,
-            'iso2' => 'MY',
-            'name' => 'Malaysia',
-            'status' => 1,
-            'phone_code' => '60',
-            'iso3' => 'MYS',
+function ensureAddressCountryForTests(
+    string $iso2 = 'MY',
+    string $name = 'Malaysia',
+    string $iso3 = 'MYS',
+    array $timezones = ['Asia/Kuala_Lumpur'],
+    string $phoneCode = '60',
+): AddressCountry {
+    return AddressCountry::query()->firstOrCreate(
+        ['iso2' => $iso2],
+        [
+            'name' => $name,
+            'iso3' => $iso3,
+            'entity_type' => 'country',
+            'phone_code' => $phoneCode,
             'region' => 'Asia',
             'subregion' => 'South-Eastern Asia',
-        ]);
-        $country->save();
-    }
+            'timezones' => $timezones,
+        ],
+    );
+}
 
-    /** @var State $state */
-    $state = State::query()->firstOrCreate(
+function ensureMalaysiaCountryForTests(): AddressCountry
+{
+    return ensureAddressCountryForTests();
+}
+
+function createAddressAreaForTests(
+    string $name,
+    int $level,
+    ?AddressArea $parent = null,
+    ?AddressCountry $country = null,
+    ?string $type = null,
+): AddressArea {
+    $country ??= ensureMalaysiaCountryForTests();
+    $type ??= match ($level) {
+        1 => 'state',
+        2 => 'district',
+        3 => 'subdistrict',
+        default => 'area',
+    };
+
+    return AddressArea::query()->create([
+        'country_id' => $country->id,
+        'parent_id' => $parent?->id,
+        'country_code' => $country->iso2,
+        'type' => $type,
+        'level' => $level,
+        'name' => $name,
+        'slug' => Str::slug($name),
+        'source' => 'tests',
+        'source_id' => strtolower($country->iso2).'-'.$type.'-'.Str::slug($name).'-'.Str::lower(Str::random(6)),
+        'parent_source_id' => $parent?->source_id,
+    ]);
+}
+
+function ensureMalaysiaStateForTests(string $name = 'Selangor'): AddressArea
+{
+    $country = ensureMalaysiaCountryForTests();
+
+    /** @var AddressArea $state */
+    $state = AddressArea::query()->firstOrCreate(
         [
-            'country_id' => 132,
+            'country_id' => $country->id,
+            'level' => 1,
             'name' => $name,
         ],
         [
-            'country_code' => 'MY',
+            'parent_id' => null,
+            'country_code' => $country->iso2,
+            'type' => 'state',
+            'slug' => Str::slug($name),
+            'source' => 'tests',
+            'source_id' => 'my-state-'.Str::slug($name),
         ],
     );
 
     return $state;
+}
+
+function updatePrimaryAddressForSearch(mixed $model, array $attributes): void
+{
+    $address = $model->addressModel;
+
+    if (! $address instanceof Address) {
+        $address = Address::create([
+            'country_code' => (string) ($attributes['country_code'] ?? 'MY'),
+        ]);
+
+        $model->attachAddress($address, 'primary', true);
+    }
+
+    $address->update($attributes);
 }
 
 function hiddenAttributeRegexForTestId(string $testId): string
@@ -300,19 +360,8 @@ describe('Event Search Filters', function () {
 
     it('shows event location with subdistrict, district, and state on cards', function () {
         $state = ensureMalaysiaStateForTests();
-        $district = District::query()->create([
-            'country_id' => (int) $state->country_id,
-            'state_id' => (int) $state->id,
-            'country_code' => 'MY',
-            'name' => 'Gombak',
-        ]);
-        $subdistrict = Subdistrict::query()->create([
-            'country_id' => (int) $state->country_id,
-            'state_id' => (int) $state->id,
-            'district_id' => (int) $district->id,
-            'country_code' => 'MY',
-            'name' => 'Taman Melawati',
-        ]);
+        $district = createAddressAreaForTests('Gombak', 2, $state);
+        $subdistrict = createAddressAreaForTests('Taman Melawati', 3, $district);
 
         $venue = Venue::factory()->create([
             'name' => 'Surau Taman Melawati',
@@ -320,10 +369,14 @@ describe('Event Search Filters', function () {
             'is_active' => true,
         ]);
 
-        $venue->addressModel?->update([
-            'state_id' => (int) $state->id,
-            'district_id' => (int) $district->id,
-            'subdistrict_id' => (int) $subdistrict->id,
+        updatePrimaryAddressForSearch($venue, [
+            'country_id' => $state->country_id,
+            'country_code' => 'MY',
+            'admin_area_1_id' => $state->id,
+            'admin_area_2_id' => $district->id,
+            'admin_area_3_id' => $subdistrict->id,
+            'city' => 'Taman Melawati, Gombak',
+            'state' => $state->name,
         ]);
 
         Event::factory()
@@ -1061,7 +1114,7 @@ describe('Event Search Filters', function () {
             'published_at' => now(),
             'starts_at' => now()->addDays(1),
         ]);
-        $event1->languages()->attach($malay);
+        $event1->syncLanguages([(int) $malay->getKey()]);
 
         $event2 = createVisibleEventForSearch([
             'title' => 'English Event',
@@ -1070,7 +1123,7 @@ describe('Event Search Filters', function () {
             'published_at' => now(),
             'starts_at' => now()->addDays(2),
         ]);
-        $event2->languages()->attach($english);
+        $event2->syncLanguages([(int) $english->getKey()]);
 
         $query = http_build_query([
             'language_codes' => ['en'],
@@ -1094,7 +1147,7 @@ describe('Event Search Filters', function () {
             'published_at' => now(),
             'starts_at' => now()->addDays(1),
         ]);
-        $englishEvent->languages()->sync([$english->id]);
+        $englishEvent->syncLanguages([(int) $english->id]);
 
         $malayEvent = createVisibleEventForSearch([
             'title' => 'Malay Language Codes Event',
@@ -1103,7 +1156,7 @@ describe('Event Search Filters', function () {
             'published_at' => now(),
             'starts_at' => now()->addDays(2),
         ]);
-        $malayEvent->languages()->sync([$malay->id]);
+        $malayEvent->syncLanguages([(int) $malay->id]);
 
         $query = http_build_query([
             'language_codes' => ['en'],
@@ -1307,48 +1360,31 @@ describe('Event Search Filters', function () {
     it('filters events by district', function () {
         $state = ensureMalaysiaStateForTests();
 
-        $districtA = District::query()->create([
-            'country_id' => $state->country_id,
-            'state_id' => $state->id,
-            'country_code' => 'MY',
-            'name' => 'District A '.uniqid(),
-        ]);
-
-        $districtB = District::query()->create([
-            'country_id' => $state->country_id,
-            'state_id' => $state->id,
-            'country_code' => 'MY',
-            'name' => 'District B '.uniqid(),
-        ]);
-
-        $subdistrictA = Subdistrict::query()->create([
-            'country_id' => $state->country_id,
-            'state_id' => $state->id,
-            'district_id' => $districtA->id,
-            'country_code' => 'MY',
-            'name' => 'Subdistrict A '.uniqid(),
-        ]);
-
-        $subdistrictB = Subdistrict::query()->create([
-            'country_id' => $state->country_id,
-            'state_id' => $state->id,
-            'district_id' => $districtB->id,
-            'country_code' => 'MY',
-            'name' => 'Subdistrict B '.uniqid(),
-        ]);
+        $districtA = createAddressAreaForTests('District A '.uniqid(), 2, $state);
+        $districtB = createAddressAreaForTests('District B '.uniqid(), 2, $state);
+        $subdistrictA = createAddressAreaForTests('Subdistrict A '.uniqid(), 3, $districtA);
+        $subdistrictB = createAddressAreaForTests('Subdistrict B '.uniqid(), 3, $districtB);
 
         $venueA = Venue::factory()->create();
-        $venueA->address()->update([
-            'state_id' => $state->id,
-            'district_id' => $districtA->id,
-            'subdistrict_id' => $subdistrictA->id,
+        updatePrimaryAddressForSearch($venueA, [
+            'country_id' => $state->country_id,
+            'country_code' => 'MY',
+            'admin_area_1_id' => $state->id,
+            'admin_area_2_id' => $districtA->id,
+            'admin_area_3_id' => $subdistrictA->id,
+            'city' => 'District A City',
+            'state' => $state->name,
         ]);
 
         $venueB = Venue::factory()->create();
-        $venueB->address()->update([
-            'state_id' => $state->id,
-            'district_id' => $districtB->id,
-            'subdistrict_id' => $subdistrictB->id,
+        updatePrimaryAddressForSearch($venueB, [
+            'country_id' => $state->country_id,
+            'country_code' => 'MY',
+            'admin_area_1_id' => $state->id,
+            'admin_area_2_id' => $districtB->id,
+            'admin_area_3_id' => $subdistrictB->id,
+            'city' => 'District B City',
+            'state' => $state->name,
         ]);
 
         Event::factory()->for($venueA)->create([
@@ -1377,79 +1413,47 @@ describe('Event Search Filters', function () {
     });
 
     it('filters events by country', function () {
-        $malaysiaId = DB::table('countries')->where('id', 132)->value('id');
-
-        if (! $malaysiaId) {
-            $malaysiaId = DB::table('countries')->insertGetId([
-                'id' => 132,
-                'iso2' => 'MY',
-                'name' => 'Malaysia',
-                'status' => 1,
-                'phone_code' => '60',
-                'iso3' => 'MYS',
-                'region' => 'Asia',
-                'subregion' => 'South-Eastern Asia',
-            ]);
-        }
-
-        $indonesiaId = DB::table('countries')->insertGetId([
-            'iso2' => 'ID',
-            'name' => 'Indonesia',
-            'status' => 1,
-            'phone_code' => '62',
-            'iso3' => 'IDN',
-            'region' => 'Asia',
-            'subregion' => 'South-Eastern Asia',
-        ]);
-
-        $malaysiaStateId = DB::table('states')->insertGetId([
-            'country_id' => $malaysiaId,
-            'name' => 'Selangor',
-            'country_code' => 'MY',
-        ]);
-
-        $indonesiaStateId = DB::table('states')->insertGetId([
-            'country_id' => $indonesiaId,
-            'name' => 'DKI Jakarta',
-            'country_code' => 'ID',
-        ]);
+        $malaysia = ensureMalaysiaCountryForTests();
+        $indonesia = ensureAddressCountryForTests('ID', 'Indonesia', 'IDN', ['Asia/Jakarta'], '62');
+        $malaysiaState = createAddressAreaForTests('Selangor', 1, null, $malaysia, 'state');
+        $indonesiaState = createAddressAreaForTests('DKI Jakarta', 1, null, $indonesia, 'state');
 
         $malaysiaVenue = Venue::factory()->create();
-        $malaysiaVenue->address()->update([
-            'country_id' => (int) $malaysiaId,
-            'state_id' => (int) $malaysiaStateId,
-            'district_id' => null,
-            'subdistrict_id' => null,
+        updatePrimaryAddressForSearch($malaysiaVenue, [
+            'country_id' => $malaysia->id,
+            'country_code' => 'MY',
+            'admin_area_1_id' => $malaysiaState->id,
+            'state' => $malaysiaState->name,
         ]);
 
         $malaysiaInstitution = Institution::factory()->create([
             'status' => 'verified',
             'is_active' => true,
         ]);
-        $malaysiaInstitution->address()->update([
-            'country_id' => (int) $malaysiaId,
-            'state_id' => (int) $malaysiaStateId,
-            'district_id' => null,
-            'subdistrict_id' => null,
+        updatePrimaryAddressForSearch($malaysiaInstitution, [
+            'country_id' => $malaysia->id,
+            'country_code' => 'MY',
+            'admin_area_1_id' => $malaysiaState->id,
+            'state' => $malaysiaState->name,
         ]);
 
         $indonesiaVenue = Venue::factory()->create();
-        $indonesiaVenue->address()->update([
-            'country_id' => (int) $indonesiaId,
-            'state_id' => (int) $indonesiaStateId,
-            'district_id' => null,
-            'subdistrict_id' => null,
+        updatePrimaryAddressForSearch($indonesiaVenue, [
+            'country_id' => $indonesia->id,
+            'country_code' => 'ID',
+            'admin_area_1_id' => $indonesiaState->id,
+            'state' => $indonesiaState->name,
         ]);
 
         $indonesiaInstitution = Institution::factory()->create([
             'status' => 'verified',
             'is_active' => true,
         ]);
-        $indonesiaInstitution->address()->update([
-            'country_id' => (int) $indonesiaId,
-            'state_id' => (int) $indonesiaStateId,
-            'district_id' => null,
-            'subdistrict_id' => null,
+        updatePrimaryAddressForSearch($indonesiaInstitution, [
+            'country_id' => $indonesia->id,
+            'country_code' => 'ID',
+            'admin_area_1_id' => $indonesiaState->id,
+            'state' => $indonesiaState->name,
         ]);
 
         Event::factory()->for($malaysiaVenue)->for($malaysiaInstitution)->create([
@@ -1469,7 +1473,7 @@ describe('Event Search Filters', function () {
         ]);
 
         $component = Livewire::withQueryParams([
-            'country_id' => (string) $malaysiaId,
+            'country_id' => (string) $malaysia->id,
         ])->test(Index::class);
 
         $eventTitles = $component->instance()
@@ -1483,22 +1487,7 @@ describe('Event Search Filters', function () {
             ->not->toContain('Indonesia Country Filter Non Match');
     });
 
-    it('defaults the majlis country filter from an unencrypted browser timezone cookie', function () {
-        $malaysiaId = DB::table('countries')->where('id', 132)->value('id');
-
-        if (! $malaysiaId) {
-            $malaysiaId = DB::table('countries')->insertGetId([
-                'id' => 132,
-                'iso2' => 'MY',
-                'name' => 'Malaysia',
-                'status' => 1,
-                'phone_code' => '60',
-                'iso3' => 'MYS',
-                'region' => 'Asia',
-                'subregion' => 'South-Eastern Asia',
-            ]);
-        }
-
+    it('does not default the majlis country filter from an unencrypted browser timezone cookie', function () {
         Event::factory()->create([
             'status' => 'approved',
             'visibility' => 'public',
@@ -1508,7 +1497,7 @@ describe('Event Search Filters', function () {
 
         Livewire::withCookie('user_timezone', 'Asia/Jakarta')
             ->test(Index::class)
-            ->assertSet('country_id', (string) 132)
+            ->assertSet('country_id', null)
             ->assertSet('state_id', null);
 
         Livewire::test(AdvancedFiltersPanel::class)
@@ -1518,41 +1507,30 @@ describe('Event Search Filters', function () {
     it('filters events by subdistrict', function () {
         $state = ensureMalaysiaStateForTests();
 
-        $district = District::query()->create([
-            'country_id' => $state->country_id,
-            'state_id' => $state->id,
-            'country_code' => 'MY',
-            'name' => 'District C '.uniqid(),
-        ]);
-
-        $subdistrictA = Subdistrict::query()->create([
-            'country_id' => $state->country_id,
-            'state_id' => $state->id,
-            'district_id' => $district->id,
-            'country_code' => 'MY',
-            'name' => 'Subdistrict C1 '.uniqid(),
-        ]);
-
-        $subdistrictB = Subdistrict::query()->create([
-            'country_id' => $state->country_id,
-            'state_id' => $state->id,
-            'district_id' => $district->id,
-            'country_code' => 'MY',
-            'name' => 'Subdistrict C2 '.uniqid(),
-        ]);
+        $district = createAddressAreaForTests('District C '.uniqid(), 2, $state);
+        $subdistrictA = createAddressAreaForTests('Subdistrict C1 '.uniqid(), 3, $district);
+        $subdistrictB = createAddressAreaForTests('Subdistrict C2 '.uniqid(), 3, $district);
 
         $venueA = Venue::factory()->create();
-        $venueA->address()->update([
-            'state_id' => $state->id,
-            'district_id' => $district->id,
-            'subdistrict_id' => $subdistrictA->id,
+        updatePrimaryAddressForSearch($venueA, [
+            'country_id' => $state->country_id,
+            'country_code' => 'MY',
+            'admin_area_1_id' => $state->id,
+            'admin_area_2_id' => $district->id,
+            'admin_area_3_id' => $subdistrictA->id,
+            'city' => 'Subdistrict A City',
+            'state' => $state->name,
         ]);
 
         $venueB = Venue::factory()->create();
-        $venueB->address()->update([
-            'state_id' => $state->id,
-            'district_id' => $district->id,
-            'subdistrict_id' => $subdistrictB->id,
+        updatePrimaryAddressForSearch($venueB, [
+            'country_id' => $state->country_id,
+            'country_code' => 'MY',
+            'admin_area_1_id' => $state->id,
+            'admin_area_2_id' => $district->id,
+            'admin_area_3_id' => $subdistrictB->id,
+            'city' => 'Subdistrict B City',
+            'state' => $state->name,
         ]);
 
         Event::factory()->for($venueA)->create([
@@ -1581,40 +1559,28 @@ describe('Event Search Filters', function () {
     });
 
     it('filters events by federal territory subdistricts without requiring a district', function () {
-        $state = State::query()->create([
-            'country_id' => 132,
-            'name' => 'Kuala Lumpur',
-            'country_code' => 'MY',
-        ]);
-
-        $subdistrictA = Subdistrict::query()->create([
-            'country_id' => 132,
-            'state_id' => (int) $state->id,
-            'district_id' => null,
-            'country_code' => 'MY',
-            'name' => 'Setiawangsa '.uniqid(),
-        ]);
-
-        $subdistrictB = Subdistrict::query()->create([
-            'country_id' => 132,
-            'state_id' => (int) $state->id,
-            'district_id' => null,
-            'country_code' => 'MY',
-            'name' => 'Segambut '.uniqid(),
-        ]);
+        $state = createAddressAreaForTests('Kuala Lumpur', 1, null, ensureMalaysiaCountryForTests(), 'state');
+        $subdistrictA = createAddressAreaForTests('Setiawangsa '.uniqid(), 3, $state);
+        $subdistrictB = createAddressAreaForTests('Segambut '.uniqid(), 3, $state);
 
         $venueA = Venue::factory()->create();
-        $venueA->address()->update([
-            'state_id' => (int) $state->id,
-            'district_id' => null,
-            'subdistrict_id' => (int) $subdistrictA->id,
+        updatePrimaryAddressForSearch($venueA, [
+            'country_id' => $state->country_id,
+            'country_code' => 'MY',
+            'admin_area_1_id' => $state->id,
+            'admin_area_3_id' => $subdistrictA->id,
+            'city' => 'Setiawangsa',
+            'state' => 'Kuala Lumpur',
         ]);
 
         $venueB = Venue::factory()->create();
-        $venueB->address()->update([
-            'state_id' => (int) $state->id,
-            'district_id' => null,
-            'subdistrict_id' => (int) $subdistrictB->id,
+        updatePrimaryAddressForSearch($venueB, [
+            'country_id' => $state->country_id,
+            'country_code' => 'MY',
+            'admin_area_1_id' => $state->id,
+            'admin_area_3_id' => $subdistrictB->id,
+            'city' => 'Segambut',
+            'state' => 'Kuala Lumpur',
         ]);
 
         Event::factory()->for($venueA)->create([
@@ -2380,14 +2346,14 @@ describe('Event Search Filters', function () {
 
         $nearInstitution = Institution::factory()->create();
         $nearVenue = Venue::factory()->create();
-        $nearVenue->address()->update([
+        updatePrimaryAddressForSearch($nearVenue, [
             'lat' => 3.1390,
             'lng' => 101.6869,
         ]);
 
         $farInstitution = Institution::factory()->create();
         $farVenue = Venue::factory()->create();
-        $farVenue->address()->update([
+        updatePrimaryAddressForSearch($farVenue, [
             'lat' => 3.2600,
             'lng' => 101.8600,
         ]);
@@ -2431,13 +2397,13 @@ describe('Event Search Filters', function () {
         config(['scout.driver' => 'database']);
 
         $nearInstitution = Institution::factory()->create();
-        $nearInstitution->address()->update([
+        updatePrimaryAddressForSearch($nearInstitution, [
             'lat' => 3.1390,
             'lng' => 101.6869,
         ]);
 
         $farInstitution = Institution::factory()->create();
-        $farInstitution->address()->update([
+        updatePrimaryAddressForSearch($farInstitution, [
             'lat' => 3.2600,
             'lng' => 101.8600,
         ]);
@@ -2495,10 +2461,11 @@ describe('Event Search Filters', function () {
             'starts_at' => now()->addDays(4),
         ]);
 
-        $event->address()->create([
+        $eventAddress = Address::create([
             'lat' => 3.1390,
             'lng' => 101.6869,
         ]);
+        $event->attachAddress($eventAddress, 'primary', true);
 
         $events = app(EventSearchService::class)->searchNearby(
             lat: 3.1390,
@@ -2800,11 +2767,14 @@ describe('Event Registration', function () {
         ]);
 
         $response->assertRedirect();
-        $this->assertDatabaseHas('registrations', [
-            'event_id' => $event->id,
-            'name' => 'Ahmad',
-            'email' => 'ahmad@example.com',
-        ]);
+        $registration = Registration::query()
+            ->where('event_id', $event->id)
+            ->forPrimaryContact('ahmad@example.com')
+            ->first();
+
+        expect($registration)->not->toBeNull()
+            ->and($registration?->resolvedName())->toBe('Ahmad')
+            ->and($registration?->resolvedEmail())->toBe('ahmad@example.com');
     });
 
     it('prevents duplicate registration', function () {
@@ -2850,12 +2820,12 @@ describe('Event Registration', function () {
                 'registrations_count' => 1,
             ]);
 
-        Registration::factory()->create([
-            'event_id' => $event->id,
-            'status' => 'registered',
-            'name' => 'Existing Registrant',
-            'email' => 'existing-capacity@example.com',
-        ]);
+        Registration::factory()
+            ->withPrimaryParticipant('Existing Registrant', 'existing-capacity@example.com')
+            ->create([
+                'event_id' => $event->id,
+                'status' => 'confirmed',
+            ]);
 
         $response = $this->post(eventRegistrationUrl($event), [
             'name' => 'Late Registrant',

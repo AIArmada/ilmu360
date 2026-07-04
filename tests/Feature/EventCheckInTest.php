@@ -78,11 +78,12 @@ it('allows check-in for registered users when event requires registration', func
         'registration_closes_at' => now()->addDay(),
     ]);
 
-    $registration = Registration::factory()->create([
-        'event_id' => $event->id,
-        'user_id' => $user->id,
-        'status' => 'registered',
-    ]);
+    $registration = Registration::factory()
+        ->forRegistrant($user)
+        ->create([
+            'event_id' => $event->id,
+            'status' => 'confirmed',
+        ]);
 
     Livewire::actingAs($user)
         ->test('pages.events.show', ['event' => $event])

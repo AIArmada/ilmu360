@@ -162,7 +162,7 @@ class FollowController extends FrontendController
         /** @var Series $record */
         $record = $this->slugOrUuidResolver->firstOrFail(
             Series::query(),
-            'series.slug',
+            (new Series)->getTable().'.slug',
             $subject,
         );
 

@@ -1,29 +1,61 @@
 <?php
 
-use App\Models\State;
+use AIArmada\Addressing\Models\Address;
+use AIArmada\Addressing\Models\AddressArea;
+use AIArmada\Addressing\Models\AddressCountry;
 use App\Models\Venue;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 use function Pest\Laravel\get;
 
-function ensureVenueIndexMalaysiaCountryExists(): int
+function ensureVenueIndexMalaysiaCountryExists(): AddressCountry
 {
-    $malaysiaId = DB::table('countries')->where('id', 132)->value('id');
+    $country = AddressCountry::query()->where('iso2', 'MY')->first();
 
-    if (is_int($malaysiaId)) {
-        return $malaysiaId;
+    if ($country instanceof AddressCountry) {
+        return $country;
     }
 
-    return DB::table('countries')->insertGetId([
-        'id' => 132,
-        'iso2' => 'MY',
+    return AddressCountry::query()->create([
         'name' => 'Malaysia',
-        'status' => 1,
-        'phone_code' => '60',
+        'iso2' => 'MY',
         'iso3' => 'MYS',
+        'entity_type' => 'country',
+        'phone_code' => '60',
         'region' => 'Asia',
         'subregion' => 'South-Eastern Asia',
+        'timezones' => ['Asia/Kuala_Lumpur'],
     ]);
+}
+
+function createVenueIndexState(AddressCountry $country, string $name): AddressArea
+{
+    return AddressArea::query()->create([
+        'country_id' => $country->id,
+        'parent_id' => null,
+        'country_code' => $country->iso2,
+        'level' => 1,
+        'name' => $name,
+        'type' => 'state',
+        'slug' => Str::slug($name),
+        'source' => 'tests',
+        'source_id' => 'venue-index-state-'.Str::slug($name).'-'.Str::lower(Str::random(6)),
+    ]);
+}
+
+function updateVenueIndexPrimaryAddress(Venue $venue, array $attributes): void
+{
+    $address = $venue->addressModel;
+
+    if (! $address instanceof Address) {
+        $address = Address::query()->create([
+            'country_code' => (string) ($attributes['country_code'] ?? 'MY'),
+        ]);
+
+        $venue->attachAddress($address, 'primary', true);
+    }
+
+    $address->update($attributes);
 }
 
 it('renders the public venue index hero and search copy', function () {
@@ -82,28 +114,21 @@ it('only lists active verified venues on the public index', function () {
 });
 
 it('filters venues by selected state', function () {
-    $countryId = ensureVenueIndexMalaysiaCountryExists();
+    $country = ensureVenueIndexMalaysiaCountryExists();
 
-    $shownState = State::query()->create([
-        'country_id' => $countryId,
-        'name' => 'Negeri Tempat Paparan',
-        'country_code' => 'MY',
-    ]);
-
-    $hiddenState = State::query()->create([
-        'country_id' => $countryId,
-        'name' => 'Negeri Tempat Tersembunyi',
-        'country_code' => 'MY',
-    ]);
+    $shownState = createVenueIndexState($country, 'Negeri Tempat Paparan');
+    $hiddenState = createVenueIndexState($country, 'Negeri Tempat Tersembunyi');
 
     $shownVenue = Venue::factory()->create([
         'name' => 'Dewan Negeri Terpilih',
         'status' => 'verified',
         'is_active' => true,
     ]);
-    $shownVenue->address()->update([
-        'country_id' => $countryId,
-        'state_id' => $shownState->id,
+    updateVenueIndexPrimaryAddress($shownVenue, [
+        'country_id' => $country->id,
+        'country_code' => 'MY',
+        'admin_area_1_id' => $shownState->id,
+        'state' => $shownState->name,
     ]);
 
     $hiddenVenue = Venue::factory()->create([
@@ -111,9 +136,11 @@ it('filters venues by selected state', function () {
         'status' => 'verified',
         'is_active' => true,
     ]);
-    $hiddenVenue->address()->update([
-        'country_id' => $countryId,
-        'state_id' => $hiddenState->id,
+    updateVenueIndexPrimaryAddress($hiddenVenue, [
+        'country_id' => $country->id,
+        'country_code' => 'MY',
+        'admin_area_1_id' => $hiddenState->id,
+        'state' => $hiddenState->name,
     ]);
 
     get('/tempat?state_id='.$shownState->id)

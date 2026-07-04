@@ -13,10 +13,10 @@ use AIArmada\Affiliates\Models\AffiliatePayout;
 use AIArmada\Affiliates\Models\AffiliatePayoutHold;
 use AIArmada\Affiliates\Models\AffiliatePayoutMethod;
 use AIArmada\Affiliates\Models\AffiliateTouchpoint;
+use AIArmada\CommerceSupport\Models\Permission;
+use AIArmada\CommerceSupport\Models\Role;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\FilamentAuthz\Facades\Authz;
-use AIArmada\FilamentAuthz\Models\Permission;
-use AIArmada\FilamentAuthz\Models\Role;
 use App\Concerns\HasTeams;
 use App\Enums\NotificationChannel;
 use App\Enums\NotificationDestinationStatus;
@@ -110,9 +110,9 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
             $user->syncEventEngagementCounts($savedEventIds, 'event_saves', 'saves_count');
             $user->syncEventEngagementCounts($goingEventIds, 'event_attendees', 'going_count');
 
-            $user->ownedEvents()->update(['user_id' => null]);
-            $user->submittedEvents()->update(['submitter_id' => null]);
-            $user->eventSubmissions()->update(['submitted_by' => null]);
+            $user->clearEventOwnership('user_id');
+            $user->clearEventOwnership('submitter_id');
+            $user->eventSubmissions()->update(['submitter_id' => null]);
             $user->contributionRequests()->update(['proposer_id' => null]);
             $user->reviewedContributionRequests()->update(['reviewer_id' => null]);
             $user->membershipClaims()->update(['claimant_id' => null]);
@@ -395,9 +395,14 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
                 ->where('event_id', $eventId)
                 ->count();
 
-            Event::query()
-                ->whereKey($eventId)
-                ->update([$column => $count]);
+            $event = Event::query()->find($eventId);
+
+            if (! $event instanceof Event) {
+                continue;
+            }
+
+            $event->{$column} = $count;
+            $event->saveQuietly();
         }
     }
 
@@ -406,9 +411,9 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
      */
     protected function restoreReassignedRelations(array $snapshot): void
     {
-        $this->restoreForeignKeyRelation('ownedEvents', 'user_id', $this->snapshotIds($snapshot, 'owned_event_ids'));
-        $this->restoreForeignKeyRelation('submittedEvents', 'submitter_id', $this->snapshotIds($snapshot, 'submitted_event_ids'));
-        $this->restoreForeignKeyRelation('eventSubmissions', 'submitted_by', $this->snapshotIds($snapshot, 'event_submission_ids'));
+        $this->restoreEventOwnership('user_id', $this->snapshotIds($snapshot, 'owned_event_ids'));
+        $this->restoreEventOwnership('submitter_id', $this->snapshotIds($snapshot, 'submitted_event_ids'));
+        $this->restoreForeignKeyRelation('eventSubmissions', 'submitter_id', $this->snapshotIds($snapshot, 'event_submission_ids'));
         $this->restoreForeignKeyRelation('contributionRequests', 'proposer_id', $this->snapshotIds($snapshot, 'contribution_request_proposer_ids'));
         $this->restoreForeignKeyRelation('reviewedContributionRequests', 'reviewer_id', $this->snapshotIds($snapshot, 'contribution_request_reviewer_ids'));
         $this->restoreForeignKeyRelation('membershipClaims', 'claimant_id', $this->snapshotIds($snapshot, 'membership_claim_ids'));
@@ -499,6 +504,10 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
             $model->timestamps = false;
             $model->forceFill($attributes);
             $model->saveQuietly();
+
+            if ($relationName === 'registrations' && $model instanceof Registration) {
+                $model->syncPrimaryParticipantRecord();
+            }
         }
     }
 
@@ -532,6 +541,37 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
             ->whereKey($ids)
             ->whereNull($foreignKey)
             ->update([$foreignKey => $this->id]);
+    }
+
+    private function clearEventOwnership(string $foreignKey): void
+    {
+        Event::query()
+            ->where($foreignKey, $this->id)
+            ->get()
+            ->each(function (Event $event) use ($foreignKey): void {
+                $event->{$foreignKey} = null;
+                $event->saveQuietly();
+            });
+    }
+
+    /** @param array<int, string> $ids */
+    private function restoreEventOwnership(string $foreignKey, array $ids): void
+    {
+        if ($ids === []) {
+            return;
+        }
+
+        Event::query()
+            ->whereKey($ids)
+            ->get()
+            ->each(function (Event $event) use ($foreignKey): void {
+                if ($event->{$foreignKey} !== null) {
+                    return;
+                }
+
+                $event->{$foreignKey} = $this->id;
+                $event->saveQuietly();
+            });
     }
 
     private function pivotTimestamp(Model $model, string $attribute): ?string
@@ -819,7 +859,7 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
      */
     public function eventSubmissions(): HasMany
     {
-        return $this->hasMany(EventSubmission::class, 'submitted_by');
+        return $this->hasMany(EventSubmission::class, 'submitter_id');
     }
 
     /**
@@ -879,11 +919,11 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
     }
 
     /**
-     * @return HasMany<Registration, $this>
+     * @return MorphMany<Registration, $this>
      */
-    public function registrations(): HasMany
+    public function registrations(): MorphMany
     {
-        return $this->hasMany(Registration::class);
+        return $this->morphMany(Registration::class, 'registrant');
     }
 
     /**

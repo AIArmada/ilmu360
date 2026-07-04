@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Events\Pages;
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Enums\EventChangeType;
 use App\Filament\Resources\Events\Concerns\PublishesEventChanges;
 use App\Filament\Resources\Events\EventResource;
@@ -33,6 +34,11 @@ class ViewEvent extends ViewRecord
     protected static string $resource = EventResource::class;
 
     protected Width|string|null $maxContentWidth = Width::Full;
+
+    public function boot(): void
+    {
+        OwnerContext::setForRequest(null);
+    }
 
     #[\Override]
     protected function getHeaderActions(): array
@@ -75,8 +81,9 @@ class ViewEvent extends ViewRecord
             return null;
         }
 
-        $organizerInstitutionId = $event->organizer_type === Institution::class && is_string($event->organizer_id)
-            ? $event->organizer_id
+        $organizer = $event->primaryOrganizerInvolvement?->involveable;
+        $organizerInstitutionId = $organizer instanceof Institution
+            ? (string) $organizer->getKey()
             : null;
 
         if ($organizerInstitutionId !== null) {

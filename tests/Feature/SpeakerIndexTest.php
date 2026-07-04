@@ -8,31 +8,10 @@ use App\Models\Speaker;
 use App\Models\User;
 use App\Support\Search\SpeakerSearchService;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 
 use function Pest\Laravel\get;
-
-function ensureSpeakerIndexMalaysiaCountryExists(): int
-{
-    $malaysiaId = DB::table('countries')->where('id', 132)->value('id');
-
-    if (is_int($malaysiaId)) {
-        return $malaysiaId;
-    }
-
-    return DB::table('countries')->insertGetId([
-        'id' => 132,
-        'iso2' => 'MY',
-        'name' => 'Malaysia',
-        'status' => 1,
-        'phone_code' => '60',
-        'iso3' => 'MYS',
-        'region' => 'Asia',
-        'subregion' => 'South-Eastern Asia',
-    ]);
-}
 
 it('can search speakers case-insensitively', function () {
     // Create speakers with different cases
@@ -299,12 +278,13 @@ it('allows users to submit a missing speaker from speaker index with pending sta
     );
 
     $user = User::factory()->create();
-    ensureSpeakerIndexMalaysiaCountryExists();
+    $country = ensureTestMalaysiaCountry();
 
     Livewire::actingAs($user)
         ->test(SubmitSpeaker::class)
         ->set('data.name', $speakerName)
         ->set('data.gender', 'male')
+        ->set('data.address.country_id', (string) $country->getKey())
         ->set('data.honorific', ['dato'])
         ->set('data.pre_nominal', ['ustaz'])
         ->set('data.post_nominal', ['PhD'])
@@ -326,14 +306,14 @@ it('allows users to submit a missing speaker from speaker index with pending sta
     expect($speaker)->not->toBeNull()
         ->and($speaker?->status)->toBe('pending')
         ->and($speaker?->is_active)->toBeTrue()
-        ->and($speaker?->addressModel?->country_id)->toBe(132);
+        ->and($speaker?->addressModel?->country_id)->toBe((string) $country->getKey());
 });
 
 it('rejects duplicate speaker submissions when name gender and titles all match', function () {
     $user = User::factory()->create();
-    ensureSpeakerIndexMalaysiaCountryExists();
+    $country = ensureTestMalaysiaCountry();
 
-    Speaker::factory()->create([
+    $speaker = Speaker::factory()->create([
         'name' => 'Ustaz Samad Hassan',
         'gender' => 'male',
         'honorific' => ['dato'],
@@ -343,11 +323,15 @@ it('rejects duplicate speaker submissions when name gender and titles all match'
         'status' => 'verified',
         'is_active' => true,
     ]);
+    syncPrimaryAddressForTest($speaker, [
+        'country_id' => (string) $country->getKey(),
+    ]);
 
     Livewire::actingAs($user)
         ->test(SubmitSpeaker::class)
         ->set('data.name', 'Ustaz   Samad   Hassan')
         ->set('data.gender', 'male')
+        ->set('data.address.country_id', (string) $country->getKey())
         ->set('data.honorific', ['dato'])
         ->set('data.pre_nominal', ['ustaz'])
         ->set('data.post_nominal', ['PhD'])

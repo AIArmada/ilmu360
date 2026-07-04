@@ -75,18 +75,23 @@ class VenueFormSchema
     {
         $addressData = is_array($data['address'] ?? null) ? $data['address'] : $data;
 
-        $venue = Venue::create([
+        // Prevent VenueObserver from overriding the slug before the address is linked.
+        $venue = Venue::withoutEvents(fn () => Venue::create([
             'name' => $data['name'],
             'slug' => app(GenerateVenueSlugAction::class)->handle((string) $data['name'], $addressData),
             'type' => $data['type'],
             'status' => 'pending',
-        ]);
+            'visibility' => 'public',
+        ]));
 
         // Save media uploads (cover, gallery) via Filament's relationship-saving mechanism
         $schema?->model($venue)->saveRelationships();
 
         SharedFormSchema::createAddressFromData($venue, $addressData, allowCountryOnly: true);
         SharedFormSchema::createSocialMediaFromData($venue, $data);
+
+        // Re-sync slug now that the address is linked (the created event fires before the pivot is set up).
+        app(GenerateVenueSlugAction::class)->syncVenueSlug($venue);
 
         return (string) $venue->getKey();
     }
@@ -96,14 +101,12 @@ class VenueFormSchema
      */
     private static function addressSchema(bool $includeLocationPicker): array
     {
-        $publicCountryId = SharedFormSchema::preferredPublicCountryId();
-
         if (! $includeLocationPicker) {
             return SharedFormSchema::addressFields(
                 requireGoogleMaps: true,
                 includeCountryField: true,
                 showCountryField: false,
-                defaultCountryId: $publicCountryId,
+                defaultCountryId: null,
                 requireCountryField: true,
             );
         }
@@ -130,7 +133,7 @@ class VenueFormSchema
                     enableGoogleMapsRemoteLookup: $shouldRenderLocationPicker,
                     includeCountryField: true,
                     showCountryField: false,
-                    defaultCountryId: $publicCountryId,
+                    defaultCountryId: null,
                     requireCountryField: true,
                 ),
             ])

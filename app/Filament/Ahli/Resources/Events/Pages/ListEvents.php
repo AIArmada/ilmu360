@@ -2,6 +2,7 @@
 
 namespace App\Filament\Ahli\Resources\Events\Pages;
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Filament\Ahli\Resources\Events\EventResource;
 use App\Models\User;
 use Filament\Actions\Action;
@@ -9,6 +10,11 @@ use Filament\Resources\Pages\ListRecords;
 
 class ListEvents extends ListRecords
 {
+    public function boot(): void
+    {
+        OwnerContext::setForRequest(null);
+    }
+
     protected static string $resource = EventResource::class;
 
     #[\Override]

@@ -1,5 +1,6 @@
 <?php
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Models\Institution;
 use App\Models\Reference;
 use App\Models\Speaker;
@@ -7,9 +8,18 @@ use App\Support\Search\InstitutionSearchService;
 use App\Support\Search\ReferenceSearchService;
 use App\Support\Search\SpeakerSearchService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
 use Tests\TestCase;
 
 uses(TestCase::class, RefreshDatabase::class);
+
+beforeEach(function (): void {
+    $request = app()->make('request');
+
+    if ($request instanceof Request) {
+        OwnerContext::setForRequest(null);
+    }
+});
 
 it('falls back to the local speaker search index when typesense lookup fails', function () {
     $speaker = Speaker::factory()->create([

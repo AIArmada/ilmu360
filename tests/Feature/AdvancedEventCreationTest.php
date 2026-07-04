@@ -1,5 +1,6 @@
 <?php
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Filament\Ahli\Resources\Events\EventResource as AhliEventResource;
 use App\Livewire\Pages\Dashboard\Events\CreateAdvanced;
 use App\Models\Event;
@@ -36,21 +37,23 @@ it('creates a parent program draft then redirects into child-event submission', 
         ->set('form.description', 'A month-long umbrella program.')
         ->set('form.program_starts_at', now()->addDays(2)->setTime(20, 0)->format('Y-m-d\TH:i'))
         ->set('form.program_ends_at', now()->addDays(30)->setTime(22, 0)->format('Y-m-d\TH:i'))
-        ->set('form.organizer_type', 'institution')
-        ->set('form.organizer_id', $institution->id)
+        ->set('form.primary_organizer_id', $institution->id)
         ->set('form.default_event_type', 'kuliah_ceramah')
         ->set('form.default_event_format', 'physical')
         ->call('submit')
         ->assertHasNoErrors();
 
-    $parentEvent = Event::query()
+    $parentEvent = OwnerContext::withOwner(null, fn () => Event::query()
+        ->with('primaryOrganizerInvolvement')
         ->where('title', 'Ramadan Knowledge Series')
-        ->first();
+        ->first());
 
     expect($parentEvent)->not->toBeNull()
         ->and($parentEvent?->isParentProgram())->toBeTrue()
         ->and((string) $parentEvent?->status)->toBe('draft')
         ->and($parentEvent?->childEvents()->count())->toBe(0)
+        ->and($parentEvent?->primaryOrganizerInvolvement?->involveable_type)->toBe(Institution::class)
+        ->and($parentEvent?->primaryOrganizerInvolvement?->involveable_id)->toBe($institution->id)
         ->and($parentEvent?->settings?->registration_required)->toBeFalse();
 
     $redirectComponent = Livewire::actingAs($user)
@@ -58,8 +61,7 @@ it('creates a parent program draft then redirects into child-event submission', 
         ->set('form.title', 'Another Parent Program')
         ->set('form.program_starts_at', now()->addDays(5)->setTime(20, 0)->format('Y-m-d\TH:i'))
         ->set('form.program_ends_at', now()->addDays(10)->setTime(22, 0)->format('Y-m-d\TH:i'))
-        ->set('form.organizer_type', 'institution')
-        ->set('form.organizer_id', $institution->id)
+        ->set('form.primary_organizer_id', $institution->id)
         ->call('submit')
         ->assertHasNoErrors();
 
@@ -103,8 +105,9 @@ it('prefills the institution when launched from the institution dashboard shortc
         ->actingAs($user)
         ->test(CreateAdvanced::class);
 
-    expect($component->get('form')['organizer_type'])->toBe('institution')
-        ->and($component->get('form')['organizer_id'])->toBe($institution->id)
+    expect($component->get('form'))->not->toHaveKey('organizer_type')
+        ->and($component->get('form'))->not->toHaveKey('organizer_id')
+        ->and($component->get('form')['primary_organizer_id'])->toBe($institution->id)
         ->and($component->get('form')['location_institution_id'])->toBe($institution->id)
         ->and($component->get('form')['registration_required'])->toBeFalse();
 });
@@ -120,8 +123,7 @@ it('shows a validation error when the parent program ends before it starts', fun
         ->set('form.title', 'Invalid Parent Program')
         ->set('form.program_starts_at', now()->addDays(5)->setTime(20, 0)->format('Y-m-d\TH:i'))
         ->set('form.program_ends_at', now()->addDays(4)->setTime(20, 0)->format('Y-m-d\TH:i'))
-        ->set('form.organizer_type', 'institution')
-        ->set('form.organizer_id', $institution->id)
+        ->set('form.primary_organizer_id', $institution->id)
         ->call('submit')
         ->assertHasErrors(['form.program_ends_at']);
 
@@ -147,15 +149,19 @@ it('includes the organizer speaker slug when creating a parent program for a spe
         ->set('form.description', 'Speaker-led umbrella program.')
         ->set('form.program_starts_at', $programStartsAt->format('Y-m-d\TH:i'))
         ->set('form.program_ends_at', now()->addDays(10)->setTime(22, 0)->format('Y-m-d\TH:i'))
-        ->set('form.organizer_type', 'speaker')
-        ->set('form.organizer_id', $speaker->id)
+        ->set('form.primary_organizer_id', $speaker->id)
         ->set('form.default_event_type', 'kuliah_ceramah')
         ->set('form.default_event_format', 'physical')
         ->call('submit')
         ->assertHasNoErrors();
 
-    $parentEvent = Event::query()->where('title', 'Speaker Parent Program')->firstOrFail();
+    $parentEvent = OwnerContext::withOwner(null, fn () => Event::query()
+        ->with('primaryOrganizerInvolvement')
+        ->where('title', 'Speaker Parent Program')
+        ->firstOrFail());
     $expectedSuffix = $parentEvent->starts_at?->copy()->timezone('Asia/Kuala_Lumpur')->format('j-n-y');
 
-    expect($parentEvent->slug)->toBe("speaker-parent-program-{$speaker->slug}-{$expectedSuffix}");
+    expect($parentEvent->slug)->toBe("speaker-parent-program-{$speaker->slug}-{$expectedSuffix}")
+        ->and($parentEvent->primaryOrganizerInvolvement?->involveable_type)->toBe(Speaker::class)
+        ->and($parentEvent->primaryOrganizerInvolvement?->involveable_id)->toBe($speaker->id);
 });

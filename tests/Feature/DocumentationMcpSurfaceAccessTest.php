@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use AIArmada\CommerceSupport\Models\Role;
 use App\Actions\Membership\AddMemberToSubject;
 use App\Mcp\Servers\AdminServer;
 use App\Mcp\Servers\MemberServer;
@@ -13,7 +14,6 @@ use App\Models\Institution;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use Spatie\Permission\Models\Role;
 
 it('lets admin MCP documentation tools search and fetch broader verified docs', function (): void {
     $admin = documentationMcpAdminUser();

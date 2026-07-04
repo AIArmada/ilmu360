@@ -20,8 +20,8 @@
     $venueAddress = $event->venue?->addressModel;
     $institutionAddress = $event->institution?->addressModel;
     $primaryAddress = $venueAddress ?? $institutionAddress;
-    $lat = $venueAddress?->lat ?? $institutionAddress?->lat;
-    $lng = $venueAddress?->lng ?? $institutionAddress?->lng;
+    $lat = $venueAddress?->latitude ?? $institutionAddress?->latitude;
+    $lng = $venueAddress?->longitude ?? $institutionAddress?->longitude;
     $galleryImages = $this->galleryImages;
     $keyPeopleByRole = $this->keyPeopleByRole;
     $registrationMode = $this->registrationMode();
@@ -95,6 +95,12 @@
     $eventFormatValue = $eventFormat instanceof \App\Enums\EventFormat
         ? $eventFormat->value
         : (is_string($eventFormat) ? $eventFormat : null);
+    $genderValue = $event->gender instanceof \App\Enums\EventGenderRestriction
+        ? $event->gender->value
+        : (is_string($event->gender) ? $event->gender : null);
+    $genderLabel = $event->gender instanceof \App\Enums\EventGenderRestriction
+        ? $event->gender->getLabel()
+        : \App\Enums\EventGenderRestriction::tryFrom((string) $genderValue)?->getLabel();
     $isOnlineFormat = $eventFormatValue === \App\Enums\EventFormat::Online->value;
     $isHybridFormat = $eventFormatValue === \App\Enums\EventFormat::Hybrid->value;
     $heroFallbackGradient = match ($eventFormatValue) {
@@ -136,20 +142,19 @@
     $eventActionsDisabled = $this->eventActionsDisabled;
 
     // Full address parts for venue/institution
+    $addressDisplayLines = \App\Support\Location\AddressHierarchyFormatter::displayLines($primaryAddress);
+    $locationHierarchyParts = \App\Support\Location\AddressHierarchyFormatter::parts($primaryAddress);
     $fullAddressParts = array_filter([
         $primaryAddress?->line1,
         $primaryAddress?->line2,
     ]);
-    $fullAddressCityLine = implode(' ', array_filter([
-        $primaryAddress?->postcode,
-        $primaryAddress?->city?->name,
-    ]));
-    $fullAddressStateName = $primaryAddress?->state?->name;
-    $fullAddressDistrictName = $primaryAddress?->district?->name;
+    $fullAddressCityLine = $addressDisplayLines['locality'] ?? '';
+    $fullAddressStateName = $addressDisplayLines['regional'] ?? null;
+    $fullAddressDistrictName = $locationHierarchyParts[0] ?? null;
 
     // Location short label (for hero) — deduplicate when district == state (e.g. "Kuala Lumpur")
-    $locationDistrict = $primaryAddress?->district?->name ?? $primaryAddress?->city?->name;
-    $locationState = $primaryAddress?->state?->name;
+    $locationDistrict = $locationHierarchyParts[0] ?? null;
+    $locationState = $locationHierarchyParts[1] ?? null;
     $locationShortLabel = implode(', ', array_filter(
         $locationDistrict !== $locationState ? [$locationDistrict, $locationState] : [$locationState]
     ));
@@ -182,8 +187,8 @@
     $institutionEmail = null;
     $institutionPhone = null;
     if ($event->institution && $event->institution->relationLoaded('contacts')) {
-        $institutionEmail = $event->institution->contacts->firstWhere('category', \App\Enums\ContactCategory::Email)?->value;
-        $institutionPhone = $event->institution->contacts->firstWhere('category', \App\Enums\ContactCategory::Phone)?->value;
+        $institutionEmail = $event->institution->contacts->firstWhere('type', \AIArmada\Contacting\Enums\ContactMethodType::Email->value)?->value;
+        $institutionPhone = $event->institution->contacts->firstWhere('type', \AIArmada\Contacting\Enums\ContactMethodType::Phone->value)?->value;
     }
 
     // Canonical location entity for location UI blocks.
@@ -241,8 +246,8 @@
         $contextCover = $contextEntity->getFirstMediaUrl('cover', 'banner');
 
         if ($contextEntity->relationLoaded('contacts')) {
-            $contextPhone = $contextEntity->contacts->firstWhere('category', \App\Enums\ContactCategory::Phone)?->value;
-            $contextEmail = $contextEntity->contacts->firstWhere('category', \App\Enums\ContactCategory::Email)?->value;
+            $contextPhone = $contextEntity->contacts->firstWhere('type', \AIArmada\Contacting\Enums\ContactMethodType::Phone->value)?->value;
+            $contextEmail = $contextEntity->contacts->firstWhere('type', \AIArmada\Contacting\Enums\ContactMethodType::Email->value)?->value;
         }
     } elseif ($contextEntity instanceof \App\Models\Speaker) {
         $contextHref = route('speakers.show', $contextEntity);
@@ -1834,7 +1839,7 @@
                             </div>
                         @endif
                         {{-- Full address --}}
-                        @if($primaryAddress && ($primaryAddress->line1 || $primaryAddress->city?->name || $primaryAddress->state?->name))
+                        @if($primaryAddress && (filled($primaryAddress->line1) || filled($fullAddressCityLine) || filled($fullAddressStateName)))
                             <p class="mt-2 text-sm leading-relaxed text-slate-500">
                                 @if($primaryAddress->line1) {{ $primaryAddress->line1 }} @endif
                                 @if($primaryAddress->line2), {{ $primaryAddress->line2 }}@endif
@@ -1853,12 +1858,13 @@
                 @if($wazeNavUrl || $googleMapsNavUrl)
                     @php
                         $mapAddress = $primaryAddress;
+                        $mapAddressHierarchyParts = \App\Support\Location\AddressHierarchyFormatter::parts($mapAddress);
                         $mapQuery = implode(', ', array_filter([
                             $event->venue?->name ?? $event->institution?->name,
                             $mapAddress?->line1,
                             $mapAddress?->line2,
-                            $mapAddress?->city?->name,
-                            $mapAddress?->state?->name,
+                            $mapAddressHierarchyParts[0] ?? null,
+                            $mapAddressHierarchyParts[1] ?? null,
                         ]));
                         $normalizedMapQuery = null;
                         if (filled($mapAddress?->google_maps_url)) {
@@ -1907,7 +1913,7 @@
                 @endif
 
                 {{-- Audience Info --}}
-                @if(($event->gender && $event->gender->value !== 'all') || !empty($ageGroupLabels) || $event->children_allowed === false || $event->is_muslim_only)
+                @if(($genderValue && $genderValue !== 'all') || !empty($ageGroupLabels) || $event->children_allowed === false || $event->is_muslim_only)
                     <div class="flex items-start gap-4">
                         <div
                             class="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-violet-50 text-violet-600 border border-violet-100">
@@ -1919,10 +1925,10 @@
                         <div class="min-w-0 flex-1 pt-0.5">
                             <p class="text-xs font-bold uppercase tracking-widest text-slate-400">{{ __('Audience') }}</p>
                             <div class="mt-1.5 space-y-1.5 text-sm font-medium text-slate-700">
-                                @if($event->gender && $event->gender->value !== 'all')
+                                @if($genderValue && $genderValue !== 'all')
                                     <p class="flex items-center gap-2">
                                         <span class="size-1.5 rounded-full bg-violet-400"></span>
-                                        {{ $event->gender->getLabel() }}
+                                        {{ $genderLabel }}
                                     </p>
                                 @endif
                                 @if(!empty($ageGroupLabels))

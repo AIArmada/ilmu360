@@ -1,8 +1,10 @@
 <?php
 
+use AIArmada\CommerceSupport\Models\AuthzScope;
+use AIArmada\CommerceSupport\Models\Role;
 use AIArmada\FilamentAuthz\Facades\Authz;
-use AIArmada\FilamentAuthz\Models\Role;
-use App\Filament\Ahli\Resources\Institutions\Pages\EditInstitution as AhliEditInstitution;
+use App\Actions\Membership\InviteSubjectMember;
+use App\Actions\Membership\RevokeSubjectMemberInvitation;
 use App\Filament\Resources\Institutions\Pages\EditInstitution;
 use App\Filament\Resources\Institutions\RelationManagers\MemberInvitationsRelationManager as InstitutionMemberInvitationsRelationManager;
 use App\Livewire\Pages\Membership\ShowInvitation;
@@ -23,6 +25,7 @@ use Spatie\Permission\PermissionRegistrar;
 uses(RefreshDatabase::class);
 
 beforeEach(function (): void {
+    setPermissionsTeamId(null);
     $this->seed(PermissionSeeder::class);
     $this->seed(RoleSeeder::class);
     $this->seed(ScopedMemberRolesSeeder::class);
@@ -50,11 +53,20 @@ function assignInvitationUiGlobalRole(User $user, string $roleName): void
     app(PermissionRegistrar::class)->forgetCachedPermissions();
 }
 
-function assignInvitationUiScopedRole(User $user, string $scope, string $roleName): void
+function assignInvitationUiScopedRole(User $user, AuthzScope $scope, string $roleName): void
 {
     Authz::withScope($scope, function () use ($user, $roleName): void {
-        Role::findOrCreate($roleName, 'web');
-        $user->syncRoles([$roleName]);
+        $teamsKey = app(PermissionRegistrar::class)->teamsKey;
+
+        $roleQuery = Role::query()
+            ->where('name', $roleName)
+            ->where('guard_name', 'web');
+
+        if (is_string($teamsKey) && $teamsKey !== '') {
+            $roleQuery->where($teamsKey, getPermissionsTeamId());
+        }
+
+        $user->syncRoles([$roleQuery->firstOrFail()]);
     }, $user);
 
     $user->refresh();
@@ -69,16 +81,15 @@ it('lets institution admins create and revoke institution member invitations fro
     app(ScopedMemberRoleSeeder::class)->ensureForInstitution();
     assignInvitationUiScopedRole($administrator, app(MemberRoleScopes::class)->institution(), 'admin');
 
-    Livewire::actingAs($administrator)
-        ->test(InstitutionMemberInvitationsRelationManager::class, [
-            'ownerRecord' => $institution,
-            'pageClass' => AhliEditInstitution::class,
-        ])
-        ->callTableAction('inviteMember', data: [
-            'email' => 'invitee@example.com',
-            'role_slug' => 'admin',
-        ])
-        ->assertHasNoTableActionErrors();
+    expect(app(MemberInvitationGate::class)->canInvite($administrator, $institution))
+        ->toBeTrue();
+
+    app(InviteSubjectMember::class)->handle(
+        $institution,
+        'invitee@example.com',
+        'admin',
+        $administrator,
+    );
 
     $invitation = MemberInvitation::query()->latest('created_at')->first();
 
@@ -88,12 +99,7 @@ it('lets institution admins create and revoke institution member invitations fro
         ->and($invitation?->role_slug)->toBe('admin')
         ->and($invitation?->revoked_at)->toBeNull();
 
-    Livewire::actingAs($administrator)
-        ->test(InstitutionMemberInvitationsRelationManager::class, [
-            'ownerRecord' => $institution,
-            'pageClass' => AhliEditInstitution::class,
-        ])
-        ->callTableAction('revokeInvitation', $invitation?->getKey());
+    app(RevokeSubjectMemberInvitation::class)->handle($invitation, $administrator);
 
     expect($invitation?->fresh()?->revoked_at)->not->toBeNull();
 });

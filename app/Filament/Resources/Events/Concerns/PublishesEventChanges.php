@@ -194,8 +194,6 @@ HTML;
             'institution_id',
             'venue_id',
             'space_id',
-            'organizer_type',
-            'organizer_id',
             'event_url',
             'live_url',
             'recording_url',
