@@ -2,9 +2,8 @@
 
 namespace App\Livewire\Pages\Membership;
 
-use App\Actions\Contributions\ResolveContributionSubjectPresentationAction;
-use App\Actions\Membership\AcceptSubjectMemberInvitation;
-use App\Actions\Membership\ResolveMemberInvitationByTokenAction;
+use AIArmada\Membership\Actions\AcceptInvitationAction;
+use AIArmada\Membership\Enums\MemberRole;
 use App\Enums\MemberSubjectType;
 use App\Models\Event;
 use App\Models\Institution;
@@ -12,7 +11,6 @@ use App\Models\MemberInvitation;
 use App\Models\Reference;
 use App\Models\Speaker;
 use App\Models\User;
-use App\Support\Authz\MemberRoleCatalog;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
@@ -40,13 +38,10 @@ class ShowInvitation extends Component
 
     public function mount(
         string $token,
-        ResolveMemberInvitationByTokenAction $resolveMemberInvitationByTokenAction,
-        ResolveContributionSubjectPresentationAction $resolveContributionSubjectPresentationAction,
-        MemberRoleCatalog $memberRoleCatalog,
     ): void {
         abort_unless(auth()->user() instanceof User, 403);
 
-        $this->invitation = $resolveMemberInvitationByTokenAction->handle($token);
+        $this->invitation = $this->resolveInvitationByToken($token);
 
         $subjectType = $this->invitation->subject_type;
 
@@ -54,11 +49,11 @@ class ShowInvitation extends Component
             throw new RuntimeException('Invitation subject type is not valid.');
         }
 
-        $this->roleLabel = $memberRoleCatalog->roleLabel($subjectType, $this->invitation->role_slug);
+        $this->roleLabel = MemberRole::tryFrom($this->invitation->role_slug)?->label() ?? $this->invitation->role_slug;
 
         try {
             $this->subject = $subjectType->resolveSubject($this->invitation->subject_id);
-            $this->subjectPresentation = $resolveContributionSubjectPresentationAction->handle($this->subject);
+            $this->subjectPresentation = $this->resolveSubjectPresentation($this->subject);
             $this->subjectName = $this->resolveSubjectName($this->subject);
         } catch (ModelNotFoundException) {
             $this->subjectUnavailable = true;
@@ -84,12 +79,12 @@ class ShowInvitation extends Component
         return $this->resolveAcceptanceError() === null;
     }
 
-    public function accept(AcceptSubjectMemberInvitation $acceptSubjectMemberInvitation): void
+    public function accept(AcceptInvitationAction $acceptInvitationAction): void
     {
         /** @var User $user */
         $user = auth()->user();
 
-        $acceptSubjectMemberInvitation->handle($this->invitation->fresh() ?? $this->invitation, $user);
+        $acceptInvitationAction->handle($this->invitation->fresh() ?? $this->invitation, $user);
 
         session()->flash('success', __('Invitation accepted.'));
 
@@ -122,7 +117,7 @@ class ShowInvitation extends Component
 
         $subjectType = $this->invitation->subject_type;
 
-        if (! $subjectType instanceof MemberSubjectType || ! app(MemberRoleCatalog::class)->isInvitableRole($subjectType, $this->invitation->role_slug)) {
+        if (! $subjectType instanceof MemberSubjectType || MemberRole::tryFrom($this->invitation->role_slug) === null) {
             return __('This invitation is no longer valid.');
         }
 
@@ -153,6 +148,39 @@ class ShowInvitation extends Component
             $subject instanceof Reference => $subject->title,
             default => $subject->name,
         };
+    }
+
+    private function resolveInvitationByToken(string $token): MemberInvitation
+    {
+        $invitation = MemberInvitation::query()
+            ->where('token', $token)
+            ->orWhereRaw('SHA2(?, 256) = token', [$token])
+            ->first();
+
+        abort_unless($invitation instanceof MemberInvitation, 404);
+
+        return $invitation;
+    }
+
+    /**
+     * @return array{subject_label: string, redirect_url: string}
+     */
+    private function resolveSubjectPresentation(Event|Institution|Reference|Speaker $subject): array
+    {
+        return [
+            'subject_label' => match (true) {
+                $subject instanceof Event => __('Event'),
+                $subject instanceof Institution => __('Institution'),
+                $subject instanceof Speaker => __('Speaker'),
+                $subject instanceof Reference => __('Reference'),
+            },
+            'redirect_url' => match (true) {
+                $subject instanceof Event => route('events.show', $subject),
+                $subject instanceof Institution => route('institutions.show', $subject),
+                $subject instanceof Speaker => route('speakers.show', $subject),
+                $subject instanceof Reference => route('references.show', $subject),
+            },
+        ];
     }
 
     private function subjectLabel(MemberSubjectType $subjectType): string

@@ -5,17 +5,17 @@ namespace Database\Factories;
 use AIArmada\Membership\Enums\ApplicationStatus;
 use App\Enums\MemberSubjectType;
 use App\Models\Institution;
-use App\Models\MembershipClaim;
+use App\Models\MembershipApplication;
 use App\Models\Speaker;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends Factory<MembershipClaim>
+ * @extends Factory<MembershipApplication>
  */
-class MembershipClaimFactory extends Factory
+class MembershipApplicationFactory extends Factory
 {
-    protected $model = MembershipClaim::class;
+    protected $model = MembershipApplication::class;
 
     public function definition(): array
     {
@@ -33,23 +33,27 @@ class MembershipClaimFactory extends Factory
         ];
     }
 
-    public function forInstitution(?Institution $institution = null): static
+    public function speaker(): static
     {
-        $institution ??= Institution::factory()->create();
-
-        return $this->state([
-            'subject_type' => MemberSubjectType::Institution,
-            'subject_id' => $institution->getKey(),
+        return $this->state(fn (array $attributes): array => [
+            'subject_type' => MemberSubjectType::Speaker,
+            'subject_id' => Speaker::factory(),
         ]);
     }
 
-    public function forSpeaker(?Speaker $speaker = null): static
+    public function approved(): static
     {
-        $speaker ??= Speaker::factory()->create();
+        return $this->state(fn (array $attributes): array => [
+            'status' => ApplicationStatus::Approved,
+            'reviewed_at' => now(),
+        ]);
+    }
 
-        return $this->state([
-            'subject_type' => MemberSubjectType::Speaker,
-            'subject_id' => $speaker->getKey(),
+    public function rejected(): static
+    {
+        return $this->state(fn (array $attributes): array => [
+            'status' => ApplicationStatus::Rejected,
+            'reviewed_at' => now(),
         ]);
     }
 }

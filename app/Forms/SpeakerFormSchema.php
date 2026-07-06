@@ -2,7 +2,8 @@
 
 namespace App\Forms;
 
-use App\Actions\Membership\AddMemberToSubject;
+use AIArmada\Membership\Actions\AddMemberAction;
+use AIArmada\Membership\Enums\MemberRole;
 use App\Actions\Speakers\GenerateSpeakerSlugAction;
 use App\Enums\Gender;
 use App\Models\Speaker;
@@ -51,7 +52,7 @@ class SpeakerFormSchema
         $creator = auth()->user();
 
         if ($creator instanceof User) {
-            app(AddMemberToSubject::class)->handle($speaker, $creator);
+            AddMemberAction::run($speaker, $creator, MemberRole::Owner);
         }
 
         // Save media uploads (avatar/cover) via Filament's relationship-saving mechanism

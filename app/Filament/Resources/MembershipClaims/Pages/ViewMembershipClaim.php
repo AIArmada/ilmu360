@@ -2,11 +2,12 @@
 
 namespace App\Filament\Resources\MembershipClaims\Pages;
 
+use AIArmada\Membership\Actions\ApproveMembershipApplicationAction;
+use AIArmada\Membership\Actions\RejectMembershipApplicationAction;
 use AIArmada\Membership\Enums\ApplicationStatus;
-use App\Actions\Membership\ApproveMembershipClaimAction;
-use App\Actions\Membership\RejectMembershipClaimAction;
+use AIArmada\Membership\Enums\MemberRole;
 use App\Filament\Resources\MembershipClaims\MembershipClaimResource;
-use App\Models\MembershipClaim;
+use App\Models\MembershipApplication;
 use App\Models\User;
 use App\Support\Membership\MembershipClaimPresenter;
 use Filament\Actions\Action;
@@ -57,14 +58,14 @@ class ViewMembershipClaim extends ViewRecord
                     ->rows(3)
                     ->maxLength(2000),
             ])
-            ->action(function (array $data, ApproveMembershipClaimAction $approveMembershipClaimAction): void {
+            ->action(function (array $data, ApproveMembershipApplicationAction $approveMembershipApplicationAction): void {
                 $user = auth()->user();
                 abort_unless($user instanceof User, 403);
 
-                $approveMembershipClaimAction->handle(
+                $approveMembershipApplicationAction->handle(
                     $this->claimRecord(),
                     $user,
-                    (string) $data['granted_role'],
+                    MemberRole::tryFrom((string) $data['granted_role']) ?? MemberRole::Editor,
                     filled($data['reviewer_note'] ?? null) ? (string) $data['reviewer_note'] : null,
                 );
 
@@ -92,11 +93,11 @@ class ViewMembershipClaim extends ViewRecord
                     ->rows(3)
                     ->maxLength(2000),
             ])
-            ->action(function (array $data, RejectMembershipClaimAction $rejectMembershipClaimAction): void {
+            ->action(function (array $data, RejectMembershipApplicationAction $rejectMembershipApplicationAction): void {
                 $user = auth()->user();
                 abort_unless($user instanceof User, 403);
 
-                $rejectMembershipClaimAction->handle(
+                $rejectMembershipApplicationAction->handle(
                     $this->claimRecord(),
                     $user,
                     filled($data['reviewer_note'] ?? null) ? (string) $data['reviewer_note'] : null,
@@ -112,9 +113,9 @@ class ViewMembershipClaim extends ViewRecord
             ->visible(fn (): bool => $this->claimRecord()->status === ApplicationStatus::Pending);
     }
 
-    private function claimRecord(): MembershipClaim
+    private function claimRecord(): MembershipApplication
     {
-        /** @var MembershipClaim $record */
+        /** @var MembershipApplication $record */
         $record = $this->getRecord();
 
         return $record;

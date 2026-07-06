@@ -2,8 +2,9 @@
 
 namespace App\Actions\Contributions;
 
+use AIArmada\Membership\Actions\AddMemberAction;
+use AIArmada\Membership\Enums\MemberRole;
 use App\Actions\Institutions\GenerateInstitutionSlugAction;
-use App\Actions\Membership\AssignOwnerToNewSubject;
 use App\Actions\Speakers\GenerateSpeakerSlugAction;
 use App\Enums\ContributionRequestStatus;
 use App\Enums\ContributionRequestType;
@@ -30,7 +31,7 @@ class ApproveContributionRequestAction
         private readonly ModerationService $moderationService,
         private readonly ContributionEntityMutationService $entityMutationService,
         private readonly ContributionRequestNotificationService $contributionRequestNotificationService,
-        private readonly AssignOwnerToNewSubject $assignOwnerToNewSubject,
+        private readonly AddMemberAction $addMemberAction,
         private readonly GenerateInstitutionSlugAction $generateInstitutionSlugAction,
         private readonly GenerateSpeakerSlugAction $generateSpeakerSlugAction,
     ) {}
@@ -210,6 +211,6 @@ class ApproveContributionRequestAction
             return;
         }
 
-        $this->assignOwnerToNewSubject->handle($entity, $user);
+        $this->addMemberAction->handle($entity, $user, MemberRole::Owner);
     }
 }

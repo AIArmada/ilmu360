@@ -2,15 +2,13 @@
 
 namespace App\Filament\Resources\References\RelationManagers;
 
-use App\Actions\Membership\AddMemberToSubject;
-use App\Actions\Membership\ChangeSubjectMemberRole;
-use App\Actions\Membership\RemoveMemberFromSubject;
-use App\Enums\MemberSubjectType;
+use AIArmada\Membership\Actions\AddMemberAction;
+use AIArmada\Membership\Actions\ChangeMemberRoleAction;
+use AIArmada\Membership\Actions\RemoveMemberAction;
+use AIArmada\Membership\Enums\MemberRole;
 use App\Filament\Resources\Authz\UserResource as AuthzUserResource;
 use App\Models\Reference;
 use App\Models\User;
-use App\Support\Authz\MemberRoleCatalog;
-use App\Support\Authz\ScopedMemberRoleSeeder;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Resources\RelationManagers\RelationManager;
@@ -36,9 +34,9 @@ class MembersRelationManager extends RelationManager
                 TextColumn::make('email')
                     ->searchable()
                     ->sortable(),
-                TextColumn::make('roles')
-                    ->label('Roles')
-                    ->getStateUsing(fn (User $record): string => implode(', ', app(MemberRoleCatalog::class)->roleNamesFor($record, MemberSubjectType::Reference)) ?: '—'),
+                TextColumn::make('role')
+                    ->label('Role')
+                    ->getStateUsing(fn (User $record): string => $record->pivot?->role ?? '—'),
             ])
             ->headerActions([
                 Action::make('addMember')
@@ -52,11 +50,13 @@ class MembersRelationManager extends RelationManager
                         $this->makeRoleSelect(),
                     ])
                     ->action(function (array $data): void {
-                        app(AddMemberToSubject::class)->handle(
+                        app(AddMemberAction::class)->handle(
                             $this->getReferenceOwner(),
                             User::findOrFail($data['user_id']),
-                            $data['role_id'] ?? null,
+                            MemberRole::tryFrom((string) ($data['role_id'] ?? '')) ?? MemberRole::Owner,
                         );
+
+                        $this->notifyOwnerEditPage();
                     }),
             ])
             ->actions([
@@ -70,11 +70,13 @@ class MembersRelationManager extends RelationManager
                         'role_id' => $this->getMemberRoleId($record),
                     ])
                     ->action(function (array $data, User $record): void {
-                        app(ChangeSubjectMemberRole::class)->handle(
+                        app(ChangeMemberRoleAction::class)->handle(
                             $this->getReferenceOwner(),
                             $record,
-                            $data['role_id'] ?? null,
+                            MemberRole::tryFrom((string) ($data['role_id'] ?? '')) ?? MemberRole::Viewer,
                         );
+
+                        $this->notifyOwnerEditPage();
                     }),
                 Action::make('removeMember')
                     ->label('Remove')
@@ -82,7 +84,9 @@ class MembersRelationManager extends RelationManager
                     ->hidden(fn (User $record): bool => $this->memberHasProtectedRole($record))
                     ->requiresConfirmation()
                     ->action(function (User $record): void {
-                        app(RemoveMemberFromSubject::class)->handle($this->getReferenceOwner(), $record);
+                        app(RemoveMemberAction::class)->handle($this->getReferenceOwner(), $record);
+
+                        $this->notifyOwnerEditPage();
                     }),
             ]);
     }
@@ -90,11 +94,11 @@ class MembersRelationManager extends RelationManager
     /**
      * @return array<string, string>
      */
-    protected function getScopedRoleOptions(): array
+    protected function roleOptions(): array
     {
-        app(ScopedMemberRoleSeeder::class)->ensureForReference();
-
-        return app(MemberRoleCatalog::class)->roleOptionsFor(MemberSubjectType::Reference);
+        return collect(MemberRole::cases())
+            ->mapWithKeys(fn (MemberRole $role): array => [$role->value => $role->label()])
+            ->all();
     }
 
     private function getReferenceOwner(): Reference
@@ -107,19 +111,28 @@ class MembersRelationManager extends RelationManager
 
     private function getMemberRoleId(User $user): ?string
     {
-        return app(MemberRoleCatalog::class)->roleIdsFor($user, MemberSubjectType::Reference)[0] ?? null;
+        $member = $this->getReferenceOwner()->members()->whereKey($user->getKey())->first();
+
+        return $member?->pivot?->role;
     }
 
     private function makeRoleSelect(): Select
     {
         return Select::make('role_id')
             ->label('Role')
-            ->options(fn () => $this->getScopedRoleOptions())
+            ->options(fn () => $this->roleOptions())
             ->required();
     }
 
     private function memberHasProtectedRole(User $user): bool
     {
-        return app(MemberRoleCatalog::class)->userHasProtectedRole($user, MemberSubjectType::Reference);
+        $role = $this->getMemberRoleId($user);
+
+        return $role === MemberRole::Owner->value;
+    }
+
+    private function notifyOwnerEditPage(): void
+    {
+        $this->dispatch(PublicSubmissionUiEvents::REFRESH_TOGGLE)->to($this->getPageClass());
     }
 }

@@ -2,13 +2,11 @@
 
 namespace App\Livewire\Pages\MembershipClaims;
 
-use App\Actions\Membership\ResolveMembershipClaimSubjectAction;
-use App\Actions\Membership\ResolveMembershipClaimSubjectPresentationAction;
-use App\Actions\Membership\SubmitMembershipClaimAction;
+use AIArmada\Membership\Actions\ApplyForMembershipAction;
+use AIArmada\Membership\Models\MembershipApplication;
 use App\Enums\MemberSubjectType;
 use App\Livewire\Concerns\InteractsWithToasts;
 use App\Models\Institution;
-use App\Models\MembershipClaim;
 use App\Models\Speaker;
 use App\Models\User;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
@@ -47,8 +45,6 @@ class Create extends Component implements HasForms
     public function mount(
         string $subjectType,
         string $subjectId,
-        ResolveMembershipClaimSubjectAction $resolveMembershipClaimSubjectAction,
-        ResolveMembershipClaimSubjectPresentationAction $resolveMembershipClaimSubjectPresentationAction,
     ): void {
         $resolvedSubjectType = MemberSubjectType::fromRouteSegment($subjectType);
 
@@ -62,8 +58,8 @@ class Create extends Component implements HasForms
         }
 
         $this->subjectType = $resolvedSubjectType->value;
-        $this->subject = $resolveMembershipClaimSubjectAction->handle($subjectType, $subjectId);
-        $this->context = $resolveMembershipClaimSubjectPresentationAction->handle($this->subject);
+        $this->subject = $this->resolveSubject($subjectType, $subjectId);
+        $this->context = $this->resolveSubjectPresentation($this->subject);
 
         if ($this->shouldRedirectToCanonicalSubjectUrl($resolvedSubjectType, $subjectId)) {
             $this->redirectRoute('membership-claims.create', [
@@ -80,7 +76,7 @@ class Create extends Component implements HasForms
     public function form(Schema $schema): Schema
     {
         return $schema
-            ->model(new MembershipClaim)
+            ->model(new MembershipApplication)
             ->statePath('data')
             ->components([
                 Section::make(__('Claim membership for this :subject', ['subject' => strtolower($this->context['subject_label'])]))
@@ -110,7 +106,7 @@ class Create extends Component implements HasForms
             ]);
     }
 
-    public function submit(SubmitMembershipClaimAction $submitMembershipClaimAction): void
+    public function submit(ApplyForMembershipAction $applyForMembershipAction): void
     {
         $user = auth()->user();
         abort_unless($user instanceof User, 403);
@@ -122,7 +118,7 @@ class Create extends Component implements HasForms
         $state = $this->claimForm()->getState();
 
         try {
-            $claim = $submitMembershipClaimAction->handle(
+            $claim = $applyForMembershipAction->handle(
                 $this->subject,
                 $user,
                 (string) ($state['justification'] ?? ''),
@@ -160,6 +156,32 @@ class Create extends Component implements HasForms
     private function canonicalSubjectId(): string
     {
         return $this->subject->slug;
+    }
+
+    private function resolveSubject(string $subjectType, string $subjectId): Institution|Speaker
+    {
+        $resolvedSubjectType = MemberSubjectType::fromRouteSegment($subjectType);
+
+        abort_unless($resolvedSubjectType !== null, 404);
+
+        return $resolvedSubjectType->resolveSubject($subjectId);
+    }
+
+    /**
+     * @return array{subject_label: string, subject_title: string, redirect_url: string, admin_url: string}
+     */
+    private function resolveSubjectPresentation(Institution|Speaker $subject): array
+    {
+        $subjectType = $subject instanceof Institution ? MemberSubjectType::Institution : MemberSubjectType::Speaker;
+
+        return [
+            'subject_label' => $subjectType->label(),
+            'subject_title' => $subject instanceof Institution ? $subject->name : $subject->formatted_name,
+            'redirect_url' => $subject instanceof Institution
+                ? route('institutions.show', $subject)
+                : route('speakers.show', $subject),
+            'admin_url' => '',
+        ];
     }
 
     private function shouldRedirectToCanonicalSubjectUrl(MemberSubjectType $subjectType, string $subjectId): bool

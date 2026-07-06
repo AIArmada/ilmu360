@@ -2,17 +2,16 @@
 
 namespace App\Livewire\Pages\Dashboard;
 
-use App\Actions\Membership\AddMemberToSubject;
-use App\Actions\Membership\ChangeSubjectMemberRole;
-use App\Actions\Membership\RemoveMemberFromSubject;
+use AIArmada\Membership\Actions\AddMemberAction;
+use AIArmada\Membership\Actions\ChangeMemberRoleAction;
+use AIArmada\Membership\Actions\RemoveMemberAction;
+use AIArmada\Membership\Enums\MemberRole;
 use App\Enums\EventVisibility;
 use App\Enums\MemberSubjectType;
 use App\Livewire\Concerns\InteractsWithToasts;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\User;
-use App\Support\Authz\MemberRoleCatalog;
-use App\Support\Authz\ScopedMemberRoleSeeder;
 use App\Support\Submission\EntitySubmissionAccess;
 use App\Support\Timezone\UserDateTimeFormatter;
 use BackedEnum;
@@ -202,7 +201,7 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
             ]);
         }
 
-        app(AddMemberToSubject::class)->handle($institution, $member, $validated['newMemberRoleId']);
+        AddMemberAction::run($institution, $member, MemberRole::tryFrom($validated['newMemberRoleId']) ?? MemberRole::Viewer);
 
         $this->newMemberEmail = '';
         $this->newMemberRoleId = '';
@@ -255,7 +254,7 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
 
         $validated = $this->validate($this->memberRoleRules());
 
-        app(ChangeSubjectMemberRole::class)->handle($institution, $member, $validated['editingMemberRoleId']);
+        ChangeMemberRoleAction::run($institution, $member, MemberRole::tryFrom($validated['editingMemberRoleId']) ?? MemberRole::Viewer);
 
         $this->resetMemberEditor();
 
@@ -276,7 +275,7 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
             return;
         }
 
-        app(RemoveMemberFromSubject::class)->handle($institution, $member);
+        RemoveMemberAction::run($institution, $member);
 
         if ($this->editingMemberId === $member->id) {
             $this->resetMemberEditor();
@@ -534,9 +533,9 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
     #[Computed]
     public function institutionRoleOptions(): array
     {
-        app(ScopedMemberRoleSeeder::class)->ensureForInstitution();
-
-        return app(MemberRoleCatalog::class)->roleOptionsFor(MemberSubjectType::Institution);
+        return collect(MemberRole::cases())
+            ->mapWithKeys(fn (MemberRole $r): array => [$r->value => $r->label()])
+            ->all();
     }
 
     #[Computed]
@@ -998,7 +997,18 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
      */
     protected function getMemberRoleIds(User $user): array
     {
-        return app(MemberRoleCatalog::class)->roleIdsFor($user, MemberSubjectType::Institution);
+        $institution = $this->selectedInstitution();
+        if (! $institution instanceof Institution) {
+            return [];
+        }
+        $member = $institution->members()->where('user_id', $user->id)->first();
+        if (! $member) {
+            return [];
+        }
+
+        $roleSlug = $member->pivot->role_slug ?? '';
+
+        return $roleSlug !== '' ? [$roleSlug] : [];
     }
 
     /**
@@ -1006,22 +1016,41 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
      */
     protected function getMemberRoleNames(User $user): array
     {
-        return app(MemberRoleCatalog::class)->roleNamesFor($user, MemberSubjectType::Institution);
+        $institution = $this->selectedInstitution();
+        if (! $institution instanceof Institution) {
+            return [];
+        }
+        $member = $institution->members()->where('user_id', $user->id)->first();
+        if (! $member) {
+            return [];
+        }
+
+        $roleSlug = $member->pivot->role_slug ?? '';
+
+        if ($roleSlug === '') {
+            return [];
+        }
+
+        return [MemberRole::tryFrom($roleSlug)?->label() ?? $roleSlug];
     }
 
     protected function userHasInstitutionManagementRole(User $user): bool
     {
-        return app(MemberRoleCatalog::class)->userHasAnyRole($user, MemberSubjectType::Institution, ['owner', 'admin']);
+        return $user->institutions()
+            ->wherePivotIn('role_slug', [MemberRole::Owner->value, MemberRole::Admin->value])
+            ->exists();
     }
 
     protected function memberIsOwner(User $user): bool
     {
-        return app(MemberRoleCatalog::class)->userHasRole($user, MemberSubjectType::Institution, 'owner');
+        return $user->institutions()
+            ->wherePivot('role_slug', MemberRole::Owner->value)
+            ->exists();
     }
 
     protected function memberHasProtectedRole(User $user): bool
     {
-        return app(MemberRoleCatalog::class)->userHasProtectedRole($user, MemberSubjectType::Institution);
+        return $this->memberIsOwner($user);
     }
 
     public function render(): View

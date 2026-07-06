@@ -2,7 +2,8 @@
 
 namespace App\Actions\Speakers;
 
-use App\Actions\Membership\AddMemberToSubject;
+use AIArmada\Membership\Actions\AddMemberAction;
+use AIArmada\Membership\Enums\MemberRole;
 use App\Enums\Gender;
 use App\Forms\SharedFormSchema;
 use App\Models\Speaker;
@@ -22,7 +23,7 @@ final readonly class SaveSpeakerAction
     use AsAction;
 
     public function __construct(
-        private AddMemberToSubject $addMemberToSubject,
+        private AddMemberAction $addMemberAction,
         private ContributionEntityMutationService $contributionEntityMutationService,
         private GenerateSpeakerSlugAction $generateSpeakerSlugAction,
         private ModelMediaSyncService $mediaSyncService,
@@ -90,7 +91,7 @@ final readonly class SaveSpeakerAction
             $attributes['allow_public_event_submission'] = true;
 
             $speaker = Speaker::create($attributes);
-            $this->addMemberToSubject->handle($speaker, $actor);
+            $this->addMemberAction->handle($speaker, $actor, MemberRole::Owner);
         } else {
             $speaker->fill($attributes);
             $speaker->save();

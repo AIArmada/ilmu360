@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Mcp\Tools\Member;
 
+use AIArmada\Membership\Actions\ApplyForMembershipAction;
 use App\Enums\MemberSubjectType;
 use App\Models\User;
-use App\Support\Api\Member\MemberMembershipClaimWorkflowService;
 use App\Support\Api\Member\MemberResourceService;
 use App\Support\Mcp\McpAuthenticatedUserResolver;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -30,7 +30,7 @@ class MemberSubmitMembershipClaimTool extends AbstractMemberWriteTool
     protected string $description = 'Use this when the authenticated Ahli/member needs to submit a new membership claim with justification and supporting evidence uploads.';
 
     public function __construct(
-        private readonly MemberMembershipClaimWorkflowService $workflowService,
+        private ApplyForMembershipAction $applyForMembershipAction,
     ) {}
 
     public function handle(Request $request): ResponseFactory|Response
@@ -45,25 +45,26 @@ class MemberSubmitMembershipClaimTool extends AbstractMemberWriteTool
                 'evidence' => ['required', 'array'],
             ]);
 
-            /** @var array<string, mixed> $payload */
-            $payload = [
-                'justification' => $validated['justification'],
-                'evidence' => $validated['evidence'],
+            $resolvedSubjectType = MemberSubjectType::fromRouteSegment((string) $validated['subject_type'])
+                ?? MemberSubjectType::tryFrom((string) $validated['subject_type']);
+            abort_unless($resolvedSubjectType?->isClaimable(), 400);
+
+            $subject = $resolvedSubjectType->resolveSubject((string) $validated['subject']);
+
+            $application = $this->applyForMembershipAction->handle(
+                $subject,
+                $actor,
+                (string) $validated['justification'],
+            );
+
+            return [
+                'data' => [
+                    'application' => [
+                        'id' => $application->getKey(),
+                        'status' => $application->status->value,
+                    ],
+                ],
             ];
-
-            $this->ensureDestructiveMediaClearFlagsAreUnsupported($payload);
-            $normalizedMediaPayload = $this->normalizeMcpMediaPayload($payload, $this->membershipClaimSchemaResponse());
-
-            try {
-                return $this->workflowService->submit(
-                    subjectType: (string) $validated['subject_type'],
-                    subject: (string) $validated['subject'],
-                    payload: $normalizedMediaPayload['payload'],
-                    actor: $actor,
-                );
-            } finally {
-                $this->cleanupMcpMediaPayload($normalizedMediaPayload);
-            }
         });
     }
 
@@ -91,29 +92,6 @@ class MemberSubmitMembershipClaimTool extends AbstractMemberWriteTool
     }
 
     /**
-     * @return array<string, mixed>
-     */
-    private function membershipClaimSchemaResponse(): array
-    {
-        return [
-            'data' => [
-                'schema' => [
-                    'fields' => [
-                        [
-                            'name' => 'evidence',
-                            'type' => 'array<file>',
-                            'required_fields' => ['filename', 'content_base64_or_content_url'],
-                            'accepted_mime_types' => ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'],
-                            'max_file_size_kb' => $this->maxUploadSizeKb(),
-                            'max_files' => 8,
-                        ],
-                    ],
-                ],
-            ],
-        ];
-    }
-
-    /**
      * @return list<string>
      */
     private function subjectTypeValues(): array
@@ -132,10 +110,5 @@ class MemberSubmitMembershipClaimTool extends AbstractMemberWriteTool
         $user = app(McpAuthenticatedUserResolver::class)->resolve($request->user());
 
         return $user instanceof User && $user->hasMemberMcpAccess();
-    }
-
-    private function maxUploadSizeKb(): int
-    {
-        return (int) ceil(((int) config('media-library.max_file_size', 10 * 1024 * 1024)) / 1024);
     }
 }

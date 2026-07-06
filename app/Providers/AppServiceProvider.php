@@ -14,6 +14,7 @@ use AIArmada\Contacting\Models\ContactMethod;
 use AIArmada\Contacting\Models\SocialProfile;
 use AIArmada\Events\Models\EventRegistrationParticipant;
 use AIArmada\FilamentSignals\Policies\TrackedPropertyPolicy;
+use AIArmada\Membership\Contracts\MembershipHook;
 use AIArmada\Signals\Models\TrackedProperty;
 use App\Actions\Slugs\ResolvePublicSlugAction;
 use App\Ai\Listeners\RecordAiUsage;
@@ -29,7 +30,7 @@ use App\Models\Inspiration;
 use App\Models\Institution;
 use App\Models\MediaLink;
 use App\Models\MemberInvitation;
-use App\Models\MembershipClaim;
+use App\Models\MembershipApplication;
 use App\Models\ModerationReview;
 use App\Models\Reference;
 use App\Models\Registration;
@@ -59,6 +60,7 @@ use App\Support\Communications\AppPreferenceResolver;
 use App\Support\Communications\AppQuietHoursResolver;
 use App\Support\Communications\AppSuppressionResolver;
 use App\Support\Media\MediaFileNamer;
+use App\Support\Membership\AppMembershipHook;
 use App\Support\Passport\PassportKeyProvisioner;
 use BezhanSalleh\LanguageSwitch\LanguageSwitch;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
@@ -132,6 +134,8 @@ class AppServiceProvider extends ServiceProvider
         if (is_dir($filamentAuditingViews)) {
             $this->loadViewsFrom($filamentAuditingViews, 'filament-auditing');
         }
+
+        $this->app->singleton(MembershipHook::class, AppMembershipHook::class);
 
         $this->registerPackageMigrations();
     }
@@ -239,7 +243,7 @@ class AppServiceProvider extends ServiceProvider
             'event_submission' => EventSubmission::class,
             'contribution_request' => ContributionRequest::class,
             'event_registration_participant' => EventRegistrationParticipant::class,
-            'membership_claim' => MembershipClaim::class,
+            'membership_application' => MembershipApplication::class,
             'moderation_review' => ModerationReview::class,
             'institution' => Institution::class,
             'media_link' => MediaLink::class,

@@ -5,6 +5,7 @@ namespace App\Support\Api\Frontend;
 use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressCountry;
 use App\Actions\Events\ResolveAdvancedBuilderContextAction;
+use AIArmada\Membership\Enums\MemberRole;
 use App\Enums\MemberSubjectType;
 use App\Enums\TagType;
 use App\Models\Institution;
@@ -14,8 +15,6 @@ use App\Models\Speaker;
 use App\Models\Tag;
 use App\Models\User;
 use App\Models\Venue;
-use App\Support\Authz\MemberRoleCatalog;
-use App\Support\Authz\ScopedMemberRoleSeeder;
 use App\Support\Search\InstitutionSearchService;
 use App\Support\Search\SpeakerSearchService;
 use App\Support\Submission\EntitySubmissionAccess;
@@ -408,9 +407,9 @@ class FrontendCatalogService
      */
     public function institutionRoleOptions(): array
     {
-        app(ScopedMemberRoleSeeder::class)->ensureForInstitution();
-
-        return app(MemberRoleCatalog::class)->roleOptionsFor(MemberSubjectType::Institution);
+        return collect(MemberRole::cases())
+            ->mapWithKeys(fn (MemberRole $r): array => [$r->value => $r->label()])
+            ->all();
     }
 
     /**

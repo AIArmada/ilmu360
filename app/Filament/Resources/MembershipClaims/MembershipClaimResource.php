@@ -7,7 +7,7 @@ use App\Filament\Resources\MembershipClaims\Pages\ListMembershipClaims;
 use App\Filament\Resources\MembershipClaims\Pages\ViewMembershipClaim;
 use App\Filament\Resources\MembershipClaims\Schemas\MembershipClaimInfolist;
 use App\Filament\Resources\MembershipClaims\Tables\MembershipClaimsTable;
-use App\Models\MembershipClaim;
+use App\Models\MembershipApplication;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -18,7 +18,7 @@ use UnitEnum;
 
 class MembershipClaimResource extends Resource
 {
-    protected static ?string $model = MembershipClaim::class;
+    protected static ?string $model = MembershipApplication::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedIdentification;
 
@@ -41,12 +41,12 @@ class MembershipClaimResource extends Resource
     }
 
     /**
-     * @return Builder<MembershipClaim>
+     * @return Builder<MembershipApplication>
      */
     #[\Override]
     public static function getEloquentQuery(): Builder
     {
-        /** @var Builder<MembershipClaim> $query */
+        /** @var Builder<MembershipApplication> $query */
         $query = parent::getEloquentQuery();
 
         return $query->with(['applicant', 'reviewer']);
@@ -71,7 +71,7 @@ class MembershipClaimResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        $count = MembershipClaim::query()
+        $count = MembershipApplication::query()
             ->where('status', 'pending')
             ->count();
 

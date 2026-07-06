@@ -5,12 +5,13 @@ declare(strict_types=1);
 namespace App\Support\Api\Admin;
 
 use AIArmada\FilamentEvents\Resources\EventResource;
+use AIArmada\Membership\Enums\ApplicationStatus;
 use App\Filament\Resources\ContributionRequests\ContributionRequestResource;
 use App\Filament\Resources\MembershipClaims\MembershipClaimResource;
 use App\Filament\Resources\Reports\ReportResource;
 use App\Models\ContributionRequest;
 use App\Models\Event;
-use App\Models\MembershipClaim;
+use App\Models\MembershipApplication;
 use App\Models\Report;
 use App\Models\User;
 use Filament\Resources\Resource;
@@ -26,7 +27,6 @@ final readonly class AdminRecordActionService
         private AdminEventModerationService $eventModerationService,
         private AdminReportTriageService $reportTriageService,
         private AdminContributionRequestReviewService $contributionRequestReviewService,
-        private AdminMembershipClaimReviewService $membershipClaimReviewService,
     ) {}
 
     /**
@@ -175,7 +175,7 @@ final readonly class AdminRecordActionService
             $actions = [...$actions, ...$this->contributionRequestWorkflowActions($record, $recordKey, $actor)];
         }
 
-        if ($resourceClass === MembershipClaimResource::class && $record instanceof MembershipClaim) {
+        if ($resourceClass === MembershipClaimResource::class && $record instanceof MembershipApplication) {
             $actions = [...$actions, ...$this->membershipClaimWorkflowActions($record, $recordKey, $actor)];
         }
 
@@ -327,37 +327,33 @@ final readonly class AdminRecordActionService
     /**
      * @return list<array<string, mixed>>
      */
-    private function membershipClaimWorkflowActions(MembershipClaim $record, string $recordKey, ?User $actor = null): array
+    private function membershipClaimWorkflowActions(MembershipApplication $record, string $recordKey, ?User $actor = null): array
     {
-        if (! $record->isPending() || ! $this->membershipClaimReviewService->canReview($actor)) {
-            return [];
-        }
-
-        $schema = $this->trySchema(fn (): array => $this->membershipClaimReviewService->schema($recordKey, $actor));
-
-        if (! is_array($schema)) {
+        if ($record->status !== ApplicationStatus::Pending || ! ($actor instanceof User && $actor->hasAnyRole(['super_admin', 'admin', 'moderator']))) {
             return [];
         }
 
         return [
-            $this->workflowSchemaActionDescriptor(
-                key: 'get_membership_claim_review_schema',
-                label: 'Fetch membership claim review schema',
-                description: 'Read the explicit review schema for this membership claim before choosing the action.',
-                tool: 'admin-get-membership-claim-review-schema',
-                recordKey: $recordKey,
-                schema: $schema,
-            ),
-            $this->workflowActionDescriptor(
-                key: 'review_membership_claim',
-                label: 'Review membership claim',
-                description: 'Approve or reject this pending membership claim through the explicit review workflow.',
-                tool: 'admin-review-membership-claim',
-                recordKey: $recordKey,
-                schemaTool: 'admin-get-membership-claim-review-schema',
-                schemaActionKey: 'get_membership_claim_review_schema',
-                schema: $schema,
-            ),
+            [
+                'key' => 'get_membership_claim_review_schema',
+                'label' => 'Fetch membership claim review schema',
+                'category' => 'workflow_schema',
+                'description' => 'Read the explicit review schema for this membership claim before choosing the action.',
+                'tool' => 'admin-get-membership-claim-review-schema',
+                'arguments' => ['record_key' => $recordKey],
+            ],
+            [
+                'key' => 'review_membership_claim',
+                'label' => 'Review membership claim',
+                'category' => 'workflow',
+                'description' => 'Approve or reject this pending membership claim through the explicit review workflow.',
+                'tool' => 'admin-review-membership-claim',
+                'arguments' => ['record_key' => $recordKey, 'action' => 'approve', 'granted_role' => null, 'reviewer_note' => null],
+                'requires' => ['get_membership_claim_review_schema'],
+                'schema_tool' => 'admin-get-membership-claim-review-schema',
+                'schema_tool_arguments' => ['record_key' => $recordKey],
+                'schema_action_key' => 'get_membership_claim_review_schema',
+            ],
         ];
     }
 

@@ -4,22 +4,13 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
-use App\Support\Authz\ScopedMemberRoleSeeder;
+use AIArmada\Membership\Services\MembershipRoleSyncService;
 use Illuminate\Database\Seeder;
 
 class ScopedMemberRolesSeeder extends Seeder
 {
-    /**
-     * Seed shared member role templates for institution, speaker, event, and reference membership scopes.
-     */
     public function run(): void
     {
-        /** @var ScopedMemberRoleSeeder $scopedRoleSeeder */
-        $scopedRoleSeeder = app(ScopedMemberRoleSeeder::class);
-
-        $scopedRoleSeeder->ensureForInstitution();
-        $scopedRoleSeeder->ensureForSpeaker();
-        $scopedRoleSeeder->ensureForEvent();
-        $scopedRoleSeeder->ensureForReference();
+        app(MembershipRoleSyncService::class)->syncAll();
     }
 }

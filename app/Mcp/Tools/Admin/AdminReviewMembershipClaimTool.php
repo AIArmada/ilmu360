@@ -4,7 +4,13 @@ declare(strict_types=1);
 
 namespace App\Mcp\Tools\Admin;
 
-use App\Support\Api\Admin\AdminMembershipClaimReviewService;
+use AIArmada\Membership\Actions\ApproveMembershipApplicationAction;
+use AIArmada\Membership\Actions\RejectMembershipApplicationAction;
+use AIArmada\Membership\Enums\MemberRole;
+use App\Filament\Resources\MembershipClaims\MembershipClaimResource;
+use App\Models\MembershipApplication;
+use App\Models\User;
+use App\Support\Api\Admin\AdminResourceRegistry;
 use App\Support\Mcp\McpAuthenticatedUserResolver;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
@@ -27,7 +33,9 @@ class AdminReviewMembershipClaimTool extends AbstractAdminTool
     protected string $description = 'Use this when you need to approve or reject a pending membership claim. Fetch the review schema first with admin-get-membership-claim-review-schema. Do not use for reading claim details; use admin-get-record for that.';
 
     public function __construct(
-        private readonly AdminMembershipClaimReviewService $reviewService,
+        private ApproveMembershipApplicationAction $approveAction,
+        private RejectMembershipApplicationAction $rejectAction,
+        private AdminResourceRegistry $registry,
     ) {}
 
     public function handle(Request $request): ResponseFactory|Response
@@ -42,11 +50,29 @@ class AdminReviewMembershipClaimTool extends AbstractAdminTool
                 'reviewer_note' => ['sometimes', 'nullable', 'string'],
             ]);
 
-            return $this->reviewService->review(
-                recordKey: (string) $validated['record_key'],
-                payload: $validated,
-                actor: $actor,
-            );
+            /** @var MembershipApplication $application */
+            $application = $this->registry->resolveRecord(MembershipClaimResource::class, (string) $validated['record_key']);
+            $note = filled($validated['reviewer_note'] ?? null) ? (string) $validated['reviewer_note'] : null;
+
+            match ((string) $validated['action']) {
+                'approve' => $this->approveAction->handle(
+                    $application,
+                    $actor,
+                    MemberRole::tryFrom((string) $validated['granted_role']) ?? MemberRole::Editor,
+                    $note,
+                ),
+                'reject' => $this->rejectAction->handle($application, $actor, $note),
+                default => throw new \InvalidArgumentException('Unsupported membership-claim review action.'),
+            };
+
+            return [
+                'data' => [
+                    'record' => [
+                        'id' => $application->getKey(),
+                        'status' => $application->status->value,
+                    ],
+                ],
+            ];
         });
     }
 
@@ -68,6 +94,6 @@ class AdminReviewMembershipClaimTool extends AbstractAdminTool
     {
         $user = app(McpAuthenticatedUserResolver::class)->resolve($request->user());
 
-        return $this->reviewService->canReview($user);
+        return $user instanceof User && $user->hasAnyRole(['super_admin', 'admin', 'moderator']);
     }
 }

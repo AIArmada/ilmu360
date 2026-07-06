@@ -4,6 +4,7 @@ namespace App\Models;
 
 use AIArmada\Contacting\Concerns\HasSocialProfiles;
 use AIArmada\Engagement\Models\Follow;
+use AIArmada\Membership\Traits\HasMembers;
 use AIArmada\References\Models\Reference as PackageReference;
 use App\Actions\References\GenerateReferenceSlugAction;
 use App\Enums\MemberSubjectType;
@@ -55,7 +56,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 class Reference extends PackageReference implements AuditableContract
 {
     /** @use HasFactory<ReferenceFactory> */
-    use AuditsModelChanges, HasFactory, HasPackageSocialAliases, HasSocialProfiles, KeepsDeletedModels, Searchable;
+    use AuditsModelChanges, HasFactory, HasMembers, HasPackageSocialAliases, HasSocialProfiles, KeepsDeletedModels, Searchable;
 
     #[\Override]
     protected static function newFactory(): ReferenceFactory
@@ -670,15 +671,6 @@ class Reference extends PackageReference implements AuditableContract
             ->withPivot('order_column')
             ->withTimestamps()
             ->orderByPivot('order_column');
-    }
-
-    /**
-     * @return BelongsToMany<User, $this>
-     */
-    public function members(): BelongsToMany
-    {
-        return $this->belongsToMany(User::class, 'reference_user')
-            ->withTimestamps();
     }
 
     /**

@@ -2,13 +2,12 @@
 
 namespace App\Support\Membership;
 
+use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Membership\Enums\ApplicationStatus;
-use App\Actions\Membership\ResolveMembershipClaimSubjectPresentationAction;
 use App\Enums\MemberSubjectType;
 use App\Models\Institution;
-use App\Models\MembershipClaim;
+use App\Models\MembershipApplication;
 use App\Models\Speaker;
-use App\Support\Authz\MemberRoleCatalog;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
@@ -50,50 +49,44 @@ class MembershipClaimPresenter
     /**
      * @return array<string, string>
      */
-    public static function approvalRoleOptions(MembershipClaim $claim): array
+    public static function approvalRoleOptions(MembershipApplication $claim): array
     {
-        $subjectType = $claim->subject_type instanceof MemberSubjectType
-            ? $claim->subject_type
-            : MemberSubjectType::from((string) $claim->subject_type);
-
-        return app(MemberRoleCatalog::class)->membershipClaimRoleSlugOptionsFor($subjectType);
+        return collect(MemberRole::cases())
+            ->mapWithKeys(fn (MemberRole $r): array => [$r->value => $r->label()])
+            ->all();
     }
 
-    public static function roleLabel(MembershipClaim $claim): string
+    public static function roleLabel(MembershipApplication $claim): string
     {
         if (! is_string($claim->granted_role) || $claim->granted_role === '') {
             return '-';
         }
 
-        $subjectType = $claim->subject_type instanceof MemberSubjectType
-            ? $claim->subject_type
-            : MemberSubjectType::from((string) $claim->subject_type);
-
-        return app(MemberRoleCatalog::class)->roleLabel($subjectType, $claim->granted_role);
+        return MemberRole::tryFrom($claim->granted_role)?->label() ?? $claim->granted_role;
     }
 
-    public static function subjectTitle(MembershipClaim $claim): string
+    public static function subjectTitle(MembershipApplication $claim): string
     {
         $presentation = self::subjectPresentation($claim);
 
         return $presentation['subject_title'] ?? (string) $claim->subject_id;
     }
 
-    public static function subjectPublicUrl(MembershipClaim $claim): ?string
+    public static function subjectPublicUrl(MembershipApplication $claim): ?string
     {
         $presentation = self::subjectPresentation($claim);
 
         return $presentation['redirect_url'] ?? null;
     }
 
-    public static function subjectAdminUrl(MembershipClaim $claim): ?string
+    public static function subjectAdminUrl(MembershipApplication $claim): ?string
     {
         $presentation = self::subjectPresentation($claim);
 
         return $presentation['admin_url'] ?? null;
     }
 
-    public static function evidenceLinks(MembershipClaim $claim): HtmlString
+    public static function evidenceLinks(MembershipApplication $claim): HtmlString
     {
         $links = $claim->getMedia('evidence')
             ->map(function (Media $media): string {
@@ -118,7 +111,7 @@ class MembershipClaimPresenter
     /**
      * @return array{subject_label: string, subject_title: string, redirect_url: string, admin_url: string}|null
      */
-    public static function subjectPresentation(MembershipClaim $claim): ?array
+    public static function subjectPresentation(MembershipApplication $claim): ?array
     {
         $subjectType = $claim->subject_type instanceof MemberSubjectType
             ? $claim->subject_type
@@ -134,6 +127,20 @@ class MembershipClaimPresenter
             return null;
         }
 
-        return app(ResolveMembershipClaimSubjectPresentationAction::class)->handle($subject);
+        $label = $subject instanceof Institution
+            ? MemberSubjectType::Institution->label()
+            : MemberSubjectType::Speaker->label();
+
+        $title = $subject instanceof Institution ? $subject->name : $subject->formatted_name;
+        $redirectUrl = $subject instanceof Institution
+            ? route('institutions.show', $subject)
+            : route('speakers.show', $subject);
+
+        return [
+            'subject_label' => $label,
+            'subject_title' => $title,
+            'redirect_url' => $redirectUrl,
+            'admin_url' => '',
+        ];
     }
 }

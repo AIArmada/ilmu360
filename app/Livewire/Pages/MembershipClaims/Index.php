@@ -2,9 +2,9 @@
 
 namespace App\Livewire\Pages\MembershipClaims;
 
-use App\Actions\Membership\CancelMembershipClaimAction;
+use AIArmada\Membership\Actions\CancelMembershipApplicationAction;
 use App\Livewire\Concerns\InteractsWithToasts;
-use App\Models\MembershipClaim;
+use App\Models\MembershipApplication;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
@@ -26,7 +26,7 @@ class Index extends Component
     }
 
     /**
-     * @return Collection<int, MembershipClaim>
+     * @return Collection<int, MembershipApplication>
      */
     #[Computed]
     public function myClaims(): Collection
@@ -34,24 +34,24 @@ class Index extends Component
         /** @var User $user */
         $user = auth()->user();
 
-        return $user->membershipClaims()
+        return $user->membershipApplications()
             ->with(['reviewer'])
             ->latest('created_at')
             ->get();
     }
 
-    public function cancel(string $claimId, CancelMembershipClaimAction $cancelMembershipClaimAction): void
+    public function cancel(string $claimId, CancelMembershipApplicationAction $cancelMembershipApplicationAction): void
     {
         /** @var User $user */
         $user = auth()->user();
 
-        $claim = $user->membershipClaims()->whereKey($claimId)->first();
-        abort_unless($claim instanceof MembershipClaim, 404);
+        $claim = $user->membershipApplications()->whereKey($claimId)->first();
+        abort_unless($claim instanceof MembershipApplication, 404);
 
         try {
-            $cancelMembershipClaimAction->handle($claim, $user);
+            $cancelMembershipApplicationAction->handle($claim);
         } catch (RuntimeException $exception) {
-            if ($exception->getMessage() !== 'membership_claim_cannot_cancel') {
+            if ($exception->getMessage() !== 'Only pending membership applications can be cancelled.') {
                 throw $exception;
             }
 

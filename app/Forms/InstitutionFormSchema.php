@@ -2,8 +2,9 @@
 
 namespace App\Forms;
 
+use AIArmada\Membership\Actions\AddMemberAction;
+use AIArmada\Membership\Enums\MemberRole;
 use App\Actions\Institutions\GenerateInstitutionSlugAction;
-use App\Actions\Membership\AddMemberToSubject;
 use App\Enums\InstitutionType;
 use App\Models\Institution;
 use App\Models\User;
@@ -102,7 +103,7 @@ class InstitutionFormSchema
         $creator = auth()->user();
 
         if ($creator instanceof User) {
-            app(AddMemberToSubject::class)->handle($institution, $creator);
+            AddMemberAction::run($institution, $creator, MemberRole::Owner);
         }
 
         // Save media uploads (cover, gallery) via Filament's relationship-saving mechanism

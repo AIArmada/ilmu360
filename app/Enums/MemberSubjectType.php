@@ -2,13 +2,11 @@
 
 namespace App\Enums;
 
-use AIArmada\CommerceSupport\Models\AuthzScope;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Reference;
 use App\Models\Speaker;
 use App\Models\User;
-use App\Support\Authz\MemberRoleScopes;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 enum MemberSubjectType: string
@@ -83,16 +81,6 @@ enum MemberSubjectType: string
             $subject instanceof Speaker => self::Speaker,
             $subject instanceof Event => self::Event,
             $subject instanceof Reference => self::Reference,
-        };
-    }
-
-    public function authzScope(MemberRoleScopes $memberRoleScopes): AuthzScope
-    {
-        return match ($this) {
-            self::Institution => $memberRoleScopes->institution(),
-            self::Speaker => $memberRoleScopes->speaker(),
-            self::Event => $memberRoleScopes->event(),
-            self::Reference => $memberRoleScopes->reference(),
         };
     }
 

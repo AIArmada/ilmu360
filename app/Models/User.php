@@ -133,8 +133,8 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
             $user->eventSubmissions()->update(['submitter_id' => null]);
             $user->contributionRequests()->update(['proposer_id' => null]);
             $user->reviewedContributionRequests()->update(['reviewer_id' => null]);
-            $user->membershipClaims()->update(['applicant_id' => null]);
-            $user->reviewedMembershipClaims()->update(['reviewer_id' => null]);
+            $user->membershipApplications()->update(['applicant_id' => null]);
+            $user->reviewedMembershipApplications()->update(['reviewer_id' => null]);
             $user->moderationReviews()->update(['moderator_id' => null]);
             $user->reports()->update(['reporter_id' => null]);
             $user->handledReports()->update(['handled_by' => null]);
@@ -217,21 +217,21 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
     protected function captureDeletedRelationsSnapshot(): void
     {
         $this->deletedRelationsSnapshot = [
-            'institution_user' => $this->institutions()->get()->map(fn (Institution $institution): array => [
+            'institution_members' => $this->institutions()->get()->map(fn (Institution $institution): array => [
                 'institution_id' => $institution->getKey(),
                 'user_id' => $this->getKey(),
                 'joined_at' => $this->pivotTimestamp($institution, 'joined_at'),
                 'created_at' => $this->pivotTimestamp($institution, 'created_at'),
                 'updated_at' => $this->pivotTimestamp($institution, 'updated_at'),
             ])->all(),
-            'speaker_user' => $this->speakers()->get()->map(fn (Speaker $speaker): array => [
+            'speaker_members' => $this->speakers()->get()->map(fn (Speaker $speaker): array => [
                 'speaker_id' => $speaker->getKey(),
                 'user_id' => $this->getKey(),
                 'joined_at' => $this->pivotTimestamp($speaker, 'joined_at'),
                 'created_at' => $this->pivotTimestamp($speaker, 'created_at'),
                 'updated_at' => $this->pivotTimestamp($speaker, 'updated_at'),
             ])->all(),
-            'reference_user' => $this->references()->get()->map(fn (Reference $reference): array => [
+            'reference_members' => $this->references()->get()->map(fn (Reference $reference): array => [
                 'reference_id' => $reference->getKey(),
                 'user_id' => $this->getKey(),
                 'joined_at' => $this->pivotTimestamp($reference, 'joined_at'),
@@ -257,7 +257,7 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
                 'created_at' => $this->pivotTimestamp($event, 'created_at'),
                 'updated_at' => $this->pivotTimestamp($event, 'updated_at'),
             ])->all(),
-            'event_user' => $this->memberEvents()->get()->map(fn (Event $event): array => [
+            'event_members' => $this->memberEvents()->get()->map(fn (Event $event): array => [
                 'event_id' => $event->getKey(),
                 'user_id' => $this->getKey(),
                 'joined_at' => $this->pivotTimestamp($event, 'joined_at'),
@@ -271,8 +271,8 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
             'event_submission_ids' => $this->eventSubmissions()->pluck('id')->all(),
             'contribution_request_proposer_ids' => $this->contributionRequests()->pluck('id')->all(),
             'contribution_request_reviewer_ids' => $this->reviewedContributionRequests()->pluck('id')->all(),
-            'membership_claim_ids' => $this->membershipClaims()->pluck('id')->all(),
-            'membership_claim_reviewer_ids' => $this->reviewedMembershipClaims()->pluck('id')->all(),
+            'membership_claim_ids' => $this->membershipApplications()->pluck('id')->all(),
+            'membership_application_reviewer_ids' => $this->reviewedMembershipApplications()->pluck('id')->all(),
             'moderation_review_ids' => $this->moderationReviews()->pluck('id')->all(),
             'report_ids' => $this->reports()->pluck('id')->all(),
             'handled_report_ids' => $this->handledReports()->pluck('id')->all(),
@@ -378,9 +378,9 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
             ->all();
         $goingEventIds = $this->snapshotEventIds($snapshot, 'event_attendees');
 
-        DB::table('institution_user')->insertOrIgnore($this->snapshotRows($snapshot, 'institution_user'));
-        DB::table('speaker_user')->insertOrIgnore($this->snapshotRows($snapshot, 'speaker_user'));
-        DB::table('reference_user')->insertOrIgnore($this->snapshotRows($snapshot, 'reference_user'));
+        DB::table('institution_members')->insertOrIgnore($this->snapshotRows($snapshot, 'institution_members'));
+        DB::table('speaker_members')->insertOrIgnore($this->snapshotRows($snapshot, 'speaker_members'));
+        DB::table('reference_members')->insertOrIgnore($this->snapshotRows($snapshot, 'reference_members'));
         DB::table('user_venue')->insertOrIgnore($this->snapshotRows($snapshot, 'user_venue'));
         foreach ($snapshot['event_saves'] ?? [] as $data) {
             Bookmark::query()->firstOrCreate(
@@ -397,7 +397,7 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
             );
         }
         DB::table('event_attendees')->insertOrIgnore($this->snapshotRows($snapshot, 'event_attendees'));
-        DB::table('event_user')->insertOrIgnore($this->snapshotRows($snapshot, 'event_user'));
+        DB::table('event_members')->insertOrIgnore($this->snapshotRows($snapshot, 'event_members'));
         DB::table($this->permissionTable('model_has_roles'))->insertOrIgnore($this->snapshotRows($snapshot, 'model_has_roles'));
         DB::table($this->permissionTable('model_has_permissions'))->insertOrIgnore($this->snapshotRows($snapshot, 'model_has_permissions'));
         if (($snapshot['followings'] ?? []) !== []) {
@@ -475,8 +475,8 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
         $this->restoreForeignKeyRelation('eventSubmissions', 'submitter_id', $this->snapshotIds($snapshot, 'event_submission_ids'));
         $this->restoreForeignKeyRelation('contributionRequests', 'proposer_id', $this->snapshotIds($snapshot, 'contribution_request_proposer_ids'));
         $this->restoreForeignKeyRelation('reviewedContributionRequests', 'reviewer_id', $this->snapshotIds($snapshot, 'contribution_request_reviewer_ids'));
-        $this->restoreForeignKeyRelation('membershipClaims', 'applicant_id', $this->snapshotIds($snapshot, 'membership_claim_ids'));
-        $this->restoreForeignKeyRelation('reviewedMembershipClaims', 'reviewer_id', $this->snapshotIds($snapshot, 'membership_claim_reviewer_ids'));
+        $this->restoreForeignKeyRelation('membershipApplications', 'applicant_id', $this->snapshotIds($snapshot, 'membership_application_ids'));
+        $this->restoreForeignKeyRelation('reviewedMembershipApplications', 'reviewer_id', $this->snapshotIds($snapshot, 'membership_application_reviewer_ids'));
         $this->restoreForeignKeyRelation('moderationReviews', 'moderator_id', $this->snapshotIds($snapshot, 'moderation_review_ids'));
         $this->restoreForeignKeyRelation('reports', 'reporter_id', $this->snapshotIds($snapshot, 'report_ids'));
         $this->restoreForeignKeyRelation('handledReports', 'handled_by', $this->snapshotIds($snapshot, 'handled_report_ids'));
@@ -838,8 +838,8 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
      */
     public function institutions(): BelongsToMany
     {
-        return $this->belongsToMany(Institution::class, 'institution_user')
-            ->withPivot(['joined_at'])
+        return $this->belongsToMany(Institution::class, 'institution_members')
+            ->withPivot(['role', 'joined_at'])
             ->withTimestamps();
     }
 
@@ -848,8 +848,8 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
      */
     public function speakers(): BelongsToMany
     {
-        return $this->belongsToMany(Speaker::class, 'speaker_user')
-            ->withPivot(['joined_at'])
+        return $this->belongsToMany(Speaker::class, 'speaker_members')
+            ->withPivot(['role', 'joined_at'])
             ->withTimestamps();
     }
 
@@ -889,8 +889,8 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
      */
     public function references(): BelongsToMany
     {
-        return $this->belongsToMany(Reference::class, 'reference_user')
-            ->withPivot(['joined_at'])
+        return $this->belongsToMany(Reference::class, 'reference_members')
+            ->withPivot(['role', 'joined_at'])
             ->withTimestamps();
     }
 
@@ -937,19 +937,19 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
     }
 
     /**
-     * @return HasMany<MembershipClaim, $this>
+     * @return HasMany<MembershipApplication, $this>
      */
-    public function membershipClaims(): HasMany
+    public function membershipApplications(): HasMany
     {
-        return $this->hasMany(MembershipClaim::class, 'applicant_id');
+        return $this->hasMany(MembershipApplication::class, 'applicant_id');
     }
 
     /**
-     * @return HasMany<MembershipClaim, $this>
+     * @return HasMany<MembershipApplication, $this>
      */
-    public function reviewedMembershipClaims(): HasMany
+    public function reviewedMembershipApplications(): HasMany
     {
-        return $this->hasMany(MembershipClaim::class, 'reviewer_id');
+        return $this->hasMany(MembershipApplication::class, 'reviewer_id');
     }
 
     /**
@@ -1172,9 +1172,8 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
      */
     public function memberEvents(): BelongsToMany
     {
-        return $this->belongsToMany(Event::class, 'event_user')
-            ->using(EventUser::class)
-            ->withPivot(['joined_at'])
+        return $this->belongsToMany(Event::class, 'event_members')
+            ->withPivot(['role', 'joined_at'])
             ->withTimestamps();
     }
 

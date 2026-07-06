@@ -2,12 +2,13 @@
 
 namespace App\Filament\Resources\MembershipClaims\Tables;
 
+use AIArmada\Membership\Actions\ApproveMembershipApplicationAction;
+use AIArmada\Membership\Actions\RejectMembershipApplicationAction;
 use AIArmada\Membership\Enums\ApplicationStatus;
-use App\Actions\Membership\ApproveMembershipClaimAction;
-use App\Actions\Membership\RejectMembershipClaimAction;
+use AIArmada\Membership\Enums\MemberRole;
 use App\Enums\MemberSubjectType;
 use App\Filament\Resources\MembershipClaims\MembershipClaimResource;
-use App\Models\MembershipClaim;
+use App\Models\MembershipApplication;
 use App\Models\User;
 use App\Support\Membership\MembershipClaimPresenter;
 use Filament\Actions\Action;
@@ -42,8 +43,8 @@ class MembershipClaimsTable
                     ->sortable(),
                 TextColumn::make('subject_summary')
                     ->label('Record')
-                    ->state(fn (MembershipClaim $record): string => MembershipClaimPresenter::subjectTitle($record))
-                    ->url(fn (MembershipClaim $record): string => MembershipClaimResource::getUrl('view', ['record' => $record])),
+                    ->state(fn (MembershipApplication $record): string => MembershipClaimPresenter::subjectTitle($record))
+                    ->url(fn (MembershipApplication $record): string => MembershipClaimResource::getUrl('view', ['record' => $record])),
                 TextColumn::make('status')
                     ->badge()
                     ->formatStateUsing(fn (mixed $state): string => MembershipClaimPresenter::labelForStatus($state))
@@ -51,7 +52,7 @@ class MembershipClaimsTable
                     ->sortable(),
                 TextColumn::make('granted_role')
                     ->label('Granted Role')
-                    ->state(fn (MembershipClaim $record): string => MembershipClaimPresenter::roleLabel($record))
+                    ->state(fn (MembershipApplication $record): string => MembershipClaimPresenter::roleLabel($record))
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('applicant.email')
                     ->label('Claimant')
@@ -94,7 +95,7 @@ class MembershipClaimsTable
                     ->requiresConfirmation()
                     ->modalHeading('Approve Membership Claim')
                     ->modalDescription('Approve this claim and choose the role to grant.')
-                    ->schema(fn (MembershipClaim $record): array => [
+                    ->schema(fn (MembershipApplication $record): array => [
                         Select::make('granted_role')
                             ->label('Granted Role')
                             ->options(MembershipClaimPresenter::approvalRoleOptions($record))
@@ -104,23 +105,22 @@ class MembershipClaimsTable
                             ->rows(3)
                             ->maxLength(2000),
                     ])
-                    ->action(function (MembershipClaim $record, array $data, ApproveMembershipClaimAction $approveMembershipClaimAction): void {
+                    ->action(function (MembershipApplication $record, array $data, ApproveMembershipApplicationAction $approveMembershipApplicationAction): void {
                         $user = auth()->user();
                         abort_unless($user instanceof User, 403);
 
-                        $approveMembershipClaimAction->handle(
+                        $approveMembershipApplicationAction->handle(
                             $record,
                             $user,
-                            (string) $data['granted_role'],
+                            MemberRole::tryFrom((string) $data['granted_role']) ?? MemberRole::Editor,
                             filled($data['reviewer_note'] ?? null) ? (string) $data['reviewer_note'] : null,
                         );
-
                         Notification::make()
                             ->title('Membership claim approved')
                             ->success()
                             ->send();
                     })
-                    ->visible(fn (MembershipClaim $record): bool => $record->status === ApplicationStatus::Pending),
+                    ->visible(fn (MembershipApplication $record): bool => $record->status === ApplicationStatus::Pending),
                 Action::make('reject')
                     ->label('Reject')
                     ->icon('heroicon-o-x-circle')
@@ -133,11 +133,11 @@ class MembershipClaimsTable
                             ->rows(3)
                             ->maxLength(2000),
                     ])
-                    ->action(function (MembershipClaim $record, array $data, RejectMembershipClaimAction $rejectMembershipClaimAction): void {
+                    ->action(function (MembershipApplication $record, array $data, RejectMembershipApplicationAction $rejectMembershipApplicationAction): void {
                         $user = auth()->user();
                         abort_unless($user instanceof User, 403);
 
-                        $rejectMembershipClaimAction->handle(
+                        $rejectMembershipApplicationAction->handle(
                             $record,
                             $user,
                             filled($data['reviewer_note'] ?? null) ? (string) $data['reviewer_note'] : null,
@@ -148,16 +148,16 @@ class MembershipClaimsTable
                             ->danger()
                             ->send();
                     })
-                    ->visible(fn (MembershipClaim $record): bool => $record->status === ApplicationStatus::Pending),
+                    ->visible(fn (MembershipApplication $record): bool => $record->status === ApplicationStatus::Pending),
                 Action::make('open_subject')
                     ->label('Open Record')
                     ->icon('heroicon-o-arrow-top-right-on-square')
-                    ->url(fn (MembershipClaim $record): ?string => MembershipClaimPresenter::subjectAdminUrl($record))
+                    ->url(fn (MembershipApplication $record): ?string => MembershipClaimPresenter::subjectAdminUrl($record))
                     ->openUrlInNewTab()
-                    ->visible(fn (MembershipClaim $record): bool => filled(MembershipClaimPresenter::subjectAdminUrl($record))),
+                    ->visible(fn (MembershipApplication $record): bool => filled(MembershipClaimPresenter::subjectAdminUrl($record))),
                 ViewAction::make(),
             ])
-            ->recordUrl(fn (MembershipClaim $record): string => MembershipClaimResource::getUrl('view', ['record' => $record]))
+            ->recordUrl(fn (MembershipApplication $record): string => MembershipClaimResource::getUrl('view', ['record' => $record]))
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),

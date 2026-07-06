@@ -1,4 +1,5 @@
 @php
+    use AIArmada\Membership\Enums\ApplicationStatus;
     $claims = $this->myClaims;
     $statusClass = static fn (string $status): string => match ($status) {
         'approved' => 'bg-emerald-100 text-emerald-700',
@@ -69,7 +70,7 @@
 
                                 <p class="text-sm leading-6 text-slate-700">{{ $claim->justification }}</p>
 
-                                @if($claim->status === \App\Enums\MembershipClaimStatus::Approved && filled($claim->granted_role_slug))
+                                @if($claim->status === ApplicationStatus::Approved && filled($claim->granted_role))
                                     <p class="text-sm font-medium text-emerald-700">{{ __('Granted role: :role', ['role' => $presenter::roleLabel($claim)]) }}</p>
                                 @endif
 
@@ -78,7 +79,7 @@
                                 @endif
                             </div>
 
-                            @if($claim->status === \App\Enums\MembershipClaimStatus::Pending)
+                            @if($claim->status === ApplicationStatus::Pending)
                                 <button type="button" wire:click="cancel('{{ $claim->id }}')"
                                     class="inline-flex items-center justify-center rounded-xl border border-rose-200 px-4 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-50">
                                     {{ __('Cancel') }}

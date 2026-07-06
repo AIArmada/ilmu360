@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Authz\UserResource\Pages;
 
-use App\Actions\Membership\ChangeSubjectMemberRole;
+use AIArmada\Membership\Actions\ChangeMemberRoleAction;
+use AIArmada\Membership\Enums\MemberRole;
 use App\Enums\MemberSubjectType;
 use App\Filament\Resources\Authz\UserResource;
 use App\Models\Event;
@@ -12,10 +13,8 @@ use App\Models\Institution;
 use App\Models\Reference;
 use App\Models\Speaker;
 use App\Models\User;
-use App\Support\Authz\MemberRoleCatalog;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
-use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 
 class EditUser extends EditRecord
@@ -59,19 +58,17 @@ class EditUser extends EditRecord
     public function protectedScopedRoleManagers(): array
     {
         $user = $this->userRecord();
-        $catalog = app(MemberRoleCatalog::class);
 
         return collect(MemberSubjectType::cases())
-            ->map(function (MemberSubjectType $subjectType) use ($catalog, $user): ?array {
-                $currentRoleName = $catalog->currentRoleName($user, $subjectType);
+            ->map(function (MemberSubjectType $subjectType) use ($user): ?array {
+                $pivotRole = $this->pivotRoleSlug($user, $subjectType);
 
-                if ($currentRoleName === null || ! $catalog->isProtectedRole($subjectType, $currentRoleName)) {
+                if ($pivotRole === null || $pivotRole !== MemberRole::Owner->value) {
                     return null;
                 }
 
                 $membershipLabels = $this->membershipsFor($subjectType);
-                $definitions = $catalog->definitionsFor($subjectType);
-                $currentRoleLabel = (string) Arr::get($definitions, "{$currentRoleName}.label", Str::headline($currentRoleName));
+                $currentRoleLabel = MemberRole::tryFrom($pivotRole)?->label() ?? Str::headline($pivotRole);
 
                 return [
                     'subject_type' => $subjectType->value,
@@ -95,10 +92,9 @@ class EditUser extends EditRecord
         abort_if(! ($subjectType instanceof MemberSubjectType), 404);
 
         $user = $this->userRecord();
-        $catalog = app(MemberRoleCatalog::class);
-        $currentRoleName = $catalog->currentRoleName($user, $subjectType);
+        $pivotRole = $this->pivotRoleSlug($user, $subjectType);
 
-        if ($currentRoleName === null || ! $catalog->isProtectedRole($subjectType, $currentRoleName)) {
+        if ($pivotRole === null || $pivotRole !== MemberRole::Owner->value) {
             Notification::make()
                 ->title('No protected scoped role is currently assigned for this membership type.')
                 ->danger()
@@ -109,12 +105,15 @@ class EditUser extends EditRecord
 
         $selectedRoleId = $this->protectedRoleSelections[$subjectType->value] ?? '';
 
-        app(ChangeSubjectMemberRole::class)->handle(
-            $subjectType,
-            $user,
-            $selectedRoleId !== '' ? $selectedRoleId : null,
-            allowProtectedRoleChange: true,
-        );
+        $role = $selectedRoleId !== '' ? MemberRole::tryFrom($selectedRoleId) : null;
+
+        if ($role !== null) {
+            app(ChangeMemberRoleAction::class)->handle(
+                $subjectType->resolveSubjectCollection($user)->first() ?? throw new \RuntimeException('No subject found'),
+                $user,
+                $role,
+            );
+        }
 
         $this->reloadUserRecord();
 
@@ -137,13 +136,8 @@ class EditUser extends EditRecord
      */
     private function roleOptionsFor(MemberSubjectType $subjectType): array
     {
-        $catalog = app(MemberRoleCatalog::class);
-        $definitions = $catalog->definitionsFor($subjectType);
-
-        return collect($catalog->roleOptionsFor($subjectType))
-            ->mapWithKeys(fn (string $roleName, string $roleId): array => [
-                $roleId => (string) Arr::get($definitions, "{$roleName}.label", Str::headline($roleName)),
-            ])
+        return collect(MemberRole::cases())
+            ->mapWithKeys(fn (MemberRole $r): array => [$r->value => $r->label()])
             ->all();
     }
 
@@ -177,10 +171,19 @@ class EditUser extends EditRecord
 
         $this->record = $freshUser;
 
-        $catalog = app(MemberRoleCatalog::class);
-
         foreach (MemberSubjectType::cases() as $subjectType) {
-            $this->protectedRoleSelections[$subjectType->value] = $catalog->roleIdsFor($freshUser, $subjectType)[0] ?? '';
+            $pivotSlug = $this->pivotRoleSlug($freshUser, $subjectType);
+            $this->protectedRoleSelections[$subjectType->value] = $pivotSlug ?? '';
         }
+    }
+
+    private function pivotRoleSlug(User $user, MemberSubjectType $subjectType): ?string
+    {
+        return match ($subjectType) {
+            MemberSubjectType::Institution => $user->institutions->first()?->pivot?->role_slug,
+            MemberSubjectType::Speaker => $user->speakers->first()?->pivot?->role_slug,
+            MemberSubjectType::Event => $user->memberEvents->first()?->pivot?->role_slug,
+            MemberSubjectType::Reference => $user->references->first()?->pivot?->role_slug,
+        };
     }
 }

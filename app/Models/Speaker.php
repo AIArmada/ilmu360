@@ -6,6 +6,7 @@ use AIArmada\Addressing\Traits\HasAddresses;
 use AIArmada\Contacting\Concerns\HasContactMethods;
 use AIArmada\Contacting\Concerns\HasSocialProfiles;
 use AIArmada\Engagement\Models\Follow;
+use AIArmada\Membership\Traits\HasMembers;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\Honorific;
 use App\Enums\MemberSubjectType;
@@ -49,7 +50,7 @@ class Speaker extends Model implements AuditableContract, HasMedia
     public const string PUBLIC_DIRECTORY_SESSION_KEY = 'public_speakers_directory_seed';
 
     /** @use HasFactory<SpeakerFactory> */
-    use AuditsModelChanges, HasAddresses, HasContactMethods, HasDonationChannels, HasFactory, HasLanguages, HasPackageContactAliases, HasPackageSocialAliases, HasPrimaryAddressAccessors, HasSocialProfiles, HasUuids, InteractsWithMedia, KeepsDeletedModels, Searchable;
+    use AuditsModelChanges, HasAddresses, HasContactMethods, HasDonationChannels, HasFactory, HasLanguages, HasMembers, HasPackageContactAliases, HasPackageSocialAliases, HasPrimaryAddressAccessors, HasSocialProfiles, HasUuids, InteractsWithMedia, KeepsDeletedModels, Searchable;
 
     public $incrementing = false;
 
@@ -617,29 +618,11 @@ class Speaker extends Model implements AuditableContract, HasMedia
     }
 
     /**
-     * @return BelongsToMany<User, $this>
-     */
-    public function members(): BelongsToMany
-    {
-        return $this->belongsToMany(User::class, 'speaker_user')
-            ->withTimestamps();
-    }
-
-    /**
      * @return HasMany<MemberInvitation, $this>
      */
     public function memberInvitations(): HasMany
     {
         return $this->hasMany(MemberInvitation::class, 'subject_id')
-            ->where('subject_type', MemberSubjectType::Speaker->value);
-    }
-
-    /**
-     * @return HasMany<MembershipClaim, $this>
-     */
-    public function membershipClaims(): HasMany
-    {
-        return $this->hasMany(MembershipClaim::class, 'subject_id')
             ->where('subject_type', MemberSubjectType::Speaker->value);
     }
 

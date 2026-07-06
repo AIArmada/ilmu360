@@ -18,6 +18,7 @@ use AIArmada\Events\Models\EventLink;
 use AIArmada\Events\Models\EventLocation;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventTimeExpression;
+use AIArmada\Membership\Traits\HasMembers;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventChangeStatus;
 use App\Enums\EventChangeType;
@@ -128,7 +129,7 @@ use Spatie\Tags\HasTags;
 class Event extends PackageEvent implements AuditableContract
 {
     /** @use HasFactory<EventFactory> */
-    use AuditsModelChanges, HasAddresses, HasDonationChannels, HasFactory, HasPrimaryAddressAccessors, HasStates, HasTags, KeepsDeletedModels, Searchable;
+    use AuditsModelChanges, HasAddresses, HasDonationChannels, HasFactory, HasMembers, HasPrimaryAddressAccessors, HasStates, HasTags, KeepsDeletedModels, Searchable;
 
     protected static string $ownerScopeConfigKey = '';
 
@@ -1709,17 +1710,6 @@ class Event extends PackageEvent implements AuditableContract
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
-    }
-
-    /**
-     * @return BelongsToMany<User, $this, EventUser>
-     */
-    public function members(): BelongsToMany
-    {
-        return $this->belongsToMany(User::class, 'event_user')
-            ->using(EventUser::class)
-            ->withPivot(['joined_at'])
-            ->withTimestamps();
     }
 
     /**

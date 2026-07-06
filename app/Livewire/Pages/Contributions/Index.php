@@ -123,9 +123,9 @@ class Index extends Component implements HasForms
                         ->orWhereRaw(
                             "not exists (
                                 select 1
-                                from institution_user
-                                where institution_user.institution_id = {$institutionIdSelector}
-                                  and institution_user.user_id = ?
+                                from institution_members
+                                where institution_members.institution_id = {$institutionIdSelector}
+                                  and institution_members.user_id = ?
                             )",
                             [$user->getKey()],
                         );

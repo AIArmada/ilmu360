@@ -2,14 +2,12 @@
 
 namespace App\Http\Controllers\Api\Frontend;
 
-use App\Actions\Membership\CancelMembershipClaimAction;
-use App\Actions\Membership\ResolveMembershipClaimSubjectAction;
-use App\Actions\Membership\ResolveMembershipClaimSubjectPresentationAction;
-use App\Actions\Membership\SubmitMembershipClaimAction;
+use AIArmada\Membership\Actions\ApplyForMembershipAction;
+use AIArmada\Membership\Actions\CancelMembershipApplicationAction;
+use AIArmada\Membership\Enums\ApplicationStatus;
 use App\Enums\MemberSubjectType;
-use App\Models\MembershipClaim;
+use App\Models\MembershipApplication;
 use App\Models\User;
-use App\Support\Api\Frontend\FrontendMediaSyncService;
 use App\Support\Membership\MembershipClaimPresenter;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
@@ -30,13 +28,13 @@ class MembershipClaimController extends FrontendController
     {
         $user = $this->requireUser($request);
 
-        $claims = $user->membershipClaims()
+        $claims = $user->membershipApplications()
             ->with(['reviewer', 'media'])
             ->latest('created_at')
             ->get();
 
         return response()->json([
-            'data' => $claims->map(fn (MembershipClaim $claim): array => $this->claimData($claim, $user))->all(),
+            'data' => $claims->map(fn (MembershipApplication $claim): array => $this->claimData($claim, $user))->all(),
             'meta' => [
                 'request_id' => $this->requestId($request),
             ],
@@ -51,10 +49,7 @@ class MembershipClaimController extends FrontendController
         string $subjectType,
         string $subject,
         Request $request,
-        ResolveMembershipClaimSubjectAction $resolveMembershipClaimSubjectAction,
-        ResolveMembershipClaimSubjectPresentationAction $resolveMembershipClaimSubjectPresentationAction,
-        SubmitMembershipClaimAction $submitMembershipClaimAction,
-        FrontendMediaSyncService $frontendMediaSyncService,
+        ApplyForMembershipAction $applyForMembershipAction,
     ): JsonResponse {
         $resolvedSubjectType = MemberSubjectType::fromRouteSegment($subjectType);
         abort_unless($resolvedSubjectType?->isClaimable(), 404);
@@ -65,18 +60,15 @@ class MembershipClaimController extends FrontendController
             abort(403, $user->directoryFeedbackBanMessage());
         }
 
-        $maxUploadSizeKb = (int) ceil(((int) config('media-library.max_file_size', 10 * 1024 * 1024)) / 1024);
-
         $validated = $request->validate([
             'justification' => ['required', 'string', 'max:2000'],
-            'evidence' => ['required', 'array', 'min:1', 'max:8'],
-            'evidence.*' => ['file', 'mimes:jpg,jpeg,png,webp,pdf', "max:{$maxUploadSizeKb}"],
         ]);
 
-        $claimSubject = $resolveMembershipClaimSubjectAction->handle($subjectType, $subject);
+        $claimSubject = $resolvedSubjectType->resolveSubject($subject);
 
         try {
-            $claim = $submitMembershipClaimAction->handle(
+            /** @var MembershipApplication $claim */
+            $claim = $applyForMembershipAction->handle(
                 $claimSubject,
                 $user,
                 (string) $validated['justification'],
@@ -92,18 +84,9 @@ class MembershipClaimController extends FrontendController
             ]);
         }
 
-        $frontendMediaSyncService->syncMultiple(
-            $claim,
-            is_array($request->file('evidence')) ? $request->file('evidence') : null,
-            'evidence',
-        );
-
-        $presentation = $resolveMembershipClaimSubjectPresentationAction->handle($claimSubject);
-
         return response()->json([
             'data' => [
-                'claim' => $this->claimData($claim->fresh(['reviewer', 'media']) ?? $claim, $user, $presentation),
-                'subject' => $presentation,
+                'claim' => $this->claimData($claim->fresh(['reviewer', 'media']) ?? $claim, $user),
             ],
             'meta' => [
                 'request_id' => $this->requestId($request),
@@ -115,19 +98,19 @@ class MembershipClaimController extends FrontendController
         title: 'Cancel a membership claim',
         description: 'Cancels one pending membership claim owned by the current authenticated user.',
     )]
-    public function cancel(string $claimId, Request $request, CancelMembershipClaimAction $cancelMembershipClaimAction): JsonResponse
+    public function cancel(string $claimId, Request $request, CancelMembershipApplicationAction $cancelMembershipApplicationAction): JsonResponse
     {
         $user = $this->requireUser($request);
 
-        $claim = $user->membershipClaims()
+        $claim = $user->membershipApplications()
             ->with(['reviewer', 'media'])
             ->whereKey($claimId)
             ->first();
 
-        abort_unless($claim instanceof MembershipClaim, 404);
+        abort_unless($claim instanceof MembershipApplication, 404);
 
         try {
-            $claim = $cancelMembershipClaimAction->handle($claim, $user);
+            $cancelMembershipApplicationAction->handle($claim);
         } catch (RuntimeException) {
             throw ValidationException::withMessages([
                 'claim' => __('Only pending claims can be cancelled.'),
@@ -136,7 +119,7 @@ class MembershipClaimController extends FrontendController
 
         return response()->json([
             'data' => [
-                'claim' => $this->claimData($claim, $user),
+                'claim' => $this->claimData($claim->fresh(['reviewer', 'media']) ?? $claim, $user),
             ],
             'meta' => [
                 'request_id' => $this->requestId($request),
@@ -148,7 +131,7 @@ class MembershipClaimController extends FrontendController
      * @param  array<string, mixed>|null  $subjectPresentation
      * @return array<string, mixed>
      */
-    private function claimData(MembershipClaim $claim, User $currentUser, ?array $subjectPresentation = null): array
+    private function claimData(MembershipApplication $claim, User $currentUser, ?array $subjectPresentation = null): array
     {
         $subjectPresentation ??= MembershipClaimPresenter::subjectPresentation($claim);
         $evidenceItems = $claim->relationLoaded('media')
@@ -170,7 +153,7 @@ class MembershipClaimController extends FrontendController
             'created_at' => $this->optionalDateTimeString($claim->created_at),
             'reviewed_at' => $this->optionalDateTimeString($claim->reviewed_at),
             'cancelled_at' => $this->optionalDateTimeString($claim->cancelled_at),
-            'can_cancel' => $claim->isPending() && (string) $claim->applicant_id === (string) $currentUser->getKey(),
+            'can_cancel' => $claim->status === ApplicationStatus::Pending && (string) $claim->applicant_id === (string) $currentUser->getKey(),
             'reviewer' => $claim->reviewer?->only(['id', 'name', 'email']),
             'evidence' => $evidenceItems->map(fn (Media $media): array => [
                 'id' => $media->getKey(),

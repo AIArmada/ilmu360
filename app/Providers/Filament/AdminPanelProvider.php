@@ -15,7 +15,7 @@ use AIArmada\FilamentTicketing\FilamentTicketingPlugin;
 use App\Filament\Pages\AdminDashboard;
 use App\Providers\Filament\Concerns\ResolvesPanelDomain;
 use App\Providers\Filament\Concerns\TracksSignalsPanel;
-use App\Support\Authz\MemberRoleScopes;
+use AIArmada\Membership\Enums\MemberRole;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -47,7 +47,7 @@ class AdminPanelProvider extends PanelProvider
 
         if ($this->shouldRegisterDynamicRoleScopeOptions()) {
             $authzPlugin->roleScopeOptionsUsing(
-                fn (): array => app(MemberRoleScopes::class)->roleResourceOptions()
+                fn (): array => collect(MemberRole::cases())->mapWithKeys(fn (MemberRole $role): array => [$role->value => $role->label()])->all()
             );
         }
 

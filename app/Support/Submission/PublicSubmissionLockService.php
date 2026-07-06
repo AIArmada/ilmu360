@@ -2,12 +2,12 @@
 
 namespace App\Support\Submission;
 
-use AIArmada\CommerceSupport\Models\AuthzScope;
-use AIArmada\FilamentAuthz\Facades\Authz;
+use AIArmada\Membership\Enums\MemberRole;
+use App\Enums\MemberSubjectType;
 use App\Models\Institution;
 use App\Models\Speaker;
 use App\Models\User;
-use App\Support\Authz\MemberRoleScopes;
+use App\Support\Authz\MemberPermissionGate;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -16,15 +16,10 @@ use Illuminate\Validation\ValidationException;
 
 final readonly class PublicSubmissionLockService
 {
-    public function __construct(
-        private MemberRoleScopes $memberRoleScopes,
-    ) {}
-
     public function institutionEligibility(Institution $institution): SubmissionLockEligibilityResult
     {
         return $this->resolveEligibility(
             $institution->members()->get(),
-            $this->memberRoleScopes->institution(),
             __('Tiada ahli institusi yang didaftarkan.'),
             __('Tiada ahli institusi dengan peranan owner/admin.'),
             __('Peranan owner/admin memerlukan nombor telefon yang telah disahkan.'),
@@ -35,7 +30,6 @@ final readonly class PublicSubmissionLockService
     {
         return $this->resolveEligibility(
             $speaker->members()->get(),
-            $this->memberRoleScopes->speaker(),
             __('Tiada ahli penceramah yang didaftarkan.'),
             __('Tiada ahli penceramah dengan peranan owner/admin.'),
             __('Peranan owner/admin memerlukan nombor telefon yang telah disahkan.'),
@@ -215,7 +209,6 @@ final readonly class PublicSubmissionLockService
      */
     private function resolveEligibility(
         Collection $members,
-        AuthzScope $scope,
         string $noMembersReason,
         string $missingRoleReason,
         string $missingVerifiedPhoneReason,
@@ -231,11 +224,8 @@ final readonly class PublicSubmissionLockService
                 continue;
             }
 
-            $hasRole = Authz::withScope(
-                $scope,
-                fn (): bool => $member->hasAnyRole(['owner', 'admin']),
-                $member,
-            );
+            $role = $member->pivot?->role;
+            $hasRole = in_array($role, [MemberRole::Owner->value, MemberRole::Admin->value], true);
 
             if (! $hasRole) {
                 continue;

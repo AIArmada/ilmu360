@@ -2,7 +2,8 @@
 
 namespace App\Actions\Institutions;
 
-use App\Actions\Membership\AddMemberToSubject;
+use AIArmada\Membership\Actions\AddMemberAction;
+use AIArmada\Membership\Enums\MemberRole;
 use App\Forms\SharedFormSchema;
 use App\Models\Institution;
 use App\Models\User;
@@ -20,7 +21,7 @@ final readonly class SaveInstitutionAction
     use AsAction;
 
     public function __construct(
-        private AddMemberToSubject $addMemberToSubject,
+        private AddMemberAction $addMemberAction,
         private ContributionEntityMutationService $contributionEntityMutationService,
         private GenerateInstitutionSlugAction $generateInstitutionSlugAction,
         private ModelMediaSyncService $mediaSyncService,
@@ -76,7 +77,7 @@ final readonly class SaveInstitutionAction
             $attributes['allow_public_event_submission'] = true;
 
             $institution = Institution::create($attributes);
-            $this->addMemberToSubject->handle($institution, $actor);
+            $this->addMemberAction->handle($institution, $actor, MemberRole::Owner);
         } else {
             $institution->fill($attributes);
             $institution->save();

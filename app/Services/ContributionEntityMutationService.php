@@ -10,8 +10,9 @@ use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\Contacting\Enums\SocialPlatform;
 use AIArmada\Contacting\Models\ContactMethod;
 use AIArmada\Contacting\Models\SocialProfile;
+use AIArmada\Membership\Actions\AddMemberAction;
+use AIArmada\Membership\Enums\MemberRole;
 use App\Actions\Institutions\GenerateInstitutionSlugAction;
-use App\Actions\Membership\AddMemberToSubject;
 use App\Actions\Speakers\GenerateSpeakerSlugAction;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
@@ -50,7 +51,7 @@ class ContributionEntityMutationService
 {
     public function __construct(
         private readonly EventKeyPersonSyncService $eventKeyPersonSyncService,
-        private readonly AddMemberToSubject $addMemberToSubject,
+        private readonly AddMemberAction $addMemberAction,
         private readonly GenerateInstitutionSlugAction $generateInstitutionSlugAction,
         private readonly GenerateSpeakerSlugAction $generateSpeakerSlugAction,
         private readonly AddressingCountryResolver $addressingCountryResolver,
@@ -377,7 +378,7 @@ class ContributionEntityMutationService
             'allow_public_event_submission' => true,
         ]);
 
-        $this->addMemberToSubject->handle($speaker, $proposer);
+        $this->addMemberAction->handle($speaker, $proposer, MemberRole::Owner);
 
         $this->syncSpeakerRelations($speaker, $payload);
         $this->generateSpeakerSlugAction->syncSpeakerSlug($speaker);

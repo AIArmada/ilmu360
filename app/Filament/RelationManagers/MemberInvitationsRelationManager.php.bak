@@ -13,6 +13,7 @@ use App\Models\Reference;
 use App\Models\Speaker;
 use App\Models\User;
 use App\Support\Authz\MemberInvitationGate;
+use App\Support\Authz\MemberRoleCatalog;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Filament\Actions\Action;
@@ -56,7 +57,7 @@ abstract class MemberInvitationsRelationManager extends RelationManager
                 TextColumn::make('role_slug')
                     ->label('Role')
                     ->badge()
-                    ->formatStateUsing(fn (string $state): string => MemberRole::tryFrom($state)?->label() ?? $state),
+                    ->formatStateUsing(fn (string $state): string => app(MemberRoleCatalog::class)->roleLabel($this->getSubjectType(), $state)),
                 TextColumn::make('inviter.name')
                     ->label('Invited by')
                     ->default('—'),
@@ -84,7 +85,7 @@ abstract class MemberInvitationsRelationManager extends RelationManager
                             ->maxLength(255),
                         Select::make('role_slug')
                             ->label('Role')
-                            ->options(fn (): array => collect(MemberRole::cases())->mapWithKeys(fn (MemberRole $r): array => [$r->value => $r->label()])->all())
+                            ->options(fn (): array => app(MemberRoleCatalog::class)->invitationRoleSlugOptionsFor($this->getSubjectType()))
                             ->required(),
                         DateTimePicker::make('expires_at')
                             ->label('Expires at')

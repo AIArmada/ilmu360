@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\MembershipClaims\Schemas;
 
-use App\Models\MembershipClaim;
+use App\Models\MembershipApplication;
 use App\Support\Membership\MembershipClaimPresenter;
 use Filament\Infolists\Components\SpatieMediaLibraryImageEntry;
 use Filament\Infolists\Components\TextEntry;
@@ -40,12 +40,12 @@ class MembershipClaimInfolist
                                                     ->color(fn (mixed $state): string => MembershipClaimPresenter::statusColor($state)),
                                                 TextEntry::make('subject_summary')
                                                     ->label('Record')
-                                                    ->state(fn (MembershipClaim $record): string => MembershipClaimPresenter::subjectTitle($record))
-                                                    ->url(fn (MembershipClaim $record): ?string => MembershipClaimPresenter::subjectAdminUrl($record))
+                                                    ->state(fn (MembershipApplication $record): string => MembershipClaimPresenter::subjectTitle($record))
+                                                    ->url(fn (MembershipApplication $record): ?string => MembershipClaimPresenter::subjectAdminUrl($record))
                                                     ->openUrlInNewTab(),
                                                 TextEntry::make('granted_role')
                                                     ->label('Granted Role')
-                                                    ->state(fn (MembershipClaim $record): string => MembershipClaimPresenter::roleLabel($record))
+                                                    ->state(fn (MembershipApplication $record): string => MembershipClaimPresenter::roleLabel($record))
                                                     ->placeholder('-'),
                                                 TextEntry::make('applicant.name')
                                                     ->label('Applicant')
@@ -97,7 +97,7 @@ class MembershipClaimInfolist
                                             ->limitedRemainingText(),
                                         TextEntry::make('evidence_links')
                                             ->label('Files')
-                                            ->state(fn (MembershipClaim $record) => MembershipClaimPresenter::evidenceLinks($record))
+                                            ->state(fn (MembershipApplication $record) => MembershipClaimPresenter::evidenceLinks($record))
                                             ->html()
                                             ->columnSpanFull(),
                                     ]),

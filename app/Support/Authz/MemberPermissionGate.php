@@ -2,67 +2,86 @@
 
 namespace App\Support\Authz;
 
-use AIArmada\CommerceSupport\Models\AuthzScope;
-use AIArmada\FilamentAuthz\Facades\Authz;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Reference;
 use App\Models\Speaker;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 
 final readonly class MemberPermissionGate
 {
-    public function __construct(
-        private MemberRoleScopes $memberRoleScopes,
-    ) {}
+    private const array ROLE_WEIGHT = [
+        'owner' => 100,
+        'admin' => 80,
+        'editor' => 50,
+        'viewer' => 10,
+    ];
+
+    private const array PERMISSION_THRESHOLD = [
+        'view' => 10,
+        'update' => 80,
+        'delete' => 100,
+        'manage-members' => 80,
+        'approve' => 80,
+        'manage-donation-channels' => 80,
+    ];
 
     public function canInstitution(User $user, string $permission, Institution $institution): bool
     {
-        return $this->isInstitutionMember($user, $institution)
-            && Authz::userCanInScope($user, $permission, $this->memberRoleScopes->institution());
+        return $this->memberCan($institution, $user, $permission);
     }
 
     public function canSpeaker(User $user, string $permission, Speaker $speaker): bool
     {
-        return $this->isSpeakerMember($user, $speaker)
-            && Authz::userCanInScope($user, $permission, $this->memberRoleScopes->speaker());
+        return $this->memberCan($speaker, $user, $permission);
     }
 
     public function canEvent(User $user, string $permission, Event $event): bool
     {
-        return $this->isEventMember($user, $event)
-            && Authz::userCanInScope($user, $permission, $this->memberRoleScopes->event());
+        return $this->memberCan($event, $user, $permission);
     }
 
     public function canReference(User $user, string $permission, Reference $reference): bool
     {
-        return $this->isReferenceMember($user, $reference)
-            && Authz::userCanInScope($user, $permission, $this->memberRoleScopes->reference());
+        return $this->memberCan($reference, $user, $permission);
     }
 
     public function hasAnyInstitutionPermission(User $user, string $permission): bool
     {
-        return $user->institutions()->exists()
-            && Authz::userCanInScope($user, $permission, $this->memberRoleScopes->institution());
+        $shortName = $this->shortPermissionName($permission);
+
+        return $user->institutions()->get()->contains(
+            fn (Institution $i): bool => $this->memberCan($i, $user, $shortName),
+        );
     }
 
     public function hasAnyEventPermission(User $user, string $permission): bool
     {
-        return $user->memberEvents()->exists()
-            && Authz::userCanInScope($user, $permission, $this->memberRoleScopes->event());
+        $shortName = $this->shortPermissionName($permission);
+
+        return $user->memberEvents()->get()->contains(
+            fn (Event $e): bool => $this->memberCan($e, $user, $shortName),
+        );
     }
 
     public function hasAnySpeakerPermission(User $user, string $permission): bool
     {
-        return $user->speakers()->exists()
-            && Authz::userCanInScope($user, $permission, $this->memberRoleScopes->speaker());
+        $shortName = $this->shortPermissionName($permission);
+
+        return $user->speakers()->get()->contains(
+            fn (Speaker $s): bool => $this->memberCan($s, $user, $shortName),
+        );
     }
 
     public function hasAnyReferencePermission(User $user, string $permission): bool
     {
-        return $user->references()->exists()
-            && Authz::userCanInScope($user, $permission, $this->memberRoleScopes->reference());
+        $shortName = $this->shortPermissionName($permission);
+
+        return $user->references()->get()->contains(
+            fn (Reference $r): bool => $this->memberCan($r, $user, $shortName),
+        );
     }
 
     /**
@@ -70,12 +89,7 @@ final readonly class MemberPermissionGate
      */
     public function institutionMembersWithPermission(Institution $institution, string $permission): Collection
     {
-        /** @var Collection<int, User> $members */
-        $members = $institution->members()->get();
-
-        return $members
-            ->filter(fn (User $member): bool => $this->canInstitution($member, $permission, $institution))
-            ->values();
+        return $this->membersWithPermission($institution, $permission);
     }
 
     /**
@@ -83,12 +97,7 @@ final readonly class MemberPermissionGate
      */
     public function speakerMembersWithPermission(Speaker $speaker, string $permission): Collection
     {
-        /** @var Collection<int, User> $members */
-        $members = $speaker->members()->get();
-
-        return $members
-            ->filter(fn (User $member): bool => $this->canSpeaker($member, $permission, $speaker))
-            ->values();
+        return $this->membersWithPermission($speaker, $permission);
     }
 
     /**
@@ -96,51 +105,48 @@ final readonly class MemberPermissionGate
      */
     public function eventMembersWithPermission(Event $event, string $permission): Collection
     {
+        return $this->membersWithPermission($event, $permission);
+    }
+
+    private function memberCan(Model $subject, User $user, string $permission): bool
+    {
+        $shortName = $this->shortPermissionName($permission);
+        $threshold = self::PERMISSION_THRESHOLD[$shortName] ?? null;
+
+        if ($threshold === null) {
+            return false;
+        }
+
+        $role = $subject->members()->whereKey($user->getKey())->value('role');
+        $weight = self::ROLE_WEIGHT[$role] ?? 0;
+
+        return $weight >= $threshold;
+    }
+
+    /**
+     * @return Collection<int, User>
+     */
+    private function membersWithPermission(Model $subject, string $permission): Collection
+    {
+        $shortName = $this->shortPermissionName($permission);
+        $threshold = self::PERMISSION_THRESHOLD[$shortName] ?? null;
+
+        if ($threshold === null) {
+            return collect();
+        }
+
         /** @var Collection<int, User> $members */
-        $members = $event->members()->get();
+        $members = $subject->members()->get();
 
-        return $members
-            ->filter(fn (User $member): bool => $this->canEvent($member, $permission, $event))
-            ->values();
+        return $members->filter(
+            fn (User $member): bool => (self::ROLE_WEIGHT[$member->pivot?->role ?? ''] ?? 0) >= $threshold,
+        )->values();
     }
 
-    public function institutionScope(): AuthzScope
+    private function shortPermissionName(string $permission): string
     {
-        return $this->memberRoleScopes->institution();
-    }
+        $parts = explode('.', $permission);
 
-    public function speakerScope(): AuthzScope
-    {
-        return $this->memberRoleScopes->speaker();
-    }
-
-    public function eventScope(): AuthzScope
-    {
-        return $this->memberRoleScopes->event();
-    }
-
-    public function referenceScope(): AuthzScope
-    {
-        return $this->memberRoleScopes->reference();
-    }
-
-    private function isInstitutionMember(User $user, Institution $institution): bool
-    {
-        return $institution->members()->whereKey($user->getKey())->exists();
-    }
-
-    private function isSpeakerMember(User $user, Speaker $speaker): bool
-    {
-        return $speaker->members()->whereKey($user->getKey())->exists();
-    }
-
-    private function isEventMember(User $user, Event $event): bool
-    {
-        return $event->members()->whereKey($user->getKey())->exists();
-    }
-
-    private function isReferenceMember(User $user, Reference $reference): bool
-    {
-        return $reference->members()->whereKey($user->getKey())->exists();
+        return end($parts);
     }
 }

@@ -2,16 +2,15 @@
 
 namespace App\Http\Controllers\Api\Frontend;
 
-use App\Actions\Membership\AddMemberToSubject;
-use App\Actions\Membership\ChangeSubjectMemberRole;
-use App\Actions\Membership\RemoveMemberFromSubject;
+use AIArmada\Membership\Actions\AddMemberAction;
+use AIArmada\Membership\Actions\ChangeMemberRoleAction;
+use AIArmada\Membership\Actions\RemoveMemberAction;
+use AIArmada\Membership\Enums\MemberRole;
 use App\Enums\EventVisibility;
 use App\Enums\MemberSubjectType;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\User;
-use App\Support\Authz\MemberRoleCatalog;
-use App\Support\Authz\ScopedMemberRoleSeeder;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Database\Eloquent\Builder;
@@ -26,10 +25,7 @@ use RuntimeException;
 #[Group('InstitutionWorkspace', 'Authenticated institution workspace endpoints for member-management and institution-scoped event listings.')]
 class InstitutionWorkspaceController extends FrontendController
 {
-    public function __construct(
-        private readonly MemberRoleCatalog $memberRoleCatalog,
-        private readonly ScopedMemberRoleSeeder $scopedMemberRoleSeeder,
-    ) {}
+    public function __construct() {}
 
     #[Endpoint(
         title: 'Get institution workspace',
@@ -77,8 +73,8 @@ class InstitutionWorkspaceController extends FrontendController
         $memberRoleState = collect($members->getCollection())
             ->mapWithKeys(fn (User $member): array => [
                 (string) $member->getKey() => [
-                    'roles' => $this->memberRoleCatalog->roleNamesFor($member, MemberSubjectType::Institution),
-                    'role_ids' => $this->memberRoleCatalog->roleIdsFor($member, MemberSubjectType::Institution),
+                    'roles' => $this->memberRoleNames($member),
+                    'role_ids' => $this->memberRoleIds($member),
                     'is_owner' => $this->memberIsOwner($member),
                     'has_protected_role' => $this->memberHasProtectedRole($member),
                 ],
@@ -151,7 +147,7 @@ class InstitutionWorkspaceController extends FrontendController
     public function addMember(
         string $institutionId,
         Request $request,
-        AddMemberToSubject $addMemberToSubject,
+        AddMemberAction $addMemberAction,
     ): JsonResponse {
         $user = $this->requireUser($request);
         $institution = $this->selectedInstitutionOrAbort($user, $institutionId);
@@ -172,7 +168,7 @@ class InstitutionWorkspaceController extends FrontendController
             ]);
         }
 
-        $addMemberToSubject->handle($institution, $member, (string) $validated['role_id']);
+        $addMemberAction->handle($institution, $member, MemberRole::tryFrom((string) $validated['role_id']) ?? MemberRole::Editor);
 
         return response()->json([
             'data' => [
@@ -180,7 +176,7 @@ class InstitutionWorkspaceController extends FrontendController
                     'id' => $member->getKey(),
                     'name' => $member->name,
                     'email' => $member->email,
-                    'roles' => $this->memberRoleCatalog->roleNamesFor($member, MemberSubjectType::Institution),
+                    'roles' => $this->memberRoleNamesForFreshMember($institution, $member),
                 ],
             ],
             'meta' => [
@@ -197,7 +193,7 @@ class InstitutionWorkspaceController extends FrontendController
         string $institutionId,
         string $memberId,
         Request $request,
-        ChangeSubjectMemberRole $changeSubjectMemberRole,
+        ChangeMemberRoleAction $changeMemberRoleAction,
     ): JsonResponse {
         $user = $this->requireUser($request);
         $institution = $this->selectedInstitutionOrAbort($user, $institutionId);
@@ -216,7 +212,7 @@ class InstitutionWorkspaceController extends FrontendController
             'role_id' => ['required', 'string'],
         ]);
 
-        $changeSubjectMemberRole->handle($institution, $member, (string) $validated['role_id']);
+        $changeMemberRoleAction->handle($institution, $member, MemberRole::tryFrom((string) $validated['role_id']) ?? MemberRole::Editor);
 
         return response()->json([
             'data' => [
@@ -224,7 +220,7 @@ class InstitutionWorkspaceController extends FrontendController
                     'id' => $member->getKey(),
                     'name' => $member->name,
                     'email' => $member->email,
-                    'roles' => $this->memberRoleCatalog->roleNamesFor($member, MemberSubjectType::Institution),
+                    'roles' => $this->memberRoleNamesForFreshMember($institution, $member),
                 ],
             ],
             'meta' => [
@@ -241,7 +237,7 @@ class InstitutionWorkspaceController extends FrontendController
         string $institutionId,
         string $memberId,
         Request $request,
-        RemoveMemberFromSubject $removeMemberFromSubject,
+        RemoveMemberAction $removeMemberAction,
     ): JsonResponse {
         $user = $this->requireUser($request);
         $institution = $this->selectedInstitutionOrAbort($user, $institutionId);
@@ -257,7 +253,7 @@ class InstitutionWorkspaceController extends FrontendController
         }
 
         try {
-            $removeMemberFromSubject->handle($institution, $member);
+            $removeMemberAction->handle($institution, $member);
         } catch (RuntimeException) {
             throw ValidationException::withMessages([
                 'member' => __('Owner roles can only be changed from the global roles screen.'),
@@ -335,17 +331,25 @@ class InstitutionWorkspaceController extends FrontendController
 
     private function userHasInstitutionManagementRole(User $user): bool
     {
-        return $this->memberRoleCatalog->userHasAnyRole($user, MemberSubjectType::Institution, ['owner', 'admin']);
+        return $user->institutions()
+            ->wherePivotIn('role_slug', [MemberRole::Owner->value, MemberRole::Admin->value])
+            ->exists();
     }
 
     private function memberIsOwner(User $user): bool
     {
-        return $this->memberRoleCatalog->userHasRole($user, MemberSubjectType::Institution, 'owner');
+        if (! isset($user->pivot) || ! $user->pivot->role_slug) {
+            return $user->institutions()
+                ->wherePivot('role_slug', MemberRole::Owner->value)
+                ->exists();
+        }
+
+        return $user->pivot->role_slug === MemberRole::Owner->value;
     }
 
     private function memberHasProtectedRole(User $user): bool
     {
-        return $this->memberRoleCatalog->userHasProtectedRole($user, MemberSubjectType::Institution);
+        return $this->memberIsOwner($user);
     }
 
     /**
@@ -454,9 +458,9 @@ class InstitutionWorkspaceController extends FrontendController
      */
     private function institutionRoleOptions(): array
     {
-        $this->scopedMemberRoleSeeder->ensureForInstitution();
-
-        return $this->memberRoleCatalog->roleOptionsFor(MemberSubjectType::Institution);
+        return collect(MemberRole::cases())
+            ->mapWithKeys(fn (MemberRole $r): array => [$r->value => $r->label()])
+            ->all();
     }
 
     /**
@@ -498,5 +502,44 @@ class InstitutionWorkspaceController extends FrontendController
     private function databaseDriver(): string
     {
         return DB::connection()->getDriverName();
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function memberRoleNames(User $member): array
+    {
+        $roleSlug = $member->pivot->role_slug ?? '';
+
+        if ($roleSlug === '') {
+            return [];
+        }
+
+        return [MemberRole::tryFrom($roleSlug)?->label() ?? $roleSlug];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function memberRoleIds(User $member): array
+    {
+        $roleSlug = $member->pivot->role_slug ?? '';
+
+        return $roleSlug !== '' ? [$roleSlug] : [];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function memberRoleNamesForFreshMember(Institution $institution, User $member): array
+    {
+        $pivotMember = $institution->members()->where('user_id', $member->id)->first();
+        $roleSlug = $pivotMember?->pivot->role_slug ?? '';
+
+        if ($roleSlug === '') {
+            return [];
+        }
+
+        return [MemberRole::tryFrom($roleSlug)?->label() ?? $roleSlug];
     }
 }

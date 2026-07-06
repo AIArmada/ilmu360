@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace App\Mcp\Tools\Member;
 
-use App\Support\Api\Member\MemberMembershipClaimWorkflowService;
+use AIArmada\Membership\Actions\CancelMembershipApplicationAction;
+use App\Models\MembershipApplication;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
 use Laravel\Mcp\Request;
@@ -26,7 +27,7 @@ class MemberCancelMembershipClaimTool extends AbstractMemberTool
     protected string $description = 'Use this when the authenticated Ahli/member needs to cancel a pending membership claim they own. Do not use for cancelling claims owned by other members.';
 
     public function __construct(
-        private readonly MemberMembershipClaimWorkflowService $workflowService,
+        private CancelMembershipApplicationAction $cancelMembershipApplicationAction,
     ) {}
 
     public function handle(Request $request): ResponseFactory|Response
@@ -38,10 +39,22 @@ class MemberCancelMembershipClaimTool extends AbstractMemberTool
                 'claim_id' => ['required', 'string'],
             ]);
 
-            return $this->workflowService->cancel(
-                claimId: (string) $validated['claim_id'],
-                actor: $actor,
-            );
+            $application = $actor->membershipApplications()
+                ->whereKey((string) $validated['claim_id'])
+                ->first();
+
+            abort_unless($application instanceof MembershipApplication, 404);
+
+            $this->cancelMembershipApplicationAction->handle($application);
+
+            return [
+                'data' => [
+                    'application' => [
+                        'id' => $application->getKey(),
+                        'status' => $application->status->value,
+                    ],
+                ],
+            ];
         });
     }
 
