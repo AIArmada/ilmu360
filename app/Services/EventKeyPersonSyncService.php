@@ -6,6 +6,7 @@ use App\Actions\Events\GenerateEventSlugAction;
 use App\Enums\EventKeyPersonRole;
 use App\Models\Event;
 use App\Models\EventKeyPerson;
+use Illuminate\Support\Str;
 
 class EventKeyPersonSyncService
 {
@@ -23,8 +24,11 @@ class EventKeyPersonSyncService
 
         $order = 1;
 
+        $base = ['status' => 'active', 'visibility' => 'public'];
+
         foreach ($this->normalizeSpeakerIds($speakerIds) as $speakerId) {
-            EventKeyPerson::query()->create([
+            EventKeyPerson::query()->create($base + [
+                'id' => (string) Str::uuid(),
                 'event_id' => $event->id,
                 'speaker_id' => $speakerId,
                 'role' => EventKeyPersonRole::Speaker->value,
@@ -34,7 +38,8 @@ class EventKeyPersonSyncService
         }
 
         foreach ($this->normalizeKeyPeople($otherKeyPeople) as $keyPerson) {
-            EventKeyPerson::query()->create([
+            EventKeyPerson::query()->create($base + [
+                'id' => (string) Str::uuid(),
                 'event_id' => $event->id,
                 'speaker_id' => $keyPerson['speaker_id'],
                 'role' => $keyPerson['role'],

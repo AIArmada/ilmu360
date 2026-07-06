@@ -1,6 +1,7 @@
 <?php
 
 use AIArmada\CommerceSupport\Models\Role;
+use AIArmada\Engagement\Contracts\EngagementManager;
 use App\Models\Event;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -150,7 +151,7 @@ it('deletes the authenticated user account, revokes tokens, and keeps a sanitize
         'going_count' => 31,
     ]);
 
-    $user->savedEvents()->attach($engagementEvent->id);
+    app(EngagementManager::class)->bookmark($user, $engagementEvent);
     $user->goingEvents()->attach($engagementEvent->id);
 
     $plainTextToken = $user->createToken('iPhone 17')->plainTextToken;
@@ -227,9 +228,12 @@ it('deletes the authenticated user account, revokes tokens, and keeps a sanitize
     $this->assertDatabaseMissing('oauth_access_tokens', ['user_id' => $user->id]);
     $this->assertDatabaseMissing('oauth_refresh_tokens', ['access_token_id' => $passportAccessTokenId]);
     $this->assertDatabaseMissing('oauth_device_codes', ['user_id' => $user->id]);
-    $this->assertDatabaseMissing('event_saves', [
-        'event_id' => $engagementEvent->id,
-        'user_id' => $user->id,
+    $this->assertDatabaseMissing('engagement_bookmarks', [
+        'bookmarkable_type' => $engagementEvent->getMorphClass(),
+        'bookmarkable_id' => $engagementEvent->id,
+        'bookmarker_type' => $user->getMorphClass(),
+        'bookmarker_id' => $user->id,
+        'status' => 'active',
     ]);
     $this->assertDatabaseMissing('event_attendees', [
         'event_id' => $engagementEvent->id,

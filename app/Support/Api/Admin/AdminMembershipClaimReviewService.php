@@ -45,7 +45,7 @@ final readonly class AdminMembershipClaimReviewService
                     'endpoint' => route('api.admin.membership-claims.review', ['recordKey' => $claim->getRouteKey()], false),
                     'defaults' => [
                         'action' => 'approve',
-                        'granted_role_slug' => null,
+                        'granted_role' => null,
                         'reviewer_note' => null,
                     ],
                     'fields' => [
@@ -57,7 +57,7 @@ final readonly class AdminMembershipClaimReviewService
                             'allowed_values' => ['approve', 'reject'],
                         ],
                         [
-                            'name' => 'granted_role_slug',
+                            'name' => 'granted_role',
                             'type' => 'string',
                             'required' => false,
                             'allowed_values' => array_keys(MembershipClaimPresenter::approvalRoleOptions($claim)),
@@ -71,7 +71,7 @@ final readonly class AdminMembershipClaimReviewService
                     ],
                     'conditional_rules' => [
                         [
-                            'field' => 'granted_role_slug',
+                            'field' => 'granted_role',
                             'required_when' => ['action' => ['approve']],
                         ],
                     ],
@@ -93,7 +93,7 @@ final readonly class AdminMembershipClaimReviewService
 
         $validated = Validator::make($payload, [
             'action' => ['required', 'string', Rule::in(['approve', 'reject'])],
-            'granted_role_slug' => [
+            'granted_role' => [
                 'nullable',
                 'string',
                 Rule::in(array_keys(MembershipClaimPresenter::approvalRoleOptions($claim))),
@@ -109,7 +109,7 @@ final readonly class AdminMembershipClaimReviewService
             'approve' => $this->approveMembershipClaimAction->handle(
                 $claim,
                 $actor,
-                (string) $validated['granted_role_slug'],
+                (string) $validated['granted_role'],
                 $reviewerNote,
             ),
             'reject' => $this->rejectMembershipClaimAction->handle(
@@ -133,6 +133,6 @@ final readonly class AdminMembershipClaimReviewService
         /** @var MembershipClaim $claim */
         $claim = $this->registry->resolveRecord(MembershipClaimResource::class, $recordKey);
 
-        return $claim->loadMissing(['claimant', 'reviewer', 'media']);
+        return $claim->loadMissing(['applicant', 'reviewer', 'media']);
     }
 }

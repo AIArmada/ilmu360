@@ -1,9 +1,10 @@
 <?php
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Engagement\Models\Follow;
 use App\Models\Inspiration;
 use App\Models\Speaker;
 use App\Models\User;
-use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
 
 it('allows an authenticated user to follow a speaker', function () {
@@ -19,7 +20,7 @@ it('allows an authenticated user to follow a speaker', function () {
         ->assertSuccessful()
         ->assertSee(__('Ikuti'));
 
-    expect($user->isFollowing($speaker))->toBeFalse();
+    expect(OwnerContext::withOwner(null, fn () => $user->isFollowing($speaker)))->toBeFalse();
 
     Livewire::actingAs($user)
         ->test('pages.speakers.show', ['speaker' => $speaker])
@@ -27,7 +28,7 @@ it('allows an authenticated user to follow a speaker', function () {
         ->call('toggleFollow')
         ->assertSet('isFollowing', true);
 
-    expect($user->isFollowing($speaker))->toBeTrue();
+    expect(OwnerContext::withOwner(null, fn () => $user->isFollowing($speaker)))->toBeTrue();
 });
 
 it('allows an authenticated user to unfollow a speaker', function () {
@@ -37,8 +38,8 @@ it('allows an authenticated user to unfollow a speaker', function () {
         'is_active' => true,
     ]);
 
-    $user->follow($speaker);
-    expect($user->isFollowing($speaker))->toBeTrue();
+    OwnerContext::withOwner(null, fn () => $user->follow($speaker));
+    expect(OwnerContext::withOwner(null, fn () => $user->isFollowing($speaker)))->toBeTrue();
 
     Livewire::actingAs($user)
         ->test('pages.speakers.show', ['speaker' => $speaker])
@@ -46,7 +47,7 @@ it('allows an authenticated user to unfollow a speaker', function () {
         ->call('toggleFollow')
         ->assertSet('isFollowing', false);
 
-    expect($user->isFollowing($speaker))->toBeFalse();
+    expect(OwnerContext::withOwner(null, fn () => $user->isFollowing($speaker)))->toBeFalse();
 });
 
 it('keeps the speaker detail sections revealed after following', function () {
@@ -85,8 +86,8 @@ it('returns correct followingSpeakers relationship', function () {
     $speaker1 = Speaker::factory()->create(['status' => 'verified']);
     $speaker2 = Speaker::factory()->create(['status' => 'verified']);
 
-    $user->follow($speaker1);
-    $user->follow($speaker2);
+    OwnerContext::withOwner(null, fn () => $user->follow($speaker1));
+    OwnerContext::withOwner(null, fn () => $user->follow($speaker2));
 
     expect($user->followingSpeakers)->toHaveCount(2);
     expect($user->followingSpeakers->pluck('id')->toArray())->toContain($speaker1->id, $speaker2->id);
@@ -97,27 +98,25 @@ it('returns correct followers relationship on speaker', function () {
     $user2 = User::factory()->create();
     $speaker = Speaker::factory()->create(['status' => 'verified']);
 
-    $user1->follow($speaker);
-    $user2->follow($speaker);
+    OwnerContext::withOwner(null, fn () => $user1->follow($speaker));
+    OwnerContext::withOwner(null, fn () => $user2->follow($speaker));
 
     expect($speaker->followers)->toHaveCount(2);
-    expect($speaker->isFollowedBy($user1))->toBeTrue();
-    expect($speaker->isFollowedBy($user2))->toBeTrue();
-    expect($speaker->isFollowedBy(null))->toBeFalse();
+    expect(OwnerContext::withOwner(null, fn () => $speaker->isFollowedBy($user1)))->toBeTrue();
+    expect(OwnerContext::withOwner(null, fn () => $speaker->isFollowedBy($user2)))->toBeTrue();
+    expect(OwnerContext::withOwner(null, fn () => $speaker->isFollowedBy(null)))->toBeFalse();
 });
 
 it('cleans up followings when user is deleted', function () {
     $user = User::factory()->create();
     $speaker = Speaker::factory()->create(['status' => 'verified']);
 
-    $user->follow($speaker);
-    expect($user->isFollowing($speaker))->toBeTrue();
+    OwnerContext::withOwner(null, fn () => $user->follow($speaker));
+    expect(OwnerContext::withOwner(null, fn () => $user->isFollowing($speaker)))->toBeTrue();
 
     $user->delete();
 
     expect(
-        DB::table('followings')
-            ->where('user_id', $user->id)
-            ->exists()
+        OwnerContext::withOwner(null, fn () => Follow::forFollower($user)->exists())
     )->toBeFalse();
 });

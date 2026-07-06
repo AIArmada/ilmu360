@@ -2,8 +2,8 @@
 
 namespace App\Support\Membership;
 
+use AIArmada\Membership\Enums\ApplicationStatus;
 use App\Actions\Membership\ResolveMembershipClaimSubjectPresentationAction;
-use App\Enums\MembershipClaimStatus;
 use App\Enums\MemberSubjectType;
 use App\Models\Institution;
 use App\Models\MembershipClaim;
@@ -25,24 +25,24 @@ class MembershipClaimPresenter
         return MemberSubjectType::tryFrom((string) $subjectType)?->label() ?? Str::headline((string) $subjectType);
     }
 
-    public static function labelForStatus(MembershipClaimStatus|string|null $status): string
+    public static function labelForStatus(ApplicationStatus|string|null $status): string
     {
-        if ($status instanceof MembershipClaimStatus) {
+        if ($status instanceof ApplicationStatus) {
             return $status->label();
         }
 
-        return MembershipClaimStatus::tryFrom((string) $status)?->label() ?? Str::headline((string) $status);
+        return ApplicationStatus::tryFrom((string) $status)?->label() ?? Str::headline((string) $status);
     }
 
-    public static function statusColor(MembershipClaimStatus|string|null $status): string
+    public static function statusColor(ApplicationStatus|string|null $status): string
     {
-        $value = $status instanceof MembershipClaimStatus ? $status->value : (string) $status;
+        $value = $status instanceof ApplicationStatus ? $status->value : (string) $status;
 
         return match ($value) {
-            MembershipClaimStatus::Pending->value => 'warning',
-            MembershipClaimStatus::Approved->value => 'success',
-            MembershipClaimStatus::Rejected->value => 'danger',
-            MembershipClaimStatus::Cancelled->value => 'gray',
+            ApplicationStatus::Pending->value => 'warning',
+            ApplicationStatus::Approved->value => 'success',
+            ApplicationStatus::Rejected->value => 'danger',
+            ApplicationStatus::Cancelled->value => 'gray',
             default => 'gray',
         };
     }
@@ -61,7 +61,7 @@ class MembershipClaimPresenter
 
     public static function roleLabel(MembershipClaim $claim): string
     {
-        if (! is_string($claim->granted_role_slug) || $claim->granted_role_slug === '') {
+        if (! is_string($claim->granted_role) || $claim->granted_role === '') {
             return '-';
         }
 
@@ -69,7 +69,7 @@ class MembershipClaimPresenter
             ? $claim->subject_type
             : MemberSubjectType::from((string) $claim->subject_type);
 
-        return app(MemberRoleCatalog::class)->roleLabel($subjectType, $claim->granted_role_slug);
+        return app(MemberRoleCatalog::class)->roleLabel($subjectType, $claim->granted_role);
     }
 
     public static function subjectTitle(MembershipClaim $claim): string

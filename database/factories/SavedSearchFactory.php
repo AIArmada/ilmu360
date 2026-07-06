@@ -25,6 +25,7 @@ class SavedSearchFactory extends Factory
 
         return [
             'user_id' => User::factory(),
+            'user_type' => (new User)->getMorphClass(),
             'name' => fake()->words(3, true),
             'query' => fake()->optional()->words(2, true),
             'filters' => fake()->boolean(50)

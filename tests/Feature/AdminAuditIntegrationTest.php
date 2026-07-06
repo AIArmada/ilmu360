@@ -4,7 +4,6 @@ use AIArmada\Addressing\Models\Address;
 use AIArmada\Contacting\Models\ContactMethod;
 use AIArmada\Contacting\Models\SocialProfile;
 use App\Enums\TagType;
-use App\Filament\Ahli\Resources\Events\EventResource as AhliEventResource;
 use App\Filament\Ahli\Resources\Institutions\InstitutionResource as AhliInstitutionResource;
 use App\Filament\Ahli\Resources\References\ReferenceResource as AhliReferenceResource;
 use App\Filament\Ahli\Resources\Speakers\SpeakerResource as AhliSpeakerResource;
@@ -14,7 +13,6 @@ use App\Filament\Resources\Audits\AuditResource;
 use App\Filament\Resources\Authz\UserResource;
 use App\Filament\Resources\ContributionRequests\ContributionRequestResource;
 use App\Filament\Resources\DonationChannels\DonationChannelResource;
-use App\Filament\Resources\Events\EventResource;
 use App\Filament\Resources\Inspirations\InspirationResource;
 use App\Filament\Resources\Institutions\InstitutionResource;
 use App\Filament\Resources\MembershipClaims\MembershipClaimResource;
@@ -24,7 +22,6 @@ use App\Filament\Resources\Series\SeriesResource;
 use App\Filament\Resources\Spaces\SpaceResource;
 use App\Filament\Resources\Speakers\SpeakerResource;
 use App\Filament\Resources\Tags\TagResource;
-use App\Filament\Resources\Venues\VenueResource;
 use App\Models\AiModelPricing;
 use App\Models\Audit;
 use App\Models\ContributionRequest;
@@ -70,10 +67,8 @@ beforeEach(function () {
 
 it('registers the audits relation manager on audited admin and ahli resources', function () {
     $resources = [
-        EventResource::class,
         InstitutionResource::class,
         SpeakerResource::class,
-        VenueResource::class,
         SeriesResource::class,
         ReferenceResource::class,
         DonationChannelResource::class,
@@ -85,7 +80,6 @@ it('registers the audits relation manager on audited admin and ahli resources', 
         AiModelPricingResource::class,
         InspirationResource::class,
         UserResource::class,
-        AhliEventResource::class,
         AhliInstitutionResource::class,
         AhliSpeakerResource::class,
         AhliReferenceResource::class,

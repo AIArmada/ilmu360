@@ -2,6 +2,7 @@
 
 namespace App\Data\Api\Event;
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Data\Api\Frontend\Search\ReferenceDetailMediaData;
 use App\Enums\EventType;
 use App\Models\Event;
@@ -40,7 +41,7 @@ class EventPayloadData extends Data
 
         /** @var array<string, mixed> $payload */
         $payload = Arr::except([
-            ...$event->toArray(),
+            ...OwnerContext::withOwner(null, fn (): array => $event->toArray()),
             'institution_id' => $event->institution_id,
             'venue_id' => $event->venue_id,
             'event_structure' => self::enumValue($event->event_structure),

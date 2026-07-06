@@ -8,28 +8,6 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('notifications', function (Blueprint $table) {
-            $table->uuid('id')->primary();
-            $table->string('type');
-            $table->string('notifiable_type')->index();
-            $table->foreignUuid('notifiable_id')->index();
-            $table->jsonb('data');
-            $table->string('family')->nullable()->index();
-            $table->string('trigger')->nullable()->index();
-            $table->string('priority')->nullable()->index();
-            $table->string('fingerprint')->nullable()->index();
-            $table->text('action_url')->nullable();
-            $table->string('entity_type')->nullable()->index();
-            $table->foreignUuid('entity_id')->nullable()->index();
-            $table->timestamp('occurred_at')->nullable()->index();
-            $table->timestamp('read_at')->nullable();
-            $table->boolean('inbox_visible')->default(true)->index();
-            $table->boolean('is_digest')->default(false)->index();
-            $table->timestamps();
-
-            $table->index(['notifiable_type', 'notifiable_id'], 'notifications_notifiable');
-        });
-
         Schema::create('notification_settings', function (Blueprint $table): void {
             $table->uuid('id')->primary();
             $table->foreignUuid('user_id')->index();
@@ -133,6 +111,5 @@ return new class extends Migration
         Schema::dropIfExists('notification_destinations');
         Schema::dropIfExists('notification_rules');
         Schema::dropIfExists('notification_settings');
-        Schema::dropIfExists('notifications');
     }
 };

@@ -14,19 +14,16 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class ModerationReviewFactory extends Factory
 {
-    /**
-     * Define the model's default state.
-     *
-     * @return array<string, mixed>
-     */
     public function definition(): array
     {
         return [
-            'event_id' => Event::factory(),
-            'moderator_id' => User::factory(),
-            'decision' => fake()->randomElement(['approved', 'rejected', 'needs_changes']),
-            'note' => fake()->optional()->sentence(),
-            'reason_code' => fake()->optional()->randomElement([
+            'actionable_type' => Event::class,
+            'actionable_id' => Event::factory(),
+            'actioned_by_type' => User::class,
+            'actioned_by_id' => User::factory(),
+            'type' => fake()->randomElement(['approved', 'rejected', 'changes_requested']),
+            'notes' => fake()->optional()->sentence(),
+            'reason' => fake()->randomElement([
                 'donation_changed',
                 'time_changed',
                 'venue_changed',

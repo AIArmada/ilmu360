@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
+use AIArmada\Events\Database\Factories\EventAttendanceFactory;
 use App\Models\Event;
 use App\Models\EventCheckin;
 use App\Models\User;
-use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
  * @extends Factory<EventCheckin>
  */
-class EventCheckinFactory extends Factory
+class EventCheckinFactory extends EventAttendanceFactory
 {
     /**
      * @return array<string, mixed>
@@ -27,6 +27,7 @@ class EventCheckinFactory extends Factory
             'lat' => fake()->optional()->latitude(1.2, 6.8),
             'lng' => fake()->optional()->longitude(99.6, 119.3),
             'accuracy_m' => fake()->optional()->randomFloat(2, 3, 80),
+            'attendance_type' => 'check_in',
         ];
     }
 }

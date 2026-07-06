@@ -16,6 +16,11 @@ use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 use AIArmada\CommerceSupport\Models\Permission;
 use AIArmada\CommerceSupport\Models\Role;
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Communications\Models\NotificationInbox;
+use AIArmada\Engagement\Models\Bookmark;
+use AIArmada\Engagement\Models\Follow;
+use AIArmada\Engagement\Traits\CanBookmark;
+use AIArmada\Engagement\Traits\CanFollow;
 use AIArmada\FilamentAuthz\Facades\Authz;
 use App\Concerns\HasTeams;
 use App\Enums\NotificationChannel;
@@ -26,6 +31,7 @@ use App\Notifications\Auth\VerifyEmailNotification;
 use App\Notifications\NotificationCenterMessage;
 use App\Services\ShareTrackingService;
 use App\Support\Submission\PublicSubmissionLockService;
+use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
@@ -33,6 +39,7 @@ use Filament\Panel;
 use Illuminate\Auth\MustVerifyEmail;
 use Illuminate\Contracts\Auth\MustVerifyEmail as MustVerifyEmailContract;
 use Illuminate\Contracts\Translation\HasLocalePreference;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -59,9 +66,15 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable implements AuditableContract, FilamentUser, HasLocalePreference, MustVerifyEmailContract
 {
     /** @use HasFactory<UserFactory> */
-    use AuditsModelChanges, HasApiTokens, HasFactory, HasRoles, HasTeams, HasUuids, KeepsDeletedModels, MustVerifyEmail, Notifiable {
+    use AuditsModelChanges, CanBookmark, HasApiTokens, HasFactory, HasRoles, HasTeams, HasUuids, KeepsDeletedModels, MustVerifyEmail, Notifiable {
         HasTeams::teams insteadof HasRoles;
         KeepsDeletedModels::attributesToKeep as protected deletedModelsAttributesToKeep;
+    }
+
+    use CanFollow {
+        CanFollow::follow as traitFollow;
+        CanFollow::unfollow as traitUnfollow;
+        CanFollow::isFollowing as traitIsFollowing;
     }
 
     public $incrementing = false;
@@ -94,7 +107,12 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
                 $user->captureDeletedRelationsSnapshot();
             }
 
-            $savedEventIds = $user->snapshotEventIds($user->deletedRelationsSnapshot, 'event_saves');
+            $savedEventIds = collect($user->deletedRelationsSnapshot['event_saves'] ?? [])
+                ->pluck('bookmarkable_id')
+                ->filter(fn (mixed $id): bool => is_string($id) || is_int($id))
+                ->map(static fn (mixed $id): string => (string) $id)
+                ->values()
+                ->all();
             $goingEventIds = $user->snapshotEventIds($user->deletedRelationsSnapshot, 'event_attendees');
 
             $user->socialAccounts()->each(fn ($account) => $account->delete());
@@ -104,10 +122,10 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
             $user->references()->detach();
             DB::table('user_venue')->where('user_id', $user->id)->delete();
             $user->memberEvents()->detach();
-            $user->savedEvents()->detach();
+            $user->eventBookmarks()->delete();
             $user->goingEvents()->detach();
 
-            $user->syncEventEngagementCounts($savedEventIds, 'event_saves', 'saves_count');
+            $user->syncBookmarkCounts($savedEventIds);
             $user->syncEventEngagementCounts($goingEventIds, 'event_attendees', 'going_count');
 
             $user->clearEventOwnership('user_id');
@@ -115,7 +133,7 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
             $user->eventSubmissions()->update(['submitter_id' => null]);
             $user->contributionRequests()->update(['proposer_id' => null]);
             $user->reviewedContributionRequests()->update(['reviewer_id' => null]);
-            $user->membershipClaims()->update(['claimant_id' => null]);
+            $user->membershipClaims()->update(['applicant_id' => null]);
             $user->reviewedMembershipClaims()->update(['reviewer_id' => null]);
             $user->moderationReviews()->update(['moderator_id' => null]);
             $user->reports()->update(['reporter_id' => null]);
@@ -130,11 +148,10 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
             $user->notificationSetting()->delete();
             $user->notificationRules()->each(fn ($rule) => $rule->delete());
             $user->notificationDestinations()->each(fn ($destination) => $destination->delete());
-            $user->pendingNotifications()->each(fn ($notification) => $notification->delete());
-            $user->notificationMessages()->each(fn ($message) => $message->delete());
             $user->notificationDeliveries()->each(fn ($delivery) => $delivery->delete());
+            $user->notificationInbox()->each(fn ($inbox) => $inbox->delete());
 
-            DB::table('followings')->where('user_id', $user->id)->delete();
+            Follow::forFollower($user)->delete();
         });
     }
 
@@ -226,11 +243,13 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
                 ->get()
                 ->map(fn (object $row): array => (array) $row)
                 ->all(),
-            'event_saves' => $this->savedEvents()->get()->map(fn (Event $event): array => [
-                'event_id' => $event->getKey(),
-                'user_id' => $this->getKey(),
-                'created_at' => $this->pivotTimestamp($event, 'created_at'),
-                'updated_at' => $this->pivotTimestamp($event, 'updated_at'),
+            'event_saves' => $this->eventBookmarks()->get()->map(fn (Bookmark $bookmark): array => [
+                'bookmarkable_id' => $bookmark->bookmarkable_id,
+                'bookmarker_type' => $bookmark->bookmarker_type,
+                'bookmarker_id' => $bookmark->bookmarker_id,
+                'bookmarked_at' => $bookmark->bookmarked_at?->toIso8601String(),
+                'created_at' => $bookmark->created_at?->toIso8601String(),
+                'updated_at' => $bookmark->updated_at?->toIso8601String(),
             ])->all(),
             'event_attendees' => $this->goingEvents()->get()->map(fn (Event $event): array => [
                 'event_id' => $event->getKey(),
@@ -267,17 +286,20 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
             'notification_setting' => $this->notificationSetting?->attributesToArray(),
             'notification_rules' => $this->notificationRules()->get()->map->attributesToArray()->all(),
             'notification_destinations' => $this->notificationDestinations()->get()->map->attributesToArray()->all(),
-            'pending_notifications' => $this->pendingNotifications()->get()->map->attributesToArray()->all(),
-            'notification_messages' => $this->notificationMessages()->get()->map->attributesToArray()->all(),
             'notification_deliveries' => $this->notificationDeliveries()->get()->map->attributesToArray()->all(),
-            'followings' => DB::table('followings')
-                ->where('user_id', $this->id)
+            'notification_inboxes' => $this->notificationInbox()->get()->map->attributesToArray()->all(),
+            'followings' => Follow::forFollower($this)
                 ->get()
-                ->map(fn (object $row): array => [
-                    'followable_id' => $row->followable_id,
-                    'followable_type' => $row->followable_type,
-                    'created_at' => $row->created_at,
-                    'updated_at' => $row->updated_at,
+                ->map(fn (Follow $follow): array => [
+                    'follower_type' => $follow->follower_type,
+                    'follower_id' => $follow->follower_id,
+                    'followable_id' => $follow->followable_id,
+                    'followable_type' => $follow->followable_type,
+                    'status' => $follow->status->value,
+                    'followed_at' => $follow->followed_at?->toISOString(),
+                    'unfollowed_at' => $follow->unfollowed_at?->toISOString(),
+                    'notification_level' => $follow->notification_level,
+                    'source' => $follow->source,
                 ])
                 ->all(),
         ];
@@ -348,23 +370,60 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
      */
     protected function restoreManyToManyRelations(array $snapshot): void
     {
-        $savedEventIds = $this->snapshotEventIds($snapshot, 'event_saves');
+        $savedEventIds = collect($snapshot['event_saves'] ?? [])
+            ->pluck('bookmarkable_id')
+            ->filter(fn (mixed $id): bool => is_string($id) || is_int($id))
+            ->map(static fn (mixed $id): string => (string) $id)
+            ->values()
+            ->all();
         $goingEventIds = $this->snapshotEventIds($snapshot, 'event_attendees');
 
         DB::table('institution_user')->insertOrIgnore($this->snapshotRows($snapshot, 'institution_user'));
         DB::table('speaker_user')->insertOrIgnore($this->snapshotRows($snapshot, 'speaker_user'));
         DB::table('reference_user')->insertOrIgnore($this->snapshotRows($snapshot, 'reference_user'));
         DB::table('user_venue')->insertOrIgnore($this->snapshotRows($snapshot, 'user_venue'));
-        DB::table('event_saves')->insertOrIgnore($this->snapshotRows($snapshot, 'event_saves'));
+        foreach ($snapshot['event_saves'] ?? [] as $data) {
+            Bookmark::query()->firstOrCreate(
+                [
+                    'bookmarker_type' => $data['bookmarker_type'] ?? $this->getMorphClass(),
+                    'bookmarker_id' => $data['bookmarker_id'] ?? $this->getKey(),
+                    'bookmarkable_type' => (new Event)->getMorphClass(),
+                    'bookmarkable_id' => $data['bookmarkable_id'],
+                ],
+                [
+                    'status' => 'active',
+                    'bookmarked_at' => $data['bookmarked_at'] ?? now(),
+                ]
+            );
+        }
         DB::table('event_attendees')->insertOrIgnore($this->snapshotRows($snapshot, 'event_attendees'));
         DB::table('event_user')->insertOrIgnore($this->snapshotRows($snapshot, 'event_user'));
         DB::table($this->permissionTable('model_has_roles'))->insertOrIgnore($this->snapshotRows($snapshot, 'model_has_roles'));
         DB::table($this->permissionTable('model_has_permissions'))->insertOrIgnore($this->snapshotRows($snapshot, 'model_has_permissions'));
-        DB::table('followings')->insertOrIgnore(collect($this->snapshotRows($snapshot, 'followings'))->map(fn (array $row): array => array_merge([
-            'user_id' => $this->id,
-        ], $row))->all());
+        if (($snapshot['followings'] ?? []) !== []) {
+            OwnerContext::withOwner(null, function () use ($snapshot): void {
+                $userId = $this->getKey();
+                $morphClass = (new User)->getMorphClass();
+                foreach ($snapshot['followings'] as $data) {
+                    Follow::query()->firstOrCreate(
+                        [
+                            'follower_type' => $data['follower_type'] ?? $morphClass,
+                            'follower_id' => $data['follower_id'] ?? $userId,
+                            'followable_type' => $data['followable_type'],
+                            'followable_id' => $data['followable_id'],
+                        ],
+                        [
+                            'status' => $data['status'] ?? 'active',
+                            'followed_at' => isset($data['followed_at']) ? CarbonImmutable::parse($data['followed_at']) : CarbonImmutable::now(),
+                            'notification_level' => $data['notification_level'] ?? 'all',
+                            'source' => $data['source'] ?? 'restore',
+                        ]
+                    );
+                }
+            });
+        }
 
-        $this->syncEventEngagementCounts($savedEventIds, 'event_saves', 'saves_count');
+        $this->syncBookmarkCounts($savedEventIds);
         $this->syncEventEngagementCounts($goingEventIds, 'event_attendees', 'going_count');
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
@@ -416,7 +475,7 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
         $this->restoreForeignKeyRelation('eventSubmissions', 'submitter_id', $this->snapshotIds($snapshot, 'event_submission_ids'));
         $this->restoreForeignKeyRelation('contributionRequests', 'proposer_id', $this->snapshotIds($snapshot, 'contribution_request_proposer_ids'));
         $this->restoreForeignKeyRelation('reviewedContributionRequests', 'reviewer_id', $this->snapshotIds($snapshot, 'contribution_request_reviewer_ids'));
-        $this->restoreForeignKeyRelation('membershipClaims', 'claimant_id', $this->snapshotIds($snapshot, 'membership_claim_ids'));
+        $this->restoreForeignKeyRelation('membershipClaims', 'applicant_id', $this->snapshotIds($snapshot, 'membership_claim_ids'));
         $this->restoreForeignKeyRelation('reviewedMembershipClaims', 'reviewer_id', $this->snapshotIds($snapshot, 'membership_claim_reviewer_ids'));
         $this->restoreForeignKeyRelation('moderationReviews', 'moderator_id', $this->snapshotIds($snapshot, 'moderation_review_ids'));
         $this->restoreForeignKeyRelation('reports', 'reporter_id', $this->snapshotIds($snapshot, 'report_ids'));
@@ -478,9 +537,8 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
         $this->restoreSingleChildModel('notificationSetting', $snapshot['notification_setting'] ?? null);
         $this->restoreChildModels('notificationRules', $this->snapshotRows($snapshot, 'notification_rules'));
         $this->restoreChildModels('notificationDestinations', $this->snapshotRows($snapshot, 'notification_destinations'));
-        $this->restoreChildModels('pendingNotifications', $this->snapshotRows($snapshot, 'pending_notifications'));
-        $this->restoreChildModels('notificationMessages', $this->snapshotRows($snapshot, 'notification_messages'));
         $this->restoreChildModels('notificationDeliveries', $this->snapshotRows($snapshot, 'notification_deliveries'));
+        $this->restoreChildModels('notificationInbox', $this->snapshotRows($snapshot, 'notification_inboxes'));
     }
 
     /**
@@ -883,7 +941,7 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
      */
     public function membershipClaims(): HasMany
     {
-        return $this->hasMany(MembershipClaim::class, 'claimant_id');
+        return $this->hasMany(MembershipClaim::class, 'applicant_id');
     }
 
     /**
@@ -899,7 +957,7 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
      */
     public function moderationReviews(): HasMany
     {
-        return $this->hasMany(ModerationReview::class, 'moderator_id');
+        return $this->hasMany(ModerationReview::class, 'actioned_by_id');
     }
 
     /**
@@ -931,7 +989,7 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
      */
     public function eventCheckins(): HasMany
     {
-        return $this->hasMany(EventCheckin::class);
+        return $this->hasMany(EventCheckin::class, 'attendee_id');
     }
 
     /**
@@ -951,11 +1009,11 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
     }
 
     /**
-     * @return HasMany<SavedSearch, $this>
+     * @return MorphMany<SavedSearch, $this>
      */
-    public function savedSearches(): HasMany
+    public function savedSearches(): MorphMany
     {
-        return $this->hasMany(SavedSearch::class);
+        return $this->morphMany(SavedSearch::class, 'user');
     }
 
     /**
@@ -967,11 +1025,63 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
     }
 
     /**
-     * @return BelongsToMany<Event, $this>
+     * @return HasMany<Bookmark, $this>
      */
-    public function savedEvents(): BelongsToMany
+    public function eventBookmarks(): HasMany
     {
-        return $this->belongsToMany(Event::class, 'event_saves')->withTimestamps();
+        return $this->hasMany(Bookmark::class, 'bookmarker_id')
+            ->where('bookmarker_type', $this->getMorphClass())
+            ->active()
+            ->where('bookmarkable_type', (new Event)->getMorphClass());
+    }
+
+    /**
+     * @return Collection<int, string>
+     */
+    public function savedEventIds(): Collection
+    {
+        return $this->eventBookmarks()->pluck('bookmarkable_id');
+    }
+
+    /**
+     * @return Builder<Event>
+     */
+    public function savedEvents(): Builder
+    {
+        return Event::query()->whereIn('id', $this->savedEventIds());
+    }
+
+    /**
+     * @return Collection<int, Event>
+     */
+    public function getSavedEventsAttribute(): Collection
+    {
+        return $this->savedEvents()->get();
+    }
+
+    /**
+     * @param  list<string>  $eventIds
+     */
+    public function syncBookmarkCounts(array $eventIds): void
+    {
+        $morphClass = (new Event)->getMorphClass();
+
+        foreach ($eventIds as $eventId) {
+            $count = Bookmark::query()
+                ->where('bookmarkable_type', $morphClass)
+                ->where('bookmarkable_id', $eventId)
+                ->active()
+                ->count();
+
+            $event = Event::query()->find($eventId);
+
+            if (! $event instanceof Event) {
+                continue;
+            }
+
+            $event->saves_count = $count;
+            $event->saveQuietly();
+        }
     }
 
     /**
@@ -979,8 +1089,10 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
      */
     public function followingSpeakers(): MorphToMany
     {
-        return $this->morphedByMany(Speaker::class, 'followable', 'followings')
-            ->withTimestamps();
+        $table = (new Follow)->getTable();
+
+        return $this->morphedByMany(Speaker::class, 'followable', $table, 'follower_id', 'followable_id')
+            ->where("{$table}.status", 'active');
     }
 
     /**
@@ -988,8 +1100,10 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
      */
     public function followingInstitutions(): MorphToMany
     {
-        return $this->morphedByMany(Institution::class, 'followable', 'followings')
-            ->withTimestamps();
+        $table = (new Follow)->getTable();
+
+        return $this->morphedByMany(Institution::class, 'followable', $table, 'follower_id', 'followable_id')
+            ->where("{$table}.status", 'active');
     }
 
     /**
@@ -997,8 +1111,10 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
      */
     public function followingReferences(): MorphToMany
     {
-        return $this->morphedByMany(Reference::class, 'followable', 'followings')
-            ->withTimestamps();
+        $table = (new Follow)->getTable();
+
+        return $this->morphedByMany(Reference::class, 'followable', $table, 'follower_id', 'followable_id')
+            ->where("{$table}.status", 'active');
     }
 
     /**
@@ -1006,37 +1122,25 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
      */
     public function followingSeries(): MorphToMany
     {
-        return $this->morphedByMany(Series::class, 'followable', 'followings')
-            ->withTimestamps();
+        $table = (new Follow)->getTable();
+
+        return $this->morphedByMany(Series::class, 'followable', $table, 'follower_id', 'followable_id')
+            ->where("{$table}.status", 'active');
     }
 
-    public function follow(Model $followable): void
+    public function follow(mixed $subject, array $options = []): Follow
     {
-        DB::table('followings')->insertOrIgnore([
-            'user_id' => $this->id,
-            'followable_id' => $followable->getKey(),
-            'followable_type' => $followable->getMorphClass(),
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        return OwnerContext::withOwner(null, fn (): Follow => $this->traitFollow($subject, $options));
     }
 
-    public function unfollow(Model $followable): void
+    public function unfollow(mixed $subject): void
     {
-        DB::table('followings')
-            ->where('user_id', $this->id)
-            ->where('followable_id', $followable->getKey())
-            ->where('followable_type', $followable->getMorphClass())
-            ->delete();
+        OwnerContext::withOwner(null, fn () => $this->traitUnfollow($subject));
     }
 
-    public function isFollowing(Model $followable): bool
+    public function isFollowing(mixed $subject): bool
     {
-        return DB::table('followings')
-            ->where('user_id', $this->id)
-            ->where('followable_id', $followable->getKey())
-            ->where('followable_type', $followable->getMorphClass())
-            ->exists();
+        return OwnerContext::withOwner(null, fn (): bool => $this->traitIsFollowing($subject));
     }
 
     /**
@@ -1075,16 +1179,6 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
     }
 
     /**
-     * @return MorphMany<NotificationMessage, $this>
-     */
-    public function notifications(): MorphMany
-    {
-        return $this->morphMany(NotificationMessage::class, 'notifiable')
-            ->orderByDesc('occurred_at')
-            ->orderByDesc('created_at');
-    }
-
-    /**
      * @return HasOne<NotificationSetting, $this>
      */
     public function notificationSetting(): HasOne
@@ -1109,19 +1203,11 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
     }
 
     /**
-     * @return HasMany<PendingNotification, $this>
+     * @return MorphMany<NotificationInbox, $this>
      */
-    public function pendingNotifications(): HasMany
+    public function notificationInbox(): MorphMany
     {
-        return $this->hasMany(PendingNotification::class)->orderByDesc('occurred_at')->orderByDesc('created_at');
-    }
-
-    /**
-     * @return MorphMany<NotificationMessage, $this>
-     */
-    public function notificationMessages(): MorphMany
-    {
-        return $this->notifications();
+        return $this->morphMany(NotificationInbox::class, 'recipient');
     }
 
     /**
@@ -1177,7 +1263,7 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
     /**
      * @return array<int, string>|string|null
      */
-    public function routeNotificationForMail(Notification $notification): array|string|null
+    public function routeNotificationForMail(?Notification $notification = null): array|string|null
     {
         if (! $notification instanceof NotificationCenterMessage) {
             return $this->email;
@@ -1193,7 +1279,7 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
     /**
      * @return Collection<int, NotificationDestination>
      */
-    public function routeNotificationForPush(Notification $notification): Collection
+    public function routeNotificationForPush(?Notification $notification = null): Collection
     {
         return $this->notificationDestinations()
             ->where('channel', NotificationChannel::Push->value)
@@ -1205,7 +1291,7 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
     /**
      * @return Collection<int, NotificationDestination>
      */
-    public function routeNotificationForWhatsapp(Notification $notification): Collection
+    public function routeNotificationForWhatsapp(?Notification $notification = null): Collection
     {
         return $this->notificationDestinations()
             ->where('channel', NotificationChannel::Whatsapp->value)

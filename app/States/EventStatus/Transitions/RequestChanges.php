@@ -2,6 +2,7 @@
 
 namespace App\States\EventStatus\Transitions;
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Models\Event;
 use App\Models\ModerationReview;
 use App\Models\User;
@@ -41,21 +42,22 @@ class RequestChanges extends Transition implements HasColor, HasIcon, HasLabel
         }
 
         return DB::transaction(function () use ($moderator, $reasonCode) {
-            // Create review record
-            $review = ModerationReview::create([
-                'event_id' => $this->event->id,
-                'moderator_id' => $moderator->id,
-                'decision' => 'needs_changes',
-                'reason_code' => $reasonCode,
-                'note' => $this->note,
-            ]);
+            $review = OwnerContext::withOwner(null, fn () => ModerationReview::create([
+                'actionable_type' => Event::class,
+                'actionable_id' => $this->event->id,
+                'actioned_by_type' => User::class,
+                'actioned_by_id' => $moderator->id,
+                'type' => 'changes_requested',
+                'reason' => $reasonCode,
+                'notes' => $this->note,
+            ]));
 
             // Update status
             $this->event->status = NeedsChanges::class;
             $this->event->save();
 
             // Notify submitter and institution admins
-            app(EventNotificationService::class)->notifySubmissionNeedsChanges($this->event, $review->note);
+            app(EventNotificationService::class)->notifySubmissionNeedsChanges($this->event, $review->notes);
 
             Log::info('Event needs changes', [
                 'event_id' => $this->event->id,

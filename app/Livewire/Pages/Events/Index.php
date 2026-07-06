@@ -4,8 +4,9 @@ namespace App\Livewire\Pages\Events;
 
 use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressCountry;
-use App\Actions\Events\SaveEventAction;
-use App\Actions\Events\UnsaveEventAction;
+use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Engagement\Contracts\EngagementManager;
+use AIArmada\Engagement\Models\Bookmark;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventKeyPersonRole;
@@ -243,6 +244,11 @@ class Index extends Component implements HasForms
      * @var array<string, mixed>
      */
     public array $filterData = [];
+
+    public function boot(): void
+    {
+        OwnerContext::setForRequest(null);
+    }
 
     public function mount(): void
     {
@@ -665,17 +671,18 @@ class Index extends Component implements HasForms
             return;
         }
 
-        $isSaved = $user->savedEvents()
-            ->where('event_id', $event->id)
+        $isSaved = Bookmark::forBookmarker($user)
+            ->forBookmarkable($event)
+            ->active()
             ->exists();
 
         if ($isSaved) {
-            app(UnsaveEventAction::class)->handle($event->id, $user);
+            app(EngagementManager::class)->removeBookmark($user, $event);
 
             return;
         }
 
-        app(SaveEventAction::class)->handle($event, $user, request());
+        app(EngagementManager::class)->bookmark($user, $event);
     }
 
     /**
@@ -702,9 +709,10 @@ class Index extends Component implements HasForms
             return [];
         }
 
-        return $user->savedEvents()
-            ->whereIn('events.id', $eventIds)
-            ->pluck('events.id')
+        return Bookmark::forBookmarker($user)
+            ->whereIn('bookmarkable_id', $eventIds)
+            ->active()
+            ->pluck('bookmarkable_id')
             ->map(fn (mixed $eventId): string => (string) $eventId)
             ->values()
             ->all();

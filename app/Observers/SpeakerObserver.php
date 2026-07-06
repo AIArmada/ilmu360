@@ -2,6 +2,7 @@
 
 namespace App\Observers;
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Actions\Events\GenerateEventSlugAction;
 use App\Actions\Slugs\SyncSlugRedirectAction;
 use App\Actions\Speakers\GenerateSpeakerSlugAction;
@@ -29,12 +30,14 @@ class SpeakerObserver
         $this->speakerSearchService->syncSpeakerRecord($speaker);
 
         if ($speaker->wasRecentlyCreated || $speaker->wasChanged(['name', 'honorific', 'pre_nominal', 'post_nominal'])) {
-            $this->syncCurrentAndPreviousString(
-                $speaker->name,
-                $speaker->wasChanged('name') ? ($speaker->getPrevious()['name'] ?? null) : null,
-                fn (string $name): bool => $this->generateSpeakerSlugAction->syncSpeakerSlugsForName($name),
-                fn (string $name): bool => $this->generateEventSlugAction->syncEventSlugsForSpeakerName($name),
-            );
+            OwnerContext::withOwner(null, function () use ($speaker): void {
+                $this->syncCurrentAndPreviousString(
+                    $speaker->name,
+                    $speaker->wasChanged('name') ? ($speaker->getPrevious()['name'] ?? null) : null,
+                    fn (string $name): bool => $this->generateSpeakerSlugAction->syncSpeakerSlugsForName($name),
+                    fn (string $name): bool => $this->generateEventSlugAction->syncEventSlugsForSpeakerName($name),
+                );
+            });
         }
 
         $this->publicListingsCache->bustHomepageStats();

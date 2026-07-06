@@ -2,10 +2,11 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Actions\Events\RegisterForEventAction;
+use AIArmada\Events\Contracts\RegistrationServiceInterface;
 use App\Data\Api\EventRegistration\EventRegistrationData;
 use App\Http\Controllers\Controller;
 use App\Models\Event;
+use App\Models\Registration;
 use App\Models\User;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
@@ -20,7 +21,7 @@ class EventRegistrationController extends Controller
         title: 'Register for an event',
         description: 'Creates a registration for the target event using guest contact details or the current authenticated user context.',
     )]
-    public function store(Request $request, Event $event, RegisterForEventAction $registerForEventAction): JsonResponse
+    public function store(Request $request, Event $event, RegistrationServiceInterface $registrations): JsonResponse
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:100'],
@@ -30,12 +31,34 @@ class EventRegistrationController extends Controller
 
         $user = $request->user();
 
-        $registration = $registerForEventAction->handle(
-            $event,
-            $validated,
-            $user instanceof User ? $user : null,
-            $request,
-        );
+        if (! $user instanceof User && blank($validated['email'] ?? null) && blank($validated['phone'] ?? null)) {
+            return response()->json([
+                'message' => 'Please provide either email or phone number.',
+                'errors' => ['contact' => ['Please provide either email or phone number.']],
+            ], 422);
+        }
+
+        $eventRegistration = $registrations->register([
+            'event_id' => $event->id,
+            'registrant_type' => $user instanceof User ? $user->getMorphClass() : null,
+            'registrant_id' => $user instanceof User ? (string) $user->getKey() : null,
+            'registration_type' => 'individual',
+            'status' => 'confirmed',
+            'source' => 'free_rsvp',
+            'total_participants' => 1,
+            'total_amount' => null,
+            'currency' => null,
+            'payment_status' => null,
+            'participants' => [[
+                'name' => $validated['name'],
+                'email' => $validated['email'] ?? null,
+                'phone' => $validated['phone'] ?? null,
+                'is_primary' => true,
+                'is_purchaser' => true,
+            ]],
+        ]);
+
+        $registration = Registration::findOrFail($eventRegistration->id);
 
         return response()->json([
             'data' => EventRegistrationData::fromModel($registration)->toArray(),

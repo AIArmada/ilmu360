@@ -346,7 +346,7 @@
                                         $dateParts = $eventDateParts($event);
                                         $canEditEvent = auth()->user()?->can('update', $event) ?? false;
                                         $ahliEventEditUrl = $canEditEvent
-                                            ? \App\Filament\Ahli\Resources\Events\EventResource::getUrl('edit', ['record' => $event], panel: 'ahli')
+                                            ? \AIArmada\FilamentEvents\Resources\EventResource::getUrl('edit', ['record' => $event], panel: 'ahli')
                                             : null;
                                         $duplicateEventUrl = $canEditEvent && $canUseSelectedInstitutionForScopedSubmission
                                             ? route('dashboard.institutions.submit-event', ['institution' => $selectedInstitution->id, 'duplicate' => $event->id])
@@ -451,7 +451,7 @@
                                         $statusValue = (string) $event->status;
                                         $canEditEvent = auth()->user()?->can('update', $event) ?? false;
                                         $ahliEventEditUrl = $canEditEvent
-                                            ? \App\Filament\Ahli\Resources\Events\EventResource::getUrl('edit', ['record' => $event], panel: 'ahli')
+                                            ? \AIArmada\FilamentEvents\Resources\EventResource::getUrl('edit', ['record' => $event], panel: 'ahli')
                                             : null;
                                     @endphp
 

@@ -109,10 +109,10 @@
                                             </div>
 
                                             <div class="flex flex-wrap items-center gap-3 text-xs text-slate-500">
-                                                <span>{{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($message->occurred_at, 'j M Y, g:i A') }}</span>
-                                                @if (! empty($message->channels_attempted))
+                                                <span>{{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($message->data['occurred_at'] ?? null, 'j M Y, g:i A') }}</span>
+                                                @if (! empty($message->data['channels_attempted'] ?? []))
                                                     <span>•</span>
-                                                    <span>{{ __('notifications.inbox.channels_attempted') }}: {{ collect($message->channels_attempted)->map(fn (string $channel): string => $channelOptions[$channel] ?? $channel)->implode(', ') }}</span>
+                                                    <span>{{ __('notifications.inbox.channels_attempted') }}: {{ collect($message->data['channels_attempted'] ?? [])->map(fn (string $channel): string => $channelOptions[$channel] ?? $channel)->implode(', ') }}</span>
                                                 @endif
                                             </div>
                                         </div>
@@ -128,9 +128,9 @@
                                                 </button>
                                             @endif
 
-                                            @if ($message->action_url)
+                                            @if ($message->data['action_url'] ?? null)
                                                 <a
-                                                    href="{{ $message->action_url }}"
+                                                    href="{{ $message->data['action_url'] }}"
                                                     wire:navigate
                                                     class="inline-flex items-center rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
                                                 >

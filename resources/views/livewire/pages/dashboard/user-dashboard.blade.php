@@ -569,7 +569,7 @@
 
                     <div class="mt-5 rounded-lg border border-[#eadfca] bg-[#fbf8f1]">
                         @forelse($recentNotifications as $message)
-                            <a href="{{ $message->action_url ?: route('dashboard.notifications') }}" wire:navigate class="flex gap-4 border-b border-[#eadfca] p-4 last:border-b-0">
+                            <a href="{{ ($message->data['action_url'] ?? null) ?: route('dashboard.notifications') }}" wire:navigate class="flex gap-4 border-b border-[#eadfca] p-4 last:border-b-0">
                                 <span class="flex size-10 shrink-0 items-center justify-center rounded-full {{ $message->read_at === null ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700' }}">
                                     <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.4-1.4A2 2 0 0118 14.2V11a6 6 0 10-12 0v3.2a2 2 0 01-.6 1.4L4 17h5m6 0a3 3 0 01-6 0" />
@@ -578,7 +578,7 @@
                                 <span class="min-w-0">
                                     <span class="line-clamp-2 text-sm font-bold text-emerald-900">{{ $message->title }}</span>
                                     <span class="mt-1 line-clamp-2 text-sm leading-5 text-slate-600">{{ $message->body }}</span>
-                                    <span class="mt-2 block text-xs text-slate-500">{{ $notificationTimeLabel($message->occurred_at) }}</span>
+                                    <span class="mt-2 block text-xs text-slate-500">{{ $notificationTimeLabel($message->data['occurred_at'] ?? null) }}</span>
                                 </span>
                             </a>
                         @empty

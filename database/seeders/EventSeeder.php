@@ -166,11 +166,16 @@ class EventSeeder extends Seeder
                                 'id' => (string) Str::uuid(),
                                 'event_id' => $event->id,
                                 'speaker_id' => $speakerId,
-                                'role' => EventKeyPersonRole::Speaker->value,
+                                'role_code' => EventKeyPersonRole::Speaker->value,
                                 'name' => null,
-                                'order_column' => $index + 1,
+                                'sort_order' => $index + 1,
                                 'is_public' => true,
                                 'notes' => null,
+                                'status' => 'active',
+                                'visibility' => 'public',
+                                'prominence' => 0,
+                                'is_featured' => false,
+                                'is_primary' => false,
                                 'created_at' => now(),
                                 'updated_at' => now(),
                             ];
@@ -180,7 +185,7 @@ class EventSeeder extends Seeder
 
                 // Bulk insert speaker key people
                 if ($speakerKeyPeople !== []) {
-                    DB::table('event_key_people')->insert($speakerKeyPeople);
+                    DB::table('event_involvements')->insert($speakerKeyPeople);
                 }
 
                 $count += 10;
@@ -440,7 +445,10 @@ class EventSeeder extends Seeder
             if (class_exists(Language::class)) {
                 $malay = Language::where('code', 'ms')->first();
                 if ($malay) {
-                    $event->languages()->syncWithoutDetaching([$malay->getKey()]);
+                    $event->languages()->firstOrCreate([
+                        'language_code' => 'ms',
+                        'usage_type' => 'presentation',
+                    ]);
                 }
             }
 
@@ -476,7 +484,7 @@ class EventSeeder extends Seeder
                 return $organizerSpeaker;
             }
 
-            $existingSpeaker = $existingScheduleEvent->speakers()->orderBy('event_key_people.order_column')->first();
+            $existingSpeaker = $existingScheduleEvent->speakers()->first();
 
             if (
                 $existingSpeaker instanceof Speaker

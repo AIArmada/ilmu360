@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use AIArmada\Contacting\Concerns\HasSocialProfiles;
+use AIArmada\Engagement\Models\Follow;
 use AIArmada\References\Models\Reference as PackageReference;
 use App\Actions\References\GenerateReferenceSlugAction;
 use App\Enums\MemberSubjectType;
@@ -10,7 +11,6 @@ use App\Enums\ReferencePartType;
 use App\Enums\ReferenceType;
 use App\Models\Builders\ReferenceBuilder;
 use App\Models\Concerns\AuditsModelChanges;
-use App\Models\Concerns\HasFollowers;
 use App\Models\Concerns\HasPackageSocialAliases;
 use BackedEnum;
 use Database\Factories\ReferenceFactory;
@@ -21,13 +21,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 use Laravel\Scout\Searchable;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 use Spatie\DeletedModels\Models\Concerns\KeepsDeletedModels;
-use Spatie\MediaLibrary\HasMedia;
-use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
@@ -53,10 +52,10 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  * @property array<int, mixed>|null $reference_parts
  * @property array<string, mixed>|null $metadata
  */
-class Reference extends PackageReference implements AuditableContract, HasMedia
+class Reference extends PackageReference implements AuditableContract
 {
     /** @use HasFactory<ReferenceFactory> */
-    use AuditsModelChanges, HasFactory, HasFollowers, HasPackageSocialAliases, HasSocialProfiles, InteractsWithMedia, KeepsDeletedModels, Searchable;
+    use AuditsModelChanges, HasFactory, HasPackageSocialAliases, HasSocialProfiles, KeepsDeletedModels, Searchable;
 
     #[\Override]
     protected static function newFactory(): ReferenceFactory
@@ -700,29 +699,6 @@ class Reference extends PackageReference implements AuditableContract, HasMedia
     }
 
     /**
-     * Register media collections for Spatie Media Library.
-     */
-    public function registerMediaCollections(): void
-    {
-        $this->addMediaCollection('front_cover')
-            ->useDisk(config('media-library.disk_name'))
-            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp'])
-            ->withResponsiveImages()
-            ->singleFile();
-
-        $this->addMediaCollection('back_cover')
-            ->useDisk(config('media-library.disk_name'))
-            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp'])
-            ->withResponsiveImages()
-            ->singleFile();
-
-        $this->addMediaCollection('gallery')
-            ->useDisk(config('media-library.disk_name'))
-            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp'])
-            ->withResponsiveImages();
-    }
-
-    /**
      * Register media conversions for optimized image delivery.
      */
     public function registerMediaConversions(?Media $media = null): void
@@ -740,5 +716,38 @@ class Reference extends PackageReference implements AuditableContract, HasMedia
             ->height(232)
             ->sharpen(10)
             ->format('webp');
+    }
+
+    /**
+     * @return MorphMany<Follow, $this>
+     */
+    public function follows(): MorphMany
+    {
+        return $this->morphMany(Follow::class, 'followable');
+    }
+
+    /**
+     * @return MorphToMany<User, $this>
+     */
+    public function followers(): MorphToMany
+    {
+        $table = (new Follow)->getTable();
+
+        return $this->morphToMany(User::class, 'followable', $table, 'followable_id', 'follower_id')
+            ->where("{$table}.status", 'active');
+    }
+
+    public function followersCount(): int
+    {
+        return $this->follows()->active()->count();
+    }
+
+    public function isFollowedBy(?User $user): bool
+    {
+        if (! $user instanceof User) {
+            return false;
+        }
+
+        return $this->follows()->active()->where('follower_id', $user->getKey())->exists();
     }
 }

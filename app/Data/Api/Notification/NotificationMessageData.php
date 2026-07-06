@@ -2,10 +2,10 @@
 
 namespace App\Data\Api\Notification;
 
-use App\Enums\NotificationFamily;
-use App\Enums\NotificationPriority;
-use App\Enums\NotificationTrigger;
-use App\Models\NotificationMessage;
+use AIArmada\Communications\Enums\NotificationFamily;
+use AIArmada\Communications\Enums\NotificationPriority;
+use AIArmada\Communications\Enums\NotificationTrigger;
+use AIArmada\Communications\Models\NotificationInbox;
 use Carbon\CarbonInterface;
 use Spatie\LaravelData\Data;
 
@@ -31,13 +31,13 @@ class NotificationMessageData extends Data
         public array $meta,
     ) {}
 
-    public static function fromModel(NotificationMessage $message): self
+    public static function fromModel(NotificationInbox $message): self
     {
         $family = $message->family;
         $trigger = $message->trigger;
         $priority = $message->priority;
-        $occurredAt = $message->occurred_at;
         $readAt = $message->read_at;
+        $data = $message->data ?? [];
 
         return new self(
             id: (string) $message->id,
@@ -45,14 +45,14 @@ class NotificationMessageData extends Data
             trigger: $trigger instanceof NotificationTrigger ? $trigger->value : (string) $trigger,
             title: (string) $message->title,
             body: (string) $message->body,
-            action_url: $message->action_url,
-            entity_type: $message->entity_type,
-            entity_id: $message->entity_id,
+            action_url: $data['action_url'] ?? null,
+            entity_type: $data['entity_type'] ?? null,
+            entity_id: $data['entity_id'] ?? null,
             priority: $priority instanceof NotificationPriority ? $priority->value : (string) $priority,
-            occurred_at: $occurredAt instanceof CarbonInterface ? $occurredAt->toIso8601String() : null,
+            occurred_at: $data['occurred_at'] ?? null,
             read_at: $readAt instanceof CarbonInterface ? $readAt->toIso8601String() : null,
-            channels_attempted: $message->channels_attempted ?? [],
-            meta: $message->meta ?? [],
+            channels_attempted: $data['channels_attempted'] ?? [],
+            meta: $data['meta'] ?? [],
         );
     }
 }

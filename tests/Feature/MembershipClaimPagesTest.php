@@ -1,6 +1,6 @@
 <?php
 
-use App\Enums\MembershipClaimStatus;
+use AIArmada\Membership\Enums\ApplicationStatus;
 use App\Enums\MemberSubjectType;
 use App\Livewire\Pages\Contributions\Index as ContributionsIndex;
 use App\Livewire\Pages\MembershipClaims\Create as CreateMembershipClaimPage;
@@ -48,10 +48,10 @@ it('lets authenticated users submit an institution claim with evidence', functio
         ->call('submit')
         ->assertRedirect(route('membership-claims.index'));
 
-    $claim = MembershipClaim::query()->where('claimant_id', $user->getKey())->firstOrFail();
+    $claim = MembershipClaim::query()->where('applicant_id', $user->getKey())->firstOrFail();
 
     expect($claim->subject_type)->toBe(MemberSubjectType::Institution)
-        ->and($claim->status)->toBe(MembershipClaimStatus::Pending)
+        ->and($claim->status)->toBe(ApplicationStatus::Pending)
         ->and($claim->getMedia('evidence'))->toHaveCount(1);
 });
 
@@ -111,8 +111,8 @@ it('lets claimants cancel pending claims from the history page', function () {
     $claim = MembershipClaim::factory()
         ->forInstitution($institution)
         ->create([
-            'claimant_id' => $user->getKey(),
-            'status' => MembershipClaimStatus::Pending,
+            'applicant_id' => $user->getKey(),
+            'status' => ApplicationStatus::Pending,
         ]);
 
     Livewire::actingAs($user)
@@ -120,7 +120,7 @@ it('lets claimants cancel pending claims from the history page', function () {
         ->call('cancel', $claim->getKey())
         ->assertHasNoErrors();
 
-    expect($claim->fresh()->status)->toBe(MembershipClaimStatus::Cancelled);
+    expect($claim->fresh()->status)->toBe(ApplicationStatus::Cancelled);
 });
 
 it('starts a membership claim from the contributions page search form', function () {

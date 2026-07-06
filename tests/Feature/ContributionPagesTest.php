@@ -1291,7 +1291,7 @@ it('stores reference reports from the public report page', function () {
     $this->assertDatabaseHas('reports', [
         'entity_type' => 'reference',
         'entity_id' => $reference->id,
-        'category' => 'fake_reference',
+        'report_type' => 'fake_reference',
     ]);
 
     expect(SignalEvent::query()->where('event_name', 'report.submitted')->exists())->toBeTrue();

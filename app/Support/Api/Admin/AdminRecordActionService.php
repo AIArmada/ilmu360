@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Support\Api\Admin;
 
+use AIArmada\FilamentEvents\Resources\EventResource;
 use App\Filament\Resources\ContributionRequests\ContributionRequestResource;
-use App\Filament\Resources\Events\EventResource;
 use App\Filament\Resources\MembershipClaims\MembershipClaimResource;
 use App\Filament\Resources\Reports\ReportResource;
 use App\Models\ContributionRequest;

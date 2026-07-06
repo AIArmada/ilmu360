@@ -618,13 +618,17 @@ class EventSearchService
         $childrenAllowed = $this->normalizeBooleanFilter($filters['children_allowed'] ?? null);
 
         if ($childrenAllowed !== null) {
-            $queryBuilder->where('children_allowed', $childrenAllowed);
+            $queryBuilder->whereHas('audienceProfiles', fn (Builder $q) => $q->where('is_child_friendly', $childrenAllowed));
         }
 
         $isMuslimOnly = $this->normalizeBooleanFilter($filters['is_muslim_only'] ?? null);
 
         if ($isMuslimOnly !== null) {
-            $queryBuilder->where('is_muslim_only', $isMuslimOnly);
+            if ($isMuslimOnly) {
+                $queryBuilder->whereHas('audiences', fn (Builder $q) => $q->where('audience_type', 'religion')->where('value', 'muslim_only'));
+            } else {
+                $queryBuilder->whereDoesntHave('audiences', fn (Builder $q) => $q->where('audience_type', 'religion'));
+            }
         }
 
         if (! empty($filters['institution_id'])) {
@@ -647,7 +651,7 @@ class EventSearchService
 
         if ($keyPersonRoles !== []) {
             $queryBuilder->whereHas('keyPeople', function (Builder $keyPersonQuery) use ($keyPersonRoles): void {
-                $keyPersonQuery->whereIn('role', $keyPersonRoles);
+                $keyPersonQuery->whereIn('role_code', $keyPersonRoles);
             });
         }
 
@@ -666,7 +670,7 @@ class EventSearchService
 
             $queryBuilder->whereHas('keyPeople', function (Builder $keyPersonQuery) use ($roleSpecificIds, $role): void {
                 $keyPersonQuery
-                    ->where('role', $role->value)
+                    ->where('role_code', $role->value)
                     ->whereIn('speaker_id', $roleSpecificIds);
             });
         }
@@ -678,7 +682,7 @@ class EventSearchService
 
             $queryBuilder->whereHas('keyPeople', function (Builder $keyPersonQuery) use ($operator, $personInChargeSearch): void {
                 $keyPersonQuery
-                    ->where('role', EventKeyPersonRole::PersonInCharge->value)
+                    ->where('role_code', EventKeyPersonRole::PersonInCharge->value)
                     ->where(function (Builder $personInChargeQuery) use ($operator, $personInChargeSearch): void {
                         $personInChargeQuery
                             ->where('name', $operator, "%{$personInChargeSearch}%")
@@ -764,12 +768,16 @@ class EventSearchService
         if ($prayerTime !== null && $timingMode !== TimingMode::Absolute->value) {
             $queryBuilder
                 ->where('timing_mode', TimingMode::PrayerRelative->value)
-                ->where(function (Builder $prayerQuery) use ($prayerTime): void {
-                    $prayerQuery->where('prayer_display_text', $this->databaseLikeOperator(), "%{$prayerTime}%");
+                ->whereHas('timeExpressions', function (Builder $prayerQuery) use ($prayerTime): void {
+                    $prayerQuery->where('anchor_type', 'prayer');
 
-                    if (($prayerReference = $this->resolvePrayerReferenceFromFilter($prayerTime)) instanceof PrayerReference) {
-                        $prayerQuery->orWhere('prayer_reference', $prayerReference->value);
-                    }
+                    $prayerQuery->where(function (Builder $inner) use ($prayerTime): void {
+                        $inner->where('display_label', $this->databaseLikeOperator(), "%{$prayerTime}%");
+
+                        if (($prayerReference = $this->resolvePrayerReferenceFromFilter($prayerTime)) instanceof PrayerReference) {
+                            $inner->orWhere('anchor_code', $prayerReference->value);
+                        }
+                    });
                 });
         }
 
@@ -790,21 +798,17 @@ class EventSearchService
         $hasEventUrl = $this->normalizeBooleanFilter($filters['has_event_url'] ?? null);
 
         if ($hasEventUrl === true) {
-            $queryBuilder->whereNotNull('event_url')->where('event_url', '!=', '');
+            $queryBuilder->whereHas('links', fn (Builder $q) => $q->where('link_type', 'external')->where('url', '!=', ''));
         } elseif ($hasEventUrl === false) {
-            $queryBuilder->where(function (Builder $eventUrlQuery): void {
-                $eventUrlQuery->whereNull('event_url')->orWhere('event_url', '');
-            });
+            $queryBuilder->whereDoesntHave('links', fn (Builder $q) => $q->where('link_type', 'external')->where('url', '!=', ''));
         }
 
         $hasLiveUrl = $this->normalizeBooleanFilter($filters['has_live_url'] ?? null);
 
         if ($hasLiveUrl === true) {
-            $queryBuilder->whereNotNull('live_url')->where('live_url', '!=', '');
+            $queryBuilder->whereHas('links', fn (Builder $q) => $q->where('link_type', 'streaming')->where('url', '!=', ''));
         } elseif ($hasLiveUrl === false) {
-            $queryBuilder->where(function (Builder $liveUrlQuery): void {
-                $liveUrlQuery->whereNull('live_url')->orWhere('live_url', '');
-            });
+            $queryBuilder->whereDoesntHave('links', fn (Builder $q) => $q->where('link_type', 'streaming')->where('url', '!=', ''));
         }
 
         $hasEndTime = $this->normalizeBooleanFilter($filters['has_end_time'] ?? null);
@@ -883,10 +887,10 @@ class EventSearchService
             if ($includeSpeakers) {
                 $nestedQuery->orWhereHas('keyPeople', function (Builder $keyPeopleQuery) use ($speakerIds, $normalizedSearch, $operator): void {
                     $keyPeopleQuery->where(function (Builder $inner) use ($speakerIds, $normalizedSearch, $operator): void {
-                        $inner->where('event_key_people.name', $operator, "%{$normalizedSearch}%");
+                        $inner->where('event_involvements.name', $operator, "%{$normalizedSearch}%");
 
                         if ($speakerIds !== []) {
-                            $inner->orWhereIn('event_key_people.speaker_id', $speakerIds);
+                            $inner->orWhereIn('event_involvements.speaker_id', $speakerIds);
                         }
                     });
                 });

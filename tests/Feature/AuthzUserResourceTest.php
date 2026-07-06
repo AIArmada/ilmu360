@@ -1,6 +1,7 @@
 <?php
 
 use AIArmada\CommerceSupport\Models\Role;
+use AIArmada\Engagement\Contracts\EngagementManager;
 use AIArmada\FilamentAuthz\Facades\Authz;
 use App\Enums\MemberSubjectType;
 use App\Filament\Resources\Authz\UserResource;
@@ -305,7 +306,7 @@ it('shows authz user activity memberships follows submissions and saved searches
     $memberSpeaker = Speaker::factory()->create(['name' => 'Member Speaker']);
     $followedReference = Reference::factory()->create(['title' => 'Followed Reference']);
 
-    $targetUser->savedEvents()->attach($savedEvent->id);
+    app(EngagementManager::class)->bookmark($targetUser, $savedEvent);
     $targetUser->goingEvents()->attach($goingEvent->id);
     $targetUser->memberEvents()->attach($memberEvent->id, ['joined_at' => now()]);
     $memberInstitution->members()->syncWithoutDetaching([$targetUser->id]);

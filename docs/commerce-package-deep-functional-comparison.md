@@ -1,5 +1,8 @@
 # Commerce Package Deep Functional Comparison
 
+> [!CAUTION]
+> **STALE (last updated pre-2026-07-06).** The model adoption status below is historical and does not reflect the 5 closures completed on 2026-07-06. See [`docs/aiarmada-adoption/status.md`](aiarmada-adoption/status.md) for current truth.
+
 > Detailed model-by-model, field-by-field, and workflow-by-workflow comparison
 > of ilmu360° custom code vs the 59 packages at `~/herd/commerce/packages/*`.
 
@@ -424,14 +427,14 @@ All packages at `~/herd/commerce/packages/` have full source code but are not pu
 | SavedSearch | ✅ Custom | commerce-support (source, not published) |
 | Report | ✅ Custom | commerce-support (source, not published) |
 | MembershipClaim | ✅ Custom | membership |
-| ModerationReview | ✅ Custom | moderation |
+| ModerationReview | ⚠️ Now extends package (closed 2026-07-06) | moderation |
 | Reference | ✅ Custom | references |
 | Address | ✅ Custom | addressing |
 | Venue | ✅ Custom | events |
 | Series | ✅ Custom | events |
 | Registration | ✅ Custom | events |
-| EventCheckin | ✅ Custom | events |
-| EventSubmission | ✅ Custom | events |
+| EventCheckin | ⚠️ Now extends package (closed 2026-07-06) | events |
+| EventSubmission | ⚠️ Now extends package (closed 2026-07-06) | events |
 | Institution | ✅ Custom | events + membership |
 | Speaker | ✅ Custom | events |
 | DonationChannel | ✅ Custom | No package |

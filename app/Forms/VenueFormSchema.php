@@ -13,6 +13,7 @@ use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
+use Illuminate\Support\Str;
 
 class VenueFormSchema
 {
@@ -77,6 +78,7 @@ class VenueFormSchema
 
         // Prevent VenueObserver from overriding the slug before the address is linked.
         $venue = Venue::withoutEvents(fn () => Venue::create([
+            'id' => (string) Str::uuid(),
             'name' => $data['name'],
             'slug' => app(GenerateVenueSlugAction::class)->handle((string) $data['name'], $addressData),
             'type' => $data['type'],

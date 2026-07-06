@@ -2,10 +2,10 @@
 
 namespace App\Filament\Resources\ContributionRequests\Support;
 
+use AIArmada\FilamentEvents\Resources\EventResource;
 use App\Enums\ContributionRequestStatus;
 use App\Enums\ContributionRequestType;
 use App\Enums\ContributionSubjectType;
-use App\Filament\Resources\Events\EventResource;
 use App\Filament\Resources\Institutions\InstitutionResource;
 use App\Filament\Resources\References\ReferenceResource;
 use App\Filament\Resources\Speakers\SpeakerResource;

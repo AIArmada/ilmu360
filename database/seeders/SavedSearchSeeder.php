@@ -31,6 +31,7 @@ class SavedSearchSeeder extends Seeder
                     for ($i = 0; $i < 2; $i++) {
                         $searchData = SavedSearch::factory()->make([
                             'user_id' => $userId,
+                            'user_type' => (new User)->getMorphClass(),
                         ])->toArray();
 
                         if (isset($searchData['filters']) && is_array($searchData['filters'])) {

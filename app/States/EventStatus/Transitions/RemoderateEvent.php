@@ -2,6 +2,7 @@
 
 namespace App\States\EventStatus\Transitions;
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Models\Event;
 use App\Models\ModerationReview;
 use App\Models\User;
@@ -30,13 +31,15 @@ class RemoderateEvent extends Transition implements HasColor, HasIcon, HasLabel
     public function handle(): Event
     {
         return DB::transaction(function () {
-            ModerationReview::create([
-                'event_id' => $this->event->id,
-                'moderator_id' => $this->moderator?->id,
-                'decision' => 'remoderated',
-                'reason_code' => $this->reasonCode,
-                'note' => $this->note ?? 'Approved event sent back for re-moderation.',
-            ]);
+            OwnerContext::withOwner(null, fn () => ModerationReview::create([
+                'actionable_type' => Event::class,
+                'actionable_id' => $this->event->id,
+                'actioned_by_type' => User::class,
+                'actioned_by_id' => $this->moderator?->id,
+                'type' => 'remoderated',
+                'reason' => $this->reasonCode ?? '',
+                'notes' => $this->note ?? 'Approved event sent back for re-moderation.',
+            ]));
 
             $this->event->status = Pending::class;
             $this->event->save();

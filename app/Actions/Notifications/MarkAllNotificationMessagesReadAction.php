@@ -2,6 +2,7 @@
 
 namespace App\Actions\Notifications;
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Models\User;
 use App\Services\Signals\ProductSignalsService;
 use Illuminate\Http\Request;
@@ -17,9 +18,11 @@ final readonly class MarkAllNotificationMessagesReadAction
 
     public function handle(User $user, ?Request $request = null): int
     {
+        OwnerContext::setForRequest(null);
+
         $updated = $user
-            ->notificationMessages()
-            ->visibleInInbox()
+            ->notificationInbox()
+            ->whereNull('archived_at')
             ->whereNull('read_at')
             ->update(['read_at' => now()]);
 

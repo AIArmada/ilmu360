@@ -25,10 +25,11 @@ class ReportFactory extends Factory
 
         return [
             'reporter_id' => User::factory(),
+            'reporter_type' => (new User)->getMorphClass(),
             'handled_by' => $status === 'open' ? null : User::factory(),
             'entity_type' => 'event',
             'entity_id' => Event::factory(),
-            'category' => fake()->randomElement([
+            'report_type' => fake()->randomElement([
                 'wrong_info',
                 'cancelled_not_updated',
                 'fake_speaker',
@@ -36,9 +37,10 @@ class ReportFactory extends Factory
                 'donation_scam',
                 'other',
             ]),
-            'description' => fake()->optional()->paragraph(),
+            'message' => fake()->optional()->paragraph(),
             'status' => $status,
-            'resolution_note' => in_array($status, ['resolved', 'dismissed'], true)
+            'severity' => 'medium',
+            'resolution' => in_array($status, ['resolved', 'dismissed'], true)
                 ? fake()->optional()->sentence()
                 : null,
         ];

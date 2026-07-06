@@ -61,6 +61,14 @@ class SyncEventResourceRelationsAction
             ]
         );
 
+        $event->settings()->updateOrCreate(
+            ['event_id' => $event->id],
+            [
+                'registration_required' => $registrationRequiredToPersist,
+                'registration_mode' => 'event',
+            ]
+        );
+
         $rawLanguageIds = is_array($state['languages'] ?? null) ? $state['languages'] : [];
 
         $languageIds = collect($rawLanguageIds)

@@ -3,8 +3,8 @@
 namespace App\Actions\Membership;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Membership\Enums\ApplicationStatus;
 use AIArmada\Membership\Support\MembershipSubjectGuard;
-use App\Enums\MembershipClaimStatus;
 use App\Enums\MemberSubjectType;
 use App\Models\Institution;
 use App\Models\MemberInvitation;
@@ -56,8 +56,8 @@ class SubmitMembershipClaimAction
             $hasPendingClaim = MembershipClaim::query()
                 ->where('subject_type', $subjectType)
                 ->where('subject_id', $subject->getKey())
-                ->where('claimant_id', $claimant->getKey())
-                ->where('status', MembershipClaimStatus::Pending)
+                ->where('applicant_id', $claimant->getKey())
+                ->where('status', ApplicationStatus::Pending)
                 ->exists();
 
             if ($hasPendingClaim) {
@@ -67,8 +67,8 @@ class SubmitMembershipClaimAction
             return MembershipClaim::create([
                 'subject_type' => $subjectType,
                 'subject_id' => $subject->getKey(),
-                'claimant_id' => $claimant->getKey(),
-                'status' => MembershipClaimStatus::Pending,
+                'applicant_id' => $claimant->getKey(),
+                'status' => ApplicationStatus::Pending,
                 'justification' => trim($justification),
             ]);
         });

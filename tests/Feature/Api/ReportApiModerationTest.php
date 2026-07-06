@@ -204,7 +204,7 @@ it('accepts shared reference report categories through the api controller', func
     $this->assertDatabaseHas('reports', [
         'entity_type' => 'reference',
         'entity_id' => $reference->id,
-        'category' => 'fake_reference',
+        'report_type' => 'fake_reference',
     ]);
 });
 

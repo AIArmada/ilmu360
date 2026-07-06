@@ -2,16 +2,17 @@
 
 namespace App\Models;
 
+use AIArmada\Engagement\Models\Follow;
+use AIArmada\Events\Models\EventSeries;
 use App\Models\Concerns\AuditsModelChanges;
-use App\Models\Concerns\HasFollowers;
 use App\Models\Concerns\HasLanguages;
 use Database\Factories\SeriesFactory;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
@@ -32,14 +33,18 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  * @property array<string, mixed>|null $metadata
  * @property bool $is_active
  */
-class Series extends Model implements AuditableContract, HasMedia
+class Series extends EventSeries implements AuditableContract, HasMedia
 {
+    protected static string $ownerScopeConfigKey = 'series.owner';
+
     /** @use HasFactory<SeriesFactory> */
-    use AuditsModelChanges, HasFactory, HasFollowers, HasLanguages, HasUuids, InteractsWithMedia;
+    use AuditsModelChanges, HasLanguages, InteractsWithMedia;
 
-    public $incrementing = false;
-
-    protected $keyType = 'string';
+    #[\Override]
+    protected static function newFactory(): SeriesFactory
+    {
+        return SeriesFactory::new();
+    }
 
     /**
      * @var list<string>
@@ -168,5 +173,38 @@ class Series extends Model implements AuditableContract, HasMedia
     private function isActiveFromAttributes(): bool
     {
         return ($this->attributes['status'] ?? null) === 'active';
+    }
+
+    /**
+     * @return MorphMany<Follow, $this>
+     */
+    public function follows(): MorphMany
+    {
+        return $this->morphMany(Follow::class, 'followable');
+    }
+
+    /**
+     * @return MorphToMany<User, $this>
+     */
+    public function followers(): MorphToMany
+    {
+        $table = (new Follow)->getTable();
+
+        return $this->morphToMany(User::class, 'followable', $table, 'followable_id', 'follower_id')
+            ->where("{$table}.status", 'active');
+    }
+
+    public function followersCount(): int
+    {
+        return $this->follows()->active()->count();
+    }
+
+    public function isFollowedBy(?User $user): bool
+    {
+        if (! $user instanceof User) {
+            return false;
+        }
+
+        return $this->follows()->active()->where('follower_id', $user->getKey())->exists();
     }
 }

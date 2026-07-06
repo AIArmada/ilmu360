@@ -38,7 +38,7 @@ class AdminReviewMembershipClaimTool extends AbstractAdminTool
             $validated = $this->validateArguments($request, [
                 'record_key' => ['required', 'string'],
                 'action' => ['required', 'string'],
-                'granted_role_slug' => ['sometimes', 'nullable', 'string'],
+                'granted_role' => ['sometimes', 'nullable', 'string'],
                 'reviewer_note' => ['sometimes', 'nullable', 'string'],
             ]);
 
@@ -59,7 +59,7 @@ class AdminReviewMembershipClaimTool extends AbstractAdminTool
         return [
             'record_key' => $schema->string()->required()->min(1),
             'action' => $schema->string()->required()->enum(['approve', 'reject']),
-            'granted_role_slug' => $schema->string()->nullable()->enum(['owner', 'admin', 'editor']),
+            'granted_role' => $schema->string()->nullable()->enum(['owner', 'admin', 'editor']),
             'reviewer_note' => $schema->string()->nullable(),
         ];
     }

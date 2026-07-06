@@ -1,6 +1,8 @@
 <?php
 
 use AIArmada\CommerceSupport\Models\Role;
+use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Moderation\Enums\ModerationActionType;
 use App\Enums\ContributionRequestStatus;
 use App\Enums\ContributionRequestType;
 use App\Enums\ContributionSubjectType;
@@ -1012,15 +1014,14 @@ it('exposes event moderation schema and can request changes through the admin wo
 
     expect((string) $event->status)->toBe('needs_changes');
 
-    $review = ModerationReview::query()->where('event_id', $event->getKey())->latest()->first();
+    $review = OwnerContext::withOwner(null, fn () => ModerationReview::query()
+        ->where('actionable_type', Event::class)
+        ->where('actionable_id', $event->getKey())
+        ->latest()
+        ->first());
 
-    expect($review?->decision)->toBe('needs_changes')
-        ->and($review?->reason_code)->toBe('incomplete_info');
-
-    $this->assertDatabaseHas('notification_messages', [
-        'user_id' => $submitter->getKey(),
-        'trigger' => 'submission_needs_changes',
-    ]);
+    expect($review?->type)->toBe(ModerationActionType::ChangesRequested)
+        ->and($review?->reason)->toBe('incomplete_info');
 });
 
 it('exposes contribution request review schema and can approve requests through the admin workflow endpoints', function () {
@@ -1778,7 +1779,7 @@ it('exposes membership claim review schema and can approve claims through the ad
     $claim = MembershipClaim::factory()
         ->forInstitution($institution)
         ->create([
-            'claimant_id' => $claimant->getKey(),
+            'applicant_id' => $claimant->getKey(),
             'status' => 'pending',
         ]);
 
@@ -1790,19 +1791,19 @@ it('exposes membership claim review schema and can approve claims through the ad
         ->assertJsonPath('data.record.route_key', $claim->getRouteKey())
         ->assertJsonPath('data.schema.action', 'review_membership_claim')
         ->assertJsonPath('data.schema.endpoint', '/api/v1/admin/membership-claims/'.$claim->getRouteKey().'/review')
-        ->assertJsonPath('data.schema.conditional_rules.0.field', 'granted_role_slug');
+        ->assertJsonPath('data.schema.conditional_rules.0.field', 'granted_role');
 
     $this->postJson('/api/v1/admin/membership-claims/'.$claim->getRouteKey().'/review', [
         'action' => 'approve',
-        'granted_role_slug' => 'admin',
+        'granted_role' => 'admin',
         'reviewer_note' => 'Approved through admin API.',
     ])->assertOk()
         ->assertJsonPath('data.record.attributes.status', 'approved')
-        ->assertJsonPath('data.record.attributes.granted_role_slug', 'admin')
+        ->assertJsonPath('data.record.attributes.granted_role', 'admin')
         ->assertJsonPath('data.record.attributes.reviewer_note', 'Approved through admin API.');
 
     expect($claim->fresh()?->status->value)->toBe('approved')
-        ->and($claim->fresh()?->granted_role_slug)->toBe('admin')
+        ->and($claim->fresh()?->granted_role)->toBe('admin')
         ->and($claim->fresh()?->reviewer_id)->toBe($admin->getKey())
         ->and($institution->fresh()->members()->whereKey($claimant->getKey())->exists())->toBeTrue();
 });

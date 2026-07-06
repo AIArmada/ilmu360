@@ -27,7 +27,7 @@ class ReportResolvedNotification extends Notification implements ShouldQueue
      */
     public function via(object $notifiable): array
     {
-        return ['mail', 'database'];
+        return ['mail'];
     }
 
     /**
@@ -37,7 +37,6 @@ class ReportResolvedNotification extends Notification implements ShouldQueue
     {
         return [
             'mail' => 'notifications-mail',
-            'database' => 'notifications-inbox',
         ];
     }
 

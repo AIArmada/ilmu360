@@ -46,7 +46,7 @@ return [
             'auto_assign_on_create' => env('COMMUNICATIONS_OWNER_AUTO_ASSIGN', true),
         ],
         'native_capture' => (bool) env('COMMUNICATIONS_NATIVE_CAPTURE', true),
-        'auto_capture' => (bool) env('COMMUNICATIONS_AUTO_CAPTURE', false),
+        'auto_capture' => (bool) env('COMMUNICATIONS_AUTO_CAPTURE', true),
         'auto_capture_allowlist' => [],
         'auto_capture_denylist' => [],
         'auto_capture_ignored_channels' => [],

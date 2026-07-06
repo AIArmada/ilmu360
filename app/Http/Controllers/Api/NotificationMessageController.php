@@ -2,12 +2,13 @@
 
 namespace App\Http\Controllers\Api;
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Communications\Models\NotificationInbox;
 use App\Actions\Notifications\MarkAllNotificationMessagesReadAction;
 use App\Actions\Notifications\MarkNotificationMessageReadAction;
 use App\Data\Api\Notification\NotificationMessageData as NotificationMessagePayloadData;
 use App\Data\Api\Notification\NotificationReadAllResultData;
 use App\Http\Controllers\Controller;
-use App\Models\NotificationMessage;
 use App\Models\User;
 use App\Support\Api\ApiPagination;
 use App\Support\Notifications\NotificationCatalog;
@@ -19,6 +20,11 @@ use Illuminate\Http\Request;
 #[Group('Notification Inbox', 'Authenticated inbox endpoints for listing notification messages and marking them as read.')]
 class NotificationMessageController extends Controller
 {
+    public function __construct()
+    {
+        OwnerContext::setForRequest(null);
+    }
+
     #[Endpoint(
         title: 'List notification messages',
         description: 'Returns the authenticated user\'s inbox-visible notification messages with filtering and pagination support.',
@@ -30,8 +36,8 @@ class NotificationMessageController extends Controller
         $status = $request->string('status', 'unread')->toString();
         $perPage = ApiPagination::normalizePerPage($request->integer('per_page', 20), default: 20, max: 100);
 
-        $query = $user->notificationMessages()
-            ->visibleInInbox()
+        $query = $user->notificationInbox()
+            ->whereNull('archived_at')
             ->when($family !== 'all' && array_key_exists($family, NotificationCatalog::families()), fn ($builder) => $builder->where('family', $family))
             ->when($status === 'unread', fn ($builder) => $builder->whereNull('read_at'))
             ->when($status === 'read', fn ($builder) => $builder->whereNotNull('read_at'));
@@ -39,11 +45,11 @@ class NotificationMessageController extends Controller
         $notifications = $query->paginate($perPage);
         $unreadCount = $status === 'unread'
             ? $notifications->total()
-            : $user->notificationMessages()->visibleInInbox()->whereNull('read_at')->count();
+            : $user->notificationInbox()->whereNull('archived_at')->whereNull('read_at')->count();
 
         return response()->json([
             'data' => collect($notifications->items())
-                ->map(fn (NotificationMessage $message): array => NotificationMessagePayloadData::fromModel($message)->toArray())
+                ->map(fn (NotificationInbox $message): array => NotificationMessagePayloadData::fromModel($message)->toArray())
                 ->all(),
             'meta' => [
                 'unread_count' => $unreadCount,

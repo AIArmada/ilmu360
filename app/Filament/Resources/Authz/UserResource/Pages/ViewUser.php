@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Filament\Resources\Authz\UserResource\Pages;
 
 use AIArmada\FilamentAuthz\Facades\Authz;
+use AIArmada\FilamentEvents\Resources\EventResource;
 use App\Filament\Resources\Authz\UserResource;
-use App\Filament\Resources\Events\EventResource;
 use App\Filament\Resources\Institutions\InstitutionResource;
 use App\Filament\Resources\References\ReferenceResource;
 use App\Filament\Resources\Speakers\SpeakerResource;
@@ -119,9 +119,6 @@ class ViewUser extends ViewRecord
 
         $user->loadMissing([
             'roles',
-            'savedEvents' => fn ($query) => $query
-                ->with(['institution:id,name', 'venue:id,name'])
-                ->orderBy('event_saves.created_at', 'desc'),
             'goingEvents' => fn ($query) => $query
                 ->with(['institution:id,name', 'venue:id,name'])
                 ->orderBy('event_attendees.created_at', 'desc'),

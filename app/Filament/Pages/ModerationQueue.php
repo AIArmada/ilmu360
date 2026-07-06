@@ -2,7 +2,7 @@
 
 namespace App\Filament\Pages;
 
-use App\Filament\Resources\Events\EventResource;
+use AIArmada\FilamentEvents\Resources\EventResource;
 use App\Models\Event;
 use App\Services\ModerationService;
 use App\States\EventStatus\Approved;
@@ -223,15 +223,15 @@ class ModerationQueue extends Page implements HasTable
                     ->label('Event Date')
                     ->dateTime('M d, Y H:i')
                     ->sortable(),
-                TextColumn::make('latestModerationReview.reason_code')
+                TextColumn::make('latestModerationReview.reason')
                     ->label('Latest Reason')
                     ->formatStateUsing(fn (?string $state): string => filled($state) ? Str::title(str_replace('_', ' ', $state)) : '-')
                     ->placeholder('-')
                     ->toggleable(),
-                TextColumn::make('latestModerationReview.note')
+                TextColumn::make('latestModerationReview.notes')
                     ->label('Latest Moderation Note')
                     ->limit(80)
-                    ->tooltip(fn (Event $record): ?string => $record->latestModerationReview?->note)
+                    ->tooltip(fn (Event $record): ?string => $record->latestModerationReview?->notes)
                     ->placeholder('-')
                     ->wrap(),
                 TextColumn::make('created_at')

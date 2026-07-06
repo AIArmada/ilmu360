@@ -1,9 +1,11 @@
 <?php
 
-use App\Enums\NotificationFamily;
-use App\Enums\NotificationTrigger;
+use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Communications\Enums\NotificationFamily;
+use AIArmada\Communications\Enums\NotificationPriority;
+use AIArmada\Communications\Enums\NotificationTrigger;
+use AIArmada\Communications\Models\NotificationInbox;
 use App\Models\NotificationDestination;
-use App\Models\NotificationMessage;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
@@ -79,32 +81,43 @@ it('lists notifications and marks them as read through the api', function () {
     $user = User::factory()->create();
     Sanctum::actingAs($user);
 
-    $message = NotificationMessage::factory()->for($user, 'notifiable')->create([
-        'family' => NotificationFamily::EventUpdates->value,
+    $message = OwnerContext::withOwner(null, fn () => NotificationInbox::query()->create([
+        'recipient_type' => $user->getMorphClass(),
+        'recipient_id' => $user->getKey(),
+        'family' => NotificationFamily::EventUpdate->value,
         'trigger' => NotificationTrigger::EventCancelled->value,
-        'read_at' => null,
+        'priority' => NotificationPriority::Normal->value,
+        'title' => 'Cancelled event',
+        'body' => 'Cancelled body',
         'data' => [
-            'title' => 'Cancelled event',
-            'body' => 'Cancelled body',
             'channels_attempted' => ['in_app'],
             'meta' => ['inbox_visible' => true],
+            'action_url' => null,
+            'entity_type' => null,
+            'entity_id' => null,
         ],
-        'inbox_visible' => true,
-    ]);
-    NotificationMessage::factory()->for($user, 'notifiable')->create([
-        'family' => NotificationFamily::EventUpdates->value,
-        'trigger' => NotificationTrigger::EventCancelled->value,
         'read_at' => null,
+    ]));
+    OwnerContext::withOwner(null, fn () => NotificationInbox::query()->create([
+        'recipient_type' => $user->getMorphClass(),
+        'recipient_id' => $user->getKey(),
+        'family' => NotificationFamily::EventUpdate->value,
+        'trigger' => NotificationTrigger::EventCancelled->value,
+        'priority' => NotificationPriority::Normal->value,
+        'title' => 'Hidden email-only event',
+        'body' => 'Hidden body',
         'data' => [
-            'title' => 'Hidden email-only event',
-            'body' => 'Hidden body',
             'channels_attempted' => ['email'],
             'meta' => ['inbox_visible' => false],
+            'action_url' => null,
+            'entity_type' => null,
+            'entity_id' => null,
         ],
-        'inbox_visible' => false,
-    ]);
+        'read_at' => null,
+        'archived_at' => now(),
+    ]));
 
-    $this->getJson('/api/v1/notifications?family=event_updates&status=unread')
+    $this->getJson('/api/v1/notifications?family=event_update&status=unread')
         ->assertOk()
         ->assertJsonPath('meta.unread_count', 1)
         ->assertJsonPath('data.0.id', $message->id);

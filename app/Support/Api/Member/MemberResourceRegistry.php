@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Support\Api\Member;
 
+use AIArmada\FilamentEvents\Resources\EventResource as AhliEventResource;
 use App\Data\Api\Event\EventPayloadData;
-use App\Filament\Ahli\Resources\Events\EventResource as AhliEventResource;
 use App\Filament\Ahli\Resources\Institutions\InstitutionResource as AhliInstitutionResource;
 use App\Filament\Ahli\Resources\References\ReferenceResource as AhliReferenceResource;
 use App\Filament\Ahli\Resources\Speakers\SpeakerResource as AhliSpeakerResource;

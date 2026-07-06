@@ -52,7 +52,7 @@
             </span>
         @endif
 
-        @if($event->settings?->registration_required)
+        @if($event->accessPolicy?->registration_required)
             <span
                 class="inline-flex items-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-400/15 px-3 py-1 text-xs font-bold tracking-wide text-amber-300 backdrop-blur-md">
                 <svg class="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">

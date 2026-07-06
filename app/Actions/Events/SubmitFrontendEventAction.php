@@ -2,9 +2,9 @@
 
 namespace App\Actions\Events;
 
-use AIArmada\Events\Enums\RegistrationMode;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
+use AIArmada\Events\Enums\RegistrationMode;
 use App\Enums\DawahShareOutcomeType;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
@@ -215,13 +215,20 @@ class SubmitFrontendEventAction
             $persistRelationships($event);
         }
 
+        $submissionData = [
+            'submitter_name' => $validated['submitter_name'] ?? $submitter?->name,
+        ];
+        if (isset($validated['notes'])) {
+            $submissionData['notes'] = $validated['notes'];
+        }
+
         $submission = EventSubmission::query()->create([
             'event_id' => $event->getKey(),
             'status' => 'pending',
             'submitted_at' => now(),
-            'submitter_name' => $validated['submitter_name'] ?? $submitter?->name,
-            'submitted_by' => $submitter?->getKey(),
-            'notes' => $validated['notes'] ?? null,
+            'submission_data' => $submissionData,
+            'submitter_type' => $submitter !== null ? User::class : null,
+            'submitter_id' => $submitter?->getKey(),
         ]);
 
         $this->shareTrackingService->recordOutcome(
@@ -232,7 +239,7 @@ class SubmitFrontendEventAction
             request: $request,
             metadata: [
                 'submission_id' => $submission->getKey(),
-                'submitted_by' => $submission->submitted_by,
+                'submitted_by' => $submission->submitter_id,
             ],
         );
 

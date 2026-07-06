@@ -43,15 +43,15 @@ class MembershipClaimInfolist
                                                     ->state(fn (MembershipClaim $record): string => MembershipClaimPresenter::subjectTitle($record))
                                                     ->url(fn (MembershipClaim $record): ?string => MembershipClaimPresenter::subjectAdminUrl($record))
                                                     ->openUrlInNewTab(),
-                                                TextEntry::make('granted_role_slug')
+                                                TextEntry::make('granted_role')
                                                     ->label('Granted Role')
                                                     ->state(fn (MembershipClaim $record): string => MembershipClaimPresenter::roleLabel($record))
                                                     ->placeholder('-'),
-                                                TextEntry::make('claimant.name')
-                                                    ->label('Claimant')
+                                                TextEntry::make('applicant.name')
+                                                    ->label('Applicant')
                                                     ->placeholder('-'),
-                                                TextEntry::make('claimant.email')
-                                                    ->label('Claimant Email')
+                                                TextEntry::make('applicant.email')
+                                                    ->label('Applicant Email')
                                                     ->placeholder('-'),
                                                 TextEntry::make('reviewer.name')
                                                     ->label('Reviewer')

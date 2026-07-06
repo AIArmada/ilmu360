@@ -1,11 +1,11 @@
 <?php
 
+use AIArmada\FilamentEvents\Resources\EventResource;
+use AIArmada\FilamentEvents\Resources\VenueResource;
 use App\Filament\Resources\AiModelPricings\AiModelPricingResource;
 use App\Filament\Resources\AiUsageLogs\AiUsageLogResource;
 use App\Filament\Resources\ContributionRequests\ContributionRequestResource;
 use App\Filament\Resources\DonationChannels\DonationChannelResource;
-use App\Filament\Resources\Events\EventResource;
-use App\Filament\Resources\Events\RelationManagers\MemberInvitationsRelationManager as EventMemberInvitationsRelationManager;
 use App\Filament\Resources\Inspirations\InspirationResource;
 use App\Filament\Resources\Institutions\InstitutionResource;
 use App\Filament\Resources\Institutions\RelationManagers\DonationChannelsRelationManager as InstitutionDonationChannelsRelationManager;
@@ -24,7 +24,6 @@ use App\Filament\Resources\Speakers\RelationManagers\FollowersRelationManager as
 use App\Filament\Resources\Speakers\RelationManagers\MemberInvitationsRelationManager as SpeakerMemberInvitationsRelationManager;
 use App\Filament\Resources\Speakers\SpeakerResource;
 use App\Filament\Resources\Tags\TagResource;
-use App\Filament\Resources\Venues\VenueResource;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
@@ -62,7 +61,6 @@ it('allows super admin to access all core admin resource index pages', function 
 });
 
 it('registers expected relation managers on core admin resources', function () {
-    expect(EventResource::getRelations())->toContain(EventMemberInvitationsRelationManager::class);
     expect(SeriesResource::getRelations())->toContain(SeriesEventsRelationManager::class);
     expect(SpeakerResource::getRelations())->toContain(SpeakerEventsRelationManager::class);
     expect(SpeakerResource::getRelations())->toContain(SpeakerFollowersRelationManager::class);

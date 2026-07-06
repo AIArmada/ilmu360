@@ -809,7 +809,7 @@
                 </button>
 
                 @can('update', $event)
-                    <a href="{{ \App\Filament\Resources\Events\EventResource::getUrl('edit', ['record' => $event]) }}"
+                    <a href="{{ \AIArmada\FilamentEvents\Resources\EventResource::getUrl('edit', ['record' => $event]) }}"
                         target="_blank" rel="noopener noreferrer"
                         class="inline-flex items-center gap-2 rounded-2xl border-2 border-amber-200 bg-amber-50 px-5 py-3 text-sm font-bold text-amber-700 transition-all hover:bg-amber-100">
                         <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -2006,10 +2006,10 @@
 
             {{-- Attendance Status --}}
             @php
-                $regRequired = $event->settings?->registration_required ?? false;
-                $regOpensAt = $event->settings?->registration_opens_at;
-                $regClosesAt = $event->settings?->registration_closes_at;
-                $regCapacity = $event->settings?->capacity;
+                $regRequired = $event->accessPolicy?->registration_required ?? false;
+                $regOpensAt = $event->accessPolicy?->opens_at;
+                $regClosesAt = $event->accessPolicy?->closes_at;
+                $regCapacity = $event->accessPolicy?->capacity;
                 $spotsTaken = (int) $event->registrations_count;
                 $capacityRatio = $regCapacity
                     ? min(100, (int) round(($spotsTaken / max(1, (int) $regCapacity)) * 100))
@@ -2075,11 +2075,11 @@
 
             {{-- Registration CTA --}}
             <div class="border-t border-slate-100/80 bg-slate-50/50 p-6">
-                @if($event->settings?->registration_required)
+                @if($event->accessPolicy?->registration_required)
                     @php
-                        $regOpen = !$event->settings?->registration_opens_at || $event->settings->registration_opens_at <= now();
-                        $regClosed = $event->settings?->registration_closes_at && $event->settings->registration_closes_at < now();
-                        $atCapacity = $registrationMode === \App\Enums\RegistrationMode::Event && $event->settings?->capacity && $event->registrations_count >= $event->settings->capacity;
+                        $regOpen = !$event->accessPolicy?->opens_at || $event->accessPolicy->opens_at <= now();
+                        $regClosed = $event->accessPolicy?->closes_at && $event->accessPolicy->closes_at < now();
+                        $atCapacity = $registrationMode === \App\Enums\RegistrationMode::Event && $event->accessPolicy?->capacity && $event->registrations_count >= $event->accessPolicy->capacity;
                     @endphp
 
                     @if($eventActionsDisabled)
@@ -2101,7 +2101,7 @@
                         <button disabled
                             class="flex w-full items-center justify-center rounded-2xl bg-slate-200 px-6 py-4 text-sm font-bold text-slate-600 cursor-not-allowed">
                             {{ __('Opens') }}
-                            {{ \App\Support\Timezone\UserDateTimeFormatter::format($event->settings->registration_opens_at, 'M d, h:i A') }}
+                            {{ \App\Support\Timezone\UserDateTimeFormatter::format($event->accessPolicy->opens_at, 'M d, h:i A') }}
                         </button>
                     @else
                         <a href="#register" @click.prevent="registerOpen = true"
@@ -2123,9 +2123,9 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
                                 </svg>
                             </span>
-                            @if($registrationMode === \App\Enums\RegistrationMode::Event && $event->settings?->capacity)
+                            @if($registrationMode === \App\Enums\RegistrationMode::Event && $event->accessPolicy?->capacity)
                                 <span
-                                    class="relative ml-2 text-xs opacity-80">({{ $event->settings->capacity - $event->registrations_count }}
+                                    class="relative ml-2 text-xs opacity-80">({{ $event->accessPolicy->capacity - $event->registrations_count }}
                                     {{ __('spots left') }})</span>
                             @endif
                         </a>
@@ -2491,7 +2491,7 @@ SHARE MODAL
 {{-- ==============================
 REGISTRATION MODAL
 ============================== --}}
-@if($event->settings?->registration_required && !$eventActionsDisabled)
+@if($event->accessPolicy?->registration_required && !$eventActionsDisabled)
     <div x-show="registerOpen" x-cloak x-transition.opacity
         class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm">
         <div @click.away="registerOpen = false" x-show="registerOpen" x-transition:enter="transition ease-out duration-300"

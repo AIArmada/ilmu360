@@ -13,9 +13,7 @@ new class extends Component
         $now = now();
 
         return Event::active()
-            ->where('starts_at', '>=', $now)
-            ->where('starts_at', '<=', $now->copy()->addDays(7))
-            ->orderByDesc('is_featured')
+            ->whereBetween('starts_at', [$now, $now->copy()->addDays(7)])
             ->orderByDesc('going_count')
             ->orderByDesc('saves_count')
             ->orderByDesc('views_count')

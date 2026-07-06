@@ -27,8 +27,8 @@ it('allows logged in users to self check in for open events within check-in wind
 
     expect(EventCheckin::query()
         ->where('event_id', $event->id)
-        ->where('user_id', $user->id)
-        ->where('method', 'self_reported')
+        ->where('attendee_id', $user->id)
+        ->where('check_in_source', 'self_reported')
         ->count())->toBe(1);
 });
 
@@ -56,7 +56,7 @@ it('requires registration before check-in when event requires registration', fun
         ->call('checkIn')
         ->assertSet('isCheckedIn', false);
 
-    expect(EventCheckin::query()->where('event_id', $event->id)->where('user_id', $user->id)->exists())->toBeFalse();
+    expect(EventCheckin::query()->where('event_id', $event->id)->where('attendee_id', $user->id)->exists())->toBeFalse();
 });
 
 it('allows check-in for registered users when event requires registration', function () {
@@ -92,7 +92,7 @@ it('allows check-in for registered users when event requires registration', func
 
     $checkin = EventCheckin::query()
         ->where('event_id', $event->id)
-        ->where('user_id', $user->id)
+        ->where('attendee_id', $user->id)
         ->latest('checked_in_at')
         ->first();
 
@@ -139,6 +139,6 @@ it('prevents duplicate check-ins for the same event and user', function () {
 
     expect(EventCheckin::query()
         ->where('event_id', $event->id)
-        ->where('user_id', $user->id)
+        ->where('attendee_id', $user->id)
         ->count())->toBe(1);
 });

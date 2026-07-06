@@ -11,6 +11,7 @@ return new class extends Migration
         Schema::create('speakers', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->string('name');
+            $table->string('searchable_name', 512)->default('')->index();
             $table->string('gender')->nullable()->default('male'); // male, female
             $table->jsonb('honorific')->nullable(); // Multiple honorifics: ["dr", "prof", "ustaz"]
             $table->jsonb('pre_nominal')->nullable(); // Multiple pre-nominals: ["tun", "datuk_seri"]
@@ -44,10 +45,18 @@ return new class extends Migration
             // Sitemap generation: ORDER BY updated_at DESC
             $table->index('updated_at', 'speakers_sitemap');
         });
+
+        Schema::create('speaker_search_terms', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->foreignUuid('speaker_id')->index();
+            $table->string('term', 120)->index();
+            $table->index(['speaker_id', 'term']);
+        });
     }
 
     public function down(): void
     {
         Schema::dropIfExists('speakers');
+        Schema::dropIfExists('speaker_search_terms');
     }
 };

@@ -2,6 +2,7 @@
 
 namespace App\States\EventStatus\Transitions;
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Models\Event;
 use App\Models\ModerationReview;
 use App\Models\User;
@@ -41,14 +42,15 @@ class RejectEvent extends Transition implements HasColor, HasIcon, HasLabel
         }
 
         return DB::transaction(function () use ($moderator, $reasonCode) {
-            // Create review record
-            $review = ModerationReview::create([
-                'event_id' => $this->event->id,
-                'moderator_id' => $moderator->id,
-                'decision' => 'rejected',
-                'reason_code' => $reasonCode,
-                'note' => $this->note,
-            ]);
+            $review = OwnerContext::withOwner(null, fn () => ModerationReview::create([
+                'actionable_type' => Event::class,
+                'actionable_id' => $this->event->id,
+                'actioned_by_type' => User::class,
+                'actioned_by_id' => $moderator->id,
+                'type' => 'rejected',
+                'reason' => $reasonCode,
+                'notes' => $this->note,
+            ]));
 
             // Update status
             $this->event->status = Rejected::class;
@@ -58,7 +60,7 @@ class RejectEvent extends Transition implements HasColor, HasIcon, HasLabel
             $this->event->unsearchable();
 
             // Notify submitter
-            app(EventNotificationService::class)->notifySubmissionRejected($this->event, $review->note);
+            app(EventNotificationService::class)->notifySubmissionRejected($this->event, $review->notes);
 
             Log::info('Event rejected', [
                 'event_id' => $this->event->id,

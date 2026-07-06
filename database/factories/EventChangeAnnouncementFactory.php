@@ -4,18 +4,18 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
+use AIArmada\Events\Database\Factories\EventUpdateFactory;
 use App\Enums\EventChangeSeverity;
 use App\Enums\EventChangeStatus;
 use App\Enums\EventChangeType;
 use App\Models\Event;
 use App\Models\EventChangeAnnouncement;
 use App\Models\User;
-use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
  * @extends Factory<EventChangeAnnouncement>
  */
-class EventChangeAnnouncementFactory extends Factory
+class EventChangeAnnouncementFactory extends EventUpdateFactory
 {
     protected $model = EventChangeAnnouncement::class;
 

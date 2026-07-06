@@ -64,7 +64,7 @@ final class SubmitterContactPresenter
         }
 
         return [
-            'name' => self::filledString($submission->submitter_name),
+            'name' => self::filledString($submission->submission_data['submitter_name'] ?? null),
             'email' => self::submissionContactValue($submission, ContactMethodType::Email),
             'phone' => self::submissionContactValue($submission, ContactMethodType::Phone)
                 ?? self::submissionContactValue($submission, ContactMethodType::Whatsapp),

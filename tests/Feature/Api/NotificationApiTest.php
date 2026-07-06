@@ -1,10 +1,11 @@
 <?php
 
-use App\Enums\NotificationFamily;
-use App\Enums\NotificationPriority;
-use App\Enums\NotificationTrigger;
+use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Communications\Enums\NotificationFamily;
+use AIArmada\Communications\Enums\NotificationPriority;
+use AIArmada\Communications\Enums\NotificationTrigger;
+use AIArmada\Communications\Models\NotificationInbox;
 use App\Models\NotificationDestination;
-use App\Models\NotificationMessage;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
@@ -92,34 +93,36 @@ it('updates an existing push destination through the api', function () {
 it('lists serialized notification messages for the current user', function () {
     $user = User::factory()->create();
 
-    NotificationMessage::factory()->for($user, 'notifiable')->create([
-        'family' => NotificationFamily::EventUpdates->value,
-        'trigger' => NotificationTrigger::EventScheduleChanged->value,
-        'priority' => NotificationPriority::Medium->value,
+    OwnerContext::withOwner(null, fn () => NotificationInbox::query()->create([
+        'recipient_type' => $user->getMorphClass(),
+        'recipient_id' => $user->getKey(),
+        'family' => NotificationFamily::EventUpdate->value,
+        'trigger' => NotificationTrigger::EventUpdated->value,
+        'priority' => NotificationPriority::Normal->value,
+        'title' => 'Schedule changed',
+        'body' => 'Event timing has changed.',
         'data' => [
-            'family' => NotificationFamily::EventUpdates->value,
-            'trigger' => NotificationTrigger::EventScheduleChanged->value,
-            'title' => 'Schedule changed',
-            'body' => 'Event timing has changed.',
             'action_url' => '/events/schedule-changed',
             'entity_type' => 'event',
             'entity_id' => 'event-123',
-            'priority' => NotificationPriority::Medium->value,
             'occurred_at' => now()->subHour()->toIso8601String(),
             'channels_attempted' => ['in_app', 'email'],
             'meta' => ['source' => 'system'],
         ],
-        'action_url' => '/events/schedule-changed',
-        'entity_type' => 'event',
-        'entity_id' => 'event-123',
         'read_at' => null,
-        'inbox_visible' => true,
-    ]);
+    ]));
 
-    NotificationMessage::factory()->for($user, 'notifiable')->create([
+    OwnerContext::withOwner(null, fn () => NotificationInbox::query()->create([
+        'recipient_type' => $user->getMorphClass(),
+        'recipient_id' => $user->getKey(),
+        'family' => NotificationFamily::EventUpdate->value,
+        'priority' => NotificationPriority::Normal->value,
+        'trigger' => NotificationTrigger::EventUpdated->value,
+        'title' => 'Read notification',
+        'body' => 'Already read.',
+        'data' => ['action_url' => null, 'entity_type' => null, 'entity_id' => null],
         'read_at' => now(),
-        'inbox_visible' => false,
-    ]);
+    ]));
 
     Sanctum::actingAs($user);
 
@@ -128,14 +131,14 @@ it('lists serialized notification messages for the current user', function () {
     $response->assertOk()
         ->assertJsonPath('meta.unread_count', 1)
         ->assertJsonPath('meta.pagination.total', 1)
-        ->assertJsonPath('data.0.family', NotificationFamily::EventUpdates->value)
-        ->assertJsonPath('data.0.trigger', NotificationTrigger::EventScheduleChanged->value)
+        ->assertJsonPath('data.0.family', NotificationFamily::EventUpdate->value)
+        ->assertJsonPath('data.0.trigger', NotificationTrigger::EventUpdated->value)
         ->assertJsonPath('data.0.title', 'Schedule changed')
         ->assertJsonPath('data.0.body', 'Event timing has changed.')
         ->assertJsonPath('data.0.action_url', '/events/schedule-changed')
         ->assertJsonPath('data.0.entity_type', 'event')
         ->assertJsonPath('data.0.entity_id', 'event-123')
-        ->assertJsonPath('data.0.priority', NotificationPriority::Medium->value)
+        ->assertJsonPath('data.0.priority', NotificationPriority::Normal->value)
         ->assertJsonPath('data.0.read_at', null)
         ->assertJsonPath('data.0.channels_attempted.0', 'in_app')
         ->assertJsonPath('data.0.channels_attempted.1', 'email')
@@ -144,9 +147,17 @@ it('lists serialized notification messages for the current user', function () {
 
 it('marks a notification as read through the api', function () {
     $user = User::factory()->create();
-    $message = NotificationMessage::factory()->for($user, 'notifiable')->create([
+    $message = OwnerContext::withOwner(null, fn () => NotificationInbox::query()->create([
+        'recipient_type' => $user->getMorphClass(),
+        'recipient_id' => $user->getKey(),
+        'family' => NotificationFamily::EventUpdate->value,
+        'priority' => NotificationPriority::Normal->value,
+        'trigger' => NotificationTrigger::EventUpdated->value,
+        'title' => 'Schedule changed',
+        'body' => 'The event schedule has changed.',
+        'data' => ['action_url' => null, 'entity_type' => null, 'entity_id' => null],
         'read_at' => null,
-    ]);
+    ]));
 
     Sanctum::actingAs($user);
 
@@ -163,15 +174,41 @@ it('marks a notification as read through the api', function () {
 it('marks all unread notifications as read through the api', function () {
     $user = User::factory()->create();
 
-    NotificationMessage::factory()->count(2)->for($user, 'notifiable')->create([
+    OwnerContext::withOwner(null, fn () => NotificationInbox::query()->create([
+        'recipient_type' => $user->getMorphClass(),
+        'recipient_id' => $user->getKey(),
+        'family' => NotificationFamily::EventUpdate->value,
+        'priority' => NotificationPriority::Normal->value,
+        'trigger' => NotificationTrigger::EventUpdated->value,
+        'title' => 'Unread 1',
+        'body' => 'First unread notification.',
+        'data' => ['action_url' => null, 'entity_type' => null, 'entity_id' => null],
         'read_at' => null,
-        'inbox_visible' => true,
-    ]);
+    ]));
 
-    NotificationMessage::factory()->for($user, 'notifiable')->create([
+    OwnerContext::withOwner(null, fn () => NotificationInbox::query()->create([
+        'recipient_type' => $user->getMorphClass(),
+        'recipient_id' => $user->getKey(),
+        'family' => NotificationFamily::EventUpdate->value,
+        'priority' => NotificationPriority::Normal->value,
+        'trigger' => NotificationTrigger::EventUpdated->value,
+        'title' => 'Unread 2',
+        'body' => 'Second unread notification.',
+        'data' => ['action_url' => null, 'entity_type' => null, 'entity_id' => null],
+        'read_at' => null,
+    ]));
+
+    OwnerContext::withOwner(null, fn () => NotificationInbox::query()->create([
+        'recipient_type' => $user->getMorphClass(),
+        'recipient_id' => $user->getKey(),
+        'family' => NotificationFamily::EventUpdate->value,
+        'priority' => NotificationPriority::Normal->value,
+        'trigger' => NotificationTrigger::EventUpdated->value,
+        'title' => 'Read notification',
+        'body' => 'Already read.',
+        'data' => ['action_url' => null, 'entity_type' => null, 'entity_id' => null],
         'read_at' => now(),
-        'inbox_visible' => true,
-    ]);
+    ]));
 
     Sanctum::actingAs($user);
 
@@ -181,8 +218,11 @@ it('marks all unread notifications as read through the api', function () {
         ->assertJsonPath('message', __('notifications.api.read_all_success'))
         ->assertJsonPath('data.updated_count', 2);
 
-    expect(NotificationMessage::query()
-        ->where('notifiable_id', $user->id)
+    $unreadCount = OwnerContext::withOwner(null, fn () => NotificationInbox::query()
+        ->where('recipient_type', $user->getMorphClass())
+        ->where('recipient_id', $user->getKey())
         ->whereNull('read_at')
-        ->count())->toBe(0);
+        ->count());
+
+    expect($unreadCount)->toBe(0);
 });

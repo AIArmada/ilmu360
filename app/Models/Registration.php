@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use AIArmada\Contacting\Data\ContactMethodData;
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Contacting\Data\ContactMethodData;
 use AIArmada\Events\Models\EventRegistration as PackageEventRegistration;
 use AIArmada\Events\Models\EventRegistrationParticipant;
 use App\Models\Concerns\AuditsModelChanges;
@@ -57,6 +57,12 @@ class Registration extends PackageEventRegistration implements AuditableContract
     ];
 
     #[\Override]
+    protected static function eventModelClass(): string
+    {
+        return Event::class;
+    }
+
+    #[\Override]
     protected static function booted(): void
     {
         parent::booted();
@@ -94,7 +100,7 @@ class Registration extends PackageEventRegistration implements AuditableContract
      */
     public function checkins(): HasMany
     {
-        return $this->hasMany(EventCheckin::class, 'registration_id');
+        return $this->hasMany(EventCheckin::class, 'event_registration_id');
     }
 
     /**
@@ -431,11 +437,5 @@ class Registration extends PackageEventRegistration implements AuditableContract
     private static function userMorphClass(): string
     {
         return (new User)->getMorphClass();
-    }
-
-    #[\Override]
-    protected static function eventModelClass(): string
-    {
-        return Event::class;
     }
 }

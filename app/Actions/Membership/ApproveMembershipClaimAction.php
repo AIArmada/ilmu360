@@ -2,7 +2,7 @@
 
 namespace App\Actions\Membership;
 
-use App\Enums\MembershipClaimStatus;
+use AIArmada\Membership\Enums\ApplicationStatus;
 use App\Enums\MemberSubjectType;
 use App\Models\MembershipClaim;
 use App\Models\User;
@@ -29,7 +29,7 @@ class ApproveMembershipClaimAction
         $subjectType = $claim->subject_type instanceof MemberSubjectType
             ? $claim->subject_type
             : MemberSubjectType::from((string) $claim->subject_type);
-        $claimant = $claim->claimant;
+        $claimant = $claim->applicant;
 
         if (! $subjectType->isClaimable()) {
             throw new RuntimeException('membership_claim_out_of_scope');
@@ -48,8 +48,8 @@ class ApproveMembershipClaimAction
         $this->changeSubjectMemberRole->handle($subjectType, $claimant, $grantedRoleSlug, allowProtectedRoleChange: true);
 
         $claim->forceFill([
-            'status' => MembershipClaimStatus::Approved,
-            'granted_role_slug' => $grantedRoleSlug,
+            'status' => ApplicationStatus::Approved,
+            'granted_role' => $grantedRoleSlug,
             'reviewer_id' => $reviewer->getKey(),
             'reviewed_at' => now(),
             'reviewer_note' => filled($reviewerNote) ? trim($reviewerNote) : null,

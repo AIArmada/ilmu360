@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
@@ -204,14 +205,13 @@ class AdvancedEventSeeder extends Seeder
         $endsAt ??= $startsAt->copy()->addHours(2);
 
         $event = Event::query()->create([
+            'id' => (string) Str::uuid(),
             'user_id' => null,
             'submitter_id' => null,
             'parent_event_id' => $parentEvent?->id,
             'event_structure' => $eventStructure->value,
             'institution_id' => $institution?->id,
             'venue_id' => null,
-            'organizer_type' => $institution instanceof Institution ? Institution::class : null,
-            'organizer_id' => $institution?->id,
             'title' => $title,
             'slug' => Str::slug($title).'-'.Str::lower(Str::random(6)),
             'description' => $description,
@@ -236,20 +236,26 @@ class AdvancedEventSeeder extends Seeder
             'prayer_display_text' => null,
         ]);
 
-        if ($speakerIds !== []) {
-            $selected = array_slice($speakerIds, 0, random_int(1, min(3, count($speakerIds))));
-            $otherKeyPeople = [];
-
-            if (count($selected) > 1) {
-                $otherKeyPeople[] = [
-                    'role' => EventKeyPersonRole::Moderator->value,
-                    'speaker_id' => $selected[0],
-                    'is_public' => true,
-                ];
+        OwnerContext::withOwner(null, function () use ($event, $institution, $speakerIds): void {
+            if ($institution instanceof Institution) {
+                $event->setPrimaryOrganizer($institution);
             }
 
-            app(EventKeyPersonSyncService::class)->sync($event, $selected, $otherKeyPeople);
-        }
+            if ($speakerIds !== []) {
+                $selected = array_slice($speakerIds, 0, random_int(1, min(3, count($speakerIds))));
+                $otherKeyPeople = [];
+
+                if (count($selected) > 1) {
+                    $otherKeyPeople[] = [
+                        'role' => EventKeyPersonRole::Moderator->value,
+                        'speaker_id' => $selected[0],
+                        'is_public' => true,
+                    ];
+                }
+
+                app(EventKeyPersonSyncService::class)->sync($event, $selected, $otherKeyPeople);
+            }
+        });
 
         return $event;
     }

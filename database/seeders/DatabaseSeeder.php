@@ -7,6 +7,7 @@ use App\Models\Institution;
 use App\Models\Speaker;
 use App\Models\User;
 use App\Models\Venue;
+use Database\Seeders\AIArmada\FoundationSeeder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Seeder;
 
@@ -51,6 +52,10 @@ class DatabaseSeeder extends Seeder
             ScopedMemberRolesSeeder::class,
             TagSeeder::class,
             LanguageSeeder::class,
+
+            // AIArmada foundation data (EventRole, EventTaxonomy)
+            FoundationSeeder::class,
+
             UserSeeder::class,
         ]);
 

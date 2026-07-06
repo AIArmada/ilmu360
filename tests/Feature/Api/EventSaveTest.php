@@ -1,5 +1,6 @@
 <?php
 
+use AIArmada\Engagement\Contracts\EngagementManager;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Speaker;
@@ -28,9 +29,12 @@ test('authenticated user can save an event', function () {
         ->assertJsonPath('data.saves_count', 1)
         ->assertJsonPath('meta.request_id', fn (string $requestId) => filled($requestId));
 
-    $this->assertDatabaseHas('event_saves', [
-        'user_id' => $this->user->id,
-        'event_id' => $this->event->id,
+    $this->assertDatabaseHas('engagement_bookmarks', [
+        'bookmarker_type' => $this->user->getMorphClass(),
+        'bookmarker_id' => $this->user->id,
+        'bookmarkable_type' => $this->event->getMorphClass(),
+        'bookmarkable_id' => $this->event->id,
+        'status' => 'active',
     ]);
 });
 
@@ -95,9 +99,12 @@ test('authenticated user can unsave an event', function () {
         ->assertJsonPath('data.saves_count', 0)
         ->assertJsonPath('meta.request_id', fn (string $requestId) => filled($requestId));
 
-    $this->assertDatabaseMissing('event_saves', [
-        'user_id' => $this->user->id,
-        'event_id' => $this->event->id,
+    $this->assertDatabaseMissing('engagement_bookmarks', [
+        'bookmarker_type' => $this->user->getMorphClass(),
+        'bookmarker_id' => $this->user->id,
+        'bookmarkable_type' => $this->event->getMorphClass(),
+        'bookmarkable_id' => $this->event->id,
+        'status' => 'active',
     ]);
 });
 
@@ -185,9 +192,9 @@ test('saved events index still includes cancelled events', function () {
 
     $savedEvent->speakers()->attach($speaker->id);
 
-    $this->user->savedEvents()->attach($savedEvent->id);
-    $this->user->savedEvents()->attach($cancelledEvent->id);
-    $this->user->savedEvents()->attach($inactiveEvent->id);
+    app(EngagementManager::class)->bookmark($this->user, $savedEvent);
+    app(EngagementManager::class)->bookmark($this->user, $cancelledEvent);
+    app(EngagementManager::class)->bookmark($this->user, $inactiveEvent);
 
     $response = $this->getJson(route('api.events.saved.index'));
 
@@ -207,9 +214,6 @@ test('saved events index still includes cancelled events', function () {
         ->assertJsonPath('data.0.speakers.0.id', $speaker->id)
         ->assertJsonPath('data.0.speakers.0.name', 'Speaker Saved')
         ->assertJsonPath('data.0.speakers.0.slug', $speaker->slug)
-        ->assertJsonPath('data.0.speakers.0.pivot.event_id', $savedEvent->id)
-        ->assertJsonPath('data.0.pivot.event_id', $savedEvent->id)
-        ->assertJsonPath('data.0.pivot.user_id', $this->user->id)
         ->assertJsonMissing(['id' => $inactiveEvent->id])
         ->assertJsonPath('meta.request_id', fn (string $requestId) => filled($requestId));
 });
@@ -222,7 +226,7 @@ test('saved events index clamps per_page values to the supported maximum', funct
         'visibility' => 'public',
         'starts_at' => now()->addDays(2),
     ])->each(function (Event $event): void {
-        $this->user->savedEvents()->attach($event->id);
+        app(EngagementManager::class)->bookmark($this->user, $event);
     });
 
     $this->getJson(route('api.events.saved.index', ['per_page' => 500]))
@@ -244,7 +248,7 @@ test('saved events index keeps missing institution and venue relations as null',
         'venue_id' => null,
     ]);
 
-    $this->user->savedEvents()->attach($event->id);
+    app(EngagementManager::class)->bookmark($this->user, $event);
 
     $this->getJson(route('api.events.saved.index'))
         ->assertOk()

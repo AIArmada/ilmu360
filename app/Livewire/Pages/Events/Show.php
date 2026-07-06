@@ -3,19 +3,19 @@
 namespace App\Livewire\Pages\Events;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Engagement\Contracts\EngagementManager;
+use AIArmada\Engagement\Models\Bookmark;
 use AIArmada\Events\Enums\RegistrationMode;
+use AIArmada\FilamentEvents\Resources\EventResource as AhliEventResource;
 use App\Actions\Events\MarkEventGoingAction;
 use App\Actions\Events\RecordEventCheckInAction;
 use App\Actions\Events\RemoveEventGoingAction;
 use App\Actions\Events\ResolveEventCheckInStateAction;
-use App\Actions\Events\SaveEventAction;
-use App\Actions\Events\UnsaveEventAction;
 use App\Enums\DawahShareOutcomeType;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventStructure;
 use App\Enums\EventVisibility;
 use App\Enums\ScheduleState;
-use App\Filament\Ahli\Resources\Events\EventResource as AhliEventResource;
 use App\Models\Event;
 use App\Models\EventChangeAnnouncement;
 use App\Models\EventCheckin;
@@ -480,7 +480,11 @@ class Show extends Component
 
         if ($this->{$stateProperty}) {
             $result = match ($relation) {
-                'savedEvents' => app(UnsaveEventAction::class)->handle((string) $this->event->getKey(), $user),
+                'savedEvents' => (function () use ($user): array {
+                    app(EngagementManager::class)->removeBookmark($user, $this->event);
+
+                    return ['saves_count' => app(Bookmark::class)::forBookmarkable($this->event)->active()->count()];
+                })(),
                 'goingEvents' => app(RemoveEventGoingAction::class)->handle((string) $this->event->getKey(), $user),
                 default => ['deleted' => false, $countColumn => max(0, (int) ($this->event->{$countColumn} ?? 0))],
             };
@@ -495,7 +499,11 @@ class Show extends Component
             $this->{$stateProperty} = false;
         } else {
             $result = match ($relation) {
-                'savedEvents' => app(SaveEventAction::class)->handle($this->event, $user, request()),
+                'savedEvents' => (function () use ($user): array {
+                    app(EngagementManager::class)->bookmark($user, $this->event);
+
+                    return ['saves_count' => app(Bookmark::class)::forBookmarkable($this->event)->active()->count()];
+                })(),
                 'goingEvents' => app(MarkEventGoingAction::class)->handle($this->event, $user, request()),
                 default => ['status' => 'conflict', $countColumn => (int) ($this->event->{$countColumn} ?? 0)],
             };
@@ -549,11 +557,11 @@ class Show extends Component
             return;
         }
 
-        $this->isSaved = $user->savedEvents()->whereKey($this->event->getKey())->exists();
+        $this->isSaved = Bookmark::forBookmarker($user)->forBookmarkable($this->event)->active()->exists();
         $this->isGoing = $user->goingEvents()->whereKey($this->event->getKey())->exists();
         $this->isCheckedIn = EventCheckin::query()
             ->where('event_id', $this->event->id)
-            ->where('user_id', $user->id)
+            ->where('attendee_id', $user->id)
             ->exists();
     }
 

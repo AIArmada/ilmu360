@@ -2,6 +2,7 @@
 
 namespace App\States\EventStatus\Transitions;
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Models\Event;
 use App\Models\ModerationReview;
 use App\Models\User;
@@ -38,12 +39,14 @@ class CancelEvent extends Transition implements HasColor, HasIcon, HasLabel
         $moderator = $this->moderator;
 
         return DB::transaction(function () use ($moderator): Event {
-            ModerationReview::create([
-                'event_id' => $this->event->id,
-                'moderator_id' => $moderator->id,
-                'decision' => 'cancelled',
-                'note' => $this->note,
-            ]);
+            OwnerContext::withOwner(null, fn () => ModerationReview::create([
+                'actionable_type' => Event::class,
+                'actionable_id' => $this->event->id,
+                'actioned_by_type' => User::class,
+                'actioned_by_id' => $moderator->id,
+                'type' => 'cancelled',
+                'notes' => $this->note,
+            ]));
 
             $this->event->status = Cancelled::class;
             $this->event->save();

@@ -21,11 +21,11 @@ This rewrite removes legacy app-owned domain implementations when package-owned 
 | Tags/taxonomy | `events` taxonomies, terms, classifications | Islamic taxonomy seed labels | Spatie tag app model/resource if fully replaced | 5 |
 | References | `references`, `events` event references | Public reference pages | `App\Models\Reference`, app slug action after package parity | 5 |
 | Registrations, RSVP, ticketing, attendance, check-in | `events`, `engagement`, and commerce packages where paid orders are required | App-specific public CTA layout, attendee-facing wording, and check-in surfaces | App registration/check-in/event-user tables/actions | 5, 7 |
-| Saved events/follows/bookmarks/reactions/shares/reminders | `engagement` | Frontend button UX and Signals events | App event saves/followings/share wrappers after replacement | 5 |
+| Saved events/follows/bookmarks/reactions/shares/reminders | `engagement` | Frontend button UX and Signals events | App event saves/follows wrappers are deleted; save and follow now go through package `EngagementManager`. | 5 |
 | Event submissions/contributions | `events` submissions, logs, approvals plus `moderation` | Entity mutation application and public submission UX | App contribution request models/actions after mapped | 5 |
 | Moderation reviews, blocks, reports | `moderation`, `events` moderation actions, possibly `feedback` | App report categories and Islamic safety workflow if generic package lacks it | App moderation review/report models after package parity | 5, 7 |
-| Membership claims and invitations | `membership`, `authz` | Public claim pages and dashboard panels | App membership claim/invitation/member models/actions | 4 |
-| Notifications and inbox | `communications`, `filament-communications` | FCM, WhatsApp, digest scheduling, app-specific notification copy | App notification message/rule/delivery/settings models/jobs | 6 |
+| Membership claims and invitations | `membership`, `authz` | Public claim pages and dashboard panels | `MembershipClaim` uses `membership_applications` table (package-owned). Claim approve/reject actions use package `ApplicationStatus` enum. | 4 |
+| Notifications and inbox | `communications`, `filament-communications` | FCM, WhatsApp, digest scheduling, app-specific notification copy | `NotificationMessage` model deleted, `notifications` table dropped. Inbox reads/writes through package `NotificationInbox`. Pipeline/engine still app-owned. | 6 |
 | Signals and analytics | `signals`, `filament-signals`, `growth` | Curated app event naming and privacy policy | App telemetry wrappers that duplicate package contracts | 3 |
 | Share attribution | `affiliates`, `engagement` shares | Dakwah zero-value outcome semantics if no generic conversion flow fits | App share tracking wrappers after generic mapping | 3, 5 |
 | Donation channels | None currently | Full app ownership | None | 8 |

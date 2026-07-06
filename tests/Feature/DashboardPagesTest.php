@@ -1,18 +1,21 @@
 <?php
 
 use AIArmada\CommerceSupport\Models\Role;
+use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Communications\Enums\NotificationFamily;
+use AIArmada\Communications\Models\NotificationInbox;
+use AIArmada\Engagement\Contracts\EngagementManager;
 use AIArmada\FilamentAuthz\Facades\Authz;
+use AIArmada\FilamentEvents\Resources\EventResource;
 use App\Enums\ContributionSubjectType;
 use App\Enums\EventStructure;
 use App\Enums\EventVisibility;
-use App\Filament\Ahli\Resources\Events\EventResource;
 use App\Livewire\Pages\Dashboard\InstitutionDashboard;
 use App\Livewire\Pages\Dashboard\UserDashboard;
 use App\Models\Event;
 use App\Models\EventCheckin;
 use App\Models\EventSubmission;
 use App\Models\Institution;
-use App\Models\NotificationMessage;
 use App\Models\Reference;
 use App\Models\Registration;
 use App\Models\SavedSearch;
@@ -126,7 +129,7 @@ it('renders the reference-inspired user dashboard with real saved search and not
         'status' => 'confirmed',
     ]);
 
-    $user->savedEvents()->attach($savedEvent->id);
+    app(EngagementManager::class)->bookmark($user, $savedEvent);
     $user->goingEvents()->attach($goingEvent->id);
 
     EventCheckin::factory()->for($checkedInEvent)->for($user)->create([
@@ -142,14 +145,21 @@ it('renders the reference-inspired user dashboard with real saved search and not
         'name' => 'Other User Search',
     ]);
 
-    NotificationMessage::factory()->for($user, 'notifiable')->create([
+    OwnerContext::withOwner(null, fn () => NotificationInbox::query()->create([
+        'recipient_type' => $user->getMorphClass(),
+        'recipient_id' => $user->getKey(),
+        'family' => NotificationFamily::EventUpdate->value,
+        'priority' => 'normal',
+        'trigger' => 'event_updated',
+        'title' => 'Reminder majlis akan datang',
+        'body' => 'Kuliah Maghrib bermula dalam 2 jam lagi.',
         'data' => [
-            'title' => 'Reminder majlis akan datang',
-            'body' => 'Kuliah Maghrib bermula dalam 2 jam lagi.',
+            'action_url' => route('events.show', $goingEvent),
+            'entity_type' => null,
+            'entity_id' => null,
         ],
-        'action_url' => route('events.show', $goingEvent),
-        'occurred_at' => now()->subHour(),
-    ]);
+        'read_at' => null,
+    ]));
 
     $response = $this->withSession(['locale' => 'en'])
         ->actingAs($user)
@@ -237,7 +247,7 @@ it('shows the redesigned followed-entity category cards on the dashboard', funct
         'author' => 'Menu Author',
     ]);
 
-    $user->savedEvents()->attach($savedEvent->id);
+    app(EngagementManager::class)->bookmark($user, $savedEvent);
     $user->goingEvents()->attach($goingEvent->id);
     $user->follow($speaker);
     $user->follow($reference);
@@ -620,7 +630,7 @@ it('merges overlapping planner relationships into one calendar entry', function 
         'starts_at' => now()->addDays(2),
     ]);
 
-    $user->savedEvents()->attach($event->id);
+    app(EngagementManager::class)->bookmark($user, $event);
     $user->goingEvents()->attach($event->id);
 
     Registration::factory()->for($event)->forRegistrant($user)->create([

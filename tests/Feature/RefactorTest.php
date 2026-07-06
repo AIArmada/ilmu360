@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Speaker;
@@ -18,10 +19,10 @@ class RefactorTest extends TestCase
         $this->assertFalse(Schema::hasColumn('events', 'speaker_id'), 'speaker_id should not exist in events table');
         $this->assertFalse(Schema::hasColumn('events', 'parent_event_id'));
         $this->assertFalse(Schema::hasColumn('events', 'event_structure'));
-        $this->assertTrue(Schema::hasTable('event_key_people'));
-        $this->assertTrue(Schema::hasTable('event_checkins'));
+        $this->assertTrue(Schema::hasTable('event_involvements'));
+        $this->assertTrue(Schema::hasTable('event_attendances'));
         $this->assertTrue(Schema::hasTable('contribution_requests'));
-        $this->assertTrue(Schema::hasTable('membership_claims'));
+        $this->assertFalse(Schema::hasTable('membership_claims'));
         $this->assertTrue(Schema::hasTable('reference_user'));
         $this->assertTrue(Schema::hasTable('membership_invitations'));
         $this->assertTrue(Schema::hasTable('notification_settings'));
@@ -35,8 +36,9 @@ class RefactorTest extends TestCase
         $this->assertFalse(Schema::hasTable('notification_endpoints'));
         $this->assertFalse(Schema::hasTable('event_interests'));
         $this->assertFalse(Schema::hasTable('dawah_share_links'));
-        $this->assertTrue(Schema::hasColumn('notifications', 'family'));
-        $this->assertTrue(Schema::hasColumn('notifications', 'inbox_visible'));
+        $this->assertFalse(Schema::hasTable('notifications'));
+        $this->assertTrue(Schema::hasColumn('notification_inboxes', 'family'));
+        $this->assertTrue(Schema::hasColumn('notification_inboxes', 'archived_at'));
         $this->assertTrue(Schema::hasColumn('notification_messages', 'delivery_cadence'));
         $this->assertTrue(Schema::hasColumn('notification_messages', 'processed_at'));
         $this->assertTrue(Schema::hasColumn('notification_messages', 'dispatched_at'));
@@ -68,28 +70,33 @@ class RefactorTest extends TestCase
 
     public function test_relationships()
     {
-        $speaker = Speaker::factory()->create();
-        $event = Event::factory()->create();
-        $institution = Institution::factory()->create();
+        OwnerContext::withOwner(null, function (): void {
+            $speaker = Speaker::factory()->create();
+            $event = Event::factory()->create();
+            $institution = Institution::factory()->create();
 
-        $event->speakers()->attach($speaker);
-        $institution->speakers()->attach($speaker);
+            $event->speakers()->attach($speaker);
+            $institution->speakers()->attach($speaker);
 
-        $this->assertTrue($event->speakers->contains($speaker));
-        $this->assertTrue($institution->speakers->contains($speaker));
-        $this->assertTrue($speaker->institutions->contains($institution));
+            $this->assertTrue($event->speakers->contains($speaker));
+            $this->assertTrue($institution->speakers->contains($speaker));
+            $this->assertTrue($speaker->institutions->contains($institution));
+        });
     }
 
     public function test_event_card_image_url_uses_speaker_fallback()
     {
-        $speaker = Speaker::factory()->create();
-        // Since we removed avatar_url column, we verify default behavior.
-        // We expect default placeholder if no media is attached.
+        $speaker = null;
+        $event = null;
 
-        $event = Event::factory()->create();
-        $event->speakers()->attach($speaker);
+        OwnerContext::withOwner(null, function () use (&$speaker, &$event): void {
+            $speaker = Speaker::factory()->create();
+            $event = Event::factory()->create();
 
-        $event->update(['institution_id' => null]);
+            $event->speakers()->attach($speaker);
+
+            $event->update(['institution_id' => null]);
+        });
 
         $this->assertEquals(asset('images/placeholders/event.png'), $event->card_image_url);
     }

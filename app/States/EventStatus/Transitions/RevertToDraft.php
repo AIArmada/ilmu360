@@ -2,6 +2,7 @@
 
 namespace App\States\EventStatus\Transitions;
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Models\Event;
 use App\Models\ModerationReview;
 use App\Models\User;
@@ -25,12 +26,14 @@ class RevertToDraft extends Transition implements HasColor, HasIcon, HasLabel
     public function handle(): Event
     {
         return DB::transaction(function () {
-            ModerationReview::create([
-                'event_id' => $this->event->id,
-                'moderator_id' => $this->moderator?->id,
-                'decision' => 'reverted_to_draft',
-                'note' => $this->note ?? 'Event reverted to draft.',
-            ]);
+            OwnerContext::withOwner(null, fn () => ModerationReview::create([
+                'actionable_type' => Event::class,
+                'actionable_id' => $this->event->id,
+                'actioned_by_type' => User::class,
+                'actioned_by_id' => $this->moderator?->id,
+                'type' => 'reverted_to_draft',
+                'notes' => $this->note ?? 'Event reverted to draft.',
+            ]));
 
             $this->event->status = Draft::class;
             $this->event->published_at = null;

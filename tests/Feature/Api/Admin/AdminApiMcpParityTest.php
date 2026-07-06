@@ -404,14 +404,14 @@ it('keeps admin api and admin mcp membership claim review workflows aligned', fu
     $apiClaim = MembershipClaim::factory()
         ->forInstitution($apiInstitution)
         ->create([
-            'claimant_id' => $apiClaimant->getKey(),
+            'applicant_id' => $apiClaimant->getKey(),
             'status' => 'pending',
         ]);
 
     $mcpClaim = MembershipClaim::factory()
         ->forInstitution($mcpInstitution)
         ->create([
-            'claimant_id' => $mcpClaimant->getKey(),
+            'applicant_id' => $mcpClaimant->getKey(),
             'status' => 'pending',
         ]);
 
@@ -430,7 +430,7 @@ it('keeps admin api and admin mcp membership claim review workflows aligned', fu
 
     $payload = [
         'action' => 'approve',
-        'granted_role_slug' => 'admin',
+        'granted_role' => 'admin',
         'reviewer_note' => 'Approved through the parity test.',
     ];
 
@@ -448,8 +448,8 @@ it('keeps admin api and admin mcp membership claim review workflows aligned', fu
     $mcpAction = adminMcpStructuredContent($mcpActionResponse)['data'] ?? [];
 
     expect(data_get($apiAction, 'resource.key'))->toBe(data_get($mcpAction, 'resource.key'))
-        ->and(paritySelectedAttributes(data_get($apiAction, 'record.attributes', []), ['status', 'granted_role_slug', 'reviewer_id', 'reviewer_note']))
-        ->toEqual(paritySelectedAttributes(data_get($mcpAction, 'record.attributes', []), ['status', 'granted_role_slug', 'reviewer_id', 'reviewer_note']))
+        ->and(paritySelectedAttributes(data_get($apiAction, 'record.attributes', []), ['status', 'granted_role', 'reviewer_id', 'reviewer_note']))
+        ->toEqual(paritySelectedAttributes(data_get($mcpAction, 'record.attributes', []), ['status', 'granted_role', 'reviewer_id', 'reviewer_note']))
         ->and($apiClaim->fresh()?->status?->value)->toBe($mcpClaim->fresh()?->status?->value)
         ->and($apiClaim->fresh()?->status?->value)->toBe('approved')
         ->and($apiInstitution->fresh()?->members()->whereKey($apiClaimant->getKey())->exists())->toBeTrue()

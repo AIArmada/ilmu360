@@ -18,7 +18,6 @@ use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use DateTimeInterface;
 use Illuminate\Auth\Access\AuthorizationException;
-use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -80,11 +79,13 @@ class PublishEventChangeAnnouncement
                 'status' => EventChangeStatus::Published,
                 'severity' => $severity,
                 'public_message' => $this->publicMessage($type, $publicMessage, $replacementEvent),
+                'title' => $this->publicMessage($type, $publicMessage, $replacementEvent),
                 'internal_note' => $internalNote,
                 'changed_fields' => $changedFields,
                 'before_snapshot' => $beforeSnapshot,
                 'after_snapshot' => $afterSnapshot,
                 'published_at' => now(),
+                'visibility' => 'public',
             ]);
 
             if ($event->shouldBeSearchable()) {
@@ -395,7 +396,11 @@ class PublishEventChangeAnnouncement
                 ])
                 ->values()
                 ->all(),
-            'links' => Arr::only($event->getAttributes(), ['event_url', 'live_url', 'recording_url']),
+            'links' => [
+                'event_url' => $event->event_url,
+                'live_url' => $event->live_url,
+                'recording_url' => $event->recording_url,
+            ],
         ];
     }
 

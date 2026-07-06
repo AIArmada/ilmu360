@@ -17,7 +17,7 @@ use App\Enums\EventType;
 use App\Enums\EventVisibility;
 use App\Enums\ReferenceType;
 use App\Enums\TagType;
-use App\Filament\Ahli\Resources\Events\EventResource;
+use AIArmada\FilamentEvents\Resources\EventResource;
 use App\Forms\Components\Select;
 use App\Forms\InstitutionFormSchema;
 use App\Forms\SharedFormSchema;
@@ -1736,7 +1736,7 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
             ->with([
                 'tags:id,type,status',
                 'references:id,title',
-                'languages:id',
+                'languages:id,code',
                 'speakers',
                 'keyPeople.speaker',
             ])

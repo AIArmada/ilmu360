@@ -6,6 +6,10 @@ use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\Addressable;
 use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressCountry;
+use AIArmada\Communications\Contracts\ConsentResolver;
+use AIArmada\Communications\Contracts\PreferenceResolver;
+use AIArmada\Communications\Contracts\QuietHoursResolver;
+use AIArmada\Communications\Contracts\SuppressionResolver;
 use AIArmada\Contacting\Models\ContactMethod;
 use AIArmada\Contacting\Models\SocialProfile;
 use AIArmada\Events\Models\EventRegistrationParticipant;
@@ -36,8 +40,8 @@ use App\Models\Speaker;
 use App\Models\Tag;
 use App\Models\User;
 use App\Models\Venue;
-use App\Observers\AddressAreaObserver;
 use App\Observers\AddressableObserver;
+use App\Observers\AddressAreaObserver;
 use App\Observers\AddressCountryObserver;
 use App\Observers\AddressObserver;
 use App\Observers\EventKeyPersonObserver;
@@ -50,6 +54,10 @@ use App\Observers\VenueObserver;
 use App\Policies\AddressAreaPolicy;
 use App\Policies\AddressCountryPolicy;
 use App\Policies\FilamentAuditPolicy;
+use App\Support\Communications\AppConsentResolver;
+use App\Support\Communications\AppPreferenceResolver;
+use App\Support\Communications\AppQuietHoursResolver;
+use App\Support\Communications\AppSuppressionResolver;
 use App\Support\Media\MediaFileNamer;
 use App\Support\Passport\PassportKeyProvisioner;
 use BezhanSalleh\LanguageSwitch\LanguageSwitch;
@@ -98,6 +106,26 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->singleton(PrettyPrinter::class, PrettyPrinter\Standard::class);
         $this->app->bind(McpOAuthRegisterController::class, OAuthRegisterController::class);
+
+        $this->app->bind(
+            QuietHoursResolver::class,
+            AppQuietHoursResolver::class,
+        );
+
+        $this->app->bind(
+            PreferenceResolver::class,
+            AppPreferenceResolver::class,
+        );
+
+        $this->app->bind(
+            ConsentResolver::class,
+            AppConsentResolver::class,
+        );
+
+        $this->app->bind(
+            SuppressionResolver::class,
+            AppSuppressionResolver::class,
+        );
 
         $filamentAuditingViews = base_path('vendor/tapp/filament-auditing/resources/views');
 
@@ -202,6 +230,7 @@ class AppServiceProvider extends ServiceProvider
 
         Relation::enforceMorphMap([
             'address' => Address::class,
+
             'ai_model_pricing' => AiModelPricing::class,
             'contact' => ContactMethod::class,
             'user' => User::class,

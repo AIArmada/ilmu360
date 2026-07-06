@@ -2,6 +2,7 @@
 
 namespace App\States\EventStatus\Transitions;
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\ModerationReview;
@@ -32,12 +33,15 @@ class ApproveEvent extends Transition implements HasColor, HasIcon, HasLabel
     {
         return DB::transaction(function () {
             // Create review record
-            ModerationReview::create([
-                'event_id' => $this->event->id,
-                'moderator_id' => $this->moderator?->id,
-                'decision' => 'approved',
-                'note' => $this->note,
-            ]);
+            OwnerContext::withOwner(null, fn () => ModerationReview::create([
+                'actionable_type' => Event::class,
+                'actionable_id' => $this->event->id,
+                'actioned_by_type' => User::class,
+                'actioned_by_id' => $this->moderator?->id,
+                'type' => 'approve',
+                'reason' => 'approved',
+                'notes' => $this->note,
+            ]));
 
             // Update event status
             $this->event->status = Approved::class;

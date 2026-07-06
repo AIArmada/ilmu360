@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
+use AIArmada\Membership\Enums\ApplicationStatus;
 use App\Actions\Membership\AddMemberToSubject;
 use App\Enums\ContributionRequestStatus;
 use App\Enums\ContributionRequestType;
 use App\Enums\ContributionSubjectType;
-use App\Enums\MembershipClaimStatus;
 use App\Enums\MemberSubjectType;
 use App\Mcp\Servers\MemberServer;
 use App\Mcp\Tools\Member\MemberApproveContributionRequestTool;
@@ -267,16 +267,16 @@ it('keeps member api and member mcp membership claim listings aligned', function
     MembershipClaim::factory()
         ->forInstitution($pendingClaimTarget)
         ->create([
-            'claimant_id' => $member->getKey(),
-            'status' => MembershipClaimStatus::Pending,
+            'applicant_id' => $member->getKey(),
+            'status' => ApplicationStatus::Pending,
             'justification' => 'Pending claim justification.',
         ]);
 
     MembershipClaim::factory()
         ->forInstitution($cancelledClaimTarget)
         ->create([
-            'claimant_id' => $member->getKey(),
-            'status' => MembershipClaimStatus::Cancelled,
+            'applicant_id' => $member->getKey(),
+            'status' => ApplicationStatus::Cancelled,
             'justification' => 'Cancelled claim justification.',
             'cancelled_at' => now(),
         ]);
@@ -355,16 +355,16 @@ it('keeps member api and member mcp membership claim actions aligned', function 
     $apiClaim = MembershipClaim::factory()
         ->forInstitution($apiCancelTarget)
         ->create([
-            'claimant_id' => $member->getKey(),
-            'status' => MembershipClaimStatus::Pending,
+            'applicant_id' => $member->getKey(),
+            'status' => ApplicationStatus::Pending,
             'justification' => 'Cancel claim justification.',
         ]);
 
     $mcpClaim = MembershipClaim::factory()
         ->forInstitution($mcpCancelTarget)
         ->create([
-            'claimant_id' => $member->getKey(),
-            'status' => MembershipClaimStatus::Pending,
+            'applicant_id' => $member->getKey(),
+            'status' => ApplicationStatus::Pending,
             'justification' => 'Cancel claim justification.',
         ]);
 
@@ -449,7 +449,7 @@ function memberParityMembershipClaimSnapshot(array $claim): array
         'status_label' => $claim['status_label'] ?? null,
         'role_label' => $claim['role_label'] ?? null,
         'justification' => $claim['justification'] ?? null,
-        'granted_role_slug' => memberParityNormalizeOptionalText($claim['granted_role_slug'] ?? null),
+        'granted_role' => memberParityNormalizeOptionalText($claim['granted_role'] ?? null),
         'reviewer_note' => memberParityNormalizeOptionalText($claim['reviewer_note'] ?? null),
         'can_cancel' => $claim['can_cancel'] ?? null,
         'reviewer' => $claim['reviewer'] ?? null,

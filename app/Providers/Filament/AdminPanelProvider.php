@@ -7,7 +7,11 @@ use AIArmada\FilamentAddressing\FilamentAddressingPlugin;
 use AIArmada\FilamentAuthz\FilamentAuthzPlugin;
 use AIArmada\FilamentContacting\FilamentContactingPlugin;
 use AIArmada\FilamentEngagement\FilamentEngagementPlugin;
+use AIArmada\FilamentEvents\FilamentEventsPlugin;
+use AIArmada\FilamentInventory\FilamentInventoryPlugin;
+use AIArmada\FilamentSeating\FilamentSeatingPlugin;
 use AIArmada\FilamentSignals\FilamentSignalsPlugin;
+use AIArmada\FilamentTicketing\FilamentTicketingPlugin;
 use App\Filament\Pages\AdminDashboard;
 use App\Providers\Filament\Concerns\ResolvesPanelDomain;
 use App\Providers\Filament\Concerns\TracksSignalsPanel;
@@ -80,6 +84,10 @@ class AdminPanelProvider extends PanelProvider
                 FilamentContactingPlugin::make(),
                 FilamentEngagementPlugin::make(),
                 FilamentCommunicationsPlugin::make(),
+                FilamentEventsPlugin::make(),
+                FilamentInventoryPlugin::make(),
+                FilamentSeatingPlugin::make(),
+                FilamentTicketingPlugin::make(),
             ])
             ->middleware([
                 EncryptCookies::class,

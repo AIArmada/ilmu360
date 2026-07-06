@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers\Api;
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Http\Controllers\Controller;
 use App\Models\Event;
 use App\Models\Registration;
 use App\Models\User;
-use AIArmada\CommerceSupport\Support\OwnerContext;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;

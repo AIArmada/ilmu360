@@ -2,8 +2,8 @@
 
 use App\Actions\Membership\AcceptSubjectMemberInvitation;
 use App\Actions\Membership\InviteSubjectMember;
-use App\Actions\Membership\RevokeSubjectMemberInvitation;
 use App\Actions\Membership\ResolveMemberInvitationByTokenAction;
+use App\Actions\Membership\RevokeSubjectMemberInvitation;
 use App\Enums\MemberSubjectType;
 use App\Models\Institution;
 use App\Models\MemberInvitation;
@@ -11,9 +11,9 @@ use App\Models\User;
 use App\Notifications\Membership\MemberInvitationNotification;
 use App\Support\Authz\MemberRoleCatalog;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Spatie\Permission\PermissionRegistrar;
-use Illuminate\Support\Str;
 
 beforeEach(function (): void {
     app(PermissionRegistrar::class)->forgetCachedPermissions();

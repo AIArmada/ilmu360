@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Enums\MembershipClaimStatus;
+use AIArmada\Membership\Enums\ApplicationStatus;
 use App\Enums\MemberSubjectType;
 use App\Models\Concerns\AuditsModelChanges;
 use Database\Factories\MembershipClaimFactory;
@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
@@ -26,20 +27,26 @@ class MembershipClaim extends Model implements AuditableContract, HasMedia
 
     protected $keyType = 'string';
 
+    public function getTable(): string
+    {
+        return config('membership.database.tables.applications', 'membership_applications');
+    }
+
     /**
      * @var list<string>
      */
     protected $fillable = [
         'subject_type',
         'subject_id',
-        'claimant_id',
+        'applicant_id',
         'reviewer_id',
         'status',
-        'granted_role_slug',
+        'granted_role',
         'justification',
         'reviewer_note',
         'reviewed_at',
         'cancelled_at',
+        'meta',
     ];
 
     /**
@@ -50,9 +57,10 @@ class MembershipClaim extends Model implements AuditableContract, HasMedia
     {
         return [
             'subject_type' => MemberSubjectType::class,
-            'status' => MembershipClaimStatus::class,
-            'reviewed_at' => 'datetime',
-            'cancelled_at' => 'datetime',
+            'status' => ApplicationStatus::class,
+            'meta' => 'array',
+            'reviewed_at' => 'immutable_datetime',
+            'cancelled_at' => 'immutable_datetime',
         ];
     }
 
@@ -62,15 +70,20 @@ class MembershipClaim extends Model implements AuditableContract, HasMedia
     #[Scope]
     protected function pending(Builder $query): void
     {
-        $query->where('status', MembershipClaimStatus::Pending);
+        $query->where('status', ApplicationStatus::Pending);
+    }
+
+    public function subject(): MorphTo
+    {
+        return $this->morphTo();
     }
 
     /**
      * @return BelongsTo<User, $this>
      */
-    public function claimant(): BelongsTo
+    public function applicant(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'claimant_id');
+        return $this->belongsTo(User::class, 'applicant_id');
     }
 
     /**
@@ -83,7 +96,7 @@ class MembershipClaim extends Model implements AuditableContract, HasMedia
 
     public function isPending(): bool
     {
-        return $this->status === MembershipClaimStatus::Pending;
+        return $this->status === ApplicationStatus::Pending;
     }
 
     public function registerMediaCollections(): void

@@ -2,11 +2,11 @@
 
 namespace App\Livewire\Pages\Dashboard;
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Models\Event;
 use App\Models\EventCheckin;
 use App\Models\EventSubmission;
 use App\Models\Institution;
-use App\Models\NotificationMessage;
 use App\Models\Reference;
 use App\Models\Registration;
 use App\Models\SavedSearch;
@@ -17,6 +17,7 @@ use App\Support\Timezone\UserDateTimeFormatter;
 use Carbon\CarbonInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Pagination\LengthAwarePaginator as Paginator;
 use Illuminate\Support\Collection;
@@ -40,6 +41,11 @@ class UserDashboard extends Component
     private const int SUBMITTED_PER_PAGE = 4;
 
     private const int CHECKINS_PER_PAGE = 6;
+
+    public function boot(): void
+    {
+        OwnerContext::setForRequest(null);
+    }
 
     public function mount(): void
     {
@@ -160,16 +166,12 @@ class UserDashboard extends Component
         return $savedSearches;
     }
 
-    /**
-     * @return Collection<int, NotificationMessage>
-     */
     #[Computed]
     public function recentNotifications(): Collection
     {
-        /** @var Collection<int, NotificationMessage> $notifications */
         $notifications = $this->user()
-            ->notificationMessages()
-            ->visibleInInbox()
+            ->notificationInbox()
+            ->whereNull('archived_at')
             ->limit(3)
             ->get();
 
@@ -180,8 +182,8 @@ class UserDashboard extends Component
     public function unreadNotificationCount(): int
     {
         return $this->user()
-            ->notificationMessages()
-            ->visibleInInbox()
+            ->notificationInbox()
+            ->whereNull('archived_at')
             ->whereNull('read_at')
             ->count();
     }
@@ -305,7 +307,7 @@ class UserDashboard extends Component
             $entries->push([
                 'event' => $submission->event,
                 'created_at' => $submission->created_at,
-                'notes' => $submission->notes,
+                'notes' => $submission->submission_data['notes'] ?? null,
             ]);
         }
 
@@ -344,7 +346,7 @@ class UserDashboard extends Component
     {
         /** @var Collection<int, EventCheckin> $checkins */
         $checkins = EventCheckin::query()
-            ->where('user_id', $this->user()->id)
+            ->where('attendee_id', $this->user()->id)
             ->with([
                 'event' => fn ($query) => $query->with($this->plannerEventRelations()),
             ])
@@ -580,9 +582,9 @@ class UserDashboard extends Component
     }
 
     /**
-     * @return BelongsToMany<Event, User>
+     * @return Builder<Event>
      */
-    protected function savedEventsQuery(User $user): BelongsToMany
+    protected function savedEventsQuery(User $user): Builder
     {
         return $user->savedEvents()
             ->active()

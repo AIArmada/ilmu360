@@ -111,6 +111,13 @@ it('prefills the submit-event form from a duplicated public event', function () 
         ->and($component->get('data.references'))->toEqualCanonicalizing([(string) $reference->id])
         ->and(array_values($component->get('data.other_key_people')))->toBe([
             [
+                'role' => EventKeyPersonRole::Speaker->value,
+                'speaker_id' => (string) $speaker->id,
+                'name' => null,
+                'is_public' => true,
+                'notes' => null,
+            ],
+            [
                 'role' => EventKeyPersonRole::Moderator->value,
                 'speaker_id' => (string) $moderator->id,
                 'name' => null,
@@ -161,7 +168,14 @@ it('filters inaccessible organizer and speaker defaults when duplicating an even
         ->and($component->get('data.primary_organizer_kind'))->toBeNull()
         ->and($component->get('data.primary_organizer_institution_id'))->toBeNull()
         ->and($component->get('data.speakers'))->toBe([])
-        ->and(array_values($component->get('data.other_key_people')))->toBe([
+        ->and(array_values($component->get('data.other_key_people')))->toEqualCanonicalizing([
+            [
+                'role' => EventKeyPersonRole::Speaker->value,
+                'speaker_id' => null,
+                'name' => $speaker->formatted_name,
+                'is_public' => true,
+                'notes' => null,
+            ],
             [
                 'role' => EventKeyPersonRole::Moderator->value,
                 'speaker_id' => null,

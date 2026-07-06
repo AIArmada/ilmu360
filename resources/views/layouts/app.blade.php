@@ -142,8 +142,8 @@
                 $hasInstitutionDashboardAccess = $authenticatedUser?->institutions()->exists() ?? false;
                 $notificationUnreadCount = $authenticatedUser
                     ? $authenticatedUser
-                        ->notificationMessages()
-                        ->visibleInInbox()
+                        ->notificationInbox()
+                        ->whereNull('archived_at')
                         ->whereNull('read_at')
                         ->count()
                     : 0;

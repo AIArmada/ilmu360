@@ -10,11 +10,16 @@ return new class extends Migration
     {
         Schema::create('saved_searches', function (Blueprint $table) {
             $table->uuid('id')->primary();
+            $table->string('user_type', 255)->default('user')->index();
             $table->foreignUuid('user_id')->index();
+            $table->string('searchable_type', 255)->nullable();
+            $table->uuid('searchable_id')->nullable();
+            $table->index(['searchable_type', 'searchable_id']);
 
             $table->string('name');
             $table->string('query')->nullable();
             $table->jsonb('filters')->nullable();
+            $table->jsonb('meta')->nullable();
 
             $table->unsignedSmallInteger('radius_km')->nullable();
             $table->decimal('lat', 10, 7)->nullable();

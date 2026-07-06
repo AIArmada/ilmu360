@@ -1,14 +1,16 @@
 <?php
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Communications\Enums\NotificationFamily;
+use AIArmada\Communications\Enums\NotificationPriority;
+use AIArmada\Communications\Enums\NotificationTrigger;
+use AIArmada\Communications\Models\NotificationInbox;
 use AIArmada\Signals\Models\SignalEvent;
 use App\Actions\Fortify\CreateNewUser;
 use App\Actions\Fortify\ResetUserPassword;
 use App\Enums\EventVisibility;
-use App\Enums\NotificationFamily;
-use App\Enums\NotificationTrigger;
 use App\Livewire\Pages\Dashboard\NotificationsIndex;
 use App\Models\Event;
-use App\Models\NotificationMessage;
 use App\Models\SavedSearch;
 use App\Models\User;
 use App\Services\Signals\SignalEventRecorder;
@@ -160,18 +162,23 @@ it('records a signals event when a notification is read via the api', function (
     $user = User::factory()->create();
     Sanctum::actingAs($user);
 
-    $message = NotificationMessage::factory()->for($user, 'notifiable')->create([
-        'family' => NotificationFamily::EventUpdates->value,
+    $message = OwnerContext::withOwner(null, fn () => NotificationInbox::query()->create([
+        'recipient_type' => $user->getMorphClass(),
+        'recipient_id' => $user->getKey(),
+        'family' => NotificationFamily::EventUpdate->value,
         'trigger' => NotificationTrigger::EventCancelled->value,
-        'read_at' => null,
+        'priority' => NotificationPriority::Normal->value,
+        'title' => 'Cancelled event',
+        'body' => 'Cancelled body',
         'data' => [
-            'title' => 'Cancelled event',
-            'body' => 'Cancelled body',
             'channels_attempted' => ['in_app'],
             'meta' => ['inbox_visible' => true],
+            'action_url' => null,
+            'entity_type' => null,
+            'entity_id' => null,
         ],
-        'inbox_visible' => true,
-    ]);
+        'read_at' => null,
+    ]));
 
     $this->postJson("/api/v1/notifications/{$message->id}/read")
         ->assertOk();
@@ -190,18 +197,23 @@ it('does not break notification reads when signals ingestion fails', function ()
     $user = User::factory()->create();
     Sanctum::actingAs($user);
 
-    $message = NotificationMessage::factory()->for($user, 'notifiable')->create([
-        'family' => NotificationFamily::EventUpdates->value,
+    $message = OwnerContext::withOwner(null, fn () => NotificationInbox::query()->create([
+        'recipient_type' => $user->getMorphClass(),
+        'recipient_id' => $user->getKey(),
+        'family' => NotificationFamily::EventUpdate->value,
         'trigger' => NotificationTrigger::EventCancelled->value,
-        'read_at' => null,
+        'priority' => NotificationPriority::Normal->value,
+        'title' => 'Cancelled event',
+        'body' => 'Cancelled body',
         'data' => [
-            'title' => 'Cancelled event',
-            'body' => 'Cancelled body',
             'channels_attempted' => ['in_app'],
             'meta' => ['inbox_visible' => true],
+            'action_url' => null,
+            'entity_type' => null,
+            'entity_id' => null,
         ],
-        'inbox_visible' => true,
-    ]);
+        'read_at' => null,
+    ]));
 
     $this->postJson("/api/v1/notifications/{$message->id}/read")
         ->assertOk();
@@ -213,16 +225,41 @@ it('does not break notification reads when signals ingestion fails', function ()
 it('records a signals event when all notifications are marked as read from the inbox page', function () {
     $user = User::factory()->create();
 
-    NotificationMessage::factory()->count(2)->for($user, 'notifiable')->create([
-        'read_at' => null,
+    OwnerContext::withOwner(null, fn () => NotificationInbox::query()->create([
+        'recipient_type' => $user->getMorphClass(),
+        'recipient_id' => $user->getKey(),
+        'family' => NotificationFamily::EventUpdate->value,
+        'priority' => NotificationPriority::Normal->value,
+        'trigger' => NotificationTrigger::EventUpdated->value,
+        'title' => 'Unread only',
+        'body' => 'Unread body',
         'data' => [
-            'title' => 'Unread only',
-            'body' => 'Unread body',
             'channels_attempted' => ['in_app'],
             'meta' => ['inbox_visible' => true],
+            'action_url' => null,
+            'entity_type' => null,
+            'entity_id' => null,
         ],
-        'inbox_visible' => true,
-    ]);
+        'read_at' => null,
+    ]));
+
+    OwnerContext::withOwner(null, fn () => NotificationInbox::query()->create([
+        'recipient_type' => $user->getMorphClass(),
+        'recipient_id' => $user->getKey(),
+        'family' => NotificationFamily::EventUpdate->value,
+        'priority' => NotificationPriority::Normal->value,
+        'trigger' => NotificationTrigger::EventUpdated->value,
+        'title' => 'Unread only 2',
+        'body' => 'Unread body',
+        'data' => [
+            'channels_attempted' => ['in_app'],
+            'meta' => ['inbox_visible' => true],
+            'action_url' => null,
+            'entity_type' => null,
+            'entity_id' => null,
+        ],
+        'read_at' => null,
+    ]));
 
     Livewire::actingAs($user)
         ->test(NotificationsIndex::class)

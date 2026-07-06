@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers\Filament;
 
+use AIArmada\FilamentEvents\FilamentEventsPlugin;
 use App\Filament\Pages\AhliDashboard;
 use App\Providers\Filament\Concerns\ResolvesPanelDomain;
 use App\Providers\Filament\Concerns\TracksSignalsPanel;
@@ -46,6 +47,9 @@ class AhliPanelProvider extends PanelProvider
             ->maxContentWidth('full')
             ->discoverResources(in: app_path('Filament/Ahli/Resources'), for: 'App\Filament\Ahli\Resources')
             ->discoverWidgets(in: app_path('Filament/Ahli/Widgets'), for: 'App\Filament\Ahli\Widgets')
+            ->plugins([
+                FilamentEventsPlugin::make(),
+            ])
             ->pages([
                 AhliDashboard::class,
             ])

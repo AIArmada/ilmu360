@@ -697,7 +697,7 @@ class ContributionEntityMutationService
      */
     private function eventState(Event $event): array
     {
-        $event->loadMissing(['references', 'series', 'tags', 'keyPeople', 'languages']);
+        $event->loadMissing(['references', 'series', 'tags', 'keyPeople', 'languages:id,event_id']);
 
         $tags = $event->tags->groupBy('type');
 

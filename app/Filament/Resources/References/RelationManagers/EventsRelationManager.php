@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\References\RelationManagers;
 
-use App\Filament\Resources\Events\EventResource;
+use AIArmada\FilamentEvents\Resources\EventResource;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Table;
 

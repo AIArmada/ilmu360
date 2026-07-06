@@ -7,6 +7,7 @@ use App\Enums\NotificationFamily;
 use App\Enums\NotificationPriority;
 use App\Enums\NotificationTrigger;
 use App\Models\PendingNotification;
+use App\Notifications\Channels\InboxChannel;
 use App\Services\Notifications\NotificationMessageRenderer;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
@@ -100,6 +101,10 @@ class NotificationCenterMessage extends Notification implements ShouldQueue
      */
     public function via(object $notifiable): array
     {
+        if ($this->targetChannel === NotificationChannel::InApp) {
+            return [InboxChannel::class];
+        }
+
         return [$this->targetChannel->laravelChannel()];
     }
 
@@ -110,7 +115,7 @@ class NotificationCenterMessage extends Notification implements ShouldQueue
     {
         return match ($this->targetChannel) {
             NotificationChannel::Email => ['mail' => 'notifications-mail'],
-            NotificationChannel::InApp => ['database' => 'notifications-inbox'],
+            NotificationChannel::InApp => [InboxChannel::class => 'notifications-inbox'],
             NotificationChannel::Push => [NotificationChannel::Push->laravelChannel() => 'notifications-push'],
             NotificationChannel::Whatsapp => [NotificationChannel::Whatsapp->laravelChannel() => 'notifications-whatsapp'],
             default => [],

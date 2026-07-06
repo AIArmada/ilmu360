@@ -3,6 +3,7 @@
 namespace App\Data\Api\EventRegistration;
 
 use App\Models\Registration;
+use App\Models\User;
 use Spatie\LaravelData\Data;
 
 class EventRegistrationData extends Data
@@ -25,7 +26,7 @@ class EventRegistrationData extends Data
         return new self(
             id: (string) $registration->id,
             event_id: (string) $registration->event_id,
-            user_id: $registrant instanceof \App\Models\User ? (string) $registrant->getKey() : null,
+            user_id: $registrant instanceof User ? (string) $registrant->getKey() : null,
             name: $registration->resolvedName() ?? '',
             email: $registration->resolvedEmail(),
             phone: $registration->resolvedPhone(),

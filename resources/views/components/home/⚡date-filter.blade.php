@@ -14,10 +14,13 @@ new class extends Component {
         $startDate = $now->copy()->startOfDay();
         $endDate = $now->copy()->addDays(6)->endOfDay();
 
+        $occurrencesTable = config('events.database.tables.event_occurrences', 'event_occurrences');
+
         $eventCounts = Event::query()
             ->active()
-            ->whereBetween('starts_at', [$startDate->copy()->utc(), $endDate->copy()->utc()])
-            ->get(['id', 'starts_at'])
+            ->join($occurrencesTable, "{$occurrencesTable}.event_id", '=', 'events.id')
+            ->whereBetween("{$occurrencesTable}.starts_at", [$startDate->copy()->utc(), $endDate->copy()->utc()])
+            ->get(['events.id', "{$occurrencesTable}.starts_at"])
             ->countBy(fn (Event $event): string => UserDateTimeFormatter::format($event->starts_at, 'Y-m-d'));
 
         $dates = collect();

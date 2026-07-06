@@ -2,7 +2,7 @@
 
 namespace Database\Factories;
 
-use App\Enums\MembershipClaimStatus;
+use AIArmada\Membership\Enums\ApplicationStatus;
 use App\Enums\MemberSubjectType;
 use App\Models\Institution;
 use App\Models\MembershipClaim;
@@ -22,10 +22,10 @@ class MembershipClaimFactory extends Factory
         return [
             'subject_type' => MemberSubjectType::Institution,
             'subject_id' => Institution::factory(),
-            'claimant_id' => User::factory(),
+            'applicant_id' => User::factory(),
             'reviewer_id' => null,
-            'status' => MembershipClaimStatus::Pending,
-            'granted_role_slug' => null,
+            'status' => ApplicationStatus::Pending,
+            'granted_role' => null,
             'justification' => fake()->paragraph(),
             'reviewer_note' => null,
             'reviewed_at' => null,

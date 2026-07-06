@@ -2,9 +2,9 @@
 
 namespace App\Filament\Resources\MembershipClaims\Tables;
 
+use AIArmada\Membership\Enums\ApplicationStatus;
 use App\Actions\Membership\ApproveMembershipClaimAction;
 use App\Actions\Membership\RejectMembershipClaimAction;
-use App\Enums\MembershipClaimStatus;
 use App\Enums\MemberSubjectType;
 use App\Filament\Resources\MembershipClaims\MembershipClaimResource;
 use App\Models\MembershipClaim;
@@ -49,11 +49,11 @@ class MembershipClaimsTable
                     ->formatStateUsing(fn (mixed $state): string => MembershipClaimPresenter::labelForStatus($state))
                     ->color(fn (mixed $state): string => MembershipClaimPresenter::statusColor($state))
                     ->sortable(),
-                TextColumn::make('granted_role_slug')
+                TextColumn::make('granted_role')
                     ->label('Granted Role')
                     ->state(fn (MembershipClaim $record): string => MembershipClaimPresenter::roleLabel($record))
                     ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('claimant.email')
+                TextColumn::make('applicant.email')
                     ->label('Claimant')
                     ->searchable()
                     ->placeholder('-'),
@@ -75,10 +75,10 @@ class MembershipClaimsTable
             ->filters([
                 SelectFilter::make('status')
                     ->options([
-                        MembershipClaimStatus::Pending->value => MembershipClaimPresenter::labelForStatus(MembershipClaimStatus::Pending),
-                        MembershipClaimStatus::Approved->value => MembershipClaimPresenter::labelForStatus(MembershipClaimStatus::Approved),
-                        MembershipClaimStatus::Rejected->value => MembershipClaimPresenter::labelForStatus(MembershipClaimStatus::Rejected),
-                        MembershipClaimStatus::Cancelled->value => MembershipClaimPresenter::labelForStatus(MembershipClaimStatus::Cancelled),
+                        ApplicationStatus::Pending->value => MembershipClaimPresenter::labelForStatus(ApplicationStatus::Pending),
+                        ApplicationStatus::Approved->value => MembershipClaimPresenter::labelForStatus(ApplicationStatus::Approved),
+                        ApplicationStatus::Rejected->value => MembershipClaimPresenter::labelForStatus(ApplicationStatus::Rejected),
+                        ApplicationStatus::Cancelled->value => MembershipClaimPresenter::labelForStatus(ApplicationStatus::Cancelled),
                     ]),
                 SelectFilter::make('subject_type')
                     ->options([
@@ -95,7 +95,7 @@ class MembershipClaimsTable
                     ->modalHeading('Approve Membership Claim')
                     ->modalDescription('Approve this claim and choose the role to grant.')
                     ->schema(fn (MembershipClaim $record): array => [
-                        Select::make('granted_role_slug')
+                        Select::make('granted_role')
                             ->label('Granted Role')
                             ->options(MembershipClaimPresenter::approvalRoleOptions($record))
                             ->required(),
@@ -111,7 +111,7 @@ class MembershipClaimsTable
                         $approveMembershipClaimAction->handle(
                             $record,
                             $user,
-                            (string) $data['granted_role_slug'],
+                            (string) $data['granted_role'],
                             filled($data['reviewer_note'] ?? null) ? (string) $data['reviewer_note'] : null,
                         );
 
@@ -120,7 +120,7 @@ class MembershipClaimsTable
                             ->success()
                             ->send();
                     })
-                    ->visible(fn (MembershipClaim $record): bool => $record->status === MembershipClaimStatus::Pending),
+                    ->visible(fn (MembershipClaim $record): bool => $record->status === ApplicationStatus::Pending),
                 Action::make('reject')
                     ->label('Reject')
                     ->icon('heroicon-o-x-circle')
@@ -148,7 +148,7 @@ class MembershipClaimsTable
                             ->danger()
                             ->send();
                     })
-                    ->visible(fn (MembershipClaim $record): bool => $record->status === MembershipClaimStatus::Pending),
+                    ->visible(fn (MembershipClaim $record): bool => $record->status === ApplicationStatus::Pending),
                 Action::make('open_subject')
                     ->label('Open Record')
                     ->icon('heroicon-o-arrow-top-right-on-square')

@@ -4,31 +4,27 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
+use AIArmada\Events\Database\Factories\EventSubmissionFactory as PackageEventSubmissionFactory;
 use App\Models\Event;
 use App\Models\EventSubmission;
 use App\Models\User;
-use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends Factory<EventSubmission>
+ * @extends PackageEventSubmissionFactory
  */
-class EventSubmissionFactory extends Factory
+class EventSubmissionFactory extends PackageEventSubmissionFactory
 {
-    /**
-     * Define the model's default state.
-     *
-     * @return array<string, mixed>
-     */
+    protected $model = EventSubmission::class;
+
     public function definition(): array
     {
-        $submitter = User::factory();
-
-        return [
+        return array_merge(parent::definition(), [
             'event_id' => Event::factory(),
-            'submitted_by' => $submitter,
-            'submitter_name' => fake()->name(),
-            'status' => 'pending',
-            'submitted_at' => now(),
-        ];
+            'submitter_type' => User::class,
+            'submitter_id' => User::factory(),
+            'submission_data' => [
+                'submitter_name' => fake()->name(),
+            ],
+        ]);
     }
 }

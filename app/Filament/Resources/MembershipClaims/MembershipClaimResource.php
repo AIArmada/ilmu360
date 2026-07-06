@@ -49,7 +49,7 @@ class MembershipClaimResource extends Resource
         /** @var Builder<MembershipClaim> $query */
         $query = parent::getEloquentQuery();
 
-        return $query->with(['claimant', 'reviewer']);
+        return $query->with(['applicant', 'reviewer']);
     }
 
     #[\Override]

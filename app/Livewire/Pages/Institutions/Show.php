@@ -25,6 +25,11 @@ class Show extends Component
 
     public bool $isFollowing = false;
 
+    public function boot(): void
+    {
+        OwnerContext::setForRequest(null);
+    }
+
     public function mount(Institution $institution): void
     {
         $canBypassVisibility = auth()->user()?->hasAnyRole(['super_admin', 'moderator']) ?? false;

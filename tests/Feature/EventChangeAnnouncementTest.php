@@ -1,6 +1,7 @@
 <?php
 
 use AIArmada\CommerceSupport\Models\Role;
+use AIArmada\Engagement\Contracts\EngagementManager;
 use AIArmada\FilamentAuthz\Facades\Authz;
 use App\Actions\Events\PublishEventChangeAnnouncement;
 use App\Enums\EventChangeSeverity;
@@ -43,7 +44,7 @@ it('publishes cancellation announcements and notifies committed users only once'
         'title' => 'Kuliah Dibatalkan',
     ]);
 
-    $committedUser->savedEvents()->attach($event->id);
+    app(EngagementManager::class)->bookmark($committedUser, $event);
     $committedUser->goingEvents()->attach($event->id);
     Registration::factory()->for($event)->forRegistrant($committedUser)->create([
         'status' => 'confirmed',

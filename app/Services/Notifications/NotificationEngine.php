@@ -15,9 +15,42 @@ use App\Support\Notifications\ResolvedNotificationPolicy;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Str;
 
 class NotificationEngine
 {
+    /**
+     * Triggers that bypass local PendingNotification and dispatch directly
+     * via auto_capture (communications package records the delivery).
+     *
+     * @var list<string>
+     */
+    private const array MIGRATED_TRIGGERS = [
+        'reminder_2_hours',
+        'reminder_24_hours',
+        'checkin_open',
+        'checkin_confirmed',
+        'followed_speaker_event',
+        'followed_institution_event',
+        'followed_series_event',
+        'followed_reference_event',
+        'registration_confirmed',
+        'registration_event_changed',
+        'saved_search_match',
+        'event_approved',
+        'event_cancelled',
+        'event_schedule_changed',
+        'event_venue_changed',
+        'event_details_changed',
+        'event_replacement_linked',
+        'submission_received',
+        'submission_approved',
+        'submission_rejected',
+        'submission_needs_changes',
+        'submission_cancelled',
+        'submission_remoderated',
+    ];
+
     public function __construct(
         protected NotificationSettingsManager $settingsManager,
     ) {}
@@ -52,6 +85,13 @@ class NotificationEngine
         }
 
         $orderedChannels = $this->orderedChannels($policy);
+
+        if (in_array($data->trigger->value, self::MIGRATED_TRIGGERS, true)) {
+            $this->dispatchMigrated($user, $data, $policy, $orderedChannels);
+
+            return null;
+        }
+
         $pending = $this->createPendingNotification($user, $policy, $data, $effectiveCadence, $orderedChannels);
 
         if ($effectiveCadence !== NotificationCadence::Instant || ($data->fingerprint !== null && $data->fingerprint !== '' && ! $pending->wasRecentlyCreated)) {
@@ -98,6 +138,67 @@ class NotificationEngine
         );
 
         return $pending;
+    }
+
+    /**
+     * Dispatch a notification for a migrated trigger without creating
+     * a PendingNotification record. auto_capture in the communications
+     * package records the delivery into communications tables.
+     *
+     * @param  list<string>  $orderedChannels
+     */
+    protected function dispatchMigrated(
+        User $user,
+        NotificationDispatchData $data,
+        ResolvedNotificationPolicy $policy,
+        array $orderedChannels,
+    ): void {
+        $bypassQuietHours = $data->bypassQuietHours && $policy->urgentOverride;
+        $orderedExternalChannels = $this->orderedExternalChannels($orderedChannels);
+
+        if (in_array(NotificationChannel::InApp->value, $orderedChannels, true)) {
+            $this->sendNotificationDirectly($user, $data, $policy, NotificationChannel::InApp, $orderedChannels, $bypassQuietHours);
+        }
+
+        $primaryExternalChannel = $this->primaryExternalChannel($orderedExternalChannels);
+
+        if ($primaryExternalChannel instanceof NotificationChannel && $this->isChannelAvailable($user, $primaryExternalChannel)) {
+            $this->sendNotificationDirectly($user, $data, $policy, $primaryExternalChannel, $orderedChannels, $bypassQuietHours);
+        }
+    }
+
+    /**
+     * @param  list<string>  $channelsAttempted
+     */
+    protected function sendNotificationDirectly(
+        User $user,
+        NotificationDispatchData $data,
+        ResolvedNotificationPolicy $policy,
+        NotificationChannel $channel,
+        array $channelsAttempted,
+        bool $bypassQuietHours,
+    ): void {
+        $notification = new NotificationCenterMessage(
+            pendingNotificationId: (string) Str::uuid(),
+            targetChannel: $channel,
+            family: $policy->family,
+            trigger: $policy->trigger,
+            priority: $data->priority ?? NotificationPriority::Medium,
+            title: $data->title,
+            body: $data->body,
+            actionUrl: $data->actionUrl,
+            entityType: $data->entityType,
+            entityId: $data->entityId,
+            channelsAttempted: $channelsAttempted,
+            fallbackChannels: [],
+            occurredAt: $data->occurredAt ?? now(),
+            meta: $data->meta,
+            sourcePendingIds: [],
+        );
+
+        $notification->delay($this->deliverAfterFor($policy, $channel, $bypassQuietHours));
+
+        Notification::send($user, $notification);
     }
 
     /**

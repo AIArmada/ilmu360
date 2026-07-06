@@ -1,5 +1,6 @@
 <?php
 
+use AIArmada\Engagement\Contracts\EngagementManager;
 use App\Enums\NotificationCadence;
 use App\Enums\NotificationChannel;
 use App\Enums\NotificationDeliveryStatus;
@@ -207,7 +208,7 @@ it('creates reminder notifications only for going and registered users, not save
         'starts_at' => now()->addHours(24)->addMinutes(5),
     ]);
 
-    $savedUser->savedEvents()->attach($event->id);
+    app(EngagementManager::class)->bookmark($savedUser, $event);
     $goingUser->goingEvents()->attach($event->id);
     Registration::factory()->for($event)->forRegistrant($registeredUser)->create([
         'status' => 'confirmed',

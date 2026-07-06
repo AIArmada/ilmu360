@@ -2,7 +2,7 @@
 
 namespace App\Actions\Membership;
 
-use App\Enums\MembershipClaimStatus;
+use AIArmada\Membership\Enums\ApplicationStatus;
 use App\Models\MembershipClaim;
 use App\Models\User;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -19,8 +19,8 @@ class RejectMembershipClaimAction
         }
 
         $claim->forceFill([
-            'status' => MembershipClaimStatus::Rejected,
-            'granted_role_slug' => null,
+            'status' => ApplicationStatus::Rejected,
+            'granted_role' => null,
             'reviewer_id' => $reviewer->getKey(),
             'reviewed_at' => now(),
             'reviewer_note' => filled($reviewerNote) ? trim($reviewerNote) : null,

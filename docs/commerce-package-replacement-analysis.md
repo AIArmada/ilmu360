@@ -1,5 +1,8 @@
 # Commerce Package Replacement Analysis
 
+> [!CAUTION]
+> **STALE (last updated pre-2026-07-06).** The model adoption status below is historical and does not reflect the 5 closures completed on 2026-07-06. See [`docs/aiarmada-adoption/status.md`](aiarmada-adoption/status.md) for current truth.
+
 > Mapping ilmu360° architecture against `~/herd/commerce/packages` (59 AIArmada packages)
 > to identify replacement candidates, integration points, and gaps.
 
@@ -336,7 +339,7 @@ All source packages exist at `~/herd/commerce/packages/`. Key packages relevant 
 
 ### 8.4 Current Model State
 
-All 49 `App\Models\*` are fully custom — none extend or reference aiarmada package models:
+As of this writing, all 49 `App\Models\*` were fully custom — none extended or referenced aiarmada package models. *5 models have since been closed to extend packages (completed 2026-07-06): EventKeyPerson → EventInvolvement, EventCheckin → EventAttendance, EventChangeAnnouncement → EventUpdate, EventSubmission → EventSubmission(pkg), ModerationReview → ModerationAction.*
 
 | Custom Model | Lines | Package That Would Replace | Still Custom? |
 |---|---|---|---|
@@ -346,15 +349,15 @@ All 49 `App\Models\*` are fully custom — none extend or reference aiarmada pac
 | SavedSearch | 52 | `commerce-support` (source, not published) | ✅ Yes |
 | Report | 86 | `commerce-support` (source, not published) | ✅ Yes |
 | MembershipClaim | 104 | `membership` | ✅ Yes |
-| ModerationReview | 48 | `moderation` | ✅ Yes |
+| ModerationReview | 48 | `moderation` | ✅ Yes — now extends package model (closed 2026-07-06) |
 | Reference | ~200 | `references` | ✅ Yes |
 | Address | ~150 | `addressing` | ✅ Yes |
 | DonationChannel | 166 | No package | ✅ Yes (no pkg) |
 | Venue | ~200 | `events` | ✅ Yes |
 | Series | ~100 | `events` | ✅ Yes |
 | Registration | ~150 | `events` | ✅ Yes |
-| EventCheckin | ~80 | `events` | ✅ Yes |
-| EventSubmission | ~150 | `events` | ✅ Yes |
+| EventCheckin | ~80 | `events` | ✅ Yes — now extends package model (closed 2026-07-06) |
+| EventSubmission | ~150 | `events` | ✅ Yes — now extends package model (closed 2026-07-06) |
 | Institution | ~400 | `events` + `membership` | ✅ Yes |
 | Speaker | ~350 | `events` | ✅ Yes |
 | NotificationSetting + 5 more | ~500+ | `communications` | ✅ Yes |

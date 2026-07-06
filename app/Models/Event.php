@@ -5,12 +5,19 @@ namespace App\Models;
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Traits\HasAddresses;
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Engagement\Models\Bookmark;
 use AIArmada\Events\Enums\RegistrationMode as PackageRegistrationMode;
 use AIArmada\Events\Models\Event as PackageEvent;
 use AIArmada\Events\Models\EventAccessPolicy;
+use AIArmada\Events\Models\EventAttribute;
+use AIArmada\Events\Models\EventAudience;
+use AIArmada\Events\Models\EventAudienceProfile;
 use AIArmada\Events\Models\EventInvolvement;
 use AIArmada\Events\Models\EventLanguage;
+use AIArmada\Events\Models\EventLink;
+use AIArmada\Events\Models\EventLocation;
 use AIArmada\Events\Models\EventOccurrence;
+use AIArmada\Events\Models\EventTimeExpression;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventChangeStatus;
 use App\Enums\EventChangeType;
@@ -32,6 +39,7 @@ use App\Models\Builders\EventBuilder;
 use App\Models\Concerns\AuditsModelChanges;
 use App\Models\Concerns\HasDonationChannels;
 use App\Models\Concerns\HasPrimaryAddressAccessors;
+use App\Services\PrayerTimeExpressionResolver;
 use App\States\EventStatus\EventStatus;
 use App\States\EventStatus\Pending;
 use App\Support\Authz\MemberPermissionGate;
@@ -50,13 +58,12 @@ use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Laravel\Scout\Searchable;
 use Nnjeim\World\Models\Language;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 use Spatie\DeletedModels\Models\Concerns\KeepsDeletedModels;
 use Spatie\Image\Enums\Fit;
-use Spatie\MediaLibrary\HasMedia;
-use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Spatie\ModelStates\HasStates;
 use Spatie\Tags\HasTags;
@@ -118,10 +125,10 @@ use Spatie\Tags\HasTags;
  * @property Carbon|null $updated_at
  * @property Carbon|null $created_at
  */
-class Event extends PackageEvent implements AuditableContract, HasMedia
+class Event extends PackageEvent implements AuditableContract
 {
     /** @use HasFactory<EventFactory> */
-    use AuditsModelChanges, HasAddresses, HasDonationChannels, HasFactory, HasPrimaryAddressAccessors, HasStates, HasTags, InteractsWithMedia, KeepsDeletedModels, Searchable;
+    use AuditsModelChanges, HasAddresses, HasDonationChannels, HasFactory, HasPrimaryAddressAccessors, HasStates, HasTags, KeepsDeletedModels, Searchable;
 
     protected static string $ownerScopeConfigKey = '';
 
@@ -167,37 +174,62 @@ class Event extends PackageEvent implements AuditableContract, HasMedia
         'user_id',
         'institution_id',
         'submitter_id',
-        'space_id',
         'parent_event_id',
         'event_structure',
         'schedule_kind',
         'schedule_state',
         'timing_mode',
-        'prayer_reference',
-        'prayer_offset',
-        'prayer_display_text',
-        'gender',
-        'age_group',
-        'children_allowed',
-        'live_url',
-        'event_url',
-        'recording_url',
-        'views_count',
-        'saves_count',
-        'registrations_count',
-        'going_count',
-        'escalated_at',
-        'is_priority',
-        'is_featured',
         'is_active',
-        'is_muslim_only',
+        'views_count',
+        'registrations_count',
+        'saves_count',
+        'going_count',
     ];
+
+    /**
+     * @var array<string, string|null>
+     */
+    private array $pendingLinkWrites = [];
+
+    /**
+     * @var array<string, string|null>
+     */
+    private array $pendingTimeExpressionWrites = [];
+
+    private const array PRAYER_TIME_FIELDS = ['prayer_reference', 'prayer_offset', 'prayer_display_text'];
+
+    /**
+     * @var array<string, mixed>
+     */
+    private array $pendingAudienceWrites = [];
+
+    /**
+     * @var array<string, mixed>
+     */
+    private array $pendingAudienceProfileWrites = [];
+
+    /**
+     * @var array<string, mixed>
+     */
+    private array $pendingAttributeWrites = [];
+
+    /**
+     * @var array<string, mixed>
+     */
+    private array $pendingLocationWrites = [];
+
+    private const array ATTRIBUTE_FIELDS = ['is_featured', 'is_priority', 'escalated_at'];
 
     #[\Override]
     protected static function booted(): void
     {
         static::saved(function (Event $event): void {
             $event->syncPrimaryOccurrenceFromPendingState();
+            $event->syncUrlLinks();
+            $event->syncTimeExpressions();
+            $event->syncAudiences();
+            $event->syncAttributes();
+            $event->syncLocation();
         });
 
         static::deleting(function (Event $event) {
@@ -223,7 +255,7 @@ class Event extends PackageEvent implements AuditableContract, HasMedia
                 $submission->delete();
             });
             $event->moderationReviews()->each(function (ModerationReview $review): void {
-                $review->delete();
+                OwnerContext::withOwner(null, fn () => $review->delete());
             });
             $event->changeAnnouncements()->each(function (EventChangeAnnouncement $announcement): void {
                 $announcement->delete();
@@ -252,6 +284,7 @@ class Event extends PackageEvent implements AuditableContract, HasMedia
         'slug',
         'event_structure',
         'description',
+        'escalated_at',
         'starts_at',
         'ends_at',
         'schedule_kind',
@@ -261,6 +294,9 @@ class Event extends PackageEvent implements AuditableContract, HasMedia
         'prayer_reference',
         'prayer_offset',
         'prayer_display_text',
+        'live_url',
+        'event_url',
+        'recording_url',
         'event_type',
         'gender',
         'age_group',
@@ -268,9 +304,6 @@ class Event extends PackageEvent implements AuditableContract, HasMedia
         'event_format',
         'visibility',
         'status',
-        'live_url',
-        'event_url',
-        'recording_url',
         'views_count',
         'saves_count',
         'registrations_count',
@@ -284,11 +317,10 @@ class Event extends PackageEvent implements AuditableContract, HasMedia
         'registration_mode',
         'issue_passes_for_free',
         'metadata',
-        'escalated_at',
-        'is_priority',
-        'is_featured',
         'is_active',
+        'is_featured',
         'is_muslim_only',
+        'is_priority',
     ];
 
     #[\Override]
@@ -358,10 +390,6 @@ class Event extends PackageEvent implements AuditableContract, HasMedia
     #[\Override]
     public function getAttribute($key): mixed
     {
-        if ($key === 'escalated_at') {
-            return $this->dateFromMetadata($key);
-        }
-
         if (in_array($key, ['starts_at', 'ends_at'], true)) {
             return $this->primaryOccurrenceDate($key) ?? $this->dateFromMetadata($key);
         }
@@ -404,19 +432,11 @@ class Event extends PackageEvent implements AuditableContract, HasMedia
     }
 
     /**
-     * @return HasMany<EventInvolvement, $this>
-     */
-    public function involvements(): HasMany
-    {
-        return $this->hasMany(EventInvolvement::class);
-    }
-
-    /**
      * @return HasMany<EventLanguage, $this>
      */
     public function languageRecords(): HasMany
     {
-        return parent::languages();
+        return parent::languages()->select(['*']);
     }
 
     /**
@@ -502,34 +522,528 @@ class Event extends PackageEvent implements AuditableContract, HasMedia
             return $this;
         }
 
-        $attributes = [
-            'event_id' => (string) $this->getKey(),
-            'event_occurrence_id' => null,
-            'event_session_id' => null,
-            'involveable_type' => $organizer::class,
-            'involveable_id' => (string) $organizer->getKey(),
-            'role_code' => 'organizer',
-            'status' => 'confirmed',
-            'visibility' => 'public',
-            'prominence' => 0,
-            'is_featured' => false,
-            'is_primary' => true,
-            'sort_order' => 0,
-        ];
-
         if ($involvement instanceof EventInvolvement) {
-            $involvement->fill($attributes);
+            $involvement->fill([
+                'event_id' => (string) $this->getKey(),
+                'event_occurrence_id' => null,
+                'event_session_id' => null,
+                'involveable_type' => $organizer::class,
+                'involveable_id' => (string) $organizer->getKey(),
+                'role_code' => 'organizer',
+                'status' => 'confirmed',
+                'visibility' => 'public',
+                'prominence' => 0,
+                'is_featured' => false,
+                'is_primary' => true,
+                'sort_order' => 0,
+            ]);
 
             if ($involvement->isDirty()) {
                 $involvement->save();
             }
         } else {
-            EventInvolvement::query()->create($attributes);
+            EventInvolvement::query()->create([
+                'id' => (string) Str::uuid(),
+                'event_id' => (string) $this->getKey(),
+                'event_occurrence_id' => null,
+                'event_session_id' => null,
+                'involveable_type' => $organizer::class,
+                'involveable_id' => (string) $organizer->getKey(),
+                'role_code' => 'organizer',
+                'status' => 'confirmed',
+                'visibility' => 'public',
+                'prominence' => 0,
+                'is_featured' => false,
+                'is_primary' => true,
+                'sort_order' => 0,
+            ]);
         }
 
         $this->unsetRelation('primaryOrganizerInvolvement');
 
         return $this;
+    }
+
+    private const array LINK_TYPE_MAP = [
+        'live_url' => 'streaming',
+        'event_url' => 'external',
+        'recording_url' => 'recording',
+    ];
+
+    private const array LINK_TYPE_FIELDS = ['live_url', 'event_url', 'recording_url'];
+
+    public function getLiveUrlAttribute(): ?string
+    {
+        if (array_key_exists('live_url', $this->pendingLinkWrites)) {
+            return $this->pendingLinkWrites['live_url'];
+        }
+
+        return $this->getLinkUrl('streaming');
+    }
+
+    public function getEventUrlAttribute(): ?string
+    {
+        if (array_key_exists('event_url', $this->pendingLinkWrites)) {
+            return $this->pendingLinkWrites['event_url'];
+        }
+
+        return $this->getLinkUrl('external');
+    }
+
+    public function getRecordingUrlAttribute(): ?string
+    {
+        if (array_key_exists('recording_url', $this->pendingLinkWrites)) {
+            return $this->pendingLinkWrites['recording_url'];
+        }
+
+        return $this->getLinkUrl('recording');
+    }
+
+    public function setLiveUrlAttribute(?string $value): void
+    {
+        $this->pendingLinkWrites['live_url'] = $value;
+    }
+
+    public function setEventUrlAttribute(?string $value): void
+    {
+        $this->pendingLinkWrites['event_url'] = $value;
+    }
+
+    public function setRecordingUrlAttribute(?string $value): void
+    {
+        $this->pendingLinkWrites['recording_url'] = $value;
+    }
+
+    private function getLinkUrl(string $linkType): ?string
+    {
+        if ($this->relationLoaded('links')) {
+            return $this->links->firstWhere('link_type', $linkType)?->url;
+        }
+
+        return $this->links()->where('link_type', $linkType)->value('url');
+    }
+
+    public function syncUrlLinks(): void
+    {
+        if ($this->pendingLinkWrites === []) {
+            return;
+        }
+
+        foreach ($this->pendingLinkWrites as $field => $value) {
+            $linkType = self::LINK_TYPE_MAP[$field];
+
+            if ($value !== null && $value !== '') {
+                EventLink::updateOrCreate(
+                    ['event_id' => (string) $this->getKey(), 'link_type' => $linkType],
+                    ['url' => $value, 'visibility' => 'public'],
+                );
+            } else {
+                EventLink::query()
+                    ->where('event_id', (string) $this->getKey())
+                    ->where('link_type', $linkType)
+                    ->delete();
+            }
+        }
+
+        $this->pendingLinkWrites = [];
+    }
+
+    // ─── Prayer Time Expression (EventTimeExpression) ───────────────────────
+
+    public function getPrayerReferenceAttribute(mixed $value): ?string
+    {
+        if (array_key_exists('prayer_reference', $this->pendingTimeExpressionWrites)) {
+            $val = $this->pendingTimeExpressionWrites['prayer_reference'];
+
+            return $val instanceof \BackedEnum ? $val->value : $val;
+        }
+
+        return $this->prayerExpression()?->anchor_code;
+    }
+
+    public function getPrayerOffsetAttribute(mixed $value): ?string
+    {
+        if (array_key_exists('prayer_offset', $this->pendingTimeExpressionWrites)) {
+            return $this->pendingTimeExpressionWrites['prayer_offset'];
+        }
+
+        $expr = $this->prayerExpression();
+
+        if ($expr?->offset_minutes === null || $expr->relation === null) {
+            return null;
+        }
+
+        $signed = $expr->relation === 'before' ? -$expr->offset_minutes : $expr->offset_minutes;
+
+        foreach (PrayerOffset::cases() as $case) {
+            if ($case->minutes() === $signed) {
+                return $case->value;
+            }
+        }
+
+        return null;
+    }
+
+    public function getPrayerDisplayTextAttribute(?string $value): ?string
+    {
+        if (array_key_exists('prayer_display_text', $this->pendingTimeExpressionWrites)) {
+            return $this->pendingTimeExpressionWrites['prayer_display_text'];
+        }
+
+        return $this->prayerExpression()?->display_label;
+    }
+
+    public function setPrayerReferenceAttribute(mixed $value): void
+    {
+        $this->pendingTimeExpressionWrites['prayer_reference'] = $value;
+    }
+
+    public function setPrayerOffsetAttribute(mixed $value): void
+    {
+        $this->pendingTimeExpressionWrites['prayer_offset'] = $value instanceof \BackedEnum ? $value->value : $value;
+    }
+
+    public function setPrayerDisplayTextAttribute(?string $value): void
+    {
+        $this->pendingTimeExpressionWrites['prayer_display_text'] = $value;
+    }
+
+    private function prayerExpression(): ?EventTimeExpression
+    {
+        if ($this->relationLoaded('timeExpressions')) {
+            return $this->timeExpressions->first(fn (EventTimeExpression $e) => $e->anchor_type === 'prayer');
+        }
+
+        return $this->timeExpressions()->where('anchor_type', 'prayer')->first();
+    }
+
+    public function syncTimeExpressions(): void
+    {
+        if ($this->pendingTimeExpressionWrites === []) {
+            return;
+        }
+
+        $timingMode = $this->legacyMetadataValue('timing_mode');
+
+        if ($timingMode !== TimingMode::PrayerRelative->value) {
+            $this->timeExpressions()->where('anchor_type', 'prayer')->delete();
+            $this->pendingTimeExpressionWrites = [];
+
+            return;
+        }
+
+        $prayerRef = $this->pendingTimeExpressionWrites['prayer_reference'] ?? $this->prayerExpression()?->anchor_code;
+
+        if ($prayerRef instanceof \BackedEnum) {
+            $prayerRef = $prayerRef->value;
+        }
+
+        $prayerOffset = $this->pendingTimeExpressionWrites['prayer_offset'] ?? null;
+        $offsetMinutes = 5;
+        $relation = 'after';
+
+        if ($prayerOffset !== null) {
+            $offset = PrayerOffset::tryFrom($prayerOffset);
+
+            if ($offset !== null) {
+                $minutes = $offset->minutes();
+                $relation = $minutes >= 0 ? 'after' : 'before';
+                $offsetMinutes = abs($minutes);
+            }
+        }
+
+        $displayLabel = $this->pendingTimeExpressionWrites['prayer_display_text']
+            ?? $this->prayerExpression()?->display_label;
+
+        if ($prayerRef !== null || $displayLabel !== null) {
+            EventTimeExpression::updateOrCreate(
+                ['event_id' => $this->id, 'anchor_type' => 'prayer'],
+                [
+                    'time_mode' => 'prayer_relative',
+                    'anchor_type' => 'prayer',
+                    'anchor_code' => $prayerRef,
+                    'relation' => $relation,
+                    'offset_minutes' => $offsetMinutes,
+                    'display_label' => $displayLabel,
+                    'resolver_class' => PrayerTimeExpressionResolver::class,
+                ],
+            );
+        }
+
+        $this->pendingTimeExpressionWrites = [];
+    }
+
+    // ─── Audience (EventAudience + EventAudienceProfile) ────────────────────
+
+    public function getGenderAttribute(mixed $value): ?string
+    {
+        if (array_key_exists('gender', $this->pendingAudienceWrites)) {
+            return $this->pendingAudienceWrites['gender'];
+        }
+
+        if ($this->relationLoaded('audiences')) {
+            return $this->audiences->firstWhere('audience_type', 'gender')?->value;
+        }
+
+        return $this->audiences()->where('audience_type', 'gender')->value('value');
+    }
+
+    /** @return list<string>|null */
+    public function getAgeGroupAttribute(mixed $value): ?array
+    {
+        if (array_key_exists('age_group', $this->pendingAudienceWrites)) {
+            return $this->pendingAudienceWrites['age_group'];
+        }
+
+        $values = $this->relationLoaded('audiences')
+            ? $this->audiences->where('audience_type', 'age_group')->sortBy('sort_order')->pluck('value')->toArray()
+            : $this->audiences()->where('audience_type', 'age_group')->orderBy('sort_order')->pluck('value')->toArray();
+
+        return $values !== [] ? $values : null;
+    }
+
+    public function getChildrenAllowedAttribute(mixed $value): ?bool
+    {
+        if (array_key_exists('children_allowed', $this->pendingAudienceProfileWrites)) {
+            return $this->pendingAudienceProfileWrites['children_allowed'] ?? null;
+        }
+
+        if ($this->relationLoaded('audienceProfiles')) {
+            return $this->audienceProfiles->first()?->is_child_friendly;
+        }
+
+        return $this->audienceProfiles()->value('is_child_friendly');
+    }
+
+    public function getIsMuslimOnlyAttribute(mixed $value): ?bool
+    {
+        if (array_key_exists('is_muslim_only', $this->pendingAudienceWrites)) {
+            return $this->pendingAudienceWrites['is_muslim_only'];
+        }
+
+        $val = $this->relationLoaded('audiences')
+            ? $this->audiences->firstWhere('audience_type', 'religion')?->value
+            : $this->audiences()->where('audience_type', 'religion')->value('value');
+
+        return $val === null ? null : $val === 'muslim_only';
+    }
+
+    /**
+     * @param  string|EventGenderRestriction|null  $value
+     */
+    public function setGenderAttribute(mixed $value): void
+    {
+        $this->pendingAudienceWrites['gender'] = $value instanceof EventGenderRestriction ? $value->value : $value;
+    }
+
+    /**
+     * @param  array<int, string|EventAgeGroup>|string|EventAgeGroup|null  $value
+     */
+    public function setAgeGroupAttribute(mixed $value): void
+    {
+        if ($value === null) {
+            $this->pendingAudienceWrites['age_group'] = null;
+
+            return;
+        }
+
+        $normalized = is_array($value)
+            ? array_map(fn (mixed $v): string => $v instanceof EventAgeGroup ? $v->value : (string) $v, $value)
+            : [($value instanceof EventAgeGroup ? $value->value : (string) $value)];
+
+        $this->pendingAudienceWrites['age_group'] = $normalized;
+    }
+
+    public function setChildrenAllowedAttribute(mixed $value): void
+    {
+        $this->pendingAudienceProfileWrites['children_allowed'] = $value === null ? null : (bool) $value;
+    }
+
+    public function setIsMuslimOnlyAttribute(mixed $value): void
+    {
+        $this->pendingAudienceWrites['is_muslim_only'] = $value === null ? null : (bool) $value;
+    }
+
+    public function syncAudiences(): void
+    {
+        if ($this->pendingAudienceWrites === [] && $this->pendingAudienceProfileWrites === []) {
+            return;
+        }
+
+        foreach ($this->pendingAudienceWrites as $type => $value) {
+            match ($type) {
+                'gender' => $this->syncSingleAudience('gender', $value),
+                'age_group' => $this->syncAgeGroupAudience($value),
+                'is_muslim_only' => $this->syncSingleAudience('religion', $value ? 'muslim_only' : null),
+                default => null,
+            };
+        }
+
+        if ($this->pendingAudienceProfileWrites !== []) {
+            EventAudienceProfile::updateOrCreate(
+                ['event_id' => $this->id],
+                ['is_child_friendly' => $this->pendingAudienceProfileWrites['children_allowed'] ?? null],
+            );
+        }
+
+        $this->pendingAudienceWrites = [];
+        $this->pendingAudienceProfileWrites = [];
+    }
+
+    // ─── EventAttribute (is_featured, is_priority, escalated_at) ────────────
+
+    public function getIsFeaturedAttribute(mixed $value): ?bool
+    {
+        if (array_key_exists('is_featured', $this->pendingAttributeWrites)) {
+            return $this->pendingAttributeWrites['is_featured'];
+        }
+
+        $attr = $this->relationLoaded('attributes')
+            ? $this->attributes?->firstWhere('attribute_key', 'is_featured')
+            : EventAttribute::where('event_id', $this->id)->where('attribute_key', 'is_featured')->value('attribute_value');
+
+        return $attr === null ? null : $attr !== '0';
+    }
+
+    public function getIsPriorityAttribute(mixed $value): ?bool
+    {
+        if (array_key_exists('is_priority', $this->pendingAttributeWrites)) {
+            return $this->pendingAttributeWrites['is_priority'];
+        }
+
+        $val = $this->relationLoaded('attributes')
+            ? $this->attributes?->firstWhere('attribute_key', 'is_priority')?->attribute_value
+            : EventAttribute::where('event_id', $this->id)->where('attribute_key', 'is_priority')->value('attribute_value');
+
+        return $val === null ? null : $val !== '0';
+    }
+
+    public function getEscalatedAtAttribute(mixed $value): mixed
+    {
+        if (array_key_exists('escalated_at', $this->pendingAttributeWrites)) {
+            return $this->pendingAttributeWrites['escalated_at'];
+        }
+
+        return $this->dateFromMetadata('escalated_at');
+    }
+
+    public function setIsFeaturedAttribute(mixed $value): void
+    {
+        $this->pendingAttributeWrites['is_featured'] = $value === null ? null : (bool) $value;
+    }
+
+    public function setIsPriorityAttribute(mixed $value): void
+    {
+        $this->pendingAttributeWrites['is_priority'] = $value === null ? null : (bool) $value;
+    }
+
+    public function setEscalatedAtAttribute(mixed $value): void
+    {
+        $this->pendingAttributeWrites['escalated_at'] = $value;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    public function syncAttributes(array $data = []): void
+    {
+        $writes = $data !== [] ? $data : $this->pendingAttributeWrites;
+
+        if ($writes === []) {
+            return;
+        }
+
+        foreach ($writes as $key => $value) {
+            match ($key) {
+                'is_featured', 'is_priority' => EventAttribute::updateOrCreate(
+                    ['event_id' => $this->id, 'attribute_key' => $key],
+                    ['attribute_value' => $value ? '1' : '0'],
+                ),
+                'escalated_at' => EventAttribute::updateOrCreate(
+                    ['event_id' => $this->id, 'attribute_key' => $key],
+                    ['attribute_value' => $value instanceof CarbonInterface ? $value->toIso8601String() : $value],
+                ),
+                default => null,
+            };
+        }
+
+        $this->pendingAttributeWrites = [];
+    }
+
+    // ─── EventLocation (space_id) ───────────────────────────────────────────
+
+    public function getSpaceIdAttribute(mixed $value): ?string
+    {
+        if (array_key_exists('space_id', $this->pendingLocationWrites)) {
+            return $this->pendingLocationWrites['space_id'];
+        }
+
+        if ($this->relationLoaded('locations')) {
+            return $this->locations->first()?->venue_space_id;
+        }
+
+        return $this->locations()->value('venue_space_id');
+    }
+
+    public function setSpaceIdAttribute(?string $value): void
+    {
+        $this->pendingLocationWrites['space_id'] = $value;
+    }
+
+    public function syncLocation(): void
+    {
+        if ($this->pendingLocationWrites === []) {
+            return;
+        }
+
+        $spaceId = $this->pendingLocationWrites['space_id'] ?? null;
+
+        if ($spaceId !== null && $spaceId !== '') {
+            EventLocation::updateOrCreate(
+                ['event_id' => $this->id],
+                ['venue_space_id' => $spaceId, 'location_role' => 'main'],
+            );
+        } else {
+            EventLocation::where('event_id', $this->id)->delete();
+        }
+
+        $this->pendingLocationWrites = [];
+    }
+
+    private function syncSingleAudience(string $type, mixed $value): void
+    {
+        if ($value !== null && $value !== '' && $value !== false) {
+            EventAudience::updateOrCreate(
+                ['event_id' => $this->id, 'audience_type' => $type],
+                ['value' => (string) $value],
+            );
+        } else {
+            EventAudience::where('event_id', $this->id)
+                ->where('audience_type', $type)
+                ->delete();
+        }
+    }
+
+    private function syncAgeGroupAudience(mixed $value): void
+    {
+        EventAudience::where('event_id', $this->id)
+            ->where('audience_type', 'age_group')
+            ->delete();
+
+        if ($value === null || $value === [] || $value === '') {
+            return;
+        }
+
+        $values = is_array($value) ? $value : [$value];
+
+        foreach (array_values($values) as $i => $v) {
+            EventAudience::create([
+                'event_id' => $this->id,
+                'audience_type' => 'age_group',
+                'value' => (string) $v,
+                'sort_order' => $i,
+            ]);
+        }
     }
 
     private function syncPrimaryOccurrenceFromPendingState(): void
@@ -564,9 +1078,9 @@ class Event extends PackageEvent implements AuditableContract, HasMedia
                 'schedule_kind' => $this->legacyMetadataValue('schedule_kind'),
                 'schedule_state' => $this->legacyMetadataValue('schedule_state'),
                 'timing_mode' => $this->legacyMetadataValue('timing_mode'),
-                'prayer_reference' => $this->legacyMetadataValue('prayer_reference'),
-                'prayer_offset' => $this->legacyMetadataValue('prayer_offset'),
-                'prayer_display_text' => $this->legacyMetadataValue('prayer_display_text'),
+                'prayer_reference' => $this->prayer_reference,
+                'prayer_offset' => $this->prayer_offset,
+                'prayer_display_text' => $this->prayer_display_text,
             ], static fn (mixed $value): bool => $value !== null && $value !== ''),
         ]);
 
@@ -612,13 +1126,23 @@ class Event extends PackageEvent implements AuditableContract, HasMedia
         }
 
         $languageCodes = OwnerContext::withOwner(null, function (): Collection {
-            /** @var Collection<int, EventLanguage> $languageRecords */
             $languageRecords = $this->relationLoaded('languages')
                 ? $this->getRelation('languages')
                 : $this->languageRecords()->get();
 
-            return $languageRecords
+            $languageCodes = $languageRecords
+                ->filter(fn (mixed $record): bool => $record instanceof EventLanguage)
                 ->pluck('language_code')
+                ->filter(fn (mixed $languageCode): bool => is_string($languageCode) && $languageCode !== '')
+                ->values();
+
+            if ($languageCodes->isNotEmpty()) {
+                return $languageCodes;
+            }
+
+            return $languageRecords
+                ->filter(fn (mixed $record): bool => $record instanceof Language)
+                ->pluck('code')
                 ->filter(fn (mixed $languageCode): bool => is_string($languageCode) && $languageCode !== '')
                 ->values();
         });
@@ -1275,7 +1799,10 @@ class Event extends PackageEvent implements AuditableContract, HasMedia
      */
     public function keyPeople(): HasMany
     {
-        return $this->hasMany(EventKeyPerson::class)->orderBy('order_column')->orderBy('created_at');
+        return $this->hasMany(EventKeyPerson::class)
+            ->where('role_code', '!=', 'organizer')
+            ->orderBy('sort_order')
+            ->orderBy('created_at');
     }
 
     /**
@@ -1283,7 +1810,7 @@ class Event extends PackageEvent implements AuditableContract, HasMedia
      */
     public function speakerKeyPeople(): HasMany
     {
-        return $this->keyPeople()->where('role', EventKeyPersonRole::Speaker->value);
+        return $this->keyPeople()->where('role_code', EventKeyPersonRole::Speaker->value);
     }
 
     /**
@@ -1291,7 +1818,7 @@ class Event extends PackageEvent implements AuditableContract, HasMedia
      */
     public function nonSpeakerKeyPeople(): HasMany
     {
-        return $this->keyPeople()->where('role', '!=', EventKeyPersonRole::Speaker->value);
+        return $this->keyPeople()->where('role_code', '!=', EventKeyPersonRole::Speaker->value);
     }
 
     public function eventStructure(): EventStructure
@@ -1347,17 +1874,25 @@ class Event extends PackageEvent implements AuditableContract, HasMedia
     }
 
     /**
+     * @return HasOne<EventSettings, $this>
+     */
+    public function settings(): HasOne
+    {
+        return $this->hasOne(EventSettings::class);
+    }
+
+    /**
      * @return BelongsToMany<Speaker, $this, EventKeyPersonPivot, 'pivot'>
      */
     public function speakers(): BelongsToMany
     {
-        return $this->belongsToMany(Speaker::class, 'event_key_people', 'event_id', 'speaker_id')
+        return $this->belongsToMany(Speaker::class, 'event_involvements', 'event_id', 'speaker_id')
             ->using(EventKeyPersonPivot::class)
-            ->wherePivot('role', EventKeyPersonRole::Speaker->value)
-            ->withPivotValue('role', EventKeyPersonRole::Speaker->value)
-            ->withPivot(['id', 'role', 'name', 'order_column', 'is_public', 'notes'])
+            ->wherePivot('role_code', EventKeyPersonRole::Speaker->value)
+            ->withPivotValue('role_code', EventKeyPersonRole::Speaker->value)
+            ->withPivot(['id', 'role_code', 'name', 'sort_order', 'is_public', 'notes'])
             ->withTimestamps()
-            ->orderByPivot('order_column');
+            ->orderByPivot('sort_order');
     }
 
     /**
@@ -1392,7 +1927,8 @@ class Event extends PackageEvent implements AuditableContract, HasMedia
      */
     public function moderationReviews(): HasMany
     {
-        return $this->hasMany(ModerationReview::class);
+        return $this->hasMany(ModerationReview::class, 'actionable_id')
+            ->where('actionable_type', Event::class);
     }
 
     /**
@@ -1400,7 +1936,8 @@ class Event extends PackageEvent implements AuditableContract, HasMedia
      */
     public function latestModerationReview(): HasOne
     {
-        return $this->hasOne(ModerationReview::class)
+        return $this->hasOne(ModerationReview::class, 'actionable_id')
+            ->where('actionable_type', Event::class)
             ->orderByDesc('created_at')
             ->orderByDesc('id');
     }
@@ -1513,8 +2050,8 @@ class Event extends PackageEvent implements AuditableContract, HasMedia
         ?\Closure $extraConstraint = null,
     ): void {
         $query
-            ->where("{$table}.status", EventChangeStatus::Published->value)
-            ->whereNull("{$table}.retracted_at");
+            ->where("{$table}.metadata->status", EventChangeStatus::Published->value)
+            ->whereNull("{$table}.archived_at");
 
         $extraConstraint?->__invoke($query, $table);
     }
@@ -1553,11 +2090,11 @@ class Event extends PackageEvent implements AuditableContract, HasMedia
     }
 
     /**
-     * @return BelongsToMany<User, $this>
+     * @return MorphMany<Bookmark, $this>
      */
-    public function savedBy(): BelongsToMany
+    public function savedBy(): MorphMany
     {
-        return $this->belongsToMany(User::class, 'event_saves')->withTimestamps();
+        return $this->morphMany(Bookmark::class, 'bookmarkable')->active();
     }
 
     /**

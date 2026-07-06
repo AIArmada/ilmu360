@@ -79,8 +79,8 @@ class GenerateEventSlugAction
             ->where(function ($query) use ($normalizedSpeakerId): void {
                 $query->whereHas('keyPeople', function ($keyPeopleQuery) use ($normalizedSpeakerId): void {
                     $keyPeopleQuery
-                        ->where('event_key_people.speaker_id', $normalizedSpeakerId)
-                        ->where('event_key_people.role', EventKeyPersonRole::Speaker->value);
+                        ->where('speaker_id', $normalizedSpeakerId)
+                        ->where('role_code', EventKeyPersonRole::Speaker->value);
                 })->orWhereHas('involvements', function ($involvementQuery) use ($normalizedSpeakerId): void {
                     $involvementQuery
                         ->where('involveable_type', Speaker::class)

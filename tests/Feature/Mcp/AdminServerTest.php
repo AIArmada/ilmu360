@@ -217,7 +217,7 @@ it('reviews membership claims through the admin MCP workflow tool', function () 
     $claim = MembershipClaim::factory()
         ->forInstitution($institution)
         ->create([
-            'claimant_id' => $claimant->getKey(),
+            'applicant_id' => $claimant->getKey(),
             'status' => 'pending',
         ]);
 
@@ -225,7 +225,7 @@ it('reviews membership claims through the admin MCP workflow tool', function () 
         ->tool(AdminReviewMembershipClaimTool::class, [
             'record_key' => $claim->getKey(),
             'action' => 'approve',
-            'granted_role_slug' => 'admin',
+            'granted_role' => 'admin',
             'reviewer_note' => 'Approved through admin MCP.',
         ])
         ->assertOk()
@@ -233,11 +233,11 @@ it('reviews membership claims through the admin MCP workflow tool', function () 
             ->where('data.resource.key', 'membership-claims')
             ->where('data.record.route_key', $claim->getRouteKey())
             ->where('data.record.attributes.status', 'approved')
-            ->where('data.record.attributes.granted_role_slug', 'admin')
+            ->where('data.record.attributes.granted_role', 'admin')
             ->etc());
 
     expect($claim->fresh()?->status->value)->toBe('approved')
-        ->and($claim->fresh()?->granted_role_slug)->toBe('admin')
+        ->and($claim->fresh()?->granted_role)->toBe('admin')
         ->and($claim->fresh()?->reviewer_id)->toBe($admin->getKey())
         ->and($institution->fresh()->members()->whereKey($claimant->getKey())->exists())->toBeTrue();
 });
@@ -1221,7 +1221,7 @@ it('returns explicit admin workflow schemas through dedicated MCP schema tools',
     $claim = MembershipClaim::factory()
         ->forInstitution($institution)
         ->create([
-            'claimant_id' => $claimant->getKey(),
+            'applicant_id' => $claimant->getKey(),
             'status' => 'pending',
         ]);
 

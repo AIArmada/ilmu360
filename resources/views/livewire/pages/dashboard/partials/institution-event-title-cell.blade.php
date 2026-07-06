@@ -3,7 +3,7 @@
     $isAwaitingApproval = $statusValue === 'pending';
     $canEditEvent = auth()->user()?->can('update', $event) ?? false;
     $ahliEventEditUrl = $canEditEvent
-        ? \App\Filament\Ahli\Resources\Events\EventResource::getUrl('edit', ['record' => $event], panel: 'ahli')
+        ? \AIArmada\FilamentEvents\Resources\EventResource::getUrl('edit', ['record' => $event], panel: 'ahli')
         : null;
     $duplicateEventUrl = $canEditEvent && $canUseSelectedInstitutionForScopedSubmission && filled($selectedInstitutionId)
         ? route('dashboard.institutions.submit-event', ['institution' => $selectedInstitutionId, 'duplicate' => $event->id])

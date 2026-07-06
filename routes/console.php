@@ -1,7 +1,6 @@
 <?php
 
 use App\Jobs\DispatchEventReminderNotifications;
-use App\Jobs\DispatchNotificationDigests;
 use App\Jobs\EscalatePendingEvents;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -11,19 +10,7 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-// Notification digests and time-based deliveries
-Schedule::job(new DispatchNotificationDigests('daily'))
-    ->everyFifteenMinutes()
-    ->timezone('UTC')
-    ->name('notification-digest-daily')
-    ->withoutOverlapping();
-
-Schedule::job(new DispatchNotificationDigests('weekly'))
-    ->everyFifteenMinutes()
-    ->timezone('UTC')
-    ->name('notification-digest-weekly')
-    ->withoutOverlapping();
-
+// Notification reminders (2-hour and check-in windows)
 Schedule::job(new DispatchEventReminderNotifications)
     ->everyFifteenMinutes()
     ->timezone('UTC')

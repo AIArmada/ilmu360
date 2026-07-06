@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use AIArmada\Engagement\Models\Bookmark;
 use App\Actions\Events\ResolveEventCheckInStateAction;
 use App\Data\Api\Event\EventMeData;
 use App\Data\Api\Event\EventPayloadData;
@@ -395,14 +396,18 @@ class EventController extends Controller
 
                 $query
                     ->where('timing_mode', 'prayer_relative')
-                    ->where(function (Builder $prayerQuery) use ($normalized, $operator): void {
-                        $prayerQuery->where('prayer_display_text', $operator, "%{$normalized}%");
+                    ->whereHas('timeExpressions', function (Builder $prayerQuery) use ($normalized, $operator): void {
+                        $prayerQuery->where('anchor_type', 'prayer');
 
-                        $reference = $this->resolvePrayerReference($normalized);
+                        $prayerQuery->where(function (Builder $inner) use ($normalized, $operator): void {
+                            $inner->where('display_label', $operator, "%{$normalized}%");
 
-                        if ($reference !== null) {
-                            $prayerQuery->orWhere('prayer_reference', $reference);
-                        }
+                            $reference = $this->resolvePrayerReference($normalized);
+
+                            if ($reference !== null) {
+                                $inner->orWhere('anchor_code', $reference);
+                            }
+                        });
                     });
             }),
         ];
@@ -544,18 +549,18 @@ class EventController extends Controller
             ? EventRegistrationData::fromModel($registration)
             : null;
 
-        $checkInState = $resolveEventCheckInStateAction->handle($event->loadMissing('settings'), $user);
+        $checkInState = $resolveEventCheckInStateAction->handle($event->loadMissing('accessPolicy'), $user);
 
         $isCheckedIn = EventCheckin::query()
             ->where('event_id', $event->getKey())
-            ->where('user_id', $user->getKey())
+            ->where('attendee_id', $user->getKey())
             ->exists();
 
         $savesCount = (int) ($event->saves_count ?? 0);
 
-        $isSaved = DB::table('event_saves')
-            ->where('user_id', $user->getKey())
-            ->where('event_id', $event->getKey())
+        $isSaved = Bookmark::forBookmarker($user)
+            ->forBookmarkable($event)
+            ->active()
             ->exists();
 
         $goingCount = (int) ($event->going_count ?? 0);
@@ -781,19 +786,23 @@ class EventController extends Controller
     {
         $operator = $this->databaseLikeOperator();
 
-        $query->where(function (Builder $prayerQuery) use ($reference, $terms, $operator): void {
-            $prayerQuery->where('prayer_reference', $reference->value)
-                ->orWhere(function (Builder $labelQuery) use ($terms, $operator): void {
-                    foreach ($terms as $index => $term) {
-                        if ($index === 0) {
-                            $labelQuery->where('prayer_display_text', $operator, "%{$term}%");
+        $query->whereHas('timeExpressions', function (Builder $prayerQuery) use ($reference, $terms, $operator): void {
+            $prayerQuery->where('anchor_type', 'prayer');
 
-                            continue;
+            $prayerQuery->where(function (Builder $inner) use ($reference, $terms, $operator): void {
+                $inner->where('anchor_code', $reference->value)
+                    ->orWhere(function (Builder $labelQuery) use ($terms, $operator): void {
+                        foreach ($terms as $index => $term) {
+                            if ($index === 0) {
+                                $labelQuery->where('display_label', $operator, "%{$term}%");
+
+                                continue;
+                            }
+
+                            $labelQuery->orWhere('display_label', $operator, "%{$term}%");
                         }
-
-                        $labelQuery->orWhere('prayer_display_text', $operator, "%{$term}%");
-                    }
-                });
+                    });
+            });
         });
     }
 
@@ -810,18 +819,30 @@ class EventController extends Controller
                 ->where(function (Builder $relativeQuery) use ($operator): void {
                     $relativeQuery
                         ->where('timing_mode', TimingMode::PrayerRelative->value)
-                        ->where(function (Builder $labelQuery) use ($operator): void {
-                            $labelQuery->where('prayer_display_text', $operator, '%dhuha%')
-                                ->orWhere('prayer_display_text', $operator, '%pagi%')
-                                ->orWhere('prayer_display_text', $operator, '%morning%');
+                        ->whereHas('timeExpressions', function (Builder $labelQuery) use ($operator): void {
+                            $labelQuery->where('anchor_type', 'prayer');
+
+                            $labelQuery->where(function (Builder $inner) use ($operator): void {
+                                $inner->where('display_label', $operator, '%dhuha%')
+                                    ->orWhere('display_label', $operator, '%pagi%')
+                                    ->orWhere('display_label', $operator, '%morning%');
+                            });
                         })
                         ->where(function (Builder $excludeQuery): void {
-                            $excludeQuery->whereNull('prayer_reference')
-                                ->orWhereNotIn('prayer_reference', [
-                                    PrayerReference::Fajr->value,
-                                    PrayerReference::Dhuhr->value,
-                                    PrayerReference::FridayPrayer->value,
-                                ]);
+                            $excludeQuery->whereDoesntHave('timeExpressions', fn (Builder $q) => $q->where('anchor_type', 'prayer'))
+                                ->orWhere(function (Builder $orQuery): void {
+                                    $orQuery->whereHas('timeExpressions', function (Builder $q): void {
+                                        $q->where('anchor_type', 'prayer')
+                                            ->where(function (Builder $inner): void {
+                                                $inner->whereNull('anchor_code')
+                                                    ->orWhereNotIn('anchor_code', [
+                                                        PrayerReference::Fajr->value,
+                                                        PrayerReference::Dhuhr->value,
+                                                        PrayerReference::FridayPrayer->value,
+                                                    ]);
+                                            });
+                                    });
+                                });
                         });
                 })
                 ->orWhere(function (Builder $absoluteQuery) use ($startsAtUserTimeSql): void {

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "52459769f11a9b2faf8c67bf845a783e",
+    "content-hash": "6398286f8836e3bd78d8786b50606de7",
     "packages": [
         {
             "name": "aiarmada/addressing",
@@ -381,13 +381,14 @@
             "dist": {
                 "type": "path",
                 "url": "/Users/Saiffil/Herd/commerce/packages/events",
-                "reference": "b2327d492a0749ef19e7c203f001b9166d8dcfda"
+                "reference": "fdc430b69613d364aadc5f77c144f6c73bed9709"
             },
             "require": {
                 "aiarmada/commerce-support": "self.version",
                 "aiarmada/contacting": "self.version",
                 "aiarmada/inventory": "self.version",
                 "aiarmada/seating": "self.version",
+                "aiarmada/ticketing": "self.version",
                 "php": "^8.4",
                 "spatie/laravel-data": "^4.23",
                 "spatie/laravel-model-states": "^2.0",
@@ -513,6 +514,46 @@
                 "MIT"
             ],
             "description": "Filament v5 permissions suite powered by Spatie laravel-permission with multi-guard, panel-aware gating, and admin UX.",
+            "transport-options": {
+                "relative": false
+            }
+        },
+        {
+            "name": "aiarmada/filament-commerce-support",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "/Users/Saiffil/Herd/commerce/packages/filament-commerce-support",
+                "reference": "a4a4b9e661cfbabab9ab2cd42c0baa13fdcb4b5c"
+            },
+            "require": {
+                "aiarmada/commerce-support": "self.version",
+                "filament/filament": "^5.6.7",
+                "php": "^8.4",
+                "spatie/laravel-settings": "^3.8.1"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "AIArmada\\FilamentCommerceSupport\\FilamentCommerceSupportServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "AIArmada\\FilamentCommerceSupport\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "Filament v5 admin panel for Commerce Support — navigation management, runtime overrides, and unified settings.",
+            "homepage": "https://github.com/aiarmada/commerce",
+            "support": {
+                "issues": "https://github.com/aiarmada/commerce/issues",
+                "source": "https://github.com/aiarmada/commerce"
+            },
             "transport-options": {
                 "relative": false
             }
@@ -676,6 +717,81 @@
             }
         },
         {
+            "name": "aiarmada/filament-inventory",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "/Users/Saiffil/Herd/commerce/packages/filament-inventory",
+                "reference": "885a13cba4fe038efd688800a07e62951f8a79e0"
+            },
+            "require": {
+                "aiarmada/commerce-support": "self.version",
+                "aiarmada/inventory": "self.version",
+                "filament/filament": "^5.6.7",
+                "php": "^8.4"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "AIArmada\\FilamentInventory\\FilamentInventoryServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "AIArmada\\FilamentInventory\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "Filament admin panel for inventory and warehouse management",
+            "homepage": "https://github.com/aiarmada/commerce",
+            "support": {
+                "issues": "https://github.com/aiarmada/commerce/issues",
+                "source": "https://github.com/aiarmada/commerce"
+            },
+            "transport-options": {
+                "relative": false
+            }
+        },
+        {
+            "name": "aiarmada/filament-seating",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "/Users/Saiffil/Herd/commerce/packages/filament-seating",
+                "reference": "71a11a2b5bdf69e70a05a1d4615bae63373525f6"
+            },
+            "require": {
+                "aiarmada/filament-commerce-support": "self.version",
+                "aiarmada/seating": "self.version",
+                "filament/filament": "^5.6.7",
+                "php": "^8.4"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "AIArmada\\FilamentSeating\\FilamentSeatingServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "AIArmada\\FilamentSeating\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "Filament admin for aiarmada/seating: manage seat maps, sections, and occupancy.",
+            "transport-options": {
+                "relative": false
+            }
+        },
+        {
             "name": "aiarmada/filament-signals",
             "version": "dev-main",
             "dist": {
@@ -719,6 +835,41 @@
                 "product-analytics",
                 "signals"
             ],
+            "transport-options": {
+                "relative": false
+            }
+        },
+        {
+            "name": "aiarmada/filament-ticketing",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "/Users/Saiffil/Herd/commerce/packages/filament-ticketing",
+                "reference": "3446c880c1e41cb6622a7f0bcfc97a8cb1df98ef"
+            },
+            "require": {
+                "aiarmada/filament-commerce-support": "self.version",
+                "aiarmada/ticketing": "self.version",
+                "filament/filament": "^5.6.7",
+                "php": "^8.4"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "AIArmada\\FilamentTicketing\\FilamentTicketingServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "AIArmada\\FilamentTicketing\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "Filament admin for aiarmada/ticketing: manage ticket types, passes, pass holders, transfers, and pass issuance.",
             "transport-options": {
                 "relative": false
             }
@@ -20151,7 +20302,10 @@
         "aiarmada/filament-contacting": 20,
         "aiarmada/filament-engagement": 20,
         "aiarmada/filament-events": 20,
+        "aiarmada/filament-inventory": 20,
+        "aiarmada/filament-seating": 20,
         "aiarmada/filament-signals": 20,
+        "aiarmada/filament-ticketing": 20,
         "aiarmada/inventory": 20,
         "aiarmada/membership": 20,
         "aiarmada/moderation": 20,

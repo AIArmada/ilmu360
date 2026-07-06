@@ -1,5 +1,6 @@
 <?php
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Models\Series;
 use App\Support\Auth\IntendedRedirect;
 use Illuminate\Support\Str;
@@ -19,6 +20,11 @@ new
     public int $upcomingPerPage = 10;
 
     public int $pastPerPage = 10;
+
+    public function boot(): void
+    {
+        OwnerContext::setForRequest(null);
+    }
 
     public function mount(Series $series): void
     {

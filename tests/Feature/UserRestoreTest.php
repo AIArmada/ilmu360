@@ -9,6 +9,13 @@ use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 use AIArmada\Affiliates\States\Active;
 use AIArmada\Affiliates\States\PendingConversion;
 use AIArmada\CommerceSupport\Models\Role;
+use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Communications\Enums\NotificationFamily;
+use AIArmada\Communications\Enums\NotificationPriority;
+use AIArmada\Communications\Enums\NotificationTrigger;
+use AIArmada\Communications\Models\NotificationInbox;
+use AIArmada\Engagement\Contracts\EngagementManager;
+use AIArmada\Engagement\Models\Follow;
 use AIArmada\FilamentAuthz\Facades\Authz;
 use App\Filament\Pages\DeletedUsers;
 use App\Models\AiUsageLog;
@@ -22,10 +29,8 @@ use App\Models\MembershipClaim;
 use App\Models\ModerationReview;
 use App\Models\NotificationDelivery;
 use App\Models\NotificationDestination;
-use App\Models\NotificationMessage;
 use App\Models\NotificationRule;
 use App\Models\NotificationSetting;
-use App\Models\PendingNotification;
 use App\Models\Reference;
 use App\Models\Registration;
 use App\Models\Report;
@@ -136,17 +141,25 @@ it('restores a deleted user together with key relationships and child records', 
         'user_id' => $user->id,
         'address' => 'restore-device-token',
     ]);
-    $pendingNotification = PendingNotification::factory()->create([
-        'user_id' => $user->id,
-        'fingerprint' => 'restore-pending-notification',
-    ]);
-    $notificationMessage = NotificationMessage::factory()->create([
-        'notifiable_type' => $user->getMorphClass(),
-        'notifiable_id' => $user->id,
-        'fingerprint' => 'restore-notification-message',
-    ]);
+    $notificationMessage = OwnerContext::withOwner(null, fn () => NotificationInbox::query()->create([
+        'recipient_type' => $user->getMorphClass(),
+        'recipient_id' => $user->id,
+        'family' => NotificationFamily::EventUpdate->value,
+        'priority' => NotificationPriority::Normal->value,
+        'trigger' => NotificationTrigger::EventCancelled->value,
+        'title' => 'Restore notification',
+        'body' => 'Restore body',
+        'data' => [
+            'channels_attempted' => [],
+            'meta' => [],
+            'action_url' => null,
+            'entity_type' => null,
+            'entity_id' => null,
+        ],
+        'read_at' => null,
+    ]));
     $notificationDelivery = NotificationDelivery::factory()->create([
-        'notification_message_id' => $pendingNotification->id,
+        'notification_message_id' => (string) Str::uuid(),
         'user_id' => $user->id,
         'destination_id' => $notificationDestination->id,
         'fingerprint' => 'restore-notification-delivery',
@@ -177,7 +190,7 @@ it('restores a deleted user together with key relationships and child records', 
         'reviewer_id' => $user->id,
     ]);
     $membershipClaim = MembershipClaim::factory()->create([
-        'claimant_id' => $user->id,
+        'applicant_id' => $user->id,
         'reviewer_id' => $user->id,
     ]);
     $moderationReview = ModerationReview::factory()->create([
@@ -310,10 +323,37 @@ it('restores a deleted user together with key relationships and child records', 
     $user->references()->attach($reference->id, ['joined_at' => $referenceJoinedAt]);
     $user->venues()->attach($venue->id, ['joined_at' => $venueJoinedAt]);
 
-    $user->followingInstitutions()->attach($followedInstitution->id);
-    $user->followingSpeakers()->attach($followedSpeaker->id);
-    $user->followingReferences()->attach($followedReference->id);
-    $user->savedEvents()->attach($sharedEvent->id);
+    OwnerContext::withOwner(null, function () use ($user, $followedInstitution): void {
+        Follow::query()->create([
+            'follower_type' => $user->getMorphClass(),
+            'follower_id' => $user->getKey(),
+            'followable_type' => $followedInstitution->getMorphClass(),
+            'followable_id' => $followedInstitution->getKey(),
+            'status' => 'active',
+            'followed_at' => now(),
+        ]);
+    });
+    OwnerContext::withOwner(null, function () use ($user, $followedSpeaker): void {
+        Follow::query()->create([
+            'follower_type' => $user->getMorphClass(),
+            'follower_id' => $user->getKey(),
+            'followable_type' => $followedSpeaker->getMorphClass(),
+            'followable_id' => $followedSpeaker->getKey(),
+            'status' => 'active',
+            'followed_at' => now(),
+        ]);
+    });
+    OwnerContext::withOwner(null, function () use ($user, $followedReference): void {
+        Follow::query()->create([
+            'follower_type' => $user->getMorphClass(),
+            'follower_id' => $user->getKey(),
+            'followable_type' => $followedReference->getMorphClass(),
+            'followable_id' => $followedReference->getKey(),
+            'status' => 'active',
+            'followed_at' => now(),
+        ]);
+    });
+    app(EngagementManager::class)->bookmark($user, $sharedEvent);
     $user->goingEvents()->attach($sharedEvent->id);
     $user->memberEvents()->attach($sharedEvent->id, ['joined_at' => $memberJoinedAt]);
 
@@ -369,8 +409,7 @@ it('restores a deleted user together with key relationships and child records', 
     assertDatabaseMissing('saved_searches', ['id' => $savedSearch->id]);
     assertDatabaseMissing('notification_rules', ['id' => $notificationRule->id]);
     assertDatabaseMissing('notification_destinations', ['id' => $notificationDestination->id]);
-    assertDatabaseMissing('notification_messages', ['id' => $pendingNotification->id]);
-    assertDatabaseMissing('notifications', ['id' => $notificationMessage->id]);
+    assertDatabaseMissing('notification_inboxes', ['id' => $notificationMessage->id]);
     assertDatabaseMissing('notification_deliveries', ['id' => $notificationDelivery->id]);
     assertDatabaseMissing('ai_usage_logs', ['id' => $aiUsageLog->id]);
     assertDatabaseMissing($modelHasRolesTable, [
@@ -447,27 +486,36 @@ it('restores a deleted user together with key relationships and child records', 
         'joined_at' => $venueJoinedAt->toDateTimeString(),
     ]);
 
-    assertDatabaseHas('followings', [
-        'user_id' => $user->id,
+    assertDatabaseHas('engagement_follows', [
+        'follower_id' => $user->id,
+        'follower_type' => (new User)->getMorphClass(),
+        'status' => 'active',
         'followable_id' => $followedInstitution->id,
         'followable_type' => $followedInstitution->getMorphClass(),
     ]);
 
-    assertDatabaseHas('followings', [
-        'user_id' => $user->id,
+    assertDatabaseHas('engagement_follows', [
+        'follower_id' => $user->id,
+        'follower_type' => (new User)->getMorphClass(),
+        'status' => 'active',
         'followable_id' => $followedSpeaker->id,
         'followable_type' => $followedSpeaker->getMorphClass(),
     ]);
 
-    assertDatabaseHas('followings', [
-        'user_id' => $user->id,
+    assertDatabaseHas('engagement_follows', [
+        'follower_id' => $user->id,
+        'follower_type' => (new User)->getMorphClass(),
+        'status' => 'active',
         'followable_id' => $followedReference->id,
         'followable_type' => $followedReference->getMorphClass(),
     ]);
 
-    assertDatabaseHas('event_saves', [
-        'event_id' => $sharedEvent->id,
-        'user_id' => $user->id,
+    assertDatabaseHas('engagement_bookmarks', [
+        'bookmarkable_type' => $sharedEvent->getMorphClass(),
+        'bookmarkable_id' => $sharedEvent->id,
+        'bookmarker_type' => $user->getMorphClass(),
+        'bookmarker_id' => $user->id,
+        'status' => 'active',
     ]);
 
     assertDatabaseHas('event_attendees', [
@@ -493,9 +541,9 @@ it('restores a deleted user together with key relationships and child records', 
         'proposer_id' => $user->id,
         'reviewer_id' => $user->id,
     ]);
-    assertDatabaseHas('membership_claims', [
+    assertDatabaseHas('membership_applications', [
         'id' => $membershipClaim->id,
-        'claimant_id' => $user->id,
+        'applicant_id' => $user->id,
         'reviewer_id' => $user->id,
     ]);
     assertDatabaseHas('moderation_reviews', [
@@ -548,13 +596,9 @@ it('restores a deleted user together with key relationships and child records', 
         'id' => $notificationDestination->id,
         'user_id' => $user->id,
     ]);
-    assertDatabaseHas('notification_messages', [
-        'id' => $pendingNotification->id,
-        'user_id' => $user->id,
-    ]);
-    assertDatabaseHas('notifications', [
+    assertDatabaseHas('notification_inboxes', [
         'id' => $notificationMessage->id,
-        'notifiable_id' => $user->id,
+        'recipient_id' => $user->id,
     ]);
     assertDatabaseHas('notification_deliveries', [
         'id' => $notificationDelivery->id,
@@ -663,7 +707,7 @@ it('restores an api self-deleted user from the deleted users admin page', functi
     $user->speakers()->attach($speaker->id, ['joined_at' => $speakerJoinedAt]);
     $user->references()->attach($reference->id, ['joined_at' => $referenceJoinedAt]);
     $user->venues()->attach($venue->id, ['joined_at' => $venueJoinedAt]);
-    $user->savedEvents()->attach($sharedEvent->id);
+    app(EngagementManager::class)->bookmark($user, $sharedEvent);
     $user->goingEvents()->attach($sharedEvent->id);
     $user->memberEvents()->attach($sharedEvent->id, ['joined_at' => $eventJoinedAt]);
 
@@ -780,9 +824,12 @@ it('restores an api self-deleted user from the deleted users admin page', functi
         'user_id' => $user->id,
         'joined_at' => $venueJoinedAt->toDateTimeString(),
     ]);
-    assertDatabaseHas('event_saves', [
-        'event_id' => $sharedEvent->id,
-        'user_id' => $user->id,
+    assertDatabaseHas('engagement_bookmarks', [
+        'bookmarkable_type' => $sharedEvent->getMorphClass(),
+        'bookmarkable_id' => $sharedEvent->id,
+        'bookmarker_type' => $user->getMorphClass(),
+        'bookmarker_id' => $user->id,
+        'status' => 'active',
     ]);
     assertDatabaseHas('event_attendees', [
         'event_id' => $sharedEvent->id,

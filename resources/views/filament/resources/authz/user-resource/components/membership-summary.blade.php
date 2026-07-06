@@ -1,6 +1,6 @@
 @php
     use App\Enums\MemberSubjectType;
-    use App\Filament\Resources\Events\EventResource;
+    use AIArmada\FilamentEvents\Resources\EventResource;
     use App\Filament\Resources\Institutions\InstitutionResource;
     use App\Filament\Resources\References\ReferenceResource;
     use App\Filament\Resources\Speakers\SpeakerResource;

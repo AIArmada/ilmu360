@@ -2,8 +2,9 @@
 
 namespace Database\Factories;
 
-use AIArmada\Events\Enums\RegistrationMode as PackageRegistrationMode;
 use AIArmada\Events\Database\Factories\EventFactory as PackageEventFactory;
+use AIArmada\Events\Enums\RegistrationMode as PackageRegistrationMode;
+use AIArmada\Events\Models\EventLink;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
@@ -148,16 +149,6 @@ class EventFactory extends PackageEventFactory
                 EventVisibility::Unlisted,
             ]),
             'status' => $status,
-            'live_url' => function (array $attributes) use ($livestreamUrl): ?string {
-                $eventFormat = $this->eventFormatFromAttributes($attributes);
-
-                if ($eventFormat === EventFormat::Physical) {
-                    return null;
-                }
-
-                return $livestreamUrl ? Str::replaceFirst('http://', 'https://', $livestreamUrl) : 'https://meet.google.com/'.Str::random(10);
-            },
-            'recording_url' => $recordingUrl ? Str::replaceFirst('http://', 'https://', $recordingUrl) : null,
             'views_count' => fake()->numberBetween(0, 2000),
             'saves_count' => fake()->numberBetween(0, 500),
             'registrations_count' => fake()->numberBetween(0, 200),
@@ -174,6 +165,9 @@ class EventFactory extends PackageEventFactory
     public function configure(): static
     {
         return $this->afterCreating(function (Event $event) {
+            // Create EventLink rows for streaming/recording URLs
+            $this->ensureFactoryUrlLinks($event);
+
             // 30% of events have registration settings
             if (
                 $event->eventStructure() !== EventStructure::ParentProgram
@@ -300,5 +294,28 @@ class EventFactory extends PackageEventFactory
         }
 
         return EventFormat::Physical;
+    }
+
+    private function ensureFactoryUrlLinks(Event $event): void
+    {
+        $eventFormat = $this->eventFormatFromAttributes($event->getAttributes());
+
+        if ($eventFormat !== EventFormat::Physical) {
+            EventLink::query()->create([
+                'event_id' => (string) $event->getKey(),
+                'link_type' => 'streaming',
+                'url' => 'https://meet.google.com/'.Str::random(10),
+                'visibility' => 'public',
+            ]);
+        }
+
+        if (fake()->boolean(50) && $eventFormat !== EventFormat::Online) {
+            EventLink::query()->create([
+                'event_id' => (string) $event->getKey(),
+                'link_type' => 'recording',
+                'url' => 'https://www.youtube.com/watch?v='.Str::random(11),
+                'visibility' => 'public',
+            ]);
+        }
     }
 }

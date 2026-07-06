@@ -11,7 +11,7 @@ class EventKeyPersonPivot extends Pivot
 {
     use HasUuids;
 
-    protected $table = 'event_key_people';
+    protected $table = 'event_involvements';
 
     public $incrementing = false;
 
@@ -24,9 +24,9 @@ class EventKeyPersonPivot extends Pivot
         'id',
         'event_id',
         'speaker_id',
-        'role',
+        'role_code',
         'name',
-        'order_column',
+        'sort_order',
         'is_public',
         'notes',
     ];

@@ -2,9 +2,10 @@
 
 namespace App\Livewire\Pages\Dashboard;
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Communications\Models\NotificationInbox;
 use App\Actions\Notifications\MarkAllNotificationMessagesReadAction;
 use App\Actions\Notifications\MarkNotificationMessageReadAction;
-use App\Models\NotificationMessage;
 use App\Models\User;
 use App\Support\Notifications\NotificationCatalog;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -25,6 +26,11 @@ class NotificationsIndex extends Component
 
     #[Url(as: 'status')]
     public string $status = 'unread';
+
+    public function boot(): void
+    {
+        OwnerContext::setForRequest(null);
+    }
 
     public function mount(): void
     {
@@ -69,21 +75,21 @@ class NotificationsIndex extends Component
     public function unreadCount(): int
     {
         return $this->currentUser()
-            ->notificationMessages()
-            ->visibleInInbox()
+            ->notificationInbox()
+            ->whereNull('archived_at')
             ->whereNull('read_at')
             ->count();
     }
 
     /**
-     * @return LengthAwarePaginator<int, NotificationMessage>
+     * @return LengthAwarePaginator<int, NotificationInbox>
      */
     #[Computed]
     public function notifications(): LengthAwarePaginator
     {
         $query = $this->currentUser()
-            ->notificationMessages()
-            ->visibleInInbox()
+            ->notificationInbox()
+            ->whereNull('archived_at')
             ->when($this->family !== 'all', fn ($builder) => $builder->where('family', $this->family))
             ->when($this->status === 'unread', fn ($builder) => $builder->whereNull('read_at'))
             ->when($this->status === 'read', fn ($builder) => $builder->whereNotNull('read_at'));

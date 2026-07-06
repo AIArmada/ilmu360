@@ -120,7 +120,7 @@ new class extends Component {};
                     {{ session('parent_event_id') ? __('Add Another Child Event') : __('Submit Another Event') }}
                 </a>
                 @if(session('parent_event_id'))
-                    <a href="{{ \App\Filament\Ahli\Resources\Events\EventResource::getUrl('view', ['record' => session('parent_event_id')], panel: 'ahli') }}"
+                    <a href="{{ \AIArmada\FilamentEvents\Resources\EventResource::getUrl('view', ['record' => session('parent_event_id')], panel: 'ahli') }}"
                         class="inline-flex h-12 items-center justify-center rounded-xl bg-white border border-emerald-200 px-6 font-semibold text-emerald-700 hover:bg-emerald-50 transition-colors">
                         {{ __('Back to Parent Program') }}
                     </a>

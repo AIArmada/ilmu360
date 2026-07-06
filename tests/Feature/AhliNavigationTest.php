@@ -1,6 +1,6 @@
 <?php
 
-use App\Filament\Ahli\Resources\Events\EventResource;
+use AIArmada\FilamentEvents\Resources\EventResource;
 use App\Filament\Ahli\Resources\Institutions\InstitutionResource;
 use App\Filament\Pages\AhliDashboard;
 use App\Models\Institution;
@@ -50,7 +50,7 @@ it('removes the ahli workspace wrapper and makes events the ahli navigation anch
     );
 
     expect($eventsItem)->not->toBeNull();
-    expect(EventResource::getNavigationGroup())->toBeNull();
+    expect(EventResource::getNavigationGroup())->toBe('Events');
     expect(InstitutionResource::getNavigationGroup())->toBeNull();
     expect(InstitutionResource::getNavigationParentItem())->toBe('Events');
     expect($topLevelItems->map(fn ($item) => $item->getLabel())->all())

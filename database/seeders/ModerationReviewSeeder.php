@@ -41,14 +41,16 @@ class ModerationReviewSeeder extends Seeder
                     $decision = match ($event->status) {
                         'approved' => 'approved',
                         'rejected' => 'rejected',
-                        default => 'needs_changes',
+                        default => 'changes_requested',
                     };
 
                     $reviewsToInsert[] = array_merge(
                         ModerationReview::factory()->make([
-                            'event_id' => $event->id,
-                            'moderator_id' => $moderatorIds[array_rand($moderatorIds)],
-                            'decision' => $decision,
+                            'actionable_type' => Event::class,
+                            'actionable_id' => $event->id,
+                            'actioned_by_type' => User::class,
+                            'actioned_by_id' => $moderatorIds[array_rand($moderatorIds)],
+                            'type' => $decision,
                         ])->toArray(),
                         [
                             'id' => (string) Str::uuid(),

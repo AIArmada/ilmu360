@@ -5,6 +5,7 @@ namespace App\Models;
 use AIArmada\Addressing\Traits\HasAddresses;
 use AIArmada\Contacting\Concerns\HasContactMethods;
 use AIArmada\Contacting\Concerns\HasSocialProfiles;
+use AIArmada\Engagement\Models\Follow;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\Honorific;
 use App\Enums\MemberSubjectType;
@@ -12,7 +13,6 @@ use App\Enums\PostNominal;
 use App\Enums\PreNominal;
 use App\Models\Concerns\AuditsModelChanges;
 use App\Models\Concerns\HasDonationChannels;
-use App\Models\Concerns\HasFollowers;
 use App\Models\Concerns\HasLanguages;
 use App\Models\Concerns\HasPackageContactAliases;
 use App\Models\Concerns\HasPackageSocialAliases;
@@ -27,6 +27,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Laravel\Scout\Searchable;
@@ -48,7 +49,7 @@ class Speaker extends Model implements AuditableContract, HasMedia
     public const string PUBLIC_DIRECTORY_SESSION_KEY = 'public_speakers_directory_seed';
 
     /** @use HasFactory<SpeakerFactory> */
-    use AuditsModelChanges, HasAddresses, HasContactMethods, HasDonationChannels, HasFactory, HasFollowers, HasLanguages, HasPackageContactAliases, HasPackageSocialAliases, HasPrimaryAddressAccessors, HasSocialProfiles, HasUuids, InteractsWithMedia, KeepsDeletedModels, Searchable;
+    use AuditsModelChanges, HasAddresses, HasContactMethods, HasDonationChannels, HasFactory, HasLanguages, HasPackageContactAliases, HasPackageSocialAliases, HasPrimaryAddressAccessors, HasSocialProfiles, HasUuids, InteractsWithMedia, KeepsDeletedModels, Searchable;
 
     public $incrementing = false;
 
@@ -569,11 +570,11 @@ class Speaker extends Model implements AuditableContract, HasMedia
      */
     public function events(): BelongsToMany
     {
-        return $this->belongsToMany(Event::class, 'event_key_people', 'speaker_id', 'event_id')
+        return $this->belongsToMany(Event::class, 'event_involvements', 'speaker_id', 'event_id')
             ->using(EventKeyPersonPivot::class)
-            ->withPivot(['id', 'role', 'name', 'order_column', 'is_public', 'notes'])
+            ->withPivot(['id', 'role_code', 'name', 'sort_order', 'is_public', 'notes'])
             ->withTimestamps()
-            ->orderByPivot('order_column');
+            ->orderByPivot('sort_order');
     }
 
     /**
@@ -582,8 +583,8 @@ class Speaker extends Model implements AuditableContract, HasMedia
     public function speakerEvents(): BelongsToMany
     {
         return $this->events()
-            ->wherePivot('role', EventKeyPersonRole::Speaker->value)
-            ->withPivotValue('role', EventKeyPersonRole::Speaker->value);
+            ->wherePivot('role_code', EventKeyPersonRole::Speaker->value)
+            ->withPivotValue('role_code', EventKeyPersonRole::Speaker->value);
     }
 
     /**
@@ -600,9 +601,9 @@ class Speaker extends Model implements AuditableContract, HasMedia
     public function nonSpeakerEventKeyPeople(): HasMany
     {
         return $this->eventKeyPeople()
-            ->where('role', '!=', EventKeyPersonRole::Speaker->value)
+            ->where('role_code', '!=', EventKeyPersonRole::Speaker->value)
             ->where('is_public', true)
-            ->orderBy('order_column');
+            ->orderBy('sort_order');
     }
 
     /**
@@ -789,5 +790,38 @@ class Speaker extends Model implements AuditableContract, HasMedia
         return $driver === 'pgsql'
             ? "replace(cast(speakers.id as text), '-', '')"
             : "replace(speakers.id, '-', '')";
+    }
+
+    /**
+     * @return MorphMany<Follow, $this>
+     */
+    public function follows(): MorphMany
+    {
+        return $this->morphMany(Follow::class, 'followable');
+    }
+
+    /**
+     * @return MorphToMany<User, $this>
+     */
+    public function followers(): MorphToMany
+    {
+        $table = (new Follow)->getTable();
+
+        return $this->morphToMany(User::class, 'followable', $table, 'followable_id', 'follower_id')
+            ->where("{$table}.status", 'active');
+    }
+
+    public function followersCount(): int
+    {
+        return $this->follows()->active()->count();
+    }
+
+    public function isFollowedBy(?User $user): bool
+    {
+        if (! $user instanceof User) {
+            return false;
+        }
+
+        return $this->follows()->active()->where('follower_id', $user->getKey())->exists();
     }
 }

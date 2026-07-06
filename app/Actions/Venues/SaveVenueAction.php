@@ -9,6 +9,7 @@ use App\Support\Media\ModelMediaSyncService;
 use BackedEnum;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Str;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 final readonly class SaveVenueAction
@@ -46,6 +47,10 @@ final readonly class SaveVenueAction
         ]);
 
         if ($creating) {
+            if (! $venue->getKey()) {
+                $venue->{$venue->getKeyName()} = (string) Str::uuid();
+            }
+
             $venue->slug = $this->generateVenueSlugAction->handle($venue->name, $address);
             Venue::withoutEvents(fn () => $venue->save());
         } else {

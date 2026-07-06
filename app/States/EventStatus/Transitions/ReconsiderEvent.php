@@ -2,6 +2,7 @@
 
 namespace App\States\EventStatus\Transitions;
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Models\Event;
 use App\Models\ModerationReview;
 use App\Models\User;
@@ -26,12 +27,14 @@ class ReconsiderEvent extends Transition implements HasColor, HasIcon, HasLabel
     public function handle(): Event
     {
         return DB::transaction(function () {
-            ModerationReview::create([
-                'event_id' => $this->event->id,
-                'moderator_id' => $this->moderator?->id,
-                'decision' => 'reconsidered',
-                'note' => $this->note ?? 'Event moved back to pending for reconsideration.',
-            ]);
+            OwnerContext::withOwner(null, fn () => ModerationReview::create([
+                'actionable_type' => Event::class,
+                'actionable_id' => $this->event->id,
+                'actioned_by_type' => User::class,
+                'actioned_by_id' => $this->moderator?->id,
+                'type' => 'reconsidered',
+                'notes' => $this->note ?? 'Event moved back to pending for reconsideration.',
+            ]));
 
             $this->event->status = Pending::class;
             $this->event->save();

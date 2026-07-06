@@ -2,63 +2,42 @@
 
 namespace App\Models;
 
+use AIArmada\Events\Models\EventInvolvement;
 use App\Enums\EventKeyPersonRole;
 use App\Models\Concerns\AuditsModelChanges;
-use Database\Factories\EventKeyPersonFactory;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
-class EventKeyPerson extends Model implements AuditableContract
+class EventKeyPerson extends EventInvolvement implements AuditableContract
 {
-    /** @use HasFactory<EventKeyPersonFactory> */
-    use AuditsModelChanges, HasFactory, HasUuids;
+    use AuditsModelChanges;
 
-    protected $table = 'event_key_people';
-
-    public $incrementing = false;
-
-    protected $keyType = 'string';
-
-    /**
-     * @var list<string>
-     */
     protected $fillable = [
-        'event_id',
-        'speaker_id',
-        'role',
-        'name',
-        'order_column',
-        'is_public',
-        'notes',
+        'id',
+        'event_id', 'speaker_id',
+        'role_code', 'name', 'sort_order', 'is_public', 'notes',
+        'role', 'order_column',
+        'status', 'visibility', 'prominence', 'is_featured', 'is_primary',
+        'starts_at', 'ends_at', 'metadata',
     ];
 
-    #[\Override]
     protected function casts(): array
     {
-        return [
-            'role' => EventKeyPersonRole::class,
-            'order_column' => 'integer',
+        return array_merge(parent::casts(), [
+            'role_code' => EventKeyPersonRole::class,
             'is_public' => 'boolean',
-        ];
+            'sort_order' => 'integer',
+        ]);
     }
 
-    /**
-     * @return BelongsTo<Event, $this>
-     */
     public function event(): BelongsTo
     {
-        return $this->belongsTo(Event::class);
+        return $this->belongsTo(Event::class, 'event_id');
     }
 
-    /**
-     * @return BelongsTo<Speaker, $this>
-     */
     public function speaker(): BelongsTo
     {
-        return $this->belongsTo(Speaker::class);
+        return $this->belongsTo(Speaker::class, 'speaker_id');
     }
 
     public function getDisplayNameAttribute(): string
@@ -68,5 +47,25 @@ class EventKeyPerson extends Model implements AuditableContract
         }
 
         return (string) ($this->name ?? '');
+    }
+
+    public function getRoleAttribute(): ?string
+    {
+        return $this->role_code instanceof \BackedEnum ? $this->role_code->value : $this->role_code;
+    }
+
+    public function setRoleAttribute(mixed $value): void
+    {
+        $this->role_code = $value instanceof \BackedEnum ? $value->value : $value;
+    }
+
+    public function getOrderColumnAttribute(): ?int
+    {
+        return $this->sort_order;
+    }
+
+    public function setOrderColumnAttribute(?int $value): void
+    {
+        $this->sort_order = $value;
     }
 }

@@ -36,7 +36,7 @@ class MembershipClaimReviewController extends Controller
     #[PathParameter('recordKey', 'Existing membership claim route key returned by the admin collection or record endpoints.', example: '0195b86a-3c15-73fa-a2d8-5a45f6a7f701')]
     #[Endpoint(
         title: 'Review a membership claim',
-        description: 'Approves or rejects one pending membership claim. Approvals require a `granted_role_slug` from the returned review schema.',
+        description: 'Approves or rejects one pending membership claim. Approvals require a `granted_role` from the returned review schema.',
     )]
     public function review(string $recordKey, Request $request): JsonResponse
     {

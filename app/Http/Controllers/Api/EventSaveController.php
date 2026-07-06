@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Actions\Events\SaveEventAction;
-use App\Actions\Events\UnsaveEventAction;
+use AIArmada\Engagement\Contracts\EngagementManager;
+use AIArmada\Engagement\Models\Bookmark;
 use App\Data\Api\EventEngagement\EventEngagementListItemData;
 use App\Data\Api\EventSave\EventSaveStateData;
 use App\Enums\EventVisibility;
@@ -56,7 +56,7 @@ class EventSaveController extends Controller
         title: 'Save an event',
         description: 'Idempotently marks the target public event as saved for the authenticated user.',
     )]
-    public function store(Request $request, Event $event, SaveEventAction $saveEventAction): JsonResponse
+    public function store(Request $request, Event $event): JsonResponse
     {
         if (! $event->is_active || ! in_array((string) $event->status, Event::ENGAGEABLE_STATUSES, true) || $event->visibility !== EventVisibility::Public) {
             return response()->json([
@@ -68,9 +68,9 @@ class EventSaveController extends Controller
         }
 
         $user = $this->currentUser($request);
-        $savedState = $saveEventAction->handle($event, $user, $request);
+        $bookmark = app(EngagementManager::class)->bookmark($user, $event);
 
-        if ($savedState['status'] === 'not_found') {
+        if (! $bookmark) {
             return response()->json([
                 'error' => [
                     'code' => 'not_found',
@@ -79,11 +79,13 @@ class EventSaveController extends Controller
             ], 404);
         }
 
-        $created = $savedState['status'] === 'created';
+        $created = $bookmark->wasRecentlyCreated;
+        $savesCount = Bookmark::forBookmarkable($event)->active()->count();
+        $event->update(['saves_count' => $savesCount]);
 
         return response()->json([
             'message' => $created ? 'Event saved successfully.' : 'Event already saved.',
-            'data' => EventSaveStateData::fromState(true, $savedState['saves_count'])->toArray(),
+            'data' => EventSaveStateData::fromState(true, $savesCount)->toArray(),
             'meta' => [
                 'request_id' => request()->header('X-Request-ID', (string) Str::uuid()),
             ],
@@ -97,13 +99,17 @@ class EventSaveController extends Controller
         title: 'Remove a saved event',
         description: 'Idempotently removes the authenticated user\'s saved state for the target event.',
     )]
-    public function destroy(Request $request, Event $event, UnsaveEventAction $unsaveEventAction): JsonResponse
+    public function destroy(Request $request, Event $event): JsonResponse
     {
-        $result = $unsaveEventAction->handle((string) $event->getKey(), $this->currentUser($request));
+        $user = $this->currentUser($request);
+        $wasSaved = Bookmark::forBookmarker($user)->forBookmarkable($event)->active()->exists();
+        app(EngagementManager::class)->removeBookmark($user, $event);
+        $savesCount = Bookmark::forBookmarkable($event)->active()->count();
+        $event->update(['saves_count' => $savesCount]);
 
         return response()->json([
-            'message' => $result['deleted'] ? 'Event save removed successfully.' : 'Event was not saved.',
-            'data' => EventSaveStateData::fromState(false, $result['saves_count'])->toArray(),
+            'message' => $wasSaved ? 'Event save removed successfully.' : 'Event was not saved.',
+            'data' => EventSaveStateData::fromState(false, $savesCount)->toArray(),
             'meta' => [
                 'request_id' => request()->header('X-Request-ID', (string) Str::uuid()),
             ],

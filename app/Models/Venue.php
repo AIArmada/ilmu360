@@ -20,8 +20,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 use Spatie\DeletedModels\Models\Concerns\KeepsDeletedModels;
 use Spatie\Image\Enums\Fit;
-use Spatie\MediaLibrary\HasMedia;
-use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
@@ -41,10 +39,10 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  * @property array<string, mixed>|null $metadata
  * @property bool|null $is_active
  */
-class Venue extends PackageVenue implements AuditableContract, HasMedia
+class Venue extends PackageVenue implements AuditableContract
 {
     /** @use HasFactory<VenueFactory> */
-    use AuditsModelChanges, HasAddresses, HasContactMethods, HasFactory, HasPackageContactAliases, HasPackageSocialAliases, HasPrimaryAddressAccessors, HasSocialProfiles, InteractsWithMedia, KeepsDeletedModels;
+    use AuditsModelChanges, HasAddresses, HasContactMethods, HasFactory, HasPackageContactAliases, HasPackageSocialAliases, HasPrimaryAddressAccessors, HasSocialProfiles, KeepsDeletedModels;
 
     public $incrementing = false;
 
@@ -63,6 +61,7 @@ class Venue extends PackageVenue implements AuditableContract, HasMedia
      * @var list<string>
      */
     protected $fillable = [
+        'id',
         'parent_venue_id',
         'name',
         'slug',

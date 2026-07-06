@@ -2,7 +2,8 @@
 
 namespace App\Actions\Notifications;
 
-use App\Models\NotificationMessage;
+use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Communications\Models\NotificationInbox;
 use App\Models\User;
 use App\Services\Signals\ProductSignalsService;
 use Illuminate\Http\Request;
@@ -16,16 +17,18 @@ final readonly class MarkNotificationMessageReadAction
         private ProductSignalsService $productSignalsService,
     ) {}
 
-    public function handle(User $user, string $messageId, ?Request $request = null): NotificationMessage
+    public function handle(User $user, string $messageId, ?Request $request = null): NotificationInbox
     {
-        $message = $user->notificationMessages()
-            ->visibleInInbox()
+        OwnerContext::setForRequest(null);
+
+        $message = $user->notificationInbox()
+            ->whereNull('archived_at')
             ->whereKey($messageId)
             ->firstOrFail();
 
         $wasUnread = $message->read_at === null;
 
-        $message->markAsRead();
+        $message->update(['read_at' => now()]);
 
         $freshMessage = $message->fresh() ?? $message;
 

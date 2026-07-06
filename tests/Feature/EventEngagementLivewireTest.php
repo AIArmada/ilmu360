@@ -24,17 +24,23 @@ it('toggles event saves via livewire actions', function () {
     $component->call('toggleSave')
         ->assertSet('isSaved', true);
 
-    $this->assertDatabaseHas('event_saves', [
-        'user_id' => $user->id,
-        'event_id' => $event->id,
+    $this->assertDatabaseHas('engagement_bookmarks', [
+        'bookmarker_type' => $user->getMorphClass(),
+        'bookmarker_id' => $user->id,
+        'bookmarkable_type' => $event->getMorphClass(),
+        'bookmarkable_id' => $event->id,
+        'status' => 'active',
     ]);
 
     $component->call('toggleSave')
         ->assertSet('isSaved', false);
 
-    $this->assertDatabaseMissing('event_saves', [
-        'user_id' => $user->id,
-        'event_id' => $event->id,
+    $this->assertDatabaseMissing('engagement_bookmarks', [
+        'bookmarker_type' => $user->getMorphClass(),
+        'bookmarker_id' => $user->id,
+        'bookmarkable_type' => $event->getMorphClass(),
+        'bookmarkable_id' => $event->id,
+        'status' => 'active',
     ]);
 
     $event->refresh();
@@ -56,16 +62,22 @@ it('toggles event saves from the events index cards', function () {
 
     $component->call('toggleSave', $event->id);
 
-    $this->assertDatabaseHas('event_saves', [
-        'user_id' => $user->id,
-        'event_id' => $event->id,
+    $this->assertDatabaseHas('engagement_bookmarks', [
+        'bookmarker_type' => $user->getMorphClass(),
+        'bookmarker_id' => $user->id,
+        'bookmarkable_type' => $event->getMorphClass(),
+        'bookmarkable_id' => $event->id,
+        'status' => 'active',
     ]);
 
     $component->call('toggleSave', $event->id);
 
-    $this->assertDatabaseMissing('event_saves', [
-        'user_id' => $user->id,
-        'event_id' => $event->id,
+    $this->assertDatabaseMissing('engagement_bookmarks', [
+        'bookmarker_type' => $user->getMorphClass(),
+        'bookmarker_id' => $user->id,
+        'bookmarkable_type' => $event->getMorphClass(),
+        'bookmarkable_id' => $event->id,
+        'status' => 'active',
     ]);
 
     $event->refresh();

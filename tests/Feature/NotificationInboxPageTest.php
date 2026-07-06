@@ -1,10 +1,11 @@
 <?php
 
-use App\Enums\NotificationFamily;
-use App\Enums\NotificationPriority;
-use App\Enums\NotificationTrigger;
+use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Communications\Enums\NotificationFamily;
+use AIArmada\Communications\Enums\NotificationPriority;
+use AIArmada\Communications\Enums\NotificationTrigger;
+use AIArmada\Communications\Models\NotificationInbox;
 use App\Livewire\Pages\Dashboard\NotificationsIndex;
-use App\Models\NotificationMessage;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -15,39 +16,59 @@ it('renders the notifications inbox for authenticated users', function () {
     $user = User::factory()->create();
     $otherUser = User::factory()->create();
 
-    NotificationMessage::factory()->for($user, 'notifiable')->create([
-        'family' => NotificationFamily::EventUpdates->value,
+    OwnerContext::withOwner(null, fn () => NotificationInbox::query()->create([
+        'recipient_type' => $user->getMorphClass(),
+        'recipient_id' => $user->getKey(),
+        'family' => NotificationFamily::EventUpdate->value,
         'trigger' => NotificationTrigger::EventCancelled->value,
         'priority' => NotificationPriority::Urgent->value,
-        'read_at' => null,
+        'title' => 'Inbox notification',
+        'body' => 'There is an update to your tracked event.',
         'data' => [
-            'title' => 'Inbox notification',
-            'body' => 'There is an update to your tracked event.',
             'channels_attempted' => ['in_app'],
             'meta' => ['inbox_visible' => true],
+            'action_url' => null,
+            'entity_type' => null,
+            'entity_id' => null,
         ],
-        'inbox_visible' => true,
-    ]);
-
-    NotificationMessage::factory()->for($user, 'notifiable')->create([
         'read_at' => null,
+    ]));
+
+    OwnerContext::withOwner(null, fn () => NotificationInbox::query()->create([
+        'recipient_type' => $user->getMorphClass(),
+        'recipient_id' => $user->getKey(),
+        'family' => NotificationFamily::EventUpdate->value,
+        'priority' => NotificationPriority::Normal->value,
+        'trigger' => NotificationTrigger::EventCancelled->value,
+        'title' => 'Hidden email-only notification',
+        'body' => 'Email-only content',
         'data' => [
-            'title' => 'Hidden email-only notification',
-            'body' => 'Email-only content',
             'channels_attempted' => ['email'],
-            'meta' => ['inbox_visible' => false],
+            'action_url' => null,
+            'entity_type' => null,
+            'entity_id' => null,
         ],
-        'inbox_visible' => false,
-    ]);
+        'read_at' => null,
+        'archived_at' => now(),
+    ]));
 
-    NotificationMessage::factory()->for($otherUser, 'notifiable')->create([
+    OwnerContext::withOwner(null, fn () => NotificationInbox::query()->create([
+        'recipient_type' => $otherUser->getMorphClass(),
+        'recipient_id' => $otherUser->getKey(),
+        'family' => NotificationFamily::EventUpdate->value,
+        'priority' => NotificationPriority::Normal->value,
+        'trigger' => NotificationTrigger::EventCancelled->value,
+        'title' => 'Other user notification',
+        'body' => 'Other body',
         'data' => [
-            'title' => 'Other user notification',
-            'body' => 'Other body',
             'channels_attempted' => ['in_app'],
             'meta' => ['inbox_visible' => true],
+            'action_url' => null,
+            'entity_type' => null,
+            'entity_id' => null,
         ],
-    ]);
+        'read_at' => null,
+    ]));
 
     $response = $this->withSession(['locale' => 'en'])
         ->actingAs($user)
@@ -64,27 +85,41 @@ it('renders the notifications inbox for authenticated users', function () {
 it('filters unread notifications and marks them as read in the inbox component', function () {
     $user = User::factory()->create();
 
-    $unread = NotificationMessage::factory()->for($user, 'notifiable')->create([
+    $unread = OwnerContext::withOwner(null, fn () => NotificationInbox::query()->create([
+        'recipient_type' => $user->getMorphClass(),
+        'recipient_id' => $user->getKey(),
+        'family' => NotificationFamily::EventUpdate->value,
+        'priority' => NotificationPriority::Normal->value,
+        'trigger' => NotificationTrigger::EventCancelled->value,
+        'title' => 'Unread only',
+        'body' => 'Unread body',
+        'data' => [
+            'channels_attempted' => ['in_app'],
+            'meta' => ['inbox_visible' => true],
+            'action_url' => null,
+            'entity_type' => null,
+            'entity_id' => null,
+        ],
         'read_at' => null,
-        'data' => [
-            'title' => 'Unread only',
-            'body' => 'Unread body',
-            'channels_attempted' => ['in_app'],
-            'meta' => ['inbox_visible' => true],
-        ],
-        'inbox_visible' => true,
-    ]);
+    ]));
 
-    $read = NotificationMessage::factory()->for($user, 'notifiable')->create([
-        'read_at' => now(),
+    $read = OwnerContext::withOwner(null, fn () => NotificationInbox::query()->create([
+        'recipient_type' => $user->getMorphClass(),
+        'recipient_id' => $user->getKey(),
+        'family' => NotificationFamily::EventUpdate->value,
+        'priority' => NotificationPriority::Normal->value,
+        'trigger' => NotificationTrigger::EventCancelled->value,
+        'title' => 'Read already',
+        'body' => 'Read body',
         'data' => [
-            'title' => 'Read already',
-            'body' => 'Read body',
             'channels_attempted' => ['in_app'],
             'meta' => ['inbox_visible' => true],
+            'action_url' => null,
+            'entity_type' => null,
+            'entity_id' => null,
         ],
-        'inbox_visible' => true,
-    ]);
+        'read_at' => now(),
+    ]));
 
     Livewire::actingAs($user)
         ->test(NotificationsIndex::class)

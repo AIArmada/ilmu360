@@ -26,6 +26,9 @@ return new class extends Migration
             $table->jsonb('responsive_images');
             $table->unsignedInteger('order_column')->nullable()->index();
 
+            $table->index(['model_type', 'model_id', 'collection_name', 'order_column'], 'media_model_collection_order_index');
+            $table->index(['collection_name', 'created_at'], 'media_collection_created_at_index');
+
             $table->nullableTimestamps();
         });
     }

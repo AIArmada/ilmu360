@@ -2,47 +2,34 @@
 
 namespace App\Models;
 
+use AIArmada\Moderation\Models\ModerationAction;
 use App\Models\Concerns\AuditsModelChanges;
 use Database\Factories\ModerationReviewFactory;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
-class ModerationReview extends Model implements AuditableContract
+class ModerationReview extends ModerationAction implements AuditableContract
 {
-    /** @use HasFactory<ModerationReviewFactory> */
-    use AuditsModelChanges, HasFactory, HasUuids;
+    use AuditsModelChanges;
 
-    public $incrementing = false;
-
-    protected $keyType = 'string';
-
-    /**
-     * @var list<string>
-     */
     protected $fillable = [
-        'event_id',
-        'moderator_id',
-        'decision',
-        'note',
-        'reason_code',
+        'actionable_type', 'actionable_id',
+        'actioned_by_type', 'actioned_by_id',
+        'type', 'reason', 'notes', 'metadata',
     ];
 
-    /**
-     * @return BelongsTo<Event, $this>
-     */
     public function event(): BelongsTo
     {
-        return $this->belongsTo(Event::class);
+        return $this->belongsTo(Event::class, 'actionable_id');
     }
 
-    /**
-     * @return BelongsTo<User, $this>
-     */
     public function moderator(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'moderator_id');
+        return $this->belongsTo(User::class, 'actioned_by_id');
+    }
+
+    protected static function newFactory(): ModerationReviewFactory
+    {
+        return ModerationReviewFactory::new();
     }
 }

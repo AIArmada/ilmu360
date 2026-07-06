@@ -1,6 +1,10 @@
 <?php
 
-use App\Models\NotificationMessage;
+use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Communications\Enums\NotificationFamily;
+use AIArmada\Communications\Enums\NotificationPriority;
+use AIArmada\Communications\Enums\NotificationTrigger;
+use AIArmada\Communications\Models\NotificationInbox;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
@@ -139,44 +143,75 @@ it('lists notifications and marks them as read through the api', function () {
     $user = User::factory()->create();
     $otherUser = User::factory()->create();
 
-    $unread = NotificationMessage::factory()->for($user, 'notifiable')->create([
-        'read_at' => null,
+    $unread = OwnerContext::withOwner(null, fn () => NotificationInbox::query()->create([
+        'recipient_type' => $user->getMorphClass(),
+        'recipient_id' => $user->getKey(),
+        'family' => NotificationFamily::EventUpdate->value,
+        'priority' => NotificationPriority::Normal->value,
+        'trigger' => NotificationTrigger::EventCancelled->value,
+        'title' => 'Unread notification',
+        'body' => 'Unread body',
         'data' => [
-            'title' => 'Unread notification',
-            'body' => 'Unread body',
             'channels_attempted' => ['in_app'],
             'meta' => ['inbox_visible' => true],
+            'action_url' => null,
+            'entity_type' => null,
+            'entity_id' => null,
         ],
-        'inbox_visible' => true,
-    ]);
-    $read = NotificationMessage::factory()->for($user, 'notifiable')->create([
+        'read_at' => null,
+    ]));
+    $read = OwnerContext::withOwner(null, fn () => NotificationInbox::query()->create([
+        'recipient_type' => $user->getMorphClass(),
+        'recipient_id' => $user->getKey(),
+        'family' => NotificationFamily::EventUpdate->value,
+        'priority' => NotificationPriority::Normal->value,
+        'trigger' => NotificationTrigger::EventCancelled->value,
+        'title' => 'Read notification',
+        'body' => 'Read body',
+        'data' => [
+            'channels_attempted' => ['in_app'],
+            'meta' => ['inbox_visible' => true],
+            'action_url' => null,
+            'entity_type' => null,
+            'entity_id' => null,
+        ],
         'read_at' => now(),
+    ]));
+    OwnerContext::withOwner(null, fn () => NotificationInbox::query()->create([
+        'recipient_type' => $user->getMorphClass(),
+        'recipient_id' => $user->getKey(),
+        'family' => NotificationFamily::EventUpdate->value,
+        'priority' => NotificationPriority::Normal->value,
+        'trigger' => NotificationTrigger::EventCancelled->value,
+        'title' => 'Hidden email-only notification',
+        'body' => 'Hidden body',
         'data' => [
-            'title' => 'Read notification',
-            'body' => 'Read body',
-            'channels_attempted' => ['in_app'],
-            'meta' => ['inbox_visible' => true],
-        ],
-        'inbox_visible' => true,
-    ]);
-    NotificationMessage::factory()->for($user, 'notifiable')->create([
-        'read_at' => null,
-        'data' => [
-            'title' => 'Hidden email-only notification',
-            'body' => 'Hidden body',
             'channels_attempted' => ['email'],
             'meta' => ['inbox_visible' => false],
+            'action_url' => null,
+            'entity_type' => null,
+            'entity_id' => null,
         ],
-        'inbox_visible' => false,
-    ]);
-    NotificationMessage::factory()->for($otherUser, 'notifiable')->create([
+        'read_at' => null,
+        'archived_at' => now(),
+    ]));
+    OwnerContext::withOwner(null, fn () => NotificationInbox::query()->create([
+        'recipient_type' => $otherUser->getMorphClass(),
+        'recipient_id' => $otherUser->getKey(),
+        'family' => NotificationFamily::EventUpdate->value,
+        'priority' => NotificationPriority::Normal->value,
+        'trigger' => NotificationTrigger::EventCancelled->value,
+        'title' => 'Other user notification',
+        'body' => 'Other body',
         'data' => [
-            'title' => 'Other user notification',
-            'body' => 'Other body',
             'channels_attempted' => ['in_app'],
             'meta' => ['inbox_visible' => true],
+            'action_url' => null,
+            'entity_type' => null,
+            'entity_id' => null,
         ],
-    ]);
+        'read_at' => null,
+    ]));
 
     Sanctum::actingAs($user);
 

@@ -885,7 +885,7 @@ it('lists submits and cancels membership claims through member MCP workflow tool
     $listedClaim = MembershipClaim::factory()
         ->forInstitution($listedInstitution)
         ->create([
-            'claimant_id' => $member->getKey(),
+            'applicant_id' => $member->getKey(),
             'status' => 'pending',
         ]);
 
@@ -913,7 +913,7 @@ it('lists submits and cancels membership claims through member MCP workflow tool
             ->etc());
 
     $claim = MembershipClaim::query()
-        ->where('claimant_id', $member->getKey())
+        ->where('applicant_id', $member->getKey())
         ->where('subject_id', $claimTarget->getKey())
         ->latest('created_at')
         ->firstOrFail();

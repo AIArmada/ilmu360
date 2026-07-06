@@ -2,9 +2,9 @@
 
 namespace App\Filament\Resources\MembershipClaims\Pages;
 
+use AIArmada\Membership\Enums\ApplicationStatus;
 use App\Actions\Membership\ApproveMembershipClaimAction;
 use App\Actions\Membership\RejectMembershipClaimAction;
-use App\Enums\MembershipClaimStatus;
 use App\Filament\Resources\MembershipClaims\MembershipClaimResource;
 use App\Models\MembershipClaim;
 use App\Models\User;
@@ -48,7 +48,7 @@ class ViewMembershipClaim extends ViewRecord
             ->modalHeading('Approve Membership Claim')
             ->modalDescription('Approve this claim and choose the role to grant.')
             ->schema([
-                Select::make('granted_role_slug')
+                Select::make('granted_role')
                     ->label('Granted Role')
                     ->options(MembershipClaimPresenter::approvalRoleOptions($this->claimRecord()))
                     ->required(),
@@ -64,7 +64,7 @@ class ViewMembershipClaim extends ViewRecord
                 $approveMembershipClaimAction->handle(
                     $this->claimRecord(),
                     $user,
-                    (string) $data['granted_role_slug'],
+                    (string) $data['granted_role'],
                     filled($data['reviewer_note'] ?? null) ? (string) $data['reviewer_note'] : null,
                 );
 
@@ -75,7 +75,7 @@ class ViewMembershipClaim extends ViewRecord
 
                 $this->redirect(MembershipClaimResource::getUrl('view', ['record' => $this->claimRecord()]), navigate: true);
             })
-            ->visible(fn (): bool => $this->claimRecord()->status === MembershipClaimStatus::Pending);
+            ->visible(fn (): bool => $this->claimRecord()->status === ApplicationStatus::Pending);
     }
 
     protected function getRejectAction(): Action
@@ -109,7 +109,7 @@ class ViewMembershipClaim extends ViewRecord
 
                 $this->redirect(MembershipClaimResource::getUrl('view', ['record' => $this->claimRecord()]), navigate: true);
             })
-            ->visible(fn (): bool => $this->claimRecord()->status === MembershipClaimStatus::Pending);
+            ->visible(fn (): bool => $this->claimRecord()->status === ApplicationStatus::Pending);
     }
 
     private function claimRecord(): MembershipClaim

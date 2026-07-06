@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
+use App\Settings\UuidDatabaseSettingsRepository;
 use Spatie\LaravelData\Data;
 use Spatie\LaravelSettings\SettingsCasts\DataCast;
 use Spatie\LaravelSettings\SettingsCasts\DateTimeInterfaceCast;
 use Spatie\LaravelSettings\SettingsCasts\DateTimeZoneCast;
-use Spatie\LaravelSettings\SettingsRepositories\DatabaseSettingsRepository;
 use Spatie\LaravelSettings\SettingsRepositories\RedisSettingsRepository;
 
 return [
@@ -44,7 +44,7 @@ return [
      */
     'repositories' => [
         'database' => [
-            'type' => DatabaseSettingsRepository::class,
+            'type' => UuidDatabaseSettingsRepository::class,
             'model' => null,
             'table' => null,
             'connection' => null,

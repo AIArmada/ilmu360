@@ -6,7 +6,6 @@ use App\Enums\NotificationChannel;
 use App\Enums\NotificationDeliveryStatus;
 use App\Models\NotificationDelivery;
 use App\Models\NotificationDestination;
-use App\Models\PendingNotification;
 use App\Models\User;
 use App\Notifications\NotificationCenterMessage;
 use Illuminate\Notifications\DatabaseNotification;
@@ -50,13 +49,6 @@ class NotificationDeliveryLogger
                 'inbox_visible' => (bool) ($notification->meta['inbox_visible'] ?? true),
                 'is_digest' => $notification->digest,
             ])->save();
-
-            PendingNotification::query()
-                ->whereKey($notification->pendingNotificationId)
-                ->update([
-                    'dispatched_at' => now(),
-                    'notification_id' => $response->id,
-                ]);
         }
 
         $this->logDestinationResult(
@@ -180,60 +172,6 @@ class NotificationDeliveryLogger
                 'failed_at' => $status === NotificationDeliveryStatus::Failed ? now() : null,
             ]
         );
-
-        if ($status === NotificationDeliveryStatus::Delivered) {
-            PendingNotification::query()
-                ->whereKey($notification->pendingNotificationId)
-                ->update([
-                    'processed_at' => now(),
-                    'dispatched_at' => now(),
-                ]);
-
-            $this->markDigestSourcesDelivered($notification, $channel, $destination, $provider, $providerMessageId);
-        }
-    }
-
-    protected function markDigestSourcesDelivered(
-        NotificationCenterMessage $notification,
-        NotificationChannel $channel,
-        ?NotificationDestination $destination,
-        ?string $provider,
-        ?string $providerMessageId,
-    ): void {
-        if (! $notification->digest || $notification->sourcePendingIds === []) {
-            return;
-        }
-
-        PendingNotification::query()
-            ->whereIn('id', $notification->sourcePendingIds)
-            ->get()
-            ->each(function (PendingNotification $sourcePending) use ($notification, $channel, $destination, $provider, $providerMessageId): void {
-                NotificationDelivery::query()->firstOrCreate(
-                    [
-                        'fingerprint' => sha1('digest-source|'.$sourcePending->id.'|'.$channel->value.'|'.$notification->pendingNotificationId),
-                    ],
-                    [
-                        'notification_message_id' => $sourcePending->id,
-                        'user_id' => $sourcePending->user_id,
-                        'family' => $this->pendingFamilyValue($sourcePending),
-                        'trigger' => $this->pendingTriggerValue($sourcePending),
-                        'channel' => $channel->value,
-                        'destination_id' => $destination?->id,
-                        'provider' => $provider ?? $this->providerName($channel),
-                        'provider_message_id' => $providerMessageId,
-                        'status' => NotificationDeliveryStatus::Delivered->value,
-                        'payload' => ['digest_pending_notification_id' => $notification->pendingNotificationId],
-                        'meta' => ['digest' => true],
-                        'sent_at' => now(),
-                        'delivered_at' => now(),
-                    ]
-                );
-
-                $sourcePending->forceFill([
-                    'processed_at' => now(),
-                    'dispatched_at' => now(),
-                ])->save();
-            });
     }
 
     protected function providerName(NotificationChannel $channel): string
@@ -245,19 +183,5 @@ class NotificationDeliveryLogger
             NotificationChannel::Whatsapp => (string) config('notification-center.whatsapp.provider', 'meta_cloud'),
             default => $channel->value,
         };
-    }
-
-    protected function pendingFamilyValue(PendingNotification $pending): string
-    {
-        return $pending->family instanceof \BackedEnum
-            ? $pending->family->value
-            : (string) $pending->family;
-    }
-
-    protected function pendingTriggerValue(PendingNotification $pending): string
-    {
-        return $pending->trigger instanceof \BackedEnum
-            ? $pending->trigger->value
-            : (string) $pending->trigger;
     }
 }

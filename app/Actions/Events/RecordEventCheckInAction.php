@@ -40,7 +40,7 @@ final readonly class RecordEventCheckInAction
 
             $existingCheckin = EventCheckin::query()
                 ->where('event_id', $event->getKey())
-                ->where('user_id', $user->getKey())
+                ->where('attendee_id', $user->getKey())
                 ->latest('checked_in_at')
                 ->first();
 
@@ -57,6 +57,7 @@ final readonly class RecordEventCheckInAction
                 'user_id' => $user->getKey(),
                 'method' => $method,
                 'checked_in_at' => now(),
+                'attendance_type' => 'check_in',
             ]);
 
             return [

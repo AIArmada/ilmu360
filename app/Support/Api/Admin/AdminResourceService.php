@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace App\Support\Api\Admin;
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\FilamentEvents\Resources\EventResource;
 use App\Enums\EventFormat;
 use App\Enums\EventStructure;
 use App\Enums\EventType;
 use App\Enums\EventVisibility;
 use App\Enums\PrayerReference;
 use App\Enums\TimingMode;
-use App\Filament\Resources\Events\EventResource;
 use App\Filament\Resources\Speakers\SpeakerResource;
 use App\Models\Event;
 use App\Models\User;
@@ -801,7 +802,7 @@ class AdminResourceService
      */
     private function serializeGenericAttributes(Model $record): array
     {
-        $attributes = $record->toArray();
+        $attributes = OwnerContext::withOwner(null, fn (): array => $record->toArray());
 
         if ($record instanceof User) {
             return Arr::except($attributes, [
@@ -1068,7 +1069,7 @@ class AdminResourceService
                 return;
             }
 
-            $query->whereIn($model->qualifyColumn('event_format'), $formats);
+            $query->whereIn($model->qualifyColumn('delivery_mode'), $formats);
         }
 
         if (array_key_exists('event_type', $filters)) {

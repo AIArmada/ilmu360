@@ -16,7 +16,7 @@ return new class extends Migration
             $table->foreignUuid('event_id')->unique();
 
             $table->string('registration_mode')->default('event')->index();
-            $table->boolean('registration_required')->default(true);
+            $table->boolean('registration_required')->default(false);
             $table->unsignedInteger('capacity')->nullable();
             $table->timestamp('registration_opens_at')->nullable();
             $table->timestamp('registration_closes_at')->nullable();

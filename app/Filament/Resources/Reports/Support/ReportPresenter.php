@@ -2,8 +2,8 @@
 
 namespace App\Filament\Resources\Reports\Support;
 
+use AIArmada\FilamentEvents\Resources\EventResource;
 use App\Filament\Resources\DonationChannels\DonationChannelResource;
-use App\Filament\Resources\Events\EventResource;
 use App\Filament\Resources\Institutions\InstitutionResource;
 use App\Filament\Resources\References\ReferenceResource;
 use App\Filament\Resources\Speakers\SpeakerResource;

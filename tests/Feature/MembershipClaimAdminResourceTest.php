@@ -1,6 +1,6 @@
 <?php
 
-use App\Enums\MembershipClaimStatus;
+use AIArmada\Membership\Enums\ApplicationStatus;
 use App\Enums\MemberSubjectType;
 use App\Filament\Resources\MembershipClaims\MembershipClaimResource;
 use App\Filament\Resources\MembershipClaims\Pages\ListMembershipClaims;
@@ -28,21 +28,21 @@ it('allows moderators to approve pending membership claims from the admin index'
     $claim = MembershipClaim::factory()
         ->forInstitution($institution)
         ->create([
-            'claimant_id' => $claimant->getKey(),
-            'status' => MembershipClaimStatus::Pending,
+            'applicant_id' => $claimant->getKey(),
+            'status' => ApplicationStatus::Pending,
         ]);
 
     Livewire::actingAs($moderator)
         ->test(ListMembershipClaims::class)
         ->assertCanSeeTableRecords([$claim])
         ->callTableAction('approve', $claim->getKey(), data: [
-            'granted_role_slug' => 'admin',
+            'granted_role' => 'admin',
             'reviewer_note' => 'Approved as admin.',
         ])
         ->assertHasNoTableActionErrors();
 
-    expect($claim->fresh()->status)->toBe(MembershipClaimStatus::Approved)
-        ->and($claim->fresh()->granted_role_slug)->toBe('admin')
+    expect($claim->fresh()->status)->toBe(ApplicationStatus::Approved)
+        ->and($claim->fresh()->granted_role)->toBe('admin')
         ->and($claim->fresh()->reviewer_id)->toBe($moderator->getKey())
         ->and($institution->fresh()->members()->whereKey($claimant->getKey())->exists())->toBeTrue()
         ->and(app(MemberRoleCatalog::class)->roleNamesFor($claimant->fresh(), MemberSubjectType::Institution))->toBe(['admin']);
@@ -57,20 +57,20 @@ it('allows moderators to approve membership claims as owner from the admin view 
     $claim = MembershipClaim::factory()
         ->forSpeaker($speaker)
         ->create([
-            'claimant_id' => $claimant->getKey(),
-            'status' => MembershipClaimStatus::Pending,
+            'applicant_id' => $claimant->getKey(),
+            'status' => ApplicationStatus::Pending,
         ]);
 
     Livewire::actingAs($moderator)
         ->test(ViewMembershipClaim::class, ['record' => $claim->getKey()])
         ->callAction('approve', [
-            'granted_role_slug' => 'owner',
+            'granted_role' => 'owner',
             'reviewer_note' => 'Approved as owner.',
         ])
         ->assertHasNoErrors();
 
-    expect($claim->fresh()->status)->toBe(MembershipClaimStatus::Approved)
-        ->and($claim->fresh()->granted_role_slug)->toBe('owner')
+    expect($claim->fresh()->status)->toBe(ApplicationStatus::Approved)
+        ->and($claim->fresh()->granted_role)->toBe('owner')
         ->and($speaker->fresh()->members()->whereKey($claimant->getKey())->exists())->toBeTrue()
         ->and(app(MemberRoleCatalog::class)->roleNamesFor($claimant->fresh(), MemberSubjectType::Speaker))->toBe(['owner']);
 });
@@ -83,7 +83,7 @@ it('allows moderators to reject pending membership claims from the admin view pa
     $claim = MembershipClaim::factory()
         ->forInstitution($institution)
         ->create([
-            'status' => MembershipClaimStatus::Pending,
+            'status' => ApplicationStatus::Pending,
         ]);
 
     Livewire::actingAs($moderator)
@@ -93,7 +93,7 @@ it('allows moderators to reject pending membership claims from the admin view pa
         ])
         ->assertHasNoErrors();
 
-    expect($claim->fresh()->status)->toBe(MembershipClaimStatus::Rejected)
+    expect($claim->fresh()->status)->toBe(ApplicationStatus::Rejected)
         ->and($claim->fresh()->reviewer_id)->toBe($moderator->getKey())
         ->and($claim->fresh()->reviewer_note)->toBe('Need stronger evidence.');
 });

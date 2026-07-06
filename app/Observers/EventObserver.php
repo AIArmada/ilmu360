@@ -57,10 +57,9 @@ class EventObserver
         if (
             $event->isDirty([
                 'timing_mode',
-                'prayer_reference',
-                'prayer_offset',
                 'venue_id',
             ])
+            || ($event->isPrayerRelative() && $event->isDirty('metadata'))
         ) {
             $this->calculatePrayerRelativeTime($event);
         }

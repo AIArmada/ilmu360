@@ -3,8 +3,11 @@
 namespace App\Support\Api\Admin;
 
 use AIArmada\Addressing\Models\Address;
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\FilamentAddressing\Resources\AddressAreaResource;
 use AIArmada\FilamentAddressing\Resources\AddressCountryResource;
+use AIArmada\FilamentEvents\Resources\EventResource;
+use AIArmada\FilamentEvents\Resources\VenueResource;
 use AIArmada\Signals\Models\TrackedProperty;
 use App\Data\Api\Event\EventPayloadData;
 use App\Enums\EventFormat;
@@ -13,7 +16,6 @@ use App\Enums\EventType;
 use App\Enums\EventVisibility;
 use App\Enums\PrayerReference;
 use App\Enums\TimingMode;
-use App\Filament\Resources\Events\EventResource;
 use App\Filament\Resources\Speakers\SpeakerResource;
 use App\Models\Event;
 use App\Models\Institution;
@@ -123,7 +125,8 @@ class AdminResourceRegistry
     public function resolveForModel(string $modelClass): ?string
     {
         foreach ($this->resources() as $resourceClass) {
-            if ($resourceClass::getModel() === $modelClass) {
+            $resourceModel = $resourceClass::getModel();
+            if ($resourceModel === $modelClass || is_subclass_of($modelClass, $resourceModel)) {
                 return $resourceClass;
             }
         }
@@ -172,7 +175,7 @@ class AdminResourceRegistry
         $pages = $resourceClass::getPages();
         $supportsMutation = $this->mutationService->supports($resourceClass);
         $filters = $this->filterMetadata($resourceClass);
-        $dateSemantics = is_a($resourceClass::getModel(), Event::class, true)
+        $dateSemantics = $resourceClass === EventResource::class
             ? [
                 'storage_timezone' => 'UTC',
                 'viewer_timezone' => 'resolved at request time',
@@ -207,8 +210,8 @@ class AdminResourceRegistry
             'filters' => $filters,
             'write_support' => [
                 'schema' => $supportsMutation,
-                'store' => $supportsMutation && array_key_exists('create', $pages),
-                'update' => $supportsMutation && array_key_exists('edit', $pages),
+                'store' => $supportsMutation,
+                'update' => $supportsMutation,
             ],
             'api_routes' => [
                 'collection' => route('api.admin.resources.index', ['resourceKey' => $key], false),
@@ -260,7 +263,11 @@ class AdminResourceRegistry
     public function queryFor(string $resourceClass): Builder
     {
         /** @var Builder<Model> $query */
-        $query = $resourceClass::getEloquentQuery();
+        $query = match ($resourceClass) {
+            EventResource::class => Event::query(),
+            VenueResource::class => Venue::query(),
+            default => $resourceClass::getEloquentQuery(),
+        };
 
         $this->applyDefaultApiEagerLoads($query);
 
@@ -570,7 +577,11 @@ class AdminResourceRegistry
         return [
             'id' => (string) $record->getKey(),
             'route_key' => (string) $record->getRouteKey(),
-            'title' => $this->htmlableToString($resourceClass::getRecordTitle($record)),
+            'title' => $this->htmlableToString(
+                $record instanceof Event
+                    ? ($record->title ?? $resourceClass::getRecordTitle($record))
+                    : $resourceClass::getRecordTitle($record)
+            ),
             'attributes' => $record instanceof Event
                 ? EventPayloadData::fromModel($record)->toArray()
                 : $this->serializeAttributes($record),
@@ -603,7 +614,11 @@ class AdminResourceRegistry
 
         return [
             'route_key' => (string) $record->getRouteKey(),
-            'title' => $this->htmlableToString($resourceClass::getRecordTitle($record)),
+            'title' => $this->htmlableToString(
+                $record instanceof Event
+                    ? ($record->title ?? $resourceClass::getRecordTitle($record))
+                    : $resourceClass::getRecordTitle($record)
+            ),
             'attributes' => $this->stripResponsiveImages($attributes),
             'abilities' => $this->recordAbilities($resourceClass, $record),
             'panel_routes' => [
@@ -769,7 +784,7 @@ class AdminResourceRegistry
      */
     private function serializeAttributes(Model $record): array
     {
-        $attributes = $record->toArray();
+        $attributes = OwnerContext::withOwner(null, fn (): array => $record->toArray());
 
         if ($record instanceof TrackedProperty) {
             $attributes['write_key'] = filled($record->write_key) ? 'present' : null;

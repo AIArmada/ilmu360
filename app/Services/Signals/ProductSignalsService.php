@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Services\Signals;
 
+use AIArmada\Communications\Models\NotificationInbox;
 use AIArmada\Signals\Models\SignalEvent;
 use AIArmada\Signals\Models\TrackedProperty;
 use App\Models\Event;
-use App\Models\NotificationMessage;
 use App\Models\Report;
 use App\Models\User;
 use App\Support\Signals\ProductSignalsClientContext;
@@ -138,7 +138,7 @@ final readonly class ProductSignalsService
         );
     }
 
-    public function recordNotificationRead(NotificationMessage $message, User $user, ?Request $request = null): ?SignalEvent
+    public function recordNotificationRead(NotificationInbox $message, User $user, ?Request $request = null): ?SignalEvent
     {
         return $this->record(
             request: $request,
@@ -149,7 +149,7 @@ final readonly class ProductSignalsService
                 'notification_id' => (string) $message->getKey(),
                 'family' => $this->enumValue($message->family),
                 'trigger' => $this->enumValue($message->trigger),
-                'action_url' => $message->action_url,
+                'action_url' => $message->data['action_url'] ?? null,
             ],
         );
     }
