@@ -172,7 +172,7 @@
                     ? $role
                     : \App\Enums\EventKeyPersonRole::tryFrom((string) $role);
 
-                return $keyPerson->is_public && $role !== \App\Enums\EventKeyPersonRole::Speaker;
+                return $keyPerson->visibility === 'public' && $role !== \App\Enums\EventKeyPersonRole::Speaker;
             })
             ->groupBy(function (\App\Models\EventKeyPerson $keyPerson): string {
                 $role = $keyPerson->role;

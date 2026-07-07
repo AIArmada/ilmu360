@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use AIArmada\Events\Models\EventInvolvement;
+use AIArmada\Events\Models\EventRole;
 use App\Enums\EventKeyPersonRole;
 use App\Models\Concerns\AuditsModelChanges;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -14,8 +15,8 @@ class EventKeyPerson extends EventInvolvement implements AuditableContract
 
     protected $fillable = [
         'id',
-        'event_id', 'speaker_id',
-        'role_code', 'name', 'sort_order', 'is_public', 'notes',
+        'event_id',
+        'role_code', 'sort_order', 'notes',
         'role', 'order_column',
         'status', 'visibility', 'prominence', 'is_featured', 'is_primary',
         'starts_at', 'ends_at', 'metadata',
@@ -25,7 +26,6 @@ class EventKeyPerson extends EventInvolvement implements AuditableContract
     {
         return array_merge(parent::casts(), [
             'role_code' => EventKeyPersonRole::class,
-            'is_public' => 'boolean',
             'sort_order' => 'integer',
         ]);
     }
@@ -37,7 +37,7 @@ class EventKeyPerson extends EventInvolvement implements AuditableContract
 
     public function speaker(): BelongsTo
     {
-        return $this->belongsTo(Speaker::class, 'speaker_id');
+        return $this->belongsTo(Speaker::class, 'involveable_id');
     }
 
     public function getDisplayNameAttribute(): string
@@ -46,17 +46,24 @@ class EventKeyPerson extends EventInvolvement implements AuditableContract
             return $this->speaker->formatted_name;
         }
 
-        return (string) ($this->name ?? '');
+        return $this->role_code instanceof \BackedEnum ? $this->role_code->value : (string) $this->role_code;
     }
 
     public function getRoleAttribute(): ?string
     {
-        return $this->role_code instanceof \BackedEnum ? $this->role_code->value : $this->role_code;
+        return $this->role?->code ?? ($this->role_code instanceof \BackedEnum ? $this->role_code->value : $this->role_code);
     }
 
     public function setRoleAttribute(mixed $value): void
     {
-        $this->role_code = $value instanceof \BackedEnum ? $value->value : $value;
+        $code = $value instanceof \BackedEnum ? $value->value : $value;
+        $eventRole = EventRole::query()->where('code', $code)->first();
+
+        if ($eventRole instanceof EventRole) {
+            $this->event_role_id = $eventRole->id;
+        }
+
+        $this->role_code = $code;
     }
 
     public function getOrderColumnAttribute(): ?int

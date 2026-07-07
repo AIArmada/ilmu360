@@ -28,7 +28,6 @@ use App\Models\ContributionRequest;
 use App\Models\DonationChannel;
 use App\Models\Event;
 use App\Models\EventKeyPerson;
-use App\Models\EventSettings;
 use App\Models\EventSubmission;
 use App\Models\Inspiration;
 use App\Models\Institution;
@@ -141,7 +140,7 @@ it('registers morph aliases for audited models', function () {
         Event::class,
         EventKeyPerson::class,
         EventSubmission::class,
-        EventSettings::class,
+        \AIArmada\Events\Models\EventAccessPolicy::class,
         Inspiration::class,
         Institution::class,
         MediaLink::class,

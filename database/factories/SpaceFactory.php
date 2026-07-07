@@ -53,7 +53,8 @@ class SpaceFactory extends Factory
             'name' => $name,
             'slug' => Str::slug($name).'-'.Str::lower(Str::random(7)),
             'capacity' => fake()->randomElement([10, 20, 30, 50, 100, 200]),
-            'is_active' => true,
+            'status' => 'active',
+            'visibility' => 'public',
         ];
     }
 }

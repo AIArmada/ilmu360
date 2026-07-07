@@ -594,10 +594,17 @@ class UserDashboard extends Component
     /**
      * @return BelongsToMany<Event, User>
      */
-    protected function goingEventsQuery(User $user): BelongsToMany
+    protected function goingEventsQuery(User $user): Builder
     {
-        return $user->goingEvents()
-            ->active()
+        return Event::query()
+            ->whereIn('id', function ($q) use ($user): void {
+                $q->select('respondable_id')
+                    ->from('responses')
+                    ->where('responder_type', $user->getMorphClass())
+                    ->where('responder_id', $user->getKey())
+                    ->where('response_type', 'going')
+                    ->where('status', 'active');
+            })
             ->orderBy('starts_at');
     }
 

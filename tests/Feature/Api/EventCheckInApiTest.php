@@ -19,7 +19,7 @@ it('returns check-in state and records a self-reported check-in for open events'
         'timezone' => 'Asia/Kuala_Lumpur',
     ]);
 
-    $event->settings()->delete();
+    $event->accessPolicy()->delete();
 
     Sanctum::actingAs($user);
 
@@ -68,11 +68,11 @@ it('requires registration before check-in when the event requires registration',
         'timezone' => 'Asia/Kuala_Lumpur',
     ]);
 
-    $event->settings()->updateOrCreate([], [
+    $event->accessPolicy()->updateOrCreate([], [
         'registration_required' => true,
         'registration_mode' => 'event',
-        'registration_opens_at' => now()->subDay(),
-        'registration_closes_at' => now()->addDay(),
+        'opens_at' => now()->subDay(),
+        'closes_at' => now()->addDay(),
     ]);
 
     Sanctum::actingAs($user);
@@ -97,11 +97,11 @@ it('uses the registered check-in path when the user already has a registration',
         'timezone' => 'Asia/Kuala_Lumpur',
     ]);
 
-    $event->settings()->updateOrCreate([], [
+    $event->accessPolicy()->updateOrCreate([], [
         'registration_required' => true,
         'registration_mode' => 'event',
-        'registration_opens_at' => now()->subDay(),
-        'registration_closes_at' => now()->addDay(),
+        'opens_at' => now()->subDay(),
+        'closes_at' => now()->addDay(),
     ]);
 
     $registration = Registration::factory()
@@ -135,7 +135,7 @@ it('returns a duplicate status instead of creating a second check-in', function 
         'timezone' => 'Asia/Kuala_Lumpur',
     ]);
 
-    $event->settings()->delete();
+    $event->accessPolicy()->delete();
 
     Sanctum::actingAs($user);
 

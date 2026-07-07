@@ -571,9 +571,10 @@ class Speaker extends Model implements AuditableContract, HasMedia
      */
     public function events(): BelongsToMany
     {
-        return $this->belongsToMany(Event::class, 'event_involvements', 'speaker_id', 'event_id')
+        return $this->belongsToMany(Event::class, 'event_involvements', 'involveable_id', 'event_id')
             ->using(EventKeyPersonPivot::class)
-            ->withPivot(['id', 'role_code', 'name', 'sort_order', 'is_public', 'notes'])
+            ->wherePivot('involveable_type', 'speaker')
+            ->withPivot(['id', 'involveable_type', 'role_code', 'sort_order', 'notes'])
             ->withTimestamps()
             ->orderByPivot('sort_order');
     }
@@ -593,7 +594,8 @@ class Speaker extends Model implements AuditableContract, HasMedia
      */
     public function eventKeyPeople(): HasMany
     {
-        return $this->hasMany(EventKeyPerson::class);
+        return $this->hasMany(EventKeyPerson::class, 'involveable_id')
+            ->where('involveable_type', 'speaker');
     }
 
     /**

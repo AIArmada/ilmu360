@@ -669,9 +669,9 @@ test('event registrations are attributed after a shared landing', function () {
         'visibility' => 'public',
     ]);
 
-    $event->settings()?->delete();
+    $event->accessPolicy()?->delete();
 
-    $event->settings()->create([
+    $event->accessPolicy()->create([
         'registration_required' => true,
         'capacity' => 50,
         'registration_opens_at' => now()->subDay(),
@@ -816,7 +816,7 @@ test('event check-ins are attributed after a shared landing', function () {
         'timezone' => 'Asia/Kuala_Lumpur',
     ]);
 
-    $event->settings()?->delete();
+    $event->accessPolicy()?->delete();
 
     $cookie = dawahShareLandingCookie($this, $this->sharer, route('events.show', $event), $event->title);
 
@@ -942,7 +942,7 @@ test('impact dashboard highlights event check-ins and submissions', function () 
         'timezone' => 'Asia/Kuala_Lumpur',
     ]);
 
-    $event->settings()?->delete();
+    $event->accessPolicy()?->delete();
 
     $eventCookie = dawahShareLandingCookie($this, $this->sharer, route('events.show', $event), $event->title);
 

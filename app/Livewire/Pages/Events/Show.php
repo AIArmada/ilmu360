@@ -250,7 +250,7 @@ class Show extends Component
     public function keyPeopleByRole(): Collection
     {
         return collect($this->event->keyPeople
-            ->filter(fn (EventKeyPerson $keyPerson): bool => $keyPerson->role !== EventKeyPersonRole::Speaker && $keyPerson->is_public)
+            ->filter(fn (EventKeyPerson $keyPerson): bool => $keyPerson->role !== EventKeyPersonRole::Speaker && $keyPerson->visibility === 'public')
             ->groupBy(function (EventKeyPerson $keyPerson): string {
                 $role = $keyPerson->role;
 
@@ -558,7 +558,7 @@ class Show extends Component
         }
 
         $this->isSaved = Bookmark::forBookmarker($user)->forBookmarkable($this->event)->active()->exists();
-        $this->isGoing = $user->goingEvents()->whereKey($this->event->getKey())->exists();
+        $this->isGoing = $user->goingEvents()->forRespondable($this->event)->active()->exists();
         $this->isCheckedIn = EventCheckin::query()
             ->where('event_id', $this->event->id)
             ->where('attendee_id', $user->id)

@@ -2418,7 +2418,7 @@ it('creates and updates events through MCP write tools', function () {
         ]);
 
     expect($event->live_url)->toBeNull()
-        ->and($event->settings?->registration_required)->toBeTrue()
+        ->and($event->accessPolicy?->registration_required)->toBeTrue()
         ->and($event->references->pluck('id')->all())->toContain($reference->getKey())
         ->and($event->series->pluck('id')->all())->toContain($series->getKey())
         ->and($event->tags->pluck('id')->all())->toContain($domainTag->getKey(), $disciplineTag->getKey())
@@ -2463,7 +2463,7 @@ it('creates and updates events through MCP write tools', function () {
 
     expect($event->title)->toBe('Admin MCP Event Updated')
         ->and($event->live_url)->toBe('https://youtube.com/watch?v=admin-mcp-event-live')
-        ->and($event->settings?->registration_required)->toBeFalse()
+        ->and($event->accessPolicy?->registration_required)->toBeFalse()
         ->and($event->references)->toHaveCount(0)
         ->and($event->series)->toHaveCount(0)
         ->and($event->tags->pluck('id')->all())->toContain($sourceTag->getKey())
@@ -4094,7 +4094,7 @@ function adminMcpStableEvent(array $overrides = []): Event
         'is_active' => true,
     ], $overrides));
 
-    $event->settings()->delete();
+    $event->accessPolicy()->delete();
 
     return $event->fresh();
 }

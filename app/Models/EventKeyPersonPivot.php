@@ -23,11 +23,8 @@ class EventKeyPersonPivot extends Pivot
     protected $fillable = [
         'id',
         'event_id',
-        'speaker_id',
         'role_code',
-        'name',
         'sort_order',
-        'is_public',
         'notes',
     ];
 }

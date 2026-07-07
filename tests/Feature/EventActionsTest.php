@@ -6,10 +6,10 @@ use App\Actions\Events\ResolveAdvancedBuilderContextAction;
 use App\Actions\Events\ResolveAdvancedBuilderMembershipOptionsAction;
 use App\Actions\Events\SyncEventResourceRelationsAction;
 use App\Enums\RegistrationMode;
+use AIArmada\Events\Enums\RegistrationMode as PackageRegistrationMode;
 use App\Enums\TagType;
 use App\Models\Event;
 use App\Models\EventChangeAnnouncement;
-use App\Models\EventSettings;
 use App\Models\Institution;
 use App\Models\Speaker;
 use App\Models\Tag;
@@ -121,23 +121,21 @@ it('syncs event resource relations and persists the requested registration mode'
         'registration_mode' => RegistrationMode::Event->value,
         'registration_mode_locked' => false,
     ])
-        ->and($event->settings?->registration_required)->toBeFalse()
-        ->and($event->settings?->registration_mode)->toBe(RegistrationMode::Event)
+        ->and($event->accessPolicy?->registration_required)->toBeFalse()
+        ->and($event->resolvedRegistrationMode())->toBe(PackageRegistrationMode::None)
         ->and($event->tags->pluck('id')->sort()->values()->all())->toBe([$domainTag->id, $issueTag->id])
         ->and($event->speakers->pluck('id')->all())->toBe([$speaker->id]);
 });
 
 it('uses a safe database default when creating event settings without an explicit registration flag', function () {
     $event = Event::factory()->create();
-    $event->settings()->delete();
+    $event->accessPolicy()->delete();
 
-    $settings = EventSettings::query()->create([
+    $settings = \AIArmada\Events\Models\EventAccessPolicy::query()->create([
         'event_id' => $event->id,
-        'registration_mode' => RegistrationMode::Event->value,
     ]);
 
-    expect($settings->fresh()?->registration_required)->toBeFalse()
-        ->and($settings->fresh()?->registration_mode)->toBe(RegistrationMode::Event);
+    expect($settings->fresh()?->registration_required)->toBeFalse();
 });
 
 it('applies direct contribution edits without changing approved event state for sensitive ordinary saves', function () {

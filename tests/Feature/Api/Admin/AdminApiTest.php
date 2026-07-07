@@ -16,6 +16,7 @@ use App\Enums\EventKeyPersonRole;
 use App\Enums\EventPrayerTime;
 use App\Enums\EventType;
 use App\Enums\EventVisibility;
+use AIArmada\Events\Enums\RegistrationMode as PackageRegistrationMode;
 use App\Enums\RegistrationMode;
 use App\Models\ContributionRequest;
 use App\Models\DonationChannel;
@@ -3235,8 +3236,8 @@ it('exposes admin event write schema and can create and update events through th
     expect($event->title)->toBe('Admin API Event Created')
         ->and($event->live_url)->toBeNull()
         ->and($event->starts_at?->copy()->timezone('Asia/Kuala_Lumpur')->format('Y-m-d H:i'))->toBe('2026-05-20 20:00')
-        ->and($event->settings?->registration_required)->toBeTrue()
-        ->and($event->settings?->registration_mode)->toBe(RegistrationMode::Event)
+        ->and($event->accessPolicy?->registration_required)->toBeTrue()
+        ->and($event->resolvedRegistrationMode())->toBe(PackageRegistrationMode::Required)
         ->and($event->references->pluck('id')->all())->toContain($reference->getKey())
         ->and($event->series->pluck('id')->all())->toContain($series->getKey())
         ->and($event->tags->pluck('id')->all())->toContain($domainTag->getKey(), $disciplineTag->getKey())
@@ -3275,7 +3276,7 @@ it('exposes admin event write schema and can create and update events through th
     expect($event->title)->toBe('Admin API Event Updated')
         ->and($event->live_url)->toBe('https://youtube.com/watch?v=admin-api-event-live')
         ->and($event->starts_at?->copy()->timezone('Asia/Kuala_Lumpur')->format('Y-m-d H:i'))->toBe('2026-06-01 20:00')
-        ->and($event->settings?->registration_required)->toBeFalse()
+        ->and($event->accessPolicy?->registration_required)->toBeFalse()
         ->and($event->references)->toHaveCount(0)
         ->and($event->series)->toHaveCount(0)
         ->and($event->tags->pluck('id')->all())->toContain($sourceTag->getKey())

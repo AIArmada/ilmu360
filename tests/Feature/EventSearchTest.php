@@ -13,7 +13,6 @@ use App\Enums\TimingMode;
 use App\Livewire\Pages\Events\AdvancedFiltersPanel;
 use App\Livewire\Pages\Events\Index;
 use App\Models\Event;
-use App\Models\EventSettings;
 use App\Models\Institution;
 use App\Models\Reference;
 use App\Models\Registration;
@@ -2749,12 +2748,12 @@ describe('Event Registration', function () {
 
     it('allows guest registration', function () {
         $event = Event::factory()
-            ->has(EventSettings::factory()->state([
+            ->has(\AIArmada\Events\Models\EventAccessPolicy::factory()->state([
                 'registration_required' => true,
-                'registration_opens_at' => now()->subDay(),
-                'registration_closes_at' => now()->addDay(),
+                'opens_at' => now()->subDay(),
+                'closes_at' => now()->addDay(),
                 'capacity' => 100,
-            ]), 'settings')
+            ]), 'accessPolicy')
             ->create([
                 'status' => 'approved',
                 'visibility' => 'public',
@@ -2780,11 +2779,11 @@ describe('Event Registration', function () {
 
     it('prevents duplicate registration', function () {
         $event = Event::factory()
-            ->has(EventSettings::factory()->state([
+            ->has(\AIArmada\Events\Models\EventAccessPolicy::factory()->state([
                 'registration_required' => true,
-                'registration_opens_at' => now()->subDay(),
-                'registration_closes_at' => now()->addDay(),
-            ]), 'settings')
+                'opens_at' => now()->subDay(),
+                'closes_at' => now()->addDay(),
+            ]), 'accessPolicy')
             ->create([
                 'status' => 'approved',
                 'visibility' => 'public',
@@ -2808,12 +2807,12 @@ describe('Event Registration', function () {
 
     it('enforces capacity limits', function () {
         $event = Event::factory()
-            ->has(EventSettings::factory()->state([
+            ->has(\AIArmada\Events\Models\EventAccessPolicy::factory()->state([
                 'registration_required' => true,
-                'registration_opens_at' => now()->subDay(),
-                'registration_closes_at' => now()->addDay(),
+                'opens_at' => now()->subDay(),
+                'closes_at' => now()->addDay(),
                 'capacity' => 1,
-            ]), 'settings')
+            ]), 'accessPolicy')
             ->create([
                 'status' => 'approved',
                 'visibility' => 'public',

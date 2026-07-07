@@ -73,7 +73,7 @@ class ApproveEvent extends Transition implements HasColor, HasIcon, HasLabel
      */
     protected function verifyPendingRelatedRecords(Event $event): void
     {
-        $speakerIds = $event->keyPeople()->whereNotNull('speaker_id')->pluck('speaker_id');
+        $speakerIds = $event->keyPeople()->where('involveable_type', 'speaker')->pluck('involveable_id');
 
         $organizer = $event->primaryOrganizerInvolvement?->involveable;
         if ($organizer instanceof Speaker) {

@@ -6,6 +6,8 @@ use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Traits\HasAddresses;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Engagement\Models\Bookmark;
+use AIArmada\Engagement\Models\Response;
+use AIArmada\Engagement\Traits\HasResponses;
 use AIArmada\Events\Enums\RegistrationMode as PackageRegistrationMode;
 use AIArmada\Events\Models\Event as PackageEvent;
 use AIArmada\Events\Models\EventAccessPolicy;
@@ -13,10 +15,12 @@ use AIArmada\Events\Models\EventAttribute;
 use AIArmada\Events\Models\EventAudience;
 use AIArmada\Events\Models\EventAudienceProfile;
 use AIArmada\Events\Models\EventInvolvement;
+use AIArmada\Events\Models\EventRole;
 use AIArmada\Events\Models\EventLanguage;
 use AIArmada\Events\Models\EventLink;
 use AIArmada\Events\Models\EventLocation;
 use AIArmada\Events\Models\EventOccurrence;
+use AIArmada\Events\Models\EventReference;
 use AIArmada\Events\Models\EventTimeExpression;
 use AIArmada\Membership\Traits\HasMembers;
 use App\Enums\EventAgeGroup;
@@ -129,7 +133,7 @@ use Spatie\Tags\HasTags;
 class Event extends PackageEvent implements AuditableContract
 {
     /** @use HasFactory<EventFactory> */
-    use AuditsModelChanges, HasAddresses, HasDonationChannels, HasFactory, HasMembers, HasPrimaryAddressAccessors, HasStates, HasTags, KeepsDeletedModels, Searchable;
+    use AuditsModelChanges, HasAddresses, HasDonationChannels, HasFactory, HasMembers, HasPrimaryAddressAccessors, HasResponses, HasStates, HasTags, KeepsDeletedModels, Searchable;
 
     protected static string $ownerScopeConfigKey = '';
 
@@ -242,9 +246,9 @@ class Event extends PackageEvent implements AuditableContract
             $event->involvements()->delete();
             $event->accessPolicies()->delete();
             $event->keyPeople()->delete();
-            $event->references()->detach();
+            $event->references()->delete();
             $event->savedBy()->detach();
-            $event->goingBy()->detach();
+            $event->goingBy()->delete();
 
             $event->registrations()->each(function ($registration): void {
                 $registration->delete();
@@ -530,6 +534,7 @@ class Event extends PackageEvent implements AuditableContract
                 'event_session_id' => null,
                 'involveable_type' => $organizer::class,
                 'involveable_id' => (string) $organizer->getKey(),
+                'event_role_id' => EventRole::where('code', 'organizer')->value('id'),
                 'role_code' => 'organizer',
                 'status' => 'confirmed',
                 'visibility' => 'public',
@@ -550,6 +555,7 @@ class Event extends PackageEvent implements AuditableContract
                 'event_session_id' => null,
                 'involveable_type' => $organizer::class,
                 'involveable_id' => (string) $organizer->getKey(),
+                'event_role_id' => EventRole::where('code', 'organizer')->value('id'),
                 'role_code' => 'organizer',
                 'status' => 'confirmed',
                 'visibility' => 'public',
@@ -1324,9 +1330,13 @@ class Event extends PackageEvent implements AuditableContract
         }
 
         /** @var ?Reference $reference */
-        $reference = $this->references()
-            ->where('references.type', ReferenceType::Book->value)
+        $eventReference = $this->references()
+            ->whereHasMorph('referenceable', [Reference::class], function (Builder $q): void {
+                $q->where('type', ReferenceType::Book->value);
+            })
             ->first();
+
+        $reference = $eventReference?->referenceable;
 
         return $reference;
     }
@@ -1864,36 +1874,29 @@ class Event extends PackageEvent implements AuditableContract
     }
 
     /**
-     * @return HasOne<EventSettings, $this>
-     */
-    public function settings(): HasOne
-    {
-        return $this->hasOne(EventSettings::class);
-    }
-
-    /**
      * @return BelongsToMany<Speaker, $this, EventKeyPersonPivot, 'pivot'>
      */
     public function speakers(): BelongsToMany
     {
-        return $this->belongsToMany(Speaker::class, 'event_involvements', 'event_id', 'speaker_id')
+        return $this->belongsToMany(Speaker::class, 'event_involvements', 'event_id', 'involveable_id')
             ->using(EventKeyPersonPivot::class)
+            ->wherePivot('involveable_type', 'speaker')
             ->wherePivot('role_code', EventKeyPersonRole::Speaker->value)
+            ->withPivotValue('involveable_type', 'speaker')
             ->withPivotValue('role_code', EventKeyPersonRole::Speaker->value)
-            ->withPivot(['id', 'role_code', 'name', 'sort_order', 'is_public', 'notes'])
+            ->withPivot(['id', 'involveable_type', 'role_code', 'sort_order', 'notes'])
             ->withTimestamps()
             ->orderByPivot('sort_order');
     }
 
     /**
-     * @return BelongsToMany<Reference, $this>
+     * @return HasMany<EventReference, $this>
      */
-    public function references(): BelongsToMany
+    public function references(): HasMany
     {
-        return $this->belongsToMany(Reference::class, 'event_reference')
-            ->withPivot('order_column')
-            ->withTimestamps()
-            ->orderByPivot('order_column');
+        return $this->hasMany(EventReference::class)
+            ->where('referenceable_type', 'reference')
+            ->orderBy('sort_order');
     }
 
     /**
@@ -2088,11 +2091,11 @@ class Event extends PackageEvent implements AuditableContract
     }
 
     /**
-     * @return BelongsToMany<User, $this>
+     * @return MorphMany<Response, $this>
      */
-    public function goingBy(): BelongsToMany
+    public function goingBy(): MorphMany
     {
-        return $this->belongsToMany(User::class, 'event_attendees')->withTimestamps();
+        return $this->responses()->where('response_type', 'going');
     }
 
     /**

@@ -741,7 +741,7 @@ class ContributionEntityMutationService
             'series_ids' => $event->series->pluck('id')->values()->all(),
             'speaker_ids' => $event->keyPeople
                 ->where('role', EventKeyPersonRole::Speaker)
-                ->pluck('speaker_id')
+                ->pluck('involveable_id')
                 ->filter(fn (mixed $speakerId): bool => is_string($speakerId) && $speakerId !== '')
                 ->values()
                 ->all(),
@@ -751,7 +751,7 @@ class ContributionEntityMutationService
                     'role' => $keyPerson->role instanceof BackedEnum ? $keyPerson->role->value : (string) $keyPerson->role,
                     'speaker_id' => $keyPerson->speaker_id,
                     'name' => $keyPerson->name,
-                    'is_public' => (bool) $keyPerson->is_public,
+                    'visibility' => $keyPerson->visibility ?? 'public',
                     'notes' => $keyPerson->notes,
                 ])
                 ->values()

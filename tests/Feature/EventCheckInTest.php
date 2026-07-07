@@ -18,7 +18,7 @@ it('allows logged in users to self check in for open events within check-in wind
         'timezone' => 'Asia/Kuala_Lumpur',
     ]);
 
-    $event->settings()->delete();
+    $event->accessPolicy()->delete();
 
     Livewire::actingAs($user)
         ->test('pages.events.show', ['event' => $event])
@@ -44,11 +44,11 @@ it('requires registration before check-in when event requires registration', fun
         'timezone' => 'Asia/Kuala_Lumpur',
     ]);
 
-    $event->settings()->updateOrCreate([], [
+    $event->accessPolicy()->updateOrCreate([], [
         'registration_required' => true,
         'registration_mode' => 'event',
-        'registration_opens_at' => now()->subDay(),
-        'registration_closes_at' => now()->addDay(),
+        'opens_at' => now()->subDay(),
+        'closes_at' => now()->addDay(),
     ]);
 
     Livewire::actingAs($user)
@@ -71,11 +71,11 @@ it('allows check-in for registered users when event requires registration', func
         'timezone' => 'Asia/Kuala_Lumpur',
     ]);
 
-    $event->settings()->updateOrCreate([], [
+    $event->accessPolicy()->updateOrCreate([], [
         'registration_required' => true,
         'registration_mode' => 'event',
-        'registration_opens_at' => now()->subDay(),
-        'registration_closes_at' => now()->addDay(),
+        'opens_at' => now()->subDay(),
+        'closes_at' => now()->addDay(),
     ]);
 
     $registration = Registration::factory()
@@ -129,7 +129,7 @@ it('prevents duplicate check-ins for the same event and user', function () {
         'timezone' => 'Asia/Kuala_Lumpur',
     ]);
 
-    $event->settings()->delete();
+    $event->accessPolicy()->delete();
 
     Livewire::actingAs($user)
         ->test('pages.events.show', ['event' => $event])

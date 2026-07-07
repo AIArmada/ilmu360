@@ -109,7 +109,7 @@ it('blocks registration calendar and check-in surfaces for unknown postponements
         'title' => 'Kuliah Ditangguhkan',
     ]);
 
-    $event->settings()->updateOrCreate(['event_id' => $event->id], [
+    $event->accessPolicy()->updateOrCreate(['event_id' => $event->id], [
         'registration_required' => true,
         'registration_opens_at' => now()->subDay(),
         'registration_closes_at' => now()->addDay(),

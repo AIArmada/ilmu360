@@ -19,10 +19,11 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Communications\Models\NotificationInbox;
 use AIArmada\Engagement\Models\Bookmark;
 use AIArmada\Engagement\Models\Follow;
+use AIArmada\Engagement\Models\Response;
 use AIArmada\Engagement\Traits\CanBookmark;
 use AIArmada\Engagement\Traits\CanFollow;
+use AIArmada\Engagement\Traits\CanRespond;
 use AIArmada\FilamentAuthz\Facades\Authz;
-use App\Concerns\HasTeams;
 use App\Enums\NotificationChannel;
 use App\Enums\NotificationDestinationStatus;
 use App\Models\Concerns\AuditsModelChanges;
@@ -66,8 +67,7 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable implements AuditableContract, FilamentUser, HasLocalePreference, MustVerifyEmailContract
 {
     /** @use HasFactory<UserFactory> */
-    use AuditsModelChanges, CanBookmark, HasApiTokens, HasFactory, HasRoles, HasTeams, HasUuids, KeepsDeletedModels, MustVerifyEmail, Notifiable {
-        HasTeams::teams insteadof HasRoles;
+    use AuditsModelChanges, CanBookmark, CanRespond, HasApiTokens, HasFactory, HasRoles, HasUuids, KeepsDeletedModels, MustVerifyEmail, Notifiable {
         KeepsDeletedModels::attributesToKeep as protected deletedModelsAttributesToKeep;
     }
 
@@ -120,13 +120,13 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
             $user->institutions()->detach();
             $user->speakers()->detach();
             $user->references()->detach();
-            DB::table('user_venue')->where('user_id', $user->id)->delete();
+            $user->venues()->each(fn (Follow $f): ?bool => $f->delete());
             $user->memberEvents()->detach();
             $user->eventBookmarks()->delete();
-            $user->goingEvents()->detach();
+            $user->goingEvents()->get()->each->delete();
 
             $user->syncBookmarkCounts($savedEventIds);
-            $user->syncEventEngagementCounts($goingEventIds, 'event_attendees', 'going_count');
+            $user->syncEventEngagementCounts($goingEventIds, 'responses', 'going_count');
 
             $user->clearEventOwnership('user_id');
             $user->clearEventOwnership('submitter_id');
@@ -238,11 +238,16 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
                 'created_at' => $this->pivotTimestamp($reference, 'created_at'),
                 'updated_at' => $this->pivotTimestamp($reference, 'updated_at'),
             ])->all(),
-            'user_venue' => DB::table('user_venue')
-                ->where('user_id', $this->id)
-                ->get()
-                ->map(fn (object $row): array => (array) $row)
-                ->all(),
+            'user_venue' => $this->venues()->get()->map(fn (Follow $f): array => [
+                'follower_type' => $f->follower_type,
+                'follower_id' => $f->follower_id,
+                'followable_type' => $f->followable_type,
+                'followable_id' => $f->followable_id,
+                'status' => $f->status,
+                'followed_at' => $f->followed_at?->toIso8601String(),
+                'created_at' => $f->created_at?->toIso8601String(),
+                'updated_at' => $f->updated_at?->toIso8601String(),
+            ])->all(),
             'event_saves' => $this->eventBookmarks()->get()->map(fn (Bookmark $bookmark): array => [
                 'bookmarkable_id' => $bookmark->bookmarkable_id,
                 'bookmarker_type' => $bookmark->bookmarker_type,
@@ -251,11 +256,11 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
                 'created_at' => $bookmark->created_at?->toIso8601String(),
                 'updated_at' => $bookmark->updated_at?->toIso8601String(),
             ])->all(),
-            'event_attendees' => $this->goingEvents()->get()->map(fn (Event $event): array => [
-                'event_id' => $event->getKey(),
-                'user_id' => $this->getKey(),
-                'created_at' => $this->pivotTimestamp($event, 'created_at'),
-                'updated_at' => $this->pivotTimestamp($event, 'updated_at'),
+            'event_attendees' => $this->goingEvents()->get()->map(fn (Response $response): array => [
+                'event_id' => $response->respondable_id,
+                'response_type' => $response->response_type,
+                'created_at' => $response->created_at?->toIso8601String(),
+                'updated_at' => $response->updated_at?->toIso8601String(),
             ])->all(),
             'event_members' => $this->memberEvents()->get()->map(fn (Event $event): array => [
                 'event_id' => $event->getKey(),
@@ -381,7 +386,24 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
         DB::table('institution_members')->insertOrIgnore($this->snapshotRows($snapshot, 'institution_members'));
         DB::table('speaker_members')->insertOrIgnore($this->snapshotRows($snapshot, 'speaker_members'));
         DB::table('reference_members')->insertOrIgnore($this->snapshotRows($snapshot, 'reference_members'));
-        DB::table('user_venue')->insertOrIgnore($this->snapshotRows($snapshot, 'user_venue'));
+        foreach ($snapshot['user_venue'] ?? [] as $venueFollowData) {
+            if (filled($venueFollowData['followable_id'] ?? null)) {
+                OwnerContext::withOwner(null, function () use ($venueFollowData): void {
+                    Follow::query()->firstOrCreate(
+                        [
+                            'follower_type' => $venueFollowData['follower_type'] ?? $this->getMorphClass(),
+                            'follower_id' => $venueFollowData['follower_id'] ?? $this->getKey(),
+                            'followable_type' => $venueFollowData['followable_type'],
+                            'followable_id' => $venueFollowData['followable_id'],
+                        ],
+                        [
+                            'status' => $venueFollowData['status'] ?? 'active',
+                            'followed_at' => $venueFollowData['followed_at'] ?? now(),
+                        ]
+                    );
+                });
+            }
+        }
         foreach ($snapshot['event_saves'] ?? [] as $data) {
             Bookmark::query()->firstOrCreate(
                 [
@@ -396,7 +418,12 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
                 ]
             );
         }
-        DB::table('event_attendees')->insertOrIgnore($this->snapshotRows($snapshot, 'event_attendees'));
+        foreach ($snapshot['event_attendees'] ?? [] as $goingData) {
+            $event = Event::query()->find($goingData['event_id'] ?? null);
+            if ($event instanceof Event) {
+                $this->respond($event, $goingData['response_type'] ?? 'going');
+            }
+        }
         DB::table('event_members')->insertOrIgnore($this->snapshotRows($snapshot, 'event_members'));
         DB::table($this->permissionTable('model_has_roles'))->insertOrIgnore($this->snapshotRows($snapshot, 'model_has_roles'));
         DB::table($this->permissionTable('model_has_permissions'))->insertOrIgnore($this->snapshotRows($snapshot, 'model_has_permissions'));
@@ -424,7 +451,7 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
         }
 
         $this->syncBookmarkCounts($savedEventIds);
-        $this->syncEventEngagementCounts($goingEventIds, 'event_attendees', 'going_count');
+        $this->syncEventEngagementCounts($goingEventIds, 'responses', 'going_count');
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
@@ -447,12 +474,12 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
     /**
      * @param  list<string>  $eventIds
      */
-    private function syncEventEngagementCounts(array $eventIds, string $pivotTable, string $column): void
+    private function syncEventEngagementCounts(array $eventIds, string $source, string $column): void
     {
         foreach ($eventIds as $eventId) {
-            $count = (int) DB::table($pivotTable)
-                ->where('event_id', $eventId)
-                ->count();
+            $count = $source === 'responses'
+                ? Response::query()->where('respondable_id', $eventId)->where('response_type', 'going')->active()->count()
+                : (int) DB::table($source)->where('event_id', $eventId)->count();
 
             $event = Event::query()->find($eventId);
 
@@ -895,13 +922,11 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
     }
 
     /**
-     * @return BelongsToMany<Venue, $this>
+     * @return MorphMany<Follow, $this>
      */
-    public function venues(): BelongsToMany
+    public function venues(): MorphMany
     {
-        return $this->belongsToMany(Venue::class, 'user_venue')
-            ->withPivot(['joined_at'])
-            ->withTimestamps();
+        return $this->follows()->where('followable_type', Venue::class);
     }
 
     /**
@@ -1144,11 +1169,11 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
     }
 
     /**
-     * @return BelongsToMany<Event, $this>
+     * @return MorphMany<Response, $this>
      */
-    public function goingEvents(): BelongsToMany
+    public function goingEvents(): MorphMany
     {
-        return $this->belongsToMany(Event::class, 'event_attendees')->withTimestamps();
+        return $this->responses()->where('response_type', 'going');
     }
 
     /**

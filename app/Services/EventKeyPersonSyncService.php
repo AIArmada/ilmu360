@@ -30,10 +30,11 @@ class EventKeyPersonSyncService
             EventKeyPerson::query()->create($base + [
                 'id' => (string) Str::uuid(),
                 'event_id' => $event->id,
-                'speaker_id' => $speakerId,
+                'involveable_type' => 'speaker',
+                'involveable_id' => $speakerId,
                 'role' => EventKeyPersonRole::Speaker->value,
                 'order_column' => $order++,
-                'is_public' => true,
+                'visibility' => 'public',
             ]);
         }
 
@@ -41,11 +42,11 @@ class EventKeyPersonSyncService
             EventKeyPerson::query()->create($base + [
                 'id' => (string) Str::uuid(),
                 'event_id' => $event->id,
-                'speaker_id' => $keyPerson['speaker_id'],
+                'involveable_type' => $keyPerson['speaker_id'] !== null ? 'speaker' : null,
+                'involveable_id' => $keyPerson['speaker_id'],
                 'role' => $keyPerson['role'],
-                'name' => $keyPerson['name'],
                 'order_column' => $order++,
-                'is_public' => $keyPerson['is_public'],
+                'visibility' => $keyPerson['visibility'],
                 'notes' => $keyPerson['notes'],
             ]);
         }
@@ -68,7 +69,7 @@ class EventKeyPersonSyncService
 
     /**
      * @param  list<array<string, mixed>>  $keyPeople
-     * @return list<array{role: string, speaker_id: ?string, name: ?string, is_public: bool, notes: ?string}>
+     * @return list<array{role: string, speaker_id: ?string, visibility: string, notes: ?string}>
      */
     protected function normalizeKeyPeople(array $keyPeople): array
     {
@@ -84,19 +85,14 @@ class EventKeyPersonSyncService
                     ? $keyPerson['speaker_id']
                     : null;
 
-                $name = is_string($keyPerson['name'] ?? null)
-                    ? trim($keyPerson['name'])
-                    : null;
-
-                if ($speakerId === null && ($name === null || $name === '')) {
+                if ($speakerId === null) {
                     return null;
                 }
 
                 return [
                     'role' => $role,
                     'speaker_id' => $speakerId,
-                    'name' => $name !== '' ? $name : null,
-                    'is_public' => (bool) ($keyPerson['is_public'] ?? true),
+                    'visibility' => (string) ($keyPerson['is_public'] ?? true) === 'true' || $keyPerson['is_public'] === true ? 'public' : 'private',
                     'notes' => is_string($keyPerson['notes'] ?? null) && trim($keyPerson['notes']) !== ''
                         ? trim($keyPerson['notes'])
                         : null,

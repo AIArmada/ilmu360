@@ -121,7 +121,7 @@ class ViewUser extends ViewRecord
             'roles',
             'goingEvents' => fn ($query) => $query
                 ->with(['institution:id,name', 'venue:id,name'])
-                ->orderBy('event_attendees.created_at', 'desc'),
+                ->orderBy('responses.created_at', 'desc'),
             'eventCheckins' => fn ($query) => $query
                 ->with(['event:id,title,status,starts_at', 'verifiedBy:id,name'])
                 ->orderByDesc('checked_in_at'),

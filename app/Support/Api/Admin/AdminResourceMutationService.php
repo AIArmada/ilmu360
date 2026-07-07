@@ -2307,7 +2307,7 @@ class AdminResourceMutationService
             ],
             'institution_id' => ['nullable', 'uuid', 'exists:institutions,id'],
             'venue_id' => ['nullable', 'uuid', 'exists:venues,id'],
-            'space_id' => ['nullable', 'uuid', 'exists:spaces,id'],
+            'space_id' => ['nullable', 'uuid', 'exists:venue_spaces,id'],
             'speakers' => ['nullable', 'array'],
             'speakers.*' => ['uuid', 'exists:speakers,id'],
             'other_key_people' => ['nullable', 'array'],

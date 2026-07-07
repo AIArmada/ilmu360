@@ -887,10 +887,13 @@ class EventSearchService
             if ($includeSpeakers) {
                 $nestedQuery->orWhereHas('keyPeople', function (Builder $keyPeopleQuery) use ($speakerIds, $normalizedSearch, $operator): void {
                     $keyPeopleQuery->where(function (Builder $inner) use ($speakerIds, $normalizedSearch, $operator): void {
-                        $inner->where('event_involvements.name', $operator, "%{$normalizedSearch}%");
+                        $inner->whereHas('speaker', fn (Builder $speakerQuery) => $speakerQuery
+                            ->where('name', $operator, "%{$normalizedSearch}%")
+                            ->orWhere('searchable_name', $operator, "%{$normalizedSearch}%")
+                        );
 
                         if ($speakerIds !== []) {
-                            $inner->orWhereIn('event_involvements.speaker_id', $speakerIds);
+                            $inner->orWhereIn('event_involvements.involveable_id', $speakerIds);
                         }
                     });
                 });
