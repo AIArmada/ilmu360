@@ -7,17 +7,17 @@ use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Engagement\Contracts\EngagementManager;
 use AIArmada\Engagement\Models\Bookmark;
+use AIArmada\Events\Models\EventTaxonomy;
+use AIArmada\Events\Models\EventTerm;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventPrayerTime;
-use App\Enums\TagType;
 use App\Enums\TimingMode;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Reference;
 use App\Models\Speaker;
-use App\Models\Tag;
 use App\Models\User;
 use App\Models\Venue;
 use App\Services\EventSearchService;
@@ -453,8 +453,8 @@ class Index extends Component implements HasForms
                             ->placeholder(__('Any Category'))
                             ->searchable()
                             ->multiple()
-                            ->getSearchResultsUsing(fn (string $search): array => $this->searchTagOptions(TagType::Domain, $search))
-                            ->getOptionLabelsUsing(fn (array $values): array => $this->tagOptionLabels(TagType::Domain, $values))
+                            ->getSearchResultsUsing(fn (string $search): array => $this->searchTermOptions('domain', $search))
+                            ->getOptionLabelsUsing(fn (array $values): array => $this->termOptionLabels('domain', $values))
                             ->live(),
 
                         Select::make('topic_ids')
@@ -462,8 +462,8 @@ class Index extends Component implements HasForms
                             ->placeholder(__('Any Knowledge Field'))
                             ->searchable()
                             ->multiple()
-                            ->getSearchResultsUsing(fn (string $search): array => $this->searchTagOptions(TagType::Discipline, $search))
-                            ->getOptionLabelsUsing(fn (array $values): array => $this->tagOptionLabels(TagType::Discipline, $values))
+                            ->getSearchResultsUsing(fn (string $search): array => $this->searchTermOptions('discipline', $search))
+                            ->getOptionLabelsUsing(fn (array $values): array => $this->termOptionLabels('discipline', $values))
                             ->live(),
 
                         Select::make('source_tag_ids')
@@ -471,8 +471,8 @@ class Index extends Component implements HasForms
                             ->placeholder(__('Pilih sumber...'))
                             ->searchable()
                             ->multiple()
-                            ->getSearchResultsUsing(fn (string $search): array => $this->searchTagOptions(TagType::Source, $search))
-                            ->getOptionLabelsUsing(fn (array $values): array => $this->tagOptionLabels(TagType::Source, $values))
+                            ->getSearchResultsUsing(fn (string $search): array => $this->searchTermOptions('source', $search))
+                            ->getOptionLabelsUsing(fn (array $values): array => $this->termOptionLabels('source', $values))
                             ->live(),
 
                         Select::make('issue_tag_ids')
@@ -480,8 +480,8 @@ class Index extends Component implements HasForms
                             ->placeholder(__('Pilih atau taip untuk tambah tema...'))
                             ->searchable()
                             ->multiple()
-                            ->getSearchResultsUsing(fn (string $search): array => $this->searchTagOptions(TagType::Issue, $search))
-                            ->getOptionLabelsUsing(fn (array $values): array => $this->tagOptionLabels(TagType::Issue, $values))
+                            ->getSearchResultsUsing(fn (string $search): array => $this->searchTermOptions('issue', $search))
+                            ->getOptionLabelsUsing(fn (array $values): array => $this->termOptionLabels('issue', $values))
                             ->live(),
 
                         Select::make('reference_ids')
@@ -783,66 +783,66 @@ class Index extends Component implements HasForms
     }
 
     /**
-     * @return Collection<int, Tag>
+     * @return Collection<int, EventTerm>
      */
     #[Computed]
     public function disciplines(): Collection
     {
         return app(SafeModelCache::class)->rememberCollection(
-            key: 'events_disciplines_'.app()->getLocale().'_v2',
+            key: 'events_disciplines_'.app()->getLocale().'_v3',
             ttl: 300,
-            query: Tag::query()
-                ->where('type', TagType::Discipline->value)
-                ->whereIn('status', ['verified', 'pending'])
-                ->ordered(),
+            query: EventTerm::query()
+                ->whereIn('event_taxonomy_id', $this->activeTaxonomyIds('discipline'))
+                ->where('is_active', true)
+                ->orderBy('sort_order'),
         );
     }
 
     /**
-     * @return Collection<int, Tag>
+     * @return Collection<int, EventTerm>
      */
     #[Computed]
     public function domains(): Collection
     {
         return app(SafeModelCache::class)->rememberCollection(
-            key: 'events_domains_'.app()->getLocale().'_v2',
+            key: 'events_domains_'.app()->getLocale().'_v3',
             ttl: 300,
-            query: Tag::query()
-                ->where('type', TagType::Domain->value)
-                ->whereIn('status', ['verified', 'pending'])
-                ->ordered(),
+            query: EventTerm::query()
+                ->whereIn('event_taxonomy_id', $this->activeTaxonomyIds('domain'))
+                ->where('is_active', true)
+                ->orderBy('sort_order'),
         );
     }
 
     /**
-     * @return Collection<int, Tag>
+     * @return Collection<int, EventTerm>
      */
     #[Computed]
     public function sources(): Collection
     {
         return app(SafeModelCache::class)->rememberCollection(
-            key: 'events_sources_'.app()->getLocale().'_v2',
+            key: 'events_sources_'.app()->getLocale().'_v3',
             ttl: 300,
-            query: Tag::query()
-                ->where('type', TagType::Source->value)
-                ->whereIn('status', ['verified', 'pending'])
-                ->ordered(),
+            query: EventTerm::query()
+                ->whereIn('event_taxonomy_id', $this->activeTaxonomyIds('source'))
+                ->where('is_active', true)
+                ->orderBy('sort_order'),
         );
     }
 
     /**
-     * @return Collection<int, Tag>
+     * @return Collection<int, EventTerm>
      */
     #[Computed]
     public function issues(): Collection
     {
         return app(SafeModelCache::class)->rememberCollection(
-            key: 'events_issues_'.app()->getLocale().'_v2',
+            key: 'events_issues_'.app()->getLocale().'_v3',
             ttl: 300,
-            query: Tag::query()
-                ->where('type', TagType::Issue->value)
-                ->whereIn('status', ['verified', 'pending'])
-                ->ordered(),
+            query: EventTerm::query()
+                ->whereIn('event_taxonomy_id', $this->activeTaxonomyIds('issue'))
+                ->where('is_active', true)
+                ->orderBy('sort_order'),
         );
     }
 
@@ -968,14 +968,14 @@ class Index extends Component implements HasForms
     /**
      * @return array<string, string>
      */
-    private function searchTagOptions(TagType $type, string $search): array
+    private function searchTermOptions(string $taxonomyCode, string $search): array
     {
         return $this->pluckOptions(
-            Tag::query()
-                ->where('type', $type->value)
-                ->whereIn('status', ['verified', 'pending'])
+            EventTerm::query()
+                ->whereIn('event_taxonomy_id', $this->activeTaxonomyIds($taxonomyCode))
+                ->where('is_active', true)
                 ->tap(fn (Builder $query): Builder => $this->applySearchConstraint($query, 'name', $search))
-                ->ordered(),
+                ->orderBy('sort_order'),
             'name',
             50,
         );
@@ -985,21 +985,32 @@ class Index extends Component implements HasForms
      * @param  list<string>  $values
      * @return array<string, string>
      */
-    public function tagOptionLabels(TagType $type, array $values): array
+    public function termOptionLabels(string $taxonomyCode, array $values): array
     {
         if ($values === []) {
             return [];
         }
 
         return $this->pluckOptions(
-            Tag::query()
-                ->where('type', $type->value)
-                ->whereIn('status', ['verified', 'pending'])
+            EventTerm::query()
+                ->whereIn('event_taxonomy_id', $this->activeTaxonomyIds($taxonomyCode))
+                ->where('is_active', true)
                 ->whereIn('id', $values)
-                ->ordered(),
+                ->orderBy('sort_order'),
             'name',
             count($values),
         );
+    }
+
+    /**
+     * @return Collection<int, string>
+     */
+    private function activeTaxonomyIds(string $code): Collection
+    {
+        return EventTaxonomy::query()
+            ->where('code', $code)
+            ->where('is_active', true)
+            ->pluck('id');
     }
 
     /**

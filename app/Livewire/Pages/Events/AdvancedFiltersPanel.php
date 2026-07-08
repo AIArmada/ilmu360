@@ -3,19 +3,19 @@
 namespace App\Livewire\Pages\Events;
 
 use AIArmada\Addressing\Models\AddressArea;
+use AIArmada\Events\Models\EventTaxonomy;
+use AIArmada\Events\Models\EventTerm;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventPrayerTime;
 use App\Enums\EventType;
-use App\Enums\TagType;
 use App\Enums\TimingMode;
 use App\Forms\SharedFormSchema;
 use App\Models\Institution;
 use App\Models\Reference;
 use App\Models\Speaker;
-use App\Models\Tag;
 use App\Models\Venue;
 use App\Support\Location\PublicGeolocationPermission;
 use Filament\Forms\Components\DatePicker;
@@ -327,8 +327,8 @@ class AdvancedFiltersPanel extends Component implements HasForms
                                     ->placeholder(__('Any Category'))
                                     ->searchable()
                                     ->multiple()
-                                    ->getSearchResultsUsing(fn (string $search): array => $this->searchTagOptions(TagType::Domain, $search))
-                                    ->getOptionLabelsUsing(fn (array $values): array => $this->tagOptionLabels(TagType::Domain, $values))
+                                    ->getSearchResultsUsing(fn (string $search): array => $this->searchTermOptions('domain', $search))
+                                    ->getOptionLabelsUsing(fn (array $values): array => $this->termOptionLabels('domain', $values))
                                     ->live(),
 
                                 Select::make('topic_ids')
@@ -336,8 +336,8 @@ class AdvancedFiltersPanel extends Component implements HasForms
                                     ->placeholder(__('Any Knowledge Field'))
                                     ->searchable()
                                     ->multiple()
-                                    ->getSearchResultsUsing(fn (string $search): array => $this->searchTagOptions(TagType::Discipline, $search))
-                                    ->getOptionLabelsUsing(fn (array $values): array => $this->tagOptionLabels(TagType::Discipline, $values))
+                                    ->getSearchResultsUsing(fn (string $search): array => $this->searchTermOptions('discipline', $search))
+                                    ->getOptionLabelsUsing(fn (array $values): array => $this->termOptionLabels('discipline', $values))
                                     ->live(),
 
                                 Select::make('source_tag_ids')
@@ -345,8 +345,8 @@ class AdvancedFiltersPanel extends Component implements HasForms
                                     ->placeholder(__('Pilih sumber...'))
                                     ->searchable()
                                     ->multiple()
-                                    ->getSearchResultsUsing(fn (string $search): array => $this->searchTagOptions(TagType::Source, $search))
-                                    ->getOptionLabelsUsing(fn (array $values): array => $this->tagOptionLabels(TagType::Source, $values))
+                                    ->getSearchResultsUsing(fn (string $search): array => $this->searchTermOptions('source', $search))
+                                    ->getOptionLabelsUsing(fn (array $values): array => $this->termOptionLabels('source', $values))
                                     ->live(),
 
                                 Select::make('issue_tag_ids')
@@ -354,8 +354,8 @@ class AdvancedFiltersPanel extends Component implements HasForms
                                     ->placeholder(__('Pilih atau taip untuk tambah tema...'))
                                     ->searchable()
                                     ->multiple()
-                                    ->getSearchResultsUsing(fn (string $search): array => $this->searchTagOptions(TagType::Issue, $search))
-                                    ->getOptionLabelsUsing(fn (array $values): array => $this->tagOptionLabels(TagType::Issue, $values))
+                                    ->getSearchResultsUsing(fn (string $search): array => $this->searchTermOptions('issue', $search))
+                                    ->getOptionLabelsUsing(fn (array $values): array => $this->termOptionLabels('issue', $values))
                                     ->live(),
 
                                 Select::make('reference_ids')
@@ -557,14 +557,18 @@ class AdvancedFiltersPanel extends Component implements HasForms
      * @param  list<string>  $values
      * @return array<string, string>
      */
-    public function tagOptionLabels(TagType $type, array $values): array
+    public function termOptionLabels(string $taxonomyCode, array $values): array
     {
         if ($values === []) {
             return [];
         }
 
         return $this->pluckOptions(
-            Tag::query()->where('type', $type->value)->whereIn('status', ['verified', 'pending'])->whereIn('id', $values)->ordered(),
+            EventTerm::query()
+                ->whereIn('event_taxonomy_id', $this->activeTaxonomyIds($taxonomyCode))
+                ->where('is_active', true)
+                ->whereIn('id', $values)
+                ->orderBy('sort_order'),
             'name',
             count($values),
         );
@@ -850,17 +854,28 @@ class AdvancedFiltersPanel extends Component implements HasForms
     /**
      * @return array<string, string>
      */
-    private function searchTagOptions(TagType $type, string $search): array
+    private function searchTermOptions(string $taxonomyCode, string $search): array
     {
         return $this->pluckOptions(
-            Tag::query()
-                ->where('type', $type->value)
-                ->whereIn('status', ['verified', 'pending'])
+            EventTerm::query()
+                ->whereIn('event_taxonomy_id', $this->activeTaxonomyIds($taxonomyCode))
+                ->where('is_active', true)
                 ->tap(fn (Builder $query): Builder => $this->applySearchConstraint($query, 'name', $search))
-                ->ordered(),
+                ->orderBy('sort_order'),
             'name',
             50,
         );
+    }
+
+    /**
+     * @return Collection<int, string>
+     */
+    private function activeTaxonomyIds(string $code): Collection
+    {
+        return EventTaxonomy::query()
+            ->where('code', $code)
+            ->where('is_active', true)
+            ->pluck('id');
     }
 
     /**

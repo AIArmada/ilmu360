@@ -49,7 +49,12 @@ class EventController extends Controller
     /**
      * @var list<string>
      */
-    private const array PUBLIC_STATUSES = Event::PUBLIC_STATUSES;
+    /**
+     * Statuses visible on public listings and detail pages.
+     *
+     * @var list<string>
+     */
+    private const array PUBLIC_STATUSES = ['approved', 'published', 'pending', 'cancelled'];
 
     /**
      * @var list<string>
@@ -604,7 +609,7 @@ class EventController extends Controller
         $visibility = (string) $event->getRawOriginal('visibility');
 
         abort_unless(
-            $event->is_active
+            $event->published_at !== null
                 && in_array($status, self::PUBLIC_STATUSES, true)
                 && in_array($visibility, [EventVisibility::Public->value, EventVisibility::Unlisted->value], true),
             404,
@@ -617,7 +622,7 @@ class EventController extends Controller
         $visibility = (string) $event->getRawOriginal('visibility');
 
         abort_unless(
-            $event->is_active
+            $event->published_at !== null
                 && in_array($status, self::PUBLIC_STATUSES, true)
                 && in_array($visibility, [EventVisibility::Public->value, EventVisibility::Unlisted->value], true),
             404,

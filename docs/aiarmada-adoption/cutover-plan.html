@@ -165,7 +165,7 @@
 <div class="section" id="wu1">
     <div class="section-header">
         <h2><span class="badge badge-comms">WU1</span> Communications — Resolver Implementations</h2>
-        <span class="badge badge-pending">Pending</span>
+        <span class="badge badge-done">Done</span>
     </div>
     <p class="deps"><strong>Domain:</strong> G001 Communications &nbsp;|&nbsp; <strong>No dependencies</strong> &nbsp;|&nbsp; <strong>Can parallel with:</strong> WU2, WU13, WU14</p>
     <p>The communications package calls <code>ContentRenderer</code> and <code>RecipientSnapshotResolver</code> in 3 runtime paths. Currently null implementations — data fields like <code>content_text</code>, <code>checksum</code>, <code>displayName</code>, <code>locale</code>, <code>timezone</code> are all empty. Implement real resolvers.</p>
@@ -254,7 +254,7 @@
 <div class="section" id="wu3">
     <div class="section-header">
         <h2><span class="badge badge-model">WU3</span> Model Collapse — SavedSearch</h2>
-        <span class="badge badge-pending">Pending</span>
+        <span class="badge badge-done">Done</span>
     </div>
     <p class="deps"><strong>Domain:</strong> G003 &nbsp;|&nbsp; <strong>No runtime deps</strong> &nbsp;|&nbsp; <strong>Can parallel with:</strong> WU4-WU10</p>
     <p>App model adds 4 extra columns (radius_km, lat, lng, notify) not in the package. Add these as trait-backed metadata on the package model via a registered extension, then delete the app wrapper. 16 caller files.</p>
@@ -262,38 +262,38 @@
     <div class="task-group">
         <div class="task-group-title">Prepare Package Extension</div>
         <ul class="tasks">
-            <li><input type="checkbox"><label>Create trait <span class="file">app/Models/Concerns/HasSavedSearchGeo.php</span><br>Adds radius_km, lat, lng, notify accessors/mutators backed by the existing meta JSON column on the package model. Uses getAttribute/setAttribute overrides scoped to these 4 keys.</label></li>
-            <li><input type="checkbox"><label>Register trait on package model in <span class="file">app/Providers/AppServiceProvider.php</span> boot()<br><code>SavedSearch::addGlobalScope(...)</code> or apply via model::resolveRelationUsing. Prefer: bind a custom SavedSearch class that extends package + uses trait. But per the rule — extend only when needed. Here the trait IS the extension. Register it via model boot hook or a custom model override at the container level.</label></li>
+            <li><input type="checkbox" checked><label>Create trait <span class="file">app/Models/Concerns/HasSavedSearchGeo.php</span><br>Adds radius_km, lat, lng, notify accessors/mutators backed by the existing meta JSON column on the package model. Uses getAttribute/setAttribute overrides scoped to these 4 keys.</label></li>
+            <li><input type="checkbox" checked><label>Register trait on package model in <span class="file">app/Providers/AppServiceProvider.php</span> boot()<br><code>SavedSearch::addGlobalScope(...)</code> or apply via model::resolveRelationUsing. Prefer: bind a custom SavedSearch class that extends package + uses trait. But per the rule — extend only when needed. Here the trait IS the extension. Register it via model boot hook or a custom model override at the container level.</label></li>
         </ul>
     </div>
     <div class="task-group">
         <div class="task-group-title">Rewrite Callers (16 files)</div>
         <ul class="tasks">
-            <li><input type="checkbox"><label>Replace <span class="file">app/Actions/SavedSearches/CreateSavedSearchAction.php</span> — use AIArmada\CommerceSupport\Models\SavedSearch</label></li>
-            <li><input type="checkbox"><label>Replace <span class="file">app/Actions/SavedSearches/UpdateSavedSearchAction.php</span></label></li>
-            <li><input type="checkbox"><label>Replace <span class="file">app/Actions/SavedSearches/ExecuteSavedSearchAction.php</span></label></li>
-            <li><input type="checkbox"><label>Replace <span class="file">app/Http/Controllers/Api/SavedSearchController.php</span></label></li>
-            <li><input type="checkbox"><label>Replace <span class="file">app/Services/Notifications/EventNotificationService.php</span></label></li>
-            <li><input type="checkbox"><label>Replace <span class="file">app/Policies/SavedSearchPolicy.php</span></label></li>
-            <li><input type="checkbox"><label>Replace <span class="file">app/Livewire/Pages/SavedSearches/Index.php</span></label></li>
-            <li><input type="checkbox"><label>Replace <span class="file">app/Livewire/Pages/Dashboard/UserDashboard.php</span></label></li>
-            <li><input type="checkbox"><label>Replace <span class="file">database/factories/SavedSearchFactory.php</span> — point to package model</label></li>
-            <li><input type="checkbox"><label>Replace <span class="file">database/seeders/SavedSearchSeeder.php</span></label></li>
-            <li><input type="checkbox"><label>Replace test files (6 files): <span class="file">tests/Feature/SavedSearch*</span> + any references in AdminApiTest, FrontendApiParityTest, etc.</label></li>
+            <li><input type="checkbox" checked><label>Replace <span class="file">app/Actions/SavedSearches/CreateSavedSearchAction.php</span> — use AIArmada\CommerceSupport\Models\SavedSearch</label></li>
+            <li><input type="checkbox" checked><label>Replace <span class="file">app/Actions/SavedSearches/UpdateSavedSearchAction.php</span></label></li>
+            <li><input type="checkbox" checked><label>Replace <span class="file">app/Actions/SavedSearches/ExecuteSavedSearchAction.php</span></label></li>
+            <li><input type="checkbox" checked><label>Replace <span class="file">app/Http/Controllers/Api/SavedSearchController.php</span></label></li>
+            <li><input type="checkbox" checked><label>Replace <span class="file">app/Services/Notifications/EventNotificationService.php</span></label></li>
+            <li><input type="checkbox" checked><label>Replace <span class="file">app/Policies/SavedSearchPolicy.php</span></label></li>
+            <li><input type="checkbox" checked><label>Replace <span class="file">app/Livewire/Pages/SavedSearches/Index.php</span></label></li>
+            <li><input type="checkbox" checked><label>Replace <span class="file">app/Livewire/Pages/Dashboard/UserDashboard.php</span></label></li>
+            <li><input type="checkbox" checked><label>Replace <span class="file">database/factories/SavedSearchFactory.php</span> — point to package model</label></li>
+            <li><input type="checkbox" checked><label>Replace <span class="file">database/seeders/SavedSearchSeeder.php</span></label></li>
+            <li><input type="checkbox" checked><label>Replace test files (6 files): <span class="file">tests/Feature/SavedSearch*</span> + any references in AdminApiTest, FrontendApiParityTest, etc.</label></li>
         </ul>
     </div>
     <div class="task-group">
         <div class="task-group-title">Delete</div>
         <ul class="tasks">
-            <li><input type="checkbox"><label>Delete <span class="file">app/Models/SavedSearch.php</span></label></li>
-            <li><input type="checkbox"><label>Update morph map in <span class="file">app/Providers/AppServiceProvider.php</span> — point saved_search to package model</label></li>
+            <li><input type="checkbox" checked><label>Delete <span class="file">app/Models/SavedSearch.php</span></label></li>
+            <li><input type="checkbox" checked><label>Update morph map in <span class="file">app/Providers/AppServiceProvider.php</span> — point saved_search to package model</label></li>
         </ul>
     </div>
     <div class="task-group">
         <div class="task-group-title">Verify</div>
         <ul class="tasks">
-            <li><input type="checkbox"><label>Run <code>vendor/bin/pest --parallel --filter=SavedSearch</code></label></li>
-            <li><input type="checkbox"><label><code>grep -r "App\\Models\\SavedSearch" app/ tests/</code> — must return zero</label></li>
+            <li><input type="checkbox" checked><label>Run <code>vendor/bin/pest --parallel --filter=SavedSearch</code></label></li>
+            <li><input type="checkbox" checked><label><code>grep -r "App\\Models\\SavedSearch" app/ tests/</code> — must return zero</label></li>
         </ul>
     </div>
 </div>
@@ -302,7 +302,7 @@
 <div class="section" id="wu4">
     <div class="section-header">
         <h2><span class="badge badge-model">WU4</span> Model Collapse — EventCheckin</h2>
-        <span class="badge badge-pending">Pending</span>
+        <span class="badge badge-done">Done</span>
     </div>
     <p class="deps"><strong>Domain:</strong> G003 &nbsp;|&nbsp; <strong>No runtime deps</strong> &nbsp;|&nbsp; <strong>Can parallel with:</strong> WU3, WU5-WU10</p>
     <p>App model is column-name aliasing (registration_id→event_registration_id, user_id→attendee_id, method→check_in_source, lat/lng→metadata). Rewrite 14 callers to use package column names directly. Then delete the shim.</p>
@@ -310,29 +310,29 @@
     <div class="task-group">
         <div class="task-group-title">Rewrite Callers (14 files)</div>
         <ul class="tasks">
-            <li><input type="checkbox"><label><span class="file">app/Actions/Events/RecordEventCheckInAction.php</span> — create() with event_registration_id, attendee_id+attendee_type, check_in_source, metadata.lat, metadata.lng. Read with package names.</label></li>
-            <li><input type="checkbox"><label><span class="file">app/Data/Api/EventCheckIn/EventCheckInData.php</span> — read event_registration_id, attendee_id, check_in_source from package columns</label></li>
-            <li><input type="checkbox"><label><span class="file">app/Services/Notifications/EventNotificationService.php</span> — replace $checkin->user with $checkin->attendee (MorphTo on package model)</label></li>
-            <li><input type="checkbox"><label><span class="file">app/Livewire/Pages/Dashboard/UserDashboard.php</span> — use attendee_id for queries</label></li>
-            <li><input type="checkbox"><label><span class="file">app/Livewire/Pages/Events/Show.php</span></label></li>
-            <li><input type="checkbox"><label><span class="file">app/Http/Controllers/Api/EventController.php</span> — use package model for route model binding</label></li>
-            <li><input type="checkbox"><label><span class="file">tests/Feature/EventCheckInTest.php</span> — update assertions to package column names</label></li>
-            <li><input type="checkbox"><label><span class="file">tests/Feature/Api/EventCheckInApiTest.php</span> — same</label></li>
-            <li><input type="checkbox"><label>Remaining callers: scan <code>grep -rl "App\\Models\\EventCheckin" app/ tests/</code>, rewrite each</label></li>
+            <li><input type="checkbox" checked><label><span class="file">app/Actions/Events/RecordEventCheckInAction.php</span> — create() with event_registration_id, attendee_id+attendee_type, check_in_source, metadata.lat, metadata.lng. Read with package names.</label></li>
+            <li><input type="checkbox" checked><label><span class="file">app/Data/Api/EventCheckIn/EventCheckInData.php</span> — read event_registration_id, attendee_id, check_in_source from package columns</label></li>
+            <li><input type="checkbox" checked><label><span class="file">app/Services/Notifications/EventNotificationService.php</span> — replace $checkin->user with $checkin->attendee (MorphTo on package model)</label></li>
+            <li><input type="checkbox" checked><label><span class="file">app/Livewire/Pages/Dashboard/UserDashboard.php</span> — use attendee_id for queries</label></li>
+            <li><input type="checkbox" checked><label><span class="file">app/Livewire/Pages/Events/Show.php</span></label></li>
+            <li><input type="checkbox" checked><label><span class="file">app/Http/Controllers/Api/EventController.php</span> — use package model for route model binding</label></li>
+            <li><input type="checkbox" checked><label><span class="file">tests/Feature/EventCheckInTest.php</span> — update assertions to package column names</label></li>
+            <li><input type="checkbox" checked><label><span class="file">tests/Feature/Api/EventCheckInApiTest.php</span> — same</label></li>
+            <li><input type="checkbox" checked><label>Remaining callers: scan <code>grep -rl "App\\Models\\EventCheckin" app/ tests/</code>, rewrite each</label></li>
         </ul>
     </div>
     <div class="task-group">
         <div class="task-group-title">Delete</div>
         <ul class="tasks">
-            <li><input type="checkbox"><label>Delete <span class="file">app/Models/EventCheckin.php</span></label></li>
-            <li><input type="checkbox"><label>Update morph map in AppServiceProvider if needed</label></li>
+            <li><input type="checkbox" checked><label>Delete <span class="file">app/Models/EventCheckin.php</span></label></li>
+            <li><input type="checkbox" checked><label>Update morph map in AppServiceProvider if needed</label></li>
         </ul>
     </div>
     <div class="task-group">
         <div class="task-group-title">Verify</div>
         <ul class="tasks">
-            <li><input type="checkbox"><label><code>vendor/bin/pest --parallel --filter=EventCheckIn</code></label></li>
-            <li><input type="checkbox"><label><code>grep -r "App\\Models\\EventCheckin" app/ tests/</code> — zero</label></li>
+            <li><input type="checkbox" checked><label><code>vendor/bin/pest --parallel --filter=EventCheckIn</code></label></li>
+            <li><input type="checkbox" checked><label><code>grep -r "App\\Models\\EventCheckin" app/ tests/</code> — zero</label></li>
         </ul>
     </div>
 </div>
@@ -341,7 +341,7 @@
 <div class="section" id="wu5">
     <div class="section-header">
         <h2><span class="badge badge-model">WU5</span> Model Collapse — EventKeyPerson</h2>
-        <span class="badge badge-pending">Pending</span>
+        <span class="badge badge-done">Done</span>
     </div>
     <p class="deps"><strong>Domain:</strong> G003 &nbsp;|&nbsp; <strong>No runtime deps</strong> &nbsp;|&nbsp; <strong>Can parallel with:</strong> WU3, WU4, WU6-WU10</p>
     <p>App model aliases role→metadata.role_code, displayName computed, two BelongsTo (event, speaker). Package model already has event() BelongsTo. 14 callers.</p>
@@ -349,15 +349,15 @@
     <div class="task-group">
         <div class="task-group-title">Rewrite Callers (14 files)</div>
         <ul class="tasks">
-            <li><input type="checkbox"><label>Create trait <span class="file">app/Models/Concerns/HasEventInvolvementRole.php</span> — adds role/role_code/displayName accessors backed by the package metadata column. Bolt onto package EventInvolvement model.</label></li>
-            <li><input type="checkbox"><label>Replace imports across all callers tracked by <code>grep -rl "App\\Models\\EventKeyPerson" app/ tests/</code> → use AIArmada\Events\Models\EventInvolvement</label></li>
-            <li><input type="checkbox"><label>Remove <span class="file">app/Models/EventKeyPerson.php</span></label></li>
+            <li><input type="checkbox" checked><label>Create trait <span class="file">app/Models/Concerns/HasEventInvolvementRole.php</span> — adds role/role_code/displayName accessors backed by the package metadata column. Bolt onto package EventInvolvement model.</label></li>
+            <li><input type="checkbox" checked><label>Replace imports across all callers tracked by <code>grep -rl "App\\Models\\EventKeyPerson" app/ tests/</code> → use AIArmada\Events\Models\EventInvolvement</label></li>
+            <li><input type="checkbox" checked><label>Remove <span class="file">app/Models/EventKeyPerson.php</span></label></li>
         </ul>
     </div>
     <div class="task-group">
         <div class="task-group-title">Verify</div>
         <ul class="tasks">
-            <li><input type="checkbox"><label><code>vendor/bin/pest --parallel --filter=EventKeyPerson</code></label></li>
+            <li><input type="checkbox" checked><label><code>vendor/bin/pest --parallel --filter=EventKeyPerson</code></label></li>
         </ul>
     </div>
 </div>
@@ -366,7 +366,7 @@
 <div class="section" id="wu6">
     <div class="section-header">
         <h2><span class="badge badge-model">WU6</span> Model Collapse — MemberInvitation</h2>
-        <span class="badge badge-pending">Pending</span>
+        <span class="badge badge-done">Done</span>
     </div>
     <p class="deps"><strong>Domain:</strong> G003 &nbsp;|&nbsp; <strong>No runtime deps</strong> &nbsp;|&nbsp; <strong>Can parallel with:</strong> WU3-WU5, WU7-WU10</p>
     <p>App model has role_slug/role alias + 3 BelongsTo (inviter, acceptedBy, revokedBy). Package has inviter() MorphTo. 9 callers.</p>
@@ -374,15 +374,15 @@
     <div class="task-group">
         <div class="task-group-title">Rewrite</div>
         <ul class="tasks">
-            <li><input type="checkbox"><label>Create trait <span class="file">app/Models/Concerns/HasMemberInvitationAliases.php</span> — role/role_slug/inviter/acceptedBy/revokedBy backed by package meta column. Register on package MembershipInvitation.</label></li>
-            <li><input type="checkbox"><label>Replace imports: <code>grep -rl "App\\Models\\MemberInvitation" app/ tests/</code> → AIArmada\Membership\Models\MembershipInvitation</label></li>
-            <li><input type="checkbox"><label>Delete <span class="file">app/Models/MemberInvitation.php</span></label></li>
+            <li><input type="checkbox" checked><label>Create trait <span class="file">app/Models/Concerns/HasMemberInvitationAliases.php</span> — role/role_slug/inviter/acceptedBy/revokedBy backed by package meta column. Register on package MembershipInvitation.</label></li>
+            <li><input type="checkbox" checked><label>Replace imports: <code>grep -rl "App\\Models\\MemberInvitation" app/ tests/</code> → AIArmada\Membership\Models\MembershipInvitation</label></li>
+            <li><input type="checkbox" checked><label>Delete <span class="file">app/Models/MemberInvitation.php</span></label></li>
         </ul>
     </div>
     <div class="task-group">
         <div class="task-group-title">Verify</div>
         <ul class="tasks">
-            <li><input type="checkbox"><label><code>vendor/bin/pest --parallel --filter=MemberInvitation</code></label></li>
+            <li><input type="checkbox" checked><label><code>vendor/bin/pest --parallel --filter=MemberInvitation</code></label></li>
         </ul>
     </div>
 </div>
@@ -391,7 +391,7 @@
 <div class="section" id="wu7">
     <div class="section-header">
         <h2><span class="badge badge-model">WU7</span> Model Collapse — MembershipApplication</h2>
-        <span class="badge badge-pending">Pending</span>
+        <span class="badge badge-done">Done</span>
     </div>
     <p class="deps"><strong>Domain:</strong> G003 &nbsp;|&nbsp; <strong>No runtime deps</strong> &nbsp;|&nbsp; <strong>Can parallel with:</strong> WU3-WU6, WU8-WU10</p>
     <p>App model adds InteractsWithMedia (evidence upload), MemberSubjectType cast on subject_type, AuditsModelChanges. 14 callers; 3 actively use media. The package model doesn't have media support. Solution: extend the package model with a thin subclass that adds only media + cast.</p>
@@ -399,15 +399,15 @@
     <div class="task-group">
         <div class="task-group-title">Minimal Extension</div>
         <ul class="tasks">
-            <li><input type="checkbox"><label>Create <span class="file">app/Models/MembershipApplication.php</span> as minimal subclass:<br><code>class MembershipApplication extends \AIArmada\Membership\Models\MembershipApplication implements AuditableContract { use InteractsWithMedia; use HasMedia; use AuditsModelChanges; }</code><br>Keep MemberSubjectType cast on subject_type.<br>Remove the redundant subject() override (package has it).<br>Keep evidence media collection and thumb conversion.<br>Target: ~30 lines total.</label></li>
-            <li><input type="checkbox"><label>No caller changes needed — they already import App\Models\MembershipApplication. Verify model still resolves correctly after trimming.</label></li>
+            <li><input type="checkbox" checked><label>Create <span class="file">app/Models/MembershipApplication.php</span> as minimal subclass:<br><code>class MembershipApplication extends \AIArmada\Membership\Models\MembershipApplication implements AuditableContract { use InteractsWithMedia; use HasMedia; use AuditsModelChanges; }</code><br>Keep MemberSubjectType cast on subject_type.<br>Remove the redundant subject() override (package has it).<br>Keep evidence media collection and thumb conversion.<br>Target: ~30 lines total.</label></li>
+            <li><input type="checkbox" checked><label>No caller changes needed — they already import App\Models\MembershipApplication. Verify model still resolves correctly after trimming.</label></li>
         </ul>
     </div>
     <div class="task-group">
         <div class="task-group-title">Verify</div>
         <ul class="tasks">
-            <li><input type="checkbox"><label><code>vendor/bin/pest --parallel --filter=MembershipClaim</code></label></li>
-            <li><input type="checkbox"><label>Evidence upload still works: submit a claim with an attachment via Filament/Livewire</label></li>
+            <li><input type="checkbox" checked><label><code>vendor/bin/pest --parallel --filter=MembershipClaim</code></label></li>
+            <li><input type="checkbox" checked><label>Evidence upload still works: submit a claim with an attachment via Filament/Livewire</label></li>
         </ul>
     </div>
 </div>
@@ -416,7 +416,7 @@
 <div class="section" id="wu8">
     <div class="section-header">
         <h2><span class="badge badge-model">WU8</span> Model Collapse — ModerationReview</h2>
-        <span class="badge badge-pending">Pending</span>
+        <span class="badge badge-done">Done</span>
     </div>
     <p class="deps"><strong>Domain:</strong> G003 &nbsp;|&nbsp; <strong>No runtime deps</strong> &nbsp;|&nbsp; <strong>Can parallel with:</strong> WU3-WU7, WU9, WU10</p>
     <p>App model has event() and moderator() BelongsTo that are DEAD CODE (0 callers access them). Only AuditsModelChanges trait is actively needed. 17 callers.</p>
@@ -424,15 +424,15 @@
     <div class="task-group">
         <div class="task-group-title">Rewrite</div>
         <ul class="tasks">
-            <li><input type="checkbox"><label>Create minimal <span class="file">app/Models/ModerationReview.php</span>:<br><code>class ModerationReview extends \AIArmada\Moderation\Models\ModerationAction implements AuditableContract { use AuditsModelChanges; }</code><br>Remove event() and moderator() BelongsTo (dead code). Target: ~15 lines.</label></li>
-            <li><input type="checkbox"><label>No caller changes needed — callers only use ModerationReview::create([...]) statically with standard columns (actionable_type, actionable_id, actioned_by_type, actioned_by_id, type, reason, notes). All are package columns.</label></li>
+            <li><input type="checkbox" checked><label>Create minimal <span class="file">app/Models/ModerationReview.php</span>:<br><code>class ModerationReview extends \AIArmada\Moderation\Models\ModerationAction implements AuditableContract { use AuditsModelChanges; }</code><br>Remove event() and moderator() BelongsTo (dead code). Target: ~15 lines.</label></li>
+            <li><input type="checkbox" checked><label>No caller changes needed — callers only use ModerationReview::create([...]) statically with standard columns (actionable_type, actionable_id, actioned_by_type, actioned_by_id, type, reason, notes). All are package columns.</label></li>
         </ul>
     </div>
     <div class="task-group">
         <div class="task-group-title">Verify</div>
         <ul class="tasks">
-            <li><input type="checkbox"><label>Run moderation flow: approve an event in Filament → audit log records the moderation action</label></li>
-            <li><input type="checkbox"><label><code>vendor/bin/pest --parallel --filter=Moderation</code></label></li>
+            <li><input type="checkbox" checked><label>Run moderation flow: approve an event in Filament → audit log records the moderation action</label></li>
+            <li><input type="checkbox" checked><label><code>vendor/bin/pest --parallel --filter=Moderation</code></label></li>
         </ul>
     </div>
 </div>
@@ -441,7 +441,7 @@
 <div class="section" id="wu9">
     <div class="section-header">
         <h2><span class="badge badge-model">WU9</span> Model Collapse — EventSubmission</h2>
-        <span class="badge badge-pending">Pending</span>
+        <span class="badge badge-done">Done</span>
     </div>
     <p class="deps"><strong>Domain:</strong> G003 &nbsp;|&nbsp; <strong>No runtime deps</strong> &nbsp;|&nbsp; <strong>Can parallel with:</strong> WU3-WU8, WU10</p>
     <p>App adds HasContactMethods (anonymous submitter contacts) and AuditsModelChanges. Package already has event(). The HasContactMethods trait is actively used (SubmitFrontendEventAction L614, SubmitterContactPresenter L128). Keep as minimal subclass.</p>
@@ -449,13 +449,13 @@
     <div class="task-group">
         <div class="task-group-title">Minimal Extension</div>
         <ul class="tasks">
-            <li><input type="checkbox"><label>Trim <span class="file">app/Models/EventSubmission.php</span> to ~20 lines:<br><code>class EventSubmission extends \AIArmada\Events\Models\EventSubmission implements AuditableContract { use AuditsModelChanges; use HasContactMethods; use HasPackageContactAliases; }</code><br>Remove redundant event() override (package already has it). Remove duplicate casts (package already casts them).</label></li>
+            <li><input type="checkbox" checked><label>Trim <span class="file">app/Models/EventSubmission.php</span> to ~20 lines:<br><code>class EventSubmission extends \AIArmada\Events\Models\EventSubmission implements AuditableContract { use AuditsModelChanges; use HasContactMethods; use HasPackageContactAliases; }</code><br>Remove redundant event() override (package already has it). Remove duplicate casts (package already casts them).</label></li>
         </ul>
     </div>
     <div class="task-group">
         <div class="task-group-title">Verify</div>
         <ul class="tasks">
-            <li><input type="checkbox"><label><code>vendor/bin/pest --parallel --filter=EventSubmission</code></label></li>
+            <li><input type="checkbox" checked><label><code>vendor/bin/pest --parallel --filter=EventSubmission</code></label></li>
         </ul>
     </div>
 </div>
@@ -464,7 +464,7 @@
 <div class="section" id="wu10">
     <div class="section-header">
         <h2><span class="badge badge-model">WU10</span> Model Collapse — Space</h2>
-        <span class="badge badge-pending">Pending</span>
+        <span class="badge badge-done">Done</span>
     </div>
     <p class="deps"><strong>Domain:</strong> G003 &nbsp;|&nbsp; <strong>No runtime deps</strong> &nbsp;|&nbsp; <strong>Can parallel with:</strong> WU3-WU9</p>
     <p>57 lines. App adds institutions() and events() BelongsToMany + active scope + AuditsModelChanges. 24 callers.</p>
@@ -472,14 +472,14 @@
     <div class="task-group">
         <div class="task-group-title">Rewrite</div>
         <ul class="tasks">
-            <li><input type="checkbox"><label>Replace <span class="file">app/Models/Space.php</span> callers: the institutions()/events() relations can be registered on the package model via <code>VenueSpace::resolveRelationUsing('institutions', fn(...)...)</code> in AppServiceProvider. The active scope can be added via a global scope or macro.</label></li>
-            <li><input type="checkbox"><label>Replace imports across 24 callers → AIArmada\Events\Models\VenueSpace. Verify relation registrations work at runtime.</label></li>
+            <li><input type="checkbox" checked><label>Replace <span class="file">app/Models/Space.php</span> callers: the institutions()/events() relations can be registered on the package model via <code>VenueSpace::resolveRelationUsing('institutions', fn(...)...)</code> in AppServiceProvider. The active scope can be added via a global scope or macro.</label></li>
+            <li><input type="checkbox" checked><label>Replace imports across 24 callers → AIArmada\Events\Models\VenueSpace. Verify relation registrations work at runtime.</label></li>
         </ul>
     </div>
     <div class="task-group">
         <div class="task-group-title">Verify</div>
         <ul class="tasks">
-            <li><input type="checkbox"><label><code>vendor/bin/pest --parallel --filter=Space</code></label></li>
+            <li><input type="checkbox" checked><label><code>vendor/bin/pest --parallel --filter=Space</code></label></li>
         </ul>
     </div>
 </div>
@@ -488,7 +488,7 @@
 <div class="section" id="wu11">
     <div class="section-header">
         <h2><span class="badge badge-comms">WU11</span> Communications — Replace NotificationEngine</h2>
-        <span class="badge badge-pending">Pending</span>
+        <span class="badge badge-done">Done</span>
     </div>
     <p class="deps"><strong>Domain:</strong> G001 Phase 2 &nbsp;|&nbsp; <strong>Depends on WU1</strong> (resolvers must be bound first) &nbsp;|&nbsp; <strong>Can parallel with:</strong> WU15, WU16</p>
     <p>Replace NotificationEngine dispatch with package CommunicationManager. Wire digest scheduling through CommunicationBatch. Add fallback listener. 3 caller services + 2 listeners.</p>
@@ -496,24 +496,24 @@
     <div class="task-group">
         <div class="task-group-title">Digest + Fallback</div>
         <ul class="tasks">
-            <li><input type="checkbox"><label>Add <span class="file">app/Listeners/Communications/DeliveryFallbackListener.php</span><br>Listens to DeliveryFailed event. Checks CommunicationContextData for fallbackChannels. Dispatches to next channel via CommunicationManager::notify().</label></li>
-            <li><input type="checkbox"><label>Create digest scheduler in <span class="file">app/Jobs/Communications/SendDigestNotificationsJob.php</span><br>Uses CommunicationBatch model. Reads pending digest notifications (via NotificationFamily::DigestDaily/DigestWeekly). Sends via CommunicationManager.</label></li>
-            <li><input type="checkbox"><label>Register in <span class="file">routes/console.php</span>: <code>$schedule->job(SendDigestNotificationsJob::class)->dailyAt(...)</code></label></li>
+            <li><input type="checkbox" checked><label>Add <span class="file">app/Listeners/Communications/DeliveryFallbackListener.php</span><br>Listens to DeliveryFailed event. Checks CommunicationContextData for fallbackChannels. Dispatches to next channel via CommunicationManager::notify().</label></li>
+            <li><input type="checkbox" checked><label>Create digest scheduler in <span class="file">app/Jobs/Communications/SendDigestNotificationsJob.php</span><br>Uses CommunicationBatch model. Reads pending digest notifications (via NotificationFamily::DigestDaily/DigestWeekly). Sends via CommunicationManager.</label></li>
+            <li><input type="checkbox" checked><label>Register in <span class="file">routes/console.php</span>: <code>$schedule->job(SendDigestNotificationsJob::class)->dailyAt(...)</code></label></li>
         </ul>
     </div>
     <div class="task-group">
         <div class="task-group-title">Replace Injection Points</div>
         <ul class="tasks">
-            <li><input type="checkbox"><label>Replace in <span class="file">app/Services/Notifications/EventNotificationService.php</span><br>Swap <code>protected NotificationEngine $engine</code> → <code>protected CommunicationManager $comms</code>. Replace dispatchToUser() calls with <code>$this->comms->notify($user, $notification, $context)</code>. Must build CommunicationContextData per trigger.</label></li>
-            <li><input type="checkbox"><label>Replace in <span class="file">app/Services/Notifications/ContributionRequestNotificationService.php</span><br>Same swap.</label></li>
-            <li><input type="checkbox"><label>Replace in <span class="file">app/Listeners/Notifications/HandleNotificationFailed.php</span><br>Use DeliveryFallbackListener instead. Remove engine dependency.</label></li>
+            <li><input type="checkbox" checked><label>Replace in <span class="file">app/Services/Notifications/EventNotificationService.php</span><br>Swap <code>protected NotificationEngine $engine</code> → <code>protected CommunicationManager $comms</code>. Replace dispatchToUser() calls with <code>$this->comms->notify($user, $notification, $context)</code>. Must build CommunicationContextData per trigger.</label></li>
+            <li><input type="checkbox" checked><label>Replace in <span class="file">app/Services/Notifications/ContributionRequestNotificationService.php</span><br>Same swap.</label></li>
+            <li><input type="checkbox" checked><label>Replace in <span class="file">app/Listeners/Notifications/HandleNotificationFailed.php</span><br>Use DeliveryFallbackListener instead. Remove engine dependency.</label></li>
         </ul>
     </div>
     <div class="task-group">
         <div class="task-group-title">Verify</div>
         <ul class="tasks">
-            <li><input type="checkbox"><label><code>vendor/bin/pest --parallel --filter=NotificationDeliveryFlow</code></label></li>
-            <li><input type="checkbox"><label>Smoke test: event registration triggers notifications → check communication_deliveries table for records</label></li>
+            <li><input type="checkbox" checked><label><code>vendor/bin/pest --parallel --filter=NotificationDeliveryFlow</code></label></li>
+            <li><input type="checkbox" checked><label>Smoke test: event registration triggers notifications → check communication_deliveries table for records</label></li>
         </ul>
     </div>
 </div>
@@ -522,7 +522,7 @@
 <div class="section" id="wu12a">
     <div class="section-header">
         <h2><span class="badge badge-comms">WU12A</span> Communications — Runtime Cutover + Observation Window</h2>
-        <span class="badge badge-pending">Pending</span>
+        <span class="badge badge-done">Done</span>
     </div>
     <p class="deps"><strong>Domain:</strong> G001 Phase 4 &nbsp;|&nbsp; <strong>Depends on WU11</strong> &nbsp;|&nbsp; <strong>Goal:</strong> stop legacy runtime writes safely before storage retirement</p>
     <p>Move all production notification dispatch to package communications runtime. Keep legacy data structures read-only during a short verification window to reduce rollback risk.</p>
@@ -530,18 +530,18 @@
     <div class="task-group">
         <div class="task-group-title">Cutover Steps</div>
         <ul class="tasks">
-            <li><input type="checkbox"><label>Ensure all triggers dispatch via <span class="file">CommunicationManager</span>; remove remaining direct NotificationEngine injection points.</label></li>
-            <li><input type="checkbox"><label>Introduce a rollout flag (or equivalent guard) to disable legacy dispatch path without deleting storage yet.</label></li>
-            <li><input type="checkbox"><label>Track delivery parity: compare package delivery outcomes with expected trigger volume for a defined window (for example 7 days).</label></li>
-            <li><input type="checkbox"><label>Mark legacy tables/models as deprecated runtime surfaces (read-only, no new writes).</label></li>
+            <li><input type="checkbox" checked><label>Ensure all triggers dispatch via <span class="file">CommunicationManager</span>; remove remaining direct NotificationEngine injection points.</label></li>
+            <li><input type="checkbox" checked><label>Introduce a rollout flag (or equivalent guard) to disable legacy dispatch path without deleting storage yet.</label></li>
+            <li><input type="checkbox" checked><label>Track delivery parity: compare package delivery outcomes with expected trigger volume for a defined window (for example 7 days).</label></li>
+            <li><input type="checkbox" checked><label>Mark legacy tables/models as deprecated runtime surfaces (read-only, no new writes).</label></li>
         </ul>
     </div>
     <div class="task-group">
         <div class="task-group-title">Verify</div>
         <ul class="tasks">
-            <li><input type="checkbox"><label><code>vendor/bin/pest --parallel --filter=NotificationDeliveryFlow</code></label></li>
-            <li><input type="checkbox"><label>Smoke test: event registration + contribution approval + digest delivery all create <code>communication_deliveries</code> records.</label></li>
-            <li><input type="checkbox"><label>No new rows written to legacy notification tables after cutover flag is enabled.</label></li>
+            <li><input type="checkbox" checked><label><code>vendor/bin/pest --parallel --filter=NotificationDeliveryFlow</code></label></li>
+            <li><input type="checkbox" checked><label>Smoke test: event registration + contribution approval + digest delivery all create <code>communication_deliveries</code> records.</label></li>
+            <li><input type="checkbox" checked><label>No new rows written to legacy notification tables after cutover flag is enabled.</label></li>
         </ul>
     </div>
 </div>
@@ -586,20 +586,20 @@
     <div class="task-group">
         <div class="task-group-title">Prune Per File</div>
         <ul class="tasks">
-            <li><input type="checkbox"><label><span class="file">config/signals.php</span> (224 lines → target ~40)<br>Remove 91-item property allowlist if it matches package default. Remove hardcoded features/integrations that are package defaults. Keep only: currency (MYR), timezone, starter_funnel.</label></li>
-            <li><input type="checkbox"><label><span class="file">config/events.php</span> (215 lines → target ~60)<br>Remove table name env wrappers that match package defaults. Remove lifecycles if identical. Keep only: free_only config, search/indexer resolvers, notification config.</label></li>
-            <li><input type="checkbox"><label><span class="file">config/inventory.php</span> (153 lines → target ~40)<br>Remove table name wrappers. Keep allocation strategy, reorder settings, payment integration.</label></li>
-            <li><input type="checkbox"><label><span class="file">config/filament-authz.php</span> (145 lines) — review and prune</label></li>
-            <li><input type="checkbox"><label><span class="file">config/contacting.php</span> (111 lines) — review and prune</label></li>
-            <li><input type="checkbox"><label>Remaining 13 config files: review each. Default rule: if value === package default, delete the line. Keep only explicit app choices.</label></li>
+            <li><input type="checkbox" checked><label><span class="file">config/signals.php</span> (224 lines → target ~40)<br>Remove 91-item property allowlist if it matches package default. Remove hardcoded features/integrations that are package defaults. Keep only: currency (MYR), timezone, starter_funnel.</label></li>
+            <li><input type="checkbox" checked><label><span class="file">config/events.php</span> (215 lines → target ~60)<br>Remove table name env wrappers that match package defaults. Remove lifecycles if identical. Keep only: free_only config, search/indexer resolvers, notification config.</label></li>
+            <li><input type="checkbox" checked><label><span class="file">config/inventory.php</span> (153 lines → target ~40)<br>Remove table name wrappers. Keep allocation strategy, reorder settings, payment integration.</label></li>
+            <li><input type="checkbox" checked><label><span class="file">config/filament-authz.php</span> (145 lines) — review and prune</label></li>
+            <li><input type="checkbox" checked><label><span class="file">config/contacting.php</span> (111 lines) — review and prune</label></li>
+            <li><input type="checkbox" checked><label>Remaining 13 config files: review each. Default rule: if value === package default, delete the line. Keep only explicit app choices.</label></li>
         </ul>
     </div>
     <div class="task-group">
         <div class="task-group-title">Verify</div>
         <ul class="tasks">
-            <li><input type="checkbox"><label><code>php artisan config:clear && php artisan optimize</code></label></li>
-            <li><input type="checkbox"><label>Run <code>vendor/bin/pest --parallel</code> — config changes should not break tests</label></li>
-            <li><input type="checkbox"><label>Smoke test: Filament boots, events load, signals track, inventory pages render</label></li>
+            <li><input type="checkbox" checked><label><code>php artisan config:clear && php artisan optimize</code></label></li>
+            <li><input type="checkbox" checked><label>Run <code>vendor/bin/pest --parallel</code> — config changes should not break tests</label></li>
+            <li><input type="checkbox" checked><label>Smoke test: Filament boots, events load, signals track, inventory pages render</label></li>
         </ul>
     </div>
 </div>
@@ -616,57 +616,57 @@
     <div class="task-group">
         <div class="task-group-title">Rename Files + Classes</div>
         <ul class="tasks">
-            <li><input type="checkbox"><label>Rename directory: <span class="file">app/Filament/Resources/MembershipClaims/</span> → <span class="file">MembershipApplications/</span><br>Rename class: MembershipClaimResource → MembershipApplicationResource<br>Update references in AdminPanelProvider and AhliPanelProvider</label></li>
-            <li><input type="checkbox"><label>Rename: <span class="file">app/Filament/Resources/MembershipApplications/Pages/ViewMembershipClaim.php</span> → ViewMembershipApplication.php</label></li>
-            <li><input type="checkbox"><label>Rename: <span class="file">app/Filament/Resources/MembershipApplications/Pages/ListMembershipClaims.php</span> → ListMembershipApplications.php</label></li>
-            <li><input type="checkbox"><label>Rename: <span class="file">app/Filament/Resources/MembershipApplications/Schemas/MembershipClaimInfolist.php</span> → MembershipApplicationInfolist.php</label></li>
-            <li><input type="checkbox"><label>Rename: <span class="file">app/Filament/Resources/MembershipApplications/Tables/MembershipClaimsTable.php</span> → MembershipApplicationsTable.php</label></li>
-            <li><input type="checkbox"><label>Rename: <span class="file">app/Support/Membership/MembershipClaimPresenter.php</span> → MembershipApplicationPresenter.php</label></li>
+            <li><input type="checkbox" checked><label>Rename directory: <span class="file">app/Filament/Resources/MembershipClaims/</span> → <span class="file">MembershipApplications/</span><br>Rename class: MembershipClaimResource → MembershipApplicationResource<br>Update references in AdminPanelProvider and AhliPanelProvider</label></li>
+            <li><input type="checkbox" checked><label>Rename: <span class="file">app/Filament/Resources/MembershipApplications/Pages/ViewMembershipClaim.php</span> → ViewMembershipApplication.php</label></li>
+            <li><input type="checkbox" checked><label>Rename: <span class="file">app/Filament/Resources/MembershipApplications/Pages/ListMembershipClaims.php</span> → ListMembershipApplications.php</label></li>
+            <li><input type="checkbox" checked><label>Rename: <span class="file">app/Filament/Resources/MembershipApplications/Schemas/MembershipClaimInfolist.php</span> → MembershipApplicationInfolist.php</label></li>
+            <li><input type="checkbox" checked><label>Rename: <span class="file">app/Filament/Resources/MembershipApplications/Tables/MembershipClaimsTable.php</span> → MembershipApplicationsTable.php</label></li>
+            <li><input type="checkbox" checked><label>Rename: <span class="file">app/Support/Membership/MembershipClaimPresenter.php</span> → MembershipApplicationPresenter.php</label></li>
         </ul>
     </div>
     <div class="task-group">
         <div class="task-group-title">Rename Controllers + MCP Tools</div>
         <ul class="tasks">
-            <li><input type="checkbox"><label>Rename: <span class="file">app/Http/Controllers/Api/Admin/MembershipClaimReviewController.php</span> → MembershipApplicationReviewController.php</label></li>
-            <li><input type="checkbox"><label>Rename: <span class="file">app/Http/Controllers/Api/Frontend/MembershipClaimController.php</span> → MembershipApplicationController.php<br>Update #[Group] attribute and route annotations</label></li>
-            <li><input type="checkbox"><label>Rename: <span class="file">app/Mcp/Tools/Member/MemberSubmitMembershipClaimTool.php</span> → MemberSubmitMembershipApplicationTool.php</label></li>
-            <li><input type="checkbox"><label>Rename: <span class="file">app/Mcp/Tools/Member/MemberCancelMembershipClaimTool.php</span> → MemberCancelMembershipApplicationTool.php</label></li>
-            <li><input type="checkbox"><label>Rename: <span class="file">app/Mcp/Tools/Member/MemberListMembershipClaimsTool.php</span> → MemberListMembershipApplicationsTool.php</label></li>
-            <li><input type="checkbox"><label>Rename: <span class="file">app/Mcp/Tools/Admin/AdminReviewMembershipClaimTool.php</span> → AdminReviewMembershipApplicationTool.php</label></li>
-            <li><input type="checkbox"><label>Rename: <span class="file">app/Mcp/Tools/Admin/AdminGetMembershipClaimReviewSchemaTool.php</span> → AdminGetMembershipApplicationReviewSchemaTool.php</label></li>
-            <li><input type="checkbox"><label>Update tool registrations in <span class="file">app/Mcp/Servers/MemberServer.php</span> and <span class="file">app/Mcp/Servers/AdminServer.php</span></label></li>
+            <li><input type="checkbox" checked><label>Rename: <span class="file">app/Http/Controllers/Api/Admin/MembershipClaimReviewController.php</span> → MembershipApplicationReviewController.php</label></li>
+            <li><input type="checkbox" checked><label>Rename: <span class="file">app/Http/Controllers/Api/Frontend/MembershipClaimController.php</span> → MembershipApplicationController.php<br>Update #[Group] attribute and route annotations</label></li>
+            <li><input type="checkbox" checked><label>Rename: <span class="file">app/Mcp/Tools/Member/MemberSubmitMembershipClaimTool.php</span> → MemberSubmitMembershipApplicationTool.php</label></li>
+            <li><input type="checkbox" checked><label>Rename: <span class="file">app/Mcp/Tools/Member/MemberCancelMembershipClaimTool.php</span> → MemberCancelMembershipApplicationTool.php</label></li>
+            <li><input type="checkbox" checked><label>Rename: <span class="file">app/Mcp/Tools/Member/MemberListMembershipClaimsTool.php</span> → MemberListMembershipApplicationsTool.php</label></li>
+            <li><input type="checkbox" checked><label>Rename: <span class="file">app/Mcp/Tools/Admin/AdminReviewMembershipClaimTool.php</span> → AdminReviewMembershipApplicationTool.php</label></li>
+            <li><input type="checkbox" checked><label>Rename: <span class="file">app/Mcp/Tools/Admin/AdminGetMembershipClaimReviewSchemaTool.php</span> → AdminGetMembershipApplicationReviewSchemaTool.php</label></li>
+            <li><input type="checkbox" checked><label>Update tool registrations in <span class="file">app/Mcp/Servers/MemberServer.php</span> and <span class="file">app/Mcp/Servers/AdminServer.php</span></label></li>
         </ul>
     </div>
     <div class="task-group">
         <div class="task-group-title">Rename Livewire + Routes</div>
         <ul class="tasks">
-            <li><input type="checkbox"><label>Rename directory: <span class="file">app/Livewire/Pages/MembershipClaims/</span> → <span class="file">MembershipApplications/</span><br>Rename Create.php, Index.php class names</label></li>
-            <li><input type="checkbox"><label>Update routes in <span class="file">routes/api.php</span>: /membership-claims → /membership-applications</label></li>
-            <li><input type="checkbox"><label>Update routes in <span class="file">routes/web.php</span>: /tuntutan-keahlian → /permohonan-keahlian</label></li>
+            <li><input type="checkbox" checked><label>Rename directory: <span class="file">app/Livewire/Pages/MembershipClaims/</span> → <span class="file">MembershipApplications/</span><br>Rename Create.php, Index.php class names</label></li>
+            <li><input type="checkbox" checked><label>Update routes in <span class="file">routes/api.php</span>: /membership-claims → /membership-applications</label></li>
+            <li><input type="checkbox" checked><label>Update routes in <span class="file">routes/web.php</span>: /tuntutan-keahlian → /permohonan-keahlian</label></li>
         </ul>
     </div>
     <div class="task-group">
         <div class="task-group-title">Fix Broken Tests (12 files)</div>
         <ul class="tasks">
-            <li><input type="checkbox"><label>Fix <span class="file">tests/Feature/MembershipClaimActionsTest.php</span> → MembershipApplicationActionsTest.php — update imports</label></li>
-            <li><input type="checkbox"><label>Fix <span class="file">tests/Feature/MembershipClaimPagesTest.php</span> → MembershipApplicationPagesTest.php</label></li>
-            <li><input type="checkbox"><label>Fix <span class="file">tests/Feature/MembershipClaimAdminResourceTest.php</span> → MembershipApplicationAdminResourceTest.php</label></li>
-            <li><input type="checkbox"><label>Fix remaining 9 test files importing App\Models\MembershipClaim → replace with App\Models\MembershipApplication</label></li>
+            <li><input type="checkbox" checked><label>Fix <span class="file">tests/Feature/MembershipClaimActionsTest.php</span> → MembershipApplicationActionsTest.php — update imports</label></li>
+            <li><input type="checkbox" checked><label>Fix <span class="file">tests/Feature/MembershipClaimPagesTest.php</span> → MembershipApplicationPagesTest.php</label></li>
+            <li><input type="checkbox" checked><label>Fix <span class="file">tests/Feature/MembershipClaimAdminResourceTest.php</span> → MembershipApplicationAdminResourceTest.php</label></li>
+            <li><input type="checkbox" checked><label>Fix remaining 9 test files importing App\Models\MembershipClaim → replace with App\Models\MembershipApplication</label></li>
         </ul>
     </div>
     <div class="task-group">
         <div class="task-group-title">Implement Missing</div>
         <ul class="tasks">
-            <li><input type="checkbox"><label>Create <span class="file">app/Support/Membership/AppMembershipApplicationNotifier.php</span><br>Implement MembershipApplicationNotifier contract. Bind in AppServiceProvider. Package actions currently skip notifications because no implementation is bound.</label></li>
-            <li><input type="checkbox"><label>Register <span class="file">filament-engagement</span> plugin in <span class="file">AhliPanelProvider</span> (Admin already has it)</label></li>
+            <li><input type="checkbox" checked><label>Create <span class="file">app/Support/Membership/AppMembershipApplicationNotifier.php</span><br>Implement MembershipApplicationNotifier contract. Bind in AppServiceProvider. Package actions currently skip notifications because no implementation is bound.</label></li>
+            <li><input type="checkbox" checked><label>Register <span class="file">filament-engagement</span> plugin in <span class="file">AhliPanelProvider</span> (Admin already has it)</label></li>
         </ul>
     </div>
     <div class="task-group">
         <div class="task-group-title">Verify</div>
         <ul class="tasks">
-            <li><input type="checkbox"><label><code>vendor/bin/pest --parallel --filter=Membership</code></label></li>
-            <li><input type="checkbox"><label><code>grep -r "MembershipClaim" app/ routes/</code> — must return zero</label></li>
-            <li><input type="checkbox"><label>Run membership claim flow end-to-end: submit → review → approve → notification sent</label></li>
+            <li><input type="checkbox" checked><label><code>vendor/bin/pest --parallel --filter=Membership</code></label></li>
+            <li><input type="checkbox" checked><label><code>grep -r "MembershipClaim" app/ routes/</code> — must return zero</label></li>
+            <li><input type="checkbox" checked><label>Run membership claim flow end-to-end: submit → review → approve → notification sent</label></li>
         </ul>
     </div>
 </div>
@@ -675,7 +675,7 @@
 <div class="section" id="wu15">
     <div class="section-header">
         <h2><span class="badge badge-events">WU15</span> Events — API/Pagination/MCP Package-First Rebuild</h2>
-        <span class="badge badge-pending">Pending</span>
+        <span class="badge badge-done">Done</span>
     </div>
     <p class="deps"><strong>Domain:</strong> G007 &nbsp;|&nbsp; <strong>No hard deps</strong> &nbsp;|&nbsp; <strong>Can parallel with:</strong> WU11, WU16</p>
     <p>Rebuild event API endpoints, public Livewire pages, MCP tools, and search indexing to use package models directly. Map Spatie Tags to EventTaxonomy/EventTerm. Fix EventSearchService legacy filter keys.</p>
@@ -683,49 +683,49 @@
     <div class="task-group">
         <div class="task-group-title">Map Spatie Tags → Package Taxonomies</div>
         <ul class="tasks">
-            <li><input type="checkbox"><label>Create <span class="file">app/Actions/Events/SyncEventTaxonomiesAction.php</span><br>One-time migration: for each event, read Spatie tags (type=domain/discipline/source/issue), create corresponding EventTaxonomy + EventTerm records, attach to event. Run on all existing events.</label></li>
-            <li><input type="checkbox"><label>Update <span class="file">app/Actions/Events/SubmitFrontendEventAction.php</span><br>Replace <code>$event->syncTags(...)</code> with <code>$event->syncTaxonomies(...)</code> using package EventTaxonomy/EventTerm models</label></li>
-            <li><input type="checkbox"><label>Update <span class="file">app/Models/Event.php</span> toSearchableArray()<br>Replace Spatie tag extraction with EventTaxonomy/EventTerm extraction from event_taxonomies/event_terms tables</label></li>
-            <li><input type="checkbox"><label>Update <span class="file">app/Livewire/Pages/Events/AdvancedFiltersPanel.php</span><br>Replace Tag filter options with EventTaxonomy/EventTerm queries</label></li>
+            <li><input type="checkbox" checked><label>Create <span class="file">app/Actions/Events/SyncEventTaxonomiesAction.php</span><br>One-time migration: for each event, read Spatie tags (type=domain/discipline/source/issue), create corresponding EventTaxonomy + EventTerm records, attach to event. Run on all existing events.</label></li>
+            <li><input type="checkbox" checked><label>Update <span class="file">app/Actions/Events/SubmitFrontendEventAction.php</span><br>Replace <code>$event->syncTags(...)</code> with <code>$event->syncTaxonomies(...)</code> using package EventTaxonomy/EventTerm models</label></li>
+            <li><input type="checkbox" checked><label>Update <span class="file">app/Models/Event.php</span> toSearchableArray()<br>Replace Spatie tag extraction with EventTaxonomy/EventTerm extraction from event_taxonomies/event_terms tables</label></li>
+            <li><input type="checkbox" checked><label>Update <span class="file">app/Livewire/Pages/Events/AdvancedFiltersPanel.php</span><br>Replace Tag filter options with EventTaxonomy/EventTerm queries</label></li>
         </ul>
     </div>
     <div class="task-group">
         <div class="task-group-title">Rebuild API Event Endpoints</div>
         <ul class="tasks">
-            <li><input type="checkbox"><label>Rewrite <span class="file">app/Http/Controllers/Api/EventController.php</span><br>Replace App\Models\Event → AIArmada\Events\Models\Event<br>Replace App\Models\Registration → AIArmada\Events\Models\EventRegistration<br>Replace Event::PUBLIC_STATUSES → package constant<br>Remove shim accessor usage (->is_active, ->starts_at via metadata) → use package columns directly</label></li>
-            <li><input type="checkbox"><label>Rewrite <span class="file">app/Http/Controllers/Api/EventSaveController.php</span> — already uses EngagementManager, just update model import</label></li>
-            <li><input type="checkbox"><label>Rewrite <span class="file">app/Http/Controllers/Api/EventRegistrationController.php</span> — use RegistrationServiceInterface directly with package model</label></li>
+            <li><input type="checkbox" checked><label>Rewrite <span class="file">app/Http/Controllers/Api/EventController.php</span><br>Replace App\Models\Event → AIArmada\Events\Models\Event<br>Replace App\Models\Registration → AIArmada\Events\Models\EventRegistration<br>Replace Event::PUBLIC_STATUSES → package constant<br>Remove shim accessor usage (->is_active, ->starts_at via metadata) → use package columns directly</label></li>
+            <li><input type="checkbox" checked><label>Rewrite <span class="file">app/Http/Controllers/Api/EventSaveController.php</span> — already uses EngagementManager, just update model import</label></li>
+            <li><input type="checkbox" checked><label>Rewrite <span class="file">app/Http/Controllers/Api/EventRegistrationController.php</span> — use RegistrationServiceInterface directly with package model</label></li>
         </ul>
     </div>
     <div class="task-group">
         <div class="task-group-title">Rebuild Public Event Pages</div>
         <ul class="tasks">
-            <li><input type="checkbox"><label>Rewrite <span class="file">app/Livewire/Pages/Events/Show.php</span><br>Replace App\Models\Event → AIArmada\Events\Models\Event. Use package methods for occurrence/starts_at/ends_at. Remove shim accessor usage.</label></li>
-            <li><input type="checkbox"><label>Rewrite <span class="file">app/Livewire/Pages/Events/Index.php</span><br>Same. Replace Spatie Tag imports with package taxonomy models.</label></li>
+            <li><input type="checkbox" checked><label>Rewrite <span class="file">app/Livewire/Pages/Events/Show.php</span><br>Replace App\Models\Event → AIArmada\Events\Models\Event. Use package methods for occurrence/starts_at/ends_at. Remove shim accessor usage.</label></li>
+            <li><input type="checkbox" checked><label>Rewrite <span class="file">app/Livewire/Pages/Events/Index.php</span><br>Same. Replace Spatie Tag imports with package taxonomy models.</label></li>
         </ul>
     </div>
     <div class="task-group">
         <div class="task-group-title">Rebuild MCP Event Tools</div>
         <ul class="tasks">
-            <li><input type="checkbox"><label>Update image upload tools: replace App\Models\Event import in <span class="file">AdminUploadEventCoverImageTool</span>, <span class="file">AdminUploadEventPosterImageTool</span>, <span class="file">MemberUploadEventCoverImageTool</span>, <span class="file">MemberUploadEventPosterImageTool</span></label></li>
-            <li><input type="checkbox"><label>Update MCP prompts (5 files): replace App\Models\Event import in <span class="file">BuildsEventImagePrompt.php</span>, <span class="file">AdminEventCoverImagePrompt.php</span>, <span class="file">AdminEventPosterImagePrompt.php</span>, <span class="file">MemberEventCoverImagePrompt.php</span>, <span class="file">MemberEventPosterImagePrompt.php</span></label></li>
-            <li><input type="checkbox"><label>Update <span class="file">app/Mcp/Tools/Concerns/UploadsEventImage.php</span> — replace App\Models\Event import</label></li>
+            <li><input type="checkbox" checked><label>Update image upload tools: replace App\Models\Event import in <span class="file">AdminUploadEventCoverImageTool</span>, <span class="file">AdminUploadEventPosterImageTool</span>, <span class="file">MemberUploadEventCoverImageTool</span>, <span class="file">MemberUploadEventPosterImageTool</span></label></li>
+            <li><input type="checkbox" checked><label>Update MCP prompts (5 files): replace App\Models\Event import in <span class="file">BuildsEventImagePrompt.php</span>, <span class="file">AdminEventCoverImagePrompt.php</span>, <span class="file">AdminEventPosterImagePrompt.php</span>, <span class="file">MemberEventCoverImagePrompt.php</span>, <span class="file">MemberEventPosterImagePrompt.php</span></label></li>
+            <li><input type="checkbox" checked><label>Update <span class="file">app/Mcp/Tools/Concerns/UploadsEventImage.php</span> — replace App\Models\Event import</label></li>
         </ul>
     </div>
     <div class="task-group">
         <div class="task-group-title">Rebuild Search Indexing</div>
         <ul class="tasks">
-            <li><input type="checkbox"><label>Rewrite <span class="file">app/Models/Event.php</span> toSearchableArray()<br>Use package columns directly: status (not is_active), visibility, metadata fields via accessors. Extract taxonomy terms from event_terms table (not Spatie tags). Get address from venue.defaultAddress (not venue.primaryAddress).</label></li>
-            <li><input type="checkbox"><label>Update <span class="file">app/Services/EventSearchService.php</span><br>Replace legacy filter keys (country_id, state_id, district_id, subdistrict_id) → package columns (country_code, admin_area_1_id, admin_area_2_id, admin_area_3_id). These were already partially updated in 8.C/WU2.</label></li>
-            <li><input type="checkbox"><label>Update <span class="file">config/scout.php</span> Typesense schema<br>Ensure all fields in model-settings match the new toSearchableArray() output.</label></li>
+            <li><input type="checkbox" checked><label>Rewrite <span class="file">app/Models/Event.php</span> toSearchableArray()<br>Use package columns directly: status (not is_active), visibility, metadata fields via accessors. Extract taxonomy terms from event_terms table (not Spatie tags). Get address from venue.defaultAddress (not venue.primaryAddress).</label></li>
+            <li><input type="checkbox" checked><label>Update <span class="file">app/Services/EventSearchService.php</span><br>Replace legacy filter keys (country_id, state_id, district_id, subdistrict_id) → package columns (country_code, admin_area_1_id, admin_area_2_id, admin_area_3_id). These were already partially updated in 8.C/WU2.</label></li>
+            <li><input type="checkbox" checked><label>Update <span class="file">config/scout.php</span> Typesense schema<br>Ensure all fields in model-settings match the new toSearchableArray() output.</label></li>
         </ul>
     </div>
     <div class="task-group">
         <div class="task-group-title">Verify</div>
         <ul class="tasks">
-            <li><input type="checkbox"><label><code>vendor/bin/pest --parallel --filter=EventSearch\|EventShow\|EventApi\|EventRegistration</code></label></li>
-            <li><input type="checkbox"><label><code>php artisan scout:import "App\\Models\\Event"</code> — verify reindex succeeds with new fields</label></li>
-            <li><input type="checkbox"><label>Smoke test: event discovery, detail, registration, check-in, search/filter — all functional</label></li>
+            <li><input type="checkbox" checked><label><code>vendor/bin/pest --parallel --filter=EventSearch\|EventShow\|EventApi\|EventRegistration</code></label></li>
+            <li><input type="checkbox" checked><label><code>php artisan scout:import "App\\Models\\Event"</code> — verify reindex succeeds with new fields</label></li>
+            <li><input type="checkbox" checked><label>Smoke test: event discovery, detail, registration, check-in, search/filter — all functional</label></li>
         </ul>
     </div>
 </div>
@@ -734,7 +734,7 @@
 <div class="section" id="wu16">
     <div class="section-header">
         <h2><span class="badge badge-commerce">WU16</span> Commerce — Activate Inventory/Seating/Ticketing</h2>
-        <span class="badge badge-pending">Pending</span>
+        <span class="badge badge-done">Done</span>
     </div>
     <p class="deps"><strong>Domain:</strong> G005 &nbsp;|&nbsp; <strong>No hard deps</strong> &nbsp;|&nbsp; <strong>Can parallel with:</strong> WU11, WU15</p>
     <p>Inventory/seating/ticketing packages are installed with Filament admin routes active but zero product-facing integration. Wire them into event creation/management flows so they're not just admin-only scaffolding.</p>
@@ -742,31 +742,31 @@
     <div class="task-group">
         <div class="task-group-title">Seating — Wire into Events</div>
         <ul class="tasks">
-            <li><input type="checkbox"><label>Validate live schema for seating/ticketing/inventory tables and run <code>php artisan migrate</code> only for pending migrations (do not assume tables are missing).</label></li>
-            <li><input type="checkbox"><label>Wire seat map selection into <span class="file">app/Actions/Events/SaveAdminEventAction.php</span><br>Add seat_map_id field. When an event has a venue with spaces, allow selecting a seat map per occurrence.</label></li>
-            <li><input type="checkbox"><label>Add seat allocation to <span class="file">app/Actions/Events/SubmitFrontendEventAction.php</span><br>When free registration + auto_allocate_seats is true, auto-allocate seats on registration.</label></li>
+            <li><input type="checkbox" checked><label>Validate live schema for seating/ticketing/inventory tables and run <code>php artisan migrate</code> only for pending migrations (do not assume tables are missing).</label></li>
+            <li><input type="checkbox" checked><label>Wire seat map selection into <span class="file">app/Actions/Events/SaveAdminEventAction.php</span><br>Add seat_map_id field. When an event has a venue with spaces, allow selecting a seat map per occurrence.</label></li>
+            <li><input type="checkbox" checked><label>Add seat allocation to <span class="file">app/Actions/Events/SubmitFrontendEventAction.php</span><br>When free registration + auto_allocate_seats is true, auto-allocate seats on registration.</label></li>
         </ul>
     </div>
     <div class="task-group">
         <div class="task-group-title">Ticketing — Pass Issuance for Free Events</div>
         <ul class="tasks">
-            <li><input type="checkbox"><label>Wire pass issuance in <span class="file">app/Actions/Events/MarkEventGoingAction.php</span><br>When user registers for free event, auto-issue a pass via package PassIssuerInterface.</label></li>
-            <li><input type="checkbox"><label>Add pass QR code to event detail page in <span class="file">app/Livewire/Pages/Events/Show.php</span></label></li>
-            <li><input type="checkbox"><label>Add pass validation to <span class="file">app/Actions/Events/RecordEventCheckInAction.php</span><br>Validate pass before check-in. Use package pass model.</label></li>
+            <li><input type="checkbox" checked><label>Wire pass issuance in <span class="file">app/Actions/Events/MarkEventGoingAction.php</span><br>When user registers for free event, auto-issue a pass via package PassIssuerInterface.</label></li>
+            <li><input type="checkbox" checked><label>Add pass QR code to event detail page in <span class="file">app/Livewire/Pages/Events/Show.php</span></label></li>
+            <li><input type="checkbox" checked><label>Add pass validation to <span class="file">app/Actions/Events/RecordEventCheckInAction.php</span><br>Validate pass before check-in. Use package pass model.</label></li>
         </ul>
     </div>
     <div class="task-group">
         <div class="task-group-title">Inventory — Registration Quotas</div>
         <ul class="tasks">
-            <li><input type="checkbox"><label>Wire inventory location quotas on event creation: set max_capacity on inventory levels per event occurrence</label></li>
-            <li><input type="checkbox"><label>Decrement inventory on registration; check availability before confirming</label></li>
+            <li><input type="checkbox" checked><label>Wire inventory location quotas on event creation: set max_capacity on inventory levels per event occurrence</label></li>
+            <li><input type="checkbox" checked><label>Decrement inventory on registration; check availability before confirming</label></li>
         </ul>
     </div>
     <div class="task-group">
         <div class="task-group-title">Verify</div>
         <ul class="tasks">
-            <li><input type="checkbox"><label>Create an event with seat map → register → get pass with QR → check in with pass validation</label></li>
-            <li><input type="checkbox"><label><code>vendor/bin/pest --parallel --filter=Seating\|Pass\|Inventory</code></label></li>
+            <li><input type="checkbox" checked><label>Create an event with seat map → register → get pass with QR → check in with pass validation</label></li>
+            <li><input type="checkbox" checked><label><code>vendor/bin/pest --parallel --filter=Seating\|Pass\|Inventory</code></label></li>
         </ul>
     </div>
 </div>
@@ -810,7 +810,7 @@
 <div class="section" id="tracker">
     <div class="section-header">
         <h2><span class="badge badge-cleanup">Tracker</span> Work Unit Assignment Board</h2>
-        <span class="badge badge-pending">All Unclaimed</span>
+        <span class="badge badge-done">15 Done · 3 Pending</span>
     </div>
     <p class="deps">Claim a WU by adding your name and setting status. Never work on two WUs that touch the same files. Check the "Can Parallel" row above.</p>
     <table>
@@ -825,13 +825,13 @@
         <tr><td>WU8</td><td>Model: ModerationReview</td><td>~2</td><td><span class="badge badge-done">Done</span></td><td>—</td><td>☑</td></tr>
         <tr><td>WU9</td><td>Model: EventSubmission</td><td>~2</td><td><span class="badge badge-done">Done</span></td><td>—</td><td>☑</td></tr>
         <tr><td>WU10</td><td>Model: Space</td><td>~2</td><td><span class="badge badge-done">Done</span></td><td>—</td><td>☑</td></tr>
-        <tr><td>WU11</td><td>Communications Pipeline</td><td>~8</td><td><span class="badge badge-pending">Pending</span></td><td>—</td><td>☐</td></tr>
-        <tr><td>WU12A</td><td>Communications Runtime Cutover</td><td>~8</td><td><span class="badge badge-pending">Pending</span></td><td>—</td><td>☐</td></tr>
+        <tr><td>WU11</td><td>Communications Pipeline</td><td>~8</td><td><span class="badge badge-done">Done</span></td><td>—</td><td>☑</td></tr>
+        <tr><td>WU12A</td><td>Communications Runtime Cutover</td><td>~8</td><td><span class="badge badge-done">Done</span></td><td>—</td><td>☑</td></tr>
         <tr><td>WU12B</td><td>Communications Storage Retirement</td><td>~10</td><td><span class="badge badge-pending">Pending</span></td><td>—</td><td>☐</td></tr>
         <tr><td>WU13</td><td>Config Pruning</td><td>~18</td><td><span class="badge badge-done">Done</span></td><td>—</td><td>☑</td></tr>
         <tr><td>WU14</td><td>Membership Naming</td><td>~40</td><td><span class="badge badge-done">Done</span></td><td>—</td><td>☑</td></tr>
-        <tr><td>WU15</td><td>Events Package-First</td><td>~20</td><td><span class="badge badge-pending">Pending</span></td><td>—</td><td>☐</td></tr>
-        <tr><td>WU16</td><td>Activate Seating/Ticketing/Inventory</td><td>~8</td><td><span class="badge badge-pending">Pending</span></td><td>—</td><td>☐</td></tr>
+        <tr><td>WU15</td><td>Events Package-First</td><td>~20</td><td><span class="badge badge-done">Done</span></td><td>—</td><td>☑</td></tr>
+        <tr><td>WU16</td><td>Activate Seating/Ticketing/Inventory</td><td>~8</td><td><span class="badge badge-done">Done</span></td><td>—</td><td>☑</td></tr>
         <tr><td>WU17</td><td>Paid Event Commerce (Optional)</td><td>~15</td><td><span class="badge badge-pending">Pending</span></td><td>—</td><td>☐</td></tr>
     </table>
 </div>

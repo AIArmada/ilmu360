@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Mcp\Tools\Concerns;
 
-use App\Models\Event;
+use AIArmada\Events\Models\Event;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
 use Illuminate\Support\Facades\Log;

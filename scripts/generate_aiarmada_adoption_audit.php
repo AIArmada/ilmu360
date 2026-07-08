@@ -112,7 +112,7 @@ function main(): void
 
     file_put_contents(REPORT_PATH, renderHtml($payload));
 
-    fwrite(STDOUT, "Wrote ".REPORT_PATH.PHP_EOL);
+    fwrite(STDOUT, 'Wrote '.REPORT_PATH.PHP_EOL);
 }
 
 /**

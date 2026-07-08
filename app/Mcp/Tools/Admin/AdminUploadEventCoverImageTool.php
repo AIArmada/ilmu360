@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Mcp\Tools\Admin;
 
+use AIArmada\Events\Models\Event;
 use App\Mcp\Tools\Concerns\UploadsEventImage;
-use App\Models\Event;
 use App\Support\Api\Admin\AdminResourceRegistry;
 use App\Support\Mcp\EventImageUploadService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;

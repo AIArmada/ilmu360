@@ -58,3 +58,17 @@ Schedule::command('horizon:snapshot')
     ->timezone('UTC')
     ->name('horizon-snapshot')
     ->withoutOverlapping();
+
+// Process scheduled digest notification batches.
+Schedule::command('communications:send-digests')
+    ->everyMinute()
+    ->timezone('UTC')
+    ->name('communications-send-digests')
+    ->withoutOverlapping();
+
+// Verify parity between legacy and package notification delivery tables during cutover.
+Schedule::command('communications:verify-parity --days=1')
+    ->daily()
+    ->timezone('UTC')
+    ->name('communications-verify-parity')
+    ->withoutOverlapping();

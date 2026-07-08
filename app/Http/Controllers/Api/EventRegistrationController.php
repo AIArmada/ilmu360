@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use AIArmada\Events\Contracts\RegistrationServiceInterface;
+use AIArmada\Events\Events\EventFreeRegistrationConfirmed;
 use App\Data\Api\EventRegistration\EventRegistrationData;
 use App\Http\Controllers\Controller;
 use App\Models\Event;
@@ -59,6 +60,8 @@ class EventRegistrationController extends Controller
         ]);
 
         $registration = Registration::findOrFail($eventRegistration->id);
+
+        EventFreeRegistrationConfirmed::dispatch($registration, true);
 
         return response()->json([
             'data' => EventRegistrationData::fromModel($registration)->toArray(),

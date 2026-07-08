@@ -8,6 +8,10 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @deprecated Use AIArmada\Communications\Models\CommunicationDelivery instead.
+ *     Kept for migration parity checking. Remove in Phase 12B.
+ */
 class PendingNotification extends Model
 {
     /** @use HasFactory<PendingNotificationFactory> */

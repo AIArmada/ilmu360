@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Mcp\Prompts;
 
+use AIArmada\Events\Models\Event;
 use App\Mcp\Prompts\Concerns\BuildsEventImagePrompt;
-use App\Models\Event;
 use App\Models\User;
 use App\Support\Api\Member\MemberResourceRegistry;
 use App\Support\Mcp\McpAuthenticatedUserResolver;

@@ -3,6 +3,7 @@
 namespace App\Actions\Events;
 
 use AIArmada\Events\Enums\RegistrationMode;
+use AIArmada\Seating\Models\SeatMap;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
@@ -254,6 +255,7 @@ final readonly class SaveAdminEventAction
             syncKeyPeople: true,
         );
         $this->syncMedia($event, $data);
+        $this->syncSeatMaps($event, $state);
 
         if ($creating) {
             if ($requestedStatus === 'pending') {
@@ -451,6 +453,25 @@ final readonly class SaveAdminEventAction
             'gallery',
             replace: is_array($gallery),
         );
+    }
+
+    /**
+     * @param  array<string, mixed>  $state
+     */
+    private function syncSeatMaps(Event $event, array $state): void
+    {
+        if (! array_key_exists('seat_map_ids', $state)) {
+            return;
+        }
+
+        $seatMapIds = $this->normalizeStringArray($state['seat_map_ids'] ?? []);
+
+        $event->seatMaps()->whereNotIn('id', $seatMapIds)->delete();
+
+        SeatMap::query()->whereIn('id', $seatMapIds)->update([
+            'seatable_type' => $event->getMorphClass(),
+            'seatable_id' => $event->getKey(),
+        ]);
     }
 
     private function shouldClearMediaCollection(mixed $value): bool

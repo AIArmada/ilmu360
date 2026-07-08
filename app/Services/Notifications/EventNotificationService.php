@@ -2,10 +2,12 @@
 
 namespace App\Services\Notifications;
 
+use AIArmada\Communications\Contracts\CommunicationManager;
 use App\Enums\EventChangeSeverity;
 use App\Enums\EventChangeType;
 use App\Enums\EventVisibility;
 use App\Enums\NotificationCadence;
+use App\Enums\NotificationChannel;
 use App\Enums\NotificationPriority;
 use App\Enums\NotificationTrigger;
 use App\Enums\ScheduleState;
@@ -17,16 +19,20 @@ use App\Models\Registration;
 use App\Models\SavedSearch;
 use App\Models\Speaker;
 use App\Models\User;
+use App\Notifications\NotificationCenterMessage;
 use App\Services\EventSearchService;
 use App\Support\Authz\MemberPermissionGate;
+use App\Support\Notifications\NotificationCatalog;
 use App\Support\Notifications\NotificationDispatchData;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 class EventNotificationService
 {
     public function __construct(
         protected NotificationEngine $engine,
+        protected CommunicationManager $comms,
         protected EventSearchService $eventSearchService,
         protected MemberPermissionGate $memberPermissionGate,
         protected NotificationMessageRenderer $messageRenderer,
@@ -903,6 +909,25 @@ class EventNotificationService
                 $data = $this->withUserLocale($user, fn (): NotificationDispatchData => $builder($user));
 
                 $this->engine->dispatchToUser($user, $data);
+
+                $family = NotificationCatalog::triggerDefinition($data->trigger)['family'];
+
+                $notification = new NotificationCenterMessage(
+                    pendingNotificationId: (string) Str::uuid(),
+                    targetChannel: NotificationChannel::InApp,
+                    family: $family,
+                    trigger: $data->trigger,
+                    priority: $data->priority,
+                    title: $data->title,
+                    body: $data->body,
+                    actionUrl: $data->actionUrl,
+                    entityType: $data->entityType,
+                    entityId: $data->entityId,
+                    occurredAt: $data->occurredAt,
+                    meta: $data->meta,
+                );
+
+                $this->comms->recordNative($user, $notification, NotificationChannel::InApp->value);
             });
     }
 

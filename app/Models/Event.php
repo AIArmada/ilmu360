@@ -14,6 +14,7 @@ use AIArmada\Events\Models\EventAccessPolicy;
 use AIArmada\Events\Models\EventAttribute;
 use AIArmada\Events\Models\EventAudience;
 use AIArmada\Events\Models\EventAudienceProfile;
+use AIArmada\Events\Models\EventClassification;
 use AIArmada\Events\Models\EventInvolvement;
 use AIArmada\Events\Models\EventLanguage;
 use AIArmada\Events\Models\EventLink;
@@ -1374,7 +1375,7 @@ class Event extends PackageEvent implements AuditableContract
      */
     public function shouldBeSearchable(): bool
     {
-        return $this->is_active
+        return $this->published_at !== null
             && in_array((string) $this->status, self::PUBLIC_STATUSES, true)
             && $this->eventStructure()->isDiscoverable()
             && $this->visibility === EventVisibility::Public;
@@ -1489,7 +1490,7 @@ class Event extends PackageEvent implements AuditableContract
     protected function makeAllSearchableUsing(Builder $query): Builder
     {
         return $query
-            ->with(['institution', 'institution.addresses', 'venue', 'venue.addresses', 'speakers', 'keyPeople.speaker', 'tags', 'references'])
+            ->with(['institution', 'institution.addresses', 'venue', 'venue.addresses', 'speakers', 'keyPeople.speaker', 'tags', 'references', 'classifications'])
             ->whereNotNull('events.published_at')
             ->whereIn('events.status', self::PUBLIC_STATUSES)
             ->where('events.visibility', EventVisibility::Public)
@@ -1508,7 +1509,7 @@ class Event extends PackageEvent implements AuditableContract
             return $this->toScoutDatabaseSearchableArray();
         }
 
-        $this->loadMissing(['institution', 'institution.addresses', 'venue', 'venue.addresses', 'speakers', 'keyPeople.speaker', 'tags', 'references']);
+        $this->loadMissing(['institution', 'institution.addresses', 'venue', 'venue.addresses', 'speakers', 'keyPeople.speaker', 'tags', 'references', 'classifications']);
         $venueAddress = $this->venue?->primaryAddress();
         $institutionAddress = $this->institution?->primaryAddress();
         $institution = $this->institution;
@@ -1637,6 +1638,23 @@ class Event extends PackageEvent implements AuditableContract
             ->values()
             ->all();
 
+        /** @var \Illuminate\Database\Eloquent\Collection<int, EventClassification> $classifications */
+        $classifications = $this->classifications;
+
+        $taxonomyTermIds = $classifications
+            ->pluck('event_term_id')
+            ->filter(fn (mixed $id): bool => is_string($id) && $id !== '')
+            ->unique()
+            ->values()
+            ->all();
+
+        $taxonomyCodes = $classifications
+            ->pluck('taxonomy_code')
+            ->filter(fn (mixed $code): bool => is_string($code) && $code !== '')
+            ->unique()
+            ->values()
+            ->all();
+
         $array = [
             'id' => $this->id,
             'title' => $this->title,
@@ -1667,6 +1685,8 @@ class Event extends PackageEvent implements AuditableContract
             'domain_tag_ids' => $domainTagIds,
             'source_tag_ids' => $sourceTagIds,
             'issue_tag_ids' => $issueTagIds,
+            'taxonomy_term_ids' => $taxonomyTermIds,
+            'taxonomy_codes' => $taxonomyCodes,
             'reference_ids' => $this->references->pluck('id')->values()->all(),
             'speaker_ids' => $this->speakerKeyPeople
                 ->pluck('speaker_id')
