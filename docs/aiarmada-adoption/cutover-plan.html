@@ -76,7 +76,7 @@
 <header>
     <div class="wrap">
         <h1>AIArmada 360° Native Adoption Cutover Plan</h1>
-        <p style="margin:0;color:var(--muted)">Adopt AIArmada packages natively — no legacy bridges, no backward compat shims. Extend only where packages provide seams.</p>
+        <p style="margin:0;color:var(--muted)">Adopt AIArmada packages natively with explicit v1 compatibility edges and time-boxed deprecations. Extend only where packages provide seams.</p>
     </div>
 </header>
 <main>
@@ -91,10 +91,30 @@
 
 <!-- ====== DASHBOARD ====== -->
 <div class="grid">
-    <div class="stat"><div class="stat-num" id="total-wu">17</div><div class="stat-label">Work Units</div></div>
+    <div class="stat"><div class="stat-num" id="total-wu">18</div><div class="stat-label">Work Units</div></div>
     <div class="stat"><div class="stat-num" id="total-done">0</div><div class="stat-label">Done</div></div>
     <div class="stat"><div class="stat-num" id="total-progress">0</div><div class="stat-label">In Progress</div></div>
     <div class="stat"><div class="stat-num" id="total-files">~300</div><div class="stat-label">Files Touched</div></div>
+</div>
+
+<!-- ====== DECISION GATES ====== -->
+<div class="section">
+    <h2><span class="badge badge-cleanup">Gate 0</span> Required Product Decisions Before Execution</h2>
+    <table>
+        <tr><th>Gate</th><th>Decision</th><th>Default</th><th>Impact</th></tr>
+        <tr>
+            <td><strong>DG1</strong></td>
+            <td>API compatibility policy for geography + membership naming</td>
+            <td>Keep legacy v1 edge aliases and mark deprecated; migrate internals/new surfaces to package-native names</td>
+            <td>Controls whether WU2/WU14 are non-breaking or hard-breaking</td>
+        </tr>
+        <tr>
+            <td><strong>DG2</strong></td>
+            <td>Paid-commerce activation scope (G008)</td>
+            <td>Optional track — execute only if paid/mixed tickets are near-term</td>
+            <td>Controls whether WU17 runs in this cutover</td>
+        </tr>
+    </table>
 </div>
 
 <!-- ====== DEPENDENCY MAP ====== -->
@@ -103,33 +123,39 @@
     <table>
         <tr><th>Phase</th><th>Work Units</th><th>Can Parallel?</th><th>Touch Same Files?</th></tr>
         <tr>
+            <td><strong>0 — Decision Gates</strong></td>
+            <td>DG1, DG2</td>
+            <td>Must complete first</td>
+            <td>—</td>
+        </tr>
+        <tr>
             <td><strong>1 — Foundation</strong></td>
             <td>WU1, WU2, WU13, WU14</td>
-            <td>✅ All 4 parallel — zero file overlap</td>
-            <td>No</td>
+            <td>✅ Parallel by lane, with shared-file locks</td>
+            <td>Yes: <code>AppServiceProvider</code>, <code>routes/api.php</code></td>
         </tr>
         <tr>
             <td><strong>2 — Model Collapse</strong></td>
             <td>WU3, WU4, WU5, WU6, WU7, WU8, WU9, WU10</td>
-            <td>✅ All 8 parallel — different caller sets</td>
-            <td>No shared callers between them</td>
+            <td>✅ Mostly parallel; serialize shared provider/morph-map edits</td>
+            <td>Yes: <code>AppServiceProvider</code> + shared event callers in some lanes</td>
         </tr>
         <tr>
             <td><strong>3 — Domain Rebuild</strong></td>
-            <td>WU15, WU16, WU11</td>
-            <td>✅ Parallel — different domains</td>
-            <td>No</td>
+            <td>WU11, WU15, WU16</td>
+            <td>✅ Parallel with lock discipline</td>
+            <td>Yes: event/search surfaces overlap between WU15/WU16</td>
         </tr>
         <tr>
-            <td><strong>4 — Communications Finish</strong></td>
-            <td>WU12</td>
-            <td>Depends on WU11</td>
+            <td><strong>4 — Communications Decommission</strong></td>
+            <td>WU12A → WU12B</td>
+            <td>Sequential only</td>
             <td>—</td>
         </tr>
         <tr>
-            <td><strong>5 — Commerce</strong></td>
+            <td><strong>5 — Optional Paid Commerce</strong></td>
             <td>WU17</td>
-            <td>Depends on WU15, WU16</td>
+            <td>Depends on WU15, WU16, DG2</td>
             <td>—</td>
         </tr>
     </table>
@@ -172,8 +198,8 @@
         <h2><span class="badge badge-geo">WU2</span> Geography — Adopt Package-Native Admin Area Naming</h2>
         <span class="badge badge-pending">Pending</span>
     </div>
-    <p class="deps"><strong>Domain:</strong> G002 &nbsp;|&nbsp; <strong>No dependencies</strong> &nbsp;|&nbsp; <strong>Can parallel with:</strong> WU1, WU13, WU14</p>
-    <p>The package Address model has direct columns <code>state</code>, <code>city</code>, <code>postcode</code> — those stay. But <code>district</code> and <code>subdistrict</code> are country-specific terms the package was built to generalise as <code>admin_area_2</code> and <code>admin_area_3</code>. Rename accordingly:</p>
+    <p class="deps"><strong>Domain:</strong> G002 &nbsp;|&nbsp; <strong>Depends on:</strong> DG1 (compat policy) &nbsp;|&nbsp; <strong>Can parallel with:</strong> WU1, WU13, WU14 (lock <code>routes/api.php</code>)</p>
+    <p>The package Address model has direct columns <code>state</code>, <code>city</code>, <code>postcode</code> — those stay. But <code>district</code> and <code>subdistrict</code> are country-specific terms the package was built to generalise as <code>admin_area_2</code> and <code>admin_area_3</code>. Migrate internals to package-native keys while preserving explicit v1 edge aliases during deprecation.</p>
     <table>
         <tr><th>Legacy API</th><th>Package-Native</th><th>Reason</th></tr>
         <tr><td><code>state_id</code></td><td><code>state_id</code> (keep)</td><td>Address model has <code>state</code> column</td></tr>
@@ -184,27 +210,27 @@
     </table>
 
     <div class="task-group">
-        <div class="task-group-title">Rename in API filter params</div>
+        <div class="task-group-title">Internal naming migration (package-native)</div>
         <ul class="tasks">
-            <li><input type="checkbox"><label><span class="file">app/Http/Controllers/Api/EventController.php</span><br>Rename AllowedFilter keys: <code>district_id</code> → <code>admin_area_2_id</code>, <code>subdistrict_id</code> → <code>admin_area_3_id</code>. Keep <code>state_id</code> and <code>city_id</code> as-is.</label></li>
-            <li><input type="checkbox"><label><span class="file">app/Services/EventSearchService.php</span><br>Rename filter keys in Typesense filter strings: <code>district_id</code> → <code>admin_area_2_id</code>, <code>subdistrict_id</code> → <code>admin_area_3_id</code>. Remove the match() mapping for these — they now match DB columns directly.</label></li>
+            <li><input type="checkbox"><label><span class="file">app/Http/Controllers/Api/EventController.php</span><br>Normalize request filters internally to <code>admin_area_2_id</code>/<code>admin_area_3_id</code>; keep v1 aliases (<code>district_id</code>/<code>subdistrict_id</code>) at API edge with deprecation metadata.</label></li>
+            <li><input type="checkbox"><label><span class="file">app/Services/EventSearchService.php</span><br>Use package-native keys in query composition and Typesense filter generation. Keep edge alias mapping only in request-normalization layer, not inside core search logic.</label></li>
         </ul>
     </div>
     <div class="task-group">
-        <div class="task-group-title">Rename in API catalog endpoints</div>
+        <div class="task-group-title">Catalog endpoints: additive migration, then deprecate</div>
         <ul class="tasks">
-            <li><input type="checkbox"><label><span class="file">app/Http/Controllers/Api/Admin/CatalogController.php</span><br>districts() → adminAreaLevel2(), subdistricts() → adminAreaLevel3(). Read params: <code>district_id</code> → <code>admin_area_2_id</code>. Remove the dual-param fallback that accepted both old and new names.</label></li>
-            <li><input type="checkbox"><label><span class="file">app/Http/Controllers/Api/Frontend/CatalogController.php</span><br>Same rename: districts() → adminAreaLevel2(), subdistricts() → adminAreaLevel3(). Same param cleanup.</label></li>
+            <li><input type="checkbox"><label><span class="file">app/Http/Controllers/Api/Admin/CatalogController.php</span><br>Add <code>adminAreaLevel2()</code>/<code>adminAreaLevel3()</code> as canonical handlers. Keep <code>districts()</code>/<code>subdistricts()</code> as deprecated aliases for v1.</label></li>
+            <li><input type="checkbox"><label><span class="file">app/Http/Controllers/Api/Frontend/CatalogController.php</span><br>Same additive migration strategy: new canonical methods + deprecated aliases.</label></li>
             <li><input type="checkbox"><label><span class="file">app/Support/Api/Frontend/FrontendCatalogService.php</span><br>Rename methods: districts() → adminAreaLevel2(), subdistricts() → adminAreaLevel3()</label></li>
-            <li><input type="checkbox"><label><span class="file">routes/api.php</span><br>URL path segments: <code>/districts</code> → <code>/admin-area-level-2</code>, <code>/subdistricts</code> → <code>/admin-area-level-3</code></label></li>
+            <li><input type="checkbox"><label><span class="file">routes/api.php</span><br>Add canonical paths: <code>/admin-area-level-2</code>, <code>/admin-area-level-3</code>. Keep legacy <code>/districts</code>/<code>/subdistricts</code> as temporary aliases with deprecation headers.</label></li>
         </ul>
     </div>
     <div class="task-group">
-        <div class="task-group-title">Rename in search + saved search + contribution</div>
+        <div class="task-group-title">Search + saved search + contribution normalization</div>
         <ul class="tasks">
-            <li><input type="checkbox"><label><span class="file">app/Http/Controllers/Api/Frontend/SearchController.php</span><br>Rename <code>$request->query('district_id')</code> → <code>'admin_area_2_id'</code>, <code>subdistrict_id</code> → <code>admin_area_3_id</code>. Update #[QueryParameter] annotations.</label></li>
-            <li><input type="checkbox"><label><span class="file">app/Http/Controllers/Api/SavedSearchController.php</span><br>Rename validation rules and allowedFilterKeys: <code>district_id</code> → <code>admin_area_2_id</code>, <code>subdistrict_id</code> → <code>admin_area_3_id</code></label></li>
-            <li><input type="checkbox"><label><span class="file">app/Services/ContributionEntityMutationService.php</span><br>Remove <code>admin_area_*_id ?? legacy_id ?? null</code> fallback chains. Read <code>admin_area_2_id</code>/<code>admin_area_3_id</code> directly. Remove reverse mappings.</label></li>
+            <li><input type="checkbox"><label><span class="file">app/Http/Controllers/Api/Frontend/SearchController.php</span><br>Prefer <code>admin_area_2_id</code>/<code>admin_area_3_id</code> in docs and handlers; continue accepting legacy keys in v1 with explicit deprecation notice.</label></li>
+            <li><input type="checkbox"><label><span class="file">app/Http/Controllers/Api/SavedSearchController.php</span><br>Validate canonical keys, then normalize legacy aliases at boundary for backward compatibility.</label></li>
+            <li><input type="checkbox"><label><span class="file">app/Services/ContributionEntityMutationService.php</span><br>Consume normalized canonical fields only (<code>admin_area_2_id</code>/<code>admin_area_3_id</code>) so compatibility logic stays at API edges.</label></li>
         </ul>
     </div>
     <div class="task-group">
@@ -219,7 +245,7 @@
             <li><input type="checkbox"><label><code>vendor/bin/pest --parallel --filter=EventSearchTest</code></label></li>
             <li><input type="checkbox"><label><code>vendor/bin/pest --parallel --filter=Catalog</code></label></li>
             <li><input type="checkbox"><label><code>vendor/bin/pest --parallel --filter=SavedSearch</code></label></li>
-            <li><input type="checkbox"><label><code>php artisan scramble:export</code> — no <code>district_id</code> or <code>subdistrict_id</code> in generated spec</label></li>
+            <li><input type="checkbox"><label><code>php artisan scramble:export</code> — canonical params are primary and legacy params are explicitly marked deprecated</label></li>
         </ul>
     </div>
 </div>
@@ -492,35 +518,58 @@
     </div>
 </div>
 
-<!-- ====== WU12: Communications — Decommission Old ====== -->
-<div class="section" id="wu12">
+<!-- ====== WU12A: Communications — Runtime Cutover ====== -->
+<div class="section" id="wu12a">
     <div class="section-header">
-        <h2><span class="badge badge-comms">WU12</span> Communications — Delete Legacy Engine</h2>
+        <h2><span class="badge badge-comms">WU12A</span> Communications — Runtime Cutover + Observation Window</h2>
         <span class="badge badge-pending">Pending</span>
     </div>
-    <p class="deps"><strong>Domain:</strong> G001 Phase 4 &nbsp;|&nbsp; <strong>Depends on WU11</strong> (engine must be replaced first)</p>
-    <p>After all triggers go through CommunicationManager, delete NotificationEngine, NotificationCenterMessage, PendingNotification, NotificationDelivery (app models), and both notification migrations. Drop notification_messages and notification_deliveries tables.</p>
+    <p class="deps"><strong>Domain:</strong> G001 Phase 4 &nbsp;|&nbsp; <strong>Depends on WU11</strong> &nbsp;|&nbsp; <strong>Goal:</strong> stop legacy runtime writes safely before storage retirement</p>
+    <p>Move all production notification dispatch to package communications runtime. Keep legacy data structures read-only during a short verification window to reduce rollback risk.</p>
 
     <div class="task-group">
-        <div class="task-group-title">Delete</div>
+        <div class="task-group-title">Cutover Steps</div>
         <ul class="tasks">
-            <li><input type="checkbox"><label>Delete <span class="file">app/Services/Notifications/NotificationEngine.php</span> (543 lines)</label></li>
-            <li><input type="checkbox"><label>Delete <span class="file">app/Notifications/NotificationCenterMessage.php</span> (264 lines)</label></li>
-            <li><input type="checkbox"><label>Delete <span class="file">app/Models/PendingNotification.php</span> + drop notification_messages table</label></li>
-            <li><input type="checkbox"><label>Delete <span class="file">app/Models/NotificationDelivery.php</span> + drop notification_deliveries table</label></li>
-            <li><input type="checkbox"><label>Delete <span class="file">app/Models/NotificationDestination.php</span> if no longer needed</label></li>
-            <li><input type="checkbox"><label>Delete <span class="file">database/migrations/2026_02_09_190614_create_notifications_table.php</span></label></li>
-            <li><input type="checkbox"><label>Delete <span class="file">database/migrations/2026_07_07_185329_create_notifications_table.php</span></label></li>
-            <li><input type="checkbox"><label>Delete EnumMapper if all triggers migrated to package enums directly</label></li>
+            <li><input type="checkbox"><label>Ensure all triggers dispatch via <span class="file">CommunicationManager</span>; remove remaining direct NotificationEngine injection points.</label></li>
+            <li><input type="checkbox"><label>Introduce a rollout flag (or equivalent guard) to disable legacy dispatch path without deleting storage yet.</label></li>
+            <li><input type="checkbox"><label>Track delivery parity: compare package delivery outcomes with expected trigger volume for a defined window (for example 7 days).</label></li>
+            <li><input type="checkbox"><label>Mark legacy tables/models as deprecated runtime surfaces (read-only, no new writes).</label></li>
+        </ul>
+    </div>
+    <div class="task-group">
+        <div class="task-group-title">Verify</div>
+        <ul class="tasks">
+            <li><input type="checkbox"><label><code>vendor/bin/pest --parallel --filter=NotificationDeliveryFlow</code></label></li>
+            <li><input type="checkbox"><label>Smoke test: event registration + contribution approval + digest delivery all create <code>communication_deliveries</code> records.</label></li>
+            <li><input type="checkbox"><label>No new rows written to legacy notification tables after cutover flag is enabled.</label></li>
+        </ul>
+    </div>
+</div>
+
+<!-- ====== WU12B: Communications — Storage Retirement ====== -->
+<div class="section" id="wu12b">
+    <div class="section-header">
+        <h2><span class="badge badge-comms">WU12B</span> Communications — Legacy Storage Retirement</h2>
+        <span class="badge badge-pending">Pending</span>
+    </div>
+    <p class="deps"><strong>Domain:</strong> G001 Phase 5 &nbsp;|&nbsp; <strong>Depends on WU12A</strong> + completed observation window</p>
+    <p>Retire legacy models/tables only after runtime cutover is stable. Use forward migrations and archival, not historical migration-file deletion.</p>
+
+    <div class="task-group">
+        <div class="task-group-title">Retirement Steps</div>
+        <ul class="tasks">
+            <li><input type="checkbox"><label>Archive/export legacy notification data required for audit/reporting retention.</label></li>
+            <li><input type="checkbox"><label>Create a new forward migration to drop <code>notification_messages</code> and <code>notification_deliveries</code> after archival sign-off.</label></li>
+            <li><input type="checkbox"><label>Delete obsolete runtime code: <span class="file">NotificationEngine.php</span>, <span class="file">NotificationCenterMessage.php</span>, and unused legacy models.</label></li>
+            <li><input type="checkbox"><label>Remove compatibility-only enum mapping/shims if all triggers are package-enum native.</label></li>
         </ul>
     </div>
     <div class="task-group">
         <div class="task-group-title">Verify</div>
         <ul class="tasks">
             <li><input type="checkbox"><label><code>grep -r "NotificationEngine\|NotificationCenterMessage\|PendingNotification\|NotificationDelivery" app/ --include="*.php"</code> — must return zero</label></li>
-            <li><input type="checkbox"><label><code>php artisan migrate:status</code> — no legacy notification migrations</label></li>
+            <li><input type="checkbox"><label><code>php artisan migrate:status</code> — shows forward retirement migration applied (no historical migration file edits required)</label></li>
             <li><input type="checkbox"><label>Full test suite: <code>vendor/bin/pest --parallel</code></label></li>
-            <li><input type="checkbox"><label>Verify notifications still deliver: event registration, contribution approval, etc.</label></li>
         </ul>
     </div>
 </div>
@@ -693,7 +742,7 @@
     <div class="task-group">
         <div class="task-group-title">Seating — Wire into Events</div>
         <ul class="tasks">
-            <li><input type="checkbox"><label>Run package migrations for seating and ticketing: <code>php artisan migrate</code> (tables currently don't exist)</label></li>
+            <li><input type="checkbox"><label>Validate live schema for seating/ticketing/inventory tables and run <code>php artisan migrate</code> only for pending migrations (do not assume tables are missing).</label></li>
             <li><input type="checkbox"><label>Wire seat map selection into <span class="file">app/Actions/Events/SaveAdminEventAction.php</span><br>Add seat_map_id field. When an event has a venue with spaces, allow selecting a seat map per occurrence.</label></li>
             <li><input type="checkbox"><label>Add seat allocation to <span class="file">app/Actions/Events/SubmitFrontendEventAction.php</span><br>When free registration + auto_allocate_seats is true, auto-allocate seats on registration.</label></li>
         </ul>
@@ -725,11 +774,11 @@
 <!-- ====== WU17: Commerce Chain ====== -->
 <div class="section" id="wu17">
     <div class="section-header">
-        <h2><span class="badge badge-commerce">WU17</span> Commerce — Activate Paid Event Flow</h2>
+        <h2><span class="badge badge-commerce">WU17 (Optional)</span> Commerce — Activate Paid Event Flow</h2>
         <span class="badge badge-pending">Pending</span>
     </div>
-    <p class="deps"><strong>Domain:</strong> G008 &nbsp;|&nbsp; <strong>Depends on WU15</strong> (event model must be package-native) and <strong>WU16</strong> (seating/ticketing must be active)</p>
-    <p>Activate the full commerce chain for paid events: cart → checkout → payment → order → pass issuance. This is the longest-range work unit.</p>
+    <p class="deps"><strong>Domain:</strong> G008 &nbsp;|&nbsp; <strong>Depends on WU15</strong>, <strong>WU16</strong>, and <strong>DG2 go decision</strong></p>
+    <p>Optional work unit. Execute only if paid or mixed-ticket events are a near-term product requirement. If deferred, keep this track parked and avoid partial runtime exposure.</p>
 
     <div class="task-group">
         <div class="task-group-title">Wire Commerce Chain</div>
@@ -745,7 +794,7 @@
     <div class="task-group">
         <div class="task-group-title">Events Config</div>
         <ul class="tasks">
-            <li><input type="checkbox"><label>Update <span class="file">config/events.php</span>: set free_only to false, enable paid registration flow</label></li>
+            <li><input type="checkbox"><label>After DG2 approval, update <span class="file">config/events.php</span>: set <code>free_only</code> to false and enable paid registration flow</label></li>
         </ul>
     </div>
     <div class="task-group">
@@ -777,12 +826,13 @@
         <tr><td>WU9</td><td>Model: EventSubmission</td><td>~2</td><td><span class="badge badge-pending">Pending</span></td><td>—</td><td>☐</td></tr>
         <tr><td>WU10</td><td>Model: Space</td><td>~26</td><td><span class="badge badge-pending">Pending</span></td><td>—</td><td>☐</td></tr>
         <tr><td>WU11</td><td>Communications Pipeline</td><td>~8</td><td><span class="badge badge-pending">Pending</span></td><td>—</td><td>☐</td></tr>
-        <tr><td>WU12</td><td>Communications Cleanup</td><td>~12</td><td><span class="badge badge-pending">Pending</span></td><td>—</td><td>☐</td></tr>
+        <tr><td>WU12A</td><td>Communications Runtime Cutover</td><td>~8</td><td><span class="badge badge-pending">Pending</span></td><td>—</td><td>☐</td></tr>
+        <tr><td>WU12B</td><td>Communications Storage Retirement</td><td>~10</td><td><span class="badge badge-pending">Pending</span></td><td>—</td><td>☐</td></tr>
         <tr><td>WU13</td><td>Config Pruning</td><td>~18</td><td><span class="badge badge-pending">Pending</span></td><td>—</td><td>☐</td></tr>
         <tr><td>WU14</td><td>Membership Naming</td><td>~40</td><td><span class="badge badge-pending">Pending</span></td><td>—</td><td>☐</td></tr>
         <tr><td>WU15</td><td>Events Package-First</td><td>~20</td><td><span class="badge badge-pending">Pending</span></td><td>—</td><td>☐</td></tr>
         <tr><td>WU16</td><td>Activate Seating/Ticketing/Inventory</td><td>~8</td><td><span class="badge badge-pending">Pending</span></td><td>—</td><td>☐</td></tr>
-        <tr><td>WU17</td><td>Paid Event Commerce</td><td>~15</td><td><span class="badge badge-pending">Pending</span></td><td>—</td><td>☐</td></tr>
+        <tr><td>WU17</td><td>Paid Event Commerce (Optional)</td><td>~15</td><td><span class="badge badge-pending">Pending</span></td><td>—</td><td>☐</td></tr>
     </table>
 </div>
 
@@ -790,17 +840,17 @@
     <h2><span class="badge badge-cleanup">Rules</span> For Parallel Execution</h2>
     <table>
         <tr><th>Rule</th><th>Detail</th></tr>
-        <tr><td>1. No file overlap</td><td>Two WUs must never modify the same file. If they need the same file, run them sequentially. The caller files in WU3-WU10 are model-specific — SavedSearch callers don't touch EventCheckin callers, etc. Verify with <code>grep</code> before starting.</td></tr>
+        <tr><td>1. Lock shared files</td><td>Parallel work is allowed only when shared files are lock-managed. Hotspots include <code>AppServiceProvider</code>, <code>routes/api.php</code>, <code>config/scout.php</code>, and <code>EventSearchService</code>. Serialize edits on each hotspot.</td></tr>
         <tr><td>2. Claim before work</td><td>Update the tracker table above with your name and set status to "In Progress" before touching any files. Commit with the WU number in the message: <code>WU3: collapse SavedSearch wrapper — caller migration</code>.</td></tr>
         <tr><td>3. Verify before unclaim</td><td>Run the WU's verify tests. If they pass, update the tracker to "Done" and mark the checkboxes. If they fail, fix before moving on.</td></tr>
-        <tr><td>4. Phase gating</td><td>All Phase 1 work units (WU1, WU2, WU13, WU14) must be Done before starting Phase 2 (WU3-WU10) — but Phase 1 units can all run in parallel.</td></tr>
-        <tr><td>5. No legacy bridges</td><td>Do not add backward-compat aliases or fallbacks. If a caller needs a feature from the package that the package doesn't provide, extend the package model with a trait — do not create a wrapper model that mirrors legacy naming.</td></tr>
-        <tr><td>6. Package first</td><td>Always import from <code>AIArmada\*</code> directly. App\Models is for traits/concerns only. The goal is zero wrapper models by Phase 5.</td></tr>
+        <tr><td>4. Phase gating</td><td>DG1/DG2 decisions must be explicit before implementation. WU12A must complete before WU12B. WU17 runs only if DG2 approves paid-commerce activation.</td></tr>
+        <tr><td>5. Compatibility edges only</td><td>Do not add implicit legacy bridges. Compatibility aliases are allowed only at explicit v1 API edges, must be documented as deprecated, and must have a removal date.</td></tr>
+        <tr><td>6. Package first</td><td>Prefer imports from <code>AIArmada\*</code>. Keep <code>App\Models</code> only for minimal, logic-bearing extensions (for example media/auditing/casts), not field-alias wrappers.</td></tr>
     </table>
 </div>
 
 <div class="foot" style="margin-top:2rem;color:var(--muted);font-size:.82rem;">
-    <p>Generated from verified codebase audit (2026-07-08). Based on <code>docs/aiarmada-adoption/aiarmada-360-audit.html</code> gap register G001–G008. No legacy assumptions — all work adopts AIArmada packages natively.</p>
+    <p>Generated from verified codebase audit (2026-07-08). Based on <code>docs/aiarmada-adoption/aiarmada-360-audit.html</code> gap register G001–G008. Package-native adoption with explicit compatibility edges and staged decommission controls.</p>
     <p>File: <code>docs/aiarmada-adoption/cutover-plan.html</code></p>
 </div>
 
