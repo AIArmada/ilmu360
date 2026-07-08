@@ -1,14 +1,14 @@
 <?php
 
+use AIArmada\Membership\Actions\ApplyForMembershipAction;
+use AIArmada\Membership\Actions\ApproveMembershipApplicationAction;
+use AIArmada\Membership\Actions\CancelMembershipApplicationAction;
+use AIArmada\Membership\Actions\RejectMembershipApplicationAction;
 use AIArmada\Membership\Enums\ApplicationStatus;
-use App\Actions\Membership\ApproveMembershipClaimAction;
-use App\Actions\Membership\CancelMembershipClaimAction;
-use App\Actions\Membership\RejectMembershipClaimAction;
-use App\Actions\Membership\SubmitMembershipClaimAction;
 use App\Enums\MemberSubjectType;
 use App\Models\Institution;
 use App\Models\MemberInvitation;
-use App\Models\MembershipClaim;
+use App\Models\MembershipApplication;
 use App\Models\Speaker;
 use App\Models\User;
 use App\Support\Authz\MemberRoleCatalog;
@@ -27,13 +27,13 @@ it('submits a pending institution membership claim', function () {
     $institution = Institution::factory()->create(['status' => 'verified']);
     $claimant = User::factory()->create();
 
-    $claim = app(SubmitMembershipClaimAction::class)->handle(
+    $claim = app(ApplyForMembershipAction::class)->handle(
         $institution,
         $claimant,
         'I help manage this institution.',
     );
 
-    expect($claim)->toBeInstanceOf(MembershipClaim::class)
+    expect($claim)->toBeInstanceOf(MembershipApplication::class)
         ->and($claim->subject_type)->toBe(MemberSubjectType::Institution)
         ->and($claim->subject_id)->toBe($institution->getKey())
         ->and($claim->applicant_id)->toBe($claimant->getKey())
@@ -44,14 +44,14 @@ it('rejects duplicate pending claims for the same subject and claimant', functio
     $speaker = Speaker::factory()->create(['status' => 'verified', 'is_active' => true]);
     $claimant = User::factory()->create();
 
-    MembershipClaim::factory()
+    MembershipApplication::factory()
         ->forSpeaker($speaker)
         ->create([
             'applicant_id' => $claimant->getKey(),
             'status' => ApplicationStatus::Pending,
         ]);
 
-    expect(fn () => app(SubmitMembershipClaimAction::class)->handle(
+    expect(fn () => app(ApplyForMembershipAction::class)->handle(
         $speaker,
         $claimant,
         'I already submitted this once.',
@@ -73,7 +73,7 @@ it('rejects claims when a pending invitation already exists', function () {
         'invited_by' => User::factory()->create()->getKey(),
     ]);
 
-    expect(fn () => app(SubmitMembershipClaimAction::class)->handle(
+    expect(fn () => app(ApplyForMembershipAction::class)->handle(
         $institution,
         $claimant,
         'I should use the invite instead.',
@@ -85,7 +85,7 @@ it('rejects claims when the user is already a member', function () {
     $claimant = User::factory()->create();
     $speaker->members()->attach($claimant);
 
-    expect(fn () => app(SubmitMembershipClaimAction::class)->handle(
+    expect(fn () => app(ApplyForMembershipAction::class)->handle(
         $speaker,
         $claimant,
         'I am already attached.',
@@ -97,14 +97,14 @@ it('approves a claim and grants editor membership', function () {
     $claimant = User::factory()->create();
     $reviewer = User::factory()->create();
 
-    $claim = MembershipClaim::factory()
+    $claim = MembershipApplication::factory()
         ->forInstitution($institution)
         ->create([
             'applicant_id' => $claimant->getKey(),
             'status' => ApplicationStatus::Pending,
         ]);
 
-    app(ApproveMembershipClaimAction::class)->handle($claim, $reviewer, 'editor', 'Approved as editor.');
+    app(ApproveMembershipApplicationAction::class)->handle($claim, $reviewer, 'editor', 'Approved as editor.');
 
     expect($claim->fresh()->status)->toBe(ApplicationStatus::Approved)
         ->and($claim->fresh()->reviewer_id)->toBe($reviewer->getKey())
@@ -118,14 +118,14 @@ it('approves a claim and can grant owner through the central moderation path', f
     $claimant = User::factory()->create();
     $reviewer = User::factory()->create();
 
-    $claim = MembershipClaim::factory()
+    $claim = MembershipApplication::factory()
         ->forSpeaker($speaker)
         ->create([
             'applicant_id' => $claimant->getKey(),
             'status' => ApplicationStatus::Pending,
         ]);
 
-    app(ApproveMembershipClaimAction::class)->handle($claim, $reviewer, 'owner', 'Approved as owner.');
+    app(ApproveMembershipApplicationAction::class)->handle($claim, $reviewer, 'owner', 'Approved as owner.');
 
     expect($claim->fresh()->status)->toBe(ApplicationStatus::Approved)
         ->and($claim->fresh()->granted_role)->toBe('owner')
@@ -135,14 +135,14 @@ it('approves a claim and can grant owner through the central moderation path', f
 
 it('rejects a claim and records reviewer metadata', function () {
     $institution = Institution::factory()->create();
-    $claim = MembershipClaim::factory()
+    $claim = MembershipApplication::factory()
         ->forInstitution($institution)
         ->create([
             'status' => ApplicationStatus::Pending,
         ]);
     $reviewer = User::factory()->create();
 
-    app(RejectMembershipClaimAction::class)->handle($claim, $reviewer, 'Not enough proof.');
+    app(RejectMembershipApplicationAction::class)->handle($claim, $reviewer, 'Not enough proof.');
 
     expect($claim->fresh()->status)->toBe(ApplicationStatus::Rejected)
         ->and($claim->fresh()->reviewer_id)->toBe($reviewer->getKey())
@@ -153,14 +153,14 @@ it('allows claimants to cancel their own pending claims', function () {
     $institution = Institution::factory()->create();
     $claimant = User::factory()->create();
 
-    $claim = MembershipClaim::factory()
+    $claim = MembershipApplication::factory()
         ->forInstitution($institution)
         ->create([
             'applicant_id' => $claimant->getKey(),
             'status' => ApplicationStatus::Pending,
         ]);
 
-    app(CancelMembershipClaimAction::class)->handle($claim, $claimant);
+    app(CancelMembershipApplicationAction::class)->handle($claim, $claimant);
 
     expect($claim->fresh()->status)->toBe(ApplicationStatus::Cancelled)
         ->and($claim->fresh()->cancelled_at)->not->toBeNull();

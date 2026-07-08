@@ -68,8 +68,8 @@ class MemberResourceService
                     'cancel_contribution_request' => [
                         'tool' => 'member-cancel-contribution-request',
                     ],
-                    'list_membership_claims' => [
-                        'tool' => 'member-list-membership-claims',
+                    'list_membership_applications' => [
+                        'tool' => 'member-list-membership-applications',
                     ],
                     'submit_membership_claim' => [
                         'tool' => 'member-submit-membership-claim',

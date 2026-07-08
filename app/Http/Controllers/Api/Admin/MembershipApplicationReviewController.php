@@ -7,20 +7,20 @@ namespace App\Http\Controllers\Api\Admin;
 use AIArmada\Membership\Actions\ApproveMembershipApplicationAction;
 use AIArmada\Membership\Actions\RejectMembershipApplicationAction;
 use AIArmada\Membership\Enums\MemberRole;
-use App\Filament\Resources\MembershipClaims\MembershipClaimResource;
+use App\Filament\Resources\MembershipApplications\MembershipApplicationResource;
 use App\Http\Controllers\Controller;
 use App\Models\MembershipApplication;
 use App\Models\User;
 use App\Support\Api\Admin\AdminResourceRegistry;
-use App\Support\Membership\MembershipClaimPresenter;
+use App\Support\Membership\MembershipApplicationPresenter;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Dedoc\Scramble\Attributes\PathParameter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
-#[Group('Admin Membership Claim Review', 'Explicit admin workflow endpoints for approving or rejecting membership claims. These actions mirror the Filament moderation workflow and are not part of the generic admin CRUD surface.')]
-class MembershipClaimReviewController extends Controller
+#[Group('Admin Membership Application Review', 'Explicit admin workflow endpoints for approving or rejecting membership applications. These actions mirror the Filament moderation workflow and are not part of the generic admin CRUD surface.')]
+class MembershipApplicationReviewController extends Controller
 {
     public function __construct(
         private AdminResourceRegistry $registry,
@@ -28,17 +28,17 @@ class MembershipClaimReviewController extends Controller
         private RejectMembershipApplicationAction $rejectAction,
     ) {}
 
-    #[PathParameter('recordKey', 'Existing membership claim route key returned by the admin collection or record endpoints.', example: '0195b86a-3c15-73fa-a2d8-5a45f6a7f701')]
+    #[PathParameter('recordKey', 'Existing membership application route key returned by the admin collection or record endpoints.', example: '0195b86a-3c15-73fa-a2d8-5a45f6a7f701')]
     #[Endpoint(
-        title: 'Get membership-claim review schema',
-        description: 'Returns the approval/rejection contract for one membership claim, including the role options accepted when approving the claim.',
+        title: 'Get membership-application review schema',
+        description: 'Returns the approval/rejection contract for one membership application, including the role options accepted when approving the application.',
     )]
     public function schema(string $recordKey, Request $request): JsonResponse
     {
         $this->requireAdmin($request);
 
         /** @var MembershipApplication $application */
-        $application = $this->registry->resolveRecord(MembershipClaimResource::class, $recordKey);
+        $application = $this->registry->resolveRecord(MembershipApplicationResource::class, $recordKey);
 
         return response()->json([
             'data' => [
@@ -46,7 +46,7 @@ class MembershipClaimReviewController extends Controller
                     'defaults' => ['action' => 'approve', 'granted_role' => null, 'reviewer_note' => null],
                     'fields' => [
                         ['name' => 'action', 'type' => 'string', 'required' => true, 'default' => 'approve', 'allowed_values' => ['approve', 'reject']],
-                        ['name' => 'granted_role', 'type' => 'string', 'required' => false, 'allowed_values' => array_keys(MembershipClaimPresenter::approvalRoleOptions($application))],
+                        ['name' => 'granted_role', 'type' => 'string', 'required' => false, 'allowed_values' => array_keys(MembershipApplicationPresenter::approvalRoleOptions($application))],
                         ['name' => 'reviewer_note', 'type' => 'string', 'required' => false, 'max_length' => 2000],
                     ],
                     'conditional_rules' => [
@@ -57,17 +57,17 @@ class MembershipClaimReviewController extends Controller
         ]);
     }
 
-    #[PathParameter('recordKey', 'Existing membership claim route key returned by the admin collection or record endpoints.', example: '0195b86a-3c15-73fa-a2d8-5a45f6a7f701')]
+    #[PathParameter('recordKey', 'Existing membership application route key returned by the admin collection or record endpoints.', example: '0195b86a-3c15-73fa-a2d8-5a45f6a7f701')]
     #[Endpoint(
-        title: 'Review a membership claim',
-        description: 'Approves or rejects one pending membership claim. Approvals require a `granted_role` from the returned review schema.',
+        title: 'Review a membership application',
+        description: 'Approves or rejects one pending membership application. Approvals require a `granted_role` from the returned review schema.',
     )]
     public function review(string $recordKey, Request $request): JsonResponse
     {
         $user = $this->requireAdmin($request);
 
         /** @var MembershipApplication $application */
-        $application = $this->registry->resolveRecord(MembershipClaimResource::class, $recordKey);
+        $application = $this->registry->resolveRecord(MembershipApplicationResource::class, $recordKey);
 
         $action = (string) $request->input('action', '');
         $reviewerNote = filled($request->input('reviewer_note')) ? (string) $request->input('reviewer_note') : null;

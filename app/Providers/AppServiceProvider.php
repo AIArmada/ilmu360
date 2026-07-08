@@ -14,6 +14,7 @@ use AIArmada\Contacting\Models\ContactMethod;
 use AIArmada\Contacting\Models\SocialProfile;
 use AIArmada\Events\Models\EventRegistrationParticipant;
 use AIArmada\FilamentSignals\Policies\TrackedPropertyPolicy;
+use AIArmada\Membership\Contracts\MembershipApplicationNotifier;
 use AIArmada\Membership\Contracts\MembershipHook;
 use AIArmada\Signals\Models\TrackedProperty;
 use App\Actions\Slugs\ResolvePublicSlugAction;
@@ -60,6 +61,7 @@ use App\Support\Communications\AppPreferenceResolver;
 use App\Support\Communications\AppQuietHoursResolver;
 use App\Support\Communications\AppSuppressionResolver;
 use App\Support\Media\MediaFileNamer;
+use App\Support\Membership\AppMembershipApplicationNotifier;
 use App\Support\Membership\AppMembershipHook;
 use App\Support\Passport\PassportKeyProvisioner;
 use BezhanSalleh\LanguageSwitch\LanguageSwitch;
@@ -136,6 +138,7 @@ class AppServiceProvider extends ServiceProvider
         }
 
         $this->app->singleton(MembershipHook::class, AppMembershipHook::class);
+        $this->app->singleton(MembershipApplicationNotifier::class, AppMembershipApplicationNotifier::class);
 
         $this->registerPackageMigrations();
     }

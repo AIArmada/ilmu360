@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Mcp\Tools\Admin;
 
-use App\Filament\Resources\MembershipClaims\MembershipClaimResource;
+use App\Filament\Resources\MembershipApplications\MembershipApplicationResource;
 use App\Models\MembershipApplication;
 use App\Models\User;
 use App\Support\Api\Admin\AdminResourceRegistry;
 use App\Support\Mcp\McpAuthenticatedUserResolver;
-use App\Support\Membership\MembershipClaimPresenter;
+use App\Support\Membership\MembershipApplicationPresenter;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
 use Laravel\Mcp\Request;
@@ -20,11 +20,11 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
 #[IsReadOnly]
 #[IsIdempotent]
-class AdminGetMembershipClaimReviewSchemaTool extends AbstractAdminTool
+class AdminGetMembershipApplicationReviewSchemaTool extends AbstractAdminTool
 {
-    protected string $name = 'admin-get-membership-claim-review-schema';
+    protected string $name = 'admin-get-membership-application-review-schema';
 
-    protected string $description = 'Use this when you need the review schema for a membership claim before submitting an approve or reject decision. Returns available actions, required fields, and conditional rules.';
+    protected string $description = 'Use this when you need the review schema for a membership application before submitting an approve or reject decision. Returns available actions, required fields, and conditional rules.';
 
     public function __construct(
         private AdminResourceRegistry $registry,
@@ -40,12 +40,12 @@ class AdminGetMembershipClaimReviewSchemaTool extends AbstractAdminTool
             ]);
 
             /** @var MembershipApplication $application */
-            $application = $this->registry->resolveRecord(MembershipClaimResource::class, (string) $validated['record_key']);
+            $application = $this->registry->resolveRecord(MembershipApplicationResource::class, (string) $validated['record_key']);
 
             return [
                 'data' => [
                     'schema' => [
-                        'action' => 'review_membership_claim',
+                        'action' => 'review_membership_application',
                         'defaults' => [
                             'action' => 'approve',
                             'granted_role' => null,
@@ -63,7 +63,7 @@ class AdminGetMembershipClaimReviewSchemaTool extends AbstractAdminTool
                                 'name' => 'granted_role',
                                 'type' => 'string',
                                 'required' => false,
-                                'allowed_values' => array_keys(MembershipClaimPresenter::approvalRoleOptions($application)),
+                                'allowed_values' => array_keys(MembershipApplicationPresenter::approvalRoleOptions($application)),
                             ],
                             [
                                 'name' => 'reviewer_note',

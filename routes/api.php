@@ -9,7 +9,7 @@ use App\Http\Controllers\Api\Admin\ContributionRequestReviewController as AdminC
 use App\Http\Controllers\Api\Admin\EventModerationController as AdminEventModerationController;
 use App\Http\Controllers\Api\Admin\EventSearchController;
 use App\Http\Controllers\Api\Admin\ManifestController as AdminManifestController;
-use App\Http\Controllers\Api\Admin\MembershipClaimReviewController as AdminMembershipClaimReviewController;
+use App\Http\Controllers\Api\Admin\MembershipApplicationReviewController as AdminMembershipApplicationReviewController;
 use App\Http\Controllers\Api\Admin\ReportTriageController as AdminReportTriageController;
 use App\Http\Controllers\Api\Admin\ResourceController as AdminResourceController;
 use App\Http\Controllers\Api\AuthController;
@@ -30,7 +30,7 @@ use App\Http\Controllers\Api\Frontend\FollowController;
 use App\Http\Controllers\Api\Frontend\GitHubIssueController;
 use App\Http\Controllers\Api\Frontend\InstitutionWorkspaceController;
 use App\Http\Controllers\Api\Frontend\ManifestController;
-use App\Http\Controllers\Api\Frontend\MembershipClaimController;
+use App\Http\Controllers\Api\Frontend\MembershipApplicationController;
 use App\Http\Controllers\Api\Frontend\MobileTelemetryController;
 use App\Http\Controllers\Api\Frontend\SearchController;
 use App\Http\Controllers\Api\Frontend\ShareAnalyticsController;
@@ -90,9 +90,9 @@ Route::prefix('v1')->group(function () {
             Route::get('/submit-speakers', [CatalogController::class, 'submitSpeakers'])->name('submit-speakers');
             Route::get('/venues', [CatalogController::class, 'venues'])->name('venues');
             Route::get('/spaces', [CatalogController::class, 'spaces'])->name('spaces');
-            Route::get('/membership-claim-subjects/{subjectType}', [CatalogController::class, 'membershipClaimSubjects'])
+            Route::get('/membership-application-subjects/{subjectType}', [CatalogController::class, 'membershipApplicationSubjects'])
                 ->whereIn('subjectType', MemberSubjectType::claimableRouteSegments())
-                ->name('membership-claim-subjects');
+                ->name('membership-application-subjects');
             Route::get('/prayer-institutions', [CatalogController::class, 'prayerInstitutions'])->name('prayer-institutions');
         });
 
@@ -153,8 +153,8 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
             Route::post('/reports/{recordKey}/triage', [AdminReportTriageController::class, 'triage'])->name('reports.triage');
             Route::get('/contribution-requests/{recordKey}/review-schema', [AdminContributionRequestReviewController::class, 'schema'])->name('contribution-requests.review-schema');
             Route::post('/contribution-requests/{recordKey}/review', [AdminContributionRequestReviewController::class, 'review'])->name('contribution-requests.review');
-            Route::get('/membership-claims/{recordKey}/review-schema', [AdminMembershipClaimReviewController::class, 'schema'])->name('membership-claims.review-schema');
-            Route::post('/membership-claims/{recordKey}/review', [AdminMembershipClaimReviewController::class, 'review'])->name('membership-claims.review');
+            Route::get('/membership-applications/{recordKey}/review-schema', [AdminMembershipApplicationReviewController::class, 'schema'])->name('membership-applications.review-schema');
+            Route::post('/membership-applications/{recordKey}/review', [AdminMembershipApplicationReviewController::class, 'review'])->name('membership-applications.review');
             Route::get('/{resourceKey}/{recordKey}/relations/{relation}', [AdminResourceController::class, 'relatedRecords'])->name('resources.related');
             Route::get('/{resourceKey}/{recordKey}', [AdminResourceController::class, 'showRecord'])->name('resources.show');
             Route::put('/{resourceKey}/{recordKey}', [AdminResourceController::class, 'updateRecord'])->name('resources.update');
@@ -176,9 +176,9 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
             Route::get('/account-settings', [ManifestController::class, 'accountSettings'])->name('account-settings');
             Route::get('/advanced-events', [ManifestController::class, 'advancedEvent'])->name('advanced-events');
             Route::get('/institution-workspace', [ManifestController::class, 'institutionWorkspace'])->name('institution-workspace');
-            Route::get('/membership-claims/{subjectType}', [ManifestController::class, 'membershipClaim'])
+            Route::get('/membership-applications/{subjectType}', [ManifestController::class, 'membershipApplication'])
                 ->whereIn('subjectType', MemberSubjectType::claimableRouteSegments())
-                ->name('membership-claims');
+                ->name('membership-applications');
             Route::get('/contributions/{subjectType}/{subject}/suggest', [ContributionController::class, 'suggestContext'])
                 ->whereIn('subjectType', ContributionSubjectType::publicRouteSegments())
                 ->name('contributions.suggest');
@@ -207,11 +207,11 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::post('/contributions/{requestId}/reject', [ContributionController::class, 'reject'])->name('contributions.reject');
         Route::post('/contributions/{requestId}/cancel', [ContributionController::class, 'cancel'])->name('contributions.cancel');
 
-        Route::get('/membership-claims', [MembershipClaimController::class, 'index'])->name('membership-claims.index');
-        Route::post('/membership-claims/{subjectType}/{subject}', [MembershipClaimController::class, 'store'])
+        Route::get('/membership-applications', [MembershipApplicationController::class, 'index'])->name('membership-applications.index');
+        Route::post('/membership-applications/{subjectType}/{subject}', [MembershipApplicationController::class, 'store'])
             ->whereIn('subjectType', MemberSubjectType::claimableRouteSegments())
-            ->name('membership-claims.store');
-        Route::delete('/membership-claims/{claimId}', [MembershipClaimController::class, 'cancel'])->name('membership-claims.cancel');
+            ->name('membership-applications.store');
+        Route::delete('/membership-applications/{applicationId}', [MembershipApplicationController::class, 'cancel'])->name('membership-applications.cancel');
 
         Route::post('/advanced-events', [AdvancedEventController::class, 'store'])->name('advanced-events.store');
 

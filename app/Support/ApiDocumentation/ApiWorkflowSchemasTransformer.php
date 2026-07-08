@@ -61,7 +61,7 @@ final class ApiWorkflowSchemasTransformer implements DocumentTransformer
         $this->putSchema($components, 'AccountSettingsFormResponse', $this->accountSettingsFormResponseSchema($components));
         $this->putSchema($components, 'AdvancedEventFormResponse', $this->advancedEventFormResponseSchema($components));
         $this->putSchema($components, 'InstitutionWorkspaceFormResponse', $this->institutionWorkspaceFormResponseSchema($components));
-        $this->putSchema($components, 'MembershipClaimFormResponse', $this->membershipClaimFormResponseSchema($components));
+        $this->putSchema($components, 'MembershipApplicationFormResponse', $this->membershipClaimFormResponseSchema($components));
         $this->putSchema($components, 'ContributionSuggestContextResponse', $this->contributionSuggestContextResponseSchema($components));
     }
 
@@ -79,7 +79,7 @@ final class ApiWorkflowSchemasTransformer implements DocumentTransformer
         $this->replaceJsonResponseSchema($document, 'forms/account-settings', 'get', 200, $components, 'AccountSettingsFormResponse', 'Account-settings field contract response.');
         $this->replaceJsonResponseSchema($document, 'forms/advanced-events', 'get', 200, $components, 'AdvancedEventFormResponse', 'Advanced-event field contract response.');
         $this->replaceJsonResponseSchema($document, 'forms/institution-workspace', 'get', 200, $components, 'InstitutionWorkspaceFormResponse', 'Institution-workspace field contract response.');
-        $this->replaceJsonResponseSchema($document, 'forms/membership-claims/{subjectType}', 'get', 200, $components, 'MembershipClaimFormResponse', 'Membership-claim field contract response.');
+        $this->replaceJsonResponseSchema($document, 'forms/membership-applications/{subjectType}', 'get', 200, $components, 'MembershipApplicationFormResponse', 'Membership-application field contract response.');
         $this->replaceJsonResponseSchema($document, 'forms/contributions/{subjectType}/{subject}/suggest', 'get', 200, $components, 'ContributionSuggestContextResponse', 'Editable contribution context response.');
         $this->patchUserOperation($document);
     }
@@ -107,7 +107,7 @@ final class ApiWorkflowSchemasTransformer implements DocumentTransformer
             'AccountSettings' => 'Authenticated account-settings read and update endpoints for client applications.',
             'GitHub Issue Reporting' => 'Authenticated feedback endpoints that create GitHub issues in the ilmu360 repository for maintainers to triage.',
             'InstitutionWorkspace' => 'Authenticated institution workspace endpoints for member management and institution-scoped event listings.',
-            'MembershipClaim' => 'Authenticated membership-claim endpoints for listing, creating, and cancelling subject membership claims.',
+            'MembershipApplication' => 'Authenticated membership-application endpoints for listing, creating, and cancelling subject membership claims.',
             'EventGoing' => 'Authenticated event-going endpoints for listing, reading, creating, and deleting the current user\'s going state.',
             'EventCheckIn' => 'Authenticated event self-check-in endpoints for state discovery and check-in recording.',
             'RegistrationExport' => 'Authenticated CSV export endpoints for institution event registrations.',

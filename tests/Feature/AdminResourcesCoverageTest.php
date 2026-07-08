@@ -10,7 +10,7 @@ use App\Filament\Resources\Inspirations\InspirationResource;
 use App\Filament\Resources\Institutions\InstitutionResource;
 use App\Filament\Resources\Institutions\RelationManagers\DonationChannelsRelationManager as InstitutionDonationChannelsRelationManager;
 use App\Filament\Resources\Institutions\RelationManagers\MemberInvitationsRelationManager as InstitutionMemberInvitationsRelationManager;
-use App\Filament\Resources\MembershipClaims\MembershipClaimResource;
+use App\Filament\Resources\MembershipApplications\MembershipApplicationResource;
 use App\Filament\Resources\References\ReferenceResource;
 use App\Filament\Resources\References\RelationManagers\EventsRelationManager as ReferenceEventsRelationManager;
 use App\Filament\Resources\References\RelationManagers\MemberInvitationsRelationManager as ReferenceMemberInvitationsRelationManager;
@@ -45,7 +45,7 @@ it('allows super admin to access all core admin resource index pages', function 
         DonationChannelResource::class,
         TagResource::class,
         ContributionRequestResource::class,
-        MembershipClaimResource::class,
+        MembershipApplicationResource::class,
         ReportResource::class,
         SpaceResource::class,
         AiUsageLogResource::class,

@@ -23,8 +23,8 @@ use App\Livewire\Pages\Dashboard\InstitutionDashboard;
 use App\Livewire\Pages\Dashboard\NotificationsIndex;
 use App\Livewire\Pages\Dashboard\UserDashboard;
 use App\Livewire\Pages\Membership\ShowInvitation as ShowMemberInvitation;
-use App\Livewire\Pages\MembershipClaims\Create as CreateMembershipClaimPage;
-use App\Livewire\Pages\MembershipClaims\Index as MembershipClaimsIndex;
+use App\Livewire\Pages\MembershipApplications\Create as CreateMembershipApplicationPage;
+use App\Livewire\Pages\MembershipApplications\Index as MembershipApplicationsIndex;
 use App\Livewire\Pages\Reports\Create as CreateReportPage;
 use App\Livewire\Pages\SavedSearches\Index;
 use App\Livewire\Pages\Search\Index as SearchIndex;
@@ -111,10 +111,10 @@ Route::middleware('auth')->group(function () {
             ContributionSubjectType::Speaker->publicRouteSegment(),
         ])
         ->name('contributions.submission-success');
-    Route::livewire('/tuntutan-keahlian', MembershipClaimsIndex::class)->name('membership-claims.index');
-    Route::livewire('/tuntut-keahlian/{subjectType}/{subjectId}', CreateMembershipClaimPage::class)
+    Route::livewire('/permohonan-keahlian', MembershipApplicationsIndex::class)->name('membership-applications.index');
+    Route::livewire('/pohon-keahlian/{subjectType}/{subjectId}', CreateMembershipApplicationPage::class)
         ->whereIn('subjectType', MemberSubjectType::claimableRouteSegments())
-        ->name('membership-claims.create');
+        ->name('membership-applications.create');
     Route::livewire('/sumbangan/{subjectType}/{subjectId}/kemas-kini', SuggestContributionUpdate::class)
         ->whereIn('subjectType', ContributionSubjectType::publicRouteSegments())
         ->name('contributions.suggest-update');

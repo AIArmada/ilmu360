@@ -87,7 +87,7 @@ final class ApiRequestBodyExamplesExtension extends OperationExtension
             'email' => 'guest@example.com',
             'phone' => '+60112223344',
         ],
-        'post membership-claims/{subjectType}/{subject}' => [
+        'post membership-applications/{subjectType}/{subject}' => [
             'justification' => 'I am part of the mosque committee and can help manage event records for this institution.',
             'evidence' => ['committee-letter.pdf', 'staff-pass.jpg'],
         ],

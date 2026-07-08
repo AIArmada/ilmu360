@@ -32,7 +32,7 @@ use App\Mcp\Tools\Admin\AdminDocumentationFetchTool;
 use App\Mcp\Tools\Admin\AdminDocumentationSearchTool;
 use App\Mcp\Tools\Admin\AdminGetContributionRequestReviewSchemaTool;
 use App\Mcp\Tools\Admin\AdminGetEventModerationSchemaTool;
-use App\Mcp\Tools\Admin\AdminGetMembershipClaimReviewSchemaTool;
+use App\Mcp\Tools\Admin\AdminGetMembershipApplicationReviewSchemaTool;
 use App\Mcp\Tools\Admin\AdminGetRecordActionsTool;
 use App\Mcp\Tools\Admin\AdminGetRecordTool;
 use App\Mcp\Tools\Admin\AdminGetReportTriageSchemaTool;
@@ -43,7 +43,7 @@ use App\Mcp\Tools\Admin\AdminListRelatedRecordsTool;
 use App\Mcp\Tools\Admin\AdminListResourcesTool;
 use App\Mcp\Tools\Admin\AdminModerateEventTool;
 use App\Mcp\Tools\Admin\AdminReviewContributionRequestTool;
-use App\Mcp\Tools\Admin\AdminReviewMembershipClaimTool;
+use App\Mcp\Tools\Admin\AdminReviewMembershipApplicationTool;
 use App\Mcp\Tools\Admin\AdminSearchEventsTool;
 use App\Mcp\Tools\Admin\AdminTriageReportTool;
 use App\Mcp\Tools\Admin\AdminUpdateEventTool;
@@ -54,7 +54,7 @@ use App\Models\Event;
 use App\Models\EventChangeAnnouncement;
 use App\Models\Inspiration;
 use App\Models\Institution;
-use App\Models\MembershipClaim;
+use App\Models\MembershipApplication;
 use App\Models\ModerationReview;
 use App\Models\PassportUser;
 use App\Models\Reference;
@@ -214,7 +214,7 @@ it('reviews membership claims through the admin MCP workflow tool', function () 
     $admin = adminMcpUser('super_admin');
     $institution = Institution::factory()->create();
     $claimant = User::factory()->create();
-    $claim = MembershipClaim::factory()
+    $claim = MembershipApplication::factory()
         ->forInstitution($institution)
         ->create([
             'applicant_id' => $claimant->getKey(),
@@ -222,7 +222,7 @@ it('reviews membership claims through the admin MCP workflow tool', function () 
         ]);
 
     AdminServer::actingAs($admin)
-        ->tool(AdminReviewMembershipClaimTool::class, [
+        ->tool(AdminReviewMembershipApplicationTool::class, [
             'record_key' => $claim->getKey(),
             'action' => 'approve',
             'granted_role' => 'admin',
@@ -230,7 +230,7 @@ it('reviews membership claims through the admin MCP workflow tool', function () 
         ])
         ->assertOk()
         ->assertStructuredContent(fn ($json) => $json
-            ->where('data.resource.key', 'membership-claims')
+            ->where('data.resource.key', 'membership-applications')
             ->where('data.record.route_key', $claim->getRouteKey())
             ->where('data.record.attributes.status', 'approved')
             ->where('data.record.attributes.granted_role', 'admin')
@@ -1218,7 +1218,7 @@ it('returns explicit admin workflow schemas through dedicated MCP schema tools',
     ]);
     $institution = Institution::factory()->create();
     $claimant = User::factory()->create();
-    $claim = MembershipClaim::factory()
+    $claim = MembershipApplication::factory()
         ->forInstitution($institution)
         ->create([
             'applicant_id' => $claimant->getKey(),
@@ -1262,14 +1262,14 @@ it('returns explicit admin workflow schemas through dedicated MCP schema tools',
             ->etc());
 
     AdminServer::actingAs($admin)
-        ->tool(AdminGetMembershipClaimReviewSchemaTool::class, [
+        ->tool(AdminGetMembershipApplicationReviewSchemaTool::class, [
             'record_key' => $claim->getKey(),
         ])
         ->assertOk()
         ->assertStructuredContent(fn ($json) => $json
-            ->where('data.resource.key', 'membership-claims')
+            ->where('data.resource.key', 'membership-applications')
             ->where('data.record.route_key', $claim->getRouteKey())
-            ->where('data.schema.action', 'review_membership_claim')
+            ->where('data.schema.action', 'review_membership_application')
             ->where('data.schema.defaults.action', 'approve')
             ->etc());
 });

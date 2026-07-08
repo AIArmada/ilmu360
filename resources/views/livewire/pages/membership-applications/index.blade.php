@@ -7,7 +7,7 @@
         'cancelled' => 'bg-slate-200 text-slate-700',
         default => 'bg-amber-100 text-amber-700',
     };
-    $presenter = \App\Support\Membership\MembershipClaimPresenter::class;
+    $presenter = \App\Support\Membership\MembershipApplicationPresenter::class;
 @endphp
 
 @section('title', __('My Membership Claims') . ' - ' . config('app.name'))

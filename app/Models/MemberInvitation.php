@@ -7,8 +7,7 @@ use App\Enums\MemberSubjectType;
 use App\Models\Concerns\AuditsModelChanges;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Carbon;
-use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
+use OwenIt\Auditing\Contracts\Auditable;
 
 /**
  * @property MemberSubjectType|null $subject_type
@@ -16,11 +15,11 @@ use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
  * @property string|null $subject_id
  * @property string|null $email
  * @property string|null $token
- * @property Carbon|null $expires_at
- * @property Carbon|null $accepted_at
- * @property Carbon|null $revoked_at
+ * @property CarbonInterface|null $expires_at
+ * @property CarbonInterface|null $accepted_at
+ * @property CarbonInterface|null $revoked_at
  */
-class MemberInvitation extends PackageMembershipInvitation implements AuditableContract
+class MemberInvitation extends PackageMembershipInvitation implements Auditable
 {
     use AuditsModelChanges;
 
@@ -73,14 +72,6 @@ class MemberInvitation extends PackageMembershipInvitation implements AuditableC
             'role_slug' => parent::getAttribute('role'),
             default => parent::getAttribute($key),
         };
-    }
-
-    /**
-     * @return BelongsTo<User, $this>
-     */
-    public function inviter(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'invited_by');
     }
 
     /**

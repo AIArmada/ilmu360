@@ -2,11 +2,11 @@
 
 use AIArmada\Membership\Enums\ApplicationStatus;
 use App\Enums\MemberSubjectType;
-use App\Filament\Resources\MembershipClaims\MembershipClaimResource;
-use App\Filament\Resources\MembershipClaims\Pages\ListMembershipClaims;
-use App\Filament\Resources\MembershipClaims\Pages\ViewMembershipClaim;
+use App\Filament\Resources\MembershipApplications\MembershipApplicationResource;
+use App\Filament\Resources\MembershipApplications\Pages\ListMembershipApplications;
+use App\Filament\Resources\MembershipApplications\Pages\ViewMembershipApplication;
 use App\Models\Institution;
-use App\Models\MembershipClaim;
+use App\Models\MembershipApplication;
 use App\Models\Speaker;
 use App\Models\User;
 use App\Support\Authz\MemberRoleCatalog;
@@ -19,13 +19,13 @@ beforeEach(function (): void {
     $this->seed(PermissionSeeder::class);
 });
 
-it('allows moderators to approve pending membership claims from the admin index', function () {
+it('allows moderators to approve pending membership applications from the admin index', function () {
     $moderator = User::factory()->create();
     $moderator->assignRole('moderator');
 
     $institution = Institution::factory()->create();
     $claimant = User::factory()->create();
-    $claim = MembershipClaim::factory()
+    $claim = MembershipApplication::factory()
         ->forInstitution($institution)
         ->create([
             'applicant_id' => $claimant->getKey(),
@@ -33,7 +33,7 @@ it('allows moderators to approve pending membership claims from the admin index'
         ]);
 
     Livewire::actingAs($moderator)
-        ->test(ListMembershipClaims::class)
+        ->test(ListMembershipApplications::class)
         ->assertCanSeeTableRecords([$claim])
         ->callTableAction('approve', $claim->getKey(), data: [
             'granted_role' => 'admin',
@@ -48,13 +48,13 @@ it('allows moderators to approve pending membership claims from the admin index'
         ->and(app(MemberRoleCatalog::class)->roleNamesFor($claimant->fresh(), MemberSubjectType::Institution))->toBe(['admin']);
 });
 
-it('allows moderators to approve membership claims as owner from the admin view page', function () {
+it('allows moderators to approve membership applications as owner from the admin view page', function () {
     $moderator = User::factory()->create();
     $moderator->assignRole('moderator');
 
     $speaker = Speaker::factory()->create();
     $claimant = User::factory()->create();
-    $claim = MembershipClaim::factory()
+    $claim = MembershipApplication::factory()
         ->forSpeaker($speaker)
         ->create([
             'applicant_id' => $claimant->getKey(),
@@ -62,7 +62,7 @@ it('allows moderators to approve membership claims as owner from the admin view 
         ]);
 
     Livewire::actingAs($moderator)
-        ->test(ViewMembershipClaim::class, ['record' => $claim->getKey()])
+        ->test(ViewMembershipApplication::class, ['record' => $claim->getKey()])
         ->callAction('approve', [
             'granted_role' => 'owner',
             'reviewer_note' => 'Approved as owner.',
@@ -75,19 +75,19 @@ it('allows moderators to approve membership claims as owner from the admin view 
         ->and(app(MemberRoleCatalog::class)->roleNamesFor($claimant->fresh(), MemberSubjectType::Speaker))->toBe(['owner']);
 });
 
-it('allows moderators to reject pending membership claims from the admin view page', function () {
+it('allows moderators to reject pending membership applications from the admin view page', function () {
     $moderator = User::factory()->create();
     $moderator->assignRole('moderator');
 
     $institution = Institution::factory()->create();
-    $claim = MembershipClaim::factory()
+    $claim = MembershipApplication::factory()
         ->forInstitution($institution)
         ->create([
             'status' => ApplicationStatus::Pending,
         ]);
 
     Livewire::actingAs($moderator)
-        ->test(ViewMembershipClaim::class, ['record' => $claim->getKey()])
+        ->test(ViewMembershipApplication::class, ['record' => $claim->getKey()])
         ->callAction('reject', [
             'reviewer_note' => 'Need stronger evidence.',
         ])
@@ -98,20 +98,20 @@ it('allows moderators to reject pending membership claims from the admin view pa
         ->and($claim->fresh()->reviewer_note)->toBe('Need stronger evidence.');
 });
 
-it('shows membership claim subjects on the admin index and links to the view page', function () {
+it('shows membership application subjects on the admin index and links to the view page', function () {
     $administrator = User::factory()->create();
     $administrator->assignRole('super_admin');
 
     $institution = Institution::factory()->create([
         'name' => 'Institusi Untuk Tuntutan',
     ]);
-    $claim = MembershipClaim::factory()
+    $claim = MembershipApplication::factory()
         ->forInstitution($institution)
         ->create();
 
     $this->actingAs($administrator)
-        ->get(MembershipClaimResource::getUrl('index'))
+        ->get(MembershipApplicationResource::getUrl('index'))
         ->assertSuccessful()
         ->assertSee('Institusi Untuk Tuntutan')
-        ->assertSee(MembershipClaimResource::getUrl('view', ['record' => $claim]), false);
+        ->assertSee(MembershipApplicationResource::getUrl('view', ['record' => $claim]), false);
 });

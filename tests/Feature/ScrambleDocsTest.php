@@ -797,7 +797,7 @@ it('publishes explicit schemas for search manifest and public form contracts', f
         'AccountSettingsFormResponse',
         'AdvancedEventFormResponse',
         'InstitutionWorkspaceFormResponse',
-        'MembershipClaimFormResponse',
+        'MembershipApplicationFormResponse',
         'ContributionSuggestContextResponse',
     ])
         ->and($searchParameters)->toContain('search', 'q')
@@ -812,7 +812,7 @@ it('publishes explicit schemas for search manifest and public form contracts', f
         ->and(data_get($paths, '/forms/account-settings.get.responses.200.content.application/json.schema.$ref'))->toBe('#/components/schemas/AccountSettingsFormResponse')
         ->and(data_get($paths, '/forms/advanced-events.get.responses.200.content.application/json.schema.$ref'))->toBe('#/components/schemas/AdvancedEventFormResponse')
         ->and(data_get($paths, '/forms/institution-workspace.get.responses.200.content.application/json.schema.$ref'))->toBe('#/components/schemas/InstitutionWorkspaceFormResponse')
-        ->and(data_get($paths, '/forms/membership-claims/{subjectType}.get.responses.200.content.application/json.schema.$ref'))->toBe('#/components/schemas/MembershipClaimFormResponse')
+        ->and(data_get($paths, '/forms/membership-applications/{subjectType}.get.responses.200.content.application/json.schema.$ref'))->toBe('#/components/schemas/MembershipApplicationFormResponse')
         ->and(data_get($paths, '/forms/contributions/{subjectType}/{subject}/suggest.get.responses.200.content.application/json.schema.$ref'))->toBe('#/components/schemas/ContributionSuggestContextResponse')
         ->and(data_get($schemas, 'AccountSettingsFormResponse.properties.data.properties.mcp_tokens_endpoint.type'))->toBe('string')
         ->and(data_get($schemas, 'AccountSettingsFormResponse.properties.data.properties.mcp_token_fields.type'))->toBe('array')
@@ -842,7 +842,7 @@ it('adds summaries and descriptions to catalog and authenticated workflow endpoi
         ->and($paths['/github-issues']['post']['description'] ?? null)->toContain('Non-admin users create a plain issue')
         ->and($paths['/institution-workspace']['get']['summary'] ?? null)->toBe('Get institution workspace')
         ->and($paths['/institution-workspace']['get']['description'] ?? null)->toContain('first accessible institution is selected automatically')
-        ->and($paths['/membership-claims/{subjectType}/{subject}']['post']['summary'] ?? null)->toBe('Submit a membership claim')
+        ->and($paths['/membership-applications/{subjectType}/{subject}']['post']['summary'] ?? null)->toBe('Submit a membership application')
         ->and($paths['/reports']['post']['summary'] ?? null)->toBe('Submit a report')
         ->and($paths['/events/{event}/registrations/export']['get']['summary'] ?? null)->toBe('Export registrations as CSV')
         ->and($paths['/institution-workspace/{institutionId}/members/{memberId}']['delete']['summary'] ?? null)->toBe('Remove an institution member')
@@ -889,7 +889,7 @@ it('publishes follow-up request examples for authenticated workflow mutations', 
 
     expect(data_get($paths, '/notification-destinations/push.post.requestBody.content.application/json.example.installation_id'))->toBe('ios-installation-123')
         ->and(data_get($paths, '/notification-destinations/push/{installation}.put.requestBody.content.application/json.example.fcm_token'))->toBe('fcm-token-updated-xyz789')
-        ->and(data_get($paths, '/membership-claims/{subjectType}/{subject}.post.requestBody.content.multipart/form-data.example.justification'))->toContain('mosque committee')
+        ->and(data_get($paths, '/membership-applications/{subjectType}/{subject}.post.requestBody.content.multipart/form-data.example.justification'))->toContain('mosque committee')
         ->and(data_get($paths, '/institution-workspace/{institutionId}/members.post.requestBody.content.application/json.example.email'))->toBe('member@example.com')
         ->and(data_get($paths, '/institution-workspace/{institutionId}/members/{memberId}.put.requestBody.content.application/json.example.role_id'))->toBe('institution_editor')
         ->and(data_get($paths, '/follows/{type}/{subject}.post.requestBody'))->toBeNull()

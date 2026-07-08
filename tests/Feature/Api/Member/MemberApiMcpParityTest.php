@@ -11,14 +11,14 @@ use App\Enums\MemberSubjectType;
 use App\Mcp\Servers\MemberServer;
 use App\Mcp\Tools\Member\MemberApproveContributionRequestTool;
 use App\Mcp\Tools\Member\MemberCancelContributionRequestTool;
-use App\Mcp\Tools\Member\MemberCancelMembershipClaimTool;
+use App\Mcp\Tools\Member\MemberCancelMembershipApplicationTool;
 use App\Mcp\Tools\Member\MemberListContributionRequestsTool;
-use App\Mcp\Tools\Member\MemberListMembershipClaimsTool;
+use App\Mcp\Tools\Member\MemberListMembershipApplicationsTool;
 use App\Mcp\Tools\Member\MemberRejectContributionRequestTool;
-use App\Mcp\Tools\Member\MemberSubmitMembershipClaimTool;
+use App\Mcp\Tools\Member\MemberSubmitMembershipApplicationTool;
 use App\Models\ContributionRequest;
 use App\Models\Institution;
-use App\Models\MembershipClaim;
+use App\Models\MembershipApplication;
 use App\Models\User;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -264,7 +264,7 @@ it('keeps member api and member mcp membership claim listings aligned', function
         'is_active' => true,
     ]);
 
-    MembershipClaim::factory()
+    MembershipApplication::factory()
         ->forInstitution($pendingClaimTarget)
         ->create([
             'applicant_id' => $member->getKey(),
@@ -272,7 +272,7 @@ it('keeps member api and member mcp membership claim listings aligned', function
             'justification' => 'Pending claim justification.',
         ]);
 
-    MembershipClaim::factory()
+    MembershipApplication::factory()
         ->forInstitution($cancelledClaimTarget)
         ->create([
             'applicant_id' => $member->getKey(),
@@ -283,11 +283,11 @@ it('keeps member api and member mcp membership claim listings aligned', function
 
     Sanctum::actingAs($member);
 
-    $apiResponse = $this->getJson(route('api.client.membership-claims.index'))
+    $apiResponse = $this->getJson(route('api.client.membership-applications.index'))
         ->assertOk();
 
     $mcpResponse = MemberServer::actingAs($member)
-        ->tool(MemberListMembershipClaimsTool::class)
+        ->tool(MemberListMembershipApplicationsTool::class)
         ->assertOk();
 
     expect($apiResponse->json('data'))->toEqual(memberMcpStructuredContent($mcpResponse)['data'] ?? []);
@@ -313,7 +313,7 @@ it('keeps member api and member mcp membership claim actions aligned', function 
     ]);
 
     $apiSubmitResponse = $this->post(
-        route('api.client.membership-claims.store', [
+        route('api.client.membership-applications.store', [
             'subjectType' => MemberSubjectType::Institution->publicRouteSegment(),
             'subject' => $apiSubmitTarget->getKey(),
         ]),
@@ -325,7 +325,7 @@ it('keeps member api and member mcp membership claim actions aligned', function 
     )->assertCreated();
 
     $mcpSubmitResponse = $memberServer
-        ->tool(MemberSubmitMembershipClaimTool::class, [
+        ->tool(MemberSubmitMembershipApplicationTool::class, [
             'subject_type' => MemberSubjectType::Institution->value,
             'subject' => $mcpSubmitTarget->getKey(),
             'justification' => 'I help manage this institution.',
@@ -333,10 +333,10 @@ it('keeps member api and member mcp membership claim actions aligned', function 
         ])
         ->assertOk();
 
-    expect(memberParityMembershipClaimSnapshot($apiSubmitResponse->json('data.claim') ?? []))
-        ->toEqual(memberParityMembershipClaimSnapshot(memberMcpStructuredContent($mcpSubmitResponse)['data']['claim'] ?? []))
-        ->and(memberParityMembershipClaimSubjectSnapshot($apiSubmitResponse->json('data.subject') ?? []))
-        ->toEqual(memberParityMembershipClaimSubjectSnapshot(memberMcpStructuredContent($mcpSubmitResponse)['data']['subject'] ?? []))
+    expect(memberParityMembershipApplicationSnapshot($apiSubmitResponse->json('data.claim') ?? []))
+        ->toEqual(memberParityMembershipApplicationSnapshot(memberMcpStructuredContent($mcpSubmitResponse)['data']['claim'] ?? []))
+        ->and(memberParityMembershipApplicationSubjectSnapshot($apiSubmitResponse->json('data.subject') ?? []))
+        ->toEqual(memberParityMembershipApplicationSubjectSnapshot(memberMcpStructuredContent($mcpSubmitResponse)['data']['subject'] ?? []))
         ->and($apiSubmitTarget->fresh()?->status)->toBe('verified')
         ->and($mcpSubmitTarget->fresh()?->status)->toBe('verified');
 
@@ -352,7 +352,7 @@ it('keeps member api and member mcp membership claim actions aligned', function 
         'is_active' => true,
     ]);
 
-    $apiClaim = MembershipClaim::factory()
+    $apiClaim = MembershipApplication::factory()
         ->forInstitution($apiCancelTarget)
         ->create([
             'applicant_id' => $member->getKey(),
@@ -360,7 +360,7 @@ it('keeps member api and member mcp membership claim actions aligned', function 
             'justification' => 'Cancel claim justification.',
         ]);
 
-    $mcpClaim = MembershipClaim::factory()
+    $mcpClaim = MembershipApplication::factory()
         ->forInstitution($mcpCancelTarget)
         ->create([
             'applicant_id' => $member->getKey(),
@@ -368,17 +368,17 @@ it('keeps member api and member mcp membership claim actions aligned', function 
             'justification' => 'Cancel claim justification.',
         ]);
 
-    $apiCancelResponse = $this->deleteJson(route('api.client.membership-claims.cancel', ['claimId' => $apiClaim->getKey()]))
+    $apiCancelResponse = $this->deleteJson(route('api.client.membership-applications.cancel', ['claimId' => $apiClaim->getKey()]))
         ->assertOk();
 
     $mcpCancelResponse = $memberServer
-        ->tool(MemberCancelMembershipClaimTool::class, [
+        ->tool(MemberCancelMembershipApplicationTool::class, [
             'claim_id' => $mcpClaim->getKey(),
         ])
         ->assertOk();
 
-    expect(memberParityMembershipClaimSnapshot($apiCancelResponse->json('data.claim') ?? []))
-        ->toEqual(memberParityMembershipClaimSnapshot(memberMcpStructuredContent($mcpCancelResponse)['data']['claim'] ?? []))
+    expect(memberParityMembershipApplicationSnapshot($apiCancelResponse->json('data.claim') ?? []))
+        ->toEqual(memberParityMembershipApplicationSnapshot(memberMcpStructuredContent($mcpCancelResponse)['data']['claim'] ?? []))
         ->and($apiClaim->fresh()?->status?->value)->toBe('cancelled')
         ->and($mcpClaim->fresh()?->status?->value)->toBe('cancelled');
 });
@@ -439,7 +439,7 @@ function memberParityContributionRequestSnapshot(array $request): array
  * @param  array<string, mixed>  $claim
  * @return array<string, mixed>
  */
-function memberParityMembershipClaimSnapshot(array $claim): array
+function memberParityMembershipApplicationSnapshot(array $claim): array
 {
     return [
         'subject_type' => $claim['subject_type'] ?? null,
@@ -462,7 +462,7 @@ function memberParityMembershipClaimSnapshot(array $claim): array
  * @param  array<string, mixed>  $subject
  * @return array<string, mixed>
  */
-function memberParityMembershipClaimSubjectSnapshot(array $subject): array
+function memberParityMembershipApplicationSubjectSnapshot(array $subject): array
 {
     return [
         'subject_label' => $subject['subject_label'] ?? null,

@@ -25,7 +25,7 @@ use App\Models\Event;
 use App\Models\EventCheckin;
 use App\Models\EventSubmission;
 use App\Models\Institution;
-use App\Models\MembershipClaim;
+use App\Models\MembershipApplication;
 use App\Models\ModerationReview;
 use App\Models\NotificationDelivery;
 use App\Models\NotificationDestination;
@@ -189,7 +189,7 @@ it('restores a deleted user together with key relationships and child records', 
         'proposer_id' => $user->id,
         'reviewer_id' => $user->id,
     ]);
-    $membershipClaim = MembershipClaim::factory()->create([
+    $membershipClaim = MembershipApplication::factory()->create([
         'applicant_id' => $user->id,
         'reviewer_id' => $user->id,
     ]);

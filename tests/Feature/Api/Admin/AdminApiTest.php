@@ -24,7 +24,7 @@ use App\Models\Event;
 use App\Models\EventChangeAnnouncement;
 use App\Models\Inspiration;
 use App\Models\Institution;
-use App\Models\MembershipClaim;
+use App\Models\MembershipApplication;
 use App\Models\ModerationReview;
 use App\Models\Reference;
 use App\Models\Report;
@@ -1777,7 +1777,7 @@ it('exposes membership claim review schema and can approve claims through the ad
     $admin = adminApiUser('super_admin');
     $institution = Institution::factory()->create();
     $claimant = User::factory()->create();
-    $claim = MembershipClaim::factory()
+    $claim = MembershipApplication::factory()
         ->forInstitution($institution)
         ->create([
             'applicant_id' => $claimant->getKey(),
@@ -1786,15 +1786,15 @@ it('exposes membership claim review schema and can approve claims through the ad
 
     Sanctum::actingAs($admin);
 
-    $this->getJson('/api/v1/admin/membership-claims/'.$claim->getRouteKey().'/review-schema')
+    $this->getJson('/api/v1/admin/membership-applications/'.$claim->getRouteKey().'/review-schema')
         ->assertOk()
-        ->assertJsonPath('data.resource.key', 'membership-claims')
+        ->assertJsonPath('data.resource.key', 'membership-applications')
         ->assertJsonPath('data.record.route_key', $claim->getRouteKey())
         ->assertJsonPath('data.schema.action', 'review_membership_claim')
-        ->assertJsonPath('data.schema.endpoint', '/api/v1/admin/membership-claims/'.$claim->getRouteKey().'/review')
+        ->assertJsonPath('data.schema.endpoint', '/api/v1/admin/membership-applications/'.$claim->getRouteKey().'/review')
         ->assertJsonPath('data.schema.conditional_rules.0.field', 'granted_role');
 
-    $this->postJson('/api/v1/admin/membership-claims/'.$claim->getRouteKey().'/review', [
+    $this->postJson('/api/v1/admin/membership-applications/'.$claim->getRouteKey().'/review', [
         'action' => 'approve',
         'granted_role' => 'admin',
         'reviewer_note' => 'Approved through admin API.',

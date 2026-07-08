@@ -22,7 +22,7 @@ use App\Models\Event;
 use App\Models\EventKeyPerson;
 use App\Models\Inspiration;
 use App\Models\Institution;
-use App\Models\MembershipClaim;
+use App\Models\MembershipApplication;
 use App\Models\Reference;
 use App\Models\Series;
 use App\Models\Space;
@@ -132,7 +132,7 @@ it('exposes corrected frontend contract metadata', function () {
         ->and(collect($submitEvent['fields'])->firstWhere('name', 'submitter_email')['required'])->toBeFalse()
         ->and($contributionUpdateFlow['endpoint_template'] ?? null)->toContain('/api/v1/contributions/subjectType/subject/suggest')
         ->and($contributionUpdateFlow['schema_endpoint_template'] ?? null)->toContain('/api/v1/forms/contributions/subjectType/subject/suggest')
-        ->and($membershipClaimFlow['endpoint_template'] ?? null)->toContain('/api/v1/membership-claims/subjectType/subject')
+        ->and($membershipClaimFlow['endpoint_template'] ?? null)->toContain('/api/v1/membership-applications/subjectType/subject')
         ->and($followFlow['state_endpoint_template'] ?? null)->toContain('/api/v1/follows/type/subject')
         ->and($inspirationFlow['endpoint'] ?? null)->toContain('/api/v1/inspirations/random')
         ->and($shareFlow['payload_endpoint'] ?? null)->toContain('/api/v1/share/payload')
@@ -2793,7 +2793,7 @@ it('submits and cancels membership claims through the frontend api', function ()
 
     Sanctum::actingAs($user);
 
-    $storeResponse = $this->post(route('api.client.membership-claims.store', [
+    $storeResponse = $this->post(route('api.client.membership-applications.store', [
         'subjectType' => 'institusi',
         'subject' => $institution->slug,
     ]), [
@@ -2805,9 +2805,9 @@ it('submits and cancels membership claims through the frontend api', function ()
 
     $claimId = $storeResponse->json('data.claim.id');
 
-    expect(MembershipClaim::query()->whereKey($claimId)->exists())->toBeTrue();
+    expect(MembershipApplication::query()->whereKey($claimId)->exists())->toBeTrue();
 
-    $this->deleteJson(route('api.client.membership-claims.cancel', ['claimId' => $claimId]))
+    $this->deleteJson(route('api.client.membership-applications.cancel', ['claimId' => $claimId]))
         ->assertOk()
         ->assertJsonPath('data.claim.status', 'cancelled');
 });

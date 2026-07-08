@@ -15,11 +15,11 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 
 #[IsReadOnly]
 #[IsIdempotent]
-class MemberListMembershipClaimsTool extends AbstractMemberTool
+class MemberListMembershipApplicationsTool extends AbstractMemberTool
 {
-    protected string $name = 'member-list-membership-claims';
+    protected string $name = 'member-list-membership-applications';
 
-    protected string $description = 'Use this when you need to list the authenticated member\'s membership claims. Do not use for admin-level membership claim management.';
+    protected string $description = 'Use this when you need to list the authenticated member\'s membership applications. Do not use for admin-level membership application management.';
 
     public function handle(Request $request): ResponseFactory|Response
     {

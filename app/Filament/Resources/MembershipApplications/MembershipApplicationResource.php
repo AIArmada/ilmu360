@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Filament\Resources\MembershipClaims;
+namespace App\Filament\Resources\MembershipApplications;
 
 use App\Filament\RelationManagers\AuditsRelationManager;
-use App\Filament\Resources\MembershipClaims\Pages\ListMembershipClaims;
-use App\Filament\Resources\MembershipClaims\Pages\ViewMembershipClaim;
-use App\Filament\Resources\MembershipClaims\Schemas\MembershipClaimInfolist;
-use App\Filament\Resources\MembershipClaims\Tables\MembershipClaimsTable;
+use App\Filament\Resources\MembershipApplications\Pages\ListMembershipApplications;
+use App\Filament\Resources\MembershipApplications\Pages\ViewMembershipApplication;
+use App\Filament\Resources\MembershipApplications\Schemas\MembershipApplicationInfolist;
+use App\Filament\Resources\MembershipApplications\Tables\MembershipApplicationsTable;
 use App\Models\MembershipApplication;
 use BackedEnum;
 use Filament\Resources\Resource;
@@ -16,7 +16,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use UnitEnum;
 
-class MembershipClaimResource extends Resource
+class MembershipApplicationResource extends Resource
 {
     protected static ?string $model = MembershipApplication::class;
 
@@ -31,13 +31,13 @@ class MembershipClaimResource extends Resource
     #[\Override]
     public static function infolist(Schema $schema): Schema
     {
-        return MembershipClaimInfolist::configure($schema);
+        return MembershipApplicationInfolist::configure($schema);
     }
 
     #[\Override]
     public static function table(Table $table): Table
     {
-        return MembershipClaimsTable::configure($table);
+        return MembershipApplicationsTable::configure($table);
     }
 
     /**
@@ -64,8 +64,8 @@ class MembershipClaimResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => ListMembershipClaims::route('/'),
-            'view' => ViewMembershipClaim::route('/{record}'),
+            'index' => ListMembershipApplications::route('/'),
+            'view' => ViewMembershipApplication::route('/{record}'),
         ];
     }
 

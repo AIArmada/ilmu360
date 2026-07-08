@@ -15,7 +15,7 @@ use App\Mcp\Resources\Docs\MemberMcpGuideResource;
 use App\Mcp\Servers\MemberServer;
 use App\Mcp\Tools\Member\MemberApproveContributionRequestTool;
 use App\Mcp\Tools\Member\MemberCancelContributionRequestTool;
-use App\Mcp\Tools\Member\MemberCancelMembershipClaimTool;
+use App\Mcp\Tools\Member\MemberCancelMembershipApplicationTool;
 use App\Mcp\Tools\Member\MemberCreateGitHubIssueTool;
 use App\Mcp\Tools\Member\MemberDocumentationFetchTool;
 use App\Mcp\Tools\Member\MemberDocumentationSearchTool;
@@ -24,19 +24,19 @@ use App\Mcp\Tools\Member\MemberGetRecordTool;
 use App\Mcp\Tools\Member\MemberGetResourceMetaTool;
 use App\Mcp\Tools\Member\MemberGetWriteSchemaTool;
 use App\Mcp\Tools\Member\MemberListContributionRequestsTool;
-use App\Mcp\Tools\Member\MemberListMembershipClaimsTool;
+use App\Mcp\Tools\Member\MemberListMembershipApplicationsTool;
 use App\Mcp\Tools\Member\MemberListRecordsTool;
 use App\Mcp\Tools\Member\MemberListRelatedRecordsTool;
 use App\Mcp\Tools\Member\MemberListResourcesTool;
 use App\Mcp\Tools\Member\MemberRejectContributionRequestTool;
 use App\Mcp\Tools\Member\MemberSearchEventsTool;
-use App\Mcp\Tools\Member\MemberSubmitMembershipClaimTool;
+use App\Mcp\Tools\Member\MemberSubmitMembershipApplicationTool;
 use App\Mcp\Tools\Member\MemberUpdateRecordTool;
 use App\Models\ContributionRequest;
 use App\Models\Event;
 use App\Models\EventChangeAnnouncement;
 use App\Models\Institution;
-use App\Models\MembershipClaim;
+use App\Models\MembershipApplication;
 use App\Models\PassportUser;
 use App\Models\Reference;
 use App\Models\Speaker;
@@ -882,7 +882,7 @@ it('lists submits and cancels membership claims through member MCP workflow tool
         'is_active' => true,
     ]);
 
-    $listedClaim = MembershipClaim::factory()
+    $listedClaim = MembershipApplication::factory()
         ->forInstitution($listedInstitution)
         ->create([
             'applicant_id' => $member->getKey(),
@@ -890,14 +890,14 @@ it('lists submits and cancels membership claims through member MCP workflow tool
         ]);
 
     MemberServer::actingAs($member)
-        ->tool(MemberListMembershipClaimsTool::class)
+        ->tool(MemberListMembershipApplicationsTool::class)
         ->assertOk()
         ->assertStructuredContent(fn ($json) => $json
             ->where('data', fn ($claims): bool => collect($claims)->pluck('id')->contains($listedClaim->getKey()))
             ->etc());
 
     MemberServer::actingAs($member)
-        ->tool(MemberSubmitMembershipClaimTool::class, [
+        ->tool(MemberSubmitMembershipApplicationTool::class, [
             'subject_type' => MemberSubjectType::Institution->value,
             'subject' => $claimTarget->getKey(),
             'justification' => 'I help manage this institution.',
@@ -912,7 +912,7 @@ it('lists submits and cancels membership claims through member MCP workflow tool
             ->where('data.claim.can_cancel', true)
             ->etc());
 
-    $claim = MembershipClaim::query()
+    $claim = MembershipApplication::query()
         ->where('applicant_id', $member->getKey())
         ->where('subject_id', $claimTarget->getKey())
         ->latest('created_at')
@@ -921,7 +921,7 @@ it('lists submits and cancels membership claims through member MCP workflow tool
     expect($claim->getMedia('evidence'))->toHaveCount(1);
 
     MemberServer::actingAs($member)
-        ->tool(MemberCancelMembershipClaimTool::class, [
+        ->tool(MemberCancelMembershipApplicationTool::class, [
             'claim_id' => $claim->getKey(),
         ])
         ->assertOk()
@@ -1092,9 +1092,9 @@ it('initializes and lists member MCP tools over the HTTP endpoint for Passport-a
         'member-approve-contribution-request',
         'member-reject-contribution-request',
         'member-cancel-contribution-request',
-        'member-list-membership-claims',
-        'member-submit-membership-claim',
-        'member-cancel-membership-claim',
+        'member-list-membership-applications',
+        'member-submit-membership-application',
+        'member-cancel-membership-application',
         'member-create-github-issue',
         'member-update-record',
     );
@@ -1172,13 +1172,13 @@ it('initializes and lists member MCP tools over the HTTP endpoint for Passport-a
         'openWorldHint' => true,
     ]);
 
-    expect(data_get($tools->get('member-submit-membership-claim'), 'inputSchema.properties.evidence.type'))->toBe('array');
-    expect(data_get($tools->get('member-submit-membership-claim'), 'inputSchema.properties.evidence.items.type'))->toBe('object');
-    expect(data_get($tools->get('member-submit-membership-claim'), 'inputSchema.properties.evidence.items.required'))
+    expect(data_get($tools->get('member-submit-membership-application'), 'inputSchema.properties.evidence.type'))->toBe('array');
+    expect(data_get($tools->get('member-submit-membership-application'), 'inputSchema.properties.evidence.items.type'))->toBe('object');
+    expect(data_get($tools->get('member-submit-membership-application'), 'inputSchema.properties.evidence.items.required'))
         ->toBe(['filename']);
-    expect(data_get($tools->get('member-submit-membership-claim'), 'inputSchema.properties.evidence.items.properties.content_base64.type'))
+    expect(data_get($tools->get('member-submit-membership-application'), 'inputSchema.properties.evidence.items.properties.content_base64.type'))
         ->toBe('string');
-    expect(data_get($tools->get('member-submit-membership-claim'), 'inputSchema.properties.evidence.items.properties.content_url.type'))
+    expect(data_get($tools->get('member-submit-membership-application'), 'inputSchema.properties.evidence.items.properties.content_url.type'))
         ->toBe('string');
 
     $githubIssueCategorySchema = data_get($tools->get('member-create-github-issue'), 'inputSchema.properties.category');
@@ -1290,9 +1290,9 @@ it('initializes and lists member MCP tools over the HTTP endpoint', function () 
         'member-approve-contribution-request',
         'member-reject-contribution-request',
         'member-cancel-contribution-request',
-        'member-list-membership-claims',
-        'member-submit-membership-claim',
-        'member-cancel-membership-claim',
+        'member-list-membership-applications',
+        'member-submit-membership-application',
+        'member-cancel-membership-application',
         'member-create-github-issue',
         'member-update-record',
     );

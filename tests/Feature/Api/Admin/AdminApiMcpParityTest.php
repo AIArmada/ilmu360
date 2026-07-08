@@ -9,19 +9,19 @@ use App\Mcp\Servers\AdminServer;
 use App\Mcp\Tools\Admin\AdminCreateRecordTool;
 use App\Mcp\Tools\Admin\AdminGetContributionRequestReviewSchemaTool;
 use App\Mcp\Tools\Admin\AdminGetEventModerationSchemaTool;
-use App\Mcp\Tools\Admin\AdminGetMembershipClaimReviewSchemaTool;
+use App\Mcp\Tools\Admin\AdminGetMembershipApplicationReviewSchemaTool;
 use App\Mcp\Tools\Admin\AdminGetReportTriageSchemaTool;
 use App\Mcp\Tools\Admin\AdminListRecordsTool;
 use App\Mcp\Tools\Admin\AdminListRelatedRecordsTool;
 use App\Mcp\Tools\Admin\AdminModerateEventTool;
 use App\Mcp\Tools\Admin\AdminReviewContributionRequestTool;
-use App\Mcp\Tools\Admin\AdminReviewMembershipClaimTool;
+use App\Mcp\Tools\Admin\AdminReviewMembershipApplicationTool;
 use App\Mcp\Tools\Admin\AdminTriageReportTool;
 use App\Mcp\Tools\Admin\AdminUpdateRecordTool;
 use App\Models\ContributionRequest;
 use App\Models\Event;
 use App\Models\Institution;
-use App\Models\MembershipClaim;
+use App\Models\MembershipApplication;
 use App\Models\ModerationReview;
 use App\Models\Report;
 use App\Models\Speaker;
@@ -401,14 +401,14 @@ it('keeps admin api and admin mcp membership claim review workflows aligned', fu
     $apiClaimant = User::factory()->create();
     $mcpClaimant = User::factory()->create();
 
-    $apiClaim = MembershipClaim::factory()
+    $apiClaim = MembershipApplication::factory()
         ->forInstitution($apiInstitution)
         ->create([
             'applicant_id' => $apiClaimant->getKey(),
             'status' => 'pending',
         ]);
 
-    $mcpClaim = MembershipClaim::factory()
+    $mcpClaim = MembershipApplication::factory()
         ->forInstitution($mcpInstitution)
         ->create([
             'applicant_id' => $mcpClaimant->getKey(),
@@ -417,11 +417,11 @@ it('keeps admin api and admin mcp membership claim review workflows aligned', fu
 
     Sanctum::actingAs($admin);
 
-    $apiSchemaResponse = $this->getJson('/api/v1/admin/membership-claims/'.$apiClaim->getRouteKey().'/review-schema')
+    $apiSchemaResponse = $this->getJson('/api/v1/admin/membership-applications/'.$apiClaim->getRouteKey().'/review-schema')
         ->assertOk();
 
     $mcpSchemaResponse = AdminServer::actingAs($admin)
-        ->tool(AdminGetMembershipClaimReviewSchemaTool::class, [
+        ->tool(AdminGetMembershipApplicationReviewSchemaTool::class, [
             'record_key' => $apiClaim->getKey(),
         ])
         ->assertOk();
@@ -434,11 +434,11 @@ it('keeps admin api and admin mcp membership claim review workflows aligned', fu
         'reviewer_note' => 'Approved through the parity test.',
     ];
 
-    $apiActionResponse = $this->postJson('/api/v1/admin/membership-claims/'.$apiClaim->getRouteKey().'/review', $payload)
+    $apiActionResponse = $this->postJson('/api/v1/admin/membership-applications/'.$apiClaim->getRouteKey().'/review', $payload)
         ->assertOk();
 
     $mcpActionResponse = AdminServer::actingAs($admin)
-        ->tool(AdminReviewMembershipClaimTool::class, [
+        ->tool(AdminReviewMembershipApplicationTool::class, [
             'record_key' => $mcpClaim->getKey(),
             ...$payload,
         ])

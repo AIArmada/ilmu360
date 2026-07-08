@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-$tablePrefix = 'signal_';
 $propertyAllowlist = [
     'action',
     'assignment_id',
@@ -90,8 +89,9 @@ $propertyAllowlist = [
     'voucher_value',
 ];
 
+$tablePrefix = 'signal_';
+
 return [
-    /* Database */
     'database' => [
         'table_prefix' => $tablePrefix,
         'json_column_type' => env('SIGNALS_JSON_COLUMN_TYPE', env('COMMERCE_JSON_COLUMN_TYPE', 'json')),
@@ -109,34 +109,6 @@ return [
         ],
     ],
 
-    /* Defaults */
-    'defaults' => [
-        'currency' => 'MYR',
-        'timezone' => 'UTC',
-        'property_type' => 'website',
-        'page_view_event_name' => 'page_view',
-        'primary_outcome_event_name' => env('SIGNALS_PRIMARY_OUTCOME_EVENT_NAME', 'conversion.completed'),
-        'starter_funnel' => [
-            [
-                'label' => 'Visited',
-                'event_name' => 'page_view',
-                'event_category' => 'page_view',
-            ],
-            [
-                'label' => 'Explored Further',
-                'event_name' => 'page_view',
-                'event_category' => 'page_view',
-            ],
-            [
-                'label' => 'Completed Outcome',
-                'event_name' => null,
-                'event_category' => null,
-            ],
-        ],
-        'session_duration_seconds' => 1800,
-    ],
-
-    /* Features / Behavior */
     'features' => [
         'owner' => [
             'enabled' => true,
@@ -145,33 +117,77 @@ return [
         ],
         'ua_parsing' => [
             'enabled' => true,
-            'store_raw' => true, // store the raw User-Agent string on signal_sessions
+            'store_raw' => true,
         ],
         'ip_tracking' => [
             'enabled' => true,
-            'anonymize' => false, // true = zero-out last octet (IPv4) / last 80 bits (IPv6)
+            'anonymize' => false,
         ],
         'auth_tracking' => [
-            'enabled' => false, // opt-in: when true, links auth()->user() to SignalIdentity
+            'enabled' => false,
         ],
         'geolocation' => [
-            'enabled' => true,  // allow browser geolocation coordinate capture via /collect/geo
+            'enabled' => true,
             'reverse_geocode' => [
-                'enabled' => false,  // opt-in: reverse-geocode coordinates to address fields
-                'async' => true,     // dispatch ReverseGeocodeSessionJob instead of inline
-                'store_raw_payload' => false, // persist raw provider response in raw_reverse_geocode_payload
+                'enabled' => false,
+                'async' => true,
+                'store_raw_payload' => false,
             ],
         ],
         'monetary' => [
-            'enabled' => false,  // false = hide all monetary/revenue UI (stat cards, columns, goal types, alert metrics, condition fields)
+            'enabled' => false,
         ],
         'privacy' => [
             'property_allowlist' => $propertyAllowlist,
         ],
+        'alerts' => [
+            'evaluate_on_ingest' => [
+                'enabled' => false,
+                'queue' => true,
+            ],
+            'allow_inline_destinations' => false,
+            'default_channels' => ['database'],
+            'destinations' => [
+                'email' => [],
+                'webhook' => [],
+                'slack' => [],
+            ],
+        ],
     ],
 
-    /* Integrations */
     'integrations' => [
+        'browser' => [
+            'enabled' => false,
+            'auto_register_middleware' => true,
+            'middleware_group' => 'web',
+            'auto_inject' => true,
+            'interaction_tracking' => [
+                'enabled' => true,
+                'include_rules_without_selector' => false,
+            ],
+            'identifiers' => [
+                'visitor_cookie_name' => 'sig_vid',
+                'session_cookie_name' => 'sig_sid',
+                'visitor_cookie_ttl_seconds' => 31_536_000,
+                'session_cookie_ttl_seconds' => 1_800,
+                'path' => '/',
+                'domain' => null,
+                'secure' => null,
+                'http_only' => true,
+                'same_site' => 'lax',
+            ],
+            'tracked_property' => [
+                'auto_create' => true,
+                'slug' => 'commerce-browser',
+                'name' => 'Commerce Browser',
+            ],
+            'identify' => [
+                'enabled' => true,
+            ],
+            'geolocation' => [
+                'enabled' => true,
+            ],
+        ],
         'cart' => [
             'enabled' => true,
             'listen_for_item_added' => true,
@@ -181,6 +197,23 @@ return [
             'item_removed_event_name' => 'cart.item.removed',
             'cleared_event_name' => 'cart.cleared',
             'event_category' => 'cart',
+        ],
+        'filament_cart' => [
+            'enabled' => false,
+            'listen_for_snapshot_synced' => true,
+            'listen_for_checkout_started' => true,
+            'listen_for_abandoned' => true,
+            'listen_for_high_value_detected' => true,
+            'snapshot_synced_event_name' => 'cart.snapshot.synced',
+            'checkout_started_event_name' => 'cart.checkout.started',
+            'abandoned_event_name' => 'cart.abandoned',
+            'high_value_detected_event_name' => 'cart.high_value.detected',
+            'event_category' => 'cart',
+            'tracked_property' => [
+                'auto_create' => true,
+                'slug' => 'commerce-cart',
+                'name' => 'Commerce Cart',
+            ],
         ],
         'checkout' => [
             'enabled' => true,
@@ -213,12 +246,13 @@ return [
             'conversion_event_name' => 'affiliate.conversion.recorded',
             'conversion_event_category' => 'conversion',
         ],
-    ],
-
-    /* HTTP */
-    'http' => [
-        'prefix' => 'api/signals',
-        'middleware' => ['api'],
-        'tracker_script' => 'tracker.js',
+        'affiliate_network' => [
+            'enabled' => true,
+            'listen_for_offer_created' => true,
+            'listen_for_offer_updated' => true,
+            'listen_for_application_submitted' => true,
+            'listen_for_application_approved' => true,
+            'listen_for_network_conversion_recorded' => true,
+        ],
     ],
 ];

@@ -3,7 +3,7 @@
 use App\Models\DonationChannel;
 use App\Models\Event;
 use App\Models\Institution;
-use App\Models\MembershipClaim;
+use App\Models\MembershipApplication;
 use App\Models\Reference;
 use App\Models\Report;
 use App\Models\Series;
@@ -411,8 +411,8 @@ it('registers media conversions for Report model', function () {
     expect($media->getMediaConversionNames())->toContain('thumb');
 });
 
-it('registers media conversions for MembershipClaim model', function () {
-    $claim = MembershipClaim::factory()->create();
+it('registers media conversions for MembershipApplication model', function () {
+    $claim = MembershipApplication::factory()->create();
 
     $claim->addMedia(fakeGeneratedImageUpload('claim-evidence.png', 800, 600))
         ->toMediaCollection('evidence');

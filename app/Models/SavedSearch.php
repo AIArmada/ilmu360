@@ -19,13 +19,11 @@ class SavedSearch extends BaseSavedSearch
 
     protected function casts(): array
     {
-        return [
-            'filters' => 'array',
-            'meta' => 'array',
+        return array_merge(parent::casts(), [
             'radius_km' => 'integer',
             'lat' => 'float',
             'lng' => 'float',
-        ];
+        ]);
     }
 
     protected static function booted(): void

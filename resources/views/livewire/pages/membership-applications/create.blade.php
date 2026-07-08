@@ -34,7 +34,7 @@
                         class="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700">
                         {{ __('Submit Claim') }}
                     </button>
-                    <a href="{{ route('membership-claims.index') }}" wire:navigate
+                    <a href="{{ route('membership-applications.index') }}" wire:navigate
                         class="inline-flex items-center justify-center rounded-xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50">
                         {{ __('My Claims') }}
                     </a>

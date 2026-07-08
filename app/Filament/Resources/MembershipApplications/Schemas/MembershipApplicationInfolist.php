@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Filament\Resources\MembershipClaims\Schemas;
+namespace App\Filament\Resources\MembershipApplications\Schemas;
 
 use App\Models\MembershipApplication;
-use App\Support\Membership\MembershipClaimPresenter;
+use App\Support\Membership\MembershipApplicationPresenter;
 use Filament\Infolists\Components\SpatieMediaLibraryImageEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Grid;
@@ -12,40 +12,40 @@ use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Schema;
 
-class MembershipClaimInfolist
+class MembershipApplicationInfolist
 {
     public static function configure(Schema $schema): Schema
     {
         return $schema
             ->columns(1)
             ->components([
-                Tabs::make('MembershipClaimViewTabs')
+                Tabs::make('MembershipApplicationViewTabs')
                     ->columnSpanFull()
                     ->tabs([
                         Tab::make('Overview')
                             ->icon('heroicon-m-identification')
                             ->schema([
-                                Section::make('Claim')
+                                Section::make('Application')
                                     ->schema([
                                         Grid::make(2)
                                             ->schema([
                                                 TextEntry::make('subject_type')
                                                     ->label('Subject')
                                                     ->badge()
-                                                    ->formatStateUsing(fn (mixed $state): string => MembershipClaimPresenter::labelForSubject($state)),
+                                                    ->formatStateUsing(fn (mixed $state): string => MembershipApplicationPresenter::labelForSubject($state)),
                                                 TextEntry::make('status')
                                                     ->label('Status')
                                                     ->badge()
-                                                    ->formatStateUsing(fn (mixed $state): string => MembershipClaimPresenter::labelForStatus($state))
-                                                    ->color(fn (mixed $state): string => MembershipClaimPresenter::statusColor($state)),
+                                                    ->formatStateUsing(fn (mixed $state): string => MembershipApplicationPresenter::labelForStatus($state))
+                                                    ->color(fn (mixed $state): string => MembershipApplicationPresenter::statusColor($state)),
                                                 TextEntry::make('subject_summary')
                                                     ->label('Record')
-                                                    ->state(fn (MembershipApplication $record): string => MembershipClaimPresenter::subjectTitle($record))
-                                                    ->url(fn (MembershipApplication $record): ?string => MembershipClaimPresenter::subjectAdminUrl($record))
+                                                    ->state(fn (MembershipApplication $record): string => MembershipApplicationPresenter::subjectTitle($record))
+                                                    ->url(fn (MembershipApplication $record): ?string => MembershipApplicationPresenter::subjectAdminUrl($record))
                                                     ->openUrlInNewTab(),
                                                 TextEntry::make('granted_role')
                                                     ->label('Granted Role')
-                                                    ->state(fn (MembershipApplication $record): string => MembershipClaimPresenter::roleLabel($record))
+                                                    ->state(fn (MembershipApplication $record): string => MembershipApplicationPresenter::roleLabel($record))
                                                     ->placeholder('-'),
                                                 TextEntry::make('applicant.name')
                                                     ->label('Applicant')
@@ -97,7 +97,7 @@ class MembershipClaimInfolist
                                             ->limitedRemainingText(),
                                         TextEntry::make('evidence_links')
                                             ->label('Files')
-                                            ->state(fn (MembershipApplication $record) => MembershipClaimPresenter::evidenceLinks($record))
+                                            ->state(fn (MembershipApplication $record) => MembershipApplicationPresenter::evidenceLinks($record))
                                             ->html()
                                             ->columnSpanFull(),
                                     ]),

@@ -13,7 +13,7 @@ use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
-class MembershipClaimPresenter
+class MembershipApplicationPresenter
 {
     public static function labelForSubject(MemberSubjectType|string|null $subjectType): string
     {

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Livewire\Pages\MembershipClaims;
+namespace App\Livewire\Pages\MembershipApplications;
 
 use AIArmada\Membership\Actions\CancelMembershipApplicationAction;
 use App\Livewire\Concerns\InteractsWithToasts;
@@ -65,6 +65,6 @@ class Index extends Component
 
     public function render(): View
     {
-        return view('livewire.pages.membership-claims.index');
+        return view('livewire.pages.membership-applications.index');
     }
 }

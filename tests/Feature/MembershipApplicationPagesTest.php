@@ -3,10 +3,10 @@
 use AIArmada\Membership\Enums\ApplicationStatus;
 use App\Enums\MemberSubjectType;
 use App\Livewire\Pages\Contributions\Index as ContributionsIndex;
-use App\Livewire\Pages\MembershipClaims\Create as CreateMembershipClaimPage;
-use App\Livewire\Pages\MembershipClaims\Index as MembershipClaimsIndex;
+use App\Livewire\Pages\MembershipApplications\Create as CreateMembershipApplicationPage;
+use App\Livewire\Pages\MembershipApplications\Index as MembershipApplicationsIndex;
 use App\Models\Institution;
-use App\Models\MembershipClaim;
+use App\Models\MembershipApplication;
 use App\Models\Speaker;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
@@ -18,15 +18,15 @@ beforeEach(function (): void {
     config()->set('media-library.disk_name', 'public');
 });
 
-it('redirects guests to login for membership claim routes', function () {
+it('redirects guests to login for membership application routes', function () {
     $institution = Institution::factory()->create(['status' => 'verified']);
 
-    $this->get(route('membership-claims.create', [
+    $this->get(route('membership-applications.create', [
         'subjectType' => MemberSubjectType::Institution->publicRouteSegment(),
         'subjectId' => $institution->slug,
     ]))->assertRedirect(route('login'));
 
-    $this->get(route('membership-claims.index'))
+    $this->get(route('membership-applications.index'))
         ->assertRedirect(route('login'));
 });
 
@@ -35,7 +35,7 @@ it('lets authenticated users submit an institution claim with evidence', functio
     $institution = Institution::factory()->create(['status' => 'verified']);
 
     Livewire::actingAs($user)
-        ->test(CreateMembershipClaimPage::class, [
+        ->test(CreateMembershipApplicationPage::class, [
             'subjectType' => MemberSubjectType::Institution->publicRouteSegment(),
             'subjectId' => $institution->slug,
         ])
@@ -46,9 +46,9 @@ it('lets authenticated users submit an institution claim with evidence', functio
             ],
         ])
         ->call('submit')
-        ->assertRedirect(route('membership-claims.index'));
+        ->assertRedirect(route('membership-applications.index'));
 
-    $claim = MembershipClaim::query()->where('applicant_id', $user->getKey())->firstOrFail();
+    $claim = MembershipApplication::query()->where('applicant_id', $user->getKey())->firstOrFail();
 
     expect($claim->subject_type)->toBe(MemberSubjectType::Institution)
         ->and($claim->status)->toBe(ApplicationStatus::Pending)
@@ -60,7 +60,7 @@ it('requires justification and evidence on the public claim form', function () {
     $speaker = Speaker::factory()->create(['status' => 'verified', 'is_active' => true]);
 
     Livewire::actingAs($user)
-        ->test(CreateMembershipClaimPage::class, [
+        ->test(CreateMembershipApplicationPage::class, [
             'subjectType' => MemberSubjectType::Speaker->publicRouteSegment(),
             'subjectId' => $speaker->slug,
         ])
@@ -82,7 +82,7 @@ it('renders the public membership claim page in Malay without a side-by-side lay
     app()->setLocale('ms');
     $this->actingAs($user);
 
-    $this->get(route('membership-claims.create', [
+    $this->get(route('membership-applications.create', [
         'subjectType' => MemberSubjectType::Speaker->publicRouteSegment(),
         'subjectId' => $speaker->slug,
     ]))
@@ -108,7 +108,7 @@ it('renders the public membership claim page in Malay without a side-by-side lay
 it('lets claimants cancel pending claims from the history page', function () {
     $user = User::factory()->create();
     $institution = Institution::factory()->create();
-    $claim = MembershipClaim::factory()
+    $claim = MembershipApplication::factory()
         ->forInstitution($institution)
         ->create([
             'applicant_id' => $user->getKey(),
@@ -116,7 +116,7 @@ it('lets claimants cancel pending claims from the history page', function () {
         ]);
 
     Livewire::actingAs($user)
-        ->test(MembershipClaimsIndex::class)
+        ->test(MembershipApplicationsIndex::class)
         ->call('cancel', $claim->getKey())
         ->assertHasNoErrors();
 
@@ -137,7 +137,7 @@ it('starts a membership claim from the contributions page search form', function
             'subject_slug' => $speaker->slug,
         ])
         ->call('startMembershipClaim')
-        ->assertRedirect(route('membership-claims.create', [
+        ->assertRedirect(route('membership-applications.create', [
             'subjectType' => MemberSubjectType::Speaker->publicRouteSegment(),
             'subjectId' => $speaker->slug,
         ]));
@@ -154,11 +154,11 @@ it('does not show membership claim call to action on public institution and spea
         'is_active' => true,
     ]);
 
-    $institutionClaimUrl = route('membership-claims.create', [
+    $institutionClaimUrl = route('membership-applications.create', [
         'subjectType' => MemberSubjectType::Institution->publicRouteSegment(),
         'subjectId' => $institution->slug,
     ]);
-    $speakerClaimUrl = route('membership-claims.create', [
+    $speakerClaimUrl = route('membership-applications.create', [
         'subjectType' => MemberSubjectType::Speaker->publicRouteSegment(),
         'subjectId' => $speaker->slug,
     ]);

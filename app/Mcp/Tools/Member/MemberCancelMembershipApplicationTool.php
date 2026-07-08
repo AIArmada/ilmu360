@@ -20,11 +20,11 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 #[IsIdempotent(false)]
 #[IsDestructive(false)]
 #[IsOpenWorld(false)]
-class MemberCancelMembershipClaimTool extends AbstractMemberTool
+class MemberCancelMembershipApplicationTool extends AbstractMemberTool
 {
-    protected string $name = 'member-cancel-membership-claim';
+    protected string $name = 'member-cancel-membership-application';
 
-    protected string $description = 'Use this when the authenticated Ahli/member needs to cancel a pending membership claim they own. Do not use for cancelling claims owned by other members.';
+    protected string $description = 'Use this when the authenticated Ahli/member needs to cancel a pending membership application they own. Do not use for cancelling applications owned by other members.';
 
     public function __construct(
         private CancelMembershipApplicationAction $cancelMembershipApplicationAction,
@@ -36,11 +36,11 @@ class MemberCancelMembershipClaimTool extends AbstractMemberTool
             $actor = $this->authorizeMember($request);
 
             $validated = $this->validateArguments($request, [
-                'claim_id' => ['required', 'string'],
+                'application_id' => ['required', 'string'],
             ]);
 
             $application = $actor->membershipApplications()
-                ->whereKey((string) $validated['claim_id'])
+                ->whereKey((string) $validated['application_id'])
                 ->first();
 
             abort_unless($application instanceof MembershipApplication, 404);
@@ -65,7 +65,7 @@ class MemberCancelMembershipClaimTool extends AbstractMemberTool
     public function schema(JsonSchema $schema): array
     {
         return [
-            'claim_id' => $schema->string()->required()->min(1),
+            'application_id' => $schema->string()->required()->min(1),
         ];
     }
 }

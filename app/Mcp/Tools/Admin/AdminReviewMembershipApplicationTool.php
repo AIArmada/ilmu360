@@ -7,7 +7,7 @@ namespace App\Mcp\Tools\Admin;
 use AIArmada\Membership\Actions\ApproveMembershipApplicationAction;
 use AIArmada\Membership\Actions\RejectMembershipApplicationAction;
 use AIArmada\Membership\Enums\MemberRole;
-use App\Filament\Resources\MembershipClaims\MembershipClaimResource;
+use App\Filament\Resources\MembershipApplications\MembershipApplicationResource;
 use App\Models\MembershipApplication;
 use App\Models\User;
 use App\Support\Api\Admin\AdminResourceRegistry;
@@ -26,11 +26,11 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 #[IsIdempotent(false)]
 #[IsDestructive(false)]
 #[IsOpenWorld(false)]
-class AdminReviewMembershipClaimTool extends AbstractAdminTool
+class AdminReviewMembershipApplicationTool extends AbstractAdminTool
 {
-    protected string $name = 'admin-review-membership-claim';
+    protected string $name = 'admin-review-membership-application';
 
-    protected string $description = 'Use this when you need to approve or reject a pending membership claim. Fetch the review schema first with admin-get-membership-claim-review-schema. Do not use for reading claim details; use admin-get-record for that.';
+    protected string $description = 'Use this when you need to approve or reject a pending membership application. Fetch the review schema first with admin-get-membership-application-review-schema. Do not use for reading application details; use admin-get-record for that.';
 
     public function __construct(
         private ApproveMembershipApplicationAction $approveAction,
@@ -51,7 +51,7 @@ class AdminReviewMembershipClaimTool extends AbstractAdminTool
             ]);
 
             /** @var MembershipApplication $application */
-            $application = $this->registry->resolveRecord(MembershipClaimResource::class, (string) $validated['record_key']);
+            $application = $this->registry->resolveRecord(MembershipApplicationResource::class, (string) $validated['record_key']);
             $note = filled($validated['reviewer_note'] ?? null) ? (string) $validated['reviewer_note'] : null;
 
             match ((string) $validated['action']) {
@@ -62,7 +62,7 @@ class AdminReviewMembershipClaimTool extends AbstractAdminTool
                     $note,
                 ),
                 'reject' => $this->rejectAction->handle($application, $actor, $note),
-                default => throw new \InvalidArgumentException('Unsupported membership-claim review action.'),
+                default => throw new \InvalidArgumentException('Unsupported membership-application review action.'),
             };
 
             return [

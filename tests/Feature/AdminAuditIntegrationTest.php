@@ -16,7 +16,7 @@ use App\Filament\Resources\ContributionRequests\ContributionRequestResource;
 use App\Filament\Resources\DonationChannels\DonationChannelResource;
 use App\Filament\Resources\Inspirations\InspirationResource;
 use App\Filament\Resources\Institutions\InstitutionResource;
-use App\Filament\Resources\MembershipClaims\MembershipClaimResource;
+use App\Filament\Resources\MembershipApplications\MembershipApplicationResource;
 use App\Filament\Resources\References\ReferenceResource;
 use App\Filament\Resources\Reports\ReportResource;
 use App\Filament\Resources\Series\SeriesResource;
@@ -34,7 +34,7 @@ use App\Models\Inspiration;
 use App\Models\Institution;
 use App\Models\MediaLink;
 use App\Models\MemberInvitation;
-use App\Models\MembershipClaim;
+use App\Models\MembershipApplication;
 use App\Models\ModerationReview;
 use App\Models\Reference;
 use App\Models\Registration;
@@ -74,7 +74,7 @@ it('registers the audits relation manager on audited admin and ahli resources', 
         DonationChannelResource::class,
         TagResource::class,
         ContributionRequestResource::class,
-        MembershipClaimResource::class,
+        MembershipApplicationResource::class,
         ReportResource::class,
         SpaceResource::class,
         AiModelPricingResource::class,
@@ -146,7 +146,7 @@ it('registers morph aliases for audited models', function () {
         Institution::class,
         MediaLink::class,
         MemberInvitation::class,
-        MembershipClaim::class,
+        MembershipApplication::class,
         ModerationReview::class,
         Reference::class,
         Registration::class,

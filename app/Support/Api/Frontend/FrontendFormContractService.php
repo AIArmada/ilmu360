@@ -250,18 +250,18 @@ class FrontendFormContractService
                 ],
                 'membership_claim' => [
                     'method' => 'POST',
-                    'endpoint_template' => route('api.client.membership-claims.store', [
+                    'endpoint_template' => route('api.client.membership-applications.store', [
                         'subjectType' => 'subjectType',
                         'subject' => 'subject',
                     ], false),
-                    'schema_endpoint_template' => route('api.client.forms.membership-claims', [
+                    'schema_endpoint_template' => route('api.client.forms.membership-applications', [
                         'subjectType' => 'subjectType',
                     ], false),
                     'auth_required' => true,
                 ],
-                'membership_claims_index' => [
+                'membership_applications_index' => [
                     'method' => 'GET',
-                    'endpoint' => route('api.client.membership-claims.index'),
+                    'endpoint' => route('api.client.membership-applications.index'),
                     'auth_required' => true,
                 ],
                 'report' => [
@@ -595,7 +595,7 @@ class FrontendFormContractService
         return [
             'flow' => 'membership_claim',
             'method' => 'POST',
-            'endpoint_template' => route('api.client.membership-claims.store', [
+            'endpoint_template' => route('api.client.membership-applications.store', [
                 'subjectType' => $subjectType->publicRouteSegment(),
                 'subject' => 'subject',
             ], false),

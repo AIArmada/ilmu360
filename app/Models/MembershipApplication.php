@@ -5,6 +5,7 @@ namespace App\Models;
 use AIArmada\Membership\Models\MembershipApplication as BaseMembershipApplication;
 use App\Enums\MemberSubjectType;
 use App\Models\Concerns\AuditsModelChanges;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Spatie\Image\Enums\Fit;
 use Spatie\MediaLibrary\HasMedia;
@@ -13,7 +14,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class MembershipApplication extends BaseMembershipApplication implements HasMedia
 {
-    use AuditsModelChanges, InteractsWithMedia;
+    use AuditsModelChanges, HasFactory, InteractsWithMedia;
 
     protected function casts(): array
     {

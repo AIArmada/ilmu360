@@ -173,21 +173,21 @@
     <div class="task-group">
         <div class="task-group-title">Create</div>
         <ul class="tasks">
-            <li><input type="checkbox"><label>Create <span class="file">app/Support/Communications/AppContentRenderer.php</span><br>Implement ContentRenderer contract. renderFromNotification(): extract title/body/actionUrl from notification. render(): template-based rendering via package CommunicationTemplate (delegate to package for templates, handle notification-based fallback).<br></label></li>
-            <li><input type="checkbox"><label>Create <span class="file">app/Support/Communications/AppRecipientSnapshotResolver.php</span><br>Implement RecipientSnapshotResolver contract. resolve(): extract identifier (getKey), displayName, email, phone, locale, timezone from User model.</label></li>
+            <li><input type="checkbox" checked><label>Create <span class="file">app/Support/Communications/AppContentRenderer.php</span><br>Implement ContentRenderer contract. renderFromNotification(): extract title/body/actionUrl from notification. render(): template-based rendering via package CommunicationTemplate (delegate to package for templates, handle notification-based fallback).<br></label></li>
+            <li><input type="checkbox" checked><label>Create <span class="file">app/Support/Communications/AppRecipientSnapshotResolver.php</span><br>Implement RecipientSnapshotResolver contract. resolve(): extract identifier (getKey), displayName, email, phone, locale, timezone from User model.</label></li>
         </ul>
     </div>
     <div class="task-group">
         <div class="task-group-title">Modify</div>
         <ul class="tasks">
-            <li><input type="checkbox"><label>Register bindings in <span class="file">app/Providers/AppServiceProvider.php</span> (~L115)<br>Add: <code>$this->app->bind(ContentRenderer::class, AppContentRenderer::class)</code> and <code>$this->app->bind(RecipientSnapshotResolver::class, AppRecipientSnapshotResolver::class)</code></label></li>
+            <li><input type="checkbox" checked><label>Register bindings in <span class="file">app/Providers/AppServiceProvider.php</span> (~L115)<br>Add: <code>$this->app->bind(ContentRenderer::class, AppContentRenderer::class)</code> and <code>$this->app->bind(RecipientSnapshotResolver::class, AppRecipientSnapshotResolver::class)</code></label></li>
         </ul>
     </div>
     <div class="task-group">
         <div class="task-group-title">Verify</div>
         <ul class="tasks">
-            <li><input type="checkbox"><label>Run <code>tests/Feature/NotificationDeliveryFlowTest.php</code> — confirm new resolvers are called and data populates</label></li>
-            <li><input type="checkbox"><label>Check database: communication_recipients.display_name is no longer null after any notification dispatch</label></li>
+            <li><input type="checkbox" checked><label>Run <code>tests/Feature/NotificationDeliveryFlowTest.php</code> — confirm new resolvers are called and data populates</label></li>
+            <li><input type="checkbox" checked><label>Check database: communication_recipients.display_name is no longer null after any notification dispatch</label></li>
         </ul>
     </div>
 </div>
@@ -578,7 +578,7 @@
 <div class="section" id="wu13">
     <div class="section-header">
         <h2><span class="badge badge-config">WU13</span> Config — Strip to Package Defaults</h2>
-        <span class="badge badge-pending">Pending</span>
+        <span class="badge badge-done">Done</span>
     </div>
     <p class="deps"><strong>Domain:</strong> G004 &nbsp;|&nbsp; <strong>No dependencies</strong> &nbsp;|&nbsp; <strong>Can parallel with:</strong> WU1, WU2, WU14</p>
     <p>1,379 lines across 18 config files. Most are env-var wrappers matching package defaults. Strip down to only app-specific overrides.</p>
@@ -608,7 +608,7 @@
 <div class="section" id="wu14">
     <div class="section-header">
         <h2><span class="badge badge-member">WU14</span> Membership — Rename MembershipClaim → MembershipApplication</h2>
-        <span class="badge badge-pending">Pending</span>
+        <span class="badge badge-done">Done</span>
     </div>
     <p class="deps"><strong>Domain:</strong> G006 &nbsp;|&nbsp; <strong>No dependencies</strong> &nbsp;|&nbsp; <strong>Can parallel with:</strong> WU1, WU2, WU13</p>
     <p>38 files still use "MembershipClaim" naming. 12 test files import the deleted model (broken). Rename everything to match the package-native MembershipApplication naming.</p>
@@ -815,21 +815,21 @@
     <p class="deps">Claim a WU by adding your name and setting status. Never work on two WUs that touch the same files. Check the "Can Parallel" row above.</p>
     <table>
         <tr><th>WU</th><th>Domain</th><th>Files</th><th>Status</th><th>Claimed By</th><th>Done?</th></tr>
-        <tr><td>WU1</td><td>Communications Resolvers</td><td>3</td><td><span class="badge badge-pending">Pending</span></td><td>—</td><td>☐</td></tr>
+        <tr><td>WU1</td><td>Communications Resolvers</td><td>3</td><td><span class="badge badge-done">Done</span></td><td>—</td><td>☑</td></tr>
         <tr><td>WU2</td><td>Geography — Admin Area Naming</td><td>~10</td><td><span class="badge badge-pending">Pending</span></td><td>—</td><td>☐</td></tr>
-        <tr><td>WU3</td><td>Model: SavedSearch</td><td>~18</td><td><span class="badge badge-pending">Pending</span></td><td>—</td><td>☐</td></tr>
-        <tr><td>WU4</td><td>Model: EventCheckin</td><td>~16</td><td><span class="badge badge-pending">Pending</span></td><td>—</td><td>☐</td></tr>
-        <tr><td>WU5</td><td>Model: EventKeyPerson</td><td>~16</td><td><span class="badge badge-pending">Pending</span></td><td>—</td><td>☐</td></tr>
-        <tr><td>WU6</td><td>Model: MemberInvitation</td><td>~11</td><td><span class="badge badge-pending">Pending</span></td><td>—</td><td>☐</td></tr>
-        <tr><td>WU7</td><td>Model: MembershipApplication</td><td>~2</td><td><span class="badge badge-pending">Pending</span></td><td>—</td><td>☐</td></tr>
-        <tr><td>WU8</td><td>Model: ModerationReview</td><td>~2</td><td><span class="badge badge-pending">Pending</span></td><td>—</td><td>☐</td></tr>
-        <tr><td>WU9</td><td>Model: EventSubmission</td><td>~2</td><td><span class="badge badge-pending">Pending</span></td><td>—</td><td>☐</td></tr>
-        <tr><td>WU10</td><td>Model: Space</td><td>~26</td><td><span class="badge badge-pending">Pending</span></td><td>—</td><td>☐</td></tr>
+        <tr><td>WU3</td><td>Model: SavedSearch</td><td>~2</td><td><span class="badge badge-done">Done</span></td><td>—</td><td>☑</td></tr>
+        <tr><td>WU4</td><td>Model: EventCheckin</td><td>~2</td><td><span class="badge badge-done">Done</span></td><td>—</td><td>☑</td></tr>
+        <tr><td>WU5</td><td>Model: EventKeyPerson</td><td>~2</td><td><span class="badge badge-done">Done</span></td><td>—</td><td>☑</td></tr>
+        <tr><td>WU6</td><td>Model: MemberInvitation</td><td>~2</td><td><span class="badge badge-done">Done</span></td><td>—</td><td>☑</td></tr>
+        <tr><td>WU7</td><td>Model: MembershipApplication</td><td>~2</td><td><span class="badge badge-done">Done</span></td><td>—</td><td>☑</td></tr>
+        <tr><td>WU8</td><td>Model: ModerationReview</td><td>~2</td><td><span class="badge badge-done">Done</span></td><td>—</td><td>☑</td></tr>
+        <tr><td>WU9</td><td>Model: EventSubmission</td><td>~2</td><td><span class="badge badge-done">Done</span></td><td>—</td><td>☑</td></tr>
+        <tr><td>WU10</td><td>Model: Space</td><td>~2</td><td><span class="badge badge-done">Done</span></td><td>—</td><td>☑</td></tr>
         <tr><td>WU11</td><td>Communications Pipeline</td><td>~8</td><td><span class="badge badge-pending">Pending</span></td><td>—</td><td>☐</td></tr>
         <tr><td>WU12A</td><td>Communications Runtime Cutover</td><td>~8</td><td><span class="badge badge-pending">Pending</span></td><td>—</td><td>☐</td></tr>
         <tr><td>WU12B</td><td>Communications Storage Retirement</td><td>~10</td><td><span class="badge badge-pending">Pending</span></td><td>—</td><td>☐</td></tr>
-        <tr><td>WU13</td><td>Config Pruning</td><td>~18</td><td><span class="badge badge-pending">Pending</span></td><td>—</td><td>☐</td></tr>
-        <tr><td>WU14</td><td>Membership Naming</td><td>~40</td><td><span class="badge badge-pending">Pending</span></td><td>—</td><td>☐</td></tr>
+        <tr><td>WU13</td><td>Config Pruning</td><td>~18</td><td><span class="badge badge-done">Done</span></td><td>—</td><td>☑</td></tr>
+        <tr><td>WU14</td><td>Membership Naming</td><td>~40</td><td><span class="badge badge-done">Done</span></td><td>—</td><td>☑</td></tr>
         <tr><td>WU15</td><td>Events Package-First</td><td>~20</td><td><span class="badge badge-pending">Pending</span></td><td>—</td><td>☐</td></tr>
         <tr><td>WU16</td><td>Activate Seating/Ticketing/Inventory</td><td>~8</td><td><span class="badge badge-pending">Pending</span></td><td>—</td><td>☐</td></tr>
         <tr><td>WU17</td><td>Paid Event Commerce (Optional)</td><td>~15</td><td><span class="badge badge-pending">Pending</span></td><td>—</td><td>☐</td></tr>

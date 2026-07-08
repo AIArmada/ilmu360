@@ -1,15 +1,15 @@
 <?php
 
-namespace App\Filament\Resources\MembershipClaims\Pages;
+namespace App\Filament\Resources\MembershipApplications\Pages;
 
 use AIArmada\Membership\Actions\ApproveMembershipApplicationAction;
 use AIArmada\Membership\Actions\RejectMembershipApplicationAction;
 use AIArmada\Membership\Enums\ApplicationStatus;
 use AIArmada\Membership\Enums\MemberRole;
-use App\Filament\Resources\MembershipClaims\MembershipClaimResource;
+use App\Filament\Resources\MembershipApplications\MembershipApplicationResource;
 use App\Models\MembershipApplication;
 use App\Models\User;
-use App\Support\Membership\MembershipClaimPresenter;
+use App\Support\Membership\MembershipApplicationPresenter;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -18,9 +18,9 @@ use Filament\Resources\Pages\ViewRecord;
 use Filament\Support\Enums\Width;
 use Filament\Support\Icons\Heroicon;
 
-class ViewMembershipClaim extends ViewRecord
+class ViewMembershipApplication extends ViewRecord
 {
-    protected static string $resource = MembershipClaimResource::class;
+    protected static string $resource = MembershipApplicationResource::class;
 
     protected Width|string|null $maxContentWidth = Width::Full;
 
@@ -33,9 +33,9 @@ class ViewMembershipClaim extends ViewRecord
             Action::make('open_subject')
                 ->label('Open Record')
                 ->icon(Heroicon::OutlinedArrowTopRightOnSquare)
-                ->url(fn (): ?string => MembershipClaimPresenter::subjectAdminUrl($this->claimRecord()))
+                ->url(fn (): ?string => MembershipApplicationPresenter::subjectAdminUrl($this->applicationRecord()))
                 ->openUrlInNewTab()
-                ->visible(fn (): bool => filled(MembershipClaimPresenter::subjectAdminUrl($this->claimRecord()))),
+                ->visible(fn (): bool => filled(MembershipApplicationPresenter::subjectAdminUrl($this->applicationRecord()))),
         ];
     }
 
@@ -46,12 +46,12 @@ class ViewMembershipClaim extends ViewRecord
             ->icon(Heroicon::OutlinedCheckCircle)
             ->color('success')
             ->requiresConfirmation()
-            ->modalHeading('Approve Membership Claim')
-            ->modalDescription('Approve this claim and choose the role to grant.')
+            ->modalHeading('Approve Membership Application')
+            ->modalDescription('Approve this application and choose the role to grant.')
             ->schema([
                 Select::make('granted_role')
                     ->label('Granted Role')
-                    ->options(MembershipClaimPresenter::approvalRoleOptions($this->claimRecord()))
+                    ->options(MembershipApplicationPresenter::approvalRoleOptions($this->applicationRecord()))
                     ->required(),
                 Textarea::make('reviewer_note')
                     ->label('Reviewer Note')
@@ -63,20 +63,20 @@ class ViewMembershipClaim extends ViewRecord
                 abort_unless($user instanceof User, 403);
 
                 $approveMembershipApplicationAction->handle(
-                    $this->claimRecord(),
+                    $this->applicationRecord(),
                     $user,
                     MemberRole::tryFrom((string) $data['granted_role']) ?? MemberRole::Editor,
                     filled($data['reviewer_note'] ?? null) ? (string) $data['reviewer_note'] : null,
                 );
 
                 Notification::make()
-                    ->title('Membership claim approved')
+                    ->title('Membership application approved')
                     ->success()
                     ->send();
 
-                $this->redirect(MembershipClaimResource::getUrl('view', ['record' => $this->claimRecord()]), navigate: true);
+                $this->redirect(MembershipApplicationResource::getUrl('view', ['record' => $this->applicationRecord()]), navigate: true);
             })
-            ->visible(fn (): bool => $this->claimRecord()->status === ApplicationStatus::Pending);
+            ->visible(fn (): bool => $this->applicationRecord()->status === ApplicationStatus::Pending);
     }
 
     protected function getRejectAction(): Action
@@ -85,8 +85,8 @@ class ViewMembershipClaim extends ViewRecord
             ->label('Reject')
             ->icon(Heroicon::OutlinedXCircle)
             ->color('danger')
-            ->modalHeading('Reject Membership Claim')
-            ->modalDescription('Reject this claim and optionally leave guidance for the claimant.')
+            ->modalHeading('Reject Membership Application')
+            ->modalDescription('Reject this application and optionally leave guidance for the applicant.')
             ->schema([
                 Textarea::make('reviewer_note')
                     ->label('Reviewer Note')
@@ -98,22 +98,22 @@ class ViewMembershipClaim extends ViewRecord
                 abort_unless($user instanceof User, 403);
 
                 $rejectMembershipApplicationAction->handle(
-                    $this->claimRecord(),
+                    $this->applicationRecord(),
                     $user,
                     filled($data['reviewer_note'] ?? null) ? (string) $data['reviewer_note'] : null,
                 );
 
                 Notification::make()
-                    ->title('Membership claim rejected')
+                    ->title('Membership application rejected')
                     ->danger()
                     ->send();
 
-                $this->redirect(MembershipClaimResource::getUrl('view', ['record' => $this->claimRecord()]), navigate: true);
+                $this->redirect(MembershipApplicationResource::getUrl('view', ['record' => $this->applicationRecord()]), navigate: true);
             })
-            ->visible(fn (): bool => $this->claimRecord()->status === ApplicationStatus::Pending);
+            ->visible(fn (): bool => $this->applicationRecord()->status === ApplicationStatus::Pending);
     }
 
-    private function claimRecord(): MembershipApplication
+    private function applicationRecord(): MembershipApplication
     {
         /** @var MembershipApplication $record */
         $record = $this->getRecord();

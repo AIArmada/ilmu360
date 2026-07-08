@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Livewire\Pages\MembershipClaims;
+namespace App\Livewire\Pages\MembershipApplications;
 
 use AIArmada\Membership\Actions\ApplyForMembershipAction;
 use AIArmada\Membership\Models\MembershipApplication;
@@ -62,7 +62,7 @@ class Create extends Component implements HasForms
         $this->context = $this->resolveSubjectPresentation($this->subject);
 
         if ($this->shouldRedirectToCanonicalSubjectUrl($resolvedSubjectType, $subjectId)) {
-            $this->redirectRoute('membership-claims.create', [
+            $this->redirectRoute('membership-applications.create', [
                 'subjectType' => $resolvedSubjectType->publicRouteSegment(),
                 'subjectId' => $this->canonicalSubjectId(),
             ], navigate: true);
@@ -138,7 +138,7 @@ class Create extends Component implements HasForms
 
         $this->successToast(__('Membership claim submitted for review.'));
 
-        $this->redirect(route('membership-claims.index'), navigate: true);
+        $this->redirect(route('membership-applications.index'), navigate: true);
     }
 
     public function rendering(object $view): void
@@ -150,7 +150,7 @@ class Create extends Component implements HasForms
 
     protected function claimForm(): Schema
     {
-        return $this->getForm('form') ?? throw new RuntimeException('Membership claim form is not available.');
+        return $this->getForm('form') ?? throw new RuntimeException('Membership application form is not available.');
     }
 
     private function canonicalSubjectId(): string

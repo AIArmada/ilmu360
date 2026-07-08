@@ -7,7 +7,7 @@ namespace App\Support\Api\Admin;
 use AIArmada\FilamentEvents\Resources\EventResource;
 use AIArmada\Membership\Enums\ApplicationStatus;
 use App\Filament\Resources\ContributionRequests\ContributionRequestResource;
-use App\Filament\Resources\MembershipClaims\MembershipClaimResource;
+use App\Filament\Resources\MembershipApplications\MembershipApplicationResource;
 use App\Filament\Resources\Reports\ReportResource;
 use App\Models\ContributionRequest;
 use App\Models\Event;
@@ -175,7 +175,7 @@ final readonly class AdminRecordActionService
             $actions = [...$actions, ...$this->contributionRequestWorkflowActions($record, $recordKey, $actor)];
         }
 
-        if ($resourceClass === MembershipClaimResource::class && $record instanceof MembershipApplication) {
+        if ($resourceClass === MembershipApplicationResource::class && $record instanceof MembershipApplication) {
             $actions = [...$actions, ...$this->membershipClaimWorkflowActions($record, $recordKey, $actor)];
         }
 

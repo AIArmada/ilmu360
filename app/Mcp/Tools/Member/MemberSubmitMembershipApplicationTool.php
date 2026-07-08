@@ -23,11 +23,11 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 #[IsIdempotent(false)]
 #[IsDestructive(false)]
 #[IsOpenWorld(false)]
-class MemberSubmitMembershipClaimTool extends AbstractMemberWriteTool
+class MemberSubmitMembershipApplicationTool extends AbstractMemberWriteTool
 {
-    protected string $name = 'member-submit-membership-claim';
+    protected string $name = 'member-submit-membership-application';
 
-    protected string $description = 'Use this when the authenticated Ahli/member needs to submit a new membership claim with justification and supporting evidence uploads.';
+    protected string $description = 'Use this when the authenticated Ahli/member needs to submit a new membership application with justification and supporting evidence uploads.';
 
     public function __construct(
         private ApplyForMembershipAction $applyForMembershipAction,

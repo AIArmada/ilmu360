@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers\Filament;
 
+use AIArmada\FilamentEngagement\FilamentEngagementPlugin;
 use AIArmada\FilamentEvents\FilamentEventsPlugin;
 use App\Filament\Pages\AhliDashboard;
 use App\Providers\Filament\Concerns\ResolvesPanelDomain;
@@ -49,6 +50,7 @@ class AhliPanelProvider extends PanelProvider
             ->discoverWidgets(in: app_path('Filament/Ahli/Widgets'), for: 'App\Filament\Ahli\Widgets')
             ->plugins([
                 FilamentEventsPlugin::make(),
+                FilamentEngagementPlugin::make(),
             ])
             ->pages([
                 AhliDashboard::class,

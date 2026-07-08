@@ -231,7 +231,7 @@ class Index extends Component implements HasForms
         $cancelContributionRequestAction->handle($request, $user);
     }
 
-    public function startMembershipClaim(): void
+    public function startMembershipApplication(): void
     {
         $state = $this->claimEntryForm()->getState();
         $subjectType = MemberSubjectType::tryFrom((string) ($state['subject_type'] ?? ''));
@@ -243,7 +243,7 @@ class Index extends Component implements HasForms
             return;
         }
 
-        $this->redirectRoute('membership-claims.create', [
+        $this->redirectRoute('membership-applications.create', [
             'subjectType' => $subjectType->publicRouteSegment(),
             'subjectId' => $subjectSlug,
         ], navigate: true);
@@ -273,7 +273,7 @@ class Index extends Component implements HasForms
                 ->orderBy('name')
                 ->limit(50)
                 ->get(['id', 'slug', 'name', 'nickname'])
-                ->mapWithKeys(fn (Institution $institution): array => [$institution->slug => $this->institutionMembershipClaimLabel($institution)])
+                ->mapWithKeys(fn (Institution $institution): array => [$institution->slug => $this->institutionMembershipApplicationLabel($institution)])
                 ->all(),
             MemberSubjectType::Speaker => Speaker::query()
                 ->where('status', 'verified')
@@ -295,7 +295,7 @@ class Index extends Component implements HasForms
         }
 
         return match (MemberSubjectType::tryFrom((string) $subjectType)) {
-            MemberSubjectType::Institution => $this->resolveInstitutionMembershipClaimOptionLabel($subjectSlug),
+            MemberSubjectType::Institution => $this->resolveInstitutionMembershipApplicationOptionLabel($subjectSlug),
             MemberSubjectType::Speaker => Speaker::query()
                 ->where('status', 'verified')
                 ->where('is_active', true)
@@ -356,7 +356,7 @@ class Index extends Component implements HasForms
         };
     }
 
-    private function institutionMembershipClaimLabel(Institution $institution): string
+    private function institutionMembershipApplicationLabel(Institution $institution): string
     {
         $location = AddressHierarchyFormatter::format($institution->addressModel);
 
@@ -367,7 +367,7 @@ class Index extends Component implements HasForms
         return "{$institution->display_name} - {$location}";
     }
 
-    private function resolveInstitutionMembershipClaimOptionLabel(string $subjectSlug): ?string
+    private function resolveInstitutionMembershipApplicationOptionLabel(string $subjectSlug): ?string
     {
         $institution = Institution::query()
             ->where('status', 'verified')
@@ -380,7 +380,7 @@ class Index extends Component implements HasForms
             return null;
         }
 
-        return $this->institutionMembershipClaimLabel($institution);
+        return $this->institutionMembershipApplicationLabel($institution);
     }
 
     private function normalizeActiveTab(string $value): string
