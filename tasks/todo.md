@@ -64,3 +64,24 @@ Current phase: Phase 8 - App Rebuild And Cutover — `In Progress`
 - Graph-backed inspection of the advanced builder path found no remaining `organizer_type` / `organizer_id` dependencies; the flow now runs on canonical `primary_organizer_id` state.
 - Focused organizer verification passes with `EventOrganizerInvolvementSyncTest` and `AdvancedEventCreationTest`.
 - Full `vendor/bin/phpstan analyse --ansi` now passes, so the organizer hard-cutover packet no longer carries an open verification gap.
+
+## Current Packet - 360 Degree AIArmada Adoption Audit
+
+- [x] Inventory the current runtime surface with route ownership, endpoint owners, and package-provided entrypoints
+- [x] Inventory every installed `aiarmada/*` package from `/Users/Saiffil/Herd/commerce/packages/*` with native capability notes
+- [x] Measure actual app-level adoption across controllers, actions, services, models, Livewire, Filament, API, MCP, and support layers
+- [x] Classify gaps as `Adopted`, `Partial`, `App-Owned By Design`, `Pending Adoption`, or `Missing Native Package Fit`
+- [x] Produce a rich HTML audit report that includes a machine-readable tracking payload for future agents
+- [x] Validate the report against `php artisan route:list --json`, Composer package state, and the existing adoption program docs
+
+## Review - 360 Degree AIArmada Adoption Audit
+
+- Added `scripts/generate_aiarmada_adoption_audit.php` to generate a repeatable package-adoption audit from live Composer, route, Graphify, and code-reference data.
+- Generated `docs/aiarmada-adoption/aiarmada-360-audit.html`, including a rich HTML report plus embedded JSON payload for future agent updates.
+- Verified the report against live route ownership (`php artisan route:list --json`), installed `aiarmada/*` package state (`composer show 'aiarmada/*' --format=json`), Graphify artifacts, and the existing `docs/aiarmada-adoption/*` program documents.
+- Highest-signal gaps captured in the report:
+  - communications remains the biggest mixed-ownership domain
+  - addressing still leaks legacy geography vocabulary through API contracts
+  - 15 app models still wrap package models
+  - 18 package config files remain as upgrade-drift surface
+  - inventory/seating/ticketing are runtime-live but thin in product code

@@ -20,6 +20,7 @@
 /storage/media-library/temp
 /storage/phpstan
 /storage/pail
+/graphify-out
 /vendor
 /caddy
 frankenphp
