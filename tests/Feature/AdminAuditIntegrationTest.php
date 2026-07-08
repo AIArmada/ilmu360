@@ -3,6 +3,7 @@
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Contacting\Models\ContactMethod;
 use AIArmada\Contacting\Models\SocialProfile;
+use AIArmada\Events\Models\EventAccessPolicy;
 use App\Enums\TagType;
 use App\Filament\Ahli\Resources\Institutions\InstitutionResource as AhliInstitutionResource;
 use App\Filament\Ahli\Resources\References\ReferenceResource as AhliReferenceResource;
@@ -140,7 +141,7 @@ it('registers morph aliases for audited models', function () {
         Event::class,
         EventKeyPerson::class,
         EventSubmission::class,
-        \AIArmada\Events\Models\EventAccessPolicy::class,
+        EventAccessPolicy::class,
         Inspiration::class,
         Institution::class,
         MediaLink::class,

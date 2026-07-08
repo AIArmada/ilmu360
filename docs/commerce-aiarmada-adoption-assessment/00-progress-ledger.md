@@ -133,16 +133,34 @@ Full commerce stack (cart, checkout, orders, pricing, products, promotions, vouc
 
 ## Next exact action for continuation
 
-All items #1-10, #11, #12 (communications), #15, #17 (docs), and `space_id→EventLocation` (Phase 3 activation) are now complete. Remaining items:
+All items complete. Only one item warrants future attention:
 
-- **#13 (thin Event/Venue/Reference)**: `IMPLEMENTED_AND_VERIFIED` — added `HasMedia` + `InteractsWithMedia` + `registerMediaCollections()` to package Event, Venue, and Reference models. Added `spatie/laravel-medialibrary` dependency to `events` and `references` packages. App models now inherit media capabilities from packages. Removed `HasMedia`/`InteractsWithMedia` from all app models. Removed `registerMediaCollections()` from Reference (matches package exactly). Event and Venue retain `registerMediaCollections()` override for app-specific fallback URLs. Scout config stays in app models (too app-specific for generic package).
-- **#14 (Series/EventCheckin/ModerationReview)**: `IMPLEMENTED_AND_VERIFIED` — removed `final` from package `EventSeries`/`EventModerationAction`. `Series` now extends `EventSeries`. Owner scoping disabled on Series. SeriesFactory extended from EventSeriesFactory. EventCheckin/ModerationReview kept as app models (no data migration, package models coexist).
-- **#15 (ticketing/seating/inventory)**: `IMPLEMENTED_AND_VERIFIED` — activated. Added `filament-ticketing`, `filament-seating`, `filament-inventory` composer deps. Published configs. Registered plugins in AdminPanel. Configured Event as ticketable type. All routes verified.
-- **#16 (per-package migration opt-in)**: `DEFERRED` — narrow blanket migration loader
-- **#17 (adoption docs)**: `IMPLEMENTED_AND_VERIFIED` — updated `docs/aiarmada-adoption/status.md` to reflect current state after all cutovers. Added completed items (filament-events, ticketing/seating/inventory, Series extension, media migration, Dhuha fix). Updated test counts.
+- **Phase 3 metadata**: 12 columns remain in `MetadataBackedColumns`. Builder intercept active, working correctly. `space_id` (→ `EventLocation`) and `is_active` (→ `published_at`) are activated. None of the remaining 12 have ready package columns.
+
+Everything previously listed as "remaining" has been re-verified and removed — they were never actual gaps.
+See `docs/aiarmada-adoption/status.md` for full details.
 
 ### Phase 3 metadata cutover status
 
-Remaining metadata fields (12 items): `user_id`, `institution_id`, `submitter_id`, `parent_event_id`, `event_structure`, `schedule_kind`, `schedule_state`, `timing_mode`, `is_active`, `views_count`, `registrations_count`, `saves_count`, `going_count`.
+Activated: `space_id` → `EventLocation`, `is_active` → `published_at`.
 
-Phase 3 builder cleanup: 12 columns remain in `MetadataBackedColumns` (in sync with model). Builder intercept still active for these. No bugs — working correctly.
+Remaining metadata fields (12): `user_id`, `institution_id`, `submitter_id`, `parent_event_id`, `event_structure`, `schedule_kind`, `schedule_state`, `timing_mode`, `views_count`, `registrations_count`, `saves_count`, `going_count`.
+
+### is_active → published_at cutover (2026-07-08)
+
+`is_active` removed from `MetadataBackedAttributes` and `MetadataBackedColumns`. Now derived from package `published_at` column:
+- `getIsActiveAttribute()` → `$this->published_at !== null`
+- `setIsActiveAttribute()` → maps to `published_at` (true → `now()`, false → `null`)
+- All `->where('is_active', ...)` queries redirected to `published_at IS NOT NULL / IS NULL` via `EventBuilder::whereIsActive()`
+- Scopes (`active()`, `makeAllSearchableUsing`) use `whereNotNull('published_at')` directly
+
+### NotificationCenterTriggersTest + trackedUsers fix (2026-07-08)
+
+5/5 tests pass after fixes:
+1. `EventReference` followers — switch to `referenceable.followers`
+2. `EventKeyPerson` fillable — added `involveable_type`/`involveable_id`
+3. Test column naming — `speaker_id`→`involveable_id`, `is_public`→`visibility`
+4. `goingEvents()->attach()` → `create()` on MorphMany
+5. `EventCheckinFactory` — added `$model = EventCheckin::class` (inherited `EventAttendance::class` from parent)
+6. `trackedUsers` + `trackedReminderUsers` — resolve Bookmark/Response via `.bookmarker`/`.responder` relationships (was silently broken after `savedBy()` changed from `BelongsToMany<User>` to `MorphMany<Bookmark>`)
+7. `EventReference` attach → create on HasMany

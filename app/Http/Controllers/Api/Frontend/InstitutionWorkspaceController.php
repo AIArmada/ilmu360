@@ -7,7 +7,6 @@ use AIArmada\Membership\Actions\ChangeMemberRoleAction;
 use AIArmada\Membership\Actions\RemoveMemberAction;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Enums\EventVisibility;
-use App\Enums\MemberSubjectType;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\User;

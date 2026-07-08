@@ -2,8 +2,8 @@
 
 namespace App\Support\Membership;
 
-use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Membership\Enums\ApplicationStatus;
+use AIArmada\Membership\Enums\MemberRole;
 use App\Enums\MemberSubjectType;
 use App\Models\Institution;
 use App\Models\MembershipApplication;

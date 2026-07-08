@@ -40,7 +40,6 @@ class EventBuilder extends Builder
         'saves_count',
         'registrations_count',
         'going_count',
-        'is_active',
     ];
 
     /**
@@ -66,6 +65,10 @@ class EventBuilder extends Builder
 
         if (in_array($legacyColumn, ['event_type', 'age_group'], true)) {
             return $this->whereLegacyJsonArray($legacyColumn, $operator, $value, $boolean, func_num_args());
+        }
+
+        if ($legacyColumn === 'is_active') {
+            return $this->whereIsActive($operator, $value, $boolean);
         }
 
         $mappedColumn = $this->mapColumn($legacyColumn);
@@ -453,6 +456,30 @@ class EventBuilder extends Builder
         $this->whereRaw("({$sql}) {$operator}", $bindings, $boolean);
 
         return $this;
+    }
+
+    /**
+     * @param  mixed  $operator
+     * @param  mixed  $value
+     */
+    private function whereIsActive($operator, $value, string $boolean): static
+    {
+        $column = $this->qualifyModelColumn('published_at');
+
+        // 2-arg form: where('is_active', true/false) — $operator is the value
+        if (! is_string($operator) || ! preg_match('/^(=|==|!=|<>|is|is not)$/i', $operator)) {
+            return $operator ? parent::whereNotNull($column, $boolean) : parent::whereNull($column, $boolean);
+        }
+
+        if (in_array($operator, ['=', '=='], true)) {
+            return $value ? parent::whereNotNull($column, $boolean) : parent::whereNull($column, $boolean);
+        }
+
+        if (in_array($operator, ['!=', '<>'], true)) {
+            return $value ? parent::whereNull($column, $boolean) : parent::whereNotNull($column, $boolean);
+        }
+
+        return parent::where($column, $operator, $value, $boolean);
     }
 
     /**

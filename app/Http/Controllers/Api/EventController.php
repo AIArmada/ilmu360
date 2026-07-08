@@ -35,7 +35,6 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Spatie\QueryBuilder\AllowedFilter;
@@ -451,7 +450,7 @@ class EventController extends Controller
             ->allowedIncludes(...$allowedIncludes)
             ->allowedSorts(...$allowedSorts)
             ->defaultSort('-starts_at')
-            ->where('is_active', true)
+            ->whereNotNull('published_at')
             ->whereIn('status', self::PUBLIC_STATUSES)
             ->where('visibility', 'public')
             ->paginate(ApiPagination::normalizePerPage($request->integer('per_page', 20), default: 20, max: 50))

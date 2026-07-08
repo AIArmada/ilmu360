@@ -2,6 +2,7 @@
 
 use AIArmada\CommerceSupport\Models\Role;
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Events\Enums\RegistrationMode as PackageRegistrationMode;
 use AIArmada\Moderation\Enums\ModerationActionType;
 use App\Enums\ContributionRequestStatus;
 use App\Enums\ContributionRequestType;
@@ -16,7 +17,6 @@ use App\Enums\EventKeyPersonRole;
 use App\Enums\EventPrayerTime;
 use App\Enums\EventType;
 use App\Enums\EventVisibility;
-use AIArmada\Events\Enums\RegistrationMode as PackageRegistrationMode;
 use App\Enums\RegistrationMode;
 use App\Models\ContributionRequest;
 use App\Models\DonationChannel;

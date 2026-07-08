@@ -15,12 +15,12 @@ use AIArmada\Events\Models\EventAttribute;
 use AIArmada\Events\Models\EventAudience;
 use AIArmada\Events\Models\EventAudienceProfile;
 use AIArmada\Events\Models\EventInvolvement;
-use AIArmada\Events\Models\EventRole;
 use AIArmada\Events\Models\EventLanguage;
 use AIArmada\Events\Models\EventLink;
 use AIArmada\Events\Models\EventLocation;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventReference;
+use AIArmada\Events\Models\EventRole;
 use AIArmada\Events\Models\EventTimeExpression;
 use AIArmada\Membership\Traits\HasMembers;
 use App\Enums\EventAgeGroup;
@@ -184,7 +184,6 @@ class Event extends PackageEvent implements AuditableContract
         'schedule_kind',
         'schedule_state',
         'timing_mode',
-        'is_active',
         'views_count',
         'registrations_count',
         'saves_count',
@@ -1296,7 +1295,7 @@ class Event extends PackageEvent implements AuditableContract
 
         $query->whereIn("{$table}.status", self::PUBLIC_STATUSES)
             ->where("{$table}.visibility", EventVisibility::Public)
-            ->where("{$table}.is_active", true);
+            ->whereNotNull("{$table}.published_at");
     }
 
     /**
@@ -1349,6 +1348,24 @@ class Event extends PackageEvent implements AuditableContract
     public function getReferenceStudySubtitleAttribute(): ?string
     {
         return $this->bookReference()?->title;
+    }
+
+    public function getIsActiveAttribute(): bool
+    {
+        return $this->published_at !== null;
+    }
+
+    public function setIsActiveAttribute(?bool $value): void
+    {
+        if ($value === null) {
+            return;
+        }
+
+        if ($value === false && $this->published_at !== null) {
+            $this->published_at = null;
+        } elseif ($value === true && $this->published_at === null) {
+            $this->published_at = now();
+        }
     }
 
     /**
@@ -1473,7 +1490,7 @@ class Event extends PackageEvent implements AuditableContract
     {
         return $query
             ->with(['institution', 'institution.addresses', 'venue', 'venue.addresses', 'speakers', 'keyPeople.speaker', 'tags', 'references'])
-            ->where('events.is_active', true)
+            ->whereNotNull('events.published_at')
             ->whereIn('events.status', self::PUBLIC_STATUSES)
             ->where('events.visibility', EventVisibility::Public)
             ->where('events.event_structure', '!=', EventStructure::ParentProgram->value);

@@ -434,3 +434,12 @@ vendor/bin/phpstan analyse --ansi
 # OpenAI Developer Docs MCP
 
 Always use the OpenAI developer documentation MCP server (`openaiDeveloperDocs`) if you need to work with the OpenAI API, ChatGPT Apps SDK, Codex, Responses API, or any other OpenAI product — without the user having to explicitly ask.
+
+---
+
+# Git Safety
+
+- Never use `git` to mass-delete, mass-revert, or bulk-reset work. No `git clean -fdx`, no `git reset --hard` across branches, no `git checkout -- .`, no `git push --force`, no `git push --delete` without explicit per-branch approval.
+- Never run destructive git commands without explicit, per-command user approval.
+- If a git operation would affect more than one commit, stop and ask first.
+- `git stash` and `git stash pop` are safe. Avoid `git stash drop` and `git stash clear` — they permanently delete stashed work.

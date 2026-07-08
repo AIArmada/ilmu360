@@ -14,6 +14,8 @@ use App\Models\User;
  */
 class EventCheckinFactory extends EventAttendanceFactory
 {
+    protected $model = EventCheckin::class;
+
     /**
      * @return array<string, mixed>
      */

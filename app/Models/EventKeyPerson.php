@@ -16,6 +16,7 @@ class EventKeyPerson extends EventInvolvement implements AuditableContract
     protected $fillable = [
         'id',
         'event_id',
+        'involveable_type', 'involveable_id',
         'role_code', 'sort_order', 'notes',
         'role', 'order_column',
         'status', 'visibility', 'prominence', 'is_featured', 'is_primary',

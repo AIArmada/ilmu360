@@ -2748,7 +2748,7 @@ describe('Event Registration', function () {
 
     it('allows guest registration', function () {
         $event = Event::factory()
-            ->has(\AIArmada\Events\Models\EventAccessPolicy::factory()->state([
+            ->has(EventAccessPolicy::factory()->state([
                 'registration_required' => true,
                 'opens_at' => now()->subDay(),
                 'closes_at' => now()->addDay(),
@@ -2779,7 +2779,7 @@ describe('Event Registration', function () {
 
     it('prevents duplicate registration', function () {
         $event = Event::factory()
-            ->has(\AIArmada\Events\Models\EventAccessPolicy::factory()->state([
+            ->has(EventAccessPolicy::factory()->state([
                 'registration_required' => true,
                 'opens_at' => now()->subDay(),
                 'closes_at' => now()->addDay(),
@@ -2807,7 +2807,7 @@ describe('Event Registration', function () {
 
     it('enforces capacity limits', function () {
         $event = Event::factory()
-            ->has(\AIArmada\Events\Models\EventAccessPolicy::factory()->state([
+            ->has(EventAccessPolicy::factory()->state([
                 'registration_required' => true,
                 'opens_at' => now()->subDay(),
                 'closes_at' => now()->addDay(),

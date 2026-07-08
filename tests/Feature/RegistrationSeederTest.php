@@ -1,5 +1,6 @@
 <?php
 
+use AIArmada\Events\Models\EventAccessPolicy;
 use App\Models\Event;
 use App\Models\Registration;
 use App\Models\User;
@@ -12,7 +13,7 @@ it('seeds registrations whether or not the users table has a phone column', func
     User::factory()->count(3)->create();
 
     $event = Event::factory()
-        ->has(\AIArmada\Events\Models\EventAccessPolicy::factory()->state([
+        ->has(EventAccessPolicy::factory()->state([
             'registration_required' => true,
             'registration_opens_at' => now()->subDay(),
             'registration_closes_at' => now()->addDay(),

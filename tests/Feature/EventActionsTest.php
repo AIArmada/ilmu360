@@ -1,12 +1,13 @@
 <?php
 
+use AIArmada\Events\Enums\RegistrationMode as PackageRegistrationMode;
+use AIArmada\Events\Models\EventAccessPolicy;
 use App\Actions\Contributions\ApplyDirectContributionUpdateAction;
 use App\Actions\Events\PrepareAdvancedParentProgramSubmissionAction;
 use App\Actions\Events\ResolveAdvancedBuilderContextAction;
 use App\Actions\Events\ResolveAdvancedBuilderMembershipOptionsAction;
 use App\Actions\Events\SyncEventResourceRelationsAction;
 use App\Enums\RegistrationMode;
-use AIArmada\Events\Enums\RegistrationMode as PackageRegistrationMode;
 use App\Enums\TagType;
 use App\Models\Event;
 use App\Models\EventChangeAnnouncement;
@@ -131,7 +132,7 @@ it('uses a safe database default when creating event settings without an explici
     $event = Event::factory()->create();
     $event->accessPolicy()->delete();
 
-    $settings = \AIArmada\Events\Models\EventAccessPolicy::query()->create([
+    $settings = EventAccessPolicy::query()->create([
         'event_id' => $event->id,
     ]);
 

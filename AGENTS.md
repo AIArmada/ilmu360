@@ -23,6 +23,46 @@ The application is being rebranded to **ilmu360°** (ilmu360 with a degree sign 
 - Ensure no constraints/cascades slipped in: `rg -n -- "constrained\(|cascadeOnDelete\(" packages/*/database`
 - Ensure no SoftDeletes slipped in: `rg -n -- "softDeletes\(\)|SoftDeletes" database/ app/Models/`
 
+=== .ai/friendly rules ===
+
+# Friendliness Audit (Package Extensibility)
+
+## Extension Seams
+
+- Put stable extension seams (contracts, hooks, resolvers, support classes) in `commerce-support` when multiple packages benefit.
+- When a capability may grow variants, prefer contracts over hard-coded branching.
+- Use tagged registrars or contributor interfaces for optional integrations instead of service-provider branching.
+
+## Contracts
+
+- Every resolvable concern gets a contract (`Contracts/`). Default implementations live in `Services/` or `Resolvers/`.
+- Null-object resolvers for optional integrations (`Null*Resolver`) — ship the no-op with the contract so downstream code never conditionally checks "is this installed?".
+- Workflow contracts separate policy from implementation (e.g. `EventLifecycleWorkflow` interface + `DefaultEventLifecycleWorkflow`).
+
+## Actions
+
+- Extract reusable Actions for orchestration that spans transactions, side effects, normalization, or multiple entrypoints.
+- Keep trivial single-step handlers inline when extraction adds no clarity.
+- Reuse existing Actions before creating new ones.
+- Watch for Action/Service duplicates — a Backfill action and a Sync service doing the same work should be one class.
+
+## Services
+
+- Every service should have a clear role. Services without contracts are catch-all candidates.
+- Prefer splitting a catch-all service into Actions with a thin service facade.
+- Service count should be low; high service counts with no contracts is a smell.
+
+## Support Folder
+
+- `Support/` should not mix policy, integration wiring, and normalization.
+- Split into sub-namespaces when categories emerge (`Support/Policy/`, `Support/Integration/`, `Support/Normalization/`).
+
+## Verification
+
+- Check for duplicate orchestration: `rg -n "function (handle|execute|process)" packages/*/src/Actions packages/*/src/Services`
+- Check for services without contracts: `rg -l "class.*Service" packages/*/src/Services | xargs rg -L "implements"`
+- Grep for null-object pattern adoption: `rg "Null.*Resolver|Null.*Dispatcher" packages/`
+
 === .ai/general rules ===
 
 ## Workflow Orchestration
@@ -506,6 +546,53 @@ vendor/bin/phpstan analyse --ansi
 # OpenAI Developer Docs MCP
 
 Always use the OpenAI developer documentation MCP server (`openaiDeveloperDocs`) if you need to work with the OpenAI API, ChatGPT Apps SDK, Codex, Responses API, or any other OpenAI product — without the user having to explicitly ask.
+
+---
+
+# Git Safety
+
+- Never use `git` to mass-delete, mass-revert, or bulk-reset work. No `git clean -fdx`, no `git reset --hard` across branches, no `git checkout -- .`, no `git push --force`, no `git push --delete` without explicit per-branch approval.
+- Never run destructive git commands without explicit, per-command user approval.
+- If a git operation would affect more than one commit, stop and ask first.
+- `git stash` and `git stash pop` are safe. Avoid `git stash drop` and `git stash clear` — they permanently delete stashed work.
+
+=== .ai/lifecycle rules ===
+
+# Lifecycle Audit (Status & Timestamp Columns)
+
+## Core Rules
+
+- Every model with a status or state machine must have a `status` column (string-backed enum).
+- Each terminal status transition records a dedicated `timestampTz` column (e.g. `published_at`, `cancelled_at`, `archived_at`).
+- Use `*_at` for actual transition times. Keep scheduled deadlines (`expires_at`, `registration_opens_at`) separate from state transitions.
+- Never use `is_*` booleans for state that can be derived from status.
+- Do not bury lifecycle events in JSON or booleans when the timestamp matters operationally.
+
+## Naming
+
+- Column: `status` (not `state`, not `is_active`, not `status_code`)
+- Timestamp: `{status_name}_at` (e.g. `confirmed_at`, `refunded_at`, `completed_at`, `cancelled_at`)
+- Visibility column: `visibility` with string-backed enum (not `is_public`, not `is_visible`)
+- Scheduled deadlines: `{purpose}_at` (e.g. `registration_opens_at`, `check_in_closes_at`)
+
+## Transition Integrity
+
+- Status-to-timestamp mapping must be centralised in the transition method or supporting trait.
+- When a status transitions from X to Y, the transition sets `y_at = now()`.
+- Use immutable date casts (`'immutable_datetime'`) for lifecycle timestamps.
+- Track the last state change: `last_state_change_at` updated on every transition.
+
+## Migration Pattern
+
+- Phase 1 (non-breaking): Add new `status` + `*_at` columns as nullable, backfill existing rows.
+- Phase 2 (breaking): Drop old boolean columns (`is_active`, `is_public`) after confirming data is migrated.
+- Phase 3 (cleanup): Make `status` NOT NULL once all rows are populated.
+
+## Verification
+
+- Check for boolean anti-patterns: `rg -n "is_active|is_public|is_archived|registration_required|waitlist_enabled|approval_required" packages/*/database/migrations`
+- Check status columns have matching `*_at` timestamps: `rg -n "timestampTz\('.*_at'\)" packages/*/database/migrations`
+- Check for `state` instead of `status`: `rg -n "\bstate\b" packages/*/src/Models`
 
 === .ai/livewire rules ===
 
@@ -1079,21 +1166,15 @@ This project has domain-specific skills available in `**/skills/**`. You MUST ac
 
 === octane/core rules ===
 
-# Octane
+# Laravel Octane
 
-- Octane boots the application once and reuses it across requests, so singletons persist between requests.
-- The Laravel container's `scoped` method may be used as a safe alternative to `singleton`.
-- Never inject the container, request, or config repository into a singleton's constructor; use a resolver closure or `bind()` instead:
+This application uses Laravel Octane, a long-running PHP server. The application bootstraps once and handles many requests within the same process.
 
-```php
-// Bad
-$this->app->singleton(Service::class, fn (Application $app) => new Service($app['request']));
+- Never store request-specific state in singletons or static properties, because it can leak across requests.
+- Use `config('octane.server')` to detect the active driver (`swoole`, `roadrunner`, or `frankenphp`).
+- Prefer scoped bindings (`$this->app->scoped()`) over singletons for per-request services.
 
-// Good
-$this->app->singleton(Service::class, fn () => new Service(fn () => request()));
-```
-
-- Never append to static properties, as they accumulate in memory across requests.
+When working on Octane-specific features (concurrency, shared tables, memory, driver configuration, testing), invoke `octane-development` for detailed rules.
 
 === pint/core rules ===
 

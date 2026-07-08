@@ -487,8 +487,8 @@ class EventNotificationService
             ->pluck('registrant');
 
         return collect()
-            ->merge($event->savedBy()->get())
-            ->merge($event->goingBy()->get())
+            ->merge($event->savedBy()->with('bookmarker')->get()->pluck('bookmarker'))
+            ->merge($event->goingBy()->with('responder')->get()->pluck('responder'))
             ->merge($registrations)
             ->filter(fn (mixed $user): bool => $user instanceof User)
             ->unique('id')
@@ -566,10 +566,18 @@ class EventNotificationService
             labelResolver: static fn (mixed $series): ?string => $series?->title,
         );
 
+        $references = $event->references()
+            ->with('referenceable')
+            ->get()
+            ->pluck('referenceable')
+            ->filter()
+            ->unique('id')
+            ->values();
+
         $this->dispatchFollowedEntityNotifications(
             trigger: NotificationTrigger::FollowedReferenceEvent,
             event: $event,
-            followables: $event->references()->with('followers')->get(),
+            followables: $references,
             labelResolver: static fn (mixed $reference): ?string => $reference?->title,
         );
     }
@@ -821,7 +829,7 @@ class EventNotificationService
         bool $checkinOpen = false,
     ): void {
         $events = Event::query()
-            ->where('is_active', true)
+            ->whereNotNull('published_at')
             ->whereIn('status', Event::ENGAGEABLE_STATUSES)
             ->where('visibility', EventVisibility::Public)
             ->where(fn ($query) => $query
@@ -875,7 +883,7 @@ class EventNotificationService
     protected function trackedReminderUsers(Event $event, bool $checkinOpen = false): Collection
     {
         return collect()
-            ->merge($event->goingBy()->get())
+            ->merge($event->goingBy()->with('responder')->get()->pluck('responder'))
             ->merge($this->registeredUsers($event))
             ->filter(fn (mixed $user): bool => $user instanceof User)
             ->unique('id')

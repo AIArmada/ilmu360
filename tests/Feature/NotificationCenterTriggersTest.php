@@ -51,7 +51,12 @@ it('creates followed-content notifications for followed speakers institutions se
 
     $event->speakers()->attach($speaker->id);
     $event->series()->attach($series->id, ['id' => (string) Str::uuid()]);
-    $event->references()->attach($reference->id);
+    $event->references()->create([
+        'referenceable_id' => $reference->getKey(),
+        'referenceable_type' => 'reference',
+        'reference_type' => 'reference',
+        'visibility' => 'public',
+    ]);
 
     app(EventNotificationService::class)->notifyPublication($event->fresh(['institution', 'speakers', 'series', 'references']));
 
@@ -87,10 +92,11 @@ it('does not create followed-speaker notifications when a followed profile is on
     ]);
 
     $event->keyPeople()->create([
-        'speaker_id' => $speaker->id,
+        'involveable_id' => $speaker->id,
+        'involveable_type' => 'speaker',
         'role' => EventKeyPersonRole::Moderator,
         'order_column' => 1,
-        'is_public' => true,
+        'visibility' => 'public',
     ]);
 
     app(EventNotificationService::class)->notifyPublication($event->fresh(['institution', 'keyPeople.speaker', 'series', 'references']));
@@ -139,7 +145,7 @@ it('sends update alerts to saved users but no reminders for them', function () {
 
         $this->assertDatabaseMissing('notification_inboxes', [
             'recipient_id' => $savedUser->id,
-            'trigger' => AIArmada\Communications\Enums\NotificationTrigger::EventUpdated->value,
+            'trigger' => AIArmada\Communications\Enums\NotificationTrigger::ScheduledDispatch->value,
         ]);
     } finally {
         Carbon::setTestNow();
@@ -163,7 +169,14 @@ it('sends 2-hour and check-in reminders', function () {
         'starts_at' => $now->addHours(2),
     ]);
 
-    $goingUser->goingEvents()->attach($event->id);
+    $goingUser->goingEvents()->create([
+        'respondable_type' => $event->getMorphClass(),
+        'respondable_id' => $event->id,
+        'response_type' => 'going',
+        'status' => 'active',
+        'visibility' => 'public',
+        'responded_at' => now(),
+    ]);
     Registration::factory()->for($event)->forRegistrant($registeredUser)->create([
         'status' => 'confirmed',
     ]);
