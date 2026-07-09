@@ -1404,7 +1404,7 @@ describe('Event Search Filters', function () {
         ]);
 
         $response = $this->get(eventsIndexUrl([
-            'district_id' => $districtA->id,
+            'admin_area_1_id' => $districtA->id,
         ]));
 
         $response->assertOk()
@@ -1550,7 +1550,7 @@ describe('Event Search Filters', function () {
         ]);
 
         $response = $this->get(eventsIndexUrl([
-            'subdistrict_id' => $subdistrictA->id,
+            'admin_area_2_id' => $subdistrictA->id,
         ]));
 
         $response->assertOk()
@@ -1601,7 +1601,7 @@ describe('Event Search Filters', function () {
 
         $response = $this->get(eventsIndexUrl([
             'state_id' => $state->id,
-            'subdistrict_id' => $subdistrictA->id,
+            'admin_area_2_id' => $subdistrictA->id,
         ]));
 
         $response->assertOk()

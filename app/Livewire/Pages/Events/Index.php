@@ -61,13 +61,13 @@ class Index extends Component implements HasForms
     public ?string $country_id = null;
 
     #[Url]
-    public ?string $state_id = null;
+    public ?string $admin_area_1_id = null;
 
     #[Url]
-    public ?string $district_id = null;
+    public ?string $admin_area_2_id = null;
 
     #[Url]
-    public ?string $subdistrict_id = null;
+    public ?string $admin_area_3_id = null;
 
     /**
      * @var list<string>
@@ -352,9 +352,9 @@ class Index extends Component implements HasForms
                             ->searchable()
                             ->getSearchResultsUsing(fn (Get $get, string $search): array => $this->searchInstitutionOptions(
                                 countryId: $this->normalizeNullableString($get('country_id')),
-                                stateId: $this->normalizeNullableString($get('state_id')),
-                                districtId: $this->normalizeNullableString($get('district_id')),
-                                subdistrictId: $this->normalizeNullableString($get('subdistrict_id')),
+                                stateId: $this->normalizeNullableString($get('admin_area_1_id')),
+                                adminArea2Id: $this->normalizeNullableString($get('admin_area_2_id')),
+                                adminArea3Id: $this->normalizeNullableString($get('admin_area_3_id')),
                                 search: $search,
                             ))
                             ->getOptionLabelUsing(fn (string $value): ?string => $this->institutionOptionLabel($value))
@@ -367,9 +367,9 @@ class Index extends Component implements HasForms
                             ->searchable()
                             ->getSearchResultsUsing(fn (Get $get, string $search): array => $this->searchVenueOptions(
                                 countryId: $this->normalizeNullableString($get('country_id')),
-                                stateId: $this->normalizeNullableString($get('state_id')),
-                                districtId: $this->normalizeNullableString($get('district_id')),
-                                subdistrictId: $this->normalizeNullableString($get('subdistrict_id')),
+                                stateId: $this->normalizeNullableString($get('admin_area_1_id')),
+                                adminArea2Id: $this->normalizeNullableString($get('admin_area_2_id')),
+                                adminArea3Id: $this->normalizeNullableString($get('admin_area_3_id')),
                                 search: $search,
                             ))
                             ->getOptionLabelUsing(fn (string $value): ?string => $this->venueOptionLabel($value))
@@ -752,7 +752,7 @@ class Index extends Component implements HasForms
     #[Computed]
     public function districts(): Collection
     {
-        $stateId = $this->state_id;
+        $stateId = $this->admin_area_1_id;
 
         if (! filled($stateId)) {
             return collect();
@@ -770,14 +770,14 @@ class Index extends Component implements HasForms
     #[Computed]
     public function subdistricts(): Collection
     {
-        $districtId = filled($this->district_id) ? $this->district_id : $this->state_id;
+        $adminArea1Id = $this->admin_area_1_id;
 
-        if (! filled($districtId)) {
+        if (! filled($adminArea1Id)) {
             return collect();
         }
 
         return AddressArea::query()
-            ->where('parent_id', $districtId)
+            ->where('parent_id', $adminArea1Id)
             ->orderBy('name')
             ->get();
     }
@@ -902,13 +902,13 @@ class Index extends Component implements HasForms
     /**
      * @return array<string, string>
      */
-    private function searchInstitutionOptions(?string $countryId, ?string $stateId, ?string $districtId, ?string $subdistrictId, string $search = ''): array
+    private function searchInstitutionOptions(?string $countryId, ?string $adminArea1Id, ?string $adminArea2Id, ?string $adminArea3Id, string $search = ''): array
     {
         $query = Institution::query()
             ->whereIn('status', ['verified', 'pending'])
             ->where('is_active', true);
 
-        $this->applyAddressLocationFilters($query, $countryId, $stateId, $districtId, $subdistrictId);
+        $this->applyAddressLocationFilters($query, $countryId, $adminArea1Id, $adminArea2Id, $adminArea3Id);
         $query->searchNameOrNickname($search);
 
         return $this->institutionOptionsFromQuery($query->orderBy('name'), 50);
@@ -917,13 +917,13 @@ class Index extends Component implements HasForms
     /**
      * @return array<string, string>
      */
-    private function searchVenueOptions(?string $countryId, ?string $stateId, ?string $districtId, ?string $subdistrictId, string $search = ''): array
+    private function searchVenueOptions(?string $countryId, ?string $adminArea1Id, ?string $adminArea2Id, ?string $adminArea3Id, string $search = ''): array
     {
         $query = Venue::query()
             ->whereIn('status', ['verified', 'pending'])
             ->where('is_active', true);
 
-        $this->applyAddressLocationFilters($query, $countryId, $stateId, $districtId, $subdistrictId);
+        $this->applyAddressLocationFilters($query, $countryId, $adminArea1Id, $adminArea2Id, $adminArea3Id);
         $this->applySearchConstraint($query, 'name', $search);
 
         return $this->pluckOptions($query->orderBy('name'), 'name', 50);
@@ -1209,29 +1209,29 @@ class Index extends Component implements HasForms
     private function applyAddressLocationFilters(
         Builder $query,
         ?string $countryId,
-        ?string $stateId,
-        ?string $districtId,
-        ?string $subdistrictId
+        ?string $adminArea1Id,
+        ?string $adminArea2Id,
+        ?string $adminArea3Id
     ): void {
-        if (! filled($countryId) && ! filled($stateId) && ! filled($districtId) && ! filled($subdistrictId)) {
+        if (! filled($countryId) && ! filled($adminArea1Id) && ! filled($adminArea2Id) && ! filled($adminArea3Id)) {
             return;
         }
 
-        $query->whereHas('addresses', function (Builder $addressQuery) use ($countryId, $stateId, $districtId, $subdistrictId): void {
+        $query->whereHas('addresses', function (Builder $addressQuery) use ($countryId, $adminArea1Id, $adminArea2Id, $adminArea3Id): void {
             if (filled($countryId)) {
                 $addressQuery->where('country_id', $countryId);
             }
 
-            if (filled($stateId)) {
-                $addressQuery->where('admin_area_1_id', $stateId);
+            if (filled($adminArea1Id)) {
+                $addressQuery->where('admin_area_1_id', $adminArea1Id);
             }
 
-            if (filled($districtId)) {
-                $addressQuery->where('admin_area_2_id', $districtId);
+            if (filled($adminArea2Id)) {
+                $addressQuery->where('admin_area_2_id', $adminArea2Id);
             }
 
-            if (filled($subdistrictId)) {
-                $addressQuery->where('admin_area_3_id', $subdistrictId);
+            if (filled($adminArea3Id)) {
+                $addressQuery->where('admin_area_3_id', $adminArea3Id);
             }
         });
     }
@@ -1264,9 +1264,9 @@ class Index extends Component implements HasForms
 
         $searchFilters = [
             'country_id' => $filters['country_id'],
-            'state_id' => $filters['state_id'],
-            'district_id' => $filters['district_id'],
-            'subdistrict_id' => $filters['subdistrict_id'],
+            'admin_area_1_id' => $filters['admin_area_1_id'],
+            'admin_area_2_id' => $filters['admin_area_2_id'],
+            'admin_area_3_id' => $filters['admin_area_3_id'],
             'language_codes' => $filters['language_codes'],
             'event_type' => $filters['event_type'],
             'gender' => $filters['gender'],
@@ -1393,9 +1393,9 @@ class Index extends Component implements HasForms
         return [
             'search' => null,
             'country_id' => null,
-            'state_id' => null,
-            'district_id' => null,
-            'subdistrict_id' => null,
+            'admin_area_1_id' => null,
+            'admin_area_2_id' => null,
+            'admin_area_3_id' => null,
             'language_codes' => [],
             'event_type' => [],
             'gender' => null,
@@ -1457,9 +1457,9 @@ class Index extends Component implements HasForms
         return [
             'search' => filled($this->search) ? trim($this->search) : null,
             'country_id' => filled($this->country_id) ? $this->country_id : null,
-            'state_id' => filled($this->state_id) ? $this->state_id : null,
-            'district_id' => filled($this->district_id) ? $this->district_id : null,
-            'subdistrict_id' => filled($this->subdistrict_id) ? $this->subdistrict_id : null,
+            'admin_area_1_id' => filled($this->admin_area_1_id) ? $this->admin_area_1_id : null,
+            'admin_area_2_id' => filled($this->admin_area_2_id) ? $this->admin_area_2_id : null,
+            'admin_area_3_id' => filled($this->admin_area_3_id) ? $this->admin_area_3_id : null,
             'language_codes' => $languageCodes,
             'event_type' => $this->normalizeStringArray($this->event_type),
             'gender' => filled($this->gender) ? $this->gender : null,
@@ -1512,9 +1512,9 @@ class Index extends Component implements HasForms
     {
         $this->search = $filters['search'];
         $this->country_id = $filters['country_id'];
-        $this->state_id = $filters['state_id'];
-        $this->district_id = $filters['district_id'];
-        $this->subdistrict_id = $filters['subdistrict_id'];
+        $this->admin_area_1_id = $filters['admin_area_1_id'];
+        $this->admin_area_2_id = $filters['admin_area_2_id'];
+        $this->admin_area_3_id = $filters['admin_area_3_id'];
         $this->language_codes = $filters['language_codes'];
         $this->event_type = $filters['event_type'];
         $this->gender = $filters['gender'];
@@ -1603,9 +1603,8 @@ class Index extends Component implements HasForms
         return [
             'search' => filled($normalized['search']) ? trim((string) $normalized['search']) : null,
             'country_id' => filled($normalized['country_id']) ? (string) $normalized['country_id'] : null,
-            'state_id' => filled($normalized['state_id']) ? (string) $normalized['state_id'] : null,
-            'district_id' => filled($normalized['district_id']) ? (string) $normalized['district_id'] : null,
-            'subdistrict_id' => filled($normalized['subdistrict_id']) ? (string) $normalized['subdistrict_id'] : null,
+            'admin_area_1_id' => filled($normalized['admin_area_1_id']) ? (string) $normalized['admin_area_1_id'] : null,
+            'admin_area_2_id' => filled($normalized['admin_area_2_id']) ? (string) $normalized['admin_area_2_id'] : null,
             'language_codes' => $languageCodes,
             'event_type' => $this->normalizeStringArray($normalized['event_type'] ?? []),
             'gender' => filled($normalized['gender']) ? (string) $normalized['gender'] : null,

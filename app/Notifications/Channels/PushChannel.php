@@ -2,8 +2,8 @@
 
 namespace App\Notifications\Channels;
 
+use AIArmada\Communications\Models\CommunicationDestination;
 use App\Enums\NotificationChannel;
-use App\Models\NotificationDestination;
 use App\Notifications\Channels\Exceptions\ChannelDeliveryException;
 use App\Services\Notifications\NotificationSettingsManager;
 use Illuminate\Notifications\Notification;
@@ -65,7 +65,7 @@ class PushChannel
         ) {
             foreach ($destinations as $destination) {
                 $results[] = [
-                    'destination_id' => $destination instanceof NotificationDestination ? $destination->id : null,
+                    'destination_id' => $destination instanceof CommunicationDestination ? $destination->id : null,
                     'status' => 'failed',
                     'meta' => ['reason' => 'provider_not_configured'],
                 ];
@@ -82,7 +82,7 @@ class PushChannel
         $delivered = false;
 
         foreach ($destinations as $destination) {
-            if (! $destination instanceof NotificationDestination) {
+            if (! $destination instanceof CommunicationDestination) {
                 continue;
             }
 

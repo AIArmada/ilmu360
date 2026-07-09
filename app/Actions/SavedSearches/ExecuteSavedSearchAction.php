@@ -100,8 +100,10 @@ final readonly class ExecuteSavedSearchAction
         return [
             'country_id',
             'state_id',
-            'district_id',
-            'subdistrict_id',
+            'city_id',
+            'admin_area_1_id',
+            'admin_area_2_id',
+            'admin_area_3_id',
             'institution_id',
             'venue_id',
             'speaker_ids',

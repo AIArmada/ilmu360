@@ -322,13 +322,13 @@ describe('Saved Search API Endpoints', function () {
                 $response = $this->postJson('/api/v1/saved-searches', [
                     'name' => 'Subdistrict Filter Test',
                     'filters' => [
-                        'subdistrict_id' => (string) Str::uuid(),
+                        'admin_area_2_id' => (string) Str::uuid(),
                     ],
                     'notify' => 'daily',
                 ]);
 
                 $response->assertUnprocessable()
-                    ->assertJsonValidationErrors(['filters.subdistrict_id']);
+                    ->assertJsonValidationErrors(['filters.admin_area_2_id']);
             });
         });
 

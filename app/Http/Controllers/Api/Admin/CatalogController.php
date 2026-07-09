@@ -49,7 +49,7 @@ class CatalogController extends Controller
     #[Endpoint(
         title: 'List admin districts catalog',
         description: 'Returns district options for an admin write flow. '
-            .'Pass `state_id` to resolve the districts available for a selected state.',
+            .'Pass `admin_area_1_id` to resolve the districts available for a selected first-level address area.',
     )]
     public function districts(Request $request): JsonResponse
     {
@@ -57,7 +57,7 @@ class CatalogController extends Controller
             'data' => $this->catalogs->districts(
                 $request->filled('admin_area_1_id')
                     ? $request->string('admin_area_1_id')->toString()
-                    : ($request->filled('state_id') ? $request->string('state_id')->toString() : null),
+                    : null,
             ),
         ]);
     }
@@ -67,7 +67,7 @@ class CatalogController extends Controller
     #[Endpoint(
         title: 'List admin subdistricts catalog',
         description: 'Returns subdistrict options for an admin write flow. '
-            .'Pass `district_id` for district-based lookups, or `state_id` alone when the target state stores subdistricts without a district.',
+            .'Pass `admin_area_1_id` for first-level address area lookups, or `admin_area_2_id` for second-level address area lookups.',
     )]
     public function subdistricts(Request $request): JsonResponse
     {
@@ -75,10 +75,10 @@ class CatalogController extends Controller
             'data' => $this->catalogs->subdistricts(
                 $request->filled('admin_area_1_id')
                     ? $request->string('admin_area_1_id')->toString()
-                    : ($request->filled('state_id') ? $request->string('state_id')->toString() : null),
+                    : null,
                 $request->filled('admin_area_2_id')
                     ? $request->string('admin_area_2_id')->toString()
-                    : ($request->filled('district_id') ? $request->string('district_id')->toString() : null),
+                    : ($request->filled('admin_area_1_id') ? $request->string('admin_area_1_id')->toString() : null),
             ),
         ]);
     }

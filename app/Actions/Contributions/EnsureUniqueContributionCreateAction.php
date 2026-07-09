@@ -79,16 +79,16 @@ final readonly class EnsureUniqueContributionCreateAction
 
         $countryId = $this->normalizeNullableUuid($address['country_id'] ?? null);
         $stateId = $this->normalizeNullableUuid($address['admin_area_1_id'] ?? ($address['state_id'] ?? null));
-        $districtId = $this->normalizeNullableUuid($address['admin_area_2_id'] ?? ($address['district_id'] ?? null));
-        $subdistrictId = $this->normalizeNullableUuid($address['admin_area_3_id'] ?? ($address['subdistrict_id'] ?? null));
+        $adminArea1Id = $this->normalizeNullableUuid($address['admin_area_2_id'] ?? ($address['admin_area_1_id'] ?? null));
+        $adminArea2Id = $this->normalizeNullableUuid($address['admin_area_3_id'] ?? ($address['admin_area_2_id'] ?? null));
 
         return Institution::query()
             ->whereIn('status', ['verified', 'pending'])
-            ->whereHas('addresses', function (Builder $query) use ($countryId, $stateId, $districtId, $subdistrictId): void {
+            ->whereHas('addresses', function (Builder $query) use ($countryId, $stateId, $adminArea1Id, $adminArea2Id): void {
                 $this->applyNullableUuidMatch($query, 'country_id', $countryId);
                 $this->applyNullableUuidMatch($query, 'admin_area_1_id', $stateId);
-                $this->applyNullableUuidMatch($query, 'admin_area_2_id', $districtId);
-                $this->applyNullableUuidMatch($query, 'admin_area_3_id', $subdistrictId);
+                $this->applyNullableUuidMatch($query, 'admin_area_2_id', $adminArea1Id);
+                $this->applyNullableUuidMatch($query, 'admin_area_3_id', $adminArea2Id);
             })
             ->get(['id', 'name'])
             ->contains(fn (Institution $institution): bool => $this->normalizeComparableString($institution->name) === $name);

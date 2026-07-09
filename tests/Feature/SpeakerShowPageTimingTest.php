@@ -239,8 +239,8 @@ it('hides state when district is kuala lumpur putrajaya or labuan', function () 
 
     syncPrimaryAddressForTest($venue, [
         'state_id' => (string) $state->getKey(),
-        'district_id' => null,
-        'subdistrict_id' => (string) $subdistrict->getKey(),
+        'admin_area_1_id' => null,
+        'admin_area_2_id' => (string) $subdistrict->getKey(),
     ]);
 
     $event = Event::factory()->create([
@@ -276,8 +276,8 @@ it('deduplicates matching speaker subdistrict and district labels in the speaker
 
     syncPrimaryAddressForTest($speaker, [
         'state_id' => (string) $state->getKey(),
-        'district_id' => (string) $district->getKey(),
-        'subdistrict_id' => (string) $subdistrict->getKey(),
+        'admin_area_1_id' => (string) $district->getKey(),
+        'admin_area_2_id' => (string) $subdistrict->getKey(),
     ]);
 
     $this->get(route('speakers.show', $speaker))

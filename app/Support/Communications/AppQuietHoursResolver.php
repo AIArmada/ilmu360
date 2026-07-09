@@ -3,7 +3,7 @@
 namespace App\Support\Communications;
 
 use AIArmada\Communications\Contracts\QuietHoursResolver;
-use App\Models\NotificationSetting;
+use AIArmada\Communications\Models\CommunicationPreference;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Relations\Relation;
 
@@ -72,7 +72,7 @@ class AppQuietHoursResolver implements QuietHoursResolver
         return $todayEnd->toIso8601String();
     }
 
-    private function resolveSetting(?string $recipientType, ?string $recipientId): ?NotificationSetting
+    private function resolveSetting(?string $recipientType, ?string $recipientId): ?CommunicationPreference
     {
         $modelClass = $recipientType !== null
             ? Relation::getMorphedModel($recipientType)

@@ -98,8 +98,8 @@ function sampleAddressSelectionSchema(): AddressSelection
     return new AddressSelection(
         country_id: 1,
         state_id: 10,
-        district_id: 20,
-        subdistrict_id: 30,
+        admin_area_1_id: 20,
+        admin_area_2_id: 30,
     );
 }
 

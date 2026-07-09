@@ -7,12 +7,13 @@ use App\Enums\MemberSubjectType;
 use App\Models\Concerns\AuditsModelChanges;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 use Spatie\Image\Enums\Fit;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
-class MembershipApplication extends BaseMembershipApplication implements HasMedia
+class MembershipApplication extends BaseMembershipApplication implements AuditableContract, HasMedia
 {
     use AuditsModelChanges, HasFactory, InteractsWithMedia;
 

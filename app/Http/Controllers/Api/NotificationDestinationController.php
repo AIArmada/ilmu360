@@ -2,11 +2,10 @@
 
 namespace App\Http\Controllers\Api;
 
+use AIArmada\Communications\Models\CommunicationDestination;
 use App\Data\Api\Notification\NotificationDestinationData as NotificationDestinationPayloadData;
 use App\Enums\NotificationChannel;
-use App\Enums\NotificationDestinationStatus;
 use App\Http\Controllers\Controller;
-use App\Models\NotificationDestination;
 use App\Models\User;
 use Dedoc\Scramble\Attributes\BodyParameter;
 use Dedoc\Scramble\Attributes\Endpoint;
@@ -37,7 +36,7 @@ class NotificationDestinationController extends Controller
         $validated = $this->validatePushPayload($request);
         $user = $this->currentUser($request);
 
-        $destination = NotificationDestination::query()->updateOrCreate(
+        $destination = CommunicationDestination::query()->updateOrCreate(
             [
                 'user_id' => $user->id,
                 'channel' => NotificationChannel::Push->value,
@@ -45,7 +44,7 @@ class NotificationDestinationController extends Controller
             ],
             [
                 'external_id' => $validated['fcm_token'],
-                'status' => NotificationDestinationStatus::Active->value,
+                'status' => 'active',
                 'is_primary' => false,
                 'verified_at' => now(),
                 'meta' => $this->pushMeta($validated),
@@ -82,7 +81,7 @@ class NotificationDestinationController extends Controller
 
         $destination->forceFill([
             'external_id' => $validated['fcm_token'],
-            'status' => NotificationDestinationStatus::Active->value,
+            'status' => 'active',
             'verified_at' => now(),
             'meta' => $this->pushMeta($validated),
         ])->save();

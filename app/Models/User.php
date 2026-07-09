@@ -16,6 +16,8 @@ use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 use AIArmada\CommerceSupport\Models\Permission;
 use AIArmada\CommerceSupport\Models\Role;
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Communications\Models\CommunicationDestination;
+use AIArmada\Communications\Models\CommunicationPreference;
 use AIArmada\Communications\Models\NotificationInbox;
 use AIArmada\Engagement\Models\Bookmark;
 use AIArmada\Engagement\Models\Follow;
@@ -25,11 +27,9 @@ use AIArmada\Engagement\Traits\CanFollow;
 use AIArmada\Engagement\Traits\CanRespond;
 use AIArmada\FilamentAuthz\Facades\Authz;
 use App\Enums\NotificationChannel;
-use App\Enums\NotificationDestinationStatus;
 use App\Models\Concerns\AuditsModelChanges;
 use App\Notifications\Auth\ResetPasswordNotification;
 use App\Notifications\Auth\VerifyEmailNotification;
-use App\Notifications\NotificationCenterMessage;
 use App\Services\ShareTrackingService;
 use App\Support\Submission\PublicSubmissionLockService;
 use Carbon\CarbonImmutable;
@@ -47,8 +47,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\Relations\MorphPivot;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Database\Eloquent\Relations\Pivot;
@@ -146,9 +146,7 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
             $user->aiUsageLogs()->each(fn ($log) => $log->delete());
             app(ShareTrackingService::class)->deleteUserTracking($user);
             $user->notificationSetting()->delete();
-            $user->notificationRules()->each(fn ($rule) => $rule->delete());
             $user->notificationDestinations()->each(fn ($destination) => $destination->delete());
-            $user->notificationDeliveries()->each(fn ($delivery) => $delivery->delete());
             $user->notificationInbox()->each(fn ($inbox) => $inbox->delete());
 
             Follow::forFollower($user)->delete();
@@ -289,9 +287,7 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
             'saved_searches' => $this->savedSearches()->get()->map->attributesToArray()->all(),
             'ai_usage_logs' => $this->aiUsageLogs()->get()->map->attributesToArray()->all(),
             'notification_setting' => $this->notificationSetting?->attributesToArray(),
-            'notification_rules' => $this->notificationRules()->get()->map->attributesToArray()->all(),
             'notification_destinations' => $this->notificationDestinations()->get()->map->attributesToArray()->all(),
-            'notification_deliveries' => $this->notificationDeliveries()->get()->map->attributesToArray()->all(),
             'notification_inboxes' => $this->notificationInbox()->get()->map->attributesToArray()->all(),
             'followings' => Follow::forFollower($this)
                 ->get()
@@ -562,9 +558,7 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
         $this->restoreChildModels('savedSearches', $this->snapshotRows($snapshot, 'saved_searches'));
         $this->restoreChildModels('aiUsageLogs', $this->snapshotRows($snapshot, 'ai_usage_logs'));
         $this->restoreSingleChildModel('notificationSetting', $snapshot['notification_setting'] ?? null);
-        $this->restoreChildModels('notificationRules', $this->snapshotRows($snapshot, 'notification_rules'));
         $this->restoreChildModels('notificationDestinations', $this->snapshotRows($snapshot, 'notification_destinations'));
-        $this->restoreChildModels('notificationDeliveries', $this->snapshotRows($snapshot, 'notification_deliveries'));
         $this->restoreChildModels('notificationInbox', $this->snapshotRows($snapshot, 'notification_inboxes'));
     }
 
@@ -1203,27 +1197,21 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
     }
 
     /**
-     * @return HasOne<NotificationSetting, $this>
+     * @return MorphOne<CommunicationPreference, $this>
      */
-    public function notificationSetting(): HasOne
+    public function notificationSetting(): MorphOne
     {
-        return $this->hasOne(NotificationSetting::class);
+        return $this->morphOne(CommunicationPreference::class, 'recipient')
+            ->whereNull('channel')
+            ->whereNull('category');
     }
 
     /**
-     * @return HasMany<NotificationRule, $this>
+     * @return MorphMany<CommunicationDestination, $this>
      */
-    public function notificationRules(): HasMany
+    public function notificationDestinations(): MorphMany
     {
-        return $this->hasMany(NotificationRule::class);
-    }
-
-    /**
-     * @return HasMany<NotificationDestination, $this>
-     */
-    public function notificationDestinations(): HasMany
-    {
-        return $this->hasMany(NotificationDestination::class);
+        return $this->morphMany(CommunicationDestination::class, 'recipient');
     }
 
     /**
@@ -1232,14 +1220,6 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
     public function notificationInbox(): MorphMany
     {
         return $this->morphMany(NotificationInbox::class, 'recipient');
-    }
-
-    /**
-     * @return HasMany<NotificationDelivery, $this>
-     */
-    public function notificationDeliveries(): HasMany
-    {
-        return $this->hasMany(NotificationDelivery::class);
     }
 
     public function preferredLocale(): string
@@ -1289,37 +1269,29 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
      */
     public function routeNotificationForMail(?Notification $notification = null): array|string|null
     {
-        if (! $notification instanceof NotificationCenterMessage) {
-            return $this->email;
-        }
-
-        return $this->notificationDestinations()
-            ->where('channel', NotificationChannel::Email->value)
-            ->where('status', NotificationDestinationStatus::Active->value)
-            ->orderByDesc('is_primary')
-            ->value('address');
+        return $this->email;
     }
 
     /**
-     * @return Collection<int, NotificationDestination>
+     * @return Collection<int, CommunicationDestination>
      */
     public function routeNotificationForPush(?Notification $notification = null): Collection
     {
         return $this->notificationDestinations()
             ->where('channel', NotificationChannel::Push->value)
-            ->where('status', NotificationDestinationStatus::Active->value)
+            ->where('status', 'active')
             ->orderByDesc('is_primary')
             ->get();
     }
 
     /**
-     * @return Collection<int, NotificationDestination>
+     * @return Collection<int, CommunicationDestination>
      */
     public function routeNotificationForWhatsapp(?Notification $notification = null): Collection
     {
         return $this->notificationDestinations()
             ->where('channel', NotificationChannel::Whatsapp->value)
-            ->where('status', NotificationDestinationStatus::Active->value)
+            ->where('status', 'active')
             ->orderByDesc('is_primary')
             ->get();
     }

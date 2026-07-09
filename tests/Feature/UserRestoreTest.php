@@ -13,6 +13,7 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Communications\Enums\NotificationFamily;
 use AIArmada\Communications\Enums\NotificationPriority;
 use AIArmada\Communications\Enums\NotificationTrigger;
+use AIArmada\Communications\Models\CommunicationPreference;
 use AIArmada\Communications\Models\NotificationInbox;
 use AIArmada\Engagement\Contracts\EngagementManager;
 use AIArmada\Engagement\Models\Follow;
@@ -30,7 +31,6 @@ use App\Models\ModerationReview;
 use App\Models\NotificationDelivery;
 use App\Models\NotificationDestination;
 use App\Models\NotificationRule;
-use App\Models\NotificationSetting;
 use App\Models\Reference;
 use App\Models\Registration;
 use App\Models\Report;
@@ -128,8 +128,11 @@ it('restores a deleted user together with key relationships and child records', 
         'name' => 'Restore Search',
     ]);
 
-    NotificationSetting::factory()->create([
-        'user_id' => $user->id,
+    CommunicationPreference::create([
+        'recipient_type' => $user->getMorphClass(),
+        'recipient_id' => $user->id,
+        'channel' => null,
+        'category' => null,
         'locale' => 'ms',
         'timezone' => 'UTC',
     ]);
@@ -740,8 +743,11 @@ it('restores an api self-deleted user from the deleted users admin page', functi
         'provider' => 'google',
         'provider_id' => 'api-restore-google',
     ]);
-    NotificationSetting::factory()->create([
-        'user_id' => $user->id,
+    CommunicationPreference::create([
+        'recipient_type' => $user->getMorphClass(),
+        'recipient_id' => $user->id,
+        'channel' => null,
+        'category' => null,
         'locale' => 'ms',
         'timezone' => 'Asia/Kuala_Lumpur',
     ]);

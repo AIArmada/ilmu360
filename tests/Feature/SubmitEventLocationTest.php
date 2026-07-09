@@ -190,8 +190,8 @@ it('matches institution nicknames in event filter search options', function () {
     $results = (fn (): array => $this->searchInstitutionOptions(
         countryId: null,
         stateId: null,
-        districtId: null,
-        subdistrictId: null,
+        adminArea1Id: null,
+        subadminArea1Id: null,
         search: 'Masjid Biru',
     ))->call($component->instance());
 

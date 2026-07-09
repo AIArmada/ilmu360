@@ -2131,6 +2131,18 @@
                         </a>
                     @endif
                 @endif
+
+                @auth
+                    @if($hasPass && $passId)
+                        <a href="{{ route('events.pass', ['event' => $event, 'pass' => $passId]) }}" target="_blank"
+                            class="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-emerald-200 bg-emerald-50 px-6 py-3 text-sm font-bold text-emerald-700 transition hover:bg-emerald-100">
+                            <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
+                            </svg>
+                            {{ __('Lihat Pas') }}
+                        </a>
+                    @endif
+                @endauth
             </div>
         </div>
 

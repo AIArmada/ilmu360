@@ -5,14 +5,13 @@ namespace App\Services\Notifications;
 use AIArmada\Communications\Contracts\CommunicationManager;
 use App\Enums\ContributionRequestType;
 use App\Enums\ContributionSubjectType;
-use App\Enums\NotificationChannel;
 use App\Enums\NotificationPriority;
 use App\Enums\NotificationTrigger;
 use App\Models\ContributionRequest;
 use App\Models\Institution;
 use App\Models\Speaker;
 use App\Models\User;
-use App\Notifications\NotificationCenterMessage;
+use App\Notifications\InAppNotification;
 use App\Support\Notifications\NotificationCatalog;
 use App\Support\Notifications\NotificationDispatchData;
 use Illuminate\Support\Str;
@@ -20,7 +19,6 @@ use Illuminate\Support\Str;
 class ContributionRequestNotificationService
 {
     public function __construct(
-        protected NotificationEngine $engine,
         protected CommunicationManager $comms,
         protected NotificationMessageRenderer $messageRenderer,
     ) {}
@@ -148,13 +146,10 @@ class ContributionRequestNotificationService
             );
         });
 
-        $this->engine->dispatchToUser($user, $data);
-
         $family = NotificationCatalog::triggerDefinition($trigger)['family'];
 
-        $notification = new NotificationCenterMessage(
+        $notification = new InAppNotification(
             pendingNotificationId: (string) Str::uuid(),
-            targetChannel: NotificationChannel::InApp,
             family: $family,
             trigger: $trigger,
             priority: $priority,
@@ -167,7 +162,7 @@ class ContributionRequestNotificationService
             meta: $data->meta,
         );
 
-        $this->comms->recordNative($user, $notification, NotificationChannel::InApp->value);
+        $this->comms->notify($user, $notification);
     }
 
     private function supportsCreateSubmissionNotifications(ContributionRequest $request): bool

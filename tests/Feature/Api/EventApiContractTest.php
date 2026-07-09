@@ -171,7 +171,7 @@ it('rejects unsupported sparse fields on the public event index', function () {
         ->assertJsonValidationErrors('fields');
 });
 
-it('filters events by district_id and subdistrict_id', function () {
+it('filters events by admin_area_1_id and admin_area_2_id', function () {
     $country = ensureTestMalaysiaCountry();
     $state = createTestAddressArea('Selangor', 1, null, $country);
     $district = createTestAddressArea('API District '.uniqid(), 2, $state, $country);
@@ -206,7 +206,7 @@ it('filters events by district_id and subdistrict_id', function () {
         'is_active' => true,
     ]);
 
-    $districtResponse = $this->getJson('/api/v1/events?filter[district_id]='.$district->getKey());
+    $districtResponse = $this->getJson('/api/v1/events?filter[admin_area_1_id]='.$district->getKey());
 
     $districtResponse->assertOk();
 
@@ -216,7 +216,7 @@ it('filters events by district_id and subdistrict_id', function () {
         ->toContain($districtMatch->id)
         ->toContain($subdistrictNonMatch->id);
 
-    $subdistrictResponse = $this->getJson('/api/v1/events?filter[subdistrict_id]='.$subdistrictA->getKey());
+    $subdistrictResponse = $this->getJson('/api/v1/events?filter[admin_area_2_id]='.$subdistrictA->getKey());
 
     $subdistrictResponse->assertOk();
 

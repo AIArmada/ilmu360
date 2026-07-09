@@ -153,7 +153,7 @@ class AdvancedFiltersPanel extends Component implements HasForms
                             ->schema([
                                 Hidden::make('country_id'),
 
-                                Select::make('state_id')
+                                Select::make('admin_area_1_id')
                                     ->label(__('State'))
                                     ->placeholder(__('All States'))
                                     ->options(fn (): array => $this->states()
@@ -164,35 +164,35 @@ class AdvancedFiltersPanel extends Component implements HasForms
                                     ->disabled(fn (Get $get): bool => ! filled($get('country_id')))
                                     ->live()
                                     ->afterStateUpdated(function (Set $set): void {
-                                        $set('district_id', null);
-                                        $set('subdistrict_id', null);
+                                        $set('admin_area_2_id', null);
+                                        $set('admin_area_3_id', null);
                                         $set('institution_id', null);
                                         $set('venue_id', null);
                                     }),
 
-                                Select::make('district_id')
+                                Select::make('admin_area_2_id')
                                     ->label(__('District'))
                                     ->placeholder(__('All Districts'))
-                                    ->options(fn (Get $get): array => collect(SharedFormSchema::districtOptionsForState($get('state_id')))
+                                    ->options(fn (Get $get): array => collect(SharedFormSchema::districtOptionsForState($get('admin_area_1_id')))
                                         ->mapWithKeys(fn (string $name, mixed $id): array => [(string) $id => $name])
                                         ->all())
-                                    ->disabled(fn (Get $get): bool => ! filled($get('state_id')))
-                                    ->visible(fn (Get $get): bool => filled($get('state_id')))
+                                    ->disabled(fn (Get $get): bool => ! filled($get('admin_area_1_id')))
+                                    ->visible(fn (Get $get): bool => filled($get('admin_area_1_id')))
                                     ->searchable()
                                     ->live()
                                     ->afterStateUpdated(function (Set $set): void {
-                                        $set('subdistrict_id', null);
+                                        $set('admin_area_3_id', null);
                                         $set('institution_id', null);
                                         $set('venue_id', null);
                                     }),
 
-                                Select::make('subdistrict_id')
+                                Select::make('admin_area_3_id')
                                     ->label(__('Bandar / Mukim / Zon'))
                                     ->placeholder(__('All Subdistricts'))
-                                    ->options(fn (Get $get): array => collect(SharedFormSchema::subdistrictOptionsForSelection($get('state_id'), $get('district_id')))
+                                    ->options(fn (Get $get): array => collect(SharedFormSchema::subdistrictOptionsForSelection($get('admin_area_1_id'), $get('admin_area_2_id')))
                                         ->mapWithKeys(fn (string $name, mixed $id): array => [(string) $id => $name])
                                         ->all())
-                                    ->disabled(fn (Get $get): bool => ! SharedFormSchema::shouldShowSubdistrictField($get('state_id'), $get('district_id')))
+                                    ->disabled(fn (Get $get): bool => ! SharedFormSchema::shouldShowSubdistrictField($get('admin_area_1_id'), $get('admin_area_2_id')))
                                     ->searchable()
                                     ->live()
                                     ->afterStateUpdated(function (Set $set): void {
@@ -206,9 +206,9 @@ class AdvancedFiltersPanel extends Component implements HasForms
                                     ->searchable()
                                     ->getSearchResultsUsing(fn (Get $get, string $search): array => $this->searchInstitutionOptions(
                                         countryId: $this->normalizeNullableString($get('country_id')),
-                                        stateId: $this->normalizeNullableString($get('state_id')),
-                                        districtId: $this->normalizeNullableString($get('district_id')),
-                                        subdistrictId: $this->normalizeNullableString($get('subdistrict_id')),
+                                        stateId: $this->normalizeNullableString($get('admin_area_1_id')),
+                                        adminArea2Id: $this->normalizeNullableString($get('admin_area_2_id')),
+                                        adminArea3Id: $this->normalizeNullableString($get('admin_area_3_id')),
                                         search: $search,
                                     ))
                                     ->getOptionLabelUsing(fn (string $value): ?string => $this->institutionOptionLabel($value))
@@ -221,9 +221,9 @@ class AdvancedFiltersPanel extends Component implements HasForms
                                     ->searchable()
                                     ->getSearchResultsUsing(fn (Get $get, string $search): array => $this->searchVenueOptions(
                                         countryId: $this->normalizeNullableString($get('country_id')),
-                                        stateId: $this->normalizeNullableString($get('state_id')),
-                                        districtId: $this->normalizeNullableString($get('district_id')),
-                                        subdistrictId: $this->normalizeNullableString($get('subdistrict_id')),
+                                        stateId: $this->normalizeNullableString($get('admin_area_1_id')),
+                                        adminArea2Id: $this->normalizeNullableString($get('admin_area_2_id')),
+                                        adminArea3Id: $this->normalizeNullableString($get('admin_area_3_id')),
                                         search: $search,
                                     ))
                                     ->getOptionLabelUsing(fn (string $value): ?string => $this->venueOptionLabel($value))
@@ -618,9 +618,9 @@ class AdvancedFiltersPanel extends Component implements HasForms
         return [
             'search' => null,
             'country_id' => null,
-            'state_id' => null,
-            'district_id' => null,
-            'subdistrict_id' => null,
+            'admin_area_1_id' => null,
+            'admin_area_2_id' => null,
+            'admin_area_3_id' => null,
             'language_codes' => [],
             'event_type' => [],
             'gender' => null,
@@ -702,9 +702,9 @@ class AdvancedFiltersPanel extends Component implements HasForms
         return [
             'search' => filled($normalized['search']) ? trim((string) $normalized['search']) : null,
             'country_id' => filled($normalized['country_id']) ? (string) $normalized['country_id'] : null,
-            'state_id' => filled($normalized['state_id']) ? (string) $normalized['state_id'] : null,
-            'district_id' => filled($normalized['district_id']) ? (string) $normalized['district_id'] : null,
-            'subdistrict_id' => filled($normalized['subdistrict_id']) ? (string) $normalized['subdistrict_id'] : null,
+            'admin_area_1_id' => filled($normalized['admin_area_1_id']) ? (string) $normalized['admin_area_1_id'] : null,
+            'admin_area_2_id' => filled($normalized['admin_area_2_id']) ? (string) $normalized['admin_area_2_id'] : null,
+            'admin_area_3_id' => filled($normalized['admin_area_3_id']) ? (string) $normalized['admin_area_3_id'] : null,
             'language_codes' => $languageCodes,
             'event_type' => $this->normalizeStringArray($normalized['event_type'] ?? []),
             'gender' => filled($normalized['gender']) ? (string) $normalized['gender'] : null,
@@ -812,11 +812,11 @@ class AdvancedFiltersPanel extends Component implements HasForms
     /**
      * @return array<string, string>
      */
-    private function searchInstitutionOptions(?string $countryId, ?string $stateId, ?string $districtId, ?string $subdistrictId, string $search = ''): array
+    private function searchInstitutionOptions(?string $countryId, ?string $adminArea1Id, ?string $adminArea2Id, ?string $adminArea3Id, string $search = ''): array
     {
         $query = Institution::query()->whereIn('status', ['verified', 'pending'])->where('is_active', true);
 
-        $this->applyAddressLocationFilters($query, $countryId, $stateId, $districtId, $subdistrictId);
+        $this->applyAddressLocationFilters($query, $countryId, $adminArea1Id, $adminArea2Id, $adminArea3Id);
         $query->searchNameOrNickname($search);
 
         return $this->institutionOptionsFromQuery($query->orderBy('name'), 50);
@@ -825,11 +825,11 @@ class AdvancedFiltersPanel extends Component implements HasForms
     /**
      * @return array<string, string>
      */
-    private function searchVenueOptions(?string $countryId, ?string $stateId, ?string $districtId, ?string $subdistrictId, string $search = ''): array
+    private function searchVenueOptions(?string $countryId, ?string $adminArea1Id, ?string $adminArea2Id, ?string $adminArea3Id, string $search = ''): array
     {
         $query = Venue::query()->whereIn('status', ['verified', 'pending'])->where('is_active', true);
 
-        $this->applyAddressLocationFilters($query, $countryId, $stateId, $districtId, $subdistrictId);
+        $this->applyAddressLocationFilters($query, $countryId, $adminArea1Id, $adminArea2Id, $adminArea3Id);
         $this->applySearchConstraint($query, 'name', $search);
 
         return $this->pluckOptions($query->orderBy('name'), 'name', 50);
@@ -987,27 +987,27 @@ class AdvancedFiltersPanel extends Component implements HasForms
      *
      * @param  Builder<TModel>  $query
      */
-    private function applyAddressLocationFilters(Builder $query, ?string $countryId, ?string $stateId, ?string $districtId, ?string $subdistrictId): void
+    private function applyAddressLocationFilters(Builder $query, ?string $countryId, ?string $adminArea1Id, ?string $adminArea2Id, ?string $adminArea3Id): void
     {
-        if (! filled($countryId) && ! filled($stateId) && ! filled($districtId) && ! filled($subdistrictId)) {
+        if (! filled($countryId) && ! filled($adminArea1Id) && ! filled($adminArea2Id) && ! filled($adminArea3Id)) {
             return;
         }
 
-        $query->whereHas('addresses', function (Builder $addressQuery) use ($countryId, $stateId, $districtId, $subdistrictId): void {
+        $query->whereHas('addresses', function (Builder $addressQuery) use ($countryId, $adminArea1Id, $adminArea2Id, $adminArea3Id): void {
             if (filled($countryId)) {
                 $addressQuery->where('country_id', $countryId);
             }
 
-            if (filled($stateId)) {
-                $addressQuery->where('admin_area_1_id', $stateId);
+            if (filled($adminArea1Id)) {
+                $addressQuery->where('admin_area_1_id', $adminArea1Id);
             }
 
-            if (filled($districtId)) {
-                $addressQuery->where('admin_area_2_id', $districtId);
+            if (filled($adminArea2Id)) {
+                $addressQuery->where('admin_area_2_id', $adminArea2Id);
             }
 
-            if (filled($subdistrictId)) {
-                $addressQuery->where('admin_area_3_id', $subdistrictId);
+            if (filled($adminArea3Id)) {
+                $addressQuery->where('admin_area_3_id', $adminArea3Id);
             }
         });
     }

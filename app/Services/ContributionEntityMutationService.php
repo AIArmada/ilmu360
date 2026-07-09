@@ -1000,8 +1000,8 @@ class ContributionEntityMutationService
             $payload['line2'] ?? null,
             $payload['postcode'] ?? null,
             $payload['admin_area_1_id'] ?? $payload['state_id'] ?? null,
-            $payload['admin_area_2_id'] ?? $payload['district_id'] ?? null,
-            $payload['admin_area_3_id'] ?? $payload['subdistrict_id'] ?? null,
+            $payload['admin_area_2_id'] ?? $payload['admin_area_1_id'] ?? null,
+            $payload['admin_area_3_id'] ?? $payload['admin_area_2_id'] ?? null,
             $payload['admin_area_4_id'] ?? null,
             $payload['latitude'] ?? $payload['lat'] ?? null,
             $payload['longitude'] ?? $payload['lng'] ?? null,
@@ -1062,8 +1062,8 @@ class ContributionEntityMutationService
         }
 
         $adminArea1Id = $this->normalizeUuid($payload['admin_area_1_id'] ?? $payload['state_id'] ?? null);
-        $adminArea2Id = $this->normalizeUuid($payload['admin_area_2_id'] ?? $payload['district_id'] ?? null);
-        $adminArea3Id = $this->normalizeUuid($payload['admin_area_3_id'] ?? $payload['subdistrict_id'] ?? null);
+        $adminArea2Id = $this->normalizeUuid($payload['admin_area_2_id'] ?? $payload['admin_area_1_id'] ?? null);
+        $adminArea3Id = $this->normalizeUuid($payload['admin_area_3_id'] ?? $payload['admin_area_2_id'] ?? null);
         $adminArea4Id = $this->normalizeUuid($payload['admin_area_4_id'] ?? null);
         $latitude = $payload['latitude'] ?? $payload['lat'] ?? null;
         $longitude = $payload['longitude'] ?? $payload['lng'] ?? null;
@@ -1150,9 +1150,8 @@ class ContributionEntityMutationService
             'admin_area_2_id',
             'admin_area_3_id',
             'admin_area_4_id',
-            'state_id',
-            'district_id',
-            'subdistrict_id',
+            'admin_area_1_id',
+            'admin_area_2_id',
             'line1',
             'line2',
             'postcode',
@@ -1244,8 +1243,8 @@ class ContributionEntityMutationService
     {
         return match ($field) {
             'admin_area_1_id' => 'state_id',
-            'admin_area_2_id' => 'district_id',
-            'admin_area_3_id' => 'subdistrict_id',
+            'admin_area_2_id' => 'admin_area_1_id',
+            'admin_area_3_id' => 'admin_area_2_id',
             'latitude' => 'lat',
             'longitude' => 'lng',
             'provider_place_id' => 'google_place_id',

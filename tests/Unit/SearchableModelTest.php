@@ -46,8 +46,8 @@ it('builds the speaker searchable payload with title text and geography facets',
             ->and($payload)->toHaveKey('city', 'Shah Alam')
             ->and($payload)->toHaveKey('postcode', '40100')
             ->and($payload)->not->toHaveKey('state_id')
-            ->and($payload)->not->toHaveKey('district_id')
-            ->and($payload)->not->toHaveKey('subdistrict_id')
+            ->and($payload)->not->toHaveKey('admin_area_1_id')
+            ->and($payload)->not->toHaveKey('admin_area_2_id')
             ->and($payload)->toHaveKey('status', 'pending')
             ->and($payload['updated_at'])->toBeInt();
     });
@@ -108,8 +108,8 @@ it('builds the institution searchable payload with nickname description and geog
             ->and($payload)->toHaveKey('city', 'Shah Alam')
             ->and($payload)->toHaveKey('postcode', '40100')
             ->and($payload)->not->toHaveKey('state_id')
-            ->and($payload)->not->toHaveKey('district_id')
-            ->and($payload)->not->toHaveKey('subdistrict_id')
+            ->and($payload)->not->toHaveKey('admin_area_1_id')
+            ->and($payload)->not->toHaveKey('admin_area_2_id')
             ->and($payload['updated_at'])->toBeInt();
     });
 });

@@ -2,7 +2,7 @@
 
 namespace App\Data\Api\Notification;
 
-use App\Models\NotificationDestination;
+use AIArmada\Communications\Models\CommunicationDestination;
 use Carbon\CarbonInterface;
 use Spatie\LaravelData\Data;
 
@@ -20,7 +20,7 @@ class NotificationDestinationData extends Data
         public ?string $verified_at,
     ) {}
 
-    public static function fromModel(NotificationDestination $destination): self
+    public static function fromModel(CommunicationDestination $destination): self
     {
         $verifiedAt = $destination->verified_at;
 

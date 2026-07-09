@@ -97,8 +97,8 @@ it('searchable payload includes is_active and address text fields without legacy
             ->and($payload)->toHaveKey('state', 'Selangor')
             ->and($payload)->toHaveKey('city', 'Shah Alam')
             ->and($payload)->not->toHaveKey('state_id')
-            ->and($payload)->not->toHaveKey('district_id')
-            ->and($payload)->not->toHaveKey('subdistrict_id');
+            ->and($payload)->not->toHaveKey('admin_area_1_id')
+            ->and($payload)->not->toHaveKey('admin_area_2_id');
     });
 });
 

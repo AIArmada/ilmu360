@@ -5,10 +5,6 @@ namespace App\Support\Communications;
 use AIArmada\Communications\Contracts\ConsentResolver;
 use AIArmada\Communications\Data\ConsentDecisionData;
 use App\Enums\NotificationChannel as AppChannel;
-use App\Models\NotificationDestinationStatus;
-use App\Notifications\Channels\InboxChannel;
-use App\Notifications\Channels\PushChannel;
-use App\Notifications\Channels\WhatsappChannel;
 use Illuminate\Database\Eloquent\Relations\Relation;
 
 class AppConsentResolver implements ConsentResolver
@@ -33,7 +29,7 @@ class AppConsentResolver implements ConsentResolver
 
         $hasActiveDestination = $user->notificationDestinations()
             ->where('channel', $appChannel->value)
-            ->where('status', NotificationDestinationStatus::Active)
+            ->where('status', 'active')
             ->exists();
 
         return new ConsentDecisionData(
@@ -62,9 +58,9 @@ class AppConsentResolver implements ConsentResolver
     {
         return match ($channel) {
             'mail' => AppChannel::Email,
-            'database', 'in_app', InboxChannel::class => AppChannel::InApp,
-            PushChannel::class => AppChannel::Push,
-            'whatsapp', WhatsappChannel::class => AppChannel::Whatsapp,
+            'database', 'in_app' => AppChannel::InApp,
+            'push', 'fcm' => AppChannel::Push,
+            'whatsapp' => AppChannel::Whatsapp,
             default => AppChannel::tryFrom($channel),
         };
     }

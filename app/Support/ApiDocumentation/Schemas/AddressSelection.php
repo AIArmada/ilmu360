@@ -8,7 +8,7 @@ use Dedoc\Scramble\Attributes\SchemaName;
 use Illuminate\Contracts\Support\Arrayable;
 
 /**
- * @phpstan-type AddressSelectionArray array{country_id: ?string, state_id: ?string, district_id: ?string, subdistrict_id: ?string}
+ * @phpstan-type AddressSelectionArray array{country_id: ?string, admin_area_1_id: ?string, admin_area_2_id: ?string, admin_area_3_id: ?string}
  *
  * @implements Arrayable<string, mixed>
  */
@@ -17,9 +17,9 @@ final readonly class AddressSelection implements Arrayable
 {
     public function __construct(
         public ?string $country_id,
-        public ?string $state_id,
-        public ?string $district_id,
-        public ?string $subdistrict_id,
+        public ?string $admin_area_1_id,
+        public ?string $admin_area_2_id,
+        public ?string $admin_area_3_id,
     ) {}
 
     /** @return AddressSelectionArray */
@@ -27,9 +27,9 @@ final readonly class AddressSelection implements Arrayable
     {
         return [
             'country_id' => $this->country_id,
-            'state_id' => $this->state_id,
-            'district_id' => $this->district_id,
-            'subdistrict_id' => $this->subdistrict_id,
+            'admin_area_1_id' => $this->admin_area_1_id,
+            'admin_area_2_id' => $this->admin_area_2_id,
+            'admin_area_3_id' => $this->admin_area_3_id,
         ];
     }
 }

@@ -309,12 +309,12 @@ class SuggestUpdate extends Component implements HasActions, HasForms
             ];
         }
 
-        if (($districtId = SharedFormSchema::normalizeLocationId($speakerAddress['admin_area_2_id'] ?? null)) !== null) {
-            $initialState['address']['admin_area_2_id'] = $districtId;
+        if (($adminArea1Id = SharedFormSchema::normalizeLocationId($speakerAddress['admin_area_2_id'] ?? null)) !== null) {
+            $initialState['address']['admin_area_2_id'] = $adminArea1Id;
         }
 
-        if (($subdistrictId = SharedFormSchema::normalizeLocationId($speakerAddress['admin_area_3_id'] ?? null)) !== null) {
-            $initialState['address']['admin_area_3_id'] = $subdistrictId;
+        if (($adminArea2Id = SharedFormSchema::normalizeLocationId($speakerAddress['admin_area_3_id'] ?? null)) !== null) {
+            $initialState['address']['admin_area_3_id'] = $adminArea2Id;
         }
 
         $initialState['qualifications'] = array_map(

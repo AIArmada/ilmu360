@@ -435,8 +435,8 @@ it('does not default the institutions country filter from an unencrypted browser
         ->test('pages.institutions.index')
         ->assertSet('country_id', null)
         ->assertSet('state_id', null)
-        ->assertSet('district_id', null)
-        ->assertSet('subdistrict_id', null);
+        ->assertSet('admin_area_1_id', null)
+        ->assertSet('admin_area_2_id', null);
 });
 
 it('filters institutions by negeri, daerah, and subdistrict scopes', function () {
@@ -491,13 +491,13 @@ it('filters institutions by negeri, daerah, and subdistrict scopes', function ()
         ->assertSee('Institusi Scope A2')
         ->assertDontSee('Institusi Scope B');
 
-    get('/institusi?state_id='.$stateA->getKey().'&district_id='.$districtA->getKey())
+    get('/institusi?state_id='.$stateA->getKey().'&admin_area_1_id='.$districtA->getKey())
         ->assertSuccessful()
         ->assertSee('Institusi Scope A')
         ->assertDontSee('Institusi Scope A2')
         ->assertDontSee('Institusi Scope B');
 
-    get('/institusi?state_id='.$stateA->getKey().'&district_id='.$districtA->getKey().'&subdistrict_id='.$subdistrictA->getKey())
+    get('/institusi?state_id='.$stateA->getKey().'&admin_area_1_id='.$districtA->getKey().'&admin_area_2_id='.$subdistrictA->getKey())
         ->assertSuccessful()
         ->assertSee('Institusi Scope A')
         ->assertDontSee('Institusi Scope A2')

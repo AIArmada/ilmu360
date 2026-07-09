@@ -7,7 +7,6 @@ use App\Enums\EventChangeSeverity;
 use App\Enums\EventChangeType;
 use App\Enums\EventVisibility;
 use App\Enums\NotificationCadence;
-use App\Enums\NotificationChannel;
 use App\Enums\NotificationPriority;
 use App\Enums\NotificationTrigger;
 use App\Enums\ScheduleState;
@@ -19,7 +18,7 @@ use App\Models\Registration;
 use App\Models\SavedSearch;
 use App\Models\Speaker;
 use App\Models\User;
-use App\Notifications\NotificationCenterMessage;
+use App\Notifications\InAppNotification;
 use App\Services\EventSearchService;
 use App\Support\Authz\MemberPermissionGate;
 use App\Support\Notifications\NotificationCatalog;
@@ -31,7 +30,6 @@ use Illuminate\Support\Str;
 class EventNotificationService
 {
     public function __construct(
-        protected NotificationEngine $engine,
         protected CommunicationManager $comms,
         protected EventSearchService $eventSearchService,
         protected MemberPermissionGate $memberPermissionGate,
@@ -908,13 +906,10 @@ class EventNotificationService
             ->each(function (User $user) use ($builder): void {
                 $data = $this->withUserLocale($user, fn (): NotificationDispatchData => $builder($user));
 
-                $this->engine->dispatchToUser($user, $data);
-
                 $family = NotificationCatalog::triggerDefinition($data->trigger)['family'];
 
-                $notification = new NotificationCenterMessage(
+                $notification = new InAppNotification(
                     pendingNotificationId: (string) Str::uuid(),
-                    targetChannel: NotificationChannel::InApp,
                     family: $family,
                     trigger: $data->trigger,
                     priority: $data->priority,
@@ -927,7 +922,7 @@ class EventNotificationService
                     meta: $data->meta,
                 );
 
-                $this->comms->recordNative($user, $notification, NotificationChannel::InApp->value);
+                $this->comms->notify($user, $notification);
             });
     }
 

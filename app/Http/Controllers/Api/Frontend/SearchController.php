@@ -214,9 +214,9 @@ class SearchController extends FrontendController
     #[QueryParameter('fields', 'Optional comma-separated top-level list fields to return. Supported fields: id, slug, name, type, nickname, display_name, events_count, public_image_url, logo_url, cover_url, country, location, distance_km, is_following.', required: false, type: 'string', infer: false, example: 'id,name,location')]
     #[QueryParameter('type', 'Optional institution type filter.', required: false, type: 'string', infer: false, example: 'masjid')]
     #[QueryParameter('country_id', 'Optional package address country UUID filter.', required: false, type: 'string', infer: false, example: '019d0000-0000-7000-8000-000000000000')]
-    #[QueryParameter('state_id', 'Optional package address area level-1 UUID filter.', required: false, type: 'string', infer: false, example: '019d0000-0000-7000-8000-000000000001')]
-    #[QueryParameter('district_id', 'Optional package address area level-2 UUID filter.', required: false, type: 'string', infer: false, example: '019d0000-0000-7000-8000-000000000002')]
-    #[QueryParameter('subdistrict_id', 'Optional package address area level-3 UUID filter.', required: false, type: 'string', infer: false, example: '019d0000-0000-7000-8000-000000000003')]
+    #[QueryParameter('state_id', 'Optional state UUID filter.', required: false, type: 'string', infer: false, example: '019d0000-0000-7000-8000-000000000001')]
+    #[QueryParameter('admin_area_2_id', 'Optional package address area level-2 UUID filter.', required: false, type: 'string', infer: false, example: '019d0000-0000-7000-8000-000000000002')]
+    #[QueryParameter('admin_area_3_id', 'Optional package address area level-3 UUID filter.', required: false, type: 'string', infer: false, example: '019d0000-0000-7000-8000-000000000003')]
     #[QueryParameter('following', 'When authenticated, restrict results to institutions followed by the current user.', required: false, type: 'boolean', infer: false, example: false)]
     #[QueryParameter('page', 'Pagination page number.', required: false, type: 'integer', infer: false, default: 1, example: 1)]
     #[QueryParameter('per_page', 'Pagination page size. Values are clamped to the server-supported maximum.', required: false, type: 'integer', infer: false, default: 12, example: 12)]
@@ -233,8 +233,9 @@ class SearchController extends FrontendController
         $institutionType = $this->searchRequestNormalizer->normalizedInstitutionType($request->query('type'));
         $countryId = $this->searchRequestNormalizer->requestedCountryId($request);
         $stateId = $this->searchRequestNormalizer->normalizedUuid($request->query('state_id'));
-        $districtId = $this->searchRequestNormalizer->normalizedUuid($request->query('district_id'));
-        $subdistrictId = $this->searchRequestNormalizer->normalizedUuid($request->query('subdistrict_id'));
+        $adminArea1Id = $this->searchRequestNormalizer->normalizedUuid($request->query('admin_area_1_id'));
+        $adminArea2Id = $this->searchRequestNormalizer->normalizedUuid($request->query('admin_area_2_id'));
+        $adminArea3Id = $this->searchRequestNormalizer->normalizedUuid($request->query('admin_area_3_id'));
         $coordinates = $this->searchRequestNormalizer->resolvedNearbyCoordinates($request);
         $lat = $coordinates['lat'];
         $lng = $coordinates['lng'];
@@ -248,8 +249,9 @@ class SearchController extends FrontendController
             type: $institutionType,
             countryId: $countryId,
             stateId: $stateId,
-            districtId: $districtId,
-            subdistrictId: $subdistrictId,
+            adminArea1Id: $adminArea1Id,
+            adminArea2Id: $adminArea2Id,
+            adminArea3Id: $adminArea3Id,
             user: $user,
         );
 
@@ -350,8 +352,9 @@ class SearchController extends FrontendController
         $perPage = ApiPagination::normalizePerPage($request->integer('per_page', 12), default: 12, max: 50);
         $countryId = $this->searchRequestNormalizer->requestedCountryId($request);
         $stateId = $this->searchRequestNormalizer->normalizedUuid($request->query('state_id'));
-        $districtId = $this->searchRequestNormalizer->normalizedUuid($request->query('district_id'));
-        $subdistrictId = $this->searchRequestNormalizer->normalizedUuid($request->query('subdistrict_id'));
+        $adminArea1Id = $this->searchRequestNormalizer->normalizedUuid($request->query('admin_area_1_id'));
+        $adminArea2Id = $this->searchRequestNormalizer->normalizedUuid($request->query('admin_area_2_id'));
+        $adminArea3Id = $this->searchRequestNormalizer->normalizedUuid($request->query('admin_area_3_id'));
         $gender = in_array($request->query('gender'), ['male', 'female'], true)
             ? $request->query('gender')
             : null;
@@ -361,7 +364,7 @@ class SearchController extends FrontendController
 
         $baseQuery = $this->baseSpeakerQuery($user);
 
-        $this->applySpeakerLocationScope($baseQuery, $countryId, $stateId, $districtId, $subdistrictId);
+        $this->applySpeakerLocationScope($baseQuery, $countryId, $stateId, $adminArea1Id, $adminArea2Id, $adminArea3Id);
 
         if ($gender !== null) {
             $baseQuery->where('speakers.gender', $gender);
@@ -948,8 +951,9 @@ class SearchController extends FrontendController
         ?InstitutionType $type = null,
         ?string $countryId = null,
         ?string $stateId = null,
-        ?string $districtId = null,
-        ?string $subdistrictId = null,
+        ?string $adminArea1Id = null,
+        ?string $adminArea2Id = null,
+        ?string $adminArea3Id = null,
         ?User $user = null,
     ): Builder {
         $query = Institution::query()
@@ -972,7 +976,7 @@ class SearchController extends FrontendController
             $query->where('institutions.type', $type->value);
         }
 
-        $this->applyInstitutionLocationScope($query, $countryId, $stateId, $districtId, $subdistrictId);
+        $this->applyInstitutionLocationScope($query, $countryId, $stateId, $adminArea1Id, $adminArea2Id, $adminArea3Id);
 
         return $query;
     }
@@ -994,27 +998,31 @@ class SearchController extends FrontendController
     /**
      * @param  Builder<Institution>  $query
      */
-    private function applyInstitutionLocationScope(Builder $query, ?string $countryId, ?string $stateId, ?string $districtId, ?string $subdistrictId): void
+    private function applyInstitutionLocationScope(Builder $query, ?string $countryId, ?string $stateId, ?string $adminArea1Id, ?string $adminArea2Id, ?string $adminArea3Id): void
     {
-        if ($countryId === null && $stateId === null && $districtId === null && $subdistrictId === null) {
+        if ($countryId === null && $stateId === null && $adminArea1Id === null && $adminArea2Id === null && $adminArea3Id === null) {
             return;
         }
 
-        $query->whereHas('addresses', function (Builder $addressQuery) use ($countryId, $stateId, $districtId, $subdistrictId): void {
+        $query->whereHas('addresses', function (Builder $addressQuery) use ($countryId, $stateId, $adminArea1Id, $adminArea2Id, $adminArea3Id): void {
             if ($countryId !== null) {
                 $addressQuery->where('country_id', $countryId);
             }
 
             if ($stateId !== null) {
-                $addressQuery->where('admin_area_1_id', $stateId);
+                $addressQuery->where('state_id', $stateId);
             }
 
-            if ($districtId !== null) {
-                $addressQuery->where('admin_area_2_id', $districtId);
+            if ($adminArea1Id !== null) {
+                $addressQuery->where('admin_area_1_id', $adminArea1Id);
             }
 
-            if ($subdistrictId !== null) {
-                $addressQuery->where('admin_area_3_id', $subdistrictId);
+            if ($adminArea2Id !== null) {
+                $addressQuery->where('admin_area_2_id', $adminArea2Id);
+            }
+
+            if ($adminArea3Id !== null) {
+                $addressQuery->where('admin_area_3_id', $adminArea3Id);
             }
         });
     }
@@ -1367,27 +1375,31 @@ class SearchController extends FrontendController
     /**
      * @param  Builder<Speaker>  $query
      */
-    private function applySpeakerLocationScope(Builder $query, ?string $countryId, ?string $stateId, ?string $districtId, ?string $subdistrictId): void
+    private function applySpeakerLocationScope(Builder $query, ?string $countryId, ?string $stateId, ?string $adminArea1Id, ?string $adminArea2Id, ?string $adminArea3Id): void
     {
-        if ($countryId === null && $stateId === null && $districtId === null && $subdistrictId === null) {
+        if ($countryId === null && $stateId === null && $adminArea1Id === null && $adminArea2Id === null && $adminArea3Id === null) {
             return;
         }
 
-        $query->whereHas('addresses', function (Builder $addressQuery) use ($countryId, $stateId, $districtId, $subdistrictId): void {
+        $query->whereHas('addresses', function (Builder $addressQuery) use ($countryId, $stateId, $adminArea1Id, $adminArea2Id, $adminArea3Id): void {
             if ($countryId !== null) {
                 $addressQuery->where('country_id', $countryId);
             }
 
             if ($stateId !== null) {
-                $addressQuery->where('admin_area_1_id', $stateId);
+                $addressQuery->where('state_id', $stateId);
             }
 
-            if ($districtId !== null) {
-                $addressQuery->where('admin_area_2_id', $districtId);
+            if ($adminArea1Id !== null) {
+                $addressQuery->where('admin_area_1_id', $adminArea1Id);
             }
 
-            if ($subdistrictId !== null) {
-                $addressQuery->where('admin_area_3_id', $subdistrictId);
+            if ($adminArea2Id !== null) {
+                $addressQuery->where('admin_area_2_id', $adminArea2Id);
+            }
+
+            if ($adminArea3Id !== null) {
+                $addressQuery->where('admin_area_3_id', $adminArea3Id);
             }
         });
     }

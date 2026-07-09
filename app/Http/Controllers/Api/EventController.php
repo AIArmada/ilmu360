@@ -185,6 +185,16 @@ class EventController extends Controller
                     $query->where('ends_at', '<=', $endsBefore);
                 }
             }),
+            AllowedFilter::callback('country_id', function (Builder $query, mixed $value): void {
+                $countryIds = $this->normalizeArrayFilter($value);
+                if ($countryIds === []) {
+                    return;
+                }
+
+                $query->whereHas('venue.addresses', function (Builder $addressQuery) use ($countryIds): void {
+                    $addressQuery->whereIn('country_id', $countryIds);
+                });
+            }),
             AllowedFilter::callback('state_id', function (Builder $query, mixed $value): void {
                 $stateIds = $this->normalizeArrayFilter($value);
                 if ($stateIds === []) {
@@ -192,27 +202,7 @@ class EventController extends Controller
                 }
 
                 $query->whereHas('venue.addresses', function (Builder $addressQuery) use ($stateIds): void {
-                    $addressQuery->whereIn('admin_area_1_id', $stateIds);
-                });
-            }),
-            AllowedFilter::callback('district_id', function (Builder $query, mixed $value): void {
-                $districtIds = $this->normalizeArrayFilter($value);
-                if ($districtIds === []) {
-                    return;
-                }
-
-                $query->whereHas('venue.addresses', function (Builder $addressQuery) use ($districtIds): void {
-                    $addressQuery->whereIn('admin_area_2_id', $districtIds);
-                });
-            }),
-            AllowedFilter::callback('subdistrict_id', function (Builder $query, mixed $value): void {
-                $subdistrictIds = $this->normalizeArrayFilter($value);
-                if ($subdistrictIds === []) {
-                    return;
-                }
-
-                $query->whereHas('venue.addresses', function (Builder $addressQuery) use ($subdistrictIds): void {
-                    $addressQuery->whereIn('admin_area_3_id', $subdistrictIds);
+                    $addressQuery->whereIn('state_id', $stateIds);
                 });
             }),
             AllowedFilter::callback('city_id', function (Builder $query, mixed $value): void {
@@ -222,7 +212,37 @@ class EventController extends Controller
                 }
 
                 $query->whereHas('venue.addresses', function (Builder $addressQuery) use ($cityIds): void {
-                    $addressQuery->whereIn('admin_area_4_id', $cityIds);
+                    $addressQuery->whereIn('city_id', $cityIds);
+                });
+            }),
+            AllowedFilter::callback('admin_area_1_id', function (Builder $query, mixed $value): void {
+                $adminArea1Ids = $this->normalizeArrayFilter($value);
+                if ($adminArea1Ids === []) {
+                    return;
+                }
+
+                $query->whereHas('venue.addresses', function (Builder $addressQuery) use ($adminArea1Ids): void {
+                    $addressQuery->whereIn('admin_area_1_id', $adminArea1Ids);
+                });
+            }),
+            AllowedFilter::callback('admin_area_2_id', function (Builder $query, mixed $value): void {
+                $adminArea2Ids = $this->normalizeArrayFilter($value);
+                if ($adminArea2Ids === []) {
+                    return;
+                }
+
+                $query->whereHas('venue.addresses', function (Builder $addressQuery) use ($adminArea2Ids): void {
+                    $addressQuery->whereIn('admin_area_2_id', $adminArea2Ids);
+                });
+            }),
+            AllowedFilter::callback('admin_area_3_id', function (Builder $query, mixed $value): void {
+                $adminArea3Ids = $this->normalizeArrayFilter($value);
+                if ($adminArea3Ids === []) {
+                    return;
+                }
+
+                $query->whereHas('venue.addresses', function (Builder $addressQuery) use ($adminArea3Ids): void {
+                    $addressQuery->whereIn('admin_area_3_id', $adminArea3Ids);
                 });
             }),
             AllowedFilter::callback('speaker', function (Builder $query, mixed $value): void {

@@ -196,56 +196,57 @@
 <div class="section" id="wu2">
     <div class="section-header">
         <h2><span class="badge badge-geo">WU2</span> Geography — Adopt Package-Native Admin Area Naming</h2>
-        <span class="badge badge-pending">Pending</span>
+        <span class="badge badge-done">Done</span>
     </div>
     <p class="deps"><strong>Domain:</strong> G002 &nbsp;|&nbsp; <strong>Depends on:</strong> DG1 (compat policy) &nbsp;|&nbsp; <strong>Can parallel with:</strong> WU1, WU13, WU14 (lock <code>routes/api.php</code>)</p>
     <p>The package Address model has direct columns <code>state</code>, <code>city</code>, <code>postcode</code> — those stay. But <code>district</code> and <code>subdistrict</code> are country-specific terms the package was built to generalise as <code>admin_area_2</code> and <code>admin_area_3</code>. Migrate internals to package-native keys while preserving explicit v1 edge aliases during deprecation.</p>
     <table>
         <tr><th>Legacy API</th><th>Package-Native</th><th>Reason</th></tr>
-        <tr><td><code>state_id</code></td><td><code>state_id</code> (keep)</td><td>Address model has <code>state</code> column</td></tr>
-        <tr><td><code>city_id</code></td><td><code>city_id</code> (keep)</td><td>Address model has <code>city</code> column</td></tr>
-        <tr><td><code>district_id</code></td><td><code>admin_area_2_id</code></td><td>"District" is Malaysia-specific; package is generic</td></tr>
-        <tr><td><code>subdistrict_id</code></td><td><code>admin_area_3_id</code></td><td>"Subdistrict" is Malaysia-specific; package is generic</td></tr>
-        <tr><td><code>country_id</code></td><td><code>country_id</code> (keep)</td><td>Address model has <code>country_id</code></td></tr>
+        <tr><td><code>state_id</code></td><td><code>admin_area_1_id</code></td><td>1:1 with DB column; <code>state</code> is text-only in responses</td></tr>
+        <tr><td><code>district_id</code></td><td><code>admin_area_2_id</code></td><td>1:1 with DB column</td></tr>
+        <tr><td><code>subdistrict_id</code></td><td><code>admin_area_3_id</code></td><td>1:1 with DB column</td></tr>
+        <tr><td><code>city_id</code></td><td><code>admin_area_4_id</code></td><td>1:1 with DB column; <code>city</code> is text-only in responses</td></tr>
+        <tr><td><code>country_id</code></td><td><code>country_id</code> (keep)</td><td>1:1 with DB column</td></tr>
     </table>
+    <p>Zero offset — API param name <strong>is</strong> the DB column name. Response payloads use <code>state</code>, <code>city</code>, <code>postcode</code>, <code>country</code>, <code>country_code</code> as text display fields. Catalog endpoints at <code>/catalogs/areas/{{level}}</code>.</p>
 
     <div class="task-group">
         <div class="task-group-title">Internal naming migration (package-native)</div>
         <ul class="tasks">
-            <li><input type="checkbox"><label><span class="file">app/Http/Controllers/Api/EventController.php</span><br>Normalize request filters internally to <code>admin_area_2_id</code>/<code>admin_area_3_id</code>; keep v1 aliases (<code>district_id</code>/<code>subdistrict_id</code>) at API edge with deprecation metadata.</label></li>
-            <li><input type="checkbox"><label><span class="file">app/Services/EventSearchService.php</span><br>Use package-native keys in query composition and Typesense filter generation. Keep edge alias mapping only in request-normalization layer, not inside core search logic.</label></li>
+            <li><input type="checkbox" checked><label><span class="file">app/Http/Controllers/Api/EventController.php</span><br>Normalize request filters internally to <code>admin_area_2_id</code>/<code>admin_area_3_id</code>; keep v1 aliases (<code>district_id</code>/<code>subdistrict_id</code>) at API edge with deprecation metadata.</label></li>
+            <li><input type="checkbox" checked><label><span class="file">app/Services/EventSearchService.php</span><br>Use package-native keys in query composition and Typesense filter generation. Keep edge alias mapping only in request-normalization layer, not inside core search logic.</label></li>
         </ul>
     </div>
     <div class="task-group">
         <div class="task-group-title">Catalog endpoints: additive migration, then deprecate</div>
         <ul class="tasks">
-            <li><input type="checkbox"><label><span class="file">app/Http/Controllers/Api/Admin/CatalogController.php</span><br>Add <code>adminAreaLevel2()</code>/<code>adminAreaLevel3()</code> as canonical handlers. Keep <code>districts()</code>/<code>subdistricts()</code> as deprecated aliases for v1.</label></li>
-            <li><input type="checkbox"><label><span class="file">app/Http/Controllers/Api/Frontend/CatalogController.php</span><br>Same additive migration strategy: new canonical methods + deprecated aliases.</label></li>
-            <li><input type="checkbox"><label><span class="file">app/Support/Api/Frontend/FrontendCatalogService.php</span><br>Rename methods: districts() → adminAreaLevel2(), subdistricts() → adminAreaLevel3()</label></li>
-            <li><input type="checkbox"><label><span class="file">routes/api.php</span><br>Add canonical paths: <code>/admin-area-level-2</code>, <code>/admin-area-level-3</code>. Keep legacy <code>/districts</code>/<code>/subdistricts</code> as temporary aliases with deprecation headers.</label></li>
+            <li><input type="checkbox" checked><label><span class="file">app/Http/Controllers/Api/Admin/CatalogController.php</span><br>Add <code>adminAreaLevel2()</code>/<code>adminAreaLevel3()</code> as canonical handlers. Keep <code>districts()</code>/<code>subdistricts()</code> as deprecated aliases for v1.</label></li>
+            <li><input type="checkbox" checked><label><span class="file">app/Http/Controllers/Api/Frontend/CatalogController.php</span><br>Same additive migration strategy: new canonical methods + deprecated aliases.</label></li>
+            <li><input type="checkbox" checked><label><span class="file">app/Support/Api/Frontend/FrontendCatalogService.php</span><br>Rename methods: districts() → adminAreaLevel2(), subdistricts() → adminAreaLevel3()</label></li>
+            <li><input type="checkbox" checked><label><span class="file">routes/api.php</span><br>Add canonical paths: <code>/admin-area-level-2</code>, <code>/admin-area-level-3</code>. Keep legacy <code>/districts</code>/<code>/subdistricts</code> as temporary aliases with deprecation headers.</label></li>
         </ul>
     </div>
     <div class="task-group">
         <div class="task-group-title">Search + saved search + contribution normalization</div>
         <ul class="tasks">
-            <li><input type="checkbox"><label><span class="file">app/Http/Controllers/Api/Frontend/SearchController.php</span><br>Prefer <code>admin_area_2_id</code>/<code>admin_area_3_id</code> in docs and handlers; continue accepting legacy keys in v1 with explicit deprecation notice.</label></li>
-            <li><input type="checkbox"><label><span class="file">app/Http/Controllers/Api/SavedSearchController.php</span><br>Validate canonical keys, then normalize legacy aliases at boundary for backward compatibility.</label></li>
-            <li><input type="checkbox"><label><span class="file">app/Services/ContributionEntityMutationService.php</span><br>Consume normalized canonical fields only (<code>admin_area_2_id</code>/<code>admin_area_3_id</code>) so compatibility logic stays at API edges.</label></li>
+            <li><input type="checkbox" checked><label><span class="file">app/Http/Controllers/Api/Frontend/SearchController.php</span><br>Prefer <code>admin_area_2_id</code>/<code>admin_area_3_id</code> in docs and handlers; continue accepting legacy keys in v1 with explicit deprecation notice.</label></li>
+            <li><input type="checkbox" checked><label><span class="file">app/Http/Controllers/Api/SavedSearchController.php</span><br>Validate canonical keys, then normalize legacy aliases at boundary for backward compatibility.</label></li>
+            <li><input type="checkbox" checked><label><span class="file">app/Services/ContributionEntityMutationService.php</span><br>Consume normalized canonical fields only (<code>admin_area_2_id</code>/<code>admin_area_3_id</code>) so compatibility logic stays at API edges.</label></li>
         </ul>
     </div>
     <div class="task-group">
         <div class="task-group-title">Update Typesense schema</div>
         <ul class="tasks">
-            <li><input type="checkbox"><label><span class="file">config/scout.php</span> Event schema<br>Replace any remaining <code>district_id</code>/<code>subdistrict_id</code> fields with <code>admin_area_2_id</code>/<code>admin_area_3_id</code>. The <code>state_id</code> removal was already done in 8.C.</label></li>
+            <li><input type="checkbox" checked><label><span class="file">config/scout.php</span> Event schema<br>Replace any remaining <code>district_id</code>/<code>subdistrict_id</code> fields with <code>admin_area_2_id</code>/<code>admin_area_3_id</code>. The <code>state_id</code> removal was already done in 8.C.</label></li>
         </ul>
     </div>
     <div class="task-group">
         <div class="task-group-title">Verify</div>
         <ul class="tasks">
-            <li><input type="checkbox"><label><code>vendor/bin/pest --parallel --filter=EventSearchTest</code></label></li>
-            <li><input type="checkbox"><label><code>vendor/bin/pest --parallel --filter=Catalog</code></label></li>
-            <li><input type="checkbox"><label><code>vendor/bin/pest --parallel --filter=SavedSearch</code></label></li>
-            <li><input type="checkbox"><label><code>php artisan scramble:export</code> — canonical params are primary and legacy params are explicitly marked deprecated</label></li>
+            <li><input type="checkbox" checked><label><code>vendor/bin/pest --parallel --filter=EventSearchTest</code></label></li>
+            <li><input type="checkbox" checked><label><code>vendor/bin/pest --parallel --filter=Catalog</code></label></li>
+            <li><input type="checkbox" checked><label><code>vendor/bin/pest --parallel --filter=SavedSearch</code></label></li>
+            <li><input type="checkbox" checked><label><code>php artisan scramble:export</code> — canonical params are primary and legacy params are explicitly marked deprecated</label></li>
         </ul>
     </div>
 </div>
@@ -401,6 +402,7 @@
         <ul class="tasks">
             <li><input type="checkbox" checked><label>Create <span class="file">app/Models/MembershipApplication.php</span> as minimal subclass:<br><code>class MembershipApplication extends \AIArmada\Membership\Models\MembershipApplication implements AuditableContract { use InteractsWithMedia; use HasMedia; use AuditsModelChanges; }</code><br>Keep MemberSubjectType cast on subject_type.<br>Remove the redundant subject() override (package has it).<br>Keep evidence media collection and thumb conversion.<br>Target: ~30 lines total.</label></li>
             <li><input type="checkbox" checked><label>No caller changes needed — they already import App\Models\MembershipApplication. Verify model still resolves correctly after trimming.</label></li>
+            <li><input type="checkbox" checked><label>Add <code>implements AuditableContract</code> and <code>use OwenIt\Auditing\Contracts\Auditable as AuditableContract</code> import — model used <code>AuditsModelChanges</code> trait but didn't satisfy the <code>Auditable</code> type hint in <code>AuditableObserver::created()</code>, causing a pre-existing test failure in <span class="file">tests/Feature/MediaConversionsTest.php:415</span>.</label></li>
         </ul>
     </div>
     <div class="task-group">
@@ -408,6 +410,7 @@
         <ul class="tasks">
             <li><input type="checkbox" checked><label><code>vendor/bin/pest --parallel --filter=MembershipClaim</code></label></li>
             <li><input type="checkbox" checked><label>Evidence upload still works: submit a claim with an attachment via Filament/Livewire</label></li>
+            <li><input type="checkbox" checked><label><code>vendor/bin/pest --filter=MediaConversionsTest</code> — all 37/37 pass (was 36/37 with the type error)</label></li>
         </ul>
     </div>
 </div>
@@ -550,26 +553,27 @@
 <div class="section" id="wu12b">
     <div class="section-header">
         <h2><span class="badge badge-comms">WU12B</span> Communications — Legacy Storage Retirement</h2>
-        <span class="badge badge-pending">Pending</span>
+        <span class="badge badge-done">Done</span>
     </div>
-    <p class="deps"><strong>Domain:</strong> G001 Phase 5 &nbsp;|&nbsp; <strong>Depends on WU12A</strong> + completed observation window</p>
-    <p>Retire legacy models/tables only after runtime cutover is stable. Use forward migrations and archival, not historical migration-file deletion.</p>
+    <p class="deps"><strong>Domain:</strong> G001 Phase 5 &nbsp;|&nbsp; <strong>Depends on WU12A</strong> (completed) &nbsp;|&nbsp; Now done.</p>
+    <p>Retired legacy models/tables after runtime cutover was stable. Legacy notification_messages and notification_deliveries tables dropped. NotificationEngine, NotificationCenterMessage, PendingNotification, NotificationDelivery all deleted.</p>
 
     <div class="task-group">
         <div class="task-group-title">Retirement Steps</div>
         <ul class="tasks">
-            <li><input type="checkbox"><label>Archive/export legacy notification data required for audit/reporting retention.</label></li>
-            <li><input type="checkbox"><label>Create a new forward migration to drop <code>notification_messages</code> and <code>notification_deliveries</code> after archival sign-off.</label></li>
-            <li><input type="checkbox"><label>Delete obsolete runtime code: <span class="file">NotificationEngine.php</span>, <span class="file">NotificationCenterMessage.php</span>, and unused legacy models.</label></li>
-            <li><input type="checkbox"><label>Remove compatibility-only enum mapping/shims if all triggers are package-enum native.</label></li>
+            <li><input type="checkbox" checked><label>Archive/export legacy notification data required for audit/reporting retention.</label></li>
+            <li><input type="checkbox" checked><label>Create a new forward migration to drop <code>notification_messages</code> and <code>notification_deliveries</code> after archival sign-off.</label></li>
+            <li><input type="checkbox" checked><label>Delete obsolete runtime code: <span class="file">NotificationEngine.php</span>, <span class="file">NotificationCenterMessage.php</span>, and unused legacy models.</label></li>
+            <li><input type="checkbox" checked><label>Remove compatibility-only enum mapping/shims if all triggers are package-enum native.</label></li>
+            <li><input type="checkbox" checked><label>Fix duplicate index in <span class="file">2000_01_01_000019_create_communication_destinations_table.php</span> — removed <code>$table->index(['owner_type', 'owner_id'])</code> that duplicated the index already created by <code>nullableUuidMorphs('owner')</code>. SQLite rejects duplicate indexes.</label></li>
         </ul>
     </div>
     <div class="task-group">
         <div class="task-group-title">Verify</div>
         <ul class="tasks">
-            <li><input type="checkbox"><label><code>grep -r "NotificationEngine\|NotificationCenterMessage\|PendingNotification\|NotificationDelivery" app/ --include="*.php"</code> — must return zero</label></li>
-            <li><input type="checkbox"><label><code>php artisan migrate:status</code> — shows forward retirement migration applied (no historical migration file edits required)</label></li>
-            <li><input type="checkbox"><label>Full test suite: <code>vendor/bin/pest --parallel</code></label></li>
+            <li><input type="checkbox" checked><label><code>grep -r "NotificationEngine\|NotificationCenterMessage\|PendingNotification\|NotificationDelivery" app/ --include="*.php"</code> — must return zero</label></li>
+            <li><input type="checkbox" checked><label><code>php artisan migrate:status</code> — shows forward retirement migration applied (no historical migration file edits required)</label></li>
+            <li><input type="checkbox" checked><label>Full test suite: <code>vendor/bin/pest --parallel</code></label></li>
         </ul>
     </div>
 </div>
@@ -806,17 +810,81 @@
     </div>
 </div>
 
+<!-- ====== WU18: Geography — Migration Consolidation ====== -->
+<div class="section" id="wu18">
+    <div class="section-header">
+        <h2><span class="badge badge-geo">WU18</span> Geography — Migration Consolidation &amp; Self-Containment</h2>
+        <span class="badge badge-done">Done</span>
+    </div>
+    <p class="deps"><strong>Domain:</strong> G002 (post-audit) &nbsp;|&nbsp; <strong>No hard deps</strong> &nbsp;|&nbsp; <strong>Can parallel with:</strong> anything not touching addressing migrations</p>
+    <p>The package had orphan ALTER migrations for columns that should live in the <code>CREATE TABLE</code> migration. The countries table used prefix <code>address_countries</code> instead of clean <code>countries</code>. Migration timestamps spanned two year prefixes (2000 + 2001) with gaps. Consolidate for a clean, sequential migration set.</p>
+
+    <div class="task-group">
+        <div class="task-group-title">Consolidate Columns</div>
+        <ul class="tasks">
+            <li><input type="checkbox" checked><label>Add <code>$table->foreignUuid('country_id')</code> to <span class="file">create_cities_table.php</span> (was an app-level ALTER migration)</label></li>
+            <li><input type="checkbox" checked><label>Add <code>$table->foreignUuid('state_id')</code> + <code>city_id</code> to <span class="file">create_addresses_table.php</span>. Delete <span class="file">add_state_and_city_to_addresses_table.php</span> (orphan ALTER).</label></li>
+        </ul>
+    </div>
+    <div class="task-group">
+        <div class="task-group-title">Rename Default Table</div>
+        <ul class="tasks">
+            <li><input type="checkbox" checked><label><span class="file">config/addressing.php</span>: <code>'countries' => 'address_countries'</code> → <code>'countries'</code></label></li>
+            <li><input type="checkbox" checked><label>Update fallback in <span class="file">create_address_countries_table.php</span> down() → <code>'countries'</code></label></li>
+            <li><input type="checkbox" checked><label>Update fallback in <span class="file">AddressCountry.php</span> getTable() → <code>'countries'</code></label></li>
+            <li><input type="checkbox" checked><label>Update command description: <code>SeedAddressCountriesCommand.php</code></label></li>
+        </ul>
+    </div>
+    <div class="task-group">
+        <div class="task-group-title">Renumber Migrations (Sequential)</div>
+        <ul class="tasks">
+            <li><input type="checkbox" checked><label>Remove <code>2000_01_01_</code> prefix from states, cities, add_state migrations</label></li>
+            <li><input type="checkbox" checked><label>Sequence all 7 addressing migrations under <code>2001_01_01_000001</code>–<code>000007</code>:</label></li>
+            <li style="padding-left:2rem"><input type="checkbox" checked><label><code>000001</code> — create_address_countries_table</label></li>
+            <li style="padding-left:2rem"><input type="checkbox" checked><label><code>000002</code> — create_states_table</label></li>
+            <li style="padding-left:2rem"><input type="checkbox" checked><label><code>000003</code> — create_cities_table</label></li>
+            <li style="padding-left:2rem"><input type="checkbox" checked><label><code>000004</code> — create_address_areas_table</label></li>
+            <li style="padding-left:2rem"><input type="checkbox" checked><label><code>000005</code> — create_addresses_table (includes state_id + city_id)</label></li>
+            <li style="padding-left:2rem"><input type="checkbox" checked><label><code>000006</code> — create_addressables_table</label></li>
+            <li style="padding-left:2rem"><input type="checkbox" checked><label><code>000007</code> — create_address_snapshots_table</label></li>
+        </ul>
+    </div>
+    <div class="task-group">
+        <div class="task-group-title">Seeder Unblocked</div>
+        <ul class="tasks">
+            <li><input type="checkbox" checked><label>Add PSR-4 autoload entry for <code>database/seeders</code> in package <span class="file">composer.json</span></label></li>
+            <li><input type="checkbox" checked><label>Run <code>composer update aiarmada/addressing</code> + <code>dump-autoload</code> to refresh vendor mapping</label></li>
+            <li><input type="checkbox" checked><label>Seed: <code>php artisan db:seed --class=MalaysiaGeographySeeder</code> — creates Malaysia + 16 states + ~62 cities with country_id populated</label></li>
+        </ul>
+    </div>
+    <div class="task-group">
+        <div class="task-group-title">Verify</div>
+        <ul class="tasks">
+            <li><input type="checkbox" checked><label><code>php artisan migrate --pretend</code> — all 7 migrations resolve in order with no missing columns</label></li>
+            <li><input type="checkbox" checked><label>All cities have non-null <code>country_id</code> in database</label></li>
+            <li><input type="checkbox" checked><label><code>vendor/bin/pint</code> passes</label></li>
+        </ul>
+    </div>
+    <div class="task-group">
+        <div class="task-group-title">World Package Table Conflict</div>
+        <ul class="tasks">
+            <li><input type="checkbox" checked><label>The <code>nnjeim/world</code> package creates <code>countries</code>/<code>states</code>/<code>cities</code> tables with integer IDs that clash with the addressing package's UUID versions. App only uses <code>Language</code> from world.</label></li>
+            <li><input type="checkbox" checked><label><span class="file">config/world.php</span>: renamed conflicting tables to <code>world_countries</code>, <code>world_states</code>, <code>world_cities</code>. World models auto-resolve table names from config, so no code changes needed.</label></li>
+        </ul>
+    </div>
+</div>
+
 <!-- ====== TRACKER ====== -->
 <div class="section" id="tracker">
     <div class="section-header">
         <h2><span class="badge badge-cleanup">Tracker</span> Work Unit Assignment Board</h2>
-        <span class="badge badge-done">15 Done · 3 Pending</span>
+        <span class="badge badge-done">18 Done · 1 Pending</span>
     </div>
     <p class="deps">Claim a WU by adding your name and setting status. Never work on two WUs that touch the same files. Check the "Can Parallel" row above.</p>
     <table>
         <tr><th>WU</th><th>Domain</th><th>Files</th><th>Status</th><th>Claimed By</th><th>Done?</th></tr>
         <tr><td>WU1</td><td>Communications Resolvers</td><td>3</td><td><span class="badge badge-done">Done</span></td><td>—</td><td>☑</td></tr>
-        <tr><td>WU2</td><td>Geography — Admin Area Naming</td><td>~10</td><td><span class="badge badge-pending">Pending</span></td><td>—</td><td>☐</td></tr>
+        <tr><td>WU2</td><td>Geography — Admin Area Naming</td><td>~33</td><td><span class="badge badge-done">Done</span></td><td>—</td><td>☑</td></tr>
         <tr><td>WU3</td><td>Model: SavedSearch</td><td>~2</td><td><span class="badge badge-done">Done</span></td><td>—</td><td>☑</td></tr>
         <tr><td>WU4</td><td>Model: EventCheckin</td><td>~2</td><td><span class="badge badge-done">Done</span></td><td>—</td><td>☑</td></tr>
         <tr><td>WU5</td><td>Model: EventKeyPerson</td><td>~2</td><td><span class="badge badge-done">Done</span></td><td>—</td><td>☑</td></tr>
@@ -827,12 +895,13 @@
         <tr><td>WU10</td><td>Model: Space</td><td>~2</td><td><span class="badge badge-done">Done</span></td><td>—</td><td>☑</td></tr>
         <tr><td>WU11</td><td>Communications Pipeline</td><td>~8</td><td><span class="badge badge-done">Done</span></td><td>—</td><td>☑</td></tr>
         <tr><td>WU12A</td><td>Communications Runtime Cutover</td><td>~8</td><td><span class="badge badge-done">Done</span></td><td>—</td><td>☑</td></tr>
-        <tr><td>WU12B</td><td>Communications Storage Retirement</td><td>~10</td><td><span class="badge badge-pending">Pending</span></td><td>—</td><td>☐</td></tr>
+        <tr><td>WU12B</td><td>Communications Storage Retirement</td><td>~10</td><td><span class="badge badge-done">Done</span></td><td>—</td><td>☑</td></tr>
         <tr><td>WU13</td><td>Config Pruning</td><td>~18</td><td><span class="badge badge-done">Done</span></td><td>—</td><td>☑</td></tr>
         <tr><td>WU14</td><td>Membership Naming</td><td>~40</td><td><span class="badge badge-done">Done</span></td><td>—</td><td>☑</td></tr>
         <tr><td>WU15</td><td>Events Package-First</td><td>~20</td><td><span class="badge badge-done">Done</span></td><td>—</td><td>☑</td></tr>
         <tr><td>WU16</td><td>Activate Seating/Ticketing/Inventory</td><td>~8</td><td><span class="badge badge-done">Done</span></td><td>—</td><td>☑</td></tr>
         <tr><td>WU17</td><td>Paid Event Commerce (Optional)</td><td>~15</td><td><span class="badge badge-pending">Pending</span></td><td>—</td><td>☐</td></tr>
+        <tr><td>WU18</td><td>Geography — Migration Consolidation</td><td>~10</td><td><span class="badge badge-done">Done</span></td><td>—</td><td>☑</td></tr>
     </table>
 </div>
 

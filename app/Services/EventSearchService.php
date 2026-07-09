@@ -367,20 +367,28 @@ class EventSearchService
             $filterParts[] = 'starts_at:<='.$startsBeforeTimestamp;
         }
 
-        if (! empty($filters['district_id'])) {
-            $filterParts[] = 'district_id:='.$filters['district_id'];
+        if (! empty($filters['state_id'])) {
+            $filterParts[] = 'state_id:='.$filters['state_id'];
+        }
+
+        if (! empty($filters['city_id'])) {
+            $filterParts[] = 'city_id:='.$filters['city_id'];
         }
 
         if (! empty($filters['country_id'])) {
             $filterParts[] = 'country_id:='.$filters['country_id'];
         }
 
-        if (! empty($filters['state_id'])) {
-            $filterParts[] = 'state_id:='.$filters['state_id'];
+        if (! empty($filters['admin_area_1_id'])) {
+            $filterParts[] = 'admin_area_1_id:='.$filters['admin_area_1_id'];
         }
 
-        if (! empty($filters['subdistrict_id'])) {
-            $filterParts[] = 'subdistrict_id:='.$filters['subdistrict_id'];
+        if (! empty($filters['admin_area_2_id'])) {
+            $filterParts[] = 'admin_area_2_id:='.$filters['admin_area_2_id'];
+        }
+
+        if (! empty($filters['admin_area_3_id'])) {
+            $filterParts[] = 'admin_area_3_id:='.$filters['admin_area_3_id'];
         }
 
         $languageCodes = $this->normalizeArrayFilter($filters['language_codes'] ?? null);
@@ -562,12 +570,20 @@ class EventSearchService
             $this->applyLocationAddressFilter($queryBuilder, 'state_id', $filters['state_id']);
         }
 
-        if (! empty($filters['district_id'])) {
-            $this->applyLocationAddressFilter($queryBuilder, 'district_id', $filters['district_id']);
+        if (! empty($filters['city_id'])) {
+            $this->applyLocationAddressFilter($queryBuilder, 'city_id', $filters['city_id']);
         }
 
-        if (! empty($filters['subdistrict_id'])) {
-            $this->applyLocationAddressFilter($queryBuilder, 'subdistrict_id', $filters['subdistrict_id']);
+        if (! empty($filters['admin_area_1_id'])) {
+            $this->applyLocationAddressFilter($queryBuilder, 'admin_area_1_id', $filters['admin_area_1_id']);
+        }
+
+        if (! empty($filters['admin_area_2_id'])) {
+            $this->applyLocationAddressFilter($queryBuilder, 'admin_area_2_id', $filters['admin_area_2_id']);
+        }
+
+        if (! empty($filters['admin_area_3_id'])) {
+            $this->applyLocationAddressFilter($queryBuilder, 'admin_area_3_id', $filters['admin_area_3_id']);
         }
 
         $languageCodes = $this->normalizeArrayFilter($filters['language_codes'] ?? null);
@@ -1144,12 +1160,7 @@ class EventSearchService
 
     protected function applyLocationAddressFilter(EventBuilder $queryBuilder, string $column, mixed $value): void
     {
-        $addressColumn = match ($column) {
-            'state_id' => 'admin_area_1_id',
-            'district_id' => 'admin_area_2_id',
-            'subdistrict_id' => 'admin_area_3_id',
-            default => $column,
-        };
+        $addressColumn = $column;
         $addressesTable = config('addressing.tables.addresses', 'addresses');
         $addressablesTable = config('addressing.tables.addressables', 'addressables');
         $institutionIdExpression = $this->eventUuidMetadataSqlSelector('institution_id');

@@ -48,9 +48,9 @@
     $events = $this->events;
     $search = $this->search;
     $countryId = $this->country_id;
-    $stateId = $this->state_id;
-    $districtId = $this->district_id;
-    $subdistrictId = $this->subdistrict_id;
+    $stateId = $this->admin_area_1_id;
+    $adminArea1Id = $this->admin_area_1_id;
+    $adminArea2Id = $this->admin_area_2_id;
     $institutionId = $this->institution_id;
     $venueId = $this->venue_id;
     $gender = $this->gender;
@@ -120,8 +120,8 @@
         filled($search),
         filled($countryId),
         filled($stateId),
-        filled($districtId),
-        filled($subdistrictId),
+        filled($adminArea1Id),
+        filled($adminArea2Id),
         filled($institutionId),
         filled($venueId),
         count($selectedLanguageCodes) > 0,
@@ -160,8 +160,8 @@
         'search' => $search,
         'country_id' => $countryId,
         'state_id' => $stateId,
-        'district_id' => $districtId,
-        'subdistrict_id' => $subdistrictId,
+        'admin_area_1_id' => $adminArea1Id,
+        'admin_area_2_id' => $adminArea2Id,
         'institution_id' => $institutionId,
         'venue_id' => $venueId,
         'speaker_ids' => $selectedSpeakerIds,
@@ -557,7 +557,7 @@
 
                             <label class="block">
                                 <span class="mb-1.5 block text-xs font-semibold text-slate-600">{{ __('Daerah') }}</span>
-                                <select wire:model.live="filterData.district_id" data-signal-control="district_id" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10" @disabled(! filled($stateId))>
+                                <select wire:model.live="filterData.admin_area_1_id" data-signal-control="admin_area_1_id" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10" @disabled(! filled($stateId))>
                                     <option value="">{{ __('Pilih daerah') }}</option>
                                     @foreach($districts as $district)
                                         <option value="{{ $district->id }}">{{ $district->name }}</option>
@@ -568,7 +568,7 @@
                             @if(filled($stateId))
                                 <label class="block">
                                     <span class="mb-1.5 block text-xs font-semibold text-slate-600">{{ __('Bandar / Mukim / Zon') }}</span>
-                                    <select wire:model.live="filterData.subdistrict_id" data-signal-control="subdistrict_id" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10">
+                                    <select wire:model.live="filterData.admin_area_2_id" data-signal-control="admin_area_2_id" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10">
                                         <option value="">{{ __('Semua kawasan') }}</option>
                                         @foreach($subdistricts as $subdistrict)
                                             <option value="{{ $subdistrict->id }}">{{ $subdistrict->name }}</option>
@@ -746,8 +746,8 @@
                             @if($stateId)
                                 <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ $states->firstWhere('id', $stateId)?->name ?? __('State') }}</span>
                             @endif
-                            @if($districtId)
-                                <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ $districts->firstWhere('id', $districtId)?->name ?? __('District') }}</span>
+                            @if($adminArea1Id)
+                                <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ $districts->firstWhere('id', $adminArea1Id)?->name ?? __('District') }}</span>
                             @endif
                             @foreach($selectedEventTypes as $eventType)
                                 <span class="inline-flex items-center rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800">{{ $eventTypeLabels[$eventType] ?? str((string) $eventType)->replace('_', ' ')->headline() }}</span>

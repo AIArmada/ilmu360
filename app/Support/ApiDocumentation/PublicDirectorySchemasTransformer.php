@@ -66,10 +66,10 @@ final class PublicDirectorySchemasTransformer implements DocumentTransformer
         return Schema::fromType(
             (new ObjectType)
                 ->addProperty('country_id', (new StringType)->nullable(true))
-                ->addProperty('state_id', (new StringType)->nullable(true))
-                ->addProperty('district_id', (new StringType)->nullable(true))
-                ->addProperty('subdistrict_id', (new StringType)->nullable(true))
-                ->setRequired(['country_id', 'state_id', 'district_id', 'subdistrict_id']),
+                ->addProperty('admin_area_1_id', (new StringType)->nullable(true))
+                ->addProperty('admin_area_2_id', (new StringType)->nullable(true))
+                ->addProperty('admin_area_3_id', (new StringType)->nullable(true))
+                ->setRequired(['country_id', 'admin_area_1_id', 'admin_area_2_id', 'admin_area_3_id']),
         );
     }
 

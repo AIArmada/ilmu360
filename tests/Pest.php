@@ -208,8 +208,8 @@ function normalizeTestAddressAttributes(array $attributes): array
 
     foreach ([
         'state_id' => 'admin_area_1_id',
-        'district_id' => 'admin_area_2_id',
-        'subdistrict_id' => 'admin_area_3_id',
+        'admin_area_1_id' => 'admin_area_2_id',
+        'admin_area_2_id' => 'admin_area_3_id',
         'city_id' => 'admin_area_4_id',
     ] as $legacyKey => $packageKey) {
         if (! array_key_exists($packageKey, $normalized) && array_key_exists($legacyKey, $normalized)) {

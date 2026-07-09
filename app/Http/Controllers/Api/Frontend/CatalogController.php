@@ -43,13 +43,13 @@ class CatalogController extends FrontendController
 
     #[Endpoint(
         title: 'List public districts catalog',
-        description: 'Returns the public districts catalog for an explicitly selected `state_id` or `country_id`.',
+        description: 'Returns the public districts catalog for an explicitly selected `admin_area_1_id` or `country_id`.',
     )]
     public function districts(Request $request): JsonResponse
     {
         $stateId = $request->filled('admin_area_1_id')
             ? $request->string('admin_area_1_id')->toString()
-            : ($request->filled('state_id') ? $request->string('state_id')->toString() : null);
+            : null;
         $countryId = $stateId === null
             ? ($request->filled('country_id') ? $request->string('country_id')->toString() : null)
             : null;
@@ -61,7 +61,7 @@ class CatalogController extends FrontendController
 
     #[Endpoint(
         title: 'List public subdistricts catalog',
-        description: 'Returns the public subdistricts catalog for a selected `district_id` or state fallback.',
+        description: 'Returns the public subdistricts catalog for a selected `admin_area_1_id` or state fallback.',
     )]
     public function subdistricts(Request $request): JsonResponse
     {
@@ -69,10 +69,10 @@ class CatalogController extends FrontendController
             'data' => $this->catalogs->subdistricts(
                 $request->filled('admin_area_1_id')
                     ? $request->string('admin_area_1_id')->toString()
-                    : ($request->filled('state_id') ? $request->string('state_id')->toString() : null),
+                    : null,
                 $request->filled('admin_area_2_id')
                     ? $request->string('admin_area_2_id')->toString()
-                    : ($request->filled('district_id') ? $request->string('district_id')->toString() : null),
+                    : ($request->filled('admin_area_1_id') ? $request->string('admin_area_1_id')->toString() : null),
             ),
         ]);
     }

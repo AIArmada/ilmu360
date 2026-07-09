@@ -2,18 +2,17 @@
 
 namespace App\Services\Notifications;
 
+use AIArmada\Communications\Models\CommunicationDestination;
+use AIArmada\Communications\Models\CommunicationPreference;
 use App\Enums\NotificationCadence;
 use App\Enums\NotificationChannel;
-use App\Enums\NotificationDestinationStatus;
 use App\Enums\NotificationPriority;
 use App\Enums\NotificationRuleScope;
 use App\Enums\NotificationTrigger;
-use App\Models\NotificationDestination;
-use App\Models\NotificationRule;
-use App\Models\NotificationSetting;
 use App\Models\User;
 use App\Support\Notifications\NotificationCatalog;
 use App\Support\Notifications\ResolvedNotificationPolicy;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 
@@ -21,79 +20,91 @@ class NotificationSettingsManager
 {
     public function ensureUserConfiguration(User $user): void
     {
-        NotificationSetting::query()->firstOrCreate(
-            ['user_id' => $user->id],
+        CommunicationPreference::query()->firstOrCreate(
+            [
+                'recipient_type' => $user->getMorphClass(),
+                'recipient_id' => $user->getKey(),
+                'channel' => null,
+                'category' => null,
+            ],
             [
                 'locale' => app()->getLocale(),
                 'timezone' => $this->userStringAttribute($user, 'timezone') ?: config('app.timezone'),
-                'digest_delivery_time' => config('notification-center.defaults.digest_delivery_time'),
-                'digest_weekly_day' => (int) config('notification-center.defaults.digest_weekly_day', 1),
-                'preferred_channels' => config('notification-center.defaults.preferred_channels', []),
-                'fallback_channels' => config('notification-center.defaults.fallback_channels', []),
-                'fallback_strategy' => (string) config('notification-center.defaults.fallback_strategy', 'next_available'),
-                'urgent_override' => true,
+                'enabled_at' => now(),
+                'metadata' => [
+                    'digest_delivery_time' => config('notification-center.defaults.digest_delivery_time'),
+                    'digest_weekly_day' => (int) config('notification-center.defaults.digest_weekly_day', 1),
+                    'preferred_channels' => config('notification-center.defaults.preferred_channels', []),
+                    'fallback_channels' => config('notification-center.defaults.fallback_channels', []),
+                    'fallback_strategy' => (string) config('notification-center.defaults.fallback_strategy', 'next_available'),
+                    'urgent_override' => true,
+                ],
             ]
         );
 
-        $existingRules = NotificationRule::query()
-            ->where('user_id', $user->id)
+        $existingScopeKeys = $this->scopePreferencesFor($user)
             ->get(['scope_type', 'scope_key'])
-            ->groupBy(static fn (NotificationRule $rule): string => $rule->scope_type instanceof NotificationRuleScope
-                ? $rule->scope_type->value
-                : (string) $rule->scope_type)
-            ->map(static fn (Collection $rules): array => $rules
+            ->groupBy(fn (CommunicationPreference $pref): string => (string) $pref->scope_type)
+            ->map(fn (Collection $prefs): array => $prefs
                 ->pluck('scope_key')
-                ->map(static fn (mixed $scopeKey): string => (string) $scopeKey)
+                ->map(fn (mixed $scopeKey): string => (string) $scopeKey)
                 ->all());
 
-        $rulePrototype = new NotificationRule;
         $missingRules = [];
         $timestamp = now();
 
         foreach (NotificationCatalog::families() as $familyKey => $definition) {
-            if (in_array($familyKey, $existingRules->get(NotificationRuleScope::Family->value, []), true)) {
+            if (in_array($familyKey, $existingScopeKeys->get(NotificationRuleScope::Family->value, []), true)) {
                 continue;
             }
 
             $missingRules[] = [
-                'id' => $rulePrototype->newUniqueId(),
-                'user_id' => $user->id,
+                'id' => str()->uuid(),
+                'recipient_type' => $user->getMorphClass(),
+                'recipient_id' => $user->getKey(),
                 'scope_type' => NotificationRuleScope::Family->value,
                 'scope_key' => $familyKey,
-                'enabled' => true,
-                'cadence' => $definition['default_cadence']->value,
-                'channels' => json_encode($definition['default_channels'], JSON_THROW_ON_ERROR),
-                'fallback_channels' => json_encode($definition['default_channels'], JSON_THROW_ON_ERROR),
-                'urgent_override' => null,
-                'meta' => json_encode(['inherits_family' => false], JSON_THROW_ON_ERROR),
+                'enabled_at' => $timestamp,
+                'source' => 'system',
+                'metadata' => json_encode([
+                    'cadence' => $definition['default_cadence']->value,
+                    'channels' => $definition['default_channels'],
+                    'fallback_channels' => $definition['default_channels'],
+                    'urgent_override' => null,
+                    'inherits_family' => false,
+                ], JSON_THROW_ON_ERROR),
                 'created_at' => $timestamp,
                 'updated_at' => $timestamp,
             ];
         }
 
         foreach (NotificationCatalog::triggers() as $triggerKey => $definition) {
-            if (in_array($triggerKey, $existingRules->get(NotificationRuleScope::Trigger->value, []), true)) {
+            if (in_array($triggerKey, $existingScopeKeys->get(NotificationRuleScope::Trigger->value, []), true)) {
                 continue;
             }
 
             $missingRules[] = [
-                'id' => $rulePrototype->newUniqueId(),
-                'user_id' => $user->id,
+                'id' => str()->uuid(),
+                'recipient_type' => $user->getMorphClass(),
+                'recipient_id' => $user->getKey(),
                 'scope_type' => NotificationRuleScope::Trigger->value,
                 'scope_key' => $triggerKey,
-                'enabled' => true,
-                'cadence' => $definition['default_cadence']->value,
-                'channels' => json_encode($definition['default_channels'], JSON_THROW_ON_ERROR),
-                'fallback_channels' => json_encode($definition['default_channels'], JSON_THROW_ON_ERROR),
-                'urgent_override' => null,
-                'meta' => json_encode(['inherits_family' => true], JSON_THROW_ON_ERROR),
+                'enabled_at' => $timestamp,
+                'source' => 'system',
+                'metadata' => json_encode([
+                    'cadence' => $definition['default_cadence']->value,
+                    'channels' => $definition['default_channels'],
+                    'fallback_channels' => $definition['default_channels'],
+                    'urgent_override' => null,
+                    'inherits_family' => true,
+                ], JSON_THROW_ON_ERROR),
                 'created_at' => $timestamp,
                 'updated_at' => $timestamp,
             ];
         }
 
         if ($missingRules !== []) {
-            NotificationRule::query()->insertOrIgnore($missingRules);
+            CommunicationPreference::query()->insertOrIgnore($missingRules);
         }
 
         $this->syncSystemDestinations($user);
@@ -113,32 +124,35 @@ class NotificationSettingsManager
     {
         $this->ensureUserConfiguration($user);
 
-        /** @var NotificationSetting $setting */
+        /** @var CommunicationPreference $setting */
         $setting = $user->notificationSetting()->firstOrFail();
-        /** @var Collection<int, NotificationRule> $rules */
-        $rules = $user->notificationRules()->get();
+        /** @var Collection<int, CommunicationPreference> $rules */
+        $rules = $this->scopePreferencesFor($user)->get();
 
         $familyRuleMap = $rules
-            ->where('scope_type', NotificationRuleScope::Family)
+            ->where('scope_type', NotificationRuleScope::Family->value)
             ->keyBy('scope_key');
         $triggerRuleMap = $rules
-            ->where('scope_type', NotificationRuleScope::Trigger)
+            ->where('scope_type', NotificationRuleScope::Trigger->value)
             ->keyBy('scope_key');
 
         $families = [];
         foreach (NotificationCatalog::families() as $familyKey => $definition) {
-            /** @var NotificationRule|null $rule */
             $rule = $familyRuleMap->get($familyKey);
-            $familyCadence = $rule?->cadence instanceof NotificationCadence ? $rule->cadence->value : $definition['default_cadence']->value;
+            $ruleMeta = $rule instanceof CommunicationPreference ? $this->metaArray($rule) : [];
+
+            $familyCadence = isset($ruleMeta['cadence'])
+                ? $ruleMeta['cadence']
+                : $definition['default_cadence']->value;
             $familyChannels = $this->normalizeChannels(
-                $rule instanceof NotificationRule ? $rule->channels : null,
+                $ruleMeta['channels'] ?? null,
                 $definition['allowed_channels'],
                 $definition['default_channels'],
             );
 
             $families[$familyKey] = [
                 'scope_key' => $familyKey,
-                'enabled' => $rule instanceof NotificationRule ? $rule->enabled : true,
+                'enabled' => $rule !== null ? ($rule->enabled_at !== null) : true,
                 'cadence' => $familyCadence,
                 'channels' => $familyChannels,
                 'allowed_channels' => $definition['allowed_channels'],
@@ -152,27 +166,28 @@ class NotificationSettingsManager
         $triggers = [];
         $groupedTriggers = [];
         foreach (NotificationCatalog::triggers() as $triggerKey => $definition) {
-            /** @var NotificationRule|null $rule */
             $rule = $triggerRuleMap->get($triggerKey);
+            $ruleMeta = $rule instanceof CommunicationPreference ? $this->metaArray($rule) : [];
             $familyKey = $definition['family']->value;
-            /** @var NotificationRule|null $familyRule */
             $familyRule = $familyRuleMap->get($familyKey);
-            $inheritsFamily = (bool) data_get($rule instanceof NotificationRule ? $rule->meta : [], 'inherits_family', true);
+            $familyMeta = $familyRule instanceof CommunicationPreference ? $this->metaArray($familyRule) : [];
+
+            $inheritsFamily = isset($ruleMeta['inherits_family'])
+                ? (bool) $ruleMeta['inherits_family']
+                : true;
+
             $resolvedCadence = $inheritsFamily
-                ? ($familyRule instanceof NotificationRule && $familyRule->cadence instanceof NotificationCadence
-                    ? $familyRule->cadence->value
-                    : $definition['default_cadence']->value)
-                : ($rule instanceof NotificationRule && $rule->cadence instanceof NotificationCadence
-                    ? $rule->cadence->value
-                    : $definition['default_cadence']->value);
+                ? ($familyMeta['cadence'] ?? $definition['default_cadence']->value)
+                : ($ruleMeta['cadence'] ?? $definition['default_cadence']->value);
+
             $resolvedChannels = $inheritsFamily
                 ? $this->normalizeChannels(
-                    $familyRule instanceof NotificationRule ? $familyRule->channels : null,
+                    $familyMeta['channels'] ?? null,
                     $definition['allowed_channels'],
                     $definition['default_channels'],
                 )
                 : $this->normalizeChannels(
-                    $rule instanceof NotificationRule ? $rule->channels : null,
+                    $ruleMeta['channels'] ?? null,
                     $definition['allowed_channels'],
                     $definition['default_channels'],
                 );
@@ -180,7 +195,7 @@ class NotificationSettingsManager
             $triggerState = [
                 'scope_key' => $triggerKey,
                 'family' => $familyKey,
-                'enabled' => (bool) ($rule instanceof NotificationRule ? $rule->enabled : true),
+                'enabled' => $rule !== null ? ($rule->enabled_at !== null) : true,
                 'inherits_family' => $inheritsFamily,
                 'cadence' => $resolvedCadence,
                 'channels' => $resolvedChannels,
@@ -193,7 +208,7 @@ class NotificationSettingsManager
                     NotificationPriority::High,
                     NotificationPriority::Urgent,
                 ], true),
-                'urgent_override' => $rule instanceof NotificationRule ? $rule->urgent_override : null,
+                'urgent_override' => $ruleMeta['urgent_override'] ?? null,
             ];
 
             $triggers[$triggerKey] = $triggerState;
@@ -201,26 +216,28 @@ class NotificationSettingsManager
             $groupedTriggers[$familyKey][] = $triggerState;
         }
 
+        $metadata = is_array($setting->metadata) ? $setting->metadata : [];
+
         return [
             'settings' => [
                 'locale' => (string) ($setting->locale ?: app()->getLocale()),
                 'timezone' => (string) ($setting->timezone ?: ($this->userStringAttribute($user, 'timezone') ?: config('app.timezone'))),
                 'quiet_hours_start' => (string) ($setting->quiet_hours_start ?? ''),
                 'quiet_hours_end' => (string) ($setting->quiet_hours_end ?? ''),
-                'digest_delivery_time' => (string) ($setting->digest_delivery_time ?: config('notification-center.defaults.digest_delivery_time')),
-                'digest_weekly_day' => (int) ($setting->digest_weekly_day ?: 1),
+                'digest_delivery_time' => (string) ($metadata['digest_delivery_time'] ?? config('notification-center.defaults.digest_delivery_time')),
+                'digest_weekly_day' => (int) ($metadata['digest_weekly_day'] ?? 1),
                 'preferred_channels' => $this->normalizeChannels(
-                    $setting->preferred_channels,
+                    $metadata['preferred_channels'] ?? null,
                     NotificationCatalog::supportedChannels(),
                     config('notification-center.defaults.preferred_channels', [])
                 ),
                 'fallback_channels' => $this->normalizeChannels(
-                    $setting->fallback_channels,
+                    $metadata['fallback_channels'] ?? null,
                     NotificationCatalog::supportedChannels(),
                     config('notification-center.defaults.fallback_channels', [])
                 ),
-                'fallback_strategy' => (string) ($setting->fallback_strategy ?: config('notification-center.defaults.fallback_strategy', 'next_available')),
-                'urgent_override' => (bool) $setting->urgent_override,
+                'fallback_strategy' => (string) ($metadata['fallback_strategy'] ?? config('notification-center.defaults.fallback_strategy', 'next_available')),
+                'urgent_override' => (bool) ($metadata['urgent_override'] ?? true),
             ],
             'families' => $families,
             'triggers' => $triggers,
@@ -267,7 +284,7 @@ class NotificationSettingsManager
     {
         $this->ensureUserConfiguration($user);
 
-        /** @var NotificationSetting $setting */
+        /** @var CommunicationPreference $setting */
         $setting = $user->notificationSetting()->firstOrFail();
 
         /** @var array<string, mixed> $settingsInput */
@@ -277,6 +294,16 @@ class NotificationSettingsManager
             'timezone' => $this->normalizeTimezone((string) Arr::get($settingsInput, 'timezone', $this->userStringAttribute($user, 'timezone') ?: config('app.timezone'))),
             'quiet_hours_start' => $this->normalizeTimeValue(Arr::get($settingsInput, 'quiet_hours_start')),
             'quiet_hours_end' => $this->normalizeTimeValue(Arr::get($settingsInput, 'quiet_hours_end')),
+        ]);
+
+        $saveFallbackChannels = $this->normalizeChannels(
+            Arr::get($settingsInput, 'fallback_channels'),
+            NotificationCatalog::supportedChannels(),
+            config('notification-center.defaults.fallback_channels', [])
+        );
+
+        $currentMetadata = is_array($setting->metadata) ? $setting->metadata : [];
+        $setting->metadata = array_merge($currentMetadata, [
             'digest_delivery_time' => $this->normalizeTimeValue(Arr::get($settingsInput, 'digest_delivery_time')) ?: config('notification-center.defaults.digest_delivery_time'),
             'digest_weekly_day' => $this->normalizeWeeklyDay((int) Arr::get($settingsInput, 'digest_weekly_day', 1)),
             'preferred_channels' => $this->normalizeChannels(
@@ -284,37 +311,43 @@ class NotificationSettingsManager
                 NotificationCatalog::supportedChannels(),
                 config('notification-center.defaults.preferred_channels', [])
             ),
-            'fallback_channels' => $this->normalizeChannels(
-                Arr::get($settingsInput, 'fallback_channels'),
-                NotificationCatalog::supportedChannels(),
-                config('notification-center.defaults.fallback_channels', [])
-            ),
+            'fallback_channels' => $saveFallbackChannels,
             'fallback_strategy' => $this->normalizeFallbackStrategy((string) Arr::get($settingsInput, 'fallback_strategy', 'next_available')),
             'urgent_override' => (bool) Arr::get($settingsInput, 'urgent_override', true),
-        ])->save();
+        ]);
+
+        $setting->save();
 
         /** @var array<string, mixed> $familyInput */
         $familyInput = Arr::get($payload, 'families', []);
         foreach (NotificationCatalog::families() as $familyKey => $definition) {
             /** @var array<string, mixed> $state */
             $state = Arr::get($familyInput, $familyKey, []);
-            NotificationRule::query()->updateOrCreate(
+            $enabled = (bool) Arr::get($state, 'enabled', true);
+
+            CommunicationPreference::query()->updateOrCreate(
                 [
-                    'user_id' => $user->id,
+                    'recipient_type' => $user->getMorphClass(),
+                    'recipient_id' => $user->getKey(),
                     'scope_type' => NotificationRuleScope::Family->value,
                     'scope_key' => $familyKey,
                 ],
                 [
-                    'enabled' => (bool) Arr::get($state, 'enabled', true),
-                    'cadence' => $this->normalizeCadence((string) Arr::get($state, 'cadence', $definition['default_cadence']->value))->value,
-                    'channels' => $this->normalizeChannels(
-                        Arr::get($state, 'channels'),
-                        $definition['allowed_channels'],
-                        $definition['default_channels']
+                    'enabled_at' => $enabled ? now() : null,
+                    'metadata' => array_merge(
+                        $this->currentScopeMeta($user, NotificationRuleScope::Family->value, $familyKey),
+                        [
+                            'cadence' => $this->normalizeCadence((string) Arr::get($state, 'cadence', $definition['default_cadence']->value))->value,
+                            'channels' => $this->normalizeChannels(
+                                Arr::get($state, 'channels'),
+                                $definition['allowed_channels'],
+                                $definition['default_channels']
+                            ),
+                            'fallback_channels' => $saveFallbackChannels,
+                            'urgent_override' => null,
+                            'inherits_family' => false,
+                        ]
                     ),
-                    'fallback_channels' => $setting->fallback_channels,
-                    'urgent_override' => null,
-                    'meta' => ['inherits_family' => false],
                 ]
             );
         }
@@ -327,25 +360,33 @@ class NotificationSettingsManager
             $inheritsFamily = Arr::has($state, 'inherits_family')
                 ? (bool) Arr::get($state, 'inherits_family')
                 : ! (Arr::has($state, 'cadence') || Arr::has($state, 'channels') || Arr::has($state, 'urgent_override'));
-            NotificationRule::query()->updateOrCreate(
+            $enabled = (bool) Arr::get($state, 'enabled', true);
+
+            CommunicationPreference::query()->updateOrCreate(
                 [
-                    'user_id' => $user->id,
+                    'recipient_type' => $user->getMorphClass(),
+                    'recipient_id' => $user->getKey(),
                     'scope_type' => NotificationRuleScope::Trigger->value,
                     'scope_key' => $triggerKey,
                 ],
                 [
-                    'enabled' => (bool) Arr::get($state, 'enabled', true),
-                    'cadence' => $this->normalizeCadence((string) Arr::get($state, 'cadence', $definition['default_cadence']->value))->value,
-                    'channels' => $this->normalizeChannels(
-                        Arr::get($state, 'channels'),
-                        $definition['allowed_channels'],
-                        $definition['default_channels']
+                    'enabled_at' => $enabled ? now() : null,
+                    'metadata' => array_merge(
+                        $this->currentScopeMeta($user, NotificationRuleScope::Trigger->value, $triggerKey),
+                        [
+                            'cadence' => $this->normalizeCadence((string) Arr::get($state, 'cadence', $definition['default_cadence']->value))->value,
+                            'channels' => $this->normalizeChannels(
+                                Arr::get($state, 'channels'),
+                                $definition['allowed_channels'],
+                                $definition['default_channels']
+                            ),
+                            'fallback_channels' => $saveFallbackChannels,
+                            'urgent_override' => ! $inheritsFamily && Arr::has($state, 'urgent_override')
+                                ? (bool) Arr::get($state, 'urgent_override')
+                                : null,
+                            'inherits_family' => $inheritsFamily,
+                        ]
                     ),
-                    'fallback_channels' => $setting->fallback_channels,
-                    'urgent_override' => ! $inheritsFamily && Arr::has($state, 'urgent_override')
-                        ? (bool) Arr::get($state, 'urgent_override')
-                        : null,
-                    'meta' => ['inherits_family' => $inheritsFamily],
                 ]
             );
         }
@@ -359,48 +400,53 @@ class NotificationSettingsManager
     {
         $this->ensureUserConfiguration($user);
 
-        /** @var NotificationSetting $setting */
+        /** @var CommunicationPreference $setting */
         $setting = $user->notificationSetting()->firstOrFail();
         $triggerDefinition = NotificationCatalog::triggerDefinition($trigger);
         NotificationCatalog::familyDefinition($triggerDefinition['family']);
 
-        /** @var NotificationRule $familyRule */
-        $familyRule = $user->notificationRules()
+        /** @var CommunicationPreference $familyRule */
+        $familyRule = $this->scopePreferencesFor($user)
             ->where('scope_type', NotificationRuleScope::Family->value)
             ->where('scope_key', $triggerDefinition['family']->value)
             ->firstOrFail();
-        /** @var NotificationRule $triggerRule */
-        $triggerRule = $user->notificationRules()
+        /** @var CommunicationPreference $triggerRule */
+        $triggerRule = $this->scopePreferencesFor($user)
             ->where('scope_type', NotificationRuleScope::Trigger->value)
             ->where('scope_key', $trigger->value)
             ->firstOrFail();
-        $inheritsFamily = (bool) data_get($triggerRule->meta, 'inherits_family', true);
 
-        $cadence = $inheritsFamily
-            ? ($familyRule->cadence instanceof NotificationCadence ? $familyRule->cadence : $triggerDefinition['default_cadence'])
-            : ($triggerRule->cadence instanceof NotificationCadence
-                ? $triggerRule->cadence
-                : ($familyRule->cadence instanceof NotificationCadence ? $familyRule->cadence : $triggerDefinition['default_cadence']));
+        $familyMeta = $this->metaArray($familyRule);
+        $triggerMeta = $this->metaArray($triggerRule);
+        $inheritsFamily = (bool) ($triggerMeta['inherits_family'] ?? true);
+
+        $cadenceValue = $inheritsFamily
+            ? ($familyMeta['cadence'] ?? $triggerDefinition['default_cadence']->value)
+            : ($triggerMeta['cadence'] ?? $familyMeta['cadence'] ?? $triggerDefinition['default_cadence']->value);
+
+        $cadence = NotificationCadence::tryFrom($cadenceValue) ?? $triggerDefinition['default_cadence'];
 
         $channels = $inheritsFamily
             ? $this->normalizeChannels(
-                $familyRule->channels,
+                $familyMeta['channels'] ?? null,
                 $triggerDefinition['allowed_channels'],
                 $triggerDefinition['default_channels'],
             )
             : $this->normalizeChannels(
-                $triggerRule->channels,
+                $triggerMeta['channels'] ?? null,
                 $triggerDefinition['allowed_channels'],
                 $triggerDefinition['default_channels'],
             );
 
+        $metadata = is_array($setting->metadata) ? $setting->metadata : [];
+
         $preferredChannels = $this->normalizeChannels(
-            $setting->preferred_channels,
+            $metadata['preferred_channels'] ?? null,
             NotificationCatalog::supportedChannels(),
             config('notification-center.defaults.preferred_channels', [])
         );
         $fallbackChannels = $this->normalizeChannels(
-            $setting->fallback_channels,
+            $metadata['fallback_channels'] ?? null,
             NotificationCatalog::supportedChannels(),
             config('notification-center.defaults.fallback_channels', [])
         );
@@ -408,17 +454,17 @@ class NotificationSettingsManager
         return new ResolvedNotificationPolicy(
             family: $triggerDefinition['family'],
             trigger: $trigger,
-            enabled: $familyRule->enabled && $triggerRule->enabled && $cadence !== NotificationCadence::Off,
+            enabled: $familyRule->enabled_at !== null && $triggerRule->enabled_at !== null && $cadence !== NotificationCadence::Off,
             cadence: $cadence,
             channels: $channels,
             preferredChannels: $preferredChannels,
             fallbackChannels: $fallbackChannels,
-            fallbackStrategy: $this->normalizeFallbackStrategy((string) ($setting->fallback_strategy ?: 'next_available')),
-            urgentOverride: $triggerRule->urgent_override ?? $familyRule->urgent_override ?? (bool) $setting->urgent_override,
+            fallbackStrategy: $this->normalizeFallbackStrategy((string) ($metadata['fallback_strategy'] ?? 'next_available')),
+            urgentOverride: $triggerMeta['urgent_override'] ?? $familyMeta['urgent_override'] ?? (bool) ($metadata['urgent_override'] ?? true),
             quietHoursStart: $this->normalizeTimeValue($setting->quiet_hours_start),
             quietHoursEnd: $this->normalizeTimeValue($setting->quiet_hours_end),
-            digestDeliveryTime: $this->normalizeTimeValue($setting->digest_delivery_time),
-            digestWeeklyDay: $this->normalizeWeeklyDay((int) ($setting->digest_weekly_day ?: 1)),
+            digestDeliveryTime: $this->normalizeTimeValue($metadata['digest_delivery_time'] ?? null),
+            digestWeeklyDay: $this->normalizeWeeklyDay((int) ($metadata['digest_weekly_day'] ?? 1)),
             locale: $this->normalizeLocale((string) ($setting->locale ?: app()->getLocale())),
             timezone: $this->normalizeTimezone((string) ($setting->timezone ?: ($this->userStringAttribute($user, 'timezone') ?: config('app.timezone')))),
         );
@@ -432,7 +478,7 @@ class NotificationSettingsManager
         $phoneVerifiedAt = $this->userAttribute($user, 'phone_verified_at');
 
         if (filled($email)) {
-            NotificationDestination::query()->updateOrCreate(
+            CommunicationDestination::query()->updateOrCreate(
                 [
                     'user_id' => $user->id,
                     'channel' => NotificationChannel::Email->value,
@@ -441,28 +487,28 @@ class NotificationSettingsManager
                 [
                     'external_id' => null,
                     'status' => $emailVerifiedAt !== null
-                        ? NotificationDestinationStatus::Active->value
-                        : NotificationDestinationStatus::Inactive->value,
+                        ? 'active'
+                        : 'inactive',
                     'is_primary' => true,
                     'verified_at' => $emailVerifiedAt,
                     'meta' => ['source' => 'account_email'],
                 ]
             );
 
-            NotificationDestination::query()
+            CommunicationDestination::query()
                 ->where('user_id', $user->id)
                 ->where('channel', NotificationChannel::Email->value)
                 ->where('address', '!=', $email)
                 ->delete();
         } else {
-            NotificationDestination::query()
+            CommunicationDestination::query()
                 ->where('user_id', $user->id)
                 ->where('channel', NotificationChannel::Email->value)
                 ->delete();
         }
 
         if (filled($phone) && $phoneVerifiedAt !== null) {
-            NotificationDestination::query()->updateOrCreate(
+            CommunicationDestination::query()->updateOrCreate(
                 [
                     'user_id' => $user->id,
                     'channel' => NotificationChannel::Whatsapp->value,
@@ -470,20 +516,20 @@ class NotificationSettingsManager
                 ],
                 [
                     'external_id' => null,
-                    'status' => NotificationDestinationStatus::Active->value,
+                    'status' => 'active',
                     'is_primary' => true,
                     'verified_at' => $phoneVerifiedAt,
                     'meta' => ['source' => 'account_phone'],
                 ]
             );
 
-            NotificationDestination::query()
+            CommunicationDestination::query()
                 ->where('user_id', $user->id)
                 ->where('channel', NotificationChannel::Whatsapp->value)
                 ->where('address', '!=', $phone)
                 ->delete();
         } else {
-            NotificationDestination::query()
+            CommunicationDestination::query()
                 ->where('user_id', $user->id)
                 ->where('channel', NotificationChannel::Whatsapp->value)
                 ->delete();
@@ -498,8 +544,13 @@ class NotificationSettingsManager
             $this->userStringAttribute($user, 'timezone') ?: (config('app.timezone') ?: 'UTC')
         );
 
-        $user->notificationSetting()->updateOrCreate(
-            ['user_id' => $user->id],
+        CommunicationPreference::query()->updateOrCreate(
+            [
+                'recipient_type' => $user->getMorphClass(),
+                'recipient_id' => $user->getKey(),
+                'channel' => null,
+                'category' => null,
+            ],
             ['timezone' => $timezone],
         );
 
@@ -507,7 +558,7 @@ class NotificationSettingsManager
     }
 
     /**
-     * @return Collection<int, NotificationDestination>
+     * @return Collection<int, CommunicationDestination>
      */
     public function destinationsFor(User $user, NotificationChannel $channel): Collection
     {
@@ -515,7 +566,7 @@ class NotificationSettingsManager
 
         return $user->notificationDestinations()
             ->where('channel', $channel->value)
-            ->where('status', NotificationDestinationStatus::Active->value)
+            ->where('status', 'active')
             ->orderByDesc('is_primary')
             ->orderByDesc('verified_at')
             ->get();
@@ -531,7 +582,7 @@ class NotificationSettingsManager
         $emailVerifiedAt = $this->userAttribute($user, 'email_verified_at');
         $phoneVerifiedAt = $this->userAttribute($user, 'phone_verified_at');
 
-        /** @var Collection<int, NotificationDestination> $destinations */
+        /** @var Collection<int, CommunicationDestination> $destinations */
         $destinations = $user->notificationDestinations()->get();
 
         return [
@@ -548,7 +599,7 @@ class NotificationSettingsManager
             'push' => $destinations
                 ->where('channel', NotificationChannel::Push->value)
                 ->values()
-                ->map(function (NotificationDestination $destination): array {
+                ->map(function (CommunicationDestination $destination): array {
                     $meta = is_array($destination->meta) ? $destination->meta : [];
 
                     return [
@@ -661,5 +712,47 @@ class NotificationSettingsManager
             ->first();
 
         return $freshUser?->getAttributes()[$key] ?? null;
+    }
+
+    /**
+     * @return CommunicationPreference|Builder
+     */
+    private function scopePreferencesFor(User $user)
+    {
+        return CommunicationPreference::query()
+            ->where('recipient_type', $user->getMorphClass())
+            ->where('recipient_id', $user->getKey())
+            ->whereNotNull('scope_type');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function metaArray(CommunicationPreference $preference): array
+    {
+        $meta = $preference->metadata;
+
+        return is_array($meta) ? $meta : [];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function currentScopeMeta(User $user, string $scopeType, string $scopeKey): array
+    {
+        $existing = CommunicationPreference::query()
+            ->where('recipient_type', $user->getMorphClass())
+            ->where('recipient_id', $user->getKey())
+            ->where('scope_type', $scopeType)
+            ->where('scope_key', $scopeKey)
+            ->first();
+
+        if ($existing === null) {
+            return [];
+        }
+
+        $meta = $existing->metadata;
+
+        return is_array($meta) ? $meta : [];
     }
 }

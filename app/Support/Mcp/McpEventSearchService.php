@@ -45,8 +45,10 @@ class McpEventSearchService
     private const array FILTER_KEYS = [
         'country_id',
         'state_id',
-        'district_id',
-        'subdistrict_id',
+        'city_id',
+        'admin_area_1_id',
+        'admin_area_2_id',
+        'admin_area_3_id',
         'language_codes',
         'event_type',
         'gender',
@@ -189,8 +191,10 @@ class McpEventSearchService
             'radius_km' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:1000'],
             'country_id' => ['sometimes', 'nullable'],
             'state_id' => ['sometimes', 'nullable'],
-            'district_id' => ['sometimes', 'nullable'],
-            'subdistrict_id' => ['sometimes', 'nullable'],
+            'city_id' => ['sometimes', 'nullable'],
+            'admin_area_1_id' => ['sometimes', 'nullable'],
+            'admin_area_2_id' => ['sometimes', 'nullable'],
+            'admin_area_3_id' => ['sometimes', 'nullable'],
             'language_codes' => ['sometimes', 'nullable', 'array'],
             'language_codes.*' => ['string'],
             'event_type' => ['sometimes', 'nullable', 'array'],
@@ -276,12 +280,18 @@ class McpEventSearchService
                 'UUID of the package-backed country record. Use the catalogs or addressing-backed discovery endpoints to obtain valid IDs.'
             ),
             'state_id' => $schema->string()->nullable()->description(
-                'UUID of the selected first-level address area within the country.'
+                'UUID of the selected state record. Use the states catalog endpoint to obtain valid IDs.'
             ),
-            'district_id' => $schema->string()->nullable()->description(
+            'city_id' => $schema->string()->nullable()->description(
+                'UUID of the selected city record. Use the cities catalog endpoint to obtain valid IDs.'
+            ),
+            'admin_area_1_id' => $schema->string()->nullable()->description(
+                'UUID of the selected first-level address area (state/province from the address_areas hierarchy).'
+            ),
+            'admin_area_2_id' => $schema->string()->nullable()->description(
                 'UUID of the selected second-level address area within the first-level area.'
             ),
-            'subdistrict_id' => $schema->string()->nullable()->description(
+            'admin_area_3_id' => $schema->string()->nullable()->description(
                 'UUID of the selected third-level address area within the second-level area.'
             ),
             'language_codes' => $stringArray->description(

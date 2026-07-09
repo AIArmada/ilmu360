@@ -28,10 +28,10 @@ new
         public ?string $state_id = null;
 
         #[Url]
-        public ?string $district_id = null;
+        public ?string $admin_area_1_id = null;
 
         #[Url]
-        public ?string $subdistrict_id = null;
+        public ?string $admin_area_2_id = null;
 
         #[Computed]
         public function venues(): LengthAwarePaginatorContract
@@ -85,14 +85,14 @@ new
         #[Computed]
         public function subdistricts(): array
         {
-            $districtId = $this->normalizedLocationId($this->district_id) ?? $this->normalizedLocationId($this->state_id);
+            $adminArea1Id = $this->normalizedLocationId($this->admin_area_1_id) ?? $this->normalizedLocationId($this->state_id);
 
-            if ($districtId === null) {
+            if ($adminArea1Id === null) {
                 return [];
             }
 
             return AddressArea::query()
-                ->where('parent_id', $districtId)
+                ->where('parent_id', $adminArea1Id)
                 ->orderBy('name')
                 ->pluck('name', 'id')
                 ->all();
@@ -111,21 +111,21 @@ new
         public function updatedCountryId(): void
         {
             $this->state_id = null;
-            $this->district_id = null;
-            $this->subdistrict_id = null;
+            $this->admin_area_1_id = null;
+            $this->admin_area_2_id = null;
             $this->resetPage();
         }
 
         public function updatedStateId(): void
         {
-            $this->district_id = null;
-            $this->subdistrict_id = null;
+            $this->admin_area_1_id = null;
+            $this->admin_area_2_id = null;
             $this->resetPage();
         }
 
         public function updatedDistrictId(): void
         {
-            $this->subdistrict_id = null;
+            $this->admin_area_2_id = null;
             $this->resetPage();
         }
 
@@ -145,8 +145,8 @@ new
             $this->search = null;
             $this->country_id = null;
             $this->state_id = null;
-            $this->district_id = null;
-            $this->subdistrict_id = null;
+            $this->admin_area_1_id = null;
+            $this->admin_area_2_id = null;
             $this->resetPage();
         }
 
@@ -195,14 +195,14 @@ new
         {
             $countryId = $this->normalizedLocationId($this->country_id);
             $stateId = $this->normalizedLocationId($this->state_id);
-            $districtId = $this->normalizedLocationId($this->district_id);
-            $subdistrictId = $this->normalizedLocationId($this->subdistrict_id);
+            $adminArea1Id = $this->normalizedLocationId($this->admin_area_1_id);
+            $adminArea2Id = $this->normalizedLocationId($this->admin_area_2_id);
 
-            if ($countryId === null && $stateId === null && $districtId === null && $subdistrictId === null) {
+            if ($countryId === null && $stateId === null && $adminArea1Id === null && $adminArea2Id === null) {
                 return $query;
             }
 
-            return $query->whereHas('addresses', function (Builder $addressQuery) use ($countryId, $stateId, $districtId, $subdistrictId): void {
+            return $query->whereHas('addresses', function (Builder $addressQuery) use ($countryId, $stateId, $adminArea1Id, $adminArea2Id): void {
                 if ($countryId !== null) {
                     $addressQuery->where('country_id', $countryId);
                 }
@@ -211,12 +211,12 @@ new
                     $addressQuery->where('admin_area_1_id', $stateId);
                 }
 
-                if ($districtId !== null) {
-                    $addressQuery->where('admin_area_2_id', $districtId);
+                if ($adminArea1Id !== null) {
+                    $addressQuery->where('admin_area_2_id', $adminArea1Id);
                 }
 
-                if ($subdistrictId !== null) {
-                    $addressQuery->where('admin_area_3_id', $subdistrictId);
+                if ($adminArea2Id !== null) {
+                    $addressQuery->where('admin_area_3_id', $adminArea2Id);
                 }
             });
         }
@@ -266,12 +266,12 @@ new
     $subdistricts = $this->subdistricts;
     $countryId = $this->country_id;
     $stateId = $this->state_id;
-    $districtId = $this->district_id;
-    $subdistrictId = $this->subdistrict_id;
+    $adminArea1Id = $this->admin_area_1_id;
+    $adminArea2Id = $this->admin_area_2_id;
     $isFederalTerritoryState = $this->isFederalTerritoryStateSelected();
-    $hasScopedFilters = filled($countryId) || filled($stateId) || filled($districtId) || filled($subdistrictId);
+    $hasScopedFilters = filled($countryId) || filled($stateId) || filled($adminArea1Id) || filled($adminArea2Id);
     $venueTotal = $venues->total();
-    $venueLoadingTarget = 'search,country_id,state_id,district_id,subdistrict_id,clearSearch,clearFilters';
+    $venueLoadingTarget = 'search,country_id,state_id,admin_area_1_id,admin_area_2_id,clearSearch,clearFilters';
     $formatVenueLocation = static function ($addressModel): string {
         $parts = \App\Support\Location\AddressHierarchyFormatter::parts($addressModel);
 
@@ -347,7 +347,7 @@ new
                             </label>
                             <select
                                 id="venue-district-filter"
-                                wire:model.live="district_id"
+                                wire:model.live="admin_area_1_id"
                                 @disabled(! filled($stateId))
                                 class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/10 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
                             >
@@ -365,8 +365,8 @@ new
                         </label>
                         <select
                             id="venue-subdistrict-filter"
-                            wire:model.live="subdistrict_id"
-                            @disabled($isFederalTerritoryState ? ! filled($stateId) : ! filled($districtId))
+                            wire:model.live="admin_area_2_id"
+                            @disabled($isFederalTerritoryState ? ! filled($stateId) : ! filled($adminArea1Id))
                             class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/10 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
                         >
                             <option value="">{{ __('Semua Bandar / Mukim / Zon') }}</option>

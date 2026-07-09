@@ -101,10 +101,10 @@ class FrontendCatalogService
     /**
      * @return list<array{id: string, label: string, type: string, level: int|null}>
      */
-    public function subdistricts(?string $stateId, ?string $districtId): array
+    public function subdistricts(?string $stateId, ?string $adminArea1Id): array
     {
-        $parentId = is_string($districtId) && $districtId !== ''
-            ? $districtId
+        $parentId = is_string($adminArea1Id) && $adminArea1Id !== ''
+            ? $adminArea1Id
             : (is_string($stateId) && $stateId !== '' ? $stateId : null);
 
         if ($parentId === null) {

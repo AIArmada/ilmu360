@@ -103,7 +103,7 @@ return [
 
     'migrations' => [
         'countries' => [
-            'table_name' => 'countries',
+            'table_name' => 'world_countries',
             'optional_fields' => [
                 'phone_code' => [
                     'required' => true,
@@ -146,7 +146,7 @@ return [
             ],
         ],
         'states' => [
-            'table_name' => 'states',
+            'table_name' => 'world_states',
             'optional_fields' => [
                 'country_code' => [
                     'required' => true,
@@ -173,7 +173,7 @@ return [
             ],
         ],
         'cities' => [
-            'table_name' => 'cities',
+            'table_name' => 'world_cities',
             'optional_fields' => [
                 'country_code' => [
                     'required' => true,

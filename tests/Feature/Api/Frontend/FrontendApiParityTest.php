@@ -2529,8 +2529,8 @@ it('bumps the speaker directory cache version when speaker addresses change', fu
     syncPrimaryAddressForTest($speaker, [
         'country_id' => $countryId,
         'state_id' => null,
-        'district_id' => null,
-        'subdistrict_id' => null,
+        'admin_area_1_id' => null,
+        'admin_area_2_id' => null,
     ]);
 
     $updatedVersion = $this->getJson(route('api.client.speakers.index'))

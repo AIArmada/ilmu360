@@ -58,6 +58,10 @@ class Show extends Component
 
     public bool $isCheckedIn = false;
 
+    public bool $hasPass = false;
+
+    public ?string $passId = null;
+
     public int $goingCount = 0;
 
     public function mount(Event $event): void
@@ -563,6 +567,11 @@ class Show extends Component
             ->where('event_id', $this->event->id)
             ->where('attendee_id', $user->id)
             ->exists();
+        $pass = $this->event->passes()
+            ->whereHas('holder', fn ($q) => $q->where('holder_id', $user->id))
+            ->first();
+        $this->hasPass = $pass !== null;
+        $this->passId = $pass?->id;
     }
 
     /**

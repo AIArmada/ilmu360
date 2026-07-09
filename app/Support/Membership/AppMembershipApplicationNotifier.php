@@ -9,18 +9,9 @@ use AIArmada\Membership\Models\MembershipApplication;
 
 class AppMembershipApplicationNotifier implements MembershipApplicationNotifier
 {
-    public function notifySubmitted(MembershipApplication $application): void
-    {
-        // ponytail: basic no-op for now; add NotificationCenterMessage dispatch when admin notification routing is wired
-    }
+    public function notifySubmitted(MembershipApplication $application): void {}
 
-    public function notifyApproved(MembershipApplication $application): void
-    {
-        // ponytail: basic no-op for now; add applicant notification when NotificationEngine integration is complete
-    }
+    public function notifyApproved(MembershipApplication $application): void {}
 
-    public function notifyRejected(MembershipApplication $application): void
-    {
-        // ponytail: basic no-op for now; add applicant notification when NotificationEngine integration is complete
-    }
+    public function notifyRejected(MembershipApplication $application): void {}
 }

@@ -75,8 +75,8 @@ it('documents tag and subdistrict mutation semantics in the admin api reference'
         ->toContain('Sending `null` or `""` does not clear it to `null`; it hands ordering back to the sortable scope')
         ->toContain('### Subdistrict-specific update rules')
         ->toContain('Subdistrict `PUT` still requires `country_id`, `state_id`, and `name`.')
-        ->toContain('`district_id` is required for non-federal-territory states')
-        ->toContain('`district_id=null` is only valid for federal-territory states');
+        ->toContain('`admin_area_1_id` is required for non-federal-territory states')
+        ->toContain('`admin_area_1_id=null` is only valid for federal-territory states');
 });
 
 it('documents the public reference directory in the mobile api reference', function () {

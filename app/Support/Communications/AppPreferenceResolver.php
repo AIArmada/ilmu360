@@ -4,7 +4,7 @@ namespace App\Support\Communications;
 
 use AIArmada\Communications\Contracts\PreferenceResolver;
 use AIArmada\Communications\Enums\NotificationFamily;
-use App\Models\NotificationSetting;
+use AIArmada\Communications\Models\CommunicationPreference;
 use App\Notifications\Channels\PushChannel;
 use Illuminate\Database\Eloquent\Relations\Relation;
 
@@ -24,11 +24,12 @@ class AppPreferenceResolver implements PreferenceResolver
 
         $setting = $user->notificationSetting;
 
-        if (! $setting instanceof NotificationSetting) {
+        if (! $setting instanceof CommunicationPreference) {
             return true;
         }
 
-        $preferred = is_array($setting->preferred_channels) ? $setting->preferred_channels : [];
+        $metadata = is_array($setting->metadata) ? $setting->metadata : [];
+        $preferred = is_array($metadata['preferred_channels'] ?? null) ? $metadata['preferred_channels'] : [];
 
         if ($preferred !== [] && ! in_array($this->mapChannel($channel), $preferred, true)) {
             return false;
@@ -40,9 +41,11 @@ class AppPreferenceResolver implements PreferenceResolver
             return true;
         }
 
-        return $user->notificationRules()
+        return CommunicationPreference::query()
+            ->where('recipient_type', $recipientType)
+            ->where('recipient_id', $recipientId)
             ->where('scope_key', $appFamily)
-            ->where('enabled', true)
+            ->whereNotNull('enabled_at')
             ->exists();
     }
 
@@ -60,11 +63,12 @@ class AppPreferenceResolver implements PreferenceResolver
 
         $setting = $user->notificationSetting;
 
-        if (! $setting instanceof NotificationSetting) {
+        if (! $setting instanceof CommunicationPreference) {
             return null;
         }
 
-        $preferred = is_array($setting->preferred_channels) ? $setting->preferred_channels : [];
+        $metadata = is_array($setting->metadata) ? $setting->metadata : [];
+        $preferred = is_array($metadata['preferred_channels'] ?? null) ? $metadata['preferred_channels'] : [];
 
         return in_array($this->mapChannel($channel), $preferred, true);
     }

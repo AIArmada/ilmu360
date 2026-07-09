@@ -6,6 +6,7 @@ use App\Http\Controllers\Auth\SocialiteController;
 use App\Http\Controllers\DawahShareController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\NetworkDiagnosticsController;
+use App\Http\Controllers\Public\EventPassController;
 use App\Http\Controllers\Public\EventsController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Middleware\ResolvePublicSlugRedirect;
@@ -128,6 +129,10 @@ Route::middleware('auth')->group(function () {
 Route::post('/majlis/{event:slug}/daftar', [EventsController::class, 'register'])
     ->middleware(['throttle:registration', ResolvePublicSlugRedirect::class])
     ->name('events.register');
+
+Route::middleware('auth')->get('/majlis/{event:slug}/pas/{pass}', EventPassController::class)
+    ->middleware(ResolvePublicSlugRedirect::class)
+    ->name('events.pass');
 
 // Institutions (with search rate limiting)
 Route::livewire('/institusi', 'pages.institutions.index')

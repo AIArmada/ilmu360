@@ -631,8 +631,8 @@ class SharedFormSchema
 
         foreach ([
             'admin_area_1_id' => 'state_id',
-            'admin_area_2_id' => 'district_id',
-            'admin_area_3_id' => 'subdistrict_id',
+            'admin_area_2_id' => 'admin_area_1_id',
+            'admin_area_3_id' => 'admin_area_2_id',
             'admin_area_4_id' => 'city_id',
         ] as $field => $legacyField) {
             if (array_key_exists($field, $data) || array_key_exists($legacyField, $data)) {
@@ -923,13 +923,13 @@ class SharedFormSchema
     /**
      * @return array<int|string, string>
      */
-    public static function subdistrictOptionsForSelection(int|string|null $stateId, int|string|null $districtId): array
+    public static function subdistrictOptionsForSelection(int|string|null $stateId, int|string|null $adminArea1Id): array
     {
-        $districtId = self::normalizeLocationId($districtId);
+        $adminArea1Id = self::normalizeLocationId($adminArea1Id);
 
-        if ($districtId !== null) {
+        if ($adminArea1Id !== null) {
             return AddressArea::query()
-                ->where('parent_id', $districtId)
+                ->where('parent_id', $adminArea1Id)
                 ->where('level', 3)
                 ->orderBy('name')
                 ->pluck('name', 'id')
@@ -950,9 +950,9 @@ class SharedFormSchema
             ->all();
     }
 
-    public static function shouldShowSubdistrictField(int|string|null $stateId, int|string|null $districtId): bool
+    public static function shouldShowSubdistrictField(int|string|null $stateId, int|string|null $adminArea1Id): bool
     {
-        if (self::normalizeLocationId($districtId) !== null) {
+        if (self::normalizeLocationId($adminArea1Id) !== null) {
             return true;
         }
 
@@ -1105,8 +1105,8 @@ class SharedFormSchema
     private static function normalizeRegionalSelections(array $normalized, array $original): array
     {
         $normalized['admin_area_1_id'] = self::normalizeLocationId($normalized['admin_area_1_id'] ?? ($original['state_id'] ?? null));
-        $normalized['admin_area_2_id'] = self::normalizeLocationId($normalized['admin_area_2_id'] ?? ($original['district_id'] ?? null));
-        $normalized['admin_area_3_id'] = self::normalizeLocationId($normalized['admin_area_3_id'] ?? ($original['subdistrict_id'] ?? null));
+        $normalized['admin_area_2_id'] = self::normalizeLocationId($normalized['admin_area_2_id'] ?? ($original['admin_area_1_id'] ?? null));
+        $normalized['admin_area_3_id'] = self::normalizeLocationId($normalized['admin_area_3_id'] ?? ($original['admin_area_2_id'] ?? null));
         $normalized['admin_area_4_id'] = self::normalizeLocationId($normalized['admin_area_4_id'] ?? ($original['city_id'] ?? null));
 
         if (

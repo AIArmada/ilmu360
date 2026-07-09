@@ -332,9 +332,9 @@ class Index extends Component
     {
         $filterKeys = [
             'country_id',
-            'state_id',
-            'district_id',
-            'subdistrict_id',
+            'admin_area_1_id',
+            'admin_area_2_id',
+            'admin_area_3_id',
             'event_type',
             'event_format',
             'gender',
@@ -473,9 +473,9 @@ class Index extends Component
     {
         return match ($filterKey) {
             'country_id' => __('Country'),
-            'state_id' => __('State'),
-            'district_id' => __('District'),
-            'subdistrict_id' => __('Subdistrict / Mukim / Zone'),
+            'admin_area_1_id' => __('State'),
+            'admin_area_2_id' => __('District'),
+            'admin_area_3_id' => __('Subdistrict / Mukim / Zone'),
             'institution_id' => __('Institution'),
             'venue_id' => __('Venue'),
             'speaker_ids' => __('Speaker'),
@@ -531,9 +531,9 @@ class Index extends Component
 
         return match ($filterKey) {
             'country_id' => $this->countryName($value) ?? $value,
-            'state_id' => $this->stateName($value) ?? $value,
-            'district_id' => $this->districtName($value) ?? $value,
-            'subdistrict_id' => $this->subdistrictName($value) ?? $value,
+            'admin_area_1_id' => $this->stateName($value) ?? $value,
+            'admin_area_2_id' => $this->districtName($value) ?? $value,
+            'admin_area_3_id' => $this->subdistrictName($value) ?? $value,
             'institution_id' => $this->institutionName($value) ?? $value,
             'venue_id' => $this->venueName($value) ?? $value,
             'speaker_ids' => $this->speakerName($value) ?? $value,
