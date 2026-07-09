@@ -225,7 +225,7 @@ describe('Saved Search API Endpoints', function () {
                     'name' => 'Strict Filter Search',
                     'filters' => [
                         'institution_id' => 'not-a-uuid',
-                        'venue_id' => 'not-a-uuid',
+                        'default_venue_id' => 'not-a-uuid',
                         'starts_after' => '12-04-2026',
                         'starts_before' => '2026/04/12',
                         'starts_time_from' => 'tomorrow',

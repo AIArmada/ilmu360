@@ -81,9 +81,9 @@ it('clears seeded online event physical location during backfill', function () {
     $space = Space::factory()->create();
 
     $event = Event::factory()->create([
-        'event_format' => EventFormat::Online,
+        'delivery_mode' => EventFormat::Online,
         'institution_id' => $institution->id,
-        'venue_id' => $venue->id,
+        'default_venue_id' => $venue->id,
         'space_id' => $space->id,
         'submitter_id' => null,
         'user_id' => null,
@@ -134,7 +134,7 @@ it('matches the original seeded schedule row after manual venue edits', function
     $replacementVenue = Venue::factory()->create();
 
     $event->update([
-        'venue_id' => $replacementVenue->id,
+        'default_venue_id' => $replacementVenue->id,
     ]);
 
     $this->seed(EventSeeder::class);
@@ -160,8 +160,8 @@ it('does not overwrite unrelated events that share a schedule title and start ti
         'title' => 'Dhuha: Adab Iman',
         'slug' => 'manual-same-slot-event',
         'starts_at' => $startsAt,
-        'venue_id' => $unrelatedVenue->id,
-        'event_format' => EventFormat::Physical,
+        'default_venue_id' => $unrelatedVenue->id,
+        'delivery_mode' => EventFormat::Physical,
         'user_id' => $owner->id,
     ]);
 

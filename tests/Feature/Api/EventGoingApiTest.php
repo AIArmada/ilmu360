@@ -73,7 +73,7 @@ it('lists the current users going events', function () {
         'starts_at' => now()->addDays(1),
         'event_url' => 'https://example.com/events/going-event-one',
         'institution_id' => $institution->id,
-        'venue_id' => $venue->id,
+        'default_venue_id' => $venue->id,
     ]);
     $second = Event::factory()->create([
         'title' => 'Going Event Two',
@@ -202,7 +202,7 @@ it('keeps missing institution and venue relations as null in the going events li
         'visibility' => 'public',
         'starts_at' => now()->addDays(4),
         'institution_id' => null,
-        'venue_id' => null,
+        'default_venue_id' => null,
     ]);
 
     $this->user->goingEvents()->attach($event->id);

@@ -120,13 +120,13 @@ class EventFactory extends PackageEventFactory
                     return null;
                 }
 
-                if (filled($attributes['venue_id'] ?? null)) {
+                if (filled($attributes['default_venue_id'] ?? $attributes['venue_id'] ?? null)) {
                     return null;
                 }
 
                 return Institution::factory();
             },
-            'venue_id' => null,
+            'default_venue_id' => null,
             'title' => $title,
             'slug' => Str::slug($title).'-'.Str::lower(Str::random(7)),
             'event_structure' => EventStructure::Standalone,
@@ -142,7 +142,9 @@ class EventFactory extends PackageEventFactory
             'gender' => fake()->randomElement(EventGenderRestriction::cases()),
             'age_group' => [fake()->randomElement(EventAgeGroup::cases())],
             'children_allowed' => fake()->boolean(80), // 80% allow children
-            'event_format' => $defaultEventFormat,
+            'delivery_mode' => $defaultEventFormat instanceof EventFormat
+                ? $defaultEventFormat->value
+                : (string) $defaultEventFormat,
             'visibility' => fake()->randomElement([
                 EventVisibility::Public,
                 EventVisibility::Public,
@@ -282,7 +284,7 @@ class EventFactory extends PackageEventFactory
      */
     private function eventFormatFromAttributes(array $attributes): EventFormat
     {
-        $eventFormat = $attributes['event_format'] ?? null;
+        $eventFormat = $attributes['delivery_mode'] ?? $attributes['event_format'] ?? null;
 
         if ($eventFormat instanceof EventFormat) {
             return $eventFormat;

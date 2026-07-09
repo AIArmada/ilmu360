@@ -49,9 +49,9 @@ it('prefills the submit-event form from a duplicated public event', function () 
         'starts_at' => Carbon::parse('2026-05-10 20:15:00', 'Asia/Kuala_Lumpur')->utc(),
         'ends_at' => Carbon::parse('2026-05-10 22:00:00', 'Asia/Kuala_Lumpur')->utc(),
         'event_type' => [EventType::KuliahCeramah->value],
-        'event_format' => EventFormat::Physical->value,
+        'delivery_mode' => EventFormat::Physical->value,
         'institution_id' => $institution->id,
-        'venue_id' => $venue->id,
+        'default_venue_id' => $venue->id,
         'gender' => EventGenderRestriction::MenOnly->value,
         'age_group' => [EventAgeGroup::Adults->value],
         'children_allowed' => false,
@@ -144,7 +144,7 @@ it('filters inaccessible organizer and speaker defaults when duplicating an even
         'timezone' => 'Asia/Kuala_Lumpur',
         'starts_at' => Carbon::parse('2026-06-12 19:30:00', 'Asia/Kuala_Lumpur')->utc(),
         'event_type' => [EventType::KuliahCeramah->value],
-        'event_format' => EventFormat::Physical->value,
+        'delivery_mode' => EventFormat::Physical->value,
         'institution_id' => $institution->id,
     ]);
     $event->setPrimaryOrganizer($institution);
@@ -236,7 +236,7 @@ it('prefills duplicated event times in the event timezone instead of the viewer 
         'starts_at' => Carbon::parse('2026-05-10 00:30:00', 'Asia/Kuala_Lumpur')->utc(),
         'ends_at' => Carbon::parse('2026-05-10 02:00:00', 'Asia/Kuala_Lumpur')->utc(),
         'event_type' => [EventType::KuliahCeramah->value],
-        'event_format' => EventFormat::Physical->value,
+        'delivery_mode' => EventFormat::Physical->value,
         'institution_id' => $institution->id,
     ]);
     $event->setPrimaryOrganizer($institution);

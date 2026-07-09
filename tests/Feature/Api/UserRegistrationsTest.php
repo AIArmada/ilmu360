@@ -28,7 +28,7 @@ test('authenticated user can list own registrations', function () {
         'visibility' => 'public',
         'starts_at' => now()->addDays(2),
         'institution_id' => $institution->id,
-        'venue_id' => $venue->id,
+        'default_venue_id' => $venue->id,
     ]);
 
     $otherEvent = Event::factory()->create([

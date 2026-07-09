@@ -142,7 +142,7 @@ describe('CalendarService', function () {
         ]);
 
         $event = Event::factory()->create([
-            'venue_id' => $venue->id,
+            'default_venue_id' => $venue->id,
             'starts_at' => now()->addDays(5),
         ]);
 
@@ -161,7 +161,7 @@ describe('CalendarService', function () {
 
         $event = Event::factory()->create([
             'institution_id' => $institution->id,
-            'venue_id' => null,
+            'default_venue_id' => null,
             'starts_at' => now()->addDays(3),
         ]);
 

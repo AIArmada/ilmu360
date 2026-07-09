@@ -596,7 +596,7 @@ function eventImageGenerationEventFixture(?Institution $institution = null): arr
         'gender' => EventGenderRestriction::All->value,
         'age_group' => [EventAgeGroup::AllAges->value],
         'children_allowed' => true,
-        'event_format' => EventFormat::Physical->value,
+        'delivery_mode' => EventFormat::Physical->value,
         'visibility' => EventVisibility::Public->value,
         'status' => 'approved',
     ]);

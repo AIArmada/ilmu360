@@ -174,7 +174,7 @@ test('saved events index still includes cancelled events', function () {
         'starts_at' => now()->addDays(5),
         'event_url' => 'https://example.com/events/saved-event-one',
         'institution_id' => $institution->id,
-        'venue_id' => $venue->id,
+        'default_venue_id' => $venue->id,
     ]);
 
     $cancelledEvent = Event::factory()->create([
@@ -245,7 +245,7 @@ test('saved events index keeps missing institution and venue relations as null',
         'visibility' => 'public',
         'starts_at' => now()->addDays(3),
         'institution_id' => null,
-        'venue_id' => null,
+        'default_venue_id' => null,
     ]);
 
     app(EngagementManager::class)->bookmark($this->user, $event);

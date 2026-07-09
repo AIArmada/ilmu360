@@ -62,7 +62,7 @@ it('renders the centralized custom UI event tracker and discovery funnel hooks',
 
 it('renders event detail conversion tracking hooks', function () {
     $event = Event::factory()->create([
-        'event_format' => 'online',
+        'delivery_mode' => 'online',
         'institution_id' => null,
         'live_url' => 'https://example.test/live',
         'starts_at' => now()->addWeek(),

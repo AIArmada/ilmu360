@@ -768,8 +768,8 @@ it('hides duplicated state for kuala lumpur putrajaya and labuan in institution 
         ->create([
             'status' => 'approved',
             'visibility' => EventVisibility::Public,
-            'event_format' => EventFormat::Physical,
-            'venue_id' => $venue->id,
+            'delivery_mode' => EventFormat::Physical,
+            'default_venue_id' => $venue->id,
             'starts_at' => now()->addDay(),
             'title' => 'Kuliah KL',
         ]);
