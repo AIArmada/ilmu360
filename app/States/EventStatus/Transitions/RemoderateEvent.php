@@ -37,11 +37,12 @@ class RemoderateEvent extends Transition implements HasColor, HasIcon, HasLabel
                 'actioned_by_type' => User::class,
                 'actioned_by_id' => $this->moderator?->id,
                 'type' => 'remoderated',
-                'reason' => $this->reasonCode ?? '',
+                'reason' => filled($this->reasonCode) ? $this->reasonCode : 'remoderated',
                 'notes' => $this->note ?? 'Approved event sent back for re-moderation.',
             ]));
 
             $this->event->status = Pending::class;
+            $this->event->last_state_change_at = now();
             $this->event->save();
 
             app(EventNotificationService::class)->notifySubmissionRemoderated($this->event, $this->note);

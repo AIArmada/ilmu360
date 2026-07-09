@@ -135,7 +135,6 @@ it('searches member speakers by formatted public title parts through MCP list re
     $otherSpeaker = Speaker::factory()->create([
         'name' => 'Member MCP Speaker Other',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     app(AddMemberToSubject::class)->handle($otherSpeaker, $member, 'viewer');
@@ -170,7 +169,6 @@ it('uses typo-tolerant institution search through member MCP list records', func
     $otherInstitution = Institution::factory()->create([
         'name' => 'Pusat Pengajian An-Nur',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     app(AddMemberToSubject::class)->handle($otherInstitution, $member, 'viewer');
@@ -200,7 +198,6 @@ it('searches member references by descriptive public terms through MCP list reco
     $otherReference = Reference::factory()->create([
         'title' => 'Rujukan Lain',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     app(AddMemberToSubject::class)->handle($otherReference, $member, 'viewer');
@@ -322,7 +319,6 @@ it('searches /majlis-style events through the dedicated member MCP tool', functi
     [$member] = institutionMemberMcpContext(role: 'admin');
     $institution = Institution::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     app(AddMemberToSubject::class)->handle($institution, $member, 'viewer');
@@ -331,7 +327,6 @@ it('searches /majlis-style events through the dedicated member MCP tool', functi
         'institution_id' => $institution->getKey(),
         'title' => 'Member MCP Majlis Search Match',
         'status' => 'approved',
-        'is_active' => true,
         'is_muslim_only' => true,
         'starts_at' => Carbon::parse('2026-05-26 12:00:00', 'UTC'),
     ]);
@@ -340,7 +335,6 @@ it('searches /majlis-style events through the dedicated member MCP tool', functi
         'institution_id' => $institution->getKey(),
         'title' => 'Member MCP Majlis Search Non Match',
         'status' => 'approved',
-        'is_active' => true,
         'is_muslim_only' => false,
         'starts_at' => Carbon::parse('2026-05-26 12:00:00', 'UTC'),
     ]);
@@ -414,7 +408,6 @@ it('surfaces public event change projections on member event record detail throu
         'slug' => 'member-mcp-change-surface-original',
         'status' => 'approved',
         'visibility' => 'public',
-        'is_active' => true,
     ]);
     $firstReplacement = Event::factory()->create([
         'institution_id' => $institution->getKey(),
@@ -422,7 +415,6 @@ it('surfaces public event change projections on member event record detail throu
         'slug' => 'member-mcp-change-surface-first-replacement',
         'status' => 'approved',
         'visibility' => 'public',
-        'is_active' => true,
     ]);
     $finalReplacement = Event::factory()->create([
         'institution_id' => $institution->getKey(),
@@ -430,7 +422,6 @@ it('surfaces public event change projections on member event record detail throu
         'slug' => 'member-mcp-change-surface-final-replacement',
         'status' => 'approved',
         'visibility' => 'public',
-        'is_active' => true,
     ]);
 
     EventChangeAnnouncement::unguarded(function () use ($actor, $original, $firstReplacement, $finalReplacement): void {
@@ -583,7 +574,6 @@ it('returns member update schema and updates institutions through member MCP wri
                 'nickname' => 'Member MCP Masjid',
                 'type' => 'masjid',
                 'status' => 'pending',
-                'is_active' => true,
                 'allow_public_event_submission' => true,
                 'slug' => 'attempted-member-institution-injection',
                 'cover' => memberMcpImageDescriptor('member-mcp-cover.png'),
@@ -755,7 +745,6 @@ it('previews member institution updates without persisting the record', function
                 'nickname' => 'Previewed Masjid',
                 'type' => 'masjid',
                 'status' => 'pending',
-                'is_active' => true,
                 'allow_public_event_submission' => true,
                 'address' => [
                     'country_id' => ensureMemberMcpMalaysiaCountryExists(),
@@ -875,11 +864,9 @@ it('lists submits and cancels membership claims through member MCP workflow tool
 
     $listedInstitution = Institution::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $claimTarget = Institution::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $listedClaim = MembershipApplication::factory()
@@ -1669,7 +1656,7 @@ function speakerMemberMcpContext(string $role = 'viewer', string $status = 'veri
 {
     $speaker = Speaker::factory()->create([
         'status' => $status,
-        'is_active' => $status === 'verified',
+        'status' => $status,
     ]);
     $member = User::factory()->create();
 
@@ -1685,7 +1672,7 @@ function referenceMemberMcpContext(string $role = 'viewer', string $status = 've
 {
     $reference = Reference::factory()->create([
         'status' => $status,
-        'is_active' => $status === 'verified',
+        'status' => $status,
     ]);
     $member = User::factory()->create();
 

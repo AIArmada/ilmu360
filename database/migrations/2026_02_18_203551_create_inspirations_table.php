@@ -15,7 +15,8 @@ return new class extends Migration
             $table->string('title');
             $table->jsonb('content')->nullable();
             $table->string('source')->nullable();
-            $table->boolean('is_active')->default(true)->index();
+            $table->string('status')->default('active')->index();
+            $table->timestampTz('last_state_change_at')->nullable();
             $table->timestamps();
         });
     }

@@ -26,7 +26,9 @@ class EventEscalationNotification extends Notification implements ShouldQueue
      */
     public function via(object $notifiable): array
     {
-        return ['mail', 'database'];
+        // Laravel notifications table was cut over to package notification_inboxes.
+        // Escalation alerts stay mail-only; submitter in-app alerts use InAppNotification.
+        return ['mail'];
     }
 
     /**
@@ -36,7 +38,6 @@ class EventEscalationNotification extends Notification implements ShouldQueue
     {
         return [
             'mail' => 'notifications-mail',
-            'database' => 'notifications-inbox',
         ];
     }
 
@@ -75,19 +76,6 @@ class EventEscalationNotification extends Notification implements ShouldQueue
             'starts_at' => $this->event->starts_at?->toIso8601String(),
             'action_url' => $this->reviewUrl(),
         ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    public function toDatabase(object $notifiable): array
-    {
-        return $this->toArray($notifiable);
-    }
-
-    public function databaseType(object $notifiable): string
-    {
-        return 'event_escalation';
     }
 
     protected function subject(): string

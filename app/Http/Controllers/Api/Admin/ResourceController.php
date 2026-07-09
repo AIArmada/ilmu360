@@ -39,8 +39,8 @@ class ResourceController extends Controller
 
     #[PathParameter('resourceKey', 'Admin resource key from `GET /admin/manifest`, for example `events`, `institutions`, or `speakers`.', example: 'events')]
     #[QueryParameter('search', 'Optional free-text search across the resource\'s searchable columns.', required: false, type: 'string', infer: false, example: 'maghrib')]
-    #[QueryParameter('filter[status]', 'Optional status filter for resources that expose a status filter. Speakers accept `pending`, `verified`, and `rejected`; events accept `draft`, `pending`, `needs_changes`, `approved`, `cancelled`, and `rejected`.', required: false, type: 'string', infer: false, example: 'verified')]
-    #[QueryParameter('filter[is_active]', 'Optional active-state filter for resources that expose it. Use `true` or `false`.', required: false, type: 'boolean', infer: false, example: true)]
+    #[QueryParameter('filter[status]', 'Optional status filter for resources that expose a status filter. Speakers accept `pending`, `verified`, `rejected`, and `inactive`; events accept `draft`, `pending`, `needs_changes`, `approved`, `cancelled`, and `rejected`.', required: false, type: 'string', infer: false, example: 'verified')]
+    #[QueryParameter('filter[published]', 'Optional published-state filter for event resources. Use `true` for events with `published_at` set and `false` for unpublished events.', required: false, type: 'boolean', infer: false, example: true)]
     #[QueryParameter('filter[has_events]', 'Optional event-history filter for speaker resources. Use `true` for speakers linked to at least one event and `false` for speakers with no linked events.', required: false, type: 'boolean', infer: false, example: true)]
     #[QueryParameter('filter[visibility]', 'Optional visibility filter for event resources. Accepts `public`, `private`, or `unlisted`.', required: false, type: 'string', infer: false, example: 'public')]
     #[QueryParameter('filter[event_structure]', 'Optional event-structure filter for event resources.', required: false, type: 'string', infer: false, example: 'standalone')]

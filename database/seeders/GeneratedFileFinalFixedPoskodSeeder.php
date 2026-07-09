@@ -10,6 +10,7 @@ use AIArmada\Addressing\Models\AddressCountry;
 use App\Enums\InstitutionType;
 use App\Models\Institution;
 use App\Support\Institutions\GeneratedPoskodInstitutionData;
+use App\Support\Location\AddressAreaStateBridge;
 use Database\Seeders\Concerns\SeedsPackageAddresses;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Collection;
@@ -148,7 +149,6 @@ class GeneratedFileFinalFixedPoskodSeeder extends Seeder
                     'name' => $record['Nama'],
                     'type' => InstitutionType::Masjid->value,
                     'status' => 'verified',
-                    'is_active' => true,
                 ]);
                 $institution->saveQuietly();
 
@@ -156,13 +156,20 @@ class GeneratedFileFinalFixedPoskodSeeder extends Seeder
             });
 
             Addressable::withoutEvents(function () use ($institution, $record, $state, $district, $subdistrict): void {
+                $packageStateId = $state instanceof AddressArea
+                    ? AddressAreaStateBridge::stateIdForArea($state)
+                    : null;
+
                 $this->seedPrimaryPackageAddress($institution, [
                     'line1' => $this->nullableString($record['Alamat']),
                     'postcode' => $this->normalizePostcode($record['Poskod']),
                     'country_id' => (string) $this->malaysia->getKey(),
-                    'admin_area_1_id' => (string) $state->getKey(),
-                    'admin_area_2_id' => $district?->getKey(),
-                    'admin_area_3_id' => $subdistrict?->getKey(),
+                    'state_id' => $packageStateId,
+                    // Product: area_1 = district, area_2 = subdistrict.
+                    'admin_area_1_id' => $district?->getKey(),
+                    'admin_area_2_id' => $subdistrict?->getKey(),
+                    'admin_area_3_id' => null,
+                    'admin_area_4_id' => null,
                 ]);
             });
 

@@ -9,7 +9,6 @@ it('rebuilds stale speaker search rows and searchable names', function () {
         'name' => 'Nurul Akma',
         'pre_nominal' => ['ustazah'],
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     DB::table('speakers')

@@ -79,11 +79,27 @@ class AddressAreaObserver
     {
         $recordKey = (string) $addressArea->getKey();
 
-        return match ($addressArea->level) {
-            1 => Address::query()->where('admin_area_1_id', $recordKey)->exists(),
-            2 => Address::query()->where('admin_area_2_id', $recordKey)->exists(),
-            3 => Address::query()->where('admin_area_3_id', $recordKey)->exists(),
-            4 => Address::query()->where('admin_area_4_id', $recordKey)->exists(),
+        // Product storage: admin_area_1 = district (level 2), admin_area_2 = subdistrict (level 3).
+        // Level-1 state tree nodes are hierarchy parents only (State table owns state_id).
+        return match ((int) $addressArea->level) {
+            1 => Address::query()
+                ->where(function ($query) use ($recordKey): void {
+                    $query
+                        ->where('admin_area_1_id', $recordKey)
+                        ->orWhere('admin_area_2_id', $recordKey)
+                        ->orWhere('admin_area_3_id', $recordKey)
+                        ->orWhere('admin_area_4_id', $recordKey);
+                })
+                ->exists(),
+            2 => Address::query()->where('admin_area_1_id', $recordKey)->exists(),
+            3 => Address::query()->where('admin_area_2_id', $recordKey)->exists(),
+            4 => Address::query()
+                ->where(function ($query) use ($recordKey): void {
+                    $query
+                        ->where('admin_area_3_id', $recordKey)
+                        ->orWhere('admin_area_4_id', $recordKey);
+                })
+                ->exists(),
             default => Address::query()
                 ->where(function ($query) use ($recordKey): void {
                     $query
@@ -98,8 +114,8 @@ class AddressAreaObserver
 
     private function addressReferenceMessage(AddressArea $addressArea): string
     {
-        $label = match ($addressArea->level) {
-            1 => 'state',
+        $label = match ((int) $addressArea->level) {
+            1 => 'region area',
             2 => 'district',
             3 => 'subdistrict',
             4 => 'local area',

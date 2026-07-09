@@ -120,7 +120,7 @@ class InstitutionSearchService
             if ($this->shouldUseTypesenseSearch() && app(TypesenseHealthCheckService::class)->isAvailable()) {
                 try {
                     return $this->searchIdsWithScout($normalizedSearch, [
-                        'filter_by' => 'is_active:=true && status:=verified',
+                        'filter_by' => 'status:=verified',
                         'num_typos' => 0,
                     ]);
                 } catch (\Throwable $exception) {
@@ -195,7 +195,7 @@ class InstitutionSearchService
             if ($this->shouldUseTypesenseSearch() && app(TypesenseHealthCheckService::class)->isAvailable()) {
                 try {
                     return $this->searchIdsWithScout($normalizedSearch, [
-                        'filter_by' => 'is_active:=true && status:=verified',
+                        'filter_by' => 'status:=verified',
                         'prioritize_exact_match' => true,
                     ]);
                 } catch (\Throwable $exception) {

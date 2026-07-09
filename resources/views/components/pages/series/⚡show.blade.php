@@ -142,7 +142,7 @@ new
 
 @section('title', $this->series->title . ' - ' . config('app.name'))
 @section('meta_description', Str::limit(trim(strip_tags((string) $this->series->description)) ?: __('Lihat siri majlis ilmu ini, termasuk acara akan datang dan arkib program di :app.', ['app' => config('app.name')]), 160))
-@section('meta_robots', ($this->series->is_active && $this->series->visibility === 'public') ? 'index, follow' : 'noindex, nofollow')
+@section('meta_robots', ((string) $this->series->status === 'active' && $this->series->visibility === 'public') ? 'index, follow' : 'noindex, nofollow')
 @section('og_url', route('series.show', $this->series))
 @section('og_image', $this->series->getFirstMediaUrl('cover', 'thumb') ?: asset('images/default-mosque-hero.png'))
 @section('og_image_alt', __('Siri :title', ['title' => $this->series->title]))

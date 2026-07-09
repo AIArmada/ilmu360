@@ -1,5 +1,6 @@
 <?php
 
+use AIArmada\Addressing\Models\State;
 use App\Enums\EventKeyPersonRole;
 use App\Livewire\Pages\SavedSearches\Index as SavedSearchesIndex;
 use App\Models\Reference;
@@ -151,20 +152,25 @@ it('enforces the max 10 saved searches rule on the page', function () {
 it('prefills subdistrict filter from query string when saving searches', function () {
     $user = User::factory()->create();
     $country = ensureTestMalaysiaCountry();
-    $state = createTestAddressArea('Saved Search Selangor', 1, country: $country);
-    $district = createTestAddressArea('Saved Search Petaling', 2, parent: $state, country: $country);
+    $packageState = State::query()->create([
+        'country_id' => $country->getKey(),
+        'name' => 'Saved Search Selangor',
+        'label' => 'Saved Search Selangor',
+    ]);
+    $stateArea = createTestAddressArea('Saved Search Selangor', 1, country: $country);
+    $district = createTestAddressArea('Saved Search Petaling', 2, parent: $stateArea, country: $country);
     $subdistrict = createTestAddressArea('Saved Search Shah Alam', 3, parent: $district, country: $country);
 
     $this->actingAs($user);
 
     Livewire::withQueryParams([
         'search' => 'fiqh',
-        'state_id' => (string) $state->getKey(),
+        'state_id' => (string) $packageState->getKey(),
         'admin_area_1_id' => (string) $district->getKey(),
         'admin_area_2_id' => (string) $subdistrict->getKey(),
     ])->test(SavedSearchesIndex::class)
         ->assertSet('query', 'fiqh')
-        ->assertSet('filters.state_id', (string) $state->getKey())
+        ->assertSet('filters.state_id', (string) $packageState->getKey())
         ->assertSet('filters.admin_area_1_id', (string) $district->getKey())
         ->assertSet('filters.admin_area_2_id', (string) $subdistrict->getKey());
 });
@@ -219,7 +225,7 @@ it('renders source issue and reference chips using human-readable values', funct
     ]);
     $reference = Reference::factory()->create([
         'title' => 'Riyadhus Solihin',
-        'is_active' => true,
+        'status' => 'active',
     ]);
 
     $this->actingAs($user)
@@ -280,7 +286,11 @@ it('ignores standalone radius query prefill when no coordinates exist', function
 it('renders state filter chips using human-readable state names', function () {
     $user = User::factory()->create();
     $country = ensureTestMalaysiaCountry();
-    $state = createTestAddressArea('Selangor', 1, country: $country);
+    $state = State::query()->create([
+        'country_id' => $country->getKey(),
+        'name' => 'Selangor',
+        'label' => 'Selangor',
+    ]);
 
     SavedSearch::factory()->create([
         'user_id' => $user->id,

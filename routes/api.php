@@ -81,9 +81,11 @@ Route::prefix('v1')->group(function () {
         Route::prefix('catalogs')->name('catalogs.')->group(function () {
             Route::get('/countries', [CatalogController::class, 'countries'])->name('countries');
             Route::get('/states', [CatalogController::class, 'states'])->name('states');
-            Route::get('/districts', [CatalogController::class, 'districts'])->name('districts');
-            Route::get('/subdistricts', [CatalogController::class, 'subdistricts'])->name('subdistricts');
+            Route::get('/cities', [CatalogController::class, 'cities'])->name('cities');
+            Route::get('/admin-area-level-1', [CatalogController::class, 'adminAreaLevel1'])->name('admin-area-level-1');
+            Route::get('/admin-area-level-2', [CatalogController::class, 'adminAreaLevel2'])->name('admin-area-level-2');
             Route::get('/languages', [CatalogController::class, 'languages'])->name('languages');
+            Route::get('/taxonomy-terms/{type}', [CatalogController::class, 'taxonomyTerms'])->name('taxonomy-terms');
             Route::get('/tags/{type}', [CatalogController::class, 'tags'])->name('tags');
             Route::get('/references', [CatalogController::class, 'references'])->name('references');
             Route::get('/submit-institutions', [CatalogController::class, 'submitInstitutions'])->name('submit-institutions');
@@ -137,8 +139,9 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
             Route::prefix('catalogs')->name('catalogs.')->group(function (): void {
                 Route::get('/countries', [AdminCatalogController::class, 'countries'])->name('countries');
                 Route::get('/states', [AdminCatalogController::class, 'states'])->name('states');
-                Route::get('/districts', [AdminCatalogController::class, 'districts'])->name('districts');
-                Route::get('/subdistricts', [AdminCatalogController::class, 'subdistricts'])->name('subdistricts');
+                Route::get('/cities', [AdminCatalogController::class, 'cities'])->name('cities');
+                Route::get('/admin-area-level-1', [AdminCatalogController::class, 'adminAreaLevel1'])->name('admin-area-level-1');
+                Route::get('/admin-area-level-2', [AdminCatalogController::class, 'adminAreaLevel2'])->name('admin-area-level-2');
             });
             Route::get('/events/search', [EventSearchController::class, 'search'])->name('events.search');
             Route::get('/{resourceKey}', [AdminResourceController::class, 'indexRecords'])->name('resources.index');

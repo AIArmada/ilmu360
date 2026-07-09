@@ -57,7 +57,7 @@ class EventGoingController extends Controller
             ? $event->schedule_state
             : ScheduleState::tryFrom((string) $event->schedule_state);
 
-        if (! $event->is_active
+        if ($event->published_at === null
             || ! in_array((string) $event->status, Event::ENGAGEABLE_STATUSES, true)
             || $event->visibility !== EventVisibility::Public
             || $scheduleState === ScheduleState::Postponed) {

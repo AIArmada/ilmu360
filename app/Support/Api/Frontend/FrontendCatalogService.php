@@ -4,10 +4,15 @@ namespace App\Support\Api\Frontend;
 
 use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressCountry;
+use AIArmada\Addressing\Models\City;
+use AIArmada\Addressing\Models\State;
+use AIArmada\Events\Models\EventTaxonomy;
+use AIArmada\Events\Models\EventTerm;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Actions\Events\ResolveAdvancedBuilderContextAction;
 use App\Enums\MemberSubjectType;
 use App\Enums\TagType;
+use App\Forms\SharedFormSchema;
 use App\Models\Institution;
 use App\Models\Reference;
 use App\Models\Space;
@@ -48,7 +53,9 @@ class FrontendCatalogService
     }
 
     /**
-     * @return list<array{id: string, label: string, type: string, level: int|null}>
+     * Package addressing `states` table (addresses.state_id FK). Distinct from AddressArea hierarchy.
+     *
+     * @return list<array{id: string, label: string, code: string|null}>
      */
     public function states(?string $countryId): array
     {
@@ -56,72 +63,96 @@ class FrontendCatalogService
             return [];
         }
 
-        return AddressArea::query()
+        return State::query()
             ->where('country_id', $countryId)
-            ->where('level', 1)
             ->orderBy('name')
-            ->get(['id', 'name', 'type', 'level'])
-            ->map(fn (AddressArea $area): array => [
-                'id' => (string) $area->id,
-                'label' => (string) $area->name,
-                'type' => (string) $area->type,
-                'level' => $area->level,
+            ->get(['id', 'name', 'code'])
+            ->map(fn (State $state): array => [
+                'id' => (string) $state->id,
+                'label' => (string) $state->name,
+                'code' => $state->code !== null ? (string) $state->code : null,
             ])
             ->all();
     }
 
     /**
-     * @return list<array{id: string, label: string, type: string, level: int|null}>
+     * Package addressing `cities` table (addresses.city_id FK).
+     *
+     * @return list<array{id: string, label: string}>
      */
-    public function districts(?string $stateId, ?string $countryId = null): array
+    public function cities(?string $stateId, ?string $countryId = null): array
     {
-        $query = AddressArea::query();
+        $query = City::query()->orderBy('name');
 
         if (is_string($stateId) && $stateId !== '') {
-            $query->where('parent_id', $stateId);
+            $query->where('state_id', $stateId);
         } elseif (is_string($countryId) && $countryId !== '') {
             $query->where('country_id', $countryId);
-            $query->where('level', 2);
         } else {
             return [];
         }
 
         return $query
-            ->orderBy('name')
-            ->get(['id', 'name', 'type', 'level'])
-            ->map(fn (AddressArea $area): array => [
-                'id' => (string) $area->id,
-                'label' => (string) $area->name,
-                'type' => (string) $area->type,
-                'level' => $area->level,
+            ->get(['id', 'name'])
+            ->map(fn (City $city): array => [
+                'id' => (string) $city->id,
+                'label' => (string) $city->name,
             ])
             ->all();
     }
 
     /**
+     * Districts (AddressArea level 2) for product admin_area_1_id.
+     * Prefer filtering by package state_id (maps to area tree parent via bridge).
+     *
      * @return list<array{id: string, label: string, type: string, level: int|null}>
      */
-    public function subdistricts(?string $stateId, ?string $adminArea1Id): array
+    public function adminAreaLevel1(?string $countryId, ?string $stateId = null): array
     {
-        $parentId = is_string($adminArea1Id) && $adminArea1Id !== ''
-            ? $adminArea1Id
-            : (is_string($stateId) && $stateId !== '' ? $stateId : null);
-
-        if ($parentId === null) {
-            return [];
+        if (is_string($stateId) && $stateId !== '') {
+            return collect(SharedFormSchema::districtOptionsForState($stateId))
+                ->map(fn (string $label, mixed $id): array => [
+                    'id' => (string) $id,
+                    'label' => $label,
+                    'type' => 'district',
+                    'level' => 2,
+                ])
+                ->values()
+                ->all();
         }
 
-        return AddressArea::query()
-            ->where('parent_id', $parentId)
-            ->orderBy('name')
-            ->get(['id', 'name', 'type', 'level'])
-            ->map(fn (AddressArea $area): array => [
-                'id' => (string) $area->id,
-                'label' => (string) $area->name,
-                'type' => (string) $area->type,
-                'level' => $area->level,
-            ])
-            ->all();
+        // Country-scoped districts only (level 2), not level-1 state tree nodes.
+        return $this->addressAreas(countryId: $countryId, parentId: null, level: 2);
+    }
+
+    /**
+     * Subdistricts under a district (admin_area_1_id), product admin_area_2_id.
+     *
+     * @return list<array{id: string, label: string, type: string, level: int|null}>
+     */
+    public function adminAreaLevel2(?string $adminArea1Id, ?string $countryId = null, ?string $stateId = null): array
+    {
+        if (is_string($adminArea1Id) && $adminArea1Id !== '') {
+            return $this->addressAreas(countryId: null, parentId: $adminArea1Id, level: 3);
+        }
+
+        if (is_string($stateId) && $stateId !== '') {
+            return collect(SharedFormSchema::subdistrictOptionsForSelection($stateId, null))
+                ->map(fn (string $label, mixed $id): array => [
+                    'id' => (string) $id,
+                    'label' => $label,
+                    'type' => 'subdistrict',
+                    'level' => 3,
+                ])
+                ->values()
+                ->all();
+        }
+
+        if (is_string($countryId) && $countryId !== '') {
+            return $this->addressAreas(countryId: $countryId, parentId: null, level: 3);
+        }
+
+        return [];
     }
 
     /**
@@ -172,31 +203,53 @@ class FrontendCatalogService
     }
 
     /**
-     * @return list<array{id: string, label: string}>
+     * Package EventTerm options for a taxonomy code (domain|discipline|source|issue).
+     *
+     * @return list<array{id: string, label: string, code: string}>
      */
-    public function tags(TagType $type, ?string $search = null, int $limit = 50): array
+    public function taxonomyTerms(string $taxonomyCode, ?string $search = null, int $limit = 50): array
     {
-        $query = Tag::query()
-            ->ofType($type)
-            ->whereIn('status', ['verified', 'pending'])
-            ->ordered();
+        $taxonomy = EventTaxonomy::query()
+            ->where('code', $taxonomyCode)
+            ->where('is_active', true)
+            ->first();
+
+        if ($taxonomy === null) {
+            return [];
+        }
+
+        $query = EventTerm::query()
+            ->where('event_taxonomy_id', $taxonomy->getKey())
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('name');
 
         $normalizedSearch = trim((string) $search);
 
         if ($normalizedSearch !== '') {
-            $query->whereRaw("LOWER(name->>'ms') LIKE ?", ['%'.mb_strtolower($normalizedSearch).'%']);
+            $operator = config('database.default') === 'pgsql' ? 'ILIKE' : 'LIKE';
+            $query->where('name', $operator, '%'.$normalizedSearch.'%');
         }
 
         return $query
             ->limit($limit)
-            ->get(['id', 'name'])
-            ->map(fn (Tag $tag): array => [
-                'id' => (string) $tag->id,
-                'label' => (string) (data_get($tag->name, 'ms') ?: data_get($tag->name, 'en') ?: ''),
+            ->get(['id', 'name', 'code'])
+            ->map(fn (EventTerm $term): array => [
+                'id' => (string) $term->id,
+                'label' => (string) $term->name,
+                'code' => (string) $term->code,
             ])
-            ->filter(fn (array $option): bool => $option['label'] !== '')
-            ->values()
             ->all();
+    }
+
+    /**
+     * Transitional Spatie tag catalog. Prefer taxonomyTerms() for event classification (ADR-011).
+     *
+     * @return list<array{id: string, label: string}>
+     */
+    public function tags(TagType $type, ?string $search = null, int $limit = 50): array
+    {
+        return $this->taxonomyTerms($type->value, $search, $limit);
     }
 
     /**
@@ -284,7 +337,7 @@ class FrontendCatalogService
     {
         $query = Venue::query()
             ->whereIn('status', ['verified', 'pending'])
-            ->where('is_active', true)
+            ->whereIn('status', ['verified', 'pending'])
             ->orderBy('name');
 
         $normalizedSearch = trim((string) $search);
@@ -310,7 +363,7 @@ class FrontendCatalogService
     public function spaces(?string $institutionId = null): array
     {
         $query = Space::query()
-            ->where('is_active', true)
+            ->where('status', 'active')
             ->orderBy('name');
 
         if (is_string($institutionId) && $institutionId !== '') {
@@ -340,7 +393,7 @@ class FrontendCatalogService
         return match ($subjectType) {
             MemberSubjectType::Institution => Institution::query()
                 ->where('status', 'verified')
-                ->where('is_active', true)
+                ->whereIn('status', ['verified', 'pending'])
                 ->tap(fn (Builder $query): Builder => $this->applyInstitutionSearch($query, $search))
                 ->orderBy('name')
                 ->limit(50)
@@ -353,7 +406,7 @@ class FrontendCatalogService
                 ->all(),
             MemberSubjectType::Speaker => Speaker::query()
                 ->where('status', 'verified')
-                ->where('is_active', true)
+                ->whereIn('status', ['verified', 'pending'])
                 ->tap(fn (Builder $query): Builder => $this->applySpeakerSearch($query, $search))
                 ->orderBy('name')
                 ->limit(50)

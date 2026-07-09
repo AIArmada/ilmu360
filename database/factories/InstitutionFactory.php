@@ -113,7 +113,6 @@ class InstitutionFactory extends Factory
             'slug' => Str::slug($name).'-'.Str::lower(Str::random(7)),
             'description' => fake()->optional()->paragraph(),
             'status' => 'verified',
-            'is_active' => true,
         ];
     }
 

@@ -57,7 +57,7 @@ it('lets authenticated users submit an institution claim with evidence', functio
 
 it('requires justification and evidence on the public claim form', function () {
     $user = User::factory()->create();
-    $speaker = Speaker::factory()->create(['status' => 'verified', 'is_active' => true]);
+    $speaker = Speaker::factory()->create(['status' => 'verified']);
 
     Livewire::actingAs($user)
         ->test(CreateMembershipApplicationPage::class, [
@@ -76,7 +76,6 @@ it('renders the public membership claim page in Malay without a side-by-side lay
     $speaker = Speaker::factory()->create([
         'name' => 'Ustaz Kazim Elias',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     app()->setLocale('ms');
@@ -127,7 +126,6 @@ it('starts a membership claim from the contributions page search form', function
     $user = User::factory()->create();
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     Livewire::actingAs($user)
@@ -147,11 +145,9 @@ it('does not show membership claim call to action on public institution and spea
     $user = User::factory()->create();
     $institution = Institution::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $institutionClaimUrl = route('membership-applications.create', [

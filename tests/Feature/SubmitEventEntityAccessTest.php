@@ -48,13 +48,11 @@ it('rejects guest submission when organizer institution is locked to members', f
     $lockedInstitution = Institution::factory()->create([
         'allow_public_event_submission' => false,
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $publicSpeaker = Speaker::factory()->create([
         'allow_public_event_submission' => true,
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     setSubmitEventFormState(
@@ -72,13 +70,11 @@ it('rejects guest submission when selected speakers include locked speaker', fun
     $publicInstitution = Institution::factory()->create([
         'allow_public_event_submission' => true,
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $lockedSpeaker = Speaker::factory()->create([
         'allow_public_event_submission' => false,
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     setSubmitEventFormState(
@@ -98,13 +94,11 @@ it('allows authenticated members to submit locked institution and speaker entiti
     $lockedInstitution = Institution::factory()->create([
         'allow_public_event_submission' => false,
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $lockedSpeaker = Speaker::factory()->create([
         'allow_public_event_submission' => false,
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $lockedInstitution->members()->syncWithoutDetaching([$user->id]);
@@ -137,7 +131,6 @@ it('forbids the institution-scoped dashboard submit flow for non-members', funct
     $institution = Institution::factory()->create([
         'allow_public_event_submission' => false,
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $this->actingAs($user)
@@ -150,7 +143,6 @@ it('forbids the institution-scoped dashboard submit flow for non-members even wh
     $institution = Institution::factory()->create([
         'allow_public_event_submission' => true,
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $this->actingAs($user)
@@ -162,8 +154,7 @@ it('forbids the institution-scoped dashboard submit flow for members of inactive
     $user = User::factory()->create();
     $institution = Institution::factory()->create([
         'allow_public_event_submission' => false,
-        'status' => 'verified',
-        'is_active' => false,
+        'status' => 'inactive',
     ]);
 
     $institution->members()->syncWithoutDetaching([$user->id]);
@@ -178,12 +169,10 @@ it('auto-approves institution-scoped dashboard submissions and locks the organiz
     $institution = Institution::factory()->create([
         'allow_public_event_submission' => false,
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $speaker = Speaker::factory()->create([
         'allow_public_event_submission' => true,
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $institution->members()->syncWithoutDetaching([$user->id]);

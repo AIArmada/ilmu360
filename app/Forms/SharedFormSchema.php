@@ -5,6 +5,8 @@ namespace App\Forms;
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressCountry;
+use AIArmada\Addressing\Models\City;
+use AIArmada\Addressing\Models\State;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\Contacting\Enums\SocialPlatform;
@@ -14,6 +16,7 @@ use App\Models\Institution;
 use App\Models\Reference;
 use App\Models\Speaker;
 use App\Models\Venue;
+use App\Support\Location\AddressAreaStateBridge;
 use App\Support\Location\FederalTerritoryLocation;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
@@ -32,7 +35,15 @@ use Ysfkaya\FilamentPhoneInput\PhoneInputNumberType;
 class SharedFormSchema
 {
     /**
-     * Address fields (line1, line2, postcode, state/district/subdistrict cascades, maps URLs).
+     * Address fields (line1, line2, postcode, regional cascade, maps URLs).
+     *
+     * Product hierarchy (package-native):
+     * - country_id → AddressCountry
+     * - state_id → State table
+     * - city_id → City table
+     * - admin_area_1_id = district (AddressArea)
+     * - admin_area_2_id = subdistrict (AddressArea)
+     * - admin_area_3 / admin_area_4 always null on persist
      *
      * @return array<int, Component>
      */
@@ -525,9 +536,10 @@ class SharedFormSchema
             $data['line1'] ?? null,
             $data['line2'] ?? null,
             $data['postcode'] ?? null,
+            $data['state_id'] ?? null,
+            $data['city_id'] ?? null,
             $data['admin_area_1_id'] ?? null,
             $data['admin_area_2_id'] ?? null,
-            $data['admin_area_3_id'] ?? null,
             $data['google_maps_url'] ?? null,
             $data['provider_place_id'] ?? null,
             $data['waze_url'] ?? null,
@@ -558,9 +570,12 @@ class SharedFormSchema
             'line2' => $data['line2'] ?? null,
             'postcode' => $data['postcode'] ?? null,
             'country_id' => $countryId,
+            'state_id' => $data['state_id'] ?? null,
+            'city_id' => $data['city_id'] ?? null,
             'admin_area_1_id' => $data['admin_area_1_id'] ?? null,
             'admin_area_2_id' => $data['admin_area_2_id'] ?? null,
-            'admin_area_3_id' => $data['admin_area_3_id'] ?? null,
+            'admin_area_3_id' => null,
+            'admin_area_4_id' => null,
             'country' => $data['country'] ?? null,
             'country_code' => $data['country_code'] ?? null,
             'state' => $data['state'] ?? null,
@@ -629,16 +644,15 @@ class SharedFormSchema
             $payload['country_id'] = self::normalizeCountrySelection($normalized);
         }
 
-        foreach ([
-            'admin_area_1_id' => 'state_id',
-            'admin_area_2_id' => 'admin_area_1_id',
-            'admin_area_3_id' => 'admin_area_2_id',
-            'admin_area_4_id' => 'city_id',
-        ] as $field => $legacyField) {
-            if (array_key_exists($field, $data) || array_key_exists($legacyField, $data)) {
+        foreach (['state_id', 'city_id', 'admin_area_1_id', 'admin_area_2_id'] as $field) {
+            if (array_key_exists($field, $data) || array_key_exists($field, $normalized)) {
                 $payload[$field] = $normalized[$field] ?? null;
             }
         }
+
+        // Intentionally unused in product surface (keep package columns null).
+        $payload['admin_area_3_id'] = null;
+        $payload['admin_area_4_id'] = null;
 
         foreach (['line1', 'line2', 'postcode', 'waze_url'] as $field) {
             if (array_key_exists($field, $data)) {
@@ -723,6 +737,8 @@ class SharedFormSchema
      */
     public static function hydrateAddressFormState(array $data): array
     {
+        $data = self::expandStoredAreasForForm($data);
+
         $googleMapsUrl = is_string($data['google_maps_url'] ?? null) ? trim($data['google_maps_url']) : null;
         $googlePlaceId = is_string($data['provider_place_id'] ?? ($data['google_place_id'] ?? null))
             ? trim((string) ($data['provider_place_id'] ?? ($data['google_place_id'] ?? null)))
@@ -883,25 +899,8 @@ class SharedFormSchema
     }
 
     /**
-     * @return array<int|string, string>
-     */
-    public static function districtOptionsForState(int|string|null $stateId): array
-    {
-        $stateId = self::normalizeLocationId($stateId);
-
-        if ($stateId === null || FederalTerritoryLocation::isFederalTerritoryStateId($stateId)) {
-            return [];
-        }
-
-        return AddressArea::query()
-            ->where('parent_id', $stateId)
-            ->where('level', 2)
-            ->orderBy('name')
-            ->pluck('name', 'id')
-            ->all();
-    }
-
-    /**
+     * State options from package `states` table (addresses.state_id).
+     *
      * @return array<int|string, string>
      */
     public static function stateOptionsForCountry(int|string|null $countryId): array
@@ -912,24 +911,92 @@ class SharedFormSchema
             return [];
         }
 
-        return AddressArea::query()
+        return State::query()
             ->where('country_id', $countryId)
-            ->where('level', 1)
             ->orderBy('name')
             ->pluck('name', 'id')
             ->all();
     }
 
     /**
+     * @deprecated Use stateOptionsForCountry()
+     *
      * @return array<int|string, string>
      */
-    public static function subdistrictOptionsForSelection(int|string|null $stateId, int|string|null $adminArea1Id): array
+    public static function stateAreaOptionsForCountry(int|string|null $countryId): array
     {
-        $adminArea1Id = self::normalizeLocationId($adminArea1Id);
+        return self::stateOptionsForCountry($countryId);
+    }
 
-        if ($adminArea1Id !== null) {
+    /**
+     * City options from package `cities` table (addresses.city_id).
+     *
+     * @return array<int|string, string>
+     */
+    public static function cityOptionsForState(int|string|null $stateId): array
+    {
+        $stateId = self::normalizeLocationId($stateId);
+
+        if ($stateId === null) {
+            return [];
+        }
+
+        return City::query()
+            ->where('state_id', $stateId)
+            ->orderBy('name')
+            ->pluck('name', 'id')
+            ->all();
+    }
+
+    /**
+     * District options (stored as admin_area_1_id) under a package State.
+     *
+     * @return array<int|string, string>
+     */
+    public static function districtOptionsForState(int|string|null $stateId): array
+    {
+        $stateId = self::normalizeLocationId($stateId);
+
+        if ($stateId === null || FederalTerritoryLocation::isFederalTerritoryStateId($stateId)) {
+            return [];
+        }
+
+        $areaStateId = AddressAreaStateBridge::areaIdForState($stateId);
+
+        if ($areaStateId === null) {
+            return [];
+        }
+
+        return AddressArea::query()
+            ->where('parent_id', $areaStateId)
+            ->where('level', 2)
+            ->orderBy('name')
+            ->pluck('name', 'id')
+            ->all();
+    }
+
+    /**
+     * @deprecated Use districtOptionsForState()
+     *
+     * @return array<int|string, string>
+     */
+    public static function districtOptionsForStateArea(int|string|null $stateId): array
+    {
+        return self::districtOptionsForState($stateId);
+    }
+
+    /**
+     * Subdistrict options (stored as admin_area_2_id).
+     *
+     * @return array<int|string, string>
+     */
+    public static function subdistrictOptionsForSelection(int|string|null $stateId, int|string|null $districtId): array
+    {
+        $districtId = self::normalizeLocationId($districtId);
+
+        if ($districtId !== null) {
             return AddressArea::query()
-                ->where('parent_id', $adminArea1Id)
+                ->where('parent_id', $districtId)
                 ->where('level', 3)
                 ->orderBy('name')
                 ->pluck('name', 'id')
@@ -942,17 +1009,30 @@ class SharedFormSchema
             return [];
         }
 
+        $areaStateId = AddressAreaStateBridge::areaIdForState($stateId);
+
+        if ($areaStateId === null) {
+            return [];
+        }
+
         return AddressArea::query()
-            ->where('parent_id', $stateId)
+            ->where('parent_id', $areaStateId)
             ->where('level', 3)
             ->orderBy('name')
             ->pluck('name', 'id')
             ->all();
     }
 
-    public static function shouldShowSubdistrictField(int|string|null $stateId, int|string|null $adminArea1Id): bool
+    public static function shouldShowDistrictField(int|string|null $stateId): bool
     {
-        if (self::normalizeLocationId($adminArea1Id) !== null) {
+        $stateId = self::normalizeLocationId($stateId);
+
+        return $stateId !== null && ! FederalTerritoryLocation::isFederalTerritoryStateId($stateId);
+    }
+
+    public static function shouldShowSubdistrictField(int|string|null $stateId, int|string|null $districtId): bool
+    {
+        if (self::normalizeLocationId($districtId) !== null) {
             return true;
         }
 
@@ -961,11 +1041,90 @@ class SharedFormSchema
         return $stateId !== null && FederalTerritoryLocation::isFederalTerritoryStateId($stateId);
     }
 
-    public static function shouldShowDistrictField(int|string|null $stateId): bool
+    /**
+     * Resolve package State id from stored district/subdistrict AddressArea ids.
+     */
+    public static function stateIdFromStoredAreas(?string $districtOrArea1Id, ?string $subdistrictOrArea2Id): ?string
     {
-        $stateId = self::normalizeLocationId($stateId);
+        $area1 = self::normalizeLocationId($districtOrArea1Id);
+        $area2 = self::normalizeLocationId($subdistrictOrArea2Id);
 
-        return $stateId !== null && ! FederalTerritoryLocation::isFederalTerritoryStateId($stateId);
+        if ($area1 !== null) {
+            $stateId = AddressAreaStateBridge::stateIdForArea($area1);
+
+            if ($stateId !== null) {
+                return $stateId;
+            }
+        }
+
+        if ($area2 !== null) {
+            return AddressAreaStateBridge::stateIdForArea($area2);
+        }
+
+        return null;
+    }
+
+    /**
+     * @deprecated Use stateIdFromStoredAreas()
+     */
+    public static function stateAreaIdFromStoredAreas(?string $districtOrArea1Id, ?string $subdistrictOrArea2Id): ?string
+    {
+        return self::stateIdFromStoredAreas($districtOrArea1Id, $subdistrictOrArea2Id);
+    }
+
+    /**
+     * Normalize stored address FKs into form state (state_id + city_id + district + subdistrict).
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public static function expandStoredAreasForForm(array $data): array
+    {
+        $area1Id = self::normalizeLocationId($data['admin_area_1_id'] ?? null);
+        $area2Id = self::normalizeLocationId($data['admin_area_2_id'] ?? null);
+        $stateId = self::normalizeLocationId($data['state_id'] ?? null)
+            ?? self::stateIdFromStoredAreas($area1Id, $area2Id);
+        $cityId = self::normalizeLocationId($data['city_id'] ?? null);
+
+        $districtId = null;
+        $subdistrictId = null;
+
+        if ($area1Id !== null) {
+            $area1 = AddressArea::query()->find($area1Id);
+
+            if ($area1 instanceof AddressArea && (int) $area1->level === 2) {
+                $districtId = $area1Id;
+            } elseif ($area1 instanceof AddressArea && (int) $area1->level === 1) {
+                // Legacy rows that incorrectly stored a state area in admin_area_1.
+                $stateId ??= AddressAreaStateBridge::stateIdForArea($area1);
+                if ($area2Id !== null) {
+                    $area2 = AddressArea::query()->find($area2Id);
+                    if ($area2 instanceof AddressArea && (int) $area2->level === 2) {
+                        $districtId = $area2Id;
+                    }
+                }
+            }
+        }
+
+        if ($area2Id !== null) {
+            $area2 = AddressArea::query()->find($area2Id);
+
+            if ($area2 instanceof AddressArea && (int) $area2->level === 3) {
+                $subdistrictId = $area2Id;
+            }
+        }
+
+        if ($cityId !== null && ! City::query()->whereKey($cityId)->exists()) {
+            $cityId = null;
+        }
+
+        $data['state_id'] = $stateId;
+        $data['city_id'] = $cityId;
+        $data['admin_area_1_id'] = $districtId;
+        $data['admin_area_2_id'] = $subdistrictId;
+        unset($data['state_area_id']);
+
+        return $data;
     }
 
     public static function publicLocationPickerCascadeResetGuard(): int
@@ -1009,7 +1168,7 @@ class SharedFormSchema
     private static function regionalLocationFields(bool $includeCountryField, ?string $defaultCountryId): array
     {
         return [
-            Select::make('admin_area_1_id')
+            Select::make('state_id')
                 ->label(__('State / Region'))
                 ->options(fn (Get $get): array => self::stateOptionsForCountry(
                     $includeCountryField ? $get('country_id') : $defaultCountryId,
@@ -1020,19 +1179,34 @@ class SharedFormSchema
                 ->disabled(fn (Get $get): bool => $includeCountryField && self::normalizeLocationId($get('country_id')) === null)
                 ->afterStateUpdatedJs(self::stateCascadeResetScript()),
 
-            Select::make('admin_area_2_id')
-                ->label(__('District / Area'))
-                ->options(fn (Get $get): array => self::districtOptionsForState($get('admin_area_1_id')))
+            Select::make('city_id')
+                ->label(__('City'))
+                ->options(fn (Get $get): array => self::cityOptionsForState($get('state_id')))
                 ->searchable()
                 ->live()
-                ->afterStateUpdatedJs(self::districtCascadeResetScript())
-                ->visible(fn (Get $get): bool => self::shouldShowDistrictField($get('admin_area_1_id'))),
+                ->visible(fn (Get $get): bool => self::normalizeLocationId($get('state_id')) !== null
+                    && self::cityOptionsForState($get('state_id')) !== [])
+                ->afterStateUpdatedJs(self::cityCascadeResetScript()),
 
-            Select::make('admin_area_3_id')
-                ->label(__('Local Area'))
-                ->options(fn (Get $get): array => self::subdistrictOptionsForSelection($get('admin_area_1_id'), $get('admin_area_2_id')))
+            Select::make('admin_area_1_id')
+                ->label(__('District'))
+                ->options(fn (Get $get): array => self::districtOptionsForState($get('state_id')))
                 ->searchable()
-                ->visible(fn (Get $get): bool => self::shouldShowSubdistrictField($get('admin_area_1_id'), $get('admin_area_2_id'))),
+                ->live()
+                ->visible(fn (Get $get): bool => self::shouldShowDistrictField($get('state_id')))
+                ->afterStateUpdatedJs(self::districtCascadeResetScript()),
+
+            Select::make('admin_area_2_id')
+                ->label(__('Subdistrict / Local Area'))
+                ->options(fn (Get $get): array => self::subdistrictOptionsForSelection(
+                    $get('state_id'),
+                    $get('admin_area_1_id'),
+                ))
+                ->searchable()
+                ->visible(fn (Get $get): bool => self::shouldShowSubdistrictField(
+                    $get('state_id'),
+                    $get('admin_area_1_id'),
+                )),
         ];
     }
 
@@ -1044,9 +1218,10 @@ class SharedFormSchema
             if (guard > 0) {
                 $set('cascade_reset_guard', guard - 1)
             } else {
+                $set('state_id', null)
+                $set('city_id', null)
                 $set('admin_area_1_id', null)
                 $set('admin_area_2_id', null)
-                $set('admin_area_3_id', null)
             }
             JS;
     }
@@ -1059,9 +1234,17 @@ class SharedFormSchema
             if (guard > 0) {
                 $set('cascade_reset_guard', guard - 1)
             } else {
+                $set('city_id', null)
+                $set('admin_area_1_id', null)
                 $set('admin_area_2_id', null)
-                $set('admin_area_3_id', null)
             }
+            JS;
+    }
+
+    private static function cityCascadeResetScript(): string
+    {
+        return <<<'JS'
+            // City is independent of district/subdistrict; no child reset.
             JS;
     }
 
@@ -1073,7 +1256,7 @@ class SharedFormSchema
             if (guard > 0) {
                 $set('cascade_reset_guard', guard - 1)
             } else {
-                $set('admin_area_3_id', null)
+                $set('admin_area_2_id', null)
             }
             JS;
     }
@@ -1104,17 +1287,33 @@ class SharedFormSchema
      */
     private static function normalizeRegionalSelections(array $normalized, array $original): array
     {
-        $normalized['admin_area_1_id'] = self::normalizeLocationId($normalized['admin_area_1_id'] ?? ($original['state_id'] ?? null));
-        $normalized['admin_area_2_id'] = self::normalizeLocationId($normalized['admin_area_2_id'] ?? ($original['admin_area_1_id'] ?? null));
-        $normalized['admin_area_3_id'] = self::normalizeLocationId($normalized['admin_area_3_id'] ?? ($original['admin_area_2_id'] ?? null));
-        $normalized['admin_area_4_id'] = self::normalizeLocationId($normalized['admin_area_4_id'] ?? ($original['city_id'] ?? null));
+        $stateId = self::normalizeLocationId($normalized['state_id'] ?? $original['state_id'] ?? null);
+        $cityId = self::normalizeLocationId($normalized['city_id'] ?? $original['city_id'] ?? null);
+        $districtId = self::normalizeLocationId($normalized['admin_area_1_id'] ?? null);
+        $subdistrictId = self::normalizeLocationId($normalized['admin_area_2_id'] ?? null);
 
-        if (
-            $normalized['admin_area_1_id'] !== null
-            && FederalTerritoryLocation::isFederalTerritoryStateId($normalized['admin_area_1_id'])
-        ) {
-            $normalized['admin_area_2_id'] = null;
+        if ($stateId !== null && FederalTerritoryLocation::isFederalTerritoryStateId($stateId)) {
+            $districtId = null;
         }
+
+        if ($cityId !== null && $stateId !== null) {
+            $cityBelongs = City::query()
+                ->whereKey($cityId)
+                ->where('state_id', $stateId)
+                ->exists();
+
+            if (! $cityBelongs) {
+                $cityId = null;
+            }
+        }
+
+        $normalized['state_id'] = $stateId;
+        $normalized['city_id'] = $cityId;
+        $normalized['admin_area_1_id'] = $districtId;
+        $normalized['admin_area_2_id'] = $subdistrictId;
+        $normalized['admin_area_3_id'] = null;
+        $normalized['admin_area_4_id'] = null;
+        unset($normalized['state_area_id']);
 
         return $normalized;
     }
@@ -1128,14 +1327,17 @@ class SharedFormSchema
         $country = isset($payload['country_id']) && is_string($payload['country_id'])
             ? AddressCountry::query()->find($payload['country_id'])
             : null;
-        $area1 = isset($payload['admin_area_1_id']) && is_string($payload['admin_area_1_id'])
+        $state = isset($payload['state_id']) && is_string($payload['state_id'])
+            ? State::query()->find($payload['state_id'])
+            : null;
+        $city = isset($payload['city_id']) && is_string($payload['city_id'])
+            ? City::query()->find($payload['city_id'])
+            : null;
+        $district = isset($payload['admin_area_1_id']) && is_string($payload['admin_area_1_id'])
             ? AddressArea::query()->find($payload['admin_area_1_id'])
             : null;
-        $area2 = isset($payload['admin_area_2_id']) && is_string($payload['admin_area_2_id'])
+        $subdistrict = isset($payload['admin_area_2_id']) && is_string($payload['admin_area_2_id'])
             ? AddressArea::query()->find($payload['admin_area_2_id'])
-            : null;
-        $area3 = isset($payload['admin_area_3_id']) && is_string($payload['admin_area_3_id'])
-            ? AddressArea::query()->find($payload['admin_area_3_id'])
             : null;
 
         if ($country instanceof AddressCountry) {
@@ -1143,15 +1345,21 @@ class SharedFormSchema
             $payload['country_code'] = $country->iso2;
         }
 
-        if ($area1 instanceof AddressArea) {
-            $payload['state'] = $area1->name;
+        if ($state instanceof State) {
+            $payload['state'] = $state->name;
         }
 
-        $cityArea = $area3 instanceof AddressArea ? $area3 : $area2;
-
-        if ($cityArea instanceof AddressArea) {
-            $payload['city'] = $cityArea->name;
+        if ($city instanceof City) {
+            $payload['city'] = $city->name;
+        } elseif ($subdistrict instanceof AddressArea) {
+            $payload['city'] = $subdistrict->name;
+        } elseif ($district instanceof AddressArea) {
+            $payload['city'] = $district->name;
         }
+
+        $payload['admin_area_3_id'] = null;
+        $payload['admin_area_4_id'] = null;
+        unset($payload['state_area_id']);
 
         return $payload;
     }

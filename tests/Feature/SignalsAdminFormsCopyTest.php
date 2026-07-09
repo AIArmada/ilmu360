@@ -110,7 +110,7 @@ it('shows clearer guidance on the saved report funnel builder', function () {
             'funnel_steps' => [],
         ],
         'is_shared' => false,
-        'is_active' => true,
+        'status' => 'active',
         'owner_type' => null,
         'owner_id' => null,
     ]));

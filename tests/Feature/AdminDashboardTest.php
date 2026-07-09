@@ -90,8 +90,7 @@ it('renders the admin event edit page without missing dashboard navigation route
 
 it('computes approval and event overview dashboard stats from the intended datasets', function () {
     Event::factory()->count(2)->create([
-        'status' => 'pending',
-        'is_active' => false,
+        'status' => 'inactive',
         'visibility' => EventVisibility::Private,
     ]);
 
@@ -113,7 +112,6 @@ it('computes approval and event overview dashboard stats from the intended datas
 
     Event::factory()->create([
         'status' => 'approved',
-        'is_active' => true,
         'visibility' => EventVisibility::Public,
         'starts_at' => Carbon::now()->addDay(),
         'is_featured' => false,
@@ -121,7 +119,6 @@ it('computes approval and event overview dashboard stats from the intended datas
 
     Event::factory()->create([
         'status' => 'approved',
-        'is_active' => true,
         'visibility' => EventVisibility::Public,
         'starts_at' => Carbon::now()->subDay(),
         'is_featured' => false,
@@ -129,7 +126,6 @@ it('computes approval and event overview dashboard stats from the intended datas
 
     Event::factory()->create([
         'status' => 'approved',
-        'is_active' => true,
         'visibility' => EventVisibility::Public,
         'starts_at' => Carbon::now()->addDays(2),
         'is_featured' => true,

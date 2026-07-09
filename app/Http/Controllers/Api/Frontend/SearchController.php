@@ -95,7 +95,7 @@ class SearchController extends FrontendController
         'is_part',
         'publisher',
         'publication_year',
-        'is_active',
+        'status',
         'events_count',
         'front_cover_url',
         'is_following',
@@ -109,7 +109,6 @@ class SearchController extends FrontendController
         'gender',
         'formatted_name',
         'status',
-        'is_active',
         'events_count',
         'avatar_url',
         'country',
@@ -214,9 +213,10 @@ class SearchController extends FrontendController
     #[QueryParameter('fields', 'Optional comma-separated top-level list fields to return. Supported fields: id, slug, name, type, nickname, display_name, events_count, public_image_url, logo_url, cover_url, country, location, distance_km, is_following.', required: false, type: 'string', infer: false, example: 'id,name,location')]
     #[QueryParameter('type', 'Optional institution type filter.', required: false, type: 'string', infer: false, example: 'masjid')]
     #[QueryParameter('country_id', 'Optional package address country UUID filter.', required: false, type: 'string', infer: false, example: '019d0000-0000-7000-8000-000000000000')]
-    #[QueryParameter('state_id', 'Optional state UUID filter.', required: false, type: 'string', infer: false, example: '019d0000-0000-7000-8000-000000000001')]
+    #[QueryParameter('state_id', 'Optional package addressing states.id filter (addresses.state_id).', required: false, type: 'string', infer: false, example: '019d0000-0000-7000-8000-000000000001')]
+    #[QueryParameter('city_id', 'Optional package addressing cities.id filter (addresses.city_id).', required: false, type: 'string', infer: false, example: '019d0000-0000-7000-8000-0000000000ab')]
+    #[QueryParameter('admin_area_1_id', 'Optional package address area level-1 UUID filter.', required: false, type: 'string', infer: false, example: '019d0000-0000-7000-8000-000000000001')]
     #[QueryParameter('admin_area_2_id', 'Optional package address area level-2 UUID filter.', required: false, type: 'string', infer: false, example: '019d0000-0000-7000-8000-000000000002')]
-    #[QueryParameter('admin_area_3_id', 'Optional package address area level-3 UUID filter.', required: false, type: 'string', infer: false, example: '019d0000-0000-7000-8000-000000000003')]
     #[QueryParameter('following', 'When authenticated, restrict results to institutions followed by the current user.', required: false, type: 'boolean', infer: false, example: false)]
     #[QueryParameter('page', 'Pagination page number.', required: false, type: 'integer', infer: false, default: 1, example: 1)]
     #[QueryParameter('per_page', 'Pagination page size. Values are clamped to the server-supported maximum.', required: false, type: 'integer', infer: false, default: 12, example: 12)]
@@ -233,9 +233,9 @@ class SearchController extends FrontendController
         $institutionType = $this->searchRequestNormalizer->normalizedInstitutionType($request->query('type'));
         $countryId = $this->searchRequestNormalizer->requestedCountryId($request);
         $stateId = $this->searchRequestNormalizer->normalizedUuid($request->query('state_id'));
+        $cityId = $this->searchRequestNormalizer->normalizedUuid($request->query('city_id'));
         $adminArea1Id = $this->searchRequestNormalizer->normalizedUuid($request->query('admin_area_1_id'));
         $adminArea2Id = $this->searchRequestNormalizer->normalizedUuid($request->query('admin_area_2_id'));
-        $adminArea3Id = $this->searchRequestNormalizer->normalizedUuid($request->query('admin_area_3_id'));
         $coordinates = $this->searchRequestNormalizer->resolvedNearbyCoordinates($request);
         $lat = $coordinates['lat'];
         $lng = $coordinates['lng'];
@@ -249,9 +249,9 @@ class SearchController extends FrontendController
             type: $institutionType,
             countryId: $countryId,
             stateId: $stateId,
+            cityId: $cityId,
             adminArea1Id: $adminArea1Id,
             adminArea2Id: $adminArea2Id,
-            adminArea3Id: $adminArea3Id,
             user: $user,
         );
 
@@ -337,7 +337,7 @@ class SearchController extends FrontendController
         title: 'List public speakers',
         description: 'Returns the public speaker directory with search, location, gender, and follow-state filters.',
     )]
-    #[QueryParameter('fields', 'Optional comma-separated top-level list fields to return. Supported fields: id, slug, name, gender, formatted_name, status, is_active, events_count, avatar_url, country, is_following.', required: false, type: 'string', infer: false, example: 'id,name,avatar_url')]
+    #[QueryParameter('fields', 'Optional comma-separated top-level list fields to return. Supported fields: id, slug, name, gender, formatted_name, status, events_count, avatar_url, country, is_following.', required: false, type: 'string', infer: false, example: 'id,name,avatar_url')]
     #[Response(
         status: 200,
         description: 'Speaker directory response.',
@@ -351,10 +351,8 @@ class SearchController extends FrontendController
         $directorySeed = $this->searchRequestNormalizer->normalizedString($request->query('directory_seed'));
         $perPage = ApiPagination::normalizePerPage($request->integer('per_page', 12), default: 12, max: 50);
         $countryId = $this->searchRequestNormalizer->requestedCountryId($request);
-        $stateId = $this->searchRequestNormalizer->normalizedUuid($request->query('state_id'));
         $adminArea1Id = $this->searchRequestNormalizer->normalizedUuid($request->query('admin_area_1_id'));
         $adminArea2Id = $this->searchRequestNormalizer->normalizedUuid($request->query('admin_area_2_id'));
-        $adminArea3Id = $this->searchRequestNormalizer->normalizedUuid($request->query('admin_area_3_id'));
         $gender = in_array($request->query('gender'), ['male', 'female'], true)
             ? $request->query('gender')
             : null;
@@ -364,7 +362,9 @@ class SearchController extends FrontendController
 
         $baseQuery = $this->baseSpeakerQuery($user);
 
-        $this->applySpeakerLocationScope($baseQuery, $countryId, $stateId, $adminArea1Id, $adminArea2Id, $adminArea3Id);
+        $stateId = $this->searchRequestNormalizer->normalizedUuid($request->query('state_id'));
+        $cityId = $this->searchRequestNormalizer->normalizedUuid($request->query('city_id'));
+        $this->applySpeakerLocationScope($baseQuery, $countryId, $stateId, $cityId, $adminArea1Id, $adminArea2Id);
 
         if ($gender !== null) {
             $baseQuery->where('speakers.gender', $gender);
@@ -458,7 +458,7 @@ class SearchController extends FrontendController
                 'donationChannels.media',
                 'speakers' => fn ($query) => $query->where('status', 'verified')->orderByPivot('is_primary', 'desc')->limit(12),
                 'speakers.media',
-                'spaces' => fn ($query) => $query->where('is_active', true),
+                'spaces' => fn ($query) => $query->where('status', 'active'),
                 'languages',
             ])
             ->tap(fn (Builder $query): Builder => $this->slugOrUuidResolver->apply($query, 'institutions.slug', $institutionKey))
@@ -523,13 +523,13 @@ class SearchController extends FrontendController
             ->tap(fn (Builder $query): Builder => $this->slugOrUuidResolver->apply($query, 'speakers.slug', $speakerKey))
             ->firstOrFail();
 
-        abort_unless($user instanceof User ? $user->can('view', $record) : ($record->is_active && $record->status === 'verified'), 404);
+        abort_unless($user instanceof User ? $user->can('view', $record) : ($record->status === 'verified'), 404);
 
         $otherRoleUpcomingPerPage = max(1, min($request->integer('other_role_upcoming_per_page', 6), 50));
         $otherRoleUpcomingMatches = $record->nonSpeakerEventKeyPeople()
             ->whereHas('event', function (Builder $query) use ($now): void {
                 $query
-                    ->where('events.is_active', true)
+                    ->whereNotNull('events.published_at')
                     ->whereIn('events.status', Event::PUBLIC_STATUSES)
                     ->where('events.visibility', EventVisibility::Public)
                     ->where('events.event_structure', '!=', EventStructure::ParentProgram->value)
@@ -558,7 +558,7 @@ class SearchController extends FrontendController
         $otherRolePastMatches = $record->nonSpeakerEventKeyPeople()
             ->whereHas('event', function (Builder $query) use ($now): void {
                 $query
-                    ->where('events.is_active', true)
+                    ->whereNotNull('events.published_at')
                     ->whereIn('events.status', Event::PUBLIC_STATUSES)
                     ->where('events.visibility', EventVisibility::Public)
                     ->where('events.event_structure', '!=', EventStructure::ParentProgram->value)
@@ -643,7 +643,7 @@ class SearchController extends FrontendController
             ->tap(fn (Builder $query): Builder => $this->slugOrUuidResolver->apply($query, 'venues.slug', $venueKey))
             ->firstOrFail();
 
-        if (! $record->is_active || ($record->status !== 'verified' && ! $canBypassVisibility)) {
+        if ($record->status !== 'verified' && ! $canBypassVisibility) {
             abort(404);
         }
 
@@ -697,7 +697,7 @@ class SearchController extends FrontendController
         title: 'List public references',
         description: 'Returns a paginated directory of active, verified references. Supports search by title, author, or publisher, and a following filter.',
     )]
-    #[QueryParameter('fields', 'Optional comma-separated top-level list fields to return. Supported fields: id, slug, title, display_title, author, type, parent_reference_id, part_type, part_number, part_label, is_part, publisher, publication_year, is_active, events_count, front_cover_url, is_following.', required: false, type: 'string', infer: false, example: 'id,display_title,author,front_cover_url')]
+    #[QueryParameter('fields', 'Optional comma-separated top-level list fields to return. Supported fields: id, slug, title, display_title, author, type, parent_reference_id, part_type, part_number, part_label, is_part, publisher, publication_year, status, events_count, front_cover_url, is_following.', required: false, type: 'string', infer: false, example: 'id,display_title,author,front_cover_url')]
     #[QueryParameter('search', 'Optional free-text search across public reference titles, authors, and publishers.', required: false, type: 'string', infer: false, example: 'Riyadus Solihin')]
     #[QueryParameter('following', 'When authenticated, restrict results to references followed by the current user.', required: false, type: 'boolean', infer: false, example: false)]
     #[QueryParameter('page', 'Pagination page number.', required: false, type: 'integer', infer: false, default: 1, example: 1)]
@@ -770,7 +770,7 @@ class SearchController extends FrontendController
             ->tap(fn (Builder $query): Builder => $this->slugOrUuidResolver->apply($query, 'references.slug', $referenceKey))
             ->firstOrFail();
 
-        abort_unless($user instanceof User ? $user->can('view', $record) : ($record->is_active && $record->status === 'verified'), 404);
+        abort_unless($user instanceof User ? $user->can('view', $record) : ($record->status === 'verified'), 404);
 
         $referenceEventIds = $record->isRootReference() || $request->boolean('include_all_parts')
             ? $record->familyReferenceIds()
@@ -951,9 +951,9 @@ class SearchController extends FrontendController
         ?InstitutionType $type = null,
         ?string $countryId = null,
         ?string $stateId = null,
+        ?string $cityId = null,
         ?string $adminArea1Id = null,
         ?string $adminArea2Id = null,
-        ?string $adminArea3Id = null,
         ?User $user = null,
     ): Builder {
         $query = Institution::query()
@@ -976,7 +976,7 @@ class SearchController extends FrontendController
             $query->where('institutions.type', $type->value);
         }
 
-        $this->applyInstitutionLocationScope($query, $countryId, $stateId, $adminArea1Id, $adminArea2Id, $adminArea3Id);
+        $this->applyInstitutionLocationScope($query, $countryId, $stateId, $cityId, $adminArea1Id, $adminArea2Id);
 
         return $query;
     }
@@ -998,13 +998,19 @@ class SearchController extends FrontendController
     /**
      * @param  Builder<Institution>  $query
      */
-    private function applyInstitutionLocationScope(Builder $query, ?string $countryId, ?string $stateId, ?string $adminArea1Id, ?string $adminArea2Id, ?string $adminArea3Id): void
-    {
-        if ($countryId === null && $stateId === null && $adminArea1Id === null && $adminArea2Id === null && $adminArea3Id === null) {
+    private function applyInstitutionLocationScope(
+        Builder $query,
+        ?string $countryId,
+        ?string $stateId,
+        ?string $cityId,
+        ?string $adminArea1Id,
+        ?string $adminArea2Id,
+    ): void {
+        if ($countryId === null && $stateId === null && $cityId === null && $adminArea1Id === null && $adminArea2Id === null) {
             return;
         }
 
-        $query->whereHas('addresses', function (Builder $addressQuery) use ($countryId, $stateId, $adminArea1Id, $adminArea2Id, $adminArea3Id): void {
+        $query->whereHas('addresses', function (Builder $addressQuery) use ($countryId, $stateId, $cityId, $adminArea1Id, $adminArea2Id): void {
             if ($countryId !== null) {
                 $addressQuery->where('country_id', $countryId);
             }
@@ -1013,16 +1019,16 @@ class SearchController extends FrontendController
                 $addressQuery->where('state_id', $stateId);
             }
 
+            if ($cityId !== null) {
+                $addressQuery->where('city_id', $cityId);
+            }
+
             if ($adminArea1Id !== null) {
                 $addressQuery->where('admin_area_1_id', $adminArea1Id);
             }
 
             if ($adminArea2Id !== null) {
                 $addressQuery->where('admin_area_2_id', $adminArea2Id);
-            }
-
-            if ($adminArea3Id !== null) {
-                $addressQuery->where('admin_area_3_id', $adminArea3Id);
             }
         });
     }
@@ -1074,7 +1080,7 @@ class SearchController extends FrontendController
         $query = Event::query()
             ->selectRaw('count(*)')
             ->whereRaw("{$institutionIdExpression} = institutions.id")
-            ->where('events.is_active', true)
+            ->whereNotNull('events.published_at')
             ->whereIn('events.status', Event::PUBLIC_STATUSES)
             ->where('events.visibility', EventVisibility::Public)
             ->where('events.event_structure', '!=', EventStructure::ParentProgram->value);
@@ -1289,7 +1295,7 @@ class SearchController extends FrontendController
             ->where('status', 'verified')
             ->withCount(['events' => function (Builder $query): void {
                 $query
-                    ->where('events.is_active', true)
+                    ->whereNotNull('events.published_at')
                     ->whereIn('events.status', Event::PUBLIC_STATUSES)
                     ->where('events.visibility', EventVisibility::Public)
                     ->where('events.event_structure', '!=', EventStructure::ParentProgram->value)
@@ -1375,19 +1381,29 @@ class SearchController extends FrontendController
     /**
      * @param  Builder<Speaker>  $query
      */
-    private function applySpeakerLocationScope(Builder $query, ?string $countryId, ?string $stateId, ?string $adminArea1Id, ?string $adminArea2Id, ?string $adminArea3Id): void
-    {
-        if ($countryId === null && $stateId === null && $adminArea1Id === null && $adminArea2Id === null && $adminArea3Id === null) {
+    private function applySpeakerLocationScope(
+        Builder $query,
+        ?string $countryId,
+        ?string $stateId,
+        ?string $cityId,
+        ?string $adminArea1Id,
+        ?string $adminArea2Id,
+    ): void {
+        if ($countryId === null && $stateId === null && $cityId === null && $adminArea1Id === null && $adminArea2Id === null) {
             return;
         }
 
-        $query->whereHas('addresses', function (Builder $addressQuery) use ($countryId, $stateId, $adminArea1Id, $adminArea2Id, $adminArea3Id): void {
+        $query->whereHas('addresses', function (Builder $addressQuery) use ($countryId, $stateId, $cityId, $adminArea1Id, $adminArea2Id): void {
             if ($countryId !== null) {
                 $addressQuery->where('country_id', $countryId);
             }
 
             if ($stateId !== null) {
                 $addressQuery->where('state_id', $stateId);
+            }
+
+            if ($cityId !== null) {
+                $addressQuery->where('city_id', $cityId);
             }
 
             if ($adminArea1Id !== null) {
@@ -1398,9 +1414,6 @@ class SearchController extends FrontendController
                 $addressQuery->where('admin_area_2_id', $adminArea2Id);
             }
 
-            if ($adminArea3Id !== null) {
-                $addressQuery->where('admin_area_3_id', $adminArea3Id);
-            }
         });
     }
 
@@ -1530,7 +1543,7 @@ class SearchController extends FrontendController
             ->where('status', 'verified')
             ->withCount(['events' => function (Builder $query): void {
                 $query
-                    ->where('events.is_active', true)
+                    ->whereNotNull('events.published_at')
                     ->whereIn('events.status', Event::PUBLIC_STATUSES)
                     ->where('events.visibility', EventVisibility::Public)
                     ->where('events.event_structure', '!=', EventStructure::ParentProgram->value);
@@ -1884,7 +1897,7 @@ class SearchController extends FrontendController
                 $sub->select('id')
                     ->from('events')
                     ->where('institution_id', $institution->id)
-                    ->where('is_active', true)
+                    ->whereIn('status', ['verified', 'pending'])
                     ->where('starts_at', '>=', now());
             })
             ->distinct('speaker_id')

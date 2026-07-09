@@ -267,7 +267,7 @@ class Index extends Component implements HasForms
         return match (MemberSubjectType::tryFrom((string) $subjectType)) {
             MemberSubjectType::Institution => Institution::query()
                 ->where('status', 'verified')
-                ->where('is_active', true)
+                ->whereIn('status', ['verified', 'pending'])
                 ->tap(fn (Builder $query): Builder => filled($search) ? $query->searchNameOrNickname($search) : $query)
                 ->with(['addresses'])
                 ->orderBy('name')
@@ -277,7 +277,7 @@ class Index extends Component implements HasForms
                 ->all(),
             MemberSubjectType::Speaker => Speaker::query()
                 ->where('status', 'verified')
-                ->where('is_active', true)
+                ->whereIn('status', ['verified', 'pending'])
                 ->tap(fn (Builder $query): Builder => $this->applySearchConstraint($query, 'name', $search))
                 ->orderBy('name')
                 ->limit(50)
@@ -298,7 +298,7 @@ class Index extends Component implements HasForms
             MemberSubjectType::Institution => $this->resolveInstitutionMembershipApplicationOptionLabel($subjectSlug),
             MemberSubjectType::Speaker => Speaker::query()
                 ->where('status', 'verified')
-                ->where('is_active', true)
+                ->whereIn('status', ['verified', 'pending'])
                 ->where('slug', $subjectSlug)
                 ->first()?->formatted_name,
             default => null,
@@ -371,7 +371,7 @@ class Index extends Component implements HasForms
     {
         $institution = Institution::query()
             ->where('status', 'verified')
-            ->where('is_active', true)
+            ->whereIn('status', ['verified', 'pending'])
             ->where('slug', $subjectSlug)
             ->with(['addresses'])
             ->first(['id', 'name', 'nickname']);

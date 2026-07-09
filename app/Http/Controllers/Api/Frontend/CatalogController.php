@@ -7,6 +7,7 @@ use App\Enums\TagType;
 use App\Support\Api\Frontend\FrontendCatalogService;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
+use Dedoc\Scramble\Attributes\QueryParameter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -28,9 +29,10 @@ class CatalogController extends FrontendController
         ]);
     }
 
+    #[QueryParameter('country_id', 'Package country UUID required for state options.', required: true, type: 'string', infer: false)]
     #[Endpoint(
         title: 'List public states catalog',
-        description: 'Returns the public states catalog for an explicitly selected `country_id`.',
+        description: 'Returns package addressing `states` rows for an explicit `country_id` (addresses.state_id).',
     )]
     public function states(Request $request): JsonResponse
     {
@@ -41,38 +43,52 @@ class CatalogController extends FrontendController
         ]);
     }
 
+    #[QueryParameter('state_id', 'Package state UUID (preferred).', required: false, type: 'string', infer: false)]
+    #[QueryParameter('country_id', 'Optional country UUID when listing cities without a state filter.', required: false, type: 'string', infer: false)]
     #[Endpoint(
-        title: 'List public districts catalog',
-        description: 'Returns the public districts catalog for an explicitly selected `admin_area_1_id` or `country_id`.',
+        title: 'List public cities catalog',
+        description: 'Returns package addressing `cities` rows for a selected `state_id` or `country_id` (addresses.city_id).',
     )]
-    public function districts(Request $request): JsonResponse
+    public function cities(Request $request): JsonResponse
     {
-        $stateId = $request->filled('admin_area_1_id')
-            ? $request->string('admin_area_1_id')->toString()
-            : null;
-        $countryId = $stateId === null
-            ? ($request->filled('country_id') ? $request->string('country_id')->toString() : null)
-            : null;
-
         return response()->json([
-            'data' => $this->catalogs->districts($stateId, $countryId),
+            'data' => $this->catalogs->cities(
+                $request->filled('state_id') ? $request->string('state_id')->toString() : null,
+                $request->filled('country_id') ? $request->string('country_id')->toString() : null,
+            ),
         ]);
     }
 
+    #[QueryParameter('country_id', 'Package address country UUID for country-scoped district listing.', required: false, type: 'string', infer: false)]
+    #[QueryParameter('state_id', 'Package state UUID — preferred parent for district listing.', required: false, type: 'string', infer: false)]
     #[Endpoint(
-        title: 'List public subdistricts catalog',
-        description: 'Returns the public subdistricts catalog for a selected `admin_area_1_id` or state fallback.',
+        title: 'List public districts catalog',
+        description: 'Returns districts (AddressArea level 2) for product `admin_area_1_id`. Prefer `state_id`.',
     )]
-    public function subdistricts(Request $request): JsonResponse
+    public function adminAreaLevel1(Request $request): JsonResponse
     {
         return response()->json([
-            'data' => $this->catalogs->subdistricts(
-                $request->filled('admin_area_1_id')
-                    ? $request->string('admin_area_1_id')->toString()
-                    : null,
-                $request->filled('admin_area_2_id')
-                    ? $request->string('admin_area_2_id')->toString()
-                    : ($request->filled('admin_area_1_id') ? $request->string('admin_area_1_id')->toString() : null),
+            'data' => $this->catalogs->adminAreaLevel1(
+                $request->filled('country_id') ? $request->string('country_id')->toString() : null,
+                $request->filled('state_id') ? $request->string('state_id')->toString() : null,
+            ),
+        ]);
+    }
+
+    #[QueryParameter('admin_area_1_id', 'District UUID (admin_area_1_id) for subdistrict listing.', required: false, type: 'string', infer: false)]
+    #[QueryParameter('state_id', 'Optional package state UUID for federal-territory local areas.', required: false, type: 'string', infer: false)]
+    #[QueryParameter('country_id', 'Optional country UUID when listing without a parent.', required: false, type: 'string', infer: false)]
+    #[Endpoint(
+        title: 'List public subdistricts catalog',
+        description: 'Returns subdistricts (AddressArea level 3) for product `admin_area_2_id`.',
+    )]
+    public function adminAreaLevel2(Request $request): JsonResponse
+    {
+        return response()->json([
+            'data' => $this->catalogs->adminAreaLevel2(
+                $request->filled('admin_area_1_id') ? $request->string('admin_area_1_id')->toString() : null,
+                $request->filled('country_id') ? $request->string('country_id')->toString() : null,
+                $request->filled('state_id') ? $request->string('state_id')->toString() : null,
             ),
         ]);
     }
@@ -89,17 +105,26 @@ class CatalogController extends FrontendController
     }
 
     #[Endpoint(
-        title: 'List tags catalog',
-        description: 'Returns tag options for the requested tag type, optionally filtered by the `q` query parameter.',
+        title: 'List taxonomy terms catalog',
+        description: 'Returns package EventTerm options for a taxonomy code (domain, discipline, source, issue).',
     )]
-    public function tags(string $type, Request $request): JsonResponse
+    public function taxonomyTerms(string $type, Request $request): JsonResponse
     {
         $tagType = TagType::tryFrom($type);
         abort_unless($tagType instanceof TagType, 404);
 
         return response()->json([
-            'data' => $this->catalogs->tags($tagType, $request->string('q')->toString()),
+            'data' => $this->catalogs->taxonomyTerms($tagType->value, $request->string('q')->toString()),
         ]);
+    }
+
+    #[Endpoint(
+        title: 'List tags catalog',
+        description: 'Alias of taxonomy-terms catalog (ADR-011). Prefer /taxonomy-terms/{type}.',
+    )]
+    public function tags(string $type, Request $request): JsonResponse
+    {
+        return $this->taxonomyTerms($type, $request);
     }
 
     #[Endpoint(

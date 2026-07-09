@@ -9,7 +9,6 @@ use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\SpatieMediaLibraryImageColumn;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 
@@ -36,8 +35,6 @@ class SpeakersTable
                 TextColumn::make('status')
                     ->badge()
                     ->sortable(),
-                ToggleColumn::make('is_active')
-                    ->label('Active'),
                 TextColumn::make('email')
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('phone')
@@ -53,6 +50,7 @@ class SpeakersTable
                         'pending' => 'Pending',
                         'verified' => 'Verified',
                         'rejected' => 'Rejected',
+                        'inactive' => 'Inactive',
                     ]),
             ])
             ->recordActions([

@@ -27,7 +27,8 @@ return new class extends Migration
             $table->decimal('per_request', 14, 8)->nullable();
             $table->decimal('per_image', 14, 8)->nullable();
             $table->decimal('per_audio_second', 14, 8)->nullable();
-            $table->boolean('is_active')->default(true)->index();
+            $table->string('status')->default('active')->index();
+            $table->timestampTz('last_state_change_at')->nullable();
             $table->unsignedInteger('priority')->default(100)->index();
             $table->timestamp('starts_at')->nullable()->index();
             $table->timestamp('ends_at')->nullable()->index();
@@ -36,7 +37,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->index(['provider', 'operation', 'tier'], 'ai_model_pricings_lookup_index');
-            $table->index(['is_active', 'priority'], 'ai_model_pricings_active_priority_index');
+            $table->index(['status', 'priority'], 'ai_model_pricings_status_priority_index');
         });
     }
 };

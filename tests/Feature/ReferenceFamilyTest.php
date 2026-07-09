@@ -19,7 +19,6 @@ function publicReferenceFamilyEvent(array $attributes = []): Event
         'title' => $attributes['title'] ?? 'Reference Family Event',
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
         'starts_at' => $startsAt,
         'ends_at' => $startsAt->copy()->addHour(),
         ...$attributes,
@@ -33,7 +32,6 @@ function referenceFamilyFixtures(): array
         'slug' => 'riyadhus-solihin',
         'type' => ReferenceType::Book->value,
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $partTwo = Reference::factory()->create([
@@ -44,7 +42,6 @@ function referenceFamilyFixtures(): array
         'part_type' => ReferencePartType::Jilid->value,
         'part_number' => '2',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $partThree = Reference::factory()->create([
@@ -55,7 +52,6 @@ function referenceFamilyFixtures(): array
         'part_type' => ReferencePartType::Jilid->value,
         'part_number' => '3',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     return [$root, $partTwo, $partThree];

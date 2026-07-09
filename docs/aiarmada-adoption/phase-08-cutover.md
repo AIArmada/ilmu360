@@ -1,192 +1,173 @@
-# Phase 8 - App Rebuild And Cutover
+# Phase 8 — App Rebuild And Cutover
 
-State: `In Progress`
+State: **`Mostly complete`** (schema + ownership).  
+Native purity / dual-path removal: **Phase 9** — see [`status.md`](status.md) and [`gap-closure-report.html`](gap-closure-report.html).
 
-## Objective
+Last verified: **2026-07-09**.
 
-Rebuild app surfaces on package-owned domains, delete superseded app code, regenerate docs, and prove the fresh-schema application works end to end.
+## Objective (Phase 8)
 
-## Execution Strategy
+Rebuild app surfaces on package-owned domains, delete superseded app code, prove fresh-schema app works.
 
-Phase 8 is broken into ordered sub-phases. Each sub-phase is a bounded unit of work that can be verified independently. Domains are rebuilt in dependency order: foundation first, then core domain, then support domains.
+## Objective (Phase 9 — successor, required)
 
-## Current Checkpoint (2026-07-08)
+Remove every backward-compat shim, dual path, and cutover hack so AIArmada packages are used **natively**. Custom code only when intentional by product design. Application must be stable, performant, and ready for further development.
 
-- 8.C runtime cutover is verified: country switching is removed, package addressing data seeds cleanly, public/admin/API/MCP address contracts no longer infer country from session or cookie state, and package contact/address aliases are live in runtime paths. App geography models (`Country`, `State`), enums, and traits (`HasContacts`, `HasSocialMedia`) are deleted. No app geography migrations remain. Scout Typesense schemas updated to use package-backed address fields (`country_code`, `city`, `state`, `postcode`) instead of legacy integer geography IDs.
-- 8.D runtime/test hardening is verified: `EventBuilder` bridges occurrence-backed and metadata-backed event query columns through `app/Models/Builders/EventBuilder.php`. `ReferenceBuilder` bridges reference query columns through `app/Models/Builders/ReferenceBuilder.php`. Nearby search joins package `addressables`. Public event engagement uses package `EngagementManager` and `RegistrationServiceInterface`. Venue runtime bridges map metadata-backed fields plus `default_venue_id`. Legacy event/venue regression slices run against package addressing/contacting. The `filament-events` plugin is registered in both admin and ahli panel providers.
-- No app event migrations remain (all tables created by `aiarmada/events` package migrations). App `Event`, `Venue`, `Registration`, `EventCheckin`, `Reference`, and `MemberInvitation` models exist as active subclasses extending their package counterparts with substantial app-specific logic — not dead shims.
-- The package-native geography cleanup packet is verified: legacy `Country` / `State` / `District` / `Subdistrict` wrappers and dead geography admin surfaces are deleted, package observers own geography cache/deletion behavior, and the seating lifecycle migration is applied.
-- Membership handling is aligned with package-native behavior: `MemberInvitation` extends the installed package model with hashed tokens. `MembershipApplication` model extends `AIArmada\Membership\Models\MembershipApplication` using the `membership_applications` table (package-owned). Claim approve/reject/cancel actions use `ApproveMembershipApplicationAction`, `RejectMembershipApplicationAction`, `CancelMembershipApplicationAction` from the package, driven by `ApplicationStatus` enum. The term "MembershipClaim" is used throughout 38 files (filenames, class names, routes) but operates on `MembershipApplication` records. 12 test files import the deleted `App\Models\MembershipClaim` class — these would fatally error.
-- `MembershipHook` is implemented: `AppMembershipHook` implements the package contract, bound in `AppServiceProvider`, wires to `PublicSubmissionLockService` for submission locks.
-- Engagement cutover complete: registration, bookmark/save, and follow/unfollow all use package contracts via `RegistrationServiceInterface` and `EngagementManager`. Local `RegisterForEventAction`, `SaveEventAction`, `UnsaveEventAction`, and `HasFollowers` concern are deleted.
-- Communications inbox runtime is cut over: custom `InboxChannel` writes to package `NotificationInbox` model. Livewire and API read from package `NotificationInbox`. `auto_capture` is enabled. **However**: `PendingNotification` model (23 callers), `NotificationDelivery` model (28 callers), and both notification migrations exist and have NOT been deleted. `NotificationEngine` (543 lines, 3 callers) and `NotificationCenterMessage` (264 lines) are still the central dispatch mechanism. A dual system coexists: the communications package tables exist and resolvers are bound, but the old engine is not replaced. `PreferenceResolver` and `QuietHoursResolver` are implemented; `DestinationResolver` is not. `HasInbox` trait is not adopted. `CommunicationBatch` is unused. Digest scheduling is not wired. `filament-communications` plugin registered in admin panel only (not ahli).
-- Remaining work is structural: complete notification engine replacement, delete superseded notification models/migrations, map Spatie Tags to package taxonomies, rebuild API/MCP/public pages package-first, rename MembershipClaim naming, implement MembershipApplicationNotifier, and wire digest scheduling.
+---
 
-## Package Installation State
+## Package Installation (complete)
 
-Package installation is complete. The app depends directly on **25 `aiarmada/*` packages** through the Composer path repository in `composer.json`.
+Direct requires: **25** `aiarmada/*` packages via path repository.  
+Configs published. Admin + ahli plugins registered (ahli: events + engagement only).
 
-### Installed directly in the app
+Full list: see [`status.md`](status.md).
 
-- `aiarmada/addressing`
-- `aiarmada/affiliates`
-- `aiarmada/authz`
-- `aiarmada/commerce-support`
-- `aiarmada/communications`
-- `aiarmada/contacting`
-- `aiarmada/engagement`
-- `aiarmada/events`
-- `aiarmada/filament-addressing`
-- `aiarmada/filament-authz`
-- `aiarmada/filament-communications`
-- `aiarmada/filament-contacting`
-- `aiarmada/filament-engagement`
-- `aiarmada/filament-events`
-- `aiarmada/filament-inventory`
-- `aiarmada/filament-seating`
-- `aiarmada/filament-signals`
-- `aiarmada/filament-ticketing`
-- `aiarmada/inventory`
-- `aiarmada/membership`
-- `aiarmada/moderation`
-- `aiarmada/references`
-- `aiarmada/seating`
-- `aiarmada/signals`
-- `aiarmada/ticketing`
+---
 
-### Transitive dependencies (in composer.lock, not in root require)
+## Sub-Phase Checklist
 
-- `aiarmada/cart`, `aiarmada/checkout`, `aiarmada/customers`, `aiarmada/filament-commerce-support`, `aiarmada/orders`, `aiarmada/products`, `aiarmada/shipping`, `aiarmada/vouchers`
+### 8.A — Package Installation
 
-## Sub-Phases
+- [x] Require core + Filament packages
+- [x] Publish configs
+- [x] Autoload / optimize clear
 
-### 8.A — Package Installation (non-destructive)
+### 8.B — Migration Conflict Analysis
 
-Install all 25 packages via composer. Publish configs. Verify autoload + optimize.
+- [x] Identify table overlaps
+- [x] Plan ownership
+- [x] App migrations reduced **73 → 31**
 
-- [x] `composer require` all core packages
-- [x] `composer require` all filament adapters
-- [x] Make `authz` and `contacting` explicit dependencies
-- [x] Publish package configs
-- [x] `composer dump-autoload && php artisan optimize:clear`
-- [x] Verify no autoload errors
+### 8.C — Geography & Contacts
 
-### 8.B — Migration Conflict Analysis (read-only)
+- [x] Remove country switching (routes, shell selectors, preferred-country defaults)
+- [x] Delete app geography models/enums/traits
+- [x] Seed addressing countries + areas
+- [x] Replace Contact/SocialMedia with package contacting
+- [x] Scout schemas use package address fields (`country_code`, `city`, `state`, `postcode`)
+- [ ] **Phase 9:** remove remaining **alias keys** (`state_id`/`district_id`/`subdistrict_id`) from API/search/forms — hard native only
 
-Identify all table name overlaps between app migrations and package migrations.
+### 8.D — Events Domain
 
-- [x] List all table names from package migrations
-- [x] List all table names from app migrations
-- [x] Identify conflicts (tables created by both)
-- [x] Document what app code depends on each conflicting table
-- [x] Plan removal order
+- [x] No app event table migrations (package owns)
+- [x] App models extend package: Event, Venue, Registration, EventCheckin, Series, Space, EventKeyPerson, EventChangeAnnouncement, EventSubmission
+- [x] `config/events.php` wired
+- [x] Event media collections (cover/poster/gallery) on app subclass
+- [x] `filament-events` on admin + ahli
+- [x] Free registration path + pass flags configured
+- [x] Submission workflow on package `EventSubmission`
+- [x] Runtime builders bridge package columns (`EventBuilder`, `VenueBuilder`, `ReferenceBuilder`) — **temporary**
+- [ ] **Phase 9:** delete builder legacy maps after callers rewritten
+- [ ] **Phase 9:** taxonomy single path (see 8.D.T)
+- [ ] **Phase 9:** thin Event/Registration; rewrite public/API/MCP to package-native field names (app subclass OK only for intentional product)
 
-### 8.C — Geography & Contacts Rebuild
+#### 8.D.T — Taxonomy
 
-Replace geography and contact/social models with package models. Remove country switching.
+- [x] Package tables exist; `SyncEventTaxonomiesAction` + migrate command exist
+- [x] Public filters partially use `EventTaxonomy` / `EventTerm`
+- [ ] **Open dual path:** Spatie `HasTags` still primary for attach/sync on submit; searchable array dual-indexes tags + classifications
+- [ ] **Decision required:** Spatie out **or** package taxonomy only — never both at exit
 
-- [x] Remove app geography migrations (none existed; geography tables are package-owned)
-- [x] Remove app geography models + traits + enums
-- [x] Remove country switching public route/controller and desktop/mobile shell selector
-- [x] Remove implicit preferred-country defaults from public discovery and frontend catalog dependent endpoints
-- [x] Move submit-event UI/API country contract from preferred-country integer IDs to package addressing UUIDs
-- [x] Remove admin/MCP preferred-country defaults from write schemas
-- [x] Remove country switching preferences/resolvers/config
-- [x] Seed addressing package countries + Malaysia areas
-- [x] Replace `Contact` with `ContactMethod`, `SocialMedia` with `SocialProfile`
-- [x] Replace `HasContacts`/`HasSocialMedia` traits
-- [x] Register package-first geography ownership in admin mutation/runtime flows
-- [x] Rebuild address form schemas
-- [x] Rebuild API catalog endpoints
-- [x] Update Scout searchable arrays — `config/scout.php` Typesense schemas updated for Speaker, Institution, Event to use package-backed `country_code`/`city`/`state`/`postcode` instead of legacy integer `country_id`/`state_id`/`district_id`/`subdistrict_id`
+### 8.E — Engagement & Membership
 
-### 8.D — Events Domain Rebuild
+- [x] Engagement via `EngagementManager` + `RegistrationServiceInterface`
+- [x] Deleted local Register/Save/Unsave actions + `HasFollowers`
+- [x] `MembershipApplication` extends package model
+- [x] `MemberInvitation` extends package invitation (hashed tokens)
+- [x] Package approve/reject/cancel + add/remove member actions used
+- [x] `AppMembershipHook` bound
+- [x] `AppMembershipApplicationNotifier` bound
+- [x] Jetstream teams deleted
+- [x] Filament resource under `MembershipApplications`
+- [x] Cosmetic only: `startMembershipClaim` Livewire method name
+- [x] `filament-engagement` on admin + ahli
 
-Replace the entire event system with the events package. App models extend package models as active subclasses.
+### 8.F — References & Moderation
 
-- [x] Remove app event migrations (none remained; all event tables owned by `aiarmada/events`)
-- [x] App event models are active subclasses: `Event extends AIArmada\Events\Models\Event` (2585 lines), `Venue extends AIArmada\Events\Models\Venue` (217 lines), `Registration extends AIArmada\Events\Models\EventRegistration` (441 lines), `EventCheckin extends AIArmada\Events\Models\EventAttendance` (116 lines)
-- [x] Configure events package (`config/events.php` — 55+ table names)
-- [x] Extend package Event with media collections (cover, poster, gallery)
-- [x] Register `filament-events` plugin in admin and ahli panel providers
-- [ ] Map Spatie Tags → package taxonomies (EventTaxonomy/EventTerm) — NOT DONE. `event_taxonomies` and `event_terms` tables exist in DB but are entirely unused. All tagging (search indexing, submission via `syncTags()`, filter panels) still uses Spatie `HasTags`. Zero `EventTaxonomy`/`EventTerm` references in app code.
-- [x] Rebuild Filament event resources — DONE. No app-level Filament event resource exists. `AIArmada\FilamentEvents\Resources\EventResource` from the plugin fully replaces it across admin panel, ahli panel, moderation queue, and 5 relation managers.
-- [ ] Rebuild public event pages to use package contracts directly — PARTIAL. `app/Livewire/Pages/Events/Show.php` and `Index.php` use package `EngagementManager`/`RegistrationServiceInterface` but still import `App\Models\Event` (shim) and Spatie `Tag` model. `AdvancedFiltersPanel` still uses Spatie Tags for filters.
-- [ ] Rebuild API event endpoints to use package contracts directly — NOT DONE. `app/Http/Controllers/Api/EventController.php` imports `App\Models\Event`, `App\Models\EventCheckin`, `App\Models\Registration`. No import of `AIArmada\Events\Models\Event`.
-- [ ] Rebuild MCP event tools to use package contracts directly — PARTIAL. Write tools (create/update/batch/moderate) go through `AdminResourceService` → plugin path (no direct `App\Models\Event` import). Image upload tools and all MCP prompts still import `App\Models\Event`.
-- [ ] Rebuild event search indexing — NOT DONE. `Event::toSearchableArray()` extracts tag/topic IDs from Spatie Tags. `EventSearchService` filters by legacy `country_id`/`state_id`/`district_id`/`subdistrict_id` (lines 370–570). Typesense schema in `config/scout.php` has been updated to match package address fields, but search filter code still references old field names.
-- [x] Configure event submission/approval workflow — DONE. `EventSubmission` extends package model, created in `SubmitFrontendEventAction`, auto-approves for institution-scoped, transitions to pending for public. Tables present: `event_submissions`, `event_submission_logs`, `event_submission_attachments`.
-- [x] Configure free registration (no payment required) — DONE. `issue_passes_for_free` column on events table, `auto_issue_passes_for_free` defaults to `true` in `config/events.php`, `registration_mode` column present. No payment integration wired.
+- [x] `Reference` extends package model (thick intentional product layer + residual cutover glue)
+- [x] App Filament references (no filament-references package)
+- [x] `ModerationReview` extends `ModerationAction`
+- [x] `Report` extends commerce-support Report
+- [ ] **Phase 9:** remove legacy-friendly accessors on ModerationReview / EventChangeAnnouncement
+- [ ] Optional: package `Block` if product needs bans
+- [ ] Optional: report ↔ event approval linkage if product requires it
 
-#### 8.D Verified Runtime Packet
+### 8.G — Communications
 
-- [x] Bridge occurrence-backed and metadata-backed event query columns through `EventBuilder`
-- [x] Bridge metadata-backed reference query columns through `ReferenceBuilder`
-- [x] Normalize public event show engagement/actions to package contracts and owner context
-- [x] Rewrite legacy `EventSearchTest`, `EventShowPageTest`, and `VenueIndexTest` fixtures to package addressing/contacting
-- [x] Bridge venue metadata-backed fields (`description`, `facilities`, `is_active`) and fix the `Venue::events()` foreign key to `default_venue_id`
-- [x] Verify `EventSearchTest`, `EventShowPageTest`, `UnifiedSearchPageTest`, and `VenueIndexTest`
+- [x] Package + `filament-communications` (admin)
+- [x] Inbox: `InboxChannel` → `NotificationInbox`; Livewire/API read package model
+- [x] Preferences: `User::notificationSetting` → `CommunicationPreference`
+- [x] App notification Eloquent models **deleted**
+- [x] `NotificationEngine` / `NotificationCenterMessage` **deleted**
+- [x] Resolvers bound: Preference, QuietHours, Consent, Suppression
+- [x] Content/recipient snapshot resolvers present
+- [x] Digest command can use `CommunicationBatch`
+- [x] `auto_capture` default **true**
+- [ ] **`dispatch_through_package` default still false** — dual `DispatchMode` remains
+- [ ] App still owns orchestration: `EventNotificationService`, `NotificationSettingsManager`, Push/WhatsApp channels (channels may stay intentional)
+- [ ] Delete parity/migrate notification commands once dual store is gone
+- [ ] Prefer package `HasInbox` (or documented intentional morph relation) consistently
 
-### 8.E — Engagement & Membership Rebuild
+### 8.H — Final Cleanup (Phase 8 original)
 
-Replace engagement behavior and membership models.
+- [x] Superseded geography/contact/membership/notification models deleted
+- [x] Superseded event settings / following / claim model deleted
+- [ ] **Not done (Phase 9):** delete all compat traits, builder maps, dual taxonomy, dual dispatch
+- [ ] Full suite green (not claimed)
+- [ ] PHPStan clean on cutover surface (baseline still has pre-existing noise)
 
-- [x] Replace app engagement (Going, Interested, Save, Follow, Share) with package `EngagementManager` and `RegistrationServiceInterface`
-- [x] Replace membership record backing: `MembershipApplication` model extends `AIArmada\Membership\Models\MembershipApplication`, uses `membership_applications` table. `App\Models\MembershipClaim` is deleted.
-- [x] Replace `MemberInvitation` with package `MembershipInvitation` (`MemberInvitation extends AIArmada\Membership\Models\MembershipInvitation`, hashed tokens)
-- [x] Claim approve/reject/cancel actions use package actions (`ApproveMembershipApplicationAction`, `RejectMembershipApplicationAction`, `CancelMembershipApplicationAction`) with `ApplicationStatus` enum
-- [ ] Delete "MembershipClaim" naming — PARTIAL. Model is deleted and code uses `MembershipApplication`, but 38 files still carry "MembershipClaim" in filenames/class names/namespaces/URLs. 12 test files import the now-deleted `App\Models\MembershipClaim` (would fatally error). Filament resource directory is `app/Filament/Resources/MembershipClaims/`, Livewire pages in `app/Livewire/Pages/MembershipClaims/`, routes use `/membership-claims`.
-- [x] Implement `MembershipHook` for submission locks — DONE. `AppMembershipHook` (`app/Support/Membership/AppMembershipHook.php`) implements the package `MembershipHook` contract, bound as singleton in `AppServiceProvider:138`, wires to `PublicSubmissionLockService` for institution/speaker submission lock management.
-- [ ] Implement `MembershipApplicationNotifier` — NOT DONE. Package contract exists (`AIArmada\Membership\Contracts\MembershipApplicationNotifier`) but zero implementations or bindings exist in app code. Package actions check `app()->bound()` and silently skip notifications.
-- [x] Register `filament-engagement` plugin — PARTIAL. Registered in `AdminPanelProvider:85`. NOT registered in `AhliPanelProvider`. Package provides 7 resources (Bookmark, Follow, Reaction, Reminder, Response, Subscription, BookmarkCollection) + relation managers + `EngagementOverviewWidget`, all auto-discovered.
-- [x] Rebuild engagement-related Livewire/API surfaces — PARTIAL. Surface code uses package `EngagementManager`/`RegistrationServiceInterface` but still depends on `App\Models\Event` shim and Spatie `Tag` model.
+---
 
-### 8.F — References & Moderation Rebuild
+## Corrected Facts (supersede older phase-08 prose)
 
-Replace references and moderation/report models.
+| Claim that was stale | Truth 2026-07-09 |
+| --- | --- |
+| PendingNotification / NotificationDelivery / engine still exist | **Deleted** |
+| Notification models still in app/Models | **No** |
+| MembershipClaim still in 38 files / 12 broken tests | **Mostly gone**; cosmetic Livewire name only |
+| MembershipApplicationNotifier unbound | **Bound** (`AppMembershipApplicationNotifier`) |
+| Phase 8 “Complete” | **Schema mostly complete; purity incomplete** |
+| Category C “app notification models still exist” | **False** — see status.md |
 
-- [ ] Delete `Reference` shim — NOT DONE (and not trivially deletable). `app/Models/Reference.php` (745 lines) is an active subclass extending `AIArmada\References\Models\Reference` with extensive app-specific logic: attribute aliasing (`publication_year↔year`), metadata storage (`is_active`, `part_type`, etc.), Scout search (`toSearchableArray`, `shouldBeSearchable`), custom scopes (`active`, `root`, `part`), slug generation, business logic (`expandRootReferenceIdsForFiltering`, `displayTitle`, `familyRootId`), media conversions, and 100+ files import it. Only 1 file imports the package model directly. Requires wholesale refactor to delete.
-- [ ] Keep app Filament resources (no `filament-references` package) — Still needed
-- [ ] Replace moderation models with package Block/ModerationAction — PARTIAL. `ModerationReview` extends `AIArmada\Moderation\Models\ModerationAction`. `Block` from the package is entirely unused (zero occurrences in app code). No blocking functionality exists.
-- [x] Keep app-owned Reports (no feedback package) — Still present: `app/Models/Report.php` extends `AIArmada\CommerceSupport\Models\Report`
-- [ ] Wire reports into event submission approval flow — NOT DONE. `ApproveEvent` transition has no Report import or logic. No code checks for unresolved reports before approving, auto-resolves reports on approval, or links report resolution to moderation workflow.
+---
 
-### 8.G — Communications Rebuild
+## Phase 9 Workstreams (exit = develop-ready)
 
-Replace notification engine with communications package.
+Ordered for dependency and blast radius. Full task board: [`cutover-plan.html`](cutover-plan.html) / [`gap-closure-report.html`](gap-closure-report.html).
 
-- [ ] Delete `PendingNotification` model + migration — NOT DONE. `app/Models/PendingNotification.php` exists (maps to `notification_messages` table). Migration `2026_02_09_190614` still present. 23 callers across `NotificationEngine` and `NotificationCenterMessage`.
-- [ ] Delete `NotificationDelivery` model — NOT DONE. `app/Models/NotificationDelivery.php` exists (maps to `notification_deliveries` table). 28 callers across `NotificationDeliveryLogger`, `User`, `NotificationDestination`, and listeners.
-- [ ] Delete `2026_07_07_185329` migration (Laravel notifications table) — PARTIAL. Migration file exists, table NOT in database (never migrated/pending), but `Notifiable` trait is still on `User` model.
-- [ ] Replace `NotificationEngine`/`NotificationCenterMessage` with communications package pipeline — PARTIAL. Both are still active: `NotificationEngine` (543 lines, 3 callers) is the central dispatch mechanism with a `MIGRATED_TRIGGERS` constant (23 triggers) that partially bypass old `PendingNotification` creation. `NotificationCenterMessage` (264 lines) extends `Illuminate\Notifications\Notification`. Communications package tables (13 tables) exist in DB. Package resolvers are bound. Dual system coexists.
-- [ ] Implement `DestinationResolver` — NOT DONE. No app-level implementation exists. Package contract `AIArmada\Communications\Contracts\DestinationResolver` is present but unbound.
-- [x] Implement `PreferenceResolver` — DONE. `AppPreferenceResolver` (`app/Support/Communications/AppPreferenceResolver.php`) implements contract, bound in `AppServiceProvider:118`, checks user `NotificationSetting` preferences and per-family notification rules.
-- [x] Implement `QuietHoursResolver` — DONE. `AppQuietHoursResolver` (`app/Support/Communications/AppQuietHoursResolver.php`) implements contract, bound in `AppServiceProvider:113`, timezone-aware quiet hours from `NotificationSetting`.
-- [x] Additional resolvers implemented: `AppConsentResolver` (bound line 123), `AppSuppressionResolver` (bound line 128)
-- [ ] Adopt `HasInbox` trait — NOT DONE. Zero references to `HasInbox` anywhere in app code. `NotificationInbox` model is used directly but not via the trait on `User`.
-- [ ] Wire digest scheduling through `CommunicationBatch` — NOT DONE. Zero `CommunicationBatch` usage in app code. No digest jobs in `app/Jobs/`. `NotificationEngine::createDigestMessage()` exists but is never called in a scheduling context. `communication_batches` table exists but unused.
-- [x] Register `filament-communications` plugin — PARTIAL. Registered in `AdminPanelProvider:86`. NOT registered in `AhliPanelProvider`.
-- [x] Keep app: `NotificationSetting`, `NotificationRule`, `PushChannel`, `WhatsappChannel`, digest jobs
+| ID | Workstream | Exit proof |
+| --- | --- | --- |
+| P9-A | **Taxonomy single path** | One write path; one index path; no dual `syncTags` + classifications without decision doc |
+| P9-B | **Communications package dispatch default** | `dispatch_through_package=true` (or remove flag); `DispatchMode` deleted; dual parity commands gone |
+| P9-C | **Kill legacy builders** | Callers use package columns; Event/Venue/ReferenceBuilder maps removed or builders deleted |
+| P9-D | **Kill contact/social/address alias traits** | Callers use package relations/API; traits deleted |
+| P9-E | **Kill legacy model accessors** | EventChangeAnnouncement / ModerationReview / Registration speak package fields only |
+| P9-F | **Hard-native geography edges** | No `state_id`/`district_id`/`subdistrict_id` acceptance except true package `country_id` UUID on addresses |
+| P9-G | **Thin thick subclasses** | Event/Reference retain only intentional product (media, Scout presentation, Islamic helpers); cutover glue gone |
+| P9-H | **UI debt** | Institution dashboard legacy filter/sort helpers removed |
+| P9-I | **Verification** | `migrate:fresh --seed`, targeted Pest, PHPStan on touched files, Pint |
 
-### 8.H — Final Cleanup & Verification
+### Intentional custom (allowed after Phase 9)
 
-Delete all superseded code, regenerate docs, full verification.
+- Institution / Speaker as app entities
+- Donation channels, contribution UX, inspirations, AI usage
+- Public Livewire page composition + Malay/Islamic copy
+- MCP tools and prompts
+- Spatie MediaLibrary collection/conversion policy
+- FCM / WhatsApp channel adapters (document as intentional)
+- Thin app subclasses of package models when they only add product behavior
 
-- [ ] Delete superseded app models — NOT DONE. All 9 still exist as active subclasses: `Event` (2585 lines), `Registration` (441 lines), `Reference` (745 lines), `Venue` (217 lines), `EventCheckin` (116 lines), `MemberInvitation` (125 lines), `PendingNotification` (43 lines), `NotificationDelivery` (76 lines), `MembershipApplication` (46 lines). None are dead-weight pass-throughs.
-- [ ] Delete superseded app migrations — NOT DONE. `2026_02_09_190614` and `2026_07_07_185329` both exist. The latter is pending (never run).
-- [ ] Delete `NotificationEngine`, `NotificationCenterMessage`, and `InboxChannel` — NOT DONE. All 3 exist with active callers. `NotificationEngine` (3 callers), `NotificationCenterMessage` (5 callers), `InboxChannel` (3 callers).
-- [ ] Delete superseded traits/enums/services — No clearly superseded items identified. All traits, enums, and services appear actively used.
-- [ ] Rename "MembershipClaim" → "MembershipApplication" throughout app code — PARTIAL. Model renamed but 38 files carry old naming. 12 test files import deleted `App\Models\MembershipClaim`.
-- [ ] Regenerate API documentation — Command exists: `php artisan scramble:export`
-- [ ] Regenerate MCP documentation — Commands exist: `php artisan make:mcp-server`, etc.
-- [ ] Fresh migrate + seed — NOT DONE. 1 migration pending: `2026_07_07_185329`
-- [ ] Full test suite pass — NOT DONE. 12 test files reference deleted `App\Models\MembershipClaim` (would fatally error).
-- [ ] PHPStan pass — Configured: Level 6, `phpstan.neon` + baseline
-- [ ] Pint pass — Configured: `pint.json` with `{"preset": "laravel"}`
-- [ ] npm build — Configured: `"build": "vite build"`
-- [ ] Runtime smoke checks
+### Forbidden after Phase 9
 
-## Verification
+- Dual systems (two stores for the same concept)
+- Silent alias maps inside builders/forms/search core
+- “Temporary” BC for old admin or API clients without a dated hard cut
+- Keeping dead migrate/parity tooling for deleted dual stores
+- Calling unfinished cutover “deferred forever”
+
+---
+
+## Verification Commands
 
 ```bash
 php artisan migrate:fresh --seed
@@ -194,29 +175,35 @@ vendor/bin/pest --parallel --compact
 vendor/bin/phpstan analyse --ansi
 vendor/bin/pint --dirty --format agent
 npm run build
-php artisan route:list
+php artisan route:list --except-vendor
 ```
 
-Runtime smoke checks:
+Runtime smoke:
 
-- Filament boots.
-- Public event discovery, detail, registration/check-in, and membership flows work.
-- Public discovery works globally by default without selecting or switching a country.
-- Notification inbox and delivery flows work.
-- Signals events record expected outcomes.
-- MCP admin/member tools work against package-backed models.
-- Media uploads and conversions work.
+- Filament admin + ahli boot
+- Public discovery without country switch
+- Event show: register / bookmark / follow via package contracts
+- Membership application approve/reject
+- Notification inbox read/mark-read
+- MCP admin/member tools against package-backed models
 
-## Exit Criteria
+## Exit Criteria (Phase 8 + 9)
 
-- Fresh app passes all verification.
-- No deleted legacy surface remains referenced by routes, docs, tests, or providers.
-- `review-log.md` contains proof for the final cutover.
-- `status.md` marks phases 0-8 `Verified`, `Deferred`, or `Removed` with no ambiguous work left.
+- [x] Package install + schema ownership
+- [x] Geography country-switch removal
+- [x] Membership package convergence
+- [x] Engagement package contracts
+- [x] Inbox package storage
+- [ ] No dual-path domains
+- [ ] No legacy builder/alias layers
+- [ ] Taxonomy decision implemented
+- [ ] Communications package dispatch default
+- [ ] Verification green enough to unfreeze feature development
+- [ ] `status.md` Phase 9 marked `Verified`
 
 ## Stop And Re-plan Triggers
 
-- Any public API/MCP generated documentation points at removed legacy shapes.
-- A package-backed model cannot support a critical public workflow through generic seams.
-- Full fresh migrate/seed cannot complete deterministically.
-- Migration conflicts require manual schema surgery beyond simple table replacement.
+- Package requires ilmu360-specific behavior inside package source without a generic seam
+- Fresh migrate/seed cannot complete
+- Public/MCP contracts change without tests + docs
+- New dual path introduced “temporarily”

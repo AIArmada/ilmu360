@@ -23,7 +23,6 @@ it('builds the speaker searchable payload with title text and geography facets',
             'is_freelance' => false,
             'job_title' => 'Pensyarah',
             'status' => 'pending',
-            'is_active' => true,
         ]);
 
         syncPrimaryAddressForTest($speaker, [
@@ -57,17 +56,14 @@ it('only indexes active verified or pending speakers', function () {
     withGlobalOwnerContext(function (): void {
         $pendingSpeaker = Speaker::factory()->create([
             'status' => 'pending',
-            'is_active' => true,
         ]);
 
         $rejectedSpeaker = Speaker::factory()->create([
             'status' => 'rejected',
-            'is_active' => true,
         ]);
 
         $inactiveSpeaker = Speaker::factory()->create([
-            'status' => 'verified',
-            'is_active' => false,
+            'status' => 'inactive',
         ]);
 
         expect($pendingSpeaker->fresh()->shouldBeSearchable())->toBeTrue()
@@ -85,7 +81,6 @@ it('builds the institution searchable payload with nickname description and geog
             'nickname' => 'Masjid Biru',
             'description' => '<p>Pusat komuniti dan kuliah.</p>',
             'status' => 'pending',
-            'is_active' => true,
         ]);
 
         syncPrimaryAddressForTest($institution, [
@@ -118,17 +113,14 @@ it('only indexes active verified or pending institutions', function () {
     withGlobalOwnerContext(function (): void {
         $pendingInstitution = Institution::factory()->create([
             'status' => 'pending',
-            'is_active' => true,
         ]);
 
         $rejectedInstitution = Institution::factory()->create([
             'status' => 'rejected',
-            'is_active' => true,
         ]);
 
         $inactiveInstitution = Institution::factory()->create([
-            'status' => 'verified',
-            'is_active' => false,
+            'status' => 'inactive',
         ]);
 
         expect($pendingInstitution->fresh()->shouldBeSearchable())->toBeTrue()
@@ -145,7 +137,6 @@ it('builds the reference searchable payload and only indexes active verified or 
         'description' => '<p>Rujukan utama kuliah.</p>',
         'publication_year' => '2020',
         'status' => 'pending',
-        'is_active' => true,
     ]);
 
     $payload = $reference->fresh()->toSearchableArray();
@@ -161,7 +152,6 @@ it('builds the reference searchable payload and only indexes active verified or 
 
     $rejectedReference = Reference::factory()->create([
         'status' => 'rejected',
-        'is_active' => true,
     ]);
 
     expect($rejectedReference->fresh()->shouldBeSearchable())->toBeFalse();
@@ -171,40 +161,32 @@ it('scopes make all searchable queries to the intended scout-ready records', fun
     withGlobalOwnerContext(function (): void {
         $searchableSpeaker = Speaker::factory()->create([
             'status' => 'verified',
-            'is_active' => true,
         ]);
         $hiddenSpeaker = Speaker::factory()->create([
             'status' => 'rejected',
-            'is_active' => true,
         ]);
 
         $searchableInstitution = Institution::factory()->create([
             'status' => 'verified',
-            'is_active' => true,
         ]);
         $hiddenInstitution = Institution::factory()->create([
             'status' => 'rejected',
-            'is_active' => true,
         ]);
 
         $searchableReference = Reference::factory()->create([
             'status' => 'verified',
-            'is_active' => true,
         ]);
         $hiddenReference = Reference::factory()->create([
             'status' => 'rejected',
-            'is_active' => true,
         ]);
 
         $searchableEvent = Event::factory()->create([
             'status' => 'approved',
             'visibility' => 'public',
-            'is_active' => true,
         ]);
         $hiddenEvent = Event::factory()->create([
             'status' => 'approved',
             'visibility' => 'private',
-            'is_active' => true,
         ]);
 
         expect(Speaker::makeAllSearchableQuery()->pluck('speakers.id')->all())
@@ -229,7 +211,6 @@ it('only marks search indexes dirty when searchable fields change', function () 
     withGlobalOwnerContext(function (): void {
         $speaker = Speaker::factory()->create([
             'status' => 'verified',
-            'is_active' => true,
         ])->fresh();
         $speaker->touch();
 
@@ -241,7 +222,6 @@ it('only marks search indexes dirty when searchable fields change', function () 
 
         $institution = Institution::factory()->create([
             'status' => 'verified',
-            'is_active' => true,
         ])->fresh();
         $institution->update(['description' => 'Pusat komuniti ilmu']);
 
@@ -249,7 +229,6 @@ it('only marks search indexes dirty when searchable fields change', function () 
 
         $reference = Reference::factory()->create([
             'status' => 'verified',
-            'is_active' => true,
         ])->fresh();
         $reference->update(['publisher' => 'Darul Bayan']);
 
@@ -258,7 +237,6 @@ it('only marks search indexes dirty when searchable fields change', function () 
         $event = Event::factory()->create([
             'status' => 'approved',
             'visibility' => 'public',
-            'is_active' => true,
         ])->fresh();
         $event->update(['views_count' => 99]);
 

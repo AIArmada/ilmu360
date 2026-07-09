@@ -26,37 +26,35 @@ it('lists only active public visible statuses (approved, pending, cancelled)', f
     $approvedPublic = Event::factory()->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
     ]);
 
     $pendingPublic = Event::factory()->create([
         'status' => 'pending',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
+        'status' => 'active',
     ]);
 
     $cancelledPublic = Event::factory()->create([
         'status' => 'cancelled',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
+        'status' => 'active',
     ]);
 
     $draftPublic = Event::factory()->create([
         'status' => 'draft',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
+        'status' => 'active',
     ]);
 
     $approvedUnlisted = Event::factory()->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Unlisted,
-        'is_active' => true,
     ]);
 
     $inactiveApproved = Event::factory()->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => false,
+        'status' => 'inactive',
     ]);
 
     $response = $this->getJson(route('api.events.index'));
@@ -82,14 +80,12 @@ it('filters events by json event_type values', function () {
     $kuliah = Event::factory()->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
         'event_type' => [EventType::KuliahCeramah->value],
     ]);
 
     $forum = Event::factory()->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
         'event_type' => [EventType::Forum->value],
     ]);
 
@@ -107,19 +103,16 @@ it('filters events by json event_type values', function () {
 it('filters events by linked reference ids', function () {
     $reference = Reference::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $matchingEvent = Event::factory()->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
     ]);
 
     $otherEvent = Event::factory()->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
     ]);
 
     $reference->events()->attach($matchingEvent, ['order_column' => 1]);
@@ -139,7 +132,6 @@ it('clamps public event index per_page values to the supported maximum', functio
     Event::factory()->count(60)->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
     ]);
 
     $this->getJson('/api/v1/events?per_page=500')
@@ -154,7 +146,6 @@ it('supports sparse fields on the public event index', function () {
     $event = Event::factory()->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
         'title' => 'Sparse Event Payload',
     ]);
 
@@ -197,13 +188,11 @@ it('filters events by admin_area_1_id and admin_area_2_id', function () {
     $districtMatch = Event::factory()->for($venueA)->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
     ]);
 
     $subdistrictNonMatch = Event::factory()->for($venueB)->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
     ]);
 
     $districtResponse = $this->getJson('/api/v1/events?filter[admin_area_1_id]='.$district->getKey());
@@ -239,14 +228,12 @@ it('interprets starts_after filter in the user timezone', function () {
     $included = Event::factory()->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
         'starts_at' => $includedStartUtc,
     ]);
 
     $excluded = Event::factory()->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
         'starts_at' => $excludedStartUtc,
     ]);
 
@@ -275,14 +262,12 @@ it('filters events by starts_on_local_date in the user timezone', function () {
     $included = Event::factory()->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
         'starts_at' => $includedStartUtc,
     ]);
 
     $excluded = Event::factory()->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
         'starts_at' => $excludedStartUtc,
     ]);
 
@@ -305,21 +290,18 @@ it('filters events by exact starts_at timestamps', function () {
     $before = Event::factory()->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
         'starts_at' => $cutoff->copy()->subMinute(),
     ]);
 
     $atCutoff = Event::factory()->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
         'starts_at' => $cutoff->copy(),
     ]);
 
     $after = Event::factory()->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
         'starts_at' => $cutoff->copy()->addMinute(),
     ]);
 
@@ -361,7 +343,6 @@ it('keeps raw utc event timestamps stable while localizing helper fields from re
     $event = Event::factory()->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
         'timing_mode' => TimingMode::Absolute,
         'starts_at' => $startsAt,
         'ends_at' => $endsAt,
@@ -402,7 +383,6 @@ it('filters events by prayer_time keyword', function () {
     $maghribEvent = Event::factory()->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
         'timing_mode' => 'prayer_relative',
         'prayer_reference' => 'maghrib',
         'prayer_display_text' => 'Selepas Maghrib',
@@ -412,7 +392,6 @@ it('filters events by prayer_time keyword', function () {
     $subuhEvent = Event::factory()->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
         'timing_mode' => 'prayer_relative',
         'prayer_reference' => 'fajr',
         'prayer_display_text' => 'Selepas Subuh',
@@ -442,7 +421,6 @@ it('filters events by grouped prayer buckets for before and after prayer labels'
         'title' => "{$beforeLabel} Match",
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
         'starts_at' => now()->addDays(2),
         'timing_mode' => TimingMode::PrayerRelative,
         'prayer_reference' => $reference,
@@ -453,7 +431,6 @@ it('filters events by grouped prayer buckets for before and after prayer labels'
         'title' => "{$afterLabel} Match",
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
         'starts_at' => now()->addDays(3),
         'timing_mode' => TimingMode::PrayerRelative,
         'prayer_reference' => $reference,
@@ -464,7 +441,6 @@ it('filters events by grouped prayer buckets for before and after prayer labels'
         'title' => 'Other Prayer Event',
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
         'starts_at' => now()->addDays(4),
         'timing_mode' => TimingMode::PrayerRelative,
         'prayer_reference' => $otherPrayerReference,
@@ -495,7 +471,6 @@ it('filters events by the dhuha group using morning events while excluding subuh
         'title' => 'Kuliah Dhuha Pagi',
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
         'timezone' => 'Asia/Kuala_Lumpur',
         'starts_at' => Carbon::parse('2026-04-20 09:15:00', 'Asia/Kuala_Lumpur')->utc(),
         'timing_mode' => TimingMode::Absolute,
@@ -507,7 +482,6 @@ it('filters events by the dhuha group using morning events while excluding subuh
         'title' => 'Kuliah Dhuha Khas',
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
         'starts_at' => now()->addDays(3),
         'timing_mode' => TimingMode::PrayerRelative,
         'prayer_reference' => null,
@@ -518,7 +492,6 @@ it('filters events by the dhuha group using morning events while excluding subuh
         'title' => 'Kuliah Selepas Subuh',
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
         'starts_at' => now()->addDays(2),
         'timing_mode' => TimingMode::PrayerRelative,
         'prayer_reference' => PrayerReference::Fajr,
@@ -529,7 +502,6 @@ it('filters events by the dhuha group using morning events while excluding subuh
         'title' => 'Forum Sebelum Jumaat',
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
         'starts_at' => now()->addDays(2),
         'timing_mode' => TimingMode::PrayerRelative,
         'prayer_reference' => PrayerReference::FridayPrayer,
@@ -540,7 +512,6 @@ it('filters events by the dhuha group using morning events while excluding subuh
         'title' => 'Kuliah Selepas Zuhur',
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
         'starts_at' => now()->addDays(2),
         'timing_mode' => TimingMode::PrayerRelative,
         'prayer_reference' => PrayerReference::Dhuhr,
@@ -564,18 +535,16 @@ it('filters events by the dhuha group using morning events while excluding subuh
 });
 
 it('filters events by key person roles and role-specific linked speakers', function () {
-    $imamSpeaker = Speaker::factory()->create(['status' => 'verified', 'is_active' => true]);
-    $moderatorSpeaker = Speaker::factory()->create(['status' => 'verified', 'is_active' => true]);
+    $imamSpeaker = Speaker::factory()->create(['status' => 'verified']);
+    $moderatorSpeaker = Speaker::factory()->create(['status' => 'verified']);
     $personInChargeSpeaker = Speaker::factory()->create([
         'name' => 'Ustaz API PIC',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $imamEvent = Event::factory()->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
     ]);
 
     $imamEvent->keyPeople()->create([
@@ -588,7 +557,6 @@ it('filters events by key person roles and role-specific linked speakers', funct
     $moderatedEvent = Event::factory()->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
     ]);
 
     $moderatedEvent->keyPeople()->create([
@@ -602,7 +570,6 @@ it('filters events by key person roles and role-specific linked speakers', funct
         'title' => 'API Linked PIC Event',
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
     ]);
 
     $personInChargeEvent->keyPeople()->create([
@@ -616,7 +583,6 @@ it('filters events by key person roles and role-specific linked speakers', funct
         'title' => 'API Free Text PIC Event',
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
     ]);
 
     $freeTextPersonInChargeEvent->keyPeople()->create([
@@ -672,7 +638,6 @@ it('includes reference study subtitle in the generic paginated events payload', 
     $event = Event::factory()->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
         'starts_at' => now()->addDays(3),
     ]);
 
@@ -680,7 +645,6 @@ it('includes reference study subtitle in the generic paginated events payload', 
         'title' => 'Al-Misbah Al-Munir',
         'type' => ReferenceType::Book->value,
         'status' => 'approved',
-        'is_active' => true,
     ]);
 
     $event->references()->attach($bookReference->id);
@@ -693,12 +657,11 @@ it('includes reference study subtitle in the generic paginated events payload', 
 });
 
 it('includes key person data in the event api response', function () {
-    $imamSpeaker = Speaker::factory()->create(['status' => 'verified', 'is_active' => true]);
+    $imamSpeaker = Speaker::factory()->create(['status' => 'verified']);
 
     $event = Event::factory()->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
     ]);
 
     $event->keyPeople()->create([
@@ -723,7 +686,6 @@ it('serializes event detail payloads with poster metadata and included speakers'
     $event = Event::factory()->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
         'ends_at' => Carbon::parse('2026-03-14 22:15:00', 'UTC'),
     ]);
 
@@ -732,7 +694,6 @@ it('serializes event detail payloads with poster metadata and included speakers'
 
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $speaker->addMedia(fakeGeneratedImageUpload('speaker-avatar.png', 800, 800))
@@ -767,12 +728,10 @@ it('serializes event detail payloads with a stable reference front cover url', f
     $event = Event::factory()->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
     ]);
 
     $reference = Reference::factory()->create([
         'status' => 'approved',
-        'is_active' => true,
     ]);
 
     $reference->addMedia(fakeGeneratedImageUpload('reference-front-cover.png', 800, 1200))
@@ -800,7 +759,6 @@ it('serializes included institution address display fields on event detail paylo
 
     $institution = Institution::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     syncPrimaryAddressForTest($institution, [
@@ -820,7 +778,6 @@ it('serializes included institution address display fields on event detail paylo
     $event = Event::factory()->for($institution)->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
     ]);
 
     $response = $this->getJson('/api/v1/events/'.$event->id.'?include=institution,institution.addresses');
@@ -841,7 +798,6 @@ it('returns active unlisted event detail payloads when the client already has th
     $event = Event::factory()->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Unlisted,
-        'is_active' => true,
         'slug' => 'api-unlisted-event-detail',
     ]);
 
@@ -856,21 +812,18 @@ it('serializes event change notices and latest reachable replacement targets on 
     $original = Event::factory()->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
         'title' => 'API Change Surface Original',
         'slug' => 'api-change-surface-original',
     ]);
     $firstReplacement = Event::factory()->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
         'title' => 'API Change Surface First Replacement',
         'slug' => 'api-change-surface-first-replacement',
     ]);
     $finalReplacement = Event::factory()->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
         'title' => 'API Change Surface Final Replacement',
         'slug' => 'api-change-surface-final-replacement',
     ]);

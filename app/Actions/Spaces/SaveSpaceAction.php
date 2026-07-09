@@ -26,9 +26,12 @@ final class SaveSpaceAction
             'capacity' => array_key_exists('capacity', $data)
                 ? $this->normalizeCapacity($data['capacity'])
                 : $space->capacity,
-            'is_active' => array_key_exists('is_active', $data)
-                ? (bool) $data['is_active']
-                : ($creating ? true : (bool) $space->is_active),
+            'status' => array_key_exists('status', $data)
+                ? $this->normalizeStatus($data['status'])
+                : ($creating ? 'active' : (string) $space->status),
+            'visibility' => array_key_exists('visibility', $data)
+                ? $this->normalizeVisibility($data['visibility'])
+                : ($creating ? 'public' : (string) ($space->visibility ?? 'public')),
         ]);
 
         $this->ensureUniqueSlug($space, (string) $space->slug);
@@ -108,6 +111,32 @@ final class SaveSpaceAction
                 'slug' => __('The slug has already been taken.'),
             ]);
         }
+    }
+
+    private function normalizeStatus(mixed $value): string
+    {
+        $status = is_scalar($value) ? trim((string) $value) : '';
+
+        if (! in_array($status, ['active', 'inactive'], true)) {
+            throw ValidationException::withMessages([
+                'status' => __('The selected status is invalid.'),
+            ]);
+        }
+
+        return $status;
+    }
+
+    private function normalizeVisibility(mixed $value): string
+    {
+        $visibility = is_scalar($value) ? trim((string) $value) : '';
+
+        if (! in_array($visibility, ['public', 'unlisted', 'private'], true)) {
+            throw ValidationException::withMessages([
+                'visibility' => __('The selected visibility is invalid.'),
+            ]);
+        }
+
+        return $visibility;
     }
 
     private function normalizeRequiredString(mixed $value, string $field): string

@@ -10,6 +10,7 @@ use App\Models\Tag;
 use App\Models\User;
 use App\Models\Venue;
 use App\Notifications\EventSubmittedNotification;
+use App\Services\EventKeyPersonSyncService;
 use App\Services\ModerationService;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
@@ -21,12 +22,13 @@ uses(RefreshDatabase::class);
 beforeEach(function () {
     $this->seed(PermissionSeeder::class);
     $this->seed(RoleSeeder::class);
-    Notification::fake();
     $this->service = new ModerationService;
 });
 
 describe('Event Submission', function () {
     it('sets event to pending and notifies moderators', function () {
+        Notification::fake();
+
         $moderator = User::factory()->create();
         $moderator->assignRole('moderator');
 
@@ -77,7 +79,7 @@ describe('Event Approval', function () {
         // Service returns void now (transitions handle logic), so we check DB for review
         $this->service->approve($event, $moderator, 'Looks good!');
 
-        $review = ModerationReview::where('event_id', $event->id)->latest()->first();
+        $review = ModerationReview::query()->where('actionable_id', $event->id)->whereIn('actionable_type', [Event::class, 'event'])->latest()->first();
 
         expect($review)->toBeInstanceOf(ModerationReview::class);
         expect($review->decision)->toBe('approved');
@@ -96,9 +98,10 @@ describe('Event Approval', function () {
 
         $this->service->approve($event);
 
-        $this->assertDatabaseHas('notification_messages', [
-            'user_id' => $submitter->id,
-            'trigger' => 'submission_approved',
+        // Package inbox stores mapped communications triggers (submission_approved → event_published).
+        $this->assertDatabaseHas('notification_inboxes', [
+            'recipient_id' => $submitter->id,
+            'trigger' => 'event_published',
         ]);
     });
 
@@ -127,13 +130,13 @@ describe('Event Approval', function () {
         ]);
 
         // Create pending tags
-        $disciplineTag = Tag::create([
+        $disciplineTag = Tag::factory()->create([
             'name' => ['ms' => 'Pending Fiqh', 'en' => 'Pending Fiqh'],
             'type' => 'discipline',
             'status' => 'pending',
         ]);
 
-        $issueTag = Tag::create([
+        $issueTag = Tag::factory()->create([
             'name' => ['ms' => 'Pending Issue', 'en' => 'Pending Issue'],
             'type' => 'issue',
             'status' => 'pending',
@@ -146,7 +149,7 @@ describe('Event Approval', function () {
         ]);
         OwnerContext::withOwner(null, fn () => $event->setPrimaryOrganizer($organizerInstitution));
 
-        $event->speakers()->attach($speaker->id);
+        app(EventKeyPersonSyncService::class)->sync($event, [(string) $speaker->id]);
         $event->syncTags([$disciplineTag, $issueTag]);
 
         // Approve event
@@ -174,7 +177,7 @@ describe('Event Approval', function () {
             'status' => 'pending',
         ]);
 
-        $event->speakers()->attach($speaker->id);
+        app(EventKeyPersonSyncService::class)->sync($event, [(string) $speaker->id]);
 
         $this->service->approve($event, $moderator);
 
@@ -202,15 +205,16 @@ describe('Event Needs Changes', function () {
             'Please add speaker details'
         );
 
-        $review = ModerationReview::where('event_id', $event->id)->latest()->first();
+        $review = ModerationReview::query()->where('actionable_id', $event->id)->whereIn('actionable_type', [Event::class, 'event'])->latest()->first();
 
         expect($review->decision)->toBe('needs_changes');
         expect($review->reason_code)->toBe('incomplete_info');
         expect((string) $event->fresh()->status)->toBe('needs_changes');
 
-        $this->assertDatabaseHas('notification_messages', [
-            'user_id' => $submitter->id,
-            'trigger' => 'submission_needs_changes',
+        // Package inbox maps submission_needs_changes → event_updated.
+        $this->assertDatabaseHas('notification_inboxes', [
+            'recipient_id' => $submitter->id,
+            'trigger' => 'event_updated',
         ]);
     });
 });
@@ -234,15 +238,16 @@ describe('Event Rejection', function () {
             'This appears to be spam.'
         );
 
-        $review = ModerationReview::where('event_id', $event->id)->latest()->first();
+        $review = ModerationReview::query()->where('actionable_id', $event->id)->whereIn('actionable_type', [Event::class, 'event'])->latest()->first();
 
         expect($review->decision)->toBe('rejected');
         expect((string) $event->fresh()->status)->toBe('rejected');
         expect(SignalEvent::query()->where('event_name', 'moderation.event.rejected')->exists())->toBeTrue();
 
-        $this->assertDatabaseHas('notification_messages', [
-            'user_id' => $submitter->id,
-            'trigger' => 'submission_rejected',
+        // Package inbox maps submission_rejected → event_cancelled.
+        $this->assertDatabaseHas('notification_inboxes', [
+            'recipient_id' => $submitter->id,
+            'trigger' => 'event_cancelled',
         ]);
     });
 });
@@ -258,33 +263,34 @@ describe('Event Cancellation', function () {
 
         $event = Event::factory()->create([
             'status' => 'approved',
+            'published_at' => now(),
             'submitter_id' => $submitter->id,
-            'is_active' => true,
         ]);
 
-        $event->goingBy()->attach($goingUser->id);
-        $event->savedBy()->attach($savedUser->id);
+        $goingUser->respond($event, 'going');
+        $savedUser->bookmark($event);
 
         $this->service->cancel($event, $moderator, 'Venue emergency closure.');
 
         $event->refresh();
         expect((string) $event->status)->toBe('cancelled');
-        expect($event->is_active)->toBeTrue();
+        expect($event->published_at)->not->toBeNull();
 
-        $review = ModerationReview::where('event_id', $event->id)->latest()->first();
+        $review = ModerationReview::query()->where('actionable_id', $event->id)->whereIn('actionable_type', [Event::class, 'event'])->latest()->first();
         expect($review)->toBeInstanceOf(ModerationReview::class);
         expect($review->decision)->toBe('cancelled');
 
-        $this->assertDatabaseHas('notification_messages', [
-            'user_id' => $submitter->id,
-            'trigger' => 'submission_cancelled',
-        ]);
-        $this->assertDatabaseHas('notification_messages', [
-            'user_id' => $goingUser->id,
+        // Package inbox maps submission_cancelled → event_cancelled.
+        $this->assertDatabaseHas('notification_inboxes', [
+            'recipient_id' => $submitter->id,
             'trigger' => 'event_cancelled',
         ]);
-        $this->assertDatabaseHas('notification_messages', [
-            'user_id' => $savedUser->id,
+        $this->assertDatabaseHas('notification_inboxes', [
+            'recipient_id' => $goingUser->id,
+            'trigger' => 'event_cancelled',
+        ]);
+        $this->assertDatabaseHas('notification_inboxes', [
+            'recipient_id' => $savedUser->id,
             'trigger' => 'event_cancelled',
         ]);
     });
@@ -292,6 +298,8 @@ describe('Event Cancellation', function () {
 
 describe('Sensitive Change Handling', function () {
     it('keeps approved events approved when sensitive changes are saved without an announcement', function () {
+        Notification::fake();
+
         $moderator = User::factory()->create();
         $moderator->assignRole('moderator');
 
@@ -318,7 +326,7 @@ describe('Sensitive Change Handling', function () {
             'starts_at' => now()->addDays(1),
         ]);
 
-        $review = ModerationReview::where('event_id', $event->id)->latest()->first();
+        $review = ModerationReview::query()->where('actionable_id', $event->id)->whereIn('actionable_type', [Event::class, 'event'])->latest()->first();
 
         expect($review)->toBeNull();
     });
@@ -350,7 +358,7 @@ describe('Event Reconsideration', function () {
 
         expect((string) $event->fresh()->status)->toBe('pending');
 
-        $review = ModerationReview::where('event_id', $event->id)->latest()->first();
+        $review = ModerationReview::query()->where('actionable_id', $event->id)->whereIn('actionable_type', [Event::class, 'event'])->latest()->first();
         expect($review->decision)->toBe('reconsidered');
         expect($review->moderator_id)->toBe($moderator->id);
     });
@@ -370,7 +378,7 @@ describe('Revert to Draft', function () {
         expect((string) $event->fresh()->status)->toBe('draft');
         expect($event->fresh()->published_at)->toBeNull();
 
-        $review = ModerationReview::where('event_id', $event->id)->latest()->first();
+        $review = ModerationReview::query()->where('actionable_id', $event->id)->whereIn('actionable_type', [Event::class, 'event'])->latest()->first();
         expect($review->decision)->toBe('reverted_to_draft');
     });
 
@@ -402,7 +410,7 @@ describe('Re-moderation', function () {
 
         expect((string) $event->fresh()->status)->toBe('pending');
 
-        $review = ModerationReview::where('event_id', $event->id)->latest()->first();
+        $review = ModerationReview::query()->where('actionable_id', $event->id)->whereIn('actionable_type', [Event::class, 'event'])->latest()->first();
         expect($review->decision)->toBe('remoderated');
         expect($review->moderator_id)->toBe($moderator->id);
     });

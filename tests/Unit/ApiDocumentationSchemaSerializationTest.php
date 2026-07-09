@@ -67,7 +67,6 @@ it('serializes speaker detail and directory schemas to nested arrays', function 
                 gender: 'male',
                 formatted_name: 'Ustaz Adam Yusuf',
                 status: 'verified',
-                is_active: true,
                 events_count: 4,
                 avatar_url: 'https://example.test/speaker-avatar.jpg',
                 country: sampleCountrySchema(),
@@ -212,7 +211,6 @@ function sampleSpeakerSchema(): Speaker
         country: sampleCountrySchema(),
         location: 'Shah Alam, Selangor',
         status: 'verified',
-        is_active: true,
         is_following: true,
         media: [
             'avatar_url' => 'https://example.test/speaker-avatar.jpg',

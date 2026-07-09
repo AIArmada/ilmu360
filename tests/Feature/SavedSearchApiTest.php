@@ -424,7 +424,6 @@ describe('Saved Search API Endpoints', function () {
                     'starts_at' => Carbon::parse('2026-04-23 02:00:00', 'UTC'),
                     'status' => 'approved',
                     'visibility' => 'public',
-                    'is_active' => true,
                 ]);
 
                 Event::factory()->create([
@@ -432,7 +431,6 @@ describe('Saved Search API Endpoints', function () {
                     'starts_at' => Carbon::parse('2026-04-24 02:00:00', 'UTC'),
                     'status' => 'approved',
                     'visibility' => 'public',
-                    'is_active' => true,
                 ]);
 
                 $search = SavedSearch::factory()->create([

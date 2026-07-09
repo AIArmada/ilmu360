@@ -35,7 +35,7 @@ final class EntitySubmissionAccess
 
         return $query
             ->whereIn('status', self::ALLOWED_ENTITY_STATUSES)
-            ->where('is_active', true)
+            ->whereIn('status', ['verified', 'pending'])
             ->whereHas('members', fn (Builder $memberQuery): Builder => $memberQuery->whereKey($user->getKey()));
     }
 
@@ -58,7 +58,7 @@ final class EntitySubmissionAccess
     {
         return $query
             ->whereIn('status', self::ALLOWED_ENTITY_STATUSES)
-            ->where('is_active', true)
+            ->whereIn('status', ['verified', 'pending'])
             ->where(function (Builder $visibilityQuery) use ($user): void {
                 $visibilityQuery->where('allow_public_event_submission', true);
 
@@ -76,7 +76,7 @@ final class EntitySubmissionAccess
     {
         return $query
             ->whereIn('status', self::ALLOWED_ENTITY_STATUSES)
-            ->where('is_active', true)
+            ->whereIn('status', ['verified', 'pending'])
             ->where(function (Builder $visibilityQuery) use ($user): void {
                 $visibilityQuery->where('allow_public_event_submission', true);
 

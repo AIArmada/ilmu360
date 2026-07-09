@@ -57,7 +57,10 @@ new
                 ->active()
                 ->where('status', 'verified')
                 ->withCount(['events' => function ($query) {
-                    $query->active()
+                    $eventsTable = $query->getModel()->getTable();
+                    $query->whereIn("{$eventsTable}.status", \App\Models\Event::PUBLIC_STATUSES)
+                        ->where("{$eventsTable}.visibility", \App\Enums\EventVisibility::Public)
+                        ->whereNotNull("{$eventsTable}.published_at")
                         ->where('starts_at', '>=', now());
                 }])
                 ->with('media');

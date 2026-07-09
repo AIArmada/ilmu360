@@ -26,8 +26,11 @@ return new class extends Migration
             $table->text('reviewer_note')->nullable();
             $table->json('proposed_data')->nullable();
             $table->json('original_data')->nullable();
-            $table->timestamp('reviewed_at')->nullable();
-            $table->timestamp('cancelled_at')->nullable();
+            $table->timestampTz('reviewed_at')->nullable();
+            $table->timestampTz('approved_at')->nullable();
+            $table->timestampTz('rejected_at')->nullable();
+            $table->timestampTz('cancelled_at')->nullable();
+            $table->timestampTz('last_state_change_at')->nullable();
             $table->timestamps();
 
             $table->index(['entity_type', 'entity_id', 'status'], 'contribution_requests_entity_status_idx');

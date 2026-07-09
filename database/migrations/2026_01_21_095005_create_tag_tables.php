@@ -15,6 +15,8 @@ return new class extends Migration
             $table->jsonb('slug');
             $table->string('type')->nullable();
             $table->string('status')->default('verified');
+            $table->timestampTz('verified_at')->nullable();
+            $table->timestampTz('last_state_change_at')->nullable();
             $table->integer('order_column')->nullable();
 
             $table->timestamps();

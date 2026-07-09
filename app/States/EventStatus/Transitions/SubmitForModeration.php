@@ -25,6 +25,7 @@ class SubmitForModeration extends Transition implements HasColor, HasIcon, HasLa
     public function handle(): Event
     {
         $this->event->status = Pending::class;
+        $this->event->last_state_change_at = now();
         $this->event->save();
 
         app(EventNotificationService::class)->notifySubmissionReceived($this->event);

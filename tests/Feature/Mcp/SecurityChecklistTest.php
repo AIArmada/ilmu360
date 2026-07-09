@@ -47,7 +47,6 @@ it('ignores hidden institution slug injections and preserves coordinates across 
     $adminInstitution = Institution::factory()->create([
         'name' => 'Security Checklist Admin Institution',
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $adminAddress = $adminInstitution->fresh()?->addressModel;
     $adminLat = (float) ($adminAddress?->lat ?? 0.0);
@@ -62,7 +61,6 @@ it('ignores hidden institution slug injections and preserves coordinates across 
                 'nickname' => 'Security Checklist Masjid',
                 'type' => 'masjid',
                 'status' => 'pending',
-                'is_active' => true,
                 'allow_public_event_submission' => true,
                 'slug' => 'attempted-admin-institution-injection',
                 'address' => [
@@ -90,7 +88,6 @@ it('ignores hidden institution slug injections and preserves coordinates across 
                 'nickname' => 'Security Checklist Member Masjid',
                 'type' => 'masjid',
                 'status' => 'pending',
-                'is_active' => true,
                 'allow_public_event_submission' => true,
                 'slug' => 'attempted-member-institution-injection',
                 'address' => [
@@ -157,7 +154,6 @@ function securityChecklistMemberInstitutionContext(): array
 {
     $institution = Institution::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $member = User::factory()->create([

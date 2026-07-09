@@ -122,3 +122,119 @@ Consequences:
 - Speakers, institutions, venues, and events can participate across multiple countries without changing user context.
 - Replace fixed Malaysia-oriented geography columns with package address areas and country-specific administrative area types.
 - Search indexes, saved searches, API contracts, MCP docs, and public filters must support global results by default.
+
+## ADR-011 - Package Taxonomy Is Event Classification Source Of Truth
+
+Status: `Accepted` (2026-07-09)
+
+Decision: Event classification uses AIArmada Events package primitives exclusively:
+
+- `EventTaxonomy` (codes: `domain`, `discipline`, `source`, `issue` for ilmu360 seeds)
+- `EventTerm` (terms within a taxonomy; `is_active` for moderation)
+- `EventClassification` (event/occurrence/session attachment with denormalized `taxonomy_code` / `term_code`)
+
+Spatie Tags are **not** the long-term event classification store. They may remain temporarily only for admin seed/migration tooling until all write paths and indexes use package classifications. Dual-write/dual-index is forbidden at Phase 9 exit.
+
+Why package taxonomy (not Spatie):
+
+1. First-class package model with search document builder, occurrence/session scope, weight/primary flags, and observers.
+2. Aligns with ADR-002 package standards and ADR-005 package-owned domains.
+3. Avoids polymorphic taggables for the core discovery facet path.
+4. App already has `SyncEventTaxonomiesAction` and public filters using `EventTerm`.
+
+App-owned remainder:
+
+- Islamic seed labels and `TagType` metadata map onto taxonomy `code` + seed content (not a second store).
+- Filament term moderation UX until filament-events covers it.
+
+Consequences:
+
+- Submit/admin/API write classifications, not `syncTags()` for domain/discipline/source/issue.
+- Scout indexes `taxonomy_term_ids` / `taxonomy_codes` (and may drop tag id facets after reindex).
+- Catalog endpoints expose taxonomies/terms; tag catalogs become deprecated and are removed at exit.
+- One-time migrate: tags → terms → classifications via existing sync command.
+
+## ADR-012 - API Geography Hard Cut (No Legacy Aliases)
+
+Status: `Accepted` (2026-07-09), corrected same day
+
+Decision: Public and admin HTTP APIs use **package-native addressing columns and catalogs only**.
+
+### Real package columns on `addresses`
+
+| Column | Package model / table | App product use |
+| --- | --- | --- |
+| `country_id` | `AddressCountry` | **Yes** — `/catalogs/countries` |
+| `state_id` | `State` / `states` | **Yes** — `/catalogs/states` |
+| `city_id` | `City` / `cities` | **Yes** — `/catalogs/cities` |
+| `admin_area_1_id` | **District** (AddressArea level 2) | **Yes** — persisted |
+| `admin_area_2_id` | **Subdistrict** (AddressArea level 3) | **Yes** — persisted |
+| `admin_area_3_id` | — | **No** — always null on app writes |
+| `admin_area_4_id` | — | **No** — always null on app writes |
+
+### Product hierarchy (do not store state in admin_area_1)
+
+ilmu360° address UX:
+
+1. `country_id` → AddressCountry
+2. `state_id` → package `State` table
+3. `city_id` → package `City` table (optional)
+4. `admin_area_1_id` → **district** (AddressArea)
+5. `admin_area_2_id` → **subdistrict** (AddressArea)
+
+Federal territories (no district): `admin_area_1_id` null, `admin_area_2_id` = local area under the state.
+
+AddressArea level-1 nodes may exist only as **tree parents** for districts (bridge via `AddressAreaStateBridge`). They are not address FKs.
+
+Package leftovers **removed** from `Address`: no `district_id` / `subdistrict_id` accessors, no `district()` / `stateArea()` relation aliases.
+
+| App field | Meaning |
+| --- | --- |
+| `state_id` | State / WP |
+| `city_id` | City |
+| `admin_area_1_id` | District |
+| `admin_area_2_id` | Subdistrict |
+
+### Hard-cut removals
+
+| Rejected | Reason |
+| --- | --- |
+| Storing state UUID in `admin_area_1_id` | Use `state_id` |
+| Form-only `state_area_id` | Use `state_id` |
+| Product use of `admin_area_3_id` | Two area slots only: district + subdistrict |
+| Package `district_id` / `subdistrict_id` accessors | Removed from package |
+
+Consequences:
+
+- Forms, contributions, Filament hydrate via `state_id` + `city_id` + district + subdistrict.
+- Google Places maps state → `state_id`, district → area_1, subdistrict → area_2.
+- Persist always nulls `admin_area_3_id` / `admin_area_4_id`.
+- Guideline: `.ai/guidelines/addressing.blade.php`
+
+## ADR-013 - Paid Commerce Productized Cleanly
+
+Status: `Accepted` (2026-07-09)
+
+Decision: Activate the installed events ↔ ticketing ↔ inventory ↔ seating commerce chain as a **productized** capability, not a half-wired experiment.
+
+Required product modes (from ADR-009), all package-native:
+
+1. Free open / walk-in
+2. Free RSVP / registration
+3. Free ticketed + pass/check-in
+4. Paid ticketed + order fulfillment
+5. Mixed free/paid ticket types
+6. Reserved seating / capacity-managed admission
+
+Implementation rules:
+
+- Use package actions (`AddEventTicketTypeToCartAction`, pass issuance, seating allocation, order paid → registration sync).
+- No free-only app abstractions that reject paid pricing modes.
+- Do not invent parallel cart/order tables in the app.
+- Public UX may phase rollout, but schema, admin Filament plugins, and API contracts expose all modes.
+- Payment provider binding (Chip/cashier) is a sub-track under this ADR; until bound, paid modes may be admin-configured with package tables ready and checkout disabled via feature flag.
+
+Consequences:
+
+- Phase 9 includes paid-commerce productization work unit (WU-P) as active, not optional forever.
+- Feature flags control **public exposure**, not schema readiness.

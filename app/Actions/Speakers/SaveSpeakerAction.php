@@ -80,8 +80,7 @@ final readonly class SaveSpeakerAction
             'job_title' => $isFreelance
                 ? $this->normalizeOptionalString($data['job_title'] ?? $speaker->job_title)
                 : null,
-            'status' => (string) ($data['status'] ?? $speaker->status ?? ''),
-            'is_active' => array_key_exists('is_active', $data) ? (bool) $data['is_active'] : ($creating ? true : (bool) $speaker->is_active),
+            'status' => array_key_exists('status', $data) ? (string) $data['status'] : ($creating ? 'pending' : (string) $speaker->status),
         ];
 
         if ($creating) {

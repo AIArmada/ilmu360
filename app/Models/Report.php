@@ -41,6 +41,11 @@ class Report extends BaseReport implements AuditableContract, HasMedia
     {
         return [
             'metadata' => 'array',
+            'reported_at' => 'immutable_datetime',
+            'reviewed_at' => 'immutable_datetime',
+            'resolved_at' => 'immutable_datetime',
+            'rejected_at' => 'immutable_datetime',
+            'archived_at' => 'immutable_datetime',
         ];
     }
 

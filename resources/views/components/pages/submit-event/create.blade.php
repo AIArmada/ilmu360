@@ -310,7 +310,7 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
     {
         return Cache::remember($this->submitCacheKey('submit_venues'), 60, fn (): array => Venue::query()
             ->whereIn('status', ['verified', 'pending'])
-            ->where('is_active', true)
+            ->whereIn('status', ['verified', 'pending'])
             ->pluck('name', 'id')
             ->all());
     }
@@ -1099,7 +1099,7 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
                         ->searchable()
                         ->preload()
                         ->native(false)
-                        ->relationship('references', 'title', fn (Builder $query) => $query->where('is_active', true))
+                        ->relationship('references', 'title', fn (Builder $query) => $query->whereIn('status', ['verified', 'pending']))
                         ->createOptionForm([
                             TextInput::make('title')
                                 ->label(__('Tajuk Kitab / Buku'))
@@ -1170,7 +1170,7 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
                                 'description' => $data['description'] ?? null,
                                 'is_canonical' => false,
                                 'status' => 'pending',
-                                'is_active' => true,
+                                'status' => 'active',
                             ]);
 
                             // Save media uploads via Filament's relationship-saving mechanism
@@ -1328,7 +1328,7 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
                                 ->visibleJs("({$hasScopedInstitutionJs} && (\$get('location_same_as_institution') !== false)) || (\$get('primary_organizer_kind') === 'institution' && (\$get('location_same_as_institution') !== false)) || ((\$get('primary_organizer_kind') === 'speaker' || !\$get('location_same_as_institution')) && \$get('location_type') === 'institution')")
                                 ->options(
                                     fn (): array => Space::query()
-                                        ->where('is_active', true)
+                                        ->where('status', 'active')
                                         ->orderBy('name')
                                         ->pluck('name', 'id')
                                         ->toArray()
@@ -1761,7 +1761,7 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
             ? $event->visibility->value
             : (string) $event->visibility;
 
-        return $event->is_active
+        return $event->published_at !== null
             && $this->isPubliclyVisibleDuplicateStatus($event)
             && in_array($eventVisibility, [EventVisibility::Public->value, EventVisibility::Unlisted->value], true);
     }

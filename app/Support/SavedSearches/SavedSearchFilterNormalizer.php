@@ -27,7 +27,7 @@ final class SavedSearchFilterNormalizer
 
         $normalizedFilters = Arr::only($filters, $this->allowedFilterKeys());
 
-        foreach (['country_id', 'state_id', 'city_id', 'admin_area_1_id', 'admin_area_2_id', 'admin_area_3_id', 'institution_id', 'venue_id'] as $uuidFilter) {
+        foreach (['country_id', 'state_id', 'city_id', 'admin_area_1_id', 'admin_area_2_id', 'institution_id', 'venue_id'] as $uuidFilter) {
             $this->normalizeUuidScalarFilter($normalizedFilters, $uuidFilter);
         }
 
@@ -82,7 +82,6 @@ final class SavedSearchFilterNormalizer
             'city_id',
             'admin_area_1_id',
             'admin_area_2_id',
-            'admin_area_3_id',
             'institution_id',
             'venue_id',
             'speaker_ids',

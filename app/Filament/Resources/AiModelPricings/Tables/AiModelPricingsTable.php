@@ -6,7 +6,6 @@ use App\Models\AiModelPricing;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
-use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -38,8 +37,8 @@ class AiModelPricingsTable
                     ->numeric()
                     ->sortable(),
 
-                IconColumn::make('is_active')
-                    ->boolean()
+                TextColumn::make('status')
+                    ->badge()
                     ->sortable(),
 
                 TextColumn::make('input_per_million')
@@ -83,10 +82,10 @@ class AiModelPricingsTable
                         ->map(fn (string $value): string => str($value)->replace('_', ' ')->headline()->toString())
                         ->all()),
 
-                SelectFilter::make('is_active')
+                SelectFilter::make('status')
                     ->options([
-                        '1' => 'Active',
-                        '0' => 'Inactive',
+                        'active' => 'Active',
+                        'inactive' => 'Inactive',
                     ]),
             ])
             ->defaultSort('priority', 'asc')

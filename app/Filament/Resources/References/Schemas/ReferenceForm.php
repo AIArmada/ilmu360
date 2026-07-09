@@ -78,12 +78,10 @@ class ReferenceForm
                             ->options([
                                 'pending' => 'Pending',
                                 'verified' => 'Verified',
+                                'inactive' => 'Inactive',
                             ])
                             ->default('verified')
                             ->required(),
-                        Toggle::make('is_active')
-                            ->label('Active')
-                            ->default(true),
                     ])->columns(2),
                 Section::make('Imagery')
                     ->components([

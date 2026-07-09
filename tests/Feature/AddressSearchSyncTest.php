@@ -18,7 +18,6 @@ it('queues speaker reindexing when a speaker address changes', function () {
 
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     syncPrimaryAddressForTest($speaker, [
@@ -39,13 +38,12 @@ it('queues institution and related event reindexing when an institution address 
 
     $institution = Institution::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $event = Event::factory()->for($institution)->create([
         'status' => 'approved',
         'visibility' => 'public',
-        'is_active' => true,
+        'published_at' => now(),
     ]);
 
     syncPrimaryAddressForTest($institution, [

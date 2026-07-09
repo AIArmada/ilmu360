@@ -1,121 +1,190 @@
 # Reassessment Closure: ilmu360° on AIArmada Packages
 
-> [!WARNING]
-> **PARTIALLY STALE.** Package count is 25 (not 22 as stated here). 5 Category D closures completed 2026-07-06 (EventKeyPerson→EventInvolvement, EventCheckin→EventAttendance, EventChangeAnnouncement→EventUpdate, EventSubmission→EventSubmission[pkg], ModerationReview→ModerationAction). Model ownership audit complete — 11 models extend packages. See [`docs/aiarmada-adoption/status.md`](aiarmada-adoption/status.md) for the full model ownership register.
+Last verified: 2026-07-09 against the live `refactor` tree (Composer requires, `app/Models` inheritance, `database/migrations`, and runtime package imports).
 
 The original version of this document asked whether ilmu360° could be rebuilt on top of AIArmada packages. That is no longer a hypothetical planning exercise.
 
-The current codebase already consumes local AIArmada packages through the Composer path repository at `/Users/Saiffil/Herd/commerce/packages/*`. The remaining work is not package-readiness discovery. It is cutover cleanup: deleting app-owned wrappers, finishing package-first surface rebuilds, and closing final verification debt.
+The current codebase already consumes local AIArmada packages through the Composer path repository at `/Users/Saiffil/Herd/commerce/packages/*`. Package installation and source availability are closed. The remaining work is cutover cleanup: thinning or deleting thick app subclasses where package contracts can own the surface, finishing dual-path domains (taxonomy, communications dispatch), and closing verification debt.
+
+Canonical trackers (reconciled 2026-07-09):
+
+- [`docs/aiarmada-adoption/status.md`](aiarmada-adoption/status.md) — live status + Phase 9 north star  
+- [`docs/aiarmada-adoption/gap-closure-report.html`](aiarmada-adoption/gap-closure-report.html) — open-gap dashboard (native purity)  
+- [`docs/aiarmada-adoption/cutover-plan.html`](aiarmada-adoption/cutover-plan.html) — Phase 9 work units  
+- [`docs/aiarmada-adoption/phase-08-cutover.md`](aiarmada-adoption/phase-08-cutover.md) — Phase 8 checklist + Phase 9 handoff  
+- [`docs/aiarmada-adoption/domain-mapping.md`](aiarmada-adoption/domain-mapping.md) — ownership targets  
+
+**Policy:** remaining dual paths and BC shims are not “deferred forever.” They block further feature development until closed.
 
 ## 1. Current Adoption Truth
 
 ### 1.1 Installed directly in this app
 
-`composer show 'aiarmada/*' --direct` currently reports **25 installed AIArmada packages**:
+`composer show 'aiarmada/*' --direct` reports **25 installed AIArmada packages**:
 
-- `addressing`
-- `affiliates`
-- `authz`
-- `commerce-support`
-- `communications`
-- `contacting`
-- `engagement`
-- `events`
-- `filament-addressing`
-- `filament-authz`
-- `filament-communications`
-- `filament-contacting`
-- `filament-engagement`
-- `filament-events`
-- `filament-signals`
-- `inventory`
-- `membership`
-- `moderation`
-- `references`
-- `seating`
-- `signals`
-- `ticketing`
+| Backend | Filament adapter |
+| --- | --- |
+| `addressing` | `filament-addressing` |
+| `affiliates` | — |
+| `authz` | `filament-authz` |
+| `commerce-support` | — |
+| `communications` | `filament-communications` |
+| `contacting` | `filament-contacting` |
+| `engagement` | `filament-engagement` |
+| `events` | `filament-events` |
+| `inventory` | `filament-inventory` |
+| `membership` | — |
+| `moderation` | — |
+| `references` | — |
+| `seating` | `filament-seating` |
+| `signals` | `filament-signals` |
+| `ticketing` | `filament-ticketing` |
+
+Transitive commerce packages also resolve via path repos when pulled by the packages above (for example `cart`, `checkout`, `orders`, `products`). They are not root requires and are not treated as adopted product surfaces yet.
 
 This supersedes the old “5 installed, 54 source-only” conclusion.
 
 ### 1.2 Durable evidence in the repo
 
-- `composer.json` now requires the package set above directly.
-- `docs/aiarmada-adoption/status.md` tracks the active cutover state.
-- `docs/aiarmada-adoption/domain-mapping.md` records package ownership targets.
-- `config/addressing.php`, `config/contacting.php`, `config/communications.php`, `config/membership.php`, `config/moderation.php`, and `config/references.php` exist locally, which means these packages are no longer theoretical inputs.
+- `composer.json` requires the full set of 25 packages above.
+- App migrations are down to **31 files** (Laravel defaults, vendor tables, app-unique entities, shared report/saved-search tables, pivots, membership pivot bootstrap). Package tables come from package migrations.
+- Package configs are published locally, including `addressing`, `contacting`, `communications`, `membership`, `moderation`, `references`, `events`, `engagement`, `signals`, `inventory`, `seating`, `ticketing`, and Filament adapter configs.
+- Filament plugins registered:
+  - **Admin panel:** addressing, contacting, engagement, communications, events, inventory, seating, ticketing, signals, authz.
+  - **Ahli panel:** events, engagement.
+- `migrate:fresh --seed` is the expected green path for schema proof (see adoption status).
+
+### 1.3 Model ownership (live)
+
+#### Category A — App model extends package model (15)
+
+| App model | Package parent |
+| --- | --- |
+| `Event` | `AIArmada\Events\Models\Event` |
+| `Registration` | `AIArmada\Events\Models\EventRegistration` |
+| `Venue` | `AIArmada\Events\Models\Venue` |
+| `Series` | package `EventSeries` |
+| `Space` | `AIArmada\Events\Models\VenueSpace` |
+| `EventKeyPerson` | `AIArmada\Events\Models\EventInvolvement` |
+| `EventCheckin` | `AIArmada\Events\Models\EventAttendance` |
+| `EventChangeAnnouncement` | `AIArmada\Events\Models\EventUpdate` |
+| `EventSubmission` | package `EventSubmission` |
+| `Reference` | `AIArmada\References\Models\Reference` |
+| `MemberInvitation` | package `MembershipInvitation` |
+| `MembershipApplication` | package `MembershipApplication` |
+| `ModerationReview` | `AIArmada\Moderation\Models\ModerationAction` |
+| `SavedSearch` | `AIArmada\CommerceSupport\Models\SavedSearch` |
+| `Report` | `AIArmada\CommerceSupport\Models\Report` |
+
+These are **active subclasses**, not empty shims. The largest still carry substantial app logic (approximate sizes today: `Event` ~2.6k lines, `Reference` ~740, `Registration` ~440, `Venue` ~210). Deleting them is not a rename; it requires moving product behavior onto package seams or accepting permanent thin app subclasses.
+
+#### Category B — App-owned root models using package traits
+
+| Model | Package traits / seams in use |
+| --- | --- |
+| `Institution` | `HasMembers`, `HasAddresses`, `HasContactMethods`, `HasSocialProfiles`, package contact/social aliases |
+| `Speaker` | `HasMembers`, `HasAddresses`, `HasContactMethods`, `HasSocialProfiles`, package contact/social aliases |
+| `User` | engagement actor traits (`CanFollow`, `CanBookmark`, `CanRespond`) plus package inbox/preference relations |
+
+#### Category C — Deleted or fully replaced (examples)
+
+| Former app surface | Resolution |
+| --- | --- |
+| `Contact`, `SocialMedia` | package contacting |
+| Geography wrappers (`Country`, `State`, `District`, `Subdistrict`) | package addressing |
+| `Following` | engagement `Follow` |
+| `EventSettings` | package access policy + event columns |
+| `MembershipClaim` model | `MembershipApplication` (package table) |
+| Jetstream `Team` | deleted; polymorphic membership only |
+| App `event_attendees` / `user_venue` / `event_reference` / `spaces` migrations | package tables |
+| App notification models (`PendingNotification`, `NotificationDelivery`, `NotificationDestination`, `NotificationRule`, `NotificationSetting`) | package communications tables/models |
+| `NotificationEngine`, `NotificationCenterMessage` | removed; inbox + package dispatch path + app orchestration services |
+
+#### Category D — Intentionally app-unique
+
+Includes `Institution`, `Speaker`, `DonationChannel`, `MediaLink`, `Inspiration`, `SlugRedirect`, `ContributionRequest`, AI usage/pricing models, Spatie `Tag`, OAuth/social account surfaces, public Livewire, MCP, and product-specific notification orchestration (FCM, WhatsApp, event notification policy services).
 
 ## 2. Assessment-By-Assessment Closure
 
 | Original assessment area | Old conclusion | Current codebase reality | Status |
 | --- | --- | --- | --- |
-| Package inventory | 5 installed, most relevant packages source-only | 22 AIArmada packages are installed from the local monorepo path repository | `Closed` |
-| Addressing policy | “Do not adopt addressing” | `aiarmada/addressing` is installed, seeded, and live in runtime flows; country switching has been removed | `Closed` |
-| Contact and social models | Package coverage only in source | `contacting` and `filament-contacting` are installed; legacy `Contact` and `SocialMedia` classes are already gone from `app/` | `Closed` |
-| Events package feasibility | Theoretical replacement only | `events`, `seating`, `ticketing`, and `filament-events` are installed; runtime search/show/venue behavior already bridges package-owned occurrences and metadata | `In Progress` |
-| Engagement feasibility | Theoretical replacement only | `engagement` and `filament-engagement` are installed. Public event registration, bookmark/save, follow/unfollow all use package actions (`RegistrationService`, `EngagementManager`). Local `RegisterForEventAction`, `SaveEventAction`, `UnsaveEventAction`, and `HasFollowers` concern are deleted. | `Closed` |
-| References feasibility | Source-only package | `references` is installed; reference query/runtime bridges exist, but the app still keeps a local `Reference` wrapper model and UI | `In Progress` |
-| Membership feasibility | Source-only package | `membership` is installed; `App\Models\MemberInvitation` sits on the installed package model with hashed tokens. `MembershipClaim` model uses `membership_applications` table (package-owned). Pending: full package action adoption for approve/reject workflows. | `In Progress` |
-| Communications feasibility | Source-only package | `communications` and `filament-communications` are installed. In-app notification inbox (`NotificationMessage` → `NotificationInbox`) is fully cut over — `notifications` table dropped, custom `InboxChannel` writes to `notification_inboxes`, Livewire/API reads from package model. `auto_capture` enabled. Remaining: notification pipeline/engine, custom channels (FCM, WhatsApp), digest scheduling. | `In Progress` |
-| Moderation / bans / blocks | Source-only package | `moderation` is installed, but app-owned moderation/report workflows still exist beside the package | `In Progress` |
-| Filament adapter availability | Most relevant UIs source-only | Relevant Filament adapters are installed directly; the remaining issue is surface migration, not package availability | `Closed` |
-| Public Livewire, MCP, donation channels | No package coverage | Still intentionally app-owned under ADR-006 | `Closed (Intentional)` |
-| Source vs vendor reconciliation | Vendor/source drift blocked adoption | Composer path repositories make local package source the installed runtime dependency; the live problem is app cutover, not vendor publishing drift | `Closed` |
+| Package inventory | 5 installed, most relevant packages source-only | 25 AIArmada packages installed from the local monorepo path repository | `Closed` |
+| Addressing policy | “Do not adopt addressing” | `aiarmada/addressing` installed, seeded, live; country switching removed; legacy geography models deleted | `Closed` |
+| Contact and social models | Package coverage only in source | `contacting` + `filament-contacting` installed; legacy `Contact` / `SocialMedia` gone | `Closed` |
+| Events package feasibility | Theoretical replacement only | `events`, `seating`, `ticketing`, Filament events/inventory/seating/ticketing installed; app event models extend package models; Filament event UI is plugin-owned | `Closed (wrappers remain)` |
+| Engagement feasibility | Theoretical replacement only | Public registration/bookmark/follow use package contracts (`RegistrationServiceInterface`, `EngagementManager`). Local `RegisterForEventAction`, `SaveEventAction`, `UnsaveEventAction`, `HasFollowers` deleted | `Closed` |
+| References feasibility | Source-only package | `references` installed; `App\Models\Reference` is a thick package subclass with Scout, media, membership, and public UX still app-owned (no filament-references package) | `Closed (wrapper remains)` |
+| Membership feasibility | Source-only package | `membership` installed and converged: `MembershipApplication` + `MemberInvitation` extend package models; package approve/reject/add/remove actions used; `HasMembers` + `MemberPermissionGate`; Jetstream teams deleted; `MembershipClaim` model deleted | `Closed (naming nits only)` |
+| Communications feasibility | Source-only package | Package + Filament adapter installed. Inbox cut over to `NotificationInbox`. Preferences map to `CommunicationPreference`. App notification models/engine deleted. Resolvers bound: preference, quiet hours, consent, suppression. Digest command can use `CommunicationBatch`. Remaining: `dispatch_through_package` still defaults false; custom FCM/WhatsApp channels and event notification orchestration stay app-owned; no app `DestinationResolver` override (package default used) | `In Progress` |
+| Moderation / bans / blocks | Source-only package | `moderation` installed; `ModerationReview` extends package `ModerationAction`; `Report` extends commerce-support. Package `Block` unused. App still owns report categories and contribution mutation application | `In Progress` |
+| Filament adapter availability | Most relevant UIs source-only | Relevant adapters installed and registered on admin (and events/engagement on ahli). Surface migration is the remaining issue where app resources still exist | `Closed` |
+| Public Livewire, MCP, donation channels | No package coverage | Still intentionally app-owned under product boundary rules | `Closed (Intentional)` |
+| Source vs vendor reconciliation | Vendor/source drift blocked adoption | Composer path repositories make local package source the installed runtime dependency | `Closed` |
+| Taxonomy / tags | Spatie-only | Dual path: Spatie `HasTags` still used for attach/sync and some search facets; package `EventTaxonomy` / `EventTerm` used in public filters and `SyncEventTaxonomiesAction` / migrate command; `Event` searchable array emits both tag and classification fields | `In Progress` |
 
 ## 3. Domain Reality Against The Current Codebase
 
 | Domain | Current reality in the repo | Remaining live gap |
 | --- | --- | --- |
-| Geography and global discovery | Package `AddressCountry` / `AddressArea` data is seeded by `database/seeders/AddressingSeeder.php`. Country switching is removed. Legacy `Country` / `State` / `District` / `Subdistrict` wrappers and their dead admin/test surfaces are now deleted, and cache/deletion behavior lives on package observers. | Keep collapsing the last legacy address alias shapes only where broader app wrappers still need them during the remaining domain cutovers. |
-| Contacts and social profiles | Package-backed contact/social aliases are live. The old app contact/social classes are already removed. | Finish deleting any remaining app-owned compatibility accessors after all UI/API surfaces fully stop speaking the old shape. |
-| Events, seating, ticketing | The app now depends on `events`, `seating`, and `ticketing`. Package tables and occurrence-backed behavior are live in runtime slices. Focused organizer regressions now pass without legacy organizer field reads. 5 event model closures completed 2026-07-06 (EventKeyPerson, EventCheckin, EventChangeAnnouncement, EventSubmission, ModerationReview now extend their respective package models). | Delete remaining app event wrappers (`App\Models\Event`, `EventSettings`, `Registration`) once all public/API/MCP/admin paths are rebuilt package-first. |
-| Institutions, speakers, venues, series | These domains already speak to package-backed addressing/contacting/event relations in multiple runtime paths. | App models and resources still own persistence and UX contracts; those wrappers remain to be deleted or thinned further. |
-| References | Package-backed reference querying is live, and the package is installed. | Local `App\Models\Reference`, local resource flows, and legacy contract shapes still remain. |
-| Membership | Package is installed and package ownership is the target architecture. `App\Models\MemberInvitation` now wraps the installed package model, invitation rows store hashed tokens, and raw accept links resolve through package-compatible matching. | Claim/invitation workflows still run through local app models/actions/resources, and full package action replacement is blocked by event-specific organizer/co-organizer role semantics. |
-| Communications | Package and Filament adapter are installed. | App still carries notification models, delivery rules, and app-specific channels/digest scheduling. |
-| Moderation and contributions | Package is installed and moderation ownership is accepted in the rewrite docs. `ModerationReview` now extends the package `ModerationAction` (closed 2026-07-06). | App still carries report handling and entity mutation application logic. |
-| Tags and taxonomy | Package taxonomy exists through `events`. | The app still uses local Spatie tag ownership and has not fully cut over taxonomy storage/querying. |
-| Public Livewire UX, MCP, donation channels | These remain app-owned by design. | No gap to close here unless a future generic package is introduced. |
+| Geography and global discovery | Package `AddressCountry` / `AddressArea` seeded. Country switching removed. Legacy geography models/admin surfaces deleted. Scout schemas use package address fields (`country_code`, `city`, `state`, `postcode`). | Some search/filter paths still accept or emit legacy-shaped keys (`country_id`, `state_id`) as aliases during cutover. Collapse remaining alias shapes as surfaces are rebuilt. |
+| Contacts and social profiles | Package-backed contact/social aliases live. Old app contact/social classes removed. | Residual compatibility accessors only where a surface still speaks the old shape. |
+| Events, seating, ticketing | Package tables and models own persistence. App subclasses add media, Scout, public helpers, and product workflows. Free registration and pass flags are package-configured. Seating/inventory/ticketing packages installed for paid/capacity modes. | Keep thinning `App\Models\Event` / `Registration` / related subclasses. Wire paid commerce modes when product is ready. Public/API/MCP correctly use app subclasses today. |
+| Institutions, speakers, venues, series | Venues/series/spaces are package subclasses. Institutions/speakers remain app root models with package membership/contact/address traits. | Institutions/speakers stay app-owned until a generic organization/person package is adopted (not required for exit). |
+| References | Package-backed model + app subclass with heavy product logic and app Filament resources. | Thin the subclass over time; no filament-references package exists. |
+| Membership | Package-owned applications, invitations, pivots, roles (`Owner` included), and actions. Filament resource lives under `MembershipApplications`. | Cosmetic leftovers only (e.g. a `startMembershipClaim` Livewire/method name). Package notifier contract may still be unbound if outbound claim mail is required through the package seam. |
+| Communications | Inbox + preference storage on package models. App services orchestrate event notifications and channel selection. Custom channels: `InboxChannel`, `PushChannel`, `WhatsappChannel`. | Finish package-first dispatch (`dispatch_through_package`), adopt or delete dual-mode helpers, keep FCM/WhatsApp/digest policy as intentional app remainder. |
+| Moderation and contributions | Package moderation action + commerce-support report models. Contribution requests remain app-unique. | Wire report resolution into approval workflows if required; optional package `Block` adoption if product needs bans. |
+| Tags and taxonomy | Dual write/read paths coexist (Spatie tags + package classifications). | Decide: keep Spatie as intentional app taxonomy, or complete cutover to `EventTaxonomy` / `EventTerm` and stop dual indexing. |
+| Public Livewire UX, MCP, donation channels | App-owned by design. | No package gap. |
 
 ## 4. What The Original Document Got Wrong Now
 
-These conclusions are no longer true and should not be used for planning:
+These conclusions are no longer true and must not drive planning:
 
 - “Actual status: planning analysis only.”
 - “None of the packages identified here (beyond the original 5) have been adopted.”
 - “Do not adopt addressing.”
 - “Source-only package availability is the main blocker.”
 - “Filament package UIs are unavailable in the app.”
+- “Membership is only partially adopted / blocked on role semantics.” (Roles and package actions are live; residual debt is naming and optional notifier wiring.)
+- “App still has five Notification\* Eloquent models and NotificationEngine as the primary store.” (Those models and the engine are deleted; package tables/models own persistence.)
 
-The blocker class has changed. Package installation and source availability are no longer the issue. The remaining work is deletion, surface migration, and verification.
+The blocker class has changed. Package installation and source availability are not the issue. Remaining work is dual-path elimination, thick-wrapper thinning, intentional app-boundary polish, and verification.
 
 ## 5. Remaining Live Gaps To Cutover Exit
 
-This is the actionable remainder after closing the stale assumptions above:
+Actionable remainder after closing the stale assumptions above:
 
-1. Delete remaining app wrappers for package-owned domains once their public/API/MCP/admin surfaces no longer depend on legacy shapes.
-2. Finish the communications cutover so package-owned communication records replace the app notification engine, leaving only app-specific FCM, WhatsApp, and digest orchestration.
-3. Finish the membership cutover so package-owned membership models replace app claim/invitation ownership.
-4. Decide whether Spatie tags remain an intentional app boundary or complete the taxonomy cutover to package `EventTaxonomy` / `EventTerm`.
-5. Finish the broader package-first domain deletions that still sit outside geography: event wrappers, references, membership, communications, and taxonomy.
-6. Keep the package-first verification debt closed as each remaining domain packet lands.
+1. **Thick package subclasses** — Keep product behavior that is ilmu360-specific on app subclasses, but stop treating `Event` / `Reference` / `Registration` deletion as blocked “legacy ownership.” They are package-first persistence with app presentation/workflow layers.
+2. **Communications dispatch** — Prefer package dispatch path (`COMMS_DISPATCH_THROUGH_PACKAGE` / `DispatchMode`) end-to-end; leave only app-specific FCM, WhatsApp, and digest orchestration outside the package.
+3. **Taxonomy decision** — Either complete Spatie → package taxonomy cutover, or document Spatie tags as the intentional app boundary and stop dual-path drift.
+4. **Search/filter alias cleanup** — Remove remaining legacy geography filter keys once public/API clients no longer send them.
+5. **Moderation product gaps** — Optional: package `Block`, report↔approval linkage.
+6. **Verification debt** — Keep package-first regressions green (`RefactorTest` schema assertions, event search/show slices, membership application flows). Treat pre-existing non-SQL test assertion failures as separate from cutover schema health.
+7. **Commerce modes** — Inventory/seating/ticketing packages are installed for future paid/capacity workflows; free-first product behavior is intentional until those surfaces are productized.
 
 ## 6. Closure Summary
 
-The readiness question is answered: **AIArmada package adoption is real and already in flight inside this repo.**
+The readiness question is answered: **AIArmada package adoption is real and already the runtime foundation of this repo.**
 
-What is closed:
+### Closed
 
-- Package availability and installation uncertainty
-- Addressing adoption uncertainty
-- Contact/social package availability uncertainty
-- Filament adapter availability uncertainty
+- Package availability and installation uncertainty (25 direct requires)
+- Addressing adoption and country-switch removal
+- Contact/social package cutover
+- Engagement package cutover
+- Membership package convergence (models, pivots, actions, teams removal)
+- Core events/references/moderation model ownership (via package parents)
+- Filament adapter availability on admin (and events/engagement on ahli)
 - Source-vs-vendor publishing drift as the main blocker
+- App migration surface reduced to 31 files with package-owned domain tables
 
-What remains:
+### Remains
 
-- Final package-first cutover work inside the app
-- Deletion of compatibility wrappers
-- Broader verification and static-analysis cleanup
+- Dual-path taxonomy
+- Communications dispatch completion (storage already package-backed)
+- Thick app subclasses and surface rebuilds that still speak through them
+- Optional moderation/commerce productization
+- Ongoing verification and static-analysis hygiene
 
-This document should now be read as a **closure audit** for the old reassessment, not as a speculative readiness study.
+This document is a **closure audit** for the old readiness reassessment and a **current-truth snapshot** of adoption status, not a speculative feasibility study.

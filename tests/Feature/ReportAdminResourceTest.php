@@ -20,7 +20,6 @@ it('shows the reported subject title and admin link on the reports index', funct
     $reference = Reference::factory()->create([
         'title' => 'Rujukan Untuk Disemak',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $reference->reports()->create([

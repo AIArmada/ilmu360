@@ -8,11 +8,9 @@ use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
-use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\SpatieMediaLibraryImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
-use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -54,8 +52,8 @@ class InspirationsTable
                     ->searchable()
                     ->toggleable(),
 
-                IconColumn::make('is_active')
-                    ->boolean()
+                TextColumn::make('status')
+                    ->badge()
                     ->sortable(),
 
                 TextColumn::make('created_at')
@@ -72,8 +70,12 @@ class InspirationsTable
                     ->options(config('app.supported_locales'))
                     ->native(false),
 
-                TernaryFilter::make('is_active')
-                    ->label('Active'),
+                SelectFilter::make('status')
+                    ->options([
+                        'active' => 'Active',
+                        'inactive' => 'Inactive',
+                    ])
+                    ->native(false),
             ])
             ->defaultSort('category')
             ->recordActions([
@@ -81,8 +83,8 @@ class InspirationsTable
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    BulkAction::make('toggleActive')
-                        ->label('Toggle Active')
+                    BulkAction::make('toggleStatus')
+                        ->label('Toggle Status')
                         ->icon('heroicon-o-arrow-path')
                         ->color('warning')
                         ->action(function (Collection $records): void {
@@ -91,7 +93,9 @@ class InspirationsTable
                                     return;
                                 }
 
-                                $record->update(['is_active' => ! $record->is_active]);
+                                $record->update([
+                                    'status' => (string) $record->status === 'active' ? 'inactive' : 'active',
+                                ]);
                             });
                         })
                         ->deselectRecordsAfterCompletion(),

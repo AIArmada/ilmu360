@@ -47,7 +47,7 @@ final readonly class SaveReferenceAction
                 ? (bool) $data['is_canonical']
                 : ($creating ? false : (bool) $reference->is_canonical),
             'status' => array_key_exists('status', $data) ? (string) $data['status'] : ($creating ? 'verified' : (string) $reference->status),
-            'is_active' => array_key_exists('is_active', $data) ? (bool) $data['is_active'] : ($creating ? true : (bool) $reference->is_active),
+
         ]);
 
         $reference->save();

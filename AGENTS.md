@@ -11,7 +11,7 @@ The application is being rebranded to **ilmu360°** (ilmu360 with a degree sign 
 
 - **Primary keys**: `uuid('id')->primary()`.
 - **Foreign keys**: `foreignUuid('col')` only.
-- **Intentional geography exception**: `countries`, `states`, `cities`, `districts`, and `subdistricts` use integer IDs (`id` / `foreignId`) by design. Keep all geography references (`country_id`, `state_id`, `city_id`, `district_id`, `subdistrict_id`) as integers.
+- **Geography**: package addressing UUIDs only — `country_id`, `state_id` (State table), `city_id` (City table), `admin_area_1_id` (district), `admin_area_2_id` (subdistrict). See `.ai/guidelines/addressing.blade.php`. No integer geo FKs; no `district_id`/`subdistrict_id` aliases.
 - **Never** add DB-level constraints or cascades: no `->constrained()`, no `->cascadeOnDelete()`, no FK constraints.
 - **Cascades/integrity**: enforce in application logic (models/actions/services).
 - **Migrations**: keep safe/idempotent; no `down()` required.

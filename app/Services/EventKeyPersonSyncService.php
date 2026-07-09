@@ -27,25 +27,24 @@ class EventKeyPersonSyncService
         $base = ['status' => 'active', 'visibility' => 'public'];
 
         foreach ($this->normalizeSpeakerIds($speakerIds) as $speakerId) {
-            EventKeyPerson::query()->create($base + [
+            EventKeyPerson::query()->forceCreate($base + [
                 'id' => (string) Str::uuid(),
                 'event_id' => $event->id,
                 'involveable_type' => 'speaker',
                 'involveable_id' => $speakerId,
-                'role' => EventKeyPersonRole::Speaker->value,
-                'order_column' => $order++,
-                'visibility' => 'public',
+                'role_code' => EventKeyPersonRole::Speaker->value,
+                'sort_order' => $order++,
             ]);
         }
 
         foreach ($this->normalizeKeyPeople($otherKeyPeople) as $keyPerson) {
-            EventKeyPerson::query()->create($base + [
+            EventKeyPerson::query()->forceCreate($base + [
                 'id' => (string) Str::uuid(),
                 'event_id' => $event->id,
                 'involveable_type' => $keyPerson['speaker_id'] !== null ? 'speaker' : null,
                 'involveable_id' => $keyPerson['speaker_id'],
-                'role' => $keyPerson['role'],
-                'order_column' => $order++,
+                'role_code' => $keyPerson['role'],
+                'sort_order' => $order++,
                 'visibility' => $keyPerson['visibility'],
                 'notes' => $keyPerson['notes'],
             ]);

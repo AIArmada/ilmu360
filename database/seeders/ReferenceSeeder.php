@@ -40,7 +40,6 @@ class ReferenceSeeder extends Seeder
                 'description' => 'Himpunan hadis adab dan targhib yang sering digunakan dalam kuliah umum.',
                 'is_canonical' => true,
                 'status' => 'verified',
-                'is_active' => true,
                 'reference_url' => 'https://sunnah.com/riyadussalihin',
             ],
             [
@@ -53,7 +52,6 @@ class ReferenceSeeder extends Seeder
                 'description' => '40 hadis asas Islam, akidah, ibadah, dan akhlak.',
                 'is_canonical' => true,
                 'status' => 'verified',
-                'is_active' => true,
                 'reference_url' => 'https://sunnah.com/nawawi40',
             ],
             [
@@ -66,7 +64,6 @@ class ReferenceSeeder extends Seeder
                 'description' => 'Rujukan tafsir bil-ma\'thur untuk pengajian al-Quran.',
                 'is_canonical' => true,
                 'status' => 'verified',
-                'is_active' => true,
                 'reference_url' => 'https://quran.com/tafsirs/en-tafsir-ibn-kathir',
             ],
             [
@@ -79,7 +76,6 @@ class ReferenceSeeder extends Seeder
                 'description' => 'Tafsir ringkas kontemporari yang mudah difahami.',
                 'is_canonical' => false,
                 'status' => 'verified',
-                'is_active' => true,
                 'reference_url' => 'https://quran.com/tafsirs/en-tafsir-assadi',
             ],
             [
@@ -92,7 +88,6 @@ class ReferenceSeeder extends Seeder
                 'description' => 'Kompilasi hadis hukum untuk fiqh ibadah dan muamalat.',
                 'is_canonical' => true,
                 'status' => 'verified',
-                'is_active' => true,
                 'reference_url' => 'https://sunnah.com/bulugh',
             ],
             [
@@ -105,7 +100,6 @@ class ReferenceSeeder extends Seeder
                 'description' => 'Rujukan fiqh berstruktur untuk kelas asas dan menengah.',
                 'is_canonical' => false,
                 'status' => 'verified',
-                'is_active' => true,
                 'reference_url' => 'https://example.com/fiqh-al-manhaji',
             ],
             [
@@ -118,7 +112,6 @@ class ReferenceSeeder extends Seeder
                 'description' => 'Rujukan utama sejarah kehidupan Rasulullah SAW.',
                 'is_canonical' => true,
                 'status' => 'verified',
-                'is_active' => true,
                 'reference_url' => 'https://archive.org/details/ibn-hisham-sirah',
             ],
             [
@@ -131,7 +124,6 @@ class ReferenceSeeder extends Seeder
                 'description' => 'Sirah kontemporari yang lazim digunakan untuk kuliah umum.',
                 'is_canonical' => false,
                 'status' => 'verified',
-                'is_active' => true,
                 'reference_url' => 'https://example.com/ar-raheeq-al-makhtum',
             ],
             [
@@ -144,7 +136,6 @@ class ReferenceSeeder extends Seeder
                 'description' => 'Teks tazkiyah dan akhlak yang sering disyarahkan.',
                 'is_canonical' => true,
                 'status' => 'verified',
-                'is_active' => true,
                 'reference_url' => 'https://example.com/al-hikam',
             ],
             [
@@ -157,7 +148,6 @@ class ReferenceSeeder extends Seeder
                 'description' => 'Panduan adab harian dan penyucian jiwa.',
                 'is_canonical' => true,
                 'status' => 'verified',
-                'is_active' => true,
                 'reference_url' => 'https://example.com/bidayatul-hidayah',
             ],
             [
@@ -170,7 +160,6 @@ class ReferenceSeeder extends Seeder
                 'description' => 'Artikel rujukan ringkas untuk modul pengenalan pelajar baharu.',
                 'is_canonical' => false,
                 'status' => 'pending',
-                'is_active' => true,
                 'reference_url' => 'https://example.com/adab-menuntut-ilmu',
             ],
             [
@@ -183,7 +172,6 @@ class ReferenceSeeder extends Seeder
                 'description' => 'Rakaman kuliah contoh untuk rujukan penyediaan kandungan.',
                 'is_canonical' => false,
                 'status' => 'pending',
-                'is_active' => true,
                 'reference_url' => 'https://example.com/kuliah-maghrib-video',
             ],
             [
@@ -196,7 +184,6 @@ class ReferenceSeeder extends Seeder
                 'description' => 'Modul komuniti tempatan untuk sesi mentoring remaja.',
                 'is_canonical' => false,
                 'status' => 'pending',
-                'is_active' => true,
                 'reference_url' => 'https://example.com/modul-remaja-masjid',
             ],
         ];
@@ -216,7 +203,6 @@ class ReferenceSeeder extends Seeder
                 'description' => $referenceData['description'],
                 'is_canonical' => $referenceData['is_canonical'],
                 'status' => $referenceData['status'],
-                'is_active' => $referenceData['is_active'],
             ]);
             $reference->save();
 

@@ -58,7 +58,7 @@ class EventSaveController extends Controller
     )]
     public function store(Request $request, Event $event): JsonResponse
     {
-        if (! $event->is_active || ! in_array((string) $event->status, Event::ENGAGEABLE_STATUSES, true) || $event->visibility !== EventVisibility::Public) {
+        if ($event->published_at === null || ! in_array((string) $event->status, Event::ENGAGEABLE_STATUSES, true) || $event->visibility !== EventVisibility::Public) {
             return response()->json([
                 'error' => [
                     'code' => 'forbidden',

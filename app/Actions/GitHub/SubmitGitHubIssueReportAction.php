@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Actions\GitHub;
 
+use App\Contracts\GitHubIssueReporterContract;
 use App\Data\GitHub\GitHubIssueSubmissionData;
 use App\Models\User;
-use App\Services\GitHub\GitHubIssueReporter;
 use App\Support\GitHub\GitHubIssueReportContract;
 use Lorisleiva\Actions\Concerns\AsAction;
 
@@ -15,7 +15,7 @@ class SubmitGitHubIssueReportAction
     use AsAction;
 
     public function __construct(
-        private readonly GitHubIssueReporter $gitHubIssueReporter,
+        private readonly GitHubIssueReporterContract $gitHubIssueReporter,
     ) {}
 
     /**

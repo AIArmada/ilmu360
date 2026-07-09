@@ -94,7 +94,6 @@ class GenerateVenueSlugAction
                 'city' => $address?->city,
                 'admin_area_1_id' => $address?->admin_area_1_id,
                 'admin_area_2_id' => $address?->admin_area_2_id,
-                'admin_area_3_id' => $address?->admin_area_3_id,
             ],
             (string) $venue->getKey(),
         );
@@ -132,8 +131,6 @@ class GenerateVenueSlugAction
     {
         $city = $this->firstFilled([
             $address['city'] ?? null,
-            $address['admin_area_3_name'] ?? null,
-            $this->areaName($address['admin_area_3_id'] ?? null),
             $address['admin_area_2_name'] ?? null,
             $this->areaName($address['admin_area_2_id'] ?? null),
         ]);
@@ -178,7 +175,6 @@ class GenerateVenueSlugAction
             'city' => $address?->city,
             'admin_area_1_id' => $address?->admin_area_1_id,
             'admin_area_2_id' => $address?->admin_area_2_id,
-            'admin_area_3_id' => $address?->admin_area_3_id,
         ]);
     }
 

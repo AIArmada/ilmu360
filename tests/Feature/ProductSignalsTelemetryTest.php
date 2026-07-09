@@ -76,7 +76,6 @@ it('records a signals event when a report is submitted', function () {
     $event = Event::factory()->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
     ]);
 
     $this->actingAs($user)
@@ -144,7 +143,6 @@ it('does not break report submission when signals ingestion fails', function () 
     $event = Event::factory()->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
     ]);
 
     $this->actingAs($user)
@@ -278,7 +276,6 @@ it('records signals events for api and saved search executions', function () {
         'title' => 'Signals Search Event',
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
     ]);
     $savedSearch = SavedSearch::factory()->create([
         'user_id' => $user->id,
@@ -314,7 +311,6 @@ it('records normalized client context for api and mobile search telemetry', func
         'title' => 'Signals Client Context Event',
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
     ]);
 
     $this->getJson('/api/v1/events?filter[search]=Default%20API')
@@ -373,7 +369,6 @@ it('records listing filtered events for filter-only discovery traffic', function
     Event::factory()->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
     ]);
 
     $this->getJson('/api/v1/events?filter[status]=approved')

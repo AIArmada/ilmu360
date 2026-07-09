@@ -258,7 +258,6 @@ test('share payload resolves reference slugs without UUID casting errors', funct
     $reference = Reference::factory()->create([
         'slug' => 'al-bayan-fatwa-syeikh-ali-jumah',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $this->actingAs($this->sharer)
@@ -276,7 +275,6 @@ test('share redirect resolves non uuid reference slugs without server errors', f
     $reference = Reference::factory()->create([
         'slug' => 'fiqh-muamalat',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $redirectResponse = $this->actingAs($this->sharer)
@@ -897,13 +895,12 @@ test('follow actions are attributed across supported public followable pages', f
     ]), 'institution_follow', 'institution'],
     'speaker follow' => ['pages.speakers.show', 'speakers.show', 'speaker', fn () => Speaker::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]), 'speaker_follow', 'speaker'],
     'series follow' => ['pages.series.show', 'series.show', 'series', fn () => Series::factory()->create([
         'visibility' => 'public',
     ]), 'series_follow', 'series'],
     'reference follow' => ['pages.references.show', 'references.show', 'reference', fn () => Reference::factory()->create([
-        'is_active' => true,
+        'status' => 'active',
     ]), 'reference_follow', 'reference'],
 ]);
 
@@ -919,13 +916,12 @@ test('guest follow actions redirect to login with the current page as intended d
     ])],
     'speaker guest follow redirect' => ['pages.speakers.show', 'speakers.show', 'speaker', fn () => Speaker::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ])],
     'series guest follow redirect' => ['pages.series.show', 'series.show', 'series', fn () => Series::factory()->create([
         'visibility' => 'public',
     ])],
     'reference guest follow redirect' => ['pages.references.show', 'references.show', 'reference', fn () => Reference::factory()->create([
-        'is_active' => true,
+        'status' => 'active',
     ])],
 ]);
 
@@ -1009,7 +1005,6 @@ test('impact dashboard top subjects use canonical affiliate subject fields', fun
 
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $this->actingAs($this->sharer)
@@ -1627,7 +1622,6 @@ test('tracked share ui renders across supported public surfaces', function () {
 
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $series = Series::factory()->create([
@@ -1639,7 +1633,7 @@ test('tracked share ui renders across supported public surfaces', function () {
     ]);
 
     $reference = Reference::factory()->create([
-        'is_active' => true,
+        'status' => 'active',
     ]);
 
     $this->get(route('events.index', ['search' => 'fiqh']))

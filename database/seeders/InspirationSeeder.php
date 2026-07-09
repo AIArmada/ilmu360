@@ -149,7 +149,7 @@ class InspirationSeeder extends Seeder
         foreach ($items as $item) {
             Inspiration::query()->updateOrCreate(
                 ['title' => $item['title'], 'category' => $item['category'], 'locale' => 'ms'],
-                $item + ['is_active' => true, 'locale' => 'ms'],
+                $item + ['status' => 'active', 'locale' => 'ms'],
             );
         }
     }

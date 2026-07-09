@@ -39,9 +39,10 @@ class SubmitInstitution extends Component implements HasActions, HasForms
                 'type' => 'masjid',
                 'address' => [
                     'country_id' => null,
+                    'state_id' => null,
+                    'city_id' => null,
                     'admin_area_1_id' => null,
                     'admin_area_2_id' => null,
-                    'admin_area_3_id' => null,
                     'line1' => null,
                     'line2' => null,
                     'postcode' => null,

@@ -27,7 +27,6 @@ class Show extends Component
     {
         $canBypassVisibility = auth()->user()?->hasAnyRole(['super_admin', 'moderator']) ?? false;
 
-        abort_unless($reference->is_active, 404);
         abort_unless((string) $reference->status === 'verified' || $canBypassVisibility, 404);
 
         $this->reference = $reference;

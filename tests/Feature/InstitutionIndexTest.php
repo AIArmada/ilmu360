@@ -52,7 +52,6 @@ it('shows the total institution count at the bottom of the institution index', f
     Institution::factory()->count(2)->create([
         'name' => $searchPrefix,
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     get('/institusi?search='.urlencode($searchPrefix))
@@ -65,7 +64,6 @@ it('centers the institution card majlis counter without a view details label', f
     Institution::factory()->create([
         'name' => 'Institusi Kad Tanpa Butiran',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     get('/institusi?search='.urlencode('Institusi Kad Tanpa Butiran'))
@@ -83,7 +81,6 @@ it('renders the institution logo fallback image on cards when no cover exists', 
     $institution = Institution::factory()->create([
         'name' => 'Institusi Logo Kad',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $institution->addMedia(UploadedFile::fake()->image('logo.png', 400, 400))
@@ -101,13 +98,11 @@ it('uses a stable random institution order instead of alphabetical sorting', fun
     $firstAlphabetical = Institution::factory()->create([
         'name' => 'Adam Institusi Rawak',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $secondAlphabetical = Institution::factory()->create([
         'name' => 'Zaid Institusi Rawak',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $component = Livewire::test('pages.institutions.index');
@@ -177,7 +172,6 @@ it('rejects duplicate institution submissions when name and locality all match',
     $institution = Institution::factory()->create([
         'name' => 'Masjid Al-Huda Pendua',
         'status' => 'verified',
-        'is_active' => true,
     ]);
     syncPrimaryAddressForTest($institution, [
         'country_id' => (string) $country->getKey(),
@@ -209,13 +203,11 @@ it('supports fuzzy search with minor institution name typos', function () {
     Institution::factory()->create([
         'name' => 'Masjid Al Hidayah',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     Institution::factory()->create([
         'name' => 'Pusat Pengajian An-Nur',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     get('/institusi?search=Hidayh')
@@ -228,13 +220,11 @@ it('shows the empty state when institution search only has unrelated fuzzy candi
     Institution::factory()->create([
         'name' => 'Masjid Al Syariff',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     Institution::factory()->create([
         'name' => 'Masjid As Shariff',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     get('/institusi?search=saiffil')
@@ -310,7 +300,6 @@ it('refreshes cached institution search results after institution updates', func
         'name' => 'Masjid Sultan Salahuddin Abdul Aziz Shah',
         'nickname' => 'Masjid Biru',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     expect($searchService->publicSearchIds('biru'))
@@ -440,64 +429,46 @@ it('does not default the institutions country filter from an unencrypted browser
 });
 
 it('filters institutions by negeri, daerah, and subdistrict scopes', function () {
-    $country = ensureTestMalaysiaCountry();
-    $stateA = createTestAddressArea('Selangor', 1, country: $country);
-    $stateB = createTestAddressArea('Negeri Ujian B', 1, country: $country);
-
-    $districtA = createTestAddressArea('Daerah Ujian A', 2, parent: $stateA, country: $country);
-    $districtA2 = createTestAddressArea('Daerah Ujian A2', 2, parent: $stateA, country: $country);
-    $districtB = createTestAddressArea('Daerah Ujian B', 2, parent: $stateB, country: $country);
-
-    $subdistrictA = createTestAddressArea('Mukim Ujian A', 3, parent: $districtA, country: $country);
-    $subdistrictA2 = createTestAddressArea('Mukim Ujian A2', 3, parent: $districtA2, country: $country);
-    $subdistrictB = createTestAddressArea('Mukim Ujian B', 3, parent: $districtB, country: $country);
+    $geoA = createTestPackageGeography('Selangor Scope A', 'Daerah Ujian A', 'Mukim Ujian A');
+    $districtA2 = createTestAddressArea('Daerah Ujian A2', 2, parent: $geoA['state_area'], country: $geoA['country']);
+    $subdistrictA2 = createTestAddressArea('Mukim Ujian A2', 3, parent: $districtA2, country: $geoA['country']);
+    $geoB = createTestPackageGeography('Negeri Ujian B', 'Daerah Ujian B', 'Mukim Ujian B');
 
     $institutionA = Institution::factory()->create([
         'name' => 'Institusi Scope A',
         'status' => 'verified',
     ]);
-    syncPrimaryAddressForTest($institutionA, [
-        'country_id' => (string) $country->getKey(),
-        'admin_area_1_id' => (string) $stateA->getKey(),
-        'admin_area_2_id' => (string) $districtA->getKey(),
-        'admin_area_3_id' => (string) $subdistrictA->getKey(),
-    ]);
+    syncPrimaryAddressForTest($institutionA, $geoA['address']);
 
     $institutionA2 = Institution::factory()->create([
         'name' => 'Institusi Scope A2',
         'status' => 'verified',
     ]);
     syncPrimaryAddressForTest($institutionA2, [
-        'country_id' => (string) $country->getKey(),
-        'admin_area_1_id' => (string) $stateA->getKey(),
-        'admin_area_2_id' => (string) $districtA2->getKey(),
-        'admin_area_3_id' => (string) $subdistrictA2->getKey(),
+        ...$geoA['address'],
+        'admin_area_1_id' => (string) $districtA2->getKey(),
+        'admin_area_2_id' => (string) $subdistrictA2->getKey(),
     ]);
 
     $institutionB = Institution::factory()->create([
         'name' => 'Institusi Scope B',
         'status' => 'verified',
     ]);
-    syncPrimaryAddressForTest($institutionB, [
-        'country_id' => (string) $country->getKey(),
-        'admin_area_1_id' => (string) $stateB->getKey(),
-        'admin_area_2_id' => (string) $districtB->getKey(),
-        'admin_area_3_id' => (string) $subdistrictB->getKey(),
-    ]);
+    syncPrimaryAddressForTest($institutionB, $geoB['address']);
 
-    get('/institusi?state_id='.$stateA->getKey())
+    get('/institusi?state_id='.$geoA['state']->getKey())
         ->assertSuccessful()
         ->assertSee('Institusi Scope A')
         ->assertSee('Institusi Scope A2')
         ->assertDontSee('Institusi Scope B');
 
-    get('/institusi?state_id='.$stateA->getKey().'&admin_area_1_id='.$districtA->getKey())
+    get('/institusi?state_id='.$geoA['state']->getKey().'&admin_area_1_id='.$geoA['district']->getKey())
         ->assertSuccessful()
         ->assertSee('Institusi Scope A')
         ->assertDontSee('Institusi Scope A2')
         ->assertDontSee('Institusi Scope B');
 
-    get('/institusi?state_id='.$stateA->getKey().'&admin_area_1_id='.$districtA->getKey().'&admin_area_2_id='.$subdistrictA->getKey())
+    get('/institusi?state_id='.$geoA['state']->getKey().'&admin_area_1_id='.$geoA['district']->getKey().'&admin_area_2_id='.$geoA['subdistrict']->getKey())
         ->assertSuccessful()
         ->assertSee('Institusi Scope A')
         ->assertDontSee('Institusi Scope A2')
@@ -515,7 +486,6 @@ it('counts approved and pending public active events on institution cards', func
         'title' => 'Approved Event',
         'status' => 'approved',
         'visibility' => 'public',
-        'is_active' => true,
         'starts_at' => now()->addDays(1),
         'published_at' => now(),
     ]);
@@ -524,9 +494,9 @@ it('counts approved and pending public active events on institution cards', func
         'title' => 'Pending Event',
         'status' => 'pending',
         'visibility' => 'public',
-        'is_active' => true,
         'starts_at' => now()->addDays(1),
-        'published_at' => null,
+        // Public listing counts use published_at (not legacy is_active).
+        'published_at' => now(),
     ]);
 
     get('/institusi?search=Kiraan')

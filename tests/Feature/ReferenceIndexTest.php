@@ -22,13 +22,11 @@ it('searches public verified references by title', function () {
     Reference::factory()->create([
         'title' => 'Riyadhus Solihin Terjemahan',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     Reference::factory()->create([
         'title' => 'Bulughul Maram',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     get('/rujukan?search='.urlencode('riyadhus'))
@@ -41,19 +39,16 @@ it('only lists active verified references on the public index', function () {
     Reference::factory()->create([
         'title' => 'Rujukan Sah Paparan',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     Reference::factory()->create([
         'title' => 'Rujukan Menunggu Semakan',
         'status' => 'pending',
-        'is_active' => true,
     ]);
 
     Reference::factory()->create([
         'title' => 'Rujukan Tidak Aktif',
-        'status' => 'verified',
-        'is_active' => false,
+        'status' => 'inactive',
     ]);
 
     get('/rujukan')
@@ -77,7 +72,6 @@ it('shows the total reference count at the bottom of the index', function () {
     Reference::factory()->count(2)->create([
         'title' => $searchPrefix,
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     get('/rujukan?search='.urlencode($searchPrefix))

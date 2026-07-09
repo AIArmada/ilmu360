@@ -1,11 +1,10 @@
 <?php
 
-use App\Enums\NotificationChannel;
 use App\Enums\NotificationFamily;
 use App\Enums\NotificationPriority;
 use App\Enums\NotificationTrigger;
 use App\Models\User;
-use App\Notifications\NotificationCenterMessage;
+use App\Notifications\InAppNotification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
@@ -15,9 +14,8 @@ beforeEach(function () {
 });
 
 it('writes to notification_inboxes when InApp notification is sent', function () {
-    $notification = new NotificationCenterMessage(
+    $notification = new InAppNotification(
         pendingNotificationId: (string) Str::uuid(),
-        targetChannel: NotificationChannel::InApp,
         family: NotificationFamily::EventUpdates,
         trigger: NotificationTrigger::EventApproved,
         priority: NotificationPriority::Medium,
@@ -26,11 +24,8 @@ it('writes to notification_inboxes when InApp notification is sent', function ()
         actionUrl: null,
         entityType: null,
         entityId: null,
-        channelsAttempted: ['in_app'],
-        fallbackChannels: [],
         occurredAt: now(),
         meta: [],
-        sourcePendingIds: [],
     );
 
     Notification::send($this->user, $notification);

@@ -31,6 +31,11 @@ final readonly class SaveReportAction
         $entityType = $this->normalizeEntityType($data['entity_type'] ?? $report->entity_type ?? null);
         $entityId = $this->normalizeEntityId($entityType, $data['entity_id'] ?? $report->entity_id ?? null);
 
+        $previousStatus = $creating ? null : $this->normalizeOptionalString($report->status);
+        $status = array_key_exists('status', $data)
+            ? $this->normalizeStatus($data['status'])
+            : $this->normalizeStatus($report->status ?? ($creating ? 'open' : null));
+
         $report->fill([
             'entity_type' => $entityType,
             'entity_id' => $entityId,
@@ -38,9 +43,7 @@ final readonly class SaveReportAction
             'description' => array_key_exists('description', $data)
                 ? $this->normalizeOptionalString($data['description'])
                 : $report->description,
-            'status' => array_key_exists('status', $data)
-                ? $this->normalizeStatus($data['status'])
-                : $this->normalizeStatus($report->status ?? ($creating ? 'open' : null)),
+            'status' => $status,
             'reporter_id' => array_key_exists('reporter_id', $data)
                 ? $this->normalizeOptionalUserKey($data['reporter_id'], 'reporter_id')
                 : ($creating ? null : $report->reporter_id),
@@ -51,6 +54,8 @@ final readonly class SaveReportAction
                 ? $this->normalizeOptionalString($data['resolution_note'])
                 : $report->resolution_note,
         ]);
+
+        $this->applyLifecycleTimestamps($report, $status, $previousStatus, $creating);
 
         $report->save();
 
@@ -120,6 +125,31 @@ final readonly class SaveReportAction
         }
 
         return $status;
+    }
+
+    private function applyLifecycleTimestamps(
+        Report $report,
+        string $status,
+        ?string $previousStatus,
+        bool $creating,
+    ): void {
+        $now = now();
+
+        if ($creating && blank($report->reported_at)) {
+            $report->reported_at = $now;
+        }
+
+        if ($previousStatus === $status && ! $creating) {
+            return;
+        }
+
+        match ($status) {
+            'open' => $report->reported_at ??= $now,
+            'triaged' => $report->reviewed_at = $now,
+            'resolved' => $report->resolved_at = $now,
+            'dismissed' => $report->rejected_at = $now,
+            default => null,
+        };
     }
 
     private function normalizeOptionalUserKey(mixed $value, string $field): ?string

@@ -68,10 +68,13 @@ class Speaker extends Model implements AuditableContract, HasMedia
         'slug',
         'bio',
         'status',
+        'verified_at',
+        'rejected_at',
+        'inactive_at',
+        'last_state_change_at',
         'qualifications',
         'is_freelance',
         'job_title',
-        'is_active',
         'allow_public_event_submission',
         'public_submission_locked_at',
         'public_submission_locked_by',
@@ -87,7 +90,10 @@ class Speaker extends Model implements AuditableContract, HasMedia
             'bio' => 'array',
             'qualifications' => 'array',
             'is_freelance' => 'boolean',
-            'is_active' => 'boolean',
+            'verified_at' => 'immutable_datetime',
+            'rejected_at' => 'immutable_datetime',
+            'inactive_at' => 'immutable_datetime',
+            'last_state_change_at' => 'immutable_datetime',
             'allow_public_event_submission' => 'boolean',
             'public_submission_locked_at' => 'datetime',
         ];
@@ -95,8 +101,7 @@ class Speaker extends Model implements AuditableContract, HasMedia
 
     public function shouldBeSearchable(): bool
     {
-        return $this->is_active
-            && in_array((string) $this->status, ['verified', 'pending'], true);
+        return in_array((string) $this->status, ['verified', 'pending'], true);
     }
 
     public function searchIndexShouldBeUpdated(): bool
@@ -109,7 +114,6 @@ class Speaker extends Model implements AuditableContract, HasMedia
             'job_title',
             'slug',
             'status',
-            'is_active',
             'gender',
         ]);
     }
@@ -121,7 +125,6 @@ class Speaker extends Model implements AuditableContract, HasMedia
     protected function makeAllSearchableUsing(Builder $query): Builder
     {
         return $query
-            ->where('speakers.is_active', true)
             ->whereIn('speakers.status', ['verified', 'pending']);
     }
 
@@ -145,7 +148,6 @@ class Speaker extends Model implements AuditableContract, HasMedia
             'job_title' => filled($this->job_title) ? (string) $this->job_title : null,
             'slug' => (string) $this->slug,
             'status' => (string) $this->status,
-            'is_active' => (bool) $this->is_active,
             'gender' => filled($this->gender) ? (string) $this->gender : null,
             'country_code' => $address?->country_code,
             'city' => $address?->city,
@@ -177,8 +179,16 @@ class Speaker extends Model implements AuditableContract, HasMedia
     protected static function booted(): void
     {
         static::saving(function (Speaker $speaker) {
-            if ($speaker->status === 'rejected') {
-                $speaker->is_active = false;
+            if ($speaker->isDirty('status')) {
+                $now = now();
+                $speaker->last_state_change_at = $now;
+
+                match ((string) $speaker->status) {
+                    'verified' => $speaker->verified_at ??= $now,
+                    'rejected' => $speaker->rejected_at ??= $now,
+                    'inactive' => $speaker->inactive_at ??= $now,
+                    default => null,
+                };
             }
 
             if ($speaker->isDirty('qualifications')) {
@@ -699,7 +709,7 @@ class Speaker extends Model implements AuditableContract, HasMedia
     #[Scope]
     protected function active(Builder $query): void
     {
-        $query->where('is_active', true);
+        $query->whereIn('status', ['verified', 'pending']);
     }
 
     /**

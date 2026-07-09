@@ -315,22 +315,18 @@ it('searches both prayer institution selectors from the institution database', f
     $dailyInstitution = Institution::factory()->create([
         'name' => 'Masjid Searchable Daily',
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $fridayInstitution = Institution::factory()->create([
         'name' => 'Masjid Searchable Friday',
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $inactiveInstitution = Institution::factory()->create([
         'name' => 'Masjid Searchable Inactive',
-        'status' => 'verified',
-        'is_active' => false,
+        'status' => 'inactive',
     ]);
     $pendingInstitution = Institution::factory()->create([
         'name' => 'Masjid Searchable Pending',
         'status' => 'pending',
-        'is_active' => true,
     ]);
 
     $user = User::factory()->create([
@@ -362,12 +358,10 @@ it('saves optional prayer institution preferences and preserves contact verifica
     $dailyInstitution = Institution::factory()->create([
         'name' => 'Masjid Harian',
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $fridayInstitution = Institution::factory()->create([
         'name' => 'Masjid Jumaat',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $user = User::factory()->create([
@@ -454,12 +448,10 @@ it('rejects invalid prayer institution ids on account settings', function () {
 
 it('rejects inactive or unverified institutions for new prayer preferences', function () {
     $inactiveInstitution = Institution::factory()->create([
-        'status' => 'verified',
-        'is_active' => false,
+        'status' => 'inactive',
     ]);
     $pendingInstitution = Institution::factory()->create([
         'status' => 'pending',
-        'is_active' => true,
     ]);
 
     $user = User::factory()->create([
@@ -484,7 +476,6 @@ it('allows stale saved prayer institution preferences to remain while saving unr
     $institution = Institution::factory()->create([
         'name' => 'Masjid Lama',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $user = User::factory()->create([
@@ -496,8 +487,7 @@ it('allows stale saved prayer institution preferences to remain while saving unr
     ]);
 
     $institution->update([
-        'status' => 'pending',
-        'is_active' => false,
+        'status' => 'inactive',
     ]);
 
     Livewire::actingAs($user)

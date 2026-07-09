@@ -10,14 +10,22 @@ Rebuild ilmu360° on first-party packages from `/Users/Saiffil/Herd/commerce/pac
 
 | File | Purpose |
 | --- | --- |
-| `status.md` | Current phase, blockers, owners, proof, and next actions. |
-| `package-inventory.md` | Live package inventory, adoption tier, dependencies, and readiness risks. |
-| `domain-mapping.md` | Existing app domains mapped to package-owned domains and remaining custom code. |
+| **Live code + Composer** | Absolute truth when docs disagree. |
+| `status.md` | Current phase (Phase 9 native purity), blockers, model ownership, next actions. |
+| `gap-closure-report.html` | Fresh open-gap dashboard: what blocks package-native exit. |
+| `cutover-plan.html` | Phase 9 work units (no BC policy — hard cuts). |
+| `phase-08-cutover.md` | Phase 8 checklist (mostly complete) + Phase 9 handoff. |
+| `../commerce-package-readiness-reassessment.md` | Readiness closure audit. |
+| `package-inventory.md` | Package inventory and tiers (historical inventory may lag install list). |
+| `domain-mapping.md` | Domain → package ownership targets. |
 | `architecture-decisions.md` | Accepted rewrite decisions and consequences. |
-| `agent-work-queue.md` | Parallelizable packets for multiple agents with ownership boundaries. |
+| `agent-work-queue.md` | Parallelizable packets for multiple agents. |
 | `phase-00-readiness.md` through `phase-08-cutover.md` | Executable phase checklists. |
-| `review-log.md` | Verification evidence, re-plan notes, and completed review entries. |
-| `tasks/todo.md` | Short active-phase mirror only. Durable detail stays here. |
+| `review-log.md` | Verification evidence and completed review entries. |
+
+### North star (2026-07-09)
+
+Close all remaining dual paths and cutover shims. Use AIArmada packages natively. Custom code only when intentional by product design. Feature development is frozen until Phase 9 exit criteria in `gap-closure-report.html` pass.
 
 ## Status Vocabulary
 

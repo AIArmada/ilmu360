@@ -32,11 +32,13 @@ class RevertToDraft extends Transition implements HasColor, HasIcon, HasLabel
                 'actioned_by_type' => User::class,
                 'actioned_by_id' => $this->moderator?->id,
                 'type' => 'reverted_to_draft',
+                'reason' => 'reverted_to_draft',
                 'notes' => $this->note ?? 'Event reverted to draft.',
             ]));
 
             $this->event->status = Draft::class;
             $this->event->published_at = null;
+            $this->event->last_state_change_at = now();
             $this->event->save();
 
             // Remove from search

@@ -37,6 +37,8 @@ class Tag extends SpatieTag implements AuditableContract, Sortable
         'type',
         'order_column',
         'status',
+        'verified_at',
+        'last_state_change_at',
     ];
 
     #[\Override]
@@ -46,6 +48,8 @@ class Tag extends SpatieTag implements AuditableContract, Sortable
             'name' => 'array',
             'slug' => 'array',
             'order_column' => 'integer',
+            'verified_at' => 'immutable_datetime',
+            'last_state_change_at' => 'immutable_datetime',
         ];
     }
 

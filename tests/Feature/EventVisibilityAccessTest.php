@@ -16,8 +16,8 @@ describe('public events', function () {
     it('allows anyone to view public events', function () {
         $event = Event::factory()->create([
             'visibility' => EventVisibility::Public,
-            'is_active' => true,
             'status' => 'approved',
+            'published_at' => now(),
         ]);
 
         // Guest user
@@ -29,8 +29,8 @@ describe('public events', function () {
         $event = Event::factory()->create([
             'user_id' => $this->owner->id,
             'visibility' => EventVisibility::Public,
-            'is_active' => true,
             'status' => 'approved',
+            'published_at' => now(),
         ]);
 
         Livewire::actingAs($this->owner)
@@ -41,8 +41,8 @@ describe('public events', function () {
     it('allows anyone to view cancelled public events', function () {
         $event = Event::factory()->create([
             'visibility' => EventVisibility::Public,
-            'is_active' => true,
             'status' => 'cancelled',
+            'published_at' => now(),
         ]);
 
         Livewire::test(Show::class, ['event' => $event])
@@ -52,8 +52,8 @@ describe('public events', function () {
     it('allows calendar export for public approved events', function () {
         $event = Event::factory()->create([
             'visibility' => EventVisibility::Public,
-            'is_active' => true,
             'status' => 'approved',
+            'published_at' => now(),
         ]);
 
         $this->get(route('events.calendar', $event))
@@ -63,8 +63,8 @@ describe('public events', function () {
     it('returns 404 for calendar export on cancelled public events', function () {
         $event = Event::factory()->create([
             'visibility' => EventVisibility::Public,
-            'is_active' => true,
             'status' => 'cancelled',
+            'published_at' => now(),
         ]);
 
         $this->get(route('events.calendar', $event))
@@ -77,8 +77,8 @@ describe('unlisted events', function () {
     it('allows anyone to view unlisted events via direct link', function () {
         $event = Event::factory()->create([
             'visibility' => EventVisibility::Unlisted,
-            'is_active' => true,
             'status' => 'approved',
+            'published_at' => now(),
         ]);
 
         // Guest user
@@ -90,8 +90,8 @@ describe('unlisted events', function () {
         $event = Event::factory()->create([
             'submitter_id' => $this->owner->id,
             'visibility' => EventVisibility::Unlisted,
-            'is_active' => true,
             'status' => 'approved',
+            'published_at' => now(),
         ]);
 
         Livewire::actingAs($this->owner)
@@ -102,8 +102,8 @@ describe('unlisted events', function () {
     it('returns 404 for unlisted events when inactive', function () {
         $event = Event::factory()->create([
             'visibility' => EventVisibility::Unlisted,
-            'is_active' => false,
             'status' => 'approved',
+            'published_at' => null,
         ]);
 
         Livewire::test(Show::class, ['event' => $event])
@@ -117,8 +117,8 @@ describe('private events', function () {
         $event = Event::factory()->create([
             'user_id' => $this->owner->id,
             'visibility' => EventVisibility::Private,
-            'is_active' => true,
             'status' => 'approved',
+            'published_at' => now(),
         ]);
 
         Livewire::actingAs($this->owner)
@@ -130,8 +130,8 @@ describe('private events', function () {
         $event = Event::factory()->create([
             'submitter_id' => $this->owner->id,
             'visibility' => EventVisibility::Private,
-            'is_active' => true,
             'status' => 'approved',
+            'published_at' => now(),
         ]);
 
         Livewire::actingAs($this->owner)
@@ -143,8 +143,8 @@ describe('private events', function () {
         $event = Event::factory()->create([
             'user_id' => $this->owner->id,
             'visibility' => EventVisibility::Private,
-            'is_active' => true,
             'status' => 'approved',
+            'published_at' => now(),
         ]);
 
         Livewire::actingAs($this->otherUser)
@@ -155,8 +155,8 @@ describe('private events', function () {
     it('returns 404 for guests viewing private event', function () {
         $event = Event::factory()->create([
             'visibility' => EventVisibility::Private,
-            'is_active' => true,
             'status' => 'approved',
+            'published_at' => now(),
         ]);
 
         Livewire::test(Show::class, ['event' => $event])
@@ -167,8 +167,8 @@ describe('private events', function () {
         $event = Event::factory()->create([
             'user_id' => $this->owner->id,
             'visibility' => EventVisibility::Private,
-            'is_active' => false,
             'status' => 'approved',
+            'published_at' => null,
         ]);
 
         Livewire::actingAs($this->owner)
@@ -182,8 +182,8 @@ describe('inactive or draft events', function () {
     it('returns 404 for inactive public events', function () {
         $event = Event::factory()->create([
             'visibility' => EventVisibility::Public,
-            'is_active' => false,
             'status' => 'approved',
+            'published_at' => null,
         ]);
 
         Livewire::test(Show::class, ['event' => $event])
@@ -193,7 +193,6 @@ describe('inactive or draft events', function () {
     it('returns 404 for draft status events', function () {
         $event = Event::factory()->create([
             'visibility' => EventVisibility::Public,
-            'is_active' => true,
             'status' => 'draft',
         ]);
 

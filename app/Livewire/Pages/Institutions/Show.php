@@ -34,7 +34,6 @@ class Show extends Component
     {
         $canBypassVisibility = auth()->user()?->hasAnyRole(['super_admin', 'moderator']) ?? false;
 
-        abort_unless($institution->is_active, 404);
         abort_unless($institution->status === 'verified' || $canBypassVisibility, 404);
 
         $this->institution = $institution;
@@ -158,7 +157,7 @@ class Show extends Component
                 'donationChannels.media',
                 'speakers',
                 'speakers.media',
-                'spaces' => fn ($query) => $query->where('is_active', true),
+                'spaces' => fn ($query) => $query->where('status', 'active'),
                 'languages',
             ]);
         });

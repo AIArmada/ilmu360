@@ -110,7 +110,6 @@ it('uses a 16:9 placeholder aspect ratio on featured home cards without posters'
         'visibility' => 'public',
         'starts_at' => now()->addDays(3),
         'views_count' => 100,
-        'is_active' => true,
     ]);
 
     Livewire::test('home.featured-events')
@@ -125,7 +124,6 @@ it('renders the featured homepage card date badge below the poster image', funct
         'visibility' => 'public',
         'starts_at' => now()->addDays(3),
         'views_count' => 120,
-        'is_active' => true,
     ]);
 
     Livewire::test('home.featured-events')
@@ -236,7 +234,6 @@ it('renders the attached book title across homepage event components without par
         'visibility' => 'public',
         'starts_at' => now()->addDay(),
         'views_count' => 150,
-        'is_active' => true,
     ]);
 
     $tonightEvent = Event::factory()->create([
@@ -244,7 +241,6 @@ it('renders the attached book title across homepage event components without par
         'status' => 'approved',
         'visibility' => 'public',
         'starts_at' => now()->addHours(2),
-        'is_active' => true,
     ]);
 
     $featuredEvent->references()->attach($bookReference->id);

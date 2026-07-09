@@ -4,6 +4,8 @@ namespace App\Livewire\Pages\Events;
 
 use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressCountry;
+use AIArmada\Addressing\Models\City;
+use AIArmada\Addressing\Models\State;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Engagement\Contracts\EngagementManager;
 use AIArmada\Engagement\Models\Bookmark;
@@ -14,6 +16,7 @@ use App\Enums\EventGenderRestriction;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventPrayerTime;
 use App\Enums\TimingMode;
+use App\Forms\SharedFormSchema;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Reference;
@@ -23,6 +26,7 @@ use App\Models\Venue;
 use App\Services\EventSearchService;
 use App\Support\Auth\IntendedRedirect;
 use App\Support\Cache\SafeModelCache;
+use App\Support\Location\AddressAreaStateBridge;
 use App\Support\Location\PublicGeolocationPermission;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -61,13 +65,18 @@ class Index extends Component implements HasForms
     public ?string $country_id = null;
 
     #[Url]
+    public ?string $state_id = null;
+
+    #[Url]
+    public ?string $city_id = null;
+
+    #[Url]
     public ?string $admin_area_1_id = null;
 
     #[Url]
     public ?string $admin_area_2_id = null;
 
     #[Url]
-    public ?string $admin_area_3_id = null;
 
     /**
      * @var list<string>
@@ -352,9 +361,8 @@ class Index extends Component implements HasForms
                             ->searchable()
                             ->getSearchResultsUsing(fn (Get $get, string $search): array => $this->searchInstitutionOptions(
                                 countryId: $this->normalizeNullableString($get('country_id')),
-                                stateId: $this->normalizeNullableString($get('admin_area_1_id')),
+                                adminArea1Id: $this->normalizeNullableString($get('admin_area_1_id')),
                                 adminArea2Id: $this->normalizeNullableString($get('admin_area_2_id')),
-                                adminArea3Id: $this->normalizeNullableString($get('admin_area_3_id')),
                                 search: $search,
                             ))
                             ->getOptionLabelUsing(fn (string $value): ?string => $this->institutionOptionLabel($value))
@@ -367,9 +375,8 @@ class Index extends Component implements HasForms
                             ->searchable()
                             ->getSearchResultsUsing(fn (Get $get, string $search): array => $this->searchVenueOptions(
                                 countryId: $this->normalizeNullableString($get('country_id')),
-                                stateId: $this->normalizeNullableString($get('admin_area_1_id')),
+                                adminArea1Id: $this->normalizeNullableString($get('admin_area_1_id')),
                                 adminArea2Id: $this->normalizeNullableString($get('admin_area_2_id')),
-                                adminArea3Id: $this->normalizeNullableString($get('admin_area_3_id')),
                                 search: $search,
                             ))
                             ->getOptionLabelUsing(fn (string $value): ?string => $this->venueOptionLabel($value))
@@ -730,7 +737,7 @@ class Index extends Component implements HasForms
     }
 
     /**
-     * @return Collection<int, AddressArea>
+     * @return Collection<int, State>
      */
     #[Computed]
     public function states(): Collection
@@ -739,9 +746,24 @@ class Index extends Component implements HasForms
             return collect();
         }
 
-        return AddressArea::query()
+        return State::query()
             ->where('country_id', $this->country_id)
-            ->where('level', 1)
+            ->orderBy('name')
+            ->get();
+    }
+
+    /**
+     * @return Collection<int, City>
+     */
+    #[Computed]
+    public function cities(): Collection
+    {
+        if (! filled($this->state_id)) {
+            return collect();
+        }
+
+        return City::query()
+            ->where('state_id', $this->state_id)
             ->orderBy('name')
             ->get();
     }
@@ -752,14 +774,19 @@ class Index extends Component implements HasForms
     #[Computed]
     public function districts(): Collection
     {
-        $stateId = $this->admin_area_1_id;
+        if (! filled($this->state_id)) {
+            return collect();
+        }
 
-        if (! filled($stateId)) {
+        $areaStateId = AddressAreaStateBridge::areaIdForState((string) $this->state_id);
+
+        if ($areaStateId === null) {
             return collect();
         }
 
         return AddressArea::query()
-            ->where('parent_id', $stateId)
+            ->where('parent_id', $areaStateId)
+            ->where('level', 2)
             ->orderBy('name')
             ->get();
     }
@@ -770,14 +797,27 @@ class Index extends Component implements HasForms
     #[Computed]
     public function subdistricts(): Collection
     {
-        $adminArea1Id = $this->admin_area_1_id;
+        if (filled($this->admin_area_1_id)) {
+            return AddressArea::query()
+                ->where('parent_id', $this->admin_area_1_id)
+                ->where('level', 3)
+                ->orderBy('name')
+                ->get();
+        }
 
-        if (! filled($adminArea1Id)) {
+        if (! filled($this->state_id) || ! SharedFormSchema::shouldShowSubdistrictField($this->state_id, null)) {
+            return collect();
+        }
+
+        $areaStateId = AddressAreaStateBridge::areaIdForState((string) $this->state_id);
+
+        if ($areaStateId === null) {
             return collect();
         }
 
         return AddressArea::query()
-            ->where('parent_id', $adminArea1Id)
+            ->where('parent_id', $areaStateId)
+            ->where('level', 3)
             ->orderBy('name')
             ->get();
     }
@@ -793,7 +833,7 @@ class Index extends Component implements HasForms
             ttl: 300,
             query: EventTerm::query()
                 ->whereIn('event_taxonomy_id', $this->activeTaxonomyIds('discipline'))
-                ->where('is_active', true)
+                ->whereIn('status', ['verified', 'pending'])
                 ->orderBy('sort_order'),
         );
     }
@@ -809,7 +849,7 @@ class Index extends Component implements HasForms
             ttl: 300,
             query: EventTerm::query()
                 ->whereIn('event_taxonomy_id', $this->activeTaxonomyIds('domain'))
-                ->where('is_active', true)
+                ->whereIn('status', ['verified', 'pending'])
                 ->orderBy('sort_order'),
         );
     }
@@ -825,7 +865,7 @@ class Index extends Component implements HasForms
             ttl: 300,
             query: EventTerm::query()
                 ->whereIn('event_taxonomy_id', $this->activeTaxonomyIds('source'))
-                ->where('is_active', true)
+                ->whereIn('status', ['verified', 'pending'])
                 ->orderBy('sort_order'),
         );
     }
@@ -841,7 +881,7 @@ class Index extends Component implements HasForms
             ttl: 300,
             query: EventTerm::query()
                 ->whereIn('event_taxonomy_id', $this->activeTaxonomyIds('issue'))
-                ->where('is_active', true)
+                ->whereIn('status', ['verified', 'pending'])
                 ->orderBy('sort_order'),
         );
     }
@@ -856,7 +896,7 @@ class Index extends Component implements HasForms
             key: 'events_references_'.app()->getLocale().'_v2',
             ttl: 300,
             query: Reference::query()
-                ->where('is_active', true)
+                ->whereIn('status', ['verified', 'pending'])
                 ->orderBy('title')
                 ->limit(400)
                 ->select(['id', 'title']),
@@ -874,7 +914,7 @@ class Index extends Component implements HasForms
             ttl: 300,
             query: Institution::query()
                 ->whereIn('status', ['verified', 'pending'])
-                ->where('is_active', true)
+                ->whereIn('status', ['verified', 'pending'])
                 ->orderBy('name')
                 ->limit(400)
                 ->select(['id', 'name', 'nickname']),
@@ -892,7 +932,7 @@ class Index extends Component implements HasForms
             ttl: 300,
             query: Venue::query()
                 ->whereIn('status', ['verified', 'pending'])
-                ->where('is_active', true)
+                ->whereIn('status', ['verified', 'pending'])
                 ->orderBy('name')
                 ->limit(500)
                 ->select(['id', 'name']),
@@ -902,13 +942,13 @@ class Index extends Component implements HasForms
     /**
      * @return array<string, string>
      */
-    private function searchInstitutionOptions(?string $countryId, ?string $adminArea1Id, ?string $adminArea2Id, ?string $adminArea3Id, string $search = ''): array
+    private function searchInstitutionOptions(?string $countryId, ?string $adminArea1Id, ?string $adminArea2Id, string $search = ''): array
     {
         $query = Institution::query()
             ->whereIn('status', ['verified', 'pending'])
-            ->where('is_active', true);
+            ->whereIn('status', ['verified', 'pending']);
 
-        $this->applyAddressLocationFilters($query, $countryId, $adminArea1Id, $adminArea2Id, $adminArea3Id);
+        $this->applyAddressLocationFilters($query, $countryId, $adminArea1Id, $adminArea2Id);
         $query->searchNameOrNickname($search);
 
         return $this->institutionOptionsFromQuery($query->orderBy('name'), 50);
@@ -917,13 +957,13 @@ class Index extends Component implements HasForms
     /**
      * @return array<string, string>
      */
-    private function searchVenueOptions(?string $countryId, ?string $adminArea1Id, ?string $adminArea2Id, ?string $adminArea3Id, string $search = ''): array
+    private function searchVenueOptions(?string $countryId, ?string $adminArea1Id, ?string $adminArea2Id, string $search = ''): array
     {
         $query = Venue::query()
             ->whereIn('status', ['verified', 'pending'])
-            ->where('is_active', true);
+            ->whereIn('status', ['verified', 'pending']);
 
-        $this->applyAddressLocationFilters($query, $countryId, $adminArea1Id, $adminArea2Id, $adminArea3Id);
+        $this->applyAddressLocationFilters($query, $countryId, $adminArea1Id, $adminArea2Id);
         $this->applySearchConstraint($query, 'name', $search);
 
         return $this->pluckOptions($query->orderBy('name'), 'name', 50);
@@ -937,7 +977,7 @@ class Index extends Component implements HasForms
         return $this->pluckOptions(
             Speaker::query()
                 ->whereIn('status', ['verified', 'pending'])
-                ->where('is_active', true)
+                ->whereIn('status', ['verified', 'pending'])
                 ->tap(fn (Builder $query): Builder => $this->applySearchConstraint($query, 'name', $search))
                 ->orderBy('name'),
             'name',
@@ -958,7 +998,7 @@ class Index extends Component implements HasForms
         return $this->pluckOptions(
             Speaker::query()
                 ->whereIn('status', ['verified', 'pending'])
-                ->where('is_active', true)
+                ->whereIn('status', ['verified', 'pending'])
                 ->whereIn('id', $values),
             'name',
             count($values),
@@ -973,7 +1013,7 @@ class Index extends Component implements HasForms
         return $this->pluckOptions(
             EventTerm::query()
                 ->whereIn('event_taxonomy_id', $this->activeTaxonomyIds($taxonomyCode))
-                ->where('is_active', true)
+                ->whereIn('status', ['verified', 'pending'])
                 ->tap(fn (Builder $query): Builder => $this->applySearchConstraint($query, 'name', $search))
                 ->orderBy('sort_order'),
             'name',
@@ -994,7 +1034,7 @@ class Index extends Component implements HasForms
         return $this->pluckOptions(
             EventTerm::query()
                 ->whereIn('event_taxonomy_id', $this->activeTaxonomyIds($taxonomyCode))
-                ->where('is_active', true)
+                ->whereIn('status', ['verified', 'pending'])
                 ->whereIn('id', $values)
                 ->orderBy('sort_order'),
             'name',
@@ -1009,7 +1049,7 @@ class Index extends Component implements HasForms
     {
         return EventTaxonomy::query()
             ->where('code', $code)
-            ->where('is_active', true)
+            ->whereIn('status', ['verified', 'pending'])
             ->pluck('id');
     }
 
@@ -1019,7 +1059,7 @@ class Index extends Component implements HasForms
     private function searchReferenceOptions(string $search): array
     {
         $query = Reference::query()
-            ->where('is_active', true)
+            ->whereIn('status', ['verified', 'pending'])
             ->tap(fn (Builder $query): Builder => $this->applyReferenceSearchConstraint($query, $search))
             ->orderBy('title');
 
@@ -1038,7 +1078,7 @@ class Index extends Component implements HasForms
 
         return $this->referenceOptionsFromQuery(
             Reference::query()
-                ->where('is_active', true)
+                ->whereIn('status', ['verified', 'pending'])
                 ->whereIn('id', $values)
                 ->orderBy('title'),
             count($values),
@@ -1051,7 +1091,7 @@ class Index extends Component implements HasForms
     private function searchReferenceAuthorOptions(string $search): array
     {
         $query = Reference::query()
-            ->where('is_active', true)
+            ->whereIn('status', ['verified', 'pending'])
             ->whereNotNull('author')
             ->where('author', '!=', '')
             ->orderBy('author');
@@ -1080,7 +1120,7 @@ class Index extends Component implements HasForms
         }
 
         return Reference::query()
-            ->where('is_active', true)
+            ->whereIn('status', ['verified', 'pending'])
             ->whereIn('author', $values)
             ->whereNotNull('author')
             ->where('author', '!=', '')
@@ -1133,7 +1173,7 @@ class Index extends Component implements HasForms
     {
         return Institution::query()
             ->whereIn('status', ['verified', 'pending'])
-            ->where('is_active', true)
+            ->whereIn('status', ['verified', 'pending'])
             ->whereKey($value)
             ->first(['id', 'name', 'nickname'])
             ?->display_name;
@@ -1143,7 +1183,7 @@ class Index extends Component implements HasForms
     {
         return Venue::query()
             ->whereIn('status', ['verified', 'pending'])
-            ->where('is_active', true)
+            ->whereIn('status', ['verified', 'pending'])
             ->whereKey($value)
             ->value('name');
     }
@@ -1211,15 +1251,24 @@ class Index extends Component implements HasForms
         ?string $countryId,
         ?string $adminArea1Id,
         ?string $adminArea2Id,
-        ?string $adminArea3Id
+        ?string $stateId = null,
+        ?string $cityId = null,
     ): void {
-        if (! filled($countryId) && ! filled($adminArea1Id) && ! filled($adminArea2Id) && ! filled($adminArea3Id)) {
+        if (! filled($countryId) && ! filled($adminArea1Id) && ! filled($adminArea2Id) && ! filled($stateId) && ! filled($cityId)) {
             return;
         }
 
-        $query->whereHas('addresses', function (Builder $addressQuery) use ($countryId, $adminArea1Id, $adminArea2Id, $adminArea3Id): void {
+        $query->whereHas('addresses', function (Builder $addressQuery) use ($countryId, $adminArea1Id, $adminArea2Id, $stateId, $cityId): void {
             if (filled($countryId)) {
                 $addressQuery->where('country_id', $countryId);
+            }
+
+            if (filled($stateId)) {
+                $addressQuery->where('state_id', $stateId);
+            }
+
+            if (filled($cityId)) {
+                $addressQuery->where('city_id', $cityId);
             }
 
             if (filled($adminArea1Id)) {
@@ -1228,10 +1277,6 @@ class Index extends Component implements HasForms
 
             if (filled($adminArea2Id)) {
                 $addressQuery->where('admin_area_2_id', $adminArea2Id);
-            }
-
-            if (filled($adminArea3Id)) {
-                $addressQuery->where('admin_area_3_id', $adminArea3Id);
             }
         });
     }
@@ -1247,7 +1292,7 @@ class Index extends Component implements HasForms
             ttl: 300,
             query: Speaker::query()
                 ->whereIn('status', ['verified', 'pending'])
-                ->where('is_active', true)
+                ->whereIn('status', ['verified', 'pending'])
                 ->orderBy('name')
                 ->limit(500)
                 ->select(['id', 'name']),
@@ -1264,9 +1309,10 @@ class Index extends Component implements HasForms
 
         $searchFilters = [
             'country_id' => $filters['country_id'],
+            'state_id' => $filters['state_id'] ?? null,
+            'city_id' => $filters['city_id'] ?? null,
             'admin_area_1_id' => $filters['admin_area_1_id'],
             'admin_area_2_id' => $filters['admin_area_2_id'],
-            'admin_area_3_id' => $filters['admin_area_3_id'],
             'language_codes' => $filters['language_codes'],
             'event_type' => $filters['event_type'],
             'gender' => $filters['gender'],
@@ -1393,9 +1439,10 @@ class Index extends Component implements HasForms
         return [
             'search' => null,
             'country_id' => null,
+            'state_id' => null,
+            'city_id' => null,
             'admin_area_1_id' => null,
             'admin_area_2_id' => null,
-            'admin_area_3_id' => null,
             'language_codes' => [],
             'event_type' => [],
             'gender' => null,
@@ -1457,9 +1504,10 @@ class Index extends Component implements HasForms
         return [
             'search' => filled($this->search) ? trim($this->search) : null,
             'country_id' => filled($this->country_id) ? $this->country_id : null,
+            'state_id' => filled($this->state_id) ? $this->state_id : null,
+            'city_id' => filled($this->city_id) ? $this->city_id : null,
             'admin_area_1_id' => filled($this->admin_area_1_id) ? $this->admin_area_1_id : null,
             'admin_area_2_id' => filled($this->admin_area_2_id) ? $this->admin_area_2_id : null,
-            'admin_area_3_id' => filled($this->admin_area_3_id) ? $this->admin_area_3_id : null,
             'language_codes' => $languageCodes,
             'event_type' => $this->normalizeStringArray($this->event_type),
             'gender' => filled($this->gender) ? $this->gender : null,
@@ -1512,9 +1560,10 @@ class Index extends Component implements HasForms
     {
         $this->search = $filters['search'];
         $this->country_id = $filters['country_id'];
+        $this->state_id = $filters['state_id'] ?? null;
+        $this->city_id = $filters['city_id'] ?? null;
         $this->admin_area_1_id = $filters['admin_area_1_id'];
         $this->admin_area_2_id = $filters['admin_area_2_id'];
-        $this->admin_area_3_id = $filters['admin_area_3_id'];
         $this->language_codes = $filters['language_codes'];
         $this->event_type = $filters['event_type'];
         $this->gender = $filters['gender'];
@@ -1603,6 +1652,8 @@ class Index extends Component implements HasForms
         return [
             'search' => filled($normalized['search']) ? trim((string) $normalized['search']) : null,
             'country_id' => filled($normalized['country_id']) ? (string) $normalized['country_id'] : null,
+            'state_id' => filled($normalized['state_id'] ?? null) ? (string) $normalized['state_id'] : null,
+            'city_id' => filled($normalized['city_id'] ?? null) ? (string) $normalized['city_id'] : null,
             'admin_area_1_id' => filled($normalized['admin_area_1_id']) ? (string) $normalized['admin_area_1_id'] : null,
             'admin_area_2_id' => filled($normalized['admin_area_2_id']) ? (string) $normalized['admin_area_2_id'] : null,
             'language_codes' => $languageCodes,

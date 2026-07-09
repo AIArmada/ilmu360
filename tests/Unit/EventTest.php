@@ -20,37 +20,37 @@ it('active scope filters public visible statuses (approved, pending, cancelled)'
         $approvedEvent = Event::factory()->create([
             'status' => Approved::class,
             'visibility' => 'public',
-            'is_active' => true,
+            'published_at' => now(),
         ]);
 
         $pendingEvent = Event::factory()->create([
             'status' => Pending::class,
             'visibility' => 'public',
-            'is_active' => true,
+            'published_at' => now(),
         ]);
 
         $cancelledEvent = Event::factory()->create([
             'status' => Cancelled::class,
             'visibility' => 'public',
-            'is_active' => true,
+            'published_at' => now(),
         ]);
 
         $draftEvent = Event::factory()->create([
             'status' => Draft::class,
             'visibility' => 'public',
-            'is_active' => true,
+            'published_at' => now(),
         ]);
 
         $privateEvent = Event::factory()->create([
             'status' => Approved::class,
             'visibility' => 'private',
-            'is_active' => true,
+            'published_at' => now(),
         ]);
 
         $deactivatedEvent = Event::factory()->create([
             'status' => Approved::class,
             'visibility' => 'public',
-            'is_active' => false,
+            'published_at' => null,
         ]);
 
         $results = Event::active()->get();
@@ -65,7 +65,7 @@ it('active scope filters public visible statuses (approved, pending, cancelled)'
     });
 });
 
-it('searchable payload includes is_active and address text fields without legacy geography ids', function () {
+it('searchable payload includes status and address text fields without legacy geography ids', function () {
     withGlobalOwnerContext(function (): void {
         $country = ensureTestMalaysiaCountry();
         $state = createTestAddressArea('Selangor', 1, country: $country);
@@ -86,13 +86,13 @@ it('searchable payload includes is_active and address text fields without legacy
         $event = Event::factory()->for($venue)->create([
             'status' => Approved::class,
             'visibility' => 'public',
-            'is_active' => true,
+            'published_at' => now(),
         ]);
 
         $payload = $event->fresh()->toSearchableArray();
 
         expect($payload)
-            ->toHaveKey('is_active', true)
+            ->toHaveKey('status')
             ->and($payload)->toHaveKey('country_code', 'MY')
             ->and($payload)->toHaveKey('state', 'Selangor')
             ->and($payload)->toHaveKey('city', 'Shah Alam')
@@ -117,7 +117,7 @@ it('searchable payload uses canonical language_codes', function () {
         $event = Event::factory()->create([
             'status' => Approved::class,
             'visibility' => 'public',
-            'is_active' => true,
+            'published_at' => now(),
         ]);
 
         $event->syncLanguages([(int) $malay->getKey(), (int) $english->getKey()]);
@@ -134,7 +134,7 @@ it('deduplicates key person roles in the searchable payload', function () {
         $event = Event::factory()->create([
             'status' => Approved::class,
             'visibility' => 'public',
-            'is_active' => true,
+            'published_at' => now(),
         ]);
 
         $moderator = Speaker::factory()->create();
@@ -213,19 +213,19 @@ it('discoverable scope and searchability exclude parent programs', function () {
         $parentEvent = Event::factory()->parentProgram()->create([
             'status' => Approved::class,
             'visibility' => 'public',
-            'is_active' => true,
+            'published_at' => now(),
         ]);
 
         $childEvent = Event::factory()->childEvent($parentEvent)->create([
             'status' => Approved::class,
             'visibility' => 'public',
-            'is_active' => true,
+            'published_at' => now(),
         ]);
 
         $standaloneEvent = Event::factory()->create([
             'status' => Approved::class,
             'visibility' => 'public',
-            'is_active' => true,
+            'published_at' => now(),
         ]);
 
         $discoverableIds = Event::discoverable()->pluck('id')->all();

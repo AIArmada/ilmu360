@@ -46,6 +46,9 @@ class DonationChannel extends Model implements AuditableContract, HasMedia
         'reference_note',
         'status',
         'verified_at',
+        'rejected_at',
+        'inactive_at',
+        'last_state_change_at',
         'verified_by',
         'is_default',
     ];
@@ -54,7 +57,10 @@ class DonationChannel extends Model implements AuditableContract, HasMedia
     protected function casts(): array
     {
         return [
-            'verified_at' => 'datetime',
+            'verified_at' => 'immutable_datetime',
+            'rejected_at' => 'immutable_datetime',
+            'inactive_at' => 'immutable_datetime',
+            'last_state_change_at' => 'immutable_datetime',
             'is_default' => 'boolean',
         ];
     }

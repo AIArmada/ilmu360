@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace App\Services\Captcha;
 
+use App\Contracts\CaptchaVerifier;
 use Illuminate\Support\Facades\Http;
 
-class TurnstileVerifier
+class TurnstileVerifier implements CaptchaVerifier
 {
     public function isEnabled(): bool
     {
@@ -15,7 +16,7 @@ class TurnstileVerifier
             && filled(config('services.turnstile.secret_key'));
     }
 
-    public function verify(?string $token, ?string $ipAddress = null): bool
+    public function verify(?string $token, ?string $remoteIp = null): bool
     {
         if (! $this->isEnabled()) {
             return true;
@@ -30,7 +31,7 @@ class TurnstileVerifier
             ->post((string) config('services.turnstile.verify_url'), [
                 'secret' => config('services.turnstile.secret_key'),
                 'response' => $token,
-                'remoteip' => $ipAddress,
+                'remoteip' => $remoteIp,
             ]);
 
         if (! $response->ok()) {

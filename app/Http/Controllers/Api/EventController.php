@@ -235,16 +235,6 @@ class EventController extends Controller
                     $addressQuery->whereIn('admin_area_2_id', $adminArea2Ids);
                 });
             }),
-            AllowedFilter::callback('admin_area_3_id', function (Builder $query, mixed $value): void {
-                $adminArea3Ids = $this->normalizeArrayFilter($value);
-                if ($adminArea3Ids === []) {
-                    return;
-                }
-
-                $query->whereHas('venue.addresses', function (Builder $addressQuery) use ($adminArea3Ids): void {
-                    $addressQuery->whereIn('admin_area_3_id', $adminArea3Ids);
-                });
-            }),
             AllowedFilter::callback('speaker', function (Builder $query, mixed $value): void {
                 $speakerIds = $this->normalizeArrayFilter($value);
                 if ($speakerIds === []) {

@@ -29,7 +29,6 @@ it('falls back to the local speaker search index when typesense lookup fails', f
         'post_nominal' => [],
         'qualifications' => [],
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $baseService = app(SpeakerSearchService::class);
@@ -68,7 +67,6 @@ it('falls back to local speaker fuzzy search when typesense lookup fails', funct
         'post_nominal' => [],
         'qualifications' => [],
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     app(SpeakerSearchService::class)->syncSpeakerRecord($speaker);
@@ -99,7 +97,6 @@ it('keeps transposed speaker typos reachable through fallback candidate filterin
         'post_nominal' => [],
         'qualifications' => [],
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     app(SpeakerSearchService::class)->syncSpeakerRecord($speaker);
@@ -131,7 +128,6 @@ it('keeps exact speaker fuzzy matches inside the capped fallback candidate set',
             'post_nominal' => [],
             'qualifications' => [],
             'status' => 'verified',
-            'is_active' => true,
         ]);
     }
 
@@ -142,7 +138,6 @@ it('keeps exact speaker fuzzy matches inside the capped fallback candidate set',
         'post_nominal' => [],
         'qualifications' => [],
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $service = new class extends SpeakerSearchService
@@ -174,7 +169,6 @@ it('falls back to database institution search when typesense lookup fails', func
         'nickname' => 'Masjid Biru',
         'description' => 'Pusat komuniti',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $service = new class extends InstitutionSearchService
@@ -207,7 +201,6 @@ it('falls back to database institution fuzzy search when typesense lookup fails'
         'name' => 'Masjid Al Hidayah',
         'description' => 'Kuliah dan komuniti',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $service = new class extends InstitutionSearchService
@@ -233,7 +226,6 @@ it('keeps transposed institution typos reachable through fallback candidate filt
         'name' => 'Pusat Ahmad',
         'description' => 'Kuliah dan komuniti',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $service = new class extends InstitutionSearchService
@@ -260,7 +252,6 @@ it('keeps exact institution fuzzy matches inside the capped fallback candidate s
             'name' => "Samadx Alpha {$index}",
             'description' => 'Kuliah dan komuniti',
             'status' => 'verified',
-            'is_active' => true,
         ]);
     }
 
@@ -268,7 +259,6 @@ it('keeps exact institution fuzzy matches inside the capped fallback candidate s
         'name' => 'Samadx',
         'description' => 'Kuliah dan komuniti',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $service = new class extends InstitutionSearchService
@@ -304,7 +294,6 @@ it('uses scout database search for speakers when the database driver is configur
         'post_nominal' => [],
         'qualifications' => [],
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $hiddenSpeaker = Speaker::factory()->create([
@@ -314,7 +303,6 @@ it('uses scout database search for speakers when the database driver is configur
         'post_nominal' => [],
         'qualifications' => [],
         'status' => 'rejected',
-        'is_active' => true,
     ]);
 
     $service = app(SpeakerSearchService::class);
@@ -333,7 +321,6 @@ it('keeps token-order-insensitive speaker search when the database driver is con
         'post_nominal' => [],
         'qualifications' => [],
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $service = app(SpeakerSearchService::class);
@@ -351,7 +338,6 @@ it('keeps local fuzzy speaker search when the database driver is configured', fu
         'post_nominal' => [],
         'qualifications' => [],
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $hiddenSpeaker = Speaker::factory()->create([
@@ -361,7 +347,6 @@ it('keeps local fuzzy speaker search when the database driver is configured', fu
         'post_nominal' => [],
         'qualifications' => [],
         'status' => 'rejected',
-        'is_active' => true,
     ]);
 
     $service = app(SpeakerSearchService::class);
@@ -378,7 +363,6 @@ it('uses scout database search for institutions when the database driver is conf
         'nickname' => 'Masjid Biru',
         'description' => 'Pusat komuniti',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $hiddenInstitution = Institution::factory()->create([
@@ -386,7 +370,6 @@ it('uses scout database search for institutions when the database driver is conf
         'nickname' => 'Masjid Biru',
         'description' => 'Pusat komuniti',
         'status' => 'rejected',
-        'is_active' => true,
     ]);
 
     $service = app(InstitutionSearchService::class);
@@ -403,7 +386,6 @@ it('keeps split-token institution search when the database driver is configured'
         'nickname' => null,
         'description' => 'Pusat komuniti',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $service = app(InstitutionSearchService::class);
@@ -418,14 +400,12 @@ it('keeps local fuzzy institution search when the database driver is configured'
         'name' => 'Masjid Al Hidayah',
         'description' => 'Kuliah dan komuniti',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $hiddenInstitution = Institution::factory()->create([
         'name' => 'Masjid Hidden',
         'description' => 'Kuliah dan komuniti',
         'status' => 'rejected',
-        'is_active' => true,
     ]);
 
     $service = app(InstitutionSearchService::class);
@@ -444,7 +424,6 @@ it('resolves the same speaker ids for public and scoped search flows when the sc
         'post_nominal' => [],
         'qualifications' => [],
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     Speaker::factory()->create([
@@ -454,7 +433,6 @@ it('resolves the same speaker ids for public and scoped search flows when the sc
         'post_nominal' => [],
         'qualifications' => [],
         'status' => 'rejected',
-        'is_active' => true,
     ]);
 
     $service = app(SpeakerSearchService::class);
@@ -477,14 +455,12 @@ it('resolves the same institution ids for public and scoped search flows when th
         'name' => 'Masjid Al Hidayah',
         'description' => 'Kuliah dan komuniti',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     Institution::factory()->create([
         'name' => 'Masjid Hidden',
         'description' => 'Kuliah dan komuniti',
         'status' => 'rejected',
-        'is_active' => true,
     ]);
 
     $service = app(InstitutionSearchService::class);
@@ -507,13 +483,11 @@ it('resolves the same reference ids for public and scoped search flows when the 
         'author' => 'Imam Contoh',
         'description' => 'Syarahan fiqh dan hadith',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     Reference::factory()->create([
         'title' => 'Bulugh Hidden',
         'status' => 'rejected',
-        'is_active' => true,
     ]);
 
     $service = app(ReferenceSearchService::class);
@@ -535,7 +509,6 @@ it('falls back to database reference search when typesense lookup fails', functi
         'description' => 'Himpunan hadith',
         'slug' => 'riyadus-solihin',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $service = new class extends ReferenceSearchService
@@ -560,7 +533,6 @@ it('falls back to database reference fuzzy search when typesense lookup fails', 
     $reference = Reference::factory()->create([
         'title' => 'Bulugh al-Maram',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $service = new class extends ReferenceSearchService
@@ -588,7 +560,6 @@ it('keeps split-token reference search when the database driver is configured', 
         'title' => 'Bulugh al-Maram',
         'author' => 'Ibn Hajar',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $service = app(ReferenceSearchService::class);

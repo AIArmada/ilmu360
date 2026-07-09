@@ -2,6 +2,7 @@
 
 use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressCountry;
+use AIArmada\Addressing\Models\State;
 use App\Livewire\Pages\Contributions\SubmitInstitution;
 use App\Models\Institution;
 use App\Models\User;
@@ -22,14 +23,24 @@ function ensureCountryForLocationPicker(string $iso2, string $name): AddressCoun
     );
 }
 
-function ensureMalaysiaStateForLocationPicker(string $name = 'Selangor'): AddressArea
+/**
+ * @return array{package: State, area: AddressArea}
+ */
+function ensureMalaysiaStateForLocationPicker(string $name = 'Selangor'): array
 {
-    return createTestAddressArea(
+    $country = ensureCountryForLocationPicker('MY', 'Malaysia');
+    $packageState = State::query()->firstOrCreate(
+        ['country_id' => $country->getKey(), 'name' => $name],
+        ['code' => null, 'label' => $name],
+    );
+    $area = createTestAddressArea(
         $name,
         1,
-        country: ensureCountryForLocationPicker('MY', 'Malaysia'),
+        country: $country,
         type: 'state',
     );
+
+    return ['package' => $packageState, 'area' => $area];
 }
 
 it('renders the institution location picker when google places is enabled', function () {
@@ -150,7 +161,7 @@ it('keeps manual fallback mode off the places api while still normalizing pasted
 it('applies a google place selection into the nested institution address state', function () {
     $country = ensureCountryForLocationPicker('MY', 'Malaysia');
     $state = ensureMalaysiaStateForLocationPicker();
-    $district = createTestAddressArea('Petaling', 2, parent: $state, country: $country, type: 'district');
+    $district = createTestAddressArea('Petaling', 2, parent: $state['area'], country: $country, type: 'district');
     $subdistrict = createTestAddressArea('Shah Alam', 3, parent: $district, country: $country, type: 'subdistrict');
 
     config()->set('services.google.place_link_resolution_enabled', true);
@@ -183,9 +194,10 @@ it('applies a google place selection into the nested institution address state',
         ->assertSet('data.address.line1', 'Persiaran Masjid')
         ->assertSet('data.address.line2', 'Seksyen 14')
         ->assertSet('data.address.postcode', '40000')
-        ->assertSet('data.address.admin_area_1_id', (string) $state->id)
-        ->assertSet('data.address.admin_area_2_id', (string) $district->id)
-        ->assertSet('data.address.admin_area_3_id', (string) $subdistrict->id)
+        ->assertSet('data.address.state_id', (string) $state['package']->id)
+        ->assertSet('data.address.admin_area_1_id', (string) $district->id)
+        ->assertSet('data.address.admin_area_2_id', (string) $subdistrict->id)
+        ->assertSet('data.address.admin_area_3_id', null)
         ->assertSet('data.address.provider_place_id', 'place_abc123')
         ->assertSet('data.address.google_maps_url', 'https://www.google.com/maps/search/?api=1&query=3.07853%2C101.52073&query_place_id=place_abc123')
         ->assertSet('data.address.google_resolution_source', 'picker')

@@ -38,9 +38,8 @@ final readonly class SaveVenueAction
                 ? $this->normalizeVenueType($data['type'])
                 : $this->normalizeVenueType($venue->type),
             'description' => array_key_exists('description', $data) ? $data['description'] : $venue->description,
-            'status' => (string) ($data['status'] ?? $venue->status ?? ($creating ? 'verified' : '')),
-            'visibility' => (string) ($data['visibility'] ?? $venue->visibility ?? 'public'),
-            'is_active' => array_key_exists('is_active', $data) ? (bool) $data['is_active'] : ($creating ? true : (bool) $venue->is_active),
+            'status' => array_key_exists('status', $data) ? (string) $data['status'] : ($creating ? 'verified' : (string) $venue->status),
+            'visibility' => array_key_exists('visibility', $data) ? (string) $data['visibility'] : ($creating ? 'public' : (string) ($venue->visibility ?? 'public')),
             'facilities' => array_key_exists('facilities', $data)
                 ? $this->normalizeFacilities($data['facilities'])
                 : $this->normalizeFacilities($venue->facilities ?? []),

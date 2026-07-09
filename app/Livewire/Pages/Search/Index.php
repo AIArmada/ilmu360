@@ -207,7 +207,7 @@ class Index extends Component
                 ->where('status', 'verified')
                 ->withCount(['events' => function (Builder $query): void {
                     $query
-                        ->where('events.is_active', true)
+                        ->whereNotNull('events.published_at')
                         ->whereIn('events.status', Event::PUBLIC_STATUSES)
                         ->where('events.visibility', EventVisibility::Public)
                         ->where('events.event_structure', '!=', EventStructure::ParentProgram->value)
@@ -242,7 +242,7 @@ class Index extends Component
         return Event::query()
             ->selectRaw('count(*)')
             ->whereRaw("{$this->eventInstitutionIdSelector()} = institutions.id")
-            ->where('events.is_active', true)
+            ->whereNotNull('events.published_at')
             ->whereIn('events.status', Event::PUBLIC_STATUSES)
             ->where('events.visibility', EventVisibility::Public)
             ->where('events.event_structure', '!=', EventStructure::ParentProgram->value)
@@ -283,7 +283,7 @@ class Index extends Component
                 ->root()
                 ->withCount(['events' => function (Builder $query): void {
                     $query
-                        ->where('events.is_active', true)
+                        ->whereNotNull('events.published_at')
                         ->whereIn('events.status', Event::PUBLIC_STATUSES)
                         ->where('events.visibility', EventVisibility::Public)
                         ->where('events.event_structure', '!=', EventStructure::ParentProgram->value)

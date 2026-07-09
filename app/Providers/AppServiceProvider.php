@@ -20,6 +20,11 @@ use AIArmada\Membership\Contracts\MembershipHook;
 use AIArmada\Signals\Models\TrackedProperty;
 use App\Actions\Slugs\ResolvePublicSlugAction;
 use App\Ai\Listeners\RecordAiUsage;
+use App\Contracts\CaptchaVerifier;
+use App\Contracts\GitHubIssueReporterContract;
+use App\Contracts\NullCaptchaVerifier;
+use App\Contracts\NullGitHubIssueReporter;
+use App\Contracts\ShareTrackingContract;
 use App\Http\Controllers\Mcp\OAuthRegisterController;
 use App\Listeners\Communications\DeliveryFallbackListener;
 use App\Models\AiModelPricing;
@@ -58,6 +63,9 @@ use App\Observers\VenueObserver;
 use App\Policies\AddressAreaPolicy;
 use App\Policies\AddressCountryPolicy;
 use App\Policies\FilamentAuditPolicy;
+use App\Services\Captcha\TurnstileVerifier;
+use App\Services\GitHub\GitHubIssueReporter;
+use App\Services\ShareTrackingService;
 use App\Support\Communications\AppConsentResolver;
 use App\Support\Communications\AppPreferenceResolver;
 use App\Support\Communications\AppQuietHoursResolver;
@@ -143,6 +151,32 @@ class AppServiceProvider extends ServiceProvider
 
         $this->app->singleton(MembershipHook::class, AppMembershipHook::class);
         $this->app->singleton(MembershipApplicationNotifier::class, AppMembershipApplicationNotifier::class);
+
+        $this->app->singleton(
+            CaptchaVerifier::class,
+            function ($app): CaptchaVerifier {
+                $verifier = $app->make(TurnstileVerifier::class);
+
+                return $verifier->isEnabled()
+                    ? $verifier
+                    : $app->make(NullCaptchaVerifier::class);
+            },
+        );
+
+        $this->app->singleton(
+            GitHubIssueReporterContract::class,
+            function ($app): GitHubIssueReporterContract {
+                $reporter = $app->make(GitHubIssueReporter::class);
+
+                return $reporter->isConfigured()
+                    ? $reporter
+                    : $app->make(NullGitHubIssueReporter::class);
+            },
+        );
+
+        // Prefer concrete facade for constructor injection of ShareTrackingService;
+        // also bind the contract so optional integrations can type-hint ShareTrackingContract.
+        $this->app->singleton(ShareTrackingContract::class, ShareTrackingService::class);
 
         $this->registerPackageMigrations();
     }

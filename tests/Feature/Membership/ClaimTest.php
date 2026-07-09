@@ -8,7 +8,7 @@ use App\Models\User;
 
 it('writes to membership_applications when applying via package action', function () {
     $user = User::factory()->create();
-    $institution = Institution::factory()->create(['status' => 'verified', 'is_active' => true]);
+    $institution = Institution::factory()->create(['status' => 'verified']);
 
     OwnerContext::withOwner(null, function () use ($user, $institution): void {
         MembershipApplication::query()->create([
@@ -30,7 +30,7 @@ it('writes to membership_applications when applying via package action', functio
 
 it('can retrieve applicant and subject relations on package model', function () {
     $user = User::factory()->create();
-    $institution = Institution::factory()->create(['status' => 'verified', 'is_active' => true]);
+    $institution = Institution::factory()->create(['status' => 'verified']);
 
     OwnerContext::withOwner(null, function () use ($user, $institution): void {
         MembershipApplication::query()->create([

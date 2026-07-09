@@ -16,7 +16,7 @@ class InspirationPolicy
 
     public function view(?User $user, Inspiration $inspiration): bool
     {
-        if ($inspiration->is_active) {
+        if ((string) $inspiration->status === 'active') {
             return true;
         }
 

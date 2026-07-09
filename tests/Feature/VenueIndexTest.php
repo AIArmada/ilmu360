@@ -72,13 +72,11 @@ it('searches public verified venues by name', function () {
     Venue::factory()->create([
         'name' => 'Dewan Riyadhus Solihin',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     Venue::factory()->create([
         'name' => 'Auditorium Hikmah',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     get('/tempat?search='.urlencode('riyadhus'))
@@ -91,19 +89,16 @@ it('only lists active verified venues on the public index', function () {
     Venue::factory()->create([
         'name' => 'Tempat Sah Paparan',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     Venue::factory()->create([
         'name' => 'Tempat Menunggu Semakan',
         'status' => 'pending',
-        'is_active' => true,
     ]);
 
     Venue::factory()->create([
         'name' => 'Tempat Tidak Aktif',
-        'status' => 'verified',
-        'is_active' => false,
+        'status' => 'inactive',
     ]);
 
     get('/tempat')
@@ -122,7 +117,6 @@ it('filters venues by selected state', function () {
     $shownVenue = Venue::factory()->create([
         'name' => 'Dewan Negeri Terpilih',
         'status' => 'verified',
-        'is_active' => true,
     ]);
     updateVenueIndexPrimaryAddress($shownVenue, [
         'country_id' => $country->id,
@@ -134,7 +128,6 @@ it('filters venues by selected state', function () {
     $hiddenVenue = Venue::factory()->create([
         'name' => 'Dewan Negeri Lain',
         'status' => 'verified',
-        'is_active' => true,
     ]);
     updateVenueIndexPrimaryAddress($hiddenVenue, [
         'country_id' => $country->id,
@@ -163,7 +156,6 @@ it('shows the total venue count at the bottom of the index', function () {
     Venue::factory()->count(2)->create([
         'name' => $searchPrefix,
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     get('/tempat?search='.urlencode($searchPrefix))

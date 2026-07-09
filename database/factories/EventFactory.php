@@ -154,7 +154,6 @@ class EventFactory extends PackageEventFactory
             'registrations_count' => fake()->numberBetween(0, 200),
             'published_at' => $publishedAt,
             'is_muslim_only' => fake()->boolean(90), // 90% are muslim only
-            'is_active' => true,
         ];
     }
 

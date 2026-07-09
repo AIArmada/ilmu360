@@ -1,6 +1,6 @@
 <?php
 
-use AIArmada\Addressing\Models\AddressArea;
+use App\Forms\SharedFormSchema;
 use App\Models\Venue;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator as LengthAwarePaginatorContract;
 use Illuminate\Database\Eloquent\Builder;
@@ -52,55 +52,30 @@ new
         #[Computed]
         public function states(): array
         {
-            $countryId = $this->normalizedLocationId($this->country_id);
+            $countryId = $this->normalizedLocationId($this->country_id)
+                ?? SharedFormSchema::normalizeLocationId(
+                    \AIArmada\Addressing\Models\AddressCountry::query()->where('iso2', 'MY')->value('id')
+                );
 
-            if ($countryId === null) {
-                return [];
-            }
-
-            return AddressArea::query()
-                ->where('country_id', $countryId)
-                ->where('level', 1)
-                ->orderBy('name')
-                ->pluck('name', 'id')
-                ->all();
+            return SharedFormSchema::stateOptionsForCountry($countryId);
         }
 
         #[Computed]
         public function districts(): array
         {
-            $stateId = $this->normalizedLocationId($this->state_id);
-
-            if ($stateId === null) {
-                return [];
-            }
-
-            return AddressArea::query()
-                ->where('parent_id', $stateId)
-                ->orderBy('name')
-                ->pluck('name', 'id')
-                ->all();
+            return SharedFormSchema::districtOptionsForState($this->state_id);
         }
 
         #[Computed]
         public function subdistricts(): array
         {
-            $adminArea1Id = $this->normalizedLocationId($this->admin_area_1_id) ?? $this->normalizedLocationId($this->state_id);
-
-            if ($adminArea1Id === null) {
-                return [];
-            }
-
-            return AddressArea::query()
-                ->where('parent_id', $adminArea1Id)
-                ->orderBy('name')
-                ->pluck('name', 'id')
-                ->all();
+            return SharedFormSchema::subdistrictOptionsForSelection($this->state_id, $this->admin_area_1_id);
         }
 
         public function isFederalTerritoryStateSelected(): bool
         {
-            return false;
+            return SharedFormSchema::shouldShowSubdistrictField($this->state_id, null)
+                && ! SharedFormSchema::shouldShowDistrictField($this->state_id);
         }
 
         public function updatedSearch(): void
@@ -208,15 +183,15 @@ new
                 }
 
                 if ($stateId !== null) {
-                    $addressQuery->where('admin_area_1_id', $stateId);
+                    $addressQuery->where('state_id', $stateId);
                 }
 
                 if ($adminArea1Id !== null) {
-                    $addressQuery->where('admin_area_2_id', $adminArea1Id);
+                    $addressQuery->where('admin_area_1_id', $adminArea1Id);
                 }
 
                 if ($adminArea2Id !== null) {
-                    $addressQuery->where('admin_area_3_id', $adminArea2Id);
+                    $addressQuery->where('admin_area_2_id', $adminArea2Id);
                 }
             });
         }

@@ -54,6 +54,7 @@ class RequestChanges extends Transition implements HasColor, HasIcon, HasLabel
 
             // Update status
             $this->event->status = NeedsChanges::class;
+            $this->event->last_state_change_at = now();
             $this->event->save();
 
             // Notify submitter and institution admins

@@ -294,10 +294,11 @@ class SuggestUpdate extends Component implements HasActions, HasForms
             ? $initialState['address']
             : [];
 
-        $initialState['address'] = [
+        $initialState['address'] = SharedFormSchema::expandStoredAreasForForm([
             'country_id' => SharedFormSchema::normalizeLocationId($speakerAddress['country_id'] ?? null),
             'admin_area_1_id' => SharedFormSchema::normalizeLocationId($speakerAddress['admin_area_1_id'] ?? null),
-        ];
+            'admin_area_2_id' => SharedFormSchema::normalizeLocationId($speakerAddress['admin_area_2_id'] ?? null),
+        ]);
 
         if (($initialState['bio'] ?? null) === null) {
             $initialState['bio'] = [
@@ -307,14 +308,6 @@ class SuggestUpdate extends Component implements HasActions, HasForms
                     'content' => [],
                 ]],
             ];
-        }
-
-        if (($adminArea1Id = SharedFormSchema::normalizeLocationId($speakerAddress['admin_area_2_id'] ?? null)) !== null) {
-            $initialState['address']['admin_area_2_id'] = $adminArea1Id;
-        }
-
-        if (($adminArea2Id = SharedFormSchema::normalizeLocationId($speakerAddress['admin_area_3_id'] ?? null)) !== null) {
-            $initialState['address']['admin_area_3_id'] = $adminArea2Id;
         }
 
         $initialState['qualifications'] = array_map(

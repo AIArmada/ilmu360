@@ -719,6 +719,5 @@ function eventChangeApprovedEvent(array $attributes = []): Event
         'starts_at' => now()->addDays(7),
         'ends_at' => now()->addDays(7)->addHours(2),
         'timezone' => 'Asia/Kuala_Lumpur',
-        'is_active' => true,
     ], $attributes));
 }

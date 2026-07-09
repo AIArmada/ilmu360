@@ -385,8 +385,8 @@ class AdminResourceRegistry
                     )->all(),
                 ],
                 [
-                    'key' => 'is_active',
-                    'label' => 'Active',
+                    'key' => 'published',
+                    'label' => 'Published',
                     'type' => 'boolean',
                 ],
             ],
@@ -399,12 +399,8 @@ class AdminResourceRegistry
                         'pending' => 'Pending',
                         'verified' => 'Verified',
                         'rejected' => 'Rejected',
+                        'inactive' => 'Inactive',
                     ],
-                ],
-                [
-                    'key' => 'is_active',
-                    'label' => 'Active',
-                    'type' => 'boolean',
                 ],
                 [
                     'key' => 'has_events',
@@ -814,7 +810,6 @@ class AdminResourceRegistry
                     'country_id',
                     'admin_area_1_id',
                     'admin_area_2_id',
-                    'admin_area_3_id',
                 ]);
             }
         }

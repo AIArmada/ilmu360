@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Contracts\ShareTrackingContract;
 use App\Data\ShareTracking\ShareTrackingAttributionData;
 use App\Data\ShareTracking\ShareTrackingLinkData;
 use App\Data\ShareTracking\ShareTrackingOutcomeData;
@@ -13,7 +14,7 @@ use App\Services\ShareTracking\AffiliatesShareTrackingService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 
-final readonly class ShareTrackingService
+final readonly class ShareTrackingService implements ShareTrackingContract
 {
     public function __construct(
         private AffiliatesShareTrackingService $affiliatesShareTrackingService,

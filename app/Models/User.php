@@ -135,7 +135,10 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
             $user->reviewedContributionRequests()->update(['reviewer_id' => null]);
             $user->membershipApplications()->update(['applicant_id' => null]);
             $user->reviewedMembershipApplications()->update(['reviewer_id' => null]);
-            $user->moderationReviews()->update(['moderator_id' => null]);
+            // Keep actioned_by_type so restore can re-link the user id.
+            $user->moderationReviews()->update([
+                'actioned_by_id' => null,
+            ]);
             $user->reports()->update(['reporter_id' => null]);
             $user->handledReports()->update(['handled_by' => null]);
             $user->verifiedDonationChannels()->update(['verified_by' => null]);
@@ -500,7 +503,7 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
         $this->restoreForeignKeyRelation('reviewedContributionRequests', 'reviewer_id', $this->snapshotIds($snapshot, 'contribution_request_reviewer_ids'));
         $this->restoreForeignKeyRelation('membershipApplications', 'applicant_id', $this->snapshotIds($snapshot, 'membership_application_ids'));
         $this->restoreForeignKeyRelation('reviewedMembershipApplications', 'reviewer_id', $this->snapshotIds($snapshot, 'membership_application_reviewer_ids'));
-        $this->restoreForeignKeyRelation('moderationReviews', 'moderator_id', $this->snapshotIds($snapshot, 'moderation_review_ids'));
+        $this->restoreForeignKeyRelation('moderationReviews', 'actioned_by_id', $this->snapshotIds($snapshot, 'moderation_review_ids'));
         $this->restoreForeignKeyRelation('reports', 'reporter_id', $this->snapshotIds($snapshot, 'report_ids'));
         $this->restoreForeignKeyRelation('handledReports', 'handled_by', $this->snapshotIds($snapshot, 'handled_report_ids'));
         $this->restoreForeignKeyRelation('verifiedDonationChannels', 'verified_by', $this->snapshotIds($snapshot, 'verified_donation_channel_ids'));

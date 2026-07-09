@@ -314,7 +314,6 @@ it('renders speaker page when linked event has online format and no location add
 it('shows linked non-speaker roles in a separate section on the speaker page', function () {
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $speakerEvent = Event::factory()->create([
@@ -359,7 +358,6 @@ it('shows linked non-speaker roles in a separate section on the speaker page', f
 it('renders the book title on speaker event cards without parentheses', function () {
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $bookEvent = Event::factory()->create([

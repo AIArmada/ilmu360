@@ -25,7 +25,9 @@ class EventSubmittedNotification extends Notification implements ShouldQueue
      */
     public function via(object $notifiable): array
     {
-        return ['mail', 'database'];
+        // Laravel's notifications table was cut over to package notification_inboxes.
+        // Moderator alerts stay mail-only; submitter in-app alerts use InAppNotification.
+        return ['mail'];
     }
 
     /**
@@ -35,7 +37,6 @@ class EventSubmittedNotification extends Notification implements ShouldQueue
     {
         return [
             'mail' => 'notifications-mail',
-            'database' => 'notifications-inbox',
         ];
     }
 
@@ -69,19 +70,6 @@ class EventSubmittedNotification extends Notification implements ShouldQueue
             'action_url' => $this->reviewUrl(),
             'type' => 'event_submitted',
         ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    public function toDatabase(object $notifiable): array
-    {
-        return $this->toArray($notifiable);
-    }
-
-    public function databaseType(object $notifiable): string
-    {
-        return 'event_submitted';
     }
 
     protected function reviewUrl(): string

@@ -84,7 +84,7 @@ it('supports goal-based funnel steps via goal slugs', function () {
             'conditions' => [
                 ['field' => 'path', 'operator' => 'equals', 'value' => '/'],
             ],
-            'is_active' => true,
+            'status' => 'active',
             'owner_type' => null,
             'owner_id' => null,
         ]);
@@ -99,7 +99,7 @@ it('supports goal-based funnel steps via goal slugs', function () {
             'conditions' => [
                 ['field' => 'path', 'operator' => 'starts_with', 'value' => '/majlis/'],
             ],
-            'is_active' => true,
+            'status' => 'active',
             'owner_type' => null,
             'owner_id' => null,
         ]);
@@ -119,7 +119,7 @@ it('supports goal-based funnel steps via goal slugs', function () {
             ],
         ],
         'is_shared' => false,
-        'is_active' => true,
+        'status' => 'active',
         'owner_type' => null,
         'owner_id' => null,
     ]));
@@ -178,7 +178,7 @@ it('does not fall back to the starter funnel when only tracked-property-compatib
             'conditions' => [
                 ['field' => 'path', 'operator' => 'equals', 'value' => '/'],
             ],
-            'is_active' => true,
+            'status' => 'active',
             'owner_type' => null,
             'owner_id' => null,
         ]);
@@ -193,7 +193,7 @@ it('does not fall back to the starter funnel when only tracked-property-compatib
             'conditions' => [
                 ['field' => 'path', 'operator' => 'equals', 'value' => '/foreign'],
             ],
-            'is_active' => true,
+            'status' => 'active',
             'owner_type' => null,
             'owner_id' => null,
         ]);
@@ -213,7 +213,7 @@ it('does not fall back to the starter funnel when only tracked-property-compatib
             ],
         ],
         'is_shared' => false,
-        'is_active' => true,
+        'status' => 'active',
         'owner_type' => null,
         'owner_id' => null,
     ]));
@@ -288,7 +288,7 @@ it('supports direct page-path funnel steps without separate goals', function () 
             ],
         ],
         'is_shared' => false,
-        'is_active' => true,
+        'status' => 'active',
         'owner_type' => null,
         'owner_id' => null,
     ]));
@@ -364,7 +364,7 @@ it('supports route-based funnel steps using named laravel routes', function () {
             ],
         ],
         'is_shared' => false,
-        'is_active' => true,
+        'status' => 'active',
         'owner_type' => null,
         'owner_id' => null,
     ]));
@@ -492,7 +492,7 @@ it('supports any and all funnel condition match types', function () {
             ],
         ],
         'is_shared' => false,
-        'is_active' => true,
+        'status' => 'active',
         'owner_type' => null,
         'owner_id' => null,
     ]));
@@ -521,7 +521,7 @@ it('supports any and all funnel condition match types', function () {
             ],
         ],
         'is_shared' => false,
-        'is_active' => true,
+        'status' => 'active',
         'owner_type' => null,
         'owner_id' => null,
     ]));

@@ -118,8 +118,9 @@ class AdminResourceService
                 'catalogs' => [
                     'countries' => route('api.admin.catalogs.countries'),
                     'states' => route('api.admin.catalogs.states'),
-                    'districts' => route('api.admin.catalogs.districts'),
-                    'subdistricts' => route('api.admin.catalogs.subdistricts'),
+                    'cities' => route('api.admin.catalogs.cities'),
+                    'admin_area_level_1' => route('api.admin.catalogs.admin-area-level-1'),
+                    'admin_area_level_2' => route('api.admin.catalogs.admin-area-level-2'),
                 ],
                 'resources' => array_values(array_map(
                     fn (array $resource): array => $compact ? $this->summarizeResource($resource) : $resource,
@@ -961,29 +962,13 @@ class AdminResourceService
             if ($rawStatus !== null && $rawStatus !== '') {
                 $status = $this->normalizeStatusFilter($rawStatus);
 
-                if ($status === null || ! in_array($status, ['pending', 'verified', 'rejected'], true)) {
+                if ($status === null || ! in_array($status, ['pending', 'verified', 'rejected', 'inactive'], true)) {
                     $query->whereRaw('1 = 0');
 
                     return;
                 }
 
                 $query->where($model->qualifyColumn('status'), $status);
-            }
-        }
-
-        if (array_key_exists('is_active', $filters)) {
-            $rawIsActive = $filters['is_active'];
-
-            if ($rawIsActive !== null && $rawIsActive !== '') {
-                $isActive = $this->normalizeBooleanFilter($rawIsActive);
-
-                if ($isActive === null) {
-                    $query->whereRaw('1 = 0');
-
-                    return;
-                }
-
-                $query->where($model->qualifyColumn('is_active'), $isActive);
             }
         }
 
@@ -1119,19 +1104,23 @@ class AdminResourceService
             $query->whereIn($model->qualifyColumn('prayer_reference'), $prayerReferences);
         }
 
-        if (array_key_exists('is_active', $filters)) {
-            $rawIsActive = $filters['is_active'];
+        if (array_key_exists('published', $filters)) {
+            $rawPublished = $filters['published'];
 
-            if ($rawIsActive !== null && $rawIsActive !== '') {
-                $isActive = $this->normalizeBooleanFilter($rawIsActive);
+            if ($rawPublished !== null && $rawPublished !== '') {
+                $published = $this->normalizeBooleanFilter($rawPublished);
 
-                if ($isActive === null) {
+                if ($published === null) {
                     $query->whereRaw('1 = 0');
 
                     return;
                 }
 
-                $query->where($model->qualifyColumn('is_active'), $isActive);
+                if ($published) {
+                    $query->whereNotNull($model->qualifyColumn('published_at'));
+                } else {
+                    $query->whereNull($model->qualifyColumn('published_at'));
+                }
             }
         }
     }

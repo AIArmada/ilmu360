@@ -156,7 +156,6 @@ it('shows speaker affiliation fields on the dedicated create and update forms', 
     ]);
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $this->actingAs($user);
@@ -409,7 +408,6 @@ it('renders the speaker suggest update page with the compact shared shell', func
     $user = User::factory()->create();
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     app()->setLocale('ms');
@@ -484,7 +482,6 @@ it('shows the speaker media uploads on the suggest update page only for maintain
     $visitor = User::factory()->create();
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
         'bio' => null,
     ]);
 
@@ -527,7 +524,6 @@ it('applies direct speaker affiliation edits for owner maintainers from the sugg
     ]);
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $speaker->institutions()->detach();
@@ -861,7 +857,6 @@ it('prefills submit-style organizer and location fields on the event update page
     ]);
     $venue = Venue::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $event = Event::factory()->create([
         'title' => 'Majlis Dengan Lokasi Venue',
@@ -900,7 +895,6 @@ it('normalizes submit-style organizer and location changes on the event update p
     ]);
     $venue = Venue::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $event = Event::factory()->for($institution)->create([
         'title' => 'Majlis Tukar Penganjur',
@@ -1033,12 +1027,10 @@ it('renders contribution requests and event submissions without approval control
     $speaker = Speaker::factory()->create([
         'name' => 'Ustaz Ahmad',
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $reference = Reference::factory()->create([
         'title' => 'Rujukan Majlis Ilmu',
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $createRequest = ContributionRequest::factory()->create([
         'type' => ContributionRequestType::Create,
@@ -1161,7 +1153,6 @@ it('formats institution membership claim options with the location hierarchy', f
         'name' => 'Masjid Payung',
         'nickname' => null,
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $country = ensureTestMalaysiaCountry();
     $state = createTestAddressArea('Selangor', 1, null, $country);
@@ -1273,7 +1264,6 @@ it('stores reference reports from the public report page', function () {
     $user = User::factory()->create();
     $reference = Reference::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $referenceRouteSegment = ContributionSubjectType::Reference->publicRouteSegment();
 
@@ -1300,15 +1290,12 @@ it('stores reference reports from the public report page', function () {
 it('redirects guests to login on canonical report and suggest update pages while rejecting removed legacy aliases', function () {
     $institution = Institution::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $reference = Reference::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $event = Event::factory()->create([
         'status' => 'approved',
@@ -1364,7 +1351,6 @@ it('forbids users banned from directory feedback from opening update and report 
     $user->givePermissionTo('feedback.blocked');
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $this->actingAs($user);
@@ -1380,7 +1366,6 @@ it('resolves speaker slugs on the update suggestion page without uuid casting er
     $user = User::factory()->create();
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $this->actingAs($user);
@@ -1395,7 +1380,6 @@ it('keeps speaker update suggestions on a region-only address form', function ()
     $user = User::factory()->create();
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $this->actingAs($user);
@@ -1418,7 +1402,6 @@ it('does not treat unchanged speaker update forms as changes when legacy address
     $country = ensureTestMalaysiaCountry();
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     withGlobalOwnerContext(function () use ($speaker): void {
@@ -1461,7 +1444,6 @@ it('resolves institution slugs on the report page without uuid casting errors', 
     $user = User::factory()->create();
     $institution = Institution::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $this->actingAs($user);
@@ -1477,7 +1459,6 @@ it('shows the reported institution clearly on the public report page', function 
     $institution = Institution::factory()->create([
         'name' => 'Kompleks Islam Senawang',
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $selectedInstitutionLabel = __('Selected :subject', ['subject' => strtolower(__('Institution'))]);
     $viewInstitutionLabel = __('View this :subject', ['subject' => strtolower(__('Institution'))]);
@@ -1499,7 +1480,6 @@ it('shows the reported speaker clearly on the public report page', function () {
     $speaker = Speaker::factory()->create([
         'name' => 'Amina binti Rashid',
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $selectedSpeakerLabel = __('Selected :subject', ['subject' => strtolower(__('Speaker'))]);
     $viewSpeakerLabel = __('View this :subject', ['subject' => strtolower(__('Speaker'))]);
@@ -1521,7 +1501,6 @@ it('shows the reported event clearly on the public report page', function () {
     $event = Event::factory()->create([
         'title' => 'Kelas Daurah Tafsir Ibnu Kathir',
         'status' => 'approved',
-        'is_active' => true,
     ]);
     $selectedEventLabel = __('Selected :subject', ['subject' => strtolower(__('Event'))]);
     $viewEventLabel = __('View this :subject', ['subject' => strtolower(__('Event'))]);
@@ -1543,7 +1522,6 @@ it('renders translated report copy on mobile without the moderation notes block'
     $institution = Institution::factory()->create([
         'name' => 'Kompleks Islam Senawang',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     app()->setLocale('ms');
@@ -1572,7 +1550,6 @@ it('redirects uuid-based reference contribution and report pages to the canonica
     $user = User::factory()->create();
     $reference = Reference::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $this->actingAs($user);

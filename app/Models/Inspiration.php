@@ -38,7 +38,8 @@ class Inspiration extends Model implements AuditableContract, HasMedia
         'title',
         'content',
         'source',
-        'is_active',
+        'status',
+        'last_state_change_at',
     ];
 
     #[\Override]
@@ -46,7 +47,7 @@ class Inspiration extends Model implements AuditableContract, HasMedia
     {
         return [
             'category' => InspirationCategory::class,
-            'is_active' => 'boolean',
+            'last_state_change_at' => 'immutable_datetime',
         ];
     }
 
@@ -138,7 +139,7 @@ class Inspiration extends Model implements AuditableContract, HasMedia
     #[Scope]
     protected function active(Builder $query): void
     {
-        $query->where('is_active', true);
+        $query->where('status', 'active');
     }
 
     /**

@@ -59,7 +59,10 @@ class Institution extends Model implements AuditableContract, HasMedia
         'description',
 
         'status',
-        'is_active',
+        'verified_at',
+        'rejected_at',
+        'inactive_at',
+        'last_state_change_at',
         'allow_public_event_submission',
         'public_submission_locked_at',
         'public_submission_locked_by',
@@ -70,7 +73,10 @@ class Institution extends Model implements AuditableContract, HasMedia
     {
         return [
             'type' => InstitutionType::class,
-            'is_active' => 'boolean',
+            'verified_at' => 'immutable_datetime',
+            'rejected_at' => 'immutable_datetime',
+            'inactive_at' => 'immutable_datetime',
+            'last_state_change_at' => 'immutable_datetime',
             'allow_public_event_submission' => 'boolean',
             'public_submission_locked_at' => 'datetime',
         ];
@@ -78,8 +84,7 @@ class Institution extends Model implements AuditableContract, HasMedia
 
     public function shouldBeSearchable(): bool
     {
-        return $this->is_active
-            && in_array((string) $this->status, ['verified', 'pending'], true);
+        return in_array((string) $this->status, ['verified', 'pending'], true);
     }
 
     public function searchIndexShouldBeUpdated(): bool
@@ -91,7 +96,6 @@ class Institution extends Model implements AuditableContract, HasMedia
             'description',
             'slug',
             'status',
-            'is_active',
         ]);
     }
 
@@ -102,7 +106,6 @@ class Institution extends Model implements AuditableContract, HasMedia
     protected function makeAllSearchableUsing(Builder $query): Builder
     {
         return $query
-            ->where('institutions.is_active', true)
             ->whereIn('institutions.status', ['verified', 'pending']);
     }
 
@@ -129,7 +132,6 @@ class Institution extends Model implements AuditableContract, HasMedia
             'search_text' => $this->searchableText(),
             'slug' => (string) $this->slug,
             'status' => (string) $this->status,
-            'is_active' => (bool) $this->is_active,
             'country_code' => $address?->country_code,
             'city' => $address?->city,
             'state' => $address?->state,
@@ -336,7 +338,7 @@ class Institution extends Model implements AuditableContract, HasMedia
     #[Scope]
     protected function active(Builder $query): void
     {
-        $query->where('is_active', true);
+        $query->whereIn('status', ['verified', 'pending']);
     }
 
     /**

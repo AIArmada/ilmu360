@@ -996,7 +996,7 @@ class EventNotificationService
 
     protected function isPublicFutureEvent(Event $event): bool
     {
-        return $event->is_active
+        return $event->published_at !== null
             && (string) $event->status === 'approved'
             && $event->visibility === EventVisibility::Public
             && $event->starts_at !== null

@@ -95,7 +95,6 @@ class GenerateInstitutionSlugAction
                 'city' => $address?->city,
                 'admin_area_1_id' => $address?->admin_area_1_id,
                 'admin_area_2_id' => $address?->admin_area_2_id,
-                'admin_area_3_id' => $address?->admin_area_3_id,
                 'state' => $address?->state,
                 'country_code' => $address?->country_code,
             ],
@@ -134,8 +133,6 @@ class GenerateInstitutionSlugAction
     private function locationSuffix(array $address): string
     {
         $city = $this->firstFilled([
-            $address['admin_area_3_name'] ?? null,
-            $this->areaName($address['admin_area_3_id'] ?? null),
             $address['city'] ?? null,
         ]);
         $district = $this->firstFilled([
@@ -182,7 +179,6 @@ class GenerateInstitutionSlugAction
             'city' => $address?->city,
             'admin_area_1_id' => $address?->admin_area_1_id,
             'admin_area_2_id' => $address?->admin_area_2_id,
-            'admin_area_3_id' => $address?->admin_area_3_id,
             'state' => $address?->state,
             'country_code' => $address?->country_code,
         ]);

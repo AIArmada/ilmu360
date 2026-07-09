@@ -5,6 +5,7 @@ namespace App\Actions\Events;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\Events\Enums\RegistrationMode;
+use App\Contracts\CaptchaVerifier;
 use App\Enums\DawahShareOutcomeType;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
@@ -13,14 +14,11 @@ use App\Enums\EventPrayerTime;
 use App\Enums\EventStructure;
 use App\Enums\EventType;
 use App\Enums\EventVisibility;
-use App\Enums\TagType;
 use App\Models\Event;
 use App\Models\EventSubmission;
 use App\Models\Institution;
 use App\Models\Speaker;
-use App\Models\Tag;
 use App\Models\User;
-use App\Services\Captcha\TurnstileVerifier;
 use App\Services\EventKeyPersonSyncService;
 use App\Services\ModerationService;
 use App\Services\ShareTrackingService;
@@ -31,7 +29,6 @@ use BackedEnum;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
 
@@ -44,7 +41,7 @@ class SubmitFrontendEventAction
         private readonly EventKeyPersonSyncService $eventKeyPersonSyncService,
         private readonly ModerationService $moderationService,
         private readonly ShareTrackingService $shareTrackingService,
-        private readonly TurnstileVerifier $turnstileVerifier,
+        private readonly CaptchaVerifier $turnstileVerifier,
     ) {}
 
     /**
@@ -209,7 +206,7 @@ class SubmitFrontendEventAction
             $event->syncLanguages($validated['languages']);
         }
 
-        $this->syncTags($event, $validated);
+        app(SyncEventClassificationsAction::class)->handle($event, $validated);
 
         if ($persistRelationships !== null) {
             $persistRelationships($event);
@@ -739,68 +736,6 @@ class SubmitFrontendEventAction
             $organizer instanceof Speaker => 'speaker',
             default => null,
         };
-    }
-
-    /**
-     * @param  array<string, mixed>  $validated
-     */
-    private function syncTags(Event $event, array $validated): void
-    {
-        $tagFieldMap = [
-            'discipline_tags' => TagType::Discipline,
-            'issue_tags' => TagType::Issue,
-        ];
-
-        $allTagIds = collect(array_merge(
-            $validated['domain_tags'] ?? [],
-            $validated['source_tags'] ?? [],
-        ))
-            ->filter(fn (mixed $value): bool => is_string($value) && Str::isUuid($value))
-            ->values()
-            ->all();
-
-        foreach ($tagFieldMap as $field => $tagType) {
-            foreach ($validated[$field] ?? [] as $value) {
-                if (Str::isUuid((string) $value)) {
-                    $allTagIds[] = $value;
-
-                    continue;
-                }
-
-                $name = is_string($value) ? trim($value) : '';
-
-                if ($name === '') {
-                    continue;
-                }
-
-                $tag = Tag::query()
-                    ->where('type', $tagType->value)
-                    ->whereRaw("LOWER(name->>'ms') = ?", [mb_strtolower($name)])
-                    ->first();
-
-                if (! $tag instanceof Tag) {
-                    $tag = Tag::query()->create([
-                        'name' => ['ms' => $name, 'en' => $name],
-                        'type' => $tagType->value,
-                        'status' => 'pending',
-                    ]);
-                }
-
-                $allTagIds[] = (string) $tag->getKey();
-            }
-        }
-
-        $allTagIds = collect($allTagIds)
-            ->filter(fn (mixed $value): bool => Str::isUuid((string) $value))
-            ->unique()
-            ->values()
-            ->all();
-
-        if ($allTagIds === []) {
-            return;
-        }
-
-        $event->syncTags(Tag::query()->whereIn('id', $allTagIds)->get());
     }
 
     /**

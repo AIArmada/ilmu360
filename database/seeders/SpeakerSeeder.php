@@ -69,7 +69,6 @@ class SpeakerSeeder extends Seeder
                         ]],
                     ],
                     'status' => 'verified',
-                    'is_active' => true,
                 ]
             );
 

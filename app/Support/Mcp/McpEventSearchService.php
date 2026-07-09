@@ -48,7 +48,6 @@ class McpEventSearchService
         'city_id',
         'admin_area_1_id',
         'admin_area_2_id',
-        'admin_area_3_id',
         'language_codes',
         'event_type',
         'gender',
@@ -194,7 +193,6 @@ class McpEventSearchService
             'city_id' => ['sometimes', 'nullable'],
             'admin_area_1_id' => ['sometimes', 'nullable'],
             'admin_area_2_id' => ['sometimes', 'nullable'],
-            'admin_area_3_id' => ['sometimes', 'nullable'],
             'language_codes' => ['sometimes', 'nullable', 'array'],
             'language_codes.*' => ['string'],
             'event_type' => ['sometimes', 'nullable', 'array'],
@@ -280,19 +278,16 @@ class McpEventSearchService
                 'UUID of the package-backed country record. Use the catalogs or addressing-backed discovery endpoints to obtain valid IDs.'
             ),
             'state_id' => $schema->string()->nullable()->description(
-                'UUID of the selected state record. Use the states catalog endpoint to obtain valid IDs.'
+                'UUID of package addressing states.id (real addresses.state_id column). Use catalogs.states.'
             ),
             'city_id' => $schema->string()->nullable()->description(
-                'UUID of the selected city record. Use the cities catalog endpoint to obtain valid IDs.'
+                'UUID of package addressing cities.id (real addresses.city_id column). Use catalogs.cities.'
             ),
             'admin_area_1_id' => $schema->string()->nullable()->description(
-                'UUID of the selected first-level address area (state/province from the address_areas hierarchy).'
+                'UUID of package address_areas level 1. Use catalogs.admin-area-level-1.'
             ),
             'admin_area_2_id' => $schema->string()->nullable()->description(
                 'UUID of the selected second-level address area within the first-level area.'
-            ),
-            'admin_area_3_id' => $schema->string()->nullable()->description(
-                'UUID of the selected third-level address area within the second-level area.'
             ),
             'language_codes' => $stringArray->description(
                 'Array of BCP-47 language codes. Example: ["ms", "en", "ar"]. Events that are conducted in any of the given languages will be returned.'

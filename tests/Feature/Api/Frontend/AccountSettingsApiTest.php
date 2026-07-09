@@ -45,12 +45,10 @@ it('shows the authenticated account settings profile contract', function () {
     $dailyInstitution = Institution::factory()->create([
         'name' => 'Masjid Harian API',
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $fridayInstitution = Institution::factory()->create([
         'name' => 'Masjid Jumaat API',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $user = User::factory()->create([
@@ -87,12 +85,10 @@ it('returns the updated account settings profile payload after saving', function
     $dailyInstitution = Institution::factory()->create([
         'name' => 'Masjid Harian Baru',
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $fridayInstitution = Institution::factory()->create([
         'name' => 'Masjid Jumaat Baru',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $user = User::factory()->create([
@@ -142,12 +138,10 @@ it('preserves omitted account settings fields during sparse updates', function (
     $dailyInstitution = Institution::factory()->create([
         'name' => 'Masjid Harian Asal',
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $fridayInstitution = Institution::factory()->create([
         'name' => 'Masjid Jumaat Asal',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $user = User::factory()->create([
@@ -187,7 +181,6 @@ it('lists, creates, and revokes member MCP tokens through account settings', fun
     $institution = Institution::factory()->create([
         'name' => 'MCP Token Institution',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $user = User::factory()->create([

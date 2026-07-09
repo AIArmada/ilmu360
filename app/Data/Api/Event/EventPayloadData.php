@@ -65,7 +65,7 @@ class EventPayloadData extends Data
             'going_count' => $event->going_count,
             'is_priority' => $event->is_priority,
             'is_featured' => $event->is_featured,
-            'is_active' => $event->is_active,
+            'published_at' => $event->published_at,
             'is_muslim_only' => $event->is_muslim_only,
             'reference_study_subtitle' => $event->reference_study_subtitle,
             'card_image_url' => $event->card_image_url,

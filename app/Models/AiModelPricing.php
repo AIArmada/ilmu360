@@ -37,7 +37,8 @@ class AiModelPricing extends Model implements AuditableContract
         'per_request',
         'per_image',
         'per_audio_second',
-        'is_active',
+        'status',
+        'last_state_change_at',
         'priority',
         'starts_at',
         'ends_at',
@@ -57,7 +58,7 @@ class AiModelPricing extends Model implements AuditableContract
             'per_request' => 'decimal:8',
             'per_image' => 'decimal:8',
             'per_audio_second' => 'decimal:8',
-            'is_active' => 'boolean',
+            'last_state_change_at' => 'immutable_datetime',
             'priority' => 'integer',
             'starts_at' => 'datetime',
             'ends_at' => 'datetime',
@@ -74,7 +75,7 @@ class AiModelPricing extends Model implements AuditableContract
         $moment ??= now();
 
         $query
-            ->where('is_active', true)
+            ->where('status', 'active')
             ->where(fn (Builder $nested): Builder => $nested
                 ->whereNull('starts_at')
                 ->orWhere('starts_at', '<=', $moment)

@@ -119,15 +119,13 @@ class InstitutionForm
                                 'pending' => 'Pending',
                                 'verified' => 'Verified',
                                 'rejected' => 'Rejected',
+                                'inactive' => 'Inactive',
                             ])
                             ->required(),
                         Toggle::make('allow_public_event_submission')
                             ->label('Allow Public Event Submission')
                             ->disabled(fn (?Institution $record, string $operation): bool => ! self::canManagePublicSubmissionToggle($record, $operation))
                             ->helperText(fn (?Institution $record, string $operation): string => self::publicSubmissionHelperText($record, $operation)),
-                        Toggle::make('is_active')
-                            ->label('Active')
-                            ->default(true),
                     ])
                     ->columns(1),
                 Section::make('Social Media')

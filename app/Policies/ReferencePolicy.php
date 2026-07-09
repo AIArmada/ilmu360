@@ -15,7 +15,7 @@ class ReferencePolicy
 
     public function view(?User $user, Reference $reference): bool
     {
-        if ($reference->status === 'verified' && $reference->is_active) {
+        if ($reference->status === 'verified') {
             return true;
         }
 

@@ -63,7 +63,7 @@ test('authenticated user can save a pending active public event', function () {
     $event = Event::factory()->create([
         'status' => 'pending',
         'visibility' => 'public',
-        'is_active' => true,
+        'status' => 'active',
     ]);
 
     $this->putJson(route('api.events.saved.update', $event))
@@ -78,7 +78,7 @@ test('inactive events cannot be saved through the api', function () {
     $event = Event::factory()->create([
         'status' => 'approved',
         'visibility' => 'public',
-        'is_active' => false,
+        'status' => 'inactive',
     ]);
 
     $this->putJson(route('api.events.saved.update', $event))
@@ -180,13 +180,13 @@ test('saved events index still includes cancelled events', function () {
     $cancelledEvent = Event::factory()->create([
         'status' => 'cancelled',
         'visibility' => 'public',
-        'is_active' => true,
+        'status' => 'active',
         'starts_at' => now()->addDays(10),
     ]);
     $inactiveEvent = Event::factory()->create([
         'status' => 'approved',
         'visibility' => 'public',
-        'is_active' => false,
+        'status' => 'inactive',
         'starts_at' => now()->addDays(12),
     ]);
 

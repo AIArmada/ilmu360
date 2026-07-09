@@ -47,6 +47,7 @@ class ApproveEvent extends Transition implements HasColor, HasIcon, HasLabel
             $this->event->status = Approved::class;
             // @phpstan-ignore-next-line now() returns CarbonImmutable, property expects Carbon
             $this->event->published_at = now();
+            $this->event->last_state_change_at = now();
             $this->event->save();
 
             // Auto-verify pending related records (by approving the event, moderator implicitly verifies these entities)
@@ -86,7 +87,12 @@ class ApproveEvent extends Transition implements HasColor, HasIcon, HasLabel
             ->where('status', 'pending')
             ->get()
             ->each(function (Speaker $speaker): void {
-                $speaker->forceFill(['status' => 'verified'])->save();
+                $now = now();
+                $speaker->forceFill([
+                    'status' => 'verified',
+                    'verified_at' => $now,
+                    'last_state_change_at' => $now,
+                ])->save();
             });
 
         $institutionIds = collect();
@@ -104,7 +110,12 @@ class ApproveEvent extends Transition implements HasColor, HasIcon, HasLabel
             ->where('status', 'pending')
             ->get()
             ->each(function (Institution $institution): void {
-                $institution->forceFill(['status' => 'verified'])->save();
+                $now = now();
+                $institution->forceFill([
+                    'status' => 'verified',
+                    'verified_at' => $now,
+                    'last_state_change_at' => $now,
+                ])->save();
             });
 
         // Verify venue

@@ -32,7 +32,6 @@ it('keeps member api and member mcp contribution request listings aligned', func
         'name' => 'Member Parity Own Contribution Subject '.Str::ulid(),
         'description' => 'Own request original description.',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $reviewer = User::factory()->create();
@@ -92,14 +91,12 @@ it('keeps member api and member mcp contribution request actions aligned', funct
             'name' => 'Member Parity '.$label.' Contribution Subject',
             'description' => $originalDescription,
             'status' => 'verified',
-            'is_active' => true,
         ]);
 
         $mcpInstitution = Institution::factory()->create([
             'name' => 'Member Parity '.$label.' Contribution Subject',
             'description' => $originalDescription,
             'status' => 'verified',
-            'is_active' => true,
         ]);
 
         app(AddMemberToSubject::class)->handle($apiInstitution, $member, 'admin');
@@ -192,14 +189,12 @@ it('keeps member api and member mcp contribution request actions aligned', funct
         'name' => $cancelSubjectName,
         'description' => 'Cancel request original description.',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $mcpCancelInstitution = Institution::factory()->create([
         'name' => $cancelSubjectName,
         'description' => 'Cancel request original description.',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $apiCancelRequest = ContributionRequest::factory()->create([
@@ -255,13 +250,11 @@ it('keeps member api and member mcp membership claim listings aligned', function
     $pendingClaimTarget = Institution::factory()->create([
         'name' => 'Member Parity Pending Claim Subject '.Str::ulid(),
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $cancelledClaimTarget = Institution::factory()->create([
         'name' => 'Member Parity Cancelled Claim Subject '.Str::ulid(),
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     MembershipApplication::factory()
@@ -303,13 +296,11 @@ it('keeps member api and member mcp membership claim actions aligned', function 
     $apiSubmitTarget = Institution::factory()->create([
         'name' => 'Member Parity Claim Submission Subject',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $mcpSubmitTarget = Institution::factory()->create([
         'name' => 'Member Parity Claim Submission Subject',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $apiSubmitResponse = $this->post(
@@ -343,13 +334,11 @@ it('keeps member api and member mcp membership claim actions aligned', function 
     $apiCancelTarget = Institution::factory()->create([
         'name' => 'Member Parity Claim Cancel Subject',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $mcpCancelTarget = Institution::factory()->create([
         'name' => 'Member Parity Claim Cancel Subject',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $apiClaim = MembershipApplication::factory()
@@ -387,7 +376,7 @@ function memberParityAccessContext(string $role = 'admin', string $status = 'ver
 {
     $institution = Institution::factory()->create([
         'status' => $status,
-        'is_active' => true,
+        'status' => 'active',
     ]);
 
     $member = User::factory()->create([

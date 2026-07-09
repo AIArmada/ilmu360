@@ -1,6 +1,6 @@
 @section('title', $reference->displayTitle() . ' - ' . config('app.name'))
 @section('meta_description', \Illuminate\Support\Str::limit(trim(strip_tags((string) $reference->descriptionValue())) ?: __('Lihat rujukan, butiran penerbitan, dan pautan perkongsian untuk :title di :app.', ['title' => $reference->displayTitle(), 'app' => config('app.name')]), 160))
-@section('meta_robots', ($reference->is_active && (string) $reference->status === 'verified') ? 'index, follow' : 'noindex, nofollow')
+@section('meta_robots', ((string) $reference->status === 'verified') ? 'index, follow' : 'noindex, nofollow')
 @section('og_url', route('references.show', $reference))
 @section('og_image', $reference->getFirstMediaUrl('front_cover', 'thumb') ?: ($reference->getFirstMediaUrl('front_cover') ?: asset('images/default-mosque-hero.png')))
 @section('og_image_alt', __('Rujukan :title', ['title' => $reference->displayTitle()]))

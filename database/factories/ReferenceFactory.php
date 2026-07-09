@@ -35,7 +35,6 @@ class ReferenceFactory extends Factory
             'description' => $this->faker->paragraph(),
             'is_canonical' => $this->faker->boolean(),
             'status' => 'verified',
-            'is_active' => true,
         ];
     }
 

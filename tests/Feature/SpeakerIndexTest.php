@@ -6,6 +6,7 @@ use App\Models\ContributionRequest;
 use App\Models\Event;
 use App\Models\Speaker;
 use App\Models\User;
+use App\Services\EventKeyPersonSyncService;
 use App\Support\Search\SpeakerSearchService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -18,13 +19,11 @@ it('can search speakers case-insensitively', function () {
     Speaker::factory()->create([
         'name' => 'Samad Al-Bakri',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     Speaker::factory()->create([
         'name' => 'Ahmad Bin Ali',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     // Test with exact name
@@ -45,13 +44,11 @@ it('can search speakers by formatted honorific and prenominal titles', function 
         'name' => 'Aisyah Binti Hassan',
         'pre_nominal' => ['syeikhul_maqari'],
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     Speaker::factory()->create([
         'name' => 'Fatimah Binti Omar',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     get('/penceramah?search='.urlencode('syeikhul maqari'))
@@ -64,13 +61,11 @@ it('filters by active status on public speaker index', function () {
     Speaker::factory()->create([
         'name' => 'Active Speaker',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     Speaker::factory()->create([
         'name' => 'Inactive Speaker',
-        'status' => 'verified',
-        'is_active' => false,
+        'status' => 'inactive',
     ]);
 
     get('/penceramah')
@@ -85,7 +80,6 @@ it('shows the total speaker count on the speaker index', function () {
     Speaker::factory()->count(2)->create([
         'name' => $searchPrefix,
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     get('/penceramah?search='.urlencode($searchPrefix))
@@ -116,14 +110,12 @@ it('uses a stable random speaker order instead of alphabetical sorting', functio
         'id' => $speakerId('f', '1'),
         'name' => 'Adam Penceramah Rawak',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $secondAlphabetical = Speaker::factory()->create([
         'id' => $speakerId('0', '2'),
         'name' => 'Zaid Penceramah Rawak',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $component = Livewire::test('pages.speakers.index');
@@ -151,7 +143,6 @@ it('renders the search clear control as an icon button instead of text', functio
     Speaker::factory()->create([
         'name' => 'Samad Al-Bakri',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     get('/penceramah?search=samad')
@@ -172,13 +163,11 @@ it('supports fuzzy search with minor typos', function () {
     Speaker::factory()->create([
         'name' => 'Samad Al-Bakri',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     Speaker::factory()->create([
         'name' => 'Sulaiman Hasan',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     get('/penceramah?search=Smad')
@@ -191,13 +180,11 @@ it('matches partial speaker names within a larger token', function () {
     Speaker::factory()->create([
         'name' => 'Datuk Ustazah Dr Norhafizah Musa',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     Speaker::factory()->create([
         'name' => 'Ustaz Hafiz Rahman',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     get('/penceramah?search=hafizah')
@@ -209,7 +196,6 @@ it('shows the empty state when speaker search has no public matches', function (
     Speaker::factory()->create([
         'name' => 'Ammar',
         'status' => 'pending',
-        'is_active' => true,
     ]);
 
     get('/penceramah?search=ammar')
@@ -223,13 +209,11 @@ it('updates search results live when query changes', function () {
     Speaker::factory()->create([
         'name' => 'Samad Al-Bakri',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     Speaker::factory()->create([
         'name' => 'Ahmad Bin Ali',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     Livewire::test('pages.speakers.index')
@@ -244,7 +228,6 @@ it('refreshes cached speaker title search results after speaker updates', functi
         'name' => 'Nurul Akma',
         'pre_nominal' => ['ustazah'],
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     expect($searchService->publicSearchIds('ustazah'))
@@ -305,7 +288,7 @@ it('allows users to submit a missing speaker from speaker index with pending sta
 
     expect($speaker)->not->toBeNull()
         ->and($speaker?->status)->toBe('pending')
-        ->and($speaker?->is_active)->toBeTrue()
+        ->and((string) $speaker?->status)->toBeIn(['verified', 'pending'])
         ->and($speaker?->addressModel?->country_id)->toBe((string) $country->getKey());
 });
 
@@ -321,7 +304,6 @@ it('rejects duplicate speaker submissions when name gender and titles all match'
         'post_nominal' => ['PhD'],
         'qualifications' => [],
         'status' => 'verified',
-        'is_active' => true,
     ]);
     syncPrimaryAddressForTest($speaker, [
         'country_id' => (string) $country->getKey(),
@@ -351,22 +333,30 @@ it('counts only upcoming public events on the speaker index cards', function () 
     $speaker = Speaker::factory()->create([
         'name' => 'Speaker Dengan Majlis Akan Datang',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $upcomingEvent = Event::factory()->create([
         'status' => 'approved',
         'visibility' => 'public',
+        'published_at' => now()->subHour(),
         'starts_at' => now()->addDays(3),
     ]);
 
     $pastEvent = Event::factory()->create([
         'status' => 'approved',
         'visibility' => 'public',
+        'published_at' => now()->subHour(),
         'starts_at' => now()->subDays(3),
     ]);
 
-    $speaker->speakerEvents()->attach([$upcomingEvent->id, $pastEvent->id]);
+    app(EventKeyPersonSyncService::class)->sync(
+        $upcomingEvent,
+        [(string) $speaker->getKey()],
+    );
+    app(EventKeyPersonSyncService::class)->sync(
+        $pastEvent,
+        [(string) $speaker->getKey()],
+    );
 
     $component = Livewire::test('pages.speakers.index')
         ->assertSee('Speaker Dengan Majlis Akan Datang');
@@ -385,7 +375,6 @@ it('renders profile-quality avatar URLs on the speaker index cards', function ()
     $speaker = Speaker::factory()->create([
         'name' => 'Kazim Elias',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $speaker->addMedia(UploadedFile::fake()->image('kazim.jpg', 1200, 1200))

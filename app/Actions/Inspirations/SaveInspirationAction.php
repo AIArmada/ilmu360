@@ -42,9 +42,9 @@ final readonly class SaveInspirationAction
             'source' => array_key_exists('source', $data)
                 ? $this->normalizeOptionalString($data['source'])
                 : $inspiration->source,
-            'is_active' => array_key_exists('is_active', $data)
-                ? (bool) $data['is_active']
-                : ($creating ? true : (bool) $inspiration->is_active),
+            'status' => array_key_exists('status', $data)
+                ? (string) $data['status']
+                : ($creating ? 'active' : (string) $inspiration->status),
         ]);
 
         $inspiration->save();

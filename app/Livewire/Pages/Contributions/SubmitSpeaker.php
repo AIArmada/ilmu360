@@ -37,9 +37,10 @@ class SubmitSpeaker extends Component implements HasActions, HasForms
                 'gender' => 'male',
                 'address' => [
                     'country_id' => null,
+                    'state_id' => null,
+                    'city_id' => null,
                     'admin_area_1_id' => null,
                     'admin_area_2_id' => null,
-                    'admin_area_3_id' => null,
                     'cascade_reset_guard' => 0,
                 ],
             ]);

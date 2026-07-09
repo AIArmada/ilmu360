@@ -104,7 +104,6 @@ class ContributionController extends FrontendController
             'address.country_id' => ['required', 'uuid', 'exists:address_countries,id'],
             'address.admin_area_1_id' => ['nullable', 'uuid', 'exists:address_areas,id'],
             'address.admin_area_2_id' => ['nullable', 'uuid', 'exists:address_areas,id'],
-            'address.admin_area_3_id' => ['nullable', 'uuid', 'exists:address_areas,id'],
             'address.line1' => ['nullable', 'string', 'max:255'],
             'address.line2' => ['nullable', 'string', 'max:255'],
             'address.postcode' => ['nullable', 'string', 'max:16'],
@@ -193,7 +192,6 @@ class ContributionController extends FrontendController
             'address.country_id' => ['required', 'uuid', 'exists:address_countries,id'],
             'address.admin_area_1_id' => ['nullable', 'uuid', 'exists:address_areas,id'],
             'address.admin_area_2_id' => ['nullable', 'uuid', 'exists:address_areas,id'],
-            'address.admin_area_3_id' => ['nullable', 'uuid', 'exists:address_areas,id'],
             'address.line1' => ['prohibited'],
             'address.line2' => ['prohibited'],
             'address.postcode' => ['prohibited'],
@@ -585,7 +583,6 @@ class ContributionController extends FrontendController
             'country_id' => $speakerAddress['country_id'] ?? null,
             'admin_area_1_id' => $speakerAddress['admin_area_1_id'] ?? null,
             'admin_area_2_id' => $speakerAddress['admin_area_2_id'] ?? null,
-            'admin_area_3_id' => $speakerAddress['admin_area_3_id'] ?? null,
         ];
 
         return $initialState;

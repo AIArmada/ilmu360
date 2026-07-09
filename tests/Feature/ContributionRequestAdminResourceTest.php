@@ -62,7 +62,6 @@ it('allows moderators to reject pending staged create requests from the admin re
     $speaker = Speaker::factory()->create([
         'name' => 'Pending Speaker',
         'status' => 'pending',
-        'is_active' => true,
     ]);
     $request = ContributionRequest::factory()->create([
         'type' => ContributionRequestType::Create,
@@ -88,7 +87,7 @@ it('allows moderators to reject pending staged create requests from the admin re
         ->and($request->fresh()->reviewer_id)->toBe($moderator->id)
         ->and($request->fresh()->reason_code)->toBe('needs_more_evidence')
         ->and($speaker->fresh()->status)->toBe('rejected')
-        ->and($speaker->fresh()->is_active)->toBeFalse();
+        ->and((string) $speaker->fresh()->status)->toBeIn(['inactive', 'rejected']);
 });
 
 it('opens contribution request records on the admin view page from the index', function () {

@@ -27,13 +27,11 @@ it('shows grouped event speaker reference and institution matches on the unified
     $institution = Institution::factory()->create([
         'name' => 'Masjid Nur Hikmah',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $speaker = Speaker::factory()->create([
         'name' => 'Ustaz Nur Hikmah',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $speaker->addMedia(UploadedFile::fake()->image('speaker.jpg', 1200, 1200))
@@ -48,13 +46,11 @@ it('shows grouped event speaker reference and institution matches on the unified
             'published_at' => now(),
             'starts_at' => now()->addDay(),
             'event_format' => EventFormat::Physical,
-            'is_active' => true,
         ]);
 
     $reference = Reference::factory()->create([
         'title' => 'Nur Hikmah: Adab Menuntut Ilmu',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $this->get(route('search.index', ['search' => 'Nur Hikmah']))
@@ -74,7 +70,6 @@ it('falls back to local speaker and institution search on the unified search pag
     $institution = Institution::factory()->create([
         'name' => 'Masjid Nur Hikmah',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $speaker = Speaker::factory()->create([
@@ -84,7 +79,6 @@ it('falls back to local speaker and institution search on the unified search pag
         'post_nominal' => [],
         'qualifications' => [],
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     app(SpeakerSearchService::class)->syncSpeakerRecord($speaker);
@@ -130,7 +124,6 @@ it('shows nearby event matches on the unified search page when location is prese
     $institution = Institution::factory()->create([
         'name' => 'Masjid Taman Setia',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $institution->addressModel?->update([
@@ -147,7 +140,6 @@ it('shows nearby event matches on the unified search page when location is prese
             'published_at' => now(),
             'starts_at' => now()->addDay(),
             'event_format' => EventFormat::Physical,
-            'is_active' => true,
         ]);
 
     $this->get(route('search.index', [
@@ -163,7 +155,6 @@ it('uses a 16:9 placeholder aspect ratio on unified search event cards without p
     $institution = Institution::factory()->create([
         'name' => 'Masjid Carian Tanpa Poster',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     Event::factory()
@@ -175,7 +166,6 @@ it('uses a 16:9 placeholder aspect ratio on unified search event cards without p
             'published_at' => now(),
             'starts_at' => now()->addDay(),
             'event_format' => EventFormat::Physical,
-            'is_active' => true,
         ]);
 
     $this->get(route('search.index', ['search' => 'Carian Tanpa Poster']))
@@ -188,7 +178,6 @@ it('renders the book title only on book-backed search result cards without paren
     $institution = Institution::factory()->create([
         'name' => 'Masjid Carian Kitab',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $bookEvent = Event::factory()
@@ -200,7 +189,6 @@ it('renders the book title only on book-backed search result cards without paren
             'published_at' => now(),
             'starts_at' => now()->addDay(),
             'event_format' => EventFormat::Physical,
-            'is_active' => true,
         ]);
 
     $articleEvent = Event::factory()
@@ -212,7 +200,6 @@ it('renders the book title only on book-backed search result cards without paren
             'published_at' => now(),
             'starts_at' => now()->addDays(2),
             'event_format' => EventFormat::Physical,
-            'is_active' => true,
         ]);
 
     $bookReference = Reference::factory()->create([

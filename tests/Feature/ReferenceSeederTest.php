@@ -30,7 +30,7 @@ it('seeds references using submit-event compatible fields and links', function (
     $reference = Reference::query()->where('title', 'Riyadhus Solihin')->first();
 
     expect($reference)->not->toBeNull()
-        ->and($reference?->is_active)->toBeTrue()
+        ->and((string) $reference?->status)->toBeIn(['verified', 'pending'])
         ->and($reference?->socialMedia()->where('platform', 'website')->exists())->toBeTrue();
 });
 

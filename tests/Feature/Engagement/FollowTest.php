@@ -8,7 +8,7 @@ use App\Models\User;
 
 it('writes to engagement_follows when following via package', function () {
     $user = User::factory()->create();
-    $speaker = Speaker::factory()->create(['status' => 'verified', 'is_active' => true]);
+    $speaker = Speaker::factory()->create(['status' => 'verified']);
 
     OwnerContext::withOwner(null, function () use ($user, $speaker): void {
         $follow = app(EngagementManager::class)->follow($user, $speaker);
@@ -25,7 +25,7 @@ it('writes to engagement_follows when following via package', function () {
 
 it('marks follow as unfollowed when unfollowing via package', function () {
     $user = User::factory()->create();
-    $speaker = Speaker::factory()->create(['status' => 'verified', 'is_active' => true]);
+    $speaker = Speaker::factory()->create(['status' => 'verified']);
 
     OwnerContext::withOwner(null, function () use ($user, $speaker): void {
         app(EngagementManager::class)->follow($user, $speaker);
@@ -49,7 +49,7 @@ it('marks follow as unfollowed when unfollowing via package', function () {
 
 it('follow is idempotent via package', function () {
     $user = User::factory()->create();
-    $speaker = Speaker::factory()->create(['status' => 'verified', 'is_active' => true]);
+    $speaker = Speaker::factory()->create(['status' => 'verified']);
 
     OwnerContext::withOwner(null, function () use ($user, $speaker): void {
         app(EngagementManager::class)->follow($user, $speaker);

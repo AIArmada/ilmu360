@@ -29,7 +29,7 @@ it('records token usage and cost for prompted agents using pricing catalog', fun
         'cache_write_input_per_million' => 1.0,
         'cache_read_input_per_million' => 0.5,
         'reasoning_per_million' => 3.0,
-        'is_active' => true,
+        'status' => 'active',
         'priority' => 10,
     ]);
 
@@ -95,7 +95,7 @@ it('prefers tier-specific pricing when model includes a tier suffix', function (
         'currency' => 'USD',
         'input_per_million' => 5.0,
         'output_per_million' => 10.0,
-        'is_active' => true,
+        'status' => 'active',
         'priority' => 50,
     ]);
 
@@ -107,7 +107,7 @@ it('prefers tier-specific pricing when model includes a tier suffix', function (
         'currency' => 'USD',
         'input_per_million' => 0.8,
         'output_per_million' => 1.2,
-        'is_active' => true,
+        'status' => 'active',
         'priority' => 10,
     ]);
 

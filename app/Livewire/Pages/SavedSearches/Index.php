@@ -4,6 +4,8 @@ namespace App\Livewire\Pages\SavedSearches;
 
 use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressCountry;
+use AIArmada\Addressing\Models\City;
+use AIArmada\Addressing\Models\State;
 use App\Actions\SavedSearches\CreateSavedSearchAction;
 use App\Actions\SavedSearches\UpdateSavedSearchAction;
 use App\Enums\EventAgeGroup;
@@ -74,12 +76,12 @@ class Index extends Component
     /**
      * @var array<string, string|null>
      */
-    private array $districtNames = [];
+    private array $cityNames = [];
 
     /**
      * @var array<string, string|null>
      */
-    private array $subdistrictNames = [];
+    private array $adminAreaNames = [];
 
     /**
      * @var array<string, string|null>
@@ -332,9 +334,10 @@ class Index extends Component
     {
         $filterKeys = [
             'country_id',
+            'state_id',
+            'city_id',
             'admin_area_1_id',
             'admin_area_2_id',
-            'admin_area_3_id',
             'event_type',
             'event_format',
             'gender',
@@ -473,9 +476,10 @@ class Index extends Component
     {
         return match ($filterKey) {
             'country_id' => __('Country'),
-            'admin_area_1_id' => __('State'),
-            'admin_area_2_id' => __('District'),
-            'admin_area_3_id' => __('Subdistrict / Mukim / Zone'),
+            'state_id' => __('State / Region'),
+            'city_id' => __('City'),
+            'admin_area_1_id' => __('District'),
+            'admin_area_2_id' => __('Subdistrict / Local Area'),
             'institution_id' => __('Institution'),
             'venue_id' => __('Venue'),
             'speaker_ids' => __('Speaker'),
@@ -531,9 +535,10 @@ class Index extends Component
 
         return match ($filterKey) {
             'country_id' => $this->countryName($value) ?? $value,
-            'admin_area_1_id' => $this->stateName($value) ?? $value,
-            'admin_area_2_id' => $this->districtName($value) ?? $value,
-            'admin_area_3_id' => $this->subdistrictName($value) ?? $value,
+            'state_id' => $this->stateName($value) ?? $value,
+            'city_id' => $this->cityName($value) ?? $value,
+            'admin_area_1_id' => $this->adminAreaName($value) ?? $value,
+            'admin_area_2_id' => $this->adminAreaName($value) ?? $value,
             'institution_id' => $this->institutionName($value) ?? $value,
             'venue_id' => $this->venueName($value) ?? $value,
             'speaker_ids' => $this->speakerName($value) ?? $value,
@@ -561,19 +566,6 @@ class Index extends Component
         };
     }
 
-    private function stateName(string $id): ?string
-    {
-        if (! Str::isUuid($id)) {
-            return null;
-        }
-
-        if (! array_key_exists($id, $this->stateNames)) {
-            $this->stateNames[$id] = AddressArea::query()->whereKey($id)->value('name');
-        }
-
-        return $this->stateNames[$id];
-    }
-
     private function countryName(string $id): ?string
     {
         if (! Str::isUuid($id)) {
@@ -587,30 +579,43 @@ class Index extends Component
         return $this->countryNames[$id];
     }
 
-    private function districtName(string $id): ?string
+    private function stateName(string $id): ?string
     {
         if (! Str::isUuid($id)) {
             return null;
         }
 
-        if (! array_key_exists($id, $this->districtNames)) {
-            $this->districtNames[$id] = AddressArea::query()->whereKey($id)->value('name');
+        if (! array_key_exists($id, $this->stateNames)) {
+            $this->stateNames[$id] = State::query()->whereKey($id)->value('name');
         }
 
-        return $this->districtNames[$id];
+        return $this->stateNames[$id];
     }
 
-    private function subdistrictName(string $id): ?string
+    private function cityName(string $id): ?string
     {
         if (! Str::isUuid($id)) {
             return null;
         }
 
-        if (! array_key_exists($id, $this->subdistrictNames)) {
-            $this->subdistrictNames[$id] = AddressArea::query()->whereKey($id)->value('name');
+        if (! array_key_exists($id, $this->cityNames)) {
+            $this->cityNames[$id] = City::query()->whereKey($id)->value('name');
         }
 
-        return $this->subdistrictNames[$id];
+        return $this->cityNames[$id];
+    }
+
+    private function adminAreaName(string $id): ?string
+    {
+        if (! Str::isUuid($id)) {
+            return null;
+        }
+
+        if (! array_key_exists($id, $this->adminAreaNames)) {
+            $this->adminAreaNames[$id] = AddressArea::query()->whereKey($id)->value('name');
+        }
+
+        return $this->adminAreaNames[$id];
     }
 
     private function institutionName(string $id): ?string

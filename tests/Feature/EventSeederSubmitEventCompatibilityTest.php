@@ -220,14 +220,12 @@ it('creates and then reuses a dedicated schedule speaker when duplicate-name spe
         'name' => 'Ust Mukhlisur Riyadus',
         'slug' => 'ust-mukhlisur-riyadus-duplicate-1',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $secondDuplicate = Speaker::factory()->create([
         'name' => 'Ust Mukhlisur Riyadus',
         'slug' => 'ust-mukhlisur-riyadus-duplicate-2',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $this->seed(EventSeeder::class);
@@ -259,7 +257,6 @@ it('creates a dedicated schedule speaker when exactly one unrelated same-name sp
         'name' => 'Ust Mukhlisur Riyadus',
         'slug' => 'existing-ust-mukhlisur-riyadus',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $this->seed(EventSeeder::class);

@@ -10,7 +10,6 @@ use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DetachAction;
 use Filament\Actions\DetachBulkAction;
 use Filament\Resources\RelationManagers\RelationManager;
-use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
@@ -34,9 +33,8 @@ class InstitutionsRelationManager extends RelationManager
                 TextColumn::make('status')
                     ->badge()
                     ->sortable(),
-                IconColumn::make('is_active')
-                    ->label('Active')
-                    ->boolean(),
+                TextColumn::make('status')
+                    ->badge(),
             ])
             ->headerActions([
                 AttachAction::make()

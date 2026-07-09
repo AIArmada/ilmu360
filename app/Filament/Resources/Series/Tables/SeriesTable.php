@@ -9,7 +9,6 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\SpatieMediaLibraryImageColumn;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 
@@ -31,8 +30,9 @@ class SeriesTable
                 TextColumn::make('visibility')
                     ->badge()
                     ->sortable(),
-                ToggleColumn::make('is_active')
-                    ->label('Active'),
+                TextColumn::make('status')
+                    ->badge()
+                    ->sortable(),
                 TextColumn::make('languages.name')
                     ->badge()
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -47,6 +47,11 @@ class SeriesTable
                         'public' => 'Public',
                         'unlisted' => 'Unlisted',
                         'private' => 'Private',
+                    ]),
+                SelectFilter::make('status')
+                    ->options([
+                        'active' => 'Active',
+                        'inactive' => 'Inactive',
                     ]),
             ])
             ->recordActions([

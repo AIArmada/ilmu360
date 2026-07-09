@@ -207,7 +207,6 @@ it('clamps public institution directory per_page values to the supported maximum
 
     Institution::factory()->count(55)->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $this->getJson('/api/v1/institutions?per_page=500')
@@ -222,7 +221,6 @@ it('filters public institutions by current location radius and returns distance 
     $nearInstitution = Institution::factory()->create([
         'name' => 'Masjid Radius Dekat',
         'status' => 'verified',
-        'is_active' => true,
     ]);
     syncPrimaryAddressForTest($nearInstitution, [
         'lat' => 3.1390,
@@ -232,7 +230,6 @@ it('filters public institutions by current location radius and returns distance 
     $farInstitution = Institution::factory()->create([
         'name' => 'Masjid Radius Jauh',
         'status' => 'verified',
-        'is_active' => true,
     ]);
     syncPrimaryAddressForTest($farInstitution, [
         'lat' => 3.2600,
@@ -242,7 +239,6 @@ it('filters public institutions by current location radius and returns distance 
     $pendingInstitution = Institution::factory()->create([
         'name' => 'Masjid Radius Pending',
         'status' => 'pending',
-        'is_active' => true,
     ]);
     syncPrimaryAddressForTest($pendingInstitution, [
         'lat' => 3.1390,
@@ -273,7 +269,6 @@ it('supports the nearby institution alias and sparse list fields', function () {
     $nearInstitution = Institution::factory()->create([
         'name' => 'Masjid Near Alias',
         'status' => 'verified',
-        'is_active' => true,
     ]);
     syncPrimaryAddressForTest($nearInstitution, [
         'lat' => 3.1390,
@@ -283,7 +278,6 @@ it('supports the nearby institution alias and sparse list fields', function () {
     $farInstitution = Institution::factory()->create([
         'name' => 'Masjid Far Alias',
         'status' => 'verified',
-        'is_active' => true,
     ]);
     syncPrimaryAddressForTest($farInstitution, [
         'lat' => 3.2600,
@@ -317,21 +311,19 @@ it('supports sparse fields on the public speaker directory', function () {
 
     Speaker::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
         'name' => 'Sparse Speaker',
     ]);
 
-    $response = $this->getJson('/api/v1/speakers?fields=id,name,status,is_active,avatar_url,gender')
+    $response = $this->getJson('/api/v1/speakers?fields=id,name,status,avatar_url,gender')
         ->assertOk();
 
-    expect(array_keys($response->json('data.0')))->toBe(['id', 'name', 'status', 'is_active', 'avatar_url', 'gender']);
+    expect(array_keys($response->json('data.0')))->toBe(['id', 'name', 'status', 'avatar_url', 'gender']);
 });
 
 it('supports sparse fields on the public reference directory', function () {
     Reference::factory()->create([
         'title' => 'Sparse Reference',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $response = $this->getJson('/api/v1/references?fields=id,title,front_cover_url,is_following')
@@ -476,13 +468,11 @@ it('normalizes event update context to public organizer values and exposes looku
     $institution = Institution::factory()->create([
         'type' => 'masjid',
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $event = Event::factory()->for($institution)->create([
         'title' => 'API Contract Event',
         'slug' => 'api-contract-event',
         'status' => 'approved',
-        'is_active' => true,
         'institution_id' => $institution->getKey(),
         'event_type' => ['kuliah_ceramah'],
         'gender' => 'all',
@@ -536,11 +526,9 @@ it('exposes event direct edit media support for authorized public updaters', fun
     $institution = Institution::factory()->create([
         'type' => 'masjid',
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $event = Event::factory()->for($institution)->create([
         'status' => 'approved',
-        'is_active' => true,
         'visibility' => 'public',
         'institution_id' => $institution->getKey(),
         'starts_at' => now()->addDays(4)->setTime(20, 0),
@@ -583,11 +571,9 @@ it('accepts helper-shaped event timing updates on public contribution suggestion
     $institution = Institution::factory()->create([
         'type' => 'masjid',
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $event = Event::factory()->for($institution)->create([
         'status' => 'approved',
-        'is_active' => true,
         'visibility' => 'public',
         'institution_id' => $institution->getKey(),
         'starts_at' => now()->addDays(2)->setTime(19, 0),
@@ -650,7 +636,6 @@ it('exposes speaker avatar direct edit media support for authorized public updat
     $visitor = User::factory()->create();
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $speaker->addMedia(fakeGeneratedImageUpload('context-avatar.jpg', 1200, 1200))->toMediaCollection('avatar');
     $speaker->addMedia(fakeGeneratedImageUpload('context-cover.jpg', 1200, 1500))->toMediaCollection('cover');
@@ -716,7 +701,6 @@ it('returns only region address keys in the speaker suggest context state', func
 
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     syncPrimaryAddressForTest($speaker, [
@@ -758,7 +742,6 @@ it('rejects unchanged speaker region-only address round trips as validation erro
 
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     syncPrimaryAddressForTest($speaker, [
@@ -801,7 +784,6 @@ it('preserves hidden speaker address details during region-only direct updates',
     $speaker = Speaker::factory()->create([
         'name' => 'Penceramah Lama API',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     syncPrimaryAddressForTest($speaker, [
@@ -848,7 +830,6 @@ it('allows direct speaker avatar uploads on public contribution update suggestio
     $owner = User::factory()->create();
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     assignSpeakerOwnerForFrontendApi($owner, $speaker);
@@ -880,7 +861,6 @@ it('allows direct speaker cover uploads on public contribution update suggestion
     $owner = User::factory()->create();
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     assignSpeakerOwnerForFrontendApi($owner, $speaker);
@@ -910,7 +890,6 @@ it('allows direct speaker gallery uploads on public contribution update suggesti
     $owner = User::factory()->create();
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     assignSpeakerOwnerForFrontendApi($owner, $speaker);
@@ -934,7 +913,6 @@ it('rejects unsupported speaker media files on public contribution update sugges
     $owner = User::factory()->create();
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     assignSpeakerOwnerForFrontendApi($owner, $speaker);
@@ -957,15 +935,12 @@ it('maps public event organizer values back to persistence classes during direct
     $institution = Institution::factory()->create([
         'type' => 'masjid',
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $event = Event::factory()->for($institution)->create([
         'status' => 'approved',
-        'is_active' => true,
         'starts_at' => now()->setTimezone('Asia/Kuala_Lumpur')->startOfDay()->addHours(10)->utc(),
         'ends_at' => now()->setTimezone('Asia/Kuala_Lumpur')->startOfDay()->addHours(12)->utc(),
         'timezone' => 'Asia/Kuala_Lumpur',
@@ -1002,11 +977,9 @@ it('allows direct event cover, poster, and gallery uploads on public contributio
     $owner = User::factory()->create();
     $institution = Institution::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $event = Event::factory()->for($institution)->create([
         'status' => 'approved',
-        'is_active' => true,
         'visibility' => 'public',
         'institution_id' => $institution->getKey(),
     ]);
@@ -1043,11 +1016,9 @@ it('rejects direct event cover and poster uploads with invalid aspect ratios', f
     $owner = User::factory()->create();
     $institution = Institution::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $event = Event::factory()->for($institution)->create([
         'status' => 'approved',
-        'is_active' => true,
         'visibility' => 'public',
         'institution_id' => $institution->getKey(),
     ]);
@@ -1075,13 +1046,11 @@ it('searches speakers api by formatted title parts used on the public directory'
         'name' => 'Aisyah Binti Hassan',
         'pre_nominal' => ['syeikhul_maqari'],
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $otherSpeaker = Speaker::factory()->create([
         'name' => 'Fatimah Binti Omar',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $response = $this->getJson('/api/v1/speakers?search='.urlencode('syeikhul maqari'))
@@ -1096,7 +1065,6 @@ it('falls back to local speaker and institution search on the frontend unified s
     $institution = Institution::factory()->create([
         'name' => 'Masjid Nur Hikmah',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $speaker = Speaker::factory()->create([
@@ -1106,7 +1074,6 @@ it('falls back to local speaker and institution search on the frontend unified s
         'post_nominal' => [],
         'qualifications' => [],
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     app(SpeakerSearchService::class)->syncSpeakerRecord($speaker);
@@ -1160,7 +1127,6 @@ it('returns full unified search totals while limiting speaker and institution pr
             'post_nominal' => [],
             'qualifications' => [],
             'status' => 'verified',
-            'is_active' => true,
         ]);
 
         app(SpeakerSearchService::class)->syncSpeakerRecord($speaker);
@@ -1168,7 +1134,6 @@ it('returns full unified search totals while limiting speaker and institution pr
         Institution::factory()->create([
             'name' => sprintf('Audit Search Total Institution %d', $index),
             'status' => 'verified',
-            'is_active' => true,
         ]);
     }
 
@@ -1179,13 +1144,11 @@ it('returns full unified search totals while limiting speaker and institution pr
         'post_nominal' => [],
         'qualifications' => [],
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     Institution::factory()->create([
         'name' => 'Other Search Institution',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $response = $this->getJson('/api/v1/search?search='.urlencode('Audit Search Total'))
@@ -1205,13 +1168,11 @@ it('uses the same fuzzy speaker and institution resolution in the unified search
         'post_nominal' => [],
         'qualifications' => [],
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $institution = Institution::factory()->create([
         'name' => 'Masjid Al Hidayah',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     app(SpeakerSearchService::class)->syncSpeakerRecord($speaker);
@@ -1245,7 +1206,6 @@ it('falls back to local speaker directory search when typesense fails', function
         'post_nominal' => [],
         'qualifications' => [],
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     app(SpeakerSearchService::class)->syncSpeakerRecord($speaker);
@@ -1276,7 +1236,6 @@ it('falls back to database institution directory search when typesense fails', f
         'name' => 'Masjid Sultan Salahuddin Abdul Aziz Shah',
         'nickname' => 'Masjid Biru',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     config()->set('scout.driver', 'typesense');
@@ -1307,14 +1266,12 @@ it('serializes event list payloads with card image metadata for mobile clients',
 
     $institution = Institution::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $event = Event::factory()->for($institution)->create([
         'title' => 'Poster API Event',
         'status' => 'approved',
         'visibility' => 'public',
-        'is_active' => true,
         'starts_at' => now()->addDays(2),
     ]);
 
@@ -1339,14 +1296,12 @@ it('returns card image metadata on public events index responses', function () {
     $institution = Institution::factory()->create([
         'type' => 'masjid',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $posterEvent = Event::factory()->for($institution)->create([
         'title' => 'Home Poster Event',
         'status' => 'approved',
         'visibility' => 'public',
-        'is_active' => true,
         'starts_at' => now()->addDay(),
     ]);
 
@@ -1362,7 +1317,6 @@ it('returns card image metadata on public events index responses', function () {
         'title' => 'Home Placeholder Event',
         'status' => 'approved',
         'visibility' => 'public',
-        'is_active' => true,
         'starts_at' => now()->addDays(2),
     ]);
 
@@ -1397,7 +1351,6 @@ it('serializes institution directory payloads with card media aliases for mobile
         'name' => 'Masjid API Directory',
         'type' => 'masjid',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     syncPrimaryAddressForTest($institution, [
@@ -1411,7 +1364,6 @@ it('serializes institution directory payloads with card media aliases for mobile
         ->toMediaCollection('cover');
 
     Event::factory()->for($institution)->create([
-        'is_active' => true,
         'status' => 'approved',
         'visibility' => 'public',
         'starts_at' => now()->addDays(3),
@@ -1426,7 +1378,7 @@ it('serializes institution directory payloads with card media aliases for mobile
     $directoryInstitution?->forceFill([
         'events_count' => withGlobalOwnerContext(fn () => Event::query()
             ->where('institution_id', $institution->getKey())
-            ->where('events.is_active', true)
+            ->whereNotNull('events.published_at')
             ->whereIn('events.status', Event::PUBLIC_STATUSES)
             ->where('events.visibility', EventVisibility::Public)
             ->where('events.event_structure', '!=', EventStructure::ParentProgram->value)
@@ -1458,7 +1410,6 @@ it('returns authenticated follow state in the frontend institution api', functio
     $institution = Institution::factory()->create([
         'name' => 'Masjid Follow Institution',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $user->follow($institution);
@@ -1475,13 +1426,11 @@ it('returns the total followed institution count for the full institution query,
 
     $followedInstitutions = Institution::factory()->count(3)->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     Institution::factory()->create([
         'name' => 'Unfollowed Institution',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     foreach ($followedInstitutions as $institution) {
@@ -1502,13 +1451,11 @@ it('supports server-side filtering to only followed institutions in the frontend
     $followedInstitution = Institution::factory()->create([
         'name' => 'Followed Institution Only',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     Institution::factory()->create([
         'name' => 'Not Followed Institution',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $user->follow($followedInstitution);
@@ -1528,14 +1475,12 @@ it('returns enum-backed institution type filters and supports server-side type f
     $masjid = Institution::factory()->create([
         'name' => 'Masjid Type Filter Match',
         'status' => 'verified',
-        'is_active' => true,
         'type' => InstitutionType::Masjid,
     ]);
 
     Institution::factory()->create([
         'name' => 'Surau Type Filter Miss',
         'status' => 'verified',
-        'is_active' => true,
         'type' => InstitutionType::Surau,
     ]);
 
@@ -1559,7 +1504,6 @@ it('bumps the institution directory cache version when institution records chang
         'name' => 'Institution Cache Version',
         'nickname' => 'ICV',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $initialVersion = $this->getJson(route('api.client.institutions.index'))
@@ -1585,7 +1529,6 @@ it('serves the institution directory cache metadata without requiring country ti
     Institution::factory()->create([
         'name' => 'Institution Cache Metadata',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $response = $this->getJson(route('api.client.institutions.index'))
@@ -1600,7 +1543,6 @@ it('serves the speaker directory cache metadata without requiring country timest
     Speaker::factory()->create([
         'name' => 'Speaker Cache Metadata',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $response = $this->getJson(route('api.client.speakers.index'))
@@ -1616,7 +1558,6 @@ it('bumps the institution directory cache version when institution media changes
     $institution = Institution::factory()->create([
         'name' => 'Institution Cache Media',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $initialVersion = $this->getJson(route('api.client.institutions.index'))
@@ -1640,7 +1581,6 @@ it('bumps the institution directory cache version when institution addresses cha
     $institution = Institution::factory()->create([
         'name' => 'Institution Cache Address',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $initialVersion = $this->getJson(route('api.client.institutions.index'))
@@ -1664,7 +1604,6 @@ it('bumps the institution directory cache version when public institution events
     $institution = Institution::factory()->create([
         'name' => 'Institution Cache Event',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $initialVersion = $this->getJson(route('api.client.institutions.index'))
@@ -1675,7 +1614,6 @@ it('bumps the institution directory cache version when public institution events
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
         'event_structure' => EventStructure::Standalone,
-        'is_active' => true,
     ]);
 
     $updatedVersion = $this->getJson(route('api.client.institutions.index'))
@@ -1694,7 +1632,6 @@ it('keeps placeholder institution imagery when no real media exists', function (
     $institution = Institution::factory()->create([
         'name' => 'Masjid Tanpa Media',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     syncPrimaryAddressForTest($institution, [
@@ -1725,7 +1662,6 @@ it('exposes the institution public image url in the frontend institution detail 
         'name' => 'Masjid Detail API',
         'type' => 'masjid',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $institution->addMedia(fakeGeneratedImageUpload('detail-logo.jpg', 800, 800))
@@ -1745,7 +1681,6 @@ it('returns institution follow state on the authenticated detail route response'
     $institution = Institution::factory()->create([
         'name' => 'Masjid Follow State API',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $user->follow($institution);
@@ -1763,7 +1698,6 @@ it('returns institution follow state on the detail route for bearer token reques
     $institution = Institution::factory()->create([
         'name' => 'Masjid Bearer Follow State API',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $user->follow($institution);
@@ -1791,7 +1725,6 @@ it('serializes institution detail payloads with address and donation metadata fo
     $institution = Institution::factory()->create([
         'name' => 'Masjid Detail DTO',
         'status' => 'verified',
-        'is_active' => true,
         'description' => 'Institution detail serializer coverage',
     ]);
 
@@ -1876,7 +1809,6 @@ it('exposes 7-item institution detail lists with canonical address lines and qr 
     $institution = Institution::factory()->create([
         'name' => 'Masjid Detail Payload',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     syncPrimaryAddressForTest($institution, [
@@ -1911,7 +1843,6 @@ it('exposes 7-item institution detail lists with canonical address lines and qr 
             'institution_id' => $institution->id,
             'status' => 'approved',
             'visibility' => EventVisibility::Public->value,
-            'is_active' => true,
             'published_at' => now()->subDay(),
             'starts_at' => now()->addDays($index),
         ]);
@@ -1922,7 +1853,6 @@ it('exposes 7-item institution detail lists with canonical address lines and qr 
             'institution_id' => $institution->id,
             'status' => 'approved',
             'visibility' => EventVisibility::Public->value,
-            'is_active' => true,
             'published_at' => now()->subDays(2),
             'starts_at' => now()->subDays($index),
         ]);
@@ -2086,7 +2016,6 @@ it('returns profile-quality speaker avatar urls from the frontend search api', f
         'name' => 'Kazim Elias',
         'gender' => 'male',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $speaker->addMedia(fakeGeneratedImageUpload('kazim.jpg', 1200, 1200))
@@ -2104,7 +2033,6 @@ it('exposes explicit country data and country filters on frontend institution an
         'name' => 'Country Filter Institution',
         'type' => 'masjid',
         'status' => 'verified',
-        'is_active' => true,
     ]);
     syncPrimaryAddressForTest($institution, [
         'country_id' => $countryId,
@@ -2114,7 +2042,6 @@ it('exposes explicit country data and country filters on frontend institution an
         'name' => 'Country Filter Speaker',
         'gender' => 'male',
         'status' => 'verified',
-        'is_active' => true,
     ]);
     syncPrimaryAddressForTest($speaker, [
         'country_id' => $countryId,
@@ -2139,7 +2066,6 @@ it('returns authenticated follow state in the frontend speaker api', function ()
     $speaker = Speaker::factory()->create([
         'name' => 'Kazim Follow Speaker',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $user->follow($speaker);
@@ -2156,13 +2082,11 @@ it('returns the total followed speaker count for the full speaker query, not jus
 
     $followedSpeakers = Speaker::factory()->count(3)->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $unfollowedSpeaker = Speaker::factory()->create([
         'name' => 'Unfollowed Speaker',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     foreach ($followedSpeakers as $speaker) {
@@ -2183,13 +2107,11 @@ it('supports server-side filtering to only followed speakers in the frontend spe
     $followedSpeaker = Speaker::factory()->create([
         'name' => 'Followed Speaker Only',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     Speaker::factory()->create([
         'name' => 'Not Followed Speaker',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $user->follow($followedSpeaker);
@@ -2210,7 +2132,6 @@ it('returns the total followed reference count for the filtered reference query,
 
     $followedReferences = Reference::factory()->count(2)->create([
         'status' => 'verified',
-        'is_active' => true,
         'author' => 'Imam Nawawi',
     ]);
 
@@ -2218,14 +2139,12 @@ it('returns the total followed reference count for the filtered reference query,
         'title' => 'Unfollowed Reference',
         'author' => 'Imam Nawawi',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     Reference::factory()->create([
         'title' => 'Outside Search Scope',
         'author' => 'Ibn Hajar',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     foreach ($followedReferences as $reference) {
@@ -2246,13 +2165,11 @@ it('supports server-side filtering to only followed references in the frontend r
     $followedReference = Reference::factory()->create([
         'title' => 'Followed Reference Only',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     Reference::factory()->create([
         'title' => 'Not Followed Reference',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $user->follow($followedReference);
@@ -2285,7 +2202,6 @@ it('falls back to the original front cover url in reference directory serializat
                 'publisher' => null,
                 'publication_year' => null,
                 'status' => 'verified',
-                'is_active' => true,
             ]);
             $this->exists = true;
             $this->setAttribute('events_count', 0);
@@ -2318,14 +2234,12 @@ it('counts all public linked events on the reference directory cards', function 
     $reference = Reference::factory()->create([
         'title' => 'Reference Event Count Coverage',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $upcomingEvent = Event::factory()->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
         'event_structure' => EventStructure::Standalone,
-        'is_active' => true,
         'starts_at' => now()->addDays(2),
     ]);
 
@@ -2333,7 +2247,6 @@ it('counts all public linked events on the reference directory cards', function 
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
         'event_structure' => EventStructure::Standalone,
-        'is_active' => true,
         'starts_at' => now()->subDays(2),
     ]);
 
@@ -2351,7 +2264,6 @@ it('does not expose pending references on the public detail route', function () 
     $reference = Reference::factory()->create([
         'title' => 'Pending Public Reference',
         'status' => 'pending',
-        'is_active' => true,
     ]);
 
     $this->getJson(route('api.client.references.show', ['referenceKey' => $reference->slug]))
@@ -2362,7 +2274,6 @@ it('allows authorized users to view pending references on the frontend detail ro
     $reference = Reference::factory()->create([
         'title' => 'Pending Moderator Reference',
         'status' => 'pending',
-        'is_active' => true,
     ]);
 
     $moderator = User::factory()->create();
@@ -2393,13 +2304,11 @@ it('falls back to indexed reference search when typesense fails', function () {
         'author' => 'Imam Contoh',
         'description' => 'Syarahan tajwid dan adab',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $otherReference = Reference::factory()->create([
         'title' => 'Rujukan Lain',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     config()->set('scout.driver', 'typesense');
@@ -2435,7 +2344,6 @@ it('serializes speaker directory payloads with country and follow metadata for m
         'name' => 'Speaker Directory DTO',
         'gender' => 'male',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     syncPrimaryAddressForTest($speaker, [
@@ -2458,7 +2366,7 @@ it('serializes speaker directory payloads with country and follow metadata for m
         ->and(data_get($item, 'gender'))->toBe('male')
         ->and(data_get($item, 'avatar_url'))->toBeString()->not->toBe('')
         ->and(data_get($item, 'status'))->toBe('verified')
-        ->and(data_get($item, 'is_active'))->toBeTrue()
+        ->and(data_get($item, 'status'))->toBeIn(['verified', 'pending'])
         ->and(data_get($item, 'country.id'))->toBe($countryId)
         ->and(data_get($item, 'country.key'))->toBe('malaysia')
         ->and(data_get($item, 'is_following'))->toBeTrue();
@@ -2468,7 +2376,6 @@ it('bumps the speaker directory cache version when speaker records change', func
     $speaker = Speaker::factory()->create([
         'name' => 'Speaker Cache Version',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $initialVersion = $this->getJson(route('api.client.speakers.index'))
@@ -2495,7 +2402,6 @@ it('bumps the speaker directory cache version when speaker media changes', funct
     $speaker = Speaker::factory()->create([
         'name' => 'Speaker Cache Media',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $initialVersion = $this->getJson(route('api.client.speakers.index'))
@@ -2519,7 +2425,6 @@ it('bumps the speaker directory cache version when speaker addresses change', fu
     $speaker = Speaker::factory()->create([
         'name' => 'Speaker Cache Address',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $initialVersion = $this->getJson(route('api.client.speakers.index'))
@@ -2547,14 +2452,12 @@ it('bumps public directory cache versions when country metadata changes', functi
     $institution = Institution::factory()->create([
         'name' => 'Institution Cache Country Metadata',
         'status' => 'verified',
-        'is_active' => true,
     ]);
     syncPrimaryAddressForTest($institution, ['country_id' => $countryId]);
 
     $speaker = Speaker::factory()->create([
         'name' => 'Speaker Cache Country Metadata',
         'status' => 'verified',
-        'is_active' => true,
     ]);
     syncPrimaryAddressForTest($speaker, ['country_id' => $countryId]);
 
@@ -2586,7 +2489,6 @@ it('bumps the speaker directory cache version when speaker event participation c
     $speaker = Speaker::factory()->create([
         'name' => 'Speaker Cache Event',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $initialVersion = $this->getJson(route('api.client.speakers.index'))
@@ -2597,7 +2499,6 @@ it('bumps the speaker directory cache version when speaker event participation c
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
         'event_structure' => EventStructure::Standalone,
-        'is_active' => true,
         'starts_at' => now()->addDays(3)->setTime(19, 0),
     ]);
 
@@ -2618,13 +2519,11 @@ it('uses the same stable public directory ordering in the frontend speaker api',
     $firstSpeaker = Speaker::factory()->create([
         'name' => 'Adam Speaker API',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $secondSpeaker = Speaker::factory()->create([
         'name' => 'Zaid Speaker API',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $response = $this->getJson(route('api.client.speakers.index', [
@@ -2691,7 +2590,6 @@ it('uses an explicit mobile directory seed for speaker ordering', function () {
     ])->map(fn (array $attributes) => Speaker::factory()->create([
         ...$attributes,
         'status' => 'verified',
-        'is_active' => true,
     ]));
 
     $firstResponse = $this->getJson(route('api.client.speakers.index', [
@@ -2756,7 +2654,7 @@ it('returns random inspiration payloads with category and media metadata for mob
         'title' => 'Komik API',
         'content' => 'Renungan komik untuk klien mudah alih.',
         'source' => 'Sirah API',
-        'is_active' => true,
+        'status' => 'active',
     ]);
 
     $inspiration->addMedia(fakeGeneratedImageUpload('inspiration.jpg', 1200, 900))
@@ -2788,7 +2686,6 @@ it('submits and cancels membership claims through the frontend api', function ()
     $user = User::factory()->create();
     $institution = Institution::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     Sanctum::actingAs($user);
@@ -2882,15 +2779,15 @@ it('scopes the spaces catalog to global spaces unless an institution is selected
 
     $globalSpace = Space::factory()->create([
         'name' => 'Global Space Catalog',
-        'is_active' => true,
+        'status' => 'active',
     ]);
     $institutionSpace = Space::factory()->create([
         'name' => 'Institution Space Catalog',
-        'is_active' => true,
+        'status' => 'active',
     ]);
     $otherInstitutionSpace = Space::factory()->create([
         'name' => 'Other Institution Space Catalog',
-        'is_active' => true,
+        'status' => 'active',
     ]);
 
     $institutionSpace->institutions()->attach($institution);
@@ -2922,7 +2819,7 @@ it('keeps public catalog selectors label-based', function () {
 
     $space = Space::factory()->create([
         'name' => 'Label Contract Space',
-        'is_active' => true,
+        'status' => 'active',
     ]);
 
     $countries = $this->getJson(route('api.client.catalogs.countries'))
@@ -2947,7 +2844,7 @@ it('keeps public catalog selectors label-based', function () {
 it('returns all matching spaces without truncating the catalog payload', function () {
     $spaces = collect(range(1, 105))->map(fn (int $index): Space => Space::factory()->create([
         'name' => sprintf('Catalog Overflow Space %03d', $index),
-        'is_active' => true,
+        'status' => 'active',
     ]));
 
     $response = $this->getJson(route('api.client.catalogs.spaces'))
@@ -2975,7 +2872,6 @@ it('returns the institution workspace payload for the selected accessible instit
         'title' => 'Workspace Event',
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
         'starts_at' => now()->addDay(),
     ]);
 
@@ -3000,13 +2896,11 @@ it('submits events with media through the frontend api', function () {
     $user = User::factory()->create();
     $institution = Institution::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
         'allow_public_event_submission' => true,
     ]);
     $domainTag = Tag::factory()->domain()->create();
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
         'allow_public_event_submission' => true,
     ]);
 
@@ -3051,7 +2945,6 @@ it('rejects frontend event submission cover and poster uploads with invalid aspe
 
     $institution = Institution::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
         'allow_public_event_submission' => true,
     ]);
 
@@ -3082,13 +2975,11 @@ it('requires explicit country input for frontend event submissions and accepts a
     $user = User::factory()->create();
     $institution = Institution::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
         'allow_public_event_submission' => true,
     ]);
     $domainTag = Tag::factory()->domain()->create();
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
         'allow_public_event_submission' => true,
     ]);
 
@@ -3130,13 +3021,11 @@ it('requires explicit country input for frontend event submissions and accepts a
 it('accepts any valid submission country uuid for frontend event submissions', function () {
     $institution = Institution::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
         'allow_public_event_submission' => true,
     ]);
     $domainTag = Tag::factory()->domain()->create();
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
         'allow_public_event_submission' => true,
     ]);
 
@@ -3176,13 +3065,11 @@ it('accepts any valid submission country uuid for frontend event submissions', f
 it('requires guest event submissions to include email or phone', function () {
     $institution = Institution::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
         'allow_public_event_submission' => true,
     ]);
     $domainTag = Tag::factory()->domain()->create();
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
         'allow_public_event_submission' => true,
     ]);
 
@@ -3210,7 +3097,6 @@ it('requires guest event submissions to include email or phone', function () {
 it('allows online frontend event submissions without a live url', function () {
     $institution = Institution::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
         'allow_public_event_submission' => true,
     ]);
     $domainTag = Tag::factory()->domain()->create();
@@ -3241,7 +3127,6 @@ it('allows online frontend event submissions without a live url', function () {
 it('requires a physical location for speaker-organized physical event submissions', function () {
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
         'allow_public_event_submission' => true,
     ]);
     $domainTag = Tag::factory()->domain()->create();
@@ -3273,7 +3158,6 @@ it('mirrors public detail media and public contact payloads', function () {
 
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $speaker->contacts()->create([
         'type' => ContactMethodType::Email->value,
@@ -3296,7 +3180,6 @@ it('mirrors public detail media and public contact payloads', function () {
 
     $venue = Venue::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $venue->contacts()->create([
         'type' => ContactMethodType::Phone->value,
@@ -3308,7 +3191,6 @@ it('mirrors public detail media and public contact payloads', function () {
 
     $reference = Reference::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $reference->socialMedia()->create([
         'platform' => SocialPlatform::Website->value,
@@ -3348,7 +3230,6 @@ it('serializes venue and reference detail payloads with core metadata for mobile
         'name' => 'Dewan DTO API',
         'description' => 'Venue detail serializer coverage',
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $venue->contacts()->create([
         'type' => ContactMethodType::Phone->value,
@@ -3371,7 +3252,6 @@ it('serializes venue and reference detail payloads with core metadata for mobile
         'publication_year' => 2024,
         'description' => 'Reference detail serializer coverage',
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $reference->socialMedia()->create([
         'platform' => SocialPlatform::Website->value,
@@ -3403,7 +3283,7 @@ it('serializes venue and reference detail payloads with core metadata for mobile
 
     expect(data_get($venueItem, 'name'))->toBe('Dewan DTO API')
         ->and(data_get($venueItem, 'status'))->toBe('verified')
-        ->and(data_get($venueItem, 'is_active'))->toBeTrue()
+        ->and(data_get($venueItem, 'status'))->toBeIn(['verified', 'pending'])
         ->and(data_get($venueItem, 'media.cover_url'))->toBeString()->not->toBe('')
         ->and(data_get($venueItem, 'contacts.0.value'))->toBe('+60399887766')
         ->and(data_get($venueItem, 'social_media.0.resolved_url'))->toBe('https://venue.example.test')
@@ -3426,7 +3306,7 @@ it('serializes series detail payloads with follow and media metadata for mobile 
         'title' => 'Siri DTO API',
         'description' => 'Series detail serializer coverage',
         'visibility' => 'public',
-        'is_active' => true,
+        'status' => 'active',
     ]);
 
     $series->addMedia(fakeGeneratedImageUpload('series-cover.jpg', 1600, 900))->toMediaCollection('cover');
@@ -3455,7 +3335,6 @@ it('mirrors the public speaker page payload for app clients', function () {
 
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
         'job_title' => 'Penasihat Dakwah',
         'is_freelance' => true,
         'gender' => 'male',
@@ -3491,7 +3370,6 @@ it('mirrors the public speaker page payload for app clients', function () {
     $institution = Institution::factory()->create([
         'name' => 'Madrasah API',
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $institution->addMedia(fakeGeneratedImageUpload('institution-cover.jpg'))->toMediaCollection('cover');
     $speaker->institutions()->attach($institution->id, [
@@ -3502,7 +3380,6 @@ it('mirrors the public speaker page payload for app clients', function () {
     $venue = Venue::factory()->create([
         'name' => 'Dewan Seri API',
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $venueSubdistrict = createTestAddressArea('Mentakab', 3, $speakerDistrict, $country);
     syncPrimaryAddressForTest($venue, [
@@ -3516,13 +3393,11 @@ it('mirrors the public speaker page payload for app clients', function () {
         'title' => 'Kitab API',
         'type' => 'book',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $upcomingEvent = Event::factory()->prayerRelative()->create([
         'title' => 'Majlis API Akan Datang',
         'status' => 'pending',
-        'is_active' => true,
         'visibility' => 'public',
         'event_format' => 'hybrid',
         'institution_id' => $institution->id,
@@ -3537,7 +3412,6 @@ it('mirrors the public speaker page payload for app clients', function () {
     $pastEvent = Event::factory()->create([
         'title' => 'Majlis API Lepas',
         'status' => 'approved',
-        'is_active' => true,
         'visibility' => 'public',
         'event_format' => 'physical',
         'institution_id' => $institution->id,
@@ -3551,7 +3425,6 @@ it('mirrors the public speaker page payload for app clients', function () {
     $otherRoleEvent = Event::factory()->create([
         'title' => 'Forum API Moderator',
         'status' => 'approved',
-        'is_active' => true,
         'visibility' => 'public',
         'event_format' => 'physical',
         'institution_id' => $institution->id,
@@ -3623,7 +3496,6 @@ it('allows following and unfollowing a speaker through the frontend api', functi
     $user = User::factory()->create();
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     Sanctum::actingAs($user);

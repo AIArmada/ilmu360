@@ -49,7 +49,6 @@ it('creates pending followed-content notifications when a public approved future
         'title' => 'Majlis Tafsir Malam Jumaat',
         'status' => 'approved',
         'visibility' => 'public',
-        'is_active' => true,
         'starts_at' => now()->addDays(5),
     ]);
 
@@ -77,7 +76,6 @@ it('localizes followed-content notifications per recipient locale and timezone',
         'title' => 'Majlis Tafsir Malam Jumaat',
         'status' => 'approved',
         'visibility' => 'public',
-        'is_active' => true,
         'starts_at' => $startsAt,
     ]);
 
@@ -131,7 +129,6 @@ it('renders queued notification content using the recipient locale and timezone 
         'title' => 'Majlis Tafsir Malam Jumaat',
         'status' => 'approved',
         'visibility' => 'public',
-        'is_active' => true,
         'starts_at' => $startsAt,
     ]);
 
@@ -204,7 +201,6 @@ it('creates reminder notifications only for going and registered users, not save
         'title' => 'Kuliah Subuh Khas',
         'status' => 'approved',
         'visibility' => 'public',
-        'is_active' => true,
         'starts_at' => now()->addHours(24)->addMinutes(5),
     ]);
 

@@ -134,7 +134,6 @@ it('approves staged institution create requests without creating a duplicate rec
     $institution = Institution::factory()->create([
         'name' => 'Masjid Pending',
         'status' => 'pending',
-        'is_active' => true,
     ]);
     $request = ContributionRequest::factory()->create([
         'type' => ContributionRequestType::Create,
@@ -268,16 +267,13 @@ it('applies structured event participant and reference updates through approval'
     $reviewer = User::factory()->create();
     $event = Event::factory()->create([
         'status' => 'approved',
-        'is_active' => true,
         'visibility' => 'public',
     ]);
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $reference = Reference::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $request = app(SubmitContributionUpdateRequestAction::class)->handle(

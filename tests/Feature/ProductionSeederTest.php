@@ -91,6 +91,6 @@ it('seeds common spaces deterministically without factories', function () {
         ->not->toBeNull()
         ->and(Space::query()->where('name', 'Dewan Utama')->value('slug'))
         ->toBe('dewan-utama')
-        ->and(Space::query()->where('name', 'Dewan Utama')->value('is_active'))
+        ->and(Space::query()->where('name', 'Dewan Utama')->value('status'))
         ->toBeTrue();
 });

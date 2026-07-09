@@ -189,7 +189,6 @@ it('renders public event poster containers using the poster aspect ratio', funct
 it('uses a 16:9 placeholder aspect ratio for public events index cards without posters', function () {
     $institution = Institution::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     Event::factory()->create([
@@ -200,7 +199,6 @@ it('uses a 16:9 placeholder aspect ratio for public events index cards without p
         'starts_at' => now()->addDay(),
         'event_format' => EventFormat::Physical->value,
         'institution_id' => $institution->id,
-        'is_active' => true,
     ]);
 
     $this->get(route('events.index', ['search' => 'Tanpa Poster']))
@@ -215,7 +213,6 @@ it('uses the real speaker avatar in public speaker share metadata and preview', 
 
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $speaker->addMedia(UploadedFile::fake()->image('speaker-avatar.jpg', 1200, 1200))
@@ -231,12 +228,11 @@ it('uses the real speaker avatar in public speaker share metadata and preview', 
 it('shows share actions on public series and reference pages', function () {
     $series = Series::factory()->create([
         'visibility' => 'public',
-        'is_active' => true,
+        'status' => 'active',
     ]);
 
     $reference = Reference::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $this->get(route('series.show', $series))
@@ -253,7 +249,7 @@ it('shows share actions on public series and reference pages', function () {
 it('shows federal territory event cards on series pages with subdistrict and state', function () {
     $series = Series::factory()->create([
         'visibility' => 'public',
-        'is_active' => true,
+        'status' => 'active',
     ]);
 
     $venue = Venue::factory()->create([
@@ -300,7 +296,6 @@ it('uses a 16:9 placeholder aspect ratio in the shared series event card partial
         'published_at' => now()->subMinute(),
         'starts_at' => now()->addDay(),
         'event_format' => EventFormat::Physical,
-        'is_active' => true,
     ]);
 
     $html = view('components.pages.series._event-card', [
@@ -317,7 +312,6 @@ it('shows comma-separated location hierarchy text on public events index cards',
     $institution = Institution::factory()->create([
         'name' => 'Masjid Sultan Salahudin Abdul Aziz Shah',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $country = ensureTestMalaysiaCountry();
@@ -341,7 +335,6 @@ it('shows comma-separated location hierarchy text on public events index cards',
         'starts_at' => now()->addDay(),
         'event_format' => EventFormat::Physical,
         'institution_id' => $institution->id,
-        'is_active' => true,
     ]);
 
     $this->get(route('events.index', ['search' => 'Diskusi Dhuha']))
@@ -356,7 +349,6 @@ it('renders the date and event-type badges below the poster on public events ind
     $institution = Institution::factory()->create([
         'name' => 'Masjid Sultan Salahudin Abdul Aziz Shah',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     Event::factory()->create([
@@ -367,7 +359,6 @@ it('renders the date and event-type badges below the poster on public events ind
         'starts_at' => now()->addDay(),
         'event_format' => EventFormat::Physical,
         'institution_id' => $institution->id,
-        'is_active' => true,
     ]);
 
     $this->get(route('events.index', ['search' => 'Diskusi Dhuha']))
@@ -385,7 +376,7 @@ it('renders the date and event-type badges below the poster on public events ind
 it('renders the book title on public event and series cards without parentheses', function () {
     $series = Series::factory()->create([
         'visibility' => 'public',
-        'is_active' => true,
+        'status' => 'active',
     ]);
 
     $bookEvent = Event::factory()->create([
@@ -395,7 +386,6 @@ it('renders the book title on public event and series cards without parentheses'
         'published_at' => now()->subMinute(),
         'starts_at' => now()->addDay(),
         'event_format' => EventFormat::Physical,
-        'is_active' => true,
     ]);
 
     $articleEvent = Event::factory()->create([
@@ -405,7 +395,6 @@ it('renders the book title on public event and series cards without parentheses'
         'published_at' => now()->subMinute(),
         'starts_at' => now()->addDays(2),
         'event_format' => EventFormat::Physical,
-        'is_active' => true,
     ]);
 
     $bookReference = Reference::factory()->create([
@@ -466,11 +455,10 @@ it('renders threads in public share modals instead of line', function () {
     $speaker = Speaker::factory()->create(['status' => 'verified']);
     $series = Series::factory()->create([
         'visibility' => 'public',
-        'is_active' => true,
+        'status' => 'active',
     ]);
     $reference = Reference::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     collect([
@@ -518,7 +506,6 @@ it('does not leak share tracking javascript into public page body text', functio
 it('renders speaker contribution links with penceramah route segments', function () {
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $speakerRouteSegment = ContributionSubjectType::Speaker->publicRouteSegment();
@@ -532,7 +519,6 @@ it('renders speaker contribution links with penceramah route segments', function
 it('renders institution contribution links with institusi route segments', function () {
     $institution = Institution::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $institutionRouteSegment = ContributionSubjectType::Institution->publicRouteSegment();
@@ -546,7 +532,6 @@ it('renders institution contribution links with institusi route segments', funct
 it('renders reference contribution links with rujukan route segments', function () {
     $reference = Reference::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $referenceRouteSegment = ContributionSubjectType::Reference->publicRouteSegment();
@@ -582,22 +567,19 @@ it('renders noindex robots metadata for moderation-only or non-public detail pag
 
     $pendingInstitution = Institution::factory()->create([
         'status' => 'pending',
-        'is_active' => true,
     ]);
 
     $pendingSpeaker = Speaker::factory()->create([
         'status' => 'pending',
-        'is_active' => true,
     ]);
 
     $privateSeries = Series::factory()->create([
         'visibility' => 'private',
-        'is_active' => true,
+        'status' => 'active',
     ]);
 
     $pendingReference = Reference::factory()->create([
         'status' => 'pending',
-        'is_active' => true,
     ]);
 
     $this->actingAs($moderator);
@@ -676,21 +658,19 @@ it('renders optimized seo metadata on public detail pages', function () {
             ]],
         ],
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $series = Series::factory()->create([
         'title' => 'Siri Tafsir Juz Amma',
         'description' => 'Siri pengajian berkala yang menghimpunkan tadabbur ayat-ayat pilihan daripada Juz Amma untuk masyarakat umum.',
         'visibility' => 'public',
-        'is_active' => true,
+        'status' => 'active',
     ]);
 
     $reference = Reference::factory()->create([
         'title' => 'Riyadus Salihin Edisi Syarah',
         'description' => 'Rujukan hadis dan adab yang sering digunakan dalam kuliah pengajian umum serta sesi pembelajaran mingguan.',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $this->get(route('events.show', $event))

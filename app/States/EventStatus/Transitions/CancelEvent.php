@@ -45,10 +45,13 @@ class CancelEvent extends Transition implements HasColor, HasIcon, HasLabel
                 'actioned_by_type' => User::class,
                 'actioned_by_id' => $moderator->id,
                 'type' => 'cancelled',
+                'reason' => 'cancelled',
                 'notes' => $this->note,
             ]));
 
             $this->event->status = Cancelled::class;
+            $this->event->cancelled_at = now();
+            $this->event->last_state_change_at = now();
             $this->event->save();
 
             // Cancelled events remain searchable so users can still discover status updates.

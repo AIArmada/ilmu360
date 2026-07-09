@@ -27,13 +27,13 @@ class InspirationFactory extends Factory
             'title' => fake()->sentence(4),
             'content' => fake()->paragraph(),
             'source' => fake()->optional(0.7)->name(),
-            'is_active' => true,
+            'status' => 'active',
         ];
     }
 
     public function inactive(): static
     {
-        return $this->state(fn (): array => ['is_active' => false]);
+        return $this->state(fn (): array => ['status' => 'inactive']);
     }
 
     public function category(InspirationCategory $category): static

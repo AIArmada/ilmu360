@@ -24,7 +24,7 @@ final class ResolveEventCheckInStateAction
      */
     public function handle(Event $event, User $user): array
     {
-        if (! $event->is_active || $event->visibility !== EventVisibility::Public || ! in_array((string) $event->status, Event::ENGAGEABLE_STATUSES, true)) {
+        if ($event->published_at === null || $event->visibility !== EventVisibility::Public || ! in_array((string) $event->status, Event::ENGAGEABLE_STATUSES, true)) {
             return [
                 'available' => false,
                 'reason' => __('Majlis ini tidak tersedia untuk check-in.'),

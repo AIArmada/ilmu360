@@ -23,14 +23,14 @@ class ResolveAdvancedBuilderMembershipOptionsAction
         return [
             'institution_options' => $user->institutions()
                 ->whereIn('status', ['verified', 'pending'])
-                ->where('is_active', true)
+                ->whereIn('status', ['verified', 'pending'])
                 ->orderBy('name')
                 ->get(['institutions.id', 'institutions.name', 'institutions.nickname'])
                 ->mapWithKeys(fn (Institution $institution): array => [(string) $institution->id => $institution->display_name])
                 ->all(),
             'speaker_options' => $user->speakers()
                 ->whereIn('status', ['verified', 'pending'])
-                ->where('is_active', true)
+                ->whereIn('status', ['verified', 'pending'])
                 ->orderBy('name')
                 ->pluck('speakers.name', 'speakers.id')
                 ->all(),

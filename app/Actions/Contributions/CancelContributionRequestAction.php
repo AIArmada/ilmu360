@@ -21,9 +21,12 @@ class CancelContributionRequestAction
             throw new RuntimeException('Only the original proposer can cancel this request.');
         }
 
+        $now = now();
+
         $request->forceFill([
             'status' => 'cancelled',
-            'cancelled_at' => now(),
+            'cancelled_at' => $now,
+            'last_state_change_at' => $now,
         ])->save();
 
         return $request->fresh(['entity', 'proposer', 'reviewer']) ?? $request;

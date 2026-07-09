@@ -47,7 +47,6 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  * @property string|null $description
  * @property bool|null $is_canonical
  * @property string|null $status
- * @property bool|null $is_active
  * @property string|null $url
  * @property string|null $language
  * @property array<int, mixed>|null $reference_parts
@@ -100,7 +99,6 @@ class Reference extends PackageReference implements AuditableContract
         'description',
         'is_canonical',
         'status',
-        'is_active',
         'url',
         'language',
         'reference_parts',
@@ -132,7 +130,7 @@ class Reference extends PackageReference implements AuditableContract
             return parent::setAttribute('url', $value);
         }
 
-        if (in_array($key, ['part_type', 'part_number', 'part_label', 'is_canonical', 'is_active'], true)) {
+        if (in_array($key, ['part_type', 'part_number', 'part_label', 'is_canonical'], true)) {
             $this->setMetadataValue($key, $value);
 
             return $this;
@@ -156,7 +154,7 @@ class Reference extends PackageReference implements AuditableContract
             return parent::getAttribute('url');
         }
 
-        if (in_array($key, ['part_type', 'part_number', 'part_label', 'is_canonical', 'is_active'], true)) {
+        if (in_array($key, ['part_type', 'part_number', 'part_label', 'is_canonical'], true)) {
             return $this->metadataValue($key);
         }
 
@@ -230,9 +228,7 @@ class Reference extends PackageReference implements AuditableContract
     #[Scope]
     protected function active(Builder $query): void
     {
-        $query
-            ->where('is_active', true)
-            ->whereIn('status', ['verified', 'pending', 'published']);
+        $query->whereIn('status', ['verified', 'pending', 'published']);
     }
 
     /**
@@ -259,8 +255,7 @@ class Reference extends PackageReference implements AuditableContract
 
     public function shouldBeSearchable(): bool
     {
-        return $this->is_active
-            && in_array((string) $this->status, ['verified', 'pending'], true);
+        return in_array((string) $this->status, ['verified', 'pending'], true);
     }
 
     public function searchIndexShouldBeUpdated(): bool
@@ -278,7 +273,6 @@ class Reference extends PackageReference implements AuditableContract
             'description',
             'slug',
             'status',
-            'is_active',
         ]);
     }
 
@@ -322,7 +316,6 @@ class Reference extends PackageReference implements AuditableContract
             'search_text' => $this->searchableText(),
             'slug' => (string) $this->slug,
             'status' => (string) $this->status,
-            'is_active' => (bool) $this->is_active,
             'updated_at' => $updatedAt->timestamp,
         ];
     }

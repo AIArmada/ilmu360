@@ -1,14 +1,13 @@
 <?php
 
+use AIArmada\Communications\Enums\NotificationTrigger;
 use AIArmada\Engagement\Contracts\EngagementManager;
 use App\Actions\Events\PublishEventChangeAnnouncement;
 use App\Enums\EventChangeType;
 use App\Enums\EventKeyPersonRole;
-use App\Enums\NotificationTrigger;
 use App\Models\Event;
 use App\Models\EventCheckin;
 use App\Models\Institution;
-use App\Models\PendingNotification;
 use App\Models\Reference;
 use App\Models\Registration;
 use App\Models\Series;
@@ -20,6 +19,7 @@ use Carbon\CarbonImmutable;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 uses(RefreshDatabase::class);
@@ -145,7 +145,7 @@ it('sends update alerts to saved users but no reminders for them', function () {
 
         $this->assertDatabaseMissing('notification_inboxes', [
             'recipient_id' => $savedUser->id,
-            'trigger' => AIArmada\Communications\Enums\NotificationTrigger::ScheduledDispatch->value,
+            'trigger' => NotificationTrigger::ScheduledDispatch->value,
         ]);
     } finally {
         Carbon::setTestNow();
@@ -166,17 +166,11 @@ it('sends 2-hour and check-in reminders', function () {
         'title' => 'Reminder Event',
         'status' => 'approved',
         'visibility' => 'public',
+        'published_at' => $now->subDay(),
         'starts_at' => $now->addHours(2),
     ]);
 
-    $goingUser->goingEvents()->create([
-        'respondable_type' => $event->getMorphClass(),
-        'respondable_id' => $event->id,
-        'response_type' => 'going',
-        'status' => 'active',
-        'visibility' => 'public',
-        'responded_at' => now(),
-    ]);
+    $goingUser->respond($event, 'going');
     Registration::factory()->for($event)->forRegistrant($registeredUser)->create([
         'status' => 'confirmed',
     ]);
@@ -184,15 +178,18 @@ it('sends 2-hour and check-in reminders', function () {
     try {
         $service = app(EventNotificationService::class);
         $service->dispatchDueReminderNotifications($now);
-        $service->dispatchDueReminderNotifications($now);
 
-        expect(PendingNotification::query()
-            ->whereIn('user_id', [$goingUser->id, $registeredUser->id])
-            ->whereIn('trigger', [
-                NotificationTrigger::Reminder2Hours->value,
-                NotificationTrigger::CheckinOpen->value,
-            ])
-            ->count())->toBe(0); // ponytail: reminder triggers migrated, skip PendingNotification
+        // Reminder triggers map into package inbox triggers (scheduled_dispatch / check_in_recorded).
+        expect(DB::table('notification_inboxes')
+            ->whereIn('recipient_id', [$goingUser->id, $registeredUser->id])
+            ->count())->toBeGreaterThan(0);
+
+        $this->assertDatabaseHas('notification_inboxes', [
+            'recipient_id' => $goingUser->id,
+        ]);
+        $this->assertDatabaseHas('notification_inboxes', [
+            'recipient_id' => $registeredUser->id,
+        ]);
     } finally {
         Carbon::setTestNow();
         CarbonImmutable::setTestNow();

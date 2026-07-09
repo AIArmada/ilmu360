@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use AIArmada\Addressing\Models\AddressArea;
+use AIArmada\Addressing\Models\State;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
 use App\Models\Institution;
@@ -59,22 +59,16 @@ class InstitutionSeeder extends Seeder
         ];
 
         $malaysia = $this->malaysiaCountry();
-        $states = AddressArea::query()
-            ->where('country_code', 'MY')
-            ->where('level', 1)
-            ->orderBy('name')
-            ->get();
+        $states = $this->malaysiaPackageStates();
 
         $this->command->info('Seeding featured institutions with coordinates...');
 
         // 1. Seed Real Institutions with coordinates (skip mosques that are already in CSV)
         foreach ($realInstitutions as $data) {
-            $stateMatch = $states->filter(fn ($s) => Str::contains(strtolower((string) $s->name), strtolower($data['state_name'])))->first();
-
-            $state = $stateMatch ?? ($states->isNotEmpty() ? $states->random() : null);
-            $district = $state instanceof AddressArea
-                ? AddressArea::query()->where('parent_id', $state->id)->inRandomOrder()->first()
-                : null;
+            $state = $this->malaysiaPackageStateByName($data['state_name'])
+                ?? ($states->isNotEmpty() ? $states->random() : null);
+            $district = $state instanceof State ? $this->randomDistrictForState($state) : null;
+            $subdistrict = $this->randomSubdistrictForDistrict($district);
 
             $inst = Institution::firstOrCreate(
                 ['name' => $data['name']],
@@ -82,7 +76,6 @@ class InstitutionSeeder extends Seeder
                     'slug' => Str::slug($data['name']),
                     'type' => $data['type'],
                     'status' => 'verified',
-                    'is_active' => true,
                 ]
             );
 
@@ -98,15 +91,14 @@ class InstitutionSeeder extends Seeder
             );
 
             // Create or update address
-            $this->seedPrimaryPackageAddress($inst, [
+            $this->seedPrimaryPackageAddress($inst, $this->packageAddressAttributes([
                 'line1' => $data['line1'],
+                'city' => $data['city'],
                 'postcode' => fake()->postcode(),
                 'country_id' => $malaysia?->id,
-                'admin_area_1_id' => $state instanceof AddressArea ? $state->id : null,
-                'admin_area_2_id' => $district instanceof AddressArea ? $district->id : null,
                 'latitude' => $data['lat'],
                 'longitude' => $data['lng'],
-            ]);
+            ], $state, $district, $subdistrict));
 
             // Skip authorization for speed
             // $inst->ensureAuthzScope();
@@ -141,18 +133,17 @@ class InstitutionSeeder extends Seeder
             $institutions->each(function (Institution $institution) use ($malaysia, $states): void {
                 if ($states->isNotEmpty()) {
                     $state = $states->random();
-                    $district = AddressArea::query()->where('parent_id', $state->id)->inRandomOrder()->first();
+                    $district = $this->randomDistrictForState($state);
+                    $subdistrict = $this->randomSubdistrictForDistrict($district);
 
-                    $this->seedPrimaryPackageAddress($institution, [
+                    $this->seedPrimaryPackageAddress($institution, $this->packageAddressAttributes([
                         'line1' => $institution->addressModel?->line1,
                         'line2' => $institution->addressModel?->line2,
                         'postcode' => $institution->addressModel?->postcode,
                         'country_id' => $malaysia?->id,
-                        'admin_area_1_id' => $state->id,
-                        'admin_area_2_id' => $district instanceof AddressArea ? $district->id : null,
                         'latitude' => $institution->addressModel?->latitude,
                         'longitude' => $institution->addressModel?->longitude,
-                    ]);
+                    ], $state, $district, $subdistrict));
                 }
 
                 // Skip authorization setup for speed - will be set up on first access

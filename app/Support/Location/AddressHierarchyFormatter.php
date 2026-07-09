@@ -4,6 +4,7 @@ namespace App\Support\Location;
 
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressArea;
+use AIArmada\Addressing\Models\State;
 
 class AddressHierarchyFormatter
 {
@@ -18,17 +19,40 @@ class AddressHierarchyFormatter
      */
     public static function parts(?Address $address, array $order = ['city', 'district', 'state']): array
     {
-        $stateName = self::areaName($address?->admin_area_1_id)
-            ?? self::normalizePart($address?->state);
+        // Product storage: admin_area_1 = district, admin_area_2 = subdistrict.
+        $districtName = self::areaName($address?->admin_area_1_id);
+        $subdistrictName = self::areaName($address?->admin_area_2_id);
+        $stateName = self::normalizePart($address?->state);
+
+        if ($stateName === null && is_string($address?->state_id) && $address->state_id !== '') {
+            $state = State::query()->find($address->state_id);
+            $stateName = $state instanceof State ? self::normalizePart($state->name) : null;
+        }
+
+        if ($stateName === null && is_string($address?->admin_area_1_id)) {
+            $district = AddressArea::query()->find($address->admin_area_1_id);
+            if ($district instanceof AddressArea && is_string($district->parent_id)) {
+                $stateName = self::areaName($district->parent_id);
+            }
+        }
+
+        if ($stateName === null && is_string($address?->admin_area_2_id)) {
+            $subdistrict = AddressArea::query()->find($address->admin_area_2_id);
+            if ($subdistrict instanceof AddressArea && is_string($subdistrict->parent_id)) {
+                $parent = AddressArea::query()->find($subdistrict->parent_id);
+                if ($parent instanceof AddressArea && (int) $parent->level === 1) {
+                    $stateName = self::normalizePart($parent->name);
+                } elseif ($parent instanceof AddressArea && is_string($parent->parent_id)) {
+                    $stateName = self::areaName($parent->parent_id);
+                }
+            }
+        }
 
         if (is_string($stateName) && in_array(mb_strtolower($stateName), self::STATE_HIDDEN_DISTRICTS, true)) {
             $stateName = null;
         }
 
-        $cityName = self::areaName($address?->admin_area_3_id)
-            ?? self::areaName($address?->admin_area_2_id)
-            ?? self::normalizePart($address?->city);
-        $districtName = self::areaName($address?->admin_area_2_id);
+        $cityName = $subdistrictName ?? $districtName ?? self::normalizePart($address?->city);
 
         $availableParts = [
             'city' => $cityName,

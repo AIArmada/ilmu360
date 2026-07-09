@@ -138,12 +138,10 @@ it('matches richer public search behavior for speakers, institutions, and refere
         'name' => 'Admin MCP Speaker Match',
         'pre_nominal' => ['syeikhul_maqari'],
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $otherSpeaker = Speaker::factory()->create([
         'name' => 'Admin MCP Speaker Other',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     app(SpeakerSearchService::class)->syncSpeakerRecord($matchingSpeaker);
@@ -164,12 +162,10 @@ it('matches richer public search behavior for speakers, institutions, and refere
     $matchingInstitution = Institution::factory()->create([
         'name' => 'Masjid Al Hidayah',
         'status' => 'verified',
-        'is_active' => true,
     ]);
     Institution::factory()->create([
         'name' => 'Pusat Pengajian An-Nur',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     AdminServer::actingAs($admin)
@@ -189,12 +185,10 @@ it('matches richer public search behavior for speakers, institutions, and refere
         'author' => 'Imam Contoh',
         'description' => 'Syarahan tajwid dan adab',
         'status' => 'verified',
-        'is_active' => true,
     ]);
     Reference::factory()->create([
         'title' => 'Rujukan Lain',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     AdminServer::actingAs($admin)
@@ -542,7 +536,7 @@ it('filters admin event records by structured filters through the MCP server', f
         'status' => 'draft',
         'event_format' => EventFormat::Online,
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
+        'status' => 'active',
         'event_type' => [EventType::KuliahCeramah->value],
     ]);
 
@@ -551,7 +545,7 @@ it('filters admin event records by structured filters through the MCP server', f
         'status' => 'approved',
         'event_format' => EventFormat::Physical,
         'visibility' => EventVisibility::Private,
-        'is_active' => false,
+        'status' => 'inactive',
         'event_type' => [EventType::Forum->value],
     ]);
 
@@ -581,7 +575,6 @@ it('filters admin event records by single status, boolean, visibility, and timin
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
         'timing_mode' => 'absolute',
-        'is_active' => true,
     ]);
 
     $draftInactivePrivatePrayerRelative = Event::factory()->create([
@@ -589,7 +582,7 @@ it('filters admin event records by single status, boolean, visibility, and timin
         'status' => 'draft',
         'visibility' => EventVisibility::Private,
         'timing_mode' => 'prayer_relative',
-        'is_active' => false,
+        'status' => 'inactive',
     ]);
 
     AdminServer::actingAs($admin)
@@ -610,7 +603,7 @@ it('filters admin event records by single status, boolean, visibility, and timin
         ->tool(AdminListRecordsTool::class, [
             'resource_key' => 'events',
             'filters' => [
-                'is_active' => false,
+                'status' => 'inactive',
             ],
         ])
         ->assertOk()
@@ -657,21 +650,18 @@ it('surfaces public event change projections on admin event record detail throug
         'slug' => 'admin-mcp-change-surface-original',
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
     ]);
     $firstReplacement = Event::factory()->create([
         'title' => 'Admin MCP Change Surface First Replacement',
         'slug' => 'admin-mcp-change-surface-first-replacement',
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
     ]);
     $finalReplacement = Event::factory()->create([
         'title' => 'Admin MCP Change Surface Final Replacement',
         'slug' => 'admin-mcp-change-surface-final-replacement',
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
     ]);
 
     EventChangeAnnouncement::unguarded(function () use ($actor, $original, $firstReplacement, $finalReplacement): void {
@@ -783,21 +773,18 @@ it('combines local-date and structured filters through the MCP server', function
         'title' => 'Admin MCP Date Plus Filter Match',
         'starts_at' => Carbon::parse('2026-05-06 02:00:00', 'UTC'),
         'status' => 'approved',
-        'is_active' => true,
     ]);
 
     Event::factory()->create([
         'title' => 'Admin MCP Date Plus Filter Wrong Status',
         'starts_at' => Carbon::parse('2026-05-06 05:00:00', 'UTC'),
         'status' => 'draft',
-        'is_active' => true,
     ]);
 
     Event::factory()->create([
         'title' => 'Admin MCP Date Plus Filter Wrong Date',
         'starts_at' => Carbon::parse('2026-05-07 02:00:00', 'UTC'),
         'status' => 'approved',
-        'is_active' => true,
     ]);
 
     AdminServer::actingAs($admin)
@@ -806,7 +793,6 @@ it('combines local-date and structured filters through the MCP server', function
             'starts_on_local_date' => '2026-05-06',
             'filters' => [
                 'status' => 'approved',
-                'is_active' => true,
             ],
         ])
         ->assertOk()
@@ -1157,7 +1143,6 @@ it('reviews contribution requests through the admin MCP workflow tool', function
     $speaker = Speaker::factory()->create([
         'name' => 'Pending MCP Speaker',
         'status' => 'pending',
-        'is_active' => true,
     ]);
     $request = ContributionRequest::factory()->create([
         'type' => ContributionRequestType::Create,
@@ -1189,7 +1174,7 @@ it('reviews contribution requests through the admin MCP workflow tool', function
     expect($request->fresh()?->status)->toBe(ContributionRequestStatus::Rejected)
         ->and($request->fresh()?->reason_code)->toBe('needs_more_evidence')
         ->and($speaker->fresh()?->status)->toBe('rejected')
-        ->and($speaker->fresh()?->is_active)->toBeFalse();
+        ->and((string) $speaker->fresh()?->status)->toBeIn(['inactive', 'rejected']);
 });
 
 it('returns explicit admin workflow schemas through dedicated MCP schema tools', function () {
@@ -1203,7 +1188,6 @@ it('returns explicit admin workflow schemas through dedicated MCP schema tools',
     $speaker = Speaker::factory()->create([
         'name' => 'Schema MCP Speaker',
         'status' => 'pending',
-        'is_active' => true,
     ]);
     $request = ContributionRequest::factory()->create([
         'type' => ContributionRequestType::Create,
@@ -1301,7 +1285,7 @@ it('exposes series write schema and creates and updates series through the admin
                 'slug' => 'admin-mcp-series-'.$suffix,
                 'description' => 'Series created through MCP.',
                 'visibility' => 'public',
-                'is_active' => true,
+                'status' => 'active',
                 'cover' => adminMcpImageDescriptor('series-cover.png'),
                 'gallery' => [
                     adminMcpImageDescriptor('series-gallery.png'),
@@ -1328,7 +1312,7 @@ it('exposes series write schema and creates and updates series through the admin
                 'slug' => 'admin-mcp-series-updated-'.$suffix,
                 'description' => 'Series updated through MCP.',
                 'visibility' => 'private',
-                'is_active' => false,
+                'status' => 'inactive',
                 'languages' => [],
             ],
         ])
@@ -1337,7 +1321,7 @@ it('exposes series write schema and creates and updates series through the admin
             ->where('data.record.attributes.title', 'Admin MCP Series Updated '.$suffix)
             ->where('data.record.attributes.slug', 'admin-mcp-series-updated-'.$suffix)
             ->where('data.record.attributes.visibility', 'private')
-            ->where('data.record.attributes.is_active', false)
+            ->where('data.record.attributes.status', false)
             ->etc());
 
     $series->refresh();
@@ -1345,7 +1329,7 @@ it('exposes series write schema and creates and updates series through the admin
     expect($series->title)->toBe('Admin MCP Series Updated '.$suffix)
         ->and($series->slug)->toBe('admin-mcp-series-updated-'.$suffix)
         ->and($series->visibility)->toBe('private')
-        ->and($series->is_active)->toBeFalse();
+        ->and((string) $series->status)->toBe('inactive');
 });
 
 it('exposes space write schema and creates and updates spaces through the admin MCP server', function () {
@@ -1374,7 +1358,7 @@ it('exposes space write schema and creates and updates spaces through the admin 
                 'name' => 'Admin MCP Space '.$suffix,
                 'slug' => 'admin-mcp-space-'.$suffix,
                 'capacity' => 40,
-                'is_active' => true,
+                'status' => 'active',
                 'institutions' => [(string) $firstInstitution->getKey()],
             ],
         ])
@@ -1396,7 +1380,7 @@ it('exposes space write schema and creates and updates spaces through the admin 
                 'name' => 'Admin MCP Space Updated '.$suffix,
                 'slug' => 'admin-mcp-space-updated-'.$suffix,
                 'capacity' => 65,
-                'is_active' => false,
+                'status' => 'inactive',
                 'institutions' => [(string) $secondInstitution->getKey()],
             ],
         ])
@@ -1405,7 +1389,7 @@ it('exposes space write schema and creates and updates spaces through the admin 
             ->where('data.record.attributes.name', 'Admin MCP Space Updated '.$suffix)
             ->where('data.record.attributes.slug', 'admin-mcp-space-updated-'.$suffix)
             ->where('data.record.attributes.capacity', 65)
-            ->where('data.record.attributes.is_active', false)
+            ->where('data.record.attributes.status', false)
             ->etc());
 
     $space->refresh();
@@ -1413,7 +1397,7 @@ it('exposes space write schema and creates and updates spaces through the admin 
     expect($space->name)->toBe('Admin MCP Space Updated '.$suffix)
         ->and($space->slug)->toBe('admin-mcp-space-updated-'.$suffix)
         ->and($space->capacity)->toBe(65)
-        ->and($space->is_active)->toBeFalse()
+        ->and((string) $space->status)->toBe('inactive')
         ->and($space->institutions()->pluck('institutions.id')->all())->toContain($secondInstitution->getKey())
         ->and($space->institutions()->pluck('institutions.id')->all())->not->toContain($firstInstitution->getKey());
 });
@@ -1538,7 +1522,7 @@ it('exposes inspiration write schema and creates and updates inspirations throug
                 'title' => 'Admin MCP Inspiration',
                 'content' => 'Inspiration created through MCP.',
                 'source' => 'MCP Source',
-                'is_active' => true,
+                'status' => 'active',
                 'main' => adminMcpImageDescriptor('admin-mcp-inspiration-main.png'),
             ],
         ])
@@ -1564,7 +1548,7 @@ it('exposes inspiration write schema and creates and updates inspirations throug
                 'title' => 'Admin MCP Inspiration Updated',
                 'content' => 'Inspiration updated through MCP.',
                 'source' => 'Updated MCP Source',
-                'is_active' => false,
+                'status' => 'inactive',
             ],
         ])
         ->assertOk()
@@ -1572,7 +1556,7 @@ it('exposes inspiration write schema and creates and updates inspirations throug
             ->where('data.record.attributes.category', 'hadith_quote')
             ->where('data.record.attributes.locale', 'en')
             ->where('data.record.attributes.title', 'Admin MCP Inspiration Updated')
-            ->where('data.record.attributes.is_active', false)
+            ->where('data.record.attributes.status', false)
             ->etc());
 
     $inspiration->refresh();
@@ -1581,7 +1565,7 @@ it('exposes inspiration write schema and creates and updates inspirations throug
         ->and($inspiration->locale)->toBe('en')
         ->and($inspiration->title)->toBe('Admin MCP Inspiration Updated')
         ->and($inspiration->source)->toBe('Updated MCP Source')
-        ->and($inspiration->is_active)->toBeFalse();
+        ->and((string) $inspiration->status)->toBe('inactive');
 });
 
 it('surfaces space report and inspiration update semantics through admin MCP write schemas', function () {
@@ -1798,7 +1782,7 @@ it('previews admin speaker creation through the MCP write tool without persistin
                 'gender' => 'male',
                 'status' => 'verified',
                 'is_freelance' => false,
-                'is_active' => true,
+                'status' => 'active',
                 'address' => [
                     'country_id' => $countryId,
                 ],
@@ -1837,7 +1821,7 @@ it('previews admin speaker updates through the MCP write tool without persisting
                 'status' => 'verified',
                 'is_freelance' => true,
                 'job_title' => 'Imam',
-                'is_active' => true,
+                'status' => 'active',
                 'allow_public_event_submission' => true,
                 'address' => [
                     'country_id' => $countryId,
@@ -1863,7 +1847,7 @@ it('previews admin speaker updates through the MCP write tool without persisting
                 'status' => 'verified',
                 'is_freelance' => true,
                 'job_title' => 'Imam',
-                'is_active' => true,
+                'status' => 'active',
                 'allow_public_event_submission' => true,
                 'address' => [
                     'country_id' => $countryId,
@@ -1995,7 +1979,7 @@ it('creates and updates speakers through MCP write tools', function () {
                 'gender' => 'male',
                 'status' => 'verified',
                 'is_freelance' => false,
-                'is_active' => true,
+                'status' => 'active',
                 'avatar' => adminMcpImageDescriptor('admin-mcp-avatar'),
                 'address' => [
                     'country_id' => $countryId,
@@ -2048,7 +2032,7 @@ it('creates and updates speakers through MCP write tools', function () {
                 'status' => 'verified',
                 'is_freelance' => true,
                 'job_title' => 'Imam',
-                'is_active' => true,
+                'status' => 'active',
                 'allow_public_event_submission' => true,
                 'gallery' => [
                     adminMcpImageDescriptor('admin-mcp-gallery'),
@@ -2075,7 +2059,6 @@ it('requires an explicit speaker country when the address is mutated through adm
         'name' => 'Admin MCP Speaker Address Guard',
         'gender' => 'male',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     AdminServer::actingAs($admin)
@@ -2108,7 +2091,6 @@ it('creates and updates institutions through MCP write tools', function () {
                 'nickname' => 'MCP Surau',
                 'type' => 'masjid',
                 'status' => 'verified',
-                'is_active' => true,
                 'address' => [
                     'country_id' => $countryId,
                 ],
@@ -2162,7 +2144,6 @@ it('creates and updates institutions through MCP write tools', function () {
                 'nickname' => 'MCP Masjid',
                 'type' => 'masjid',
                 'status' => 'pending',
-                'is_active' => true,
                 'allow_public_event_submission' => true,
                 'slug' => 'attempted-admin-institution-injection',
                 'address' => [
@@ -2190,7 +2171,6 @@ it('preserves institution nickname on null and clears it on empty string through
         'nickname' => 'MCP Surau',
         'type' => 'masjid',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     AdminServer::actingAs($admin)
@@ -2202,7 +2182,6 @@ it('preserves institution nickname on null and clears it on empty string through
                 'nickname' => null,
                 'type' => 'masjid',
                 'status' => 'verified',
-                'is_active' => true,
             ],
         ])
         ->assertOk()
@@ -2221,7 +2200,6 @@ it('preserves institution nickname on null and clears it on empty string through
                 'nickname' => '',
                 'type' => 'masjid',
                 'status' => 'verified',
-                'is_active' => true,
             ],
         ])
         ->assertOk()
@@ -2236,7 +2214,6 @@ it('surfaces venue and reference update semantics through admin MCP write schema
     $admin = adminMcpUser('super_admin');
     $venue = Venue::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $reference = Reference::factory()->verified()->create();
 
@@ -2370,11 +2347,9 @@ it('creates and updates events through MCP write tools', function () {
     $institution = Institution::factory()->create([
         'slug' => 'masjid-tengku-ampuan-jemaah-bukit-jelutong-petaling-selangor-my',
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $reference = Reference::factory()->verified()->create();
     $series = Series::factory()->create();
@@ -2480,7 +2455,6 @@ it('emulates production yasin create flow with validate-only then actual create'
     $admin = adminMcpUser('super_admin');
     $institution = Institution::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $arguments = [
@@ -2502,7 +2476,7 @@ it('emulates production yasin create flow with validate-only then actual create'
         'registration_mode' => RegistrationMode::Event->value,
         'status' => 'pending',
         'is_featured' => false,
-        'is_active' => true,
+        'status' => 'active',
     ];
 
     AdminServer::actingAs($admin)
@@ -2559,12 +2533,10 @@ it('creates a tazkirah event with speaker_keys via admin-create-event', function
 
     $institution = Institution::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $reference = Reference::factory()->create([
@@ -2594,7 +2566,7 @@ it('creates a tazkirah event with speaker_keys via admin-create-event', function
             'registration_mode' => RegistrationMode::Event->value,
             'status' => 'pending',
             'is_featured' => false,
-            'is_active' => true,
+            'status' => 'active',
             'validate_only' => false,
             'apply_defaults' => false,
         ])
@@ -2619,7 +2591,6 @@ it('allows admin event create payload to control workflow-ready status', functio
     $admin = adminMcpUser('super_admin');
     $institution = Institution::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $basePayload = [
@@ -2639,7 +2610,7 @@ it('allows admin event create payload to control workflow-ready status', functio
         'registration_required' => false,
         'registration_mode' => RegistrationMode::Event->value,
         'is_featured' => false,
-        'is_active' => true,
+        'status' => 'active',
     ];
 
     AdminServer::actingAs($admin)
@@ -2699,11 +2670,9 @@ it('surfaces admin event validation failures through MCP write tools', function 
     $admin = adminMcpUser('super_admin');
     $institution = Institution::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $reference = Reference::factory()->verified()->create();
     $series = Series::factory()->create();
@@ -2785,11 +2754,9 @@ it('returns structured admin MCP validation feedback outside validate-only previ
     $admin = adminMcpUser('super_admin');
     $institution = Institution::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $reference = Reference::factory()->verified()->create();
     $series = Series::factory()->create();
@@ -2832,7 +2799,7 @@ it('rejects malformed MCP media descriptors through write tools', function () {
                 'gender' => 'male',
                 'status' => 'verified',
                 'is_freelance' => false,
-                'is_active' => true,
+                'status' => 'active',
                 'avatar' => 'base64-data',
                 'address' => [
                     'country_id' => $countryId,
@@ -2858,14 +2825,12 @@ it('searches /majlis-style events through the dedicated admin MCP tool', functio
     $admin = adminMcpUser('super_admin');
     $institution = Institution::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $matchingEvent = Event::factory()->create([
         'institution_id' => $institution->getKey(),
         'title' => 'Admin MCP Majlis Search Match',
         'status' => 'approved',
-        'is_active' => true,
         'is_muslim_only' => true,
         'starts_at' => Carbon::parse('2026-05-25 12:00:00', 'UTC'),
     ]);
@@ -2874,7 +2839,6 @@ it('searches /majlis-style events through the dedicated admin MCP tool', functio
         'institution_id' => $institution->getKey(),
         'title' => 'Admin MCP Majlis Search Non Match',
         'status' => 'approved',
-        'is_active' => true,
         'is_muslim_only' => false,
         'starts_at' => Carbon::parse('2026-05-25 12:00:00', 'UTC'),
     ]);
@@ -2902,14 +2866,12 @@ it('searches events by institution, speaker, and reference through admin-search-
     $institution = Institution::factory()->create([
         'name' => 'Markaz Ikhlas MCP Admin',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     Event::factory()->create([
         'institution_id' => $institution->id,
         'title' => 'MCP Admin Institution Match Event',
         'status' => 'approved',
-        'is_active' => true,
         'visibility' => 'public',
         'published_at' => now(),
         'starts_at' => now()->addDay(),
@@ -2918,13 +2880,11 @@ it('searches events by institution, speaker, and reference through admin-search-
     $speaker = Speaker::factory()->create([
         'name' => 'Ustaz Akram MCP Admin',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $speakerEvent = Event::factory()->create([
         'title' => 'MCP Admin Speaker Match Event',
         'status' => 'approved',
-        'is_active' => true,
         'visibility' => 'public',
         'published_at' => now(),
         'starts_at' => now()->addDay(),
@@ -2940,13 +2900,11 @@ it('searches events by institution, speaker, and reference through admin-search-
     $reference = Reference::factory()->create([
         'title' => 'Kitab MCP Admin Search Reference',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $referenceEvent = Event::factory()->create([
         'title' => 'MCP Admin Reference Match Event',
         'status' => 'approved',
-        'is_active' => true,
         'visibility' => 'public',
         'published_at' => now(),
         'starts_at' => now()->addDay(),
@@ -3412,7 +3370,6 @@ it('rejects member-scoped tokens on the admin MCP stream endpoint even for dual-
     $admin = adminMcpUser('super_admin');
     $institution = Institution::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     app(AddMemberToSubject::class)->handle($institution, $admin, 'admin');
@@ -4063,7 +4020,7 @@ function adminMcpEventPayload(array $fixtures, array $overrides = []): array
         ],
         'registration_required' => true,
         'registration_mode' => RegistrationMode::Event->value,
-        'is_active' => true,
+        'status' => 'active',
     ], $overrides);
 }
 
@@ -4091,7 +4048,7 @@ function adminMcpStableEvent(array $overrides = []): Event
         'live_url' => null,
         'recording_url' => null,
         'is_muslim_only' => true,
-        'is_active' => true,
+        'status' => 'active',
     ], $overrides));
 
     $event->accessPolicy()->delete();
@@ -4113,7 +4070,6 @@ it('batch-creates admin resource records via the admin-batch-create-records MCP 
                         'name' => 'MCP Batch Speaker Alpha',
                         'gender' => 'male',
                         'status' => 'verified',
-                        'is_active' => true,
                         'address' => [
                             'country_id' => $countryId,
                         ],
@@ -4125,7 +4081,6 @@ it('batch-creates admin resource records via the admin-batch-create-records MCP 
                         'name' => 'MCP Batch Speaker Beta',
                         'gender' => 'female',
                         'status' => 'verified',
-                        'is_active' => true,
                         'address' => [
                             'country_id' => $countryId,
                         ],
@@ -4164,7 +4119,6 @@ it('batch-creates records with validate_only via the admin-batch-create-records 
                         'name' => 'MCP Dry Run Speaker',
                         'gender' => 'male',
                         'status' => 'verified',
-                        'is_active' => true,
                         'address' => [
                             'country_id' => $countryId,
                         ],
@@ -4189,7 +4143,6 @@ it('batch-updates admin resource records via the admin-batch-update-records MCP 
     $speaker = Speaker::factory()->create([
         'name' => 'MCP Batch Update Before',
         'status' => 'pending',
-        'is_active' => true,
     ]);
 
     AdminServer::actingAs($admin)
@@ -4203,7 +4156,6 @@ it('batch-updates admin resource records via the admin-batch-update-records MCP 
                         'name' => 'MCP Batch Update After',
                         'gender' => 'male',
                         'status' => 'verified',
-                        'is_active' => true,
                     ],
                 ],
             ],
@@ -4228,14 +4180,13 @@ it('batch-creates events via the admin-batch-create-events MCP tool with speaker
         'slug' => 'mcp-batch-event-speaker',
         'status' => 'verified',
         'gender' => 'male',
-        'is_active' => true,
+        'status' => 'active',
     ]);
 
     $institution = Institution::factory()->create([
         'name' => 'MCP Batch Institution',
         'slug' => 'mcp-batch-institution',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     AdminServer::actingAs($admin)
@@ -4257,7 +4208,6 @@ it('batch-creates events via the admin-batch-create-events MCP tool with speaker
                     'institution_key' => $institution->slug,
                     'speaker_keys' => [$speaker->slug],
                     'status' => 'draft',
-                    'is_active' => true,
                 ],
                 [
                     'external_row_id' => 'event-row-2',
@@ -4272,7 +4222,6 @@ it('batch-creates events via the admin-batch-create-events MCP tool with speaker
                     'age_group' => [EventAgeGroup::AllAges->value],
                     'event_type' => [EventType::Other->value],
                     'status' => 'draft',
-                    'is_active' => true,
                 ],
             ],
         ])
@@ -4335,7 +4284,6 @@ it('batch-creates events with validate_only via admin-batch-create-events withou
                     'custom_time' => '20:00',
                     'event_type' => [EventType::Other->value],
                     'status' => 'draft',
-                    'is_active' => true,
                 ],
             ],
             'validate_only' => true,

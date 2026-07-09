@@ -13,7 +13,7 @@ use Illuminate\Http\Request;
 #[Group(
     'Admin Catalog',
     'Authenticated catalog endpoints for schema-driven admin writes. '
-    .'Use these lookups for dependent geography fields such as country, state, district, and subdistrict identifiers.',
+    .'Use these lookups for package-native geography: country_id, state_id, city_id, admin_area_1_id (district) / admin_area_2_id (subdistrict).',
 )]
 class CatalogController extends Controller
 {
@@ -32,53 +32,72 @@ class CatalogController extends Controller
         ]);
     }
 
-    #[QueryParameter('country_id', 'Optional package country UUID required by dependent first-level address-area selectors.', required: false, type: 'string', infer: false)]
+    #[QueryParameter('country_id', 'Package country UUID required for states.', required: false, type: 'string', infer: false)]
     #[Endpoint(
         title: 'List admin states catalog',
-        description: 'Returns state options for an admin write flow. '
-            .'Pass `country_id` to resolve the states available for a selected country.',
+        description: 'Returns package addressing states for a selected `country_id` (addresses.state_id).',
     )]
     public function states(Request $request): JsonResponse
     {
         return response()->json([
-            'data' => $this->catalogs->states($request->filled('country_id') ? $request->string('country_id')->toString() : null),
-        ]);
-    }
-
-    #[QueryParameter('admin_area_1_id', 'Optional package first-level address-area UUID required by dependent second-level selectors.', required: false, type: 'string', infer: false)]
-    #[Endpoint(
-        title: 'List admin districts catalog',
-        description: 'Returns district options for an admin write flow. '
-            .'Pass `admin_area_1_id` to resolve the districts available for a selected first-level address area.',
-    )]
-    public function districts(Request $request): JsonResponse
-    {
-        return response()->json([
-            'data' => $this->catalogs->districts(
-                $request->filled('admin_area_1_id')
-                    ? $request->string('admin_area_1_id')->toString()
-                    : null,
+            'data' => $this->catalogs->states(
+                $request->filled('country_id') ? $request->string('country_id')->toString() : null,
             ),
         ]);
     }
 
-    #[QueryParameter('admin_area_1_id', 'Optional package first-level address-area UUID.', required: false, type: 'string', infer: false)]
-    #[QueryParameter('admin_area_2_id', 'Optional package second-level address-area UUID.', required: false, type: 'string', infer: false)]
+    #[QueryParameter('state_id', 'Package state UUID.', required: false, type: 'string', infer: false)]
+    #[QueryParameter('country_id', 'Optional country UUID.', required: false, type: 'string', infer: false)]
     #[Endpoint(
-        title: 'List admin subdistricts catalog',
-        description: 'Returns subdistrict options for an admin write flow. '
-            .'Pass `admin_area_1_id` for first-level address area lookups, or `admin_area_2_id` for second-level address area lookups.',
+        title: 'List admin cities catalog',
+        description: 'Returns package addressing cities for a selected `state_id` or `country_id` (addresses.city_id).',
     )]
-    public function subdistricts(Request $request): JsonResponse
+    public function cities(Request $request): JsonResponse
     {
         return response()->json([
-            'data' => $this->catalogs->subdistricts(
+            'data' => $this->catalogs->cities(
+                $request->filled('state_id') ? $request->string('state_id')->toString() : null,
+                $request->filled('country_id') ? $request->string('country_id')->toString() : null,
+            ),
+        ]);
+    }
+
+    #[QueryParameter('country_id', 'Package country UUID for country-scoped district listing.', required: false, type: 'string', infer: false)]
+    #[QueryParameter('state_id', 'Package state UUID — preferred; returns districts under that state.', required: false, type: 'string', infer: false)]
+    #[Endpoint(
+        title: 'List admin districts catalog',
+        description: 'Returns districts (AddressArea level 2) for product `admin_area_1_id`. Prefer `state_id`.',
+    )]
+    public function adminAreaLevel1(Request $request): JsonResponse
+    {
+        return response()->json([
+            'data' => $this->catalogs->adminAreaLevel1(
+                $request->filled('country_id') ? $request->string('country_id')->toString() : null,
+                $request->filled('state_id') ? $request->string('state_id')->toString() : null,
+            ),
+        ]);
+    }
+
+    #[QueryParameter('admin_area_1_id', 'District UUID (admin_area_1_id) for subdistrict listing.', required: false, type: 'string', infer: false)]
+    #[QueryParameter('state_id', 'Optional package state UUID for federal-territory local areas.', required: false, type: 'string', infer: false)]
+    #[QueryParameter('country_id', 'Optional country UUID for country-scoped level-3 listing.', required: false, type: 'string', infer: false)]
+    #[Endpoint(
+        title: 'List admin subdistricts catalog',
+        description: 'Returns subdistricts (AddressArea level 3) for product `admin_area_2_id`.',
+    )]
+    public function adminAreaLevel2(Request $request): JsonResponse
+    {
+        return response()->json([
+            'data' => $this->catalogs->adminAreaLevel2(
                 $request->filled('admin_area_1_id')
                     ? $request->string('admin_area_1_id')->toString()
                     : null,
-                $request->filled('admin_area_2_id')
-                    ? $request->string('admin_area_2_id')->toString()
-                    : ($request->filled('admin_area_1_id') ? $request->string('admin_area_1_id')->toString() : null),
+                $request->filled('country_id')
+                    ? $request->string('country_id')->toString()
+                    : null,
+                $request->filled('state_id')
+                    ? $request->string('state_id')->toString()
+                    : null,
             ),
         ]);
     }

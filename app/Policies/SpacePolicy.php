@@ -16,7 +16,7 @@ class SpacePolicy
 
     public function view(?User $user, Space $space): bool
     {
-        if ($space->is_active) {
+        if ((string) $space->status === 'active' && (string) $space->visibility === 'public') {
             return true;
         }
 

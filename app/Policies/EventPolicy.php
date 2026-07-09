@@ -26,7 +26,7 @@ class EventPolicy
     {
         // Public events are viewable by anyone
         if (
-            $event->is_active
+            $event->published_at !== null
             && $event->visibility === EventVisibility::Public
             && in_array((string) $event->status, Event::PUBLIC_STATUSES, true)
         ) {

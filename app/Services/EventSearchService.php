@@ -340,7 +340,6 @@ class EventSearchService
         $timeScope = $this->normalizeTimeScope($filters['time_scope'] ?? null);
 
         $filterParts = [
-            'is_active:=true',
             'status:['.implode(', ', Event::PUBLIC_STATUSES).']',
             'visibility:public',
             'event_structure:!=parent_program',
@@ -367,6 +366,11 @@ class EventSearchService
             $filterParts[] = 'starts_at:<='.$startsBeforeTimestamp;
         }
 
+        if (! empty($filters['country_id'])) {
+            $filterParts[] = 'country_id:='.$filters['country_id'];
+        }
+
+        // Package addressing columns on addresses (not legacy aliases).
         if (! empty($filters['state_id'])) {
             $filterParts[] = 'state_id:='.$filters['state_id'];
         }
@@ -375,20 +379,12 @@ class EventSearchService
             $filterParts[] = 'city_id:='.$filters['city_id'];
         }
 
-        if (! empty($filters['country_id'])) {
-            $filterParts[] = 'country_id:='.$filters['country_id'];
-        }
-
         if (! empty($filters['admin_area_1_id'])) {
             $filterParts[] = 'admin_area_1_id:='.$filters['admin_area_1_id'];
         }
 
         if (! empty($filters['admin_area_2_id'])) {
             $filterParts[] = 'admin_area_2_id:='.$filters['admin_area_2_id'];
-        }
-
-        if (! empty($filters['admin_area_3_id'])) {
-            $filterParts[] = 'admin_area_3_id:='.$filters['admin_area_3_id'];
         }
 
         $languageCodes = $this->normalizeArrayFilter($filters['language_codes'] ?? null);
@@ -521,7 +517,7 @@ class EventSearchService
         $queryBuilder
             ->whereIn("{$table}.status", Event::PUBLIC_STATUSES)
             ->where("{$table}.visibility", EventVisibility::Public->value)
-            ->where("{$table}.is_active", true)
+            ->whereNotNull("{$table}.published_at")
             ->where("{$table}.event_structure", '!=', EventStructure::ParentProgram->value);
 
         $startsAfter = $this->startsAfterDateTime($filters, $timeScope);
@@ -580,10 +576,6 @@ class EventSearchService
 
         if (! empty($filters['admin_area_2_id'])) {
             $this->applyLocationAddressFilter($queryBuilder, 'admin_area_2_id', $filters['admin_area_2_id']);
-        }
-
-        if (! empty($filters['admin_area_3_id'])) {
-            $this->applyLocationAddressFilter($queryBuilder, 'admin_area_3_id', $filters['admin_area_3_id']);
         }
 
         $languageCodes = $this->normalizeArrayFilter($filters['language_codes'] ?? null);

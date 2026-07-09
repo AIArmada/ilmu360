@@ -9,7 +9,6 @@ use Filament\Actions\EditAction;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\SpatieMediaLibraryImageColumn;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 
@@ -44,8 +43,6 @@ class ReferencesTable
                 TextColumn::make('status')
                     ->badge()
                     ->sortable(),
-                ToggleColumn::make('is_active')
-                    ->label('Active'),
                 IconColumn::make('is_canonical')
                     ->boolean(),
                 TextColumn::make('created_at')
@@ -58,6 +55,7 @@ class ReferencesTable
                     ->options([
                         'pending' => 'Pending',
                         'verified' => 'Verified',
+                        'inactive' => 'Inactive',
                     ]),
             ])
             ->recordActions([

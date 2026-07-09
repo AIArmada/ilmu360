@@ -234,7 +234,6 @@ it('uses the generated geographic slug when admins create institutions in filame
             'name' => 'Masjid Sultan Salahudin Abdul Aziz Shah',
             'slug' => 'temporary-admin-slug',
             'status' => 'verified',
-            'is_active' => true,
             'contacts' => [],
             'socialMedia' => [],
             'address' => geographyAddressPayload($geography),
@@ -380,7 +379,6 @@ function createInstitutionForSlugBackfill(string $id, string $name, string $slug
         'name' => $name,
         'slug' => $slug,
         'status' => 'verified',
-        'is_active' => true,
     ]));
 
     attachInstitutionSlugAddress($institution, $geography);

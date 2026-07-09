@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use AIArmada\Addressing\Models\AddressArea;
+use AIArmada\Addressing\Models\State;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
 use App\Models\Institution;
@@ -38,11 +39,7 @@ class MasjidSeeder extends Seeder
         }
 
         $malaysia = $this->malaysiaCountry();
-        $states = AddressArea::query()
-            ->where('country_code', 'MY')
-            ->where('level', 1)
-            ->orderBy('name')
-            ->get();
+        $states = $this->malaysiaPackageStates();
         User::query()->get();
 
         // Read CSV file
@@ -70,25 +67,26 @@ class MasjidSeeder extends Seeder
             $daerah = trim((string) $daerah);
             $noTel = trim((string) $noTel);
 
-            // Find matching state
+            // Find matching package State + district under its area tree parent.
             $state = $this->findState($states, $negeri);
-            if (! $state instanceof AddressArea) {
-                // If we can't find the state, skip this mosque
+            if (! $state instanceof State) {
                 $skipped++;
 
                 continue;
             }
 
-            // Find matching district
             $district = null;
             if ($daerah !== '') {
-                $district = AddressArea::query()
-                    ->where('parent_id', $state->id)
-                    ->where('level', 2)
-                    ->orderBy('name')
-                    ->get()
-                    ->first(fn (AddressArea $area): bool => Str::contains(strtolower($area->name), strtolower($daerah)) ||
-                        Str::contains(strtolower($daerah), strtolower($area->name)));
+                $areaState = $this->malaysiaAreaStateForPackageState($state);
+                if ($areaState instanceof AddressArea) {
+                    $district = AddressArea::query()
+                        ->where('parent_id', $areaState->getKey())
+                        ->where('level', 2)
+                        ->orderBy('name')
+                        ->get()
+                        ->first(fn (AddressArea $area): bool => Str::contains(strtolower($area->name), strtolower($daerah)) ||
+                            Str::contains(strtolower($daerah), strtolower($area->name)));
+                }
             }
 
             // Create or update institution
@@ -110,7 +108,6 @@ class MasjidSeeder extends Seeder
                 'slug' => $slug,
                 'type' => 'masjid',
                 'status' => 'verified',
-                'is_active' => true,
             ]);
 
             // Create contacts
@@ -130,17 +127,15 @@ class MasjidSeeder extends Seeder
                 }
             }
 
-            // Create address
+            // Create address (state_id + district as admin_area_1; no subdistrict from CSV).
             try {
-                $this->seedPrimaryPackageAddress($inst, [
+                $this->seedPrimaryPackageAddress($inst, $this->packageAddressAttributes([
                     'line1' => $alamat ?: null,
                     'postcode' => null,
                     'country_id' => $malaysia?->id,
-                    'admin_area_1_id' => $state->id,
-                    'admin_area_2_id' => $district?->id,
                     'latitude' => null,
                     'longitude' => null,
-                ]);
+                ], $state, $district, null));
             } catch (\Exception $e) {
                 $this->command->warn("Failed to create address for {$nama}: ".$e->getMessage());
             }
@@ -170,35 +165,46 @@ class MasjidSeeder extends Seeder
     }
 
     /**
-     * Find state from CSV state name
+     * Find package State from CSV state name.
      *
-     * @param  Collection<int, AddressArea>  $states
+     * @param  Collection<int, State>  $states
      */
-    protected function findState(Collection $states, string $negeri): ?AddressArea
+    protected function findState(Collection $states, string $negeri): ?State
     {
-        // State name mappings
         $stateMap = [
             'W.P. KUALA LUMPUR' => 'Kuala Lumpur',
             'W.P. PUTRAJAYA' => 'Putrajaya',
             'W.P. LABUAN' => 'Labuan',
             'N. SEMBILAN' => 'Negeri Sembilan',
-            'PULAU PINANG' => 'Penang',
-            'MELAKA' => 'Malacca',
-            'MELAKA TENGAH' => 'Malacca',
+            'PULAU PINANG' => 'Pulau Pinang',
+            'MELAKA' => 'Melaka',
+            'MELAKA TENGAH' => 'Melaka',
         ];
 
-        // Use mapping if available
         $searchName = $stateMap[strtoupper($negeri)] ?? $negeri;
 
-        return $states->first(function (AddressArea $state) use ($searchName, $negeri): bool {
+        return $states->first(function (State $state) use ($searchName, $negeri): bool {
             $stateLower = strtolower((string) $state->name);
+            $labelLower = strtolower((string) ($state->label ?? ''));
             $searchLower = strtolower($searchName);
             $negeriLower = strtolower($negeri);
 
-            return Str::contains($stateLower, $searchLower) ||
-                   Str::contains($searchLower, $stateLower) ||
-                   Str::contains($stateLower, $negeriLower) ||
-                   Str::contains($negeriLower, $stateLower);
+            foreach ([$stateLower, $labelLower] as $haystack) {
+                if ($haystack === '') {
+                    continue;
+                }
+
+                if (
+                    Str::contains($haystack, $searchLower) ||
+                    Str::contains($searchLower, $haystack) ||
+                    Str::contains($haystack, $negeriLower) ||
+                    Str::contains($negeriLower, $haystack)
+                ) {
+                    return true;
+                }
+            }
+
+            return false;
         });
     }
 

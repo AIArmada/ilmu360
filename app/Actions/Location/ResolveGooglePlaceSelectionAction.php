@@ -4,6 +4,9 @@ namespace App\Actions\Location;
 
 use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressCountry;
+use AIArmada\Addressing\Models\City;
+use AIArmada\Addressing\Models\State;
+use App\Support\Location\AddressAreaStateBridge;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
@@ -21,6 +24,8 @@ class ResolveGooglePlaceSelectionAction
      * @param  array<string, mixed>  $payload
      * @return array{
      *     country_id: string|null,
+     *     state_id: string|null,
+     *     city_id: string|null,
      *     admin_area_1_id: string|null,
      *     admin_area_2_id: string|null,
      *     admin_area_3_id: string|null,
@@ -48,23 +53,38 @@ class ResolveGooglePlaceSelectionAction
 
         $stateName = $this->componentValue($components, ['administrative_area_level_1']);
         $districtName = $this->componentValue($components, ['administrative_area_level_2']);
+        $cityName = $this->firstFilled([
+            $this->componentValue($components, ['locality']),
+            $this->componentValue($components, ['postal_town']),
+        ]);
+        // Subdistrict resolution keeps locality/postal_town priority (MY product often maps these to mukim/local areas).
         $subdistrictName = $this->firstFilled([
             $this->componentValue($components, ['locality']),
             $this->componentValue($components, ['postal_town']),
             $this->componentValue($components, ['administrative_area_level_3']),
         ]);
 
-        $state = $this->resolveArea($stateName, $countryId, null, 1);
-        $district = $this->resolveArea($districtName, $countryId, $state?->id, 2);
-        $subdistrict = $this->resolveArea($subdistrictName, $countryId, $district->id ?? $state?->id, 3);
+        $stateArea = $this->resolveArea($stateName, $countryId, null, 1);
+        $district = $this->resolveArea($districtName, $countryId, $stateArea?->id, 2);
+        $subdistrict = $this->resolveArea($subdistrictName, $countryId, $district->id ?? $stateArea?->id, 3);
 
         $district ??= $subdistrict?->parent_id !== null
             ? AddressArea::query()->find($subdistrict->parent_id)
             : null;
-        $state ??= $district?->parent_id !== null
+        $stateArea ??= $district?->parent_id !== null
             ? AddressArea::query()->find($district->parent_id)
             : null;
-        $countryId = $state->country_id ?? $district->country_id ?? $subdistrict->country_id ?? $countryId;
+        $countryId = $stateArea->country_id ?? $district->country_id ?? $subdistrict->country_id ?? $countryId;
+
+        $stateId = $this->resolveStateId($stateName, $countryId, $stateArea);
+        $cityId = $this->resolveCityId($cityName, $stateId, $countryId);
+
+        $districtId = $district instanceof AddressArea && (int) $district->level === 2
+            ? $district->id
+            : null;
+        $subdistrictId = $subdistrict instanceof AddressArea && (int) $subdistrict->level === 3
+            ? $subdistrict->id
+            : null;
 
         $lat = $this->numericValue(Arr::get($payload, 'location.lat'));
         $lng = $this->numericValue(Arr::get($payload, 'location.lng'));
@@ -80,9 +100,11 @@ class ResolveGooglePlaceSelectionAction
 
         return [
             'country_id' => $countryId,
-            'admin_area_1_id' => $state?->id,
-            'admin_area_2_id' => $district?->id,
-            'admin_area_3_id' => $subdistrict?->id,
+            'state_id' => $stateId,
+            'city_id' => $cityId,
+            'admin_area_1_id' => $districtId,
+            'admin_area_2_id' => $subdistrictId,
+            'admin_area_3_id' => null,
             'line1' => $this->resolveLine1($components),
             'line2' => $this->resolveLine2($components),
             'postcode' => $this->componentValue($components, ['postal_code']),
@@ -273,6 +295,60 @@ class ResolveGooglePlaceSelectionAction
             ->values();
 
         return $matches->count() === 1 ? $matches->first() : null;
+    }
+
+    private function resolveStateId(?string $stateName, ?string $countryId, ?AddressArea $stateArea): ?string
+    {
+        if ($stateArea instanceof AddressArea) {
+            $bridged = AddressAreaStateBridge::stateIdForArea($stateArea);
+
+            if ($bridged !== null) {
+                return $bridged;
+            }
+        }
+
+        if (! filled($stateName) || $countryId === null) {
+            return null;
+        }
+
+        /** @var Collection<int, State> $matches */
+        $matches = State::query()
+            ->where('country_id', $countryId)
+            ->get()
+            ->filter(function (State $state) use ($stateName): bool {
+                $normalized = $this->normalizeLocationName($stateName);
+
+                return $this->normalizeLocationName($state->name) === $normalized
+                    || $this->normalizeLocationName($state->label) === $normalized;
+            })
+            ->values();
+
+        return $matches->count() === 1 ? (string) $matches->first()->getKey() : null;
+    }
+
+    private function resolveCityId(?string $cityName, ?string $stateId, ?string $countryId): ?string
+    {
+        if (! filled($cityName)) {
+            return null;
+        }
+
+        $query = City::query();
+
+        if ($stateId !== null) {
+            $query->where('state_id', $stateId);
+        } elseif ($countryId !== null) {
+            $query->where('country_id', $countryId);
+        } else {
+            return null;
+        }
+
+        /** @var Collection<int, City> $matches */
+        $matches = $query
+            ->get()
+            ->filter(fn (City $city): bool => $this->normalizeLocationName($city->name) === $this->normalizeLocationName($cityName))
+            ->values();
+
+        return $matches->count() === 1 ? (string) $matches->first()->getKey() : null;
     }
 
     private function displayNameValue(mixed $value): ?string

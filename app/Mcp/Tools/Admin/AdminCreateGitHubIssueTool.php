@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Mcp\Tools\Admin;
 
 use App\Actions\GitHub\SubmitGitHubIssueReportAction;
+use App\Contracts\GitHubIssueReporterContract;
 use App\Data\GitHub\GitHubIssueSubmissionData;
 use App\Exceptions\GitHubIssueReportingException;
-use App\Services\GitHub\GitHubIssueReporter;
 use App\Support\GitHub\GitHubIssueReportContract;
 use App\Support\Mcp\McpAuthenticatedUserResolver;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -32,7 +32,7 @@ class AdminCreateGitHubIssueTool extends AbstractAdminTool
 
     public function __construct(
         private readonly SubmitGitHubIssueReportAction $submitGitHubIssueReportAction,
-        private readonly GitHubIssueReporter $gitHubIssueReporter,
+        private readonly GitHubIssueReporterContract $gitHubIssueReporter,
     ) {
         $this->setMeta([
             'openai/toolInvocation/invoking' => 'Creating GitHub issue…',

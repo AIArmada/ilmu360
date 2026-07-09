@@ -21,7 +21,6 @@ it('uses moderation transition when a high risk event report is submitted', func
     $event = Event::factory()->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
     ]);
 
     $response = $this->actingAs($user, 'sanctum')->postJson('/api/v1/reports', [
@@ -50,7 +49,6 @@ it('prevents duplicate anonymous reports from the same reporter fingerprint with
     $event = Event::factory()->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
     ]);
 
     $payload = [
@@ -80,7 +78,6 @@ it('escalates when two distinct anonymous reporters submit reports within 24 hou
     $event = Event::factory()->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
     ]);
 
     $payload = [
@@ -115,7 +112,6 @@ it('requires authentication for api report submission', function () {
     $event = Event::factory()->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
     ]);
 
     $this->postJson('/api/v1/reports', [
@@ -131,7 +127,6 @@ it('forbids users banned from directory feedback from api report submission', fu
     $event = Event::factory()->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
     ]);
 
     $this->actingAs($user, 'sanctum')
@@ -148,12 +143,10 @@ it('reflects direct feedback permissions on an existing bearer token', function 
     $firstEvent = Event::factory()->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
     ]);
     $secondEvent = Event::factory()->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
     ]);
 
     $token = $user->createToken('feedback-permission-drift-check', [])->plainTextToken;

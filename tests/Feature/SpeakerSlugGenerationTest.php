@@ -329,7 +329,6 @@ it('uses the generated country slug when admins create speakers in filament', fu
             'contacts' => [],
             'socialMedia' => [],
             'status' => 'verified',
-            'is_active' => true,
             'address' => [
                 'country_id' => (string) $country->getKey(),
             ],
@@ -522,7 +521,6 @@ it('backfills existing speaker slugs through the queued job logic', function () 
         'event_format' => EventFormat::Physical->value,
         'visibility' => EventVisibility::Public->value,
         'status' => 'approved',
-        'is_active' => true,
     ]);
 
     app(EventKeyPersonSyncService::class)->sync($event, [$first->id]);
@@ -571,7 +569,6 @@ it('updates related event slugs when a speaker address change changes the speake
         'event_format' => EventFormat::Physical->value,
         'visibility' => EventVisibility::Public->value,
         'status' => 'approved',
-        'is_active' => true,
     ]);
 
     app(EventKeyPersonSyncService::class)->sync($event, [$speaker->id]);
@@ -648,7 +645,6 @@ function createSpeakerForSlugBackfill(string $id, string $name, string $slug, Ad
         'gender' => 'male',
         'slug' => $slug,
         'status' => 'verified',
-        'is_active' => true,
     ]));
 
     $address = Address::query()->create([

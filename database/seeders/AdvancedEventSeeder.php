@@ -229,7 +229,6 @@ class AdvancedEventSeeder extends Seeder
             'published_at' => now()->subDay(),
             'schedule_kind' => $scheduleKind->value,
             'schedule_state' => ScheduleState::Active->value,
-            'is_active' => true,
             'timing_mode' => TimingMode::Absolute->value,
             'prayer_reference' => null,
             'prayer_offset' => null,

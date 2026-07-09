@@ -16,7 +16,7 @@ class VenuePolicy
 
     public function view(?User $user, Venue $venue): bool
     {
-        if ($venue->status === 'verified' && $venue->is_active) {
+        if ($venue->status === 'verified' && (string) $venue->visibility === 'public') {
             return true;
         }
 

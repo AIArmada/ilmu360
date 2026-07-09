@@ -20,7 +20,6 @@ class ReferenceBuilder extends Builder
         'part_number',
         'part_label',
         'is_canonical',
-        'is_active',
     ];
 
     /**

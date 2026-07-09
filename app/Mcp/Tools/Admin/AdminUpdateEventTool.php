@@ -111,7 +111,6 @@ class AdminUpdateEventTool extends AbstractAdminWriteTool
                 'registration_mode' => ['sometimes', 'string'],
                 'is_priority' => ['sometimes', 'boolean'],
                 'is_featured' => ['sometimes', 'boolean'],
-                'is_active' => ['sometimes', 'boolean'],
                 'validate_only' => ['sometimes', 'boolean'],
                 'apply_defaults' => ['sometimes', 'boolean'],
             ]);
@@ -339,7 +338,6 @@ class AdminUpdateEventTool extends AbstractAdminWriteTool
             'registration_mode' => $schema->string()->enum($this->enumValues(RegistrationMode::class)),
             'is_priority' => $schema->boolean(),
             'is_featured' => $schema->boolean(),
-            'is_active' => $schema->boolean(),
             'validate_only' => $schema->boolean()->default(false),
             'apply_defaults' => $schema->boolean()->default(false)->description('Preview-only helper. Honored only when validate_only=true to merge schema defaults into validation feedback; ignored for persisted updates.'),
         ];

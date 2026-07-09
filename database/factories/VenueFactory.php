@@ -47,7 +47,6 @@ class VenueFactory extends PackageVenueFactory
             ]),
             'status' => 'verified',
             'visibility' => 'public',
-            'is_active' => true,
             'city' => fake()->city(),
             // @phpstan-ignore-next-line Faker dynamic provider method
             'state' => fake()->state(),

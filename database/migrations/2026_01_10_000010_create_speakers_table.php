@@ -24,7 +24,10 @@ return new class extends Migration
             $table->string('job_title')->nullable();
 
             $table->string('status')->nullable();
-            $table->boolean('is_active')->default(true);
+            $table->timestampTz('verified_at')->nullable();
+            $table->timestampTz('rejected_at')->nullable();
+            $table->timestampTz('inactive_at')->nullable();
+            $table->timestampTz('last_state_change_at')->nullable();
 
             $table->boolean('allow_public_event_submission')->default(true)->index();
             $table->timestamp('public_submission_locked_at')->nullable()->index();
@@ -32,15 +35,11 @@ return new class extends Migration
 
             $table->timestamps();
 
-            // Optimized composite indexes for common query patterns
-            // Main listing: WHERE status='verified' AND is_active=true ORDER BY name
-            $table->index(['status', 'is_active', 'name'], 'speakers_status_active_name');
+            // Main listing: WHERE status IN ('verified','pending') ORDER BY name
+            $table->index(['status', 'name'], 'speakers_status_name');
 
-            // Gender filtering: WHERE gender='male' AND is_active=true ORDER BY name
-            $table->index(['gender', 'is_active', 'name'], 'speakers_gender_active_name');
-
-            // Combined filters: WHERE gender='X' AND status='Y' AND is_active=true ORDER BY name
-            $table->index(['gender', 'status', 'is_active', 'name'], 'speakers_gender_status_active');
+            // Combined filters: WHERE gender='X' AND status='Y' ORDER BY name
+            $table->index(['gender', 'status', 'name'], 'speakers_gender_status_name');
 
             // Sitemap generation: ORDER BY updated_at DESC
             $table->index('updated_at', 'speakers_sitemap');

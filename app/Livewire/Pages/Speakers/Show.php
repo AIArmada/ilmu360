@@ -4,13 +4,13 @@ namespace App\Livewire\Pages\Speakers;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Enums\DawahShareOutcomeType;
+use App\Enums\EventVisibility;
 use App\Models\Event;
 use App\Models\EventKeyPerson;
 use App\Models\EventKeyPersonPivot;
 use App\Models\Speaker;
 use App\Services\ShareTrackingService;
 use App\Support\Auth\IntendedRedirect;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Collection;
@@ -38,7 +38,6 @@ class Show extends Component
     {
         $canBypassVisibility = auth()->user()?->hasAnyRole(['super_admin', 'moderator']) ?? false;
 
-        abort_unless($speaker->is_active, 404);
         abort_unless($speaker->status === 'verified' || $canBypassVisibility, 404);
 
         $this->speaker = $speaker;
@@ -135,8 +134,11 @@ class Show extends Component
     public function getOtherRoleParticipationsProperty(): Collection
     {
         return $this->speaker->nonSpeakerEventKeyPeople()
-            // @phpstan-ignore-next-line — active() is a scope on Event, but $query is inferred as Builder<Model>
-            ->whereHas('event', fn ($query) => $query->active())
+            ->whereHas('event', function ($query): void {
+                $query->whereIn('status', Event::PUBLIC_STATUSES)
+                    ->where('visibility', EventVisibility::Public)
+                    ->whereNotNull('published_at');
+            })
             ->with([
                 'event.institution.address',
                 'event.venue.address',
@@ -174,8 +176,12 @@ class Show extends Component
      */
     private function speakerEventQuery(): BelongsToMany
     {
+        $eventsTable = (new Event)->getTable();
+
         return $this->speaker->speakerEvents()
-            ->active()
+            ->whereIn("{$eventsTable}.status", Event::PUBLIC_STATUSES)
+            ->where("{$eventsTable}.visibility", EventVisibility::Public)
+            ->whereNotNull("{$eventsTable}.published_at")
             ->with([
                 'institution.address',
                 'venue.address',

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\GitHub;
 
+use App\Contracts\GitHubIssueReporterContract;
 use App\Exceptions\GitHubIssueReportingException;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
@@ -23,7 +24,7 @@ use Illuminate\Support\Facades\Http;
  *     }
  * }
  */
-class GitHubIssueReporter
+class GitHubIssueReporter implements GitHubIssueReporterContract
 {
     public function isEnabled(): bool
     {

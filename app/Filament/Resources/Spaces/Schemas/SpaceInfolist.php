@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\Spaces\Schemas;
 
-use Filament\Infolists\Components\IconEntry;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
@@ -24,9 +23,12 @@ class SpaceInfolist
                         TextEntry::make('capacity')
                             ->label('Capacity')
                             ->placeholder('-'),
-                        IconEntry::make('is_active')
-                            ->label('Active')
-                            ->boolean(),
+                        TextEntry::make('status')
+                            ->label('Status')
+                            ->badge(),
+                        TextEntry::make('visibility')
+                            ->label('Visibility')
+                            ->badge(),
                         TextEntry::make('created_at')
                             ->label('Created At')
                             ->dateTime(),

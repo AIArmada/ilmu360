@@ -242,7 +242,6 @@ class SpeakerFactory extends Factory
                 ]
                 : null,
             'status' => 'verified',
-            'is_active' => true,
         ];
     }
 

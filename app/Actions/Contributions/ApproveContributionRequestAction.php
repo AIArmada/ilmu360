@@ -54,11 +54,15 @@ class ApproveContributionRequestAction
                 $this->applyApprovedUpdate($request);
             }
 
+            $now = now();
+
             $request->forceFill([
                 'reviewer_id' => $reviewer->getKey(),
                 'reviewer_note' => $reviewerNote,
                 'status' => ContributionRequestStatus::Approved,
-                'reviewed_at' => now(),
+                'reviewed_at' => $now,
+                'approved_at' => $now,
+                'last_state_change_at' => $now,
             ])->save();
         });
 
@@ -79,7 +83,8 @@ class ApproveContributionRequestAction
         if ($entity instanceof Institution || $entity instanceof Speaker) {
             $entity->forceFill([
                 'status' => 'verified',
-                'is_active' => true,
+                'verified_at' => now(),
+                'last_state_change_at' => now(),
             ])->save();
 
             $this->attachAsOwnerIfSupported($request->proposer, $entity);
@@ -130,7 +135,8 @@ class ApproveContributionRequestAction
             'type' => (string) ($payload['type'] ?? 'masjid'),
             'description' => $payload['description'] ?? null,
             'status' => 'verified',
-            'is_active' => true,
+            'verified_at' => now(),
+            'last_state_change_at' => now(),
             'allow_public_event_submission' => true,
         ]);
 
@@ -158,7 +164,8 @@ class ApproveContributionRequestAction
             'is_freelance' => (bool) ($payload['is_freelance'] ?? false),
             'slug' => $this->generateSpeakerSlugAction->handle((string) ($payload['name'] ?? 'Speaker'), $payload),
             'status' => 'verified',
-            'is_active' => true,
+            'verified_at' => now(),
+            'last_state_change_at' => now(),
             'allow_public_event_submission' => true,
         ]);
 
@@ -182,8 +189,6 @@ class ApproveContributionRequestAction
             'country_id',
             'admin_area_1_id',
             'admin_area_2_id',
-            'admin_area_3_id',
-            'admin_area_4_id',
             'line1',
             'line2',
             'postcode',

@@ -533,12 +533,12 @@ class AdminResourceMutationService
                 'title' => '',
                 'content' => Inspiration::plainTextToRichContent(''),
                 'source' => null,
-                'is_active' => true,
+                'status' => 'active',
                 'clear_main' => false,
             ],
             InstitutionResource::class => [
                 'type' => InstitutionType::Masjid->value,
-                'is_active' => true,
+                'status' => 'active',
                 'clear_logo' => false,
                 'clear_cover' => false,
                 'clear_gallery' => false,
@@ -547,7 +547,6 @@ class AdminResourceMutationService
                 'type' => ReferenceType::Book->value,
                 'is_canonical' => false,
                 'status' => 'verified',
-                'is_active' => true,
                 'social_media' => [],
                 'clear_front_cover' => false,
                 'clear_back_cover' => false,
@@ -569,7 +568,7 @@ class AdminResourceMutationService
                 'slug' => '',
                 'description' => null,
                 'visibility' => 'public',
-                'is_active' => true,
+                'status' => 'active',
                 'languages' => [],
                 'clear_cover' => false,
                 'clear_gallery' => false,
@@ -577,7 +576,7 @@ class AdminResourceMutationService
             SpeakerResource::class => [
                 'gender' => Gender::Male->value,
                 'is_freelance' => false,
-                'is_active' => true,
+                'status' => 'active',
                 'clear_avatar' => false,
                 'clear_cover' => false,
                 'clear_gallery' => false,
@@ -585,7 +584,6 @@ class AdminResourceMutationService
             VenueResource::class => [
                 'type' => VenueType::Dewan->value,
                 'status' => 'verified',
-                'is_active' => true,
                 'facilities' => [],
                 'clear_cover' => false,
                 'clear_gallery' => false,
@@ -594,7 +592,7 @@ class AdminResourceMutationService
                 'name' => '',
                 'slug' => '',
                 'capacity' => null,
-                'is_active' => true,
+                'status' => 'active',
                 'institutions' => [],
             ],
             TagResource::class => [
@@ -647,7 +645,7 @@ class AdminResourceMutationService
                 'title' => $record->title,
                 'content' => $record->content,
                 'source' => $record->source,
-                'is_active' => (bool) $record->is_active,
+                'status' => (string) $record->status,
                 'clear_main' => false,
             ];
         }
@@ -690,7 +688,6 @@ class AdminResourceMutationService
 
         if ($record instanceof Institution) {
             $defaults['status'] = $record->status;
-            $defaults['is_active'] = (bool) $record->is_active;
             $defaults['allow_public_event_submission'] = (bool) $record->allow_public_event_submission;
             $defaults['clear_logo'] = false;
             $defaults['clear_cover'] = false;
@@ -717,7 +714,6 @@ class AdminResourceMutationService
             );
 
             $defaults['status'] = $record->status;
-            $defaults['is_active'] = (bool) $record->is_active;
             $defaults['allow_public_event_submission'] = (bool) $record->allow_public_event_submission;
             $defaults['clear_avatar'] = false;
             $defaults['clear_cover'] = false;
@@ -727,7 +723,6 @@ class AdminResourceMutationService
         if ($record instanceof Reference) {
             $defaults['is_canonical'] = (bool) $record->is_canonical;
             $defaults['status'] = $record->status;
-            $defaults['is_active'] = (bool) $record->is_active;
             $defaults['clear_front_cover'] = false;
             $defaults['clear_back_cover'] = false;
             $defaults['clear_gallery'] = false;
@@ -739,7 +734,7 @@ class AdminResourceMutationService
                 'slug' => $record->slug,
                 'description' => $record->description,
                 'visibility' => (string) $record->visibility,
-                'is_active' => (bool) $record->is_active,
+                'status' => (string) $record->status,
                 'languages' => $record->languages()->pluck('languages.id')->map(fn (mixed $id): int => (int) $id)->values()->all(),
                 'clear_cover' => false,
                 'clear_gallery' => false,
@@ -752,7 +747,7 @@ class AdminResourceMutationService
 
         if ($record instanceof Venue) {
             $defaults['status'] = $record->status;
-            $defaults['is_active'] = (bool) $record->is_active;
+            $defaults['visibility'] = (string) ($record->visibility ?? 'public');
             $defaults['clear_cover'] = false;
             $defaults['clear_gallery'] = false;
         }
@@ -762,7 +757,8 @@ class AdminResourceMutationService
                 'name' => $record->name,
                 'slug' => $record->slug,
                 'capacity' => $record->capacity,
-                'is_active' => (bool) $record->is_active,
+                'status' => (string) $record->status,
+                'visibility' => (string) ($record->visibility ?? 'public'),
                 'institutions' => $record->institutions()->pluck('institutions.id')->map(fn (mixed $id): string => (string) $id)->values()->all(),
             ];
         }
@@ -1127,8 +1123,7 @@ class AdminResourceMutationService
             )),
             $this->field('type', 'string', required: true, default: InstitutionType::Masjid->value, allowedValues: $this->enumValues(InstitutionType::class)),
             $this->field('description', 'string', required: false),
-            $this->field('status', 'string', required: true, allowedValues: ['unverified', 'pending', 'verified', 'rejected']),
-            $this->field('is_active', 'boolean', required: false, default: true),
+            $this->field('status', 'string', required: true, allowedValues: ['unverified', 'pending', 'verified', 'rejected', 'inactive']),
             $this->field('address', 'object', required: ! $updating, meta: [
                 'mutation_semantics' => 'deep_merge_when_present',
                 'clear_semantics' => [
@@ -1152,7 +1147,6 @@ class AdminResourceMutationService
             ]),
             $this->field('address.admin_area_1_id', 'uuid', required: false),
             $this->field('address.admin_area_2_id', 'uuid', required: false),
-            $this->field('address.admin_area_3_id', 'uuid', required: false),
             $this->field('contacts', 'array<object>', required: false, meta: $this->contactCollectionMeta()),
             $this->field('social_media', 'array<object>', required: false, meta: $this->socialMediaCollectionMeta()),
             $this->field('logo', 'file', required: false, acceptedMimeTypes: $this->logoMimeTypes(), maxFileSizeKb: $this->maxUploadSizeKb()),
@@ -1332,8 +1326,7 @@ class AdminResourceMutationService
                 ),
                 'relation' => 'languages',
             ]),
-            $this->field('status', 'string', required: true, allowedValues: ['pending', 'verified', 'rejected']),
-            $this->field('is_active', 'boolean', required: false, default: true),
+            $this->field('status', 'string', required: true, allowedValues: ['pending', 'verified', 'rejected', 'inactive']),
             $this->field('address', 'object', required: ! $updating, meta: [
                 'mutation_semantics' => 'deep_merge_when_present_visible_fields_only',
                 'clear_semantics' => [
@@ -1366,7 +1359,6 @@ class AdminResourceMutationService
             ]),
             $this->field('address.admin_area_1_id', 'uuid', required: false),
             $this->field('address.admin_area_2_id', 'uuid', required: false),
-            $this->field('address.admin_area_3_id', 'uuid', required: false),
             $this->field('contacts', 'array<object>', required: false, meta: $this->contactCollectionMeta()),
             $this->field('social_media', 'array<object>', required: false, meta: $this->socialMediaCollectionMeta()),
             $this->field('avatar', 'file', required: false, acceptedMimeTypes: $this->imageMimeTypes(), maxFileSizeKb: $this->maxUploadSizeKb()),
@@ -1411,8 +1403,7 @@ class AdminResourceMutationService
             $this->field('publisher', 'string', required: false, maxLength: 255, meta: $this->trimmedStringMutationMeta()),
             $this->field('description', 'string', required: false),
             $this->field('is_canonical', 'boolean', required: false, default: false),
-            $this->field('status', 'string', required: true, default: 'verified', allowedValues: ['pending', 'verified']),
-            $this->field('is_active', 'boolean', required: false, default: true),
+            $this->field('status', 'string', required: true, default: 'verified', allowedValues: ['pending', 'verified', 'inactive']),
             $this->field('social_media', 'array<object>', required: false, meta: $this->socialMediaCollectionMeta()),
             $this->field('front_cover', 'file', required: false, acceptedMimeTypes: $this->imageMimeTypes(), maxFileSizeKb: $this->maxUploadSizeKb()),
             $this->field('back_cover', 'file', required: false, acceptedMimeTypes: $this->imageMimeTypes(), maxFileSizeKb: $this->maxUploadSizeKb()),
@@ -1437,7 +1428,7 @@ class AdminResourceMutationService
             ]),
             $this->field('description', 'string', required: false, maxLength: 5000, meta: $this->trimmedStringMutationMeta()),
             $this->field('visibility', 'string', required: true, default: 'public', allowedValues: ['public', 'unlisted', 'private']),
-            $this->field('is_active', 'boolean', required: false, default: true),
+            $this->field('status', 'string', required: false, default: 'active', allowedValues: ['active', 'inactive']),
             $this->field('languages', 'array<int>', required: false, meta: $this->relationCollectionMeta(
                 'languages',
                 submittedArray: 'replace_relation_sync',
@@ -1468,7 +1459,7 @@ class AdminResourceMutationService
                 ],
             ]),
             $this->field('source', 'string', required: false, maxLength: 255, meta: $this->trimmedStringMutationMeta()),
-            $this->field('is_active', 'boolean', required: false, default: true),
+            $this->field('status', 'string', required: false, default: 'active', allowedValues: ['active', 'inactive']),
             $this->field('main', 'file', required: false, acceptedMimeTypes: $this->imageMimeTypes(), maxFileSizeKb: $this->maxUploadSizeKb(), meta: $this->singleMediaFieldMutationMeta('clear_main')),
             $this->field('clear_main', 'boolean', required: false, default: false),
         ];
@@ -1498,7 +1489,8 @@ class AdminResourceMutationService
                     'minimum' => 1,
                 ],
             ]),
-            $this->field('is_active', 'boolean', required: false, default: true),
+            $this->field('status', 'string', required: false, default: 'active', allowedValues: ['active', 'inactive']),
+            $this->field('visibility', 'string', required: false, default: 'public', allowedValues: ['public', 'unlisted', 'private']),
             $this->field('institutions', 'array<string>', required: false, meta: $this->relationCollectionMeta(
                 'institutions',
                 submittedArray: 'replace_relation_sync',
@@ -1517,8 +1509,8 @@ class AdminResourceMutationService
         return [
             $this->field('name', 'string', required: ! $updating, maxLength: 255),
             $this->field('type', 'string', required: ! $updating, default: VenueType::Dewan->value, allowedValues: $this->enumValues(VenueType::class)),
-            $this->field('status', 'string', required: ! $updating, default: 'verified', allowedValues: ['unverified', 'pending', 'verified', 'rejected']),
-            $this->field('is_active', 'boolean', required: false, default: true),
+            $this->field('status', 'string', required: ! $updating, default: 'verified', allowedValues: ['unverified', 'pending', 'verified', 'rejected', 'inactive']),
+            $this->field('visibility', 'string', required: false, default: 'public', allowedValues: ['public', 'unlisted', 'private']),
             $this->field('facilities', 'array<string>', required: false, allowedValues: $this->venueFacilityValues(), meta: $this->facilitiesCollectionMeta()),
             $this->field('address', 'object', required: ! $updating, meta: [
                 'mutation_semantics' => 'deep_merge_when_present',
@@ -1541,7 +1533,6 @@ class AdminResourceMutationService
             ]),
             $this->field('address.admin_area_1_id', 'uuid', required: false),
             $this->field('address.admin_area_2_id', 'uuid', required: false),
-            $this->field('address.admin_area_3_id', 'uuid', required: false),
             $this->field('contacts', 'array<object>', required: false, meta: $this->contactCollectionMeta()),
             $this->field('social_media', 'array<object>', required: false, meta: $this->socialMediaCollectionMeta()),
             $this->field('cover', 'file', required: false, acceptedMimeTypes: $this->imageMimeTypes(), maxFileSizeKb: $this->maxUploadSizeKb()),
@@ -1581,7 +1572,7 @@ class AdminResourceMutationService
             $this->field('type', 'string', required: true, default: TagType::Domain->value, allowedValues: $this->enumValues(TagType::class), meta: [
                 'mutation_semantics' => 'replace_scalar',
             ]),
-            $this->field('status', 'string', required: true, default: 'verified', allowedValues: ['pending', 'verified']),
+            $this->field('status', 'string', required: true, default: 'verified', allowedValues: ['pending', 'verified', 'inactive']),
             $this->field('order_column', 'integer', required: false, meta: [
                 'mutation_semantics' => 'replace_scalar',
                 'clear_semantics' => [
@@ -1780,7 +1771,6 @@ class AdminResourceMutationService
             $this->field('clear_gallery', 'boolean', required: false, default: false),
             $this->field('is_priority', 'boolean', required: false, default: false),
             $this->field('is_featured', 'boolean', required: false, default: false),
-            $this->field('is_active', 'boolean', required: false, default: true),
             $this->field('escalated_at', 'datetime', required: false),
             $this->field('registration_required', 'boolean', required: false, default: false),
             $this->field('registration_mode', 'string', required: false, default: RegistrationMode::Event->value, allowedValues: $this->enumValues(RegistrationMode::class), meta: [
@@ -2132,14 +2122,12 @@ class AdminResourceMutationService
             'nickname' => ['nullable', 'string', 'max:255'],
             'type' => ['required', Rule::enum(InstitutionType::class)],
             'description' => ['nullable', 'string'],
-            'status' => ['required', Rule::in(['unverified', 'pending', 'verified', 'rejected'])],
-            'is_active' => ['sometimes', 'boolean'],
+            'status' => ['required', Rule::in(['unverified', 'pending', 'verified', 'rejected', 'inactive'])],
             'allow_public_event_submission' => $updating ? ['sometimes', 'boolean'] : ['prohibited'],
             'address' => $addressRule,
             'address.country_id' => $updating ? ['nullable', 'uuid', 'exists:address_countries,id'] : ['required', 'uuid', 'exists:address_countries,id'],
             'address.admin_area_1_id' => ['nullable', 'uuid', 'exists:address_areas,id'],
             'address.admin_area_2_id' => ['nullable', 'uuid', 'exists:address_areas,id'],
-            'address.admin_area_3_id' => ['nullable', 'uuid', 'exists:address_areas,id'],
             'address.line1' => ['nullable', 'string', 'max:255'],
             'address.line2' => ['nullable', 'string', 'max:255'],
             'address.postcode' => ['nullable', 'string', 'max:16'],
@@ -2325,7 +2313,6 @@ class AdminResourceMutationService
             'clear_gallery' => ['sometimes', 'boolean'],
             'is_priority' => ['sometimes', 'boolean'],
             'is_featured' => ['sometimes', 'boolean'],
-            'is_active' => ['sometimes', 'boolean'],
             'escalated_at' => ['nullable', 'date'],
             'registration_required' => ['sometimes', 'boolean'],
             'registration_mode' => ['sometimes', Rule::enum(RegistrationMode::class)],
@@ -2358,8 +2345,7 @@ class AdminResourceMutationService
             'publisher' => ['nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'is_canonical' => ['sometimes', 'boolean'],
-            'status' => [$required, Rule::in(['pending', 'verified'])],
-            'is_active' => ['sometimes', 'boolean'],
+            'status' => [$required, Rule::in(['pending', 'verified', 'inactive'])],
             'social_media' => ['nullable', 'array'],
             'social_media.*.platform' => ['required_with:social_media.*.handle,social_media.*.url', Rule::enum(SocialPlatform::class)],
             'social_media.*.handle' => ['nullable', 'string', 'max:255', 'required_without:social_media.*.url'],
@@ -2387,7 +2373,7 @@ class AdminResourceMutationService
             'slug' => [$required, 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:5000'],
             'visibility' => [$required, Rule::in(['public', 'unlisted', 'private'])],
-            'is_active' => ['sometimes', 'boolean'],
+            'status' => ['sometimes', Rule::in(['active', 'inactive'])],
             'languages' => ['nullable', 'array'],
             'languages.*' => ['integer', 'exists:languages,id'],
             'cover' => ['nullable', 'file', 'mimetypes:image/jpeg,image/png,image/webp', $maxUploadSize],
@@ -2412,7 +2398,7 @@ class AdminResourceMutationService
             'title' => [$required, 'string', 'max:255'],
             'content' => [$required],
             'source' => ['nullable', 'string', 'max:255'],
-            'is_active' => ['sometimes', 'boolean'],
+            'status' => ['sometimes', Rule::in(['active', 'inactive'])],
             'main' => ['nullable', 'file', 'mimetypes:image/jpeg,image/png,image/webp', $maxUploadSize],
             'clear_main' => ['sometimes', 'boolean'],
         ];
@@ -2445,14 +2431,12 @@ class AdminResourceMutationService
             'qualifications.*.year' => ['nullable', 'digits:4'],
             'language_ids' => ['nullable', 'array'],
             'language_ids.*' => ['integer', 'exists:languages,id'],
-            'status' => ['required', Rule::in(['pending', 'verified', 'rejected'])],
-            'is_active' => ['sometimes', 'boolean'],
+            'status' => ['required', Rule::in(['pending', 'verified', 'rejected', 'inactive'])],
             'allow_public_event_submission' => $updating ? ['sometimes', 'boolean'] : ['prohibited'],
             'address' => $addressRule,
             'address.country_id' => $updating ? ['nullable', 'uuid', 'exists:address_countries,id'] : ['required', 'uuid', 'exists:address_countries,id'],
             'address.admin_area_1_id' => ['nullable', 'uuid', 'exists:address_areas,id'],
             'address.admin_area_2_id' => ['nullable', 'uuid', 'exists:address_areas,id'],
-            'address.admin_area_3_id' => ['nullable', 'uuid', 'exists:address_areas,id'],
             'address.line1' => ['prohibited'],
             'address.line2' => ['prohibited'],
             'address.postcode' => ['prohibited'],
@@ -2491,7 +2475,8 @@ class AdminResourceMutationService
             'name' => [$required, 'string', 'max:255'],
             'slug' => [$required, 'string', 'max:255'],
             'capacity' => ['nullable', 'integer', 'min:1'],
-            'is_active' => ['sometimes', 'boolean'],
+            'status' => ['sometimes', Rule::in(['active', 'inactive'])],
+            'visibility' => ['sometimes', Rule::in(['public', 'unlisted', 'private'])],
             'institutions' => ['nullable', 'array'],
             'institutions.*' => ['uuid', 'exists:institutions,id'],
         ];
@@ -2509,7 +2494,7 @@ class AdminResourceMutationService
             'name.ms' => [$required, 'string', 'max:255'],
             'name.en' => ['nullable', 'string', 'max:255'],
             'type' => [$required, Rule::enum(TagType::class)],
-            'status' => [$required, Rule::in(['pending', 'verified'])],
+            'status' => [$required, Rule::in(['pending', 'verified', 'inactive'])],
             'order_column' => ['nullable', 'integer', 'min:0'],
         ];
     }
@@ -2526,15 +2511,14 @@ class AdminResourceMutationService
         return [
             'name' => [$required, 'string', 'max:255'],
             'type' => [$required, Rule::enum(VenueType::class)],
-            'status' => [$required, Rule::in(['unverified', 'pending', 'verified', 'rejected'])],
-            'is_active' => ['sometimes', 'boolean'],
+            'status' => [$required, Rule::in(['unverified', 'pending', 'verified', 'rejected', 'inactive'])],
+            'visibility' => ['sometimes', Rule::in(['public', 'unlisted', 'private'])],
             'facilities' => ['nullable', 'array'],
             'facilities.*' => ['string', Rule::in($this->venueFacilityValues())],
             'address' => $addressRule,
             'address.country_id' => [$updating ? 'sometimes' : 'required', 'uuid', 'exists:address_countries,id'],
             'address.admin_area_1_id' => ['nullable', 'uuid', 'exists:address_areas,id'],
             'address.admin_area_2_id' => ['nullable', 'uuid', 'exists:address_areas,id'],
-            'address.admin_area_3_id' => ['nullable', 'uuid', 'exists:address_areas,id'],
             'address.line1' => ['nullable', 'string', 'max:255'],
             'address.line2' => ['nullable', 'string', 'max:255'],
             'address.postcode' => ['nullable', 'string', 'max:16'],
@@ -2594,21 +2578,13 @@ class AdminResourceMutationService
             $this->catalog($prefix.'.country_id', route('api.admin.catalogs.countries', [], false)),
             $this->catalog(
                 $prefix.'.admin_area_1_id',
-                route('api.admin.catalogs.states', [], false),
+                route('api.admin.catalogs.admin-area-level-1', [], false),
                 ['country_id' => '{'.$prefix.'.country_id}'],
             ),
             $this->catalog(
                 $prefix.'.admin_area_2_id',
-                route('api.admin.catalogs.districts', [], false),
+                route('api.admin.catalogs.admin-area-level-2', [], false),
                 ['admin_area_1_id' => '{'.$prefix.'.admin_area_1_id}'],
-            ),
-            $this->catalog(
-                $prefix.'.admin_area_3_id',
-                route('api.admin.catalogs.subdistricts', [], false),
-                [
-                    'admin_area_1_id' => '{'.$prefix.'.admin_area_1_id}',
-                    'admin_area_2_id' => '{'.$prefix.'.admin_area_2_id}',
-                ],
             ),
         ];
     }

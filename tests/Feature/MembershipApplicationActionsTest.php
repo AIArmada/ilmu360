@@ -41,7 +41,7 @@ it('submits a pending institution membership claim', function () {
 });
 
 it('rejects duplicate pending claims for the same subject and claimant', function () {
-    $speaker = Speaker::factory()->create(['status' => 'verified', 'is_active' => true]);
+    $speaker = Speaker::factory()->create(['status' => 'verified']);
     $claimant = User::factory()->create();
 
     MembershipApplication::factory()

@@ -40,7 +40,10 @@ class ContributionRequest extends Model implements AuditableContract
         'proposed_data',
         'original_data',
         'reviewed_at',
+        'approved_at',
+        'rejected_at',
         'cancelled_at',
+        'last_state_change_at',
     ];
 
     /**
@@ -55,8 +58,11 @@ class ContributionRequest extends Model implements AuditableContract
             'status' => ContributionRequestStatus::class,
             'proposed_data' => 'array',
             'original_data' => 'array',
-            'reviewed_at' => 'datetime',
-            'cancelled_at' => 'datetime',
+            'reviewed_at' => 'immutable_datetime',
+            'approved_at' => 'immutable_datetime',
+            'rejected_at' => 'immutable_datetime',
+            'cancelled_at' => 'immutable_datetime',
+            'last_state_change_at' => 'immutable_datetime',
         ];
     }
 

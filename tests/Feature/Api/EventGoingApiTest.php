@@ -79,14 +79,14 @@ it('lists the current users going events', function () {
         'title' => 'Going Event Two',
         'status' => 'cancelled',
         'visibility' => 'public',
-        'is_active' => true,
+        'status' => 'active',
         'starts_at' => now()->addDays(2),
     ]);
     $inactive = Event::factory()->create([
         'title' => 'Inactive Going Event',
         'status' => 'approved',
         'visibility' => 'public',
-        'is_active' => false,
+        'status' => 'inactive',
         'starts_at' => now()->addDays(4),
     ]);
 
@@ -169,7 +169,7 @@ it('rejects marking going for inactive events', function () {
     $inactiveEvent = Event::factory()->create([
         'status' => 'approved',
         'visibility' => 'public',
-        'is_active' => false,
+        'status' => 'inactive',
         'starts_at' => now()->addDay(),
     ]);
 
@@ -184,7 +184,6 @@ it('rejects marking going for unknown postponed events', function () {
     $postponedEvent = Event::factory()->create([
         'status' => 'approved',
         'visibility' => 'public',
-        'is_active' => true,
         'schedule_state' => ScheduleState::Postponed,
         'starts_at' => now()->addDay(),
     ]);

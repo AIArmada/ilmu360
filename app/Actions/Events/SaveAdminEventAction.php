@@ -68,7 +68,6 @@ final readonly class SaveAdminEventAction
             'registration_mode' => RegistrationMode::None->value,
             'is_priority' => false,
             'is_featured' => false,
-            'is_active' => true,
             'clear_cover' => false,
             'clear_poster' => false,
             'clear_gallery' => false,
@@ -80,7 +79,7 @@ final readonly class SaveAdminEventAction
      */
     public function formStateForRecord(Event $event): array
     {
-        $event->loadMissing(['references:id,title', 'series:id,title', 'tags:id,type', 'keyPeople', 'languages:id,event_id', 'accessPolicy']);
+        $event->loadMissing(['references:id,title', 'series:id,title', 'classifications', 'keyPeople', 'languages:id,event_id', 'accessPolicy']);
 
         $timeFields = AdminEventTimeMapper::injectFormTimeFields([
             'starts_at' => $event->starts_at?->toDateTimeString(),
@@ -91,7 +90,7 @@ final readonly class SaveAdminEventAction
             'prayer_offset' => $event->prayer_offset instanceof BackedEnum ? $event->prayer_offset->value : $event->prayer_offset,
         ]);
 
-        $groupedTags = $event->tags->groupBy('type');
+        $groupedTerms = $event->classifications->groupBy('taxonomy_code');
 
         return array_replace($this->defaultsForCreate(), [
             'status' => (string) $event->status,
@@ -117,10 +116,10 @@ final readonly class SaveAdminEventAction
             'venue_id' => $event->venue_id,
             'space_id' => $event->space_id,
             'languages' => $event->languages->pluck('id')->map(fn (mixed $id): int => (int) $id)->values()->all(),
-            'domain_tags' => $groupedTags->get('domain', collect())->pluck('id')->map(fn (mixed $id): string => (string) $id)->values()->all(),
-            'discipline_tags' => $groupedTags->get('discipline', collect())->pluck('id')->map(fn (mixed $id): string => (string) $id)->values()->all(),
-            'source_tags' => $groupedTags->get('source', collect())->pluck('id')->map(fn (mixed $id): string => (string) $id)->values()->all(),
-            'issue_tags' => $groupedTags->get('issue', collect())->pluck('id')->map(fn (mixed $id): string => (string) $id)->values()->all(),
+            'domain_tags' => $groupedTerms->get('domain', collect())->pluck('event_term_id')->map(fn (mixed $id): string => (string) $id)->values()->all(),
+            'discipline_tags' => $groupedTerms->get('discipline', collect())->pluck('event_term_id')->map(fn (mixed $id): string => (string) $id)->values()->all(),
+            'source_tags' => $groupedTerms->get('source', collect())->pluck('event_term_id')->map(fn (mixed $id): string => (string) $id)->values()->all(),
+            'issue_tags' => $groupedTerms->get('issue', collect())->pluck('event_term_id')->map(fn (mixed $id): string => (string) $id)->values()->all(),
             'references' => $event->references->pluck('id')->map(fn (mixed $id): string => (string) $id)->values()->all(),
             'series' => $event->series->pluck('id')->map(fn (mixed $id): string => (string) $id)->values()->all(),
             'speakers' => $event->keyPeople
@@ -143,7 +142,6 @@ final readonly class SaveAdminEventAction
             'registration_mode' => $event->resolvedRegistrationMode()->value,
             'is_priority' => (bool) $event->is_priority,
             'is_featured' => (bool) $event->is_featured,
-            'is_active' => (bool) $event->is_active,
             'escalated_at' => $event->escalated_at instanceof Carbon
                 ? $event->escalated_at->toDateTimeString()
                 : null,
@@ -223,7 +221,6 @@ final readonly class SaveAdminEventAction
             'space_id' => $spaceId,
             'is_priority' => array_key_exists('is_priority', $state) ? (bool) $state['is_priority'] : (bool) $event->is_priority,
             'is_featured' => array_key_exists('is_featured', $state) ? (bool) $state['is_featured'] : (bool) $event->is_featured,
-            'is_active' => array_key_exists('is_active', $state) ? (bool) $state['is_active'] : ($creating ? true : (bool) $event->is_active),
             'status' => $creating ? 'draft' : (string) $event->status,
             'published_at' => $creating ? null : $event->published_at,
             'escalated_at' => $this->normalizeOptionalDateTime($state['escalated_at'] ?? $event->escalated_at),

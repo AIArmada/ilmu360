@@ -11,7 +11,7 @@ class SpeakerDetailData extends Data
     /**
      * @param  array<string, mixed>|string|null  $bio
      * @param  list<array<string, mixed>>  $qualifications
-     * @param  array{country_id: ?string, admin_area_1_id: ?string, admin_area_2_id: ?string, admin_area_3_id: ?string, admin_area_4_id: ?string}|null  $address
+     * @param  array{country_id: ?string, admin_area_1_id: ?string, admin_area_2_id: ?string}|null  $address
      * @param  array{id: string, name: string, iso2: string, key: ?string}|null  $country
      * @param  array{avatar_url: string, cover_url: string, share_image_url: string}  $media
      * @param  list<array{id: string, name: string, url: string, thumb_url: string}>  $gallery
@@ -33,7 +33,6 @@ class SpeakerDetailData extends Data
         public ?array $country,
         public ?string $location,
         public string $status,
-        public bool $is_active,
         public bool $is_following,
         public int $followers_count,
         public array $media,
@@ -44,7 +43,7 @@ class SpeakerDetailData extends Data
     ) {}
 
     /**
-     * @param  array{country_id: ?string, admin_area_1_id: ?string, admin_area_2_id: ?string, admin_area_3_id: ?string, admin_area_4_id: ?string}|null  $address
+     * @param  array{country_id: ?string, admin_area_1_id: ?string, admin_area_2_id: ?string}|null  $address
      * @param  array{id: string, name: string, iso2: string, key: ?string}|null  $country
      * @param  array<string, string>  $media
      * @param  list<array<string, string>>  $gallery
@@ -78,7 +77,6 @@ class SpeakerDetailData extends Data
             country: $country,
             location: $location,
             status: (string) $speaker->status,
-            is_active: (bool) $speaker->is_active,
             is_following: $user?->isFollowing($speaker) ?? false,
             followers_count: $speaker->followersCount(),
             media: $media,

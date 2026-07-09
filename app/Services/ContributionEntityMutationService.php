@@ -12,6 +12,7 @@ use AIArmada\Contacting\Models\ContactMethod;
 use AIArmada\Contacting\Models\SocialProfile;
 use AIArmada\Membership\Actions\AddMemberAction;
 use AIArmada\Membership\Enums\MemberRole;
+use App\Actions\Events\SyncEventClassificationsAction;
 use App\Actions\Institutions\GenerateInstitutionSlugAction;
 use App\Actions\Speakers\GenerateSpeakerSlugAction;
 use App\Enums\EventAgeGroup;
@@ -162,10 +163,10 @@ class ContributionEntityMutationService
                     $this->field('location_venue_id', 'uuid', catalog: route('api.client.catalogs.venues')),
                     $this->field('space_id', 'uuid', catalog: route('api.client.catalogs.spaces')),
                     $this->field('language_ids', 'array<int>', catalog: route('api.client.catalogs.languages')),
-                    $this->field('domain_tags', 'array<string>', catalog: route('api.client.catalogs.tags', ['type' => TagType::Domain->value])),
-                    $this->field('discipline_tags', 'array<string>', catalog: route('api.client.catalogs.tags', ['type' => TagType::Discipline->value])),
-                    $this->field('source_tags', 'array<string>', catalog: route('api.client.catalogs.tags', ['type' => TagType::Source->value])),
-                    $this->field('issue_tags', 'array<string>', catalog: route('api.client.catalogs.tags', ['type' => TagType::Issue->value])),
+                    $this->field('domain_tags', 'array<string>', catalog: route('api.client.catalogs.taxonomy-terms', ['type' => TagType::Domain->value])),
+                    $this->field('discipline_tags', 'array<string>', catalog: route('api.client.catalogs.taxonomy-terms', ['type' => TagType::Discipline->value])),
+                    $this->field('source_tags', 'array<string>', catalog: route('api.client.catalogs.taxonomy-terms', ['type' => TagType::Source->value])),
+                    $this->field('issue_tags', 'array<string>', catalog: route('api.client.catalogs.taxonomy-terms', ['type' => TagType::Issue->value])),
                     $this->field('reference_ids', 'array<string>', catalog: route('api.client.catalogs.references')),
                     $this->field('series_ids', 'array<string>'),
                     $this->field('speaker_ids', 'array<string>', catalog: route('api.client.catalogs.submit-speakers')),
@@ -198,7 +199,6 @@ class ContributionEntityMutationService
                 'address.country_id' => ['sometimes', 'uuid', 'exists:address_countries,id'],
                 'address.admin_area_1_id' => ['nullable', 'uuid', 'exists:address_areas,id'],
                 'address.admin_area_2_id' => ['nullable', 'uuid', 'exists:address_areas,id'],
-                'address.admin_area_3_id' => ['nullable', 'uuid', 'exists:address_areas,id'],
                 'address.line1' => ['nullable', 'string', 'max:255'],
                 'address.line2' => ['nullable', 'string', 'max:255'],
                 'address.postcode' => ['nullable', 'string', 'max:16'],
@@ -235,7 +235,6 @@ class ContributionEntityMutationService
                 'address.country_id' => ['nullable', 'uuid', 'exists:address_countries,id'],
                 'address.admin_area_1_id' => ['nullable', 'uuid', 'exists:address_areas,id'],
                 'address.admin_area_2_id' => ['nullable', 'uuid', 'exists:address_areas,id'],
-                'address.admin_area_3_id' => ['nullable', 'uuid', 'exists:address_areas,id'],
                 'address.line1' => ['prohibited'],
                 'address.line2' => ['prohibited'],
                 'address.postcode' => ['prohibited'],
@@ -305,13 +304,13 @@ class ContributionEntityMutationService
                 'language_ids' => ['sometimes', 'array'],
                 'language_ids.*' => ['integer', 'exists:languages,id'],
                 'domain_tags' => ['sometimes', 'array'],
-                'domain_tags.*' => ['uuid', Rule::exists('tags', 'id')->where('type', TagType::Domain->value)],
+                'domain_tags.*' => ['string', 'max:120'],
                 'discipline_tags' => ['sometimes', 'array'],
-                'discipline_tags.*' => ['uuid', Rule::exists('tags', 'id')->where('type', TagType::Discipline->value)],
+                'discipline_tags.*' => ['string', 'max:120'],
                 'source_tags' => ['sometimes', 'array'],
-                'source_tags.*' => ['uuid', Rule::exists('tags', 'id')->where('type', TagType::Source->value)],
+                'source_tags.*' => ['string', 'max:120'],
                 'issue_tags' => ['sometimes', 'array'],
-                'issue_tags.*' => ['uuid', Rule::exists('tags', 'id')->where('type', TagType::Issue->value)],
+                'issue_tags.*' => ['string', 'max:120'],
                 'reference_ids' => ['sometimes', 'array'],
                 'reference_ids.*' => ['uuid', 'exists:references,id'],
                 'series_ids' => ['sometimes', 'array'],
@@ -344,7 +343,6 @@ class ContributionEntityMutationService
             'type' => $this->normalizeInstitutionType($payload['type'] ?? null),
             'description' => $payload['description'] ?? null,
             'status' => 'pending',
-            'is_active' => true,
             'allow_public_event_submission' => true,
         ]);
 
@@ -374,7 +372,6 @@ class ContributionEntityMutationService
                 $payload,
             ),
             'status' => 'pending',
-            'is_active' => true,
             'allow_public_event_submission' => true,
         ]);
 
@@ -613,13 +610,12 @@ class ContributionEntityMutationService
             || array_key_exists('source_tags', $payload)
             || array_key_exists('issue_tags', $payload)
         ) {
-            $tags = $this->resolveEventTags($payload);
-            $tagIds = array_map(
-                static fn (Tag $tag): string => (string) $tag->getKey(),
-                $tags,
-            );
-
-            $event->auditSync('tags', $tagIds, true, ['tags.id', 'tags.name', 'tags.type']);
+            app(SyncEventClassificationsAction::class)->handle($event, [
+                'domain_tags' => $payload['domain_tags'] ?? [],
+                'discipline_tags' => $payload['discipline_tags'] ?? [],
+                'source_tags' => $payload['source_tags'] ?? [],
+                'issue_tags' => $payload['issue_tags'] ?? [],
+            ]);
         }
 
         return $dirty;
@@ -698,9 +694,9 @@ class ContributionEntityMutationService
      */
     private function eventState(Event $event): array
     {
-        $event->loadMissing(['references', 'series', 'tags', 'keyPeople', 'languages:id,event_id']);
+        $event->loadMissing(['references', 'series', 'classifications', 'keyPeople', 'languages:id,event_id']);
 
-        $tags = $event->tags->groupBy('type');
+        $tags = $event->classifications->groupBy('taxonomy_code');
 
         return [
             'title' => $event->title,
@@ -733,10 +729,10 @@ class ContributionEntityMutationService
             'venue_id' => $event->venue_id,
             'space_id' => $event->space_id,
             'language_ids' => $event->languages->pluck('id')->map(fn (mixed $id): int => (int) $id)->values()->all(),
-            'domain_tags' => $tags->get(TagType::Domain->value, collect())->pluck('id')->values()->all(),
-            'discipline_tags' => $tags->get(TagType::Discipline->value, collect())->pluck('id')->values()->all(),
-            'source_tags' => $tags->get(TagType::Source->value, collect())->pluck('id')->values()->all(),
-            'issue_tags' => $tags->get(TagType::Issue->value, collect())->pluck('id')->values()->all(),
+            'domain_tags' => $tags->get(TagType::Domain->value, collect())->pluck('event_term_id')->values()->all(),
+            'discipline_tags' => $tags->get(TagType::Discipline->value, collect())->pluck('event_term_id')->values()->all(),
+            'source_tags' => $tags->get(TagType::Source->value, collect())->pluck('event_term_id')->values()->all(),
+            'issue_tags' => $tags->get(TagType::Issue->value, collect())->pluck('event_term_id')->values()->all(),
             'reference_ids' => $event->references->pluck('id')->values()->all(),
             'series_ids' => $event->series->pluck('id')->values()->all(),
             'speaker_ids' => $event->keyPeople
@@ -999,14 +995,12 @@ class ContributionEntityMutationService
             $payload['line1'] ?? null,
             $payload['line2'] ?? null,
             $payload['postcode'] ?? null,
-            $payload['admin_area_1_id'] ?? $payload['state_id'] ?? null,
-            $payload['admin_area_2_id'] ?? $payload['admin_area_1_id'] ?? null,
-            $payload['admin_area_3_id'] ?? $payload['admin_area_2_id'] ?? null,
-            $payload['admin_area_4_id'] ?? null,
-            $payload['latitude'] ?? $payload['lat'] ?? null,
-            $payload['longitude'] ?? $payload['lng'] ?? null,
+            $payload['admin_area_1_id'] ?? null,
+            $payload['admin_area_2_id'] ?? null,
+            $payload['latitude'] ?? null,
+            $payload['longitude'] ?? null,
             $payload['google_maps_url'] ?? null,
-            $payload['provider_place_id'] ?? $payload['google_place_id'] ?? null,
+            $payload['provider_place_id'] ?? null,
             $payload['waze_url'] ?? null,
             $allowCountryOnly ? ($payload['country_id'] ?? $payload['country_code'] ?? $payload['country_key'] ?? null) : null,
         ])->contains(fn (mixed $value): bool => filled($value));
@@ -1047,35 +1041,31 @@ class ContributionEntityMutationService
                 'postcode',
                 'admin_area_1_id',
                 'admin_area_2_id',
-                'admin_area_3_id',
-                'admin_area_4_id',
                 'latitude',
                 'longitude',
                 'google_maps_url',
                 'provider_place_id',
                 'waze_url',
             ] as $field) {
-                if (! array_key_exists($field, $payload) && ! array_key_exists($this->legacyAddressField($field), $payload)) {
+                if (! array_key_exists($field, $payload)) {
                     $payload[$field] = $existingAddress->{$field};
                 }
             }
         }
 
-        $adminArea1Id = $this->normalizeUuid($payload['admin_area_1_id'] ?? $payload['state_id'] ?? null);
-        $adminArea2Id = $this->normalizeUuid($payload['admin_area_2_id'] ?? $payload['admin_area_1_id'] ?? null);
-        $adminArea3Id = $this->normalizeUuid($payload['admin_area_3_id'] ?? $payload['admin_area_2_id'] ?? null);
-        $adminArea4Id = $this->normalizeUuid($payload['admin_area_4_id'] ?? null);
-        $latitude = $payload['latitude'] ?? $payload['lat'] ?? null;
-        $longitude = $payload['longitude'] ?? $payload['lng'] ?? null;
-        $providerPlaceId = $payload['provider_place_id'] ?? $payload['google_place_id'] ?? null;
-        $addressMetadata = $this->resolveAddressMetadata($countryId, $adminArea1Id, $adminArea2Id, $adminArea3Id);
+        $adminArea1Id = $this->normalizeUuid($payload['admin_area_1_id'] ?? null);
+        $adminArea2Id = $this->normalizeUuid($payload['admin_area_2_id'] ?? null);
+        $latitude = $payload['latitude'] ?? null;
+        $longitude = $payload['longitude'] ?? null;
+        $providerPlaceId = $payload['provider_place_id'] ?? null;
+        $addressMetadata = $this->resolveAddressMetadata($countryId, $adminArea1Id, $adminArea2Id);
 
         $attributes = [
             'country_id' => $countryId,
             'admin_area_1_id' => $adminArea1Id,
             'admin_area_2_id' => $adminArea2Id,
-            'admin_area_3_id' => $adminArea3Id,
-            'admin_area_4_id' => $adminArea4Id,
+            'admin_area_3_id' => null,
+            'admin_area_4_id' => null,
             'line1' => $payload['line1'] ?? null,
             'line2' => $payload['line2'] ?? null,
             'postcode' => $payload['postcode'] ?? null,
@@ -1109,26 +1099,34 @@ class ContributionEntityMutationService
         ?string $countryId,
         ?string $adminArea1Id,
         ?string $adminArea2Id,
-        ?string $adminArea3Id,
     ): array {
         $country = $countryId !== null
             ? AddressCountry::query()->find($countryId)
             : null;
-        $stateArea = $adminArea1Id !== null
+        $district = $adminArea1Id !== null
             ? AddressArea::query()->find($adminArea1Id)
             : null;
-        $districtArea = $adminArea2Id !== null
+        $subdistrict = $adminArea2Id !== null
             ? AddressArea::query()->find($adminArea2Id)
             : null;
-        $cityArea = $adminArea3Id !== null
-            ? AddressArea::query()->find($adminArea3Id)
-            : null;
+
+        $stateName = null;
+        if ($district instanceof AddressArea && is_string($district->parent_id) && $district->parent_id !== '') {
+            $stateName = AddressArea::query()->whereKey($district->parent_id)->value('name');
+        } elseif ($subdistrict instanceof AddressArea && is_string($subdistrict->parent_id) && $subdistrict->parent_id !== '') {
+            $parent = AddressArea::query()->find($subdistrict->parent_id);
+            if ($parent instanceof AddressArea && (int) $parent->level === 1) {
+                $stateName = $parent->name;
+            } elseif ($parent instanceof AddressArea && is_string($parent->parent_id)) {
+                $stateName = AddressArea::query()->whereKey($parent->parent_id)->value('name');
+            }
+        }
 
         return [
             'country' => $country?->name,
             'country_code' => $country?->iso2,
-            'state' => $stateArea?->name,
-            'city' => $cityArea->name ?? $districtArea?->name,
+            'state' => is_string($stateName) && $stateName !== '' ? $stateName : null,
+            'city' => $subdistrict?->name ?? $district?->name,
         ];
     }
 
@@ -1148,20 +1146,13 @@ class ContributionEntityMutationService
             'country_key',
             'admin_area_1_id',
             'admin_area_2_id',
-            'admin_area_3_id',
-            'admin_area_4_id',
-            'admin_area_1_id',
-            'admin_area_2_id',
             'line1',
             'line2',
             'postcode',
             'latitude',
             'longitude',
-            'lat',
-            'lng',
             'google_maps_url',
             'provider_place_id',
-            'google_place_id',
             'waze_url',
         ];
 
@@ -1237,19 +1228,6 @@ class ContributionEntityMutationService
         }
 
         return Str::isUuid($trimmed) || ctype_digit($trimmed) ? $trimmed : null;
-    }
-
-    private function legacyAddressField(string $field): string
-    {
-        return match ($field) {
-            'admin_area_1_id' => 'state_id',
-            'admin_area_2_id' => 'admin_area_1_id',
-            'admin_area_3_id' => 'admin_area_2_id',
-            'latitude' => 'lat',
-            'longitude' => 'lng',
-            'provider_place_id' => 'google_place_id',
-            default => $field,
-        };
     }
 
     /**
@@ -1578,7 +1556,7 @@ class ContributionEntityMutationService
             'country_id' => $address->country_id ?? $this->addressingCountryResolver->resolveId($address->country_code),
             'admin_area_1_id' => $address->admin_area_1_id,
             'admin_area_2_id' => $address->admin_area_2_id,
-            'admin_area_3_id' => $address->admin_area_3_id,
+            'admin_area_3_id' => null,
             'admin_area_4_id' => $address->admin_area_4_id,
             'line1' => $address->line1,
             'line2' => $address->line2,

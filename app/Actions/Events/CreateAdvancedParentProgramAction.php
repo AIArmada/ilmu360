@@ -59,7 +59,7 @@ class CreateAdvancedParentProgramAction
                 'schedule_kind' => 'single',
                 'schedule_state' => 'active',
                 'status' => 'draft',
-                'is_active' => true,
+
             ]);
 
             $parentEvent->accessPolicy()->create([

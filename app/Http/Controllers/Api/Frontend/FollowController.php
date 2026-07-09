@@ -136,7 +136,7 @@ class FollowController extends FrontendController
             $subject,
         );
 
-        if (! $record->is_active || ($record->status !== 'verified' && ! $user->hasAnyRole(['super_admin', 'moderator']))) {
+        if ($record->status !== 'verified' && ! $user->hasAnyRole(['super_admin', 'moderator'])) {
             abort(404);
         }
 
@@ -152,7 +152,7 @@ class FollowController extends FrontendController
             $subject,
         );
 
-        abort_unless($record->is_active, 404);
+        abort_unless(in_array((string) $record->status, ['verified', 'pending'], true), 404);
 
         return $record;
     }

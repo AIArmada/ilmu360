@@ -181,7 +181,7 @@ it('returns admin speaker resource metadata and records', function () {
         ->assertJsonPath('data.resource.api_routes.schema', '/api/v1/admin/speakers/schema')
         ->assertJsonPath('data.resource.filters.0.key', 'status')
         ->assertJsonPath('data.resource.filters.0.options.verified', 'Verified')
-        ->assertJsonPath('data.resource.filters.1.key', 'is_active')
+        ->assertJsonPath('data.resource.filters.1.key', 'status')
         ->assertJsonPath('data.resource.filters.2.key', 'has_events')
         ->assertJsonPath('data.resource.mcp_tools.get_record_actions.tool', 'admin-get-record-actions')
         ->assertJsonPath('data.resource.mcp_tools.create.arguments.validate_only', false)
@@ -228,19 +228,16 @@ it('filters admin speaker records by explicit query parameters', function () {
     $speakerWithEvents = Speaker::factory()->create([
         'name' => 'Alpha Verified Speaker',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $speakerWithoutEvents = Speaker::factory()->create([
         'name' => 'Beta Verified Speaker',
-        'status' => 'verified',
-        'is_active' => false,
+        'status' => 'inactive',
     ]);
 
     $pendingSpeaker = Speaker::factory()->create([
         'name' => 'Gamma Pending Speaker',
         'status' => 'pending',
-        'is_active' => true,
     ]);
 
     Event::factory()->create([
@@ -258,7 +255,7 @@ it('filters admin speaker records by explicit query parameters', function () {
     expect(in_array($speakerWithoutEvents->getKey(), $verifiedIds, true))->toBeTrue();
     expect(in_array($pendingSpeaker->getKey(), $verifiedIds, true))->toBeFalse();
 
-    $inactiveResponse = $this->getJson('/api/v1/admin/speakers?filter[is_active]=0')
+    $inactiveResponse = $this->getJson('/api/v1/admin/speakers?filter[status]=inactive')
         ->assertOk();
 
     $inactiveIds = collect($inactiveResponse->json('data'))->pluck('id')->all();
@@ -281,12 +278,10 @@ it('uses the richer speaker institution and reference search behavior on the adm
         'name' => 'Admin API Decorated Speaker',
         'pre_nominal' => ['syeikhul_maqari'],
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $otherSpeaker = Speaker::factory()->create([
         'name' => 'Admin API Other Speaker',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     app(SpeakerSearchService::class)->syncSpeakerRecord($matchingSpeaker);
@@ -296,12 +291,10 @@ it('uses the richer speaker institution and reference search behavior on the adm
         'name' => 'Masjid Sultan Salahuddin Abdul Aziz Shah',
         'nickname' => 'Masjid Biru',
         'status' => 'verified',
-        'is_active' => true,
     ]);
     Institution::factory()->create([
         'name' => 'Pusat Pengajian An-Nur',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $matchingReference = Reference::factory()->create([
@@ -309,12 +302,10 @@ it('uses the richer speaker institution and reference search behavior on the adm
         'author' => 'Imam Contoh',
         'description' => 'Syarahan tajwid dan adab',
         'status' => 'verified',
-        'is_active' => true,
     ]);
     Reference::factory()->create([
         'title' => 'Rujukan Lain',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     Sanctum::actingAs($admin);
@@ -343,7 +334,7 @@ it('filters admin event records by explicit query parameters', function () {
         'status' => 'draft',
         'event_format' => EventFormat::Online,
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
+        'status' => 'active',
         'event_type' => [EventType::KuliahCeramah->value],
     ]);
 
@@ -352,7 +343,7 @@ it('filters admin event records by explicit query parameters', function () {
         'status' => 'approved',
         'event_format' => EventFormat::Physical,
         'visibility' => EventVisibility::Private,
-        'is_active' => false,
+        'status' => 'inactive',
         'event_type' => [EventType::Forum->value],
     ]);
 
@@ -361,7 +352,7 @@ it('filters admin event records by explicit query parameters', function () {
         'status' => 'cancelled',
         'event_format' => EventFormat::Hybrid,
         'visibility' => EventVisibility::Unlisted,
-        'is_active' => true,
+        'status' => 'active',
         'event_type' => [EventType::Kenduri->value],
     ]);
 
@@ -371,7 +362,7 @@ it('filters admin event records by explicit query parameters', function () {
         ->assertOk();
 
     expect(collect($metaResponse->json('data.resource.filters'))->pluck('key')->all())
-        ->toContain('status', 'visibility', 'event_structure', 'event_format', 'event_type', 'timing_mode', 'prayer_reference', 'is_active');
+        ->toContain('status', 'visibility', 'event_structure', 'event_format', 'event_type', 'timing_mode', 'prayer_reference');
 
     $draftResponse = $this->getJson('/api/v1/admin/events?filter[status]=draft')
         ->assertOk();
@@ -397,7 +388,7 @@ it('filters admin event records by explicit query parameters', function () {
         ->and(collect($privateResponse->json('data'))->pluck('route_key')->all())->not->toContain($draftOnlineEvent->getRouteKey())
         ->and(collect($privateResponse->json('data'))->pluck('route_key')->all())->not->toContain($cancelledHybridEvent->getRouteKey());
 
-    $inactiveResponse = $this->getJson('/api/v1/admin/events?filter[is_active]=false')
+    $inactiveResponse = $this->getJson('/api/v1/admin/events?filter[status]=inactive')
         ->assertOk();
 
     expect($inactiveResponse->json('meta.pagination.total'))->toBe(1)
@@ -418,7 +409,6 @@ it('allows admin api event create payload to control initial workflow status', f
     $admin = adminApiUser('super_admin');
     $institution = Institution::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     Sanctum::actingAs($admin);
@@ -450,7 +440,7 @@ it('allows admin api event create payload to control initial workflow status', f
         'registration_required' => false,
         'registration_mode' => RegistrationMode::Event->value,
         'is_featured' => false,
-        'is_active' => true,
+        'status' => 'active',
     ];
 
     $draftResponse = $this->postJson('/api/v1/admin/events', array_replace($basePayload, [
@@ -495,14 +485,12 @@ it('filters admin event records by top-level date parameters and combines date f
         'title' => 'Admin API Date Plus Status Match',
         'starts_at' => Carbon::parse('2026-05-10 02:00:00', 'UTC'),
         'status' => 'approved',
-        'is_active' => true,
     ]);
 
     Event::factory()->create([
         'title' => 'Admin API Date Plus Status Wrong Status',
         'starts_at' => Carbon::parse('2026-05-10 05:00:00', 'UTC'),
         'status' => 'draft',
-        'is_active' => true,
     ]);
 
     $withinRange = Event::factory()->create([
@@ -558,21 +546,18 @@ it('surfaces public event change projections on admin event detail payloads', fu
         'slug' => 'admin-api-change-surface-original',
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
     ]);
     $firstReplacement = Event::factory()->create([
         'title' => 'Admin API Change Surface First Replacement',
         'slug' => 'admin-api-change-surface-first-replacement',
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
     ]);
     $finalReplacement = Event::factory()->create([
         'title' => 'Admin API Change Surface Final Replacement',
         'slug' => 'admin-api-change-surface-final-replacement',
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
     ]);
 
     EventChangeAnnouncement::unguarded(function () use ($actor, $original, $firstReplacement, $finalReplacement): void {
@@ -650,7 +635,7 @@ it('previews admin speaker creation without persisting the record', function () 
         'gender' => 'male',
         'status' => 'verified',
         'is_freelance' => false,
-        'is_active' => true,
+        'status' => 'active',
         'address' => [
             'country_id' => ensureAdminApiMalaysiaCountryExists(),
         ],
@@ -686,7 +671,7 @@ it('previews admin speaker updates without persisting the record', function () {
         'status' => 'verified',
         'is_freelance' => true,
         'job_title' => 'Imam',
-        'is_active' => true,
+        'status' => 'active',
         'allow_public_event_submission' => true,
         'address' => [
             'country_id' => ensureAdminApiMalaysiaCountryExists(),
@@ -1283,7 +1268,7 @@ it('exposes inspiration write schema and can create and update inspirations thro
         'title' => 'Admin API Inspiration',
         'content' => 'Admin API inspiration content.',
         'source' => 'Admin API Source',
-        'is_active' => true,
+        'status' => 'active',
         'main' => fakeGeneratedImageUpload('admin-api-inspiration-main.png', 1280, 720),
     ])->assertCreated();
 
@@ -1293,7 +1278,7 @@ it('exposes inspiration write schema and can create and update inspirations thro
     expect($inspiration->getRawOriginal('category'))->toBe('quran_quote')
         ->and($inspiration->locale)->toBe('ms')
         ->and($inspiration->title)->toBe('Admin API Inspiration')
-        ->and($inspiration->is_active)->toBeTrue()
+        ->and((string) $inspiration->status)->toBeIn(['verified', 'pending'])
         ->and($inspiration->getMedia('main'))->toHaveCount(1);
 
     $this->putJson('/api/v1/admin/inspirations/'.$inspirationRouteKey, [
@@ -1311,13 +1296,13 @@ it('exposes inspiration write schema and can create and update inspirations thro
             ]],
         ],
         'source' => 'Updated API Source',
-        'is_active' => false,
+        'status' => 'inactive',
         'clear_main' => true,
     ])->assertOk()
         ->assertJsonPath('data.record.attributes.category', 'hadith_quote')
         ->assertJsonPath('data.record.attributes.locale', 'en')
         ->assertJsonPath('data.record.attributes.title', 'Admin API Inspiration Updated')
-        ->assertJsonPath('data.record.attributes.is_active', false);
+        ->assertJsonPath('data.record.attributes.status', false);
 
     $inspiration->refresh();
 
@@ -1325,7 +1310,7 @@ it('exposes inspiration write schema and can create and update inspirations thro
         ->and($inspiration->locale)->toBe('en')
         ->and($inspiration->title)->toBe('Admin API Inspiration Updated')
         ->and($inspiration->source)->toBe('Updated API Source')
-        ->and($inspiration->is_active)->toBeFalse()
+        ->and((string) $inspiration->status)->toBe('inactive')
         ->and($inspiration->getMedia('main'))->toHaveCount(0);
 });
 
@@ -1362,7 +1347,7 @@ it('clears inspiration source while preserving existing main media through the a
         'title' => 'Admin API Inspiration Preserve Main',
         'content' => 'Original inspiration content.',
         'source' => 'Original inspiration source.',
-        'is_active' => true,
+        'status' => 'active',
         'main' => fakeGeneratedImageUpload('admin-api-inspiration-preserve-main.png', 1280, 720),
     ])->assertCreated();
 
@@ -1375,7 +1360,7 @@ it('clears inspiration source while preserving existing main media through the a
         'title' => 'Admin API Inspiration Preserve Main',
         'content' => 'Updated inspiration content.',
         'source' => '',
-        'is_active' => true,
+        'status' => 'active',
     ])->assertOk()
         ->assertJsonPath('data.record.attributes.source', null);
 
@@ -1408,7 +1393,7 @@ it('exposes series write schema and can create and update series through the api
         'slug' => 'admin-api-series-'.$suffix,
         'description' => 'Series created through the admin API.',
         'visibility' => 'public',
-        'is_active' => true,
+        'status' => 'active',
         'cover' => fakeGeneratedImageUpload('series-cover.png', 1280, 720),
         'gallery' => [
             fakeGeneratedImageUpload('series-gallery.png', 1280, 720),
@@ -1428,7 +1413,7 @@ it('exposes series write schema and can create and update series through the api
         'slug' => 'admin-api-series-updated-'.$suffix,
         'description' => 'Series updated through the admin API.',
         'visibility' => 'private',
-        'is_active' => false,
+        'status' => 'inactive',
         'languages' => [],
         'clear_cover' => true,
         'clear_gallery' => true,
@@ -1436,14 +1421,14 @@ it('exposes series write schema and can create and update series through the api
         ->assertJsonPath('data.record.attributes.title', 'Admin API Series Updated '.$suffix)
         ->assertJsonPath('data.record.attributes.slug', 'admin-api-series-updated-'.$suffix)
         ->assertJsonPath('data.record.attributes.visibility', 'private')
-        ->assertJsonPath('data.record.attributes.is_active', false);
+        ->assertJsonPath('data.record.attributes.status', false);
 
     $series->refresh();
 
     expect($series->title)->toBe('Admin API Series Updated '.$suffix)
         ->and($series->slug)->toBe('admin-api-series-updated-'.$suffix)
         ->and($series->visibility)->toBe('private')
-        ->and($series->is_active)->toBeFalse()
+        ->and((string) $series->status)->toBe('inactive')
         ->and($series->getMedia('cover'))->toHaveCount(0)
         ->and($series->getMedia('gallery'))->toHaveCount(0);
 });
@@ -1520,13 +1505,13 @@ it('exposes space write schema and can create and update spaces through the api'
         ->json('data.schema');
 
     expect(collect($schema['fields'] ?? [])->pluck('name')->all())
-        ->toContain('name', 'slug', 'capacity', 'is_active', 'institutions');
+        ->toContain('name', 'slug', 'capacity', 'status', 'institutions');
 
     $createResponse = $this->postJson('/api/v1/admin/spaces', [
         'name' => 'Admin API Space '.$suffix,
         'slug' => 'admin-api-space-'.$suffix,
         'capacity' => 80,
-        'is_active' => true,
+        'status' => 'active',
         'institutions' => [(string) $firstInstitution->getKey()],
     ])->assertCreated();
 
@@ -1542,20 +1527,20 @@ it('exposes space write schema and can create and update spaces through the api'
         'name' => 'Admin API Space Updated '.$suffix,
         'slug' => 'admin-api-space-updated-'.$suffix,
         'capacity' => 120,
-        'is_active' => false,
+        'status' => 'inactive',
         'institutions' => [(string) $secondInstitution->getKey()],
     ])->assertOk()
         ->assertJsonPath('data.record.attributes.name', 'Admin API Space Updated '.$suffix)
         ->assertJsonPath('data.record.attributes.slug', 'admin-api-space-updated-'.$suffix)
         ->assertJsonPath('data.record.attributes.capacity', 120)
-        ->assertJsonPath('data.record.attributes.is_active', false);
+        ->assertJsonPath('data.record.attributes.status', false);
 
     $space->refresh();
 
     expect($space->name)->toBe('Admin API Space Updated '.$suffix)
         ->and($space->slug)->toBe('admin-api-space-updated-'.$suffix)
         ->and($space->capacity)->toBe(120)
-        ->and($space->is_active)->toBeFalse()
+        ->and((string) $space->status)->toBe('inactive')
         ->and($space->institutions()->pluck('institutions.id')->all())->toContain($secondInstitution->getKey())
         ->and($space->institutions()->pluck('institutions.id')->all())->not->toContain($firstInstitution->getKey());
 });
@@ -1838,7 +1823,7 @@ it('exposes admin speaker write schema and can create and update speakers throug
         'gender' => 'male',
         'status' => 'verified',
         'is_freelance' => false,
-        'is_active' => true,
+        'status' => 'active',
         'address' => [
             'country_id' => ensureAdminApiMalaysiaCountryExists(),
         ],
@@ -1861,7 +1846,7 @@ it('exposes admin speaker write schema and can create and update speakers throug
         'status' => 'verified',
         'is_freelance' => true,
         'job_title' => 'Imam',
-        'is_active' => true,
+        'status' => 'active',
         'allow_public_event_submission' => true,
         'address' => [
             'country_id' => ensureAdminApiMalaysiaCountryExists(),
@@ -1882,7 +1867,7 @@ it('requires explicit country and still prohibits detailed address fields when c
         'gender' => 'male',
         'status' => 'verified',
         'is_freelance' => false,
-        'is_active' => true,
+        'status' => 'active',
         'address' => [],
     ])->assertUnprocessable()
         ->assertJsonValidationErrors([
@@ -1894,7 +1879,7 @@ it('requires explicit country and still prohibits detailed address fields when c
         'gender' => 'male',
         'status' => 'verified',
         'is_freelance' => false,
-        'is_active' => true,
+        'status' => 'active',
         'address' => [
             'country_id' => ensureAdminApiMalaysiaCountryExists(),
             'line1' => 'Alamat Lama',
@@ -1919,7 +1904,7 @@ it('returns fresh speaker address data on admin GET requests after updates', fun
         'gender' => 'male',
         'status' => 'verified',
         'is_freelance' => false,
-        'is_active' => true,
+        'status' => 'active',
         'address' => [
             'country_id' => $firstFixtures['country_id'],
             'admin_area_1_id' => $firstFixtures['state_id'],
@@ -1942,7 +1927,7 @@ it('returns fresh speaker address data on admin GET requests after updates', fun
         'gender' => 'male',
         'status' => 'verified',
         'is_freelance' => false,
-        'is_active' => true,
+        'status' => 'active',
         'address' => [
             'country_id' => $secondFixtures['country_id'],
             'admin_area_1_id' => $secondFixtures['state_id'],
@@ -1983,7 +1968,7 @@ it('surfaces speaker update semantics and collection rules through the admin api
         'gender' => 'male',
         'status' => 'verified',
         'is_freelance' => false,
-        'is_active' => true,
+        'status' => 'active',
         'address' => [
             'country_id' => ensureAdminApiMalaysiaCountryExists(),
         ],
@@ -2045,7 +2030,7 @@ it('replaces speaker collections and still requires an explicit country when mut
             'year' => '2010',
         ]],
         'language_ids' => [$languageMalay->id],
-        'is_active' => true,
+        'status' => 'active',
         'address' => [
             'country_id' => ensureAdminApiMalaysiaCountryExists(),
         ],
@@ -2161,7 +2146,6 @@ it('allows sparse venue address updates without resending the existing country t
         'name' => 'Admin API Sparse Venue Country',
         'type' => 'dewan',
         'status' => 'verified',
-        'is_active' => true,
         'address' => [
             'country_id' => ensureAdminApiMalaysiaCountryExists(),
             'line1' => 'Alamat Asal',
@@ -2174,7 +2158,6 @@ it('allows sparse venue address updates without resending the existing country t
         'name' => 'Admin API Sparse Venue Country',
         'type' => 'dewan',
         'status' => 'verified',
-        'is_active' => true,
         'address' => [
             'line1' => 'Alamat Terkini Tanpa Country',
         ],
@@ -2209,7 +2192,6 @@ it('exposes admin institution write schema and can create and update institution
         'nickname' => 'API Surau',
         'type' => 'masjid',
         'status' => 'verified',
-        'is_active' => true,
         'address' => [
             'country_id' => ensureAdminApiMalaysiaCountryExists(),
         ],
@@ -2227,7 +2209,6 @@ it('exposes admin institution write schema and can create and update institution
         'nickname' => 'API Masjid',
         'type' => 'masjid',
         'status' => 'pending',
-        'is_active' => true,
         'allow_public_event_submission' => true,
         'address' => [
             'country_id' => ensureAdminApiMalaysiaCountryExists(),
@@ -2247,7 +2228,6 @@ it('preserves institution address line1 when sparse map fields are updated throu
         'name' => 'Admin API Sparse Institution',
         'type' => 'masjid',
         'status' => 'verified',
-        'is_active' => true,
         'address' => [
             'country_id' => ensureAdminApiMalaysiaCountryExists(),
             'line1' => 'Alamat Asal Institusi',
@@ -2291,7 +2271,6 @@ it('surfaces institution update semantics and nested item schemas through the ad
         'nickname' => 'Schema Surface',
         'type' => 'masjid',
         'status' => 'verified',
-        'is_active' => true,
         'address' => [
             'country_id' => ensureAdminApiMalaysiaCountryExists(),
         ],
@@ -2335,7 +2314,6 @@ it('preserves institution nickname on null-like input through the admin api', fu
         'nickname' => 'API Surau',
         'type' => 'masjid',
         'status' => 'verified',
-        'is_active' => true,
         'address' => [
             'country_id' => ensureAdminApiMalaysiaCountryExists(),
         ],
@@ -2348,7 +2326,6 @@ it('preserves institution nickname on null-like input through the admin api', fu
         'nickname' => null,
         'type' => 'masjid',
         'status' => 'verified',
-        'is_active' => true,
     ])->assertOk()
         ->assertJsonPath('data.record.attributes.nickname', 'API Surau');
 
@@ -2359,7 +2336,6 @@ it('preserves institution nickname on null-like input through the admin api', fu
         'nickname' => '',
         'type' => 'masjid',
         'status' => 'verified',
-        'is_active' => true,
     ])->assertOk()
         ->assertJsonPath('data.record.attributes.nickname', 'API Surau');
 
@@ -2376,7 +2352,6 @@ it('treats empty institution address objects as a no-op when the record already 
         'name' => 'Admin API Institution Empty Address',
         'type' => 'masjid',
         'status' => 'verified',
-        'is_active' => true,
         'address' => [
             'country_id' => ensureAdminApiMalaysiaCountryExists(),
             'line1' => 'Alamat Tidak Patut Hilang',
@@ -2389,7 +2364,6 @@ it('treats empty institution address objects as a no-op when the record already 
         'name' => 'Admin API Institution Empty Address',
         'type' => 'masjid',
         'status' => 'verified',
-        'is_active' => true,
         'address' => [],
     ])->assertOk()
         ->assertJsonPath('data.record.attributes.address.country_id', ensureAdminApiMalaysiaCountryExists())
@@ -2408,7 +2382,6 @@ it('replaces institution contacts and social media collections and canonicalizes
         'name' => 'Admin API Institution Collections',
         'type' => 'masjid',
         'status' => 'verified',
-        'is_active' => true,
         'address' => [
             'country_id' => ensureAdminApiMalaysiaCountryExists(),
         ],
@@ -2449,7 +2422,6 @@ it('replaces institution contacts and social media collections and canonicalizes
         'name' => 'Admin API Institution Collections Updated',
         'type' => 'masjid',
         'status' => 'verified',
-        'is_active' => true,
         'address' => [
             'country_id' => ensureAdminApiMalaysiaCountryExists(),
         ],
@@ -2495,7 +2467,6 @@ it('replaces institution contacts and social media collections and canonicalizes
         'name' => 'Admin API Institution Collections Updated',
         'type' => 'masjid',
         'status' => 'verified',
-        'is_active' => true,
         'address' => [
             'country_id' => ensureAdminApiMalaysiaCountryExists(),
         ],
@@ -2521,7 +2492,6 @@ it('exposes institution contacts and social_media in admin-get-record response',
         'name' => 'Admin API Get Record Contacts Institution',
         'type' => 'masjid',
         'status' => 'verified',
-        'is_active' => true,
         'address' => ['country_id' => ensureAdminApiMalaysiaCountryExists()],
         'contacts' => [
             ['type' => 'email', 'value' => 'get-record@example.test', 'purpose' => 'general', 'is_public' => true],
@@ -2575,14 +2545,13 @@ it('exposes admin venue write schema and can create and update venues through th
         ->assertJsonPath('data.schema.endpoint', '/api/v1/admin/venues')
         ->assertJsonPath('data.schema.content_type', 'multipart/form-data')
         ->assertJsonPath('data.schema.defaults.type', 'dewan')
-        ->assertJsonPath('data.schema.defaults.is_active', true)
+        ->assertJsonPath('data.schema.defaults.status', 'active')
         ->assertJsonPath('data.schema.catalogs.0.field', 'address.country_id');
 
     $createResponse = $this->postJson('/api/v1/admin/venues', [
         'name' => 'Admin API Venue',
         'type' => 'dewan',
         'status' => 'verified',
-        'is_active' => true,
         'facilities' => ['parking', 'oku'],
         'address' => [
             'country_id' => ensureAdminApiMalaysiaCountryExists(),
@@ -2612,7 +2581,7 @@ it('exposes admin venue write schema and can create and update venues through th
     expect($venue->name)->toBe('Admin API Venue')
         ->and($venue->slug)->toBe('admin-api-venue-my')
         ->and($venue->status)->toBe('verified')
-        ->and($venue->is_active)->toBeTrue()
+        ->and((string) $venue->status)->toBeIn(['verified', 'pending'])
         ->and($venue->facilities)->toBe([
             'parking' => true,
             'oku' => true,
@@ -2626,8 +2595,7 @@ it('exposes admin venue write schema and can create and update venues through th
     $this->putJson('/api/v1/admin/venues/'.$venueRouteKey, [
         'name' => 'Admin API Venue Updated',
         'type' => 'auditorium',
-        'status' => 'pending',
-        'is_active' => false,
+        'status' => 'inactive',
         'facilities' => ['women_section', 'ablution_area'],
         'address' => [
             'country_id' => ensureAdminApiMalaysiaCountryExists(),
@@ -2651,7 +2619,7 @@ it('exposes admin venue write schema and can create and update venues through th
         ->assertJsonPath('data.record.attributes.name', 'Admin API Venue Updated')
         ->assertJsonPath('data.record.attributes.slug', 'admin-api-venue-updated-my')
         ->assertJsonPath('data.record.attributes.venue_type', 'auditorium')
-        ->assertJsonPath('data.record.attributes.metadata.is_active', false);
+        ->assertJsonPath('data.record.attributes.status', 'inactive');
 
     $venue = withGlobalOwnerContext(
         fn (): Venue => $venue->refresh()->load(['address', 'contacts', 'socialMedia']),
@@ -2661,7 +2629,7 @@ it('exposes admin venue write schema and can create and update venues through th
         ->and($venue->slug)->toBe('admin-api-venue-updated-my')
         ->and($venue->getRawOriginal('venue_type'))->toBe('auditorium')
         ->and($venue->status)->toBe('pending')
-        ->and($venue->is_active)->toBeFalse()
+        ->and((string) $venue->status)->toBe('inactive')
         ->and($venue->facilities)->toBe([
             'women_section' => true,
             'ablution_area' => true,
@@ -2675,8 +2643,7 @@ it('exposes admin venue write schema and can create and update venues through th
     $this->putJson('/api/v1/admin/venues/'.$venueRouteKey, [
         'name' => 'Admin API Venue Updated',
         'type' => 'auditorium',
-        'status' => 'pending',
-        'is_active' => false,
+        'status' => 'inactive',
         'address' => [
             'google_maps_url' => 'https://example.com/venues/admin-api-venue-updated',
             'latitude' => 3.147,
@@ -2699,7 +2666,6 @@ it('surfaces venue update semantics and destructive empty-address behavior throu
         'name' => 'Admin API Venue Schema Surface',
         'type' => 'dewan',
         'status' => 'verified',
-        'is_active' => true,
         'address' => [
             'country_id' => ensureAdminApiMalaysiaCountryExists(),
             'line1' => 'Dewan Schema',
@@ -2735,7 +2701,6 @@ it('replaces venue collections and deletes the address on an empty object throug
         'name' => 'Admin API Venue Collections',
         'type' => 'dewan',
         'status' => 'verified',
-        'is_active' => true,
         'facilities' => ['parking', 'oku'],
         'address' => [
             'country_id' => ensureAdminApiMalaysiaCountryExists(),
@@ -2898,7 +2863,6 @@ it('exposes admin reference write schema and can create and update references th
         'description' => 'Admin API reference description.',
         'is_canonical' => true,
         'status' => 'verified',
-        'is_active' => true,
         'social_media' => [
             [
                 'platform' => 'website',
@@ -2917,7 +2881,7 @@ it('exposes admin reference write schema and can create and update references th
         ->and($reference->slug)->toBe('admin-api-reference')
         ->and($reference->is_canonical)->toBeTrue()
         ->and($reference->status)->toBe('verified')
-        ->and($reference->is_active)->toBeTrue()
+        ->and((string) $reference->status)->toBeIn(['verified', 'pending'])
         ->and($reference->socialMedia)->toHaveCount(1)
         ->and($reference->socialMedia->first()?->platform)->toBe('website');
 
@@ -2942,8 +2906,7 @@ it('exposes admin reference write schema and can create and update references th
         'publisher' => 'Admin API Review',
         'description' => 'Updated admin API reference description.',
         'is_canonical' => false,
-        'status' => 'pending',
-        'is_active' => false,
+        'status' => 'inactive',
         'social_media' => [
             [
                 'platform' => 'youtube',
@@ -2966,7 +2929,7 @@ it('exposes admin reference write schema and can create and update references th
         ->and($reference->publisher)->toBe('Admin API Review')
         ->and($reference->is_canonical)->toBeFalse()
         ->and($reference->status)->toBe('pending')
-        ->and($reference->is_active)->toBeFalse()
+        ->and((string) $reference->status)->toBe('inactive')
         ->and($reference->socialMedia)->toHaveCount(1)
         ->and($reference->socialMedia->first()?->platform)->toBe('youtube');
 
@@ -3013,7 +2976,6 @@ it('clears normalized reference scalars and replaces canonicalized social media 
         'publication_year' => '2024',
         'publisher' => 'Penerbit Lama',
         'status' => 'verified',
-        'is_active' => true,
         'social_media' => [[
             'platform' => 'website',
             'url' => 'https://example.com/references/admin-api-reference-collections',
@@ -3036,7 +2998,6 @@ it('clears normalized reference scalars and replaces canonicalized social media 
         'publication_year' => '',
         'publisher' => '',
         'status' => 'verified',
-        'is_active' => true,
         'social_media' => [[
             'platform' => 'youtube',
             'url' => 'https://youtube.com/@admin-api-reference-collections-updated',
@@ -3190,11 +3151,9 @@ it('exposes admin event write schema and can create and update events through th
 
     $institution = Institution::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $reference = Reference::factory()->verified()->create();
     $series = Series::factory()->create();
@@ -3293,11 +3252,9 @@ it('surfaces event update semantics and sparse relation rules through the admin 
 
     $institution = Institution::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $reference = Reference::factory()->verified()->create();
     $series = Series::factory()->create();
@@ -3349,15 +3306,12 @@ it('supports sparse event updates while replacing submitted relation collections
 
     $institution = Institution::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $secondSpeaker = Speaker::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $reference = Reference::factory()->verified()->create();
     $series = Series::factory()->create();
@@ -3420,11 +3374,9 @@ it('clears event poster when clear_poster is submitted as a form-style boolean',
 
     $institution = Institution::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $reference = Reference::factory()->verified()->create();
     $series = Series::factory()->create();
@@ -3471,11 +3423,9 @@ it('rejects admin event writes that omit required speakers for speaker-led event
 
     $institution = Institution::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $reference = Reference::factory()->verified()->create();
     $series = Series::factory()->create();
@@ -3504,11 +3454,9 @@ it('rejects admin event writes with organizer ids that do not resolve to institu
 
     $institution = Institution::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $reference = Reference::factory()->verified()->create();
     $series = Series::factory()->create();
@@ -3537,15 +3485,12 @@ it('rejects admin event writes with conflicting location selections', function (
 
     $institution = Institution::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $otherInstitution = Institution::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $reference = Reference::factory()->verified()->create();
     $series = Series::factory()->create();
@@ -3673,7 +3618,7 @@ function adminApiEventPayload(array $fixtures, array $overrides = []): array
         ],
         'registration_required' => true,
         'registration_mode' => RegistrationMode::Event->value,
-        'is_active' => true,
+        'status' => 'active',
     ], $overrides);
 }
 
@@ -3686,13 +3631,11 @@ it('batch-creates admin resource records and returns per-row results', function 
     $speaker1 = Speaker::factory()->create([
         'name' => 'Batch API Speaker One',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $speaker2 = Speaker::factory()->create([
         'name' => 'Batch API Speaker Two',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $response = $this->postJson('/api/v1/admin/speakers/batch', [
@@ -3703,7 +3646,6 @@ it('batch-creates admin resource records and returns per-row results', function 
                     'name' => 'Batch Created Speaker Alpha',
                     'gender' => 'male',
                     'status' => 'verified',
-                    'is_active' => true,
                     'address' => ['country_id' => ensureAdminApiMalaysiaCountryExists()],
                 ],
             ],
@@ -3713,7 +3655,6 @@ it('batch-creates admin resource records and returns per-row results', function 
                     'name' => 'Batch Created Speaker Beta',
                     'gender' => 'female',
                     'status' => 'verified',
-                    'is_active' => true,
                     'address' => ['country_id' => ensureAdminApiMalaysiaCountryExists()],
                 ],
             ],
@@ -3753,7 +3694,6 @@ it('batch-creates records and returns per-row validation errors without rolling 
                     'name' => 'Batch Valid Speaker',
                     'gender' => 'male',
                     'status' => 'verified',
-                    'is_active' => true,
                     'address' => ['country_id' => ensureAdminApiMalaysiaCountryExists()],
                 ],
             ],
@@ -3763,7 +3703,6 @@ it('batch-creates records and returns per-row validation errors without rolling 
                     // Missing required name
                     'gender' => 'male',
                     'status' => 'verified',
-                    'is_active' => true,
                 ],
             ],
         ],
@@ -3800,7 +3739,6 @@ it('batch-creates records with validate_only and returns previews without persis
                     'name' => 'Dry Run Speaker',
                     'gender' => 'male',
                     'status' => 'verified',
-                    'is_active' => true,
                     'address' => ['country_id' => ensureAdminApiMalaysiaCountryExists()],
                 ],
             ],
@@ -3823,13 +3761,11 @@ it('batch-updates admin resource records and returns per-row results', function 
     $speaker1 = Speaker::factory()->create([
         'name' => 'Batch Update Speaker One',
         'status' => 'pending',
-        'is_active' => true,
     ]);
 
     $speaker2 = Speaker::factory()->create([
         'name' => 'Batch Update Speaker Two',
         'status' => 'pending',
-        'is_active' => true,
     ]);
 
     $response = $this->putJson('/api/v1/admin/speakers/batch', [
@@ -3841,7 +3777,6 @@ it('batch-updates admin resource records and returns per-row results', function 
                     'name' => 'Batch Updated Speaker One',
                     'gender' => 'male',
                     'status' => 'verified',
-                    'is_active' => true,
                 ],
             ],
             [
@@ -3851,7 +3786,6 @@ it('batch-updates admin resource records and returns per-row results', function 
                     'name' => 'Batch Updated Speaker Two',
                     'gender' => 'female',
                     'status' => 'verified',
-                    'is_active' => true,
                 ],
             ],
         ],
@@ -3889,7 +3823,6 @@ it('batch-updates returns not_found for missing record keys', function () {
                     'name' => 'Ghost Speaker',
                     'gender' => 'male',
                     'status' => 'verified',
-                    'is_active' => true,
                 ],
             ],
         ],
@@ -3913,7 +3846,6 @@ it('batch-updates returns error for items missing record_key', function () {
                     'name' => 'No Key Speaker',
                     'gender' => 'male',
                     'status' => 'verified',
-                    'is_active' => true,
                 ],
             ],
         ],

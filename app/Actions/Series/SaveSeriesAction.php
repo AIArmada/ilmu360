@@ -36,9 +36,9 @@ final readonly class SaveSeriesAction
             'visibility' => array_key_exists('visibility', $data)
                 ? $this->normalizeVisibility($data['visibility'])
                 : $this->normalizeVisibility($series->visibility ?? ($creating ? 'public' : null)),
-            'is_active' => array_key_exists('is_active', $data)
-                ? (bool) $data['is_active']
-                : ($creating ? true : (bool) $series->is_active),
+            'status' => array_key_exists('status', $data)
+                ? (string) $data['status']
+                : ($creating ? 'active' : (string) $series->status),
         ]);
 
         $this->ensureUniqueSlug($series, (string) $series->slug);

@@ -37,7 +37,6 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  * @property string|null $google_maps_url
  * @property string|null $map_url
  * @property array<string, mixed>|null $metadata
- * @property bool|null $is_active
  */
 class Venue extends PackageVenue implements AuditableContract
 {
@@ -54,7 +53,6 @@ class Venue extends PackageVenue implements AuditableContract
     private const array MetadataBackedAttributes = [
         'description',
         'facilities',
-        'is_active',
     ];
 
     /**
@@ -88,7 +86,6 @@ class Venue extends PackageVenue implements AuditableContract
         'status',
         'visibility',
         'metadata',
-        'is_active',
     ];
 
     #[\Override]
@@ -156,7 +153,7 @@ class Venue extends PackageVenue implements AuditableContract
     #[Scope]
     protected function active(Builder $query): void
     {
-        $query->where('is_active', true);
+        $query->whereIn('status', ['verified', 'pending']);
     }
 
     /**

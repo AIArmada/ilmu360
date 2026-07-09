@@ -21,7 +21,6 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
-use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 
 class SpeakerForm
@@ -228,22 +227,13 @@ class SpeakerForm
                                 'pending' => __('Pending'),
                                 'verified' => __('Verified'),
                                 'rejected' => __('Rejected'),
+                                'inactive' => __('Inactive'),
                             ])
-                            ->live()
-                            ->afterStateUpdated(function (Set $set, mixed $state): void {
-                                if ($state === 'rejected') {
-                                    $set('is_active', false);
-                                }
-                            })
                             ->required(),
                         Toggle::make('allow_public_event_submission')
                             ->label(__('Allow Public Event Submission'))
                             ->disabled(fn (?Speaker $record, string $operation): bool => ! self::canManagePublicSubmissionToggle($record, $operation))
                             ->helperText(fn (?Speaker $record, string $operation): string => self::publicSubmissionHelperText($record, $operation)),
-                        Toggle::make('is_active')
-                            ->label(__('Active'))
-                            ->disabled(fn (Get $get): bool => $get('status') === 'rejected')
-                            ->default(true),
                     ])
                     ->columns(1),
             ]);

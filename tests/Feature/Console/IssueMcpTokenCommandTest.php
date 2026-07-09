@@ -26,7 +26,6 @@ it('issues a bearer token for a member-capable user when the member server is re
     ]);
     $institution = Institution::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     app(AddMemberToSubject::class)->handle($institution, $user, 'admin');

@@ -7,7 +7,6 @@ use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 
@@ -55,9 +54,15 @@ class InspirationForm
                             ->placeholder('e.g., Surah Al-Baqarah 2:153, HR Bukhari')
                             ->helperText('Attribution or reference for the content'),
 
-                        Toggle::make('is_active')
-                            ->label('Active')
-                            ->default(true),
+                        Select::make('status')
+                            ->label('Status')
+                            ->options([
+                                'active' => 'Active',
+                                'inactive' => 'Inactive',
+                            ])
+                            ->default('active')
+                            ->required()
+                            ->native(false),
                     ])->columns(2),
             ]);
     }

@@ -80,7 +80,6 @@ it('shows formatted speaker names in submit event speaker selectors', function (
     $speaker = Speaker::factory()->create([
         'name' => 'Aisyah binti Noor',
         'status' => 'verified',
-        'is_active' => true,
         'honorific' => ['toh_puan'],
         'pre_nominal' => ['dr'],
     ]);

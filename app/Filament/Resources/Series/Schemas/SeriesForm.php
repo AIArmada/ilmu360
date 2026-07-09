@@ -8,7 +8,6 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 
@@ -37,9 +36,13 @@ class SeriesForm
                                 'private' => 'Private',
                             ])
                             ->required(),
-                        Toggle::make('is_active')
-                            ->label('Active')
-                            ->default(true),
+                        Select::make('status')
+                            ->options([
+                                'active' => 'Active',
+                                'inactive' => 'Inactive',
+                            ])
+                            ->default('active')
+                            ->required(),
                         Select::make('languages')
                             ->relationship('languages', 'name')
                             ->multiple()

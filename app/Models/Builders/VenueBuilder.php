@@ -24,7 +24,6 @@ class VenueBuilder extends Builder
     private const array MetadataBackedColumns = [
         'description',
         'facilities',
-        'is_active',
     ];
 
     #[\Override]

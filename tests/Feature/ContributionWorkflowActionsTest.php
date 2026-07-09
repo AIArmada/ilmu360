@@ -180,7 +180,6 @@ it('approves staged institution create requests through the action layer without
     $institution = Institution::factory()->create([
         'name' => 'Masjid Action Pending',
         'status' => 'pending',
-        'is_active' => true,
     ]);
 
     $request = ContributionRequest::factory()->create([
@@ -210,7 +209,6 @@ it('approves staged create requests when the proposer relation is missing', func
     $institution = Institution::factory()->create([
         'name' => 'Masjid Missing Proposer',
         'status' => 'pending',
-        'is_active' => true,
     ]);
 
     $request = ContributionRequest::factory()->create([

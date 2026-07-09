@@ -14,11 +14,23 @@ return [
             'include_global' => env('EVENTS_OWNER_INCLUDE_GLOBAL', false),
             'auto_assign_on_create' => env('EVENTS_OWNER_AUTO_ASSIGN', true),
         ],
+        /**
+         * Historical key name from the package. These options apply to all pricing modes
+         * (free, paid, mixed) — not a free-only product constraint (ADR-009 / ADR-013).
+         */
         'free_only' => [
             'default_registration_mode' => env('EVENTS_DEFAULT_REGISTRATION_MODE', 'required'),
             'auto_issue_passes_for_free' => env('EVENTS_AUTO_ISSUE_PASSES_FOR_FREE', true),
             'auto_derive_pricing_from_ticket_types' => env('EVENTS_AUTO_DERIVE_PRICING', true),
             'open_door_mode' => env('EVENTS_OPEN_DOOR_MODE', 'block'),
+        ],
+        'commerce' => [
+            /** Public paid checkout UI/API. Schema/ticket types stay available either way. */
+            'public_paid_checkout_enabled' => (bool) env('EVENTS_PUBLIC_PAID_CHECKOUT_ENABLED', false),
+            /** When true, mixed/paid pricing modes are accepted on write contracts. */
+            'accept_paid_pricing_modes' => (bool) env('EVENTS_ACCEPT_PAID_PRICING_MODES', true),
+            /** Default pricing mode for newly created events without ticket types. */
+            'default_pricing_mode' => env('EVENTS_DEFAULT_PRICING_MODE', 'free'),
         ],
         'enforce_scope_capacity_on_paid_registrations' => (bool) env('EVENTS_ENFORCE_SCOPE_CAPACITY_PAID', false),
         'inventory' => [

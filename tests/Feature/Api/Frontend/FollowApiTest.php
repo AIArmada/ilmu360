@@ -33,18 +33,17 @@ it('serializes follow state payloads for each followable type', function (string
         ->assertJsonPath('data.is_following', true)
         ->assertJsonPath('meta.request_id', fn (string $requestId) => filled($requestId));
 })->with([
-    'institution by slug' => ['institution', 'slug', ['status' => 'verified', 'is_active' => true]],
-    'speaker by slug' => ['speaker', 'slug', ['status' => 'verified', 'is_active' => true]],
-    'reference by slug' => ['reference', 'slug', ['status' => 'verified', 'is_active' => true]],
-    'reference by uuid' => ['reference', 'id', ['is_active' => true]],
-    'series by slug' => ['series', 'slug', ['visibility' => 'public', 'is_active' => true]],
+    'institution by slug' => ['institution', 'slug', ['status' => 'verified']],
+    'speaker by slug' => ['speaker', 'slug', ['status' => 'verified']],
+    'reference by slug' => ['reference', 'slug', ['status' => 'verified']],
+    'reference by uuid' => ['reference', 'id', ['status' => 'active']],
+    'series by slug' => ['series', 'slug', ['visibility' => 'public', 'status' => 'active']],
 ]);
 
 it('returns the same follow payload shape across store and destroy', function () {
     $user = User::factory()->create();
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     Sanctum::actingAs($user);

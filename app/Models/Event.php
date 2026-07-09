@@ -50,6 +50,7 @@ use App\States\EventStatus\EventStatus;
 use App\States\EventStatus\Pending;
 use App\Support\Authz\MemberPermissionGate;
 use App\Support\Timezone\UserDateTimeFormatter;
+use Carbon\CarbonInterface;
 use Database\Factories\EventFactory;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
@@ -64,7 +65,6 @@ use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Laravel\Scout\Searchable;
 use Nnjeim\World\Models\Language;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
@@ -114,7 +114,6 @@ use Spatie\Tags\HasTags;
  * @property Carbon|null $escalated_at
  * @property bool|null $is_priority
  * @property bool|null $is_featured
- * @property bool $is_active
  * @property bool|null $is_muslim_only
  * @property-read Institution|null $institution
  * @property-read Institution|Speaker|null $organizer
@@ -314,6 +313,8 @@ class Event extends PackageEvent implements AuditableContract
         'registrations_count',
         'going_count',
         'published_at',
+        'cancelled_at',
+        'last_state_change_at',
         'summary',
         'type',
         'delivery_mode',
@@ -322,7 +323,6 @@ class Event extends PackageEvent implements AuditableContract
         'registration_mode',
         'issue_passes_for_free',
         'metadata',
-        'is_active',
         'is_featured',
         'is_muslim_only',
         'is_priority',
@@ -334,7 +334,9 @@ class Event extends PackageEvent implements AuditableContract
         return [
             'status' => EventStatus::class,
             'visibility' => EventVisibility::class,
-            'published_at' => 'datetime',
+            'published_at' => 'immutable_datetime',
+            'cancelled_at' => 'immutable_datetime',
+            'last_state_change_at' => 'immutable_datetime',
             'description' => 'array',
             'metadata' => 'array',
             'issue_passes_for_free' => 'boolean',
@@ -549,7 +551,6 @@ class Event extends PackageEvent implements AuditableContract
             }
         } else {
             EventInvolvement::query()->create([
-                'id' => (string) Str::uuid(),
                 'event_id' => (string) $this->getKey(),
                 'event_occurrence_id' => null,
                 'event_session_id' => null,
@@ -928,7 +929,30 @@ class Event extends PackageEvent implements AuditableContract
     public function getEscalatedAtAttribute(mixed $value): mixed
     {
         if (array_key_exists('escalated_at', $this->pendingAttributeWrites)) {
-            return $this->pendingAttributeWrites['escalated_at'];
+            $pending = $this->pendingAttributeWrites['escalated_at'];
+
+            if ($pending instanceof CarbonInterface) {
+                return Carbon::parse($pending->toIso8601String());
+            }
+
+            if (is_string($pending) && $pending !== '') {
+                return Carbon::parse($pending);
+            }
+
+            return $pending;
+        }
+
+        $raw = EventAttribute::query()
+            ->where('event_id', $this->id)
+            ->where('attribute_key', 'escalated_at')
+            ->value('attribute_value');
+
+        if ($raw instanceof CarbonInterface) {
+            return Carbon::parse($raw->toIso8601String());
+        }
+
+        if (is_string($raw) && $raw !== '') {
+            return Carbon::parse($raw);
         }
 
         return $this->dateFromMetadata('escalated_at');
@@ -936,17 +960,27 @@ class Event extends PackageEvent implements AuditableContract
 
     public function setIsFeaturedAttribute(mixed $value): void
     {
-        $this->pendingAttributeWrites['is_featured'] = $value === null ? null : (bool) $value;
+        $normalized = $value === null ? null : (bool) $value;
+        $this->pendingAttributeWrites['is_featured'] = $normalized;
+        // Keep metadata queryable for legacy job/query filters.
+        $this->setMetadataValue('is_featured', $normalized === null ? null : ($normalized ? true : false));
     }
 
     public function setIsPriorityAttribute(mixed $value): void
     {
-        $this->pendingAttributeWrites['is_priority'] = $value === null ? null : (bool) $value;
+        $normalized = $value === null ? null : (bool) $value;
+        $this->pendingAttributeWrites['is_priority'] = $normalized;
+        // Null means unset (not false). Writing false/"0" breaks whereNull metadata filters.
+        $this->setMetadataValue('is_priority', $normalized === null ? null : $normalized);
     }
 
     public function setEscalatedAtAttribute(mixed $value): void
     {
         $this->pendingAttributeWrites['escalated_at'] = $value;
+        $this->setMetadataValue(
+            'escalated_at',
+            $value instanceof CarbonInterface ? $value->toIso8601String() : $value,
+        );
     }
 
     /**
@@ -962,14 +996,24 @@ class Event extends PackageEvent implements AuditableContract
 
         foreach ($writes as $key => $value) {
             match ($key) {
-                'is_featured', 'is_priority' => EventAttribute::updateOrCreate(
-                    ['event_id' => $this->id, 'attribute_key' => $key],
-                    ['attribute_value' => $value ? '1' : '0'],
-                ),
-                'escalated_at' => EventAttribute::updateOrCreate(
-                    ['event_id' => $this->id, 'attribute_key' => $key],
-                    ['attribute_value' => $value instanceof CarbonInterface ? $value->toIso8601String() : $value],
-                ),
+                'is_featured', 'is_priority' => $value === null
+                    ? EventAttribute::query()
+                        ->where('event_id', $this->id)
+                        ->where('attribute_key', $key)
+                        ->delete()
+                    : EventAttribute::updateOrCreate(
+                        ['event_id' => $this->id, 'attribute_key' => $key],
+                        ['attribute_value' => $value ? '1' : '0'],
+                    ),
+                'escalated_at' => $value === null
+                    ? EventAttribute::query()
+                        ->where('event_id', $this->id)
+                        ->where('attribute_key', $key)
+                        ->delete()
+                    : EventAttribute::updateOrCreate(
+                        ['event_id' => $this->id, 'attribute_key' => $key],
+                        ['attribute_value' => $value instanceof CarbonInterface ? $value->toIso8601String() : (string) $value],
+                    ),
                 default => null,
             };
         }
@@ -1351,24 +1395,6 @@ class Event extends PackageEvent implements AuditableContract
         return $this->bookReference()?->title;
     }
 
-    public function getIsActiveAttribute(): bool
-    {
-        return $this->published_at !== null;
-    }
-
-    public function setIsActiveAttribute(?bool $value): void
-    {
-        if ($value === null) {
-            return;
-        }
-
-        if ($value === false && $this->published_at !== null) {
-            $this->published_at = null;
-        } elseif ($value === true && $this->published_at === null) {
-            $this->published_at = now();
-        }
-    }
-
     /**
      * Determine if the model should be searchable.
      * Index active public events (including cancelled notices).
@@ -1388,7 +1414,7 @@ class Event extends PackageEvent implements AuditableContract
             ? in_array($visibility, [EventVisibility::Public, EventVisibility::Unlisted], true)
             : in_array((string) $visibility, [EventVisibility::Public->value, EventVisibility::Unlisted->value], true);
 
-        return $this->is_active
+        return $this->published_at !== null
             && $visibleByLink
             && in_array((string) $this->status, self::PUBLIC_STATUSES, true);
     }
@@ -1460,7 +1486,7 @@ class Event extends PackageEvent implements AuditableContract
             'venue_id',
             'saves_count',
             'registrations_count',
-            'is_active',
+            'published_at',
         ]);
     }
 
@@ -1490,7 +1516,7 @@ class Event extends PackageEvent implements AuditableContract
     protected function makeAllSearchableUsing(Builder $query): Builder
     {
         return $query
-            ->with(['institution', 'institution.addresses', 'venue', 'venue.addresses', 'speakers', 'keyPeople.speaker', 'tags', 'references', 'classifications'])
+            ->with(['institution', 'institution.addresses', 'venue', 'venue.addresses', 'speakers', 'keyPeople.speaker', 'references', 'classifications'])
             ->whereNotNull('events.published_at')
             ->whereIn('events.status', self::PUBLIC_STATUSES)
             ->where('events.visibility', EventVisibility::Public)
@@ -1509,7 +1535,7 @@ class Event extends PackageEvent implements AuditableContract
             return $this->toScoutDatabaseSearchableArray();
         }
 
-        $this->loadMissing(['institution', 'institution.addresses', 'venue', 'venue.addresses', 'speakers', 'keyPeople.speaker', 'tags', 'references', 'classifications']);
+        $this->loadMissing(['institution', 'institution.addresses', 'venue', 'venue.addresses', 'speakers', 'keyPeople.speaker', 'references', 'classifications']);
         $venueAddress = $this->venue?->primaryAddress();
         $institutionAddress = $this->institution?->primaryAddress();
         $institution = $this->institution;
@@ -1535,27 +1561,35 @@ class Event extends PackageEvent implements AuditableContract
             ? $ageGroupCollection->map(fn (EventAgeGroup $value): string => $value->value)->toArray()
             : ['all_ages'];
 
-        /** @var \Illuminate\Database\Eloquent\Collection<int, Tag> $tags */
-        $tags = $this->tags;
+        /** @var \Illuminate\Database\Eloquent\Collection<int, EventClassification> $classifications */
+        $classifications = $this->relationLoaded('classifications')
+            ? $this->classifications
+            : $this->classifications()->get();
 
-        $topicIds = $tags
-            ->filter(fn (Tag $tag): bool => in_array($tag->type, [TagType::Discipline->value, TagType::Issue->value], true))
-            ->whereIn('status', ['verified', 'pending'])
-            ->pluck('id')
+        $topicIds = $classifications
+            ->filter(fn (EventClassification $classification): bool => in_array($classification->taxonomy_code, [
+                TagType::Discipline->value,
+                TagType::Issue->value,
+            ], true))
+            ->pluck('event_term_id')
+            ->filter(fn (mixed $id): bool => is_string($id) && $id !== '')
+            ->unique()
             ->values()
             ->all();
 
-        $domainTagIds = $tags
-            ->filter(fn (Tag $tag): bool => $tag->type === TagType::Domain->value)
-            ->whereIn('status', ['verified', 'pending'])
-            ->pluck('id')
+        $domainTagIds = $classifications
+            ->filter(fn (EventClassification $classification): bool => $classification->taxonomy_code === TagType::Domain->value)
+            ->pluck('event_term_id')
+            ->filter(fn (mixed $id): bool => is_string($id) && $id !== '')
+            ->unique()
             ->values()
             ->all();
 
-        $sourceTagIds = $tags
-            ->filter(fn (Tag $tag): bool => $tag->type === TagType::Source->value)
-            ->whereIn('status', ['verified', 'pending'])
-            ->pluck('id')
+        $sourceTagIds = $classifications
+            ->filter(fn (EventClassification $classification): bool => $classification->taxonomy_code === TagType::Source->value)
+            ->pluck('event_term_id')
+            ->filter(fn (mixed $id): bool => is_string($id) && $id !== '')
+            ->unique()
             ->values()
             ->all();
 
@@ -1631,15 +1665,13 @@ class Event extends PackageEvent implements AuditableContract
             ->values()
             ->all();
 
-        $issueTagIds = $tags
-            ->filter(fn (Tag $tag): bool => $tag->type === TagType::Issue->value)
-            ->whereIn('status', ['verified', 'pending'])
-            ->pluck('id')
+        $issueTagIds = $classifications
+            ->filter(fn (EventClassification $classification): bool => $classification->taxonomy_code === TagType::Issue->value)
+            ->pluck('event_term_id')
+            ->filter(fn (mixed $id): bool => is_string($id) && $id !== '')
+            ->unique()
             ->values()
             ->all();
-
-        /** @var \Illuminate\Database\Eloquent\Collection<int, EventClassification> $classifications */
-        $classifications = $this->classifications;
 
         $taxonomyTermIds = $classifications
             ->pluck('event_term_id')
@@ -1669,6 +1701,11 @@ class Event extends PackageEvent implements AuditableContract
             'institution_name' => $institution instanceof Institution ? $institution->name : '',
             'venue_name' => $venue instanceof Venue ? $venue->name : '',
             'country_code' => $venueAddress->country_code ?? $institutionAddress?->country_code,
+            'country_id' => $venueAddress->country_id ?? $institutionAddress?->country_id,
+            'state_id' => $venueAddress->state_id ?? $institutionAddress?->state_id,
+            'city_id' => $venueAddress->city_id ?? $institutionAddress?->city_id,
+            'admin_area_1_id' => $venueAddress->admin_area_1_id ?? $institutionAddress?->admin_area_1_id,
+            'admin_area_2_id' => $venueAddress->admin_area_2_id ?? $institutionAddress?->admin_area_2_id,
             'city' => $venueAddress->city ?? $institutionAddress?->city,
             'state' => $venueAddress->state ?? $institutionAddress?->state,
             'postcode' => $venueAddress->postcode ?? $institutionAddress?->postcode,
@@ -1678,7 +1715,6 @@ class Event extends PackageEvent implements AuditableContract
             'age_group' => $ageGroupValues,
             'event_format' => $eventFormat instanceof EventFormat ? $eventFormat->value : ((is_string($eventFormat) && $eventFormat !== '') ? $eventFormat : 'physical'),
             'children_allowed' => $this->children_allowed ?? true,
-            'is_active' => (bool) $this->is_active,
             'status' => (string) $this->status,
             'visibility' => $visibility instanceof EventVisibility ? $visibility->value : ((is_string($visibility) && $visibility !== '') ? $visibility : 'public'),
             'topic_ids' => $topicIds,

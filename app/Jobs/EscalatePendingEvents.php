@@ -6,6 +6,7 @@ use App\Models\Event;
 use App\Models\User;
 use App\Notifications\EventEscalationNotification;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Log;
 
@@ -45,7 +46,7 @@ class EscalatePendingEvents implements ShouldQueue
         $events = Event::query()
             ->where('status', 'pending')
             ->where('created_at', '<=', now()->subHours(48))
-            ->whereNull('metadata->escalated_at')
+            ->where(fn ($query) => $this->whereNotEscalated($query))
             ->get();
 
         if ($events->isEmpty()) {
@@ -71,11 +72,29 @@ class EscalatePendingEvents implements ShouldQueue
      */
     private function escalateToSuperAdmin(): void
     {
+        $cutoff = now()->subHours(24)->toIso8601String();
+
         $events = Event::query()
             ->where('status', 'pending')
             ->where('created_at', '<=', now()->subHours(72))
-            ->whereNotNull('metadata->escalated_at')
-            ->where('metadata->escalated_at', '<=', now()->subHours(24)->toIso8601String())
+            ->where(function ($query) use ($cutoff): void {
+                $query
+                    ->where(function ($metadataQuery) use ($cutoff): void {
+                        $metadataQuery
+                            ->whereNotNull('metadata->escalated_at')
+                            ->where('metadata->escalated_at', '<=', $cutoff);
+                    })
+                    ->orWhereExists(function ($attributeQuery) use ($cutoff): void {
+                        $attributeQuery
+                            ->selectRaw('1')
+                            ->from('event_attributes')
+                            ->whereColumn('event_attributes.event_id', 'events.id')
+                            ->where('event_attributes.attribute_key', 'escalated_at')
+                            ->whereNotNull('event_attributes.attribute_value')
+                            ->where('event_attributes.attribute_value', '!=', '')
+                            ->where('event_attributes.attribute_value', '<=', $cutoff);
+                    });
+            })
             ->get();
 
         if ($events->isEmpty()) {
@@ -107,8 +126,8 @@ class EscalatePendingEvents implements ShouldQueue
             ->where('starts_at', '<=', now()->addHours(24))
             ->where('starts_at', '>', now()->addHours(6)) // Not yet priority
             ->where('starts_at', '>', now()) // Not past
-            ->whereNull('metadata->is_priority')
-            ->whereNull('metadata->escalated_at') // Not already escalated via SLA
+            ->where(fn ($query) => $this->whereNotPriority($query))
+            ->where(fn ($query) => $this->whereNotEscalated($query))
             ->get();
 
         if ($events->isEmpty()) {
@@ -139,10 +158,7 @@ class EscalatePendingEvents implements ShouldQueue
             ->where('status', 'pending')
             ->where('starts_at', '<=', now()->addHours(6))
             ->where('starts_at', '>', now()) // Not past
-            ->where(function ($query) {
-                $query->whereNull('metadata->is_priority')
-                    ->orWhere('metadata->is_priority', 'false');
-            })
+            ->where(fn ($query) => $this->whereNotPriority($query))
             ->get();
 
         if ($events->isEmpty()) {
@@ -170,5 +186,58 @@ class EscalatePendingEvents implements ShouldQueue
                 $admin->notify(new EventEscalationNotification($event, 'priority'));
             }
         }
+    }
+
+    /**
+     * @param  Builder<Event>  $query
+     * @return Builder<Event>
+     */
+    private function whereNotEscalated($query)
+    {
+        return $query->where(function ($inner): void {
+            $inner
+                ->where(function ($metadataQuery): void {
+                    $metadataQuery
+                        ->whereNull('metadata->escalated_at')
+                        ->orWhere('metadata->escalated_at', '')
+                        ->orWhere('metadata->escalated_at', 'null');
+                })
+                ->whereNotExists(function ($attributeQuery): void {
+                    $attributeQuery
+                        ->selectRaw('1')
+                        ->from('event_attributes')
+                        ->whereColumn('event_attributes.event_id', 'events.id')
+                        ->where('event_attributes.attribute_key', 'escalated_at')
+                        ->whereNotNull('event_attributes.attribute_value')
+                        ->where('event_attributes.attribute_value', '!=', '');
+                });
+        });
+    }
+
+    /**
+     * @param  Builder<Event>  $query
+     * @return Builder<Event>
+     */
+    private function whereNotPriority($query)
+    {
+        return $query->where(function ($inner): void {
+            $inner
+                ->where(function ($metadataQuery): void {
+                    $metadataQuery
+                        ->whereNull('metadata->is_priority')
+                        ->orWhere('metadata->is_priority', false)
+                        ->orWhere('metadata->is_priority', 0)
+                        ->orWhere('metadata->is_priority', '0')
+                        ->orWhere('metadata->is_priority', 'false');
+                })
+                ->whereNotExists(function ($attributeQuery): void {
+                    $attributeQuery
+                        ->selectRaw('1')
+                        ->from('event_attributes')
+                        ->whereColumn('event_attributes.event_id', 'events.id')
+                        ->where('event_attributes.attribute_key', 'is_priority')
+                        ->where('event_attributes.attribute_value', '1');
+                });
+        });
     }
 }

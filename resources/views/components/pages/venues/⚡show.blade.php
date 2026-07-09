@@ -18,11 +18,7 @@ new class extends Component
     {
         $canBypassVisibility = auth()->user()?->hasAnyRole(['super_admin', 'moderator']) ?? false;
 
-        if (! $venue->is_active) {
-            abort(404);
-        }
-
-        if ($venue->status !== 'verified' && ! $canBypassVisibility) {
+        if (($venue->status !== 'verified' || (string) $venue->visibility !== 'public') && ! $canBypassVisibility) {
             abort(404);
         }
 
@@ -110,7 +106,7 @@ new class extends Component
 
 @section('title', $this->venue->name . ' - ' . config('app.name'))
 @section('meta_description', Str::limit(trim(strip_tags((string) $this->venue->description)) ?: __('Lihat profil lokasi, alamat, dan majlis yang diadakan di :name.', ['name' => $this->venue->name]), 160))
-@section('meta_robots', ($this->venue->is_active && $this->venue->status === 'verified') ? 'index, follow' : 'noindex, nofollow')
+@section('meta_robots', ($this->venue->status === 'verified' && (string) $this->venue->visibility === 'public') ? 'index, follow' : 'noindex, nofollow')
 @section('og_url', route('venues.show', $this->venue))
 @section('og_image', $this->venue->getFirstMediaUrl('cover', 'banner') ?: asset('images/placeholders/venue.png'))
 @section('og_image_alt', __('Lokasi :name', ['name' => $this->venue->name]))

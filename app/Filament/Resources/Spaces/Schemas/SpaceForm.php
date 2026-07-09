@@ -4,7 +4,6 @@ namespace App\Filament\Resources\Spaces\Schemas;
 
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
@@ -37,9 +36,21 @@ class SpaceForm
                         TextInput::make('capacity')
                             ->numeric()
                             ->minValue(1),
-                        Toggle::make('is_active')
-                            ->label('Active')
-                            ->default(true),
+                        Select::make('status')
+                            ->options([
+                                'active' => 'Active',
+                                'inactive' => 'Inactive',
+                            ])
+                            ->default('active')
+                            ->required(),
+                        Select::make('visibility')
+                            ->options([
+                                'public' => 'Public',
+                                'unlisted' => 'Unlisted',
+                                'private' => 'Private',
+                            ])
+                            ->default('public')
+                            ->required(),
                     ])
                     ->columns(2),
 

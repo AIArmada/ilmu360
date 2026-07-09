@@ -11,7 +11,6 @@ it('allows an authenticated user to follow a speaker', function () {
     $user = User::factory()->create();
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $this->actingAs($user);
@@ -35,7 +34,6 @@ it('allows an authenticated user to unfollow a speaker', function () {
     $user = User::factory()->create();
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     OwnerContext::withOwner(null, fn () => $user->follow($speaker));
@@ -54,7 +52,6 @@ it('keeps the speaker detail sections revealed after following', function () {
     $user = User::factory()->create();
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
     Inspiration::factory()->locale(app()->getLocale())->create();
 
@@ -73,7 +70,6 @@ it('keeps the speaker detail sections revealed after following', function () {
 it('redirects guest to login when trying to follow', function () {
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     Livewire::test('pages.speakers.show', ['speaker' => $speaker])

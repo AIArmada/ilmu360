@@ -93,7 +93,6 @@ it('creates a reference slug redirect when a visited title slug changes', functi
         'title' => 'Kitab Lama',
         'type' => 'book',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $oldPath = route('references.show', $reference, false);
@@ -117,7 +116,6 @@ it('persists canonical slug changes through the shared slug synchronizer', funct
         'title' => 'Kitab Sinkron Lama',
         'type' => 'book',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $oldPath = route('references.show', $reference, false);
@@ -230,7 +228,6 @@ it('redirects old event slugs when a related speaker slug changes', function () 
         'name' => 'Habib Umar',
         'slug' => 'habib-umar',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $event = createSlugRedirectEvent(
@@ -265,7 +262,6 @@ it('redirects old event slugs when only the organizer speaker changes', function
         'name' => 'Habib Umar',
         'slug' => 'habib-umar',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $event = createSlugRedirectEvent(
@@ -650,6 +646,5 @@ function createSlugRedirectEvent(string $id, string $title, string $slug, Carbon
         'event_format' => 'physical',
         'visibility' => 'public',
         'status' => 'approved',
-        'is_active' => true,
     ]));
 }

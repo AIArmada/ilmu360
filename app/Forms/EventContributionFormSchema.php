@@ -290,7 +290,7 @@ class EventContributionFormSchema
                                 'description' => $data['description'] ?? null,
                                 'is_canonical' => false,
                                 'status' => 'pending',
-                                'is_active' => true,
+                                'status' => 'active',
                             ]);
 
                             $schema->model($reference)->saveRelationships();
@@ -699,7 +699,7 @@ class EventContributionFormSchema
     {
         return Venue::query()
             ->whereIn('status', ['verified', 'pending'])
-            ->where('is_active', true)
+            ->whereIn('status', ['verified', 'pending'])
             ->orderBy('name')
             ->pluck('name', 'id')
             ->all();
@@ -764,7 +764,7 @@ class EventContributionFormSchema
         }
 
         return Space::query()
-            ->where('is_active', true)
+            ->where('status', 'active')
             ->where(function ($query) use ($institutionId): void {
                 $query
                     ->whereHas('institutions', fn ($relatedQuery) => $relatedQuery->where('institutions.id', $institutionId))

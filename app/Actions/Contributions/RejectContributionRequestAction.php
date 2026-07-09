@@ -29,12 +29,16 @@ class RejectContributionRequestAction
             throw new RuntimeException('Only pending contribution requests can be rejected.');
         }
 
+        $now = now();
+
         $request->forceFill([
             'reviewer_id' => $reviewer->getKey(),
             'reason_code' => $reasonCode,
             'reviewer_note' => $reviewerNote,
             'status' => 'rejected',
-            'reviewed_at' => now(),
+            'reviewed_at' => $now,
+            'rejected_at' => $now,
+            'last_state_change_at' => $now,
         ])->save();
 
         if ($request->type === ContributionRequestType::Create) {
@@ -43,7 +47,8 @@ class RejectContributionRequestAction
             if ($entity instanceof Institution || $entity instanceof Speaker) {
                 $entity->forceFill([
                     'status' => 'rejected',
-                    'is_active' => false,
+                    'rejected_at' => $now,
+                    'last_state_change_at' => $now,
                 ])->save();
             }
         }

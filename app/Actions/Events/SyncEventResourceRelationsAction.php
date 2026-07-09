@@ -71,19 +71,13 @@ class SyncEventResourceRelationsAction
 
         $event->syncLanguages($languageIds);
 
-        $domainTagIds = is_array($state['domain_tags'] ?? null) ? $state['domain_tags'] : [];
-        $disciplineTagIds = is_array($state['discipline_tags'] ?? null) ? $state['discipline_tags'] : [];
-        $sourceTagIds = is_array($state['source_tags'] ?? null) ? $state['source_tags'] : [];
-        $issueTagIds = is_array($state['issue_tags'] ?? null) ? $state['issue_tags'] : [];
-
-        $tagIds = collect(array_merge($domainTagIds, $disciplineTagIds, $sourceTagIds, $issueTagIds))
-            ->filter(fn (mixed $id): bool => filled($id))
-            ->map(fn (mixed $id): string => (string) $id)
-            ->unique()
-            ->values()
-            ->all();
-
-        $event->auditSync('tags', $tagIds, true, ['tags.id', 'tags.name', 'tags.type']);
+        app(SyncEventClassificationsAction::class)->handle($event, [
+            'domain_tags' => is_array($state['domain_tags'] ?? null) ? $state['domain_tags'] : [],
+            'discipline_tags' => is_array($state['discipline_tags'] ?? null) ? $state['discipline_tags'] : [],
+            'source_tags' => is_array($state['source_tags'] ?? null) ? $state['source_tags'] : [],
+            'issue_tags' => is_array($state['issue_tags'] ?? null) ? $state['issue_tags'] : [],
+            'taxonomy_term_ids' => is_array($state['taxonomy_term_ids'] ?? null) ? $state['taxonomy_term_ids'] : [],
+        ]);
 
         if ($syncKeyPeople) {
             $this->eventKeyPersonSyncService->sync(

@@ -5,6 +5,7 @@ namespace App\Support\Communications;
 use AIArmada\Communications\Contracts\PreferenceResolver;
 use AIArmada\Communications\Enums\NotificationFamily;
 use AIArmada\Communications\Models\CommunicationPreference;
+use App\Notifications\Channels\InboxChannel;
 use App\Notifications\Channels\PushChannel;
 use Illuminate\Database\Eloquent\Relations\Relation;
 

@@ -22,8 +22,8 @@ uses(RefreshDatabase::class);
 
 it('prepares advanced parent program submissions with utc timestamps and resolved location ownership', function () {
     $user = User::factory()->create();
-    $speaker = Speaker::factory()->create(['status' => 'verified', 'is_active' => true]);
-    $locationInstitution = Institution::factory()->create(['status' => 'verified', 'is_active' => true]);
+    $speaker = Speaker::factory()->create(['status' => 'verified']);
+    $locationInstitution = Institution::factory()->create(['status' => 'verified']);
 
     $user->speakers()->syncWithoutDetaching([$speaker->id]);
     $user->institutions()->syncWithoutDetaching([$locationInstitution->id]);
@@ -47,8 +47,8 @@ it('prepares advanced parent program submissions with utc timestamps and resolve
 
 it('resolves advanced builder context with requested institution defaults', function () {
     $user = User::factory()->create();
-    $preferredInstitution = Institution::factory()->create(['name' => 'Masjid Pilihan', 'status' => 'verified', 'is_active' => true]);
-    $secondaryInstitution = Institution::factory()->create(['name' => 'Masjid Kedua', 'status' => 'verified', 'is_active' => true]);
+    $preferredInstitution = Institution::factory()->create(['name' => 'Masjid Pilihan', 'status' => 'verified']);
+    $secondaryInstitution = Institution::factory()->create(['name' => 'Masjid Kedua', 'status' => 'verified']);
 
     $user->institutions()->syncWithoutDetaching([$secondaryInstitution->id, $preferredInstitution->id]);
 
@@ -64,8 +64,8 @@ it('resolves advanced builder context with requested institution defaults', func
 
 it('publishes the advanced event contract with the primary organizer field and grouped options', function () {
     $user = User::factory()->create();
-    $institution = Institution::factory()->create(['name' => 'Masjid Kontrak', 'status' => 'verified', 'is_active' => true]);
-    $speaker = Speaker::factory()->create(['name' => 'Penceramah Kontrak', 'status' => 'verified', 'is_active' => true]);
+    $institution = Institution::factory()->create(['name' => 'Masjid Kontrak', 'status' => 'verified']);
+    $speaker = Speaker::factory()->create(['name' => 'Penceramah Kontrak', 'status' => 'verified']);
 
     $user->institutions()->syncWithoutDetaching([$institution->id]);
     $user->speakers()->syncWithoutDetaching([$speaker->id]);
@@ -83,10 +83,10 @@ it('publishes the advanced event contract with the primary organizer field and g
 
 it('resolves advanced builder membership options from active member organizers only', function () {
     $user = User::factory()->create();
-    $activeInstitution = Institution::factory()->create(['name' => 'Masjid Aktif', 'status' => 'verified', 'is_active' => true]);
-    $inactiveInstitution = Institution::factory()->create(['name' => 'Masjid Pasif', 'status' => 'verified', 'is_active' => false]);
-    $activeSpeaker = Speaker::factory()->create(['name' => 'Speaker Aktif', 'status' => 'pending', 'is_active' => true]);
-    $inactiveSpeaker = Speaker::factory()->create(['name' => 'Speaker Pasif', 'status' => 'verified', 'is_active' => false]);
+    $activeInstitution = Institution::factory()->create(['name' => 'Masjid Aktif', 'status' => 'verified']);
+    $inactiveInstitution = Institution::factory()->create(['name' => 'Masjid Pasif', 'status' => 'verified', 'status' => 'inactive']);
+    $activeSpeaker = Speaker::factory()->create(['name' => 'Speaker Aktif', 'status' => 'pending', 'status' => 'active']);
+    $inactiveSpeaker = Speaker::factory()->create(['name' => 'Speaker Pasif', 'status' => 'verified', 'status' => 'inactive']);
 
     $user->institutions()->syncWithoutDetaching([$activeInstitution->id, $inactiveInstitution->id]);
     $user->speakers()->syncWithoutDetaching([$activeSpeaker->id, $inactiveSpeaker->id]);

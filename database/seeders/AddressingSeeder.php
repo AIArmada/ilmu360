@@ -7,6 +7,7 @@ namespace Database\Seeders;
 use AIArmada\Addressing\Actions\ImportAddressAreasAction;
 use AIArmada\Addressing\Actions\SeedAddressCountriesAction;
 use AIArmada\Addressing\Data\ImportAddressAreaFailureData;
+use AIArmada\Addressing\Database\Seeders\MalaysiaGeographySeeder;
 use AIArmada\Addressing\Support\CsvAddressAreaSource;
 use Illuminate\Database\Seeder;
 use RuntimeException;
@@ -21,6 +22,9 @@ class AddressingSeeder extends Seeder
     ): void {
         $countryResult = $seedCountries->execute();
 
+        // First-class State + City tables (addresses.state_id / city_id).
+        $this->call(MalaysiaGeographySeeder::class);
+
         $areasResult = $importAreas->execute(new CsvAddressAreaSource(
             database_path('seeders/data/malaysia-address-areas.csv'),
             self::MALAYSIA_AREA_SOURCE,
@@ -31,7 +35,7 @@ class AddressingSeeder extends Seeder
         }
 
         $this->command->info(sprintf(
-            'Addressing seeded: countries %d created / %d updated / %d skipped; Malaysia areas %d created / %d updated / %d skipped.',
+            'Addressing seeded: countries %d created / %d updated / %d skipped; Malaysia states/cities seeded; Malaysia areas %d created / %d updated / %d skipped.',
             $countryResult['created'],
             $countryResult['updated'],
             $countryResult['skipped'],

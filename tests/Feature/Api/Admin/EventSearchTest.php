@@ -100,7 +100,6 @@ describe('Event Search API', function () {
         $institution = Institution::factory()->create([
             'name' => 'Markaz Ikhlas API Admin',
             'status' => 'verified',
-            'is_active' => true,
         ]);
 
         Event::factory()->create([
@@ -115,7 +114,6 @@ describe('Event Search API', function () {
         $speaker = Speaker::factory()->create([
             'name' => 'Ustaz Akram API Admin',
             'status' => 'verified',
-            'is_active' => true,
         ]);
 
         $speakerEvent = Event::factory()->create([
@@ -136,7 +134,6 @@ describe('Event Search API', function () {
         $reference = Reference::factory()->create([
             'title' => 'Kitab API Admin Search Reference',
             'status' => 'verified',
-            'is_active' => true,
         ]);
 
         $referenceEvent = Event::factory()->create([

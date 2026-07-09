@@ -47,13 +47,14 @@ class RejectEvent extends Transition implements HasColor, HasIcon, HasLabel
                 'actionable_id' => $this->event->id,
                 'actioned_by_type' => User::class,
                 'actioned_by_id' => $moderator->id,
-                'type' => 'rejected',
+                'type' => 'reject',
                 'reason' => $reasonCode,
                 'notes' => $this->note,
             ]));
 
             // Update status
             $this->event->status = Rejected::class;
+            $this->event->last_state_change_at = now();
             $this->event->save();
 
             // Remove from search

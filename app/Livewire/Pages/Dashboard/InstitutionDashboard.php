@@ -18,7 +18,6 @@ use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Support\Enums\Width;
-use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
@@ -303,7 +302,7 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
                 'events_count' => $this->institutionEventCountSubquery(),
                 'public_events_count' => $this->institutionEventCountSubquery(function (Builder $query): void {
                     $query
-                        ->where('events.is_active', true)
+                        ->whereNotNull('events.published_at')
                         ->whereIn('events.status', Event::PUBLIC_STATUSES)
                         ->where('events.visibility', EventVisibility::Public->value);
                 }),
@@ -664,9 +663,9 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
                     ->badge()
                     ->formatStateUsing(fn (mixed $state): string => $this->translateStatusLabel($state))
                     ->toggleable(isToggledHiddenByDefault: true),
-                IconColumn::make('is_active')
-                    ->label(__('Active'))
-                    ->boolean()
+                TextColumn::make('published_at')
+                    ->label(__('Published At'))
+                    ->dateTime()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort(fn (Builder $query): string|Builder|null => $this->applyLegacyEventSort($query), fn (): string => $this->legacyEventSortDirection())

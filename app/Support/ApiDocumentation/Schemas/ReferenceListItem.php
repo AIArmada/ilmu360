@@ -8,7 +8,7 @@ use Dedoc\Scramble\Attributes\SchemaName;
 use Illuminate\Contracts\Support\Arrayable;
 
 /**
- * @phpstan-type ReferenceListItemArray array{id: string, slug: string, title: string, display_title: string, author: ?string, type: ?string, parent_reference_id: ?string, part_type: ?string, part_number: ?string, part_label: ?string, is_part: bool, publisher: ?string, publication_year: ?string, is_active: bool, events_count: int, front_cover_url: ?string, is_following: bool}
+ * @phpstan-type ReferenceListItemArray array{id: string, slug: string, title: string, display_title: string, author: ?string, type: ?string, parent_reference_id: ?string, part_type: ?string, part_number: ?string, part_label: ?string, is_part: bool, publisher: ?string, publication_year: ?string, status: string, events_count: int, front_cover_url: ?string, is_following: bool}
  *
  * @implements Arrayable<string, mixed>
  */
@@ -29,7 +29,7 @@ final readonly class ReferenceListItem implements Arrayable
         public bool $is_part,
         public ?string $publisher,
         public ?string $publication_year,
-        public bool $is_active,
+        public string $status,
         public int $events_count,
         public ?string $front_cover_url,
         public bool $is_following,
@@ -52,7 +52,7 @@ final readonly class ReferenceListItem implements Arrayable
             'is_part' => $this->is_part,
             'publisher' => $this->publisher,
             'publication_year' => $this->publication_year,
-            'is_active' => $this->is_active,
+            'status' => $this->status,
             'events_count' => $this->events_count,
             'front_cover_url' => $this->front_cover_url,
             'is_following' => $this->is_following,

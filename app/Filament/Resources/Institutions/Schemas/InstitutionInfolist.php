@@ -50,11 +50,9 @@ class InstitutionInfolist
                                                         'pending' => 'warning',
                                                         'verified' => 'success',
                                                         'rejected' => 'danger',
+                                                        'inactive' => 'gray',
                                                         default => 'gray',
                                                     }),
-                                                IconEntry::make('is_active')
-                                                    ->label('Aktif')
-                                                    ->boolean(),
                                                 TextEntry::make('description')
                                                     ->label('Penerangan')
                                                     ->columnSpanFull()

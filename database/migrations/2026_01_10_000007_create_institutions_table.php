@@ -19,7 +19,10 @@ return new class extends Migration
             $table->text('description')->nullable();
 
             $table->string('status')->nullable();
-            $table->boolean('is_active')->default(true);
+            $table->timestampTz('verified_at')->nullable();
+            $table->timestampTz('rejected_at')->nullable();
+            $table->timestampTz('inactive_at')->nullable();
+            $table->timestampTz('last_state_change_at')->nullable();
 
             $table->boolean('allow_public_event_submission')->default(true)->index();
             $table->timestamp('public_submission_locked_at')->nullable()->index();
@@ -27,15 +30,11 @@ return new class extends Migration
 
             $table->timestamps();
 
-            // Optimized composite indexes for common query patterns
-            // Main listing: WHERE status='verified' AND is_active=true ORDER BY name
-            $table->index(['status', 'is_active', 'name'], 'institutions_status_active_name');
+            // Main listing: WHERE status IN ('verified','pending') ORDER BY name
+            $table->index(['status', 'name'], 'institutions_status_name');
 
-            // Type filtering: WHERE type='masjid' AND is_active=true ORDER BY name
-            $table->index(['type', 'is_active', 'name'], 'institutions_type_active_name');
-
-            // Combined filters: WHERE type='X' AND status='Y' AND is_active=true ORDER BY name
-            $table->index(['type', 'status', 'is_active', 'name'], 'institutions_type_status_active');
+            // Combined filters: WHERE type='X' AND status='Y' ORDER BY name
+            $table->index(['type', 'status', 'name'], 'institutions_type_status_name');
 
             // Sitemap generation: ORDER BY updated_at DESC
             $table->index('updated_at', 'institutions_sitemap');

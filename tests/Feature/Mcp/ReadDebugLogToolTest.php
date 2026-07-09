@@ -215,7 +215,6 @@ function debugLogMemberContext(): array
     // Assign an institution membership so hasMemberMcpAccess() is satisfied
     $institution = Institution::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
     app(AddMemberToSubject::class)->handle($institution, $member, 'admin');
 

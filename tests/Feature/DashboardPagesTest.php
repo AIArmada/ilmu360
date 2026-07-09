@@ -339,7 +339,6 @@ it('renders a valid event management link on the user dashboard for manageable e
         'submitter_id' => $user->id,
         'status' => 'approved',
         'visibility' => 'public',
-        'is_active' => true,
         'starts_at' => now()->addDays(3),
     ]);
 
@@ -821,8 +820,7 @@ it('hides scoped submit and duplicate links for inactive institution dashboards'
     $user = User::factory()->create();
     $institution = Institution::factory()->create([
         'name' => 'Masjid Tidak Aktif',
-        'status' => 'verified',
-        'is_active' => false,
+        'status' => 'inactive',
         'allow_public_event_submission' => true,
     ]);
 
@@ -1012,7 +1010,7 @@ it('filters and sorts institution events on the dedicated event list page', func
         ->assertTableColumnExists('dashboard_registrations_count')
         ->assertTableColumnExists('visibility')
         ->assertTableColumnExists('event_structure')
-        ->assertTableColumnExists('is_active')
+        ->assertTableColumnExists('status')
         ->searchTable('alpha')
         ->filterTable('status', 'pending')
         ->filterTable('visibility', EventVisibility::Private->value)
@@ -1025,7 +1023,7 @@ it('filters and sorts institution events on the dedicated event list page', func
     expect($tableInstance->getTable()->getColumn('dashboard_registrations_count')?->isToggledHiddenByDefault())->toBeTrue()
         ->and($tableInstance->getTable()->getColumn('visibility')?->isToggledHiddenByDefault())->toBeTrue()
         ->and($tableInstance->getTable()->getColumn('event_structure')?->isToggledHiddenByDefault())->toBeTrue()
-        ->and($tableInstance->getTable()->getColumn('is_active')?->isToggledHiddenByDefault())->toBeTrue();
+        ->and($tableInstance->getTable()->getColumn('status')?->isToggledHiddenByDefault())->toBeTrue();
 
     Livewire::withQueryParams(['institution' => $institution->id])
         ->actingAs($user)
@@ -1119,7 +1117,6 @@ it('clearly distinguishes public and internal institution data for members', fun
         'title' => 'Public Institution Event',
         'status' => 'approved',
         'visibility' => 'public',
-        'is_active' => true,
         'starts_at' => now()->addDays(2),
     ]);
 
@@ -1127,7 +1124,7 @@ it('clearly distinguishes public and internal institution data for members', fun
         'title' => 'Internal Institution Event',
         'status' => 'draft',
         'visibility' => 'private',
-        'is_active' => true,
+        'status' => 'active',
         'starts_at' => now()->addDays(4),
     ]);
 

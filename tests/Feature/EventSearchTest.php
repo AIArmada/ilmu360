@@ -246,24 +246,21 @@ describe('Event Search Filters', function () {
         Speaker::factory()->create([
             'name' => 'Speaker Hidden Filter Payload Test',
             'status' => 'verified',
-            'is_active' => true,
         ]);
 
         Institution::factory()->create([
             'name' => 'Institution Hidden Filter Payload Test',
             'status' => 'verified',
-            'is_active' => true,
         ]);
 
         Venue::factory()->create([
             'name' => 'Venue Hidden Filter Payload Test',
             'status' => 'verified',
-            'is_active' => true,
         ]);
 
         Reference::factory()->create([
             'title' => 'Reference Hidden Filter Payload Test',
-            'is_active' => true,
+            'status' => 'active',
         ]);
 
         Tag::factory()->discipline()->create([
@@ -366,7 +363,6 @@ describe('Event Search Filters', function () {
         $venue = Venue::factory()->create([
             'name' => 'Surau Taman Melawati',
             'status' => 'verified',
-            'is_active' => true,
         ]);
 
         updatePrimaryAddressForSearch($venue, [
@@ -425,7 +421,6 @@ describe('Event Search Filters', function () {
         $institution = Institution::factory()->create([
             'name' => 'Masjid Hierarki',
             'status' => 'verified',
-            'is_active' => true,
         ]);
 
         $parentEvent = Event::factory()->parentProgram()->for($institution)->create([
@@ -455,13 +450,11 @@ describe('Event Search Filters', function () {
         $matchInstitution = Institution::factory()->create([
             'name' => 'Pusat Tarbiah Al Hikmah',
             'status' => 'verified',
-            'is_active' => true,
         ]);
 
         $otherInstitution = Institution::factory()->create([
             'name' => 'Kompleks Ilmu An Nur',
             'status' => 'verified',
-            'is_active' => true,
         ]);
 
         Event::factory()->for($matchInstitution)->create([
@@ -491,13 +484,11 @@ describe('Event Search Filters', function () {
         $matchSpeaker = Speaker::factory()->create([
             'name' => 'Ustaz Samad Al-Bakri',
             'status' => 'verified',
-            'is_active' => true,
         ]);
 
         $otherSpeaker = Speaker::factory()->create([
             'name' => 'Ustaz Ahmad Zain',
             'status' => 'verified',
-            'is_active' => true,
         ]);
 
         $matchEvent = createVisibleEventForSearch([
@@ -805,13 +796,11 @@ describe('Event Search Filters', function () {
         $matchVenue = Venue::factory()->create([
             'name' => 'Surau Taman Melawati',
             'status' => 'verified',
-            'is_active' => true,
         ]);
 
         $otherVenue = Venue::factory()->create([
             'name' => 'Masjid Al Irsyad',
             'status' => 'verified',
-            'is_active' => true,
         ]);
 
         Event::factory()->for($matchVenue)->create([
@@ -841,13 +830,11 @@ describe('Event Search Filters', function () {
         $matchVenue = Venue::factory()->create([
             'name' => 'Surau Taman Melawati',
             'status' => 'verified',
-            'is_active' => true,
         ]);
 
         $otherVenue = Venue::factory()->create([
             'name' => 'Masjid Al Irsyad',
             'status' => 'verified',
-            'is_active' => true,
         ]);
 
         Event::factory()->for($matchVenue)->create([
@@ -940,13 +927,11 @@ describe('Event Search Filters', function () {
         $matchVenue = Venue::factory()->create([
             'name' => 'Surau Taman Melawati',
             'status' => 'verified',
-            'is_active' => true,
         ]);
 
         $otherVenue = Venue::factory()->create([
             'name' => 'Masjid Al Irsyad',
             'status' => 'verified',
-            'is_active' => true,
         ]);
 
         Event::factory()->for($matchVenue)->create([
@@ -1013,8 +998,8 @@ describe('Event Search Filters', function () {
     });
 
     it('filters events by institution in advanced filters', function () {
-        $includedInstitution = Institution::factory()->create(['status' => 'verified', 'is_active' => true]);
-        $excludedInstitution = Institution::factory()->create(['status' => 'verified', 'is_active' => true]);
+        $includedInstitution = Institution::factory()->create(['status' => 'verified']);
+        $excludedInstitution = Institution::factory()->create(['status' => 'verified']);
 
         Event::factory()->for($includedInstitution)->create([
             'title' => 'Institution Match Event',
@@ -1042,8 +1027,8 @@ describe('Event Search Filters', function () {
     });
 
     it('filters events by venue in advanced filters', function () {
-        $includedVenue = Venue::factory()->create(['status' => 'verified', 'is_active' => true]);
-        $excludedVenue = Venue::factory()->create(['status' => 'verified', 'is_active' => true]);
+        $includedVenue = Venue::factory()->create(['status' => 'verified']);
+        $excludedVenue = Venue::factory()->create(['status' => 'verified']);
 
         Event::factory()->for($includedVenue)->create([
             'title' => 'Venue Match Event',
@@ -1071,8 +1056,8 @@ describe('Event Search Filters', function () {
     });
 
     it('filters events by selected speaker ids in advanced filters', function () {
-        $includedSpeaker = Speaker::factory()->create(['status' => 'verified', 'is_active' => true]);
-        $excludedSpeaker = Speaker::factory()->create(['status' => 'verified', 'is_active' => true]);
+        $includedSpeaker = Speaker::factory()->create(['status' => 'verified']);
+        $excludedSpeaker = Speaker::factory()->create(['status' => 'verified']);
 
         $includedEvent = createVisibleEventForSearch([
             'title' => 'Speaker Match Event',
@@ -1428,7 +1413,6 @@ describe('Event Search Filters', function () {
 
         $malaysiaInstitution = Institution::factory()->create([
             'status' => 'verified',
-            'is_active' => true,
         ]);
         updatePrimaryAddressForSearch($malaysiaInstitution, [
             'country_id' => $malaysia->id,
@@ -1447,7 +1431,6 @@ describe('Event Search Filters', function () {
 
         $indonesiaInstitution = Institution::factory()->create([
             'status' => 'verified',
-            'is_active' => true,
         ]);
         updatePrimaryAddressForSearch($indonesiaInstitution, [
             'country_id' => $indonesia->id,
@@ -1676,7 +1659,6 @@ describe('Event Search Filters', function () {
         $linkedPic = Speaker::factory()->create([
             'name' => 'Ustaz Linked PIC',
             'status' => 'verified',
-            'is_active' => true,
         ]);
 
         $linkedPicEvent = createVisibleEventForSearch([
@@ -1852,12 +1834,12 @@ describe('Event Search Filters', function () {
     it('filters events by selected rujukan kitab buku', function () {
         $riyadhRef = Reference::factory()->create([
             'title' => 'Riyadhus Solihin',
-            'is_active' => true,
+            'status' => 'active',
         ]);
 
         $bulughRef = Reference::factory()->create([
             'title' => 'Bulughul Maram',
-            'is_active' => true,
+            'status' => 'active',
         ]);
 
         $riyadhEvent = createVisibleEventForSearch([
@@ -2599,7 +2581,6 @@ describe('Event Detail Page', function () {
             'job_title' => 'Pensyarah',
             'is_freelance' => false,
             'status' => 'verified',
-            'is_active' => true,
         ]);
 
         $speakerTwo = Speaker::factory()->create([
@@ -2610,7 +2591,6 @@ describe('Event Detail Page', function () {
             'job_title' => 'Mudir',
             'is_freelance' => false,
             'status' => 'verified',
-            'is_active' => true,
         ]);
 
         $event->speakers()->attach($speakerOne->id);

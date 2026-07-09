@@ -68,8 +68,7 @@ final class PublicDirectorySchemasTransformer implements DocumentTransformer
                 ->addProperty('country_id', (new StringType)->nullable(true))
                 ->addProperty('admin_area_1_id', (new StringType)->nullable(true))
                 ->addProperty('admin_area_2_id', (new StringType)->nullable(true))
-                ->addProperty('admin_area_3_id', (new StringType)->nullable(true))
-                ->setRequired(['country_id', 'admin_area_1_id', 'admin_area_2_id', 'admin_area_3_id']),
+                ->setRequired(['country_id', 'admin_area_1_id', 'admin_area_2_id']),
         );
     }
 
@@ -134,14 +133,13 @@ final class PublicDirectorySchemasTransformer implements DocumentTransformer
             ->addProperty('gender', (new StringType)->nullable(true))
             ->addProperty('formatted_name', new StringType)
             ->addProperty('status', new StringType)
-            ->addProperty('is_active', new BooleanType)
             ->addProperty('events_count', new IntegerType)
             ->addProperty('avatar_url', new StringType)
             ->addProperty('country', $this->nullableReference($components, 'Country'))
             ->addProperty('is_following', new BooleanType);
 
         if (! $sparse) {
-            $type->setRequired(['id', 'slug', 'name', 'gender', 'formatted_name', 'status', 'is_active', 'events_count', 'avatar_url', 'country', 'is_following']);
+            $type->setRequired(['id', 'slug', 'name', 'gender', 'formatted_name', 'status', 'events_count', 'avatar_url', 'country', 'is_following']);
         }
 
         return Schema::fromType($type);
@@ -163,7 +161,7 @@ final class PublicDirectorySchemasTransformer implements DocumentTransformer
             ->addProperty('is_part', new BooleanType)
             ->addProperty('publisher', (new StringType)->nullable(true))
             ->addProperty('publication_year', (new StringType)->nullable(true))
-            ->addProperty('is_active', new BooleanType)
+            ->addProperty('status', new StringType)
             ->addProperty('events_count', new IntegerType)
             ->addProperty('front_cover_url', (new StringType)->nullable(true))
             ->addProperty('is_following', new BooleanType);
@@ -183,7 +181,7 @@ final class PublicDirectorySchemasTransformer implements DocumentTransformer
                 'is_part',
                 'publisher',
                 'publication_year',
-                'is_active',
+                'status',
                 'events_count',
                 'front_cover_url',
                 'is_following',
@@ -265,7 +263,6 @@ final class PublicDirectorySchemasTransformer implements DocumentTransformer
                 ->addProperty('country', $this->nullableReference($components, 'Country'))
                 ->addProperty('location', (new StringType)->nullable(true))
                 ->addProperty('status', new StringType)
-                ->addProperty('is_active', new BooleanType)
                 ->addProperty('is_following', new BooleanType)
                 ->addProperty('media', $this->speakerMediaType())
                 ->addProperty('gallery', $this->speakerGalleryListType())
@@ -286,7 +283,6 @@ final class PublicDirectorySchemasTransformer implements DocumentTransformer
                     'country',
                     'location',
                     'status',
-                    'is_active',
                     'is_following',
                     'media',
                     'gallery',

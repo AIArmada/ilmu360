@@ -207,7 +207,7 @@ it('allows institution admins to duplicate managed non-public events', function 
         'title' => 'Majlis Dalaman Untuk Duplikasi',
         'status' => 'draft',
         'visibility' => EventVisibility::Private->value,
-        'is_active' => false,
+        'status' => 'inactive',
         'institution_id' => $institution->id,
     ]);
     $event->setPrimaryOrganizer($institution);

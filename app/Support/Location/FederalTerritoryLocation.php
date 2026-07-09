@@ -1,8 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Support\Location;
 
-use AIArmada\Addressing\Models\AddressArea;
+use AIArmada\Addressing\Models\State;
 
 class FederalTerritoryLocation
 {
@@ -13,6 +15,9 @@ class FederalTerritoryLocation
         'kuala lumpur',
         'putrajaya',
         'labuan',
+        'wp kuala lumpur',
+        'wp putrajaya',
+        'wp labuan',
         'wilayah persekutuan kuala lumpur',
         'wilayah persekutuan putrajaya',
         'wilayah persekutuan labuan',
@@ -35,17 +40,14 @@ class FederalTerritoryLocation
             return self::$stateIds[$stateId] ?? false;
         }
 
-        $state = AddressArea::query()
-            ->whereKey($stateId)
-            ->where('level', 1)
-            ->first();
+        $state = State::query()->whereKey($stateId)->first();
 
-        if (! $state instanceof AddressArea) {
+        if (! $state instanceof State) {
             return false;
         }
 
-        $isFederalTerritory = strtoupper((string) $state->country_code) === 'MY'
-            && self::isFederalTerritoryStateName($state->name);
+        $isFederalTerritory = self::isFederalTerritoryStateName($state->name)
+            || self::isFederalTerritoryStateName($state->label);
 
         self::$stateIds[$stateId] = $isFederalTerritory;
 
@@ -70,19 +72,11 @@ class FederalTerritoryLocation
             return self::$stateIds;
         }
 
-        self::$stateIds = AddressArea::query()
-            ->where('country_code', 'MY')
-            ->where('level', 1)
-            ->whereIn('name', [
-                'Kuala Lumpur',
-                'Putrajaya',
-                'Labuan',
-                'Wilayah Persekutuan Kuala Lumpur',
-                'Wilayah Persekutuan Putrajaya',
-                'Wilayah Persekutuan Labuan',
-            ])
-            ->pluck('id')
-            ->mapWithKeys(fn (mixed $id): array => [(string) $id => true])
+        self::$stateIds = State::query()
+            ->get(['id', 'name', 'label'])
+            ->filter(fn (State $state): bool => self::isFederalTerritoryStateName($state->name)
+                || self::isFederalTerritoryStateName($state->label))
+            ->mapWithKeys(fn (State $state): array => [(string) $state->getKey() => true])
             ->all();
 
         return self::$stateIds;

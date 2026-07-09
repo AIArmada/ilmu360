@@ -103,7 +103,6 @@ final readonly class ExecuteSavedSearchAction
             'city_id',
             'admin_area_1_id',
             'admin_area_2_id',
-            'admin_area_3_id',
             'institution_id',
             'venue_id',
             'speaker_ids',

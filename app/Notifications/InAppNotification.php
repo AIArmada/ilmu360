@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Enums\NotificationFamily;
 use App\Enums\NotificationPriority;
 use App\Enums\NotificationTrigger;
+use App\Notifications\Channels\InboxChannel;
 use Carbon\CarbonInterface;
 use Illuminate\Notifications\Notification;
 
@@ -24,11 +25,17 @@ class InAppNotification extends Notification
         public array $meta = [],
     ) {}
 
+    /**
+     * @return list<class-string>
+     */
     public function via($notifiable): array
     {
-        return ['database'];
+        return [InboxChannel::class];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function toArray($notifiable): array
     {
         return [

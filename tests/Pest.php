@@ -3,9 +3,12 @@
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressCountry;
+use AIArmada\Addressing\Models\City;
+use AIArmada\Addressing\Models\State;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Signals\Models\TrackedProperty;
 use App\Support\Cache\PublicListingsCache;
+use App\Support\Location\AddressAreaStateBridge;
 use App\Support\Signals\ProductSignalsSurfaceResolver;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -204,22 +207,8 @@ function syncPrimaryAddressForTest(mixed $model, array $attributes): Address
  */
 function normalizeTestAddressAttributes(array $attributes): array
 {
-    $normalized = $attributes;
-
-    foreach ([
-        'state_id' => 'admin_area_1_id',
-        'admin_area_1_id' => 'admin_area_2_id',
-        'admin_area_2_id' => 'admin_area_3_id',
-        'city_id' => 'admin_area_4_id',
-    ] as $legacyKey => $packageKey) {
-        if (! array_key_exists($packageKey, $normalized) && array_key_exists($legacyKey, $normalized)) {
-            $normalized[$packageKey] = $normalized[$legacyKey];
-        }
-
-        unset($normalized[$legacyKey]);
-    }
-
-    return $normalized;
+    // Package-native FKs only; also productize old area_1=state test fixtures.
+    return productizeTestAddressAttributes($attributes);
 }
 
 function fakeGeneratedImageUpload(string $name = 'image.png', int $width = 1200, int $height = 800): UploadedFile
@@ -413,4 +402,135 @@ function createTestAddressArea(
         'source_id' => (string) Str::ulid(),
         'parent_source_id' => $parent?->source_id,
     ]);
+}
+
+/**
+ * Canonical MY product geography fixture:
+ * - package State/City tables for state_id/city_id
+ * - AddressArea tree for district (admin_area_1) + subdistrict (admin_area_2)
+ *
+ * @return array{
+ *     country: AddressCountry,
+ *     state: State,
+ *     city: City|null,
+ *     state_area: AddressArea,
+ *     district: AddressArea,
+ *     subdistrict: AddressArea,
+ *     address: array<string, mixed>
+ * }
+ */
+function createTestPackageGeography(
+    string $stateName = 'Selangor',
+    string $districtName = 'Petaling',
+    string $subdistrictName = 'Shah Alam',
+    ?string $cityName = null,
+    ?AddressCountry $country = null,
+): array {
+    $country ??= ensureTestMalaysiaCountry();
+
+    $packageState = State::query()->firstOrCreate(
+        [
+            'country_id' => (string) $country->getKey(),
+            'name' => $stateName,
+        ],
+        [
+            'code' => null,
+            'label' => $stateName,
+        ],
+    );
+
+    $city = null;
+    if ($cityName !== null && $cityName !== '') {
+        $city = City::query()->firstOrCreate(
+            [
+                'state_id' => (string) $packageState->getKey(),
+                'name' => $cityName,
+            ],
+            [
+                'country_id' => (string) $country->getKey(),
+                'label' => $cityName,
+            ],
+        );
+    }
+
+    $stateArea = createTestAddressArea($stateName, 1, country: $country, type: 'state');
+    $district = createTestAddressArea($districtName, 2, parent: $stateArea, country: $country, type: 'district');
+    $subdistrict = createTestAddressArea($subdistrictName, 3, parent: $district, country: $country, type: 'subdistrict');
+
+    return [
+        'country' => $country,
+        'state' => $packageState,
+        'city' => $city,
+        'state_area' => $stateArea,
+        'district' => $district,
+        'subdistrict' => $subdistrict,
+        'address' => [
+            'country_id' => (string) $country->getKey(),
+            'state_id' => (string) $packageState->getKey(),
+            'city_id' => $city instanceof City ? (string) $city->getKey() : null,
+            'admin_area_1_id' => (string) $district->getKey(),
+            'admin_area_2_id' => (string) $subdistrict->getKey(),
+            'admin_area_3_id' => null,
+            'admin_area_4_id' => null,
+            'state' => $stateName,
+            'city' => $cityName ?? $subdistrictName,
+        ],
+    ];
+}
+
+/**
+ * Remap legacy test address payloads (area_1=state, area_2=district, area_3=subdistrict)
+ * into product-native columns when package state is known.
+ *
+ * @param  array<string, mixed>  $attributes
+ * @return array<string, mixed>
+ */
+function productizeTestAddressAttributes(array $attributes, ?string $stateId = null): array
+{
+    $area1 = is_string($attributes['admin_area_1_id'] ?? null) ? $attributes['admin_area_1_id'] : null;
+    $area2 = is_string($attributes['admin_area_2_id'] ?? null) ? $attributes['admin_area_2_id'] : null;
+    $area3 = is_string($attributes['admin_area_3_id'] ?? null) ? $attributes['admin_area_3_id'] : null;
+
+    // Legacy hierarchy: area_1=state area, area_2=district, area_3=subdistrict.
+    if ($area3 !== null && $area3 !== '') {
+        $area1Model = $area1 !== null ? AddressArea::query()->find($area1) : null;
+
+        if ($area1Model instanceof AddressArea && (int) $area1Model->level === 1) {
+            if (($attributes['state_id'] ?? null) === null) {
+                $bridgedStateId = AddressAreaStateBridge::stateIdForArea($area1Model);
+                if ($bridgedStateId !== null) {
+                    $attributes['state_id'] = $bridgedStateId;
+                } else {
+                    $packageState = State::query()->firstOrCreate(
+                        [
+                            'country_id' => (string) $area1Model->country_id,
+                            'name' => (string) $area1Model->name,
+                        ],
+                        [
+                            'code' => null,
+                            'label' => (string) $area1Model->name,
+                        ],
+                    );
+                    $attributes['state_id'] = (string) $packageState->getKey();
+                }
+            }
+
+            $attributes['state'] ??= (string) $area1Model->name;
+            $attributes['admin_area_1_id'] = $area2;
+            $attributes['admin_area_2_id'] = $area3;
+        } elseif ($area1Model instanceof AddressArea && (int) $area1Model->level === 2) {
+            // Already product-shaped for district; only drop area_3 if it was mis-set.
+            $attributes['admin_area_2_id'] = $area3;
+        }
+    }
+
+    if ($stateId !== null && $stateId !== '') {
+        $attributes['state_id'] = $stateId;
+    }
+
+    $attributes['admin_area_3_id'] = null;
+    $attributes['admin_area_4_id'] = null;
+    unset($attributes['state_area_id'], $attributes['district_id'], $attributes['subdistrict_id']);
+
+    return $attributes;
 }

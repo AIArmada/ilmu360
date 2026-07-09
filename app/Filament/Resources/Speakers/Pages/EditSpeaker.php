@@ -142,8 +142,6 @@ class EditSpeaker extends EditRecord
             'country_id' => $countryId,
             'admin_area_1_id' => $address?->admin_area_1_id,
             'admin_area_2_id' => $address?->admin_area_2_id,
-            'admin_area_3_id' => $address?->admin_area_3_id,
-            'admin_area_4_id' => $address?->admin_area_4_id,
             'line1' => $address?->line1,
             'line2' => $address?->line2,
             'postcode' => $address?->postcode,

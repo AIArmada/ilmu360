@@ -9,9 +9,8 @@ use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
-use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Filters\TernaryFilter;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 
 class SpacesTable
@@ -30,9 +29,12 @@ class SpacesTable
                     ->numeric()
                     ->sortable()
                     ->placeholder('-'),
-                IconColumn::make('is_active')
-                    ->label('Active')
-                    ->boolean(),
+                TextColumn::make('status')
+                    ->badge()
+                    ->sortable(),
+                TextColumn::make('visibility')
+                    ->badge()
+                    ->sortable(),
                 TextColumn::make('institutions_count')
                     ->label('Institutions')
                     ->counts('institutions')
@@ -47,8 +49,11 @@ class SpacesTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                TernaryFilter::make('is_active')
-                    ->label('Active'),
+                SelectFilter::make('status')
+                    ->options([
+                        'active' => 'Active',
+                        'inactive' => 'Inactive',
+                    ]),
             ])
             ->recordActions([
                 ViewAction::make(),

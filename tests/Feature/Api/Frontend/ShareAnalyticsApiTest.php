@@ -13,7 +13,6 @@ it('returns authenticated share analytics dashboard and link detail data for mob
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
         'published_at' => now()->subDay(),
-        'is_active' => true,
     ]);
 
     $payload = $this->getJson(route('api.client.share.payload', [
@@ -81,7 +80,6 @@ it('allows guest mobile clients to record share tracking through the api', funct
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
         'published_at' => now()->subDay(),
-        'is_active' => true,
     ]);
 
     $payload = $this->getJson(route('api.client.share.payload', [

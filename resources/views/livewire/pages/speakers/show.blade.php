@@ -4,7 +4,7 @@
 
 @section('title', $speaker->formatted_name . ' - ' . config('app.name'))
 @section('meta_description', \Illuminate\Support\Str::limit((is_array($speaker->bio) ? \Filament\Forms\Components\RichEditor\RichContentRenderer::make($speaker->bio)->toText() : trim(strip_tags((string) $speaker->bio))) ?: __('Lihat profil, biodata, dan jadual majlis oleh :name di :app.', ['name' => $speaker->formatted_name, 'app' => config('app.name')]), 160))
-@section('meta_robots', ($speaker->is_active && $speaker->status === 'verified') ? 'index, follow' : 'noindex, nofollow')
+@section('meta_robots', ($speaker->status === 'verified') ? 'index, follow' : 'noindex, nofollow')
 @section('og_url', route('speakers.show', $speaker))
 @section('og_image', $speakerShareImageUrl)
 @section('og_image_alt', __('Profil penceramah :name', ['name' => $speaker->formatted_name]))

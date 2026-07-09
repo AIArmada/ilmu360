@@ -179,7 +179,7 @@ class Show extends Component
         }
 
         return $this->event->childEvents
-            ->filter(fn (Event $childEvent): bool => $childEvent->is_active
+            ->filter(fn (Event $childEvent): bool => $childEvent->published_at !== null
                 && in_array((string) $childEvent->status, Event::PUBLIC_STATUSES, true)
                 && $childEvent->visibility === EventVisibility::Public)
             ->sortBy('starts_at')
@@ -624,7 +624,7 @@ class Show extends Component
 
     protected function isSearchIndexable(Event $event): bool
     {
-        if (! $event->is_active || $event->visibility !== EventVisibility::Public || $event->eventStructure() === EventStructure::ParentProgram) {
+        if ($event->published_at === null || $event->visibility !== EventVisibility::Public || $event->eventStructure() === EventStructure::ParentProgram) {
             return false;
         }
 

@@ -175,7 +175,6 @@ class ModerationService
             'capacity',
             'admin_area_1_id',
             'admin_area_2_id',
-            'admin_area_3_id',
             'latitude',
             'longitude',
         ];

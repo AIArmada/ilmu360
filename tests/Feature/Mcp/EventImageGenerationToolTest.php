@@ -390,7 +390,6 @@ it('includes linked institution media fallback links when organizer is missing',
     $institution = Institution::factory()->create([
         'name' => 'Masjid Al-Ihsan',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $institution
@@ -402,7 +401,6 @@ it('includes linked institution media fallback links when organizer is missing',
         'title' => 'Kuliah Subuh Al-Ihsan',
         'slug' => 'kuliah-subuh-al-ihsan',
         'status' => 'approved',
-        'is_active' => true,
     ]);
 
     $builderResult = app(EventCoverPromptBuilder::class)->build($event->fresh(), [
@@ -492,7 +490,6 @@ it('uses storage-backed image attachments instead of remote url attachments', fu
         'title' => 'Attachment Safety Event',
         'slug' => 'attachment-safety-event',
         'status' => 'approved',
-        'is_active' => true,
     ]);
 
     $event
@@ -521,7 +518,6 @@ it('uses temporary signed urls for reference media payloads when disk supports i
         'title' => 'S3 URL Event',
         'slug' => 's3-url-event',
         'status' => 'approved',
-        'is_active' => true,
     ]);
 
     $event
@@ -553,7 +549,6 @@ function eventImageGenerationEventFixture(?Institution $institution = null): arr
     $institution ??= Institution::factory()->create([
         'name' => 'Masjid Al-Falah',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $institution
@@ -563,7 +558,6 @@ function eventImageGenerationEventFixture(?Institution $institution = null): arr
     $speaker = Speaker::factory()->create([
         'name' => 'Dr. MAZA',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $speaker
@@ -575,7 +569,6 @@ function eventImageGenerationEventFixture(?Institution $institution = null): arr
         'author' => 'Imam Ibn Kathir',
         'type' => ReferenceType::Book->value,
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $reference
@@ -584,7 +577,7 @@ function eventImageGenerationEventFixture(?Institution $institution = null): arr
 
     $series = Series::factory()->create([
         'title' => 'Tadabbur Semasa',
-        'is_active' => true,
+        'status' => 'active',
     ]);
 
     $series
@@ -606,7 +599,6 @@ function eventImageGenerationEventFixture(?Institution $institution = null): arr
         'event_format' => EventFormat::Physical->value,
         'visibility' => EventVisibility::Public->value,
         'status' => 'approved',
-        'is_active' => true,
     ]);
 
     withGlobalOwnerContext(function () use ($event, $institution): void {
@@ -659,7 +651,6 @@ function eventImageGenerationMemberContext(): array
 {
     $institution = Institution::factory()->create([
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $member = User::factory()->create([
         'phone' => '+60112223344',

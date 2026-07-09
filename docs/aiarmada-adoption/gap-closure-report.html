@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ilmu360° — AIArmada Native Gap Closure Report</title>
+<style>
+    :root {
+        --bg: #0f1419;
+        --surface: #1a222c;
+        --surface2: #232d3a;
+        --ink: #e8eef4;
+        --muted: #8b9aab;
+        --line: #2e3a48;
+        --good: #34d399;
+        --good-bg: rgba(52, 211, 153, .12);
+        --bad: #f87171;
+        --bad-bg: rgba(248, 113, 113, .12);
+        --warn: #fbbf24;
+        --warn-bg: rgba(251, 191, 36, .12);
+        --info: #60a5fa;
+        --info-bg: rgba(96, 165, 250, .12);
+        --accent: #a78bfa;
+    }
+    * { box-sizing: border-box; }
+    body {
+        margin: 0;
+        font: 15px/1.55 "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--ink);
+    }
+    header {
+        border-bottom: 1px solid var(--line);
+        padding: 2rem 1.5rem 1.5rem;
+        background: linear-gradient(180deg, #151c24 0%, var(--bg) 100%);
+    }
+    .wrap { max-width: 1080px; margin: 0 auto; }
+    h1 { margin: 0 0 .4rem; font-size: 1.75rem; letter-spacing: -.02em; }
+    h2 { margin: 0 0 .75rem; font-size: 1.15rem; letter-spacing: -.01em; }
+    h3 { margin: 1rem 0 .4rem; font-size: .95rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+    .lede { color: var(--muted); max-width: 70ch; margin: 0; }
+    main { padding: 1.5rem; }
+    .meta { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1rem; }
+    .pill {
+        display: inline-flex; align-items: center; gap: .35rem;
+        padding: .25rem .65rem; border-radius: 999px; font-size: .75rem; font-weight: 600;
+        border: 1px solid var(--line); background: var(--surface);
+        color: var(--muted);
+    }
+    .pill strong { color: var(--ink); font-weight: 700; }
+    .pill.freeze { background: var(--bad-bg); border-color: rgba(248,113,113,.35); color: var(--bad); }
+    .pill.ok { background: var(--good-bg); border-color: rgba(52,211,153,.35); color: var(--good); }
+    .pill.warn { background: var(--warn-bg); border-color: rgba(251,191,36,.35); color: var(--warn); }
+
+    .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: .75rem; margin: 1.25rem 0 1.75rem; }
+    .stat {
+        background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.1rem;
+    }
+    .stat b { display: block; font-size: 1.75rem; font-weight: 700; letter-spacing: -.03em; }
+    .stat span { color: var(--muted); font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; }
+
+    .card {
+        background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+        padding: 1.15rem 1.25rem; margin-bottom: 1rem;
+    }
+    .card.hero {
+        background: var(--surface2);
+        border-color: rgba(167, 139, 250, .35);
+    }
+
+    table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+    th {
+        text-align: left; padding: .5rem .55rem; color: var(--muted);
+        font-size: .7rem; text-transform: uppercase; letter-spacing: .05em;
+        border-bottom: 1px solid var(--line);
+    }
+    td { padding: .55rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    code, .mono {
+        font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: .8em;
+        background: rgba(255,255,255,.06);
+        padding: .05rem .3rem;
+        border-radius: 4px;
+    }
+    a { color: var(--info); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .tag {
+        display: inline-block; font-size: .68rem; font-weight: 700; text-transform: uppercase;
+        letter-spacing: .04em; padding: .15rem .45rem; border-radius: 6px; white-space: nowrap;
+    }
+    .tag-p0 { background: var(--bad-bg); color: var(--bad); }
+    .tag-p1 { background: var(--warn-bg); color: var(--warn); }
+    .tag-p2 { background: var(--info-bg); color: var(--info); }
+    .tag-ok { background: var(--good-bg); color: var(--good); }
+    .tag-keep { background: rgba(167,139,250,.15); color: var(--accent); }
+
+    .bar {
+        height: 10px; border-radius: 999px; background: var(--line); overflow: hidden; margin: .5rem 0 0;
+        display: flex;
+    }
+    .bar i { display: block; height: 100%; }
+    .bar .c { background: var(--good); }
+    .bar .o { background: var(--bad); }
+
+    ul.clean { margin: .35rem 0 0; padding-left: 1.15rem; color: var(--muted); }
+    ul.clean li { margin: .25rem 0; }
+    ul.clean strong { color: var(--ink); }
+
+    .two { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    @media (max-width: 860px) {
+        .grid, .two { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 560px) {
+        .grid, .two { grid-template-columns: 1fr; }
+    }
+    footer { padding: 1rem 1.5rem 2.5rem; color: var(--muted); font-size: .82rem; border-top: 1px solid var(--line); }
+</style>
+</head>
+<body>
+<header>
+    <div class="wrap">
+        <h1>ilmu360° · AIArmada native gap closure</h1>
+        <p class="lede">
+            Fresh report (2026-07-09). Package installation and schema ownership are largely done.
+            What remains is <strong style="color:var(--ink)">native purity</strong>: no dual paths, no backward-compat shims,
+            no cutover hacks. Further product development is frozen until these gaps close and every custom piece is intentional by design.
+        </p>
+        <div class="meta">
+            <span class="pill freeze">Feature freeze until Phase 9 exit</span>
+            <span class="pill"><strong>25</strong> packages installed</span>
+            <span class="pill"><strong>31</strong> app migrations</span>
+            <span class="pill"><strong>15</strong> package subclasses</span>
+            <span class="pill warn"><strong>9</strong> open work units</span>
+            <span class="pill ok">Phases 0–8 schema: mostly complete</span>
+        </div>
+    </div>
+</header>
+
+<main>
+<div class="wrap">
+
+<!-- Progress -->
+<div class="card hero">
+    <h2>Adoption progress (honest split)</h2>
+    <div class="two" style="margin-top:.75rem">
+        <div>
+            <h3>Closed</h3>
+            <div class="bar" title="Schema / ownership"><i class="c" style="width:78%"></i><i class="o" style="width:22%"></i></div>
+            <p class="lede" style="margin:.5rem 0 0;font-size:.9rem">
+                Install, geography, contacting, engagement, membership, events schema, inbox storage, 8 model closures, teams removed.
+            </p>
+        </div>
+        <div>
+            <h3>Native purity (Phase 9)</h3>
+            <div class="bar"><i class="c" style="width:18%"></i><i class="o" style="width:82%"></i></div>
+            <p class="lede" style="margin:.5rem 0 0;font-size:.90rem">
+                Dual dispatch, dual taxonomy, builder maps, alias traits, legacy accessors, hard-native API edges, thick subclasses still open.
+            </p>
+        </div>
+    </div>
+    <p class="lede" style="margin:1rem 0 0;font-size:.9rem">
+        Docs:
+        <a href="status.md">status.md</a> ·
+        <a href="phase-08-cutover.md">phase-08-cutover.md</a> ·
+        <a href="cutover-plan.html">cutover-plan.html</a> ·
+        <a href="../commerce-package-readiness-reassessment.md">readiness reassessment</a>
+    </p>
+</div>
+
+<div class="grid">
+    <div class="stat"><b>25</b><span>aiarmada/* direct</span></div>
+    <div class="stat"><b>15</b><span>Category A models</span></div>
+    <div class="stat"><b>12</b><span>Open gap rows</span></div>
+    <div class="stat"><b>0</b><span>Install blockers</span></div>
+</div>
+
+<!-- North star -->
+<div class="card">
+    <h2>North star</h2>
+    <ul class="clean">
+        <li><strong>Maximum native package use</strong> — package contracts, models, actions, and tables are the default path.</li>
+        <li><strong>No backward compatibility layers at exit</strong> — hard cuts; update clients, tests, MCP, and docs in the same change set.</li>
+        <li><strong>No dual systems</strong> — one store, one write path, one index path per domain concept.</li>
+        <li><strong>No hacks / shortcuts</strong> — delete builder maps, alias traits, legacy accessors, dual-mode flags.</li>
+        <li><strong>Intentional custom only</strong> — Institution/Speaker, donations, public UX, MCP, Islamic presentation, FCM/WhatsApp adapters.</li>
+        <li><strong>Accept total rewrites</strong> of any surface that only exists to paper over the old app.</li>
+        <li><strong>Performant, stable, long-term</strong> — green migrate/seed, focused tests, PHPStan on touched code, readable models.</li>
+    </ul>
+</div>
+
+<!-- Closed -->
+<div class="card">
+    <h2>Already closed (do not reopen)</h2>
+    <table>
+        <tr><th>Area</th><th>Outcome</th><th></th></tr>
+        <tr><td>Package inventory</td><td>25 direct requires via path monorepo</td><td><span class="tag tag-ok">Closed</span></td></tr>
+        <tr><td>Addressing</td><td>Country switch removed; package geo seeded; legacy geo models gone</td><td><span class="tag tag-ok">Closed</span></td></tr>
+        <tr><td>Contacting</td><td>Contact/SocialMedia deleted; package traits live</td><td><span class="tag tag-ok">Closed</span></td></tr>
+        <tr><td>Engagement</td><td><code>EngagementManager</code> + <code>RegistrationServiceInterface</code></td><td><span class="tag tag-ok">Closed</span></td></tr>
+        <tr><td>Membership</td><td>Package application/invitation/actions; teams deleted; hook + notifier bound</td><td><span class="tag tag-ok">Closed</span></td></tr>
+        <tr><td>Events schema</td><td>Package tables; 15 subclasses; Filament events plugin</td><td><span class="tag tag-ok">Closed</span></td></tr>
+        <tr><td>Communications storage</td><td>Inbox + preferences on package models; Notification* Eloquent + engine deleted</td><td><span class="tag tag-ok">Closed</span></td></tr>
+        <tr><td>Migrations</td><td>73 → 31 app files</td><td><span class="tag tag-ok">Closed</span></td></tr>
+    </table>
+</div>
+
+<!-- Open gaps -->
+<div class="card">
+    <h2>Open gaps — must close before further development</h2>
+    <table>
+        <tr>
+            <th>ID</th>
+            <th>Gap</th>
+            <th>Evidence (live code)</th>
+            <th>Exit proof</th>
+            <th>Pri</th>
+        </tr>
+        <tr>
+            <td><strong>G1</strong></td>
+            <td>Communications dual dispatch</td>
+            <td><code>dispatch_through_package</code> defaults <strong>false</strong>; <code>DispatchMode</code> still present; app orchestration services remain</td>
+            <td>Package dispatch default; delete dual-mode helper; document intentional FCM/WhatsApp only</td>
+            <td><span class="tag tag-p0">P0</span></td>
+        </tr>
+        <tr>
+            <td><strong>G2</strong></td>
+            <td>Taxonomy dual path</td>
+            <td>Spatie <code>HasTags</code> / <code>syncTags</code> on submit; also <code>EventTaxonomy</code>/<code>EventTerm</code> in filters + sync action; dual fields in searchable array</td>
+            <td>One decision, one write path, one index path</td>
+            <td><span class="tag tag-p0">P0</span></td>
+        </tr>
+        <tr>
+            <td><strong>G3</strong></td>
+            <td>Legacy query builders</td>
+            <td><code>EventBuilder</code> (~477), <code>VenueBuilder</code>, <code>ReferenceBuilder</code> map legacy columns</td>
+            <td>Callers rewritten; maps deleted</td>
+            <td><span class="tag tag-p0">P0</span></td>
+        </tr>
+        <tr>
+            <td><strong>G4</strong></td>
+            <td>Contact/social/address alias traits</td>
+            <td><code>HasPackageContactAliases</code>, <code>HasPackageSocialAliases</code>, <code>HasPrimaryAddressAccessors</code></td>
+            <td>Package APIs only; traits deleted</td>
+            <td><span class="tag tag-p0">P0</span></td>
+        </tr>
+        <tr>
+            <td><strong>G5</strong></td>
+            <td>Legacy model accessors / defaults</td>
+            <td><code>EventChangeAnnouncement</code> type/status/public_message; <code>ModerationReview</code> legacy accessors; <code>Registration::applyLegacyDefaults</code></td>
+            <td>Package field names only in UI/API</td>
+            <td><span class="tag tag-p0">P0</span></td>
+        </tr>
+        <tr>
+            <td><strong>G6</strong></td>
+            <td>Geography/search BC edges</td>
+            <td><code>state_id</code>/<code>district_id</code>/<code>subdistrict_id</code> still accepted or composed in search, forms, contributions, saved searches</td>
+            <td>Hard-native package keys; clients updated same PR</td>
+            <td><span class="tag tag-p1">P1</span></td>
+        </tr>
+        <tr>
+            <td><strong>G7</strong></td>
+            <td>Thick subclasses</td>
+            <td><code>Event</code> ~2.6k, <code>Reference</code> ~740, <code>Registration</code> ~440 lines mixing product + cutover glue</td>
+            <td>Thin to intentional product only</td>
+            <td><span class="tag tag-p1">P1</span></td>
+        </tr>
+        <tr>
+            <td><strong>G8</strong></td>
+            <td>UI legacy state</td>
+            <td><code>InstitutionDashboard</code> legacy table filter/sort sync helpers</td>
+            <td>Native table state only</td>
+            <td><span class="tag tag-p1">P1</span></td>
+        </tr>
+        <tr>
+            <td><strong>G9</strong></td>
+            <td>Dead dual-store tooling</td>
+            <td>Notification parity / migrate commands referencing dual systems</td>
+            <td>Deleted or archived after G1</td>
+            <td><span class="tag tag-p2">P2</span></td>
+        </tr>
+        <tr>
+            <td><strong>G10</strong></td>
+            <td>Verification debt</td>
+            <td>Historical partial suite greens; feature freeze needs fresh proof</td>
+            <td><code>migrate:fresh --seed</code> + targeted Pest + PHPStan/Pint on touched paths</td>
+            <td><span class="tag tag-p1">P1</span></td>
+        </tr>
+        <tr>
+            <td><strong>G11</strong></td>
+            <td>Paid commerce not productized</td>
+            <td>inventory/seating/ticketing installed; free-first product</td>
+            <td>Either productize cleanly or park as intentional non-productized install</td>
+            <td><span class="tag tag-p2">P2</span></td>
+        </tr>
+        <tr>
+            <td><strong>G12</strong></td>
+            <td>Package Block unused</td>
+            <td>Zero app usage of moderation Block</td>
+            <td>Adopt if product needs bans; else ignore</td>
+            <td><span class="tag tag-p2">P2</span></td>
+        </tr>
+    </table>
+</div>
+
+<!-- Model ownership -->
+<div class="card">
+    <h2>Model ownership (truth)</h2>
+    <div class="two">
+        <div>
+            <h3>Category A — extends package (15)</h3>
+            <ul class="clean">
+                <li>Event, Registration, Venue, Series, Space</li>
+                <li>EventKeyPerson → Involvement</li>
+                <li>EventCheckin → Attendance</li>
+                <li>EventChangeAnnouncement → Update</li>
+                <li>EventSubmission, Reference</li>
+                <li>MemberInvitation, MembershipApplication</li>
+                <li>ModerationReview, SavedSearch, Report</li>
+            </ul>
+        </div>
+        <div>
+            <h3>Category B / D — app root (intentional)</h3>
+            <ul class="clean">
+                <li>Institution, Speaker (+ package traits)</li>
+                <li>User (+ engagement actor traits)</li>
+                <li>DonationChannel, ContributionRequest, Inspiration, …</li>
+                <li>Public Livewire, MCP, media policy</li>
+            </ul>
+            <h3 style="margin-top:1rem">Deleted (closed)</h3>
+            <ul class="clean">
+                <li>Contact, SocialMedia, geo wrappers, Following, EventSettings, MembershipClaim, Team, Notification* models, NotificationEngine</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- Decisions -->
+<div class="card">
+    <h2>Decisions required before coding</h2>
+    <table>
+        <tr><th>Decision</th><th>Options</th><th>Rule</th></tr>
+        <tr>
+            <td><strong>Taxonomy</strong></td>
+            <td>Package EventTaxonomy/EventTerm <em>or</em> intentional Spatie Tags</td>
+            <td>Single path only — dual write is forbidden at exit</td>
+        </tr>
+        <tr>
+            <td><strong>API geography</strong></td>
+            <td>Hard cut now</td>
+            <td>No deprecation windows; update clients/tests same PR</td>
+        </tr>
+        <tr>
+            <td><strong>Paid tickets</strong></td>
+            <td>Productize near-term <em>or</em> park</td>
+            <td>Do not leave half-wired payment code</td>
+        </tr>
+    </table>
+</div>
+
+<!-- Work order -->
+<div class="card">
+    <h2>Recommended execution order</h2>
+    <table>
+        <tr><th>#</th><th>Work unit</th><th>Closes</th></tr>
+        <tr><td>0</td><td>Record DG-T / DG-API / DG-COM in architecture decisions</td><td>—</td></tr>
+        <tr><td>1</td><td><a href="cutover-plan.html#wu-t">WU-T</a> Taxonomy single path</td><td>G2</td></tr>
+        <tr><td>1</td><td><a href="cutover-plan.html#wu-c">WU-C</a> Comms package dispatch</td><td>G1, G9</td></tr>
+        <tr><td>2</td><td><a href="cutover-plan.html#wu-g">WU-G</a> Geography hard-native</td><td>G6</td></tr>
+        <tr><td>2</td><td><a href="cutover-plan.html#wu-b">WU-B</a> Kill builders</td><td>G3</td></tr>
+        <tr><td>2</td><td><a href="cutover-plan.html#wu-a">WU-A</a> Kill alias traits</td><td>G4</td></tr>
+        <tr><td>2</td><td><a href="cutover-plan.html#wu-m">WU-M</a> Kill legacy accessors</td><td>G5</td></tr>
+        <tr><td>3</td><td><a href="cutover-plan.html#wu-e">WU-E</a> Thin Event/Reference</td><td>G7</td></tr>
+        <tr><td>3</td><td><a href="cutover-plan.html#wu-u">WU-U</a> Institution dashboard</td><td>G8</td></tr>
+        <tr><td>4</td><td><a href="cutover-plan.html#wu-v">WU-V</a> Verification + unfreeze</td><td>G10</td></tr>
+    </table>
+</div>
+
+<!-- Intentional keep -->
+<div class="card">
+    <h2>Intentional custom (allowed after purity)</h2>
+    <table>
+        <tr><th>Keep</th><th>Why</th><th></th></tr>
+        <tr><td>Institution / Speaker models</td><td>No package entity; use package traits</td><td><span class="tag tag-keep">By design</span></td></tr>
+        <tr><td>Donation / contribution / inspiration / AI</td><td>Product domain</td><td><span class="tag tag-keep">By design</span></td></tr>
+        <tr><td>Public Livewire + MCP</td><td>Product surfaces</td><td><span class="tag tag-keep">By design</span></td></tr>
+        <tr><td>Media collections</td><td>ilmu360 visual contract</td><td><span class="tag tag-keep">By design</span></td></tr>
+        <tr><td>FCM / WhatsApp channels</td><td>App delivery adapters (document, do not re-fork inbox storage)</td><td><span class="tag tag-keep">By design</span></td></tr>
+        <tr><td>Thin package subclasses</td><td>Only product behavior remaining</td><td><span class="tag tag-keep">By design</span></td></tr>
+    </table>
+</div>
+
+<!-- Exit -->
+<div class="card">
+    <h2>Phase 9 exit checklist</h2>
+    <ul class="clean">
+        <li>No dual taxonomy or dual notification dispatch</li>
+        <li>No legacy builder maps or package alias traits</li>
+        <li>No legacy attribute shims on EventUpdate / ModerationAction / Registration</li>
+        <li>Geography edges hard-native (except true package <code>country_id</code> UUID on addresses)</li>
+        <li>Event/Reference readable; cutover glue gone</li>
+        <li><code>php artisan migrate:fresh --seed</code> green</li>
+        <li>Targeted Pest + PHPStan + Pint green on touched work</li>
+        <li><code>status.md</code> Phase 9 → <code>Verified</code>; feature freeze lifted</li>
+    </ul>
+</div>
+
+<!-- Stale doc corrections -->
+<div class="card">
+    <h2>Corrections vs older docs (why this report exists)</h2>
+    <table>
+        <tr><th>Stale claim</th><th>Truth</th></tr>
+        <tr><td>Phase 8 complete / all deferred forever</td><td>Schema mostly complete; purity is Phase 9 and blocking</td></tr>
+        <tr><td>5 Notification* models still exist</td><td>Deleted; package inbox/preferences live</td></tr>
+        <tr><td>NotificationEngine still central</td><td>Deleted</td></tr>
+        <tr><td>MembershipClaim widespread + broken tests</td><td>Model gone; cosmetic naming only</td></tr>
+        <tr><td>MembershipApplicationNotifier unbound</td><td>Bound in AppServiceProvider</td></tr>
+        <tr><td>11 models extend packages</td><td>15 Category A</td></tr>
+        <tr><td>Keep v1 API aliases as policy</td><td>Rejected — hard cut for native purity</td></tr>
+    </table>
+</div>
+
+</div>
+</main>
+
+<footer>
+    <div class="wrap">
+        Generated for ilmu360° AIArmada adoption · 2026-07-09 ·
+        Source of truth: live code first, then this report + status.md
+    </div>
+</footer>
+</body>
+</html>

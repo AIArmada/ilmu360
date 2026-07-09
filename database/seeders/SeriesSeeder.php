@@ -39,8 +39,6 @@ class SeriesSeeder extends Seeder
                 // Insert series in chunks
                 foreach (array_chunk($seriesToCreate, 100) as $chunk) {
                     Series::insert(array_map(function ($series): array {
-                        unset($series['is_active']);
-
                         if (is_array($series['metadata'] ?? null)) {
                             $series['metadata'] = json_encode($series['metadata']);
                         }

@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use AIArmada\Addressing\Models\AddressArea;
+use AIArmada\Addressing\Models\State;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
@@ -222,18 +223,24 @@ class EventSeeder extends Seeder
         );
 
         if (! $institution->addressModel) {
-            $state = $this->malaysiaAreaByName('Selangor', 1);
-            $district = $state instanceof AddressArea ? $this->malaysiaAreaByName('Petaling', 2, $state->id) : null;
+            $state = $this->malaysiaPackageStateByName('Selangor');
+            $areaState = $state instanceof State
+                ? $this->malaysiaAreaStateForPackageState($state)
+                : null;
+            $district = $areaState instanceof AddressArea
+                ? $this->malaysiaAreaByName('Petaling', 2, (string) $areaState->getKey())
+                : null;
+            $subdistrict = $district instanceof AddressArea
+                ? $this->malaysiaAreaByName('Shah Alam', 3, (string) $district->getKey())
+                : null;
 
-            $this->seedPrimaryPackageAddress($institution, [
+            $this->seedPrimaryPackageAddress($institution, $this->packageAddressAttributes([
                 'line1' => 'Bukit Jelutong',
                 'city' => 'Shah Alam',
                 'country_id' => $malaysia?->id,
-                'admin_area_1_id' => $state?->id,
-                'admin_area_2_id' => $district?->id,
                 'latitude' => 3.0991666,
                 'longitude' => 101.529892,
-            ]);
+            ], $state, $district, $subdistrict));
         }
 
         $venue = Venue::query()
@@ -248,7 +255,6 @@ class EventSeeder extends Seeder
                 'venue_type' => 'dewan',
                 'status' => 'verified',
                 'visibility' => 'public',
-                'is_active' => true,
             ]);
         }
 
@@ -259,8 +265,12 @@ class EventSeeder extends Seeder
                 'line1' => $institutionAddress?->line1,
                 'city' => $institutionAddress?->city,
                 'country_id' => $institutionAddress->country_id ?? $malaysia?->id,
+                'state_id' => $institutionAddress?->state_id,
+                'city_id' => $institutionAddress?->city_id,
                 'admin_area_1_id' => $institutionAddress?->admin_area_1_id,
                 'admin_area_2_id' => $institutionAddress?->admin_area_2_id,
+                'admin_area_3_id' => null,
+                'admin_area_4_id' => null,
                 'latitude' => $institutionAddress?->latitude,
                 'longitude' => $institutionAddress?->longitude,
             ]);
@@ -520,7 +530,6 @@ class EventSeeder extends Seeder
             'name' => $speakerName,
             'slug' => app(GenerateSpeakerSlugAction::class)->handle($speakerName),
             'status' => 'verified',
-            'is_active' => true,
         ]);
 
         $this->scheduleSpeakerIds[$speakerName] = (string) $createdSpeaker->getKey();

@@ -39,12 +39,10 @@ it('keeps admin api and admin mcp speaker search results aligned', function () {
         'name' => 'Admin Parity Speaker Match',
         'pre_nominal' => ['syeikhul_maqari'],
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $otherSpeaker = Speaker::factory()->create([
         'name' => 'Admin Parity Speaker Other',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     app(SpeakerSearchService::class)->syncSpeakerRecord($matchingSpeaker);
@@ -74,7 +72,6 @@ it('keeps admin api and admin mcp event filter results aligned', function () {
         'status' => 'approved',
         'event_format' => EventFormat::Online,
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
     ]);
 
     Event::factory()->create([
@@ -82,7 +79,6 @@ it('keeps admin api and admin mcp event filter results aligned', function () {
         'status' => 'approved',
         'event_format' => EventFormat::Physical,
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
     ]);
 
     Event::factory()->create([
@@ -90,7 +86,7 @@ it('keeps admin api and admin mcp event filter results aligned', function () {
         'status' => 'draft',
         'event_format' => EventFormat::Online,
         'visibility' => EventVisibility::Public,
-        'is_active' => true,
+        'status' => 'active',
     ]);
 
     Sanctum::actingAs($admin);
@@ -119,7 +115,6 @@ it('keeps admin api and admin mcp related record listings aligned', function () 
     $speaker = Speaker::factory()->create([
         'name' => 'Admin Parity Nested Speaker',
         'status' => 'verified',
-        'is_active' => true,
     ]);
     $matchingEvent = Event::factory()->create([
         'title' => 'Admin Parity Nested Event '.Str::ulid(),
@@ -154,7 +149,6 @@ it('keeps admin api and admin mcp validate-only update previews aligned', functi
         'name' => 'Admin Parity Preview Speaker',
         'gender' => 'male',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $payload = [
@@ -163,7 +157,7 @@ it('keeps admin api and admin mcp validate-only update previews aligned', functi
         'status' => 'verified',
         'is_freelance' => true,
         'job_title' => 'Imam',
-        'is_active' => true,
+        'status' => 'active',
         'allow_public_event_submission' => true,
         'address' => [
             'country_id' => parityEnsureMalaysiaCountryExists(),

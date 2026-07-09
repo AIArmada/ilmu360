@@ -16,7 +16,7 @@ class SeriesPolicy
 
     public function view(?User $user, Series $series): bool
     {
-        if ($series->visibility === 'public' && $series->is_active) {
+        if ($series->visibility === 'public' && (string) $series->status === 'active') {
             return true;
         }
 

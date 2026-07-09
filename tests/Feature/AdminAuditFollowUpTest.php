@@ -94,7 +94,7 @@ it('records series language syncs performed by the filament edit page', function
             'slug' => $series->slug,
             'description' => $series->description,
             'visibility' => $series->visibility,
-            'is_active' => $series->is_active,
+            'status' => $series->status,
             'languages' => [(int) $english->getKey(), (int) $malay->getKey()],
         ])
         ->call('save')
@@ -139,7 +139,7 @@ it('records space institution syncs performed by the filament edit page', functi
             'name' => $space->name,
             'slug' => $space->slug,
             'capacity' => $space->capacity,
-            'is_active' => $space->is_active,
+            'status' => $space->status,
             'institutions' => [(string) $alphaInstitution->getKey(), (string) $betaInstitution->getKey()],
         ])
         ->call('save')

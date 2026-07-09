@@ -2,15 +2,16 @@
 
 use App\Enums\EventStructure;
 use App\Enums\EventVisibility;
+use App\Forms\SharedFormSchema;
 use App\Models\Event;
-use AIArmada\Addressing\Models\AddressArea;
 use App\Models\Institution;
 use App\Support\Search\InstitutionSearchService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator as LengthAwarePaginatorContract;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
@@ -79,8 +80,15 @@ class extends Component
     {
         return Event::query()
             ->selectRaw('count(*)')
-            ->whereRaw("{$this->eventInstitutionIdSelector()} = institutions.id")
-            ->where('events.is_active', true)
+            ->where(function (Builder $query): void {
+                // Prefer the app column when present; fall back to metadata for package-only schemas (SQLite tests).
+                if (Schema::hasColumn('events', 'institution_id')) {
+                    $query->whereColumn('events.institution_id', 'institutions.id');
+                } else {
+                    $query->whereRaw("{$this->eventInstitutionIdSelector()} = institutions.id");
+                }
+            })
+            ->whereNotNull('events.published_at')
             ->whereIn('events.status', Event::PUBLIC_STATUSES)
             ->where('events.visibility', EventVisibility::Public->value)
             ->where('events.event_structure', '!=', EventStructure::ParentProgram->value);
@@ -206,55 +214,30 @@ class extends Component
     #[Computed]
     public function states(): array
     {
-        $countryId = $this->normalizedLocationId($this->country_id);
+        $countryId = $this->normalizedLocationId($this->country_id)
+            ?? SharedFormSchema::normalizeLocationId(
+                \AIArmada\Addressing\Models\AddressCountry::query()->where('iso2', 'MY')->value('id')
+            );
 
-        if ($countryId === null) {
-            return [];
-        }
-
-        return AddressArea::query()
-            ->where('country_id', $countryId)
-            ->where('level', 1)
-            ->orderBy('name')
-            ->pluck('name', 'id')
-            ->all();
+        return SharedFormSchema::stateOptionsForCountry($countryId);
     }
 
     #[Computed]
     public function districts(): array
     {
-        $stateId = $this->normalizedLocationId($this->state_id);
-
-        if ($stateId === null) {
-            return [];
-        }
-
-        return AddressArea::query()
-            ->where('parent_id', $stateId)
-            ->orderBy('name')
-            ->pluck('name', 'id')
-            ->all();
+        return SharedFormSchema::districtOptionsForState($this->state_id);
     }
 
     #[Computed]
     public function subdistricts(): array
     {
-        $adminArea1Id = $this->normalizedLocationId($this->admin_area_1_id) ?? $this->normalizedLocationId($this->state_id);
-
-        if ($adminArea1Id === null) {
-            return [];
-        }
-
-        return AddressArea::query()
-            ->where('parent_id', $adminArea1Id)
-            ->orderBy('name')
-            ->pluck('name', 'id')
-            ->all();
+        return SharedFormSchema::subdistrictOptionsForSelection($this->state_id, $this->admin_area_1_id);
     }
 
     public function isFederalTerritoryStateSelected(): bool
     {
-        return false;
+        return SharedFormSchema::shouldShowSubdistrictField($this->state_id, null)
+            && ! SharedFormSchema::shouldShowDistrictField($this->state_id);
     }
 
     private function normalizedSearch(): ?string
@@ -332,15 +315,15 @@ class extends Component
             }
 
             if ($stateId !== null) {
-                $addressQuery->where('admin_area_1_id', $stateId);
+                $addressQuery->where('state_id', $stateId);
             }
 
             if ($adminArea1Id !== null) {
-                $addressQuery->where('admin_area_2_id', $adminArea1Id);
+                $addressQuery->where('admin_area_1_id', $adminArea1Id);
             }
 
             if ($adminArea2Id !== null) {
-                $addressQuery->where('admin_area_3_id', $adminArea2Id);
+                $addressQuery->where('admin_area_2_id', $adminArea2Id);
             }
         });
     }

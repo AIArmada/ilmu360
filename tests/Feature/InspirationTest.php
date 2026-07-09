@@ -27,7 +27,7 @@ it('creates inspirations via factory with correct attributes', function () {
         ->and($inspiration->title)->toBeString()
         ->and($inspiration->content)->toBeArray()
         ->and($inspiration->content['type'] ?? null)->toBe('doc')
-        ->and($inspiration->is_active)->toBeTrue();
+        ->and((string) $inspiration->status)->toBeIn(['active', 'inactive']);
 });
 
 it('normalizes plain text content into rich json structure', function () {

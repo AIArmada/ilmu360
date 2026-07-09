@@ -8,7 +8,6 @@ use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 
@@ -63,9 +62,14 @@ class AiModelPricingForm
                             ->minValue(1)
                             ->required(),
 
-                        Toggle::make('is_active')
-                            ->default(true)
-                            ->required(),
+                        Select::make('status')
+                            ->options([
+                                'active' => 'Active',
+                                'inactive' => 'Inactive',
+                            ])
+                            ->default('active')
+                            ->required()
+                            ->native(false),
 
                         DateTimePicker::make('starts_at')
                             ->seconds(false),

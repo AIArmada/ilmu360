@@ -12,19 +12,19 @@ it('resolves public directory detail endpoints by uuid', function (string $resou
             'api.client.institutions.show',
             'institutionKey',
             'institution',
-            Institution::factory()->create(['status' => 'verified', 'is_active' => true]),
+            Institution::factory()->create(['status' => 'verified']),
         ],
         'speaker' => [
             'api.client.speakers.show',
             'speakerKey',
             'speaker',
-            Speaker::factory()->create(['status' => 'verified', 'is_active' => true]),
+            Speaker::factory()->create(['status' => 'verified']),
         ],
         'reference' => [
             'api.client.references.show',
             'referenceKey',
             'reference',
-            Reference::factory()->create(['status' => 'verified', 'is_active' => true]),
+            Reference::factory()->create(['status' => 'verified']),
         ],
     };
 
@@ -41,7 +41,6 @@ it('accepts q as an alias for the unified public search query', function (): voi
     $institution = Institution::factory()->create([
         'name' => 'Masjid Query Alias Search',
         'status' => 'verified',
-        'is_active' => true,
     ]);
 
     $response = $this->getJson('/api/v1/search?q='.urlencode('Query Alias Search'))
@@ -54,12 +53,12 @@ it('accepts q as an alias for the unified public search query', function (): voi
 
 it('lists followed directory resources through the public listing following filter', function (): void {
     $user = User::factory()->create();
-    $followedInstitution = Institution::factory()->create(['status' => 'verified', 'is_active' => true]);
-    $otherInstitution = Institution::factory()->create(['status' => 'verified', 'is_active' => true]);
-    $followedSpeaker = Speaker::factory()->create(['status' => 'verified', 'is_active' => true]);
-    $otherSpeaker = Speaker::factory()->create(['status' => 'verified', 'is_active' => true]);
-    $followedReference = Reference::factory()->create(['status' => 'verified', 'is_active' => true]);
-    $otherReference = Reference::factory()->create(['status' => 'verified', 'is_active' => true]);
+    $followedInstitution = Institution::factory()->create(['status' => 'verified']);
+    $otherInstitution = Institution::factory()->create(['status' => 'verified']);
+    $followedSpeaker = Speaker::factory()->create(['status' => 'verified']);
+    $otherSpeaker = Speaker::factory()->create(['status' => 'verified']);
+    $followedReference = Reference::factory()->create(['status' => 'verified']);
+    $otherReference = Reference::factory()->create(['status' => 'verified']);
 
     $user->follow($followedInstitution);
     $user->follow($followedSpeaker);

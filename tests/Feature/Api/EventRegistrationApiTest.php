@@ -105,7 +105,7 @@ it('returns current user event state for active unlisted events', function () {
     $user = User::factory()->create();
     $event = registrationReadyEvent([
         'visibility' => EventVisibility::Unlisted,
-        'is_active' => true,
+        'status' => 'active',
     ]);
 
     Sanctum::actingAs($user);

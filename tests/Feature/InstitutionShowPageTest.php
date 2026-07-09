@@ -443,7 +443,7 @@ it('displays spaces and facilities', function () {
     $space = Space::factory()->create([
         'name' => 'Dewan Kuliah Utama',
         'capacity' => 500,
-        'is_active' => true,
+        'status' => 'active',
     ]);
 
     $institution->spaces()->attach($space);

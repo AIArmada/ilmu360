@@ -13,33 +13,35 @@ uses(TestCase::class, RefreshDatabase::class);
 
 it('models have active scopes', function () {
     withGlobalOwnerContext(function (): void {
-        Speaker::factory()->create(['is_active' => true]);
-        Speaker::factory()->create(['is_active' => false]);
+        Speaker::factory()->create(['status' => 'verified']);
+        Speaker::factory()->create(['status' => 'inactive']);
         expect(Speaker::active()->count())->toBe(1);
 
-        Institution::factory()->create(['is_active' => true]);
-        Institution::factory()->create(['is_active' => false]);
+        Institution::factory()->create(['status' => 'verified']);
+        Institution::factory()->create(['status' => 'inactive']);
         expect(Institution::active()->count())->toBe(1);
 
-        Venue::factory()->create(['is_active' => true]);
-        Venue::factory()->create(['is_active' => false]);
+        Venue::factory()->create(['status' => 'verified']);
+        Venue::factory()->create(['status' => 'inactive']);
         expect(Venue::active()->count())->toBe(1);
 
         Event::factory()->create([
             'status' => Approved::class,
             'visibility' => 'public',
-            'is_active' => true,
+            'published_at' => now(),
         ]);
         Event::factory()->create([
             'status' => Draft::class,
             'visibility' => 'public',
-            'is_active' => true,
+            'published_at' => null,
         ]);
         Event::factory()->create([
             'status' => Approved::class,
             'visibility' => 'public',
-            'is_active' => false,
+            'published_at' => null,
         ]);
+
+        // Event "active" listing is publication + status + visibility based.
         expect(Event::active()->count())->toBe(1);
     });
 });

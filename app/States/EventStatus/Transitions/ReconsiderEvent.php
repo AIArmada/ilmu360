@@ -33,10 +33,12 @@ class ReconsiderEvent extends Transition implements HasColor, HasIcon, HasLabel
                 'actioned_by_type' => User::class,
                 'actioned_by_id' => $this->moderator?->id,
                 'type' => 'reconsidered',
+                'reason' => 'reconsidered',
                 'notes' => $this->note ?? 'Event moved back to pending for reconsideration.',
             ]));
 
             $this->event->status = Pending::class;
+            $this->event->last_state_change_at = now();
             $this->event->save();
 
             app(EventNotificationService::class)->notifySubmissionRemoderated($this->event, $this->note);

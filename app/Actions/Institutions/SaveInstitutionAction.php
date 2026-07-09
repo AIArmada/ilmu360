@@ -68,8 +68,7 @@ final readonly class SaveInstitutionAction
             'name' => $this->normalizeRequiredString($data['name'] ?? $institution->name, 'Institution'),
             'nickname' => $this->normalizeOptionalString($data['nickname'] ?? $institution->nickname),
             'description' => $data['description'] ?? $institution->description,
-            'status' => (string) ($data['status'] ?? $institution->status ?? ''),
-            'is_active' => array_key_exists('is_active', $data) ? (bool) $data['is_active'] : ($creating ? true : (bool) $institution->is_active),
+            'status' => array_key_exists('status', $data) ? (string) $data['status'] : ($creating ? 'pending' : (string) $institution->status),
         ];
 
         if ($creating) {
