@@ -1,5 +1,6 @@
 <?php
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Filament\Pages\ModerationQueue;
 use App\Models\Event;
 use App\Models\Institution;
@@ -30,7 +31,7 @@ it('shows verification warnings in moderation queue', function () {
     $event = Event::factory()->create([
         'status' => 'pending',
         'institution_id' => $institution->id,
-        'venue_id' => $venue->id,
+        'default_venue_id' => $venue->id,
     ]);
     $event->speakers()->attach($speaker);
 
@@ -100,7 +101,7 @@ it('shows pending references in moderation queue reference status', function () 
     $event = Event::factory()->create([
         'status' => 'pending',
         'institution_id' => $institution->id,
-        'venue_id' => $venue->id,
+        'default_venue_id' => $venue->id,
     ]);
     $event->speakers()->attach($speaker);
     $event->references()->attach($pendingReference);
@@ -127,7 +128,7 @@ it('shows all verified when moderation queue event references are already approv
     $event = Event::factory()->create([
         'status' => 'pending',
         'institution_id' => $institution->id,
-        'venue_id' => $venue->id,
+        'default_venue_id' => $venue->id,
     ]);
     $event->speakers()->attach($speaker);
     $event->references()->attach($verifiedReference);
@@ -150,7 +151,7 @@ it('shows none when moderation queue event has no references', function () {
     $event = Event::factory()->create([
         'status' => 'pending',
         'institution_id' => $institution->id,
-        'venue_id' => $venue->id,
+        'default_venue_id' => $venue->id,
     ]);
     $event->speakers()->attach($speaker);
 
@@ -175,12 +176,14 @@ it('shows only needs changes events on the needs changes tab', function () {
         'status' => 'needs_changes',
     ]);
 
-    $needsChangesEvent->moderationReviews()->create([
-        'moderator_id' => $moderator->id,
-        'decision' => 'needs_changes',
-        'reason_code' => 'incomplete_info',
-        'note' => 'Please update venue details.',
-    ]);
+    OwnerContext::withOwner(null, fn () => $needsChangesEvent->moderationReviews()->create([
+        'actionable_type' => Event::class,
+        'actioned_by_type' => User::class,
+        'actioned_by_id' => $moderator->id,
+        'type' => 'changes_requested',
+        'reason' => 'incomplete_info',
+        'notes' => 'Please update venue details.',
+    ]));
 
     $this->actingAs($moderator)
         ->get('/admin/moderation-queue?tab=needs_changes')

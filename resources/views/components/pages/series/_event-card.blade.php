@@ -59,7 +59,7 @@
 
             @php
                 $locationName = $event->venue?->name ?? $event->institution?->name;
-                $locationAddress = $event->venue?->addressModel ?? $event->institution?->addressModel;
+                $locationAddress = $event->venue?->primaryAddress() ?? $event->institution?->primaryAddress();
                 $locationSubtitle = \App\Support\Location\AddressHierarchyFormatter::format($locationAddress);
             @endphp
 

@@ -263,16 +263,16 @@ class EventNotificationService
 
         $trigger = $this->announcementTrigger($announcement);
         $priority = $this->announcementPriority($announcement);
-        $summary = trim((string) $announcement->public_message);
+        $summary = trim((string) $announcement->message);
 
         if ($summary === '') {
-            $summary = $announcement->type->label();
+            $summary = $announcement->update_type->label();
         }
 
         $this->dispatchForUsers($recipients, fn (User $user): NotificationDispatchData => $this->buildDispatchData(
             user: $user,
             trigger: $trigger,
-            titleKey: $announcement->type === EventChangeType::Cancelled
+            titleKey: $announcement->update_type === EventChangeType::Cancelled
                 ? 'notifications.messages.event_cancelled.title'
                 : 'notifications.messages.event_update.title',
             titleParams: ['title' => $event->title],
@@ -285,8 +285,8 @@ class EventNotificationService
             fingerprint: 'event-change:'.$announcement->id,
             meta: [
                 'event_change_announcement_id' => $announcement->id,
-                'event_change_type' => $announcement->type->value,
-                'changed_fields' => $announcement->changed_fields ?? [],
+                'event_change_type' => $announcement->update_type->value,
+                'changed_fields' => data_get($announcement->metadata, 'changed_fields', []),
                 'old_new_summary' => $this->announcementOldNewSummary($announcement),
                 'replacement_event_id' => $announcement->replacement_event_id,
             ],
@@ -789,7 +789,7 @@ class EventNotificationService
 
     protected function announcementTrigger(EventChangeAnnouncement $announcement): NotificationTrigger
     {
-        return match ($announcement->type) {
+        return match ($announcement->update_type) {
             EventChangeType::Cancelled => NotificationTrigger::EventCancelled,
             EventChangeType::Postponed,
             EventChangeType::RescheduledEarlier,
@@ -820,8 +820,8 @@ class EventNotificationService
     protected function announcementOldNewSummary(EventChangeAnnouncement $announcement): array
     {
         return [
-            'before' => $announcement->before_snapshot,
-            'after' => $announcement->after_snapshot,
+            'before' => data_get($announcement->metadata, 'before_snapshot'),
+            'after' => data_get($announcement->metadata, 'after_snapshot'),
         ];
     }
 
@@ -908,6 +908,11 @@ class EventNotificationService
 
                 $family = NotificationCatalog::triggerDefinition($data->trigger)['family'];
 
+                $meta = $data->meta;
+                if ($data->fingerprint !== null && $data->fingerprint !== '') {
+                    $meta['fingerprint'] = $data->fingerprint;
+                }
+
                 $notification = new InAppNotification(
                     pendingNotificationId: (string) Str::uuid(),
                     family: $family,
@@ -919,7 +924,7 @@ class EventNotificationService
                     entityType: $data->entityType,
                     entityId: $data->entityId,
                     occurredAt: $data->occurredAt,
-                    meta: $data->meta,
+                    meta: $meta,
                 );
 
                 $this->comms->notify($user, $notification);

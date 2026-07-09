@@ -18,7 +18,7 @@ use AIArmada\CommerceSupport\Models\Role;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Communications\Models\CommunicationDestination;
 use AIArmada\Communications\Models\CommunicationPreference;
-use AIArmada\Communications\Models\NotificationInbox;
+use AIArmada\Communications\Traits\HasInbox;
 use AIArmada\Engagement\Models\Bookmark;
 use AIArmada\Engagement\Models\Follow;
 use AIArmada\Engagement\Models\Response;
@@ -67,7 +67,7 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable implements AuditableContract, FilamentUser, HasLocalePreference, MustVerifyEmailContract
 {
     /** @use HasFactory<UserFactory> */
-    use AuditsModelChanges, CanBookmark, CanRespond, HasApiTokens, HasFactory, HasRoles, HasUuids, KeepsDeletedModels, MustVerifyEmail, Notifiable {
+    use AuditsModelChanges, CanBookmark, CanRespond, HasApiTokens, HasFactory, HasRoles, HasUuids, KeepsDeletedModels, MustVerifyEmail {
         KeepsDeletedModels::attributesToKeep as protected deletedModelsAttributesToKeep;
     }
 
@@ -75,6 +75,15 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
         CanFollow::follow as traitFollow;
         CanFollow::unfollow as traitUnfollow;
         CanFollow::isFollowing as traitIsFollowing;
+    }
+
+    /**
+     * Package inbox + Laravel Notifiable both define unreadNotifications().
+     * Prefer package NotificationInbox semantics; expose database notifications under a distinct name.
+     */
+    use HasInbox, Notifiable {
+        HasInbox::unreadNotifications insteadof Notifiable;
+        Notifiable::unreadNotifications as unreadDatabaseNotifications;
     }
 
     public $incrementing = false;
@@ -150,7 +159,7 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
             app(ShareTrackingService::class)->deleteUserTracking($user);
             $user->notificationSetting()->delete();
             $user->notificationDestinations()->each(fn ($destination) => $destination->delete());
-            $user->notificationInbox()->each(fn ($inbox) => $inbox->delete());
+            $user->notificationInboxes()->each(fn ($inbox) => $inbox->delete());
 
             Follow::forFollower($user)->delete();
         });
@@ -291,7 +300,7 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
             'ai_usage_logs' => $this->aiUsageLogs()->get()->map->attributesToArray()->all(),
             'notification_setting' => $this->notificationSetting?->attributesToArray(),
             'notification_destinations' => $this->notificationDestinations()->get()->map->attributesToArray()->all(),
-            'notification_inboxes' => $this->notificationInbox()->get()->map->attributesToArray()->all(),
+            'notification_inboxes' => $this->notificationInboxes()->get()->map->attributesToArray()->all(),
             'followings' => Follow::forFollower($this)
                 ->get()
                 ->map(fn (Follow $follow): array => [
@@ -562,7 +571,7 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
         $this->restoreChildModels('aiUsageLogs', $this->snapshotRows($snapshot, 'ai_usage_logs'));
         $this->restoreSingleChildModel('notificationSetting', $snapshot['notification_setting'] ?? null);
         $this->restoreChildModels('notificationDestinations', $this->snapshotRows($snapshot, 'notification_destinations'));
-        $this->restoreChildModels('notificationInbox', $this->snapshotRows($snapshot, 'notification_inboxes'));
+        $this->restoreChildModels('notificationInboxes', $this->snapshotRows($snapshot, 'notification_inboxes'));
     }
 
     /**
@@ -1215,14 +1224,6 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
     public function notificationDestinations(): MorphMany
     {
         return $this->morphMany(CommunicationDestination::class, 'recipient');
-    }
-
-    /**
-     * @return MorphMany<NotificationInbox, $this>
-     */
-    public function notificationInbox(): MorphMany
-    {
-        return $this->morphMany(NotificationInbox::class, 'recipient');
     }
 
     public function preferredLocale(): string

@@ -21,7 +21,7 @@ final readonly class MarkAllNotificationMessagesReadAction
         OwnerContext::setForRequest(null);
 
         $updated = $user
-            ->notificationInbox()
+            ->notificationInboxes()
             ->whereNull('archived_at')
             ->whereNull('read_at')
             ->update(['read_at' => now()]);

@@ -1,6 +1,7 @@
 <?php
 
 use AIArmada\CommerceSupport\Models\Role;
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Enums\ContributionRequestType;
 use App\Enums\ContributionSubjectType;
 use App\Enums\EventFormat;
@@ -70,21 +71,21 @@ it('keeps admin api and admin mcp event filter results aligned', function () {
     $matchingEvent = Event::factory()->create([
         'title' => 'Admin Parity Matching Event',
         'status' => 'approved',
-        'event_format' => EventFormat::Online,
+        'delivery_mode' => EventFormat::Online,
         'visibility' => EventVisibility::Public,
     ]);
 
     Event::factory()->create([
         'title' => 'Admin Parity Wrong Format Event',
         'status' => 'approved',
-        'event_format' => EventFormat::Physical,
+        'delivery_mode' => EventFormat::Physical,
         'visibility' => EventVisibility::Public,
     ]);
 
     Event::factory()->create([
         'title' => 'Admin Parity Wrong Status Event',
         'status' => 'draft',
-        'event_format' => EventFormat::Online,
+        'delivery_mode' => EventFormat::Online,
         'visibility' => EventVisibility::Public,
         'status' => 'active',
     ]);
@@ -238,11 +239,11 @@ it('keeps admin api and admin mcp event moderation workflows aligned', function 
         ->and((string) $apiEvent->fresh()?->status)->toBe((string) $mcpEvent->fresh()?->status)
         ->and((string) $apiEvent->fresh()?->status)->toBe('needs_changes');
 
-    $apiReview = ModerationReview::query()->where('event_id', $apiEvent->getKey())->latest()->first();
-    $mcpReview = ModerationReview::query()->where('event_id', $mcpEvent->getKey())->latest()->first();
+    $apiReview = OwnerContext::withOwner(null, fn () => ModerationReview::query()->whereEventId($apiEvent->getKey())->latest()->first());
+    $mcpReview = OwnerContext::withOwner(null, fn () => ModerationReview::query()->whereEventId($mcpEvent->getKey())->latest()->first());
 
-    expect(paritySelectedAttributes($apiReview?->toArray() ?? [], ['decision', 'reason_code', 'note', 'moderator_id']))
-        ->toEqual(paritySelectedAttributes($mcpReview?->toArray() ?? [], ['decision', 'reason_code', 'note', 'moderator_id']));
+    expect(paritySelectedAttributes($apiReview?->toArray() ?? [], ['type', 'reason', 'notes', 'actioned_by_id']))
+        ->toEqual(paritySelectedAttributes($mcpReview?->toArray() ?? [], ['type', 'reason', 'notes', 'actioned_by_id']));
 });
 
 it('keeps admin api and admin mcp report triage workflows aligned', function () {

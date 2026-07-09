@@ -915,7 +915,7 @@
                                             default => 'bg-emerald-800 text-white',
                                         };
                                         $primaryLocationName = $event->venue?->name ?? $event->institution?->name;
-                                        $addressModel = $event->venue?->addressModel ?? $event->institution?->addressModel;
+                                        $addressModel = $event->venue?->primaryAddress() ?? $event->institution?->primaryAddress();
                                         $locationPrimaryText = is_string($primaryLocationName) && $primaryLocationName !== '' ? $primaryLocationName : null;
                                         $explicitCity = trim((string) ($addressModel?->city ?? ''));
                                         $stateText = \App\Support\Location\AddressHierarchyFormatter::format($addressModel, ['state']);

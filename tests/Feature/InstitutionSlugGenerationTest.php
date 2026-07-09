@@ -47,7 +47,7 @@ it('persists country-only address data for staged institution creation', functio
     ], $proposer);
 
     expect($institution->slug)->toBe('masjid-negara-sahaja-my')
-        ->and($institution->fresh()?->addressModel?->country_id)->toBe((string) $geography['country']->getKey());
+        ->and($institution->fresh()?->primaryAddress()?->country_id)->toBe((string) $geography['country']->getKey());
 });
 
 it('adds duplicate numbering only when the same institution name reuses the same locality suffix', function () {
@@ -159,7 +159,7 @@ it('recomputes institution slugs when the institution locality changes', functio
         'address' => geographyAddressPayload($primaryGeography),
     ], $proposer);
 
-    $institution->addressModel?->update([
+    $institution->primaryAddress()?->update([
         'country_id' => (string) $secondaryGeography['country']->getKey(),
         'state_id' => (string) $secondaryGeography['state']->getKey(),
         'admin_area_1_id' => (string) $secondaryGeography['district']->getKey(),
@@ -239,8 +239,8 @@ it('uses the generated geographic slug when admins create institutions in filame
             'name' => 'Masjid Sultan Salahudin Abdul Aziz Shah',
             'slug' => 'temporary-admin-slug',
             'status' => 'verified',
-            'contacts' => [],
-            'socialMedia' => [],
+            'contactMethods' => [],
+            'socialProfiles' => [],
             'address' => geographyAddressPayload($geography),
         ])
         ->call('create')

@@ -12,7 +12,7 @@
     $referenceRedirectUrl = route('references.show', $reference, absolute: false);
     $frontCoverUrl = $reference->getFirstMediaUrl('front_cover', 'thumb') ?: ($reference->getFirstMediaUrl('front_cover') ?: asset('images/default-mosque-hero.png'));
     $backCoverUrl = $reference->getFirstMediaUrl('back_cover', 'thumb') ?: $reference->getFirstMediaUrl('back_cover');
-    $socialLinks = $reference->socialMedia
+    $socialLinks = $reference->socialProfiles
         ->filter(function ($social): bool {
             $resolvedUrl = $social->resolved_url ?? $social->url;
 

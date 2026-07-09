@@ -140,8 +140,8 @@ class Show extends Component
                     ->whereNotNull('published_at');
             })
             ->with([
-                'event.institution.address',
-                'event.venue.address',
+                'event.institution.addresses',
+                'event.venue.addresses',
                 'event.references',
                 'event.media',
             ])
@@ -162,9 +162,9 @@ class Show extends Component
         OwnerContext::withOwner(null, function (): void {
             $this->speaker->load([
                 'media',
-                'contacts',
-                'socialMedia',
-                'address',
+                'contactMethods',
+                'socialProfiles',
+                'addresses',
                 'institutions' => fn ($query) => $query->orderByPivot('is_primary', 'desc')->limit(3),
                 'institutions.media',
             ]);
@@ -183,8 +183,8 @@ class Show extends Component
             ->where("{$eventsTable}.visibility", EventVisibility::Public)
             ->whereNotNull("{$eventsTable}.published_at")
             ->with([
-                'institution.address',
-                'venue.address',
+                'institution.addresses',
+                'venue.addresses',
                 'references',
                 'media',
             ]);

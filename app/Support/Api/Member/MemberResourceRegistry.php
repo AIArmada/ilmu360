@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support\Api\Member;
 
+use AIArmada\Addressing\Models\Address;
 use AIArmada\FilamentEvents\Resources\EventResource as AhliEventResource;
 use App\Data\Api\Event\EventPayloadData;
 use App\Filament\Ahli\Resources\Institutions\InstitutionResource as AhliInstitutionResource;
@@ -516,13 +517,33 @@ class MemberResourceRegistry
     {
         $attributes = $record->toArray();
 
-        if ($record instanceof Speaker && is_array($attributes['address'] ?? null)) {
-            $attributes['address'] = Arr::only($attributes['address'], [
-                'country_id',
-                'admin_area_1_id',
-                'admin_area_2_id',
-            ]);
+        if (method_exists($record, 'primaryAddress')) {
+            $address = $record->primaryAddress();
+
+            $attributes['address'] = $address instanceof Address
+                ? $address->toArray()
+                : [];
+
+            if ($record instanceof Speaker && is_array($attributes['address'])) {
+                $attributes['address'] = Arr::only($attributes['address'], [
+                    'country_id',
+                    'admin_area_1_id',
+                    'admin_area_2_id',
+                ]);
+            }
         }
+
+        if (array_key_exists('contactMethods', $attributes)) {
+            $attributes['contacts'] = $attributes['contactMethods'];
+            unset($attributes['contactMethods']);
+        }
+
+        if (array_key_exists('socialProfiles', $attributes)) {
+            $attributes['social_media'] = $attributes['socialProfiles'];
+            unset($attributes['socialProfiles']);
+        }
+
+        unset($attributes['addresses']);
 
         return $attributes;
     }
@@ -534,16 +555,16 @@ class MemberResourceRegistry
     {
         $relations = [];
 
-        if (method_exists($model, 'address')) {
-            $relations[] = 'address';
+        if (method_exists($model, 'addresses')) {
+            $relations[] = 'addresses';
         }
 
-        if (method_exists($model, 'contacts')) {
-            $relations[] = 'contacts';
+        if (method_exists($model, 'contactMethods')) {
+            $relations[] = 'contactMethods';
         }
 
-        if (method_exists($model, 'socialMedia')) {
-            $relations[] = 'socialMedia';
+        if (method_exists($model, 'socialProfiles')) {
+            $relations[] = 'socialProfiles';
         }
 
         return $relations;

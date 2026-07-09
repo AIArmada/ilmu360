@@ -43,11 +43,11 @@ it('generates country-based slugs for speaker quick-create flows', function () {
     ]);
 
     $speaker = Speaker::query()
-        ->with('address')
+        ->with('addresses')
         ->findOrFail($speakerId);
 
     expect($speaker->slug)->toBe('ustaz-ahmad-fauzi-my')
-        ->and($speaker->addressModel?->country_id)->toBe((string) $country->getKey());
+        ->and($speaker->primaryAddress()?->country_id)->toBe((string) $country->getKey());
 });
 
 it('includes displayed speaker titles in the generated slug', function () {
@@ -275,7 +275,7 @@ it('adds duplicate numbering only when the same speaker name reuses the same cou
     ], $proposer);
 
     expect($first->slug)->toBe('ustaz-ahmad-fauzi-my')
-        ->and($first->addressModel?->country_id)->toBe((string) $malaysia->getKey())
+        ->and($first->primaryAddress()?->country_id)->toBe((string) $malaysia->getKey())
         ->and($second->slug)->toBe('ustaz-ahmad-fauzi-2-my')
         ->and($third->slug)->toBe('ustaz-ahmad-fauzi-sg');
 });
@@ -326,8 +326,8 @@ it('uses the generated country slug when admins create speakers in filament', fu
             'post_nominal' => [],
             'qualifications' => [],
             'languages' => [],
-            'contacts' => [],
-            'socialMedia' => [],
+            'contactMethods' => [],
+            'socialProfiles' => [],
             'status' => 'verified',
             'address' => [
                 'country_id' => (string) $country->getKey(),
@@ -382,11 +382,11 @@ it('uses the submitted address country when approving unstaged speaker create re
 
     $approvedRequest = app(ApproveContributionRequestAction::class)->handle($request, $reviewer, 'Approved.');
     $speaker = Speaker::query()
-        ->with('address')
+        ->with('addresses')
         ->findOrFail($approvedRequest->entity_id);
 
     expect($speaker->slug)->toBe('ustaz-ahmad-approval-my')
-        ->and($speaker->addressModel?->country_id)->toBe((string) $country->getKey());
+        ->and($speaker->primaryAddress()?->country_id)->toBe((string) $country->getKey());
 });
 
 it('recomputes speaker slugs when the speaker country changes', function () {
@@ -406,7 +406,7 @@ it('recomputes speaker slugs when the speaker country changes', function () {
         'country_id' => (string) $malaysia->getKey(),
     ], $proposer);
 
-    $speaker->addressModel?->update([
+    $speaker->primaryAddress()?->update([
         'country_id' => (string) $singapore->getKey(),
     ]);
 
@@ -518,7 +518,7 @@ it('backfills existing speaker slugs through the queued job logic', function () 
         'gender' => EventGenderRestriction::All->value,
         'age_group' => [EventAgeGroup::AllAges->value],
         'children_allowed' => true,
-        'event_format' => EventFormat::Physical->value,
+        'delivery_mode' => EventFormat::Physical->value,
         'visibility' => EventVisibility::Public->value,
         'status' => 'approved',
     ]);
@@ -566,7 +566,7 @@ it('updates related event slugs when a speaker address change changes the speake
         'gender' => EventGenderRestriction::All->value,
         'age_group' => [EventAgeGroup::AllAges->value],
         'children_allowed' => true,
-        'event_format' => EventFormat::Physical->value,
+        'delivery_mode' => EventFormat::Physical->value,
         'visibility' => EventVisibility::Public->value,
         'status' => 'approved',
     ]);
@@ -575,14 +575,14 @@ it('updates related event slugs when a speaker address change changes the speake
 
     expect($event->fresh()?->slug)->toBe("forum-alamat-penceramah-ustaz-ahmad-fauzi-my-{$expectedSuffix}");
 
-    $speaker->address()->firstOrFail()->update([
+    $speaker->addresses()->firstOrFail()->update([
         'country_id' => (string) $singapore->getKey(),
     ]);
 
     expect($speaker->fresh()?->slug)->toBe('ustaz-ahmad-fauzi-sg')
         ->and($event->fresh()?->slug)->toBe("forum-alamat-penceramah-ustaz-ahmad-fauzi-sg-{$expectedSuffix}");
 
-    $speaker->address()->firstOrFail()->delete();
+    $speaker->addresses()->firstOrFail()->delete();
 
     expect($speaker->fresh()?->slug)->toBe('ustaz-ahmad-fauzi')
         ->and($event->fresh()?->slug)->toBe("forum-alamat-penceramah-ustaz-ahmad-fauzi-{$expectedSuffix}");
@@ -653,5 +653,5 @@ function createSpeakerForSlugBackfill(string $id, string $name, string $slug, Ad
     ]);
     $speaker->attachAddress($address, type: 'primary', isPrimary: true);
 
-    return $speaker->fresh(['address']) ?? $speaker;
+    return $speaker->fresh(['addresses']) ?? $speaker;
 }

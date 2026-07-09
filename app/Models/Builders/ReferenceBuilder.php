@@ -22,15 +22,6 @@ class ReferenceBuilder extends Builder
         'is_canonical',
     ];
 
-    /**
-     * @var array<string, string>
-     */
-    private const array DirectColumnMap = [
-        'parent_reference_id' => 'parent_id',
-        'publication_year' => 'year',
-        'reference_url' => 'url',
-    ];
-
     #[\Override]
     public function where($column, $operator = null, $value = null, $boolean = 'and'): static
     {
@@ -38,7 +29,7 @@ class ReferenceBuilder extends Builder
             return parent::where($column, $operator, $value, $boolean);
         }
 
-        $mappedColumn = $this->mapColumn($this->legacyColumn($column));
+        $mappedColumn = $this->mapColumn($this->columnName($column));
 
         if ($mappedColumn === null) {
             return parent::where($column, $operator, $value, $boolean);
@@ -61,7 +52,7 @@ class ReferenceBuilder extends Builder
             return $this;
         }
 
-        $mappedColumn = $this->mapColumn($this->legacyColumn($column));
+        $mappedColumn = $this->mapColumn($this->columnName($column));
 
         if ($mappedColumn === null) {
             parent::whereIn($column, $values, $boolean, $not);
@@ -105,7 +96,7 @@ class ReferenceBuilder extends Builder
             return $this;
         }
 
-        $mappedColumn = $this->mapColumn($this->legacyColumn($columns));
+        $mappedColumn = $this->mapColumn($this->columnName($columns));
 
         if ($mappedColumn === null) {
             parent::whereNull($columns, $boolean, $not);
@@ -130,7 +121,7 @@ class ReferenceBuilder extends Builder
             return $this;
         }
 
-        $mappedColumn = $this->mapColumn($this->legacyColumn($columns));
+        $mappedColumn = $this->mapColumn($this->columnName($columns));
 
         if ($mappedColumn === null) {
             parent::whereNotNull($columns, $boolean);
@@ -155,7 +146,7 @@ class ReferenceBuilder extends Builder
             return $this;
         }
 
-        $mappedColumn = $this->mapColumn($this->legacyColumn($column));
+        $mappedColumn = $this->mapColumn($this->columnName($column));
 
         if ($mappedColumn === null) {
             parent::orderBy($column, $direction);
@@ -178,10 +169,6 @@ class ReferenceBuilder extends Builder
 
     private function mapColumn(string $column): ?string
     {
-        if (array_key_exists($column, self::DirectColumnMap)) {
-            return $this->qualifyModelColumn(self::DirectColumnMap[$column]);
-        }
-
         if (in_array($column, self::MetadataBackedColumns, true)) {
             return $this->qualifiedMetadataSelector($column);
         }
@@ -189,7 +176,7 @@ class ReferenceBuilder extends Builder
         return null;
     }
 
-    private function legacyColumn(string $column): string
+    private function columnName(string $column): string
     {
         return Str::afterLast($column, '.');
     }

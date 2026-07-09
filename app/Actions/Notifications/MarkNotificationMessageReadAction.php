@@ -21,14 +21,16 @@ final readonly class MarkNotificationMessageReadAction
     {
         OwnerContext::setForRequest(null);
 
-        $message = $user->notificationInbox()
+        $message = $user->notificationInboxes()
             ->whereNull('archived_at')
             ->whereKey($messageId)
             ->firstOrFail();
 
         $wasUnread = $message->read_at === null;
 
-        $message->update(['read_at' => now()]);
+        if ($wasUnread) {
+            $user->markAsRead($messageId);
+        }
 
         $freshMessage = $message->fresh() ?? $message;
 

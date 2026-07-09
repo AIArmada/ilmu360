@@ -131,7 +131,7 @@ class Show extends Component
             ->active()
             ->with([
                 'venue.media',
-                'venue.address',
+                'venue.addresses',
                 'speakers.media',
                 'keyPeople.speaker',
                 'references',
@@ -151,9 +151,9 @@ class Show extends Component
         OwnerContext::withOwner(null, function (): void {
             $this->institution->load([
                 'media',
-                'address',
-                'contacts',
-                'socialMedia',
+                'addresses',
+                'contactMethods',
+                'socialProfiles',
                 'donationChannels.media',
                 'speakers',
                 'speakers.media',

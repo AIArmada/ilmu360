@@ -356,7 +356,7 @@ describe('Event Show Page Location & Contact Info', function () {
             'visibility' => 'public',
             'published_at' => now()->subDay(),
             'starts_at' => now()->addDay(),
-            'venue_id' => $venue->id,
+            'default_venue_id' => $venue->id,
         ]);
 
         $event->references()->attach($reference->id);
@@ -390,7 +390,7 @@ describe('Event Show Page Location & Contact Info', function () {
             'visibility' => 'public',
             'published_at' => now()->subDay(),
             'starts_at' => now()->addDay(),
-            'venue_id' => $venue->id,
+            'default_venue_id' => $venue->id,
         ]);
 
         $event->references()->attach($reference->id);
@@ -418,7 +418,7 @@ describe('Event Show Page Location & Contact Info', function () {
             'published_at' => now()->subDay(),
             'starts_at' => now()->addDay(),
             'institution_id' => null,
-            'venue_id' => null,
+            'default_venue_id' => null,
         ]);
         OwnerContext::withOwner(null, fn () => $event->setPrimaryOrganizer($speaker));
 
@@ -439,7 +439,7 @@ describe('Event Show Page Location & Contact Info', function () {
             'published_at' => now()->subDay(),
             'starts_at' => now()->addDay(),
             'institution_id' => null,
-            'venue_id' => null,
+            'default_venue_id' => null,
         ]);
 
         $event->addMedia(UploadedFile::fake()->image('event-cover-hero.jpg', 1600, 900))
@@ -453,14 +453,14 @@ describe('Event Show Page Location & Contact Info', function () {
 
     it('displays full venue address on the event page', function () {
         $venue = Venue::factory()->create();
-        $address = $venue->addressModel;
+        $address = $venue->primaryAddress();
 
         $event = Event::factory()->create([
             'status' => 'approved',
             'visibility' => 'public',
             'published_at' => now()->subDay(),
             'starts_at' => now()->addDay(),
-            'venue_id' => $venue->id,
+            'default_venue_id' => $venue->id,
         ]);
 
         $response = $this->get(route('events.show', $event));
@@ -485,7 +485,7 @@ describe('Event Show Page Location & Contact Info', function () {
             'visibility' => 'public',
             'published_at' => now()->subDay(),
             'starts_at' => now()->addDay(),
-            'venue_id' => $venue->id,
+            'default_venue_id' => $venue->id,
         ]);
 
         $response = $this->get(route('events.show', $event));
@@ -498,7 +498,7 @@ describe('Event Show Page Location & Contact Info', function () {
         config()->set('services.google.maps_api_key', 'test-maps-key');
 
         $venue = Venue::factory()->create();
-        $venue->addressModel?->update([
+        $venue->primaryAddress()?->update([
             'line1' => 'Persiaran Masjid',
             'google_maps_url' => 'https://www.google.com/maps/search/?api=1&query=3.139%2C101.6869&query_place_id=place_123',
             'lat' => 3.139,
@@ -510,7 +510,7 @@ describe('Event Show Page Location & Contact Info', function () {
             'visibility' => 'public',
             'published_at' => now()->subDay(),
             'starts_at' => now()->addDay(),
-            'venue_id' => $venue->id,
+            'default_venue_id' => $venue->id,
         ]);
 
         $this->get(route('events.show', $event))
@@ -522,8 +522,8 @@ describe('Event Show Page Location & Contact Info', function () {
 
     it('displays institution contact info on event page', function () {
         $institution = Institution::factory()->create();
-        $emailContact = $institution->contacts()->where('type', ContactMethodType::Email->value)->first();
-        $phoneContact = $institution->contacts()->where('type', ContactMethodType::Phone->value)->first();
+        $emailContact = $institution->contactMethods()->where('type', ContactMethodType::Email->value)->first();
+        $phoneContact = $institution->contactMethods()->where('type', ContactMethodType::Phone->value)->first();
 
         $event = Event::factory()->create([
             'status' => 'approved',
@@ -546,7 +546,7 @@ describe('Event Show Page Location & Contact Info', function () {
 
     it('uses stored waze_url from address when available', function () {
         $venue = Venue::factory()->create();
-        $address = $venue->addressModel;
+        $address = $venue->primaryAddress();
 
         if ($address && filled($address->waze_url)) {
             $event = Event::factory()->create([
@@ -554,7 +554,7 @@ describe('Event Show Page Location & Contact Info', function () {
                 'visibility' => 'public',
                 'published_at' => now()->subDay(),
                 'starts_at' => now()->addDay(),
-                'venue_id' => $venue->id,
+                'default_venue_id' => $venue->id,
             ]);
 
             $response = $this->get(route('events.show', $event));
@@ -570,7 +570,7 @@ describe('Event Show Page Location & Contact Info', function () {
             'name' => 'Dewan Utama KL',
         ]);
 
-        $venue->addressModel?->update([
+        $venue->primaryAddress()?->update([
             'city' => 'Setiawangsa',
             'state' => 'Kuala Lumpur',
         ]);
@@ -580,7 +580,7 @@ describe('Event Show Page Location & Contact Info', function () {
             'visibility' => 'public',
             'published_at' => now()->subDay(),
             'starts_at' => now()->addDay(),
-            'venue_id' => $venue->id,
+            'default_venue_id' => $venue->id,
         ]);
 
         $this->get(route('events.show', $event))

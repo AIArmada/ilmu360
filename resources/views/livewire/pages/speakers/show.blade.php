@@ -16,7 +16,7 @@
     $bioHtml = is_array($speaker->bio) ? $bioRenderer?->toHtml() ?? '' : (string) $speaker->bio;
     $bioText = is_array($speaker->bio) ? trim($bioRenderer?->toText() ?? '') : trim(strip_tags((string) $speaker->bio));
     $shouldCollapseBio = \Illuminate\Support\Str::length($bioText) > 680;
-    $locationString = \App\Support\Location\AddressHierarchyFormatter::format($speaker->addressModel);
+    $locationString = \App\Support\Location\AddressHierarchyFormatter::format($speaker->primaryAddress());
     $upcomingEvents = $this->upcomingEvents;
     $pastEvents = $this->pastEvents;
     $upcomingTotal = $this->upcomingTotal;
@@ -39,7 +39,7 @@
         'fallbackTitle' => $speaker->formatted_name,
         'payloadEndpoint' => route('dawah-share.payload'),
     ];
-    $socialLinks = $speaker->socialMedia
+    $socialLinks = $speaker->socialProfiles
         ->filter(function ($social): bool {
             $resolvedUrl = $social->resolved_url ?? $social->url;
 
@@ -74,7 +74,7 @@
 
     $resolveEventLocation = static function (\App\Models\Event $event): string {
         $primaryLocationName = $event->venue?->name ?: $event->institution?->name;
-        $address = $event->venue?->addressModel ?? $event->institution?->addressModel;
+        $address = $event->venue?->primaryAddress() ?? $event->institution?->primaryAddress();
         $parts = \App\Support\Location\AddressHierarchyFormatter::parts($address);
 
         // Product: state lives on state_id (State table) or denormalized state text — never admin_area_1.

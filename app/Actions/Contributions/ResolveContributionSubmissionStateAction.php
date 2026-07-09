@@ -23,8 +23,8 @@ class ResolveContributionSubmissionStateAction
 
         unset($state['proposer_note']);
 
-        if (is_array($state['contacts'] ?? null)) {
-            $state['contacts'] = SharedFormSchema::normalizeContactRowsForComparison($state['contacts']);
+        if (is_array($state['contactMethods'] ?? null)) {
+            $state['contactMethods'] = SharedFormSchema::normalizeContactRowsForComparison($state['contactMethods']);
         }
 
         return [

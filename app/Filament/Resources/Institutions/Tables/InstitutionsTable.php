@@ -31,7 +31,7 @@ class InstitutionsTable
                 TextColumn::make('type')
                     ->badge()
                     ->sortable(),
-                TextColumn::make('address.state')
+                TextColumn::make('addresses.state')
                     ->label('State')
                     ->placeholder('-'),
                 TextColumn::make('address.city')

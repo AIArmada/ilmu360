@@ -48,7 +48,7 @@ class ReferenceListData extends Data
             part_label: $reference->partLabelValue(),
             is_part: $reference->isPart(),
             publisher: $reference->publisherValue(),
-            publication_year: filled($reference->publication_year) ? (string) $reference->publication_year : null,
+            publication_year: filled($reference->year) ? (string) $reference->year : null,
             status: (string) $reference->status,
             events_count: (int) ($reference->events_count ?? 0),
             front_cover_url: $reference->getFirstMediaUrl('front_cover', 'thumb') ?: ($reference->getFirstMediaUrl('front_cover') ?: null),

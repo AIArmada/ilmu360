@@ -12,7 +12,6 @@ use App\Enums\ReferencePartType;
 use App\Enums\ReferenceType;
 use App\Models\Builders\ReferenceBuilder;
 use App\Models\Concerns\AuditsModelChanges;
-use App\Models\Concerns\HasPackageSocialAliases;
 use BackedEnum;
 use Database\Factories\ReferenceFactory;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -55,7 +54,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 class Reference extends PackageReference implements AuditableContract
 {
     /** @use HasFactory<ReferenceFactory> */
-    use AuditsModelChanges, HasFactory, HasMembers, HasPackageSocialAliases, HasSocialProfiles, KeepsDeletedModels, Searchable;
+    use AuditsModelChanges, HasFactory, HasMembers, HasSocialProfiles, KeepsDeletedModels, Searchable;
 
     #[\Override]
     protected static function newFactory(): ReferenceFactory
@@ -86,14 +85,12 @@ class Reference extends PackageReference implements AuditableContract
     protected $fillable = [
         'title',
         'slug',
-        'parent_reference_id',
         'parent_id',
         'author',
         'type',
         'part_type',
         'part_number',
         'part_label',
-        'publication_year',
         'year',
         'publisher',
         'description',
@@ -118,18 +115,6 @@ class Reference extends PackageReference implements AuditableContract
     #[\Override]
     public function setAttribute($key, $value): mixed
     {
-        if ($key === 'publication_year') {
-            return parent::setAttribute('year', $value);
-        }
-
-        if ($key === 'parent_reference_id') {
-            return parent::setAttribute('parent_id', $value);
-        }
-
-        if ($key === 'reference_url') {
-            return parent::setAttribute('url', $value);
-        }
-
         if (in_array($key, ['part_type', 'part_number', 'part_label', 'is_canonical'], true)) {
             $this->setMetadataValue($key, $value);
 
@@ -142,18 +127,6 @@ class Reference extends PackageReference implements AuditableContract
     #[\Override]
     public function getAttribute($key): mixed
     {
-        if ($key === 'publication_year') {
-            return parent::getAttribute('year');
-        }
-
-        if ($key === 'parent_reference_id') {
-            return parent::getAttribute('parent_id');
-        }
-
-        if ($key === 'reference_url') {
-            return parent::getAttribute('url');
-        }
-
         if (in_array($key, ['part_type', 'part_number', 'part_label', 'is_canonical'], true)) {
             return $this->metadataValue($key);
         }
@@ -183,7 +156,7 @@ class Reference extends PackageReference implements AuditableContract
             ->get(['id', 'parent_id']);
 
         $selectedRootIds = $selectedReferences
-            ->filter(static fn (self $reference): bool => blank($reference->parent_reference_id))
+            ->filter(static fn (self $reference): bool => blank($reference->parent_id))
             ->pluck('id')
             ->map(static fn (mixed $id): string => (string) $id)
             ->values();
@@ -191,7 +164,7 @@ class Reference extends PackageReference implements AuditableContract
         $expandedChildIds = $selectedRootIds->isEmpty()
             ? collect()
             : self::query()
-                ->whereIn('parent_reference_id', $selectedRootIds->all())
+                ->whereIn('parent_id', $selectedRootIds->all())
                 ->pluck('id')
                 ->map(static fn (mixed $id): string => (string) $id);
 
@@ -264,11 +237,9 @@ class Reference extends PackageReference implements AuditableContract
             'title',
             'author',
             'type',
-            'parent_reference_id',
             'part_type',
             'part_number',
             'part_label',
-            'publication_year',
             'publisher',
             'description',
             'slug',
@@ -296,7 +267,7 @@ class Reference extends PackageReference implements AuditableContract
         }
 
         $updatedAt = $this->updated_at ?? now();
-        $publicationYear = $this->publication_year;
+        $publicationYear = $this->year;
         $normalizedPublicationYear = is_numeric($publicationYear) ? (int) $publicationYear : null;
         $description = trim(strip_tags((string) $this->description));
 
@@ -326,7 +297,7 @@ class Reference extends PackageReference implements AuditableContract
     private function toScoutDatabaseSearchableArray(): array
     {
         $description = trim(strip_tags((string) $this->description));
-        $publicationYear = is_numeric($this->publication_year) ? (int) $this->publication_year : null;
+        $publicationYear = is_numeric($this->year) ? (int) $this->year : null;
 
         return array_filter([
             'title' => (string) $this->titleValue(),
@@ -460,7 +431,7 @@ class Reference extends PackageReference implements AuditableContract
 
     public function parentReferenceIdValue(): ?string
     {
-        return $this->optionalStringAttribute('parent_reference_id');
+        return $this->optionalStringAttribute('parent_id');
     }
 
     public function partTypeValue(): ?string
@@ -521,7 +492,7 @@ class Reference extends PackageReference implements AuditableContract
     private function normalizeReferencePartFields(): void
     {
         if ($this->typeValue() !== ReferenceType::Book->value || blank($this->parentReferenceIdValue())) {
-            $this->parent_reference_id = null;
+            $this->parent_id = null;
             $this->part_type = null;
             $this->part_number = null;
             $this->part_label = null;
@@ -540,41 +511,37 @@ class Reference extends PackageReference implements AuditableContract
     {
         if ($this->parentReferenceIdValue() === (string) $this->getKey()) {
             throw ValidationException::withMessages([
-                'parent_reference_id' => __('A reference part cannot use itself as the parent book.'),
+                'parent_id' => __('A reference part cannot use itself as the parent book.'),
             ]);
         }
 
         if ($this->exists && $this->childReferences()->exists()) {
             throw ValidationException::withMessages([
-                'parent_reference_id' => __('A reference with child parts cannot itself become a child part.'),
+                'parent_id' => __('A reference with child parts cannot itself become a child part.'),
             ]);
         }
 
         $parentReference = self::query()
-            ->whereKey($this->parent_reference_id)
+            ->whereKey($this->parent_id)
             ->first(['id', 'parent_id', 'type']);
 
         if (! $parentReference instanceof self) {
             throw ValidationException::withMessages([
-                'parent_reference_id' => __('The selected parent reference does not exist.'),
+                'parent_id' => __('The selected parent reference does not exist.'),
             ]);
         }
 
         if ($parentReference->isPart() || $parentReference->typeValue() !== ReferenceType::Book->value) {
             throw ValidationException::withMessages([
-                'parent_reference_id' => __('Reference parts can only belong to a root book reference.'),
+                'parent_id' => __('Reference parts can only belong to a root book reference.'),
             ]);
         }
     }
 
     private function optionalStringAttribute(string $key): ?string
     {
-        if ($key === 'parent_reference_id') {
-            return $this->normalizeStringValue($this->getAttribute('parent_reference_id'));
-        }
-
-        if ($key === 'publication_year') {
-            return $this->normalizeStringValue($this->getAttribute('publication_year'));
+        if ($key === 'year' || $key === 'publication_year') {
+            return $this->normalizeStringValue($this->getAttribute('year'));
         }
 
         if (in_array($key, ['part_type', 'part_number', 'part_label'], true)) {

@@ -1,6 +1,7 @@
 <?php
 
 use AIArmada\CommerceSupport\Models\Role;
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Signals\Models\SignalEvent;
 use App\Actions\Membership\AddMemberToSubject;
 use App\Enums\ContributionRequestStatus;
@@ -534,7 +535,7 @@ it('filters admin event records by structured filters through the MCP server', f
     $draftOnlineEvent = Event::factory()->create([
         'title' => 'Admin MCP Filtered Draft Online Event',
         'status' => 'draft',
-        'event_format' => EventFormat::Online,
+        'delivery_mode' => EventFormat::Online,
         'visibility' => EventVisibility::Public,
         'status' => 'active',
         'event_type' => [EventType::KuliahCeramah->value],
@@ -543,7 +544,7 @@ it('filters admin event records by structured filters through the MCP server', f
     Event::factory()->create([
         'title' => 'Admin MCP Approved Physical Event',
         'status' => 'approved',
-        'event_format' => EventFormat::Physical,
+        'delivery_mode' => EventFormat::Physical,
         'visibility' => EventVisibility::Private,
         'status' => 'inactive',
         'event_type' => [EventType::Forum->value],
@@ -668,12 +669,16 @@ it('surfaces public event change projections on admin event record detail throug
         EventChangeAnnouncement::query()->create([
             'event_id' => $original->id,
             'replacement_event_id' => $firstReplacement->id,
-            'actor_id' => $actor->id,
-            'type' => EventChangeType::ReplacementLinked,
-            'status' => EventChangeStatus::Published,
+            'created_by_type' => User::class,
+            'created_by_id' => $actor->id,
+            'update_type' => EventChangeType::ReplacementLinked,
             'severity' => EventChangeSeverity::High,
-            'public_message' => 'Sila rujuk majlis pengganti pertama.',
-            'changed_fields' => [],
+            'message' => 'Sila rujuk majlis pengganti pertama.',
+            'metadata' => [
+                'status' => EventChangeStatus::Published->value,
+                'changed_fields' => [],
+            ],
+
             'published_at' => Carbon::parse('2026-05-05 12:00:00', 'UTC'),
             'created_at' => Carbon::parse('2026-05-05 12:00:00', 'UTC'),
             'updated_at' => Carbon::parse('2026-05-05 12:00:00', 'UTC'),
@@ -682,12 +687,16 @@ it('surfaces public event change projections on admin event record detail throug
         EventChangeAnnouncement::query()->create([
             'event_id' => $firstReplacement->id,
             'replacement_event_id' => $finalReplacement->id,
-            'actor_id' => $actor->id,
-            'type' => EventChangeType::ReplacementLinked,
-            'status' => EventChangeStatus::Published,
+            'created_by_type' => User::class,
+            'created_by_id' => $actor->id,
+            'update_type' => EventChangeType::ReplacementLinked,
             'severity' => EventChangeSeverity::High,
-            'public_message' => 'Majlis pengganti pertama diganti pula.',
-            'changed_fields' => [],
+            'message' => 'Majlis pengganti pertama diganti pula.',
+            'metadata' => [
+                'status' => EventChangeStatus::Published->value,
+                'changed_fields' => [],
+            ],
+
             'published_at' => Carbon::parse('2026-05-05 12:05:00', 'UTC'),
             'created_at' => Carbon::parse('2026-05-05 12:05:00', 'UTC'),
             'updated_at' => Carbon::parse('2026-05-05 12:05:00', 'UTC'),
@@ -695,12 +704,16 @@ it('surfaces public event change projections on admin event record detail throug
 
         EventChangeAnnouncement::query()->create([
             'event_id' => $original->id,
-            'actor_id' => $actor->id,
-            'type' => EventChangeType::Other,
-            'status' => EventChangeStatus::Published,
+            'created_by_type' => User::class,
+            'created_by_id' => $actor->id,
+            'update_type' => EventChangeType::Other,
             'severity' => EventChangeSeverity::Info,
-            'public_message' => 'Nota terkini untuk pautan lama.',
-            'changed_fields' => ['title'],
+            'message' => 'Nota terkini untuk pautan lama.',
+            'metadata' => [
+                'status' => EventChangeStatus::Published->value,
+                'changed_fields' => ['title'],
+            ],
+
             'published_at' => Carbon::parse('2026-05-05 12:10:00', 'UTC'),
             'created_at' => Carbon::parse('2026-05-05 12:10:00', 'UTC'),
             'updated_at' => Carbon::parse('2026-05-05 12:10:00', 'UTC'),
@@ -1092,9 +1105,9 @@ it('moderates events through the admin MCP workflow tool', function () {
 
     expect((string) $event->status)->toBe('pending');
 
-    $review = ModerationReview::query()->where('event_id', $event->getKey())->latest()->first();
+    $review = OwnerContext::withOwner(null, fn () => ModerationReview::query()->whereEventId($event->getKey())->latest()->first());
 
-    expect($review?->decision)->toBe('remoderated');
+    expect($review?->type?->value)->toBe('remoderated');
 });
 
 it('submits draft events for moderation through the admin MCP workflow tool', function () {
@@ -2008,7 +2021,7 @@ it('creates and updates speakers through MCP write tools', function () {
                     && data_get($fieldMap->get('address'), 'clear_semantics.empty_object') === 'invalid_without_country'
                     && data_get($fieldMap->get('address.country_id'), 'required_when_parent_present_on_update') === true
                     && data_get($fieldMap->get('language_ids'), 'collection_semantics.submitted_array') === 'replace_relation_sync'
-                    && data_get($fieldMap->get('contacts'), 'collection_semantics.explicit_null') === 'clear_collection'
+                    && data_get($fieldMap->get('contactMethods'), 'collection_semantics.explicit_null') === 'clear_collection'
                     && data_get($fieldMap->get('social_media'), 'input_normalization.platform_aliases.x.normalizes_to') === 'x'
                     && data_get($fieldMap->get('social_media'), 'input_normalization.platform_aliases.x.accepted_by_write_validation') === false
                     && $qualificationItemFields->has('institution')
@@ -2100,7 +2113,7 @@ it('creates and updates institutions through MCP write tools', function () {
 
     $institution = Institution::query()->where('name', 'Admin MCP Institution')->firstOrFail();
     $institutionId = (string) $institution->getKey();
-    $originalAddress = $institution->fresh()?->addressModel;
+    $originalAddress = $institution->fresh()?->primaryAddress();
     $originalLat = $originalAddress?->lat;
     $originalLng = $originalAddress?->lng;
 
@@ -2122,12 +2135,12 @@ it('creates and updates institutions through MCP write tools', function () {
             ->where('data.schema.tool', 'admin-update-record')
             ->where('data.schema.fields', function ($fields): bool {
                 $fieldMap = collect($fields)->keyBy('name');
-                $contactItemFields = collect(data_get($fieldMap->get('contacts'), 'item_schema.fields', []))->keyBy('name');
+                $contactItemFields = collect(data_get($fieldMap->get('contactMethods'), 'item_schema.fields', []))->keyBy('name');
 
                 return data_get($fieldMap->get('address'), 'required') === false
                     && data_get($fieldMap->get('address.country_id'), 'required') === false
                     && data_get($fieldMap->get('nickname'), 'clear_semantics.explicit_null') === 'preserve_existing'
-                    && data_get($fieldMap->get('contacts'), 'collection_semantics.explicit_null') === 'clear_collection'
+                    && data_get($fieldMap->get('contactMethods'), 'collection_semantics.explicit_null') === 'clear_collection'
                     && $contactItemFields->has('type')
                     && $contactItemFields->has('value')
                     && data_get($fieldMap->get('social_media'), 'input_normalization.platform_aliases.x.normalizes_to') === 'x'
@@ -2158,8 +2171,8 @@ it('creates and updates institutions through MCP write tools', function () {
             ->etc());
 
     expect($institution->fresh()?->slug)->not->toBe('attempted-admin-institution-injection')
-        ->and(abs(((float) $institution->fresh()?->addressModel?->lat) - (float) $originalLat))->toBeLessThan(0.000001)
-        ->and(abs(((float) $institution->fresh()?->addressModel?->lng) - (float) $originalLng))->toBeLessThan(0.000001);
+        ->and(abs(((float) $institution->fresh()?->primaryAddress()?->lat) - (float) $originalLat))->toBeLessThan(0.000001)
+        ->and(abs(((float) $institution->fresh()?->primaryAddress()?->lng) - (float) $originalLng))->toBeLessThan(0.000001);
 });
 
 it('preserves institution nickname on null and clears it on empty string through admin MCP write tools', function () {
@@ -2233,7 +2246,7 @@ it('surfaces venue and reference update semantics through admin MCP write schema
                     && data_get($fieldMap->get('address'), 'required') === false
                     && data_get($fieldMap->get('address'), 'clear_semantics.empty_object') === 'delete_existing_address'
                     && data_get($fieldMap->get('facilities'), 'input_normalization.kind') === 'facility_list_to_boolean_map'
-                    && data_get($fieldMap->get('contacts'), 'collection_semantics.explicit_null') === 'clear_collection'
+                    && data_get($fieldMap->get('contactMethods'), 'collection_semantics.explicit_null') === 'clear_collection'
                     && data_get($fieldMap->get('social_media'), 'input_normalization.platform_aliases.x.normalizes_to') === 'x'
                     && data_get($fieldMap->get('social_media'), 'input_normalization.platform_aliases.x.accepted_by_write_validation') === false;
             })
@@ -2463,7 +2476,7 @@ it('emulates production yasin create flow with validate-only then actual create'
         'event_date' => '2026-05-07',
         'prayer_time' => EventPrayerTime::SelepasMaghrib->value,
         'timezone' => 'Asia/Kuala_Lumpur',
-        'event_format' => EventFormat::Physical->value,
+        'delivery_mode' => EventFormat::Physical->value,
         'visibility' => EventVisibility::Public->value,
         'gender' => EventGenderRestriction::All->value,
         'age_group' => [EventAgeGroup::AllAges->value],
@@ -3991,7 +4004,7 @@ function adminMcpEventPayload(array $fixtures, array $overrides = []): array
         'custom_time' => '20:00',
         'end_time' => '22:00',
         'timezone' => 'Asia/Kuala_Lumpur',
-        'event_format' => EventFormat::Hybrid->value,
+        'delivery_mode' => EventFormat::Hybrid->value,
         'visibility' => EventVisibility::Public->value,
         'event_url' => 'https://example.com/events/admin-mcp-event-created',
         'live_url' => null,

@@ -76,7 +76,7 @@ final readonly class EventSummary implements Arrayable
             'status_label' => $this->status_label,
             'event_type' => $this->event_type,
             'event_type_label' => $this->event_type_label,
-            'event_format' => $this->event_format,
+            'event_format' => $this->delivery_mode,
             'event_format_label' => $this->event_format_label,
             'reference_study_subtitle' => $this->reference_study_subtitle,
             'location' => $this->location,

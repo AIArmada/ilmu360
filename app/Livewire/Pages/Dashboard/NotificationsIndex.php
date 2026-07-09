@@ -75,7 +75,7 @@ class NotificationsIndex extends Component
     public function unreadCount(): int
     {
         return $this->currentUser()
-            ->notificationInbox()
+            ->notificationInboxes()
             ->whereNull('archived_at')
             ->whereNull('read_at')
             ->count();
@@ -88,7 +88,7 @@ class NotificationsIndex extends Component
     public function notifications(): LengthAwarePaginator
     {
         $query = $this->currentUser()
-            ->notificationInbox()
+            ->notificationInboxes()
             ->whereNull('archived_at')
             ->when($this->family !== 'all', fn ($builder) => $builder->where('family', $this->family))
             ->when($this->status === 'unread', fn ($builder) => $builder->whereNull('read_at'))

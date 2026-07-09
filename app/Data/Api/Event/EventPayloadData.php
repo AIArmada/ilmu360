@@ -43,7 +43,7 @@ class EventPayloadData extends Data
         $payload = Arr::except([
             ...OwnerContext::withOwner(null, fn (): array => $event->toArray()),
             'institution_id' => $event->institution_id,
-            'venue_id' => $event->venue_id,
+            'venue_id' => $event->default_venue_id,
             'event_structure' => self::enumValue($event->event_structure),
             'schedule_kind' => $event->schedule_kind,
             'schedule_state' => self::enumValue($event->schedule_state),
@@ -55,7 +55,7 @@ class EventPayloadData extends Data
             'gender' => self::enumValue($event->gender),
             'age_group' => self::enumListValues($event->age_group),
             'children_allowed' => $event->children_allowed,
-            'event_format' => self::enumValue($event->event_format),
+            'event_format' => self::enumValue($event->delivery_mode),
             'event_url' => $event->event_url,
             'live_url' => $event->live_url,
             'recording_url' => $event->recording_url,
@@ -193,7 +193,7 @@ class EventPayloadData extends Data
      */
     private static function serializeInstitutionPayload(Institution $institution, array $payload): array
     {
-        $address = $institution->addressModel;
+        $address = $institution->primaryAddress();
         $addressLine = AddressHierarchyFormatter::format($address);
 
         return [
@@ -278,16 +278,16 @@ class EventPayloadData extends Data
 
         return [
             'id' => (string) $announcement->getKey(),
-            'type' => $announcement->type->value,
-            'type_label' => $announcement->type->label(),
-            'type_badge_label' => $announcement->type->publicBadgeLabel(),
+            'type' => $announcement->update_type->value,
+            'type_label' => $announcement->update_type->label(),
+            'type_badge_label' => $announcement->update_type->publicBadgeLabel(),
             'severity' => $announcement->severity->value,
             'severity_label' => $announcement->severity->label(),
-            'public_message' => $announcement->public_message,
-            'display_message' => filled($announcement->public_message)
-                ? (string) $announcement->public_message
+            'public_message' => $announcement->message,
+            'display_message' => filled($announcement->message)
+                ? (string) $announcement->message
                 : __('Maklumat majlis ini telah dikemas kini.'),
-            'changed_fields' => array_values($announcement->changed_fields ?? []),
+            'changed_fields' => array_values(data_get($announcement->metadata, 'changed_fields') ?? []),
             'published_at' => $announcement->published_at?->toIso8601String(),
             'replacement_event' => self::serializeReplacementEventPreview(
                 $rootEvent->replacementLinkTargetForAnnouncement($announcement),

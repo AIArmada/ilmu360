@@ -358,7 +358,7 @@ class Index extends Component implements HasForms
 
     private function institutionMembershipApplicationLabel(Institution $institution): string
     {
-        $location = AddressHierarchyFormatter::format($institution->addressModel);
+        $location = AddressHierarchyFormatter::format($institution->primaryAddress());
 
         if ($location === '') {
             return $institution->display_name;

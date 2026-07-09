@@ -826,12 +826,16 @@ it('serializes event change notices and latest reachable replacement targets on 
         EventChangeAnnouncement::query()->create([
             'event_id' => $original->id,
             'replacement_event_id' => $firstReplacement->id,
-            'actor_id' => $actor->id,
-            'type' => EventChangeType::ReplacementLinked,
-            'status' => EventChangeStatus::Published,
+            'created_by_type' => User::class,
+            'created_by_id' => $actor->id,
+            'update_type' => EventChangeType::ReplacementLinked,
             'severity' => EventChangeSeverity::High,
-            'public_message' => 'Sila rujuk majlis pengganti pertama.',
-            'changed_fields' => [],
+            'message' => 'Sila rujuk majlis pengganti pertama.',
+            'metadata' => [
+                'status' => EventChangeStatus::Published->value,
+                'changed_fields' => [],
+            ],
+
             'published_at' => Carbon::parse('2026-05-05 12:00:00', 'UTC'),
             'created_at' => Carbon::parse('2026-05-05 12:00:00', 'UTC'),
             'updated_at' => Carbon::parse('2026-05-05 12:00:00', 'UTC'),
@@ -840,12 +844,16 @@ it('serializes event change notices and latest reachable replacement targets on 
         EventChangeAnnouncement::query()->create([
             'event_id' => $firstReplacement->id,
             'replacement_event_id' => $finalReplacement->id,
-            'actor_id' => $actor->id,
-            'type' => EventChangeType::ReplacementLinked,
-            'status' => EventChangeStatus::Published,
+            'created_by_type' => User::class,
+            'created_by_id' => $actor->id,
+            'update_type' => EventChangeType::ReplacementLinked,
             'severity' => EventChangeSeverity::High,
-            'public_message' => 'Majlis pengganti pertama diganti pula.',
-            'changed_fields' => [],
+            'message' => 'Majlis pengganti pertama diganti pula.',
+            'metadata' => [
+                'status' => EventChangeStatus::Published->value,
+                'changed_fields' => [],
+            ],
+
             'published_at' => Carbon::parse('2026-05-05 12:05:00', 'UTC'),
             'created_at' => Carbon::parse('2026-05-05 12:05:00', 'UTC'),
             'updated_at' => Carbon::parse('2026-05-05 12:05:00', 'UTC'),
@@ -853,12 +861,16 @@ it('serializes event change notices and latest reachable replacement targets on 
 
         EventChangeAnnouncement::query()->create([
             'event_id' => $original->id,
-            'actor_id' => $actor->id,
-            'type' => EventChangeType::Other,
-            'status' => EventChangeStatus::Published,
+            'created_by_type' => User::class,
+            'created_by_id' => $actor->id,
+            'update_type' => EventChangeType::Other,
             'severity' => EventChangeSeverity::Info,
-            'public_message' => 'Nota terkini untuk pautan lama.',
-            'changed_fields' => ['title'],
+            'message' => 'Nota terkini untuk pautan lama.',
+            'metadata' => [
+                'status' => EventChangeStatus::Published->value,
+                'changed_fields' => ['title'],
+            ],
+
             'published_at' => Carbon::parse('2026-05-05 12:10:00', 'UTC'),
             'created_at' => Carbon::parse('2026-05-05 12:10:00', 'UTC'),
             'updated_at' => Carbon::parse('2026-05-05 12:10:00', 'UTC'),

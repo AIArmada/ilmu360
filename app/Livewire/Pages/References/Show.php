@@ -81,7 +81,7 @@ class Show extends Component
         OwnerContext::withOwner(null, function (): void {
             $this->reference->load([
                 'media',
-                'socialMedia',
+                'socialProfiles',
                 'parentReference',
                 'childReferences',
             ]);

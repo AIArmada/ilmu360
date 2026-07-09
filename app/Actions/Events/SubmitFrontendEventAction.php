@@ -608,7 +608,7 @@ class SubmitFrontendEventAction
         $order = 1;
 
         if (filled($email)) {
-            $submission->contacts()->create([
+            $submission->contactMethods()->create([
                 'type' => ContactMethodType::Email->value,
                 'purpose' => ContactPurpose::General->value,
                 'value' => $email,
@@ -618,7 +618,7 @@ class SubmitFrontendEventAction
         }
 
         if (filled($phone)) {
-            $submission->contacts()->create([
+            $submission->contactMethods()->create([
                 'type' => ContactMethodType::Phone->value,
                 'purpose' => ContactPurpose::General->value,
                 'value' => $phone,

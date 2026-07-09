@@ -32,15 +32,15 @@ final readonly class SaveReferenceAction
             'title' => $this->normalizeRequiredString($data['title'] ?? $reference->title, 'Reference'),
             'author' => array_key_exists('author', $data) ? $this->normalizeOptionalString($data['author']) : $reference->author,
             'type' => array_key_exists('type', $data) ? $this->normalizeReferenceType($data['type']) : $this->normalizeReferenceType($reference->type),
-            'parent_reference_id' => array_key_exists('parent_reference_id', $data)
-                ? $this->normalizeOptionalString($data['parent_reference_id'])
-                : $reference->parent_reference_id,
+            'parent_id' => array_key_exists('parent_id', $data) || array_key_exists('parent_reference_id', $data)
+                ? $this->normalizeOptionalString($data['parent_id'] ?? $data['parent_reference_id'] ?? null)
+                : $reference->parent_id,
             'part_type' => array_key_exists('part_type', $data) ? $this->normalizeOptionalString($data['part_type']) : $reference->part_type,
             'part_number' => array_key_exists('part_number', $data) ? $this->normalizeOptionalString($data['part_number']) : $reference->part_number,
             'part_label' => array_key_exists('part_label', $data) ? $this->normalizeOptionalString($data['part_label']) : $reference->part_label,
-            'publication_year' => array_key_exists('publication_year', $data)
-                ? $this->normalizeOptionalString($data['publication_year'])
-                : $reference->publication_year,
+            'year' => array_key_exists('year', $data) || array_key_exists('publication_year', $data)
+                ? $this->normalizeOptionalString($data['year'] ?? $data['publication_year'] ?? null)
+                : $reference->year,
             'publisher' => array_key_exists('publisher', $data) ? $this->normalizeOptionalString($data['publisher']) : $reference->publisher,
             'description' => array_key_exists('description', $data) ? $data['description'] : $reference->description,
             'is_canonical' => array_key_exists('is_canonical', $data)
@@ -56,7 +56,7 @@ final readonly class SaveReferenceAction
         $this->syncMedia($reference, $data);
 
         return $reference->fresh([
-            'socialMedia',
+            'socialProfiles',
             'media',
         ]) ?? $reference;
     }

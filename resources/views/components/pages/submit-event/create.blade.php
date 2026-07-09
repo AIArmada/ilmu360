@@ -1178,7 +1178,7 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
 
                             // Save reference URL as social media link
                             if (! empty($data['reference_url'])) {
-                                $reference->socialMedia()->create([
+                                $reference->socialProfiles()->create([
                                     'platform' => 'website',
                                     'url' => $data['reference_url'],
                                 ]);
@@ -2462,7 +2462,7 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
         $phone = $validated['submitter_phone'] ?? null;
 
         if (filled($email)) {
-            $submission->contacts()->create([
+            $submission->contactMethods()->create([
                 'type' => ContactMethodType::Email->value,
                 'purpose' => ContactPurpose::General->value,
                 'value' => $email,
@@ -2471,7 +2471,7 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
         }
 
         if (filled($phone)) {
-            $submission->contacts()->create([
+            $submission->contactMethods()->create([
                 'type' => ContactMethodType::Phone->value,
                 'purpose' => ContactPurpose::General->value,
                 'value' => $phone,

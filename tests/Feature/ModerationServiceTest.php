@@ -1,12 +1,12 @@
 <?php
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Moderation\Enums\ModerationActionType;
 use AIArmada\Signals\Models\SignalEvent;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\ModerationReview;
 use App\Models\Speaker;
-use App\Models\Tag;
 use App\Models\User;
 use App\Models\Venue;
 use App\Notifications\EventSubmittedNotification;
@@ -82,7 +82,7 @@ describe('Event Approval', function () {
         $review = ModerationReview::query()->where('actionable_id', $event->id)->whereIn('actionable_type', [Event::class, 'event'])->latest()->first();
 
         expect($review)->toBeInstanceOf(ModerationReview::class);
-        expect($review->decision)->toBe('approved');
+        expect($review->type)->toBe(ModerationActionType::Approve);
         expect((string) $event->fresh()->status)->toBe('approved');
         expect($event->fresh()->published_at)->not->toBeNull();
         expect(SignalEvent::query()->where('event_name', 'moderation.event.approved')->exists())->toBeTrue();
@@ -129,39 +129,23 @@ describe('Event Approval', function () {
             'status' => 'pending',
         ]);
 
-        // Create pending tags
-        $disciplineTag = Tag::factory()->create([
-            'name' => ['ms' => 'Pending Fiqh', 'en' => 'Pending Fiqh'],
-            'type' => 'discipline',
-            'status' => 'pending',
-        ]);
-
-        $issueTag = Tag::factory()->create([
-            'name' => ['ms' => 'Pending Issue', 'en' => 'Pending Issue'],
-            'type' => 'issue',
-            'status' => 'pending',
-        ]);
-
         $event = Event::factory()->create([
             'status' => 'pending',
             'institution_id' => $locationInstitution->id,
-            'venue_id' => $venue->id,
+            'default_venue_id' => $venue->id,
         ]);
         OwnerContext::withOwner(null, fn () => $event->setPrimaryOrganizer($organizerInstitution));
 
         app(EventKeyPersonSyncService::class)->sync($event, [(string) $speaker->id]);
-        $event->syncTags([$disciplineTag, $issueTag]);
 
         // Approve event
         OwnerContext::withOwner(null, fn () => $this->service->approve($event, $moderator));
 
-        // Verify all related records are now verified
+        // Package taxonomy uses EventTerm/Classification (no Spatie Tag dual-verify on approve).
         expect($speaker->fresh()->status)->toBe('verified')
             ->and($organizerInstitution->fresh()->status)->toBe('verified')
             ->and($locationInstitution->fresh()->status)->toBe('verified')
-            ->and($venue->fresh()->status)->toBe('verified')
-            ->and($disciplineTag->fresh()->status)->toBe('verified')
-            ->and($issueTag->fresh()->status)->toBe('verified');
+            ->and($venue->fresh()->status)->toBe('verified');
     });
 
     it('does not change already verified records on approval', function () {
@@ -207,8 +191,8 @@ describe('Event Needs Changes', function () {
 
         $review = ModerationReview::query()->where('actionable_id', $event->id)->whereIn('actionable_type', [Event::class, 'event'])->latest()->first();
 
-        expect($review->decision)->toBe('needs_changes');
-        expect($review->reason_code)->toBe('incomplete_info');
+        expect($review->type)->toBe(ModerationActionType::ChangesRequested);
+        expect($review->reason)->toBe('incomplete_info');
         expect((string) $event->fresh()->status)->toBe('needs_changes');
 
         // Package inbox maps submission_needs_changes → event_updated.
@@ -240,7 +224,7 @@ describe('Event Rejection', function () {
 
         $review = ModerationReview::query()->where('actionable_id', $event->id)->whereIn('actionable_type', [Event::class, 'event'])->latest()->first();
 
-        expect($review->decision)->toBe('rejected');
+        expect($review->type)->toBe(ModerationActionType::Reject);
         expect((string) $event->fresh()->status)->toBe('rejected');
         expect(SignalEvent::query()->where('event_name', 'moderation.event.rejected')->exists())->toBeTrue();
 
@@ -278,7 +262,7 @@ describe('Event Cancellation', function () {
 
         $review = ModerationReview::query()->where('actionable_id', $event->id)->whereIn('actionable_type', [Event::class, 'event'])->latest()->first();
         expect($review)->toBeInstanceOf(ModerationReview::class);
-        expect($review->decision)->toBe('cancelled');
+        expect($review->type)->toBe(ModerationActionType::Cancelled);
 
         // Package inbox maps submission_cancelled → event_cancelled.
         $this->assertDatabaseHas('notification_inboxes', [
@@ -309,7 +293,7 @@ describe('Sensitive Change Handling', function () {
         ]);
 
         $this->service->handleSensitiveChange($event, [
-            'venue_id' => 'new-venue-id',
+            'default_venue_id' => 'new-venue-id',
         ]);
 
         expect((string) $event->fresh()->status)->toBe('approved');
@@ -359,8 +343,8 @@ describe('Event Reconsideration', function () {
         expect((string) $event->fresh()->status)->toBe('pending');
 
         $review = ModerationReview::query()->where('actionable_id', $event->id)->whereIn('actionable_type', [Event::class, 'event'])->latest()->first();
-        expect($review->decision)->toBe('reconsidered');
-        expect($review->moderator_id)->toBe($moderator->id);
+        expect($review->type)->toBe(ModerationActionType::Reconsidered);
+        expect($review->actioned_by_id)->toBe($moderator->id);
     });
 });
 
@@ -379,7 +363,7 @@ describe('Revert to Draft', function () {
         expect($event->fresh()->published_at)->toBeNull();
 
         $review = ModerationReview::query()->where('actionable_id', $event->id)->whereIn('actionable_type', [Event::class, 'event'])->latest()->first();
-        expect($review->decision)->toBe('reverted_to_draft');
+        expect($review->type)->toBe(ModerationActionType::RevertedToDraft);
     });
 
     it('reverts needs_changes event to draft', function () {
@@ -411,7 +395,7 @@ describe('Re-moderation', function () {
         expect((string) $event->fresh()->status)->toBe('pending');
 
         $review = ModerationReview::query()->where('actionable_id', $event->id)->whereIn('actionable_type', [Event::class, 'event'])->latest()->first();
-        expect($review->decision)->toBe('remoderated');
-        expect($review->moderator_id)->toBe($moderator->id);
+        expect($review->type)->toBe(ModerationActionType::Remoderated);
+        expect($review->actioned_by_id)->toBe($moderator->id);
     });
 });

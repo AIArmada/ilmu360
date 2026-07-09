@@ -2,6 +2,8 @@
 
 namespace App\Forms;
 
+use AIArmada\Events\Models\EventTaxonomy;
+use AIArmada\Events\Models\EventTerm;
 use App\Actions\References\GenerateReferenceSlugAction;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
@@ -18,7 +20,6 @@ use App\Models\Reference;
 use App\Models\Series;
 use App\Models\Space;
 use App\Models\Speaker;
-use App\Models\Tag;
 use App\Models\Venue;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Hidden;
@@ -37,6 +38,7 @@ use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 use Nnjeim\World\Models\Language;
 
 class EventContributionFormSchema
@@ -296,7 +298,7 @@ class EventContributionFormSchema
                             $schema->model($reference)->saveRelationships();
 
                             if (! empty($data['reference_url'])) {
-                                $reference->socialMedia()->create([
+                                $reference->socialProfiles()->create([
                                     'platform' => 'website',
                                     'url' => $data['reference_url'],
                                 ]);
@@ -665,17 +667,29 @@ class EventContributionFormSchema
     }
 
     /**
+     * Package EventTerm options for a taxonomy code (ADR-011).
+     *
      * @return array<string, string>
      */
     private static function tagOptions(TagType $type): array
     {
-        return Tag::query()
-            ->ofType($type)
-            ->whereIn('status', ['verified', 'pending'])
-            ->ordered()
-            ->get()
-            ->mapWithKeys(fn (Tag $tag): array => [(string) $tag->id => $tag->getTranslation('name', app()->getLocale())])
-            ->toArray();
+        $taxonomy = EventTaxonomy::query()
+            ->where('code', $type->value)
+            ->where('is_active', true)
+            ->first();
+
+        if ($taxonomy === null) {
+            return [];
+        }
+
+        return EventTerm::query()
+            ->where('event_taxonomy_id', $taxonomy->getKey())
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->mapWithKeys(fn (EventTerm $term): array => [(string) $term->getKey() => (string) $term->name])
+            ->all();
     }
 
     /**
@@ -683,13 +697,36 @@ class EventContributionFormSchema
      */
     private static function createPendingTag(array $data, TagType $type): string
     {
-        $tag = Tag::create([
-            'name' => ['ms' => $data['name'], 'en' => $data['name']],
-            'type' => $type->value,
-            'status' => 'pending',
-        ]);
+        $name = trim((string) ($data['name'] ?? ''));
+        $code = Str::slug($name);
 
-        return (string) $tag->getKey();
+        if ($name === '' || $code === '') {
+            return '';
+        }
+
+        $taxonomy = EventTaxonomy::query()->firstOrCreate(
+            ['code' => $type->value],
+            [
+                'name' => $type->label(),
+                'description' => $type->description(),
+                'is_hierarchical' => false,
+                'is_active' => true,
+            ],
+        );
+
+        $term = EventTerm::query()->firstOrCreate(
+            [
+                'event_taxonomy_id' => $taxonomy->getKey(),
+                'code' => $code,
+            ],
+            [
+                'name' => $name,
+                'sort_order' => 0,
+                'is_active' => true,
+            ],
+        );
+
+        return (string) $term->getKey();
     }
 
     /**

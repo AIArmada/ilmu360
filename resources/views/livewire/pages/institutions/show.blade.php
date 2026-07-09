@@ -6,7 +6,7 @@
 @section('og_image_alt', __('Profil institusi :name', ['name' => $institution->name]))
 
 @php
-    $address = $institution->addressModel;
+    $address = $institution->primaryAddress();
     $typeLabel = $institution->type?->getLabel();
     $addressLines = \App\Support\Location\AddressHierarchyFormatter::displayLines($address);
     $locationString = \App\Support\Location\AddressHierarchyFormatter::format($address);
@@ -14,7 +14,7 @@
     $pastEvents = $this->pastEvents;
     $upcomingTotal = $this->upcomingTotal;
     $pastTotal = $this->pastTotal;
-    $publicContacts = $institution->contacts->where('is_public', true)->values();
+    $publicContacts = $institution->contactMethods->where('is_public', true)->values();
     $donationChannels = $institution->donationChannels;
     $speakers = $institution->speakers;
     $spaces = $institution->spaces;
@@ -108,7 +108,7 @@
 
     $resolveVenueLocation = static function (\App\Models\Event $event): string {
         $venueName = $event->venue?->name;
-        $address = $event->venue?->addressModel;
+        $address = $event->venue?->primaryAddress();
         $parts = \App\Support\Location\AddressHierarchyFormatter::parts($address);
         $stateName = \AIArmada\Addressing\Models\AddressArea::query()
             ->whereKey($address?->admin_area_1_id)

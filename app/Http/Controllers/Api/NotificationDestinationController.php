@@ -38,7 +38,8 @@ class NotificationDestinationController extends Controller
 
         $destination = CommunicationDestination::query()->updateOrCreate(
             [
-                'user_id' => $user->id,
+                'recipient_type' => $user->getMorphClass(),
+                'recipient_id' => $user->id,
                 'channel' => NotificationChannel::Push->value,
                 'address' => $validated['installation_id'],
             ],
@@ -47,7 +48,7 @@ class NotificationDestinationController extends Controller
                 'status' => 'active',
                 'is_primary' => false,
                 'verified_at' => now(),
-                'meta' => $this->pushMeta($validated),
+                'metadata' => $this->pushMeta($validated),
             ],
         );
 
@@ -83,7 +84,7 @@ class NotificationDestinationController extends Controller
             'external_id' => $validated['fcm_token'],
             'status' => 'active',
             'verified_at' => now(),
-            'meta' => $this->pushMeta($validated),
+            'metadata' => $this->pushMeta($validated),
         ])->save();
 
         return response()->json([

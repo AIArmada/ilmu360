@@ -12,13 +12,6 @@ use Illuminate\Support\Str;
 class VenueBuilder extends Builder
 {
     /**
-     * @var array<string, string>
-     */
-    private const array DirectColumnMap = [
-        'type' => 'venue_type',
-    ];
-
-    /**
      * @var list<string>
      */
     private const array MetadataBackedColumns = [
@@ -35,7 +28,7 @@ class VenueBuilder extends Builder
             return $this;
         }
 
-        $mappedColumn = $this->mapColumn($this->legacyColumn($column));
+        $mappedColumn = $this->mapColumn($this->columnName($column));
 
         if ($mappedColumn === null) {
             parent::where($column, $operator, $value, $boolean);
@@ -62,7 +55,7 @@ class VenueBuilder extends Builder
             return $this;
         }
 
-        $mappedColumn = $this->mapColumn($this->legacyColumn($column));
+        $mappedColumn = $this->mapColumn($this->columnName($column));
 
         if ($mappedColumn === null) {
             parent::whereIn($column, $values, $boolean, $not);
@@ -88,7 +81,7 @@ class VenueBuilder extends Builder
             return $this;
         }
 
-        $mappedColumn = $this->mapColumn($this->legacyColumn($column));
+        $mappedColumn = $this->mapColumn($this->columnName($column));
 
         if ($mappedColumn === null) {
             parent::orderBy($column, $direction);
@@ -114,7 +107,7 @@ class VenueBuilder extends Builder
             return $this;
         }
 
-        $mappedColumn = $this->mapColumn($this->legacyColumn($columns));
+        $mappedColumn = $this->mapColumn($this->columnName($columns));
 
         if ($mappedColumn === null) {
             parent::whereNull($columns, $boolean, $not);
@@ -135,7 +128,7 @@ class VenueBuilder extends Builder
             return $this;
         }
 
-        $mappedColumn = $this->mapColumn($this->legacyColumn($columns));
+        $mappedColumn = $this->mapColumn($this->columnName($columns));
 
         if ($mappedColumn === null) {
             parent::whereNotNull($columns, $boolean);
@@ -150,10 +143,6 @@ class VenueBuilder extends Builder
 
     private function mapColumn(string $column): ?string
     {
-        if (array_key_exists($column, self::DirectColumnMap)) {
-            return $this->qualifyModelColumn(self::DirectColumnMap[$column]);
-        }
-
         if (in_array($column, self::MetadataBackedColumns, true)) {
             return $this->qualifiedMetadataSelector($column);
         }
@@ -171,7 +160,7 @@ class VenueBuilder extends Builder
         return $this->getModel()->qualifyColumn($column);
     }
 
-    private function legacyColumn(string $column): string
+    private function columnName(string $column): string
     {
         return Str::afterLast($column, '.');
     }

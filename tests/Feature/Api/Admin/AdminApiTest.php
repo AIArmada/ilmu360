@@ -333,7 +333,7 @@ it('filters admin event records by explicit query parameters', function () {
     $draftOnlineEvent = Event::factory()->create([
         'title' => 'Admin API Draft Online Event',
         'status' => 'draft',
-        'event_format' => EventFormat::Online,
+        'delivery_mode' => EventFormat::Online,
         'visibility' => EventVisibility::Public,
         'status' => 'active',
         'event_type' => [EventType::KuliahCeramah->value],
@@ -342,7 +342,7 @@ it('filters admin event records by explicit query parameters', function () {
     $approvedPhysicalEvent = Event::factory()->create([
         'title' => 'Admin API Approved Physical Event',
         'status' => 'approved',
-        'event_format' => EventFormat::Physical,
+        'delivery_mode' => EventFormat::Physical,
         'visibility' => EventVisibility::Private,
         'status' => 'inactive',
         'event_type' => [EventType::Forum->value],
@@ -351,7 +351,7 @@ it('filters admin event records by explicit query parameters', function () {
     $cancelledHybridEvent = Event::factory()->create([
         'title' => 'Admin API Cancelled Hybrid Event',
         'status' => 'cancelled',
-        'event_format' => EventFormat::Hybrid,
+        'delivery_mode' => EventFormat::Hybrid,
         'visibility' => EventVisibility::Unlisted,
         'status' => 'active',
         'event_type' => [EventType::Kenduri->value],
@@ -565,12 +565,16 @@ it('surfaces public event change projections on admin event detail payloads', fu
         EventChangeAnnouncement::query()->create([
             'event_id' => $original->id,
             'replacement_event_id' => $firstReplacement->id,
-            'actor_id' => $actor->id,
-            'type' => EventChangeType::ReplacementLinked,
-            'status' => EventChangeStatus::Published,
+            'created_by_type' => User::class,
+            'created_by_id' => $actor->id,
+            'update_type' => EventChangeType::ReplacementLinked,
             'severity' => EventChangeSeverity::High,
-            'public_message' => 'Sila rujuk majlis pengganti pertama.',
-            'changed_fields' => [],
+            'message' => 'Sila rujuk majlis pengganti pertama.',
+            'metadata' => [
+                'status' => EventChangeStatus::Published->value,
+                'changed_fields' => [],
+            ],
+
             'published_at' => Carbon::parse('2026-05-05 12:00:00', 'UTC'),
             'created_at' => Carbon::parse('2026-05-05 12:00:00', 'UTC'),
             'updated_at' => Carbon::parse('2026-05-05 12:00:00', 'UTC'),
@@ -579,12 +583,16 @@ it('surfaces public event change projections on admin event detail payloads', fu
         EventChangeAnnouncement::query()->create([
             'event_id' => $firstReplacement->id,
             'replacement_event_id' => $finalReplacement->id,
-            'actor_id' => $actor->id,
-            'type' => EventChangeType::ReplacementLinked,
-            'status' => EventChangeStatus::Published,
+            'created_by_type' => User::class,
+            'created_by_id' => $actor->id,
+            'update_type' => EventChangeType::ReplacementLinked,
             'severity' => EventChangeSeverity::High,
-            'public_message' => 'Majlis pengganti pertama diganti pula.',
-            'changed_fields' => [],
+            'message' => 'Majlis pengganti pertama diganti pula.',
+            'metadata' => [
+                'status' => EventChangeStatus::Published->value,
+                'changed_fields' => [],
+            ],
+
             'published_at' => Carbon::parse('2026-05-05 12:05:00', 'UTC'),
             'created_at' => Carbon::parse('2026-05-05 12:05:00', 'UTC'),
             'updated_at' => Carbon::parse('2026-05-05 12:05:00', 'UTC'),
@@ -592,12 +600,16 @@ it('surfaces public event change projections on admin event detail payloads', fu
 
         EventChangeAnnouncement::query()->create([
             'event_id' => $original->id,
-            'actor_id' => $actor->id,
-            'type' => EventChangeType::Other,
-            'status' => EventChangeStatus::Published,
+            'created_by_type' => User::class,
+            'created_by_id' => $actor->id,
+            'update_type' => EventChangeType::Other,
             'severity' => EventChangeSeverity::Info,
-            'public_message' => 'Nota terkini untuk pautan lama.',
-            'changed_fields' => ['title'],
+            'message' => 'Nota terkini untuk pautan lama.',
+            'metadata' => [
+                'status' => EventChangeStatus::Published->value,
+                'changed_fields' => ['title'],
+            ],
+
             'published_at' => Carbon::parse('2026-05-05 12:10:00', 'UTC'),
             'created_at' => Carbon::parse('2026-05-05 12:10:00', 'UTC'),
             'updated_at' => Carbon::parse('2026-05-05 12:10:00', 'UTC'),
@@ -765,7 +777,7 @@ it('returns structured enum suggestions for admin api validation errors', functi
         'title' => 'Admin API Invalid Enum Preview',
         'event_date' => '2026-06-10',
         'custom_time' => '8:30 PM',
-        'event_format' => 'physicl',
+        'delivery_mode' => 'physicl',
     ])->assertUnprocessable()
         ->assertJsonPath('error.code', 'validation_error')
         ->assertJsonPath('error.details.feedback.validate_only', false)
@@ -1993,7 +2005,7 @@ it('surfaces speaker update semantics and collection rules through the admin api
         ->and(data_get($fields->get('qualifications'), 'collection_semantics.empty_array'))->toBe('clear_collection')
         ->and($qualificationItemFields->keys()->all())->toContain('institution', 'degree', 'field', 'year')
         ->and(data_get($fields->get('language_ids'), 'collection_semantics.submitted_array'))->toBe('replace_relation_sync')
-        ->and(data_get($fields->get('contacts'), 'collection_semantics.explicit_null'))->toBe('clear_collection')
+        ->and(data_get($fields->get('contactMethods'), 'collection_semantics.explicit_null'))->toBe('clear_collection')
         ->and(data_get($fields->get('social_media'), 'input_normalization.platform_aliases.x.normalizes_to'))->toBe('x')
         ->and(data_get($fields->get('social_media'), 'input_normalization.platform_aliases.x.accepted_by_write_validation'))->toBeFalse();
 });
@@ -2021,7 +2033,7 @@ it('replaces speaker collections and still requires an explicit country when mut
     $createResponse = $this->postJson('/api/v1/admin/speakers', [
         'name' => 'Admin API Speaker Collections',
         'gender' => 'male',
-        'status' => 'verified',
+        'status' => 'approved',
         'is_freelance' => true,
         'job_title' => 'Imam',
         'honorific' => ['dato'],
@@ -2032,11 +2044,10 @@ it('replaces speaker collections and still requires an explicit country when mut
             'year' => '2010',
         ]],
         'language_ids' => [$languageMalay->id],
-        'status' => 'active',
         'address' => [
             'country_id' => ensureAdminApiMalaysiaCountryExists(),
         ],
-        'contacts' => [[
+        'contactMethods' => [[
             'type' => 'phone',
             'value' => '0311111111',
             'purpose' => 'general',
@@ -2053,10 +2064,10 @@ it('replaces speaker collections and still requires an explicit country when mut
 
     $speakerRouteKey = (string) $createResponse->json('data.record.route_key');
     $speaker = withGlobalOwnerContext(
-        fn (): Speaker => Speaker::query()->with(['contacts', 'socialMedia', 'languages'])->findOrFail($speakerRouteKey),
+        fn (): Speaker => Speaker::query()->with(['contactMethods', 'socialProfiles', 'languages'])->findOrFail($speakerRouteKey),
     );
-    $originalContactIds = $speaker->contacts->modelKeys();
-    $originalSocialMediaIds = $speaker->socialMedia->modelKeys();
+    $originalContactIds = $speaker->contactMethods->modelKeys();
+    $originalSocialMediaIds = $speaker->socialProfiles->modelKeys();
 
     $this->putJson('/api/v1/admin/speakers/'.$speakerRouteKey, [
         'name' => 'Admin API Speaker Collections',
@@ -2079,7 +2090,7 @@ it('replaces speaker collections and still requires an explicit country when mut
             'year' => '2024',
         ]],
         'language_ids' => [$languageEnglish->id],
-        'contacts' => [[
+        'contactMethods' => [[
             'type' => 'whatsapp',
             'value' => '+60123456789',
             'purpose' => 'support',
@@ -2098,7 +2109,7 @@ it('replaces speaker collections and still requires an explicit country when mut
         ->assertJsonPath('data.record.attributes.social_media.0.url', 'https://facebook.com/admin-api-speaker-collections-updated');
 
     $speaker = withGlobalOwnerContext(
-        fn (): Speaker => $speaker->refresh()->load(['contacts', 'socialMedia', 'languages']),
+        fn (): Speaker => $speaker->refresh()->load(['contactMethods', 'socialProfiles', 'languages']),
     );
 
     expect($speaker->honorific)->toBe(['datuk'])
@@ -2106,15 +2117,15 @@ it('replaces speaker collections and still requires an explicit country when mut
         ->and($speaker->qualifications)->toHaveCount(1)
         ->and(data_get($speaker->qualifications, '0.degree'))->toBe('PhD')
         ->and($speaker->languages->pluck('id')->all())->toEqual([(int) $languageEnglish->id])
-        ->and($speaker->contacts)->toHaveCount(1)
-        ->and($speaker->contacts->first()?->getRawOriginal('type'))->toBe('whatsapp')
-        ->and($speaker->contacts->first()?->getRawOriginal('purpose'))->toBe('support')
-        ->and(collect($speaker->contacts->modelKeys())->intersect($originalContactIds)->all())->toBe([])
-        ->and($speaker->socialMedia)->toHaveCount(1)
-        ->and($speaker->socialMedia->first()?->getRawOriginal('platform'))->toBe('facebook')
-        ->and($speaker->socialMedia->first()?->handle)->toBe('admin-api-speaker-collections-updated')
-        ->and($speaker->socialMedia->first()?->url)->toBe('https://facebook.com/admin-api-speaker-collections-updated')
-        ->and(collect($speaker->socialMedia->modelKeys())->intersect($originalSocialMediaIds)->all())->toBe([]);
+        ->and($speaker->contactMethods)->toHaveCount(1)
+        ->and($speaker->contactMethods->first()?->getRawOriginal('type'))->toBe('whatsapp')
+        ->and($speaker->contactMethods->first()?->getRawOriginal('purpose'))->toBe('support')
+        ->and(collect($speaker->contactMethods->modelKeys())->intersect($originalContactIds)->all())->toBe([])
+        ->and($speaker->socialProfiles)->toHaveCount(1)
+        ->and($speaker->socialProfiles->first()?->getRawOriginal('platform'))->toBe('facebook')
+        ->and($speaker->socialProfiles->first()?->handle)->toBe('admin-api-speaker-collections-updated')
+        ->and($speaker->socialProfiles->first()?->url)->toBe('https://facebook.com/admin-api-speaker-collections-updated')
+        ->and(collect($speaker->socialProfiles->modelKeys())->intersect($originalSocialMediaIds)->all())->toBe([]);
 
     $this->putJson('/api/v1/admin/speakers/'.$speakerRouteKey, [
         'name' => 'Admin API Speaker Collections Updated',
@@ -2123,19 +2134,19 @@ it('replaces speaker collections and still requires an explicit country when mut
         'honorific' => [],
         'qualifications' => [],
         'language_ids' => null,
-        'contacts' => null,
+        'contactMethods' => null,
         'social_media' => [],
     ])->assertOk();
 
     $speaker = withGlobalOwnerContext(
-        fn (): Speaker => $speaker->refresh()->load(['contacts', 'socialMedia', 'languages']),
+        fn (): Speaker => $speaker->refresh()->load(['contactMethods', 'socialProfiles', 'languages']),
     );
 
     expect($speaker->honorific)->toBe([])
         ->and($speaker->qualifications)->toBe([])
         ->and($speaker->languages)->toHaveCount(0)
-        ->and($speaker->contacts)->toHaveCount(0)
-        ->and($speaker->socialMedia)->toHaveCount(0);
+        ->and($speaker->contactMethods)->toHaveCount(0)
+        ->and($speaker->socialProfiles)->toHaveCount(0);
 });
 
 it('allows sparse venue address updates without resending the existing country through the admin api', function () {
@@ -2167,8 +2178,8 @@ it('allows sparse venue address updates without resending the existing country t
         ->assertJsonPath('data.record.attributes.address.country_id', ensureAdminApiMalaysiaCountryExists())
         ->assertJsonPath('data.record.attributes.address.line1', 'Alamat Terkini Tanpa Country');
 
-    expect(Venue::query()->findOrFail($venueRouteKey)->addressModel?->country_id)->toBe(ensureAdminApiMalaysiaCountryExists())
-        ->and(Venue::query()->findOrFail($venueRouteKey)->addressModel?->line1)->toBe('Alamat Terkini Tanpa Country');
+    expect(Venue::query()->findOrFail($venueRouteKey)->primaryAddress()?->country_id)->toBe(ensureAdminApiMalaysiaCountryExists())
+        ->and(Venue::query()->findOrFail($venueRouteKey)->primaryAddress()?->line1)->toBe('Alamat Terkini Tanpa Country');
 });
 
 it('exposes admin institution write schema and can create and update institutions through the api', function () {
@@ -2255,11 +2266,11 @@ it('preserves institution address line1 when sparse map fields are updated throu
 
     $institution = Institution::query()->findOrFail($institutionRouteKey);
 
-    expect($institution->addressModel)->not->toBeNull()
-        ->and($institution->addressModel?->line1)->toBe('Alamat Asal Institusi')
-        ->and($institution->addressModel?->google_maps_url)->toContain('google.com/maps/search')
-        ->and($institution->addressModel?->latitude)->toBe(3.123456)
-        ->and($institution->addressModel?->longitude)->toBe(101.654321);
+    expect($institution->primaryAddress())->not->toBeNull()
+        ->and($institution->primaryAddress()?->line1)->toBe('Alamat Asal Institusi')
+        ->and($institution->primaryAddress()?->google_maps_url)->toContain('google.com/maps/search')
+        ->and($institution->primaryAddress()?->latitude)->toBe(3.123456)
+        ->and($institution->primaryAddress()?->longitude)->toBe(101.654321);
 });
 
 it('surfaces institution update semantics and nested item schemas through the admin api schema', function () {
@@ -2283,7 +2294,7 @@ it('surfaces institution update semantics and nested item schemas through the ad
         ->json('data.schema');
 
     $fields = collect($schema['fields'] ?? [])->keyBy('name');
-    $contactItemFields = collect(data_get($fields->get('contacts'), 'item_schema.fields', []))->keyBy('name');
+    $contactItemFields = collect(data_get($fields->get('contactMethods'), 'item_schema.fields', []))->keyBy('name');
     $socialMediaItemFields = collect(data_get($fields->get('social_media'), 'item_schema.fields', []))->keyBy('name');
 
     expect(data_get($fields->get('address'), 'required'))->toBeFalse()
@@ -2293,8 +2304,8 @@ it('surfaces institution update semantics and nested item schemas through the ad
         ->and(data_get($fields->get('address.country_id'), 'required_on_update'))->toBeFalse()
         ->and(data_get($fields->get('nickname'), 'clear_semantics.explicit_null'))->toBe('preserve_existing')
         ->and(data_get($fields->get('nickname'), 'normalization.empty_string_at_mutation_layer'))->toBe('null')
-        ->and(data_get($fields->get('contacts'), 'collection_semantics.explicit_null'))->toBe('clear_collection')
-        ->and(data_get($fields->get('contacts'), 'collection_semantics.submitted_array'))->toBe('replace_collection')
+        ->and(data_get($fields->get('contactMethods'), 'collection_semantics.explicit_null'))->toBe('clear_collection')
+        ->and(data_get($fields->get('contactMethods'), 'collection_semantics.submitted_array'))->toBe('replace_collection')
         ->and($contactItemFields->keys()->all())->toContain('type', 'value', 'purpose', 'is_public', 'sort_order')
         ->and(data_get($contactItemFields->get('value'), 'used_for_types'))->toContain('phone', 'whatsapp', 'email')
         ->and(data_get($fields->get('social_media'), 'collection_semantics.empty_array'))->toBe('clear_collection')
@@ -2371,7 +2382,7 @@ it('treats empty institution address objects as a no-op when the record already 
         ->assertJsonPath('data.record.attributes.address.country_id', ensureAdminApiMalaysiaCountryExists())
         ->assertJsonPath('data.record.attributes.address.line1', 'Alamat Tidak Patut Hilang');
 
-    expect(Institution::query()->findOrFail($institutionRouteKey)->addressModel?->line1)->toBe('Alamat Tidak Patut Hilang');
+    expect(Institution::query()->findOrFail($institutionRouteKey)->primaryAddress()?->line1)->toBe('Alamat Tidak Patut Hilang');
 });
 
 it('replaces institution contacts and social media collections and canonicalizes handle urls through the admin api', function () {
@@ -2387,7 +2398,7 @@ it('replaces institution contacts and social media collections and canonicalizes
         'address' => [
             'country_id' => ensureAdminApiMalaysiaCountryExists(),
         ],
-        'contacts' => [
+        'contactMethods' => [
             [
                 'type' => 'phone',
                 'value' => '0311111111',
@@ -2415,10 +2426,10 @@ it('replaces institution contacts and social media collections and canonicalizes
 
     $institutionRouteKey = (string) $createResponse->json('data.record.route_key');
     $institution = withGlobalOwnerContext(
-        fn (): Institution => Institution::query()->with(['contacts', 'socialMedia'])->findOrFail($institutionRouteKey),
+        fn (): Institution => Institution::query()->with(['contactMethods', 'socialProfiles'])->findOrFail($institutionRouteKey),
     );
-    $originalContactIds = $institution->contacts->modelKeys();
-    $originalSocialMediaIds = $institution->socialMedia->modelKeys();
+    $originalContactIds = $institution->contactMethods->modelKeys();
+    $originalSocialMediaIds = $institution->socialProfiles->modelKeys();
 
     $this->putJson('/api/v1/admin/institutions/'.$institutionRouteKey, [
         'name' => 'Admin API Institution Collections Updated',
@@ -2427,7 +2438,7 @@ it('replaces institution contacts and social media collections and canonicalizes
         'address' => [
             'country_id' => ensureAdminApiMalaysiaCountryExists(),
         ],
-        'contacts' => [
+        'contactMethods' => [
             [
                 'type' => 'whatsapp',
                 'value' => '+60123456789',
@@ -2449,20 +2460,20 @@ it('replaces institution contacts and social media collections and canonicalizes
         ->assertJsonPath('data.record.attributes.social_media.0.url', 'https://facebook.com/admin-api-institution-collections-updated');
 
     $institution = withGlobalOwnerContext(
-        fn (): Institution => $institution->refresh()->load(['contacts', 'socialMedia']),
+        fn (): Institution => $institution->refresh()->load(['contactMethods', 'socialProfiles']),
     );
 
-    $replacedContactIds = $institution->contacts->modelKeys();
-    $replacedSocialMediaIds = $institution->socialMedia->modelKeys();
+    $replacedContactIds = $institution->contactMethods->modelKeys();
+    $replacedSocialMediaIds = $institution->socialProfiles->modelKeys();
 
-    expect($institution->contacts)->toHaveCount(1)
-        ->and($institution->contacts->first()?->getRawOriginal('type'))->toBe('whatsapp')
-        ->and($institution->contacts->first()?->getRawOriginal('purpose'))->toBe('support')
+    expect($institution->contactMethods)->toHaveCount(1)
+        ->and($institution->contactMethods->first()?->getRawOriginal('type'))->toBe('whatsapp')
+        ->and($institution->contactMethods->first()?->getRawOriginal('purpose'))->toBe('support')
         ->and(collect($replacedContactIds)->intersect($originalContactIds)->all())->toBe([])
-        ->and($institution->socialMedia)->toHaveCount(1)
-        ->and($institution->socialMedia->first()?->getRawOriginal('platform'))->toBe('facebook')
-        ->and($institution->socialMedia->first()?->handle)->toBe('admin-api-institution-collections-updated')
-        ->and($institution->socialMedia->first()?->url)->toBe('https://facebook.com/admin-api-institution-collections-updated')
+        ->and($institution->socialProfiles)->toHaveCount(1)
+        ->and($institution->socialProfiles->first()?->getRawOriginal('platform'))->toBe('facebook')
+        ->and($institution->socialProfiles->first()?->handle)->toBe('admin-api-institution-collections-updated')
+        ->and($institution->socialProfiles->first()?->url)->toBe('https://facebook.com/admin-api-institution-collections-updated')
         ->and(collect($replacedSocialMediaIds)->intersect($originalSocialMediaIds)->all())->toBe([]);
 
     $this->putJson('/api/v1/admin/institutions/'.$institutionRouteKey, [
@@ -2472,16 +2483,16 @@ it('replaces institution contacts and social media collections and canonicalizes
         'address' => [
             'country_id' => ensureAdminApiMalaysiaCountryExists(),
         ],
-        'contacts' => null,
+        'contactMethods' => null,
         'social_media' => [],
     ])->assertOk();
 
     $institution = withGlobalOwnerContext(
-        fn (): Institution => $institution->refresh()->load(['contacts', 'socialMedia']),
+        fn (): Institution => $institution->refresh()->load(['contactMethods', 'socialProfiles']),
     );
 
-    expect($institution->contacts)->toHaveCount(0)
-        ->and($institution->socialMedia)->toHaveCount(0);
+    expect($institution->contactMethods)->toHaveCount(0)
+        ->and($institution->socialProfiles)->toHaveCount(0);
 });
 
 it('exposes institution contacts and social_media in admin-get-record response', function () {
@@ -2495,7 +2506,7 @@ it('exposes institution contacts and social_media in admin-get-record response',
         'type' => 'masjid',
         'status' => 'verified',
         'address' => ['country_id' => ensureAdminApiMalaysiaCountryExists()],
-        'contacts' => [
+        'contactMethods' => [
             ['type' => 'email', 'value' => 'get-record@example.test', 'purpose' => 'general', 'is_public' => true],
         ],
         'social_media' => [
@@ -2559,7 +2570,7 @@ it('exposes admin venue write schema and can create and update venues through th
             'country_id' => ensureAdminApiMalaysiaCountryExists(),
             'line1' => 'Dewan Serbaguna API',
         ],
-        'contacts' => [
+        'contactMethods' => [
             [
                 'type' => 'phone',
                 'value' => '0312345678',
@@ -2577,7 +2588,7 @@ it('exposes admin venue write schema and can create and update venues through th
 
     $venueRouteKey = (string) $createResponse->json('data.record.route_key');
     $venue = withGlobalOwnerContext(
-        fn (): Venue => Venue::query()->with(['address', 'contacts', 'socialMedia'])->findOrFail($venueRouteKey),
+        fn (): Venue => Venue::query()->with(['addresses', 'contactMethods', 'socialProfiles'])->findOrFail($venueRouteKey),
     );
 
     expect($venue->name)->toBe('Admin API Venue')
@@ -2588,11 +2599,11 @@ it('exposes admin venue write schema and can create and update venues through th
             'parking' => true,
             'oku' => true,
         ])
-        ->and($venue->addressModel?->country_id)->toBe(ensureAdminApiMalaysiaCountryExists())
-        ->and($venue->contacts)->toHaveCount(1)
-        ->and($venue->contacts->first()?->value)->toBe('0312345678')
-        ->and($venue->socialMedia)->toHaveCount(1)
-        ->and($venue->socialMedia->first()?->platform)->toBe('website');
+        ->and($venue->primaryAddress()?->country_id)->toBe(ensureAdminApiMalaysiaCountryExists())
+        ->and($venue->contactMethods)->toHaveCount(1)
+        ->and($venue->contactMethods->first()?->value)->toBe('0312345678')
+        ->and($venue->socialProfiles)->toHaveCount(1)
+        ->and($venue->socialProfiles->first()?->platform)->toBe('website');
 
     $this->putJson('/api/v1/admin/venues/'.$venueRouteKey, [
         'name' => 'Admin API Venue Updated',
@@ -2603,7 +2614,7 @@ it('exposes admin venue write schema and can create and update venues through th
             'country_id' => ensureAdminApiMalaysiaCountryExists(),
             'line1' => 'Auditorium API Baharu',
         ],
-        'contacts' => [
+        'contactMethods' => [
             [
                 'type' => 'whatsapp',
                 'value' => '60123456789',
@@ -2624,7 +2635,7 @@ it('exposes admin venue write schema and can create and update venues through th
         ->assertJsonPath('data.record.attributes.status', 'inactive');
 
     $venue = withGlobalOwnerContext(
-        fn (): Venue => $venue->refresh()->load(['address', 'contacts', 'socialMedia']),
+        fn (): Venue => $venue->refresh()->load(['addresses', 'contactMethods', 'socialProfiles']),
     );
 
     expect($venue->name)->toBe('Admin API Venue Updated')
@@ -2636,11 +2647,11 @@ it('exposes admin venue write schema and can create and update venues through th
             'women_section' => true,
             'ablution_area' => true,
         ])
-        ->and($venue->addressModel?->line1)->toBe('Auditorium API Baharu')
-        ->and($venue->contacts)->toHaveCount(1)
-        ->and($venue->contacts->first()?->getRawOriginal('type'))->toBe('whatsapp')
-        ->and($venue->socialMedia)->toHaveCount(1)
-        ->and($venue->socialMedia->first()?->getRawOriginal('platform'))->toBe('facebook');
+        ->and($venue->primaryAddress()?->line1)->toBe('Auditorium API Baharu')
+        ->and($venue->contactMethods)->toHaveCount(1)
+        ->and($venue->contactMethods->first()?->getRawOriginal('type'))->toBe('whatsapp')
+        ->and($venue->socialProfiles)->toHaveCount(1)
+        ->and($venue->socialProfiles->first()?->getRawOriginal('platform'))->toBe('facebook');
 
     $this->putJson('/api/v1/admin/venues/'.$venueRouteKey, [
         'name' => 'Admin API Venue Updated',
@@ -2688,7 +2699,7 @@ it('surfaces venue update semantics and destructive empty-address behavior throu
         ->and(data_get($fields->get('address.country_id'), 'required_on_update'))->toBeFalse()
         ->and(data_get($fields->get('facilities'), 'collection_semantics.explicit_null'))->toBe('clear_collection')
         ->and(data_get($fields->get('facilities'), 'input_normalization.kind'))->toBe('facility_list_to_boolean_map')
-        ->and(data_get($fields->get('contacts'), 'collection_semantics.submitted_array'))->toBe('replace_collection')
+        ->and(data_get($fields->get('contactMethods'), 'collection_semantics.submitted_array'))->toBe('replace_collection')
         ->and(data_get($fields->get('social_media'), 'input_normalization.platform_aliases.x.normalizes_to'))->toBe('x')
         ->and(data_get($fields->get('social_media'), 'input_normalization.platform_aliases.x.accepted_by_write_validation'))->toBeFalse();
 });
@@ -2708,7 +2719,7 @@ it('replaces venue collections and deletes the address on an empty object throug
             'country_id' => ensureAdminApiMalaysiaCountryExists(),
             'line1' => 'Dewan Koleksi',
         ],
-        'contacts' => [[
+        'contactMethods' => [[
             'type' => 'phone',
             'value' => '0312345678',
             'purpose' => 'general',
@@ -2725,14 +2736,14 @@ it('replaces venue collections and deletes the address on an empty object throug
 
     $venueRouteKey = (string) $createResponse->json('data.record.route_key');
     $venue = withGlobalOwnerContext(
-        fn (): Venue => Venue::query()->with(['contacts', 'socialMedia'])->findOrFail($venueRouteKey),
+        fn (): Venue => Venue::query()->with(['contactMethods', 'socialProfiles'])->findOrFail($venueRouteKey),
     );
-    $originalContactIds = $venue->contacts->modelKeys();
-    $originalSocialMediaIds = $venue->socialMedia->modelKeys();
+    $originalContactIds = $venue->contactMethods->modelKeys();
+    $originalSocialMediaIds = $venue->socialProfiles->modelKeys();
 
     $this->putJson('/api/v1/admin/venues/'.$venueRouteKey, [
         'facilities' => ['women_section'],
-        'contacts' => [[
+        'contactMethods' => [[
             'type' => 'whatsapp',
             'value' => '+60123456789',
             'purpose' => 'support',
@@ -2749,36 +2760,36 @@ it('replaces venue collections and deletes the address on an empty object throug
         ->assertJsonPath('data.record.attributes.social_media.0.url', 'https://facebook.com/admin-api-venue-collections-updated');
 
     $venue = withGlobalOwnerContext(
-        fn (): Venue => $venue->refresh()->load(['contacts', 'socialMedia']),
+        fn (): Venue => $venue->refresh()->load(['contactMethods', 'socialProfiles']),
     );
 
     expect($venue->facilities)->toBe([
         'women_section' => true,
     ])
-        ->and($venue->contacts)->toHaveCount(1)
-        ->and($venue->contacts->first()?->getRawOriginal('type'))->toBe('whatsapp')
-        ->and(collect($venue->contacts->modelKeys())->intersect($originalContactIds)->all())->toBe([])
-        ->and($venue->socialMedia)->toHaveCount(1)
-        ->and($venue->socialMedia->first()?->getRawOriginal('platform'))->toBe('facebook')
-        ->and($venue->socialMedia->first()?->handle)->toBe('admin-api-venue-collections-updated')
-        ->and($venue->socialMedia->first()?->url)->toBe('https://facebook.com/admin-api-venue-collections-updated')
-        ->and(collect($venue->socialMedia->modelKeys())->intersect($originalSocialMediaIds)->all())->toBe([]);
+        ->and($venue->contactMethods)->toHaveCount(1)
+        ->and($venue->contactMethods->first()?->getRawOriginal('type'))->toBe('whatsapp')
+        ->and(collect($venue->contactMethods->modelKeys())->intersect($originalContactIds)->all())->toBe([])
+        ->and($venue->socialProfiles)->toHaveCount(1)
+        ->and($venue->socialProfiles->first()?->getRawOriginal('platform'))->toBe('facebook')
+        ->and($venue->socialProfiles->first()?->handle)->toBe('admin-api-venue-collections-updated')
+        ->and($venue->socialProfiles->first()?->url)->toBe('https://facebook.com/admin-api-venue-collections-updated')
+        ->and(collect($venue->socialProfiles->modelKeys())->intersect($originalSocialMediaIds)->all())->toBe([]);
 
     $this->putJson('/api/v1/admin/venues/'.$venueRouteKey, [
         'address' => [],
         'facilities' => null,
-        'contacts' => null,
+        'contactMethods' => null,
         'social_media' => [],
     ])->assertOk();
 
     $venue = withGlobalOwnerContext(
-        fn (): Venue => $venue->refresh()->load(['contacts', 'socialMedia']),
+        fn (): Venue => $venue->refresh()->load(['contactMethods', 'socialProfiles']),
     );
 
-    expect($venue->addressModel)->toBeNull()
+    expect($venue->primaryAddress())->toBeNull()
         ->and($venue->facilities)->toBe([])
-        ->and($venue->contacts)->toHaveCount(0)
-        ->and($venue->socialMedia)->toHaveCount(0);
+        ->and($venue->contactMethods)->toHaveCount(0)
+        ->and($venue->socialProfiles)->toHaveCount(0);
 });
 
 it('lists admin geography catalogs and exposes catalog metadata through admin write schemas', function () {
@@ -2875,7 +2886,7 @@ it('exposes admin reference write schema and can create and update references th
 
     $referenceRouteKey = (string) $createResponse->json('data.record.route_key');
     $reference = withGlobalOwnerContext(
-        fn (): Reference => Reference::query()->with('socialMedia')->where('slug', $referenceRouteKey)->firstOrFail(),
+        fn (): Reference => Reference::query()->with('socialProfiles')->where('slug', $referenceRouteKey)->firstOrFail(),
     );
     $referenceId = (string) $reference->getKey();
 
@@ -2884,8 +2895,8 @@ it('exposes admin reference write schema and can create and update references th
         ->and($reference->is_canonical)->toBeTrue()
         ->and($reference->status)->toBe('verified')
         ->and((string) $reference->status)->toBeIn(['verified', 'pending'])
-        ->and($reference->socialMedia)->toHaveCount(1)
-        ->and($reference->socialMedia->first()?->platform)->toBe('website');
+        ->and($reference->socialProfiles)->toHaveCount(1)
+        ->and($reference->socialProfiles->first()?->platform)->toBe('website');
 
     $this->getJson('/api/v1/admin/references/'.$referenceRouteKey)
         ->assertOk()
@@ -2921,7 +2932,7 @@ it('exposes admin reference write schema and can create and update references th
         ->assertJsonPath('data.record.attributes.type', 'article');
 
     $reference = withGlobalOwnerContext(
-        fn (): Reference => $reference->refresh()->load('socialMedia'),
+        fn (): Reference => $reference->refresh()->load('socialProfiles'),
     );
 
     expect($reference->title)->toBe('Admin API Reference Updated')
@@ -2932,8 +2943,8 @@ it('exposes admin reference write schema and can create and update references th
         ->and($reference->is_canonical)->toBeFalse()
         ->and($reference->status)->toBe('pending')
         ->and((string) $reference->status)->toBe('inactive')
-        ->and($reference->socialMedia)->toHaveCount(1)
-        ->and($reference->socialMedia->first()?->platform)->toBe('youtube');
+        ->and($reference->socialProfiles)->toHaveCount(1)
+        ->and($reference->socialProfiles->first()?->platform)->toBe('youtube');
 
     $this->getJson('/api/v1/admin/references/'.$reference->getRouteKey())
         ->assertOk()
@@ -2989,9 +3000,9 @@ it('clears normalized reference scalars and replaces canonicalized social media 
 
     $referenceRouteKey = (string) $createResponse->json('data.record.route_key');
     $reference = withGlobalOwnerContext(
-        fn (): Reference => Reference::query()->with('socialMedia')->where('slug', $referenceRouteKey)->firstOrFail(),
+        fn (): Reference => Reference::query()->with('socialProfiles')->where('slug', $referenceRouteKey)->firstOrFail(),
     );
-    $originalSocialMediaIds = $reference->socialMedia->modelKeys();
+    $originalSocialMediaIds = $reference->socialProfiles->modelKeys();
 
     $this->putJson('/api/v1/admin/references/'.$referenceRouteKey, [
         'title' => 'Admin API Reference Collections Updated',
@@ -3014,7 +3025,7 @@ it('clears normalized reference scalars and replaces canonicalized social media 
         ->assertJsonPath('data.record.attributes.social_media.0.url', 'https://youtube.com/@admin-api-reference-collections-updated');
 
     $reference = withGlobalOwnerContext(
-        fn (): Reference => $reference->refresh()->load('socialMedia'),
+        fn (): Reference => $reference->refresh()->load('socialProfiles'),
     );
 
     $updatedReferenceRouteKey = (string) $reference->getRouteKey();
@@ -3022,11 +3033,11 @@ it('clears normalized reference scalars and replaces canonicalized social media 
     expect($reference->author)->toBeNull()
         ->and($reference->publication_year)->toBeNull()
         ->and($reference->publisher)->toBeNull()
-        ->and($reference->socialMedia)->toHaveCount(1)
-        ->and($reference->socialMedia->first()?->getRawOriginal('platform'))->toBe('youtube')
-        ->and($reference->socialMedia->first()?->handle)->toBe('admin-api-reference-collections-updated')
-        ->and($reference->socialMedia->first()?->url)->toBe('https://youtube.com/@admin-api-reference-collections-updated')
-        ->and(collect($reference->socialMedia->modelKeys())->intersect($originalSocialMediaIds)->all())->toBe([]);
+        ->and($reference->socialProfiles)->toHaveCount(1)
+        ->and($reference->socialProfiles->first()?->getRawOriginal('platform'))->toBe('youtube')
+        ->and($reference->socialProfiles->first()?->handle)->toBe('admin-api-reference-collections-updated')
+        ->and($reference->socialProfiles->first()?->url)->toBe('https://youtube.com/@admin-api-reference-collections-updated')
+        ->and(collect($reference->socialProfiles->modelKeys())->intersect($originalSocialMediaIds)->all())->toBe([]);
 
     $this->putJson('/api/v1/admin/references/'.$updatedReferenceRouteKey, [
         'title' => 'Admin API Reference Collections Updated',
@@ -3035,7 +3046,7 @@ it('clears normalized reference scalars and replaces canonicalized social media 
         'social_media' => null,
     ])->assertOk();
 
-    expect(withGlobalOwnerContext(fn (): Reference => $reference->fresh()->load('socialMedia'))->socialMedia)->toHaveCount(0);
+    expect(withGlobalOwnerContext(fn (): Reference => $reference->fresh()->load('socialProfiles'))->socialProfiles)->toHaveCount(0);
 });
 
 it('exposes admin address-area write schema and can create and update address areas through the api', function () {
@@ -3510,7 +3521,7 @@ it('rejects admin event writes with conflicting location selections', function (
         'domain_tag' => $domainTag,
         'discipline_tag' => $disciplineTag,
     ], [
-        'venue_id' => (string) $venue->getKey(),
+        'default_venue_id' => (string) $venue->getKey(),
         'space_id' => (string) $space->getKey(),
     ]))->assertUnprocessable()
         ->assertJsonValidationErrors(['institution_id', 'venue_id', 'space_id']);
@@ -3592,7 +3603,7 @@ function adminApiEventPayload(array $fixtures, array $overrides = []): array
         'custom_time' => '20:00',
         'end_time' => '22:00',
         'timezone' => 'Asia/Kuala_Lumpur',
-        'event_format' => EventFormat::Hybrid->value,
+        'delivery_mode' => EventFormat::Hybrid->value,
         'visibility' => EventVisibility::Public->value,
         'event_url' => 'https://example.com/events/admin-api-event-created',
         'live_url' => null,

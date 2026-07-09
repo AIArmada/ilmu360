@@ -4,8 +4,8 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Communications\Enums\NotificationFamily;
 use AIArmada\Communications\Enums\NotificationPriority;
 use AIArmada\Communications\Enums\NotificationTrigger;
+use AIArmada\Communications\Models\CommunicationDestination;
 use AIArmada\Communications\Models\NotificationInbox;
-use App\Models\NotificationDestination;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
@@ -29,8 +29,9 @@ it('registers a push destination through the api', function () {
         'last_seen_at' => $lastSeenAt,
     ]);
 
-    $destination = NotificationDestination::query()
-        ->where('user_id', $user->id)
+    $destination = CommunicationDestination::query()
+        ->where('recipient_id', $user->id)
+        ->where('recipient_type', $user->getMorphClass())
         ->where('address', 'installation-123')
         ->firstOrFail();
 
@@ -49,9 +50,16 @@ it('registers a push destination through the api', function () {
 
 it('updates an existing push destination through the api', function () {
     $user = User::factory()->create();
-    $destination = NotificationDestination::factory()->for($user)->create([
+    $destination = OwnerContext::withOwner(null, fn () => CommunicationDestination::query()->create([
+        'recipient_type' => $user->getMorphClass(),
+        'recipient_id' => $user->id,
+        'channel' => 'push',
         'address' => 'installation-abc',
-        'meta' => [
+        'external_id' => 'old-token',
+        'status' => 'active',
+        'is_primary' => false,
+        'verified_at' => now()->subDay(),
+        'metadata' => [
             'platform' => 'ios',
             'app_version' => '1.0.0',
             'device_label' => 'Old Device',
@@ -59,7 +67,7 @@ it('updates an existing push destination through the api', function () {
             'timezone' => 'UTC',
             'last_seen_at' => now()->subDay()->toIso8601String(),
         ],
-    ]);
+    ]));
 
     Sanctum::actingAs($user);
 

@@ -606,7 +606,7 @@ class EventSearchService
         $eventFormats = $this->normalizeArrayFilter($filters['event_format'] ?? null);
 
         if ($eventFormats !== []) {
-            $queryBuilder->whereIn('event_format', $eventFormats);
+            $queryBuilder->whereIn('delivery_mode', $eventFormats);
         }
 
         if (! empty($filters['gender'])) {
@@ -644,7 +644,7 @@ class EventSearchService
         }
 
         if (! empty($filters['venue_id'])) {
-            $queryBuilder->where('venue_id', $filters['venue_id']);
+            $queryBuilder->where('default_venue_id', $filters['venue_id']);
         }
 
         $speakerIds = $this->normalizeArrayFilter($filters['speaker_ids'] ?? null);

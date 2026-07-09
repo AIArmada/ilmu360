@@ -477,10 +477,15 @@ class NotificationSettingsManager
         $emailVerifiedAt = $this->userAttribute($user, 'email_verified_at');
         $phoneVerifiedAt = $this->userAttribute($user, 'phone_verified_at');
 
+        $recipientKeys = [
+            'recipient_type' => $user->getMorphClass(),
+            'recipient_id' => $user->id,
+        ];
+
         if (filled($email)) {
             CommunicationDestination::query()->updateOrCreate(
                 [
-                    'user_id' => $user->id,
+                    ...$recipientKeys,
                     'channel' => NotificationChannel::Email->value,
                     'address' => $email,
                 ],
@@ -491,18 +496,18 @@ class NotificationSettingsManager
                         : 'inactive',
                     'is_primary' => true,
                     'verified_at' => $emailVerifiedAt,
-                    'meta' => ['source' => 'account_email'],
+                    'metadata' => ['source' => 'account_email'],
                 ]
             );
 
             CommunicationDestination::query()
-                ->where('user_id', $user->id)
+                ->where($recipientKeys)
                 ->where('channel', NotificationChannel::Email->value)
                 ->where('address', '!=', $email)
                 ->delete();
         } else {
             CommunicationDestination::query()
-                ->where('user_id', $user->id)
+                ->where($recipientKeys)
                 ->where('channel', NotificationChannel::Email->value)
                 ->delete();
         }
@@ -510,7 +515,7 @@ class NotificationSettingsManager
         if (filled($phone) && $phoneVerifiedAt !== null) {
             CommunicationDestination::query()->updateOrCreate(
                 [
-                    'user_id' => $user->id,
+                    ...$recipientKeys,
                     'channel' => NotificationChannel::Whatsapp->value,
                     'address' => $phone,
                 ],
@@ -519,18 +524,18 @@ class NotificationSettingsManager
                     'status' => 'active',
                     'is_primary' => true,
                     'verified_at' => $phoneVerifiedAt,
-                    'meta' => ['source' => 'account_phone'],
+                    'metadata' => ['source' => 'account_phone'],
                 ]
             );
 
             CommunicationDestination::query()
-                ->where('user_id', $user->id)
+                ->where($recipientKeys)
                 ->where('channel', NotificationChannel::Whatsapp->value)
                 ->where('address', '!=', $phone)
                 ->delete();
         } else {
             CommunicationDestination::query()
-                ->where('user_id', $user->id)
+                ->where($recipientKeys)
                 ->where('channel', NotificationChannel::Whatsapp->value)
                 ->delete();
         }
@@ -600,7 +605,7 @@ class NotificationSettingsManager
                 ->where('channel', NotificationChannel::Push->value)
                 ->values()
                 ->map(function (CommunicationDestination $destination): array {
-                    $meta = is_array($destination->meta) ? $destination->meta : [];
+                    $meta = is_array($destination->metadata) ? $destination->metadata : [];
 
                     return [
                         'id' => $destination->id,

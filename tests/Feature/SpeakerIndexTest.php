@@ -283,13 +283,13 @@ it('allows users to submit a missing speaker from speaker index with pending sta
 
     $speaker = Speaker::query()
         ->where('name', $speakerName)
-        ->with('address')
+        ->with('addresses')
         ->first();
 
     expect($speaker)->not->toBeNull()
         ->and($speaker?->status)->toBe('pending')
         ->and((string) $speaker?->status)->toBeIn(['verified', 'pending'])
-        ->and($speaker?->addressModel?->country_id)->toBe((string) $country->getKey());
+        ->and($speaker?->primaryAddress()?->country_id)->toBe((string) $country->getKey());
 });
 
 it('rejects duplicate speaker submissions when name gender and titles all match', function () {

@@ -57,18 +57,18 @@ Full list: see [`status.md`](status.md).
 - [x] Free registration path + pass flags configured
 - [x] Submission workflow on package `EventSubmission`
 - [x] Runtime builders bridge package columns (`EventBuilder`, `VenueBuilder`, `ReferenceBuilder`) — **temporary**
-- [ ] **Phase 9 P9-C:** delete builder legacy maps after callers rewritten
-- [ ] **Phase 9 P9-A:** taxonomy single path (see 8.D.T)
+- [x] **Phase 9 P9-C:** DirectColumnMaps deleted; occurrence/metadata package-shape maps remain
+- [x] **Phase 9 P9-A:** Event HasTags removed; classifications write path (Tag admin residual optional)
 - [ ] **Phase 9 P9-G:** thin Event/Registration; package-native field names (app subclass OK only for intentional product)
 
 #### 8.D.T — Taxonomy
 
-- [x] Package tables exist; `SyncEventTaxonomiesAction` / `SyncEventClassificationsAction` exist
+- [x] Package tables exist; `SyncEventClassificationsAction` is the writer (tag-bridge migrate command deleted)
 - [x] Public filters / catalogs largely use `EventTaxonomy` / `EventTerm`
 - [x] ADR-011: package classifications are the product taxonomy (not dual write forever)
-- [x] Event submit/admin/contribution **write path** largely uses classifications
-- [ ] **Open dual path residual:** `Event` still uses Spatie `HasTags`; Filament Tag resource; AI media extraction still touches `Tag`
-- [ ] **Exit:** one write path + one index path; no dual attach for the same concept
+- [x] Event model **no longer** uses Spatie `HasTags`; seeder/write path uses classifications
+- [ ] **Residual:** Filament Tag resource / AI media extraction may still touch `Tag` catalog (not event dual-write via HasTags)
+- [ ] **Exit:** confirm no event dual attach remaining in AI/forms
 
 ### 8.E — Engagement & Membership
 
@@ -107,15 +107,15 @@ Full list: see [`status.md`](status.md).
 - [x] `auto_capture` default **true**
 - [x] **`dispatch_through_package` default true**; dual `DispatchMode` **removed** (2026-07)
 - [x] App orchestration may remain intentional: `EventNotificationService`, `NotificationSettingsManager`, Push/WhatsApp (document as intentional channels)
-- [ ] **P9-B residual:** delete orphan `PendingNotificationFactory` / `NotificationDeliveryFactory`; retire unused `communications:migrate-*` if safe
-- [ ] Prefer package `HasInbox` (or documented intentional morph relation) consistently
+- [x] **P9-B residual:** delete orphan `PendingNotificationFactory` / `NotificationDeliveryFactory`; retire `communications:migrate-*`
+- [x] Prefer package `HasInbox` consistently (`notificationInboxes()`, unread/mark helpers; Notifiable collision aliased)
 
 ### 8.H — Final Cleanup (Phase 8 original)
 
 - [x] Superseded geography/contact/membership/notification models deleted
 - [x] Superseded event settings / following / claim model deleted
 - [x] Geography product hard-cut (P9-F closed)
-- [ ] **Phase 9:** delete compat traits, builder maps, taxonomy dual residual
+- [x] **Phase 9:** delete compat traits + DirectColumnMaps + Event HasTags (Reference/Event thick accessors remain P9-G)
 - [ ] Full suite green (not claimed)
 - [ ] PHPStan clean on cutover surface (baseline still has pre-existing noise)
 
@@ -140,11 +140,11 @@ Ordered for dependency and blast radius. Full task board: [`cutover-plan.html`](
 
 | ID | Workstream | State 2026-07-10 | Exit proof |
 | --- | --- | --- | --- |
-| P9-A | **Taxonomy single path** | Open residual | One write + one index path; no dual Tags/classifications for events |
-| P9-B | **Comms package dispatch** | Mostly closed | Default through package + DispatchMode gone; residual factories/commands |
-| P9-C | **Kill legacy builders** | Open | Callers use package columns; builder maps deleted |
-| P9-D | **Kill alias traits** | Open | Package contact/social/address API only |
-| P9-E | **Kill legacy accessors** | Open | Announcement / moderation / registration package fields only |
+| P9-A | **Taxonomy single path** | Mostly closed | HasTags off Event; classifications write; Tag Filament residual optional |
+| P9-B | **Comms package dispatch** | **Closed** | Default through package; HasInbox; destinations package-native; dead tooling deleted |
+| P9-C | **Kill legacy builders** | Mostly closed | DirectColumnMaps gone; occurrence/metadata kept |
+| P9-D | **Kill alias traits** | **Closed** | Traits deleted; package relations only |
+| P9-E | **Kill legacy accessors** | **Closed** | Announcement/moderation package fields |
 | P9-F | **Hard-native geography** | **Closed** | Product FKs only; zero `state_area_id`/`district_id`/`subdistrict_id` |
 | P9-G | **Thin thick subclasses** | Open | Intentional product only on Event/Reference |
 | P9-H | **UI debt** | Open | Institution dashboard legacy helpers removed |
@@ -199,7 +199,7 @@ Runtime smoke:
 - [x] Membership package convergence
 - [x] Engagement package contracts
 - [x] Inbox package storage
-- [x] Communications package dispatch default (`true`; `DispatchMode` removed) — P9-B residual only for factories/commands
+- [x] Communications package dispatch default (`true`; `DispatchMode` removed) + P9-B residual closed
 - [ ] No dual-path domains (taxonomy + builders + aliases remain)
 - [ ] No legacy builder/alias layers
 - [ ] Taxonomy decision **implemented** (ADR-011 decided; residual HasTags dual path = P9-A)

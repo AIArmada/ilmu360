@@ -112,7 +112,7 @@ class ReferenceForm
                     ])->columns(2),
                 Section::make('Links')
                     ->components([
-                        Repeater::make('socialMedia')
+                        Repeater::make('socialProfiles')
                             ->relationship()
                             ->schema([
                                 Select::make('platform')

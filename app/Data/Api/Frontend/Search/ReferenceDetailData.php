@@ -51,7 +51,7 @@ class ReferenceDetailData extends Data
             part_label: $reference->partLabelValue(),
             is_part: $reference->isPart(),
             publisher: $reference->publisherValue(),
-            publication_year: filled($reference->publication_year) ? (string) $reference->publication_year : null,
+            publication_year: filled($reference->year) ? (string) $reference->year : null,
             description: $reference->descriptionValue(),
             status: (string) $reference->status,
             is_following: $user?->isFollowing($reference) ?? false,

@@ -31,7 +31,7 @@ it('seeds references using submit-event compatible fields and links', function (
 
     expect($reference)->not->toBeNull()
         ->and((string) $reference?->status)->toBeIn(['verified', 'pending'])
-        ->and($reference?->socialMedia()->where('platform', 'website')->exists())->toBeTrue();
+        ->and($reference?->socialProfiles()->where('platform', 'website')->exists())->toBeTrue();
 });
 
 it('attaches seeded references to approved events via event_reference pivot', function () {

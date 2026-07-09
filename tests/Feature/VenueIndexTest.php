@@ -45,7 +45,7 @@ function createVenueIndexState(AddressCountry $country, string $name): AddressAr
 
 function updateVenueIndexPrimaryAddress(Venue $venue, array $attributes): void
 {
-    $address = $venue->addressModel;
+    $address = $venue->primaryAddress();
 
     if (! $address instanceof Address) {
         $address = Address::query()->create([

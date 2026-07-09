@@ -13,7 +13,6 @@ use App\Models\Speaker;
 use App\Models\Venue;
 use Illuminate\View\Component;
 use Illuminate\View\View;
-use Spatie\Tags\Tag;
 
 class EventJsonLd extends Component
 {
@@ -57,7 +56,7 @@ class EventJsonLd extends Component
         ];
 
         if ($venue instanceof Venue) {
-            $venueAddress = $venue->addressModel;
+            $venueAddress = $venue->primaryAddress();
             $region = '';
 
             if ($venueAddress instanceof Address && is_string($venueAddress->state)) {
@@ -69,7 +68,7 @@ class EventJsonLd extends Component
                 'name' => $venue->name,
                 'address' => [
                     '@type' => 'PostalAddress',
-                    'streetAddress' => $venue->address_line1,
+                    'streetAddress' => $venue->primaryAddress()?->line1,
                     'addressLocality' => '',
                     'addressRegion' => $region,
                     'addressCountry' => 'MY',
@@ -118,15 +117,17 @@ class EventJsonLd extends Component
             'url' => route('events.show', $event),
         ];
 
-        if ($event->tags->isNotEmpty()) {
-            $jsonLd['about'] = $event->tags->map(function (mixed $tag): array {
-                $name = $tag instanceof Tag ? $tag->name : '';
+        $event->loadMissing(['classifications']);
 
-                return [
+        if ($event->classifications->isNotEmpty()) {
+            $jsonLd['about'] = $event->classifications
+                ->map(fn ($classification): array => [
                     '@type' => 'Thing',
-                    'name' => is_string($name) ? $name : '',
-                ];
-            })->toArray();
+                    'name' => (string) ($classification->term_code ?? $classification->taxonomy_code ?? ''),
+                ])
+                ->filter(fn (array $item): bool => $item['name'] !== '')
+                ->values()
+                ->all();
         }
 
         $jsonLd['inLanguage'] = match ($event->language) {
@@ -156,7 +157,7 @@ class EventJsonLd extends Component
         $notice = $this->event->latestPublishedChangeAnnouncement;
 
         if ($notice instanceof EventChangeAnnouncement
-            && in_array($notice->type, [
+            && in_array($notice->update_type, [
                 EventChangeType::RescheduledEarlier,
                 EventChangeType::RescheduledLater,
                 EventChangeType::ScheduleChanged,

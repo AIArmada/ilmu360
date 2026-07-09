@@ -535,7 +535,7 @@ class extends Component
                                 </h3>
                                 
                                 @php
-                                    $address = $institution->addressModel;
+                                    $address = $institution->primaryAddress();
                                     $locationDisplay = $formatInstitutionLocation($address);
                                 @endphp
                                 <p class="text-sm text-slate-600 flex items-start gap-1.5 mb-4 font-medium">

@@ -149,16 +149,16 @@ it('allows users to submit a missing institution from institution index with pen
     expect(session('contribution_submission_name'))->toBe($institutionName);
 
     $institution = Institution::query()
-        ->with('address')
+        ->with('addresses')
         ->where('name', $institutionName)
         ->first();
 
     expect($institution)->not->toBeNull()
         ->and($institution?->status)->toBe('pending')
-        ->and($institution?->addressModel?->google_maps_url)->toBe('https://www.google.com/maps/search/?api=1&query=3.139%2C101.6869&query_place_id=place_123')
-        ->and($institution?->addressModel?->google_place_id)->toBe('place_123')
-        ->and(abs(((float) $institution?->addressModel?->lat) - 3.1390))->toBeLessThan(0.000001)
-        ->and(abs(((float) $institution?->addressModel?->lng) - 101.6869))->toBeLessThan(0.000001);
+        ->and($institution?->primaryAddress()?->google_maps_url)->toBe('https://www.google.com/maps/search/?api=1&query=3.139%2C101.6869&query_place_id=place_123')
+        ->and($institution?->primaryAddress()?->google_place_id)->toBe('place_123')
+        ->and(abs(((float) $institution?->primaryAddress()?->lat) - 3.1390))->toBeLessThan(0.000001)
+        ->and(abs(((float) $institution?->primaryAddress()?->lng) - 101.6869))->toBeLessThan(0.000001);
 });
 
 it('rejects duplicate institution submissions when name and locality all match', function () {

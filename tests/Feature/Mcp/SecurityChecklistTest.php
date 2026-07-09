@@ -48,7 +48,7 @@ it('ignores hidden institution slug injections and preserves coordinates across 
         'name' => 'Security Checklist Admin Institution',
         'status' => 'verified',
     ]);
-    $adminAddress = $adminInstitution->fresh()?->addressModel;
+    $adminAddress = $adminInstitution->fresh()?->primaryAddress();
     $adminLat = (float) ($adminAddress?->lat ?? 0.0);
     $adminLng = (float) ($adminAddress?->lng ?? 0.0);
 
@@ -71,11 +71,11 @@ it('ignores hidden institution slug injections and preserves coordinates across 
         ->assertOk();
 
     expect($adminInstitution->fresh()?->slug)->not->toBe('attempted-admin-institution-injection')
-        ->and(abs(((float) ($adminInstitution->fresh()?->addressModel?->lat ?? 0.0)) - $adminLat))->toBeLessThan(0.000001)
-        ->and(abs(((float) ($adminInstitution->fresh()?->addressModel?->lng ?? 0.0)) - $adminLng))->toBeLessThan(0.000001);
+        ->and(abs(((float) ($adminInstitution->fresh()?->primaryAddress()?->lat ?? 0.0)) - $adminLat))->toBeLessThan(0.000001)
+        ->and(abs(((float) ($adminInstitution->fresh()?->primaryAddress()?->lng ?? 0.0)) - $adminLng))->toBeLessThan(0.000001);
 
     [$member, $memberInstitution] = securityChecklistMemberInstitutionContext();
-    $memberAddress = $memberInstitution->fresh()?->addressModel;
+    $memberAddress = $memberInstitution->fresh()?->primaryAddress();
     $memberLat = (float) ($memberAddress?->lat ?? 0.0);
     $memberLng = (float) ($memberAddress?->lng ?? 0.0);
 
@@ -98,8 +98,8 @@ it('ignores hidden institution slug injections and preserves coordinates across 
         ->assertOk();
 
     expect($memberInstitution->fresh()?->slug)->not->toBe('attempted-member-institution-injection')
-        ->and(abs(((float) ($memberInstitution->fresh()?->addressModel?->lat ?? 0.0)) - $memberLat))->toBeLessThan(0.000001)
-        ->and(abs(((float) ($memberInstitution->fresh()?->addressModel?->lng ?? 0.0)) - $memberLng))->toBeLessThan(0.000001);
+        ->and(abs(((float) ($memberInstitution->fresh()?->primaryAddress()?->lat ?? 0.0)) - $memberLat))->toBeLessThan(0.000001)
+        ->and(abs(((float) ($memberInstitution->fresh()?->primaryAddress()?->lng ?? 0.0)) - $memberLng))->toBeLessThan(0.000001);
 });
 
 it('preserves explicit false venue facilities when saving a venue', function (): void {

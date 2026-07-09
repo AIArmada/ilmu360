@@ -373,9 +373,9 @@ class AdminResourceMutationService
             $resourceClass === InstitutionResource::class
             && ! $countryProvided
             && $record instanceof Institution
-            && is_string($record->addressModel?->country_id)
+            && is_string($record->primaryAddress()?->country_id)
         ) {
-            $validated['address']['country_id'] = $record->addressModel->country_id;
+            $validated['address']['country_id'] = $record->primaryAddress()->country_id;
             $countryProvided = true;
         }
 
@@ -1147,7 +1147,7 @@ class AdminResourceMutationService
             ]),
             $this->field('address.admin_area_1_id', 'uuid', required: false),
             $this->field('address.admin_area_2_id', 'uuid', required: false),
-            $this->field('contacts', 'array<object>', required: false, meta: $this->contactCollectionMeta()),
+            $this->field('contactMethods', 'array<object>', required: false, meta: $this->contactCollectionMeta()),
             $this->field('social_media', 'array<object>', required: false, meta: $this->socialMediaCollectionMeta()),
             $this->field('logo', 'file', required: false, acceptedMimeTypes: $this->logoMimeTypes(), maxFileSizeKb: $this->maxUploadSizeKb()),
             $this->field('cover', 'file', required: false, acceptedMimeTypes: $this->imageMimeTypes(), maxFileSizeKb: $this->maxUploadSizeKb()),
@@ -1359,7 +1359,7 @@ class AdminResourceMutationService
             ]),
             $this->field('address.admin_area_1_id', 'uuid', required: false),
             $this->field('address.admin_area_2_id', 'uuid', required: false),
-            $this->field('contacts', 'array<object>', required: false, meta: $this->contactCollectionMeta()),
+            $this->field('contactMethods', 'array<object>', required: false, meta: $this->contactCollectionMeta()),
             $this->field('social_media', 'array<object>', required: false, meta: $this->socialMediaCollectionMeta()),
             $this->field('avatar', 'file', required: false, acceptedMimeTypes: $this->imageMimeTypes(), maxFileSizeKb: $this->maxUploadSizeKb()),
             $this->field('cover', 'file', required: false, acceptedMimeTypes: $this->imageMimeTypes(), maxFileSizeKb: $this->maxUploadSizeKb()),
@@ -1533,7 +1533,7 @@ class AdminResourceMutationService
             ]),
             $this->field('address.admin_area_1_id', 'uuid', required: false),
             $this->field('address.admin_area_2_id', 'uuid', required: false),
-            $this->field('contacts', 'array<object>', required: false, meta: $this->contactCollectionMeta()),
+            $this->field('contactMethods', 'array<object>', required: false, meta: $this->contactCollectionMeta()),
             $this->field('social_media', 'array<object>', required: false, meta: $this->socialMediaCollectionMeta()),
             $this->field('cover', 'file', required: false, acceptedMimeTypes: $this->imageMimeTypes(), maxFileSizeKb: $this->maxUploadSizeKb()),
             $this->field('gallery', 'array<file>', required: false, acceptedMimeTypes: $this->imageMimeTypes(), maxFileSizeKb: $this->maxUploadSizeKb()),
@@ -2138,11 +2138,11 @@ class AdminResourceMutationService
             'address.google_maps_url' => ['nullable', 'url', 'max:2048'],
             'address.provider_place_id' => ['nullable', 'string', 'max:255'],
             'address.waze_url' => ['nullable', 'url', 'max:255'],
-            'contacts' => ['nullable', 'array'],
-            'contacts.*.type' => ['required_with:contacts.*.value', Rule::enum(ContactMethodType::class)],
-            'contacts.*.value' => ['required_with:contacts.*.type', 'string', 'max:255'],
-            'contacts.*.purpose' => ['nullable', Rule::enum(ContactPurpose::class)],
-            'contacts.*.is_public' => ['sometimes', 'boolean'],
+            'contactMethods' => ['nullable', 'array'],
+            'contactMethods.*.type' => ['required_with:contactMethods.*.value', Rule::enum(ContactMethodType::class)],
+            'contactMethods.*.value' => ['required_with:contactMethods.*.type', 'string', 'max:255'],
+            'contactMethods.*.purpose' => ['nullable', Rule::enum(ContactPurpose::class)],
+            'contactMethods.*.is_public' => ['sometimes', 'boolean'],
             'social_media' => ['nullable', 'array'],
             'social_media.*.platform' => ['required_with:social_media.*.handle,social_media.*.url', Rule::enum(SocialPlatform::class)],
             'social_media.*.handle' => ['nullable', 'string', 'max:255', 'required_without:social_media.*.url'],
@@ -2449,11 +2449,11 @@ class AdminResourceMutationService
             'address.google_maps_url' => ['prohibited'],
             'address.provider_place_id' => ['prohibited'],
             'address.waze_url' => ['prohibited'],
-            'contacts' => ['nullable', 'array'],
-            'contacts.*.type' => ['required_with:contacts.*.value', Rule::enum(ContactMethodType::class)],
-            'contacts.*.value' => ['required_with:contacts.*.type', 'string', 'max:255'],
-            'contacts.*.purpose' => ['nullable', Rule::enum(ContactPurpose::class)],
-            'contacts.*.is_public' => ['sometimes', 'boolean'],
+            'contactMethods' => ['nullable', 'array'],
+            'contactMethods.*.type' => ['required_with:contactMethods.*.value', Rule::enum(ContactMethodType::class)],
+            'contactMethods.*.value' => ['required_with:contactMethods.*.type', 'string', 'max:255'],
+            'contactMethods.*.purpose' => ['nullable', Rule::enum(ContactPurpose::class)],
+            'contactMethods.*.is_public' => ['sometimes', 'boolean'],
             'social_media' => ['nullable', 'array'],
             'social_media.*.platform' => ['required_with:social_media.*.handle,social_media.*.url', Rule::enum(SocialPlatform::class)],
             'social_media.*.handle' => ['nullable', 'string', 'max:255', 'required_without:social_media.*.url'],
@@ -2535,11 +2535,11 @@ class AdminResourceMutationService
             'address.google_maps_url' => ['nullable', 'url', 'max:2048'],
             'address.provider_place_id' => ['nullable', 'string', 'max:255'],
             'address.waze_url' => ['nullable', 'url', 'max:255'],
-            'contacts' => ['nullable', 'array'],
-            'contacts.*.type' => ['required_with:contacts.*.value', Rule::enum(ContactMethodType::class)],
-            'contacts.*.value' => ['required_with:contacts.*.type', 'string', 'max:255'],
-            'contacts.*.purpose' => ['nullable', Rule::enum(ContactPurpose::class)],
-            'contacts.*.is_public' => ['sometimes', 'boolean'],
+            'contactMethods' => ['nullable', 'array'],
+            'contactMethods.*.type' => ['required_with:contactMethods.*.value', Rule::enum(ContactMethodType::class)],
+            'contactMethods.*.value' => ['required_with:contactMethods.*.type', 'string', 'max:255'],
+            'contactMethods.*.purpose' => ['nullable', Rule::enum(ContactPurpose::class)],
+            'contactMethods.*.is_public' => ['sometimes', 'boolean'],
             'social_media' => ['nullable', 'array'],
             'social_media.*.platform' => ['required_with:social_media.*.handle,social_media.*.url', Rule::enum(SocialPlatform::class)],
             'social_media.*.handle' => ['nullable', 'string', 'max:255', 'required_without:social_media.*.url'],

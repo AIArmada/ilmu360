@@ -39,7 +39,7 @@ function createVisibleEventForSearch(array $attributes = []): Event
 {
     return Event::factory()->create(array_merge([
         'institution_id' => Institution::factory(),
-        'venue_id' => null,
+        'default_venue_id' => null,
         'event_format' => EventFormat::Physical,
     ], $attributes));
 }
@@ -156,7 +156,7 @@ function ensureMalaysiaStateForTests(string $name = 'Selangor'): AddressArea
 
 function updatePrimaryAddressForSearch(mixed $model, array $attributes): void
 {
-    $address = $model->addressModel;
+    $address = $model->primaryAddress();
 
     if (! $address instanceof Address) {
         $address = Address::create([
@@ -376,7 +376,7 @@ describe('Event Search Filters', function () {
                 'title' => 'Lokasi Hierarki Event',
                 'status' => 'approved',
                 'visibility' => 'public',
-                'event_format' => EventFormat::Physical,
+                'delivery_mode' => EventFormat::Physical,
                 'published_at' => now(),
                 'starts_at' => now()->addDays(1),
             ]);
@@ -1042,7 +1042,7 @@ describe('Event Search Filters', function () {
         ]);
 
         $response = $this->get(eventsIndexUrl([
-            'venue_id' => $includedVenue->id,
+            'default_venue_id' => $includedVenue->id,
         ]));
 
         $response->assertOk()
@@ -1154,7 +1154,7 @@ describe('Event Search Filters', function () {
             'title' => 'Online Format Event',
             'status' => 'approved',
             'visibility' => 'public',
-            'event_format' => EventFormat::Online,
+            'delivery_mode' => EventFormat::Online,
             'published_at' => now(),
             'starts_at' => now()->addDays(1),
         ]);
@@ -1184,11 +1184,11 @@ describe('Event Search Filters', function () {
 
         Event::factory()->create([
             'institution_id' => $institution->getKey(),
-            'venue_id' => null,
+            'default_venue_id' => null,
             'title' => 'Muslim Only Event',
             'status' => 'approved',
             'visibility' => 'public',
-            'event_format' => EventFormat::Physical,
+            'delivery_mode' => EventFormat::Physical,
             'is_muslim_only' => true,
             'published_at' => now(),
             'starts_at' => now()->addDays(1),
@@ -1196,11 +1196,11 @@ describe('Event Search Filters', function () {
 
         Event::factory()->create([
             'institution_id' => $institution->getKey(),
-            'venue_id' => null,
+            'default_venue_id' => null,
             'title' => 'Open Event',
             'status' => 'approved',
             'visibility' => 'public',
-            'event_format' => EventFormat::Physical,
+            'delivery_mode' => EventFormat::Physical,
             'is_muslim_only' => false,
             'published_at' => now(),
             'starts_at' => now()->addDays(1),
@@ -1903,8 +1903,8 @@ describe('Event Search Filters', function () {
         foreach (range(1, 13) as $index) {
             Event::factory()->create([
                 'institution_id' => Institution::factory(),
-                'venue_id' => null,
-                'event_format' => EventFormat::Physical,
+                'default_venue_id' => null,
+                'delivery_mode' => EventFormat::Physical,
                 'title' => 'Event '.$index,
                 'status' => 'approved',
                 'visibility' => 'public',
@@ -1998,8 +1998,8 @@ describe('Event Search Filters', function () {
     it('displays event count', function () {
         Event::factory()->count(5)->create([
             'institution_id' => Institution::factory(),
-            'venue_id' => null,
-            'event_format' => EventFormat::Physical,
+            'default_venue_id' => null,
+            'delivery_mode' => EventFormat::Physical,
             'status' => 'approved',
             'visibility' => 'public',
             'published_at' => now(),
@@ -2371,7 +2371,7 @@ describe('Event Search Filters', function () {
 
         Event::factory()->for($nearInstitution)->create([
             'title' => 'Nearby Institution Event',
-            'venue_id' => null,
+            'default_venue_id' => null,
             'status' => 'approved',
             'visibility' => 'public',
             'published_at' => now(),
@@ -2380,7 +2380,7 @@ describe('Event Search Filters', function () {
 
         Event::factory()->for($farInstitution)->create([
             'title' => 'Far Institution Event',
-            'venue_id' => null,
+            'default_venue_id' => null,
             'status' => 'approved',
             'visibility' => 'public',
             'published_at' => now(),
@@ -2413,9 +2413,9 @@ describe('Event Search Filters', function () {
 
         $event = Event::factory()->for($institution)->create([
             'title' => 'Event Address Should Be Ignored',
-            'event_format' => EventFormat::Online,
+            'delivery_mode' => EventFormat::Online,
             'institution_id' => null,
-            'venue_id' => null,
+            'default_venue_id' => null,
             'status' => 'approved',
             'visibility' => 'public',
             'published_at' => now(),

@@ -17,8 +17,8 @@
 @endpush
 
 @php
-    $venueAddress = $event->venue?->addressModel;
-    $institutionAddress = $event->institution?->addressModel;
+    $venueAddress = $event->venue?->primaryAddress();
+    $institutionAddress = $event->institution?->primaryAddress();
     $primaryAddress = $venueAddress ?? $institutionAddress;
     $lat = $venueAddress?->latitude ?? $institutionAddress?->latitude;
     $lng = $venueAddress?->longitude ?? $institutionAddress?->longitude;
@@ -186,9 +186,9 @@
     // Institution contacts
     $institutionEmail = null;
     $institutionPhone = null;
-    if ($event->institution && $event->institution->relationLoaded('contacts')) {
-        $institutionEmail = $event->institution->contacts->firstWhere('type', \AIArmada\Contacting\Enums\ContactMethodType::Email->value)?->value;
-        $institutionPhone = $event->institution->contacts->firstWhere('type', \AIArmada\Contacting\Enums\ContactMethodType::Phone->value)?->value;
+    if ($event->institution && $event->institution->relationLoaded('contactMethods')) {
+        $institutionEmail = $event->institution->contactMethods->firstWhere('type', \AIArmada\Contacting\Enums\ContactMethodType::Email->value)?->value;
+        $institutionPhone = $event->institution->contactMethods->firstWhere('type', \AIArmada\Contacting\Enums\ContactMethodType::Phone->value)?->value;
     }
 
     // Canonical location entity for location UI blocks.
@@ -245,9 +245,9 @@
         $contextThumb = $contextEntity->getFirstMediaUrl('logo', 'thumb');
         $contextCover = $contextEntity->getFirstMediaUrl('cover', 'banner');
 
-        if ($contextEntity->relationLoaded('contacts')) {
-            $contextPhone = $contextEntity->contacts->firstWhere('type', \AIArmada\Contacting\Enums\ContactMethodType::Phone->value)?->value;
-            $contextEmail = $contextEntity->contacts->firstWhere('type', \AIArmada\Contacting\Enums\ContactMethodType::Email->value)?->value;
+        if ($contextEntity->relationLoaded('contactMethods')) {
+            $contextPhone = $contextEntity->contactMethods->firstWhere('type', \AIArmada\Contacting\Enums\ContactMethodType::Phone->value)?->value;
+            $contextEmail = $contextEntity->contactMethods->firstWhere('type', \AIArmada\Contacting\Enums\ContactMethodType::Email->value)?->value;
         }
     } elseif ($contextEntity instanceof \App\Models\Speaker) {
         $contextHref = route('speakers.show', $contextEntity);
@@ -843,10 +843,10 @@
                             </svg>
                             <div>
                                 <p class="text-sm font-black {{ $latestChangeNotice->severity === \App\Enums\EventChangeSeverity::Urgent ? 'text-rose-800' : 'text-amber-800' }}">
-                                    {{ $latestChangeNotice->type->publicBadgeLabel() }}
+                                    {{ $latestChangeNotice->update_type->publicBadgeLabel() }}
                                 </p>
                                 <p class="mt-1 text-sm leading-6 {{ $latestChangeNotice->severity === \App\Enums\EventChangeSeverity::Urgent ? 'text-rose-700' : 'text-amber-700' }}">
-                                    {{ $latestChangeNotice->public_message ?: __('Maklumat majlis ini telah dikemas kini. Sila semak butiran terkini sebelum hadir.') }}
+                                    {{ $latestChangeNotice->message ?: __('Maklumat majlis ini telah dikemas kini. Sila semak butiran terkini sebelum hadir.') }}
                                 </p>
                                 @if($latestChangeNotice->published_at)
                                     <p class="mt-2 text-xs font-semibold {{ $latestChangeNotice->severity === \App\Enums\EventChangeSeverity::Urgent ? 'text-rose-600' : 'text-amber-600' }}">
@@ -1029,9 +1029,9 @@
                             <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                                 <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                                     <div>
-                                        <p class="text-sm font-black text-slate-900">{{ $changeAnnouncement->type->publicBadgeLabel() }}</p>
+                                        <p class="text-sm font-black text-slate-900">{{ $changeAnnouncement->update_type->publicBadgeLabel() }}</p>
                                         <p class="mt-1 text-sm leading-6 text-slate-600">
-                                            {{ $changeAnnouncement->public_message ?: __('Maklumat majlis ini telah dikemas kini.') }}
+                                            {{ $changeAnnouncement->message ?: __('Maklumat majlis ini telah dikemas kini.') }}
                                         </p>
                                         @php
                                             $replacementTarget = $this->replacementLinkTargetForAnnouncement($changeAnnouncement);

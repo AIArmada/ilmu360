@@ -260,7 +260,7 @@ class SharedFormSchema
 
     public static function contactsRepeater(?string $helperText = null): Repeater
     {
-        $repeater = Repeater::make('contacts')
+        $repeater = Repeater::make('contactMethods')
             ->label(__('Contact Details'))
             ->default([])
             ->schema([
@@ -868,11 +868,11 @@ class SharedFormSchema
      */
     public static function createContactsFromData(Institution|Speaker $model, array $data): void
     {
-        if (! isset($data['contacts']) || ! is_array($data['contacts'])) {
+        if (! isset($data['contactMethods']) || ! is_array($data['contactMethods'])) {
             return;
         }
 
-        foreach ($data['contacts'] as $index => $contact) {
+        foreach ($data['contactMethods'] as $index => $contact) {
             if (! is_array($contact)) {
                 continue;
             }

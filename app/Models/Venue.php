@@ -9,9 +9,6 @@ use AIArmada\Events\Models\Venue as PackageVenue;
 use App\Enums\VenueType;
 use App\Models\Builders\VenueBuilder;
 use App\Models\Concerns\AuditsModelChanges;
-use App\Models\Concerns\HasPackageContactAliases;
-use App\Models\Concerns\HasPackageSocialAliases;
-use App\Models\Concerns\HasPrimaryAddressAccessors;
 use Database\Factories\VenueFactory;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
@@ -41,7 +38,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 class Venue extends PackageVenue implements AuditableContract
 {
     /** @use HasFactory<VenueFactory> */
-    use AuditsModelChanges, HasAddresses, HasContactMethods, HasFactory, HasPackageContactAliases, HasPackageSocialAliases, HasPrimaryAddressAccessors, HasSocialProfiles, KeepsDeletedModels;
+    use AuditsModelChanges, HasAddresses, HasContactMethods, HasFactory, HasSocialProfiles, KeepsDeletedModels;
 
     public $incrementing = false;
 
@@ -112,10 +109,6 @@ class Venue extends PackageVenue implements AuditableContract
     #[\Override]
     public function setAttribute($key, $value): mixed
     {
-        if ($key === 'type') {
-            return parent::setAttribute('venue_type', $value);
-        }
-
         if (in_array($key, self::MetadataBackedAttributes, true)) {
             $this->setMetadataValue($key, $value);
 
@@ -128,10 +121,6 @@ class Venue extends PackageVenue implements AuditableContract
     #[\Override]
     public function getAttribute($key): mixed
     {
-        if ($key === 'type') {
-            return parent::getAttribute('venue_type');
-        }
-
         if (in_array($key, self::MetadataBackedAttributes, true)) {
             return $this->metadataValue($key);
         }

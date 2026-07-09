@@ -25,8 +25,8 @@ new class extends Component
         $this->venue = $venue->load([
             'media',
             'addresses.country',
-            'contacts',
-            'socialMedia',
+            'contactMethods',
+            'socialProfiles',
         ]);
     }
 
@@ -119,7 +119,7 @@ new class extends Component
     $pastTotal = $this->pastTotal;
     $coverUrl = $venue->getFirstMediaUrl('cover', 'banner') ?: asset('images/placeholders/venue.png');
     $thumbUrl = $venue->getFirstMediaUrl('cover', 'thumb') ?: asset('images/placeholders/venue.png');
-    $address = $venue->addressModel;
+    $address = $venue->primaryAddress();
     $addressHierarchyParts = \App\Support\Location\AddressHierarchyFormatter::parts($address);
     $addressParts = array_values(array_filter([
         $address?->line1,
@@ -130,7 +130,7 @@ new class extends Component
         $address?->country,
     ], fn (mixed $value): bool => filled($value)));
     $addressText = $addressParts !== [] ? implode(', ', $addressParts) : __('Alamat akan dikemas kini kemudian.');
-    $contactCards = $venue->contacts->where('is_public', true)->values();
+    $contactCards = $venue->contactMethods->where('is_public', true)->values();
     $resolveSocialUrl = static function (mixed $social): ?string {
         if ($social instanceof \AIArmada\Contacting\Models\SocialProfile) {
             $resolved = $social->profileUrl() ?? $social->url;
@@ -142,7 +142,7 @@ new class extends Component
 
         return is_string($resolved) && trim($resolved) !== '' ? $resolved : null;
     };
-    $socialLinks = $venue->socialMedia
+    $socialLinks = $venue->socialProfiles
         ->map(function ($social) use ($resolveSocialUrl): ?object {
             $platform = strtolower((string) data_get($social, 'platform'));
             $resolvedUrl = $resolveSocialUrl($social);

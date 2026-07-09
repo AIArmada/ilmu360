@@ -314,14 +314,14 @@ class CalendarService
         if ($venue instanceof Venue) {
             $parts[] = $venue->name;
 
-            if ($venue->address_line1 !== '') {
-                $parts[] = $venue->address_line1;
+            if ($venue->primaryAddress()?->line1 !== '') {
+                $parts[] = $venue->primaryAddress()?->line1;
             }
         } elseif ($institution instanceof Institution) {
             $parts[] = $institution->name;
 
-            if ($institution->address_line1 !== '') {
-                $parts[] = $institution->address_line1;
+            if ($institution->primaryAddress()?->line1 !== '') {
+                $parts[] = $institution->primaryAddress()?->line1;
             }
         }
 

@@ -797,9 +797,9 @@ class AdminResourceRegistry
             ]);
         }
 
-        if (method_exists($record, 'getAddressModelAttribute')) {
+        if (method_exists($record, 'primaryAddress')) {
             /** @var Institution|Speaker|Venue $record */
-            $address = $record->addressModel;
+            $address = $record->primaryAddress();
 
             $attributes['address'] = $address instanceof Address
                 ? $address->toArray()
@@ -814,6 +814,25 @@ class AdminResourceRegistry
             }
         }
 
+        // Product API keys (not package relation names).
+        if (method_exists($record, 'contactMethods')) {
+            $contacts = $record->relationLoaded('contactMethods')
+                ? $record->getRelation('contactMethods')
+                : $record->contactMethods()->get();
+            $attributes['contacts'] = $contacts->map(static fn ($contact): array => $contact->toArray())->values()->all();
+            unset($attributes['contactMethods']);
+        }
+
+        if (method_exists($record, 'socialProfiles')) {
+            $profiles = $record->relationLoaded('socialProfiles')
+                ? $record->getRelation('socialProfiles')
+                : $record->socialProfiles()->get();
+            $attributes['social_media'] = $profiles->map(static fn ($profile): array => $profile->toArray())->values()->all();
+            unset($attributes['socialProfiles']);
+        }
+
+        unset($attributes['addresses']);
+
         return $attributes;
     }
 
@@ -824,16 +843,16 @@ class AdminResourceRegistry
     {
         $relations = [];
 
-        if (method_exists($model, 'address')) {
-            $relations[] = 'address';
+        if (method_exists($model, 'addresses')) {
+            $relations[] = 'addresses';
         }
 
-        if (method_exists($model, 'contacts')) {
-            $relations[] = 'contacts';
+        if (method_exists($model, 'contactMethods')) {
+            $relations[] = 'contactMethods';
         }
 
-        if (method_exists($model, 'socialMedia')) {
-            $relations[] = 'socialMedia';
+        if (method_exists($model, 'socialProfiles')) {
+            $relations[] = 'socialProfiles';
         }
 
         return $relations;

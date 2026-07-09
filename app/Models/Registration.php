@@ -67,10 +67,6 @@ class Registration extends PackageEventRegistration implements AuditableContract
     {
         parent::booted();
 
-        static::creating(function (Registration $registration): void {
-            $registration->applyLegacyDefaults();
-        });
-
         static::saved(function (Registration $registration): void {
             $registration->syncPrimaryParticipantRecord();
         });
@@ -280,29 +276,6 @@ class Registration extends PackageEventRegistration implements AuditableContract
         }
 
         return (string) $status;
-    }
-
-    private function applyLegacyDefaults(): void
-    {
-        if (filled(parent::getAttribute('registrant_id')) && blank(parent::getAttribute('registrant_type'))) {
-            parent::setAttribute('registrant_type', self::userMorphClass());
-        }
-
-        if (blank($this->registration_type)) {
-            $this->registration_type = 'individual';
-        }
-
-        if (blank($this->source)) {
-            $this->source = 'website';
-        }
-
-        if (blank($this->total_participants)) {
-            $this->total_participants = 1;
-        }
-
-        if (blank($this->status)) {
-            parent::setAttribute('status', 'confirmed');
-        }
     }
 
     private function syncPrimaryParticipant(): void

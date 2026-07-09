@@ -48,7 +48,7 @@ class EditInstitution extends EditRecord
     #[\Override]
     protected function mutateFormDataBeforeFill(array $data): array
     {
-        $data['address'] = $this->addressFormState($this->institutionRecord()->addressModel);
+        $data['address'] = $this->addressFormState($this->institutionRecord()->primaryAddress());
 
         return $data;
     }

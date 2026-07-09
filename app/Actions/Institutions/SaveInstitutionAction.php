@@ -82,7 +82,7 @@ final readonly class SaveInstitutionAction
             $institution->save();
         }
 
-        $this->contributionEntityMutationService->syncInstitutionRelations($institution, Arr::only($data, ['address', 'contacts', 'social_media']));
+        $this->contributionEntityMutationService->syncInstitutionRelations($institution, Arr::only($data, ['address', 'contactMethods', 'social_media']));
         $this->syncMedia($institution, $data);
 
         if (! $creating) {
@@ -91,8 +91,8 @@ final readonly class SaveInstitutionAction
 
         return $institution->fresh([
             'addresses',
-            'contacts',
-            'socialMedia',
+            'contactMethods',
+            'socialProfiles',
             'media',
         ]) ?? $institution;
     }

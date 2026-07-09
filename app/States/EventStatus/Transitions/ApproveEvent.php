@@ -8,7 +8,6 @@ use App\Models\Institution;
 use App\Models\ModerationReview;
 use App\Models\Reference;
 use App\Models\Speaker;
-use App\Models\Tag;
 use App\Models\User;
 use App\Models\Venue;
 use App\Services\Notifications\EventNotificationService;
@@ -119,9 +118,11 @@ class ApproveEvent extends Transition implements HasColor, HasIcon, HasLabel
             });
 
         // Verify venue
-        if ($event->venue_id) {
+        $venueId = $event->default_venue_id ?? $event->default_venue_id;
+
+        if ($venueId) {
             Venue::query()
-                ->whereKey($event->venue_id)
+                ->whereKey($venueId)
                 ->where('status', 'pending')
                 ->get()
                 ->each(function (Venue $venue): void {
@@ -129,16 +130,7 @@ class ApproveEvent extends Transition implements HasColor, HasIcon, HasLabel
                 });
         }
 
-        // Verify tags
-        Tag::query()
-            ->whereIn('id', $event->tags->pluck('id')->unique()->values())
-            ->where('status', 'pending')
-            ->get()
-            ->each(function (Tag $tag): void {
-                $tag->forceFill(['status' => 'verified'])->save();
-            });
-
-        // Verify references
+        // Verify references (taxonomy is package EventTerm/Classification — no Spatie tag dual path)
         $event->references()
             ->where('status', 'pending')
             ->get()

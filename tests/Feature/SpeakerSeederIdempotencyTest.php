@@ -14,13 +14,13 @@ test('speaker seeder keeps real speaker contacts idempotent across reruns', func
         ->where('name', 'Ustaz Azhar Idrus')
         ->firstOrFail();
 
-    expect($speaker->contacts()->where('type', ContactMethodType::Email->value)->count())->toBe(1)
-        ->and($speaker->contacts()->where('type', ContactMethodType::Phone->value)->count())->toBe(1);
+    expect($speaker->contactMethods()->where('type', ContactMethodType::Email->value)->count())->toBe(1)
+        ->and($speaker->contactMethods()->where('type', ContactMethodType::Phone->value)->count())->toBe(1);
 
     $this->seed(SpeakerSeeder::class);
 
     $speaker->refresh();
 
-    expect($speaker->contacts()->where('type', ContactMethodType::Email->value)->count())->toBe(1)
-        ->and($speaker->contacts()->where('type', ContactMethodType::Phone->value)->count())->toBe(1);
+    expect($speaker->contactMethods()->where('type', ContactMethodType::Email->value)->count())->toBe(1)
+        ->and($speaker->contactMethods()->where('type', ContactMethodType::Phone->value)->count())->toBe(1);
 });

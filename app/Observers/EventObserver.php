@@ -234,11 +234,11 @@ class EventObserver
     protected function getCoordinates(Event $event): ?array
     {
         // Load venue if not loaded (with package addresses)
-        if ($event->venue_id && ! $event->relationLoaded('venue')) {
+        if ($event->default_venue_id && ! $event->relationLoaded('venue')) {
             $event->load('venue.addresses');
         }
 
-        $venueAddress = $event->venue?->addressModel;
+        $venueAddress = $event->venue?->primaryAddress();
 
         if ($venueAddress instanceof Address
             && $venueAddress->latitude !== null

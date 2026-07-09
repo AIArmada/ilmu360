@@ -71,19 +71,24 @@ class PublishEventChangeAnnouncement
             $afterSnapshot = $this->snapshot($event);
             $changedFields = array_values(array_unique(array_filter($changedFields)));
 
+            $message = $this->publicMessage($type, $publicMessage, $replacementEvent);
+
             $announcement = EventChangeAnnouncement::query()->create([
                 'event_id' => $event->id,
                 'replacement_event_id' => $replacementEvent?->id,
-                'actor_id' => $actor->id,
-                'type' => $type,
-                'status' => EventChangeStatus::Published,
+                'created_by_type' => $actor->getMorphClass(),
+                'created_by_id' => $actor->id,
+                'update_type' => $type,
                 'severity' => $severity,
-                'public_message' => $this->publicMessage($type, $publicMessage, $replacementEvent),
-                'title' => $this->publicMessage($type, $publicMessage, $replacementEvent),
-                'internal_note' => $internalNote,
-                'changed_fields' => $changedFields,
-                'before_snapshot' => $beforeSnapshot,
-                'after_snapshot' => $afterSnapshot,
+                'message' => $message,
+                'title' => $message,
+                'notes' => $internalNote,
+                'metadata' => [
+                    'status' => EventChangeStatus::Published->value,
+                    'changed_fields' => $changedFields,
+                    'before_snapshot' => $beforeSnapshot,
+                    'after_snapshot' => $afterSnapshot,
+                ],
                 'published_at' => now(),
                 'visibility' => 'public',
             ]);

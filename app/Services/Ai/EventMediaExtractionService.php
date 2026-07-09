@@ -2,6 +2,8 @@
 
 namespace App\Services\Ai;
 
+use AIArmada\Events\Models\EventTaxonomy;
+use AIArmada\Events\Models\EventTerm;
 use App\Ai\Agents\EventMediaExtractionAgent;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
@@ -10,7 +12,6 @@ use App\Enums\EventPrayerTime;
 use App\Enums\EventType;
 use App\Enums\EventVisibility;
 use App\Enums\TagType;
-use App\Models\Tag;
 use ArrayAccess;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
@@ -191,22 +192,24 @@ class EventMediaExtractionService
      */
     protected function tagOptions(TagType $tagType): Collection
     {
-        return Tag::query()
-            ->where('type', $tagType->value)
-            ->whereIn('status', ['verified', 'pending'])
-            ->orderBy('order_column')
-            ->get()
-            ->mapWithKeys(function (Tag $tag): array {
-                $label = $tag->getTranslation('name', app()->getLocale());
+        $taxonomy = EventTaxonomy::query()
+            ->where('code', $tagType->value)
+            ->where('is_active', true)
+            ->first();
 
-                if (! is_string($label) || blank($label)) {
-                    $label = is_array($tag->name)
-                        ? ((string) ($tag->name[app()->getLocale()] ?? $tag->name['ms'] ?? $tag->name['en'] ?? ''))
-                        : (string) $tag->name;
-                }
+        if ($taxonomy === null) {
+            return collect();
+        }
 
-                return [(string) $tag->id => $label];
-            });
+        return EventTerm::query()
+            ->where('event_taxonomy_id', $taxonomy->getKey())
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->mapWithKeys(fn (EventTerm $term): array => [
+                (string) $term->getKey() => (string) $term->name,
+            ]);
     }
 
     protected function normalizeText(mixed $value, int $maxLength): ?string
@@ -395,16 +398,25 @@ class EventMediaExtractionService
             $value = [$value];
         }
 
-        $existingTagIds = Tag::query()
-            ->where('type', $tagType->value)
-            ->whereIn('status', ['verified', 'pending'])
-            ->whereIn('id', collect($value)->filter('is_string')->values()->all())
+        $taxonomy = EventTaxonomy::query()
+            ->where('code', $tagType->value)
+            ->where('is_active', true)
+            ->first();
+
+        if ($taxonomy === null) {
+            return [];
+        }
+
+        $existingTermIds = EventTerm::query()
+            ->where('event_taxonomy_id', $taxonomy->getKey())
+            ->where('is_active', true)
+            ->whereIn('id', collect($value)->filter(fn (mixed $id): bool => is_string($id))->values()->all())
             ->pluck('id')
             ->map(fn (mixed $id): string => (string) $id)
             ->values()
             ->all();
 
-        return collect($existingTagIds)
+        return collect($existingTermIds)
             ->unique()
             ->take($limit)
             ->values()
@@ -424,10 +436,17 @@ class EventMediaExtractionService
             $value = [$value];
         }
 
-        $tags = Tag::query()
-            ->where('type', $tagType->value)
-            ->whereIn('status', ['verified', 'pending'])
-            ->get();
+        $taxonomy = EventTaxonomy::query()
+            ->where('code', $tagType->value)
+            ->where('is_active', true)
+            ->first();
+
+        $terms = $taxonomy === null
+            ? collect()
+            : EventTerm::query()
+                ->where('event_taxonomy_id', $taxonomy->getKey())
+                ->where('is_active', true)
+                ->get();
 
         $resolved = [];
 
@@ -442,26 +461,26 @@ class EventMediaExtractionService
                 continue;
             }
 
-            if (Str::isUuid($candidate) && $tags->contains('id', $candidate)) {
+            if (Str::isUuid($candidate) && $terms->contains(fn (EventTerm $term): bool => (string) $term->getKey() === $candidate)) {
                 $resolved[] = $candidate;
 
                 continue;
             }
 
-            $matchedTag = $tags->first(function (Tag $tag) use ($candidate): bool {
+            $matchedTerm = $terms->first(function (EventTerm $term) use ($candidate): bool {
                 $normalizedCandidate = $this->normalizeKeyword($candidate);
 
-                return collect($this->tagSearchLabels($tag))
-                    ->map(fn (string $label): string => $this->normalizeKeyword($label))
-                    ->contains($normalizedCandidate);
+                return $this->normalizeKeyword((string) $term->name) === $normalizedCandidate
+                    || $this->normalizeKeyword((string) $term->code) === $normalizedCandidate;
             });
 
-            if ($matchedTag) {
-                $resolved[] = (string) $matchedTag->id;
+            if ($matchedTerm instanceof EventTerm) {
+                $resolved[] = (string) $matchedTerm->getKey();
 
                 continue;
             }
 
+            // Free-text candidates become term names for SyncEventClassificationsAction.
             $resolved[] = Str::limit($candidate, 120, '');
         }
 
@@ -471,26 +490,6 @@ class EventMediaExtractionService
             ->take($limit)
             ->values()
             ->all();
-    }
-
-    /**
-     * @return array<int, string>
-     */
-    protected function tagSearchLabels(Tag $tag): array
-    {
-        if (is_array($tag->name)) {
-            $labels = array_values(array_filter(
-                $tag->name,
-                filled(...)
-            ));
-
-            return array_map(
-                fn (mixed $value): string => (string) $value,
-                $labels,
-            );
-        }
-
-        return filled($tag->name) ? [(string) $tag->name] : [];
     }
 
     protected function normalizeKeyword(string $value): string

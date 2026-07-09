@@ -83,7 +83,7 @@ class GenerateVenueSlugAction
     {
         $venue->loadMissing(['addresses']);
 
-        $address = $venue->addressModel;
+        $address = $venue->primaryAddress();
 
         return $this->handle(
             $venue->name,
@@ -166,7 +166,7 @@ class GenerateVenueSlugAction
     {
         $venue->loadMissing(['addresses']);
 
-        $address = $venue->addressModel;
+        $address = $venue->primaryAddress();
 
         return $this->locationSuffix([
             'country_id' => $address?->country_id,

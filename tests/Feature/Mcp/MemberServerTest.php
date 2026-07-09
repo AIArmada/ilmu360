@@ -428,12 +428,16 @@ it('surfaces public event change projections on member event record detail throu
         EventChangeAnnouncement::query()->create([
             'event_id' => $original->id,
             'replacement_event_id' => $firstReplacement->id,
-            'actor_id' => $actor->id,
-            'type' => EventChangeType::ReplacementLinked,
-            'status' => EventChangeStatus::Published,
+            'created_by_type' => User::class,
+            'created_by_id' => $actor->id,
+            'update_type' => EventChangeType::ReplacementLinked,
             'severity' => EventChangeSeverity::High,
-            'public_message' => 'Sila rujuk majlis pengganti pertama.',
-            'changed_fields' => [],
+            'message' => 'Sila rujuk majlis pengganti pertama.',
+            'metadata' => [
+                'status' => EventChangeStatus::Published->value,
+                'changed_fields' => [],
+            ],
+
             'published_at' => Carbon::parse('2026-05-05 12:00:00', 'UTC'),
             'created_at' => Carbon::parse('2026-05-05 12:00:00', 'UTC'),
             'updated_at' => Carbon::parse('2026-05-05 12:00:00', 'UTC'),
@@ -442,12 +446,16 @@ it('surfaces public event change projections on member event record detail throu
         EventChangeAnnouncement::query()->create([
             'event_id' => $firstReplacement->id,
             'replacement_event_id' => $finalReplacement->id,
-            'actor_id' => $actor->id,
-            'type' => EventChangeType::ReplacementLinked,
-            'status' => EventChangeStatus::Published,
+            'created_by_type' => User::class,
+            'created_by_id' => $actor->id,
+            'update_type' => EventChangeType::ReplacementLinked,
             'severity' => EventChangeSeverity::High,
-            'public_message' => 'Majlis pengganti pertama diganti pula.',
-            'changed_fields' => [],
+            'message' => 'Majlis pengganti pertama diganti pula.',
+            'metadata' => [
+                'status' => EventChangeStatus::Published->value,
+                'changed_fields' => [],
+            ],
+
             'published_at' => Carbon::parse('2026-05-05 12:05:00', 'UTC'),
             'created_at' => Carbon::parse('2026-05-05 12:05:00', 'UTC'),
             'updated_at' => Carbon::parse('2026-05-05 12:05:00', 'UTC'),
@@ -455,12 +463,16 @@ it('surfaces public event change projections on member event record detail throu
 
         EventChangeAnnouncement::query()->create([
             'event_id' => $original->id,
-            'actor_id' => $actor->id,
-            'type' => EventChangeType::Other,
-            'status' => EventChangeStatus::Published,
+            'created_by_type' => User::class,
+            'created_by_id' => $actor->id,
+            'update_type' => EventChangeType::Other,
             'severity' => EventChangeSeverity::Info,
-            'public_message' => 'Nota terkini untuk pautan lama.',
-            'changed_fields' => ['title'],
+            'message' => 'Nota terkini untuk pautan lama.',
+            'metadata' => [
+                'status' => EventChangeStatus::Published->value,
+                'changed_fields' => ['title'],
+            ],
+
             'published_at' => Carbon::parse('2026-05-05 12:10:00', 'UTC'),
             'created_at' => Carbon::parse('2026-05-05 12:10:00', 'UTC'),
             'updated_at' => Carbon::parse('2026-05-05 12:10:00', 'UTC'),
@@ -524,7 +536,7 @@ it('returns member update schema and updates institutions through member MCP wri
     ensureMemberMcpMalaysiaCountryExists();
 
     [$member, $institution] = institutionMemberMcpContext(role: 'admin');
-    $originalAddress = $institution->fresh()?->addressModel;
+    $originalAddress = $institution->fresh()?->primaryAddress();
     $originalLat = $originalAddress?->lat;
     $originalLng = $originalAddress?->lng;
 
@@ -551,13 +563,13 @@ it('returns member update schema and updates institutions through member MCP wri
             ->where('data.schema.unsupported_fields', [])
             ->where('data.schema.fields', function ($fields): bool {
                 $fieldMap = collect($fields)->keyBy('name');
-                $contactItemFields = collect(data_get($fieldMap->get('contacts'), 'item_schema.fields', []))->keyBy('name');
+                $contactItemFields = collect(data_get($fieldMap->get('contactMethods'), 'item_schema.fields', []))->keyBy('name');
 
                 return data_get($fieldMap->get('logo'), 'mcp_upload.shape') === 'file_descriptor'
                     && data_get($fieldMap->get('gallery'), 'mcp_upload.shape') === 'array<file_descriptor>'
                     && data_get($fieldMap->get('address'), 'required') === false
                     && data_get($fieldMap->get('nickname'), 'normalization.empty_string_at_mutation_layer') === 'null'
-                    && data_get($fieldMap->get('contacts'), 'collection_semantics.explicit_null') === 'clear_collection'
+                    && data_get($fieldMap->get('contactMethods'), 'collection_semantics.explicit_null') === 'clear_collection'
                     && $contactItemFields->has('type')
                     && $contactItemFields->has('value')
                     && data_get($fieldMap->get('social_media'), 'input_normalization.platform_aliases.x.normalizes_to') === 'x'
@@ -596,8 +608,8 @@ it('returns member update schema and updates institutions through member MCP wri
         ->and($institution->fresh()?->slug)->not->toBe('attempted-member-institution-injection')
         ->and($institution->fresh()?->getMedia('cover'))->toHaveCount(1)
         ->and($institution->fresh()?->getMedia('gallery'))->toHaveCount(1)
-        ->and(abs(((float) $institution->fresh()?->addressModel?->lat) - (float) $originalLat))->toBeLessThan(0.000001)
-        ->and(abs(((float) $institution->fresh()?->addressModel?->lng) - (float) $originalLng))->toBeLessThan(0.000001);
+        ->and(abs(((float) $institution->fresh()?->primaryAddress()?->lat) - (float) $originalLat))->toBeLessThan(0.000001)
+        ->and(abs(((float) $institution->fresh()?->primaryAddress()?->lng) - (float) $originalLng))->toBeLessThan(0.000001);
 
     MemberServer::actingAs($member)
         ->tool(MemberUpdateRecordTool::class, [

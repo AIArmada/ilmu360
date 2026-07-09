@@ -60,7 +60,7 @@ it('creates staged pending institution records with structured relation data', f
             'line1' => 'Jalan Hikmah',
             'country_id' => (string) $country->getKey(),
         ],
-        'contacts' => [[
+        'contactMethods' => [[
             'category' => 'phone',
             'value' => '0123456789',
             'is_public' => true,
@@ -68,8 +68,8 @@ it('creates staged pending institution records with structured relation data', f
     ], $proposer);
 
     expect($institution->status)->toBe('pending')
-        ->and($institution->addressModel?->line1)->toBe('Jalan Hikmah')
-        ->and($institution->contacts()->where('value', '0123456789')->exists())->toBeTrue()
+        ->and($institution->primaryAddress()?->line1)->toBe('Jalan Hikmah')
+        ->and($institution->contactMethods()->where('value', '0123456789')->exists())->toBeTrue()
         ->and($institution->members()->whereKey($proposer->id)->exists())->toBeFalse();
 });
 
@@ -231,7 +231,7 @@ it('applies structured institution updates through approval', function () {
                 'line1' => 'Jalan Hikmah 5',
                 'country_id' => (string) ensureTestMalaysiaCountry()->getKey(),
             ],
-            'contacts' => [[
+            'contactMethods' => [[
                 'category' => 'phone',
                 'value' => '01112345678',
                 'is_public' => true,
@@ -255,11 +255,11 @@ it('applies structured institution updates through approval', function () {
     $institution->refresh();
 
     expect($institution->description)->toBe('New description')
-        ->and($institution->addressModel?->line1)->toBe('Jalan Hikmah 5')
-        ->and($institution->contacts->pluck('value')->all())->toEqual(['01112345678', 'contact@masjidhikmah.test'])
-        ->and($institution->contacts->pluck('order_column')->all())->toEqual([1, 2])
-        ->and($institution->socialMedia->pluck('platform')->all())->toEqual(['facebook', 'youtube'])
-        ->and($institution->socialMedia->pluck('order_column')->all())->toEqual([1, 2]);
+        ->and($institution->primaryAddress()?->line1)->toBe('Jalan Hikmah 5')
+        ->and($institution->contactMethods->pluck('value')->all())->toEqual(['01112345678', 'contact@masjidhikmah.test'])
+        ->and($institution->contactMethods->pluck('order_column')->all())->toEqual([1, 2])
+        ->and($institution->socialProfiles->pluck('platform')->all())->toEqual(['facebook', 'youtube'])
+        ->and($institution->socialProfiles->pluck('order_column')->all())->toEqual([1, 2]);
 });
 
 it('applies structured event participant and reference updates through approval', function () {

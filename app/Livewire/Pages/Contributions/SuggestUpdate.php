@@ -325,7 +325,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
             is_array($initialState['qualifications'] ?? null) ? $initialState['qualifications'] : [],
         );
 
-        $initialState['contacts'] = array_map(
+        $initialState['contactMethods'] = array_map(
             static function (mixed $contact): mixed {
                 if (! is_array($contact)) {
                     return $contact;
@@ -333,7 +333,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
 
                 return SharedFormSchema::normalizeContactRowsForComparison($contact);
             },
-            is_array($initialState['contacts'] ?? null) ? $initialState['contacts'] : [],
+            is_array($initialState['contactMethods'] ?? null) ? $initialState['contactMethods'] : [],
         );
 
         return $initialState;

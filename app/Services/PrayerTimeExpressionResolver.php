@@ -72,7 +72,7 @@ readonly class PrayerTimeExpressionResolver implements ResolvesEventTimeExpressi
             return $this->defaultCoordinates();
         }
 
-        $address = $venue->address;
+        $address = $venue->primaryAddress();
 
         if ($address === null) {
             return $this->defaultCoordinates();

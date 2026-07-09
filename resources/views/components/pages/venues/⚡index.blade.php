@@ -392,7 +392,7 @@ new
                     @foreach($venues as $venue)
                         @php
                             $coverUrl = $venue->getFirstMediaUrl('cover', 'thumb') ?: asset('images/placeholders/venue.png');
-                            $address = $venue->addressModel;
+                            $address = $venue->primaryAddress();
                             $locationDisplay = $formatVenueLocation($address);
                             $venueType = $venue->type;
                             $typeLabel = $venueType instanceof \App\Enums\VenueType

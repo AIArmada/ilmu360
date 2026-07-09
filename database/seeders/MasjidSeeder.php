@@ -116,7 +116,7 @@ class MasjidSeeder extends Seeder
                 $cleanedPhone = $this->cleanPhoneNumber($noTel);
                 if ($cleanedPhone) {
                     try {
-                        $inst->contacts()->create([
+                        $inst->contactMethods()->create([
                             'type' => ContactMethodType::Phone->value,
                             'value' => $cleanedPhone,
                             'purpose' => ContactPurpose::General->value,

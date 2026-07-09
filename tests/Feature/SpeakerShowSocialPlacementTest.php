@@ -17,7 +17,7 @@ it('renders social media section below biodata on speaker show page', function (
         ],
     ]);
 
-    $speaker->socialMedia()->create([
+    $speaker->socialProfiles()->create([
         'platform' => 'facebook',
         'url' => 'https://example.com',
         'handle' => 'example',

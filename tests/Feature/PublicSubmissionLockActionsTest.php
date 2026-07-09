@@ -37,7 +37,7 @@ function assignGlobalRole(User $user, string $role): void
 
 function normalizeInstitutionContactsForAdminForm(Institution $institution): void
 {
-    $institution->contacts()
+    $institution->contactMethods()
         ->where('type', ContactMethodType::Phone->value)
         ->update(['value' => '+60112223344']);
 }
@@ -217,7 +217,7 @@ it('saves institution contact phone values on the edit page without nulling the 
     assignGlobalRole($admin, 'admin');
 
     $institution = Institution::factory()->create();
-    $institution->contacts()->create([
+    $institution->contactMethods()->create([
         'type' => ContactMethodType::Phone->value,
         'purpose' => ContactPurpose::General->value,
         'value' => '+60112223344',
@@ -230,7 +230,7 @@ it('saves institution contact phone values on the edit page without nulling the 
         ->call('save')
         ->assertHasNoErrors();
 
-    expect($institution->fresh()->contacts()->where('type', ContactMethodType::Phone->value)->value('value'))
+    expect($institution->fresh()->contactMethods()->where('type', ContactMethodType::Phone->value)->value('value'))
         ->not->toBeNull()
         ->not->toBeEmpty();
 });

@@ -38,9 +38,9 @@ class ModerationReviewSeeder extends Seeder
                 $reviewsToInsert = [];
 
                 foreach ($events as $event) {
-                    $decision = match ($event->status) {
-                        'approved' => 'approved',
-                        'rejected' => 'rejected',
+                    $type = match ($event->status) {
+                        'approved' => 'approve',
+                        'rejected' => 'reject',
                         default => 'changes_requested',
                     };
 
@@ -50,7 +50,8 @@ class ModerationReviewSeeder extends Seeder
                             'actionable_id' => $event->id,
                             'actioned_by_type' => User::class,
                             'actioned_by_id' => $moderatorIds[array_rand($moderatorIds)],
-                            'type' => $decision,
+                            'type' => $type,
+                            'reason' => $type,
                         ])->toArray(),
                         [
                             'id' => (string) Str::uuid(),

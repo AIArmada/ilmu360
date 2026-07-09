@@ -93,7 +93,7 @@ class InstitutionInfolist
                                         TextEntry::make('address.city')
                                             ->label('Bandar / Kawasan')
                                             ->placeholder('-'),
-                                        TextEntry::make('address.state')
+                                        TextEntry::make('addresses.state')
                                             ->label('Negeri')
                                             ->placeholder('-'),
                                         TextEntry::make('address.country')
@@ -127,7 +127,7 @@ class InstitutionInfolist
                             ->schema([
                                 Section::make('Hubungi')
                                     ->schema([
-                                        RepeatableEntry::make('contacts')
+                                        RepeatableEntry::make('contactMethods')
                                             ->label('')
                                             ->schema([
                                                 TextEntry::make('category')
@@ -152,7 +152,7 @@ class InstitutionInfolist
                             ->schema([
                                 Section::make('Media Sosial')
                                     ->schema([
-                                        RepeatableEntry::make('socialMedia')
+                                        RepeatableEntry::make('socialProfiles')
                                             ->label('')
                                             ->schema([
                                                 TextEntry::make('platform')

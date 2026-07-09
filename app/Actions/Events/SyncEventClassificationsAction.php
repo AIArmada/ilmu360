@@ -9,7 +9,6 @@ use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
 use App\Enums\TagType;
 use App\Models\Event;
-use App\Models\Tag;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -145,35 +144,11 @@ class SyncEventClassificationsAction
     {
         $term = EventTerm::query()->find($uuid);
 
-        if ($term instanceof EventTerm) {
-            return (string) $term->getKey();
-        }
-
-        $tag = Tag::query()->find($uuid);
-
-        if (! $tag instanceof Tag) {
+        if (! $term instanceof EventTerm) {
             return null;
         }
 
-        $name = is_string($tag->name)
-            ? $tag->name
-            : (string) (data_get($tag->name, 'ms') ?: data_get($tag->name, 'en') ?: '');
-
-        if ($name === '') {
-            return null;
-        }
-
-        $code = is_string($tag->slug) && $tag->slug !== ''
-            ? $tag->slug
-            : Str::slug($name);
-
-        return (string) $this->firstOrCreateTerm(
-            $taxonomyType,
-            $code,
-            $name,
-            is_active: $tag->status === 'verified',
-            sortOrder: (int) ($tag->order_column ?? 0),
-        )->getKey();
+        return (string) $term->getKey();
     }
 
     private function firstOrCreateTerm(

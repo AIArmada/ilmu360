@@ -102,8 +102,8 @@ it('registers, updates, and removes push destinations through the api', function
         ->assertJsonPath('data.platform', 'ios')
         ->assertJsonPath('data.device_label', 'Aiman iPhone');
 
-    $this->assertDatabaseHas('notification_destinations', [
-        'user_id' => $user->id,
+    $this->assertDatabaseHas('communication_destinations', [
+        'recipient_id' => $user->id,
         'channel' => 'push',
         'address' => 'ios-primary',
         'external_id' => 'token-one',
@@ -121,8 +121,8 @@ it('registers, updates, and removes push destinations through the api', function
         ->assertJsonPath('data.platform', 'android')
         ->assertJsonPath('data.device_label', 'Aiman Android');
 
-    $this->assertDatabaseHas('notification_destinations', [
-        'user_id' => $user->id,
+    $this->assertDatabaseHas('communication_destinations', [
+        'recipient_id' => $user->id,
         'channel' => 'push',
         'address' => 'ios-primary',
         'external_id' => 'token-two',
@@ -132,8 +132,8 @@ it('registers, updates, and removes push destinations through the api', function
 
     $deleteResponse->assertNoContent();
 
-    $this->assertDatabaseMissing('notification_destinations', [
-        'user_id' => $user->id,
+    $this->assertDatabaseMissing('communication_destinations', [
+        'recipient_id' => $user->id,
         'channel' => 'push',
         'address' => 'ios-primary',
     ]);

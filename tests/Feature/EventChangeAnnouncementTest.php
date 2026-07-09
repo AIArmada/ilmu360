@@ -1,6 +1,7 @@
 <?php
 
 use AIArmada\CommerceSupport\Models\Role;
+use AIArmada\Communications\Models\NotificationInbox;
 use AIArmada\Engagement\Contracts\EngagementManager;
 use AIArmada\FilamentAuthz\Facades\Authz;
 use App\Actions\Events\PublishEventChangeAnnouncement;
@@ -14,7 +15,6 @@ use App\Models\Event;
 use App\Models\EventChangeAnnouncement;
 use App\Models\EventKeyPerson;
 use App\Models\Institution;
-use App\Models\PendingNotification;
 use App\Models\Registration;
 use App\Models\SlugRedirect;
 use App\Models\Speaker;
@@ -45,7 +45,7 @@ it('publishes cancellation announcements and notifies committed users only once'
     ]);
 
     app(EngagementManager::class)->bookmark($committedUser, $event);
-    $committedUser->goingEvents()->attach($event->id);
+    $committedUser->respond($event, 'going');
     Registration::factory()->for($event)->forRegistrant($committedUser)->create([
         'status' => 'confirmed',
     ]);
@@ -62,29 +62,27 @@ it('publishes cancellation announcements and notifies committed users only once'
 
     expect((string) $event->status)->toBe('cancelled')
         ->and($event->schedule_state)->toBe(ScheduleState::Cancelled->value)
-        ->and($announcement->status)->toBe(EventChangeStatus::Published)
+        ->and(data_get($announcement->metadata, 'status'))->toBe(EventChangeStatus::Published->value)
         ->and($announcement->severity)->toBe(EventChangeSeverity::Urgent)
-        ->and($announcement->changed_fields)->toContain('status', 'schedule_state');
+        ->and(data_get($announcement->metadata, 'changed_fields'))->toContain('status', 'schedule_state');
 
-    $notification = PendingNotification::query()
-        ->where('user_id', $committedUser->id)
-        ->where('fingerprint', 'event-change:'.$announcement->id)
-        ->firstOrFail();
+    $notification = NotificationInbox::query()
+        ->where('recipient_id', $committedUser->id)
+        ->where('recipient_type', $committedUser->getMorphClass())
+        ->get()
+        ->first(fn (NotificationInbox $inbox): bool => ($inbox->data['meta']['fingerprint'] ?? null) === 'event-change:'.$announcement->id);
 
-    expect($notification->trigger)->toBe(NotificationTrigger::EventCancelled)
-        ->and($notification->priority)->toBe(NotificationPriority::Urgent)
-        ->and($notification->meta['event_change_announcement_id'] ?? null)->toBe($announcement->id)
-        ->and($notification->meta['replacement_event_id'] ?? null)->toBeNull();
+    expect($notification)->not->toBeNull()
+        ->and($notification->trigger->value)->toBe(NotificationTrigger::EventCancelled->value)
+        ->and($notification->priority->value)->toBe(NotificationPriority::Urgent->value)
+        ->and($notification->data['meta']['event_change_announcement_id'] ?? null)->toBe($announcement->id)
+        ->and($notification->data['meta']['replacement_event_id'] ?? null)->toBeNull();
 
-    expect(PendingNotification::query()
-        ->where('user_id', $committedUser->id)
-        ->where('fingerprint', 'event-change:'.$announcement->id)
-        ->count())->toBe(1);
-
-    $this->assertDatabaseMissing('notification_messages', [
-        'user_id' => $follower->id,
-        'fingerprint' => 'event-change:'.$announcement->id,
-    ]);
+    expect(NotificationInbox::query()
+        ->where('recipient_id', $follower->id)
+        ->where('recipient_type', $follower->getMorphClass())
+        ->get()
+        ->contains(fn (NotificationInbox $inbox): bool => ($inbox->data['meta']['fingerprint'] ?? null) === 'event-change:'.$announcement->id))->toBeFalse();
 });
 
 it('keeps ordinary edits out of the change announcement workflow', function () {
@@ -100,7 +98,9 @@ it('keeps ordinary edits out of the change announcement workflow', function () {
 
     expect((string) $event->status)->toBe('approved')
         ->and(EventChangeAnnouncement::query()->where('event_id', $event->id)->exists())->toBeFalse()
-        ->and(PendingNotification::query()->where('entity_id', $event->id)->exists())->toBeFalse();
+        ->and(NotificationInbox::query()
+            ->get()
+            ->contains(fn (NotificationInbox $inbox): bool => ($inbox->data['entity_id'] ?? null) === $event->id))->toBeFalse();
 });
 
 it('blocks registration calendar and check-in surfaces for unknown postponements', function () {
@@ -157,7 +157,7 @@ it('keeps replacement event URLs separate from the original source of truth noti
         notify: false,
     );
 
-    expect($announcement->changed_fields ?? [])->not->toContain('replacement_event_id');
+    expect(data_get($announcement->metadata, 'changed_fields', []))->not->toContain('replacement_event_id');
 
     $this->get(route('events.show', $original))
         ->assertOk()
@@ -390,7 +390,7 @@ it('allows speaker members for listed event speakers to publish change announcem
     );
 
     expect($announcement->event_id)->toBe($event->id)
-        ->and($announcement->type)->toBe(EventChangeType::TopicChanged);
+        ->and($announcement->update_type)->toBe(EventChangeType::TopicChanged);
 });
 
 it('rejects unauthorized actors from publishing change announcements', function () {
@@ -430,11 +430,15 @@ it('prefers the newest replacement announcement when published timestamps tie', 
             'id' => '00000000-0000-0000-0000-000000000101',
             'event_id' => $event->id,
             'replacement_event_id' => $firstReplacement->id,
-            'actor_id' => $administrator->id,
-            'type' => EventChangeType::ReplacementLinked,
-            'status' => EventChangeStatus::Published,
+            'created_by_type' => User::class,
+            'created_by_id' => $administrator->id,
+            'update_type' => EventChangeType::ReplacementLinked,
             'severity' => EventChangeSeverity::High,
-            'public_message' => 'Pengganti pertama.',
+            'message' => 'Pengganti pertama.',
+            'metadata' => [
+                'status' => EventChangeStatus::Published->value,
+            ],
+
             'published_at' => $publishedAt,
             'created_at' => $publishedAt,
             'updated_at' => $publishedAt,
@@ -444,11 +448,15 @@ it('prefers the newest replacement announcement when published timestamps tie', 
             'id' => '00000000-0000-0000-0000-000000000102',
             'event_id' => $event->id,
             'replacement_event_id' => $secondReplacement->id,
-            'actor_id' => $administrator->id,
-            'type' => EventChangeType::ReplacementLinked,
-            'status' => EventChangeStatus::Published,
+            'created_by_type' => User::class,
+            'created_by_id' => $administrator->id,
+            'update_type' => EventChangeType::ReplacementLinked,
             'severity' => EventChangeSeverity::High,
-            'public_message' => 'Pengganti kedua.',
+            'message' => 'Pengganti kedua.',
+            'metadata' => [
+                'status' => EventChangeStatus::Published->value,
+            ],
+
             'published_at' => $publishedAt,
             'created_at' => $publishedAt,
             'updated_at' => $publishedAt,
@@ -479,11 +487,15 @@ it('eager loads latest published announcement relations without aggregating uuid
         EventChangeAnnouncement::query()->create([
             'id' => '00000000-0000-0000-0000-000000000111',
             'event_id' => $original->id,
-            'actor_id' => $administrator->id,
-            'type' => EventChangeType::ScheduleChanged,
-            'status' => EventChangeStatus::Published,
+            'created_by_type' => User::class,
+            'created_by_id' => $administrator->id,
+            'update_type' => EventChangeType::ScheduleChanged,
             'severity' => EventChangeSeverity::High,
-            'public_message' => 'Versi awal.',
+            'message' => 'Versi awal.',
+            'metadata' => [
+                'status' => EventChangeStatus::Published->value,
+            ],
+
             'published_at' => $publishedAt,
             'created_at' => $publishedAt,
             'updated_at' => $publishedAt,
@@ -493,11 +505,15 @@ it('eager loads latest published announcement relations without aggregating uuid
             'id' => '00000000-0000-0000-0000-000000000112',
             'event_id' => $original->id,
             'replacement_event_id' => $replacement->id,
-            'actor_id' => $administrator->id,
-            'type' => EventChangeType::ReplacementLinked,
-            'status' => EventChangeStatus::Published,
+            'created_by_type' => User::class,
+            'created_by_id' => $administrator->id,
+            'update_type' => EventChangeType::ReplacementLinked,
             'severity' => EventChangeSeverity::High,
-            'public_message' => 'Versi pengganti terkini.',
+            'message' => 'Versi pengganti terkini.',
+            'metadata' => [
+                'status' => EventChangeStatus::Published->value,
+            ],
+
             'published_at' => $publishedAt,
             'created_at' => $publishedAt,
             'updated_at' => $publishedAt,
@@ -507,11 +523,15 @@ it('eager loads latest published announcement relations without aggregating uuid
             'id' => '00000000-0000-0000-0000-000000000121',
             'event_id' => $original->id,
             'replacement_event_id' => $incomingTarget->id,
-            'actor_id' => $administrator->id,
-            'type' => EventChangeType::ReplacementLinked,
-            'status' => EventChangeStatus::Published,
+            'created_by_type' => User::class,
+            'created_by_id' => $administrator->id,
+            'update_type' => EventChangeType::ReplacementLinked,
             'severity' => EventChangeSeverity::High,
-            'public_message' => 'Incoming awal.',
+            'message' => 'Incoming awal.',
+            'metadata' => [
+                'status' => EventChangeStatus::Published->value,
+            ],
+
             'published_at' => $publishedAt,
             'created_at' => $publishedAt,
             'updated_at' => $publishedAt,
@@ -521,11 +541,15 @@ it('eager loads latest published announcement relations without aggregating uuid
             'id' => '00000000-0000-0000-0000-000000000122',
             'event_id' => $incomingSource->id,
             'replacement_event_id' => $incomingTarget->id,
-            'actor_id' => $administrator->id,
-            'type' => EventChangeType::ReplacementLinked,
-            'status' => EventChangeStatus::Published,
+            'created_by_type' => User::class,
+            'created_by_id' => $administrator->id,
+            'update_type' => EventChangeType::ReplacementLinked,
             'severity' => EventChangeSeverity::High,
-            'public_message' => 'Incoming terkini.',
+            'message' => 'Incoming terkini.',
+            'metadata' => [
+                'status' => EventChangeStatus::Published->value,
+            ],
+
             'published_at' => $publishedAt,
             'created_at' => $publishedAt,
             'updated_at' => $publishedAt,
@@ -563,11 +587,15 @@ it('loads the public events index when listed events have published change annou
         EventChangeAnnouncement::query()->create([
             'id' => '00000000-0000-0000-0000-000000000131',
             'event_id' => $event->id,
-            'actor_id' => $administrator->id,
-            'type' => EventChangeType::ScheduleChanged,
-            'status' => EventChangeStatus::Published,
+            'created_by_type' => User::class,
+            'created_by_id' => $administrator->id,
+            'update_type' => EventChangeType::ScheduleChanged,
             'severity' => EventChangeSeverity::High,
-            'public_message' => 'Masa majlis dikemas kini.',
+            'message' => 'Masa majlis dikemas kini.',
+            'metadata' => [
+                'status' => EventChangeStatus::Published->value,
+            ],
+
             'published_at' => $publishedAt,
             'created_at' => $publishedAt,
             'updated_at' => $publishedAt,
@@ -656,19 +684,20 @@ it('does not send reminders for unknown postponed events using their last known 
         'ends_at' => $now->addHours(4),
     ]);
 
-    $goingUser->goingEvents()->attach($event->id);
+    $goingUser->respond($event, 'going');
 
     try {
         app(EventNotificationService::class)->dispatchDueReminderNotifications($now);
 
-        expect(PendingNotification::query()
-            ->where('user_id', $goingUser->id)
-            ->where('entity_id', $event->id)
+        expect(NotificationInbox::query()
+            ->where('recipient_id', $goingUser->id)
+            ->where('recipient_type', $goingUser->getMorphClass())
             ->whereIn('trigger', [
                 NotificationTrigger::Reminder2Hours->value,
                 NotificationTrigger::CheckinOpen->value,
             ])
-            ->exists())->toBeFalse();
+            ->get()
+            ->contains(fn (NotificationInbox $inbox): bool => ($inbox->data['entity_id'] ?? null) === $event->id))->toBeFalse();
     } finally {
         Carbon::setTestNow();
         CarbonImmutable::setTestNow();

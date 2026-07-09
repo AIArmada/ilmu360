@@ -42,14 +42,6 @@ class EventBuilder extends Builder
         'going_count',
     ];
 
-    /**
-     * @var array<string, string>
-     */
-    private const array DirectColumnMap = [
-        'venue_id' => 'default_venue_id',
-        'event_format' => 'delivery_mode',
-    ];
-
     #[\Override]
     public function where($column, $operator = null, $value = null, $boolean = 'and'): static
     {
@@ -57,17 +49,13 @@ class EventBuilder extends Builder
             return parent::where($column, $operator, $value, $boolean);
         }
 
-        $legacyColumn = $this->legacyColumn($column);
+        $columnName = $this->columnName($column);
 
-        if (in_array($legacyColumn, self::OccurrenceBackedColumns, true)) {
-            return $this->whereOccurrenceColumn($legacyColumn, $operator, $value, $boolean, func_num_args());
+        if (in_array($columnName, self::OccurrenceBackedColumns, true)) {
+            return $this->whereOccurrenceColumn($columnName, $operator, $value, $boolean, func_num_args());
         }
 
-        if (in_array($legacyColumn, ['event_type', 'age_group'], true)) {
-            return $this->whereLegacyJsonArray($legacyColumn, $operator, $value, $boolean, func_num_args());
-        }
-
-        $mappedColumn = $this->mapColumn($legacyColumn);
+        $mappedColumn = $this->mapColumn($columnName);
 
         if ($mappedColumn !== null) {
             return parent::where($mappedColumn, $operator, $value, $boolean);
@@ -90,13 +78,9 @@ class EventBuilder extends Builder
             return $this;
         }
 
-        $legacyColumn = $this->legacyColumn($column);
+        $columnName = $this->columnName($column);
 
-        if (in_array($legacyColumn, ['event_type', 'age_group'], true)) {
-            return $this->whereLegacyJsonArrayIn($legacyColumn, $values, $boolean, $not);
-        }
-
-        $mappedColumn = $this->mapColumn($legacyColumn);
+        $mappedColumn = $this->mapColumn($columnName);
 
         if ($mappedColumn !== null) {
             parent::whereIn($mappedColumn, $values, $boolean, $not);
@@ -141,9 +125,9 @@ class EventBuilder extends Builder
             return $this;
         }
 
-        $legacyColumn = $this->legacyColumn($column);
+        $columnName = $this->columnName($column);
 
-        if (! in_array($legacyColumn, self::OccurrenceBackedColumns, true)) {
+        if (! in_array($columnName, self::OccurrenceBackedColumns, true)) {
             parent::whereBetween($column, $values, $boolean, $not);
 
             return $this;
@@ -153,8 +137,8 @@ class EventBuilder extends Builder
         $start = $normalizedValues[0] ?? null;
         $end = $normalizedValues[1] ?? null;
 
-        return $this->where(function (self $query) use ($end, $legacyColumn, $not, $start): void {
-            $sub = $query->occurrenceSubquery($legacyColumn);
+        return $this->where(function (self $query) use ($end, $columnName, $not, $start): void {
+            $sub = $query->occurrenceSubquery($columnName);
             $sql = '('.$sub->toSql().')';
             $bindings = $sub->getBindings();
 
@@ -180,13 +164,7 @@ class EventBuilder extends Builder
             return $this;
         }
 
-        $legacyColumn = $this->legacyColumn($column);
-
-        if (in_array($legacyColumn, ['event_type', 'age_group'], true)) {
-            parent::whereJsonContains($this->qualifiedMetadataSelector($legacyColumn), $value, $boolean, $not);
-
-            return $this;
-        }
+        $columnName = $this->columnName($column);
 
         parent::whereJsonContains($column, $value, $boolean, $not);
 
@@ -216,13 +194,13 @@ class EventBuilder extends Builder
             return $this;
         }
 
-        $legacyColumn = $this->legacyColumn($columns);
+        $columnName = $this->columnName($columns);
 
-        if (in_array($legacyColumn, self::OccurrenceBackedColumns, true)) {
-            return $this->whereOccurrenceNull($legacyColumn, $boolean, $not);
+        if (in_array($columnName, self::OccurrenceBackedColumns, true)) {
+            return $this->whereOccurrenceNull($columnName, $boolean, $not);
         }
 
-        $mappedColumn = $this->mapColumn($legacyColumn);
+        $mappedColumn = $this->mapColumn($columnName);
 
         if ($mappedColumn !== null) {
             parent::whereNull($mappedColumn, $boolean, $not);
@@ -251,13 +229,13 @@ class EventBuilder extends Builder
             return $this;
         }
 
-        $legacyColumn = $this->legacyColumn($columns);
+        $columnName = $this->columnName($columns);
 
-        if (in_array($legacyColumn, self::OccurrenceBackedColumns, true)) {
-            return $this->whereOccurrenceNull($legacyColumn, $boolean, true);
+        if (in_array($columnName, self::OccurrenceBackedColumns, true)) {
+            return $this->whereOccurrenceNull($columnName, $boolean, true);
         }
 
-        $mappedColumn = $this->mapColumn($legacyColumn);
+        $mappedColumn = $this->mapColumn($columnName);
 
         if ($mappedColumn !== null) {
             parent::whereNotNull($mappedColumn, $boolean);
@@ -286,15 +264,15 @@ class EventBuilder extends Builder
             return $this;
         }
 
-        $legacyColumn = $this->legacyColumn($column);
+        $columnName = $this->columnName($column);
 
-        if (in_array($legacyColumn, self::OccurrenceBackedColumns, true)) {
-            parent::orderBy($this->occurrenceSubquery($legacyColumn), $direction);
+        if (in_array($columnName, self::OccurrenceBackedColumns, true)) {
+            parent::orderBy($this->occurrenceSubquery($columnName), $direction);
 
             return $this;
         }
 
-        $mappedColumn = $this->mapColumn($legacyColumn);
+        $mappedColumn = $this->mapColumn($columnName);
 
         if ($mappedColumn !== null) {
             parent::orderBy($mappedColumn, $direction);
@@ -337,62 +315,8 @@ class EventBuilder extends Builder
         return $this;
     }
 
-    private function whereLegacyJsonArray(
-        string $column,
-        mixed $operator,
-        mixed $value,
-        string $boolean,
-        int $argumentCount,
-    ): static {
-        if ($argumentCount === 2) {
-            parent::whereJsonContains($this->qualifiedMetadataSelector($column), $operator, $boolean);
-
-            return $this;
-        }
-
-        if (in_array($operator, ['=', '==', null], true)) {
-            parent::whereJsonContains($this->qualifiedMetadataSelector($column), $value, $boolean);
-
-            return $this;
-        }
-
-        if ($operator === '!=') {
-            parent::whereJsonContains($this->qualifiedMetadataSelector($column), $value, $boolean, true);
-
-            return $this;
-        }
-
-        parent::where($column, $operator, $value, $boolean);
-
-        return $this;
-    }
-
-    private function whereLegacyJsonArrayIn(string $column, mixed $values, string $boolean, bool $not): static
-    {
-        $normalizedValues = $this->normalizeValues($values);
-        $selector = $this->qualifiedMetadataSelector($column);
-
-        $this->where(function (self $query) use ($normalizedValues, $not, $selector): void {
-            foreach ($normalizedValues as $index => $value) {
-                if ($not) {
-                    $query->whereJsonContains($selector, $value, 'and', true);
-
-                    continue;
-                }
-
-                $query->whereJsonContains($selector, $value, $index === 0 ? 'and' : 'or');
-            }
-        }, null, null, $boolean);
-
-        return $this;
-    }
-
     private function mapColumn(string $column): ?string
     {
-        if (array_key_exists($column, self::DirectColumnMap)) {
-            return $this->qualifyModelColumn(self::DirectColumnMap[$column]);
-        }
-
         if (in_array($column, self::MetadataBackedColumns, true)) {
             return $this->qualifiedMetadataSelector($column);
         }
@@ -400,7 +324,7 @@ class EventBuilder extends Builder
         return null;
     }
 
-    private function legacyColumn(string $column): string
+    private function columnName(string $column): string
     {
         return Str::afterLast($column, '.');
     }

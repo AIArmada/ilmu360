@@ -66,7 +66,10 @@ class RegistrationSeeder extends Seeder
                             'event_id' => $eventId,
                             'registrant_type' => isset($user['id']) ? (new User)->getMorphClass() : null,
                             'registrant_id' => $user['id'] ?? null,
+                            'registration_type' => 'individual',
                             'status' => 'confirmed',
+                            'source' => 'website',
+                            'total_participants' => 1,
                         ]);
                         $registration
                             ->stagePrimaryParticipant(

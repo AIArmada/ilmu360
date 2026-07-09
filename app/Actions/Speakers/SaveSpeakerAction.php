@@ -98,7 +98,7 @@ final readonly class SaveSpeakerAction
 
         $this->contributionEntityMutationService->syncSpeakerRelations($speaker, Arr::only($data, [
             'address',
-            'contacts',
+            'contactMethods',
             'social_media',
             'language_ids',
         ]));
@@ -110,8 +110,8 @@ final readonly class SaveSpeakerAction
 
         return $speaker->fresh([
             'addresses',
-            'contacts',
-            'socialMedia',
+            'contactMethods',
+            'socialProfiles',
             'languages',
             'media',
         ]) ?? $speaker;

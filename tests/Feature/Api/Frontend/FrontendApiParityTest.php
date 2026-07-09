@@ -174,7 +174,7 @@ it('exposes corrected frontend contract metadata', function () {
         ->json('data');
     $speakerFields = collect($speakerContract['fields'] ?? [])->pluck('name')->all();
 
-    expect($speakerFields)->toContain('job_title', 'avatar', 'cover', 'address', 'address.country_id', 'qualifications', 'institution_id', 'institution_position')
+    expect($speakerFields)->toContain('job_title', 'avatar', 'cover', 'addresses', 'address.country_id', 'qualifications', 'institution_id', 'institution_position')
         ->not->toContain('address.country_code', 'address.country_key')
         ->not->toContain('address.line1')
         ->not->toContain('address.google_maps_url')
@@ -375,7 +375,7 @@ it('exposes authenticated contribution update contracts and permission-gated dir
         ->and($ownerResponse->json('data.direct_edit_media_fields'))->toBe(['cover', 'gallery'])
         ->and($ownerResponse->json('data.current_media.cover.0.url'))->not->toBeNull()
         ->and($ownerResponse->json('data.current_media.gallery.0.url'))->not->toBeNull()
-        ->and($fields->pluck('name')->all())->toContain('description', 'address', 'social_media')
+        ->and($fields->pluck('name')->all())->toContain('description', 'addresses', 'social_media')
         ->and($fields->firstWhere('name', 'type')['allowed_values'])->toContain('masjid')
         ->and($ownerResponse->json('data.initial_state.description'))->toBe('Community institution');
 });
@@ -477,7 +477,7 @@ it('normalizes event update context to public organizer values and exposes looku
         'event_type' => ['kuliah_ceramah'],
         'gender' => 'all',
         'age_group' => ['all_ages'],
-        'event_format' => 'physical',
+        'delivery_mode' => 'physical',
         'visibility' => 'public',
         'starts_at' => $startsAt,
         'ends_at' => $endsAt,
@@ -770,9 +770,9 @@ it('rejects unchanged speaker region-only address round trips as validation erro
     ])->assertUnprocessable()
         ->assertJsonValidationErrors(['data']);
 
-    $speaker = $speaker->fresh('address');
-    expect($speaker?->addressModel?->line1)->toBe('Alamat Warisan')
-        ->and($speaker?->addressModel?->google_maps_url)->toBe('https://maps.google.com/?q=3.1390,101.6869');
+    $speaker = $speaker->fresh('addresses');
+    expect($speaker?->primaryAddress()?->line1)->toBe('Alamat Warisan')
+        ->and($speaker?->primaryAddress()?->google_maps_url)->toBe('https://maps.google.com/?q=3.1390,101.6869');
 });
 
 it('preserves hidden speaker address details during region-only direct updates', function () {
@@ -814,17 +814,17 @@ it('preserves hidden speaker address details during region-only direct updates',
     ])->assertOk()
         ->assertJsonPath('data.mode', 'direct_edit');
 
-    $speaker = $speaker->fresh('address');
+    $speaker = $speaker->fresh('addresses');
 
     $expectedGoogleMapsUrl = app(NormalizeGoogleMapsInputAction::class)->handle([
         'google_maps_url' => 'https://maps.google.com/?q=3.1390,101.6869',
     ])['google_maps_url'];
 
     expect($speaker?->name)->toBe('Penceramah Dikemas Kini API')
-        ->and($speaker?->addressModel?->admin_area_1_id)->toBe((string) $updatedDistrict->getKey())
-        ->and($speaker?->addressModel?->admin_area_2_id)->toBeNull()
-        ->and($speaker?->addressModel?->line1)->toBe('Alamat Warisan')
-        ->and($speaker?->addressModel?->google_maps_url)->toBe($expectedGoogleMapsUrl);
+        ->and($speaker?->primaryAddress()?->admin_area_1_id)->toBe((string) $updatedDistrict->getKey())
+        ->and($speaker?->primaryAddress()?->admin_area_2_id)->toBeNull()
+        ->and($speaker?->primaryAddress()?->line1)->toBe('Alamat Warisan')
+        ->and($speaker?->primaryAddress()?->google_maps_url)->toBe($expectedGoogleMapsUrl);
 });
 
 it('allows direct speaker avatar uploads on public contribution update suggestions', function () {
@@ -952,7 +952,7 @@ it('maps public event organizer values back to persistence classes during direct
         'event_type' => ['kuliah_ceramah'],
         'gender' => 'all',
         'age_group' => ['all_ages'],
-        'event_format' => 'physical',
+        'delivery_mode' => 'physical',
         'visibility' => 'public',
     ]);
 
@@ -1764,8 +1764,8 @@ it('serializes institution detail payloads with address and donation metadata fo
     $detailInstitution = $institution->fresh([
         'media',
         'addresses.country',
-        'contacts',
-        'socialMedia',
+        'contactMethods',
+        'socialProfiles',
         'donationChannels.media',
     ]);
 
@@ -1968,7 +1968,7 @@ it('creates speaker contribution requests through the frontend api with an expli
         ->where('name', 'Frontend API Scoped Country Speaker')
         ->firstOrFail();
 
-    expect($speaker->addressModel?->country_id)->toBe($singaporeId)
+    expect($speaker->primaryAddress()?->country_id)->toBe($singaporeId)
         ->and($speaker->slug)->toEndWith('-sg')
         ->and(ContributionRequest::query()->where('entity_id', $speaker->getKey())->exists())->toBeTrue();
 });
@@ -2906,7 +2906,7 @@ it('submits events with media through the frontend api', function () {
         'event_type' => ['kuliah_ceramah'],
         'event_date' => now()->addDay()->toDateString(),
         'prayer_time' => 'selepas_maghrib',
-        'event_format' => 'physical',
+        'delivery_mode' => 'physical',
         'visibility' => 'public',
         'gender' => 'all',
         'age_group' => ['all_ages'],
@@ -3153,19 +3153,19 @@ it('mirrors public detail media and public contact payloads', function () {
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
     ]);
-    $speaker->contacts()->create([
+    $speaker->contactMethods()->create([
         'type' => ContactMethodType::Email->value,
         'purpose' => ContactPurpose::General->value,
         'value' => 'public-speaker@example.test',
         'is_public' => true,
     ]);
-    $speaker->contacts()->create([
+    $speaker->contactMethods()->create([
         'type' => ContactMethodType::Phone->value,
         'purpose' => ContactPurpose::General->value,
         'value' => '+6011222333',
         'is_public' => false,
     ]);
-    $speaker->socialMedia()->create([
+    $speaker->socialProfiles()->create([
         'platform' => SocialPlatform::Website->value,
         'purpose' => ContactPurpose::General->value,
         'url' => 'https://speaker.example.test',
@@ -3175,7 +3175,7 @@ it('mirrors public detail media and public contact payloads', function () {
     $venue = Venue::factory()->create([
         'status' => 'verified',
     ]);
-    $venue->contacts()->create([
+    $venue->contactMethods()->create([
         'type' => ContactMethodType::Phone->value,
         'purpose' => ContactPurpose::General->value,
         'value' => '+60312345678',
@@ -3186,7 +3186,7 @@ it('mirrors public detail media and public contact payloads', function () {
     $reference = Reference::factory()->create([
         'status' => 'verified',
     ]);
-    $reference->socialMedia()->create([
+    $reference->socialProfiles()->create([
         'platform' => SocialPlatform::Website->value,
         'purpose' => ContactPurpose::General->value,
         'url' => 'https://reference.example.test',
@@ -3225,13 +3225,13 @@ it('serializes venue and reference detail payloads with core metadata for mobile
         'description' => 'Venue detail serializer coverage',
         'status' => 'verified',
     ]);
-    $venue->contacts()->create([
+    $venue->contactMethods()->create([
         'type' => ContactMethodType::Phone->value,
         'purpose' => ContactPurpose::General->value,
         'value' => '+60399887766',
         'is_public' => true,
     ]);
-    $venue->socialMedia()->create([
+    $venue->socialProfiles()->create([
         'platform' => SocialPlatform::Website->value,
         'purpose' => ContactPurpose::General->value,
         'url' => 'https://venue.example.test',
@@ -3247,7 +3247,7 @@ it('serializes venue and reference detail payloads with core metadata for mobile
         'description' => 'Reference detail serializer coverage',
         'status' => 'verified',
     ]);
-    $reference->socialMedia()->create([
+    $reference->socialProfiles()->create([
         'platform' => SocialPlatform::Website->value,
         'purpose' => ContactPurpose::General->value,
         'url' => 'https://reference-dto.example.test',
@@ -3257,8 +3257,8 @@ it('serializes venue and reference detail payloads with core metadata for mobile
 
     $user->follow($reference);
 
-    $detailVenue = $venue->fresh(['media', 'contacts', 'socialMedia']);
-    $detailReference = $reference->fresh(['media', 'socialMedia']);
+    $detailVenue = $venue->fresh(['media', 'contactMethods', 'socialProfiles']);
+    $detailReference = $reference->fresh(['media', 'socialProfiles']);
 
     expect($detailVenue)->not->toBeNull()
         ->and($detailReference)->not->toBeNull();
@@ -3385,9 +3385,9 @@ it('mirrors the public speaker page payload for app clients', function () {
         'title' => 'Majlis API Akan Datang',
         'status' => 'pending',
         'visibility' => 'public',
-        'event_format' => 'hybrid',
+        'delivery_mode' => 'hybrid',
         'institution_id' => $institution->id,
-        'venue_id' => $venue->id,
+        'default_venue_id' => $venue->id,
         'starts_at' => now()->addDays(3)->setTime(19, 30),
         'ends_at' => now()->addDays(3)->setTime(21, 0),
         'event_type' => ['kuliah_ceramah'],
@@ -3399,9 +3399,9 @@ it('mirrors the public speaker page payload for app clients', function () {
         'title' => 'Majlis API Lepas',
         'status' => 'approved',
         'visibility' => 'public',
-        'event_format' => 'physical',
+        'delivery_mode' => 'physical',
         'institution_id' => $institution->id,
-        'venue_id' => $venue->id,
+        'default_venue_id' => $venue->id,
         'starts_at' => now()->subDays(2)->setTime(20, 0),
         'ends_at' => now()->subDays(2)->setTime(22, 0),
         'event_type' => ['forum'],
@@ -3412,9 +3412,9 @@ it('mirrors the public speaker page payload for app clients', function () {
         'title' => 'Forum API Moderator',
         'status' => 'approved',
         'visibility' => 'public',
-        'event_format' => 'physical',
+        'delivery_mode' => 'physical',
         'institution_id' => $institution->id,
-        'venue_id' => $venue->id,
+        'default_venue_id' => $venue->id,
         'starts_at' => now()->addWeek()->setTime(20, 0),
         'ends_at' => now()->addWeek()->setTime(22, 0),
         'event_type' => ['forum'],

@@ -14,6 +14,8 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  */
 class ModerationReviewFactory extends Factory
 {
+    protected $model = ModerationReview::class;
+
     public function definition(): array
     {
         return [
@@ -21,7 +23,7 @@ class ModerationReviewFactory extends Factory
             'actionable_id' => Event::factory(),
             'actioned_by_type' => User::class,
             'actioned_by_id' => User::factory(),
-            'type' => fake()->randomElement(['approved', 'rejected', 'changes_requested']),
+            'type' => fake()->randomElement(['approve', 'reject', 'changes_requested']),
             'notes' => fake()->optional()->sentence(),
             'reason' => fake()->randomElement([
                 'donation_changed',

@@ -18,7 +18,7 @@ it('loads speaker edit page when speaker has social media row', function () {
 
     $speaker = Speaker::factory()->create();
 
-    $speaker->socialMedia()->create([
+    $speaker->socialProfiles()->create([
         'platform' => 'facebook',
         'handle' => 'atiqah',
         'url' => 'https://www.facebook.com/atiqah',
@@ -43,7 +43,7 @@ it('saves the speaker edit page when a social media row only has a username', fu
     ]);
     $speaker->attachAddress($address, type: 'primary', isPrimary: true);
 
-    $speaker->socialMedia()->create([
+    $speaker->socialProfiles()->create([
         'platform' => 'facebook',
         'handle' => 'atiqah',
         'url' => null,
@@ -54,5 +54,5 @@ it('saves the speaker edit page when a social media row only has a username', fu
         ->call('save')
         ->assertHasNoErrors();
 
-    expect($speaker->fresh()->socialMedia()->where('platform', 'facebook')->value('handle'))->toBe('atiqah');
+    expect($speaker->fresh()->socialProfiles()->where('platform', 'facebook')->value('handle'))->toBe('atiqah');
 });

@@ -1513,7 +1513,7 @@ class Index extends Component implements HasForms
             'children_allowed' => $this->normalizeNullableBoolean($this->children_allowed),
             'is_muslim_only' => $this->normalizeNullableBoolean($this->is_muslim_only),
             'institution_id' => filled($this->institution_id) ? $this->institution_id : null,
-            'venue_id' => filled($this->venue_id) ? $this->venue_id : null,
+            'venue_id' => filled($this->default_venue_id) ? $this->default_venue_id : null,
             'speaker_ids' => $this->normalizeStringArray($this->speaker_ids),
             'key_person_roles' => $this->normalizeStringArray($this->key_person_roles),
             'person_in_charge_ids' => $this->normalizeStringArray($this->person_in_charge_ids),
@@ -1536,7 +1536,7 @@ class Index extends Component implements HasForms
                 : null,
             'starts_time_from' => $this->normalizeTimeString($this->starts_time_from),
             'starts_time_until' => $this->normalizeTimeString($this->starts_time_until),
-            'event_format' => $this->normalizeStringArray($this->event_format),
+            'event_format' => $this->normalizeStringArray($this->delivery_mode),
             'has_event_url' => $this->normalizeNullableBoolean($this->has_event_url),
             'has_live_url' => $this->normalizeNullableBoolean($this->has_live_url),
             'has_end_time' => $this->normalizeNullableBoolean($this->has_end_time),
@@ -1569,7 +1569,7 @@ class Index extends Component implements HasForms
         $this->children_allowed = $filters['children_allowed'];
         $this->is_muslim_only = $filters['is_muslim_only'];
         $this->institution_id = $filters['institution_id'];
-        $this->venue_id = $filters['venue_id'];
+        $this->default_venue_id = $filters['venue_id'];
         $this->speaker_ids = $filters['speaker_ids'];
         $this->key_person_roles = $filters['key_person_roles'];
         $this->person_in_charge_ids = $filters['person_in_charge_ids'];
@@ -1590,7 +1590,7 @@ class Index extends Component implements HasForms
         $this->timing_mode = $filters['timing_mode'];
         $this->starts_time_from = $filters['starts_time_from'];
         $this->starts_time_until = $filters['starts_time_until'];
-        $this->event_format = $filters['event_format'];
+        $this->delivery_mode = $filters['event_format'];
         $this->has_event_url = $filters['has_event_url'];
         $this->has_live_url = $filters['has_live_url'];
         $this->has_end_time = $filters['has_end_time'];

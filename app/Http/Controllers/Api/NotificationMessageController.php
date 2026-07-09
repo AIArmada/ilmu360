@@ -36,7 +36,7 @@ class NotificationMessageController extends Controller
         $status = $request->string('status', 'unread')->toString();
         $perPage = ApiPagination::normalizePerPage($request->integer('per_page', 20), default: 20, max: 100);
 
-        $query = $user->notificationInbox()
+        $query = $user->notificationInboxes()
             ->whereNull('archived_at')
             ->when($family !== 'all' && array_key_exists($family, NotificationCatalog::families()), fn ($builder) => $builder->where('family', $family))
             ->when($status === 'unread', fn ($builder) => $builder->whereNull('read_at'))
@@ -45,7 +45,7 @@ class NotificationMessageController extends Controller
         $notifications = $query->paginate($perPage);
         $unreadCount = $status === 'unread'
             ? $notifications->total()
-            : $user->notificationInbox()->whereNull('archived_at')->whereNull('read_at')->count();
+            : $user->notificationInboxes()->whereNull('archived_at')->whereNull('read_at')->count();
 
         return response()->json([
             'data' => collect($notifications->items())

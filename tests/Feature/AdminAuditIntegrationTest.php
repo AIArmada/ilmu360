@@ -206,11 +206,13 @@ it('records moderation review creation in audits', function () {
     $this->actingAs($administrator);
 
     $review = ModerationReview::query()->create([
-        'event_id' => $event->getKey(),
-        'moderator_id' => $administrator->getKey(),
-        'decision' => 'rejected',
-        'note' => 'Schedule details are incomplete.',
-        'reason_code' => 'details_incomplete',
+        'actionable_type' => Event::class,
+        'actionable_id' => $event->getKey(),
+        'actioned_by_type' => User::class,
+        'actioned_by_id' => $administrator->getKey(),
+        'type' => 'reject',
+        'notes' => 'Schedule details are incomplete.',
+        'reason' => 'details_incomplete',
     ]);
 
     $audit = $review->audits()
@@ -221,9 +223,9 @@ it('records moderation review creation in audits', function () {
     expect($audit)->not->toBeNull()
         ->and($audit?->user_id)->toBe($administrator->getKey())
         ->and($audit?->event)->toBe('created')
-        ->and($audit?->new_values['decision'] ?? null)->toBe('rejected')
-        ->and($audit?->new_values['reason_code'] ?? null)->toBe('details_incomplete')
-        ->and($audit?->new_values['moderator_id'] ?? null)->toBe($administrator->getKey())
+        ->and($audit?->new_values['type'] ?? null)->toBe('reject')
+        ->and($audit?->new_values['reason'] ?? null)->toBe('details_incomplete')
+        ->and($audit?->new_values['actioned_by_id'] ?? null)->toBe($administrator->getKey())
         ->and($audit?->auditable_type)->toBe($review->getMorphClass())
         ->and($audit?->auditable_id)->toBe($review->getKey());
 });

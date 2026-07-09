@@ -8,6 +8,7 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
 use App\Actions\Events\GenerateEventSlugAction;
+use App\Actions\Events\SyncEventClassificationsAction;
 use App\Actions\Speakers\GenerateSpeakerSlugAction;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
@@ -25,7 +26,6 @@ use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Series;
 use App\Models\Speaker;
-use App\Models\Tag;
 use App\Models\Venue;
 use App\Services\EventKeyPersonSyncService;
 use Database\Seeders\Concerns\SeedsPackageAddresses;
@@ -43,7 +43,6 @@ class EventSeeder extends Seeder
     /**
      * @var array<string, string>
      */
-    private array $tagIdMap = [];
 
     /**
      * @var array<string, string>
@@ -96,7 +95,7 @@ class EventSeeder extends Seeder
                 // Start with no location, then assign exactly one location per event.
                 $events = Event::factory()->count(10)->create([
                     'institution_id' => null,
-                    'venue_id' => null,
+                    'default_venue_id' => null,
                     'space_id' => null,
                 ]);
 
@@ -107,7 +106,7 @@ class EventSeeder extends Seeder
                     if ($event->event_format === EventFormat::Online) {
                         $event->update([
                             'institution_id' => null,
-                            'venue_id' => null,
+                            'default_venue_id' => null,
                             'space_id' => null,
                         ]);
 
@@ -119,13 +118,13 @@ class EventSeeder extends Seeder
                     if ($useVenueLocation) {
                         $event->update([
                             'institution_id' => null,
-                            'venue_id' => $randomVenueId,
+                            'default_venue_id' => $randomVenueId,
                             'space_id' => null,
                         ]);
                     } else {
                         $event->update([
                             'institution_id' => $institution->id,
-                            'venue_id' => null,
+                            'default_venue_id' => null,
                         ]);
                     }
 
@@ -212,17 +211,17 @@ class EventSeeder extends Seeder
             ]);
         }
 
-        $institution->contacts()->firstOrCreate(
+        $institution->contactMethods()->firstOrCreate(
             ['type' => ContactMethodType::Email->value],
             ['value' => 'mtajbj@gmail.com', 'purpose' => ContactPurpose::General->value]
         );
 
-        $institution->contacts()->firstOrCreate(
+        $institution->contactMethods()->firstOrCreate(
             ['type' => ContactMethodType::Phone->value],
             ['value' => '03-78313641', 'purpose' => ContactPurpose::General->value]
         );
 
-        if (! $institution->addressModel) {
+        if (! $institution->primaryAddress()) {
             $state = $this->malaysiaPackageStateByName('Selangor');
             $areaState = $state instanceof State
                 ? $this->malaysiaAreaStateForPackageState($state)
@@ -258,8 +257,8 @@ class EventSeeder extends Seeder
             ]);
         }
 
-        if (! $venue->addressModel) {
-            $institutionAddress = $institution->addressModel;
+        if (! $venue->primaryAddress()) {
+            $institutionAddress = $institution->primaryAddress();
 
             $this->seedPrimaryPackageAddress($venue, [
                 'line1' => $institutionAddress?->line1,
@@ -403,7 +402,7 @@ class EventSeeder extends Seeder
 
             $eventAttributes = [
                 'institution_id' => null,
-                'venue_id' => $venue->id,
+                'default_venue_id' => $venue->id,
                 'title' => $title,
                 'description' => $descriptionParts !== [] ? implode(' | ', $descriptionParts) : null,
                 'starts_at' => $startsAt,
@@ -416,7 +415,7 @@ class EventSeeder extends Seeder
                 'gender' => EventGenderRestriction::All,
                 'age_group' => [EventAgeGroup::AllAges->value],
                 'children_allowed' => true,
-                'event_format' => EventFormat::Physical,
+                'delivery_mode' => EventFormat::Physical,
                 'visibility' => EventVisibility::Public,
                 'is_muslim_only' => false,
                 'status' => 'approved',
@@ -593,82 +592,37 @@ class EventSeeder extends Seeder
 
     private function ensureScheduleEventHasTags(Event $event, string $title, ?string $topic): void
     {
-        $existingTypes = $event->tags()
-            ->pluck('type')
-            ->filter(fn (mixed $type): bool => is_string($type) && $type !== '')
+        $existingTaxonomyCodes = $event->classifications()
+            ->pluck('taxonomy_code')
+            ->filter(fn (mixed $code): bool => is_string($code) && $code !== '')
             ->unique()
             ->values();
 
-        $hasRequiredTypes = $existingTypes->contains(TagType::Domain->value)
-            && $existingTypes->contains(TagType::Discipline->value);
+        $hasRequiredTypes = $existingTaxonomyCodes->contains(TagType::Domain->value)
+            && $existingTaxonomyCodes->contains(TagType::Discipline->value);
 
         if ($hasRequiredTypes) {
             return;
         }
 
-        $this->hydrateTagIdMap();
+        $payload = $this->resolveSeedTaxonomyPayload($title, $topic);
 
-        $selectedTagIds = $this->resolveSeedTagIds($title, $topic);
-
-        if ($selectedTagIds === []) {
+        if ($payload === []) {
             return;
         }
 
-        $combinedTagIds = $event->tags()
-            ->pluck('id')
-            ->merge($selectedTagIds)
-            ->unique()
-            ->values()
-            ->all();
-
-        $tags = Tag::query()->whereIn('id', $combinedTagIds)->get();
-
-        if ($tags->isEmpty()) {
-            return;
-        }
-
-        $event->syncTags($tags);
-    }
-
-    private function hydrateTagIdMap(): void
-    {
-        if ($this->tagIdMap !== []) {
-            return;
-        }
-
-        Tag::query()
-            ->whereIn('status', ['verified', 'pending'])
-            ->get(['id', 'type', 'slug'])
-            ->each(function (Tag $tag): void {
-                $slug = $tag->slug;
-                $normalizedSlug = null;
-
-                if (is_string($slug)) {
-                    $decodedSlug = json_decode($slug, true);
-                    if (is_array($decodedSlug) && $decodedSlug !== []) {
-                        $normalizedSlug = $decodedSlug['en'] ?? $decodedSlug['ms'] ?? null;
-                    } else {
-                        $normalizedSlug = $slug;
-                    }
-                }
-
-                if (is_array($slug) && $slug !== []) {
-                    $normalizedSlug = $slug['en'] ?? $slug['ms'] ?? null;
-                }
-
-                if (! is_string($normalizedSlug) || $normalizedSlug === '') {
-                    return;
-                }
-
-                $key = $tag->type.':'.$normalizedSlug;
-                $this->tagIdMap[$key] = (string) $tag->id;
-            });
+        app(SyncEventClassificationsAction::class)->handle($event, $payload);
     }
 
     /**
-     * @return list<string>
+     * @return array{
+     *     domain_tags?: list<string>,
+     *     discipline_tags?: list<string>,
+     *     source_tags?: list<string>,
+     *     issue_tags?: list<string>
+     * }
      */
-    private function resolveSeedTagIds(string $title, ?string $topic): array
+    private function resolveSeedTaxonomyPayload(string $title, ?string $topic): array
     {
         $haystack = mb_strtolower(trim($title.' '.($topic ?? '')));
 
@@ -715,58 +669,28 @@ class EventSeeder extends Seeder
             $issueSlug = 'keluarga';
         }
 
-        $resolved = [
-            $this->tagIdFor(TagType::Domain, $domainSlug) ?? $this->tagIdFor(TagType::Domain, 'syariah'),
-            $this->tagIdFor(TagType::Discipline, $disciplineSlug) ?? $this->tagIdFor(TagType::Discipline, 'hadith_studies'),
-            $this->tagIdFor(TagType::Source, $sourceSlug) ?? $this->tagIdFor(TagType::Source, 'hadith'),
-            $issueSlug ? $this->tagIdFor(TagType::Issue, $issueSlug) : null,
+        $payload = [
+            'domain_tags' => [$domainSlug],
+            'discipline_tags' => [$disciplineSlug],
+            'source_tags' => [$sourceSlug],
         ];
 
-        /** @var Collection<int, string> $uniqueIds */
-        $uniqueIds = collect($resolved)
-            ->filter(fn (?string $id): bool => is_string($id) && $id !== '')
-            ->unique()
-            ->values();
+        if (is_string($issueSlug) && $issueSlug !== '') {
+            $payload['issue_tags'] = [$issueSlug];
+        }
 
-        return $uniqueIds->all();
-    }
-
-    private function tagIdFor(TagType $type, string $slug): ?string
-    {
-        return $this->tagIdMap[$type->value.':'.$slug] ?? null;
+        return $payload;
     }
 
     private function backfillSeededEventRequiredFields(): void
     {
-        $defaultDomainTagId = Tag::query()
-            ->where('type', TagType::Domain->value)
-            ->whereIn('status', ['verified', 'pending'])
-            ->orderBy('order_column')
-            ->value('id');
-
-        $defaultDisciplineTagId = Tag::query()
-            ->where('type', TagType::Discipline->value)
-            ->whereIn('status', ['verified', 'pending'])
-            ->orderBy('order_column')
-            ->value('id');
-
-        $defaultSourceTagId = Tag::query()
-            ->where('type', TagType::Source->value)
-            ->whereIn('status', ['verified', 'pending'])
-            ->orderBy('order_column')
-            ->value('id');
-
         Event::query()
             ->with([
                 'speakers:id',
-                'tags:id,type',
+                'classifications',
                 'primaryOrganizerInvolvement',
             ])
-            ->chunk(200, function (Collection $events) use (
-                $defaultDomainTagId,
-                $defaultDisciplineTagId,
-                $defaultSourceTagId
-            ): void {
+            ->chunk(200, function (Collection $events): void {
                 foreach ($events as $event) {
                     $updates = [];
 
@@ -778,7 +702,7 @@ class EventSeeder extends Seeder
                     }
 
                     $hasInstitutionLocation = is_string($event->institution_id) && $event->institution_id !== '';
-                    $hasVenueLocation = is_string($event->venue_id) && $event->venue_id !== '';
+                    $hasVenueLocation = is_string($event->default_venue_id ?? $event->venue_id) && ($event->default_venue_id ?? $event->venue_id) !== '';
                     $hasSpace = is_string($event->space_id) && $event->space_id !== '';
                     $eventFormat = $event->event_format;
                     $isOnlineEvent = $eventFormat === EventFormat::Online
@@ -790,13 +714,13 @@ class EventSeeder extends Seeder
                     if ($isOnlineEvent) {
                         if ($hasInstitutionLocation || $hasVenueLocation || $hasSpace) {
                             $updates['institution_id'] = null;
-                            $updates['venue_id'] = null;
+                            $updates['default_venue_id'] = null;
                             $updates['space_id'] = null;
                         }
                     } elseif ($hasInstitutionLocation && $hasVenueLocation) {
                         if ($hasSpace) {
                             // Space belongs to institution location.
-                            $updates['venue_id'] = null;
+                            $updates['default_venue_id'] = null;
                         } else {
                             // Default conflict resolution: keep venue location.
                             $updates['institution_id'] = null;
@@ -824,40 +748,24 @@ class EventSeeder extends Seeder
                         $event->fill($updates)->save();
                     }
 
-                    $tagTypes = $event->tags
-                        ->pluck('type')
-                        ->filter(fn (mixed $type): bool => is_string($type) && $type !== '')
+                    $taxonomyCodes = $event->classifications
+                        ->pluck('taxonomy_code')
+                        ->filter(fn (mixed $code): bool => is_string($code) && $code !== '')
                         ->unique()
                         ->values();
 
-                    $hasRequiredTagTypes = $tagTypes->contains(TagType::Domain->value)
-                        && $tagTypes->contains(TagType::Discipline->value);
+                    $hasRequiredTaxonomies = $taxonomyCodes->contains(TagType::Domain->value)
+                        && $taxonomyCodes->contains(TagType::Discipline->value);
 
-                    if ($hasRequiredTagTypes) {
+                    if ($hasRequiredTaxonomies) {
                         continue;
                     }
 
-                    $defaultIds = array_filter([
-                        $defaultDomainTagId,
-                        $defaultDisciplineTagId,
-                        $defaultSourceTagId,
+                    app(SyncEventClassificationsAction::class)->handle($event, [
+                        'domain_tags' => ['syariah'],
+                        'discipline_tags' => ['hadith_studies'],
+                        'source_tags' => ['hadith'],
                     ]);
-
-                    if ($defaultIds === []) {
-                        continue;
-                    }
-
-                    /** @var list<string> $existingTagIds */
-                    $existingTagIds = $event->tags->pluck('id')->map(fn (mixed $id): string => (string) $id)->all();
-
-                    /** @var list<string> $finalTagIds */
-                    $finalTagIds = array_values(array_unique(array_merge($existingTagIds, $defaultIds)));
-
-                    $tags = Tag::query()->whereIn('id', $finalTagIds)->get();
-
-                    if ($tags->isNotEmpty()) {
-                        $event->syncTags($tags);
-                    }
                 }
             });
     }

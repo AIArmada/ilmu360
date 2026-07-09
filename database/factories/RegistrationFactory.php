@@ -23,7 +23,10 @@ class RegistrationFactory extends PackageEventRegistrationFactory
     {
         return [
             'event_id' => Event::factory(),
+            'registration_type' => 'individual',
             'status' => fake()->randomElement(['confirmed', 'cancelled', 'completed', 'no_show']),
+            'source' => 'website',
+            'total_participants' => 1,
             'metadata' => array_filter([
                 'primary_participant' => array_filter([
                     'name' => fake()->name(),

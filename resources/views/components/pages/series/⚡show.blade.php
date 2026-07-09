@@ -193,7 +193,7 @@ new
         $venueName = $event->venue?->name;
         $institutionName = $event->institution?->name;
         $primaryLocationName = $venueName ?: $institutionName;
-        $address = $event->venue?->addressModel ?? $event->institution?->addressModel;
+        $address = $event->venue?->primaryAddress() ?? $event->institution?->primaryAddress();
 
         $parts = array_filter([
             $primaryLocationName,

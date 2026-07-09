@@ -126,7 +126,7 @@ it('shows nearby event matches on the unified search page when location is prese
         'status' => 'verified',
     ]);
 
-    $institution->addressModel?->update([
+    $institution->primaryAddress()?->update([
         'lat' => 3.1390,
         'lng' => 101.6869,
     ]);

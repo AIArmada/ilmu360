@@ -27,12 +27,12 @@ class NotificationDestinationData extends Data
         return new self(
             id: (string) $destination->id,
             installation_id: (string) $destination->address,
-            platform: (string) data_get($destination->meta, 'platform', ''),
-            device_label: (string) data_get($destination->meta, 'device_label', ''),
-            app_version: (string) data_get($destination->meta, 'app_version', ''),
-            locale: (string) data_get($destination->meta, 'locale', ''),
-            timezone: (string) data_get($destination->meta, 'timezone', ''),
-            last_seen_at: (string) data_get($destination->meta, 'last_seen_at', ''),
+            platform: (string) data_get($destination->metadata, 'platform', ''),
+            device_label: (string) data_get($destination->metadata, 'device_label', ''),
+            app_version: (string) data_get($destination->metadata, 'app_version', ''),
+            locale: (string) data_get($destination->metadata, 'locale', ''),
+            timezone: (string) data_get($destination->metadata, 'timezone', ''),
+            last_seen_at: (string) data_get($destination->metadata, 'last_seen_at', ''),
             verified_at: $verifiedAt instanceof CarbonInterface ? $verifiedAt->toIso8601String() : null,
         );
     }

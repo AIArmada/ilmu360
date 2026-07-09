@@ -10,7 +10,7 @@ uses(RefreshDatabase::class);
 it('extracts instagram username from full profile url and resolves canonical url', function () {
     $speaker = Speaker::factory()->create();
 
-    $social = $speaker->socialMedia()->create([
+    $social = $speaker->socialProfiles()->create([
         'platform' => SocialPlatform::Instagram->value,
         'url' => 'https://www.instagram.com/ustazah.aminah/?hl=en',
     ])->fresh();
@@ -23,7 +23,7 @@ it('extracts instagram username from full profile url and resolves canonical url
 it('accepts @handle input and resolves a tiktok url', function () {
     $speaker = Speaker::factory()->create();
 
-    $social = $speaker->socialMedia()->create([
+    $social = $speaker->socialProfiles()->create([
         'platform' => SocialPlatform::Tiktok->value,
         'handle' => '@ilmu360',
     ])->fresh();
@@ -36,7 +36,7 @@ it('accepts @handle input and resolves a tiktok url', function () {
 it('normalizes x links and preserves the x platform key', function () {
     $institution = Institution::factory()->create();
 
-    $social = $institution->socialMedia()->create([
+    $social = $institution->socialProfiles()->create([
         'platform' => SocialPlatform::X->value,
         'url' => 'https://x.com/ilmu360',
     ])->fresh();
@@ -50,7 +50,7 @@ it('normalizes x links and preserves the x platform key', function () {
 it('builds canonical facebook links from handles', function () {
     $speaker = Speaker::factory()->create();
 
-    $social = $speaker->socialMedia()->create([
+    $social = $speaker->socialProfiles()->create([
         'platform' => SocialPlatform::Facebook->value,
         'handle' => 'nurul',
     ])->fresh();
@@ -64,7 +64,7 @@ it('builds canonical facebook links from handles', function () {
 it('normalizes website urls when given as direct links', function () {
     $institution = Institution::factory()->create();
 
-    $social = $institution->socialMedia()->create([
+    $social = $institution->socialProfiles()->create([
         'platform' => SocialPlatform::Website->value,
         'url' => 'ilmu360.test/profile',
     ])->fresh();
@@ -77,7 +77,7 @@ it('normalizes website urls when given as direct links', function () {
 it('keeps custom social links under the other platform', function () {
     $institution = Institution::factory()->create();
 
-    $social = $institution->socialMedia()->create([
+    $social = $institution->socialProfiles()->create([
         'platform' => SocialPlatform::Other->value,
         'url' => 'https://en.wikipedia.org/wiki/Imam_al-Nawawi',
     ])->fresh();
@@ -93,7 +93,7 @@ it('renders resolved social url on speaker page when url column is null', functi
         'status' => 'verified',
     ]);
 
-    $speaker->socialMedia()->create([
+    $speaker->socialProfiles()->create([
         'platform' => SocialPlatform::Instagram->value,
         'handle' => 'ustazah.aminah',
     ]);

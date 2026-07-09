@@ -453,8 +453,8 @@ class SearchController extends FrontendController
             ->with([
                 'media',
                 'addresses.country',
-                'contacts',
-                'socialMedia',
+                'contactMethods',
+                'socialProfiles',
                 'donationChannels.media',
                 'speakers' => fn ($query) => $query->where('status', 'verified')->orderByPivot('is_primary', 'desc')->limit(12),
                 'speakers.media',
@@ -514,8 +514,8 @@ class SearchController extends FrontendController
         $record = Speaker::query()
             ->with([
                 'media',
-                'contacts',
-                'socialMedia',
+                'contactMethods',
+                'socialProfiles',
                 'addresses.country',
                 'institutions' => fn ($query) => $query->orderByPivot('is_primary', 'desc')->limit(3),
                 'institutions.media',
@@ -637,8 +637,8 @@ class SearchController extends FrontendController
             ->with([
                 'media',
                 'addresses.country',
-                'contacts',
-                'socialMedia',
+                'contactMethods',
+                'socialProfiles',
             ])
             ->tap(fn (Builder $query): Builder => $this->slugOrUuidResolver->apply($query, 'venues.slug', $venueKey))
             ->firstOrFail();
@@ -766,7 +766,7 @@ class SearchController extends FrontendController
         $now = now();
 
         $record = Reference::query()
-            ->with(['media', 'socialMedia'])
+            ->with(['media', 'socialProfiles'])
             ->tap(fn (Builder $query): Builder => $this->slugOrUuidResolver->apply($query, 'references.slug', $referenceKey))
             ->firstOrFail();
 
@@ -1497,8 +1497,8 @@ class SearchController extends FrontendController
     {
         return VenueDetailData::fromModel(
             venue: $venue,
-            contacts: $this->searchPayloadTransformer->contactData($venue->contacts),
-            socialMedia: $this->searchPayloadTransformer->socialMediaData($venue->socialMedia),
+            contacts: $this->searchPayloadTransformer->contactData($venue->contactMethods),
+            socialMedia: $this->searchPayloadTransformer->socialMediaData($venue->socialProfiles),
         )->toArray();
     }
 
@@ -1510,7 +1510,7 @@ class SearchController extends FrontendController
         return ReferenceDetailData::fromModel(
             reference: $reference,
             user: $user,
-            socialMedia: $this->searchPayloadTransformer->socialMediaData($reference->socialMedia),
+            socialMedia: $this->searchPayloadTransformer->socialMediaData($reference->socialProfiles),
         )->toArray();
     }
 
@@ -1724,7 +1724,7 @@ class SearchController extends FrontendController
      */
     private function institutionDetailData(Institution $institution, ?User $user): array
     {
-        $addressModel = $institution->addressModel;
+        $addressModel = $institution->primaryAddress();
         $institutionMedia = $this->institutionCardMediaData($institution);
 
         return InstitutionDetailData::fromModel(
@@ -1735,8 +1735,8 @@ class SearchController extends FrontendController
             addressLine: $this->searchPayloadTransformer->addressLocation($addressModel),
             media: $institutionMedia,
             speakerCount: $this->institutionSpeakerCount($institution),
-            contacts: $this->searchPayloadTransformer->contactData($institution->contacts),
-            socialMedia: $this->searchPayloadTransformer->socialMediaData($institution->socialMedia),
+            contacts: $this->searchPayloadTransformer->contactData($institution->contactMethods),
+            socialMedia: $this->searchPayloadTransformer->socialMediaData($institution->socialProfiles),
             donationChannels: $institution->donationChannels
                 ->where('status', 'verified')
                 ->sortByDesc('is_default')
@@ -1756,16 +1756,16 @@ class SearchController extends FrontendController
         return SpeakerDetailData::fromModel(
             speaker: $speaker,
             user: $user,
-            address: $this->searchPayloadTransformer->addressFilterData($speaker->addressModel),
-            country: $this->searchPayloadTransformer->countryData($speaker->addressModel),
-            location: $this->searchPayloadTransformer->addressLocation($speaker->addressModel),
+            address: $this->searchPayloadTransformer->addressFilterData($speaker->primaryAddress()),
+            country: $this->searchPayloadTransformer->countryData($speaker->primaryAddress()),
+            location: $this->searchPayloadTransformer->addressLocation($speaker->primaryAddress()),
             media: SpeakerDetailMediaData::fromModel($speaker, $coverUrl)->toArray(),
             gallery: $this->speakerGalleryData($speaker),
             institutions: $speaker->institutions
                 ->map(fn (Institution $institution): array => $this->speakerInstitutionData($institution))
                 ->all(),
-            contacts: $this->searchPayloadTransformer->contactData($speaker->contacts),
-            socialMedia: $this->searchPayloadTransformer->socialMediaData($speaker->socialMedia),
+            contacts: $this->searchPayloadTransformer->contactData($speaker->contactMethods),
+            socialMedia: $this->searchPayloadTransformer->socialMediaData($speaker->socialProfiles),
         )->toArray();
     }
 

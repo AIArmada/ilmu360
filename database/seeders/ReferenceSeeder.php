@@ -206,7 +206,7 @@ class ReferenceSeeder extends Seeder
             ]);
             $reference->save();
 
-            $reference->socialMedia()->updateOrCreate(
+            $reference->socialProfiles()->updateOrCreate(
                 ['platform' => SocialPlatform::Website->value],
                 [
                     'url' => $referenceData['reference_url'],

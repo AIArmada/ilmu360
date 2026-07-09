@@ -18,7 +18,7 @@ it('loads the edit institution page with social media items', function () {
     $user->assignRole('super_admin');
 
     $institution = Institution::factory()->create();
-    $institution->socialMedia()->create([
+    $institution->socialProfiles()->create([
         'platform' => SocialPlatform::Facebook->value,
         'url' => 'https://facebook.com/ilmu360',
         'handle' => 'ilmu360',

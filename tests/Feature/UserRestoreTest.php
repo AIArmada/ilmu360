@@ -13,6 +13,7 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Communications\Enums\NotificationFamily;
 use AIArmada\Communications\Enums\NotificationPriority;
 use AIArmada\Communications\Enums\NotificationTrigger;
+use AIArmada\Communications\Models\CommunicationDestination;
 use AIArmada\Communications\Models\CommunicationPreference;
 use AIArmada\Communications\Models\NotificationInbox;
 use AIArmada\Engagement\Contracts\EngagementManager;
@@ -28,9 +29,6 @@ use App\Models\EventSubmission;
 use App\Models\Institution;
 use App\Models\MembershipApplication;
 use App\Models\ModerationReview;
-use App\Models\NotificationDelivery;
-use App\Models\NotificationDestination;
-use App\Models\NotificationRule;
 use App\Models\Reference;
 use App\Models\Registration;
 use App\Models\Report;
@@ -128,7 +126,7 @@ it('restores a deleted user together with key relationships and child records', 
         'name' => 'Restore Search',
     ]);
 
-    CommunicationPreference::create([
+    $notificationSetting = CommunicationPreference::create([
         'recipient_type' => $user->getMorphClass(),
         'recipient_id' => $user->id,
         'channel' => null,
@@ -136,14 +134,23 @@ it('restores a deleted user together with key relationships and child records', 
         'locale' => 'ms',
         'timezone' => 'UTC',
     ]);
-    $notificationRule = NotificationRule::factory()->create([
-        'user_id' => $user->id,
+    $scopedPreference = CommunicationPreference::create([
+        'recipient_type' => $user->getMorphClass(),
+        'recipient_id' => $user->id,
+        'channel' => 'email',
+        'category' => 'event_updates',
+        'scope_type' => 'topic',
         'scope_key' => 'restore-rule',
+        'enabled_at' => now(),
     ]);
-    $notificationDestination = NotificationDestination::factory()->create([
-        'user_id' => $user->id,
+    $notificationDestination = OwnerContext::withOwner(null, fn () => CommunicationDestination::query()->create([
+        'recipient_type' => $user->getMorphClass(),
+        'recipient_id' => $user->id,
+        'channel' => 'push',
         'address' => 'restore-device-token',
-    ]);
+        'status' => 'active',
+        'is_primary' => true,
+    ]));
     $notificationMessage = OwnerContext::withOwner(null, fn () => NotificationInbox::query()->create([
         'recipient_type' => $user->getMorphClass(),
         'recipient_id' => $user->id,
@@ -161,12 +168,6 @@ it('restores a deleted user together with key relationships and child records', 
         ],
         'read_at' => null,
     ]));
-    $notificationDelivery = NotificationDelivery::factory()->create([
-        'notification_message_id' => (string) Str::uuid(),
-        'user_id' => $user->id,
-        'destination_id' => $notificationDestination->id,
-        'fingerprint' => 'restore-notification-delivery',
-    ]);
 
     $aiUsageLog = AiUsageLog::query()->create([
         'invocation_id' => (string) Str::uuid(),
@@ -196,10 +197,12 @@ it('restores a deleted user together with key relationships and child records', 
         'applicant_id' => $user->id,
         'reviewer_id' => $user->id,
     ]);
-    $moderationReview = ModerationReview::factory()->create([
-        'event_id' => $sharedEvent->id,
-        'moderator_id' => $user->id,
-    ]);
+    $moderationReview = OwnerContext::withOwner(null, fn () => ModerationReview::factory()->create([
+        'actionable_type' => Event::class,
+        'actionable_id' => $sharedEvent->id,
+        'actioned_by_type' => User::class,
+        'actioned_by_id' => $user->id,
+    ]));
     $report = Report::factory()->create([
         'reporter_id' => $user->id,
         'handled_by' => $user->id,
@@ -404,16 +407,15 @@ it('restores a deleted user together with key relationships and child records', 
         'user_id' => $user->id,
     ]);
     assertDatabaseMissing('user_venue', [
-        'venue_id' => $venue->id,
+        'default_venue_id' => $venue->id,
         'user_id' => $user->id,
     ]);
     expect(Registration::query()->whereKey($registration->id)->exists())->toBeFalse();
     assertDatabaseMissing('event_checkins', ['id' => $ownCheckin->id]);
     assertDatabaseMissing('saved_searches', ['id' => $savedSearch->id]);
-    assertDatabaseMissing('notification_rules', ['id' => $notificationRule->id]);
-    assertDatabaseMissing('notification_destinations', ['id' => $notificationDestination->id]);
+    assertDatabaseMissing('communication_preferences', ['id' => $scopedPreference->id]);
+    assertDatabaseMissing('communication_destinations', ['id' => $notificationDestination->id]);
     assertDatabaseMissing('notification_inboxes', ['id' => $notificationMessage->id]);
-    assertDatabaseMissing('notification_deliveries', ['id' => $notificationDelivery->id]);
     assertDatabaseMissing('ai_usage_logs', ['id' => $aiUsageLog->id]);
     assertDatabaseMissing($modelHasRolesTable, [
         $modelMorphKey => $user->id,
@@ -484,7 +486,7 @@ it('restores a deleted user together with key relationships and child records', 
     ]);
 
     assertDatabaseHas('user_venue', [
-        'venue_id' => $venue->id,
+        'default_venue_id' => $venue->id,
         'user_id' => $user->id,
         'joined_at' => $venueJoinedAt->toDateTimeString(),
     ]);
@@ -549,9 +551,9 @@ it('restores a deleted user together with key relationships and child records', 
         'applicant_id' => $user->id,
         'reviewer_id' => $user->id,
     ]);
-    assertDatabaseHas('moderation_reviews', [
+    assertDatabaseHas('moderation_actions', [
         'id' => $moderationReview->id,
-        'moderator_id' => $user->id,
+        'actioned_by_id' => $user->id,
     ]);
     assertDatabaseHas('reports', [
         'id' => $report->id,
@@ -587,26 +589,23 @@ it('restores a deleted user together with key relationships and child records', 
         'provider_id' => 'google-restore-user',
     ]);
 
-    assertDatabaseHas('notification_settings', [
-        'user_id' => $user->id,
+    assertDatabaseHas('communication_preferences', [
+        'id' => $notificationSetting->id,
+        'recipient_id' => $user->id,
         'locale' => 'ms',
     ]);
-    assertDatabaseHas('notification_rules', [
-        'id' => $notificationRule->id,
-        'user_id' => $user->id,
+    assertDatabaseHas('communication_preferences', [
+        'id' => $scopedPreference->id,
+        'recipient_id' => $user->id,
+        'scope_key' => 'restore-rule',
     ]);
-    assertDatabaseHas('notification_destinations', [
+    assertDatabaseHas('communication_destinations', [
         'id' => $notificationDestination->id,
-        'user_id' => $user->id,
+        'recipient_id' => $user->id,
     ]);
     assertDatabaseHas('notification_inboxes', [
         'id' => $notificationMessage->id,
         'recipient_id' => $user->id,
-    ]);
-    assertDatabaseHas('notification_deliveries', [
-        'id' => $notificationDelivery->id,
-        'user_id' => $user->id,
-        'destination_id' => $notificationDestination->id,
     ]);
     assertDatabaseHas('ai_usage_logs', [
         'id' => $aiUsageLog->id,
@@ -743,7 +742,7 @@ it('restores an api self-deleted user from the deleted users admin page', functi
         'provider' => 'google',
         'provider_id' => 'api-restore-google',
     ]);
-    CommunicationPreference::create([
+    $apiNotificationSetting = CommunicationPreference::create([
         'recipient_type' => $user->getMorphClass(),
         'recipient_id' => $user->id,
         'channel' => null,
@@ -751,9 +750,14 @@ it('restores an api self-deleted user from the deleted users admin page', functi
         'locale' => 'ms',
         'timezone' => 'Asia/Kuala_Lumpur',
     ]);
-    $notificationRule = NotificationRule::factory()->create([
-        'user_id' => $user->id,
+    $apiScopedPreference = CommunicationPreference::create([
+        'recipient_type' => $user->getMorphClass(),
+        'recipient_id' => $user->id,
+        'channel' => 'email',
+        'category' => 'event_updates',
+        'scope_type' => 'topic',
         'scope_key' => 'api-restore-rule',
+        'enabled_at' => now(),
     ]);
 
     $plainTextToken = $user->createToken('restore-flow-token')->plainTextToken;
@@ -773,7 +777,7 @@ it('restores an api self-deleted user from the deleted users admin page', functi
     expect(Registration::query()->whereKey($registration->id)->exists())->toBeFalse();
     assertDatabaseMissing('event_checkins', ['id' => $ownCheckin->id]);
     assertDatabaseMissing('saved_searches', ['id' => $savedSearch->id]);
-    assertDatabaseMissing('notification_rules', ['id' => $notificationRule->id]);
+    assertDatabaseMissing('communication_preferences', ['id' => $apiScopedPreference->id]);
     assertDatabaseMissing($modelHasRolesTable, [
         $modelMorphKey => $user->id,
         'model_type' => $user->getMorphClass(),
@@ -826,7 +830,7 @@ it('restores an api self-deleted user from the deleted users admin page', functi
         'joined_at' => $referenceJoinedAt->toDateTimeString(),
     ]);
     assertDatabaseHas('user_venue', [
-        'venue_id' => $venue->id,
+        'default_venue_id' => $venue->id,
         'user_id' => $user->id,
         'joined_at' => $venueJoinedAt->toDateTimeString(),
     ]);
@@ -871,14 +875,16 @@ it('restores an api self-deleted user from the deleted users admin page', functi
         'provider' => 'google',
         'provider_id' => 'api-restore-google',
     ]);
-    assertDatabaseHas('notification_settings', [
-        'user_id' => $user->id,
+    assertDatabaseHas('communication_preferences', [
+        'id' => $apiNotificationSetting->id,
+        'recipient_id' => $user->id,
         'locale' => 'ms',
         'timezone' => 'Asia/Kuala_Lumpur',
     ]);
-    assertDatabaseHas('notification_rules', [
-        'id' => $notificationRule->id,
-        'user_id' => $user->id,
+    assertDatabaseHas('communication_preferences', [
+        'id' => $apiScopedPreference->id,
+        'recipient_id' => $user->id,
+        'scope_key' => 'api-restore-rule',
     ]);
     assertDatabaseHas($modelHasRolesTable, [
         $modelMorphKey => $user->id,

@@ -116,7 +116,7 @@ class SpeakerForm
                     ]),
                 Section::make(__('Contact'))
                     ->components([
-                        Repeater::make('contacts')
+                        Repeater::make('contactMethods')
                             ->label(__('Contact Details'))
                             ->relationship()
                             ->default([])
@@ -179,7 +179,7 @@ class SpeakerForm
                     ->columns(2),
                 Section::make(__('Social Media'))
                     ->components([
-                        Repeater::make('socialMedia')
+                        Repeater::make('socialProfiles')
                             ->label(__('Social Media Links'))
                             ->relationship()
                             ->default([])

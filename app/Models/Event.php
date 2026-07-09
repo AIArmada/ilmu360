@@ -44,7 +44,6 @@ use App\Enums\TimingMode;
 use App\Models\Builders\EventBuilder;
 use App\Models\Concerns\AuditsModelChanges;
 use App\Models\Concerns\HasDonationChannels;
-use App\Models\Concerns\HasPrimaryAddressAccessors;
 use App\Services\PrayerTimeExpressionResolver;
 use App\States\EventStatus\EventStatus;
 use App\States\EventStatus\Pending;
@@ -72,7 +71,6 @@ use Spatie\DeletedModels\Models\Concerns\KeepsDeletedModels;
 use Spatie\Image\Enums\Fit;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Spatie\ModelStates\HasStates;
-use Spatie\Tags\HasTags;
 
 /**
  * @property string $id
@@ -133,7 +131,7 @@ use Spatie\Tags\HasTags;
 class Event extends PackageEvent implements AuditableContract
 {
     /** @use HasFactory<EventFactory> */
-    use AuditsModelChanges, HasAddresses, HasDonationChannels, HasFactory, HasMembers, HasPrimaryAddressAccessors, HasResponses, HasStates, HasTags, KeepsDeletedModels, Searchable;
+    use AuditsModelChanges, HasAddresses, HasDonationChannels, HasFactory, HasMembers, HasResponses, HasStates, KeepsDeletedModels, Searchable;
 
     protected static string $ownerScopeConfigKey = '';
 
@@ -280,7 +278,6 @@ class Event extends PackageEvent implements AuditableContract
         'user_id',
         'institution_id',
         'submitter_id',
-        'venue_id',
         'space_id',
         'parent_event_id',
 
@@ -305,7 +302,6 @@ class Event extends PackageEvent implements AuditableContract
         'gender',
         'age_group',
         'children_allowed',
-        'event_format',
         'visibility',
         'status',
         'views_count',
@@ -365,18 +361,6 @@ class Event extends PackageEvent implements AuditableContract
             return $this;
         }
 
-        if ($key === 'venue_id') {
-            $this->setMetadataValue($key, $value);
-
-            return parent::setAttribute('default_venue_id', $value);
-        }
-
-        if ($key === 'event_format') {
-            $this->setMetadataValue($key, $value);
-
-            return parent::setAttribute('delivery_mode', $this->enumValue($value) ?? $value);
-        }
-
         if ($key === 'event_type') {
             $this->setMetadataValue($key, $value);
 
@@ -399,16 +383,6 @@ class Event extends PackageEvent implements AuditableContract
     {
         if (in_array($key, ['starts_at', 'ends_at'], true)) {
             return $this->primaryOccurrenceDate($key) ?? $this->dateFromMetadata($key);
-        }
-
-        if ($key === 'venue_id') {
-            return parent::getAttribute('default_venue_id') ?? $this->legacyMetadataValue($key);
-        }
-
-        if ($key === 'event_format') {
-            $value = parent::getAttribute('delivery_mode') ?? $this->legacyMetadataValue($key);
-
-            return EventFormat::tryFrom((string) $value) ?? $value;
         }
 
         if ($key === 'event_type') {
@@ -1119,7 +1093,7 @@ class Event extends PackageEvent implements AuditableContract
             'timezone' => $this->timezone,
             'status' => $this->occurrenceStatusValue(),
             'visibility' => $this->enumValue($this->visibility) ?? 'public',
-            'delivery_mode' => $this->enumValue($this->event_format) ?? $this->delivery_mode,
+            'delivery_mode' => $this->enumValue($this->delivery_mode) ?? $this->delivery_mode,
             'published_at' => $this->published_at,
             'pricing_mode' => $this->pricing_mode ?? 'free',
             'registration_mode' => $this->registration_mode ?? 'none',
@@ -1479,11 +1453,9 @@ class Event extends PackageEvent implements AuditableContract
             'gender',
             'age_group',
             'children_allowed',
-            'event_format',
             'status',
             'visibility',
             'institution_id',
-            'venue_id',
             'saves_count',
             'registrations_count',
             'published_at',
@@ -1506,7 +1478,7 @@ class Event extends PackageEvent implements AuditableContract
             return null;
         }
 
-        return $notice->type->publicBadgeLabel();
+        return $notice->update_type->publicBadgeLabel();
     }
 
     /**
@@ -1541,7 +1513,7 @@ class Event extends PackageEvent implements AuditableContract
         $institution = $this->institution;
         $venue = $this->venue;
         $gender = $this->gender;
-        $eventFormat = $this->event_format;
+        $eventFormat = $this->delivery_mode;
         $visibility = $this->visibility;
 
         $languageCodes = $this->resolvedLanguages()
@@ -2302,7 +2274,7 @@ class Event extends PackageEvent implements AuditableContract
      */
     public function getPrayerCoordinatesAttribute(): ?array
     {
-        $venueAddress = $this->venue?->addressModel;
+        $venueAddress = $this->venue?->primaryAddress();
 
         if ($venueAddress instanceof Address && $venueAddress->latitude !== null && $venueAddress->longitude !== null) {
             return [

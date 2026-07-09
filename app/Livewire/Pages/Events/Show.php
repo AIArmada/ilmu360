@@ -92,7 +92,7 @@ class Show extends Component
                 'primaryOrganizerInvolvement.involveable',
                 'institution.media',
                 'institution.addresses.country',
-                'institution.contacts',
+                'institution.contactMethods',
                 'venue.media',
                 'venue.addresses.country',
                 'speakers.media',
@@ -119,7 +119,7 @@ class Show extends Component
 
             if ($involveable = $event->primaryOrganizerInvolvement?->involveable) {
                 if ($involveable instanceof Institution) {
-                    $involveable->loadMissing(['media', 'contacts']);
+                    $involveable->loadMissing(['media', 'contactMethods']);
                 } elseif ($involveable instanceof Speaker) {
                     $involveable->loadMissing(['media']);
                 }
@@ -334,7 +334,8 @@ class Show extends Component
     #[Computed]
     public function hasAboutContent(): bool
     {
-        return $this->descriptionHtml() !== '' || $this->event->tags->isNotEmpty();
+        return $this->descriptionHtml() !== ''
+            || $this->event->classifications()->exists();
     }
 
     private function hasRenderableHtmlContent(string $html): bool

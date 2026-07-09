@@ -80,7 +80,7 @@ class InstitutionForm
                     ->columns(2),
                 Section::make('Contact')
                     ->components([
-                        Repeater::make('contacts')
+                        Repeater::make('contactMethods')
                             ->relationship()
                             ->schema([
                                 Select::make('type')
@@ -130,7 +130,7 @@ class InstitutionForm
                     ->columns(1),
                 Section::make('Social Media')
                     ->components([
-                        Repeater::make('socialMedia')
+                        Repeater::make('socialProfiles')
                             ->relationship()
                             ->schema([
                                 Select::make('platform')

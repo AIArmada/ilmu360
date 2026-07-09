@@ -97,27 +97,27 @@ Institution, Speaker, DonationChannel, MediaLink, Inspiration, SlugRedirect, Con
 
 | # | Gap | State 2026-07-10 | Phase 9 ID |
 | ---: | --- | --- | --- |
-| G1 | Comms dual dispatch | **Mostly closed** — default through package; `DispatchMode` gone. Residual: migrate commands, orphan factories, orchestration ownership doc | P9-B residual |
-| G2 | Taxonomy dual path (Spatie Tags + classifications) | **Open** — event writes prefer classifications; `HasTags` + Tag Filament + AI tag paths remain | **P9-A** |
-| G3 | Builder legacy column maps | **Open** — Event/Venue/ReferenceBuilder | **P9-C** |
-| G4 | Contact/social/address alias traits | **Open** | **P9-D** |
-| G5 | Legacy accessors (announcement/moderation/registration) | **Open** | **P9-E** |
+| G1 | Comms dual dispatch | **Mostly closed** — default through package; `DispatchMode` gone; destinations package-native | P9-B residual |
+| G2 | Taxonomy dual path (Spatie Tags + classifications) | **Closed for event write path** — EventTerm forms/AI/seeder; Tag Filament remains non-event admin catalog only | P9-A done |
+| G3 | Builder legacy column maps | **Closed** — DirectColumnMaps gone; factory uses `default_venue_id`/`delivery_mode` | P9-C done |
+| G4 | Contact/social/address alias traits | **Closed** | P9-D done |
+| G5 | Legacy accessors (announcement/moderation/reference parent) | **Closed** | P9-E done |
+| G7 | Thick Event subclass | **Partial** — removed `venue_id`/`event_format` attribute aliases; metadata-backed product fields remain | **P9-G residual** |
 | G6 | Geography hard cut | **Closed** — product native FKs; zero alias footprint | P9-F done |
 | G7 | Thick Event/Reference subclasses | **Open** (structural) | **P9-G** |
 | G8 | Institution dashboard legacy UI helpers | **Open** | **P9-H** |
-| G9 | Dead notif dual-store tooling | **Open residual** — orphan factories + migrate-rules/settings commands | P9-B residual |
+| G9 | Dead notif dual-store tooling | **Closed 2026-07-10** — orphan factories + migrate commands deleted; User uses package `HasInbox`; destinations use `recipient_*` + `metadata` | P9-B done |
 | G10 | Verification debt | **Open** — full suite/PHPStan not claimed | **P9-I** |
 | G11 | Paid commerce productization | **In progress** — packages in; public checkout flag off | **ADR-013** |
 | G12 | Package `Block` unused | **Deferred optional** | product decision |
 
 ## Active next actions
 
-1. **P9-A Taxonomy** — finish dual-path kill (ADR-011); remove event `HasTags` dual write/index when Tag admin is decided  
-2. **P9-C Builders** — rewrite callers; delete maps  
-3. **P9-D / P9-E** — alias traits + legacy accessors  
-4. **P9-B residual** — delete orphan notification factories; retire unused migrate commands  
-5. **G11** — bind payment + turn on public paid checkout when ready; mode matrix tests  
-6. **P9-I** — `migrate:fresh --seed`, full Pest, PHPStan, Pint  
+1. **P9-G residual** — strip remaining Event metadata-backed attribute shims (`institution_id`, counters, schedule_*, etc.) and occurrence pending-write buffers  
+2. **Tag Filament** — optional: retire Spatie Tag admin if product no longer needs non-event tags  
+3. **G11** — bind payment + public paid checkout  
+4. **P9-H** — institution dashboard legacy helpers  
+5. **P9-I** — `migrate:fresh --seed`, full Pest, PHPStan, Pint  
 
 ## Blocker register
 

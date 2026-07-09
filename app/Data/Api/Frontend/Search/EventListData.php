@@ -63,7 +63,7 @@ class EventListData extends Data
     public static function fromModel(Event $event): self
     {
         $eventTypeValues = self::eventTypeValues($event);
-        $eventFormat = $event->event_format;
+        $eventFormat = $event->delivery_mode;
         $eventFormatValue = self::enumValue($eventFormat);
         $status = $event->status;
         $statusValue = (string) $status;
@@ -162,10 +162,10 @@ class EventListData extends Data
         $venue = $event->venue;
         $institution = $event->institution;
         $primaryLocationName = $venue?->name ?: $institution?->name;
-        $address = $venue?->addressModel;
+        $address = $venue?->primaryAddress();
 
         if (! $address instanceof Address) {
-            $address = $institution?->addressModel;
+            $address = $institution?->primaryAddress();
         }
 
         $parts = array_values(array_filter([

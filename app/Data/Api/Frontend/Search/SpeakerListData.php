@@ -40,7 +40,7 @@ class SpeakerListData extends Data
             status: (string) $speaker->status,
             events_count: (int) ($speaker->events_count ?? 0),
             avatar_url: (string) $speaker->public_avatar_url,
-            country: CountryData::fromAddress($speaker->addressModel)?->toArray(),
+            country: CountryData::fromAddress($speaker->primaryAddress())?->toArray(),
             is_following: $isFollowing,
         );
     }

@@ -72,12 +72,12 @@ class SpeakerSeeder extends Seeder
                 ]
             );
 
-            $speaker->contacts()->updateOrCreate(
+            $speaker->contactMethods()->updateOrCreate(
                 ['type' => ContactMethodType::Email->value],
                 ['value' => Str::slug($name).'@example.com', 'purpose' => ContactPurpose::General->value]
             );
 
-            $speaker->contacts()->updateOrCreate(
+            $speaker->contactMethods()->updateOrCreate(
                 ['type' => ContactMethodType::Phone->value],
                 ['value' => $this->deterministicPhoneNumber($name), 'purpose' => ContactPurpose::General->value]
             );

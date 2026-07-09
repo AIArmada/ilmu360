@@ -586,7 +586,7 @@ it('applies direct institution edits for owner maintainers from the suggest upda
         'nickname' => null,
         'status' => 'verified',
     ]);
-    withGlobalOwnerContext(fn () => $institution->contacts()->delete());
+    withGlobalOwnerContext(fn () => $institution->contactMethods()->delete());
 
     assignInstitutionOwner($user, $institution);
     $this->actingAs($user);
@@ -613,8 +613,8 @@ it('applies direct institution edits when an existing phone contact is present o
         'status' => 'verified',
     ]);
     withGlobalOwnerContext(function () use ($institution): void {
-        $institution->contacts()->delete();
-        $institution->contacts()->create([
+        $institution->contactMethods()->delete();
+        $institution->contactMethods()->create([
             'type' => ContactMethodType::Phone->value,
             'purpose' => ContactPurpose::General->value,
             'value' => '+60112223344',
@@ -634,7 +634,7 @@ it('applies direct institution edits when an existing phone contact is present o
         ->assertHasNoErrors();
 
     expect($institution->fresh()->nickname)->toBe('Masjid Telefon')
-        ->and(withGlobalOwnerContext(fn () => $institution->fresh()->contacts()->where('type', ContactMethodType::Phone->value)->value('value')))
+        ->and(withGlobalOwnerContext(fn () => $institution->fresh()->contactMethods()->where('type', ContactMethodType::Phone->value)->value('value')))
         ->not->toBeNull()
         ->not->toBeEmpty()
         ->and(ContributionRequest::query()->count())->toBe(0);
@@ -645,7 +645,7 @@ it('applies direct institution address edits for owner maintainers from the sugg
     $institution = Institution::factory()->create([
         'status' => 'verified',
     ]);
-    withGlobalOwnerContext(fn () => $institution->contacts()->delete());
+    withGlobalOwnerContext(fn () => $institution->contactMethods()->delete());
 
     assignInstitutionOwner($user, $institution);
     $this->actingAs($user);
@@ -658,7 +658,7 @@ it('applies direct institution address edits for owner maintainers from the sugg
         ->call('submit')
         ->assertHasNoErrors();
 
-    expect($institution->fresh()->addressModel?->line1)->toBe('No. 21, Jalan Disemak')
+    expect($institution->fresh()->primaryAddress()?->line1)->toBe('No. 21, Jalan Disemak')
         ->and(ContributionRequest::query()->count())->toBe(0);
 });
 
@@ -861,9 +861,9 @@ it('prefills submit-style organizer and location fields on the event update page
     $event = Event::factory()->create([
         'title' => 'Majlis Dengan Lokasi Venue',
         'status' => 'approved',
-        'event_format' => EventFormat::Physical,
+        'delivery_mode' => EventFormat::Physical,
         'institution_id' => null,
-        'venue_id' => $venue->id,
+        'default_venue_id' => $venue->id,
         'starts_at' => now()->addDays(4)->setTime(20, 0),
     ]);
     $event->setPrimaryOrganizer($organizerInstitution);
@@ -900,9 +900,9 @@ it('normalizes submit-style organizer and location changes on the event update p
         'title' => 'Majlis Tukar Penganjur',
         'status' => 'approved',
         'event_type' => [EventType::Iftar->value],
-        'event_format' => EventFormat::Physical,
+        'delivery_mode' => EventFormat::Physical,
         'institution_id' => $institution->id,
-        'venue_id' => null,
+        'default_venue_id' => null,
         'starts_at' => now()->addDays(5)->setTime(20, 0),
         'ends_at' => now()->addDays(5)->setTime(21, 0),
     ]);
@@ -962,7 +962,7 @@ it('creates pending update requests for non-maintainer suggestions', function ()
         'description' => 'Old description',
         'status' => 'verified',
     ]);
-    withGlobalOwnerContext(fn () => $institution->contacts()->delete());
+    withGlobalOwnerContext(fn () => $institution->contactMethods()->delete());
 
     $this->actingAs($user);
 
@@ -1404,14 +1404,14 @@ it('does not treat unchanged speaker update forms as changes when legacy address
     ]);
 
     withGlobalOwnerContext(function () use ($speaker): void {
-        $speaker->contacts()->delete();
-        $speaker->contacts()->create([
+        $speaker->contactMethods()->delete();
+        $speaker->contactMethods()->create([
             'type' => ContactMethodType::Email->value,
             'purpose' => ContactPurpose::General->value,
             'value' => 'speaker@example.test',
             'is_public' => true,
         ]);
-        $speaker->contacts()->create([
+        $speaker->contactMethods()->create([
             'type' => ContactMethodType::Phone->value,
             'purpose' => ContactPurpose::General->value,
             'value' => '+1-878-669-9223',
@@ -1435,8 +1435,8 @@ it('does not treat unchanged speaker update forms as changes when legacy address
         ->call('submit')
         ->assertHasErrors(['data']);
 
-    expect($speaker->fresh('address')?->addressModel?->line1)->toBe('Alamat Warisan')
-        ->and($speaker->fresh('address')?->addressModel?->google_maps_url)->toBe('https://maps.google.com/?q=3.1390,101.6869');
+    expect($speaker->fresh('addresses')?->primaryAddress()?->line1)->toBe('Alamat Warisan')
+        ->and($speaker->fresh('addresses')?->primaryAddress()?->google_maps_url)->toBe('https://maps.google.com/?q=3.1390,101.6869');
 });
 
 it('resolves institution slugs on the report page without uuid casting errors', function () {

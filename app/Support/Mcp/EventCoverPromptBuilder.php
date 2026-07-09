@@ -24,7 +24,6 @@ use App\Models\Reference;
 use App\Models\Series;
 use App\Models\Space;
 use App\Models\Speaker;
-use App\Models\Tag;
 use App\Models\Venue;
 use App\Support\Location\AddressHierarchyFormatter;
 use BackedEnum;
@@ -536,12 +535,12 @@ class EventCoverPromptBuilder
                 'event_type_labels' => $this->eventTypeLabels($event->event_type),
                 'age_group_labels' => $this->ageGroupLabels($event->age_group),
                 'gender_label' => $this->genderLabel($event->gender),
-                'event_format_label' => $this->formatLabel($event->event_format),
+                'event_format_label' => $this->formatLabel($event->delivery_mode),
                 'visibility_label' => $this->visibilityLabel($event->visibility),
                 'event_structure_label' => $this->structureLabel($event->event_structure),
             ],
             'relations' => [
-                'address' => $this->addressPayload($event->addressModel),
+                'address' => $this->addressPayload($event->primaryAddress()),
                 'institution' => $event->institution instanceof Institution ? $this->modelPayload($event->institution) : null,
                 'venue' => $event->venue instanceof Venue ? $this->modelPayload($event->venue) : null,
                 'space' => $event->space instanceof Space ? $this->modelPayload($event->space) : null,
@@ -550,7 +549,7 @@ class EventCoverPromptBuilder
                 'speakers' => $event->speakers->map(fn (Speaker $speaker): array => $this->modelPayload($speaker))->values()->all(),
                 'references' => $event->references->map(fn (Reference $reference): array => $this->referencePayload($reference))->values()->all(),
                 'series' => $event->series->map(fn (Series $series): array => $this->modelPayload($series))->values()->all(),
-                'tags' => $this->tagsPayload($event->tags),
+                'classifications' => $this->classificationsPayload($event->classifications),
                 'languages' => $event->languages->map(fn (Language $language): array => $this->languagePayload($language))->values()->all(),
                 'access_policy' => $event->accessPolicy instanceof EventAccessPolicy ? $this->modelPayload($event->accessPolicy) : null,
                 'donation_channel' => $event->donationChannel instanceof DonationChannel ? $this->modelPayload($event->donationChannel) : null,
@@ -628,11 +627,11 @@ class EventCoverPromptBuilder
      */
     private function modelAddressPayload(Model $model): ?array
     {
-        if (! method_exists($model, 'getAddressModelAttribute')) {
+        if (! method_exists($model, 'primaryAddress')) {
             return null;
         }
 
-        $address = $model->getAttribute('addressModel');
+        $address = $model->primaryAddress();
 
         return $address instanceof Address ? $this->addressPayload($address) : null;
     }
@@ -662,7 +661,7 @@ class EventCoverPromptBuilder
      * @param  Collection<int, Model>  $tags
      * @return array<string, list<array<string, mixed>>>
      */
-    private function tagsPayload(Collection $tags): array
+    private function classificationsPayload(Collection $classifications): array
     {
         $grouped = [];
 
@@ -670,19 +669,17 @@ class EventCoverPromptBuilder
             $grouped[$type->value] = [];
         }
 
-        foreach ($tags as $tag) {
-            if (! $tag instanceof Tag) {
-                continue;
-            }
-
-            $type = is_string($tag->type) && $tag->type !== '' ? $tag->type : 'unknown';
+        foreach ($classifications as $classification) {
+            $type = is_string($classification->taxonomy_code) && $classification->taxonomy_code !== ''
+                ? $classification->taxonomy_code
+                : 'unknown';
             $grouped[$type] ??= [];
             $grouped[$type][] = [
-                'id' => (string) $tag->getKey(),
-                'name' => $this->tagName($tag),
-                'type' => $type,
-                'status' => (string) $tag->status,
-                'attributes' => $this->normalizeArray($tag->getAttributes()),
+                'id' => (string) $classification->getKey(),
+                'term_id' => (string) ($classification->event_term_id ?? ''),
+                'term_code' => (string) ($classification->term_code ?? ''),
+                'taxonomy_code' => $type,
+                'is_primary' => (bool) ($classification->is_primary ?? false),
             ];
         }
 
@@ -894,15 +891,15 @@ class EventCoverPromptBuilder
         $address = null;
 
         if ($event->venue instanceof Venue) {
-            $address = $event->venue->addressModel;
+            $address = $event->venue->primaryAddress();
         }
 
         if (! $address instanceof Address && $event->institution instanceof Institution) {
-            $address = $event->institution->addressModel;
+            $address = $event->institution->primaryAddress();
         }
 
         if (! $address instanceof Address) {
-            $address = $event->addressModel;
+            $address = $event->primaryAddress();
         }
 
         $addressLine = AddressHierarchyFormatter::format($address);
@@ -958,9 +955,8 @@ class EventCoverPromptBuilder
     {
         $labels = array_merge(
             $this->eventTypeLabels($event->event_type),
-            $event->tags
-                ->filter(fn (Model $tag): bool => $tag instanceof Tag)
-                ->map(fn (Tag $tag): string => $this->tagName($tag))
+            $event->classifications
+                ->map(fn ($c): string => (string) ($c->term_code ?? $c->taxonomy_code ?? ''))
                 ->filter()
                 ->values()
                 ->all(),
@@ -1055,34 +1051,6 @@ class EventCoverPromptBuilder
         }
 
         return EventStructure::tryFrom((string) $structure)?->label();
-    }
-
-    private function tagName(Tag $tag): string
-    {
-        $name = $tag->getAttribute('name');
-
-        if (is_string($name)) {
-            return $name;
-        }
-
-        if (is_array($name)) {
-            $currentLocale = app()->getLocale();
-            $localized = data_get($name, $currentLocale) ?? data_get($name, 'ms') ?? data_get($name, 'en');
-
-            if (is_string($localized) && $localized !== '') {
-                return $localized;
-            }
-
-            foreach ($name as $value) {
-                if (is_string($value) && $value !== '') {
-                    return $value;
-                }
-            }
-
-            return '';
-        }
-
-        return '';
     }
 
     private function stringAttribute(Model $model, string $attribute): ?string

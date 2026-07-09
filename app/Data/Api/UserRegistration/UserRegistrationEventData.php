@@ -37,7 +37,7 @@ class UserRegistrationEventData extends Data
             status: (string) $event->status,
             visibility: self::enumValue($event->visibility),
             institution_id: is_string($event->institution_id) ? $event->institution_id : null,
-            venue_id: is_string($event->venue_id) ? $event->venue_id : null,
+            venue_id: is_string($event->default_venue_id) ? $event->default_venue_id : null,
             institution: $event->institution instanceof Institution
                 ? UserRegistrationInstitutionData::fromModel($event->institution)->toArray()
                 : null,

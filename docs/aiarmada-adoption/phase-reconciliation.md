@@ -137,8 +137,10 @@ From `phase-06-communications.md` open boxes + Phase 8.G — **every checkbox ac
 | `dispatch_through_package` default **true** | **Done** | P9-B mostly closed |
 | `DispatchMode` dual helper | **Deleted** | — |
 | EventNotificationService / SettingsManager orchestration | **App-owned** | Document intentional |
-| `communications:migrate-rules` / `migrate-settings` | **Still present** | **P9-B residual** |
-| Orphan `PendingNotificationFactory` / `NotificationDeliveryFactory` | **Still present** | **P9-B residual** |
+| `communications:migrate-rules` / `migrate-settings` | **Deleted 2026-07-10** | P9-B closed |
+| Orphan `PendingNotificationFactory` / `NotificationDeliveryFactory` | **Deleted 2026-07-10** | P9-B closed |
+| User `HasInbox` + package destinations | **Done** — `notificationInboxes()`; `recipient_*`/`metadata` on destinations | P9-B closed |
+| Destination dual-store (`user_id`/`meta`) | **Fixed** in SettingsManager + DestinationController | P9-B closed |
 
 ---
 
@@ -204,16 +206,21 @@ Stale “Not Started / Assessed” rows in `agent-work-queue.md` must not be tre
 
 Ordered for dependency:
 
-1. **P9-A Taxonomy** — remove dual Spatie write/index for events; Tag resource only if non-event product use  
-2. **P9-C Builders** — rewrite callers; delete Event/Venue/ReferenceBuilder maps  
-3. **P9-D Alias traits** — rewrite to package contact/social/address API; delete traits  
-4. **P9-E Accessors** — EventChangeAnnouncement, ModerationReview, Registration  
-5. **P9-B residual** — orphan factories, migrate commands, HasInbox consistency  
-6. **G11 Paid commerce** — payment bind + public flag + mode matrix tests  
-7. **P9-G Thin subclasses** — Event/Reference cutover glue only  
-8. **P9-H UI debt** — institution dashboard legacy filter/sort  
-9. **P9-I Verification** — migrate:fresh --seed, full Pest, PHPStan, Pint  
-10. **G12 Block** — only if product needs bans  
+1. **P9-A residual** — Tag Filament/AI form paths if still creating Spatie Tags for events  
+2. **P9-C residual** — Reference attribute aliases; any remaining DirectColumn call sites  
+3. **G11 Paid commerce** — payment bind + public flag + mode matrix tests  
+4. **P9-G Thin subclasses** — Event/Reference cutover glue only  
+5. **P9-H UI debt** — institution dashboard legacy filter/sort  
+6. **P9-I Verification** — migrate:fresh --seed, full Pest, PHPStan, Pint  
+7. **G12 Block** — only if product needs bans  
+
+**Closed (no-BC kill pass):**  
+- P9-B comms  
+- P9-D alias traits deleted (`contactMethods` / `socialProfiles` / `primaryAddress`)  
+- P9-E EventChangeAnnouncement + ModerationReview package fields  
+- P9-A: Event `HasTags` removed; forms/AI/seeder write EventTerm classifications only  
+- P9-C DirectColumnMaps removed; factories use `default_venue_id`/`delivery_mode`  
+- Partial P9-G: Event `venue_id`/`event_format` attribute aliases removed; Reference `parent_id`/`year`/`url` package fields  
 
 ### Explicitly closed (do not re-open as Phase 4–7 work)
 

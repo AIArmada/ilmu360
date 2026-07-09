@@ -54,7 +54,7 @@ class EditSpeaker extends EditRecord
     {
         $this->captureRelatedAuditSnapshot($this->speakerRecord());
 
-        $data['address'] = $this->addressFormState($this->speakerRecord()->addressModel);
+        $data['address'] = $this->addressFormState($this->speakerRecord()->primaryAddress());
 
         return $data;
     }

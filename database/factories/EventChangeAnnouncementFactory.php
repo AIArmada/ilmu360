@@ -13,7 +13,7 @@ use App\Models\EventChangeAnnouncement;
 use App\Models\User;
 
 /**
- * @extends Factory<EventChangeAnnouncement>
+ * @extends EventUpdateFactory
  */
 class EventChangeAnnouncementFactory extends EventUpdateFactory
 {
@@ -24,20 +24,27 @@ class EventChangeAnnouncementFactory extends EventUpdateFactory
      */
     public function definition(): array
     {
+        $message = fake()->sentence();
+
         return [
             'event_id' => Event::factory(),
             'replacement_event_id' => null,
-            'actor_id' => User::factory(),
-            'type' => EventChangeType::ScheduleChanged,
-            'status' => EventChangeStatus::Published,
+            'created_by_type' => User::class,
+            'created_by_id' => User::factory(),
+            'update_type' => EventChangeType::ScheduleChanged,
+            'title' => $message,
+            'message' => $message,
+            'notes' => null,
             'severity' => EventChangeSeverity::High,
-            'public_message' => fake()->sentence(),
-            'internal_note' => null,
-            'changed_fields' => ['starts_at'],
-            'before_snapshot' => [],
-            'after_snapshot' => [],
+            'visibility' => 'public',
+            'metadata' => [
+                'status' => EventChangeStatus::Published->value,
+                'changed_fields' => ['starts_at'],
+                'before_snapshot' => [],
+                'after_snapshot' => [],
+            ],
             'published_at' => now(),
-            'retracted_at' => null,
+            'archived_at' => null,
         ];
     }
 }

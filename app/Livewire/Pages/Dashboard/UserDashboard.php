@@ -170,7 +170,7 @@ class UserDashboard extends Component
     public function recentNotifications(): Collection
     {
         $notifications = $this->user()
-            ->notificationInbox()
+            ->notificationInboxes()
             ->whereNull('archived_at')
             ->limit(3)
             ->get();
@@ -182,7 +182,7 @@ class UserDashboard extends Component
     public function unreadNotificationCount(): int
     {
         return $this->user()
-            ->notificationInbox()
+            ->notificationInboxes()
             ->whereNull('archived_at')
             ->whereNull('read_at')
             ->count();

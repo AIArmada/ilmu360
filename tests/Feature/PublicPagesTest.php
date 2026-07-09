@@ -154,7 +154,7 @@ it('renders public event poster containers using the poster aspect ratio', funct
         'visibility' => 'public',
         'published_at' => now(),
         'starts_at' => now()->addDay(),
-        'event_format' => EventFormat::Physical->value,
+        'delivery_mode' => EventFormat::Physical->value,
         'institution_id' => $institution->id,
     ]);
     $portraitEvent->addMedia(UploadedFile::fake()->image('portrait-poster.jpg', 800, 1200))
@@ -166,7 +166,7 @@ it('renders public event poster containers using the poster aspect ratio', funct
         'visibility' => 'public',
         'published_at' => now(),
         'starts_at' => now()->addDays(2),
-        'event_format' => EventFormat::Physical->value,
+        'delivery_mode' => EventFormat::Physical->value,
         'institution_id' => $institution->id,
     ]);
     $wideEvent->addMedia(UploadedFile::fake()->image('wide-poster.jpg', 1600, 900))
@@ -197,7 +197,7 @@ it('uses a 16:9 placeholder aspect ratio for public events index cards without p
         'visibility' => 'public',
         'published_at' => now(),
         'starts_at' => now()->addDay(),
-        'event_format' => EventFormat::Physical->value,
+        'delivery_mode' => EventFormat::Physical->value,
         'institution_id' => $institution->id,
     ]);
 
@@ -277,8 +277,8 @@ it('shows federal territory event cards on series pages with subdistrict and sta
         'visibility' => 'public',
         'published_at' => now()->subMinute(),
         'starts_at' => now()->addDay(),
-        'event_format' => EventFormat::Physical,
-        'venue_id' => $venue->id,
+        'delivery_mode' => EventFormat::Physical,
+        'default_venue_id' => $venue->id,
     ]);
 
     $series->events()->attach($event->id, [
@@ -299,7 +299,7 @@ it('uses a 16:9 placeholder aspect ratio in the shared series event card partial
         'visibility' => 'public',
         'published_at' => now()->subMinute(),
         'starts_at' => now()->addDay(),
-        'event_format' => EventFormat::Physical,
+        'delivery_mode' => EventFormat::Physical,
     ]);
 
     $html = view('components.pages.series._event-card', [
@@ -332,7 +332,7 @@ it('shows comma-separated location hierarchy text on public events index cards',
         'visibility' => 'public',
         'published_at' => now()->subMinute(),
         'starts_at' => now()->addDay(),
-        'event_format' => EventFormat::Physical,
+        'delivery_mode' => EventFormat::Physical,
         'institution_id' => $institution->id,
     ]);
 
@@ -356,7 +356,7 @@ it('renders the date and event-type badges below the poster on public events ind
         'visibility' => 'public',
         'published_at' => now()->subMinute(),
         'starts_at' => now()->addDay(),
-        'event_format' => EventFormat::Physical,
+        'delivery_mode' => EventFormat::Physical,
         'institution_id' => $institution->id,
     ]);
 
@@ -384,7 +384,7 @@ it('renders the book title on public event and series cards without parentheses'
         'visibility' => 'public',
         'published_at' => now()->subMinute(),
         'starts_at' => now()->addDay(),
-        'event_format' => EventFormat::Physical,
+        'delivery_mode' => EventFormat::Physical,
     ]);
 
     $articleEvent = Event::factory()->create([
@@ -393,7 +393,7 @@ it('renders the book title on public event and series cards without parentheses'
         'visibility' => 'public',
         'published_at' => now()->subMinute(),
         'starts_at' => now()->addDays(2),
-        'event_format' => EventFormat::Physical,
+        'delivery_mode' => EventFormat::Physical,
     ]);
 
     $bookReference = Reference::factory()->create([
@@ -773,5 +773,5 @@ it('records guest submissions without a submitter id', function () {
 
     expect($submission)->not->toBeNull();
     expect($submission->submitted_by)->toBeNull();
-    expect(withGlobalOwnerContext(fn () => $submission->contacts()->where('type', ContactMethodType::Email->value)->where('value', $email)->exists()))->toBeTrue();
+    expect(withGlobalOwnerContext(fn () => $submission->contactMethods()->where('type', ContactMethodType::Email->value)->where('value', $email)->exists()))->toBeTrue();
 });

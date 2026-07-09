@@ -80,12 +80,12 @@ class InstitutionSeeder extends Seeder
             );
 
             // Create contacts
-            $inst->contacts()->firstOrCreate(
+            $inst->contactMethods()->firstOrCreate(
                 ['type' => ContactMethodType::Email->value],
                 ['value' => Str::slug($data['name']).'@example.com', 'purpose' => ContactPurpose::General->value]
             );
 
-            $inst->contacts()->firstOrCreate(
+            $inst->contactMethods()->firstOrCreate(
                 ['type' => ContactMethodType::Phone->value],
                 ['value' => '03-'.fake()->numberBetween(1000000, 9999999), 'purpose' => ContactPurpose::General->value]
             );
@@ -137,12 +137,12 @@ class InstitutionSeeder extends Seeder
                     $subdistrict = $this->randomSubdistrictForDistrict($district);
 
                     $this->seedPrimaryPackageAddress($institution, $this->packageAddressAttributes([
-                        'line1' => $institution->addressModel?->line1,
-                        'line2' => $institution->addressModel?->line2,
-                        'postcode' => $institution->addressModel?->postcode,
+                        'line1' => $institution->primaryAddress()?->line1,
+                        'line2' => $institution->primaryAddress()?->line2,
+                        'postcode' => $institution->primaryAddress()?->postcode,
                         'country_id' => $malaysia?->id,
-                        'latitude' => $institution->addressModel?->latitude,
-                        'longitude' => $institution->addressModel?->longitude,
+                        'latitude' => $institution->primaryAddress()?->latitude,
+                        'longitude' => $institution->primaryAddress()?->longitude,
                     ], $state, $district, $subdistrict));
                 }
 

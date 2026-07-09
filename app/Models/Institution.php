@@ -13,9 +13,6 @@ use App\Models\Builders\EventBuilder;
 use App\Models\Concerns\AuditsModelChanges;
 use App\Models\Concerns\HasDonationChannels;
 use App\Models\Concerns\HasLanguages;
-use App\Models\Concerns\HasPackageContactAliases;
-use App\Models\Concerns\HasPackageSocialAliases;
-use App\Models\Concerns\HasPrimaryAddressAccessors;
 use Carbon\CarbonInterface;
 use Database\Factories\InstitutionFactory;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -42,7 +39,7 @@ class Institution extends Model implements AuditableContract, HasMedia
     public const string PUBLIC_DIRECTORY_SESSION_KEY = 'public_institutions_directory_seed';
 
     /** @use HasFactory<InstitutionFactory> */
-    use AuditsModelChanges, HasAddresses, HasContactMethods, HasDonationChannels, HasFactory, HasLanguages, HasMembers, HasPackageContactAliases, HasPackageSocialAliases, HasPrimaryAddressAccessors, HasSocialProfiles, HasUuids, InteractsWithMedia, KeepsDeletedModels, Searchable;
+    use AuditsModelChanges, HasAddresses, HasContactMethods, HasDonationChannels, HasFactory, HasLanguages, HasMembers, HasSocialProfiles, HasUuids, InteractsWithMedia, KeepsDeletedModels, Searchable;
 
     public $incrementing = false;
 

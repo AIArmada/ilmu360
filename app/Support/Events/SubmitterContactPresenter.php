@@ -32,7 +32,7 @@ final class SubmitterContactPresenter
         return OwnerContext::withOwner(null, function () use ($event): array {
             $event->loadMissing([
                 'submitter',
-                'submissions.contacts',
+                'submissions.contactMethods',
                 'submissions.submitter',
             ]);
 
@@ -114,7 +114,7 @@ final class SubmitterContactPresenter
 
         /** @var EventSubmission|null $submission */
         $submission = $event->submissions()
-            ->with(['contacts', 'submitter'])
+            ->with(['contactMethods', 'submitter'])
             ->latest()
             ->first();
 
@@ -123,16 +123,16 @@ final class SubmitterContactPresenter
 
     private static function submissionContactValue(EventSubmission $submission, ContactMethodType $type): ?string
     {
-        if ($submission->relationLoaded('contacts')) {
+        if ($submission->relationLoaded('contactMethods')) {
             /** @var mixed $value */
-            $value = $submission->contacts
+            $value = $submission->contactMethods
                 ->firstWhere('type', $type->value)
                 ?->value;
 
             return self::filledString($value);
         }
 
-        $value = $submission->contacts()
+        $value = $submission->contactMethods()
             ->where('type', $type->value)
             ->value('value');
 

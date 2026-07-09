@@ -34,9 +34,9 @@ final readonly class SaveVenueAction
 
         $venue->fill([
             'name' => $this->normalizeRequiredString($data['name'] ?? $venue->name, 'Venue'),
-            'type' => array_key_exists('type', $data)
-                ? $this->normalizeVenueType($data['type'])
-                : $this->normalizeVenueType($venue->type),
+            'venue_type' => array_key_exists('venue_type', $data)
+                ? $this->normalizeVenueType($data['venue_type'] ?? null)
+                : $this->normalizeVenueType($venue->venue_type),
             'description' => array_key_exists('description', $data) ? $data['description'] : $venue->description,
             'status' => array_key_exists('status', $data) ? (string) $data['status'] : ($creating ? 'verified' : (string) $venue->status),
             'visibility' => array_key_exists('visibility', $data) ? (string) $data['visibility'] : ($creating ? 'public' : (string) ($venue->visibility ?? 'public')),
@@ -56,10 +56,14 @@ final readonly class SaveVenueAction
             $venue->save();
         }
 
-        $relationPayload = Arr::only($data, ['address', 'contacts', 'social_media']);
+        $relationPayload = Arr::only($data, ['address', 'contactMethods', 'social_media']);
 
         if (array_key_exists('socialMedia', $data) && ! array_key_exists('social_media', $relationPayload)) {
             $relationPayload['social_media'] = $data['socialMedia'];
+        }
+
+        if (array_key_exists('socialProfiles', $data) && ! array_key_exists('social_media', $relationPayload)) {
+            $relationPayload['social_media'] = $data['socialProfiles'];
         }
 
         $this->contributionEntityMutationService->syncVenueRelations($venue, $relationPayload);
@@ -74,8 +78,8 @@ final readonly class SaveVenueAction
 
         return $venue->fresh([
             'addresses',
-            'contacts',
-            'socialMedia',
+            'contactMethods',
+            'socialProfiles',
             'media',
         ]) ?? $venue;
     }
