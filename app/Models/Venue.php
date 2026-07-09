@@ -109,6 +109,13 @@ class Venue extends PackageVenue implements AuditableContract
     #[\Override]
     public function setAttribute($key, $value): mixed
     {
+        // Product field name → package column (single store).
+        if ($key === 'type') {
+            $normalized = $value instanceof VenueType ? $value->value : $value;
+
+            return parent::setAttribute('venue_type', $normalized);
+        }
+
         if (in_array($key, self::MetadataBackedAttributes, true)) {
             $this->setMetadataValue($key, $value);
 
@@ -121,6 +128,21 @@ class Venue extends PackageVenue implements AuditableContract
     #[\Override]
     public function getAttribute($key): mixed
     {
+        // Product field name → package column (single store).
+        if ($key === 'type') {
+            $value = parent::getAttribute('venue_type');
+
+            if ($value instanceof VenueType) {
+                return $value;
+            }
+
+            if (is_string($value) && $value !== '') {
+                return VenueType::tryFrom($value) ?? $value;
+            }
+
+            return $value;
+        }
+
         if (in_array($key, self::MetadataBackedAttributes, true)) {
             return $this->metadataValue($key);
         }

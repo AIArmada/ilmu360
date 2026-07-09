@@ -53,7 +53,7 @@ abstract class MemberInvitationsRelationManager extends RelationManager
                 TextColumn::make('email')
                     ->searchable()
                     ->sortable(),
-                TextColumn::make('role_slug')
+                TextColumn::make('role')
                     ->label('Role')
                     ->badge()
                     ->formatStateUsing(fn (string $state): string => MemberRole::tryFrom($state)?->label() ?? $state),
@@ -82,7 +82,7 @@ abstract class MemberInvitationsRelationManager extends RelationManager
                             ->email()
                             ->required()
                             ->maxLength(255),
-                        Select::make('role_slug')
+                        Select::make('role')
                             ->label('Role')
                             ->options(fn (): array => collect(MemberRole::cases())->mapWithKeys(fn (MemberRole $r): array => [$r->value => $r->label()])->all())
                             ->required(),
@@ -97,7 +97,7 @@ abstract class MemberInvitationsRelationManager extends RelationManager
                         app(InviteMemberAction::class)->handle(
                             $this->getSubjectOwner(),
                             (string) $data['email'],
-                            MemberRole::tryFrom((string) $data['role_slug']) ?? MemberRole::Viewer,
+                            MemberRole::tryFrom((string) $data['role']) ?? MemberRole::Viewer,
                             $user,
                             $this->normalizeExpiresAt($data['expires_at'] ?? null),
                         );

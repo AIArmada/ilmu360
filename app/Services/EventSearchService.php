@@ -49,7 +49,7 @@ class EventSearchService
                 ->whereIn('collection_name', ['cover', 'poster'])
                 ->ordered(),
             'references',
-            'tags',
+            'classifications',
             'speakers.media' => fn ($query) => $query
                 ->where('collection_name', 'avatar')
                 ->ordered(),
@@ -706,44 +706,41 @@ class EventSearchService
         $topicIds = $this->normalizeArrayFilter($filters['topic_ids'] ?? null);
 
         if ($topicIds !== []) {
-            $queryBuilder->whereHas('tags', function (Builder $tagQuery) use ($topicIds) {
-                $tagQuery
-                    ->whereIn('tags.id', $topicIds)
-                    ->whereIn('tags.type', ['discipline', 'issue'])
-                    ->whereIn('tags.status', ['verified', 'pending']);
+            // Package-native classifications (ADR-011): filter by EventTerm ids + taxonomy codes.
+            $queryBuilder->whereHas('classifications', function (Builder $classificationQuery) use ($topicIds): void {
+                $classificationQuery
+                    ->whereIn('event_term_id', $topicIds)
+                    ->whereIn('taxonomy_code', ['discipline', 'issue']);
             });
         }
 
         $domainTagIds = $this->normalizeArrayFilter($filters['domain_tag_ids'] ?? null);
 
         if ($domainTagIds !== []) {
-            $queryBuilder->whereHas('tags', function (Builder $tagQuery) use ($domainTagIds) {
-                $tagQuery
-                    ->whereIn('tags.id', $domainTagIds)
-                    ->where('tags.type', 'domain')
-                    ->whereIn('tags.status', ['verified', 'pending']);
+            $queryBuilder->whereHas('classifications', function (Builder $classificationQuery) use ($domainTagIds): void {
+                $classificationQuery
+                    ->whereIn('event_term_id', $domainTagIds)
+                    ->where('taxonomy_code', 'domain');
             });
         }
 
         $sourceTagIds = $this->normalizeArrayFilter($filters['source_tag_ids'] ?? null);
 
         if ($sourceTagIds !== []) {
-            $queryBuilder->whereHas('tags', function (Builder $tagQuery) use ($sourceTagIds) {
-                $tagQuery
-                    ->whereIn('tags.id', $sourceTagIds)
-                    ->where('tags.type', 'source')
-                    ->whereIn('tags.status', ['verified', 'pending']);
+            $queryBuilder->whereHas('classifications', function (Builder $classificationQuery) use ($sourceTagIds): void {
+                $classificationQuery
+                    ->whereIn('event_term_id', $sourceTagIds)
+                    ->where('taxonomy_code', 'source');
             });
         }
 
         $issueTagIds = $this->normalizeArrayFilter($filters['issue_tag_ids'] ?? null);
 
         if ($issueTagIds !== []) {
-            $queryBuilder->whereHas('tags', function (Builder $tagQuery) use ($issueTagIds) {
-                $tagQuery
-                    ->whereIn('tags.id', $issueTagIds)
-                    ->where('tags.type', 'issue')
-                    ->whereIn('tags.status', ['verified', 'pending']);
+            $queryBuilder->whereHas('classifications', function (Builder $classificationQuery) use ($issueTagIds): void {
+                $classificationQuery
+                    ->whereIn('event_term_id', $issueTagIds)
+                    ->where('taxonomy_code', 'issue');
             });
         }
 

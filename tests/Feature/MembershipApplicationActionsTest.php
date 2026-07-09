@@ -68,7 +68,7 @@ it('rejects claims when a pending invitation already exists', function () {
         'subject_type' => MemberSubjectType::Institution,
         'subject_id' => $institution->getKey(),
         'email' => 'claimant@example.com',
-        'role_slug' => 'editor',
+        'role' => 'editor',
         'token' => 'pending-invitation-token',
         'invited_by' => User::factory()->create()->getKey(),
     ]);

@@ -2,7 +2,9 @@
 
 namespace Database\Seeders;
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Contacting\Enums\SocialPlatform;
+use AIArmada\Events\Models\EventReference;
 use App\Enums\ReferenceType;
 use App\Models\Event;
 use App\Models\Reference;
@@ -17,8 +19,10 @@ class ReferenceSeeder extends Seeder
     public function run(): void
     {
         DB::transaction(function (): void {
-            $referenceIdsByKey = $this->seedReferenceCatalog();
-            $this->attachReferencesToApprovedEvents($referenceIdsByKey);
+            OwnerContext::withOwner(null, function (): void {
+                $referenceIdsByKey = $this->seedReferenceCatalog();
+                $this->attachReferencesToApprovedEvents($referenceIdsByKey);
+            });
         });
     }
 
@@ -221,7 +225,7 @@ class ReferenceSeeder extends Seeder
     }
 
     /**
-     * Mirror submit-event behavior by attaching references through event_reference.
+     * Mirror submit-event behavior by attaching references via package EventReference rows.
      *
      * @param  array<string, string>  $referenceIdsByKey
      */
@@ -239,8 +243,7 @@ class ReferenceSeeder extends Seeder
 
         foreach ($events as $event) {
             $referenceKeys = $this->resolveReferenceKeysForTitle((string) $event->title);
-            $syncPayload = [];
-            $order = 1;
+            $order = 0;
 
             foreach ($referenceKeys as $referenceKey) {
                 $referenceId = $referenceIdsByKey[$referenceKey] ?? null;
@@ -249,15 +252,24 @@ class ReferenceSeeder extends Seeder
                     continue;
                 }
 
-                $syncPayload[$referenceId] = ['order_column' => $order];
+                $reference = Reference::query()->find($referenceId);
+
+                EventReference::query()->updateOrCreate(
+                    [
+                        'event_id' => (string) $event->getKey(),
+                        'referenceable_type' => 'reference',
+                        'referenceable_id' => $referenceId,
+                    ],
+                    [
+                        'reference_type' => $reference?->type?->value ?? $reference?->type ?? 'book',
+                        'title' => $reference?->title,
+                        'visibility' => 'public',
+                        'sort_order' => $order,
+                    ],
+                );
+
                 $order++;
             }
-
-            if ($syncPayload === []) {
-                continue;
-            }
-
-            $event->references()->sync($syncPayload, false);
         }
     }
 

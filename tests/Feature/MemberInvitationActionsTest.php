@@ -36,7 +36,7 @@ it('creates a member invitation with the requested subject and role', function (
         ->and($invitation->subject_type)->toBe(MemberSubjectType::Institution)
         ->and($invitation->subject_id)->toBe($institution->getKey())
         ->and($invitation->email)->toBe('invitee@example.com')
-        ->and($invitation->role_slug)->toBe('admin')
+        ->and($invitation->role)->toBe('admin')
         ->and($invitation->invited_by)->toBe($inviter->getKey())
         ->and($invitation->token)->not->toBe('');
 
@@ -100,7 +100,7 @@ it('rejects acceptance for protected ownership invitations even if the row alrea
         'subject_type' => MemberSubjectType::Institution,
         'subject_id' => $institution->getKey(),
         'email' => $invitee->email,
-        'role_slug' => 'owner',
+        'role' => 'owner',
         'token' => 'stale-owner-invitation',
         'invited_by' => $inviter->getKey(),
     ]);

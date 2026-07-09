@@ -193,7 +193,7 @@ class EventSubmissionController extends FrontendController
         }
 
         $parentEvent = Event::query()
-            ->with(['institution:id,name', 'settings'])
+            ->with(['institution:id,name', 'accessPolicy'])
             ->find($parentEventId);
 
         abort_unless($parentEvent instanceof Event && $parentEvent->isParentProgram(), 404);

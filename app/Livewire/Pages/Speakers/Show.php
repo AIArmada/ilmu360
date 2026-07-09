@@ -135,9 +135,9 @@ class Show extends Component
     {
         return $this->speaker->nonSpeakerEventKeyPeople()
             ->whereHas('event', function ($query): void {
-                $query->whereIn('status', Event::PUBLIC_STATUSES)
-                    ->where('visibility', EventVisibility::Public)
-                    ->whereNotNull('published_at');
+                $query->whereIn('events.status', Event::PUBLIC_STATUSES)
+                    ->where('events.visibility', EventVisibility::Public)
+                    ->whereNotNull('events.published_at');
             })
             ->with([
                 'event.institution.addresses',

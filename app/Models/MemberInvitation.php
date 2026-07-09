@@ -11,7 +11,7 @@ use OwenIt\Auditing\Contracts\Auditable;
 
 /**
  * @property MemberSubjectType|null $subject_type
- * @property string|null $role_slug
+ * @property string|null $role
  * @property string|null $subject_id
  * @property string|null $email
  * @property string|null $token
@@ -35,7 +35,6 @@ class MemberInvitation extends PackageMembershipInvitation implements Auditable
         'subject_id',
         'email',
         'role',
-        'role_slug',
         'token',
         'invited_by',
         'expires_at',
@@ -54,24 +53,6 @@ class MemberInvitation extends PackageMembershipInvitation implements Auditable
             'accepted_at' => 'datetime',
             'revoked_at' => 'datetime',
         ];
-    }
-
-    #[\Override]
-    public function setAttribute($key, $value): mixed
-    {
-        return match ($key) {
-            'role_slug' => parent::setAttribute('role', $value),
-            default => parent::setAttribute($key, $value),
-        };
-    }
-
-    #[\Override]
-    public function getAttribute($key): mixed
-    {
-        return match ($key) {
-            'role_slug' => parent::getAttribute('role'),
-            default => parent::getAttribute($key),
-        };
     }
 
     /**

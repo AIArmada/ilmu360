@@ -522,7 +522,7 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
                             $existingEvent = Event::query()
                                 ->where('title', $state)
                                 ->where('status', 'approved')
-                                ->with(['tags', 'references'])
+                                ->with(['classifications', 'references'])
                                 ->latest()
                                 ->first();
 
@@ -535,25 +535,32 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
                                 $set('event_type', $existingEvent->event_type->map(fn ($e) => $e->value)->toArray());
                             }
 
-                            // Populate tags by type
-                            $tagsByType = $existingEvent->tags->groupBy('type');
+                            // Package-native classifications (ADR-011): group EventTerm ids by taxonomy_code.
+                            $termsByTaxonomy = $existingEvent->classifications->groupBy('taxonomy_code');
 
-                            if ($tagsByType->has(TagType::Domain->value)) {
-                                $set('domain_tags', $tagsByType->get(TagType::Domain->value)->pluck('id')->toArray());
+                            if ($termsByTaxonomy->has(TagType::Domain->value)) {
+                                $set('domain_tags', $termsByTaxonomy->get(TagType::Domain->value)->pluck('event_term_id')->filter()->values()->all());
                             }
-                            if ($tagsByType->has(TagType::Discipline->value)) {
-                                $set('discipline_tags', $tagsByType->get(TagType::Discipline->value)->pluck('id')->toArray());
+                            if ($termsByTaxonomy->has(TagType::Discipline->value)) {
+                                $set('discipline_tags', $termsByTaxonomy->get(TagType::Discipline->value)->pluck('event_term_id')->filter()->values()->all());
                             }
-                            if ($tagsByType->has(TagType::Source->value)) {
-                                $set('source_tags', $tagsByType->get(TagType::Source->value)->pluck('id')->toArray());
+                            if ($termsByTaxonomy->has(TagType::Source->value)) {
+                                $set('source_tags', $termsByTaxonomy->get(TagType::Source->value)->pluck('event_term_id')->filter()->values()->all());
                             }
-                            if ($tagsByType->has(TagType::Issue->value)) {
-                                $set('issue_tags', $tagsByType->get(TagType::Issue->value)->pluck('id')->toArray());
+                            if ($termsByTaxonomy->has(TagType::Issue->value)) {
+                                $set('issue_tags', $termsByTaxonomy->get(TagType::Issue->value)->pluck('event_term_id')->filter()->values()->all());
                             }
 
                             // Populate references
                             if ($existingEvent->references->isNotEmpty()) {
-                                $set('references', $existingEvent->references->pluck('id')->toArray());
+                                $set(
+                                    'references',
+                                    $existingEvent->references
+                                        ->pluck('referenceable_id')
+                                        ->filter()
+                                        ->values()
+                                        ->all(),
+                                );
                             }
                         })
                         ->placeholder(__('Cari atau masukkan tajuk majlis...')),
@@ -1654,7 +1661,7 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
         }
 
         $parentEvent = Event::query()
-            ->with(['institution:id,name', 'settings'])
+            ->with(['institution:id,name', 'accessPolicy'])
             ->find($parentId);
 
         $scopedInstitution = $this->scopedInstitution();

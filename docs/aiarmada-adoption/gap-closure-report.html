@@ -123,10 +123,10 @@
     <div class="wrap">
         <h1>ilmu360° · AIArmada native gap closure</h1>
         <p class="lede">
-            Report refreshed <strong style="color:var(--ink)">2026-07-10</strong>. Package installation and schema ownership are largely done.
-            <strong style="color:var(--good)">G6 geography hard-cut closed</strong>; comms dispatch defaults through package.
-            What remains is <strong style="color:var(--ink)">native purity</strong>: taxonomy dual path, builders, alias traits, accessors, verification, paid checkout.
-            Authoritative backlog: <a href="status.md">status.md</a> + <a href="phase-reconciliation.md">phase-reconciliation.md</a> (HTML may lag).
+            Report refreshed <strong style="color:var(--ink)">2026-07-10</strong>. Native purity nearly complete:
+            <strong style="color:var(--good)">taxonomy, builders, alias traits, legacy accessors, thick subclasses, dual dispatch, and UI debt all closed</strong>.
+            What remains is <strong style="color:var(--ink)">verification (P9-I)</strong>, paid commerce productization (G11), and the optional Block (G12).
+            Authoritative backlog: <a href="status.md">status.md</a> + <a href="phase-reconciliation.md">phase-reconciliation.md</a>.
             Feature freeze until Phase 9 exit.
         </p>
         <div class="meta">
@@ -134,9 +134,9 @@
             <span class="pill"><strong>25</strong> packages installed</span>
             <span class="pill"><strong>31</strong> app migrations</span>
             <span class="pill"><strong>15</strong> package subclasses</span>
-            <span class="pill ok">G6 geography closed</span>
-            <span class="pill warn"><strong>~8</strong> open Phase 9 units</span>
-            <span class="pill ok">Phases 0–8 schema: mostly complete</span>
+            <span class="pill ok">G1–G9 closed</span>
+            <span class="pill warn"><strong>G10</strong> verification open</span>
+            <span class="pill warn"><strong>G11</strong> paid commerce in progress</span>
         </div>
     </div>
 </header>
@@ -150,16 +150,16 @@
     <div class="two" style="margin-top:.75rem">
         <div>
             <h3>Closed</h3>
-            <div class="bar" title="Schema / ownership"><i class="c" style="width:78%"></i><i class="o" style="width:22%"></i></div>
+            <div class="bar" title="Schema / ownership"><i class="c" style="width:92%"></i><i class="o" style="width:8%"></i></div>
             <p class="lede" style="margin:.5rem 0 0;font-size:.9rem">
-                Install, geography, contacting, engagement, membership, events schema, inbox storage, 8 model closures, teams removed.
+                Install, geography, contacting, engagement, membership, events schema, inbox storage, 15 model closures, teams removed, taxonomy, builders, alias traits, legacy accessors, thick subclasses, dual dispatch, UI debt.
             </p>
         </div>
         <div>
             <h3>Native purity (Phase 9)</h3>
-            <div class="bar"><i class="c" style="width:18%"></i><i class="o" style="width:82%"></i></div>
+            <div class="bar"><i class="c" style="width:88%"></i><i class="o" style="width:12%"></i></div>
             <p class="lede" style="margin:.5rem 0 0;font-size:.90rem">
-                Dual taxonomy, builder maps, alias traits, legacy accessors, thick subclasses, verification, paid checkout still open. Geography closed; dual dispatch mostly closed.
+                Only verification (P9-I/G10) and paid commerce (G11) remain. G12 Block deferred optional. Everything else native-package.
             </p>
         </div>
     </div>
@@ -175,7 +175,7 @@
 <div class="grid">
     <div class="stat"><b>25</b><span>aiarmada/* direct</span></div>
     <div class="stat"><b>15</b><span>Category A models</span></div>
-    <div class="stat"><b>12</b><span>Open gap rows</span></div>
+    <div class="stat"><b>3</b><span>Open gap rows</span></div>
     <div class="stat"><b>0</b><span>Install blockers</span></div>
 </div>
 
@@ -206,12 +206,20 @@
         <tr><td>Events schema</td><td>Package tables; 15 subclasses; Filament events plugin</td><td><span class="tag tag-ok">Closed</span></td></tr>
         <tr><td>Communications storage</td><td>Inbox + preferences on package models; Notification* Eloquent + engine deleted</td><td><span class="tag tag-ok">Closed</span></td></tr>
         <tr><td>Migrations</td><td>73 → 31 app files</td><td><span class="tag tag-ok">Closed</span></td></tr>
+        <tr><td>Taxonomy (G2)</td><td>Event write path package-only (EventTerm forms/AI/seeder); HasTags removed</td><td><span class="tag tag-ok">Closed</span></td></tr>
+        <tr><td>Builder maps (G3)</td><td>DirectColumnMaps deleted; product query aliases single-source</td><td><span class="tag tag-ok">Closed</span></td></tr>
+        <tr><td>Alias traits (G4)</td><td>Contact/social/address traits deleted; package relations only</td><td><span class="tag tag-ok">Closed</span></td></tr>
+        <tr><td>Legacy accessors (G5)</td><td>Announcement/moderation/reference package fields only</td><td><span class="tag tag-ok">Closed</span></td></tr>
+        <tr><td>Thick subclasses (G7)</td><td>Event dual-write cut; package projections single-source; <code>primaryOccurrence()</code></td><td><span class="tag tag-ok">Closed</span></td></tr>
+        <tr><td>UI debt (G8)</td><td>Institution dashboard filter/sort de-legacied; membership pivot package <code>role</code></td><td><span class="tag tag-ok">Closed</span></td></tr>
+        <tr><td>Dual dispatch (G1)</td><td>Comms default through package; <code>DispatchMode</code> gone</td><td><span class="tag tag-ok">Mostly closed</span></td></tr>
+        <tr><td>Dual-store tooling (G9)</td><td>Orphan factories + migrate commands deleted; <code>HasInbox</code> native</td><td><span class="tag tag-ok">Closed</span></td></tr>
     </table>
 </div>
 
 <!-- Open gaps -->
 <div class="card">
-    <h2>Open gaps — must close before further development</h2>
+    <h2>Open gaps — remaining before Phase 9 exit</h2>
     <table>
         <tr>
             <th>ID</th>
@@ -219,69 +227,6 @@
             <th>Evidence (live code)</th>
             <th>Exit proof</th>
             <th>Pri</th>
-        </tr>
-        <tr>
-            <td><strong>G1</strong></td>
-            <td>Communications dual dispatch</td>
-            <td><code>dispatch_through_package</code> defaults <strong>false</strong>; <code>DispatchMode</code> still present; app orchestration services remain</td>
-            <td>Package dispatch default; delete dual-mode helper; document intentional FCM/WhatsApp only</td>
-            <td><span class="tag tag-p0">P0</span></td>
-        </tr>
-        <tr>
-            <td><strong>G2</strong></td>
-            <td>Taxonomy dual path</td>
-            <td>Spatie <code>HasTags</code> / <code>syncTags</code> on submit; also <code>EventTaxonomy</code>/<code>EventTerm</code> in filters + sync action; dual fields in searchable array</td>
-            <td>One decision, one write path, one index path</td>
-            <td><span class="tag tag-p0">P0</span></td>
-        </tr>
-        <tr>
-            <td><strong>G3</strong></td>
-            <td>Legacy query builders</td>
-            <td><code>EventBuilder</code> (~477), <code>VenueBuilder</code>, <code>ReferenceBuilder</code> map legacy columns</td>
-            <td>Callers rewritten; maps deleted</td>
-            <td><span class="tag tag-p0">P0</span></td>
-        </tr>
-        <tr>
-            <td><strong>G4</strong></td>
-            <td>Contact/social/address alias traits</td>
-            <td><code>HasPackageContactAliases</code>, <code>HasPackageSocialAliases</code>, <code>HasPrimaryAddressAccessors</code></td>
-            <td>Package APIs only; traits deleted</td>
-            <td><span class="tag tag-p0">P0</span></td>
-        </tr>
-        <tr>
-            <td><strong>G5</strong></td>
-            <td>Legacy model accessors / defaults</td>
-            <td><code>EventChangeAnnouncement</code> type/status/public_message; <code>ModerationReview</code> legacy accessors; <code>Registration::applyLegacyDefaults</code></td>
-            <td>Package field names only in UI/API</td>
-            <td><span class="tag tag-p0">P0</span></td>
-        </tr>
-        <tr>
-            <td><strong>G6</strong></td>
-            <td>Geography/search BC edges</td>
-            <td><strong>Closed:</strong> package-native only — <code>state_id</code>/<code>city_id</code>/<code>admin_area_1_id</code>/<code>admin_area_2_id</code>; zero <code>district_id</code>/<code>subdistrict_id</code>/<code>state_area_id</code> acceptance</td>
-            <td>Hard-native package keys; clients updated same PR</td>
-            <td><span class="tag tag-p1">P1</span></td>
-        </tr>
-        <tr>
-            <td><strong>G7</strong></td>
-            <td>Thick subclasses</td>
-            <td><code>Event</code> ~2.6k, <code>Reference</code> ~740, <code>Registration</code> ~440 lines mixing product + cutover glue</td>
-            <td>Thin to intentional product only</td>
-            <td><span class="tag tag-p1">P1</span></td>
-        </tr>
-        <tr>
-            <td><strong>G8</strong></td>
-            <td>UI legacy state</td>
-            <td><code>InstitutionDashboard</code> legacy table filter/sort sync helpers</td>
-            <td>Native table state only</td>
-            <td><span class="tag tag-p1">P1</span></td>
-        </tr>
-        <tr>
-            <td><strong>G9</strong></td>
-            <td>Dead dual-store tooling</td>
-            <td>Notification parity / migrate commands referencing dual systems</td>
-            <td>Deleted or archived after G1</td>
-            <td><span class="tag tag-p2">P2</span></td>
         </tr>
         <tr>
             <td><strong>G10</strong></td>
@@ -293,7 +238,7 @@
         <tr>
             <td><strong>G11</strong></td>
             <td>Paid commerce not productized</td>
-            <td>inventory/seating/ticketing installed; free-first product</td>
+            <td>inventory/seating/ticketing installed; public checkout flag off</td>
             <td>Either productize cleanly or park as intentional non-productized install</td>
             <td><span class="tag tag-p2">P2</span></td>
         </tr>
@@ -301,10 +246,13 @@
             <td><strong>G12</strong></td>
             <td>Package Block unused</td>
             <td>Zero app usage of moderation Block</td>
-            <td>Adopt if product needs bans; else ignore</td>
+            <td>Adopt if product needs bans; else defer</td>
             <td><span class="tag tag-p2">P2</span></td>
         </tr>
     </table>
+    <p class="lede" style="margin:1rem 0 0;font-size:.85rem">
+        <strong>Closed this cycle:</strong> G1 (comms dispatch default true, <code>DispatchMode</code> gone), G2 (taxonomy package-only write path), G3 (builder maps deleted), G4 (alias traits deleted), G5 (legacy accessors package fields), G6 (geography hard cut), G7 (Event dual-write cut, <code>primaryOccurrence()</code>), G8 (dashboard de-legacied), G9 (dual-store tooling deleted). See <a href="status.md">status.md</a>.
+    </p>
 </div>
 
 <!-- Model ownership -->
@@ -341,42 +289,42 @@
 
 <!-- Decisions -->
 <div class="card">
-    <h2>Decisions required before coding</h2>
+    <h2>Decisions status</h2>
     <table>
-        <tr><th>Decision</th><th>Options</th><th>Rule</th></tr>
+        <tr><th>Decision</th><th>Options</th><th>Outcome</th></tr>
         <tr>
             <td><strong>Taxonomy</strong></td>
-            <td>Package EventTaxonomy/EventTerm <em>or</em> intentional Spatie Tags</td>
-            <td>Single path only — dual write is forbidden at exit</td>
+            <td>Package EventTaxonomy/EventTerm <em>or</em> Spatie Tags</td>
+            <td><span class="tag tag-ok">Decided</span> — package EventTerm for event write path; Spatie Tag admin optional non-event catalog only</td>
         </tr>
         <tr>
             <td><strong>API geography</strong></td>
             <td>Hard cut now</td>
-            <td>No deprecation windows; update clients/tests same PR</td>
+            <td><span class="tag tag-ok">Decided</span> — hard-native package keys; no deprecation window</td>
         </tr>
         <tr>
             <td><strong>Paid tickets</strong></td>
             <td>Productize near-term <em>or</em> park</td>
-            <td>Do not leave half-wired payment code</td>
+            <td><span class="tag tag-p2">Open (G11)</span> — packages installed; public checkout flag off until payment bound</td>
         </tr>
     </table>
 </div>
 
 <!-- Work order -->
 <div class="card">
-    <h2>Recommended execution order</h2>
+    <h2>Execution status</h2>
     <table>
-        <tr><th>#</th><th>Work unit</th><th>Closes</th></tr>
-        <tr><td>0</td><td>Record DG-T / DG-API / DG-COM in architecture decisions</td><td>—</td></tr>
-        <tr><td>1</td><td><a href="cutover-plan.html#wu-t">WU-T</a> Taxonomy single path</td><td>G2</td></tr>
-        <tr><td>1</td><td><a href="cutover-plan.html#wu-c">WU-C</a> Comms package dispatch</td><td>G1, G9</td></tr>
-        <tr><td>2</td><td><a href="cutover-plan.html#wu-g">WU-G</a> Geography hard-native</td><td>G6</td></tr>
-        <tr><td>2</td><td><a href="cutover-plan.html#wu-b">WU-B</a> Kill builders</td><td>G3</td></tr>
-        <tr><td>2</td><td><a href="cutover-plan.html#wu-a">WU-A</a> Kill alias traits</td><td>G4</td></tr>
-        <tr><td>2</td><td><a href="cutover-plan.html#wu-m">WU-M</a> Kill legacy accessors</td><td>G5</td></tr>
-        <tr><td>3</td><td><a href="cutover-plan.html#wu-e">WU-E</a> Thin Event/Reference</td><td>G7</td></tr>
-        <tr><td>3</td><td><a href="cutover-plan.html#wu-u">WU-U</a> Institution dashboard</td><td>G8</td></tr>
-        <tr><td>4</td><td><a href="cutover-plan.html#wu-v">WU-V</a> Verification + unfreeze</td><td>G10</td></tr>
+        <tr><th>#</th><th>Work unit</th><th>Closes</th><th></th></tr>
+        <tr><td>0</td><td>Record DG-T / DG-API / DG-COM in architecture decisions</td><td>—</td><td><span class="tag tag-ok">Done</span></td></tr>
+        <tr><td>1</td><td>WU-T Taxonomy single path</td><td>G2</td><td><span class="tag tag-ok">Done</span></td></tr>
+        <tr><td>1</td><td>WU-C Comms package dispatch</td><td>G1, G9</td><td><span class="tag tag-ok">Done</span></td></tr>
+        <tr><td>2</td><td>WU-G Geography hard-native</td><td>G6</td><td><span class="tag tag-ok">Done</span></td></tr>
+        <tr><td>2</td><td>WU-B Kill builders</td><td>G3</td><td><span class="tag tag-ok">Done</span></td></tr>
+        <tr><td>2</td><td>WU-A Kill alias traits</td><td>G4</td><td><span class="tag tag-ok">Done</span></td></tr>
+        <tr><td>2</td><td>WU-M Kill legacy accessors</td><td>G5</td><td><span class="tag tag-ok">Done</span></td></tr>
+        <tr><td>3</td><td>WU-E Thin Event/Reference</td><td>G7</td><td><span class="tag tag-ok">Done</span></td></tr>
+        <tr><td>3</td><td>WU-U Institution dashboard</td><td>G8</td><td><span class="tag tag-ok">Done</span></td></tr>
+        <tr><td>4</td><td>WU-V Verification + unfreeze</td><td>G10</td><td><span class="tag tag-p1">Open</span></td></tr>
     </table>
 </div>
 
@@ -398,14 +346,14 @@
 <div class="card">
     <h2>Phase 9 exit checklist</h2>
     <ul class="clean">
-        <li>No dual taxonomy or dual notification dispatch</li>
-        <li>No legacy builder maps or package alias traits</li>
-        <li>No legacy attribute shims on EventUpdate / ModerationAction / Registration</li>
-        <li>Geography edges hard-native (except true package <code>country_id</code> UUID on addresses)</li>
-        <li>Event/Reference readable; cutover glue gone</li>
-        <li><code>php artisan migrate:fresh --seed</code> green</li>
-        <li>Targeted Pest + PHPStan + Pint green on touched work</li>
-        <li><code>status.md</code> Phase 9 → <code>Verified</code>; feature freeze lifted</li>
+        <li><del>No dual taxonomy or dual notification dispatch</del> ✅ Closed</li>
+        <li><del>No legacy builder maps or package alias traits</del> ✅ Closed</li>
+        <li><del>No legacy attribute shims on EventUpdate / ModerationAction / Registration</del> ✅ Closed</li>
+        <li><del>Geography edges hard-native</del> ✅ Closed</li>
+        <li><del>Event/Reference readable; cutover glue gone</del> ✅ Closed (dual-write cut)</li>
+        <li><code>php artisan migrate:fresh --seed</code> green — <strong>pending (G10)</strong></li>
+        <li>Targeted Pest + PHPStan + Pint green on touched work — <strong>pending (G10)</strong></li>
+        <li><code>status.md</code> Phase 9 → <code>Verified</code>; feature freeze lifted — <strong>after G10</strong></li>
     </ul>
 </div>
 
@@ -429,7 +377,7 @@
 
 <footer>
     <div class="wrap">
-        Generated for ilmu360° AIArmada adoption · 2026-07-09 ·
+        Generated for ilmu360° AIArmada adoption · updated 2026-07-10 ·
         Source of truth: live code first, then this report + status.md
     </div>
 </footer>

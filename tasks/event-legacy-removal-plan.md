@@ -53,3 +53,14 @@ Remove the magic layer first, then fix all resulting errors. This ensures no hid
 | `->where('venue_id', ...)` | `->where('default_venue_id', ...)` |
 | `->where('event_format', ...)` | `->where('delivery_mode', ...)` |
 | `->where('event_type', ...)` | `->whereJsonContains('metadata->event_type', ...)` |
+
+
+## Status 2026-07-10
+
+P9-G closed at dual-write removal:
+- starts_at/ends_at: occurrence only (pending buffer → sync, no metadata mirror)
+- is_featured/is_priority/escalated_at: EventAttribute only
+- EscalatePendingEvents: EventAttribute queries only
+- primaryOccurrence() HasOne added
+- productMetadataValue() for intentional product metadata keys
+- Form flat attributes that sync package child tables remain intentional product UX

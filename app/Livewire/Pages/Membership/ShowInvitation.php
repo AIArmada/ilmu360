@@ -49,7 +49,7 @@ class ShowInvitation extends Component
             throw new RuntimeException('Invitation subject type is not valid.');
         }
 
-        $this->roleLabel = MemberRole::tryFrom($this->invitation->role_slug)?->label() ?? $this->invitation->role_slug;
+        $this->roleLabel = MemberRole::tryFrom($this->invitation->role)?->label() ?? $this->invitation->role;
 
         try {
             $this->subject = $subjectType->resolveSubject($this->invitation->subject_id);
@@ -117,7 +117,7 @@ class ShowInvitation extends Component
 
         $subjectType = $this->invitation->subject_type;
 
-        if (! $subjectType instanceof MemberSubjectType || MemberRole::tryFrom($this->invitation->role_slug) === null) {
+        if (! $subjectType instanceof MemberSubjectType || MemberRole::tryFrom($this->invitation->role) === null) {
             return __('This invitation is no longer valid.');
         }
 

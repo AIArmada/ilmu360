@@ -1020,10 +1020,11 @@ it('filters and sorts institution events on the dedicated event list page', func
     /** @var InstitutionDashboard $tableInstance */
     $tableInstance = $tableTest->instance();
 
+    // Status stays visible by default (primary dashboard signal); secondary columns start hidden.
     expect($tableInstance->getTable()->getColumn('dashboard_registrations_count')?->isToggledHiddenByDefault())->toBeTrue()
         ->and($tableInstance->getTable()->getColumn('visibility')?->isToggledHiddenByDefault())->toBeTrue()
         ->and($tableInstance->getTable()->getColumn('event_structure')?->isToggledHiddenByDefault())->toBeTrue()
-        ->and($tableInstance->getTable()->getColumn('status')?->isToggledHiddenByDefault())->toBeTrue();
+        ->and($tableInstance->getTable()->getColumn('status')?->isToggledHiddenByDefault())->toBeFalse();
 
     Livewire::withQueryParams(['institution' => $institution->id])
         ->actingAs($user)

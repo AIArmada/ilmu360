@@ -10,7 +10,6 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator as LengthAwarePaginator
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
@@ -80,14 +79,8 @@ class extends Component
     {
         return Event::query()
             ->selectRaw('count(*)')
-            ->where(function (Builder $query): void {
-                // Prefer the app column when present; fall back to metadata for package-only schemas (SQLite tests).
-                if (Schema::hasColumn('events', 'institution_id')) {
-                    $query->whereColumn('events.institution_id', 'institutions.id');
-                } else {
-                    $query->whereRaw("{$this->eventInstitutionIdSelector()} = institutions.id");
-                }
-            })
+            // Package-native: institution_id lives in events.metadata only.
+            ->whereRaw("{$this->eventInstitutionIdSelector()} = institutions.id")
             ->whereNotNull('events.published_at')
             ->whereIn('events.status', Event::PUBLIC_STATUSES)
             ->where('events.visibility', EventVisibility::Public->value)

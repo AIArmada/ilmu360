@@ -96,7 +96,7 @@ it('lets institution admins create and revoke institution member invitations fro
     expect($invitation)->not->toBeNull()
         ->and($invitation?->subject_id)->toBe($institution->getKey())
         ->and($invitation?->email)->toBe('invitee@example.com')
-        ->and($invitation?->role_slug)->toBe('admin')
+        ->and($invitation?->role)->toBe('admin')
         ->and($invitation?->revoked_at)->toBeNull();
 
     app(RevokeSubjectMemberInvitation::class)->handle($invitation, $administrator);
@@ -139,7 +139,7 @@ it('redirects guests to login for member invitation pages', function () {
         'subject_type' => 'institution',
         'subject_id' => $institution->getKey(),
         'email' => 'invitee@example.com',
-        'role_slug' => 'viewer',
+        'role' => 'viewer',
         'token' => 'member-invite-token',
         'invited_by' => $inviter->getKey(),
     ]);
@@ -161,7 +161,7 @@ it('lets invitees accept member invitations from the invitation page', function 
         'subject_type' => 'institution',
         'subject_id' => $institution->getKey(),
         'email' => $invitee->email,
-        'role_slug' => 'admin',
+        'role' => 'admin',
         'token' => 'member-invite-token-accept',
         'invited_by' => $inviter->getKey(),
     ]);
@@ -191,7 +191,7 @@ it('shows a clear message when the signed-in user has no email for the invitatio
         'subject_type' => 'institution',
         'subject_id' => $institution->getKey(),
         'email' => 'invitee@example.com',
-        'role_slug' => 'viewer',
+        'role' => 'viewer',
         'token' => 'member-invite-token-no-email',
         'invited_by' => $inviter->getKey(),
     ]);
@@ -216,7 +216,7 @@ it('shows invalid messaging for protected invitations that should no longer be a
         'subject_type' => 'institution',
         'subject_id' => $institution->getKey(),
         'email' => $invitee->email,
-        'role_slug' => 'owner',
+        'role' => 'owner',
         'token' => 'member-invite-token-protected-owner',
         'invited_by' => $inviter->getKey(),
     ]);
@@ -241,7 +241,7 @@ it('shows invalid messaging when the invited subject no longer exists', function
         'subject_type' => 'institution',
         'subject_id' => $institution->getKey(),
         'email' => $invitee->email,
-        'role_slug' => 'viewer',
+        'role' => 'viewer',
         'token' => 'member-invite-token-missing-subject',
         'invited_by' => $inviter->getKey(),
     ]);

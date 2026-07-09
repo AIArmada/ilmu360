@@ -94,7 +94,7 @@ class SpeakerSearchService
         }
 
         if (! $this->hasSpeakerSearchTermsTable()) {
-            return $this->applyLegacySearch($query, $normalizedSearch);
+            return $this->applyDatabaseNameSearch($query, $normalizedSearch);
         }
 
         return $this->applyIndexedSearchWithLocalIndex($query, $normalizedSearch);
@@ -242,7 +242,7 @@ class SpeakerSearchService
                 ->active()
                 ->where('status', 'verified')
                 ->select('speakers.id')
-                ->tap(fn (Builder $query): Builder => $this->applyLegacySearch($query, $normalizedSearch))
+                ->tap(fn (Builder $query): Builder => $this->applyDatabaseNameSearch($query, $normalizedSearch))
                 ->orderBy('name')
                 ->pluck('speakers.id')
                 ->map(static fn (mixed $id): string => (string) $id)
@@ -685,7 +685,7 @@ class SpeakerSearchService
      * @param  Builder<Speaker>  $query
      * @return Builder<Speaker>
      */
-    private function applyLegacySearch(Builder $query, string $search): Builder
+    private function applyDatabaseNameSearch(Builder $query, string $search): Builder
     {
         $normalizedSearch = trim($search);
 

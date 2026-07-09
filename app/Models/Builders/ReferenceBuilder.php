@@ -167,8 +167,21 @@ class ReferenceBuilder extends Builder
         return $this->orderBy($column, 'desc');
     }
 
+    /**
+     * Product query field names → package columns (single store).
+     *
+     * @var array<string, string>
+     */
+    private const array PackageColumnAliases = [
+        'publication_year' => 'year',
+    ];
+
     private function mapColumn(string $column): ?string
     {
+        if (isset(self::PackageColumnAliases[$column])) {
+            return $this->qualifyModelColumn(self::PackageColumnAliases[$column]);
+        }
+
         if (in_array($column, self::MetadataBackedColumns, true)) {
             return $this->qualifiedMetadataSelector($column);
         }

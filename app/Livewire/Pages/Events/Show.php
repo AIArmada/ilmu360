@@ -97,7 +97,7 @@ class Show extends Component
                 'venue.addresses.country',
                 'speakers.media',
                 'keyPeople.speaker.media',
-                'tags',
+                'classifications',
                 'donationChannel.media',
                 'accessPolicy',
                 'series',

@@ -92,6 +92,7 @@ class Reference extends PackageReference implements AuditableContract
         'part_number',
         'part_label',
         'year',
+        'publication_year',
         'publisher',
         'description',
         'is_canonical',
@@ -115,6 +116,11 @@ class Reference extends PackageReference implements AuditableContract
     #[\Override]
     public function setAttribute($key, $value): mixed
     {
+        // Product field name → package column (single store).
+        if ($key === 'publication_year') {
+            return parent::setAttribute('year', $value === null || $value === '' ? null : (int) $value);
+        }
+
         if (in_array($key, ['part_type', 'part_number', 'part_label', 'is_canonical'], true)) {
             $this->setMetadataValue($key, $value);
 
@@ -127,6 +133,11 @@ class Reference extends PackageReference implements AuditableContract
     #[\Override]
     public function getAttribute($key): mixed
     {
+        // Product field name → package column (single store).
+        if ($key === 'publication_year') {
+            return parent::getAttribute('year');
+        }
+
         if (in_array($key, ['part_type', 'part_number', 'part_label', 'is_canonical'], true)) {
             return $this->metadataValue($key);
         }
@@ -627,10 +638,17 @@ class Reference extends PackageReference implements AuditableContract
      */
     public function events(): BelongsToMany
     {
-        return $this->belongsToMany(Event::class, 'event_reference')
-            ->withPivot('order_column')
+        return $this->morphToMany(
+            Event::class,
+            'referenceable',
+            config('events.database.tables.event_references', 'event_references'),
+            'referenceable_id',
+            'event_id',
+        )
+            ->using(EventReferencePivot::class)
+            ->withPivot(['id', 'sort_order', 'visibility', 'reference_type', 'title'])
             ->withTimestamps()
-            ->orderByPivot('order_column');
+            ->orderByPivot('sort_order');
     }
 
     /**

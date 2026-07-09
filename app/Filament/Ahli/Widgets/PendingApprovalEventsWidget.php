@@ -115,9 +115,10 @@ class PendingApprovalEventsWidget extends TableWidget
             });
 
             $eventQuery->orWhere(function (Builder $institutionLinkedQuery) use ($user): void {
+                // Product key institution_id → EventBuilder maps to events.metadata->institution_id
                 $institutionLinkedQuery
                     ->whereIn(
-                        'events.institution_id',
+                        'institution_id',
                         $user->institutions()->select('institutions.id')
                     );
             });

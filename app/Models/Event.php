@@ -64,6 +64,7 @@ use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Laravel\Scout\Searchable;
 use Nnjeim\World\Models\Language;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
@@ -73,11 +74,18 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Spatie\ModelStates\HasStates;
 
 /**
+ * App Event subclass: package Event + intentional product projections.
+ *
+ * Package-backed schedule/links/audience/flags/location are projected as flat
+ * form attributes and synced on save into package child tables only (no dual
+ * metadata+child write). Product-only keys (institution, structure, counters,
+ * schedule labels) live in events.metadata via productMetadataValue().
+ *
  * @property string $id
  * @property string|null $user_id
  * @property string|null $institution_id
  * @property string|null $submitter_id
- * @property string|null $venue_id
+ * @property string|null $default_venue_id
  * @property string|null $space_id
  * @property string|null $parent_event_id
  * @property string $title
@@ -243,7 +251,7 @@ class Event extends PackageEvent implements AuditableContract
             $event->involvements()->delete();
             $event->accessPolicies()->delete();
             $event->keyPeople()->delete();
-            $event->references()->delete();
+            $event->eventReferences()->delete();
             $event->savedBy()->detach();
             $event->goingBy()->delete();
 
@@ -314,7 +322,9 @@ class Event extends PackageEvent implements AuditableContract
         'summary',
         'type',
         'delivery_mode',
+        'event_format',
         'default_venue_id',
+        'venue_id',
         'pricing_mode',
         'registration_mode',
         'issue_passes_for_free',
@@ -355,10 +365,21 @@ class Event extends PackageEvent implements AuditableContract
     public function setAttribute($key, $value): mixed
     {
         if ($key === 'starts_at' || $key === 'ends_at') {
+            // Single source: primary EventOccurrence (synced on save). No metadata mirror.
             $this->pendingPrimaryOccurrence[$key] = $value;
-            $this->setMetadataValue($key, $value);
 
             return $this;
+        }
+
+        // Product field names → package columns (single store, no dual write).
+        if ($key === 'event_format') {
+            $normalized = $value instanceof EventFormat ? $value->value : $value;
+
+            return parent::setAttribute('delivery_mode', $normalized);
+        }
+
+        if ($key === 'venue_id') {
+            return parent::setAttribute('default_venue_id', $value);
         }
 
         if ($key === 'event_type') {
@@ -382,15 +403,38 @@ class Event extends PackageEvent implements AuditableContract
     public function getAttribute($key): mixed
     {
         if (in_array($key, ['starts_at', 'ends_at'], true)) {
-            return $this->primaryOccurrenceDate($key) ?? $this->dateFromMetadata($key);
+            if (array_key_exists($key, $this->pendingPrimaryOccurrence)) {
+                return $this->pendingPrimaryOccurrence[$key];
+            }
+
+            return $this->primaryOccurrenceDate($key);
+        }
+
+        // Product field names → package columns (single store).
+        if ($key === 'event_format') {
+            $value = parent::getAttribute('delivery_mode');
+
+            if ($value instanceof EventFormat) {
+                return $value;
+            }
+
+            if (is_string($value) && $value !== '') {
+                return EventFormat::tryFrom($value) ?? $value;
+            }
+
+            return $value;
+        }
+
+        if ($key === 'venue_id') {
+            return parent::getAttribute('default_venue_id');
         }
 
         if ($key === 'event_type') {
-            return $this->legacyMetadataValue($key) ?? array_filter([(string) parent::getAttribute('type')]);
+            return $this->productMetadataValue($key) ?? array_filter([(string) parent::getAttribute('type')]);
         }
 
         if (in_array($key, self::MetadataBackedAttributes, true)) {
-            return $this->legacyMetadataValue($key);
+            return $this->productMetadataValue($key);
         }
 
         if ($key === 'languages') {
@@ -410,6 +454,16 @@ class Event extends PackageEvent implements AuditableContract
     public function occurrences(): HasMany
     {
         return $this->hasMany(EventOccurrence::class)->orderBy('starts_at')->orderBy('created_at');
+    }
+
+    /**
+     * Package-native primary schedule row (earliest occurrence).
+     *
+     * @return HasOne<EventOccurrence, $this>
+     */
+    public function primaryOccurrence(): HasOne
+    {
+        return $this->hasOne(EventOccurrence::class)->oldestOfMany('starts_at');
     }
 
     /**
@@ -524,7 +578,7 @@ class Event extends PackageEvent implements AuditableContract
                 $involvement->save();
             }
         } else {
-            EventInvolvement::query()->create([
+            $involvement = new EventInvolvement([
                 'event_id' => (string) $this->getKey(),
                 'event_occurrence_id' => null,
                 'event_session_id' => null,
@@ -539,6 +593,8 @@ class Event extends PackageEvent implements AuditableContract
                 'is_primary' => true,
                 'sort_order' => 0,
             ]);
+            $involvement->{$involvement->getKeyName()} = (string) Str::uuid();
+            $involvement->save();
         }
 
         $this->unsetRelation('primaryOrganizerInvolvement');
@@ -705,7 +761,7 @@ class Event extends PackageEvent implements AuditableContract
             return;
         }
 
-        $timingMode = $this->legacyMetadataValue('timing_mode');
+        $timingMode = $this->productMetadataValue('timing_mode');
 
         if ($timingMode !== TimingMode::PrayerRelative->value) {
             $this->timeExpressions()->where('anchor_type', 'prayer')->delete();
@@ -929,32 +985,23 @@ class Event extends PackageEvent implements AuditableContract
             return Carbon::parse($raw);
         }
 
-        return $this->dateFromMetadata('escalated_at');
+        return null;
     }
 
     public function setIsFeaturedAttribute(mixed $value): void
     {
-        $normalized = $value === null ? null : (bool) $value;
-        $this->pendingAttributeWrites['is_featured'] = $normalized;
-        // Keep metadata queryable for legacy job/query filters.
-        $this->setMetadataValue('is_featured', $normalized === null ? null : ($normalized ? true : false));
+        // Single source: EventAttribute rows (synced on save).
+        $this->pendingAttributeWrites['is_featured'] = $value === null ? null : (bool) $value;
     }
 
     public function setIsPriorityAttribute(mixed $value): void
     {
-        $normalized = $value === null ? null : (bool) $value;
-        $this->pendingAttributeWrites['is_priority'] = $normalized;
-        // Null means unset (not false). Writing false/"0" breaks whereNull metadata filters.
-        $this->setMetadataValue('is_priority', $normalized === null ? null : $normalized);
+        $this->pendingAttributeWrites['is_priority'] = $value === null ? null : (bool) $value;
     }
 
     public function setEscalatedAtAttribute(mixed $value): void
     {
         $this->pendingAttributeWrites['escalated_at'] = $value;
-        $this->setMetadataValue(
-            'escalated_at',
-            $value instanceof CarbonInterface ? $value->toIso8601String() : $value,
-        );
     }
 
     /**
@@ -1073,8 +1120,8 @@ class Event extends PackageEvent implements AuditableContract
 
     private function syncPrimaryOccurrenceFromPendingState(): void
     {
-        $startsAt = $this->pendingPrimaryOccurrence['starts_at'] ?? $this->legacyMetadataValue('starts_at');
-        $endsAt = $this->pendingPrimaryOccurrence['ends_at'] ?? $this->legacyMetadataValue('ends_at');
+        $startsAt = $this->pendingPrimaryOccurrence['starts_at'] ?? $this->productMetadataValue('starts_at');
+        $endsAt = $this->pendingPrimaryOccurrence['ends_at'] ?? $this->productMetadataValue('ends_at');
 
         if ($startsAt === null && $endsAt === null) {
             return;
@@ -1100,9 +1147,9 @@ class Event extends PackageEvent implements AuditableContract
             'issue_passes_for_free' => $this->issue_passes_for_free ?? true,
             'metadata' => array_filter([
                 'source' => 'app_event_primary_occurrence',
-                'schedule_kind' => $this->legacyMetadataValue('schedule_kind'),
-                'schedule_state' => $this->legacyMetadataValue('schedule_state'),
-                'timing_mode' => $this->legacyMetadataValue('timing_mode'),
+                'schedule_kind' => $this->productMetadataValue('schedule_kind'),
+                'schedule_state' => $this->productMetadataValue('schedule_state'),
+                'timing_mode' => $this->productMetadataValue('timing_mode'),
                 'prayer_reference' => $this->prayer_reference,
                 'prayer_offset' => $this->prayer_offset,
                 'prayer_display_text' => $this->prayer_display_text,
@@ -1214,7 +1261,11 @@ class Event extends PackageEvent implements AuditableContract
         parent::setAttribute('metadata', $metadata);
     }
 
-    private function legacyMetadataValue(string $key): mixed
+    /**
+     * Product-owned fields stored on events.metadata (institution, structure, counters, etc.).
+     * Package-backed projections (occurrence/links/audience/attributes) must not dual-write here.
+     */
+    private function productMetadataValue(string $key): mixed
     {
         $metadata = $this->attributes['metadata'] ?? null;
         $metadata = is_string($metadata) ? json_decode($metadata, true) : $metadata;
@@ -1224,21 +1275,6 @@ class Event extends PackageEvent implements AuditableContract
         }
 
         return $metadata[$key];
-    }
-
-    private function dateFromMetadata(string $key): ?Carbon
-    {
-        $value = $this->legacyMetadataValue($key);
-
-        if ($value instanceof Carbon) {
-            return $value;
-        }
-
-        if (is_string($value) && $value !== '') {
-            return Carbon::parse($value);
-        }
-
-        return null;
     }
 
     private function metadataSerializableValue(mixed $value): mixed
@@ -1348,13 +1384,9 @@ class Event extends PackageEvent implements AuditableContract
         }
 
         /** @var ?Reference $reference */
-        $eventReference = $this->references()
-            ->whereHasMorph('referenceable', [Reference::class], function (Builder $q): void {
-                $q->where('type', ReferenceType::Book->value);
-            })
+        $reference = $this->references()
+            ->where('references.type', ReferenceType::Book->value)
             ->first();
-
-        $reference = $eventReference?->referenceable;
 
         return $reference;
     }
@@ -1935,13 +1967,36 @@ class Event extends PackageEvent implements AuditableContract
     }
 
     /**
+     * Catalog references attached via package event_references pivot.
+     *
+     * @return BelongsToMany<Reference, $this>
+     */
+    public function references(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Reference::class,
+            config('events.database.tables.event_references', 'event_references'),
+            'event_id',
+            'referenceable_id',
+        )
+            ->using(EventReferencePivot::class)
+            ->wherePivot('referenceable_type', 'reference')
+            ->withPivotValue('referenceable_type', 'reference')
+            ->withPivotValue('visibility', 'public')
+            ->withPivotValue('reference_type', 'book')
+            ->withPivot(['id', 'sort_order', 'visibility', 'reference_type', 'title'])
+            ->withTimestamps()
+            ->orderByPivot('sort_order');
+    }
+
+    /**
+     * Raw package EventReference rows (includes non-catalog links).
+     *
      * @return HasMany<EventReference, $this>
      */
-    public function references(): HasMany
+    public function eventReferences(): HasMany
     {
-        return $this->hasMany(EventReference::class)
-            ->where('referenceable_type', 'reference')
-            ->orderBy('sort_order');
+        return $this->hasMany(EventReference::class)->orderBy('sort_order');
     }
 
     /**

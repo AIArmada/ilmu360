@@ -29,7 +29,6 @@ class EventKeyPerson extends EventInvolvement
         'prominence',
         'is_featured',
         'is_primary',
-        'is_public',
         'starts_at',
         'ends_at',
         'replaced_by_involvement_id',

@@ -28,7 +28,7 @@ class EventCheckInController extends Controller
         RecordEventCheckInAction $recordEventCheckInAction,
     ): JsonResponse {
         $user = $this->currentUser($request);
-        $state = $resolveEventCheckInStateAction->handle($event->loadMissing('settings'), $user);
+        $state = $resolveEventCheckInStateAction->handle($event->loadMissing('accessPolicy'), $user);
 
         if (! $state['available']) {
             return response()->json([

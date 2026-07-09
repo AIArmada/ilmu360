@@ -180,10 +180,10 @@ class EditUser extends EditRecord
     private function pivotRoleSlug(User $user, MemberSubjectType $subjectType): ?string
     {
         return match ($subjectType) {
-            MemberSubjectType::Institution => $user->institutions->first()?->pivot?->role_slug,
-            MemberSubjectType::Speaker => $user->speakers->first()?->pivot?->role_slug,
-            MemberSubjectType::Event => $user->memberEvents->first()?->pivot?->role_slug,
-            MemberSubjectType::Reference => $user->references->first()?->pivot?->role_slug,
+            MemberSubjectType::Institution => $user->institutions->first()?->pivot?->role,
+            MemberSubjectType::Speaker => $user->speakers->first()?->pivot?->role,
+            MemberSubjectType::Event => $user->memberEvents->first()?->pivot?->role,
+            MemberSubjectType::Reference => $user->references->first()?->pivot?->role,
         };
     }
 }

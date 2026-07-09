@@ -331,19 +331,19 @@ class InstitutionWorkspaceController extends FrontendController
     private function userHasInstitutionManagementRole(User $user): bool
     {
         return $user->institutions()
-            ->wherePivotIn('role_slug', [MemberRole::Owner->value, MemberRole::Admin->value])
+            ->wherePivotIn('role', [MemberRole::Owner->value, MemberRole::Admin->value])
             ->exists();
     }
 
     private function memberIsOwner(User $user): bool
     {
-        if (! isset($user->pivot) || ! $user->pivot->role_slug) {
+        if (! isset($user->pivot) || ! $user->pivot->role) {
             return $user->institutions()
-                ->wherePivot('role_slug', MemberRole::Owner->value)
+                ->wherePivot('role', MemberRole::Owner->value)
                 ->exists();
         }
 
-        return $user->pivot->role_slug === MemberRole::Owner->value;
+        return $user->pivot->role === MemberRole::Owner->value;
     }
 
     private function memberHasProtectedRole(User $user): bool
@@ -508,7 +508,7 @@ class InstitutionWorkspaceController extends FrontendController
      */
     private function memberRoleNames(User $member): array
     {
-        $roleSlug = $member->pivot->role_slug ?? '';
+        $roleSlug = $member->pivot->role ?? '';
 
         if ($roleSlug === '') {
             return [];
@@ -522,7 +522,7 @@ class InstitutionWorkspaceController extends FrontendController
      */
     private function memberRoleIds(User $member): array
     {
-        $roleSlug = $member->pivot->role_slug ?? '';
+        $roleSlug = $member->pivot->role ?? '';
 
         return $roleSlug !== '' ? [$roleSlug] : [];
     }
@@ -533,7 +533,7 @@ class InstitutionWorkspaceController extends FrontendController
     private function memberRoleNamesForFreshMember(Institution $institution, User $member): array
     {
         $pivotMember = $institution->members()->where('user_id', $member->id)->first();
-        $roleSlug = $pivotMember?->pivot->role_slug ?? '';
+        $roleSlug = $pivotMember?->pivot->role ?? '';
 
         if ($roleSlug === '') {
             return [];

@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Models\Event;
 use App\Models\ModerationReview;
 use App\Models\User;
@@ -15,6 +16,13 @@ class ModerationReviewSeeder extends Seeder
      * Run the database seeds.
      */
     public function run(): void
+    {
+        OwnerContext::withOwner(null, function (): void {
+            $this->seedReviews();
+        });
+    }
+
+    private function seedReviews(): void
     {
         if (ModerationReview::query()->exists()) {
             return;

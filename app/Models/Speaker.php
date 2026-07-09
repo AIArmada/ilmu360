@@ -612,7 +612,7 @@ class Speaker extends Model implements AuditableContract, HasMedia
     {
         return $this->eventKeyPeople()
             ->where('role_code', '!=', EventKeyPersonRole::Speaker->value)
-            ->where('is_public', true)
+            ->where('visibility', 'public')
             ->orderBy('sort_order');
     }
 

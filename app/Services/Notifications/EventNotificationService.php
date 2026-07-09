@@ -571,10 +571,7 @@ class EventNotificationService
         );
 
         $references = $event->references()
-            ->with('referenceable')
             ->get()
-            ->pluck('referenceable')
-            ->filter()
             ->unique('id')
             ->values();
 

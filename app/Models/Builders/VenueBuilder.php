@@ -19,6 +19,15 @@ class VenueBuilder extends Builder
         'facilities',
     ];
 
+    /**
+     * Product query field names → package columns (single store).
+     *
+     * @var array<string, string>
+     */
+    private const array PackageColumnAliases = [
+        'type' => 'venue_type',
+    ];
+
     #[\Override]
     public function where($column, $operator = null, $value = null, $boolean = 'and'): static
     {
@@ -143,6 +152,10 @@ class VenueBuilder extends Builder
 
     private function mapColumn(string $column): ?string
     {
+        if (isset(self::PackageColumnAliases[$column])) {
+            return $this->qualifyModelColumn(self::PackageColumnAliases[$column]);
+        }
+
         if (in_array($column, self::MetadataBackedColumns, true)) {
             return $this->qualifiedMetadataSelector($column);
         }

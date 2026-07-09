@@ -30,7 +30,6 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema as SchemaFacade;
 use Illuminate\Support\HtmlString;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
@@ -109,7 +108,7 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
     public function bootedInteractsWithTable(): void
     {
         $this->filamentBootedInteractsWithTable();
-        $this->syncTableStateFromLegacyQuery();
+        $this->syncTableStateFromDashboardFilters();
     }
 
     public function getTablePaginationPageName(): string
@@ -164,13 +163,13 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
         }
 
         if (str($name)->startsWith('tableFilters')) {
-            $this->syncLegacyFilterStateFromTable();
+            $this->syncDashboardFiltersFromTable();
 
             return;
         }
 
         if ($name === 'tableSort') {
-            $this->eventSort = $this->legacyEventSortFromTableState();
+            $this->eventSort = $this->dashboardEventSortFromTableState();
 
             return;
         }
@@ -668,7 +667,7 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
                     ->dateTime()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
-            ->defaultSort(fn (Builder $query): string|Builder|null => $this->applyLegacyEventSort($query), fn (): string => $this->legacyEventSortDirection())
+            ->defaultSort(fn (Builder $query): string|Builder|null => $this->applyDashboardEventSort($query), fn (): string => $this->dashboardEventSortDirection())
             ->searchPlaceholder(__('Search by event title or venue'))
             ->filters([
                 SelectFilter::make('status')
@@ -799,17 +798,12 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
 
     protected function eventInstitutionIdSelector(): string
     {
-        $metadataSelector = match (DB::connection()->getDriverName()) {
+        // Package-native: institution_id lives in events.metadata only.
+        return match (DB::connection()->getDriverName()) {
             'pgsql' => "(events.metadata->>'institution_id')::uuid",
             'mysql', 'mariadb' => "json_unquote(json_extract(events.metadata, '$.\"institution_id\"'))",
             default => "json_extract(events.metadata, '$.\"institution_id\"')",
         };
-
-        if (! SchemaFacade::hasColumn('events', 'institution_id')) {
-            return $metadataSelector;
-        }
-
-        return "coalesce(events.institution_id, {$metadataSelector})";
     }
 
     protected function normalizeEventSort(string $value): string
@@ -925,10 +919,12 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
     }
 
     /**
+     * Apply dashboard event sort when Filament column sort is not active.
+     *
      * @param  Builder<Event>  $query
      * @return Builder<Event>|string|null
      */
-    protected function applyLegacyEventSort(Builder $query): Builder|string|null
+    protected function applyDashboardEventSort(Builder $query): Builder|string|null
     {
         if (filled($this->tableSort)) {
             return null;
@@ -946,7 +942,7 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
         };
     }
 
-    protected function legacyEventSortDirection(): string
+    protected function dashboardEventSortDirection(): string
     {
         return match ($this->eventSort) {
             'starts_asc', 'title_asc', 'pending_first' => 'asc',
@@ -954,7 +950,10 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
         };
     }
 
-    protected function syncTableStateFromLegacyQuery(): void
+    /**
+     * Mirror URL/query dashboard filters into Filament table state.
+     */
+    protected function syncTableStateFromDashboardFilters(): void
     {
         $this->eventStatus = $this->normalizeEventStatus($this->eventStatus);
         $this->eventVisibility = $this->normalizeEventVisibility($this->eventVisibility);
@@ -972,13 +971,16 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
         $this->getTableFiltersForm()->fill($this->tableFilters);
     }
 
-    protected function syncLegacyFilterStateFromTable(): void
+    /**
+     * Mirror Filament table filters back to dashboard URL/query state.
+     */
+    protected function syncDashboardFiltersFromTable(): void
     {
         $this->eventStatus = $this->normalizeEventStatus((string) (data_get($this->getTableFilterState('status'), 'value') ?? 'all'));
         $this->eventVisibility = $this->normalizeEventVisibility((string) (data_get($this->getTableFilterState('visibility'), 'value') ?? 'all'));
     }
 
-    protected function legacyEventSortFromTableState(): string
+    protected function dashboardEventSortFromTableState(): string
     {
         return match ($this->tableSort) {
             'starts_at:asc', 'starts_at' => 'starts_asc',
@@ -1004,7 +1006,7 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
             return [];
         }
 
-        $roleSlug = $member->pivot->role_slug ?? '';
+        $roleSlug = $member->pivot->role ?? '';
 
         return $roleSlug !== '' ? [$roleSlug] : [];
     }
@@ -1023,7 +1025,7 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
             return [];
         }
 
-        $roleSlug = $member->pivot->role_slug ?? '';
+        $roleSlug = $member->pivot->role ?? '';
 
         if ($roleSlug === '') {
             return [];
@@ -1035,14 +1037,14 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
     protected function userHasInstitutionManagementRole(User $user): bool
     {
         return $user->institutions()
-            ->wherePivotIn('role_slug', [MemberRole::Owner->value, MemberRole::Admin->value])
+            ->wherePivotIn('role', [MemberRole::Owner->value, MemberRole::Admin->value])
             ->exists();
     }
 
     protected function memberIsOwner(User $user): bool
     {
         return $user->institutions()
-            ->wherePivot('role_slug', MemberRole::Owner->value)
+            ->wherePivot('role', MemberRole::Owner->value)
             ->exists();
     }
 

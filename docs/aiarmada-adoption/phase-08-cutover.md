@@ -59,7 +59,7 @@ Full list: see [`status.md`](status.md).
 - [x] Runtime builders bridge package columns (`EventBuilder`, `VenueBuilder`, `ReferenceBuilder`) — **temporary**
 - [x] **Phase 9 P9-C:** DirectColumnMaps deleted; occurrence/metadata package-shape maps remain
 - [x] **Phase 9 P9-A:** Event HasTags removed; classifications write path (Tag admin residual optional)
-- [ ] **Phase 9 P9-G:** thin Event/Registration; package-native field names (app subclass OK only for intentional product)
+- [x] **Phase 9 P9-G:** Event dual-write cut; package single-source projections; product metadata intentional; `primaryOccurrence()`
 
 #### 8.D.T — Taxonomy
 
@@ -115,7 +115,7 @@ Full list: see [`status.md`](status.md).
 - [x] Superseded geography/contact/membership/notification models deleted
 - [x] Superseded event settings / following / claim model deleted
 - [x] Geography product hard-cut (P9-F closed)
-- [x] **Phase 9:** delete compat traits + DirectColumnMaps + Event HasTags (Reference/Event thick accessors remain P9-G)
+- [x] **Phase 9:** delete compat traits + DirectColumnMaps + Event HasTags + P9-G dual-write cut
 - [ ] Full suite green (not claimed)
 - [ ] PHPStan clean on cutover surface (baseline still has pre-existing noise)
 
@@ -146,8 +146,8 @@ Ordered for dependency and blast radius. Full task board: [`cutover-plan.html`](
 | P9-D | **Kill alias traits** | **Closed** | Traits deleted; package relations only |
 | P9-E | **Kill legacy accessors** | **Closed** | Announcement/moderation package fields |
 | P9-F | **Hard-native geography** | **Closed** | Product FKs only; zero `state_area_id`/`district_id`/`subdistrict_id` |
-| P9-G | **Thin thick subclasses** | Open | Intentional product only on Event/Reference |
-| P9-H | **UI debt** | Open | Institution dashboard legacy helpers removed |
+| P9-G | **Thin thick subclasses** | **Closed** | Dual-write cut; package projections single-source; product metadata intentional |
+| P9-H | **UI debt** | **Closed** | Dashboard filter/sort helpers de-legacied; membership pivot `role` |
 | P9-I | **Verification** | Open | Full seed + Pest + PHPStan + Pint |
 | G11 | **Paid commerce (ADR-013)** | In progress | Public checkout when payment bound; mode matrix tests |
 | G12 | **Package Block** | Deferred optional | Only if product needs bans |

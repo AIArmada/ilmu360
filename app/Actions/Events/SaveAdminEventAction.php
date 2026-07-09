@@ -266,10 +266,10 @@ final readonly class SaveAdminEventAction
         }
 
         return $event->fresh([
-            'settings',
+            'accessPolicy',
             'references',
             'series',
-            'tags',
+            'classifications',
             'keyPeople',
             'languages',
             'media',

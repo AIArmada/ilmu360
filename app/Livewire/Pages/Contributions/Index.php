@@ -26,7 +26,6 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema as SchemaFacade;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -340,19 +339,11 @@ class Index extends Component implements HasForms
 
     private function eventInstitutionIdSelector(): string
     {
-        $metadataSelector = match (DB::connection()->getDriverName()) {
+        // Package-native: institution_id lives in events.metadata only.
+        return match (DB::connection()->getDriverName()) {
             'pgsql' => "(events.metadata->>'institution_id')::uuid",
             'mysql', 'mariadb' => "json_unquote(json_extract(events.metadata, '$.\"institution_id\"'))",
             default => "json_extract(events.metadata, '$.\"institution_id\"')",
-        };
-
-        if (! SchemaFacade::hasColumn('events', 'institution_id')) {
-            return $metadataSelector;
-        }
-
-        return match (DB::connection()->getDriverName()) {
-            'pgsql' => "coalesce(events.institution_id, {$metadataSelector})",
-            default => "coalesce(events.institution_id, {$metadataSelector})",
         };
     }
 

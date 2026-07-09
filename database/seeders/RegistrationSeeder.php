@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 
 class RegistrationSeeder extends Seeder
 {
@@ -26,7 +27,7 @@ class RegistrationSeeder extends Seeder
         try {
             DB::transaction(function (): void {
                 $events = Event::query()
-                    ->whereHas('settings', function ($query) {
+                    ->whereHas('accessPolicy', function ($query): void {
                         $query->where('registration_required', true);
                     })
                     ->pluck('id')
@@ -62,7 +63,11 @@ class RegistrationSeeder extends Seeder
                         }
                         $usedEmails[] = $email;
 
+                        // Event dispatcher is unset for bulk seed speed; assign package defaults explicitly.
                         $registration = new Registration([
+                            'id' => (string) Str::uuid(),
+                            'registration_no' => 'REG-'.mb_strtoupper(Str::random(10)),
+                            'registered_at' => now(),
                             'event_id' => $eventId,
                             'registrant_type' => isset($user['id']) ? (new User)->getMorphClass() : null,
                             'registrant_id' => $user['id'] ?? null,

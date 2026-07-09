@@ -102,10 +102,9 @@ Institution, Speaker, DonationChannel, MediaLink, Inspiration, SlugRedirect, Con
 | G3 | Builder legacy column maps | **Closed** — DirectColumnMaps gone; factory uses `default_venue_id`/`delivery_mode` | P9-C done |
 | G4 | Contact/social/address alias traits | **Closed** | P9-D done |
 | G5 | Legacy accessors (announcement/moderation/reference parent) | **Closed** | P9-E done |
-| G7 | Thick Event subclass | **Partial** — removed `venue_id`/`event_format` attribute aliases; metadata-backed product fields remain | **P9-G residual** |
 | G6 | Geography hard cut | **Closed** — product native FKs; zero alias footprint | P9-F done |
-| G7 | Thick Event/Reference subclasses | **Open** (structural) | **P9-G** |
-| G8 | Institution dashboard legacy UI helpers | **Open** | **P9-H** |
+| G7 | Thick Event subclass | **Closed** — package-backed projections single-source; product metadata intentional; `primaryOccurrence()` | P9-G done |
+| G8 | Institution dashboard legacy UI helpers | **Closed** — renamed to dashboard filter/sort sync; membership pivot uses package `role` | P9-H done |
 | G9 | Dead notif dual-store tooling | **Closed 2026-07-10** — orphan factories + migrate commands deleted; User uses package `HasInbox`; destinations use `recipient_*` + `metadata` | P9-B done |
 | G10 | Verification debt | **Open** — full suite/PHPStan not claimed | **P9-I** |
 | G11 | Paid commerce productization | **In progress** — packages in; public checkout flag off | **ADR-013** |
@@ -113,11 +112,9 @@ Institution, Speaker, DonationChannel, MediaLink, Inspiration, SlugRedirect, Con
 
 ## Active next actions
 
-1. **P9-G residual** — strip remaining Event metadata-backed attribute shims (`institution_id`, counters, schedule_*, etc.) and occurrence pending-write buffers  
-2. **Tag Filament** — optional: retire Spatie Tag admin if product no longer needs non-event tags  
-3. **G11** — bind payment + public paid checkout  
-4. **P9-H** — institution dashboard legacy helpers  
-5. **P9-I** — `migrate:fresh --seed`, full Pest, PHPStan, Pint  
+1. **P9-I** — `migrate:fresh --seed`, full Pest, PHPStan, Pint (claim exit only after green)  
+2. **G11** — bind payment + public paid checkout when product ready  
+3. **Optional** — retire Filament Tag admin if product confirms Tags unused  
 
 ## Blocker register
 

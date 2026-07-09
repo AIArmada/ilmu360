@@ -42,6 +42,16 @@ class EventBuilder extends Builder
         'going_count',
     ];
 
+    /**
+     * Product query field names → package columns (single store).
+     *
+     * @var array<string, string>
+     */
+    private const array PackageColumnAliases = [
+        'event_format' => 'delivery_mode',
+        'venue_id' => 'default_venue_id',
+    ];
+
     #[\Override]
     public function where($column, $operator = null, $value = null, $boolean = 'and'): static
     {
@@ -317,6 +327,10 @@ class EventBuilder extends Builder
 
     private function mapColumn(string $column): ?string
     {
+        if (isset(self::PackageColumnAliases[$column])) {
+            return $this->qualifyModelColumn(self::PackageColumnAliases[$column]);
+        }
+
         if (in_array($column, self::MetadataBackedColumns, true)) {
             return $this->qualifiedMetadataSelector($column);
         }

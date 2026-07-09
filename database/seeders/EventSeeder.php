@@ -103,7 +103,7 @@ class EventSeeder extends Seeder
                 // - online: no physical location
                 // - non-online: institution XOR venue
                 foreach ($events as $event) {
-                    if ($event->event_format === EventFormat::Online) {
+                    if ($event->delivery_mode === EventFormat::Online->value || $event->delivery_mode === EventFormat::Online) {
                         $event->update([
                             'institution_id' => null,
                             'default_venue_id' => null,
@@ -165,15 +165,14 @@ class EventSeeder extends Seeder
                             $speakerKeyPeople[] = [
                                 'id' => (string) Str::uuid(),
                                 'event_id' => $event->id,
-                                'speaker_id' => $speakerId,
+                                'involveable_type' => 'speaker',
+                                'involveable_id' => $speakerId,
                                 'role_code' => EventKeyPersonRole::Speaker->value,
-                                'name' => null,
                                 'sort_order' => $index + 1,
-                                'is_public' => true,
                                 'notes' => null,
                                 'status' => 'active',
                                 'visibility' => 'public',
-                                'prominence' => 0,
+                                'prominence' => '0',
                                 'is_featured' => false,
                                 'is_primary' => false,
                                 'created_at' => now(),
@@ -702,9 +701,9 @@ class EventSeeder extends Seeder
                     }
 
                     $hasInstitutionLocation = is_string($event->institution_id) && $event->institution_id !== '';
-                    $hasVenueLocation = is_string($event->default_venue_id ?? $event->venue_id) && ($event->default_venue_id ?? $event->venue_id) !== '';
+                    $hasVenueLocation = is_string($event->default_venue_id) && $event->default_venue_id !== '';
                     $hasSpace = is_string($event->space_id) && $event->space_id !== '';
-                    $eventFormat = $event->event_format;
+                    $eventFormat = $event->delivery_mode;
                     $isOnlineEvent = $eventFormat === EventFormat::Online
                         || (is_string($eventFormat) && $eventFormat === EventFormat::Online->value);
 

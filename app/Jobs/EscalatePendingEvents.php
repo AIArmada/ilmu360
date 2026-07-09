@@ -77,23 +77,15 @@ class EscalatePendingEvents implements ShouldQueue
         $events = Event::query()
             ->where('status', 'pending')
             ->where('created_at', '<=', now()->subHours(72))
-            ->where(function ($query) use ($cutoff): void {
-                $query
-                    ->where(function ($metadataQuery) use ($cutoff): void {
-                        $metadataQuery
-                            ->whereNotNull('metadata->escalated_at')
-                            ->where('metadata->escalated_at', '<=', $cutoff);
-                    })
-                    ->orWhereExists(function ($attributeQuery) use ($cutoff): void {
-                        $attributeQuery
-                            ->selectRaw('1')
-                            ->from('event_attributes')
-                            ->whereColumn('event_attributes.event_id', 'events.id')
-                            ->where('event_attributes.attribute_key', 'escalated_at')
-                            ->whereNotNull('event_attributes.attribute_value')
-                            ->where('event_attributes.attribute_value', '!=', '')
-                            ->where('event_attributes.attribute_value', '<=', $cutoff);
-                    });
+            ->whereExists(function ($attributeQuery) use ($cutoff): void {
+                $attributeQuery
+                    ->selectRaw('1')
+                    ->from('event_attributes')
+                    ->whereColumn('event_attributes.event_id', 'events.id')
+                    ->where('event_attributes.attribute_key', 'escalated_at')
+                    ->whereNotNull('event_attributes.attribute_value')
+                    ->where('event_attributes.attribute_value', '!=', '')
+                    ->where('event_attributes.attribute_value', '<=', $cutoff);
             })
             ->get();
 
@@ -194,23 +186,14 @@ class EscalatePendingEvents implements ShouldQueue
      */
     private function whereNotEscalated($query)
     {
-        return $query->where(function ($inner): void {
-            $inner
-                ->where(function ($metadataQuery): void {
-                    $metadataQuery
-                        ->whereNull('metadata->escalated_at')
-                        ->orWhere('metadata->escalated_at', '')
-                        ->orWhere('metadata->escalated_at', 'null');
-                })
-                ->whereNotExists(function ($attributeQuery): void {
-                    $attributeQuery
-                        ->selectRaw('1')
-                        ->from('event_attributes')
-                        ->whereColumn('event_attributes.event_id', 'events.id')
-                        ->where('event_attributes.attribute_key', 'escalated_at')
-                        ->whereNotNull('event_attributes.attribute_value')
-                        ->where('event_attributes.attribute_value', '!=', '');
-                });
+        return $query->whereNotExists(function ($attributeQuery): void {
+            $attributeQuery
+                ->selectRaw('1')
+                ->from('event_attributes')
+                ->whereColumn('event_attributes.event_id', 'events.id')
+                ->where('event_attributes.attribute_key', 'escalated_at')
+                ->whereNotNull('event_attributes.attribute_value')
+                ->where('event_attributes.attribute_value', '!=', '');
         });
     }
 
@@ -220,24 +203,13 @@ class EscalatePendingEvents implements ShouldQueue
      */
     private function whereNotPriority($query)
     {
-        return $query->where(function ($inner): void {
-            $inner
-                ->where(function ($metadataQuery): void {
-                    $metadataQuery
-                        ->whereNull('metadata->is_priority')
-                        ->orWhere('metadata->is_priority', false)
-                        ->orWhere('metadata->is_priority', 0)
-                        ->orWhere('metadata->is_priority', '0')
-                        ->orWhere('metadata->is_priority', 'false');
-                })
-                ->whereNotExists(function ($attributeQuery): void {
-                    $attributeQuery
-                        ->selectRaw('1')
-                        ->from('event_attributes')
-                        ->whereColumn('event_attributes.event_id', 'events.id')
-                        ->where('event_attributes.attribute_key', 'is_priority')
-                        ->where('event_attributes.attribute_value', '1');
-                });
+        return $query->whereNotExists(function ($attributeQuery): void {
+            $attributeQuery
+                ->selectRaw('1')
+                ->from('event_attributes')
+                ->whereColumn('event_attributes.event_id', 'events.id')
+                ->where('event_attributes.attribute_key', 'is_priority')
+                ->where('event_attributes.attribute_value', '1');
         });
     }
 }

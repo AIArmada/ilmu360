@@ -187,7 +187,7 @@ Stale “Not Started / Assessed” rows in `agent-work-queue.md` must not be tre
 | --- | --- | --- |
 | Delete builder legacy maps | P9-C | **Open** |
 | Taxonomy single path | P9-A | **Open** (decision ADR-011 package taxonomy) |
-| Thin Event/Registration | P9-G | **Open** |
+| Thin Event/Registration | P9-G | **Closed** (product projections single-source; no dual metadata+child) |
 | Legacy accessors ModerationReview / EventChangeAnnouncement | P9-E | **Open** |
 | Optional Block | G12 | **Deferred optional** |
 | Optional report↔approval linkage | product | **Deferred** until product asks |
@@ -209,10 +209,8 @@ Ordered for dependency:
 1. **P9-A residual** — Tag Filament/AI form paths if still creating Spatie Tags for events  
 2. **P9-C residual** — Reference attribute aliases; any remaining DirectColumn call sites  
 3. **G11 Paid commerce** — payment bind + public flag + mode matrix tests  
-4. **P9-G Thin subclasses** — Event/Reference cutover glue only  
-5. **P9-H UI debt** — institution dashboard legacy filter/sort  
-6. **P9-I Verification** — migrate:fresh --seed, full Pest, PHPStan, Pint  
-7. **G12 Block** — only if product needs bans  
+4. **P9-I Verification** — migrate:fresh --seed, full Pest, PHPStan, Pint  
+5. **G12 Block** — only if product needs bans  
 
 **Closed (no-BC kill pass):**  
 - P9-B comms  
@@ -220,7 +218,7 @@ Ordered for dependency:
 - P9-E EventChangeAnnouncement + ModerationReview package fields  
 - P9-A: Event `HasTags` removed; forms/AI/seeder write EventTerm classifications only  
 - P9-C DirectColumnMaps removed; factories use `default_venue_id`/`delivery_mode`  
-- Partial P9-G: Event `venue_id`/`event_format` attribute aliases removed; Reference `parent_id`/`year`/`url` package fields  
+- **P9-G:** Event dual-write removed (occurrence/attributes sole store for dates/flags); `primaryOccurrence()`; product metadata intentional; Reference package parent_id/year/url  
 
 ### Explicitly closed (do not re-open as Phase 4–7 work)
 
