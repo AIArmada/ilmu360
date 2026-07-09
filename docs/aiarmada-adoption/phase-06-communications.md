@@ -1,6 +1,10 @@
 # Phase 6 - Communications And Notifications
 
-State: `Assessed`
+State: **`Superseded`** (assessment-era plan; execution landed in Phase 8)
+
+> **Do not implement from open checkboxes in this file.**  
+> Live status: [`status.md`](status.md) · No-miss carry-forward: [`phase-reconciliation.md`](phase-reconciliation.md) §6 · Active residual: **P9-B** (orphan factories, migrate commands, HasInbox consistency).  
+> **Already done:** package install, inbox/preferences cutover, model+engine deletion, resolvers, `dispatch_through_package` default **true**, `DispatchMode` removed.
 
 ## Objective
 

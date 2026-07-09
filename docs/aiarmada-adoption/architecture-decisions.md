@@ -204,6 +204,10 @@ Package leftovers **removed** from `Address`: no `district_id` / `subdistrict_id
 | Product use of `admin_area_3_id` | Two area slots only: district + subdistrict |
 | Package `district_id` / `subdistrict_id` accessors | Removed from package |
 
+### Zero legacy footprint (enforced)
+
+App and tests reject `state_area_id`, `district_id`, and `subdistrict_id`. Package `Address` no longer provides those accessors/relations. Canonical columns only: `country_id`, `state_id`, `city_id`, `admin_area_1_id` (district), `admin_area_2_id` (subdistrict).
+
 Consequences:
 
 - Forms, contributions, Filament hydrate via `state_id` + `city_id` + district + subdistrict.

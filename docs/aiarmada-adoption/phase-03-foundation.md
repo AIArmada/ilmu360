@@ -24,7 +24,7 @@ Move foundational AIArmada packages to local path source and remove brittle app-
 - [x] Adopt local `signals` and `filament-signals`. (Already done: published configs, working)
 - [x] Remove app provider overrides for package views/routes once package loading is correct. (WP-08: removed 2 stale monorepo refs)
 - [x] Adopt `affiliates` source and reconcile share attribution behavior. (Already done, working with defaults)
-- [ ] Adopt `growth` only if telemetry/growth workflows are enabled. (Not installed — skip Phase 3)
+- [ ] Adopt `growth` only if telemetry/growth workflows are enabled. (Not installed — **Deferred**; see [`phase-reconciliation.md`](phase-reconciliation.md) §0–3)
 - [x] Verify Signals tracking remains curated and privacy-first. (Extensive app-level Signals code, no blanket logging)
 
 ## Verification

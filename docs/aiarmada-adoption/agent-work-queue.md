@@ -1,5 +1,12 @@
 # Agent Work Queue
 
+> **Stale for live backlog (2026-07-10).**  
+> Do **not** start work from “Not Started” / “Assessed” rows without cross-checking:  
+> 1. [`status.md`](status.md)  
+> 2. [`phase-reconciliation.md`](phase-reconciliation.md) (§ agent-work-queue + §9)  
+> 3. [`phase-08-cutover.md`](phase-08-cutover.md) Phase 9 workstreams  
+> Phase 4–8 packets below are **historical**. Active implementation IDs are **P9-A…P9-I** and **G11**.
+
 This file decomposes the rewrite into packets that can be assigned to multiple agents. Each packet has a bounded ownership area. Agents must update `status.md` before starting and `review-log.md` after completing work.
 
 ## Work Packet Template
@@ -56,18 +63,18 @@ Dependencies:
 | WP-06 | `Verified` | 2 | Main agent | Audit package migrations for UUID/no-constraint/no-SoftDeletes compliance | `/Users/Saiffil/Herd/commerce/packages/*/database` |
 | WP-07 | `Verified` | 2 | Main agent | Fix `commerce-support` migration stub behavior generically | `/Users/Saiffil/Herd/commerce/packages/commerce-support` |
 | WP-08 | `Verified` | 3 | Main agent | Fix stale model refs, remove stale monorepo overrides, publish authz config | `config/permission.php`, `config/authz.php`, `app/Providers/AppServiceProvider.php`, tests touching authz/permissions |
-| WP-09 | `In Progress` | 4/8 | Main agent | Replace addressing/geography model plan, global discovery, country-switch removal, and seed/import strategy | `app/Models/*`, `database/*`, routes/layout country switcher, search filters, `/Users/Saiffil/Herd/commerce/packages/addressing` |
-| WP-10 | `Assessed` | 4 | Main agent | Replace contacts/social profiles with `contacting` | `app/Models/Contact.php`, `app/Models/SocialMedia.php`, form schemas/resources |
-| WP-11 | `Assessed` | 4 | Main agent | Replace membership claims/invitations/members with `membership` | `app/Actions/Membership`, membership models/resources/routes |
-| WP-12 | `Assessed` | 5 | Main agent | Replace event core with `events` package | event models/actions/resources/controllers/livewire/tests |
-| WP-13 | `Assessed` | 5 | Main agent | Replace engagement behavior with `engagement` | follows/saves/going/share/reminder code paths |
-| WP-14 | `Assessed` | 5 | Main agent | Replace references with `references` package | reference model/actions/resources/controllers/livewire/tests |
-| WP-15 | `Assessed` | 5 | Main agent | Replace moderation/report/block flows with `moderation`, `events`, and maybe `feedback` | moderation/report models/actions/resources |
-| WP-16 | `Assessed` | 6 | Main agent | Replace notification engine with `communications` — assessed. FCM/WhatsApp/digest bound through contracts. Detailed plan in phase-06.md. | `docs/aiarmada-adoption/phase-06-communications.md` |
-| WP-17 | `Assessed` | 7 | Main agent | Evaluate paid tickets/event products/donation checkout commerce path — assessed. App has zero commerce. Ticketing via events package, payments via CHIP, donations via Chip Collect. No inventory/shipping/tax needed. | `docs/aiarmada-adoption/phase-07-commerce.md` |
-| WP-18 | `Not Started` | 8 | Unassigned | Rebuild Filament resources against package models | `app/Filament`, `filament-*` package configs |
-| WP-19 | `Not Started` | 8 | Unassigned | Rebuild public Livewire/API/MCP surfaces | `app/Livewire`, `app/Http/Controllers/Api`, `app/Mcp`, docs |
-| WP-20 | `Not Started` | 8 | Unassigned | Final deletion, docs regeneration, and full verification | app legacy paths, generated docs, tests |
+| WP-09 | `Verified` | 4/8 | Main agent | Addressing/geography cutover + product FK hard-cut | see phase-reconciliation §4; residual aliases = P9-D only |
+| WP-10 | `Verified` | 4/8 | Main agent | Contacts/social → contacting (models deleted; alias traits = P9-D) | `contacting` package + app traits residual |
+| WP-11 | `Verified` | 4/8 | Main agent | Membership → package applications/invitations | residual polish only |
+| WP-12 | `Mostly complete` | 5/8 | Main agent | Events package ownership | residuals P9-A/C/E/G |
+| WP-13 | `Verified` | 5/8 | Main agent | Engagement package contracts | — |
+| WP-14 | `Mostly complete` | 5/8 | Main agent | References package model | thick product = P9-G |
+| WP-15 | `Mostly complete` | 5/8 | Main agent | Moderation/report | P9-E accessors; G12 Block optional |
+| WP-16 | `Mostly complete` | 6/8 | Main agent | Communications cutover | P9-B residual factories/commands |
+| WP-17 | `Superseded` | 7→9 | — | Paid commerce assessment | **G11 / ADR-013** |
+| WP-18 | `Mostly complete` | 8 | — | Filament against packages | residual Tag resource = P9-A |
+| WP-19 | `Mostly complete` | 8 | — | Public Livewire/API/MCP on package models | dual-path residuals only |
+| WP-20 | `In Progress` | 9 | — | Final deletion + verification | **Phase 9 P9-*** + P9-I |
 
 ## Active Phase 8 Sub-Packets
 
@@ -77,7 +84,7 @@ Dependencies:
 | WP-09B | `Verified` | Main agent | Seed package countries and Malaysia address areas | `database/seeders/AddressingSeeder.php`, `database/seeders/data/malaysia-address-areas.csv`, `config/addressing.php` | `php artisan migrate:fresh --ansi && php artisan db:seed --class=AddressingSeeder --ansi` |
 | WP-09C | `Verified` | Main agent | Move submit-event to package `AddressCountry` UUIDs and remove admin/MCP preferred-country defaults. Full package address field replacement remains in WP-09E/address schema rebuild. | `resources/views/components/pages/submit-event/*`, `app/Actions/Events/SubmitFrontendEventAction.php`, `app/Support/Api/Admin/AdminResourceMutationService.php`, MCP tools/tests | `view:cache`, `pint`, `git diff --check`, no preferred-country refs in code/tests |
 | WP-09D | `Verified` | Main agent | Delete legacy country-mode services/tests after remaining callers are removed | `app/Support/Location/PublicCountryPreference.php`, `app/Support/Location/PublicCountryRegistry.php`, `app/Support/Location/PreferredCountryResolver.php`, related tests | `rg "PublicCountryPreference|PublicCountryRegistry|PreferredCountryResolver"` => docs only |
-| WP-09E | `Not Started` | Unassigned | Delete old integer geography models/migrations after forms/search/indexing use package addressing | `app/Models/Country.php`, `app/Models/State.php`, `app/Models/City.php`, `app/Models/District.php`, `app/Models/Subdistrict.php`, legacy geography migrations/seeders | `php artisan migrate:fresh --seed` after app seeders are rebuilt |
+| WP-09E | `Verified` | Main agent | Delete old integer geography models — **done**; product uses State/City FKs + admin_area_1/2. Zero alias footprint. | (deleted models) | `rg state_area_id\|district_id\|subdistrict_id` only reject-guards |
 
 ## Agent Completion Note Format
 

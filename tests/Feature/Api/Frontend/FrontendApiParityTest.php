@@ -705,8 +705,10 @@ it('returns only region address keys in the speaker suggest context state', func
 
     syncPrimaryAddressForTest($speaker, [
         'country_id' => $countryId,
-        'admin_area_1_id' => (string) $state->getKey(),
-        'admin_area_2_id' => (string) $district->getKey(),
+        'admin_area_1_id' => (string) $district->getKey(),
+        'admin_area_2_id' => null,
+        'admin_area_3_id' => null,
+        'admin_area_4_id' => null,
         'line1' => 'Jalan Lama 1',
         'line2' => 'Taman Lama',
         'postcode' => '50000',
@@ -727,9 +729,8 @@ it('returns only region address keys in the speaker suggest context state', func
 
     expect($response->json('data.initial_state.address'))->toBe([
         'country_id' => $countryId,
-        'admin_area_1_id' => (string) $state->getKey(),
-        'admin_area_2_id' => (string) $district->getKey(),
-        'admin_area_3_id' => null,
+        'admin_area_1_id' => (string) $district->getKey(),
+        'admin_area_2_id' => null,
     ]);
 });
 
@@ -746,8 +747,10 @@ it('rejects unchanged speaker region-only address round trips as validation erro
 
     syncPrimaryAddressForTest($speaker, [
         'country_id' => $countryId,
-        'admin_area_1_id' => (string) $state->getKey(),
-        'admin_area_2_id' => (string) $district->getKey(),
+        'admin_area_1_id' => (string) $district->getKey(),
+        'admin_area_2_id' => null,
+        'admin_area_3_id' => null,
+        'admin_area_4_id' => null,
         'line1' => 'Alamat Warisan',
         'google_maps_url' => 'https://maps.google.com/?q=3.1390,101.6869',
     ]);
@@ -761,9 +764,8 @@ it('rejects unchanged speaker region-only address round trips as validation erro
     ]), [
         'address' => [
             'country_id' => $countryId,
-            'admin_area_1_id' => (string) $state->getKey(),
-            'admin_area_2_id' => (string) $district->getKey(),
-            'admin_area_3_id' => null,
+            'admin_area_1_id' => (string) $district->getKey(),
+            'admin_area_2_id' => null,
         ],
     ])->assertUnprocessable()
         ->assertJsonValidationErrors(['data']);
@@ -788,8 +790,10 @@ it('preserves hidden speaker address details during region-only direct updates',
 
     syncPrimaryAddressForTest($speaker, [
         'country_id' => $countryId,
-        'admin_area_1_id' => (string) $state->getKey(),
-        'admin_area_2_id' => (string) $district->getKey(),
+        'admin_area_1_id' => (string) $district->getKey(),
+        'admin_area_2_id' => null,
+        'admin_area_3_id' => null,
+        'admin_area_4_id' => null,
         'line1' => 'Alamat Warisan',
         'google_maps_url' => 'https://maps.google.com/?q=3.1390,101.6869',
     ]);
@@ -804,9 +808,8 @@ it('preserves hidden speaker address details during region-only direct updates',
         'name' => 'Penceramah Dikemas Kini API',
         'address' => [
             'country_id' => $countryId,
-            'admin_area_1_id' => (string) $state->getKey(),
-            'admin_area_2_id' => (string) $updatedDistrict->getKey(),
-            'admin_area_3_id' => null,
+            'admin_area_1_id' => (string) $updatedDistrict->getKey(),
+            'admin_area_2_id' => null,
         ],
     ])->assertOk()
         ->assertJsonPath('data.mode', 'direct_edit');
@@ -818,7 +821,8 @@ it('preserves hidden speaker address details during region-only direct updates',
     ])['google_maps_url'];
 
     expect($speaker?->name)->toBe('Penceramah Dikemas Kini API')
-        ->and($speaker?->addressModel?->admin_area_2_id)->toBe((string) $updatedDistrict->getKey())
+        ->and($speaker?->addressModel?->admin_area_1_id)->toBe((string) $updatedDistrict->getKey())
+        ->and($speaker?->addressModel?->admin_area_2_id)->toBeNull()
         ->and($speaker?->addressModel?->line1)->toBe('Alamat Warisan')
         ->and($speaker?->addressModel?->google_maps_url)->toBe($expectedGoogleMapsUrl);
 });
@@ -1718,9 +1722,7 @@ it('serializes institution detail payloads with address and donation metadata fo
     $countryId = ensureFrontendApiMalaysiaCountryExists();
     $user = User::factory()->create();
     $country = AddressCountry::query()->findOrFail($countryId);
-    $state = createTestAddressArea('Pahang Detail API', 1, null, $country);
-    $district = createTestAddressArea('Temerloh Detail API', 2, $state, $country);
-    $subdistrict = createTestAddressArea('Lanchang Detail API', 3, $district, $country);
+    $geo = createTestPackageGeography('Pahang Detail API', 'Temerloh Detail API', 'Lanchang Detail API', country: $country);
 
     $institution = Institution::factory()->create([
         'name' => 'Masjid Detail DTO',
@@ -1734,10 +1736,7 @@ it('serializes institution detail payloads with address and donation metadata fo
         ->toMediaCollection('cover');
 
     syncPrimaryAddressForTest($institution, [
-        'country_id' => $countryId,
-        'admin_area_1_id' => (string) $state->getKey(),
-        'admin_area_2_id' => (string) $district->getKey(),
-        'admin_area_3_id' => (string) $subdistrict->getKey(),
+        ...$geo['address'],
         'line1' => 'Jalan Masjid 1',
         'postcode' => '28000',
         'lat' => 3.4501,
@@ -1802,9 +1801,7 @@ it('exposes 7-item institution detail lists with canonical address lines and qr 
 
     $malaysiaId = ensureFrontendApiMalaysiaCountryExists();
     $country = AddressCountry::query()->findOrFail($malaysiaId);
-    $state = createTestAddressArea('Selangor', 1, null, $country);
-    $district = createTestAddressArea('Petaling', 2, $state, $country);
-    $subdistrict = createTestAddressArea('Shah Alam', 3, $district, $country);
+    $geo = createTestPackageGeography('Selangor', 'Petaling', 'Shah Alam', country: $country);
 
     $institution = Institution::factory()->create([
         'name' => 'Masjid Detail Payload',
@@ -1812,13 +1809,10 @@ it('exposes 7-item institution detail lists with canonical address lines and qr 
     ]);
 
     syncPrimaryAddressForTest($institution, [
+        ...$geo['address'],
         'line1' => 'Persiaran Masjid',
         'line2' => 'Seksyen 14',
         'postcode' => '40000',
-        'country_id' => $malaysiaId,
-        'admin_area_1_id' => (string) $state->getKey(),
-        'admin_area_2_id' => (string) $district->getKey(),
-        'admin_area_3_id' => (string) $subdistrict->getKey(),
         'lat' => 3.0733,
         'lng' => 101.5185,
         'google_maps_url' => 'https://www.google.com/maps/search/?api=1&query=3.0733%2C101.5185',
@@ -3356,16 +3350,9 @@ it('mirrors the public speaker page payload for app clients', function () {
     $speaker->update(['job_title' => 'Penasihat Dakwah']);
 
     $country = AddressCountry::query()->findOrFail($countryId);
-    $speakerState = createTestAddressArea('Pahang', 1, null, $country);
-    $speakerDistrict = createTestAddressArea('Temerloh', 2, $speakerState, $country);
-    $speakerSubdistrict = createTestAddressArea('Temerloh', 3, $speakerDistrict, $country);
+    $speakerGeo = createTestPackageGeography('Pahang', 'Temerloh', 'Temerloh', country: $country);
 
-    syncPrimaryAddressForTest($speaker, [
-        'country_id' => $countryId,
-        'admin_area_1_id' => (string) $speakerState->getKey(),
-        'admin_area_2_id' => (string) $speakerDistrict->getKey(),
-        'admin_area_3_id' => (string) $speakerSubdistrict->getKey(),
-    ]);
+    syncPrimaryAddressForTest($speaker, $speakerGeo['address']);
 
     $institution = Institution::factory()->create([
         'name' => 'Madrasah API',
@@ -3381,12 +3368,11 @@ it('mirrors the public speaker page payload for app clients', function () {
         'name' => 'Dewan Seri API',
         'status' => 'verified',
     ]);
-    $venueSubdistrict = createTestAddressArea('Mentakab', 3, $speakerDistrict, $country);
+    $venueSubdistrict = createTestAddressArea('Mentakab', 3, parent: $speakerGeo['district'], country: $country);
     syncPrimaryAddressForTest($venue, [
-        'country_id' => $countryId,
-        'admin_area_1_id' => (string) $speakerState->getKey(),
-        'admin_area_2_id' => (string) $speakerDistrict->getKey(),
-        'admin_area_3_id' => (string) $venueSubdistrict->getKey(),
+        ...$speakerGeo['address'],
+        'admin_area_2_id' => (string) $venueSubdistrict->getKey(),
+        'city' => 'Mentakab',
     ]);
 
     $bookReference = Reference::factory()->create([

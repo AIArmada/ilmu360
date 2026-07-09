@@ -215,7 +215,7 @@ class SearchController extends FrontendController
     #[QueryParameter('country_id', 'Optional package address country UUID filter.', required: false, type: 'string', infer: false, example: '019d0000-0000-7000-8000-000000000000')]
     #[QueryParameter('state_id', 'Optional package addressing states.id filter (addresses.state_id).', required: false, type: 'string', infer: false, example: '019d0000-0000-7000-8000-000000000001')]
     #[QueryParameter('city_id', 'Optional package addressing cities.id filter (addresses.city_id).', required: false, type: 'string', infer: false, example: '019d0000-0000-7000-8000-0000000000ab')]
-    #[QueryParameter('admin_area_1_id', 'Optional package address area level-1 UUID filter.', required: false, type: 'string', infer: false, example: '019d0000-0000-7000-8000-000000000001')]
+    #[QueryParameter('admin_area_1_id', 'Optional district UUID filter (addresses.admin_area_1_id).', required: false, type: 'string', infer: false, example: '019d0000-0000-7000-8000-000000000001')]
     #[QueryParameter('admin_area_2_id', 'Optional package address area level-2 UUID filter.', required: false, type: 'string', infer: false, example: '019d0000-0000-7000-8000-000000000002')]
     #[QueryParameter('following', 'When authenticated, restrict results to institutions followed by the current user.', required: false, type: 'boolean', infer: false, example: false)]
     #[QueryParameter('page', 'Pagination page number.', required: false, type: 'integer', infer: false, default: 1, example: 1)]

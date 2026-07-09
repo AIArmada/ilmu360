@@ -1154,23 +1154,22 @@ it('formats institution membership claim options with the location hierarchy', f
         'nickname' => null,
         'status' => 'verified',
     ]);
-    $country = ensureTestMalaysiaCountry();
-    $state = createTestAddressArea('Selangor', 1, null, $country);
-    $district = createTestAddressArea('Petaling', 2, $state, $country);
-    $subdistrict = createTestAddressArea('Shah Alam', 3, $district, $country);
+    $geo = createTestPackageGeography('Selangor', 'Petaling', 'Shah Alam');
 
-    syncPrimaryAddressForTest($institution, [
-        'country_id' => (string) $country->getKey(),
-        'admin_area_1_id' => (string) $state->getKey(),
-        'admin_area_2_id' => (string) $district->getKey(),
-        'admin_area_3_id' => (string) $subdistrict->getKey(),
-    ]);
+    syncPrimaryAddressForTest($institution, $geo['address']);
 
-    $component = Livewire::actingAs($user)->test(ContributionsIndex::class);
+    $this->actingAs($user);
 
-    $searchOptions = Closure::bind(fn () => $this->membershipClaimSearchOptions(MemberSubjectType::Institution->value, 'Payung'), $component->instance(), ContributionsIndex::class)();
+    $component = withGlobalOwnerContext(function () {
+        $instance = app(ContributionsIndex::class);
+        $instance->mount();
 
-    $selectedLabel = Closure::bind(fn () => $this->membershipClaimOptionLabel(MemberSubjectType::Institution->value, $institution->slug), $component->instance(), ContributionsIndex::class)();
+        return $instance;
+    });
+
+    $searchOptions = Closure::bind(fn () => $this->membershipClaimSearchOptions(MemberSubjectType::Institution->value, 'Payung'), $component, ContributionsIndex::class)();
+
+    $selectedLabel = Closure::bind(fn () => $this->membershipClaimOptionLabel(MemberSubjectType::Institution->value, $institution->slug), $component, ContributionsIndex::class)();
 
     expect($searchOptions)->toHaveKey($institution->slug)
         ->and($searchOptions[$institution->slug])->toBe('Masjid Payung - Shah Alam, Petaling, Selangor')

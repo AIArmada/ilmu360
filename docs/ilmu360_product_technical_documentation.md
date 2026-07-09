@@ -296,7 +296,7 @@ Moderation:
 ## B5a) Search endpoint contract
 Request query (public `GET /events`):
 - `q`: text query.
-- `state_id`, `district_id`: filter by location.
+- `state_id`, `admin_area_1_id` (district), `admin_area_2_id` (subdistrict): filter by location.
 - `topic_ids[]`, `speaker_ids[]`, `institution_id`, `venue_id`.
 - `starts_at_from`, `starts_at_to`: time window.
 - `lat`, `lng`, `radius_km`: geo search.
@@ -307,7 +307,7 @@ Request query (public `GET /events`):
 
 Minimal response shape (event list item):
 - `id`, `slug`, `title`, `starts_at`, `ends_at`, `timezone`
-- `venue_name`, `institution_name`, `state_id`, `district_id`
+- `venue_name`, `institution_name`, `state_id`, `admin_area_1_id`, `admin_area_2_id`
 - `lat`, `lng`, `distance_km` (when geo query provided)
 - `language`, `genre`, `audience`
 - `speakers[]` (id, name, slug)
@@ -363,7 +363,7 @@ Public event submission (`POST /event-submissions`):
 - `institution_id`: optional, uuid, exists:institutions,id.
 - `venue_id`: optional, uuid, exists:venues,id.
 - If `venue_id` is missing: require `venue_name` and at least one of `address_line1` or (`lat` + `lng`) to create a new venue.
-- `state_id`, `district_id`: optional, exist in geo tables.
+- `state_id`, `city_id`, `admin_area_1_id`, `admin_area_2_id`: package addressing FKs.
 - `lat`: optional, numeric between -90 and 90.
 - `lng`: optional, numeric between -180 and 180.
 - `language`, `genre`, `audience`: optional, in allowed list.
@@ -494,7 +494,7 @@ Collection: `events`
 Suggested fields:
 - identifiers: id, slug
 - text: title, description, speaker_names, institution_name, venue_name
-- filters: state_id, district_id, language, genre, audience, topic_ids, speaker_ids, status, visibility
+- filters: state_id, admin_area_1_id, admin_area_2_id, language, genre, audience, topic_ids, speaker_ids, status, visibility
 - time: starts_at, ends_at
 - geo: lat, lng
 - signals: saves_count, registrations_count, trust_score (optional ranking)
@@ -506,7 +506,7 @@ Suggested fields:
   - Primary: relevance to query text.
   - Boost: upcoming events within 30 days.
   - Secondary: trust_score, saves_count, registrations_count.
-- Facets: state_id, district_id, topic_ids, speaker_ids, language, genre, audience.
+- Facets: state_id, admin_area_1_id, admin_area_2_id, topic_ids, speaker_ids, language, genre, audience.
 - Near me: geo sort when lat/lng provided, fallback to starts_at.
 
 ## B9) Ops requirements

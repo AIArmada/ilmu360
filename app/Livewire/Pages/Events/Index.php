@@ -76,8 +76,6 @@ class Index extends Component implements HasForms
     #[Url]
     public ?string $admin_area_2_id = null;
 
-    #[Url]
-
     /**
      * @var list<string>
      */

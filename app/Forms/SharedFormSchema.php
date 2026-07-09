@@ -919,16 +919,6 @@ class SharedFormSchema
     }
 
     /**
-     * @deprecated Use stateOptionsForCountry()
-     *
-     * @return array<int|string, string>
-     */
-    public static function stateAreaOptionsForCountry(int|string|null $countryId): array
-    {
-        return self::stateOptionsForCountry($countryId);
-    }
-
-    /**
      * City options from package `cities` table (addresses.city_id).
      *
      * @return array<int|string, string>
@@ -973,16 +963,6 @@ class SharedFormSchema
             ->orderBy('name')
             ->pluck('name', 'id')
             ->all();
-    }
-
-    /**
-     * @deprecated Use districtOptionsForState()
-     *
-     * @return array<int|string, string>
-     */
-    public static function districtOptionsForStateArea(int|string|null $stateId): array
-    {
-        return self::districtOptionsForState($stateId);
     }
 
     /**
@@ -1065,15 +1045,9 @@ class SharedFormSchema
     }
 
     /**
-     * @deprecated Use stateIdFromStoredAreas()
-     */
-    public static function stateAreaIdFromStoredAreas(?string $districtOrArea1Id, ?string $subdistrictOrArea2Id): ?string
-    {
-        return self::stateIdFromStoredAreas($districtOrArea1Id, $subdistrictOrArea2Id);
-    }
-
-    /**
      * Normalize stored address FKs into form state (state_id + city_id + district + subdistrict).
+     *
+     * Product-native only: area_1 must be district (level 2), area_2 subdistrict (level 3).
      *
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
@@ -1094,15 +1068,6 @@ class SharedFormSchema
 
             if ($area1 instanceof AddressArea && (int) $area1->level === 2) {
                 $districtId = $area1Id;
-            } elseif ($area1 instanceof AddressArea && (int) $area1->level === 1) {
-                // Legacy rows that incorrectly stored a state area in admin_area_1.
-                $stateId ??= AddressAreaStateBridge::stateIdForArea($area1);
-                if ($area2Id !== null) {
-                    $area2 = AddressArea::query()->find($area2Id);
-                    if ($area2 instanceof AddressArea && (int) $area2->level === 2) {
-                        $districtId = $area2Id;
-                    }
-                }
             }
         }
 
@@ -1122,7 +1087,6 @@ class SharedFormSchema
         $data['city_id'] = $cityId;
         $data['admin_area_1_id'] = $districtId;
         $data['admin_area_2_id'] = $subdistrictId;
-        unset($data['state_area_id']);
 
         return $data;
     }
@@ -1313,7 +1277,6 @@ class SharedFormSchema
         $normalized['admin_area_2_id'] = $subdistrictId;
         $normalized['admin_area_3_id'] = null;
         $normalized['admin_area_4_id'] = null;
-        unset($normalized['state_area_id']);
 
         return $normalized;
     }
@@ -1359,7 +1322,6 @@ class SharedFormSchema
 
         $payload['admin_area_3_id'] = null;
         $payload['admin_area_4_id'] = null;
-        unset($payload['state_area_id']);
 
         return $payload;
     }

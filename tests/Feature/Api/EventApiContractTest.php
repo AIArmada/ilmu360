@@ -163,36 +163,30 @@ it('rejects unsupported sparse fields on the public event index', function () {
 });
 
 it('filters events by admin_area_1_id and admin_area_2_id', function () {
-    $country = ensureTestMalaysiaCountry();
-    $state = createTestAddressArea('Selangor', 1, null, $country);
-    $district = createTestAddressArea('API District '.uniqid(), 2, $state, $country);
-    $subdistrictA = createTestAddressArea('API Subdistrict A '.uniqid(), 3, $district, $country);
-    $subdistrictB = createTestAddressArea('API Subdistrict B '.uniqid(), 3, $district, $country);
+    $geo = createTestPackageGeography('Selangor', 'API District '.uniqid(), 'API Subdistrict A '.uniqid());
+    $subdistrictB = createTestAddressArea('API Subdistrict B '.uniqid(), 3, parent: $geo['district'], country: $geo['country']);
+    $district = $geo['district'];
+    $subdistrictA = $geo['subdistrict'];
 
     $venueA = Venue::factory()->create();
-    syncPrimaryAddressForTest($venueA, [
-        'country_id' => (string) $country->getKey(),
-        'admin_area_1_id' => (string) $state->getKey(),
-        'admin_area_2_id' => (string) $district->getKey(),
-        'admin_area_3_id' => (string) $subdistrictA->getKey(),
-    ]);
+    syncPrimaryAddressForTest($venueA, $geo['address']);
 
     $venueB = Venue::factory()->create();
     syncPrimaryAddressForTest($venueB, [
-        'country_id' => (string) $country->getKey(),
-        'admin_area_1_id' => (string) $state->getKey(),
-        'admin_area_2_id' => (string) $district->getKey(),
-        'admin_area_3_id' => (string) $subdistrictB->getKey(),
+        ...$geo['address'],
+        'admin_area_2_id' => (string) $subdistrictB->getKey(),
     ]);
 
     $districtMatch = Event::factory()->for($venueA)->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
+        'published_at' => now()->subMinute(),
     ]);
 
     $subdistrictNonMatch = Event::factory()->for($venueB)->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
+        'published_at' => now()->subMinute(),
     ]);
 
     $districtResponse = $this->getJson('/api/v1/events?filter[admin_area_1_id]='.$district->getKey());
@@ -752,23 +746,22 @@ it('serializes event detail payloads with a stable reference front cover url', f
 });
 
 it('serializes included institution address display fields on event detail payloads', function () {
-    $country = ensureTestMalaysiaCountry();
-    $state = createTestAddressArea('Selangor', 1, null, $country);
-    $district = createTestAddressArea('API Event District '.uniqid(), 2, $state, $country);
-    $subdistrict = createTestAddressArea('API Event Subdistrict '.uniqid(), 3, $district, $country);
+    $districtName = 'API Event District '.uniqid();
+    $subdistrictName = 'API Event Subdistrict '.uniqid();
+    $geo = createTestPackageGeography('Selangor', $districtName, $subdistrictName);
+    $district = $geo['district'];
+    $subdistrict = $geo['subdistrict'];
+    $state = $geo['state'];
 
     $institution = Institution::factory()->create([
         'status' => 'verified',
     ]);
 
     syncPrimaryAddressForTest($institution, [
+        ...$geo['address'],
         'line1' => 'No. 12 Jalan Ilmu',
         'line2' => 'Blok B',
         'postcode' => '43000',
-        'country_id' => (string) $country->getKey(),
-        'admin_area_1_id' => (string) $state->getKey(),
-        'admin_area_2_id' => (string) $district->getKey(),
-        'admin_area_3_id' => (string) $subdistrict->getKey(),
         'google_maps_url' => 'https://maps.google.com/?q=3.1390,101.6869',
         'waze_url' => 'https://waze.com/ul?ll=3.1390,101.6869',
         'lat' => 3.139,
@@ -778,6 +771,7 @@ it('serializes included institution address display fields on event detail paylo
     $event = Event::factory()->for($institution)->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
+        'published_at' => now()->subMinute(),
     ]);
 
     $response = $this->getJson('/api/v1/events/'.$event->id.'?include=institution,institution.addresses');

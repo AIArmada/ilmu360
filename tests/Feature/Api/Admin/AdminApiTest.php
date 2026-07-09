@@ -36,6 +36,7 @@ use App\Models\User;
 use App\Models\Venue;
 use App\Services\Signals\SignalsTracker;
 use App\Support\Search\SpeakerSearchService;
+use Database\Seeders\ScopedMemberRolesSeeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
@@ -1812,9 +1813,10 @@ it('exposes admin speaker write schema and can create and update speakers throug
 
     expect(collect($schema['catalogs'] ?? [])->pluck('field')->all())
         ->toContain('address.country_id')
-        ->toContain('address.admin_area_1_id', 'address.admin_area_2_id', 'address.admin_area_3_id')
+        ->toContain('address.admin_area_1_id', 'address.admin_area_2_id')
         ->and($speakerFields)->toContain('address.country_id')
-        ->and($speakerFields)->toContain('address.admin_area_1_id', 'address.admin_area_2_id', 'address.admin_area_3_id')
+        ->and($speakerFields)->toContain('address.admin_area_1_id', 'address.admin_area_2_id')
+        ->and($speakerFields)->not->toContain('address.admin_area_3_id')
         ->and($speakerFields)->not->toContain('address.country_code', 'address.country_key')
         ->and(collect($schema['conditional_rules'] ?? [])->pluck('field')->all())->not->toContain('address.country_id');
 
@@ -1893,6 +1895,8 @@ it('requires explicit country and still prohibits detailed address fields when c
 });
 
 it('returns fresh speaker address data on admin GET requests after updates', function () {
+    $this->seed(ScopedMemberRolesSeeder::class);
+
     $firstFixtures = ensureAdminApiSubdistrictFixtures();
     $secondFixtures = ensureAdminApiSubdistrictFixtures();
 
@@ -1904,11 +1908,10 @@ it('returns fresh speaker address data on admin GET requests after updates', fun
         'gender' => 'male',
         'status' => 'verified',
         'is_freelance' => false,
-        'status' => 'active',
         'address' => [
             'country_id' => $firstFixtures['country_id'],
-            'admin_area_1_id' => $firstFixtures['state_id'],
-            'admin_area_2_id' => $firstFixtures['admin_area_1_id'],
+            'admin_area_1_id' => $firstFixtures['admin_area_1_id'],
+            'admin_area_2_id' => $firstFixtures['admin_area_2_id'],
         ],
     ])->assertCreated();
 
@@ -1919,42 +1922,41 @@ it('returns fresh speaker address data on admin GET requests after updates', fun
         ->assertJsonPath('data.record.attributes.address.country_id', $firstFixtures['country_id'])
         ->assertJsonMissingPath('data.record.attributes.address.line1')
         ->assertJsonMissingPath('data.record.attributes.address.google_maps_url')
-        ->assertJsonPath('data.record.attributes.address.admin_area_1_id', $firstFixtures['state_id'])
-        ->assertJsonPath('data.record.attributes.address.admin_area_2_id', $firstFixtures['admin_area_1_id']);
+        ->assertJsonPath('data.record.attributes.address.admin_area_1_id', $firstFixtures['admin_area_1_id'])
+        ->assertJsonPath('data.record.attributes.address.admin_area_2_id', $firstFixtures['admin_area_2_id']);
 
     $this->putJson('/api/v1/admin/speakers/'.$speakerRouteKey, [
         'name' => 'Admin API Address Freshness Speaker',
         'gender' => 'male',
         'status' => 'verified',
         'is_freelance' => false,
-        'status' => 'active',
         'address' => [
             'country_id' => $secondFixtures['country_id'],
-            'admin_area_1_id' => $secondFixtures['state_id'],
-            'admin_area_2_id' => $secondFixtures['admin_area_1_id'],
+            'admin_area_1_id' => $secondFixtures['admin_area_1_id'],
+            'admin_area_2_id' => $secondFixtures['admin_area_2_id'],
         ],
     ])->assertOk()
         ->assertJsonPath('data.record.attributes.address.country_id', $secondFixtures['country_id'])
         ->assertJsonMissingPath('data.record.attributes.address.line1')
         ->assertJsonMissingPath('data.record.attributes.address.google_maps_url')
-        ->assertJsonPath('data.record.attributes.address.admin_area_1_id', $secondFixtures['state_id'])
-        ->assertJsonPath('data.record.attributes.address.admin_area_2_id', $secondFixtures['admin_area_1_id']);
+        ->assertJsonPath('data.record.attributes.address.admin_area_1_id', $secondFixtures['admin_area_1_id'])
+        ->assertJsonPath('data.record.attributes.address.admin_area_2_id', $secondFixtures['admin_area_2_id']);
 
     $this->getJson('/api/v1/admin/speakers/'.$speakerRouteKey)
         ->assertOk()
         ->assertJsonPath('data.record.attributes.address.country_id', $secondFixtures['country_id'])
         ->assertJsonMissingPath('data.record.attributes.address.line1')
         ->assertJsonMissingPath('data.record.attributes.address.google_maps_url')
-        ->assertJsonPath('data.record.attributes.address.admin_area_1_id', $secondFixtures['state_id'])
-        ->assertJsonPath('data.record.attributes.address.admin_area_2_id', $secondFixtures['admin_area_1_id']);
+        ->assertJsonPath('data.record.attributes.address.admin_area_1_id', $secondFixtures['admin_area_1_id'])
+        ->assertJsonPath('data.record.attributes.address.admin_area_2_id', $secondFixtures['admin_area_2_id']);
 
     $this->getJson('/api/v1/admin/speakers?search=Admin%20API%20Address%20Freshness%20Speaker')
         ->assertOk()
         ->assertJsonPath('data.0.attributes.address.country_id', $secondFixtures['country_id'])
         ->assertJsonMissingPath('data.0.attributes.address.line1')
         ->assertJsonMissingPath('data.0.attributes.address.google_maps_url')
-        ->assertJsonPath('data.0.attributes.address.admin_area_1_id', $secondFixtures['state_id'])
-        ->assertJsonPath('data.0.attributes.address.admin_area_2_id', $secondFixtures['admin_area_1_id']);
+        ->assertJsonPath('data.0.attributes.address.admin_area_1_id', $secondFixtures['admin_area_1_id'])
+        ->assertJsonPath('data.0.attributes.address.admin_area_2_id', $secondFixtures['admin_area_2_id']);
 });
 
 it('surfaces speaker update semantics and collection rules through the admin api schema', function () {
@@ -2800,13 +2802,13 @@ it('lists admin geography catalogs and exposes catalog metadata through admin wr
             'id' => $fixtures['state_id'],
         ]);
 
-    $this->getJson('/api/v1/admin/catalogs/districts?admin_area_1_id='.$fixtures['state_id'])
+    $this->getJson('/api/v1/admin/catalogs/admin-area-level-1?state_id='.$fixtures['state_id'])
         ->assertOk()
         ->assertJsonFragment([
             'id' => $fixtures['admin_area_1_id'],
         ]);
 
-    $this->getJson('/api/v1/admin/catalogs/subdistricts?admin_area_1_id='.$fixtures['state_id'].'&admin_area_2_id='.$fixtures['admin_area_1_id'])
+    $this->getJson('/api/v1/admin/catalogs/admin-area-level-2?admin_area_1_id='.$fixtures['admin_area_1_id'])
         ->assertOk()
         ->assertJsonFragment([
             'id' => $fixtures['admin_area_2_id'],
@@ -2822,7 +2824,7 @@ it('lists admin geography catalogs and exposes catalog metadata through admin wr
     expect($institutionCatalogs->get('address.country_id')['endpoint'] ?? null)->toBe('/api/v1/admin/catalogs/countries')
         ->and($institutionCatalogs->get('address.admin_area_1_id')['query']['country_id'] ?? null)->toBe('{address.country_id}')
         ->and($institutionCatalogs->get('address.admin_area_2_id')['query']['admin_area_1_id'] ?? null)->toBe('{address.admin_area_1_id}')
-        ->and($institutionCatalogs->get('address.admin_area_3_id')['query']['admin_area_2_id'] ?? null)->toBe('{address.admin_area_2_id}');
+        ->and($institutionCatalogs->has('address.admin_area_3_id'))->toBeFalse();
 
     $addressAreaSchema = $this->getJson('/api/v1/admin/address-areas/schema?operation=create')
         ->assertOk()
@@ -3530,20 +3532,21 @@ function ensureAdminApiMalaysiaCountryExists(): string
  */
 function ensureAdminApiSubdistrictFixtures(): array
 {
-    $country = ensureTestMalaysiaCountry();
     $suffix = Str::lower(Str::random(8));
-
-    $state = createTestAddressArea('Admin API Negeri '.$suffix, 1, country: $country);
-    $district = createTestAddressArea('Admin API Daerah '.$suffix, 2, parent: $state, country: $country);
     $subdistrictName = 'Admin API Mukim '.$suffix;
-    $subdistrict = createTestAddressArea($subdistrictName, 3, parent: $district, country: $country);
+    $geo = createTestPackageGeography(
+        'Admin API Negeri '.$suffix,
+        'Admin API Daerah '.$suffix,
+        $subdistrictName,
+    );
 
     return [
-        'country_id' => (string) $country->getKey(),
-        'state_id' => (string) $state->getKey(),
-        'admin_area_1_id' => (string) $district->getKey(),
-        'admin_area_2_id' => (string) $subdistrict->getKey(),
+        'country_id' => (string) $geo['country']->getKey(),
+        'state_id' => (string) $geo['state']->getKey(),
+        'admin_area_1_id' => (string) $geo['district']->getKey(),
+        'admin_area_2_id' => (string) $geo['subdistrict']->getKey(),
         'subdistrict_name' => $subdistrictName,
+        'area_tree_root_id' => (string) $geo['area_tree_root']->getKey(),
     ];
 }
 

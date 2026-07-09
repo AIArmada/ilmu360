@@ -1,9 +1,9 @@
 # Phase 8 — App Rebuild And Cutover
 
 State: **`Mostly complete`** (schema + ownership).  
-Native purity / dual-path removal: **Phase 9** — see [`status.md`](status.md) and [`gap-closure-report.html`](gap-closure-report.html).
+Native purity / dual-path removal: **Phase 9** — see [`status.md`](status.md), [`phase-reconciliation.md`](phase-reconciliation.md), and [`gap-closure-report.html`](gap-closure-report.html).
 
-Last verified: **2026-07-09**.
+Last verified: **2026-07-10**.
 
 ## Objective (Phase 8)
 
@@ -45,7 +45,7 @@ Full list: see [`status.md`](status.md).
 - [x] Seed addressing countries + areas
 - [x] Replace Contact/SocialMedia with package contacting
 - [x] Scout schemas use package address fields (`country_code`, `city`, `state`, `postcode`)
-- [ ] **Phase 9:** remove remaining **alias keys** (`state_id`/`district_id`/`subdistrict_id`) from API/search/forms — hard native only
+- [x] **Phase 9 geography:** package-native only — `state_id`/`city_id` + `admin_area_1_id` (district) / `admin_area_2_id` (subdistrict); no `district_id`/`subdistrict_id`/`state_area_id` aliases
 
 ### 8.D — Events Domain
 
@@ -57,16 +57,18 @@ Full list: see [`status.md`](status.md).
 - [x] Free registration path + pass flags configured
 - [x] Submission workflow on package `EventSubmission`
 - [x] Runtime builders bridge package columns (`EventBuilder`, `VenueBuilder`, `ReferenceBuilder`) — **temporary**
-- [ ] **Phase 9:** delete builder legacy maps after callers rewritten
-- [ ] **Phase 9:** taxonomy single path (see 8.D.T)
-- [ ] **Phase 9:** thin Event/Registration; rewrite public/API/MCP to package-native field names (app subclass OK only for intentional product)
+- [ ] **Phase 9 P9-C:** delete builder legacy maps after callers rewritten
+- [ ] **Phase 9 P9-A:** taxonomy single path (see 8.D.T)
+- [ ] **Phase 9 P9-G:** thin Event/Registration; package-native field names (app subclass OK only for intentional product)
 
 #### 8.D.T — Taxonomy
 
-- [x] Package tables exist; `SyncEventTaxonomiesAction` + migrate command exist
-- [x] Public filters partially use `EventTaxonomy` / `EventTerm`
-- [ ] **Open dual path:** Spatie `HasTags` still primary for attach/sync on submit; searchable array dual-indexes tags + classifications
-- [ ] **Decision required:** Spatie out **or** package taxonomy only — never both at exit
+- [x] Package tables exist; `SyncEventTaxonomiesAction` / `SyncEventClassificationsAction` exist
+- [x] Public filters / catalogs largely use `EventTaxonomy` / `EventTerm`
+- [x] ADR-011: package classifications are the product taxonomy (not dual write forever)
+- [x] Event submit/admin/contribution **write path** largely uses classifications
+- [ ] **Open dual path residual:** `Event` still uses Spatie `HasTags`; Filament Tag resource; AI media extraction still touches `Tag`
+- [ ] **Exit:** one write path + one index path; no dual attach for the same concept
 
 ### 8.E — Engagement & Membership
 
@@ -103,16 +105,17 @@ Full list: see [`status.md`](status.md).
 - [x] Content/recipient snapshot resolvers present
 - [x] Digest command can use `CommunicationBatch`
 - [x] `auto_capture` default **true**
-- [ ] **`dispatch_through_package` default still false** — dual `DispatchMode` remains
-- [ ] App still owns orchestration: `EventNotificationService`, `NotificationSettingsManager`, Push/WhatsApp channels (channels may stay intentional)
-- [ ] Delete parity/migrate notification commands once dual store is gone
+- [x] **`dispatch_through_package` default true**; dual `DispatchMode` **removed** (2026-07)
+- [x] App orchestration may remain intentional: `EventNotificationService`, `NotificationSettingsManager`, Push/WhatsApp (document as intentional channels)
+- [ ] **P9-B residual:** delete orphan `PendingNotificationFactory` / `NotificationDeliveryFactory`; retire unused `communications:migrate-*` if safe
 - [ ] Prefer package `HasInbox` (or documented intentional morph relation) consistently
 
 ### 8.H — Final Cleanup (Phase 8 original)
 
 - [x] Superseded geography/contact/membership/notification models deleted
 - [x] Superseded event settings / following / claim model deleted
-- [ ] **Not done (Phase 9):** delete all compat traits, builder maps, dual taxonomy, dual dispatch
+- [x] Geography product hard-cut (P9-F closed)
+- [ ] **Phase 9:** delete compat traits, builder maps, taxonomy dual residual
 - [ ] Full suite green (not claimed)
 - [ ] PHPStan clean on cutover surface (baseline still has pre-existing noise)
 
@@ -135,17 +138,19 @@ Full list: see [`status.md`](status.md).
 
 Ordered for dependency and blast radius. Full task board: [`cutover-plan.html`](cutover-plan.html) / [`gap-closure-report.html`](gap-closure-report.html).
 
-| ID | Workstream | Exit proof |
-| --- | --- | --- |
-| P9-A | **Taxonomy single path** | One write path; one index path; no dual `syncTags` + classifications without decision doc |
-| P9-B | **Communications package dispatch default** | `dispatch_through_package=true` (or remove flag); `DispatchMode` deleted; dual parity commands gone |
-| P9-C | **Kill legacy builders** | Callers use package columns; Event/Venue/ReferenceBuilder maps removed or builders deleted |
-| P9-D | **Kill contact/social/address alias traits** | Callers use package relations/API; traits deleted |
-| P9-E | **Kill legacy model accessors** | EventChangeAnnouncement / ModerationReview / Registration speak package fields only |
-| P9-F | **Hard-native geography edges** | No `state_id`/`district_id`/`subdistrict_id` acceptance except true package `country_id` UUID on addresses |
-| P9-G | **Thin thick subclasses** | Event/Reference retain only intentional product (media, Scout presentation, Islamic helpers); cutover glue gone |
-| P9-H | **UI debt** | Institution dashboard legacy filter/sort helpers removed |
-| P9-I | **Verification** | `migrate:fresh --seed`, targeted Pest, PHPStan on touched files, Pint |
+| ID | Workstream | State 2026-07-10 | Exit proof |
+| --- | --- | --- | --- |
+| P9-A | **Taxonomy single path** | Open residual | One write + one index path; no dual Tags/classifications for events |
+| P9-B | **Comms package dispatch** | Mostly closed | Default through package + DispatchMode gone; residual factories/commands |
+| P9-C | **Kill legacy builders** | Open | Callers use package columns; builder maps deleted |
+| P9-D | **Kill alias traits** | Open | Package contact/social/address API only |
+| P9-E | **Kill legacy accessors** | Open | Announcement / moderation / registration package fields only |
+| P9-F | **Hard-native geography** | **Closed** | Product FKs only; zero `state_area_id`/`district_id`/`subdistrict_id` |
+| P9-G | **Thin thick subclasses** | Open | Intentional product only on Event/Reference |
+| P9-H | **UI debt** | Open | Institution dashboard legacy helpers removed |
+| P9-I | **Verification** | Open | Full seed + Pest + PHPStan + Pint |
+| G11 | **Paid commerce (ADR-013)** | In progress | Public checkout when payment bound; mode matrix tests |
+| G12 | **Package Block** | Deferred optional | Only if product needs bans |
 
 ### Intentional custom (allowed after Phase 9)
 
@@ -194,10 +199,10 @@ Runtime smoke:
 - [x] Membership package convergence
 - [x] Engagement package contracts
 - [x] Inbox package storage
-- [ ] No dual-path domains
+- [x] Communications package dispatch default (`true`; `DispatchMode` removed) — P9-B residual only for factories/commands
+- [ ] No dual-path domains (taxonomy + builders + aliases remain)
 - [ ] No legacy builder/alias layers
-- [ ] Taxonomy decision implemented
-- [ ] Communications package dispatch default
+- [ ] Taxonomy decision **implemented** (ADR-011 decided; residual HasTags dual path = P9-A)
 - [ ] Verification green enough to unfreeze feature development
 - [ ] `status.md` Phase 9 marked `Verified`
 

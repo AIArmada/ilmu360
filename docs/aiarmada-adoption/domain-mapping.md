@@ -68,7 +68,7 @@ Addressing must use the `aiarmada/addressing` model:
 | Country-specific administrative areas | `AddressArea` with `country_code`, `type`, `level`, `parent_id`, `source`, `source_id`, `metadata`, and import sources. |
 | Malaysia examples | Represent terms such as `district`, `wilayah_persekutuan`, and `small_district` as area `type` values rather than hard-coded app tables. |
 | Other countries | Import each country's own administrative terms and hierarchy through generic area sources. |
-| Institution and venue addresses | `Address` with package-native FKs: `country_id`, `state_id` (State), `city_id` (City), `admin_area_1_id` (district), `admin_area_2_id` (subdistrict). |
+| Institution and venue addresses | `Address` with package-native FKs only: `country_id`, `state_id` (State), `city_id` (City), `admin_area_1_id` (district), `admin_area_2_id` (subdistrict). Zero legacy aliases. |
 | Search and filters | Global search by default, with optional country, area-type, area hierarchy, text, geohash/radius, and address-component filters. |
 
 Do not rebuild `PublicCountryPreference`, `PreferredCountryResolver`, or session/cookie country switching in the target architecture. Country can be a filter, not an application mode.

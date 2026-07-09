@@ -64,19 +64,19 @@ class ResolveGooglePlaceSelectionAction
             $this->componentValue($components, ['administrative_area_level_3']),
         ]);
 
-        $stateArea = $this->resolveArea($stateName, $countryId, null, 1);
-        $district = $this->resolveArea($districtName, $countryId, $stateArea?->id, 2);
-        $subdistrict = $this->resolveArea($subdistrictName, $countryId, $district->id ?? $stateArea?->id, 3);
+        $areaTreeRoot = $this->resolveArea($stateName, $countryId, null, 1);
+        $district = $this->resolveArea($districtName, $countryId, $areaTreeRoot?->id, 2);
+        $subdistrict = $this->resolveArea($subdistrictName, $countryId, $district->id ?? $areaTreeRoot?->id, 3);
 
         $district ??= $subdistrict?->parent_id !== null
             ? AddressArea::query()->find($subdistrict->parent_id)
             : null;
-        $stateArea ??= $district?->parent_id !== null
+        $areaTreeRoot ??= $district?->parent_id !== null
             ? AddressArea::query()->find($district->parent_id)
             : null;
-        $countryId = $stateArea->country_id ?? $district->country_id ?? $subdistrict->country_id ?? $countryId;
+        $countryId = $areaTreeRoot->country_id ?? $district->country_id ?? $subdistrict->country_id ?? $countryId;
 
-        $stateId = $this->resolveStateId($stateName, $countryId, $stateArea);
+        $stateId = $this->resolveStateId($stateName, $countryId, $areaTreeRoot);
         $cityId = $this->resolveCityId($cityName, $stateId, $countryId);
 
         $districtId = $district instanceof AddressArea && (int) $district->level === 2
@@ -297,10 +297,10 @@ class ResolveGooglePlaceSelectionAction
         return $matches->count() === 1 ? $matches->first() : null;
     }
 
-    private function resolveStateId(?string $stateName, ?string $countryId, ?AddressArea $stateArea): ?string
+    private function resolveStateId(?string $stateName, ?string $countryId, ?AddressArea $areaTreeRoot): ?string
     {
-        if ($stateArea instanceof AddressArea) {
-            $bridged = AddressAreaStateBridge::stateIdForArea($stateArea);
+        if ($areaTreeRoot instanceof AddressArea) {
+            $bridged = AddressAreaStateBridge::stateIdForArea($areaTreeRoot);
 
             if ($bridged !== null) {
                 return $bridged;

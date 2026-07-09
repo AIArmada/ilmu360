@@ -1,10 +1,14 @@
 # Phase 7 - Commerce Capabilities
 
-State: `Assessed`
+State: **`Superseded`** (assessment-era plan)
+
+> **Do not implement from open checkboxes in this file.**  
+> Live product path: [`paid-commerce-productization.md`](paid-commerce-productization.md) + ADR-013 · Gap **G11** in [`status.md`](status.md) · Matrix: [`phase-reconciliation.md`](phase-reconciliation.md) §7.  
+> **Already done:** inventory / seating / ticketing + Filament adapters installed. **Still open:** public paid checkout (flag off until payment bound), mode-matrix tests, full cart/checkout chain only when product ships paid.
 
 ## Objective
 
-Assess the AIArmada commerce ecosystem for the fresh-schema rewrite. The app currently has **no commerce** (events are free, donations are info-only). Commerce packages enable paid ticketing, donations, and future shopping flows.
+Assess the AIArmada commerce ecosystem for the fresh-schema rewrite. Historical assessment assumed zero commerce; product later approved paid tickets (ADR-013).
 
 ## Target Packages
 

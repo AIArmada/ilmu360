@@ -714,7 +714,7 @@ Assignment behavior:
 - Institution create requires an explicit address country.
 - Send `address.country_id`.
 - Public institution create accepts media fields `cover` and `gallery`.
-- If the same normalized institution name plus the same `state_id`, `district_id`, and `subdistrict_id` already exists, create will fail with HTTP `422` on `name`.
+- If the same normalized institution name plus the same `state_id`, `admin_area_1_id` (district), and `admin_area_2_id` (subdistrict) already exists, create will fail with HTTP `422` on `name`.
 
 #### `GET /forms/contributions/speakers`
 
@@ -722,8 +722,8 @@ Assignment behavior:
 - Speaker create requires an explicit country plus region selectors. Send:
   - `address.country_id`
   - `address.state_id`
-  - `address.district_id`
-  - `address.subdistrict_id`
+  - `address.admin_area_1_id` (district)
+  - `address.admin_area_2_id` (subdistrict)
 - Do not send:
   - `address.line1`
   - `address.line2`
@@ -1035,7 +1035,7 @@ Nested collection item contracts for institutions:
 - Subdistrict `PUT` still requires `country_id`, `state_id`, and `name`.
 - `name` is trimmed before persistence.
 - `state_id` must match the selected `country_id`.
-- `district_id` is required for non-federal-territory states, may be `null` only for federal-territory states, and when present it must match both the selected `country_id` and `state_id`.
+- `admin_area_1_id` (district) is required for non-federal-territory states, may be `null` only for federal-territory states, and when present it must match the selected `country_id` / `state_id` cascade.
 
 ### Admin write-contract rules you must follow
 
@@ -1052,7 +1052,7 @@ Nested collection item contracts for institutions:
   - `address.google_maps_url`
   - `address.google_place_id`
   - `address.waze_url`
-- Admin speaker clients should send the explicit country field plus regional location keys such as `address.state_id`, `address.district_id`, and `address.subdistrict_id`.
+- Admin speaker clients should send `address.country_id`, `address.state_id`, `address.city_id` (optional), `address.admin_area_1_id` (district), and `address.admin_area_2_id` (subdistrict).
 - The `allow_public_event_submission` field is only accepted on `PUT` (update), not on `POST` (create). Sending it on create returns `422`.
 - For events, sparse `PUT` updates are supported. Omitted scalar fields and relation arrays preserve the current stored value; you only need to send the arrays that should actually change.
 - For events, submitted `speakers` or `other_key_people` arrays rebuild the combined `key_people` rows. Do not rely on row ids surviving an update.
@@ -1065,7 +1065,7 @@ Nested collection item contracts for institutions:
 - For spaces, `institutions` is an exact replacement sync, not an append-only relation update.
 - For reports, remember that `evidence: []` clears the media collection while `evidence: null` preserves the current uploads.
 - For tags, treat `name.en` as optional display sugar: if you omit it, the server falls back to `name.ms`, and blank / null `order_column` values trigger sortable reordering instead of storing `null`.
-- For subdistricts, `district_id=null` is only valid for federal-territory states; for all other states it remains a validation error.
+- For subdistricts, `admin_area_1_id=null` is only valid for federal-territory states; for all other states district remains required.
 
 ### Example: full admin speaker create/update flow
 
@@ -1130,8 +1130,8 @@ Supported filters:
 - `filter[ends_after]`
 - `filter[ends_before]`
 - `filter[state_id]`
-- `filter[district_id]`
-- `filter[subdistrict_id]`
+- `filter[admin_area_1_id]` (district)
+- `filter[admin_area_2_id]` (subdistrict)
 - `filter[city_id]`
 - `filter[speaker]`
 - `filter[key_person_roles]`
@@ -1506,4 +1506,4 @@ All timestamps in API responses end in `Z` (UTC). Convert them to the viewer's t
 Never send any of the following for speaker create or update (both public contribution and admin):
 `address.line1`, `address.line2`, `address.postcode`, `address.lat`, `address.lng`, `address.google_maps_url`, `address.google_place_id`, `address.waze_url`
 
-The server will reject them with HTTP `422`. Send an explicit country via `address.country_id`, then optionally add `address.state_id`, `address.district_id`, and `address.subdistrict_id`.
+The server will reject them with HTTP `422`. Send `address.country_id`, then `address.state_id`, optional `address.city_id`, `address.admin_area_1_id` (district), and `address.admin_area_2_id` (subdistrict).

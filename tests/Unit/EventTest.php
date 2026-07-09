@@ -65,20 +65,14 @@ it('active scope filters public visible statuses (approved, pending, cancelled)'
     });
 });
 
-it('searchable payload includes status and address text fields without legacy geography ids', function () {
+it('searchable payload includes status and product-native address geography fields', function () {
     withGlobalOwnerContext(function (): void {
-        $country = ensureTestMalaysiaCountry();
-        $state = createTestAddressArea('Selangor', 1, country: $country);
-        $district = createTestAddressArea('Petaling', 2, parent: $state, country: $country);
-        $subdistrict = createTestAddressArea('Shah Alam', 3, parent: $district, country: $country);
+        $geo = createTestPackageGeography('Selangor', 'Petaling', 'Shah Alam');
 
         $venue = Venue::factory()->create();
         syncPrimaryAddressForTest($venue, [
-            'country_id' => (string) $country->getKey(),
+            ...$geo['address'],
             'country_code' => 'MY',
-            'admin_area_1_id' => (string) $state->getKey(),
-            'admin_area_2_id' => (string) $district->getKey(),
-            'admin_area_3_id' => (string) $subdistrict->getKey(),
             'state' => 'Selangor',
             'city' => 'Shah Alam',
         ]);
@@ -96,9 +90,13 @@ it('searchable payload includes status and address text fields without legacy ge
             ->and($payload)->toHaveKey('country_code', 'MY')
             ->and($payload)->toHaveKey('state', 'Selangor')
             ->and($payload)->toHaveKey('city', 'Shah Alam')
-            ->and($payload)->not->toHaveKey('state_id')
-            ->and($payload)->not->toHaveKey('admin_area_1_id')
-            ->and($payload)->not->toHaveKey('admin_area_2_id');
+            ->and($payload['state_id'])->toBe((string) $geo['state']->getKey())
+            ->and($payload['admin_area_1_id'])->toBe((string) $geo['district']->getKey())
+            ->and($payload['admin_area_2_id'])->toBe((string) $geo['subdistrict']->getKey())
+            ->and($payload)->not->toHaveKey('state_area_id')
+            ->and($payload)->not->toHaveKey('district_id')
+            ->and($payload)->not->toHaveKey('subdistrict_id')
+            ->and($payload)->not->toHaveKey('admin_area_3_id');
     });
 });
 

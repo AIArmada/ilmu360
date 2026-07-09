@@ -21,13 +21,15 @@ Also store denormalized text when useful: `line1`, `line2`, `postcode`, `state`,
 1. **First-class tables**: `states` + `cities` — use for `state_id` / `city_id`. Seed MY via package `MalaysiaGeographySeeder`.
 2. **Generic tree**: `address_areas` (`type`, `level`, `parent_id`) — import hierarchy for districts/subdistricts (and optional level-1 state *nodes* only as parents of districts). Level-1 area rows are **not** written to `admin_area_*` and are **not** a substitute for `states.state_id`.
 
-## Forbidden
+## Forbidden (zero legacy footprint)
 
 - Do **not** use removed package leftovers: `district_id`, `subdistrict_id`, `district()`, `subdistrict()`, `stateArea()`, `districtArea()`, `subdistrictArea()`.
-- Do **not** use form-only aliases like `state_area_id` as persisted address fields.
+- Do **not** invent form-only aliases (`state_area_id` is forbidden in app code).
 - Do **not** store state UUID in `admin_area_1_id`.
+- Do **not** store subdistrict in `admin_area_3_id` (always null).
 - Do **not** use integer geography tables or integer FKs for country/state/city/district.
-- Do **not** reintroduce dual API keys that remap `state_id` → admin areas.
+- Do **not** remap legacy keys in app or tests — fix callers instead.
+- Do **not** reintroduce dual API keys (`district_id` / `subdistrict_id` as aliases).
 
 ## Form cascade (MY)
 
@@ -55,6 +57,6 @@ country_id → state_id → city_id (optional)
 ## Verification
 
 ```bash
-rg -n "district_id|subdistrict_id|state_area_id|stateArea\(|districtArea\(" app/ tests/ --glob '*.php'
-rg -n "admin_area_3_id|admin_area_4_id" app/ -g'*.php' | head
+# Must be empty (except this guideline / intentional null writes of admin_area_3/4):
+rg -n "state_area_id|\\bdistrict_id\\b|\\bsubdistrict_id\\b|stateArea\\(|districtArea\\(|subdistrictArea\\(" app/ tests/ database/ resources/ --glob '!**/storage/**'
 ```

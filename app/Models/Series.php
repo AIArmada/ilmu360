@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use AIArmada\Engagement\Models\Follow;
-use AIArmada\Events\Models\EventSeries;
+use AIArmada\Events\Models\EventSeries as PackageEventSeries;
 use App\Models\Concerns\AuditsModelChanges;
 use App\Models\Concerns\HasLanguages;
 use Database\Factories\SeriesFactory;
@@ -32,7 +32,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  * @property array<string, mixed>|null $dynamic_rule_json
  * @property array<string, mixed>|null $metadata
  */
-class Series extends EventSeries implements AuditableContract, HasMedia
+class Series extends PackageEventSeries implements AuditableContract, HasMedia
 {
     protected static string $ownerScopeConfigKey = 'series.owner';
 

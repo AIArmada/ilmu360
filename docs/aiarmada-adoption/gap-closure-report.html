@@ -123,16 +123,19 @@
     <div class="wrap">
         <h1>ilmu360° · AIArmada native gap closure</h1>
         <p class="lede">
-            Fresh report (2026-07-09). Package installation and schema ownership are largely done.
-            What remains is <strong style="color:var(--ink)">native purity</strong>: no dual paths, no backward-compat shims,
-            no cutover hacks. Further product development is frozen until these gaps close and every custom piece is intentional by design.
+            Report refreshed <strong style="color:var(--ink)">2026-07-10</strong>. Package installation and schema ownership are largely done.
+            <strong style="color:var(--good)">G6 geography hard-cut closed</strong>; comms dispatch defaults through package.
+            What remains is <strong style="color:var(--ink)">native purity</strong>: taxonomy dual path, builders, alias traits, accessors, verification, paid checkout.
+            Authoritative backlog: <a href="status.md">status.md</a> + <a href="phase-reconciliation.md">phase-reconciliation.md</a> (HTML may lag).
+            Feature freeze until Phase 9 exit.
         </p>
         <div class="meta">
             <span class="pill freeze">Feature freeze until Phase 9 exit</span>
             <span class="pill"><strong>25</strong> packages installed</span>
             <span class="pill"><strong>31</strong> app migrations</span>
             <span class="pill"><strong>15</strong> package subclasses</span>
-            <span class="pill warn"><strong>9</strong> open work units</span>
+            <span class="pill ok">G6 geography closed</span>
+            <span class="pill warn"><strong>~8</strong> open Phase 9 units</span>
             <span class="pill ok">Phases 0–8 schema: mostly complete</span>
         </div>
     </div>
@@ -156,7 +159,7 @@
             <h3>Native purity (Phase 9)</h3>
             <div class="bar"><i class="c" style="width:18%"></i><i class="o" style="width:82%"></i></div>
             <p class="lede" style="margin:.5rem 0 0;font-size:.90rem">
-                Dual dispatch, dual taxonomy, builder maps, alias traits, legacy accessors, hard-native API edges, thick subclasses still open.
+                Dual taxonomy, builder maps, alias traits, legacy accessors, thick subclasses, verification, paid checkout still open. Geography closed; dual dispatch mostly closed.
             </p>
         </div>
     </div>
@@ -255,7 +258,7 @@
         <tr>
             <td><strong>G6</strong></td>
             <td>Geography/search BC edges</td>
-            <td><code>state_id</code>/<code>district_id</code>/<code>subdistrict_id</code> still accepted or composed in search, forms, contributions, saved searches</td>
+            <td><strong>Closed:</strong> package-native only — <code>state_id</code>/<code>city_id</code>/<code>admin_area_1_id</code>/<code>admin_area_2_id</code>; zero <code>district_id</code>/<code>subdistrict_id</code>/<code>state_area_id</code> acceptance</td>
             <td>Hard-native package keys; clients updated same PR</td>
             <td><span class="tag tag-p1">P1</span></td>
         </tr>

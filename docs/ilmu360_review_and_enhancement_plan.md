@@ -1,5 +1,8 @@
 # ilmu360° Full Code Audit (Literal Codebase Audit)
 
+
+> **Superseded (geography):** Integer geo IDs and `district_id`/`subdistrict_id` are obsolete. Canonical addressing is package UUID `state_id`/`city_id`/`admin_area_1_id`/`admin_area_2_id`. See `.ai/guidelines/addressing.blade.php`.
+
 Updated: February 12, 2026
 
 > Audit scope note: this document records a specific audit pass completed in February 2026.

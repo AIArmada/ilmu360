@@ -1,6 +1,9 @@
 # Phase 5 - Core Domain Rewrite
 
-State: `Assessed`
+State: **`Superseded`** (assessment-era plan; execution landed in Phase 8)
+
+> **Do not implement from narrative WP sections in this file as a live backlog.**  
+> Live status: [`status.md`](status.md) · No-miss carry-forward: [`phase-reconciliation.md`](phase-reconciliation.md) §5 · Active work: Phase 9 (**P9-A** taxonomy, **P9-C** builders, **P9-E/G**, **G11** paid modes).
 
 ## Objective
 

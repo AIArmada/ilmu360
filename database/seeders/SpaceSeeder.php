@@ -47,6 +47,7 @@ class SpaceSeeder extends Seeder
                 'slug' => Str::slug($spaceData['name']),
                 'capacity' => $spaceData['capacity'],
                 'status' => 'active',
+                'visibility' => 'public',
             ]);
         }
     }

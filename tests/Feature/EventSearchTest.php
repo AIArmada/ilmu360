@@ -356,9 +356,7 @@ describe('Event Search Filters', function () {
     });
 
     it('shows event location with subdistrict, district, and state on cards', function () {
-        $state = ensureMalaysiaStateForTests();
-        $district = createAddressAreaForTests('Gombak', 2, $state);
-        $subdistrict = createAddressAreaForTests('Taman Melawati', 3, $district);
+        $geo = createTestPackageGeography('Selangor', 'Gombak', 'Taman Melawati');
 
         $venue = Venue::factory()->create([
             'name' => 'Surau Taman Melawati',
@@ -366,13 +364,10 @@ describe('Event Search Filters', function () {
         ]);
 
         updatePrimaryAddressForSearch($venue, [
-            'country_id' => $state->country_id,
+            ...$geo['address'],
             'country_code' => 'MY',
-            'admin_area_1_id' => $state->id,
-            'admin_area_2_id' => $district->id,
-            'admin_area_3_id' => $subdistrict->id,
-            'city' => 'Taman Melawati, Gombak',
-            'state' => $state->name,
+            'city' => 'Taman Melawati',
+            'state' => 'Selangor',
         ]);
 
         Event::factory()
@@ -390,7 +385,7 @@ describe('Event Search Filters', function () {
 
         $component
             ->assertSee('Surau Taman Melawati')
-            ->assertSee('Taman Melawati, Gombak, '.$state->name);
+            ->assertSee('Taman Melawati, Selangor');
     });
 
     it('searches events by title', function () {
@@ -1343,33 +1338,26 @@ describe('Event Search Filters', function () {
     });
 
     it('filters events by district', function () {
-        $state = ensureMalaysiaStateForTests();
-
-        $districtA = createAddressAreaForTests('District A '.uniqid(), 2, $state);
-        $districtB = createAddressAreaForTests('District B '.uniqid(), 2, $state);
-        $subdistrictA = createAddressAreaForTests('Subdistrict A '.uniqid(), 3, $districtA);
-        $subdistrictB = createAddressAreaForTests('Subdistrict B '.uniqid(), 3, $districtB);
+        $geoA = createTestPackageGeography('Selangor', 'District A '.uniqid(), 'Subdistrict A '.uniqid());
+        $districtB = createTestAddressArea('District B '.uniqid(), 2, parent: $geoA['area_tree_root'], country: $geoA['country']);
+        $subdistrictB = createTestAddressArea('Subdistrict B '.uniqid(), 3, parent: $districtB, country: $geoA['country']);
 
         $venueA = Venue::factory()->create();
         updatePrimaryAddressForSearch($venueA, [
-            'country_id' => $state->country_id,
+            ...$geoA['address'],
             'country_code' => 'MY',
-            'admin_area_1_id' => $state->id,
-            'admin_area_2_id' => $districtA->id,
-            'admin_area_3_id' => $subdistrictA->id,
             'city' => 'District A City',
-            'state' => $state->name,
+            'state' => 'Selangor',
         ]);
 
         $venueB = Venue::factory()->create();
         updatePrimaryAddressForSearch($venueB, [
-            'country_id' => $state->country_id,
+            ...$geoA['address'],
             'country_code' => 'MY',
-            'admin_area_1_id' => $state->id,
-            'admin_area_2_id' => $districtB->id,
-            'admin_area_3_id' => $subdistrictB->id,
+            'admin_area_1_id' => (string) $districtB->getKey(),
+            'admin_area_2_id' => (string) $subdistrictB->getKey(),
             'city' => 'District B City',
-            'state' => $state->name,
+            'state' => 'Selangor',
         ]);
 
         Event::factory()->for($venueA)->create([
@@ -1389,7 +1377,7 @@ describe('Event Search Filters', function () {
         ]);
 
         $response = $this->get(eventsIndexUrl([
-            'admin_area_1_id' => $districtA->id,
+            'admin_area_1_id' => $geoA['district']->getKey(),
         ]));
 
         $response->assertOk()
@@ -1400,43 +1388,35 @@ describe('Event Search Filters', function () {
     it('filters events by country', function () {
         $malaysia = ensureMalaysiaCountryForTests();
         $indonesia = ensureAddressCountryForTests('ID', 'Indonesia', 'IDN', ['Asia/Jakarta'], '62');
-        $malaysiaState = createAddressAreaForTests('Selangor', 1, null, $malaysia, 'state');
-        $indonesiaState = createAddressAreaForTests('DKI Jakarta', 1, null, $indonesia, 'state');
+        $malaysiaGeo = createTestPackageGeography('Selangor', 'Petaling MY', 'Shah Alam MY', country: $malaysia);
+        $indonesiaGeo = createTestPackageGeography('DKI Jakarta', 'Jakarta Pusat', 'Menteng', country: $indonesia);
 
         $malaysiaVenue = Venue::factory()->create();
         updatePrimaryAddressForSearch($malaysiaVenue, [
-            'country_id' => $malaysia->id,
+            ...$malaysiaGeo['address'],
             'country_code' => 'MY',
-            'admin_area_1_id' => $malaysiaState->id,
-            'state' => $malaysiaState->name,
         ]);
 
         $malaysiaInstitution = Institution::factory()->create([
             'status' => 'verified',
         ]);
         updatePrimaryAddressForSearch($malaysiaInstitution, [
-            'country_id' => $malaysia->id,
+            ...$malaysiaGeo['address'],
             'country_code' => 'MY',
-            'admin_area_1_id' => $malaysiaState->id,
-            'state' => $malaysiaState->name,
         ]);
 
         $indonesiaVenue = Venue::factory()->create();
         updatePrimaryAddressForSearch($indonesiaVenue, [
-            'country_id' => $indonesia->id,
+            ...$indonesiaGeo['address'],
             'country_code' => 'ID',
-            'admin_area_1_id' => $indonesiaState->id,
-            'state' => $indonesiaState->name,
         ]);
 
         $indonesiaInstitution = Institution::factory()->create([
             'status' => 'verified',
         ]);
         updatePrimaryAddressForSearch($indonesiaInstitution, [
-            'country_id' => $indonesia->id,
+            ...$indonesiaGeo['address'],
             'country_code' => 'ID',
-            'admin_area_1_id' => $indonesiaState->id,
-            'state' => $indonesiaState->name,
         ]);
 
         Event::factory()->for($malaysiaVenue)->for($malaysiaInstitution)->create([
@@ -1488,32 +1468,24 @@ describe('Event Search Filters', function () {
     });
 
     it('filters events by subdistrict', function () {
-        $state = ensureMalaysiaStateForTests();
-
-        $district = createAddressAreaForTests('District C '.uniqid(), 2, $state);
-        $subdistrictA = createAddressAreaForTests('Subdistrict C1 '.uniqid(), 3, $district);
-        $subdistrictB = createAddressAreaForTests('Subdistrict C2 '.uniqid(), 3, $district);
+        $geo = createTestPackageGeography('Selangor', 'District C '.uniqid(), 'Subdistrict C1 '.uniqid());
+        $subdistrictB = createTestAddressArea('Subdistrict C2 '.uniqid(), 3, parent: $geo['district'], country: $geo['country']);
 
         $venueA = Venue::factory()->create();
         updatePrimaryAddressForSearch($venueA, [
-            'country_id' => $state->country_id,
+            ...$geo['address'],
             'country_code' => 'MY',
-            'admin_area_1_id' => $state->id,
-            'admin_area_2_id' => $district->id,
-            'admin_area_3_id' => $subdistrictA->id,
             'city' => 'Subdistrict A City',
-            'state' => $state->name,
+            'state' => 'Selangor',
         ]);
 
         $venueB = Venue::factory()->create();
         updatePrimaryAddressForSearch($venueB, [
-            'country_id' => $state->country_id,
+            ...$geo['address'],
             'country_code' => 'MY',
-            'admin_area_1_id' => $state->id,
-            'admin_area_2_id' => $district->id,
-            'admin_area_3_id' => $subdistrictB->id,
+            'admin_area_2_id' => (string) $subdistrictB->getKey(),
             'city' => 'Subdistrict B City',
-            'state' => $state->name,
+            'state' => 'Selangor',
         ]);
 
         Event::factory()->for($venueA)->create([
@@ -1533,7 +1505,7 @@ describe('Event Search Filters', function () {
         ]);
 
         $response = $this->get(eventsIndexUrl([
-            'admin_area_2_id' => $subdistrictA->id,
+            'admin_area_2_id' => $geo['subdistrict']->getKey(),
         ]));
 
         $response->assertOk()
@@ -1542,26 +1514,33 @@ describe('Event Search Filters', function () {
     });
 
     it('filters events by federal territory subdistricts without requiring a district', function () {
-        $state = createAddressAreaForTests('Kuala Lumpur', 1, null, ensureMalaysiaCountryForTests(), 'state');
-        $subdistrictA = createAddressAreaForTests('Setiawangsa '.uniqid(), 3, $state);
-        $subdistrictB = createAddressAreaForTests('Segambut '.uniqid(), 3, $state);
+        $country = ensureMalaysiaCountryForTests();
+        $geo = createTestPackageGeography('Kuala Lumpur', 'Kuala Lumpur', 'Setiawangsa Placeholder', country: $country);
+        $subdistrictA = createTestAddressArea('Setiawangsa '.uniqid(), 3, parent: $geo['area_tree_root'], country: $country);
+        $subdistrictB = createTestAddressArea('Segambut '.uniqid(), 3, parent: $geo['area_tree_root'], country: $country);
 
         $venueA = Venue::factory()->create();
         updatePrimaryAddressForSearch($venueA, [
-            'country_id' => $state->country_id,
+            'country_id' => (string) $country->getKey(),
             'country_code' => 'MY',
-            'admin_area_1_id' => $state->id,
-            'admin_area_3_id' => $subdistrictA->id,
+            'state_id' => (string) $geo['state']->getKey(),
+            'admin_area_1_id' => null,
+            'admin_area_2_id' => (string) $subdistrictA->getKey(),
+            'admin_area_3_id' => null,
+            'admin_area_4_id' => null,
             'city' => 'Setiawangsa',
             'state' => 'Kuala Lumpur',
         ]);
 
         $venueB = Venue::factory()->create();
         updatePrimaryAddressForSearch($venueB, [
-            'country_id' => $state->country_id,
+            'country_id' => (string) $country->getKey(),
             'country_code' => 'MY',
-            'admin_area_1_id' => $state->id,
-            'admin_area_3_id' => $subdistrictB->id,
+            'state_id' => (string) $geo['state']->getKey(),
+            'admin_area_1_id' => null,
+            'admin_area_2_id' => (string) $subdistrictB->getKey(),
+            'admin_area_3_id' => null,
+            'admin_area_4_id' => null,
             'city' => 'Segambut',
             'state' => 'Kuala Lumpur',
         ]);
@@ -1583,8 +1562,8 @@ describe('Event Search Filters', function () {
         ]);
 
         $response = $this->get(eventsIndexUrl([
-            'state_id' => $state->id,
-            'admin_area_2_id' => $subdistrictA->id,
+            'state_id' => $geo['state']->getKey(),
+            'admin_area_2_id' => $subdistrictA->getKey(),
         ]));
 
         $response->assertOk()

@@ -1,6 +1,10 @@
 # Package Inventory
 
-Baseline date: 2026-06-28
+Baseline date: 2026-06-28 · **Install list last fully accurate for early path-repo work — verify against Composer**
+
+> **Live install truth (2026-07-10):** **25** direct `aiarmada/*` requires — see [`status.md`](status.md).  
+> This file remains useful as a **catalog of the monorepo** (tiers, deferred packages).  
+> WP-01 still open if a full line-by-line reconcile of the tables below is desired.
 
 Source path: `/Users/Saiffil/Herd/commerce/packages/*`
 

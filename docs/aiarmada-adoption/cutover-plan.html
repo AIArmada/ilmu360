@@ -72,13 +72,15 @@
     <div class="wrap">
         <h1>AIArmada Cutover Plan — Phase 9 Native Purity</h1>
         <p class="muted" style="margin:0">
-            Verified 2026-07-09. Phase 0–8 delivered package install + schema ownership.
-            <strong>Phase 9 closes dual paths, shims, and historical hacks</strong> so the app is package-native, stable, and ready for further development.
+            Verified <strong>2026-07-10</strong>. Phase 0–8 delivered package install + schema ownership.
+            <strong>G6 geography closed</strong>; comms package dispatch default on.
+            <strong>Phase 9 closes remaining dual paths, shims, and hacks</strong> (taxonomy, builders, aliases, accessors, verification, paid checkout).
             Policy: <strong>no backward-compat layers at exit</strong>. Hard cuts preferred.
         </p>
         <p class="muted" style="margin:.4rem 0 0">
             Related:
             <a href="status.md">status.md</a> ·
+            <a href="phase-reconciliation.md">phase-reconciliation.md</a> (no-miss) ·
             <a href="phase-08-cutover.md">phase-08-cutover.md</a> ·
             <a href="gap-closure-report.html">gap-closure-report.html</a> ·
             <a href="../commerce-package-readiness-reassessment.md">readiness reassessment</a>
@@ -91,6 +93,9 @@
 <div class="banner">
     <strong>Feature development freeze</strong> until Phase 9 exit criteria pass.
     Custom code may remain only when intentional by product design (Institution/Speaker, donations, MCP, public UX, Islamic presentation, FCM/WhatsApp adapters) — never as unfinished cutover residue.
+    <br><br>
+    <strong>Do not use phase-04…07 open checkboxes as backlog.</strong> Authoritative no-miss matrix:
+    <a href="phase-reconciliation.md">phase-reconciliation.md</a> · live gaps in <a href="status.md">status.md</a>.
 </div>
 
 <div class="grid">
@@ -114,8 +119,8 @@
         <tr>
             <td><strong>DG-API</strong></td>
             <td>Public/API geography keys</td>
-            <td><strong>Hard cut</strong> to package-native names; update clients/tests same change set</td>
-            <td>Unlocks WU-G</td>
+            <td><strong>Closed 2026-07-10:</strong> product FKs <code>state_id</code>/<code>city_id</code>/<code>admin_area_1_id</code>/<code>admin_area_2_id</code>; legacy aliases rejected</td>
+            <td>WU-G / P9-F done</td>
         </tr>
         <tr>
             <td><strong>DG-COM</strong></td>
@@ -230,7 +235,7 @@
     </div>
     <p class="deps"><strong>Depends:</strong> DG-API</p>
     <ul class="tasks">
-        <li><input type="checkbox"><label>Remove acceptance of <code>state_id</code>/<code>district_id</code>/<code>subdistrict_id</code> as aliases in search, saved search, contributions, SharedFormSchema</label></li>
+        <li><input type="checkbox" checked disabled><label>Geography hard-cut complete: package-native <code>state_id</code>/<code>city_id</code>/<code>admin_area_1_id</code>(district)/<code>admin_area_2_id</code>(subdistrict); no <code>district_id</code>/<code>subdistrict_id</code>/<code>state_area_id</code></label></li>
         <li><input type="checkbox"><label>Use package keys only: address <code>country_id</code> (UUID), <code>admin_area_*</code>, <code>country_code</code> as appropriate</label></li>
         <li><input type="checkbox"><label>Clean <span class="file">EventSearchService</span> Typesense filter construction of legacy keys</label></li>
         <li><input type="checkbox"><label>Update API docs / MCP schemas / frontend clients in same PR</label></li>

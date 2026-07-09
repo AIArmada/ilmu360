@@ -1,10 +1,13 @@
 # Phase 7 - Commerce Capability Adoption
 
-State: `Assessing`
+State: **`Superseded`** (assessment checklist)
+
+> **Do not implement from open checkboxes in this file.**  
+> Decisions and ship path live in [`paid-commerce-productization.md`](paid-commerce-productization.md) + ADR-013 · Track as **G11** / Phase 9 in [`status.md`](status.md) and [`phase-reconciliation.md`](phase-reconciliation.md) §7.
 
 ## Objective
 
-Evaluate commerce packages by actual ilmu360 workflows and adopt only when a concrete workflow exists. Paid event tickets are now an approved ilmu360 workflow, so the minimum paid-ticket package chain must be assessed during this phase instead of deferred indefinitely.
+Evaluate commerce packages by actual ilmu360 workflows and adopt only when a concrete workflow exists. Paid event tickets are an approved ilmu360 workflow (ADR-013).
 
 ## Candidate Packages
 

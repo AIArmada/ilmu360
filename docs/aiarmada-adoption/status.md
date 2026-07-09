@@ -1,47 +1,47 @@
 # AIArmada Adoption Status
 
-Last verified: **2026-07-09** against live `refactor` tree  
-(Composer direct requires, `app/Models` inheritance, `database/migrations`, package imports, dual-path greps).
+Last verified: **2026-07-10** against live `refactor` tree  
+(Composer requires, `app/Models`, migrations, dual-path greps, full multi-file phase reconciliation).
+
+**Docs refresh complete:** every file under `docs/aiarmada-adoption/` is mapped in [`phase-reconciliation.md`](phase-reconciliation.md) folder map. Phase-04…07 have **Superseded** banners. Agent queue packet states realigned.
 
 > **Source of truth hierarchy**
-> 1. Live code + Composer
-> 2. This file (`status.md`)
-> 3. [`phase-08-cutover.md`](phase-08-cutover.md) — phase checklist
-> 4. [`gap-closure-report.html`](gap-closure-report.html) — open-gap dashboard (native purity program)
-> 5. [`cutover-plan.html`](cutover-plan.html) — work-unit execution board
-> 6. [`../commerce-package-readiness-reassessment.md`](../commerce-package-readiness-reassessment.md) — readiness closure audit
+> 1. Live code + Composer  
+> 2. This file (`status.md`)  
+> 3. [`phase-reconciliation.md`](phase-reconciliation.md) — **no-miss matrix** (every phase-04…07 checkbox + agent WPs)  
+> 4. [`phase-08-cutover.md`](phase-08-cutover.md) — Phase 8 checklist + Phase 9 workstreams  
+> 5. [`gap-closure-report.html`](gap-closure-report.html) / [`cutover-plan.html`](cutover-plan.html) — visual only; may lag  
+> 6. [`../commerce-package-readiness-reassessment.md`](../commerce-package-readiness-reassessment.md)  
+> 7. Historical phase-00…07 + `agent-work-queue.md` — **not live backlog** without the reconciliation matrix  
 
-## North Star (product decision)
+## North Star
 
-**Close every remaining gap.** Use AIArmada packages **natively**. Do **not** keep backward-compatibility shims, dual paths, legacy column mappers, or historical naming “just because it used to work.”
+**Close remaining dual paths and cutover shims.** Use AIArmada packages natively. No BC layers “for old clients.” Custom code only when intentional product design.
 
-- Accept total rewrites of surfaces that still speak old shapes.
-- Custom code is allowed only when it is **intentional product design** (ilmu360-specific UX, MCP, donations, Islamic presentation), never as residue of an unfinished cutover.
-- Exit criterion for further feature development: **no dual systems, no legacy alias layers, green verification, package contracts as the default path.**
+**Feature development freeze (B012)** until Phase 9 exit criteria pass.
 
 ## Phase Dashboard
 
 | Phase | State | Summary |
 | --- | --- | --- |
-| 0 – 7 (foundation through commerce install) | `Verified` | Packages installed, foundation cutovers landed |
-| Phase 02 package readiness hardening | `Verified` | Route/UUID/constraint/SoftDeletes audits clean |
-| Phase 8 app rebuild & schema cutover | `Mostly complete` | Schema/package ownership largely done; dual-path purity not done |
-| **Phase 9 native purity & gap closure** | **`In Progress`** | Kill BC/hacks; single-path package-native runtime |
-
-Phases 0–8 delivered package installation, geography/contacts/membership/events schema ownership, and thick subclasses on package parents. They did **not** finish native purity. That is Phase 9.
+| 0 – 3 | `Verified` | Hub, Composer path, package readiness, foundation |
+| 4 – 7 assessment docs | `Superseded` | Work absorbed by Phase 8; residuals tracked in Phase 9 only — see [`phase-reconciliation.md`](phase-reconciliation.md) |
+| 8 App rebuild & schema | `Mostly complete` | Schema/package ownership landed |
+| **9 Native purity & productization** | **`In Progress`** | Taxonomy dual path, builders, alias traits, accessors, verification, paid checkout |
 
 ## Current Facts
 
 | Fact | Value |
 | --- | --- |
-| Local package source | `/Users/Saiffil/Herd/commerce/packages/*` (Composer path repo) |
-| AIArmada packages installed (direct) | **25** |
-| Laravel | **v13.19.0** |
-| App migration files | **31** (from 73) |
-| Package-owned domain tables | Via package migrations (events, addressing, communications, membership, …) |
-| SoftDeletes / DB cascades in app package path | None intended; packages audited clean |
-| `migrate:fresh --seed` | Expected green path for schema |
-| Homepage / core schema tests | Load / `RefactorTest` schema assertions present |
+| Package source | `/Users/Saiffil/Herd/commerce/packages/*` (path repo) |
+| Direct `aiarmada/*` requires | **25** |
+| Laravel | **v13** |
+| App migration files | **31** |
+| SoftDeletes / DB cascades (policy) | Forbidden; packages audited clean |
+| Comms `dispatch_through_package` | **Default `true`** (`COMMS_DISPATCH_THROUGH_PACKAGE`) |
+| `DispatchMode` dual helper | **Removed** |
+| Geography aliases (`state_area_id`, `district_id`, `subdistrict_id`) | **Rejected** (product + tests); package accessors removed |
+| Public paid checkout | **Off** (`EVENTS_PUBLIC_PAID_CHECKOUT_ENABLED=false`) until payment bound |
 
 ### Installed packages (25)
 
@@ -49,22 +49,12 @@ Phases 0–8 delivered package installation, geography/contacts/membership/event
 
 **Filament:** filament-addressing, filament-authz, filament-communications, filament-contacting, filament-engagement, filament-events, filament-inventory, filament-seating, filament-signals, filament-ticketing  
 
-**Admin plugins registered:** addressing, contacting, engagement, communications, events, inventory, seating, ticketing, signals, authz  
-**Ahli plugins registered:** events, engagement  
+**Admin plugins:** addressing, contacting, engagement, communications, events, inventory, seating, ticketing, signals, authz  
+**Ahli plugins:** events, engagement  
 
 ### Migration inventory (31)
 
-| Category | Count | Notes |
-| --- | ---: | --- |
-| Laravel defaults | 3 | users, cache, jobs |
-| Standard vendor | 8 | media, audits, tags, activity_log, deleted_models, socialite, settings, personal_access_tokens |
-| Passport OAuth | 5 | oauth_* |
-| App-unique entities | 9 | institutions, speakers, donation_channels, media_links, inspirations, slug_redirects, contribution_requests, ai_usage_logs, ai_model_pricings |
-| Shared with package models | 2 | reports, saved_searches (app migration + package model parent) |
-| App pivots | 3 | institution_speaker, languageables, institution_space |
-| Membership pivot bootstrap | 1 | uniform_membership_pivots |
-
-There is **no** remaining app migration that owns the five deleted notification Eloquent models. Notification persistence is package-owned (`notification_inboxes`, preference/delivery tables from communications package).
+Laravel defaults (3) · vendor (8) · Passport (5) · app-unique entities (9) · shared report/saved_search (2) · pivots (3) · membership pivot bootstrap (1). Domain tables for events/addressing/comms/membership come from **package** migrations.
 
 ## Model Ownership Register
 
@@ -72,109 +62,85 @@ There is **no** remaining app migration that owns the five deleted notification 
 
 | App model | Package parent | Notes |
 | --- | --- | --- |
-| `Event` | `Events\Event` | ~2.6k lines — thick product layer |
-| `Registration` | `Events\EventRegistration` | ~440 lines; legacy defaults remain |
-| `Venue` | `Events\Venue` | + builder column mapping |
+| `Event` | `Events\Event` | Thick (~2.6k); still `HasTags` |
+| `Registration` | `Events\EventRegistration` | Thick; legacy defaults residual |
+| `Venue` | `Events\Venue` | + alias traits |
 | `Series` | `Events\EventSeries` | |
 | `Space` | `Events\VenueSpace` | |
 | `EventKeyPerson` | `Events\EventInvolvement` | |
 | `EventCheckin` | `Events\EventAttendance` | |
-| `EventChangeAnnouncement` | `Events\EventUpdate` | **legacy accessors** (`type`/`status`/`public_message`) |
+| `EventChangeAnnouncement` | `Events\EventUpdate` | Legacy accessors remain |
 | `EventSubmission` | `Events\EventSubmission` | |
-| `Reference` | `References\Reference` | ~740 lines thick |
-| `MemberInvitation` | `Membership\MembershipInvitation` | hashed tokens |
+| `Reference` | `References\Reference` | Thick product |
+| `MemberInvitation` | `Membership\MembershipInvitation` | |
 | `MembershipApplication` | `Membership\MembershipApplication` | |
-| `ModerationReview` | `Moderation\ModerationAction` | **legacy-friendly accessors** |
+| `ModerationReview` | `Moderation\ModerationAction` | Legacy-friendly accessors |
 | `SavedSearch` | `CommerceSupport\SavedSearch` | |
 | `Report` | `CommerceSupport\Report` | |
 
-### Category B — App root models + package traits
+### Category B — App roots + package traits
 
-| Model | Package seams |
+| Model | Seams |
 | --- | --- |
-| `Institution` | `HasMembers`, `HasAddresses`, `HasContactMethods`, `HasSocialProfiles` + alias traits |
-| `Speaker` | same as Institution |
-| `User` | `CanFollow`, `CanBookmark`, `CanRespond`; morph relations to package inbox/preferences |
+| `Institution`, `Speaker` | `HasMembers`, `HasAddresses`, contacting traits + **alias traits (P9-D)** |
+| `User` | Engagement actor traits; inbox/preference morphs |
 
-### Category C — Deleted / fully replaced (closed)
+### Category C — Deleted / replaced (closed)
 
-`Contact`, `SocialMedia`, geography wrappers (`Country`/`State`/`District`/`Subdistrict`), `Following`, `EventSettings`, `MembershipClaim` model, Jetstream `Team`, app notification Eloquent models (`PendingNotification`, `NotificationDelivery`, `NotificationDestination`, `NotificationRule`, `NotificationSetting`), `NotificationEngine`, `NotificationCenterMessage`, app tables `event_attendees` / `user_venue` / `event_reference` / app `spaces` migration.
+App geography wrappers · Contact/SocialMedia · Following · EventSettings · MembershipClaim model · Jetstream Team · app notification Eloquent models + NotificationEngine · app event_attendees / user_venue / event_reference migrations.
 
-### Category D — Intentional app-unique (keep by design)
+### Category D — Intentional app-unique
 
-`Institution`, `Speaker`, `DonationChannel`, `MediaLink`, `Inspiration`, `SlugRedirect`, `ContributionRequest`, AI usage/pricing, `User`/auth/OAuth surfaces, public Livewire composition, MCP tools/prompts, Spatie MediaLibrary collection definitions, product Signals naming, FCM/WhatsApp channel adapters (until a generic package owns them).
+Institution, Speaker, DonationChannel, MediaLink, Inspiration, SlugRedirect, ContributionRequest, AI usage/pricing, public Livewire, MCP, MediaLibrary collections, FCM/WhatsApp adapters, Malay/Islamic presentation.
 
-**Taxonomy decision required:** Spatie `Tag` is either intentional app taxonomy **or** must fully cut over to package `EventTaxonomy`/`EventTerm`. Dual write is **not** allowed at exit.
+## Gap register (Phase 9)
 
-## Closures Completed (schema ownership)
-
-| App model | Package target | Status |
-| --- | --- | --- |
-| EventKeyPerson | EventInvolvement | Closed |
-| EventCheckin | EventAttendance | Closed |
-| EventChangeAnnouncement | EventUpdate | Closed (accessors still legacy-shaped) |
-| EventSubmission | package EventSubmission | Closed |
-| ModerationReview | ModerationAction | Closed (accessors still legacy-shaped) |
-| SavedSearch | CommerceSupport\SavedSearch | Closed |
-| Report | CommerceSupport\Report | Closed |
-| Space | VenueSpace | Closed |
-| MembershipClaim | MembershipApplication | Closed (cosmetic `startMembershipClaim` name only) |
-| Membership invitations/actions | package actions + `MemberRole::Owner` | Closed |
-| Engagement save/follow/register | `EngagementManager` / `RegistrationServiceInterface` | Closed |
-| Communications inbox storage | `NotificationInbox` + `CommunicationPreference` | Closed |
-| Membership hooks/notifier | `AppMembershipHook`, `AppMembershipApplicationNotifier` bound | Closed |
-
-## What Is Still Open (must close before “ready to develop”)
-
-See full detail in [`gap-closure-report.html`](gap-closure-report.html). Summary:
-
-| # | Gap | Class | Why it blocks native purity |
+| # | Gap | State 2026-07-10 | Phase 9 ID |
 | ---: | --- | --- | --- |
-| G1 | Communications dual dispatch (`DispatchMode`, `dispatch_through_package` default **false**) | Dual path | Package not the default send path |
-| G2 | Spatie Tags remaining on admin Filament Tag resource only | Dual path (closing) | Event writes use package classifications (submit, admin, contributions); catalogs serve EventTerm |
-| G3 | `EventBuilder` / `VenueBuilder` / `ReferenceBuilder` legacy column maps | Hack / shim | Call sites still speak old column names |
-| G4 | `HasPackageContactAliases` / `HasPackageSocialAliases` / `HasPrimaryAddressAccessors` | Compat layer | Surfaces not package-native |
-| G5 | Legacy accessors on EventChangeAnnouncement / ModerationReview / Registration defaults | Compat layer | Hides package field model |
-| G6 | Geography hard cut | **Closed on API** (ADR-012) | Product: state cascade-only; `admin_area_1`=district, `admin_area_2`=subdistrict; area_3 empty |
-| G7 | Thick `Event` / `Reference` / `Registration` subclasses | Structural debt | Hard to reason; mix product + cutover glue |
-| G8 | Institution dashboard “legacy” table filter/sort state | Local hack | Non-package UI debt |
-| G9 | Migration/parity commands for old notification dual store | Dead tooling | Encourages dual-system thinking |
-| G10 | Verification debt (non-SQL assertion failures in some suites) | Quality | Blocks confident further development |
-| G11 | Paid commerce productization | Active product (ADR-013) | Modes catalog + config flags landed; public checkout still flagged off until payment bound |
-| G12 | Package `Block` unused | Optional product | Only if product needs bans |
+| G1 | Comms dual dispatch | **Mostly closed** — default through package; `DispatchMode` gone. Residual: migrate commands, orphan factories, orchestration ownership doc | P9-B residual |
+| G2 | Taxonomy dual path (Spatie Tags + classifications) | **Open** — event writes prefer classifications; `HasTags` + Tag Filament + AI tag paths remain | **P9-A** |
+| G3 | Builder legacy column maps | **Open** — Event/Venue/ReferenceBuilder | **P9-C** |
+| G4 | Contact/social/address alias traits | **Open** | **P9-D** |
+| G5 | Legacy accessors (announcement/moderation/registration) | **Open** | **P9-E** |
+| G6 | Geography hard cut | **Closed** — product native FKs; zero alias footprint | P9-F done |
+| G7 | Thick Event/Reference subclasses | **Open** (structural) | **P9-G** |
+| G8 | Institution dashboard legacy UI helpers | **Open** | **P9-H** |
+| G9 | Dead notif dual-store tooling | **Open residual** — orphan factories + migrate-rules/settings commands | P9-B residual |
+| G10 | Verification debt | **Open** — full suite/PHPStan not claimed | **P9-I** |
+| G11 | Paid commerce productization | **In progress** — packages in; public checkout flag off | **ADR-013** |
+| G12 | Package `Block` unused | **Deferred optional** | product decision |
 
-**Non-goals for Phase 9:** inventing more BC “deprecation windows.” Prefer hard cuts with test/doc updates in the same PR.
+## Active next actions
 
-## Removed App Infrastructure (already done)
+1. **P9-A Taxonomy** — finish dual-path kill (ADR-011); remove event `HasTags` dual write/index when Tag admin is decided  
+2. **P9-C Builders** — rewrite callers; delete maps  
+3. **P9-D / P9-E** — alias traits + legacy accessors  
+4. **P9-B residual** — delete orphan notification factories; retire unused migrate commands  
+5. **G11** — bind payment + turn on public paid checkout when ready; mode matrix tests  
+6. **P9-I** — `migrate:fresh --seed`, full Pest, PHPStan, Pint  
 
-Jetstream teams; `event_attendees` ownership; `event_settings`; `user_venue`; `event_reference`; app `spaces` migration; 4 `_add_` migrations moved into packages; membership role catalog (~700 lines); 15 custom membership actions; `MembershipClaim` model; app notification models + engine.
-
-## Verification Snapshot (last recorded)
-
-| Check | Result (as of last status capture; re-run before claiming exit) |
-| --- | --- |
-| `migrate:fresh --seed` | 0 errors (last run) |
-| Homepage | Loads |
-| RefactorTest schema | Present / was 5/5 |
-| Broader suite | Partial greens; some pre-existing assertion mismatches, 0 SQL errors in sampled slices |
-
-Phase 9 exit requires a **fresh** full suite pass + PHPStan level 6 on touched paths + Pint, not historical partial greens.
-
-## Active Next Actions
-
-1. **Decisions recorded (2026-07-09):** ADR-011 package taxonomy, ADR-012 geography hard cut, ADR-013 paid commerce productize.
-2. **In flight:** finish taxonomy dual-path removal (admin/API/contribution still may use tag catalogs); complete paid checkout binding when payment provider ready.
-3. Flip communications to package dispatch; delete dual-mode helpers once green.
-4. Rewrite callers off builders’ legacy maps; delete maps.
-5. Thin Event/Reference only after product seams are explicit (media, Scout presentation, Islamic helpers).
-6. Continue Phase 9 units in [`gap-closure-report.html`](gap-closure-report.html) / [`cutover-plan.html`](cutover-plan.html).
-
-## Blocker Register
+## Blocker register
 
 | ID | State | Detail |
 | --- | --- | --- |
-| B001–B010 | `Resolved` / `Verified` | Prior phase blockers closed |
-| B011 | `Open` | Dual-path purity incomplete (comms, taxonomy, builders, aliases) |
-| B012 | `Open` | Feature development freeze until Phase 9 exit criteria met |
+| B001–B010 | Resolved | Prior phase blockers |
+| B011 | **Open** | Dual-path purity incomplete (taxonomy primary; builders/aliases/accessors) |
+| B012 | **Open** | Feature freeze until Phase 9 exit |
 
-No external package-install blockers remain.
+No external package-install blockers.
+
+## Verification (claim only after fresh run)
+
+```bash
+php artisan migrate:fresh --seed
+vendor/bin/pest --parallel --compact
+vendor/bin/phpstan analyse --ansi
+vendor/bin/pint --dirty --format agent
+```
+
+Geography zero-legacy spot check:
+
+```bash
+rg -n "state_area_id|\bdistrict_id\b|\bsubdistrict_id\b" app tests database resources --glob '!**/storage/**' --glob '!tests/errors.md'
+# Expect only reject-guards / negative assertions
+```

@@ -109,34 +109,22 @@ it('only lists active verified venues on the public index', function () {
 });
 
 it('filters venues by selected state', function () {
-    $country = ensureVenueIndexMalaysiaCountryExists();
-
-    $shownState = createVenueIndexState($country, 'Negeri Tempat Paparan');
-    $hiddenState = createVenueIndexState($country, 'Negeri Tempat Tersembunyi');
+    $shown = createTestPackageGeography('Negeri Tempat Paparan', 'Daerah Tempat Paparan', 'Mukim Tempat Paparan');
+    $hidden = createTestPackageGeography('Negeri Tempat Tersembunyi', 'Daerah Tempat Tersembunyi', 'Mukim Tempat Tersembunyi');
 
     $shownVenue = Venue::factory()->create([
         'name' => 'Dewan Negeri Terpilih',
         'status' => 'verified',
     ]);
-    updateVenueIndexPrimaryAddress($shownVenue, [
-        'country_id' => $country->id,
-        'country_code' => 'MY',
-        'admin_area_1_id' => $shownState->id,
-        'state' => $shownState->name,
-    ]);
+    syncPrimaryAddressForTest($shownVenue, $shown['address']);
 
     $hiddenVenue = Venue::factory()->create([
         'name' => 'Dewan Negeri Lain',
         'status' => 'verified',
     ]);
-    updateVenueIndexPrimaryAddress($hiddenVenue, [
-        'country_id' => $country->id,
-        'country_code' => 'MY',
-        'admin_area_1_id' => $hiddenState->id,
-        'state' => $hiddenState->name,
-    ]);
+    syncPrimaryAddressForTest($hiddenVenue, $hidden['address']);
 
-    get('/tempat?state_id='.$shownState->id)
+    get('/tempat?state_id='.$shown['state']->getKey())
         ->assertSuccessful()
         ->assertSee('Dewan Negeri Terpilih')
         ->assertDontSee('Dewan Negeri Lain');

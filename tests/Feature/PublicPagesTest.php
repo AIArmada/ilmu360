@@ -257,15 +257,19 @@ it('shows federal territory event cards on series pages with subdistrict and sta
     ]);
 
     $country = ensureTestMalaysiaCountry();
-    $state = createTestAddressArea('Kuala Lumpur', 1, country: $country);
-    $subdistrict = createTestAddressArea('Setiawangsa', 3, parent: $state, country: $country);
+    $geo = createTestPackageGeography('Kuala Lumpur', 'Kuala Lumpur', 'Setiawangsa', country: $country);
+    // Federal territory: subdistrict under state tree parent, no district on the product address.
+    $subdistrict = createTestAddressArea('Setiawangsa', 3, parent: $geo['area_tree_root'], country: $country);
 
     syncPrimaryAddressForTest($venue, [
-        'admin_area_1_id' => (string) $state->getKey(),
-        'admin_area_2_id' => null,
-        'admin_area_3_id' => (string) $subdistrict->getKey(),
+        'country_id' => (string) $country->getKey(),
+        'state_id' => (string) $geo['state']->getKey(),
+        'admin_area_1_id' => null,
+        'admin_area_2_id' => (string) $subdistrict->getKey(),
+        'admin_area_3_id' => null,
+        'admin_area_4_id' => null,
         'city' => null,
-        'state' => null,
+        'state' => 'Kuala Lumpur',
     ]);
 
     $event = Event::factory()->create([
@@ -314,15 +318,10 @@ it('shows comma-separated location hierarchy text on public events index cards',
         'status' => 'verified',
     ]);
 
-    $country = ensureTestMalaysiaCountry();
-    $state = createTestAddressArea('Selangor', 1, country: $country);
-    $district = createTestAddressArea('Petaling', 2, parent: $state, country: $country);
-    $subdistrict = createTestAddressArea('Shah Alam', 3, parent: $district, country: $country);
+    $geo = createTestPackageGeography('Selangor', 'Petaling', 'Shah Alam');
 
     syncPrimaryAddressForTest($institution, [
-        'admin_area_1_id' => (string) $state->getKey(),
-        'admin_area_2_id' => (string) $district->getKey(),
-        'admin_area_3_id' => (string) $subdistrict->getKey(),
+        ...$geo['address'],
         'city' => null,
         'state' => null,
     ]);

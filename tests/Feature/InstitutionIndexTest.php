@@ -162,32 +162,27 @@ it('allows users to submit a missing institution from institution index with pen
 });
 
 it('rejects duplicate institution submissions when name and locality all match', function () {
-    $country = ensureTestMalaysiaCountry();
     $user = User::factory()->create();
-
-    $state = createTestAddressArea('Negeri Ujian Pendua Institusi', 1, country: $country);
-    $district = createTestAddressArea('Daerah Ujian Pendua Institusi', 2, parent: $state, country: $country);
-    $subdistrict = createTestAddressArea('Mukim Ujian Pendua Institusi', 3, parent: $district, country: $country);
+    $geo = createTestPackageGeography(
+        'Negeri Ujian Pendua Institusi',
+        'Daerah Ujian Pendua Institusi',
+        'Mukim Ujian Pendua Institusi',
+    );
 
     $institution = Institution::factory()->create([
         'name' => 'Masjid Al-Huda Pendua',
         'status' => 'verified',
     ]);
-    syncPrimaryAddressForTest($institution, [
-        'country_id' => (string) $country->getKey(),
-        'admin_area_1_id' => (string) $state->getKey(),
-        'admin_area_2_id' => (string) $district->getKey(),
-        'admin_area_3_id' => (string) $subdistrict->getKey(),
-    ]);
+    syncPrimaryAddressForTest($institution, $geo['address']);
 
     Livewire::actingAs($user)
         ->test(SubmitInstitution::class)
         ->set('data.name', 'Masjid   Al-Huda   Pendua')
         ->set('data.type', 'masjid')
-        ->set('data.address.country_id', (string) $country->getKey())
-        ->set('data.address.admin_area_1_id', (string) $state->getKey())
-        ->set('data.address.admin_area_2_id', (string) $district->getKey())
-        ->set('data.address.admin_area_3_id', (string) $subdistrict->getKey())
+        ->set('data.address.country_id', $geo['address']['country_id'])
+        ->set('data.address.state_id', $geo['address']['state_id'])
+        ->set('data.address.admin_area_1_id', $geo['address']['admin_area_1_id'])
+        ->set('data.address.admin_area_2_id', $geo['address']['admin_area_2_id'])
         ->set('data.address.google_maps_url', 'https://maps.google.com/?q=3.1390,101.6869')
         ->set('data.address.provider_place_id', 'place_duplicate_institution')
         ->set('data.address.latitude', 3.1390)
@@ -324,22 +319,14 @@ it('refreshes cached institution search results after institution updates', func
 });
 
 it('shows location hierarchy values without labels on institution cards', function () {
-    $country = ensureTestMalaysiaCountry();
-    $state = createTestAddressArea('Selangor', 1, country: $country);
-    $district = createTestAddressArea('Petaling', 2, parent: $state, country: $country);
-    $subdistrict = createTestAddressArea('Shah Alam', 3, parent: $district, country: $country);
+    $geo = createTestPackageGeography('Selangor', 'Petaling', 'Shah Alam');
 
     $institution = Institution::factory()->create([
         'name' => 'Masjid Al Hidayah',
         'status' => 'verified',
     ]);
 
-    syncPrimaryAddressForTest($institution, [
-        'country_id' => (string) $country->getKey(),
-        'admin_area_1_id' => (string) $state->getKey(),
-        'admin_area_2_id' => (string) $district->getKey(),
-        'admin_area_3_id' => (string) $subdistrict->getKey(),
-    ]);
+    syncPrimaryAddressForTest($institution, $geo['address']);
 
     get('/institusi?search=Hidayah')
         ->assertSuccessful()
@@ -350,22 +337,14 @@ it('shows location hierarchy values without labels on institution cards', functi
 });
 
 it('deduplicates matching district and subdistrict labels on institution cards', function () {
-    $country = ensureTestMalaysiaCountry();
-    $state = createTestAddressArea('Pahang', 1, country: $country);
-    $district = createTestAddressArea('Temerloh', 2, parent: $state, country: $country);
-    $subdistrict = createTestAddressArea('Temerloh', 3, parent: $district, country: $country);
+    $geo = createTestPackageGeography('Pahang', 'Temerloh', 'Temerloh');
 
     $institution = Institution::factory()->create([
         'name' => 'Masjid Temerloh',
         'status' => 'verified',
     ]);
 
-    syncPrimaryAddressForTest($institution, [
-        'country_id' => (string) $country->getKey(),
-        'admin_area_1_id' => (string) $state->getKey(),
-        'admin_area_2_id' => (string) $district->getKey(),
-        'admin_area_3_id' => (string) $subdistrict->getKey(),
-    ]);
+    syncPrimaryAddressForTest($institution, $geo['address']);
 
     get('/institusi?search=Temerloh')
         ->assertSuccessful()
@@ -392,16 +371,12 @@ it('filters institutions by country', function () {
         phoneCode: '62',
     );
 
-    $malaysiaState = createTestAddressArea('Selangor', 1, country: $malaysia);
-    $indonesiaState = createTestAddressArea('DKI Jakarta', 1, country: $indonesia);
-
     $malaysiaInstitution = Institution::factory()->create([
         'name' => 'Institusi Malaysia',
         'status' => 'verified',
     ]);
     syncPrimaryAddressForTest($malaysiaInstitution, [
         'country_id' => (string) $malaysia->getKey(),
-        'admin_area_1_id' => (string) $malaysiaState->getKey(),
     ]);
 
     $indonesiaInstitution = Institution::factory()->create([
@@ -410,7 +385,6 @@ it('filters institutions by country', function () {
     ]);
     syncPrimaryAddressForTest($indonesiaInstitution, [
         'country_id' => (string) $indonesia->getKey(),
-        'admin_area_1_id' => (string) $indonesiaState->getKey(),
     ]);
 
     get('/institusi?country_id='.$malaysia->getKey())
@@ -430,7 +404,7 @@ it('does not default the institutions country filter from an unencrypted browser
 
 it('filters institutions by negeri, daerah, and subdistrict scopes', function () {
     $geoA = createTestPackageGeography('Selangor Scope A', 'Daerah Ujian A', 'Mukim Ujian A');
-    $districtA2 = createTestAddressArea('Daerah Ujian A2', 2, parent: $geoA['state_area'], country: $geoA['country']);
+    $districtA2 = createTestAddressArea('Daerah Ujian A2', 2, parent: $geoA['area_tree_root'], country: $geoA['country']);
     $subdistrictA2 = createTestAddressArea('Mukim Ujian A2', 3, parent: $districtA2, country: $geoA['country']);
     $geoB = createTestPackageGeography('Negeri Ujian B', 'Daerah Ujian B', 'Mukim Ujian B');
 

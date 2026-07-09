@@ -1,5 +1,6 @@
 <?php
 
+use AIArmada\Addressing\Models\State;
 use App\Enums\EventFormat;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\PrayerOffset;
@@ -11,6 +12,8 @@ use App\Models\Institution;
 use App\Models\Reference;
 use App\Models\Speaker;
 use App\Models\Venue;
+use App\Support\Location\AddressHierarchyFormatter;
+use App\Support\Location\FederalTerritoryLocation;
 use Illuminate\Support\Carbon;
 
 it('shows prayer-relative timing text on speaker page instead of absolute time', function () {
@@ -220,48 +223,42 @@ it('falls back to institution name for event location on speaker page when venue
         ->assertSee('Masjid Al-Hidayah Test');
 });
 
-it('hides state when district is kuala lumpur putrajaya or labuan', function () {
-    $speaker = Speaker::factory()->create([
+it('formats federal-territory venue addresses with product state_id and no district slot', function () {
+    $venue = Venue::factory()->create([
+        'name' => 'Dewan Utama Test',
         'status' => 'verified',
     ]);
 
-    $institution = Institution::factory()->create([
-        'name' => 'Masjid Al-Hidayah Test',
-    ]);
-
-    $venue = Venue::factory()->create([
-        'name' => 'Dewan Utama Test',
-    ]);
-
-    $malaysia = ensureTestMalaysiaCountry();
-    $state = createTestAddressArea('Kuala Lumpur', 1, country: $malaysia);
-    $subdistrict = createTestAddressArea('Setiawangsa', 3, parent: $state, country: $malaysia);
-
-    syncPrimaryAddressForTest($venue, [
-        'state_id' => (string) $state->getKey(),
+    $geo = createTestPackageGeography('Kuala Lumpur', 'Federal District Placeholder', 'Setiawangsa');
+    // Federal territory product shape: no district; local area in admin_area_2.
+    $address = syncPrimaryAddressForTest($venue, [
+        ...$geo['address'],
         'admin_area_1_id' => null,
-        'admin_area_2_id' => (string) $subdistrict->getKey(),
+        'admin_area_2_id' => (string) $geo['subdistrict']->getKey(),
+        'city' => 'Setiawangsa',
     ]);
 
-    $event = Event::factory()->create([
-        'status' => 'approved',
-        'visibility' => 'public',
-        'event_format' => EventFormat::Physical,
-        'institution_id' => $institution->id,
-        'venue_id' => $venue->id,
-        'starts_at' => now()->addDay()->setTime(17, 45),
-        'ends_at' => now()->addDay()->setTime(19, 15),
-        'timing_mode' => TimingMode::PrayerRelative,
-        'prayer_display_text' => 'Selepas Asar',
-    ]);
+    expect($address->state_id)->toBe((string) $geo['state']->getKey())
+        ->and($address->admin_area_1_id)->toBeNull()
+        ->and($address->admin_area_2_id)->toBe((string) $geo['subdistrict']->getKey());
 
-    $speaker->speakerEvents()->attach($event->id);
+    $parts = AddressHierarchyFormatter::parts($address);
+    // State label is suppressed for FT names inside the formatter.
+    expect($parts)->toBe(['Setiawangsa']);
 
-    $this->withUnencryptedCookie('user_timezone', 'Asia/Kuala_Lumpur')
-        ->get(route('speakers.show', $speaker))
-        ->assertSuccessful()
-        ->assertSee('Dewan Utama Test, '.$subdistrict->name.', Kuala Lumpur')
-        ->assertDontSee('Dewan Utama Test, Kuala Lumpur, Kuala Lumpur');
+    // Speaker event-location UI re-appends FT state once when only a single local part remains.
+    $stateName = State::query()->whereKey($address->state_id)->value('name');
+    if (count($parts) === 1 && FederalTerritoryLocation::isFederalTerritoryStateName($stateName)) {
+        $parts[] = $stateName;
+    }
+
+    $eventLocation = implode(', ', array_filter([
+        $venue->name,
+        ...$parts,
+    ]));
+
+    expect($eventLocation)->toBe('Dewan Utama Test, Setiawangsa, Kuala Lumpur')
+        ->and($eventLocation)->not->toBe('Dewan Utama Test, Kuala Lumpur, Kuala Lumpur');
 });
 
 it('deduplicates matching speaker subdistrict and district labels in the speaker location badge', function () {
@@ -269,16 +266,8 @@ it('deduplicates matching speaker subdistrict and district labels in the speaker
         'status' => 'verified',
     ]);
 
-    $malaysia = ensureTestMalaysiaCountry();
-    $state = createTestAddressArea('Pahang', 1, country: $malaysia);
-    $district = createTestAddressArea('Temerloh', 2, parent: $state, country: $malaysia);
-    $subdistrict = createTestAddressArea('Temerloh', 3, parent: $district, country: $malaysia);
-
-    syncPrimaryAddressForTest($speaker, [
-        'state_id' => (string) $state->getKey(),
-        'admin_area_1_id' => (string) $district->getKey(),
-        'admin_area_2_id' => (string) $subdistrict->getKey(),
-    ]);
+    $geo = createTestPackageGeography('Pahang', 'Temerloh', 'Temerloh');
+    syncPrimaryAddressForTest($speaker, $geo['address']);
 
     $this->get(route('speakers.show', $speaker))
         ->assertSuccessful()

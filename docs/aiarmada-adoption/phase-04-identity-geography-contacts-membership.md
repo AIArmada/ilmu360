@@ -1,12 +1,16 @@
 # Phase 4 - Identity, Geography, Contacts, And Membership
 
-State: `Assessed`
+State: **`Superseded`** (assessment-era plan; execution landed in Phase 8)
+
+> **Do not implement from open checkboxes in this file.**  
+> Live status: [`status.md`](status.md) · No-miss carry-forward: [`phase-reconciliation.md`](phase-reconciliation.md) §4 · Active work: Phase 9 only.  
+> Residuals still open: **P9-D** (alias traits / `HasPrimaryAddressAccessors`), optional polish (`FormatAddressAction` vs `AddressHierarchyFormatter`).
 
 ## Objective
 
 Replace app-owned support domains with package-owned UUID addressing, contact/social profiles, and membership workflows. Geography must become global by default: no app-wide country switcher, no preferred-country resolver as a product mode, and no Malaysia-only area tables in the fresh target schema.
 
-**This phase is planning-only until Phase 8 (cutover).** The current app continues using integer geography and custom models. The assessment below documents the migration target for the fresh schema.
+**Historical note:** This file was planning-only until Phase 8. Phase 8 executed the bulk of the checklist; open boxes below are stale.
 
 ## Target Packages
 
@@ -56,7 +60,7 @@ Replace app-owned support domains with package-owned UUID addressing, contact/so
 | `GooglePlacesConfiguration` + `ResolveGooglePlaceSelectionAction` | Adapt to `AddressArea` types instead of specific tables | Replace DB lookups with AddressArea queries by type+name |
 | `AddressHierarchyFormatter` | `FormatAddressAction` | Package provides `format(AddressData) -> string` |
 | API catalog endpoints | Replace with addressing package or build lightweight wrapper | Countries, states, districts, subdistricts → AddressCountries, AddressAreas by type |
-| Scout searchable (`state_id`, `district_id`, `subdistrict_id`) | Convert to `address_area_ids` (UUIDs, JSON or pivot-based) | Update `toSearchableArray()` on Event, Institution, Speaker |
+| Scout searchable geography | Package-native facets: `state_id`, `city_id`, `admin_area_1_id`, `admin_area_2_id` | Done (no legacy `district_id`/`subdistrict_id`) |
 | Speaker slug country suffix | Convert from integer country_id to ISO2 lookup via AddressCountry | `GenerateSpeakerSlugAction` |
 | Cascade form selects (country→state→district→subdistrict) | Replace with AddressArea cascade filtered by type + parent | `SharedFormSchema::addressFields()` rewritten |
 | Filament admin resources (Country/State/District/Subdistrict) | Replace with `AddressCountryResource` + `AddressAreaResource` from filament-addressing | Remove 4 custom resources, use 2 package resources with filters |
@@ -154,7 +158,7 @@ Replace app-owned support domains with package-owned UUID addressing, contact/so
 - [ ] Rewrite API catalog endpoints: `/api/v1/catalogs/countries` → `AddressCountry` query, `/api/v1/catalogs/areas` → `AddressArea` query filtered by type
 - [ ] Convert Scout searchable arrays: replace int geography IDs with UUID address_area_ids
 - [ ] Convert speaker slug country suffix from int ID lookup to ISO2 via `AddressCountry`
-- [ ] Rewrite event/institution/speaker search filters from `state_id/district_id/subdistrict_id` to `address_area_ids` + type-based filtering
+- [x] Search filters use package-native `state_id` / `city_id` / `admin_area_1_id` / `admin_area_2_id`
 - [ ] Replace Filament Country/State/District/Subdistrict resources with `filament-addressing` resources
 - [ ] Remove 4 custom geography models, keep only package models in fresh schema
 - [x] Remove `config/public-countries.php`
