@@ -116,7 +116,7 @@ it('syncs event resource relations and persists the requested registration mode'
     ]);
 
     $event->refresh();
-    $event->load(['settings', 'tags', 'speakers']);
+    $event->load(['accessPolicy', 'tags', 'speakers']);
 
     expect($result)->toMatchArray([
         'registration_mode' => RegistrationScope::Event->value,

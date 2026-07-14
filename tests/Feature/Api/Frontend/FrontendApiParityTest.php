@@ -1,6 +1,7 @@
 <?php
 
 use AIArmada\Addressing\Models\AddressCountry;
+use AIArmada\CommerceSupport\Models\Role;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\Contacting\Enums\SocialPlatform;
@@ -38,9 +39,11 @@ use Spatie\Permission\PermissionRegistrar;
 
 beforeEach(function () {
     fakePrayerTimesApi();
-    $this->seed(PermissionSeeder::class);
-    setPermissionsTeamId(null);
-    app(PermissionRegistrar::class)->forgetCachedPermissions();
+    withGlobalOwnerContext(function () {
+        $this->seed(PermissionSeeder::class);
+        setPermissionsTeamId(null);
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+    });
 });
 
 function assignInstitutionOwnerForFrontendApi(User $user, Institution $institution): void
@@ -520,9 +523,9 @@ it('exposes event direct edit media support for authorized public updaters', fun
 
     withGlobalOwnerContext(fn () => $event->setPrimaryOrganizer($institution));
 
-    $event->addMedia(fakeGeneratedImageUpload('context-cover.jpg', 1600, 900))->toMediaCollection('cover');
-    $event->addMedia(fakeGeneratedImageUpload('context-poster.jpg', 1200, 1600))->toMediaCollection('poster');
-    $event->addMedia(fakeGeneratedImageUpload('context-gallery.jpg', 1600, 900))->toMediaCollection('gallery');
+    $event->addMedia(UploadedFile::fake()->image('context-cover.jpg', 1600, 900))->toMediaCollection('cover');
+    $event->addMedia(UploadedFile::fake()->image('context-poster.jpg', 1200, 1600))->toMediaCollection('poster');
+    $event->addMedia(UploadedFile::fake()->image('context-gallery.jpg', 1600, 900))->toMediaCollection('gallery');
 
     assignInstitutionOwnerForFrontendApi($owner, $institution);
 
@@ -620,9 +623,9 @@ it('exposes speaker avatar direct edit media support for authorized public updat
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
     ]);
-    $speaker->addMedia(fakeGeneratedImageUpload('context-avatar.jpg', 1200, 1200))->toMediaCollection('avatar');
-    $speaker->addMedia(fakeGeneratedImageUpload('context-cover.jpg', 1200, 1500))->toMediaCollection('cover');
-    $speaker->addMedia(fakeGeneratedImageUpload('context-gallery.jpg', 1600, 900))->toMediaCollection('gallery');
+    $speaker->addMedia(UploadedFile::fake()->image('context-avatar.jpg', 1200, 1200))->toMediaCollection('avatar');
+    $speaker->addMedia(UploadedFile::fake()->image('context-cover.jpg', 1200, 1500))->toMediaCollection('cover');
+    $speaker->addMedia(UploadedFile::fake()->image('context-gallery.jpg', 1600, 900))->toMediaCollection('gallery');
 
     assignSpeakerOwnerForFrontendApi($owner, $speaker);
 
@@ -2177,6 +2180,7 @@ it('falls back to the original front cover url in reference directory serializat
                 'publisher' => null,
                 'publication_year' => null,
                 'status' => 'verified',
+                'metadata' => [],
             ]);
             $this->exists = true;
             $this->setAttribute('events_count', 0);

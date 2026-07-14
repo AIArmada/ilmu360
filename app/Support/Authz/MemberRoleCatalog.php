@@ -1,0 +1,93 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Support\Authz;
+
+use AIArmada\CommerceSupport\Models\Role;
+use AIArmada\FilamentAuthz\Facades\Authz;
+use App\Enums\MemberSubjectType;
+use App\Models\User;
+use Illuminate\Database\Eloquent\Collection;
+use Spatie\Permission\PermissionRegistrar;
+
+final readonly class MemberRoleCatalog
+{
+    public function __construct(
+        private MemberRoleScopes $scopes,
+        private PermissionRegistrar $permissionRegistrar,
+    ) {}
+
+    /**
+     * @return array<string, string>
+     */
+    public function roleOptionsFor(MemberSubjectType $type): array
+    {
+        $scope = $this->scopeForType($type);
+
+        return Authz::withScope($scope, function () use ($scope): array {
+            $query = Role::query()->where('guard_name', 'web');
+
+            if ($scope !== null) {
+                $query->where('authz_scope_id', $scope->getKey());
+            }
+
+            return $query
+                ->pluck('name', 'id')
+                ->all();
+        });
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function roleNamesFor(User $user, MemberSubjectType $type): array
+    {
+        $modelClass = $type->modelClass();
+        $subject = $this->subjectForUser($user, $modelClass);
+
+        if ($subject === null) {
+            return [];
+        }
+
+        $previousTeamId = getPermissionsTeamId();
+
+        try {
+            setPermissionsTeamId($subject->getKey());
+
+            return Collection::make($user->roles)
+                ->map(fn (Role $role): string => $role->name)
+                ->values()
+                ->all();
+        } finally {
+            setPermissionsTeamId($previousTeamId);
+        }
+    }
+
+    private function subjectForUser(User $user, string $modelClass): mixed
+    {
+        $relation = match ($modelClass) {
+            'App\Models\Institution' => 'institutions',
+            'App\Models\Speaker' => 'speakers',
+            'App\Models\Event' => 'memberEvents',
+            'App\Models\Reference' => 'references',
+            default => null,
+        };
+
+        if ($relation === null || ! method_exists($user, $relation)) {
+            return null;
+        }
+
+        return $user->{$relation}()->first();
+    }
+
+    private function scopeForType(MemberSubjectType $type): mixed
+    {
+        return match ($type) {
+            MemberSubjectType::Institution => $this->scopes->institution(),
+            MemberSubjectType::Speaker => $this->scopes->speaker(),
+            MemberSubjectType::Event => $this->scopes->event(),
+            MemberSubjectType::Reference => $this->scopes->reference(),
+        };
+    }
+}

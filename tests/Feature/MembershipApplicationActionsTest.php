@@ -45,7 +45,7 @@ it('rejects duplicate pending claims for the same subject and claimant', functio
     $claimant = User::factory()->create();
 
     MembershipApplication::factory()
-        ->forSpeaker($speaker)
+        ->for($speaker, 'subject')
         ->create([
             'applicant_id' => $claimant->getKey(),
             'status' => ApplicationStatus::Pending,
@@ -119,7 +119,7 @@ it('approves a claim and can grant owner through the central moderation path', f
     $reviewer = User::factory()->create();
 
     $claim = MembershipApplication::factory()
-        ->forSpeaker($speaker)
+        ->for($speaker, 'subject')
         ->create([
             'applicant_id' => $claimant->getKey(),
             'status' => ApplicationStatus::Pending,

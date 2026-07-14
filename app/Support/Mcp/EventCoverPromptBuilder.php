@@ -170,10 +170,6 @@ class EventCoverPromptBuilder
             'accessPolicy',
             'donationChannel.media',
             'mediaLinks',
-            'parentEvent.media',
-            'childEvents.media',
-            'childEvents.institution.media',
-            'childEvents.venue.media',
         ]);
 
         if ($involveable = $event->primaryOrganizerInvolvement?->involveable) {
@@ -523,10 +519,6 @@ class EventCoverPromptBuilder
     {
         /** @var \Illuminate\Database\Eloquent\Collection<int, Language> $languages */
         $languages = $event->languages;
-        /** @var Event|null $parentEvent */
-        $parentEvent = $event->getRelationValue('parentEvent');
-        /** @var \Illuminate\Database\Eloquent\Collection<int, Event> $childEvents */
-        $childEvents = $event->getRelationValue('childEvents');
         /** @var Collection<int, Model> $classifications */
         $classifications = $event->classifications;
 
@@ -561,8 +553,8 @@ class EventCoverPromptBuilder
                 'access_policy' => $event->accessPolicy instanceof EventAccessPolicy ? $this->modelPayload($event->accessPolicy) : null,
                 'donation_channel' => $event->donationChannel instanceof DonationChannel ? $this->modelPayload($event->donationChannel) : null,
                 'media_links' => $event->mediaLinks->map(fn (MediaLink $mediaLink): array => $this->modelPayload($mediaLink))->values()->all(),
-                'parent_event' => $parentEvent instanceof Event ? $this->relatedEventPayload($parentEvent) : null,
-                'child_events' => $childEvents->map(fn (Event $childEvent): array => $this->relatedEventPayload($childEvent))->values()->all(),
+                'parent_event' => null,
+                'child_events' => [],
             ],
             'available_media' => $this->modelMediaPayloads($event),
         ];

@@ -1,0 +1,110 @@
+name: fix-code-style
+
+on:
+  push:
+    branches: ['**']
+    paths:
+      - '**/*.php'
+      - 'composer.json'
+      - 'composer.lock'
+      - 'pint.json'
+      - 'rector.php'
+      - '.github/workflows/fix-code-style.yml'
+  pull_request:
+    branches: [main, refactor, develop]
+    paths:
+      - '**/*.php'
+      - 'composer.json'
+      - 'composer.lock'
+      - 'pint.json'
+      - 'rector.php'
+      - '.github/workflows/fix-code-style.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  fix-code-style:
+    runs-on: ubuntu-latest
+    if: github.actor != 'github-actions[bot]' && (github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository))
+    permissions:
+      contents: write
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      TARGET_REF: ${{ github.head_ref || github.ref_name }}
+      DB_CONNECTION: pgsql
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_DATABASE: test
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: ${{ env.TARGET_REF }}
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, pgsql
+          coverage: none
+          tools: composer:v2
+
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v5
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install dependencies
+        env:
+          COMPOSER_AUTH: ${{ secrets.COMPOSER_AUTH }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          composer config --global github-oauth.github.com "$GITHUB_TOKEN"
+          composer install --no-interaction --no-progress --prefer-dist --optimize-autoloader
+
+      - name: Run Pint (fix)
+        run: vendor/bin/pint
+
+      - name: Run Rector (fix)
+        run: vendor/bin/rector --no-progress-bar
+
+      - name: Commit changes (if any)
+        run: |
+          if git diff --quiet; then
+            echo "No code style changes to commit."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add -A
+          git commit -m "chore(style): apply Pint and Rector"
+          git push origin HEAD:${TARGET_REF}

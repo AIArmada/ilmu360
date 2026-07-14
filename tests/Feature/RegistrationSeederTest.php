@@ -17,7 +17,7 @@ it('seeds registrations whether or not the users table has a phone column', func
             'registration_required' => true,
             'registration_opens_at' => now()->subDay(),
             'registration_closes_at' => now()->addDay(),
-        ]), 'settings')
+        ]), 'accessPolicy')
         ->create();
 
     (new RegistrationSeeder)->run();

@@ -129,7 +129,14 @@ it('renders the reference-inspired user dashboard with real saved search and not
     ]);
 
     app(EngagementManager::class)->bookmark($user, $savedEvent);
-    $user->goingEvents()->attach($goingEvent->id);
+    $user->responses()->create([
+        'respondable_type' => $goingEvent->getMorphClass(),
+        'respondable_id' => $goingEvent->id,
+        'response_type' => 'going',
+        'status' => 'active',
+        'visibility' => 'public',
+        'responded_at' => now(),
+    ]);
 
     EventCheckin::factory()->for($checkedInEvent)->for($user)->create([
         'checked_in_at' => now()->subDay(),
@@ -247,7 +254,14 @@ it('shows the redesigned followed-entity category cards on the dashboard', funct
     ]);
 
     app(EngagementManager::class)->bookmark($user, $savedEvent);
-    $user->goingEvents()->attach($goingEvent->id);
+    $user->responses()->create([
+        'respondable_type' => $goingEvent->getMorphClass(),
+        'respondable_id' => $goingEvent->id,
+        'response_type' => 'going',
+        'status' => 'active',
+        'visibility' => 'public',
+        'responded_at' => now(),
+    ]);
     $user->follow($speaker);
     $user->follow($reference);
     $user->follow($followedInstitution);
@@ -361,7 +375,14 @@ it('shows a featured next event without repeating it inside an otherwise empty a
         'starts_at' => now()->addDays(2),
     ]);
 
-    $user->goingEvents()->attach($event->id);
+    $user->responses()->create([
+        'respondable_type' => $event->getMorphClass(),
+        'respondable_id' => $event->id,
+        'response_type' => 'going',
+        'status' => 'active',
+        'visibility' => 'public',
+        'responded_at' => now(),
+    ]);
 
     $response = $this->withSession(['locale' => 'en'])
         ->actingAs($user)
@@ -395,7 +416,14 @@ it('renders the redesigned dashboard in Malay with reference-inspired sections',
         'starts_at' => now()->addDays(3),
     ]);
 
-    $user->goingEvents()->attach($goingEvent->id);
+    $user->responses()->create([
+        'respondable_type' => $goingEvent->getMorphClass(),
+        'respondable_id' => $goingEvent->id,
+        'response_type' => 'going',
+        'status' => 'active',
+        'visibility' => 'public',
+        'responded_at' => now(),
+    ]);
 
     EventSubmission::factory()->for($submittedEvent)->for($user, 'submitter')->create();
 
@@ -453,7 +481,14 @@ it('paginates redesigned majlis cards when counts exceed the dashboard page size
             'starts_at' => now()->addDays($index),
         ]);
 
-        $user->goingEvents()->attach($event->id);
+        $user->responses()->create([
+            'respondable_type' => $event->getMorphClass(),
+            'respondable_id' => $event->id,
+            'response_type' => 'going',
+            'status' => 'active',
+            'visibility' => 'public',
+            'responded_at' => now(),
+        ]);
     }
 
     $response = $this->withSession(['locale' => 'en'])
@@ -629,7 +664,14 @@ it('merges overlapping planner relationships into one calendar entry', function 
     ]);
 
     app(EngagementManager::class)->bookmark($user, $event);
-    $user->goingEvents()->attach($event->id);
+    $user->responses()->create([
+        'respondable_type' => $event->getMorphClass(),
+        'respondable_id' => $event->id,
+        'response_type' => 'going',
+        'status' => 'active',
+        'visibility' => 'public',
+        'responded_at' => now(),
+    ]);
 
     Registration::factory()->for($event)->forRegistrant($user)->create([
         'status' => 'confirmed',
