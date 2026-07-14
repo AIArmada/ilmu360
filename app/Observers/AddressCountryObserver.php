@@ -39,12 +39,6 @@ class AddressCountryObserver
 
     public function deleting(AddressCountry $country): void
     {
-        if (strtoupper((string) $country->iso2) === 'MY') {
-            throw ValidationException::withMessages([
-                'country' => 'Malaysia is the application default country and cannot be deleted.',
-            ]);
-        }
-
         $recordKey = (string) $country->getKey();
 
         if (

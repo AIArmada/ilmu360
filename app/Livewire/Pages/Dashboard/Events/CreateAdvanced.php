@@ -9,7 +9,7 @@ use App\Actions\Events\ResolveAdvancedBuilderContextAction;
 use App\Enums\EventFormat;
 use App\Enums\EventType;
 use App\Enums\EventVisibility;
-use App\Enums\RegistrationMode;
+use App\Enums\RegistrationScope;
 use App\Models\Event;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
@@ -182,7 +182,7 @@ class CreateAdvanced extends Component
             'form.default_event_format' => ['required', Rule::in(array_column(EventFormat::cases(), 'value'))],
             'form.visibility' => ['required', Rule::in(array_column(EventVisibility::cases(), 'value'))],
             'form.registration_required' => ['required', 'boolean'],
-            'form.registration_mode' => ['required', Rule::in(array_column(RegistrationMode::cases(), 'value'))],
+            'form.registration_mode' => ['required', Rule::in(array_column(RegistrationScope::cases(), 'value'))],
         ];
     }
 

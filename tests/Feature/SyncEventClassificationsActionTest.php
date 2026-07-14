@@ -8,7 +8,7 @@ use App\Actions\Events\SyncEventClassificationsAction;
 use App\Enums\TagType;
 use App\Models\Event;
 
-it('writes package classifications from domain and discipline fields without spatietags', function () {
+it('writes package classifications from domain and discipline fields', function () {
     OwnerContext::withOwner(null, function (): void {
         $event = Event::factory()->create();
 
@@ -22,7 +22,6 @@ it('writes package classifications from domain and discipline fields without spa
         expect($synced)->toBe(2)
             ->and(EventTaxonomy::query()->where('code', TagType::Domain->value)->exists())->toBeTrue()
             ->and(EventTerm::query()->where('code', 'aqidah')->exists())->toBeTrue()
-            ->and(EventClassification::query()->where('event_id', $event->getKey())->count())->toBe(2)
-            ->and($event->fresh()->tags)->toHaveCount(0);
+            ->and(EventClassification::query()->where('event_id', $event->getKey())->count())->toBe(2);
     });
 });

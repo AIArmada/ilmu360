@@ -10,9 +10,9 @@
     use App\Models\Reference;
     use App\Models\Space;
     use App\Models\Speaker;
-    use App\Models\Tag;
+    use AIArmada\Events\Models\EventTerm;
     use App\Models\Venue;
-    use App\Support\Location\AddressingCountryResolver;
+    use AIArmada\Addressing\Support\AddressCountryResolver;
     use Illuminate\Support\Carbon;
     use Illuminate\Support\Collection;
     use Illuminate\Support\Str;
@@ -76,7 +76,7 @@
     };
 
     $submissionCountryId = is_string($get('submission_country_id')) ? $get('submission_country_id') : null;
-    $previewTimezone = app(AddressingCountryResolver::class)->timezoneFor($submissionCountryId)
+    $previewTimezone = app(AddressCountryResolver::class)->timezoneFor($submissionCountryId)
         ?? config('app.timezone', 'UTC');
 
     $toTimeLabel = static function (mixed $value) use ($dash, $previewTimezone): string {
@@ -185,10 +185,10 @@
     if ($tagIds !== []) {
         $tagLabelMap = array_merge(
             $tagLabelMap,
-            Tag::query()
+            EventTerm::query()
                 ->whereIn('id', $tagIds)
                 ->get()
-                ->mapWithKeys(fn (Tag $tag): array => [(string) $tag->id => $tag->getTranslation('name', app()->getLocale()) ?: $tag->name])
+                ->mapWithKeys(fn (EventTerm $term): array => [(string) $term->id => (string) $term->name])
                 ->toArray(),
         );
     }

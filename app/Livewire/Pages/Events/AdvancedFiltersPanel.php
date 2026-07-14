@@ -174,12 +174,17 @@ class AdvancedFiltersPanel extends Component implements HasForms
                                 Select::make('city_id')
                                     ->label(__('City'))
                                     ->placeholder(__('All Cities'))
-                                    ->options(fn (Get $get): array => collect(SharedFormSchema::cityOptionsForState($get('state_id')))
+                                    ->options(fn (Get $get): array => collect(SharedFormSchema::cityOptionsForState(
+                                        $get('state_id'),
+                                        $get('country_id'),
+                                    ))
                                         ->mapWithKeys(fn (string $name, mixed $id): array => [(string) $id => $name])
                                         ->all())
-                                    ->disabled(fn (Get $get): bool => ! filled($get('state_id')))
-                                    ->visible(fn (Get $get): bool => filled($get('state_id'))
-                                        && SharedFormSchema::cityOptionsForState($get('state_id')) !== [])
+                                    ->disabled(fn (Get $get): bool => ! filled($get('state_id')) && ! filled($get('country_id')))
+                                    ->visible(fn (Get $get): bool => SharedFormSchema::cityOptionsForState(
+                                        $get('state_id'),
+                                        $get('country_id'),
+                                    ) !== [])
                                     ->searchable()
                                     ->live()
                                     ->afterStateUpdated(function (Set $set): void {
@@ -190,11 +195,17 @@ class AdvancedFiltersPanel extends Component implements HasForms
                                 Select::make('admin_area_1_id')
                                     ->label(__('District'))
                                     ->placeholder(__('All Districts'))
-                                    ->options(fn (Get $get): array => collect(SharedFormSchema::districtOptionsForState($get('state_id')))
+                                    ->options(fn (Get $get): array => collect(SharedFormSchema::districtOptionsForState(
+                                        $get('state_id'),
+                                        $get('country_id'),
+                                    ))
                                         ->mapWithKeys(fn (string $name, mixed $id): array => [(string) $id => $name])
                                         ->all())
-                                    ->disabled(fn (Get $get): bool => ! filled($get('state_id')))
-                                    ->visible(fn (Get $get): bool => SharedFormSchema::shouldShowDistrictField($get('state_id')))
+                                    ->disabled(fn (Get $get): bool => ! filled($get('state_id')) && ! filled($get('country_id')))
+                                    ->visible(fn (Get $get): bool => SharedFormSchema::shouldShowDistrictField(
+                                        $get('state_id'),
+                                        $get('country_id'),
+                                    ))
                                     ->searchable()
                                     ->live()
                                     ->afterStateUpdated(function (Set $set): void {
@@ -209,16 +220,19 @@ class AdvancedFiltersPanel extends Component implements HasForms
                                     ->options(fn (Get $get): array => collect(SharedFormSchema::subdistrictOptionsForSelection(
                                         $get('state_id'),
                                         $get('admin_area_1_id'),
+                                        $get('country_id'),
                                     ))
                                         ->mapWithKeys(fn (string $name, mixed $id): array => [(string) $id => $name])
                                         ->all())
                                     ->disabled(fn (Get $get): bool => ! SharedFormSchema::shouldShowSubdistrictField(
                                         $get('state_id'),
                                         $get('admin_area_1_id'),
+                                        $get('country_id'),
                                     ))
                                     ->visible(fn (Get $get): bool => SharedFormSchema::shouldShowSubdistrictField(
                                         $get('state_id'),
                                         $get('admin_area_1_id'),
+                                        $get('country_id'),
                                     ))
                                     ->searchable()
                                     ->live()

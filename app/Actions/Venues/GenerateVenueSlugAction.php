@@ -4,6 +4,7 @@ namespace App\Actions\Venues;
 
 use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressCountry;
+use AIArmada\CommerceSupport\Support\SlugGenerator;
 use App\Actions\Slugs\Concerns\InteractsWithOrderedSlugModels;
 use App\Actions\Slugs\SyncCanonicalSlugAction;
 use App\Models\Venue;
@@ -74,7 +75,7 @@ class GenerateVenueSlugAction
 
             $candidate = implode('-', $candidateParts);
             $sequence++;
-        } while ($this->slugExists($candidate, $ignoreVenueId));
+        } while (SlugGenerator::exists(Venue::class, $candidate, $ignoreVenueId));
 
         return $candidate;
     }
@@ -198,17 +199,6 @@ class GenerateVenueSlugAction
         $resolved = AddressCountry::query()->whereKey($countryId)->value('iso2');
 
         return is_string($resolved) && trim($resolved) !== '' ? $resolved : null;
-    }
-
-    private function slugExists(string $slug, ?string $ignoreVenueId): bool
-    {
-        return Venue::query()
-            ->where('slug', $slug)
-            ->when(
-                $ignoreVenueId !== null && $ignoreVenueId !== '',
-                fn ($query) => $query->where('venues.id', '!=', $ignoreVenueId),
-            )
-            ->exists();
     }
 
     private function slugSegment(mixed $value): ?string

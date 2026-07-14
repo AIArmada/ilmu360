@@ -110,19 +110,6 @@
         $venueName = $event->venue?->name;
         $address = $event->venue?->primaryAddress();
         $parts = \App\Support\Location\AddressHierarchyFormatter::parts($address);
-        $stateName = \AIArmada\Addressing\Models\AddressArea::query()
-            ->whereKey($address?->admin_area_1_id)
-            ->where('level', 1)
-            ->value('name');
-
-        if (! is_string($stateName) || trim($stateName) === '') {
-            $stateName = is_string($address?->state) ? trim($address->state) : null;
-        }
-
-        if (count($parts) === 1 && \App\Support\Location\FederalTerritoryLocation::isFederalTerritoryStateName($stateName)) {
-            $parts[] = $stateName;
-        }
-
         $addressValue = implode(', ', array_filter($parts));
 
         if (filled($venueName) && filled($addressValue)) {

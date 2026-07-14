@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Signals;
 
 use AIArmada\Communications\Models\NotificationInbox;
+use AIArmada\Signals\Contracts\SignalEventIngestor;
 use AIArmada\Signals\Models\SignalEvent;
 use AIArmada\Signals\Models\TrackedProperty;
 use App\Models\Event;
@@ -17,7 +18,7 @@ use Throwable;
 final readonly class ProductSignalsService
 {
     public function __construct(
-        private SignalEventRecorder $signalEventRecorder,
+        private SignalEventIngestor $ingestSignalEvent,
         private SignalsTracker $signalsTracker,
         private ProductSignalsClientContext $clientContext,
     ) {}
@@ -254,7 +255,7 @@ final readonly class ProductSignalsService
                 'properties' => $this->normalizeProperties($request, $properties),
             ];
 
-            return $this->signalEventRecorder->ingest($trackedProperty, $payload);
+            return $this->ingestSignalEvent->handle($trackedProperty, $payload, trusted: true);
         } catch (Throwable $exception) {
             report($exception);
             logger()->warning('Signals product telemetry skipped after ingestion failure.', [

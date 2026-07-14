@@ -26,7 +26,6 @@ use App\Models\Venue;
 use App\Services\EventSearchService;
 use App\Support\Auth\IntendedRedirect;
 use App\Support\Cache\SafeModelCache;
-use App\Support\Location\AddressAreaStateBridge;
 use App\Support\Location\PublicGeolocationPermission;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -756,12 +755,21 @@ class Index extends Component implements HasForms
     #[Computed]
     public function cities(): Collection
     {
-        if (! filled($this->state_id)) {
+        if (! filled($this->state_id) && ! filled($this->country_id)) {
             return collect();
         }
 
-        return City::query()
-            ->where('state_id', $this->state_id)
+        $query = City::query();
+
+        if (filled($this->state_id)) {
+            $query->where('state_id', $this->state_id);
+        }
+
+        if (filled($this->country_id)) {
+            $query->where('country_id', $this->country_id);
+        }
+
+        return $query
             ->orderBy('name')
             ->get();
     }
@@ -772,21 +780,13 @@ class Index extends Component implements HasForms
     #[Computed]
     public function districts(): Collection
     {
-        if (! filled($this->state_id)) {
+        if (! filled($this->state_id) && ! filled($this->country_id)) {
             return collect();
         }
 
-        $areaStateId = AddressAreaStateBridge::areaIdForState((string) $this->state_id);
+        $options = SharedFormSchema::districtOptionsForState($this->state_id, $this->country_id);
 
-        if ($areaStateId === null) {
-            return collect();
-        }
-
-        return AddressArea::query()
-            ->where('parent_id', $areaStateId)
-            ->where('level', 2)
-            ->orderBy('name')
-            ->get();
+        return AddressArea::query()->whereIn('id', array_keys($options))->orderBy('name')->get();
     }
 
     /**
@@ -796,28 +796,26 @@ class Index extends Component implements HasForms
     public function subdistricts(): Collection
     {
         if (filled($this->admin_area_1_id)) {
-            return AddressArea::query()
-                ->where('parent_id', $this->admin_area_1_id)
-                ->where('level', 3)
-                ->orderBy('name')
-                ->get();
+            $options = SharedFormSchema::subdistrictOptionsForSelection(
+                $this->state_id,
+                $this->admin_area_1_id,
+                $this->country_id,
+            );
+
+            return AddressArea::query()->whereIn('id', array_keys($options))->orderBy('name')->get();
         }
 
-        if (! filled($this->state_id) || ! SharedFormSchema::shouldShowSubdistrictField($this->state_id, null)) {
+        if (! filled($this->state_id) && ! filled($this->country_id)) {
             return collect();
         }
 
-        $areaStateId = AddressAreaStateBridge::areaIdForState((string) $this->state_id);
+        $options = SharedFormSchema::subdistrictOptionsForSelection(
+            $this->state_id,
+            null,
+            $this->country_id,
+        );
 
-        if ($areaStateId === null) {
-            return collect();
-        }
-
-        return AddressArea::query()
-            ->where('parent_id', $areaStateId)
-            ->where('level', 3)
-            ->orderBy('name')
-            ->get();
+        return AddressArea::query()->whereIn('id', array_keys($options))->orderBy('name')->get();
     }
 
     /**

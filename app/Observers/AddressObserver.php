@@ -3,6 +3,7 @@
 namespace App\Observers;
 
 use AIArmada\Addressing\Models\Address;
+use AIArmada\Addressing\Support\AddressCountryResolver;
 use App\Actions\Events\GenerateEventSlugAction;
 use App\Actions\Institutions\GenerateInstitutionSlugAction;
 use App\Actions\Speakers\GenerateSpeakerSlugAction;
@@ -13,7 +14,6 @@ use App\Models\Speaker;
 use App\Models\Venue;
 use App\Support\Cache\PublicDirectoryCacheVersion;
 use App\Support\Cache\PublicListingsCache;
-use App\Support\Location\AddressingCountryResolver;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
 class AddressObserver
@@ -25,7 +25,7 @@ class AddressObserver
         protected GenerateVenueSlugAction $generateVenueSlugAction,
         protected PublicDirectoryCacheVersion $publicDirectoryCacheVersion,
         protected PublicListingsCache $publicListingsCache,
-        protected AddressingCountryResolver $addressingCountryResolver,
+        protected AddressCountryResolver $addressingCountryResolver,
     ) {}
 
     public function saving(Address $address): void
@@ -34,7 +34,11 @@ class AddressObserver
             return;
         }
 
-        $address->country_id = $this->addressingCountryResolver->resolveId('MY');
+        $defaultCountryCode = config('addressing.defaults.country_code');
+
+        if (is_string($defaultCountryCode) && trim($defaultCountryCode) !== '') {
+            $address->country_id = $this->addressingCountryResolver->resolveId($defaultCountryCode);
+        }
     }
 
     public function saved(Address $address): void

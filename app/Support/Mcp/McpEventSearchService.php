@@ -48,6 +48,8 @@ class McpEventSearchService
         'city_id',
         'admin_area_1_id',
         'admin_area_2_id',
+        'admin_area_3_id',
+        'admin_area_4_id',
         'language_codes',
         'event_type',
         'gender',
@@ -193,6 +195,8 @@ class McpEventSearchService
             'city_id' => ['sometimes', 'nullable'],
             'admin_area_1_id' => ['sometimes', 'nullable'],
             'admin_area_2_id' => ['sometimes', 'nullable'],
+            'admin_area_3_id' => ['sometimes', 'nullable'],
+            'admin_area_4_id' => ['sometimes', 'nullable'],
             'language_codes' => ['sometimes', 'nullable', 'array'],
             'language_codes.*' => ['string'],
             'event_type' => ['sometimes', 'nullable', 'array'],
@@ -288,6 +292,12 @@ class McpEventSearchService
             ),
             'admin_area_2_id' => $schema->string()->nullable()->description(
                 'UUID of the selected second-level address area within the first-level area.'
+            ),
+            'admin_area_3_id' => $schema->string()->nullable()->description(
+                'UUID of the selected third configured administrative area.'
+            ),
+            'admin_area_4_id' => $schema->string()->nullable()->description(
+                'UUID of the selected fourth configured administrative area.'
             ),
             'language_codes' => $stringArray->description(
                 'Array of BCP-47 language codes. Example: ["ms", "en", "ar"]. Events that are conducted in any of the given languages will be returned.'

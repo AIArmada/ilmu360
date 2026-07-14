@@ -2,6 +2,8 @@
 
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Events\Models\EventTaxonomy;
+use AIArmada\Events\Models\EventTerm;
 use AIArmada\Events\Enums\RegistrationMode;
 use App\Actions\Events\SubmitFrontendEventAction;
 use App\Actions\Location\ResolveGooglePlaceSelectionAction;
@@ -30,7 +32,6 @@ use App\Models\Institution;
 use App\Models\Reference;
 use App\Models\Space;
 use App\Models\Speaker;
-use App\Models\Tag;
 use App\Models\User;
 use App\Models\Venue;
 use App\Services\Ai\EventMediaExtractionService;
@@ -39,7 +40,7 @@ use App\States\EventStatus\Approved;
 use App\States\EventStatus\Cancelled;
 use App\States\EventStatus\EventStatus;
 use App\States\EventStatus\Pending;
-use App\Support\Location\AddressingCountryResolver;
+use AIArmada\Addressing\Support\AddressCountryResolver;
 use App\Support\Submission\EntitySubmissionAccess;
 use Carbon\CarbonInterface;
 use Filament\Actions\Action;
@@ -293,12 +294,19 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
     protected function cachedSubmitTagOptions(TagType $type, string $cachePrefix, array $statuses): array
     {
         return Cache::remember($this->submitCacheKey($cachePrefix.'_'.app()->getLocale()), 60, function () use ($statuses, $type): array {
-            return Tag::query()
-                ->where('type', $type)
-                ->whereIn('status', $statuses)
-                ->orderBy('order_column')
+            $taxonomyId = EventTaxonomy::query()->where('code', $type->value)->value('id');
+
+            if ($taxonomyId === null) {
+                return [];
+            }
+
+            return EventTerm::query()
+                ->where('event_taxonomy_id', $taxonomyId)
+                ->where('is_active', true)
+                ->orderBy('sort_order')
+                ->orderBy('name')
                 ->get()
-                ->mapWithKeys(fn (Tag $tag): array => [(string) $tag->id => $tag->getTranslation('name', app()->getLocale())])
+                ->mapWithKeys(fn (EventTerm $term): array => [(string) $term->id => (string) $term->name])
                 ->all();
         });
     }
@@ -919,7 +927,7 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
                                     }
 
                                     if (! empty($uuids)) {
-                                        $labels = array_merge($labels, Tag::whereIn('id', $uuids)->pluck('name', 'id')->all());
+                                        $labels = array_merge($labels, EventTerm::whereIn('id', $uuids)->pluck('name', 'id')->all());
                                     }
 
                                     return $labels;
@@ -953,10 +961,12 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
                                         return [];
                                     }
 
-                                    $results = Tag::query()
-                                        ->where('type', TagType::Discipline)
-                                        ->where('status', 'verified')
+                                    $taxonomyId = EventTaxonomy::query()->where('code', TagType::Discipline->value)->value('id');
+                                    $results = EventTerm::query()
+                                        ->where('event_taxonomy_id', $taxonomyId)
+                                        ->where('is_active', true)
                                         ->where('name', 'like', "%{$search}%")
+                                        ->orderBy('sort_order')
                                         ->limit(20)
                                         ->pluck('name', 'id')
                                         ->toArray();
@@ -976,7 +986,7 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
                                     }
 
                                     if (! empty($uuids)) {
-                                        $labels = array_merge($labels, Tag::whereIn('id', $uuids)->pluck('name', 'id')->all());
+                                        $labels = array_merge($labels, EventTerm::whereIn('id', $uuids)->pluck('name', 'id')->all());
                                     }
 
                                     return $labels;
@@ -1022,7 +1032,7 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
                                     }
 
                                     if (! empty($uuids)) {
-                                        $labels = array_merge($labels, Tag::whereIn('id', $uuids)->pluck('name', 'id')->all());
+                                        $labels = array_merge($labels, EventTerm::whereIn('id', $uuids)->pluck('name', 'id')->all());
                                     }
 
                                     return $labels;
@@ -1052,10 +1062,12 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
                                         return [];
                                     }
 
-                                    $results = Tag::query()
-                                        ->where('type', TagType::Issue)
-                                        ->where('status', 'verified')
+                                    $taxonomyId = EventTaxonomy::query()->where('code', TagType::Issue->value)->value('id');
+                                    $results = EventTerm::query()
+                                        ->where('event_taxonomy_id', $taxonomyId)
+                                        ->where('is_active', true)
                                         ->where('name', 'like', "%{$search}%")
+                                        ->orderBy('sort_order')
                                         ->limit(20)
                                         ->pluck('name', 'id')
                                         ->toArray();
@@ -1075,7 +1087,7 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
                                     }
 
                                     if (! empty($uuids)) {
-                                        $labels = array_merge($labels, Tag::whereIn('id', $uuids)->pluck('name', 'id')->all());
+                                        $labels = array_merge($labels, EventTerm::whereIn('id', $uuids)->pluck('name', 'id')->all());
                                     }
 
                                     return $labels;
@@ -1696,6 +1708,8 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
     {
         $parentVisibility = $parentEvent->visibility;
 
+        $duplicateClassifications = $duplicateEvent->classifications->groupBy('taxonomy_code');
+
         $defaults = [
             'visibility' => $parentVisibility instanceof EventVisibility
                 ? $parentVisibility->value
@@ -1831,10 +1845,10 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
             'is_muslim_only' => (bool) $duplicateEvent->is_muslim_only,
             'event_url' => $duplicateEvent->event_url,
             'live_url' => $duplicateEvent->live_url,
-            'domain_tags' => $duplicateEvent->tags->where('type', TagType::Domain->value)->pluck('id')->values()->all(),
-            'discipline_tags' => $duplicateEvent->tags->where('type', TagType::Discipline->value)->pluck('id')->values()->all(),
-            'source_tags' => $duplicateEvent->tags->where('type', TagType::Source->value)->pluck('id')->values()->all(),
-            'issue_tags' => $duplicateEvent->tags->where('type', TagType::Issue->value)->pluck('id')->values()->all(),
+            'domain_tags' => $duplicateClassifications->get(TagType::Domain->value, collect())->pluck('event_term_id')->values()->all(),
+            'discipline_tags' => $duplicateClassifications->get(TagType::Discipline->value, collect())->pluck('event_term_id')->values()->all(),
+            'source_tags' => $duplicateClassifications->get(TagType::Source->value, collect())->pluck('event_term_id')->values()->all(),
+            'issue_tags' => $duplicateClassifications->get(TagType::Issue->value, collect())->pluck('event_term_id')->values()->all(),
             'references' => $duplicateEvent->references->pluck('id')->values()->all(),
             'speakers' => $this->duplicateSpeakerState($duplicateEvent),
             'other_key_people' => $this->duplicateOtherKeyPeopleState($duplicateEvent),
@@ -2436,7 +2450,7 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
 
     protected function resolveSubmissionCountryId(mixed $countryId = null): ?string
     {
-        $resolvedCountryId = app(AddressingCountryResolver::class)->resolveId($countryId);
+        $resolvedCountryId = app(AddressCountryResolver::class)->resolveId($countryId);
 
         if (is_string($resolvedCountryId)) {
             return $resolvedCountryId;
@@ -2451,13 +2465,13 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
 
     protected function resolveSubmissionTimezone(mixed $countryId = null): string
     {
-        return app(AddressingCountryResolver::class)->timezoneFor($this->resolveSubmissionCountryId($countryId))
+        return app(AddressCountryResolver::class)->timezoneFor($this->resolveSubmissionCountryId($countryId))
             ?? config('app.timezone', 'UTC');
     }
 
     protected function defaultSubmissionCountryId(): ?string
     {
-        return app(AddressingCountryResolver::class)->resolveId('MY');
+        return app(AddressCountryResolver::class)->resolveId('MY');
     }
 
     /**

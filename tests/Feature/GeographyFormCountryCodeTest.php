@@ -1,7 +1,7 @@
 <?php
 
+use AIArmada\Addressing\Actions\SaveAddressAreaAction;
 use AIArmada\FilamentAddressing\Resources\AddressAreaResource;
-use App\Actions\AddressAreas\SaveAddressAreaAction;
 use App\Support\Api\Admin\AdminResourceMutationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 

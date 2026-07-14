@@ -4,7 +4,7 @@ Per-package, per-area adoption with evidence. "Evidence" = concrete file path or
 
 | Package | Area | Installed | Configured | Migrations used | Models used directly | Models extended | Actions/Services used | Local dups removed? | Tests prove adoption | Adoption | Cutover | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| addressing | geo | ✓ | ✓ `config/addressing.php` | ✓ (tables in DB) | indirect | n/a | ✓ resolver+seeders+observers | ✓ legacy models deleted | partial | 5 | 5 | `App\Support\Location\AddressingCountryResolver`; no `app/Models/Country.php` |
+| addressing | geo | ✓ | ✓ `config/addressing.php` | ✓ (tables in DB) | indirect | n/a | ✓ package resolver+area bridge+seeders+observers | ✓ legacy models deleted | partial | 5 | 5 | `AIArmada\Addressing\Support\AddressCountryResolver`; `AIArmada\Addressing\Support\AddressAreaStateBridge`; no `app/Models/Country.php` |
 | affiliates | share/analytics | ✓ | — | ✓ | no | no | ✓ via app bridge svcs | n/a (wrapped) | partial | 4 | 4 | `app/Services/ShareTracking/*`, `app/Services/Signals/AffiliateSignalsBridge.php` |
 | authz | perms | ✓ | ✓ `config/authz.php` | ✓ `authz_scopes` | no | `UserResource` extends pkg | ✓ `Authz` facade + gates | partial | partial | 4 | 4 | `app/Filament/Resources/Authz/UserResource.php`; `User` uses `Authz` facade |
 | commerce-support | foundation | ✓ | — | ✓ | ✓ `Permission`/`Role` models | no | ✓ `OwnerContext` | partial | no | 3 | 3 | `config/permission.php` → `AIArmada\CommerceSupport\Models\*` |

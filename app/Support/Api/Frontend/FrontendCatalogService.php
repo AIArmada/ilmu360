@@ -17,7 +17,6 @@ use App\Models\Institution;
 use App\Models\Reference;
 use App\Models\Space;
 use App\Models\Speaker;
-use App\Models\Tag;
 use App\Models\User;
 use App\Models\Venue;
 use App\Support\Search\InstitutionSearchService;
@@ -102,54 +101,44 @@ class FrontendCatalogService
     }
 
     /**
-     * Districts (AddressArea level 2) for product admin_area_1_id.
-     * Prefer filtering by package state_id (maps to area tree parent via bridge).
+     * First configured administrative-area options for admin_area_1_id.
      *
      * @return list<array{id: string, label: string, type: string, level: int|null}>
      */
     public function adminAreaLevel1(?string $countryId, ?string $stateId = null): array
     {
         if (is_string($stateId) && $stateId !== '') {
-            return collect(SharedFormSchema::districtOptionsForState($stateId))
-                ->map(fn (string $label, mixed $id): array => [
-                    'id' => (string) $id,
-                    'label' => $label,
-                    'type' => 'district',
-                    'level' => 2,
-                ])
-                ->values()
-                ->all();
+            return $this->storageAreaOptions(
+                $countryId ?? $this->countryIdForState($stateId),
+                'admin_area_1_id',
+                $stateId,
+            );
         }
 
-        // Country-scoped districts only (level 2), not level-1 state tree nodes.
-        return $this->addressAreas(countryId: $countryId, parentId: null, level: 2);
+        return $this->storageAreaOptions($countryId, 'admin_area_1_id');
     }
 
     /**
-     * Subdistricts under a district (admin_area_1_id), product admin_area_2_id.
+     * Next configured administrative-area options under admin_area_1_id.
      *
      * @return list<array{id: string, label: string, type: string, level: int|null}>
      */
     public function adminAreaLevel2(?string $adminArea1Id, ?string $countryId = null, ?string $stateId = null): array
     {
         if (is_string($adminArea1Id) && $adminArea1Id !== '') {
-            return $this->addressAreas(countryId: null, parentId: $adminArea1Id, level: 3);
+            return $this->addressAreas(countryId: $countryId, parentId: $adminArea1Id, level: null);
         }
 
         if (is_string($stateId) && $stateId !== '') {
-            return collect(SharedFormSchema::subdistrictOptionsForSelection($stateId, null))
-                ->map(fn (string $label, mixed $id): array => [
-                    'id' => (string) $id,
-                    'label' => $label,
-                    'type' => 'subdistrict',
-                    'level' => 3,
-                ])
-                ->values()
-                ->all();
+            return $this->storageAreaOptions(
+                $countryId ?? $this->countryIdForState($stateId),
+                'admin_area_2_id',
+                $stateId,
+            );
         }
 
         if (is_string($countryId) && $countryId !== '') {
-            return $this->addressAreas(countryId: $countryId, parentId: null, level: 3);
+            return $this->storageAreaOptions($countryId, 'admin_area_2_id');
         }
 
         return [];
@@ -164,9 +153,11 @@ class FrontendCatalogService
 
         if (is_string($parentId) && $parentId !== '') {
             $query->where('parent_id', $parentId);
-        } elseif (is_string($countryId) && $countryId !== '') {
+        }
+
+        if (is_string($countryId) && $countryId !== '') {
             $query->where('country_id', $countryId);
-        } else {
+        } elseif (! is_string($parentId) || $parentId === '') {
             return [];
         }
 
@@ -184,6 +175,37 @@ class FrontendCatalogService
                 'level' => $area->level,
             ])
             ->all();
+    }
+
+    /**
+     * @return list<array{id: string, label: string, type: string, level: int|null}>
+     */
+    private function storageAreaOptions(?string $countryId, string $storageColumn, ?string $parentId = null): array
+    {
+        $options = SharedFormSchema::areaOptionsForStorage($countryId, $storageColumn, $parentId);
+
+        if ($options === []) {
+            return [];
+        }
+
+        return AddressArea::query()
+            ->whereIn('id', array_keys($options))
+            ->orderBy('name')
+            ->get(['id', 'name', 'type', 'level'])
+            ->map(fn (AddressArea $area): array => [
+                'id' => (string) $area->id,
+                'label' => (string) $area->name,
+                'type' => (string) $area->type,
+                'level' => $area->level !== null ? (int) $area->level : null,
+            ])
+            ->all();
+    }
+
+    private function countryIdForState(string $stateId): ?string
+    {
+        $countryId = State::query()->whereKey($stateId)->value('country_id');
+
+        return is_string($countryId) ? $countryId : null;
     }
 
     /**

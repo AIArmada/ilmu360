@@ -207,10 +207,7 @@ class extends Component
     #[Computed]
     public function states(): array
     {
-        $countryId = $this->normalizedLocationId($this->country_id)
-            ?? SharedFormSchema::normalizeLocationId(
-                \AIArmada\Addressing\Models\AddressCountry::query()->where('iso2', 'MY')->value('id')
-            );
+        $countryId = $this->normalizedLocationId($this->country_id);
 
         return SharedFormSchema::stateOptionsForCountry($countryId);
     }
@@ -218,19 +215,19 @@ class extends Component
     #[Computed]
     public function districts(): array
     {
-        return SharedFormSchema::districtOptionsForState($this->state_id);
+        return SharedFormSchema::districtOptionsForState($this->state_id, $this->country_id);
     }
 
     #[Computed]
     public function subdistricts(): array
     {
-        return SharedFormSchema::subdistrictOptionsForSelection($this->state_id, $this->admin_area_1_id);
+        return SharedFormSchema::subdistrictOptionsForSelection($this->state_id, $this->admin_area_1_id, $this->country_id);
     }
 
-    public function isFederalTerritoryStateSelected(): bool
+    public function isParentlessAreaProfileSelection(): bool
     {
-        return SharedFormSchema::shouldShowSubdistrictField($this->state_id, null)
-            && ! SharedFormSchema::shouldShowDistrictField($this->state_id);
+        return SharedFormSchema::shouldShowSubdistrictField($this->state_id, null, $this->country_id)
+            && ! SharedFormSchema::shouldShowDistrictField($this->state_id, $this->country_id);
     }
 
     private function normalizedSearch(): ?string
@@ -357,7 +354,7 @@ class extends Component
     $stateId = $this->state_id;
     $adminArea1Id = $this->admin_area_1_id;
     $adminArea2Id = $this->admin_area_2_id;
-    $isFederalTerritoryState = $this->isFederalTerritoryStateSelected();
+    $isParentlessAreaProfile = $this->isParentlessAreaProfileSelection();
     $hasScopedFilters = filled($countryId) || filled($stateId) || filled($adminArea1Id) || filled($adminArea2Id);
     $submitInstitutionUrl = route('contributions.submit-institution');
     $institutionTotal = $institutions->total();
@@ -426,7 +423,7 @@ class extends Component
                             </select>
                         </div>
 
-                        @unless($isFederalTerritoryState)
+                    @unless($isParentlessAreaProfile)
                             <div>
                                 <label for="institution-district-filter" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
                                     {{ __('Daerah') }}
@@ -452,7 +449,7 @@ class extends Component
                             <select
                                 id="institution-subdistrict-filter"
                                 wire:model.live="admin_area_2_id"
-                                @disabled($isFederalTerritoryState ? ! filled($stateId) : ! filled($adminArea1Id))
+                            @disabled($isParentlessAreaProfile ? ! filled($stateId) : ! filled($adminArea1Id))
                                 class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/10 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
                             >
                                 <option value="">{{ __('Semua Bandar / Mukim / Zon') }}</option>

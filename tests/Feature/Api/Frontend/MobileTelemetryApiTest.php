@@ -1,8 +1,8 @@
 <?php
 
+use AIArmada\Signals\Contracts\SignalEventIngestor;
 use AIArmada\Signals\Models\SignalEvent;
 use App\Models\User;
-use App\Services\Signals\SignalEventRecorder;
 use Mockery\MockInterface;
 
 it('records batched native mobile telemetry events through the dedicated api', function () {
@@ -165,8 +165,8 @@ it('prefers the explicit native header origin over conflicting query metadata', 
 });
 
 it('accepts native mobile telemetry even when ingestion fails and reports dropped events', function () {
-    $this->mock(SignalEventRecorder::class, function (MockInterface $mock): void {
-        $mock->shouldReceive('ingest')->andThrow(new RuntimeException('Signals ingestion failed.'));
+    $this->mock(SignalEventIngestor::class, function (MockInterface $mock): void {
+        $mock->shouldReceive('handle')->andThrow(new RuntimeException('Signals ingestion failed.'));
     });
 
     $this->withHeaders([

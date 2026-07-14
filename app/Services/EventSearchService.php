@@ -387,6 +387,12 @@ class EventSearchService
             $filterParts[] = 'admin_area_2_id:='.$filters['admin_area_2_id'];
         }
 
+        foreach (['admin_area_3_id', 'admin_area_4_id'] as $areaColumn) {
+            if (! empty($filters[$areaColumn])) {
+                $filterParts[] = $areaColumn.':='.$filters[$areaColumn];
+            }
+        }
+
         $languageCodes = $this->normalizeArrayFilter($filters['language_codes'] ?? null);
 
         if ($languageCodes !== []) {
@@ -576,6 +582,12 @@ class EventSearchService
 
         if (! empty($filters['admin_area_2_id'])) {
             $this->applyLocationAddressFilter($queryBuilder, 'admin_area_2_id', $filters['admin_area_2_id']);
+        }
+
+        foreach (['admin_area_3_id', 'admin_area_4_id'] as $areaColumn) {
+            if (! empty($filters[$areaColumn])) {
+                $this->applyLocationAddressFilter($queryBuilder, $areaColumn, $filters[$areaColumn]);
+            }
         }
 
         $languageCodes = $this->normalizeArrayFilter($filters['language_codes'] ?? null);

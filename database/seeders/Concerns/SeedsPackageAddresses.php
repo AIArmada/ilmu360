@@ -6,7 +6,7 @@ use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Addressing\Models\State;
-use App\Support\Location\AddressAreaStateBridge;
+use AIArmada\Addressing\Support\AddressAreaStateBridge;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;

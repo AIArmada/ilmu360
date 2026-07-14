@@ -2,6 +2,7 @@
 
 namespace App\Actions\Events;
 
+use AIArmada\CommerceSupport\Support\SlugGenerator;
 use App\Actions\Slugs\Concerns\InteractsWithOrderedSlugModels;
 use App\Actions\Slugs\SyncCanonicalSlugAction;
 use App\Enums\EventKeyPersonRole;
@@ -79,7 +80,8 @@ class GenerateEventSlugAction
             ->where(function ($query) use ($normalizedSpeakerId): void {
                 $query->whereHas('keyPeople', function ($keyPeopleQuery) use ($normalizedSpeakerId): void {
                     $keyPeopleQuery
-                        ->where('speaker_id', $normalizedSpeakerId)
+                        ->where('involveable_type', 'speaker')
+                        ->where('involveable_id', $normalizedSpeakerId)
                         ->where('role_code', EventKeyPersonRole::Speaker->value);
                 })->orWhereHas('involvements', function ($involvementQuery) use ($normalizedSpeakerId): void {
                     $involvementQuery
@@ -137,7 +139,7 @@ class GenerateEventSlugAction
 
             $candidate = implode('-', $candidateParts);
             $sequence++;
-        } while ($this->slugExists($candidate, $ignoreEventId));
+        } while (SlugGenerator::exists(Event::class, $candidate, $ignoreEventId));
 
         return $candidate;
     }
@@ -341,14 +343,4 @@ class GenerateEventSlugAction
         return Carbon::parse($date, $timezone ?: (string) config('app.timezone', 'UTC'));
     }
 
-    private function slugExists(string $slug, ?string $ignoreEventId): bool
-    {
-        return Event::query()
-            ->where('slug', $slug)
-            ->when(
-                $ignoreEventId !== null && $ignoreEventId !== '',
-                fn ($query) => $query->where('events.id', '!=', $ignoreEventId),
-            )
-            ->exists();
-    }
 }

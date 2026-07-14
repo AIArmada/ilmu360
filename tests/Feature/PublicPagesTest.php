@@ -127,7 +127,7 @@ it('loads public detail pages', function () {
     ]);
     $series->events()->attach($event->id, [
         'id' => (string) Str::uuid(),
-        'order_column' => 1,
+        'sort_order' => 1,
     ]);
 
     $this->get(route('events.show', $event))->assertSuccessful()->assertSee($event->title);
@@ -283,7 +283,7 @@ it('shows federal territory event cards on series pages with subdistrict and sta
 
     $series->events()->attach($event->id, [
         'id' => (string) Str::uuid(),
-        'order_column' => 1,
+        'sort_order' => 1,
     ]);
 
     $this->get(route('series.show', $series))
@@ -411,12 +411,12 @@ it('renders the book title on public event and series cards without parentheses'
 
     $series->events()->attach($bookEvent->id, [
         'id' => (string) Str::uuid(),
-        'order_column' => 1,
+        'sort_order' => 1,
     ]);
 
     $series->events()->attach($articleEvent->id, [
         'id' => (string) Str::uuid(),
-        'order_column' => 2,
+        'sort_order' => 2,
     ]);
 
     $eventsIndexHtml = $this->get(route('events.index', ['search' => 'Kuliah Indeks']))

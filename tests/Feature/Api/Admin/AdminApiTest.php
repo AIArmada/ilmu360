@@ -17,7 +17,7 @@ use App\Enums\EventKeyPersonRole;
 use App\Enums\EventPrayerTime;
 use App\Enums\EventType;
 use App\Enums\EventVisibility;
-use App\Enums\RegistrationMode;
+use App\Enums\RegistrationScope;
 use App\Models\ContributionRequest;
 use App\Models\DonationChannel;
 use App\Models\Event;
@@ -439,7 +439,7 @@ it('allows admin api event create payload to control initial workflow status', f
         'primary_organizer_id' => (string) $institution->getKey(),
         'institution_id' => (string) $institution->getKey(),
         'registration_required' => false,
-        'registration_mode' => RegistrationMode::Event->value,
+        'registration_mode' => RegistrationScope::Event->value,
         'is_featured' => false,
         'status' => 'active',
     ];
@@ -3631,7 +3631,7 @@ function adminApiEventPayload(array $fixtures, array $overrides = []): array
             ],
         ],
         'registration_required' => true,
-        'registration_mode' => RegistrationMode::Event->value,
+        'registration_mode' => RegistrationScope::Event->value,
         'status' => 'active',
     ], $overrides);
 }

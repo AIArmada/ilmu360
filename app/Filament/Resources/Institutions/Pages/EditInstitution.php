@@ -3,13 +3,13 @@
 namespace App\Filament\Resources\Institutions\Pages;
 
 use AIArmada\Addressing\Models\Address;
+use AIArmada\Addressing\Support\AddressCountryResolver;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Actions\Institutions\SaveInstitutionAction;
 use App\Filament\Resources\Institutions\InstitutionResource;
 use App\Forms\SharedFormSchema;
 use App\Models\Institution;
 use App\Models\User;
-use App\Support\Location\AddressingCountryResolver;
 use App\Support\Submission\PublicSubmissionUiEvents;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
@@ -103,7 +103,7 @@ class EditInstitution extends EditRecord
     private function addressFormState(?Address $address): array
     {
         $countryId = SharedFormSchema::normalizeLocationId($address?->country_id)
-            ?? app(AddressingCountryResolver::class)->resolveId($address?->country_code);
+            ?? app(AddressCountryResolver::class)->resolveId($address?->country_code);
 
         return SharedFormSchema::hydrateAddressFormState([
             'country_id' => $countryId,

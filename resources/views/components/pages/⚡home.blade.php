@@ -1,6 +1,7 @@
 <?php
 
-use App\Models\Tag;
+use AIArmada\Events\Models\EventTaxonomy;
+use AIArmada\Events\Models\EventTerm;
 use App\Support\Timezone\UserDateTimeFormatter;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
@@ -15,10 +16,16 @@ new
         #[Computed]
         public function categoryTagIds(): array
         {
+            $taxonomyId = EventTaxonomy::query()->where('code', 'domain')->value('id');
+
+            if ($taxonomyId === null) {
+                return ['aqidah' => null, 'syariah' => null, 'akhlak' => null];
+            }
+
             return [
-                'aqidah' => Tag::where('slug->en', 'aqidah')->orWhere('slug->ms', 'aqidah')->first()?->id,
-                'syariah' => Tag::where('slug->en', 'syariah')->orWhere('slug->ms', 'syariah')->first()?->id,
-                'akhlak' => Tag::where('slug->en', 'akhlak')->orWhere('slug->ms', 'akhlak')->first()?->id,
+                'aqidah' => EventTerm::query()->where('event_taxonomy_id', $taxonomyId)->where('code', 'aqidah')->value('id'),
+                'syariah' => EventTerm::query()->where('event_taxonomy_id', $taxonomyId)->where('code', 'syariah')->value('id'),
+                'akhlak' => EventTerm::query()->where('event_taxonomy_id', $taxonomyId)->where('code', 'akhlak')->value('id'),
             ];
         }
 

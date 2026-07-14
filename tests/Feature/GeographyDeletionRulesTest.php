@@ -6,11 +6,12 @@ use Illuminate\Validation\ValidationException;
 
 uses(RefreshDatabase::class);
 
-it('blocks deleting the malaysia country record', function () {
+it('allows deleting an unused country record', function () {
     $country = ensureTestMalaysiaCountry();
 
-    expect(fn () => $country->delete())
-        ->toThrow(ValidationException::class, 'Malaysia is the application default country and cannot be deleted.');
+    $country->delete();
+
+    $this->assertModelMissing($country);
 });
 
 it('blocks deleting a state that still has districts', function () {
@@ -19,7 +20,7 @@ it('blocks deleting a state that still has districts', function () {
     createTestAddressArea('Main District', 2, parent: $state, country: $country);
 
     expect(fn () => $state->delete())
-        ->toThrow(ValidationException::class, 'Delete or reassign this state\'s districts before deleting it.');
+        ->toThrow(ValidationException::class, 'Delete or reassign this address area\'s child areas before deleting it.');
 });
 
 it('blocks deleting a district that still has subdistricts', function () {
@@ -29,7 +30,7 @@ it('blocks deleting a district that still has subdistricts', function () {
     createTestAddressArea('Mukim One', 3, parent: $district, country: $country);
 
     expect(fn () => $district->delete())
-        ->toThrow(ValidationException::class, 'Delete or reassign this district\'s subdistricts before deleting it.');
+        ->toThrow(ValidationException::class, 'Delete or reassign this address area\'s child areas before deleting it.');
 });
 
 it('blocks deleting a subdistrict that is still referenced by an address', function () {
@@ -48,7 +49,7 @@ it('blocks deleting a subdistrict that is still referenced by an address', funct
     ]);
 
     expect(fn () => $subdistrict->delete())
-        ->toThrow(ValidationException::class, 'This subdistrict is still referenced by one or more addresses.');
+        ->toThrow(ValidationException::class, 'This address area is still referenced by one or more addresses.');
 });
 
 it('allows deleting an unused subdistrict', function () {

@@ -22,6 +22,7 @@ use AIArmada\Events\Models\EventLocation;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventReference;
 use AIArmada\Events\Models\EventRole;
+use AIArmada\Events\Models\EventSeriesItemPivot;
 use AIArmada\Events\Models\EventTimeExpression;
 use AIArmada\Membership\Traits\HasMembers;
 use App\Enums\EventAgeGroup;
@@ -1841,7 +1842,7 @@ class Event extends PackageEvent implements AuditableContract
     }
 
     /**
-     * @return BelongsToMany<Series, $this, EventSeries, 'pivot'>
+     * @return BelongsToMany<Series, $this, EventSeriesItemPivot, 'pivot'>
      */
     public function series(): BelongsToMany
     {
@@ -1851,7 +1852,7 @@ class Event extends PackageEvent implements AuditableContract
             'event_id',
             'event_series_id',
         )
-            ->using(EventSeries::class)
+            ->using(EventSeriesItemPivot::class)
             ->withPivot('id', 'seriesable_type', 'seriesable_id', 'sort_order')
             ->wherePivot('seriesable_type', self::class)
             ->withPivotValue('seriesable_type', self::class)

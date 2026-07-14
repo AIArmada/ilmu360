@@ -280,10 +280,21 @@ class Registration extends PackageEventRegistration implements AuditableContract
 
     private function syncPrimaryParticipant(): void
     {
+        $existingParticipant = $this->resolvePrimaryParticipant();
+        $draftName = $this->participantDraftValue('name');
+
+        // Package registration workflows persist their supplied participants
+        // after creating the registration. Do not synthesize a second primary
+        // participant during the initial model event; still allow user/profile
+        // synchronization when an app participant already exists.
+        if ($existingParticipant === null && $draftName === null) {
+            return;
+        }
+
         $registrant = $this->registrant;
 
         $name = $this->normalizedString(
-            $this->participantDraftValue('name')
+            $draftName
                 ?? ($registrant instanceof User ? $registrant->name : null),
         );
 

@@ -13,7 +13,7 @@ use App\Enums\EventGenderRestriction;
 use App\Enums\EventPrayerTime;
 use App\Enums\EventType;
 use App\Enums\EventVisibility;
-use App\Enums\RegistrationMode;
+use App\Enums\RegistrationScope;
 use App\Livewire\Pages\Dashboard\DawahImpactIndex;
 use App\Models\Event;
 use App\Models\EventCheckin;
@@ -674,7 +674,7 @@ test('event registrations are attributed after a shared landing', function () {
         'capacity' => 50,
         'registration_opens_at' => now()->subDay(),
         'registration_closes_at' => now()->addDay(),
-        'registration_mode' => RegistrationMode::Event->value,
+        'registration_mode' => RegistrationScope::Event->value,
     ]);
 
     $payload = $this->actingAs($this->sharer)

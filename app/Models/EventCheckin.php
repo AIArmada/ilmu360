@@ -10,13 +10,17 @@ class EventCheckin extends EventAttendance
 {
     protected $fillable = [
         'event_id',
-        'event_registration_id', 'registration_id',
+        'event_occurrence_id',
+        'event_session_id',
+        'event_registration_id',
+        'event_registration_participant_id',
+        'pass_id',
         'attendee_type', 'attendee_id',
-        'user_id',
         'verified_by_user_id',
-        'check_in_source', 'method',
+        'check_in_source',
         'checked_in_at',
         'attendance_type',
+        'notes',
         'metadata',
     ];
 
@@ -25,37 +29,6 @@ class EventCheckin extends EventAttendance
         return array_merge(parent::casts(), [
             'checked_in_at' => 'datetime',
         ]);
-    }
-
-    public function getRegistrationIdAttribute(): ?string
-    {
-        return $this->event_registration_id;
-    }
-
-    public function setRegistrationIdAttribute(?string $value): void
-    {
-        $this->event_registration_id = $value;
-    }
-
-    public function getUserIdAttribute(): ?string
-    {
-        return $this->attendee_id;
-    }
-
-    public function setUserIdAttribute(?string $value): void
-    {
-        $this->attendee_type = 'App\Models\User';
-        $this->attendee_id = $value;
-    }
-
-    public function getMethodAttribute(): ?string
-    {
-        return $this->check_in_source;
-    }
-
-    public function setMethodAttribute(?string $value): void
-    {
-        $this->check_in_source = $value;
     }
 
     public function getLatAttribute(): ?float

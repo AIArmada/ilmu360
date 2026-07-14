@@ -69,9 +69,9 @@ class EventJsonLd extends Component
                 'address' => [
                     '@type' => 'PostalAddress',
                     'streetAddress' => $venue->primaryAddress()?->line1,
-                    'addressLocality' => '',
+                    'addressLocality' => $venueAddress?->city,
                     'addressRegion' => $region,
-                    'addressCountry' => 'MY',
+                    'addressCountry' => $venueAddress?->country_code,
                 ],
             ];
 

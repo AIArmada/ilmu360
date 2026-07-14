@@ -2,6 +2,7 @@
 
 namespace App\Actions\Events;
 
+use AIArmada\Events\Contracts\EventCheckInService;
 use App\Enums\DawahShareOutcomeType;
 use App\Models\Event;
 use App\Models\EventCheckin;
@@ -9,7 +10,6 @@ use App\Models\User;
 use App\Services\Notifications\EventNotificationService;
 use App\Services\ShareTrackingService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 final readonly class RecordEventCheckInAction
@@ -17,6 +17,7 @@ final readonly class RecordEventCheckInAction
     use AsAction;
 
     public function __construct(
+        private EventCheckInService $checkIns,
         private ShareTrackingService $shareTrackingService,
         private EventNotificationService $eventNotificationService,
     ) {}
@@ -31,58 +32,43 @@ final readonly class RecordEventCheckInAction
         string $method,
         ?Request $request = null,
     ): array {
-        /** @var array{status: 'created'|'duplicate', checkin: EventCheckin} $result */
-        $result = DB::transaction(function () use ($event, $user, $registrationId, $method): array {
-            Event::query()
-                ->whereKey($event->getKey())
-                ->lockForUpdate()
-                ->first();
+        $result = $this->checkIns->checkInWithResult([
+            'event_id' => $event->getKey(),
+            'event_registration_id' => $registrationId,
+            'event_occurrence_id' => $event->primaryOccurrence?->getKey(),
+            'attendee_type' => $user->getMorphClass(),
+            'attendee_id' => $user->getKey(),
+            'attendance_type' => 'check_in',
+            'check_in_source' => $method,
+        ]);
 
-            $existingCheckin = EventCheckin::query()
-                ->where('event_id', $event->getKey())
-                ->where('attendee_id', $user->getKey())
-                ->latest('checked_in_at')
-                ->first();
+        $checkin = $result->attendance instanceof EventCheckin
+            ? $result->attendance
+            : EventCheckin::query()->findOrFail($result->attendance->getKey());
 
-            if ($existingCheckin instanceof EventCheckin) {
-                return [
-                    'status' => 'duplicate',
-                    'checkin' => $existingCheckin,
-                ];
-            }
+        /** @var array{status: 'created'|'duplicate', checkin: EventCheckin} $resultData */
+        $resultData = [
+            'status' => $result->created ? 'created' : 'duplicate',
+            'checkin' => $checkin,
+        ];
 
-            $checkin = EventCheckin::query()->create([
-                'event_id' => $event->getKey(),
-                'registration_id' => $registrationId,
-                'user_id' => $user->getKey(),
-                'method' => $method,
-                'checked_in_at' => now(),
-                'attendance_type' => 'check_in',
-            ]);
-
-            return [
-                'status' => 'created',
-                'checkin' => $checkin,
-            ];
-        }, 3);
-
-        if ($result['status'] === 'created') {
+        if ($resultData['status'] === 'created') {
             $this->shareTrackingService->recordOutcome(
                 type: DawahShareOutcomeType::EventCheckin,
-                outcomeKey: 'event_checkin:checkin:'.$result['checkin']->id,
+                outcomeKey: 'event_checkin:checkin:'.$resultData['checkin']->id,
                 subject: $event,
                 actor: $user,
                 request: $request ?? request(),
                 metadata: [
-                    'checkin_id' => $result['checkin']->id,
-                    'registration_id' => $result['checkin']->registration_id,
-                    'method' => $result['checkin']->method,
+                    'checkin_id' => $resultData['checkin']->id,
+                    'event_registration_id' => $resultData['checkin']->event_registration_id,
+                    'check_in_source' => $resultData['checkin']->check_in_source,
                 ],
             );
 
-            $this->eventNotificationService->notifyCheckinConfirmed($result['checkin']);
+            $this->eventNotificationService->notifyCheckinConfirmed($resultData['checkin']);
         }
 
-        return $result;
+        return $resultData;
     }
 }

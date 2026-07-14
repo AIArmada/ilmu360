@@ -4,62 +4,32 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
-use AIArmada\Addressing\Actions\ImportAddressAreasAction;
 use AIArmada\Addressing\Actions\SeedAddressCountriesAction;
-use AIArmada\Addressing\Data\ImportAddressAreaFailureData;
-use AIArmada\Addressing\Database\Seeders\MalaysiaGeographySeeder;
-use AIArmada\Addressing\Support\CsvAddressAreaSource;
+use AIArmada\Addressing\Actions\SeedCountryGeographiesAction;
 use Illuminate\Database\Seeder;
-use RuntimeException;
 
 class AddressingSeeder extends Seeder
 {
-    private const string MALAYSIA_AREA_SOURCE = 'ilmu360_malaysia_areas_v1';
-
     public function run(
         SeedAddressCountriesAction $seedCountries,
-        ImportAddressAreasAction $importAreas,
+        SeedCountryGeographiesAction $seedGeographies,
     ): void {
         $countryResult = $seedCountries->execute();
-
-        // First-class State + City tables (addresses.state_id / city_id).
-        $this->call(MalaysiaGeographySeeder::class);
-
-        $areasResult = $importAreas->execute(new CsvAddressAreaSource(
-            database_path('seeders/data/malaysia-address-areas.csv'),
-            self::MALAYSIA_AREA_SOURCE,
-        ));
-
-        if ($areasResult->hasFailures()) {
-            throw new RuntimeException($this->formatFailureMessage($areasResult->failures));
-        }
+        $geographyResult = $seedGeographies->execute('MY');
+        $areaResult = $geographyResult['areas']['MY'] ?? [
+            'created' => 0,
+            'updated' => 0,
+            'skipped' => 0,
+        ];
 
         $this->command->info(sprintf(
-            'Addressing seeded: countries %d created / %d updated / %d skipped; Malaysia states/cities seeded; Malaysia areas %d created / %d updated / %d skipped.',
+            'Addressing seeded: countries %d created / %d updated / %d skipped; Malaysia geography provider selected; areas %d created / %d updated / %d skipped.',
             $countryResult['created'],
             $countryResult['updated'],
             $countryResult['skipped'],
-            $areasResult->created,
-            $areasResult->updated,
-            $areasResult->skipped,
+            $areaResult['created'],
+            $areaResult['updated'],
+            $areaResult['skipped'],
         ));
-    }
-
-    /**
-     * @param  array<int, ImportAddressAreaFailureData>  $failures
-     */
-    private function formatFailureMessage(array $failures): string
-    {
-        $sample = collect($failures)
-            ->take(5)
-            ->map(fn (ImportAddressAreaFailureData $failure): string => sprintf(
-                '%s: %s%s',
-                $failure->sourceId,
-                $failure->reason,
-                $failure->name !== null ? " ({$failure->name})" : '',
-            ))
-            ->implode('; ');
-
-        return sprintf('Malaysia address-area import failed with %d failure(s): %s', count($failures), $sample);
     }
 }

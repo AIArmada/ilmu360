@@ -5,6 +5,7 @@ namespace App\Actions\Institutions;
 use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Addressing\Models\State;
+use AIArmada\CommerceSupport\Support\SlugGenerator;
 use App\Actions\Slugs\Concerns\InteractsWithOrderedSlugModels;
 use App\Actions\Slugs\SyncCanonicalSlugAction;
 use App\Models\Institution;
@@ -78,7 +79,7 @@ class GenerateInstitutionSlugAction
 
             $candidate = implode('-', $candidateParts);
             $sequence++;
-        } while ($this->slugExists($candidate, $ignoreInstitutionId));
+        } while (SlugGenerator::exists(Institution::class, $candidate, $ignoreInstitutionId));
 
         return $candidate;
     }
@@ -143,6 +144,7 @@ class GenerateInstitutionSlugAction
         $district = $this->firstFilled([
             $address['admin_area_1_name'] ?? null,
             $this->areaName($address['admin_area_1_id'] ?? null),
+            $this->districtNameFromSubdistrict($address['admin_area_2_id'] ?? null),
         ]);
         $state = $this->firstFilled([
             $address['state'] ?? null,
@@ -188,17 +190,6 @@ class GenerateInstitutionSlugAction
             'state' => $address?->state,
             'country_code' => $address?->country_code,
         ]);
-    }
-
-    private function slugExists(string $slug, ?string $ignoreInstitutionId): bool
-    {
-        return Institution::query()
-            ->where('slug', $slug)
-            ->when(
-                $ignoreInstitutionId !== null && $ignoreInstitutionId !== '',
-                fn ($query) => $query->where('institutions.id', '!=', $ignoreInstitutionId),
-            )
-            ->exists();
     }
 
     private function slugSegment(mixed $value): ?string
@@ -288,6 +279,23 @@ class GenerateInstitutionSlugAction
         }
 
         return $this->areaName($district->parent_id);
+    }
+
+    private function districtNameFromSubdistrict(mixed $subdistrictId): ?string
+    {
+        $subdistrictId = $this->uuidValue($subdistrictId);
+
+        if ($subdistrictId === null) {
+            return null;
+        }
+
+        $subdistrict = AddressArea::query()->find($subdistrictId);
+
+        if (! $subdistrict instanceof AddressArea || ! is_string($subdistrict->parent_id) || $subdistrict->parent_id === '') {
+            return null;
+        }
+
+        return $this->areaName($subdistrict->parent_id);
     }
 
     private function stateNameFromSubdistrict(mixed $subdistrictId): ?string

@@ -54,15 +54,17 @@ class EventSeeder extends Seeder
      */
     public function run(): void
     {
-        $hadEvents = Event::query()->exists();
+        OwnerContext::withOwner(null, function (): void {
+            $hadEvents = Event::query()->exists();
 
-        $this->seedIlmu360Schedule();
+            $this->seedIlmu360Schedule();
 
-        if (! $hadEvents) {
-            $this->seedBulkEvents();
-        }
+            if (! $hadEvents) {
+                $this->seedBulkEvents();
+            }
 
-        $this->backfillSeededEventRequiredFields();
+            $this->backfillSeededEventRequiredFields();
+        });
     }
 
     private function seedBulkEvents(): void
@@ -102,6 +104,7 @@ class EventSeeder extends Seeder
                 // Ensure seeded events follow location invariant:
                 // - online: no physical location
                 // - non-online: institution XOR venue
+                /** @var Event $event */
                 foreach ($events as $event) {
                     if ($event->delivery_mode === EventFormat::Online->value || $event->delivery_mode === EventFormat::Online) {
                         $event->update([
@@ -134,6 +137,7 @@ class EventSeeder extends Seeder
                 // If a series exists in the system, attach events via pivot table.
                 if ($randomSeriesId) {
                     $order = 1;
+                    /** @var Event $event */
                     foreach ($events as $event) {
                         DB::table(config('events.database.tables.event_series_items', 'event_series_items'))->insert([
                             'id' => (string) Str::uuid(),
@@ -210,15 +214,17 @@ class EventSeeder extends Seeder
             ]);
         }
 
-        $institution->contactMethods()->firstOrCreate(
-            ['type' => ContactMethodType::Email->value],
-            ['value' => 'mtajbj@gmail.com', 'purpose' => ContactPurpose::General->value]
-        );
+        OwnerContext::withOwner($institution, function () use ($institution): void {
+            $institution->contactMethods()->firstOrCreate(
+                ['type' => ContactMethodType::Email->value],
+                ['value' => 'mtajbj@gmail.com', 'purpose' => ContactPurpose::General->value]
+            );
 
-        $institution->contactMethods()->firstOrCreate(
-            ['type' => ContactMethodType::Phone->value],
-            ['value' => '03-78313641', 'purpose' => ContactPurpose::General->value]
-        );
+            $institution->contactMethods()->firstOrCreate(
+                ['type' => ContactMethodType::Phone->value],
+                ['value' => '03-78313641', 'purpose' => ContactPurpose::General->value]
+            );
+        });
 
         if (! $institution->primaryAddress()) {
             $state = $this->malaysiaPackageStateByName('Selangor');
@@ -674,7 +680,7 @@ class EventSeeder extends Seeder
             'source_tags' => [$sourceSlug],
         ];
 
-        if (is_string($issueSlug) && $issueSlug !== '') {
+        if ($issueSlug !== null) {
             $payload['issue_tags'] = [$issueSlug];
         }
 

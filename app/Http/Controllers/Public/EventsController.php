@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Public;
 
-use AIArmada\Events\Contracts\RegistrationServiceInterface;
+use AIArmada\Events\Actions\RegisterForFreeAction;
 use App\Enums\DawahShareOutcomeType;
 use App\Enums\EventVisibility;
 use App\Enums\ScheduleState;
@@ -48,7 +48,7 @@ class EventsController extends Controller
     public function register(
         Request $request,
         Event $event,
-        RegistrationServiceInterface $registrations,
+        RegisterForFreeAction $registerForFree,
     ): RedirectResponse {
         $validated = $request->validate([
             'name' => 'required|string|max:100',
@@ -59,25 +59,18 @@ class EventsController extends Controller
         /** @var User|null $user */
         $user = $request->user();
 
-        $eventRegistration = $registrations->register([
-            'event_id' => $event->id,
-            'registrant_type' => $user?->getMorphClass(),
-            'registrant_id' => (string) $user?->getKey(),
-            'registration_type' => 'individual',
-            'status' => 'confirmed',
-            'source' => 'free_rsvp',
-            'total_participants' => 1,
-            'total_amount' => null,
-            'currency' => null,
-            'payment_status' => null,
-            'participants' => [[
+        $eventRegistration = $registerForFree->execute(
+            target: $event,
+            participants: [[
                 'name' => $validated['name'],
                 'email' => $validated['email'] ?? null,
                 'phone' => $validated['phone'] ?? null,
                 'is_primary' => true,
                 'is_purchaser' => true,
             ]],
-        ]);
+            registrant: $user,
+            options: ['with_pass' => true],
+        )->firstOrFail();
 
         $registration = Registration::findOrFail($eventRegistration->id);
 

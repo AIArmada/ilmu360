@@ -65,7 +65,7 @@ it('documents inspiration space and report mutation semantics in the admin api r
         ->toContain('`evidence: []` clears the media collection while `evidence: null` preserves the current uploads.');
 });
 
-it('documents tag and subdistrict mutation semantics in the admin api reference', function () {
+it('documents tag and administrative-area mutation semantics in the admin api reference', function () {
     $markdown = file_get_contents(base_path('docs/ilmu360_mobile_api_reference.md')) ?: '';
 
     expect($markdown)
@@ -73,10 +73,10 @@ it('documents tag and subdistrict mutation semantics in the admin api reference'
         ->toContain('Tag `PUT` still requires `name.ms`, `type`, and `status`.')
         ->toContain('`name.en` is optional and falls back to `name.ms`')
         ->toContain('Sending `null` or `""` does not clear it to `null`; it hands ordering back to the sortable scope')
-        ->toContain('### Subdistrict-specific update rules')
-        ->toContain('Subdistrict `PUT` still requires `country_id`, `state_id`, and `name`.')
-        ->toContain('`admin_area_1_id` is required for non-federal-territory states')
-        ->toContain('`admin_area_1_id=null` is only valid for federal-territory states');
+        ->toContain('### Administrative-area update rules')
+        ->toContain('Administrative-area `PUT` still requires `country_id`, an applicable parent, and `name`.')
+        ->toContain('The parent and level are determined by the selected country address profile')
+        ->toContain('parent fields are optional only when the selected country profile defines that level as a root');
 });
 
 it('documents the public reference directory in the mobile api reference', function () {

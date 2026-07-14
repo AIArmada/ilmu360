@@ -77,20 +77,6 @@
         $address = $event->venue?->primaryAddress() ?? $event->institution?->primaryAddress();
         $parts = \App\Support\Location\AddressHierarchyFormatter::parts($address);
 
-        // Product: state lives on state_id (State table) or denormalized state text — never admin_area_1.
-        $stateName = null;
-        if (is_string($address?->state_id) && $address->state_id !== '') {
-            $stateName = \AIArmada\Addressing\Models\State::query()->whereKey($address->state_id)->value('name');
-        }
-        if (! is_string($stateName) || trim($stateName) === '') {
-            $stateName = is_string($address?->state) ? trim($address->state) : null;
-        }
-
-        // Federal territories: formatter may hide state; re-append once so venue + local area + FT label.
-        if (count($parts) === 1 && \App\Support\Location\FederalTerritoryLocation::isFederalTerritoryStateName($stateName)) {
-            $parts[] = $stateName;
-        }
-
         $locationParts = array_filter([
             $primaryLocationName,
             ...$parts,

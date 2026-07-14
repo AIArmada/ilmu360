@@ -2,6 +2,7 @@
 
 namespace App\Support\Api\Admin;
 
+use AIArmada\Addressing\Actions\SaveAddressAreaAction;
 use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Contacting\Enums\ContactMethodType;
@@ -10,7 +11,6 @@ use AIArmada\Contacting\Enums\SocialPlatform;
 use AIArmada\FilamentAddressing\Resources\AddressAreaResource;
 use AIArmada\FilamentEvents\Resources\EventResource;
 use AIArmada\FilamentEvents\Resources\VenueResource;
-use App\Actions\AddressAreas\SaveAddressAreaAction;
 use App\Actions\DonationChannels\SaveDonationChannelAction;
 use App\Actions\Events\SaveAdminEventAction;
 use App\Actions\Inspirations\SaveInspirationAction;
@@ -39,7 +39,7 @@ use App\Enums\PostNominal;
 use App\Enums\PreNominal;
 use App\Enums\ReferencePartType;
 use App\Enums\ReferenceType;
-use App\Enums\RegistrationMode;
+use App\Enums\RegistrationScope;
 use App\Enums\TagType;
 use App\Enums\VenueType;
 use App\Filament\Resources\DonationChannels\DonationChannelResource;
@@ -1773,7 +1773,7 @@ class AdminResourceMutationService
             $this->field('is_featured', 'boolean', required: false, default: false),
             $this->field('escalated_at', 'datetime', required: false),
             $this->field('registration_required', 'boolean', required: false, default: false),
-            $this->field('registration_mode', 'string', required: false, default: RegistrationMode::Event->value, allowedValues: $this->enumValues(RegistrationMode::class), meta: [
+            $this->field('registration_mode', 'string', required: false, default: RegistrationScope::Event->value, allowedValues: $this->enumValues(RegistrationScope::class), meta: [
                 'mutation_semantics' => 'replace_setting_with_runtime_lock',
                 'clear_semantics' => [
                     'omitted' => 'preserve_existing_via_server_state_merge',
@@ -2317,7 +2317,7 @@ class AdminResourceMutationService
             'is_featured' => ['sometimes', 'boolean'],
             'escalated_at' => ['nullable', 'date'],
             'registration_required' => ['sometimes', 'boolean'],
-            'registration_mode' => ['sometimes', Rule::enum(RegistrationMode::class)],
+            'registration_mode' => ['sometimes', Rule::enum(RegistrationScope::class)],
         ];
 
         if (! $updating) {

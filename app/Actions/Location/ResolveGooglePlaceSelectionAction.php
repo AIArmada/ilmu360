@@ -6,7 +6,7 @@ use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Addressing\Models\City;
 use AIArmada\Addressing\Models\State;
-use App\Support\Location\AddressAreaStateBridge;
+use AIArmada\Addressing\Support\AddressAreaStateBridge;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
@@ -57,7 +57,7 @@ class ResolveGooglePlaceSelectionAction
             $this->componentValue($components, ['locality']),
             $this->componentValue($components, ['postal_town']),
         ]);
-        // Subdistrict resolution keeps locality/postal_town priority (MY product often maps these to mukim/local areas).
+        // Locality/postal-town names are the most useful fallback for the deepest configured area.
         $subdistrictName = $this->firstFilled([
             $this->componentValue($components, ['locality']),
             $this->componentValue($components, ['postal_town']),
@@ -65,6 +65,12 @@ class ResolveGooglePlaceSelectionAction
         ]);
 
         $areaTreeRoot = $this->resolveArea($stateName, $countryId, null, 1);
+        $countryId = $areaTreeRoot->country_id ?? $countryId;
+        $stateId = $this->resolveStateId($stateName, $countryId, $areaTreeRoot);
+        $areaTreeRootId = AddressAreaStateBridge::areaIdForState($stateId);
+        $areaTreeRoot = $areaTreeRootId !== null
+            ? AddressArea::query()->find($areaTreeRootId)
+            : $areaTreeRoot;
         $district = $this->resolveArea($districtName, $countryId, $areaTreeRoot?->id, 2);
         $subdistrict = $this->resolveArea($subdistrictName, $countryId, $district->id ?? $areaTreeRoot?->id, 3);
 
@@ -76,7 +82,7 @@ class ResolveGooglePlaceSelectionAction
             : null;
         $countryId = $areaTreeRoot->country_id ?? $district->country_id ?? $subdistrict->country_id ?? $countryId;
 
-        $stateId = $this->resolveStateId($stateName, $countryId, $areaTreeRoot);
+        $stateId ??= $this->resolveStateId($stateName, $countryId, $areaTreeRoot);
         $cityId = $this->resolveCityId($cityName, $stateId, $countryId);
 
         $districtId = $district instanceof AddressArea && (int) $district->level === 2

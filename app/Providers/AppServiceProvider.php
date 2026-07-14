@@ -10,7 +10,6 @@ use AIArmada\Communications\Contracts\ConsentResolver;
 use AIArmada\Communications\Contracts\PreferenceResolver;
 use AIArmada\Communications\Contracts\QuietHoursResolver;
 use AIArmada\Communications\Contracts\SuppressionResolver;
-use AIArmada\Communications\Events\DeliveryFailed;
 use AIArmada\Contacting\Models\ContactMethod;
 use AIArmada\Contacting\Models\SocialProfile;
 use AIArmada\Events\Models\EventRegistrationParticipant;
@@ -26,7 +25,6 @@ use App\Contracts\NullCaptchaVerifier;
 use App\Contracts\NullGitHubIssueReporter;
 use App\Contracts\ShareTrackingContract;
 use App\Http\Controllers\Mcp\OAuthRegisterController;
-use App\Listeners\Communications\DeliveryFallbackListener;
 use App\Models\AiModelPricing;
 use App\Models\Audit as FilamentAudit;
 use App\Models\ContributionRequest;
@@ -107,8 +105,6 @@ class AppServiceProvider extends ServiceProvider
     protected static bool $languageSwitchConfigured = false;
 
     protected static bool $mediaUploadConfigured = false;
-
-    protected static bool $deliveryFallbackListenerRegistered = false;
 
     protected static bool $publicListingObserversRegistered = false;
 
@@ -256,17 +252,6 @@ class AppServiceProvider extends ServiceProvider
             EventFacade::listen(AudioGenerated::class, [RecordAiUsage::class, 'handle']);
 
             app()->instance('ai.usage.listeners.registered', true);
-        }
-
-        if (app()->runningUnitTests() || ! self::$deliveryFallbackListenerRegistered) {
-            EventFacade::listen(
-                DeliveryFailed::class,
-                [DeliveryFallbackListener::class, 'handle'],
-            );
-
-            if (! app()->runningUnitTests()) {
-                self::$deliveryFallbackListenerRegistered = true;
-            }
         }
 
         if (! self::$languageSwitchConfigured) {

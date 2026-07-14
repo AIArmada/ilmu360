@@ -97,8 +97,8 @@ it('allows check-in for registered users when event requires registration', func
         ->first();
 
     expect($checkin)->not->toBeNull()
-        ->and($checkin?->method)->toBe('registered_self_checkin')
-        ->and($checkin?->registration_id)->toBe($registration->id);
+        ->and($checkin?->check_in_source)->toBe('registered_self_checkin')
+        ->and($checkin?->event_registration_id)->toBe($registration->id);
 });
 
 it('redirects guests to login when trying to check in', function () {

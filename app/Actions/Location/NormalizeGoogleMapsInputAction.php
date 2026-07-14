@@ -99,7 +99,12 @@ class NormalizeGoogleMapsInputAction
             && $remoteLookupEnabled
             && GooglePlacesConfiguration::isServerLookupEnabled()
         ) {
-            $resolvedPlace = $this->searchPlaceByName($displayName, $lat, $lng);
+            $resolvedPlace = $this->searchPlaceByName(
+                $displayName,
+                $lat,
+                $lng,
+                $this->countryCode($input),
+            );
 
             if ($resolvedPlace !== null) {
                 $placeId = $resolvedPlace['place_id'];
@@ -299,7 +304,12 @@ class NormalizeGoogleMapsInputAction
     /**
      * @return array{place_id: string, display_name: string|null, lat: float|null, lng: float|null}|null
      */
-    private function searchPlaceByName(string $displayName, ?float $lat, ?float $lng): ?array
+    private function searchPlaceByName(
+        string $displayName,
+        ?float $lat,
+        ?float $lng,
+        ?string $countryCode,
+    ): ?array
     {
         try {
             $response = Http::withHeaders([
@@ -309,7 +319,7 @@ class NormalizeGoogleMapsInputAction
                 ->timeout(10)
                 ->post('https://places.googleapis.com/v1/places:searchText', array_filter([
                     'textQuery' => $displayName,
-                    'regionCode' => 'MY',
+                    'regionCode' => $countryCode,
                     'locationBias' => (($lat !== null) && ($lng !== null))
                         ? [
                             'circle' => [
@@ -368,6 +378,17 @@ class NormalizeGoogleMapsInputAction
         $match = $matches->first();
 
         return $match;
+    }
+
+    private function countryCode(array $input): ?string
+    {
+        $countryCode = $input['country_code'] ?? null;
+
+        if (! is_string($countryCode) || preg_match('/^[A-Za-z]{2}$/', trim($countryCode)) !== 1) {
+            return null;
+        }
+
+        return mb_strtoupper(trim($countryCode));
     }
 
     /**

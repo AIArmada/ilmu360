@@ -4,6 +4,7 @@ namespace App\Actions\Notifications;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Communications\Models\NotificationInbox;
+use AIArmada\Communications\Services\NotificationInboxService;
 use App\Models\User;
 use App\Services\Signals\ProductSignalsService;
 use Illuminate\Http\Request;
@@ -15,6 +16,7 @@ final readonly class MarkNotificationMessageReadAction
 
     public function __construct(
         private ProductSignalsService $productSignalsService,
+        private NotificationInboxService $notificationInboxService,
     ) {}
 
     public function handle(User $user, string $messageId, ?Request $request = null): NotificationInbox
@@ -29,7 +31,10 @@ final readonly class MarkNotificationMessageReadAction
         $wasUnread = $message->read_at === null;
 
         if ($wasUnread) {
-            $user->markAsRead($messageId);
+            $this->notificationInboxService->markAsRead(
+                $user->notificationInboxes()->whereNull('archived_at'),
+                $messageId,
+            );
         }
 
         $freshMessage = $message->fresh() ?? $message;

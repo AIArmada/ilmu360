@@ -1,5 +1,9 @@
 # Lessons
 
+- Package-first refactors do not need to preserve legacy compatibility paths: once a generic package workflow is adopted, make its contract authoritative and keep app code only for product policy, presentation, and integrations.
+- Before an app-to-package architecture audit, reindex the repository even when codebase-memory reports a ready index; the audit must reflect the current working tree, not only an existing graph snapshot.
+- When an app and package enum share a name, compare their value semantics before deleting either one; if one is scope and the other is policy, rename the app enum to expose the real seam and preserve both contracts.
+
 - When a user describes a desktop width as "between the logo and Daftar", measure the header's inner content edges and align the page grid to those exact edges instead of substituting a generic `max-w-*` cap.
 - When applying that same header-width rule to other public/auth pages, remove local `max-w-[100vw]` container overrides before judging the visual width; those overrides can silently defeat the shared Tailwind container cap.
 - When a public media field has conflicting display and distribution jobs, model those jobs as distinct named collections instead of asking one upload to satisfy incompatible aspect-ratio and information-density needs.
@@ -314,3 +318,7 @@
 - When the app's membership model diverges from the package (heterogeneous pivots, scoped roles), the cleanest long-term path is **converge on the package's uniform shape**: one pivot table convention (`*_members`), `role` + `joined_at` columns on every pivot, per-instance team-scoped Spatie roles instead of per-type scopes, and `MembershipHook`/`MembershipApplicationNotifier` contracts for app-specific side effects. This deletes ~2,000 lines of custom role orchestration.
 - The package's `AddMemberAction` was missing the `onMemberAdded` hook call — always check that actions call all contract methods, not just some of them.
 - Spatie team-scoped roles (`features.team_scoped_roles = true`) provide per-instance role scoping via `$user->setPermissionsTeamId($subject->getKey())` — the app's custom `MemberRoleScopes` system was reinventing this.
+- When a reusable package must be international but already supports one country's geography, keep the country implementation as a package-owned provider/adapter behind a generic contract; do not move the support entirely into the consuming app or bake that country's assumptions into core tables.
+- When the consuming product is itself international, country-specific geography cannot remain in its forms, filters, APIs, seeders, or presenters; those surfaces must resolve the selected country profile and use country-scoped fallbacks when no structured provider exists.
+- When a slug test defines the canonical geography contract, preserve every required structured segment (city, district, state, country) in the generated URL; fix the address-ID/name resolution path instead of weakening the expectation.
+- When a user explicitly requires no backward compatibility, cut over to the package's canonical schema in one slice: delete invalid aliases and dead wrappers, update package consumers/tests/UI, and do not leave fallback reads or writes that make the old contract appear supported.

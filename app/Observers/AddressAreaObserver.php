@@ -8,7 +8,6 @@ use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressArea;
 use App\Support\Cache\PublicDirectoryCacheVersion;
 use App\Support\Cache\PublicListingsCache;
-use App\Support\Location\FederalTerritoryLocation;
 use Illuminate\Validation\ValidationException;
 
 class AddressAreaObserver
@@ -49,7 +48,6 @@ class AddressAreaObserver
 
     private function flushLocationCaches(): void
     {
-        FederalTerritoryLocation::flushStateIdCache();
         $this->publicDirectoryCacheVersion->bumpAll();
         $this->publicListingsCache->bustMajlisListing();
     }
@@ -58,18 +56,8 @@ class AddressAreaObserver
     {
         $recordKey = (string) $addressArea->getKey();
 
-        if ($addressArea->level === 1) {
-            if (AddressArea::query()->where('parent_id', $recordKey)->where('level', 2)->exists()) {
-                return 'Delete or reassign this state\'s districts before deleting it.';
-            }
-
-            if (AddressArea::query()->where('parent_id', $recordKey)->where('level', 3)->exists()) {
-                return 'Delete or reassign this state\'s subdistricts before deleting it.';
-            }
-        }
-
-        if ($addressArea->level === 2 && AddressArea::query()->where('parent_id', $recordKey)->exists()) {
-            return 'Delete or reassign this district\'s subdistricts before deleting it.';
+        if (AddressArea::query()->where('parent_id', $recordKey)->exists()) {
+            return 'Delete or reassign this address area\'s child areas before deleting it.';
         }
 
         return null;
@@ -79,8 +67,7 @@ class AddressAreaObserver
     {
         $recordKey = (string) $addressArea->getKey();
 
-        // Product storage: admin_area_1 = district (level 2), admin_area_2 = subdistrict (level 3).
-        // Level-1 state tree nodes are hierarchy parents only (State table owns state_id).
+        // Address slots are country-profile-defined; every stored area slot is protected.
         return match ((int) $addressArea->level) {
             1 => Address::query()
                 ->where(function ($query) use ($recordKey): void {
@@ -115,10 +102,7 @@ class AddressAreaObserver
     private function addressReferenceMessage(AddressArea $addressArea): string
     {
         $label = match ((int) $addressArea->level) {
-            1 => 'region area',
-            2 => 'district',
-            3 => 'subdistrict',
-            4 => 'local area',
+            1 => 'top-level area',
             default => 'address area',
         };
 

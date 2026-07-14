@@ -2,9 +2,19 @@
 
 declare(strict_types=1);
 
+use App\Models\Event;
+use App\Models\EventCheckin;
+use App\Models\Registration;
+
 $appName = env('APP_NAME', 'Laravel');
 
 return [
+    'models' => [
+        'event' => Event::class,
+        'registration' => Registration::class,
+        'attendance' => EventCheckin::class,
+    ],
+
     'features' => [
         'auto_issue_passes' => env('EVENTS_AUTO_ISSUE_PASSES', true),
         'auto_allocate_seats' => env('EVENTS_AUTO_ALLOCATE_SEATS', true),

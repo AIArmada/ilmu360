@@ -131,8 +131,9 @@
     $primaryLanguage = $event->languages->first();
     $languageName = $primaryLanguage?->name ?? __('Bahasa Melayu');
 
-    // Organize tags by type
-    $tagsByType = $event->tags->groupBy('type');
+    // Organize package classifications by taxonomy code
+    $classifications = $event->classifications->loadMissing('term');
+    $classificationsByTaxonomy = $classifications->groupBy('taxonomy_code');
 
     // Schedule state
     $scheduleState = $event->schedule_state;
@@ -1373,8 +1374,8 @@
                         </div>
                     @endif
 
-                    {{-- Tag cloud by taxonomy type (aligned with submit-event categories) --}}
-                    @if($event->tags->isNotEmpty())
+                    {{-- Taxonomy cloud by package classification type --}}
+                    @if($classifications->isNotEmpty())
                         @php
                             $tagCloudSections = [
                                 [
@@ -1403,7 +1404,7 @@
                             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5">
                                 @foreach($tagCloudSections as $section)
                                     @php
-                                        $sectionTags = $tagsByType->get($section['key']);
+                                        $sectionTags = $classificationsByTaxonomy->get($section['key']);
                                     @endphp
                                     @if($sectionTags instanceof \Illuminate\Support\Collection && $sectionTags->isNotEmpty())
                                         <div>
@@ -1411,10 +1412,10 @@
                                                 {{ $section['label'] }}
                                             </p>
                                             <div class="flex flex-wrap gap-2.5">
-                                                @foreach($sectionTags as $tag)
-                                                    <span wire:key="tag-cloud-{{ $section['key'] }}-{{ $tag->id }}"
+                                                @foreach($sectionTags as $classification)
+                                                    <span wire:key="taxonomy-cloud-{{ $section['key'] }}-{{ $classification->id }}"
                                                         class="inline-flex items-center rounded-full border px-4 py-1.5 text-sm font-semibold transition-colors {{ $section['color'] }}">
-                                                        {{ $tag->name }}
+                                                        {{ $classification->term?->name ?? $classification->term_code }}
                                                     </span>
                                                 @endforeach
                                             </div>

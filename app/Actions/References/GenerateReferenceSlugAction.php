@@ -2,6 +2,7 @@
 
 namespace App\Actions\References;
 
+use AIArmada\CommerceSupport\Support\SlugGenerator;
 use App\Actions\Slugs\Concerns\InteractsWithOrderedSlugModels;
 use App\Actions\Slugs\SyncCanonicalSlugAction;
 use App\Models\Reference;
@@ -58,7 +59,7 @@ class GenerateReferenceSlugAction
             }
 
             $sequence++;
-        } while ($this->slugExists($candidate, $ignoreReferenceId));
+        } while (SlugGenerator::exists(Reference::class, $candidate, $ignoreReferenceId));
 
         return $candidate;
     }
@@ -89,16 +90,5 @@ class GenerateReferenceSlugAction
         $matchingCount = $matchingReferences->count();
 
         return $matchingCount > 0 ? $matchingCount + 1 : 1;
-    }
-
-    private function slugExists(string $slug, ?string $ignoreReferenceId): bool
-    {
-        return Reference::query()
-            ->where('slug', $slug)
-            ->when(
-                $ignoreReferenceId !== null && $ignoreReferenceId !== '',
-                fn ($query) => $query->where('references.id', '!=', $ignoreReferenceId),
-            )
-            ->exists();
     }
 }

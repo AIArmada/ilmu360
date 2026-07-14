@@ -5,6 +5,9 @@ namespace App\Services;
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressCountry;
+use AIArmada\Addressing\Models\State;
+use AIArmada\Addressing\Support\AddressCountryResolver;
+use AIArmada\Addressing\Support\AddressAreaStateBridge;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\Contacting\Enums\SocialPlatform;
@@ -38,7 +41,6 @@ use App\Models\Series;
 use App\Models\Speaker;
 use App\Models\User;
 use App\Models\Venue;
-use App\Support\Location\AddressingCountryResolver;
 use BackedEnum;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
@@ -54,7 +56,7 @@ class ContributionEntityMutationService
         private readonly AddMemberAction $addMemberAction,
         private readonly GenerateInstitutionSlugAction $generateInstitutionSlugAction,
         private readonly GenerateSpeakerSlugAction $generateSpeakerSlugAction,
-        private readonly AddressingCountryResolver $addressingCountryResolver,
+        private readonly AddressCountryResolver $addressingCountryResolver,
     ) {}
 
     /**
@@ -1038,8 +1040,14 @@ class ContributionEntityMutationService
                 'line1',
                 'line2',
                 'postcode',
+                'state_id',
+                'city_id',
                 'admin_area_1_id',
                 'admin_area_2_id',
+                'admin_area_3_id',
+                'admin_area_4_id',
+                'state',
+                'city',
                 'latitude',
                 'longitude',
                 'google_maps_url',
@@ -1054,24 +1062,34 @@ class ContributionEntityMutationService
 
         $adminArea1Id = $this->normalizeUuid($payload['admin_area_1_id'] ?? null);
         $adminArea2Id = $this->normalizeUuid($payload['admin_area_2_id'] ?? null);
+        $adminArea3Id = $this->normalizeUuid($payload['admin_area_3_id'] ?? null);
+        $adminArea4Id = $this->normalizeUuid($payload['admin_area_4_id'] ?? null);
         $latitude = $payload['latitude'] ?? null;
         $longitude = $payload['longitude'] ?? null;
         $providerPlaceId = $payload['provider_place_id'] ?? null;
-        $addressMetadata = $this->resolveAddressMetadata($countryId, $adminArea1Id, $adminArea2Id);
+        $addressMetadata = $this->resolveAddressMetadata(
+            $countryId,
+            $adminArea1Id,
+            $adminArea2Id,
+            $adminArea3Id,
+            $adminArea4Id,
+        );
 
         $attributes = [
             'country_id' => $countryId,
+            'state_id' => $this->normalizeUuid($payload['state_id'] ?? null),
+            'city_id' => $this->normalizeUuid($payload['city_id'] ?? null),
             'admin_area_1_id' => $adminArea1Id,
             'admin_area_2_id' => $adminArea2Id,
-            'admin_area_3_id' => null,
-            'admin_area_4_id' => null,
+            'admin_area_3_id' => $adminArea3Id,
+            'admin_area_4_id' => $adminArea4Id,
             'line1' => $payload['line1'] ?? null,
             'line2' => $payload['line2'] ?? null,
             'postcode' => $payload['postcode'] ?? null,
             'country' => $addressMetadata['country'],
             'country_code' => $addressMetadata['country_code'],
-            'state' => $addressMetadata['state'],
-            'city' => $addressMetadata['city'],
+            'state' => $payload['state'] ?? $addressMetadata['state'],
+            'city' => $payload['city'] ?? $addressMetadata['city'],
             'latitude' => $latitude !== null && $latitude !== '' ? (float) $latitude : null,
             'longitude' => $longitude !== null && $longitude !== '' ? (float) $longitude : null,
             'google_maps_url' => $payload['google_maps_url'] ?? null,
@@ -1098,34 +1116,61 @@ class ContributionEntityMutationService
         ?string $countryId,
         ?string $adminArea1Id,
         ?string $adminArea2Id,
+        ?string $adminArea3Id,
+        ?string $adminArea4Id,
     ): array {
         $country = $countryId !== null
             ? AddressCountry::query()->find($countryId)
             : null;
-        $district = $adminArea1Id !== null
-            ? AddressArea::query()->find($adminArea1Id)
-            : null;
-        $subdistrict = $adminArea2Id !== null
-            ? AddressArea::query()->find($adminArea2Id)
-            : null;
+        $areas = [];
 
-        $stateName = null;
-        if ($district instanceof AddressArea && is_string($district->parent_id) && $district->parent_id !== '') {
-            $stateName = AddressArea::query()->whereKey($district->parent_id)->value('name');
-        } elseif ($subdistrict instanceof AddressArea && is_string($subdistrict->parent_id) && $subdistrict->parent_id !== '') {
-            $parent = AddressArea::query()->find($subdistrict->parent_id);
-            if ($parent instanceof AddressArea && (int) $parent->level === 1) {
-                $stateName = $parent->name;
-            } elseif ($parent instanceof AddressArea && is_string($parent->parent_id)) {
-                $stateName = AddressArea::query()->whereKey($parent->parent_id)->value('name');
+        foreach ([$adminArea1Id, $adminArea2Id, $adminArea3Id, $adminArea4Id] as $areaId) {
+            if ($areaId !== null) {
+                $area = AddressArea::query()->find($areaId);
+
+                if ($area instanceof AddressArea) {
+                    $areas[] = $area;
+                }
             }
         }
+
+        $stateName = null;
+
+        foreach (array_reverse($areas) as $area) {
+            $stateId = AddressAreaStateBridge::stateIdForArea((string) $area->getKey());
+
+            if ($stateId !== null) {
+                $state = State::query()->find($stateId);
+                $stateName = $state instanceof State ? $state->name : null;
+
+                if ($stateName !== null && $stateName !== '') {
+                    break;
+                }
+            }
+
+            $parent = $area;
+
+            while (is_string($parent->parent_id) && $parent->parent_id !== '') {
+                $parent = AddressArea::query()->find($parent->parent_id);
+
+                if (! $parent instanceof AddressArea) {
+                    break;
+                }
+
+                if ((int) $parent->level === 1) {
+                    $stateName = $parent->name;
+                    break 2;
+                }
+            }
+        }
+
+        $locality = array_reverse($areas)[0] ?? null;
 
         return [
             'country' => $country?->name,
             'country_code' => $country?->iso2,
             'state' => is_string($stateName) && $stateName !== '' ? $stateName : null,
-            'city' => $subdistrict?->name ?? $district?->name,
+            'city' => $locality?->name,
         ];
     }
 
@@ -1507,7 +1552,7 @@ class ContributionEntityMutationService
             'country_id' => $address->country_id ?? $this->addressingCountryResolver->resolveId($address->country_code),
             'admin_area_1_id' => $address->admin_area_1_id,
             'admin_area_2_id' => $address->admin_area_2_id,
-            'admin_area_3_id' => null,
+            'admin_area_3_id' => $address->admin_area_3_id,
             'admin_area_4_id' => $address->admin_area_4_id,
             'line1' => $address->line1,
             'line2' => $address->line2,

@@ -1,6 +1,5 @@
 <?php
 
-use AIArmada\Addressing\Models\State;
 use App\Enums\EventFormat;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\PrayerOffset;
@@ -13,7 +12,6 @@ use App\Models\Reference;
 use App\Models\Speaker;
 use App\Models\Venue;
 use App\Support\Location\AddressHierarchyFormatter;
-use App\Support\Location\FederalTerritoryLocation;
 use Illuminate\Support\Carbon;
 
 it('shows prayer-relative timing text on speaker page instead of absolute time', function () {
@@ -243,14 +241,7 @@ it('formats federal-territory venue addresses with product state_id and no distr
         ->and($address->admin_area_2_id)->toBe((string) $geo['subdistrict']->getKey());
 
     $parts = AddressHierarchyFormatter::parts($address);
-    // State label is suppressed for FT names inside the formatter.
-    expect($parts)->toBe(['Setiawangsa']);
-
-    // Speaker event-location UI re-appends FT state once when only a single local part remains.
-    $stateName = State::query()->whereKey($address->state_id)->value('name');
-    if (count($parts) === 1 && FederalTerritoryLocation::isFederalTerritoryStateName($stateName)) {
-        $parts[] = $stateName;
-    }
+    expect($parts)->toBe(['Setiawangsa', 'Kuala Lumpur']);
 
     $eventLocation = implode(', ', array_filter([
         $venue->name,

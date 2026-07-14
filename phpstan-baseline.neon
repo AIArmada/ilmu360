@@ -7,26 +7,5 @@ parameters:
             message: '#Method App\\Actions\\Fortify\\.*::passwordRules.*should return#'
             path: app/Concerns/PasswordValidationRules.php
         -
-            message: '#Strict comparison using === between string\|null and.*#'
-            path: app/Concerns/HasTeams.php
-        -
-            message: '#Cannot access property \$value on string#'
-            path: app/Concerns/HasTeams.php
-        -
-            message: '#Cannot call method.*on string#'
-            path: app/Concerns/HasTeams.php
-        -
-            message: '#Cannot call method.*on string#'
-            path: app/Http/Middleware/EnsureTeamMembership.php
-        -
-            message: '#Method App\\Models\\Team::members.*should return.*Pivot.*but returns.*Membership#'
-            path: app/Models/Team.php
-        -
-            message: '#Cannot call method isPast\(\) on string#'
-            path: app/Models/TeamInvitation.php
-        -
-            message: '#Using nullsafe method call on non-nullable type string#'
-            path: app/Models/TeamInvitation.php
-        -
             message: '#Method App\\Rules\\TeamName::routesPrefixes.*has no value type#'
             path: app/Rules/TeamName.php

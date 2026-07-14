@@ -7,7 +7,7 @@ use App\Actions\Events\PrepareAdvancedParentProgramSubmissionAction;
 use App\Enums\EventFormat;
 use App\Enums\EventType;
 use App\Enums\EventVisibility;
-use App\Enums\RegistrationMode;
+use App\Enums\RegistrationScope;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
@@ -46,7 +46,7 @@ class AdvancedEventController extends FrontendController
             'default_event_format' => ['required', Rule::in(array_column(EventFormat::cases(), 'value'))],
             'visibility' => ['required', Rule::in(array_column(EventVisibility::cases(), 'value'))],
             'registration_required' => ['required', 'boolean'],
-            'registration_mode' => ['required', Rule::in(array_column(RegistrationMode::cases(), 'value'))],
+            'registration_mode' => ['required', Rule::in(array_column(RegistrationScope::cases(), 'value'))],
         ]);
 
         $preparedSubmission = $prepareAdvancedParentProgramSubmissionAction->handle($user, $validated);

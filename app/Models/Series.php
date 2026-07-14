@@ -4,6 +4,7 @@ namespace App\Models;
 
 use AIArmada\Engagement\Models\Follow;
 use AIArmada\Events\Models\EventSeries as PackageEventSeries;
+use AIArmada\Events\Models\EventSeriesItemPivot;
 use App\Models\Concerns\AuditsModelChanges;
 use App\Models\Concerns\HasLanguages;
 use Database\Factories\SeriesFactory;
@@ -79,7 +80,7 @@ class Series extends PackageEventSeries implements AuditableContract, HasMedia
     }
 
     /**
-     * @return BelongsToMany<Event, $this, EventSeries, 'pivot'>
+     * @return BelongsToMany<Event, $this, EventSeriesItemPivot, 'pivot'>
      */
     public function events(): BelongsToMany
     {
@@ -89,7 +90,7 @@ class Series extends PackageEventSeries implements AuditableContract, HasMedia
             'event_series_id',
             'event_id',
         )
-            ->using(EventSeries::class)
+            ->using(EventSeriesItemPivot::class)
             ->withPivot('id', 'seriesable_type', 'seriesable_id', 'sort_order')
             ->wherePivot('seriesable_type', Event::class)
             ->withPivotValue('seriesable_type', Event::class)

@@ -41,21 +41,21 @@ it('returns check-in state and records a self-reported check-in for open events'
         ->assertJsonPath('message', 'Check-in recorded successfully.')
         ->assertJsonPath('data.status', 'created')
         ->assertJsonPath('data.checkin.event_id', $event->id)
-        ->assertJsonPath('data.checkin.user_id', $user->id)
-        ->assertJsonPath('data.checkin.registration_id', null)
-        ->assertJsonPath('data.checkin.method', 'self_reported')
+        ->assertJsonPath('data.checkin.attendee_id', $user->id)
+        ->assertJsonPath('data.checkin.event_registration_id', null)
+        ->assertJsonPath('data.checkin.check_in_source', 'self_reported')
         ->assertJsonPath('meta.request_id', fn (string $requestId) => filled($requestId));
 
     $checkin = EventCheckin::query()
         ->where('event_id', $event->id)
-        ->where('user_id', $user->id)
-        ->where('method', 'self_reported')
+        ->where('attendee_id', $user->id)
+        ->where('check_in_source', 'self_reported')
         ->firstOrFail();
 
     $storeResponse->assertJsonPath('data.checkin.id', $checkin->id)
         ->assertJsonPath('data.checkin.checked_in_at', $checkin->checked_in_at?->format(DateTimeInterface::ATOM));
 
-    expect($checkin->registration_id)->toBeNull();
+    expect($checkin->event_registration_id)->toBeNull();
 });
 
 it('requires registration before check-in when the event requires registration', function () {
@@ -70,7 +70,6 @@ it('requires registration before check-in when the event requires registration',
 
     $event->accessPolicy()->updateOrCreate([], [
         'registration_required' => true,
-        'registration_mode' => 'event',
         'opens_at' => now()->subDay(),
         'closes_at' => now()->addDay(),
     ]);
@@ -99,7 +98,6 @@ it('uses the registered check-in path when the user already has a registration',
 
     $event->accessPolicy()->updateOrCreate([], [
         'registration_required' => true,
-        'registration_mode' => 'event',
         'opens_at' => now()->subDay(),
         'closes_at' => now()->addDay(),
     ]);
@@ -121,8 +119,8 @@ it('uses the registered check-in path when the user already has a registration',
 
     $this->postJson(route('api.events.check-ins.store', $event))
         ->assertCreated()
-        ->assertJsonPath('data.checkin.method', 'registered_self_checkin')
-        ->assertJsonPath('data.checkin.registration_id', $registration->id);
+        ->assertJsonPath('data.checkin.check_in_source', 'registered_self_checkin')
+        ->assertJsonPath('data.checkin.event_registration_id', $registration->id);
 });
 
 it('returns a duplicate status instead of creating a second check-in', function () {
@@ -144,7 +142,7 @@ it('returns a duplicate status instead of creating a second check-in', function 
 
     $existingCheckin = EventCheckin::query()
         ->where('event_id', $event->id)
-        ->where('user_id', $user->id)
+        ->where('attendee_id', $user->id)
         ->firstOrFail();
 
     $this->postJson(route('api.events.check-ins.store', $event))
@@ -152,11 +150,11 @@ it('returns a duplicate status instead of creating a second check-in', function 
         ->assertJsonPath('message', 'You have already checked in for this event.')
         ->assertJsonPath('data.status', 'duplicate')
         ->assertJsonPath('data.checkin.id', $existingCheckin->id)
-        ->assertJsonPath('data.checkin.method', 'self_reported')
+        ->assertJsonPath('data.checkin.check_in_source', 'self_reported')
         ->assertJsonPath('data.checkin.checked_in_at', $existingCheckin->checked_in_at?->format(DateTimeInterface::ATOM));
 
     expect(EventCheckin::query()
         ->where('event_id', $event->id)
-        ->where('user_id', $user->id)
+        ->where('attendee_id', $user->id)
         ->count())->toBe(1);
 });

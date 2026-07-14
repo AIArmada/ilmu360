@@ -59,11 +59,11 @@ class CatalogController extends FrontendController
         ]);
     }
 
-    #[QueryParameter('country_id', 'Package address country UUID for country-scoped district listing.', required: false, type: 'string', infer: false)]
-    #[QueryParameter('state_id', 'Package state UUID — preferred parent for district listing.', required: false, type: 'string', infer: false)]
+    #[QueryParameter('country_id', 'Address country UUID for country-scoped administrative-area listing.', required: false, type: 'string', infer: false)]
+    #[QueryParameter('state_id', 'Optional package State UUID or country-profile parent for the first administrative-area level.', required: false, type: 'string', infer: false)]
     #[Endpoint(
         title: 'List public districts catalog',
-        description: 'Returns districts (AddressArea level 2) for product `admin_area_1_id`. Prefer `state_id`.',
+        description: 'Returns the country profile\'s first administrative-area options for product `admin_area_1_id`.',
     )]
     public function adminAreaLevel1(Request $request): JsonResponse
     {
@@ -75,12 +75,12 @@ class CatalogController extends FrontendController
         ]);
     }
 
-    #[QueryParameter('admin_area_1_id', 'District UUID (admin_area_1_id) for subdistrict listing.', required: false, type: 'string', infer: false)]
-    #[QueryParameter('state_id', 'Optional package state UUID for federal-territory local areas.', required: false, type: 'string', infer: false)]
-    #[QueryParameter('country_id', 'Optional country UUID when listing without a parent.', required: false, type: 'string', infer: false)]
+    #[QueryParameter('admin_area_1_id', 'Optional first administrative-area UUID used as the parent for the next configured level.', required: false, type: 'string', infer: false)]
+    #[QueryParameter('state_id', 'Optional package State UUID or country-profile parent when the previous area is not selected.', required: false, type: 'string', infer: false)]
+    #[QueryParameter('country_id', 'Optional address country UUID when listing without a parent.', required: false, type: 'string', infer: false)]
     #[Endpoint(
         title: 'List public subdistricts catalog',
-        description: 'Returns subdistricts (AddressArea level 3) for product `admin_area_2_id`.',
+        description: 'Returns the next country-profile administrative-area options for product `admin_area_2_id`.',
     )]
     public function adminAreaLevel2(Request $request): JsonResponse
     {

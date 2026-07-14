@@ -1030,12 +1030,11 @@ Nested collection item contracts for institutions:
 - `name.en` is optional and falls back to `name.ms` when it is omitted, `null`, or `""`.
 - `order_column` preserves on omission. Sending `null` or `""` does not clear it to `null`; it hands ordering back to the sortable scope and the server recomputes the stored order value.
 
-### Subdistrict-specific update rules
+### Administrative-area update rules
 
-- Subdistrict `PUT` still requires `country_id`, `state_id`, and `name`.
+- Administrative-area `PUT` still requires `country_id`, an applicable parent, and `name`.
 - `name` is trimmed before persistence.
-- `state_id` must match the selected `country_id`.
-- `admin_area_1_id` (district) is required for non-federal-territory states, may be `null` only for federal-territory states, and when present it must match the selected `country_id` / `state_id` cascade.
+- The parent and level are determined by the selected country address profile; no country-specific hierarchy is hardcoded in the client contract.
 
 ### Admin write-contract rules you must follow
 
@@ -1065,7 +1064,7 @@ Nested collection item contracts for institutions:
 - For spaces, `institutions` is an exact replacement sync, not an append-only relation update.
 - For reports, remember that `evidence: []` clears the media collection while `evidence: null` preserves the current uploads.
 - For tags, treat `name.en` as optional display sugar: if you omit it, the server falls back to `name.ms`, and blank / null `order_column` values trigger sortable reordering instead of storing `null`.
-- For subdistricts, `admin_area_1_id=null` is only valid for federal-territory states; for all other states district remains required.
+- For administrative areas, parent fields are optional only when the selected country profile defines that level as a root or allows a direct State-to-area mapping.
 
 ### Example: full admin speaker create/update flow
 

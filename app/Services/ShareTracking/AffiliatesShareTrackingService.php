@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\ShareTracking;
 
+use AIArmada\Affiliates\Actions\Affiliates\CreateTrackingLink;
+use AIArmada\Affiliates\Actions\Conversions\RecordAffiliateOutcome;
 use AIArmada\Affiliates\Enums\CommissionType;
 use AIArmada\Affiliates\Models\Affiliate;
 use AIArmada\Affiliates\Models\AffiliateAttribution;
@@ -40,6 +42,8 @@ final readonly class AffiliatesShareTrackingService
     public function __construct(
         private ShareTrackingUrlService $shareTrackingUrlService,
         private AffiliateSignalsBridge $affiliateSignalsBridge,
+        private CreateTrackingLink $createTrackingLink,
+        private RecordAffiliateOutcome $recordAffiliateOutcome,
     ) {}
 
     /**
@@ -308,41 +312,43 @@ final readonly class AffiliatesShareTrackingService
             $link = $linkId !== '' ? AffiliateLink::query()->find($linkId) : null;
             $subjectData = $this->resolveOutcomeSubjectData($subject, $attribution, $link);
 
-            $conversion = AffiliateConversion::query()->create([
-                'affiliate_id' => $attribution->affiliate_id,
-                'affiliate_attribution_id' => $attribution->id,
-                'affiliate_code' => $attribution->affiliate_code,
-                'subject_type' => $subjectData['subject_type'],
-                'subject_identifier' => $subjectData['subject_key'],
-                'subject_instance' => (string) data_get($attribution->metadata, 'share_origin', 'web'),
-                'cart_identifier' => $subjectData['subject_id'],
-                'cart_instance' => 'default',
-                'subject_title_snapshot' => Str::limit($subjectData['title_snapshot'], 200, ''),
-                'external_reference' => $outcomeKey,
-                'order_reference' => $outcomeKey,
-                'conversion_type' => $type->value,
-                'subtotal_minor' => 0,
-                'value_minor' => 0,
-                'total_minor' => 0,
-                'commission_minor' => 0,
-                'commission_currency' => (string) config('affiliates.currency.default', 'MYR'),
-                'status' => ApprovedConversion::class,
-                'channel' => data_get($attribution->metadata, 'share_provider'),
-                'metadata' => array_merge($metadata, [
-                    'link_id' => $linkId,
-                    'share_provider' => data_get($attribution->metadata, 'share_provider'),
-                    'share_origin' => data_get($attribution->metadata, 'share_origin', 'web'),
+            $conversionData = $this->recordAffiliateOutcome->handle(
+                attribution: $attribution,
+                conversionType: $type->value,
+                externalReference: $outcomeKey,
+                payload: [
                     'subject_type' => $subjectData['subject_type'],
-                    'subject_id' => $subjectData['subject_id'],
-                    'subject_key' => $subjectData['subject_key'],
-                    'outcome_key' => $outcomeKey,
-                    'link_title_snapshot' => $link?->subject_title_snapshot,
-                    'sharer_user_id' => $sharerUserId,
-                    'actor_user_id' => $actor?->id,
-                ]),
-                'occurred_at' => $occurredAt,
-                'approved_at' => $occurredAt,
-            ]);
+                    'subject_identifier' => $subjectData['subject_key'],
+                    'subject_instance' => (string) data_get($attribution->metadata, 'share_origin', 'web'),
+                    'subject_title_snapshot' => Str::limit($subjectData['title_snapshot'], 200, ''),
+                    'commission_currency' => (string) config('affiliates.currency.default', 'MYR'),
+                    'status' => ApprovedConversion::class,
+                    'channel' => data_get($attribution->metadata, 'share_provider'),
+                    'occurred_at' => $occurredAt,
+                    'approved_at' => $occurredAt,
+                    'dispatch_event' => false,
+                    'metadata' => array_merge($metadata, [
+                        'link_id' => $linkId,
+                        'share_provider' => data_get($attribution->metadata, 'share_provider'),
+                        'share_origin' => data_get($attribution->metadata, 'share_origin', 'web'),
+                        'subject_type' => $subjectData['subject_type'],
+                        'subject_id' => $subjectData['subject_id'],
+                        'subject_key' => $subjectData['subject_key'],
+                        'outcome_key' => $outcomeKey,
+                        'link_title_snapshot' => $link?->subject_title_snapshot,
+                        'sharer_user_id' => $sharerUserId,
+                        'actor_user_id' => $actor?->id,
+                    ]),
+                ],
+            );
+
+            if ($conversionData === null) {
+                return $this->mapOutcome(AffiliateConversion::query()
+                    ->where('external_reference', $outcomeKey)
+                    ->firstOrFail());
+            }
+
+            $conversion = AffiliateConversion::query()->findOrFail($conversionData->id);
 
             if ($linkId !== '') {
                 AffiliateLink::query()->whereKey($linkId)->first()?->incrementConversions();
@@ -445,22 +451,24 @@ final readonly class AffiliatesShareTrackingService
             return $link;
         }
 
-        return AffiliateLink::query()->create([
-            'affiliate_id' => $affiliate->id,
-            'destination_url' => $target['destination_url'],
-            'tracking_url' => $target['canonical_url'],
-            'custom_slug' => $this->generateShareToken(),
-            'subject_type' => $target['subject_type'],
-            'subject_identifier' => $target['subject_key'],
-            'subject_instance' => $resolvedOrigin,
-            'subject_title_snapshot' => Str::limit($target['title_snapshot'], 200, ''),
-            'subject_metadata' => array_merge($target['metadata'], [
-                'subject_id' => $target['subject_id'],
-                'subject_key' => $target['subject_key'],
-                'share_origin' => $resolvedOrigin,
-            ]),
-            'deactivated_at' => null,
-        ]);
+        return $this->createTrackingLink->handle(
+            affiliate: $affiliate,
+            destinationUrl: $target['destination_url'],
+            attributes: [
+                'tracking_url' => $target['canonical_url'],
+                'custom_slug' => $this->generateShareToken(),
+                'subject_type' => $target['subject_type'],
+                'subject_identifier' => $target['subject_key'],
+                'subject_instance' => $resolvedOrigin,
+                'subject_title_snapshot' => Str::limit($target['title_snapshot'], 200, ''),
+                'subject_metadata' => array_merge($target['metadata'], [
+                    'subject_id' => $target['subject_id'],
+                    'subject_key' => $target['subject_key'],
+                    'share_origin' => $resolvedOrigin,
+                ]),
+                'deactivated_at' => null,
+            ],
+        );
     }
 
     private function ensureAffiliateForUser(User $user): Affiliate
@@ -763,8 +771,6 @@ final readonly class AffiliatesShareTrackingService
             'affiliate_code' => (string) $affiliate?->code,
             'subject_identifier' => (string) ($linkMetadata['subject_key'] ?? $link->subject_identifier ?? $link->id),
             'subject_instance' => $this->shareOriginForLink($link),
-            'cart_identifier' => $linkMetadata['subject_id'],
-            'cart_instance' => 'default',
             'cookie_value' => $cookieValue,
             'landing_url' => $this->cleanTrackedUrl($request->fullUrl()),
             'referrer_url' => $request->headers->get('referer'),
@@ -877,7 +883,6 @@ final readonly class AffiliatesShareTrackingService
             ],
             [
                 'affiliate_code' => (string) $affiliate?->code,
-                'cart_instance' => 'default',
                 'user_id' => $user?->id,
                 'metadata' => array_merge($this->linkMetadata($link), [
                     'tracking_mode' => 'outbound_share',
@@ -1002,7 +1007,7 @@ final readonly class AffiliatesShareTrackingService
             landingUrl: $attribution->landing_url,
             shareProvider: data_get($attribution->metadata, 'share_provider'),
             subjectType: $this->nullableString($attribution->subject_type) ?? $this->nullableString(data_get($attribution->metadata, 'subject_type')),
-            subjectId: $this->nullableString($attribution->cart_identifier) ?? $this->nullableString(data_get($attribution->metadata, 'subject_id')),
+            subjectId: $this->nullableString(data_get($attribution->metadata, 'subject_id')) ?? $this->nullableString($attribution->subject_identifier),
             subjectKey: $this->nullableString($attribution->subject_identifier) ?? $this->nullableString(data_get($attribution->metadata, 'subject_key')),
             titleSnapshot: $this->nullableString($attribution->subject_title_snapshot) ?? $this->nullableString(data_get($attribution->metadata, 'title_snapshot')),
             firstSeenAt: $attribution->first_seen_at,
@@ -1023,7 +1028,7 @@ final readonly class AffiliatesShareTrackingService
             actorUserId: data_get($conversion->metadata, 'actor_user_id'),
             outcomeType: (string) ($conversion->conversion_type ?: 'unknown'),
             subjectType: $this->nullableString($conversion->subject_type) ?? $this->nullableString(data_get($conversion->metadata, 'subject_type')),
-            subjectId: $this->nullableString($conversion->cart_identifier) ?? $this->nullableString(data_get($conversion->metadata, 'subject_id')),
+            subjectId: $this->nullableString(data_get($conversion->metadata, 'subject_id')) ?? $this->nullableString($conversion->subject_identifier),
             subjectKey: $this->nullableString($conversion->subject_identifier) ?? $this->nullableString(data_get($conversion->metadata, 'subject_key')),
             outcomeKey: (string) data_get($conversion->metadata, 'outcome_key', $conversion->external_reference),
             linkTitleSnapshot: $this->nullableString(data_get($conversion->metadata, 'link_title_snapshot')) ?? $this->nullableString($conversion->subject_title_snapshot),
@@ -1053,7 +1058,7 @@ final readonly class AffiliatesShareTrackingService
 
         return [
             'subject_type' => $this->nullableString($attribution->subject_type) ?? (string) data_get($attribution->metadata, 'subject_type', 'page'),
-            'subject_id' => $this->nullableString($attribution->cart_identifier) ?? $this->nullableString(data_get($attribution->metadata, 'subject_id')),
+            'subject_id' => $this->nullableString(data_get($attribution->metadata, 'subject_id')) ?? $this->nullableString($attribution->subject_identifier),
             'subject_key' => $this->nullableString($attribution->subject_identifier) ?? (string) data_get($attribution->metadata, 'subject_key', 'page:unknown'),
             'title_snapshot' => $this->nullableString($attribution->subject_title_snapshot)
                 ?? $this->nullableString(data_get($attribution->metadata, 'title_snapshot'))

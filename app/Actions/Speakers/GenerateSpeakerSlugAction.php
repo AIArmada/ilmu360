@@ -3,6 +3,7 @@
 namespace App\Actions\Speakers;
 
 use AIArmada\Addressing\Models\AddressCountry;
+use AIArmada\CommerceSupport\Support\SlugGenerator;
 use App\Actions\Slugs\Concerns\InteractsWithOrderedSlugModels;
 use App\Actions\Slugs\SyncCanonicalSlugAction;
 use App\Models\Speaker;
@@ -70,7 +71,7 @@ class GenerateSpeakerSlugAction
 
             $candidate = implode('-', $candidateParts);
             $sequence++;
-        } while ($this->slugExists($candidate, $ignoreSpeakerId));
+        } while (SlugGenerator::exists(Speaker::class, $candidate, $ignoreSpeakerId));
 
         return $candidate;
     }
@@ -184,17 +185,6 @@ class GenerateSpeakerSlugAction
             $speaker->pre_nominal,
             $speaker->post_nominal,
         );
-    }
-
-    private function slugExists(string $slug, ?string $ignoreSpeakerId): bool
-    {
-        return Speaker::query()
-            ->where('slug', $slug)
-            ->when(
-                $ignoreSpeakerId !== null && $ignoreSpeakerId !== '',
-                fn ($query) => $query->where('speakers.id', '!=', $ignoreSpeakerId),
-            )
-            ->exists();
     }
 
     private function slugSegment(mixed $value): ?string

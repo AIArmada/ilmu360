@@ -15,7 +15,7 @@ use App\Enums\InstitutionType;
 use App\Enums\MemberSubjectType;
 use App\Enums\PostNominal;
 use App\Enums\PreNominal;
-use App\Enums\RegistrationMode;
+use App\Enums\RegistrationScope;
 use App\Enums\TagType;
 use App\Models\User;
 use App\Services\GitHub\GitHubIssueReporter;
@@ -720,7 +720,7 @@ class FrontendFormContractService
                 $this->field('default_event_format', 'string', required: true, allowedValues: $this->enumValues(EventFormat::class)),
                 $this->field('visibility', 'string', required: true, allowedValues: $this->enumValues(EventVisibility::class)),
                 $this->field('registration_required', 'boolean', required: true),
-                $this->field('registration_mode', 'string', required: true, allowedValues: $this->enumValues(RegistrationMode::class)),
+                $this->field('registration_mode', 'string', required: true, allowedValues: $this->enumValues(RegistrationScope::class)),
             ],
             'options' => [
                 'primary_organizer_options' => [

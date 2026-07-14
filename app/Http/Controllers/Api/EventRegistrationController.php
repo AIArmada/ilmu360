@@ -2,8 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
-use AIArmada\Events\Contracts\RegistrationServiceInterface;
-use AIArmada\Events\Events\EventFreeRegistrationConfirmed;
+use AIArmada\Events\Actions\RegisterForFreeAction;
 use App\Data\Api\EventRegistration\EventRegistrationData;
 use App\Http\Controllers\Controller;
 use App\Models\Event;
@@ -22,7 +21,7 @@ class EventRegistrationController extends Controller
         title: 'Register for an event',
         description: 'Creates a registration for the target event using guest contact details or the current authenticated user context.',
     )]
-    public function store(Request $request, Event $event, RegistrationServiceInterface $registrations): JsonResponse
+    public function store(Request $request, Event $event, RegisterForFreeAction $registerForFree): JsonResponse
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:100'],
@@ -39,29 +38,20 @@ class EventRegistrationController extends Controller
             ], 422);
         }
 
-        $eventRegistration = $registrations->register([
-            'event_id' => $event->id,
-            'registrant_type' => $user instanceof User ? $user->getMorphClass() : null,
-            'registrant_id' => $user instanceof User ? (string) $user->getKey() : null,
-            'registration_type' => 'individual',
-            'status' => 'confirmed',
-            'source' => 'free_rsvp',
-            'total_participants' => 1,
-            'total_amount' => null,
-            'currency' => null,
-            'payment_status' => null,
-            'participants' => [[
+        $eventRegistration = $registerForFree->execute(
+            target: $event,
+            participants: [[
                 'name' => $validated['name'],
                 'email' => $validated['email'] ?? null,
                 'phone' => $validated['phone'] ?? null,
                 'is_primary' => true,
                 'is_purchaser' => true,
             ]],
-        ]);
+            registrant: $user,
+            options: ['with_pass' => true],
+        )->firstOrFail();
 
         $registration = Registration::findOrFail($eventRegistration->id);
-
-        EventFreeRegistrationConfirmed::dispatch($registration, true);
 
         return response()->json([
             'data' => EventRegistrationData::fromModel($registration)->toArray(),

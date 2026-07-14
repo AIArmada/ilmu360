@@ -7,7 +7,7 @@ use App\Actions\Events\PrepareAdvancedParentProgramSubmissionAction;
 use App\Actions\Events\ResolveAdvancedBuilderContextAction;
 use App\Actions\Events\ResolveAdvancedBuilderMembershipOptionsAction;
 use App\Actions\Events\SyncEventResourceRelationsAction;
-use App\Enums\RegistrationMode;
+use App\Enums\RegistrationScope;
 use App\Enums\TagType;
 use App\Models\Event;
 use App\Models\EventChangeAnnouncement;
@@ -105,7 +105,7 @@ it('syncs event resource relations and persists the requested registration mode'
     $issueTag = Tag::factory()->create(['type' => TagType::Issue->value, 'status' => 'verified']);
 
     $result = app(SyncEventResourceRelationsAction::class)->handle($event, [
-        'registration_mode' => RegistrationMode::Event->value,
+        'registration_mode' => RegistrationScope::Event->value,
         'domain_tags' => [$domainTag->id],
         'discipline_tags' => [],
         'source_tags' => [],
@@ -119,7 +119,7 @@ it('syncs event resource relations and persists the requested registration mode'
     $event->load(['settings', 'tags', 'speakers']);
 
     expect($result)->toMatchArray([
-        'registration_mode' => RegistrationMode::Event->value,
+        'registration_mode' => RegistrationScope::Event->value,
         'registration_mode_locked' => false,
     ])
         ->and($event->accessPolicy?->registration_required)->toBeFalse()

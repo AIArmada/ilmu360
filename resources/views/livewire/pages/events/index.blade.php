@@ -944,10 +944,10 @@
                                             ->map(fn (\Nnjeim\World\Models\Language $language): string => (string) ($language->code === 'ms' ? 'BM' : strtoupper((string) $language->code)))
                                             ->filter()
                                             ->values();
-                                        $tagChips = $event->tags
-                                            ->whereIn('status', ['verified', 'pending'])
+                                        $tagChips = $event->classifications
+                                            ->loadMissing('term')
                                             ->take(2)
-                                            ->map(fn (\App\Models\Tag $tag): string => (string) ($tag->getTranslation('name', app()->getLocale(), false) ?: \Illuminate\Support\Arr::first((array) $tag->name)))
+                                            ->map(fn ($classification): string => (string) ($classification->term?->name ?? $classification->term_code))
                                             ->filter()
                                             ->values();
                                         $statusBadgeLabel = $event->status instanceof \App\States\EventStatus\Pending

@@ -5,23 +5,25 @@ namespace App\Support\Location;
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\State;
+use AIArmada\Addressing\Support\AddressAreaStateBridge;
 
 class AddressHierarchyFormatter
 {
     /**
-     * @var list<string>
-     */
-    private const array STATE_HIDDEN_DISTRICTS = ['kuala lumpur', 'putrajaya', 'labuan'];
-
-    /**
-     * @param  list<'city'|'district'|'state'>  $order
+     * @param  list<'city'|'district'|'subdistrict'|'state'|'area_1'|'area_2'|'area_3'|'area_4'>  $order
      * @return list<string>
      */
-    public static function parts(?Address $address, array $order = ['city', 'district', 'state']): array
+    public static function parts(
+        ?Address $address,
+        array $order = ['city', 'area_4', 'area_3', 'area_2', 'area_1', 'state'],
+    ): array
     {
-        // Product storage: admin_area_1 = district, admin_area_2 = subdistrict.
-        $districtName = self::areaName($address?->admin_area_1_id);
-        $subdistrictName = self::areaName($address?->admin_area_2_id);
+        $areaNames = [];
+
+        foreach (range(1, 4) as $slot) {
+            $areaNames[$slot] = self::areaName($address?->getAttribute("admin_area_{$slot}_id"));
+        }
+
         $stateName = self::normalizePart($address?->state);
 
         if ($stateName === null && is_string($address?->state_id) && $address->state_id !== '') {
@@ -29,34 +31,36 @@ class AddressHierarchyFormatter
             $stateName = $state instanceof State ? self::normalizePart($state->name) : null;
         }
 
-        if ($stateName === null && is_string($address?->admin_area_1_id)) {
-            $district = AddressArea::query()->find($address->admin_area_1_id);
-            if ($district instanceof AddressArea && is_string($district->parent_id)) {
-                $stateName = self::areaName($district->parent_id);
-            }
-        }
+        if ($stateName === null) {
+            foreach (array_reverse($areaNames, true) as $slot => $areaName) {
+                if ($areaName === null) {
+                    continue;
+                }
 
-        if ($stateName === null && is_string($address?->admin_area_2_id)) {
-            $subdistrict = AddressArea::query()->find($address->admin_area_2_id);
-            if ($subdistrict instanceof AddressArea && is_string($subdistrict->parent_id)) {
-                $parent = AddressArea::query()->find($subdistrict->parent_id);
-                if ($parent instanceof AddressArea && (int) $parent->level === 1) {
-                    $stateName = self::normalizePart($parent->name);
-                } elseif ($parent instanceof AddressArea && is_string($parent->parent_id)) {
-                    $stateName = self::areaName($parent->parent_id);
+                $areaId = $address?->getAttribute("admin_area_{$slot}_id");
+                $stateId = AddressAreaStateBridge::stateIdForArea(is_string($areaId) ? $areaId : null);
+
+                if ($stateId !== null) {
+                    $state = State::query()->find($stateId);
+                    $stateName = $state instanceof State ? self::normalizePart($state->name) : null;
+                }
+
+                if ($stateName !== null) {
+                    break;
                 }
             }
         }
 
-        if (is_string($stateName) && in_array(mb_strtolower($stateName), self::STATE_HIDDEN_DISTRICTS, true)) {
-            $stateName = null;
-        }
-
-        $cityName = $subdistrictName ?? $districtName ?? self::normalizePart($address?->city);
+        $cityName = self::normalizePart($address?->city);
 
         $availableParts = [
             'city' => $cityName,
-            'district' => $districtName,
+            'district' => $areaNames[1],
+            'subdistrict' => $areaNames[2],
+            'area_1' => $areaNames[1],
+            'area_2' => $areaNames[2],
+            'area_3' => $areaNames[3],
+            'area_4' => $areaNames[4],
             'state' => $stateName,
         ];
 
@@ -123,9 +127,13 @@ class AddressHierarchyFormatter
     }
 
     /**
-     * @param  list<'city'|'district'|'state'>  $order
+     * @param  list<'city'|'district'|'subdistrict'|'state'|'area_1'|'area_2'|'area_3'|'area_4'>  $order
      */
-    public static function format(?Address $address, array $order = ['city', 'district', 'state'], string $separator = ', '): string
+    public static function format(
+        ?Address $address,
+        array $order = ['city', 'area_4', 'area_3', 'area_2', 'area_1', 'state'],
+        string $separator = ', ',
+    ): string
     {
         return implode($separator, self::parts($address, $order));
     }

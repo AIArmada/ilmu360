@@ -123,19 +123,17 @@
     <div class="wrap">
         <h1>ilmu360° · AIArmada native gap closure</h1>
         <p class="lede">
-            Report refreshed <strong style="color:var(--ink)">2026-07-10</strong>. Native purity nearly complete:
-            <strong style="color:var(--good)">taxonomy, builders, alias traits, legacy accessors, thick subclasses, dual dispatch, and UI debt all closed</strong>.
-            What remains is <strong style="color:var(--ink)">verification (P9-I)</strong>, paid commerce productization (G11), and the optional Block (G12).
+            Report refreshed <strong style="color:var(--ink)">2026-07-10</strong>. <strong style="color:var(--good)">Phase 9 verified, feature freeze lifted.</strong>
+            <strong style="color:var(--good)">All purity gaps (G1–G10) closed</strong> — taxonomy, builders, alias traits, accessors, thick subclasses, dual dispatch, UI debt, verification.
+            What remains is <strong style="color:var(--ink)">paid commerce productization (G11)</strong> and the optional Block (G12).
             Authoritative backlog: <a href="status.md">status.md</a> + <a href="phase-reconciliation.md">phase-reconciliation.md</a>.
-            Feature freeze until Phase 9 exit.
         </p>
         <div class="meta">
-            <span class="pill freeze">Feature freeze until Phase 9 exit</span>
+            <span class="pill ok">Phase 9 exit — verified 2026-07-10</span>
             <span class="pill"><strong>25</strong> packages installed</span>
             <span class="pill"><strong>31</strong> app migrations</span>
             <span class="pill"><strong>15</strong> package subclasses</span>
-            <span class="pill ok">G1–G9 closed</span>
-            <span class="pill warn"><strong>G10</strong> verification open</span>
+            <span class="pill ok">G1–G10 closed</span>
             <span class="pill warn"><strong>G11</strong> paid commerce in progress</span>
         </div>
     </div>
@@ -150,16 +148,16 @@
     <div class="two" style="margin-top:.75rem">
         <div>
             <h3>Closed</h3>
-            <div class="bar" title="Schema / ownership"><i class="c" style="width:92%"></i><i class="o" style="width:8%"></i></div>
+            <div class="bar" title="Phase 9 exit"><i class="c" style="width:96%"></i><i class="o" style="width:4%"></i></div>
             <p class="lede" style="margin:.5rem 0 0;font-size:.9rem">
-                Install, geography, contacting, engagement, membership, events schema, inbox storage, 15 model closures, teams removed, taxonomy, builders, alias traits, legacy accessors, thick subclasses, dual dispatch, UI debt.
+                All gaps G1–G10 closed. Phase 9 verified 2026-07-10. G11 (paid commerce) in progress; G12 (Block) deferred optional.
             </p>
         </div>
         <div>
             <h3>Native purity (Phase 9)</h3>
-            <div class="bar"><i class="c" style="width:88%"></i><i class="o" style="width:12%"></i></div>
+            <div class="bar"><i class="c" style="width:96%"></i><i class="o" style="width:4%"></i></div>
             <p class="lede" style="margin:.5rem 0 0;font-size:.90rem">
-                Only verification (P9-I/G10) and paid commerce (G11) remain. G12 Block deferred optional. Everything else native-package.
+                All purity workstreams verified. Feature freeze lifted.
             </p>
         </div>
     </div>
@@ -175,7 +173,7 @@
 <div class="grid">
     <div class="stat"><b>25</b><span>aiarmada/* direct</span></div>
     <div class="stat"><b>15</b><span>Category A models</span></div>
-    <div class="stat"><b>3</b><span>Open gap rows</span></div>
+    <div class="stat"><b>2</b><span>Open gap rows</span></div>
     <div class="stat"><b>0</b><span>Install blockers</span></div>
 </div>
 
@@ -219,7 +217,7 @@
 
 <!-- Open gaps -->
 <div class="card">
-    <h2>Open gaps — remaining before Phase 9 exit</h2>
+    <h2>Open gaps — remaining</h2>
     <table>
         <tr>
             <th>ID</th>
@@ -227,13 +225,6 @@
             <th>Evidence (live code)</th>
             <th>Exit proof</th>
             <th>Pri</th>
-        </tr>
-        <tr>
-            <td><strong>G10</strong></td>
-            <td>Verification debt</td>
-            <td>Historical partial suite greens; feature freeze needs fresh proof</td>
-            <td><code>migrate:fresh --seed</code> + targeted Pest + PHPStan/Pint on touched paths</td>
-            <td><span class="tag tag-p1">P1</span></td>
         </tr>
         <tr>
             <td><strong>G11</strong></td>
@@ -251,7 +242,7 @@
         </tr>
     </table>
     <p class="lede" style="margin:1rem 0 0;font-size:.85rem">
-        <strong>Closed this cycle:</strong> G1 (comms dispatch default true, <code>DispatchMode</code> gone), G2 (taxonomy package-only write path), G3 (builder maps deleted), G4 (alias traits deleted), G5 (legacy accessors package fields), G6 (geography hard cut), G7 (Event dual-write cut, <code>primaryOccurrence()</code>), G8 (dashboard de-legacied), G9 (dual-store tooling deleted). See <a href="status.md">status.md</a>.
+        <strong>Closed this cycle:</strong> G1 (comms dispatch default true), G2 (taxonomy package-only write path), G3 (builder maps deleted), G4 (alias traits deleted), G5 (legacy accessors package fields), G6 (geography hard cut), G7 (Event dual-write cut), G8 (dashboard de-legacied), G9 (dual-store tooling deleted), G10 (verification — migrate:fresh --seed green, PHPStan/Pint clean). See <a href="status.md">status.md</a>.
     </p>
 </div>
 
@@ -324,7 +315,7 @@
         <tr><td>2</td><td>WU-M Kill legacy accessors</td><td>G5</td><td><span class="tag tag-ok">Done</span></td></tr>
         <tr><td>3</td><td>WU-E Thin Event/Reference</td><td>G7</td><td><span class="tag tag-ok">Done</span></td></tr>
         <tr><td>3</td><td>WU-U Institution dashboard</td><td>G8</td><td><span class="tag tag-ok">Done</span></td></tr>
-        <tr><td>4</td><td>WU-V Verification + unfreeze</td><td>G10</td><td><span class="tag tag-p1">Open</span></td></tr>
+        <tr><td>4</td><td>WU-V Verification + unfreeze</td><td>G10</td><td><span class="tag tag-ok">Done</span></td></tr>
     </table>
 </div>
 
@@ -351,9 +342,9 @@
         <li><del>No legacy attribute shims on EventUpdate / ModerationAction / Registration</del> ✅ Closed</li>
         <li><del>Geography edges hard-native</del> ✅ Closed</li>
         <li><del>Event/Reference readable; cutover glue gone</del> ✅ Closed (dual-write cut)</li>
-        <li><code>php artisan migrate:fresh --seed</code> green — <strong>pending (G10)</strong></li>
-        <li>Targeted Pest + PHPStan + Pint green on touched work — <strong>pending (G10)</strong></li>
-        <li><code>status.md</code> Phase 9 → <code>Verified</code>; feature freeze lifted — <strong>after G10</strong></li>
+        <li><code>php artisan migrate:fresh --seed</code> green ✅</li>
+        <li>Targeted Pest + PHPStan + Pint green on touched work ✅</li>
+        <li><code>status.md</code> Phase 9 → <code>Verified</code>; feature freeze lifted ✅</li>
     </ul>
 </div>
 

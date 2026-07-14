@@ -7,12 +7,13 @@ namespace App\Services\Signals;
 use AIArmada\Affiliates\Models\AffiliateAttribution;
 use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Signals\Contracts\SignalEventIngestor;
 use AIArmada\Signals\Models\TrackedProperty;
 
 class AffiliateSignalsBridge
 {
     public function __construct(
-        private readonly SignalEventRecorder $signalEventRecorder,
+        private readonly SignalEventIngestor $ingestSignalEvent,
         private readonly SignalsTracker $signalsTracker,
     ) {}
 
@@ -24,20 +25,18 @@ class AffiliateSignalsBridge
             return;
         }
 
-        $cartIdentifier = $this->stringValue($attribution->cart_identifier)
-            ?? $this->stringValue($attribution->subject_identifier)
+        $subjectIdentifier = $this->stringValue($attribution->subject_identifier)
             ?? $this->stringValue($attribution->cookie_value);
-        $cartInstance = $this->stringValue($attribution->cart_instance)
-            ?? $this->stringValue($attribution->subject_instance)
-            ?? 'default';
+        $subjectInstance = $this->stringValue($attribution->subject_instance) ?? 'default';
+        $subjectId = $this->stringValue(data_get($attribution->metadata, 'subject_id')) ?? $subjectIdentifier;
         $landingUrl = $this->stringValue($attribution->landing_url);
 
-        OwnerContext::withOwner(null, fn () => $this->signalEventRecorder->ingest($trackedProperty, [
+        OwnerContext::withOwner(null, fn () => $this->ingestSignalEvent->handle($trackedProperty, [
             'event_name' => (string) config('signals.integrations.affiliates.attributed_event_name', 'affiliate.attributed'),
             'event_category' => (string) config('signals.integrations.affiliates.attributed_event_category', 'acquisition'),
             'external_id' => $this->stringValue($attribution->user_id),
-            'anonymous_id' => $cartIdentifier,
-            'session_identifier' => $this->affiliateSessionIdentifier($cartIdentifier, $cartInstance),
+            'anonymous_id' => $subjectId,
+            'session_identifier' => $this->affiliateSessionIdentifier($subjectId, $subjectInstance),
             'occurred_at' => $attribution->last_seen_at?->toIso8601String() ?? $attribution->created_at?->toIso8601String(),
             'path' => $landingUrl,
             'url' => $landingUrl,
@@ -51,15 +50,14 @@ class AffiliateSignalsBridge
                 'affiliate_code' => $this->stringValue($attribution->affiliate_code),
                 'subject_type' => $this->stringValue($attribution->subject_type),
                 'subject_identifier' => $this->stringValue($attribution->subject_identifier),
-                'subject_instance' => $this->stringValue($attribution->subject_instance),
                 'subject_title_snapshot' => $this->stringValue($attribution->subject_title_snapshot),
-                'cart_identifier' => $this->stringValue($attribution->cart_identifier),
-                'cart_instance' => $this->stringValue($attribution->cart_instance),
+                'subject_id' => $subjectId,
+                'subject_instance' => $subjectInstance,
                 'cookie_value' => $this->stringValue($attribution->cookie_value),
                 'voucher_code' => $this->stringValue($attribution->voucher_code),
                 'landing_url' => $landingUrl,
             ], static fn (mixed $value): bool => $value !== null),
-        ]));
+        ], trusted: true));
     }
 
     public function recordAffiliateConversionRecorded(AffiliateConversion $conversion): void
@@ -70,24 +68,22 @@ class AffiliateSignalsBridge
             return;
         }
 
-        $cartIdentifier = $this->stringValue($conversion->cart_identifier)
-            ?? $this->stringValue($conversion->subject_identifier)
+        $subjectIdentifier = $this->stringValue($conversion->subject_identifier)
             ?? $this->stringValue(data_get($conversion->metadata, 'cookie_value'));
-        $cartInstance = $this->stringValue($conversion->cart_instance)
-            ?? $this->stringValue($conversion->subject_instance)
-            ?? 'default';
+        $subjectInstance = $this->stringValue($conversion->subject_instance) ?? 'default';
+        $subjectId = $this->stringValue(data_get($conversion->metadata, 'subject_id')) ?? $subjectIdentifier;
         $destinationUrl = $this->stringValue(data_get($conversion->metadata, 'destination_url'));
 
-        OwnerContext::withOwner(null, fn () => $this->signalEventRecorder->ingest($trackedProperty, [
+        OwnerContext::withOwner(null, fn () => $this->ingestSignalEvent->handle($trackedProperty, [
             'event_name' => (string) config('signals.integrations.affiliates.conversion_event_name', 'affiliate.conversion.recorded'),
             'event_category' => (string) config('signals.integrations.affiliates.conversion_event_category', 'conversion'),
             'external_id' => $this->stringValue(data_get($conversion->metadata, 'user_id')),
-            'anonymous_id' => $cartIdentifier,
-            'session_identifier' => $this->affiliateSessionIdentifier($cartIdentifier, $cartInstance),
+            'anonymous_id' => $subjectId,
+            'session_identifier' => $this->affiliateSessionIdentifier($subjectId, $subjectInstance),
             'occurred_at' => $conversion->occurred_at?->toIso8601String() ?? $conversion->created_at?->toIso8601String(),
             'path' => $destinationUrl,
             'url' => $destinationUrl,
-            'revenue_minor' => (int) ($conversion->value_minor ?: $conversion->total_minor ?: 0),
+            'revenue_minor' => (int) $conversion->value_minor,
             'currency' => $this->stringValue($conversion->commission_currency) ?? (string) config('signals.defaults.currency', 'MYR'),
             'properties' => array_filter([
                 'conversion_id' => $this->stringValue($conversion->getKey()),
@@ -99,14 +95,12 @@ class AffiliateSignalsBridge
                 'subject_identifier' => $this->stringValue($conversion->subject_identifier),
                 'subject_instance' => $this->stringValue($conversion->subject_instance),
                 'subject_title_snapshot' => $this->stringValue($conversion->subject_title_snapshot),
-                'cart_identifier' => $this->stringValue($conversion->cart_identifier),
-                'cart_instance' => $this->stringValue($conversion->cart_instance),
+                'subject_id' => $subjectId,
                 'external_reference' => $this->stringValue($conversion->external_reference),
-                'order_reference' => $this->stringValue($conversion->order_reference),
                 'voucher_code' => $this->stringValue($conversion->voucher_code),
                 'status' => $this->stringValue((string) $conversion->status),
             ], static fn (mixed $value): bool => $value !== null),
-        ]));
+        ], trusted: true));
     }
 
     private function affiliateSessionIdentifier(?string $identifier, string $instance): ?string

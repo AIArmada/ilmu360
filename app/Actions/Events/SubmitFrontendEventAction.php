@@ -2,6 +2,7 @@
 
 namespace App\Actions\Events;
 
+use AIArmada\Addressing\Support\AddressCountryResolver;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\Events\Enums\RegistrationMode;
@@ -23,7 +24,6 @@ use App\Services\EventKeyPersonSyncService;
 use App\Services\ModerationService;
 use App\Services\ShareTrackingService;
 use App\States\EventStatus\Pending;
-use App\Support\Location\AddressingCountryResolver;
 use App\Support\Submission\EntitySubmissionAccess;
 use BackedEnum;
 use Illuminate\Http\Request;
@@ -565,7 +565,7 @@ class SubmitFrontendEventAction
     {
         $resolvedCountryId = $submissionCountryId ?? $this->resolveSubmissionCountryId($validated);
 
-        return app(AddressingCountryResolver::class)->timezoneFor($resolvedCountryId)
+        return app(AddressCountryResolver::class)->timezoneFor($resolvedCountryId)
             ?? config('app.timezone', 'UTC');
     }
 
@@ -580,22 +580,13 @@ class SubmitFrontendEventAction
     /** @param  array{submission_country_id?: string|null}  $validated */
     private function normalizedSubmissionCountryId(array $validated): ?string
     {
-        $resolvedCountryId = app(AddressingCountryResolver::class)->resolveId($validated['submission_country_id'] ?? null);
+        $resolvedCountryId = app(AddressCountryResolver::class)->resolveId($validated['submission_country_id'] ?? null);
 
         if (is_string($resolvedCountryId)) {
             return $resolvedCountryId;
         }
 
-        if (! $this->submissionCountryInputProvided($validated)) {
-            return $this->defaultSubmissionCountryId();
-        }
-
         return null;
-    }
-
-    private function defaultSubmissionCountryId(): ?string
-    {
-        return app(AddressingCountryResolver::class)->resolveId('MY');
     }
 
     /**

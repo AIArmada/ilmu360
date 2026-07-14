@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Speakers\Pages;
 
 use AIArmada\Addressing\Models\Address;
+use AIArmada\Addressing\Support\AddressCountryResolver;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Actions\Speakers\SaveSpeakerAction;
 use App\Filament\Pages\Concerns\AuditsRelatedStateChanges;
@@ -10,7 +11,6 @@ use App\Filament\Resources\Speakers\SpeakerResource;
 use App\Forms\SharedFormSchema;
 use App\Models\Speaker;
 use App\Models\User;
-use App\Support\Location\AddressingCountryResolver;
 use App\Support\Submission\PublicSubmissionUiEvents;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
@@ -136,7 +136,7 @@ class EditSpeaker extends EditRecord
     private function addressFormState(?Address $address): array
     {
         $countryId = SharedFormSchema::normalizeLocationId($address?->country_id)
-            ?? app(AddressingCountryResolver::class)->resolveId($address?->country_code);
+            ?? app(AddressCountryResolver::class)->resolveId($address?->country_code);
 
         return SharedFormSchema::hydrateAddressFormState([
             'country_id' => $countryId,

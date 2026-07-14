@@ -217,6 +217,8 @@ class SearchController extends FrontendController
     #[QueryParameter('city_id', 'Optional package addressing cities.id filter (addresses.city_id).', required: false, type: 'string', infer: false, example: '019d0000-0000-7000-8000-0000000000ab')]
     #[QueryParameter('admin_area_1_id', 'Optional district UUID filter (addresses.admin_area_1_id).', required: false, type: 'string', infer: false, example: '019d0000-0000-7000-8000-000000000001')]
     #[QueryParameter('admin_area_2_id', 'Optional package address area level-2 UUID filter.', required: false, type: 'string', infer: false, example: '019d0000-0000-7000-8000-000000000002')]
+    #[QueryParameter('admin_area_3_id', 'Optional country-profile administrative-area UUID filter.', required: false, type: 'string', infer: false)]
+    #[QueryParameter('admin_area_4_id', 'Optional country-profile administrative-area UUID filter.', required: false, type: 'string', infer: false)]
     #[QueryParameter('following', 'When authenticated, restrict results to institutions followed by the current user.', required: false, type: 'boolean', infer: false, example: false)]
     #[QueryParameter('page', 'Pagination page number.', required: false, type: 'integer', infer: false, default: 1, example: 1)]
     #[QueryParameter('per_page', 'Pagination page size. Values are clamped to the server-supported maximum.', required: false, type: 'integer', infer: false, default: 12, example: 12)]
@@ -236,6 +238,8 @@ class SearchController extends FrontendController
         $cityId = $this->searchRequestNormalizer->normalizedUuid($request->query('city_id'));
         $adminArea1Id = $this->searchRequestNormalizer->normalizedUuid($request->query('admin_area_1_id'));
         $adminArea2Id = $this->searchRequestNormalizer->normalizedUuid($request->query('admin_area_2_id'));
+        $adminArea3Id = $this->searchRequestNormalizer->normalizedUuid($request->query('admin_area_3_id'));
+        $adminArea4Id = $this->searchRequestNormalizer->normalizedUuid($request->query('admin_area_4_id'));
         $coordinates = $this->searchRequestNormalizer->resolvedNearbyCoordinates($request);
         $lat = $coordinates['lat'];
         $lng = $coordinates['lng'];
@@ -252,6 +256,8 @@ class SearchController extends FrontendController
             cityId: $cityId,
             adminArea1Id: $adminArea1Id,
             adminArea2Id: $adminArea2Id,
+            adminArea3Id: $adminArea3Id,
+            adminArea4Id: $adminArea4Id,
             user: $user,
         );
 
@@ -337,6 +343,8 @@ class SearchController extends FrontendController
         title: 'List public speakers',
         description: 'Returns the public speaker directory with search, location, gender, and follow-state filters.',
     )]
+    #[QueryParameter('admin_area_3_id', 'Optional country-profile administrative-area UUID filter.', required: false, type: 'string', infer: false)]
+    #[QueryParameter('admin_area_4_id', 'Optional country-profile administrative-area UUID filter.', required: false, type: 'string', infer: false)]
     #[QueryParameter('fields', 'Optional comma-separated top-level list fields to return. Supported fields: id, slug, name, gender, formatted_name, status, events_count, avatar_url, country, is_following.', required: false, type: 'string', infer: false, example: 'id,name,avatar_url')]
     #[Response(
         status: 200,
@@ -353,6 +361,8 @@ class SearchController extends FrontendController
         $countryId = $this->searchRequestNormalizer->requestedCountryId($request);
         $adminArea1Id = $this->searchRequestNormalizer->normalizedUuid($request->query('admin_area_1_id'));
         $adminArea2Id = $this->searchRequestNormalizer->normalizedUuid($request->query('admin_area_2_id'));
+        $adminArea3Id = $this->searchRequestNormalizer->normalizedUuid($request->query('admin_area_3_id'));
+        $adminArea4Id = $this->searchRequestNormalizer->normalizedUuid($request->query('admin_area_4_id'));
         $gender = in_array($request->query('gender'), ['male', 'female'], true)
             ? $request->query('gender')
             : null;
@@ -364,7 +374,7 @@ class SearchController extends FrontendController
 
         $stateId = $this->searchRequestNormalizer->normalizedUuid($request->query('state_id'));
         $cityId = $this->searchRequestNormalizer->normalizedUuid($request->query('city_id'));
-        $this->applySpeakerLocationScope($baseQuery, $countryId, $stateId, $cityId, $adminArea1Id, $adminArea2Id);
+        $this->applySpeakerLocationScope($baseQuery, $countryId, $stateId, $cityId, $adminArea1Id, $adminArea2Id, $adminArea3Id, $adminArea4Id);
 
         if ($gender !== null) {
             $baseQuery->where('speakers.gender', $gender);
@@ -954,6 +964,8 @@ class SearchController extends FrontendController
         ?string $cityId = null,
         ?string $adminArea1Id = null,
         ?string $adminArea2Id = null,
+        ?string $adminArea3Id = null,
+        ?string $adminArea4Id = null,
         ?User $user = null,
     ): Builder {
         $query = Institution::query()
@@ -976,7 +988,7 @@ class SearchController extends FrontendController
             $query->where('institutions.type', $type->value);
         }
 
-        $this->applyInstitutionLocationScope($query, $countryId, $stateId, $cityId, $adminArea1Id, $adminArea2Id);
+        $this->applyInstitutionLocationScope($query, $countryId, $stateId, $cityId, $adminArea1Id, $adminArea2Id, $adminArea3Id, $adminArea4Id);
 
         return $query;
     }
@@ -1005,12 +1017,14 @@ class SearchController extends FrontendController
         ?string $cityId,
         ?string $adminArea1Id,
         ?string $adminArea2Id,
+        ?string $adminArea3Id,
+        ?string $adminArea4Id,
     ): void {
-        if ($countryId === null && $stateId === null && $cityId === null && $adminArea1Id === null && $adminArea2Id === null) {
+        if ($countryId === null && $stateId === null && $cityId === null && $adminArea1Id === null && $adminArea2Id === null && $adminArea3Id === null && $adminArea4Id === null) {
             return;
         }
 
-        $query->whereHas('addresses', function (Builder $addressQuery) use ($countryId, $stateId, $cityId, $adminArea1Id, $adminArea2Id): void {
+        $query->whereHas('addresses', function (Builder $addressQuery) use ($countryId, $stateId, $cityId, $adminArea1Id, $adminArea2Id, $adminArea3Id, $adminArea4Id): void {
             if ($countryId !== null) {
                 $addressQuery->where('country_id', $countryId);
             }
@@ -1029,6 +1043,12 @@ class SearchController extends FrontendController
 
             if ($adminArea2Id !== null) {
                 $addressQuery->where('admin_area_2_id', $adminArea2Id);
+            }
+
+            foreach (['admin_area_3_id' => $adminArea3Id, 'admin_area_4_id' => $adminArea4Id] as $column => $value) {
+                if ($value !== null) {
+                    $addressQuery->where($column, $value);
+                }
             }
         });
     }
@@ -1388,12 +1408,14 @@ class SearchController extends FrontendController
         ?string $cityId,
         ?string $adminArea1Id,
         ?string $adminArea2Id,
+        ?string $adminArea3Id,
+        ?string $adminArea4Id,
     ): void {
-        if ($countryId === null && $stateId === null && $cityId === null && $adminArea1Id === null && $adminArea2Id === null) {
+        if ($countryId === null && $stateId === null && $cityId === null && $adminArea1Id === null && $adminArea2Id === null && $adminArea3Id === null && $adminArea4Id === null) {
             return;
         }
 
-        $query->whereHas('addresses', function (Builder $addressQuery) use ($countryId, $stateId, $cityId, $adminArea1Id, $adminArea2Id): void {
+        $query->whereHas('addresses', function (Builder $addressQuery) use ($countryId, $stateId, $cityId, $adminArea1Id, $adminArea2Id, $adminArea3Id, $adminArea4Id): void {
             if ($countryId !== null) {
                 $addressQuery->where('country_id', $countryId);
             }
@@ -1412,6 +1434,12 @@ class SearchController extends FrontendController
 
             if ($adminArea2Id !== null) {
                 $addressQuery->where('admin_area_2_id', $adminArea2Id);
+            }
+
+            foreach (['admin_area_3_id' => $adminArea3Id, 'admin_area_4_id' => $adminArea4Id] as $column => $value) {
+                if ($value !== null) {
+                    $addressQuery->where($column, $value);
+                }
             }
 
         });

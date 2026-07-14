@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Actions\Signals;
 
+use AIArmada\Signals\Contracts\SignalEventIngestor;
 use AIArmada\Signals\Models\TrackedProperty;
 use App\Models\User;
-use App\Services\Signals\SignalEventRecorder;
 use App\Services\Signals\SignalsTracker;
 use App\Support\Signals\ProductSignalsClientContext;
 use Illuminate\Http\Request;
@@ -15,7 +15,7 @@ use Throwable;
 final readonly class RecordMobileTelemetryBatchAction
 {
     public function __construct(
-        private SignalEventRecorder $signalEventRecorder,
+        private SignalEventIngestor $ingestSignalEvent,
         private SignalsTracker $signalsTracker,
         private ProductSignalsClientContext $clientContext,
     ) {}
@@ -55,7 +55,7 @@ final readonly class RecordMobileTelemetryBatchAction
 
         foreach ($events as $index => $event) {
             try {
-                $this->signalEventRecorder->ingest($trackedProperty, $this->payloadForEvent(
+                $this->ingestSignalEvent->handle($trackedProperty, $this->payloadForEvent(
                     request: $request,
                     user: $user,
                     anonymousId: $anonymousId,
@@ -64,7 +64,7 @@ final readonly class RecordMobileTelemetryBatchAction
                     event: $event,
                     clientProperties: $clientProperties,
                     batchIndex: $index + 1,
-                ));
+                ), trusted: false);
 
                 $recordedEvents++;
             } catch (Throwable $exception) {

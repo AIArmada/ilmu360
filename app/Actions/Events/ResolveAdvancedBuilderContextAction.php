@@ -5,7 +5,7 @@ namespace App\Actions\Events;
 use App\Enums\EventFormat;
 use App\Enums\EventType;
 use App\Enums\EventVisibility;
-use App\Enums\RegistrationMode;
+use App\Enums\RegistrationScope;
 use App\Models\User;
 use Lorisleiva\Actions\Concerns\AsAction;
 
@@ -59,7 +59,7 @@ class ResolveAdvancedBuilderContextAction
                 'default_event_format' => EventFormat::Physical->value,
                 'visibility' => EventVisibility::Public->value,
                 'registration_required' => false,
-                'registration_mode' => RegistrationMode::Event->value,
+                'registration_mode' => RegistrationScope::Event->value,
             ],
         ];
     }

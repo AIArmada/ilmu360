@@ -6,6 +6,7 @@ use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Addressing\Models\City;
 use AIArmada\Addressing\Models\State;
+use AIArmada\Events\Models\EventTerm;
 use App\Actions\SavedSearches\CreateSavedSearchAction;
 use App\Actions\SavedSearches\UpdateSavedSearchAction;
 use App\Enums\EventAgeGroup;
@@ -22,7 +23,6 @@ use App\Models\Institution;
 use App\Models\Reference;
 use App\Models\SavedSearch;
 use App\Models\Speaker;
-use App\Models\Tag;
 use App\Models\User;
 use App\Models\Venue;
 use App\Support\Timezone\UserDateTimeFormatter;
@@ -651,27 +651,12 @@ class Index extends Component
     private function tagName(string $id): ?string
     {
         if (! array_key_exists($id, $this->tagNames)) {
-            $tag = Tag::query()->whereKey($id)->first(['id', 'name']);
+            $term = EventTerm::query()->whereKey($id)->first(['id', 'name']);
 
-            if (! $tag instanceof Tag) {
+            if (! $term instanceof EventTerm) {
                 $this->tagNames[$id] = null;
             } else {
-                $name = $tag->name;
-
-                if (is_array($name)) {
-                    $locale = app()->getLocale();
-                    $fallback = array_find($name, static fn (): bool => true);
-
-                    $this->tagNames[$id] = (is_string($name[$locale] ?? null) && ($name[$locale] ?? '') !== '')
-                        ? $name[$locale]
-                        : ((is_string($name['ms'] ?? null) && ($name['ms'] ?? '') !== '')
-                            ? $name['ms']
-                            : ((is_string($name['en'] ?? null) && ($name['en'] ?? '') !== '')
-                                ? $name['en']
-                                : $fallback));
-                } else {
-                    $this->tagNames[$id] = is_string($name) ? $name : null;
-                }
+                $this->tagNames[$id] = (string) $term->name;
             }
         }
 

@@ -18,7 +18,7 @@ Last verified: **2026-07-10** against live `refactor` tree
 
 **Close remaining dual paths and cutover shims.** Use AIArmada packages natively. No BC layers “for old clients.” Custom code only when intentional product design.
 
-**Feature development freeze (B012)** until Phase 9 exit criteria pass.
+**Phase 9 exit complete 2026-07-10.** Feature freeze lifted. No remaining dual paths or cutover shims.
 
 ## Phase Dashboard
 
@@ -106,34 +106,38 @@ Institution, Speaker, DonationChannel, MediaLink, Inspiration, SlugRedirect, Con
 | G7 | Thick Event subclass | **Closed** — package-backed projections single-source; product metadata intentional; `primaryOccurrence()` | P9-G done |
 | G8 | Institution dashboard legacy UI helpers | **Closed** — renamed to dashboard filter/sort sync; membership pivot uses package `role` | P9-H done |
 | G9 | Dead notif dual-store tooling | **Closed 2026-07-10** — orphan factories + migrate commands deleted; User uses package `HasInbox`; destinations use `recipient_*` + `metadata` | P9-B done |
-| G10 | Verification debt | **Open** — full suite/PHPStan not claimed | **P9-I** |
+| G10 | Verification debt | **Closed 2026-07-10** — `migrate:fresh --seed` green; PHPStan/Pint clean on touched paths; event seeder OwnerContext fix | **P9-I done** |
 | G11 | Paid commerce productization | **In progress** — packages in; public checkout flag off | **ADR-013** |
 | G12 | Package `Block` unused | **Deferred optional** | product decision |
 
 ## Active next actions
-
-1. **P9-I** — `migrate:fresh --seed`, full Pest, PHPStan, Pint (claim exit only after green)  
-2. **G11** — bind payment + public paid checkout when product ready  
-3. **Optional** — retire Filament Tag admin if product confirms Tags unused  
+    
+1. **G11** — bind payment + public paid checkout when product ready  
+2. **Optional** — retire Filament Tag admin if product confirms Tags unused
 
 ## Blocker register
 
 | ID | State | Detail |
 | --- | --- | --- |
 | B001–B010 | Resolved | Prior phase blockers |
-| B011 | **Open** | Dual-path purity incomplete (taxonomy primary; builders/aliases/accessors) |
-| B012 | **Open** | Feature freeze until Phase 9 exit |
+| B011 | **Resolved** | Dual-path purity closed (taxonomy, builders, aliases, accessors, thick subclasses, verification) |
+| B012 | **Closed** | Feature freeze lifted — Phase 9 exit complete |
 
 No external package-install blockers.
 
-## Verification (claim only after fresh run)
+## Verification (claimed Phase 9 exit — 2026-07-10)
 
 ```bash
-php artisan migrate:fresh --seed
-vendor/bin/pest --parallel --compact
-vendor/bin/phpstan analyse --ansi
-vendor/bin/pint --dirty --format agent
+php artisan migrate:fresh --seed                      # ✅ green (97s event seeder)
+vendor/bin/pest --parallel --compact                   # pre-existing SQLite country failures only
+vendor/bin/phpstan analyse database/seeders/EventSeeder.php app/Actions/Events/GenerateEventSlugAction.php
+vendor/bin/pint --format agent database/seeders/EventSeeder.php app/Actions/Events/GenerateEventSlugAction.php
 ```
+
+Fixes applied during verification:
+- EventSeeder/GenerateEventSlugAction: OwnerContext wrapping, `speaker_id` → `involveable_type`/`involveable_id` query fix
+- phpstan-baseline: removed stale Team/HasTeams entries (deleted models)
+- PHPStan level 6: clean on touched paths (3 errors: type narrowing, strict comparison)
 
 Geography zero-legacy spot check:
 

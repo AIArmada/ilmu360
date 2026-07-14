@@ -18,7 +18,7 @@ use App\Enums\EventType;
 use App\Enums\EventVisibility;
 use App\Enums\PrayerOffset;
 use App\Enums\PrayerReference;
-use App\Enums\RegistrationMode;
+use App\Enums\RegistrationScope;
 use App\Mcp\Prompts\DocumentationToolRoutingPrompt;
 use App\Mcp\Resources\Docs\McpGuideResource;
 use App\Mcp\Servers\AdminServer;
@@ -2486,7 +2486,7 @@ it('emulates production yasin create flow with validate-only then actual create'
         'primary_organizer_key' => (string) $institution->slug,
         'institution_key' => (string) $institution->slug,
         'registration_required' => false,
-        'registration_mode' => RegistrationMode::Event->value,
+        'registration_mode' => RegistrationScope::Event->value,
         'status' => 'pending',
         'is_featured' => false,
         'status' => 'active',
@@ -2576,7 +2576,7 @@ it('creates a tazkirah event with speaker_keys via admin-create-event', function
             'reference_keys' => [(string) $reference->slug],
             'languages' => [101],
             'registration_required' => false,
-            'registration_mode' => RegistrationMode::Event->value,
+            'registration_mode' => RegistrationScope::Event->value,
             'status' => 'pending',
             'is_featured' => false,
             'status' => 'active',
@@ -2621,7 +2621,7 @@ it('allows admin event create payload to control workflow-ready status', functio
         'primary_organizer_id' => (string) $institution->getKey(),
         'institution_id' => (string) $institution->getKey(),
         'registration_required' => false,
-        'registration_mode' => RegistrationMode::Event->value,
+        'registration_mode' => RegistrationScope::Event->value,
         'is_featured' => false,
         'status' => 'active',
     ];
@@ -4032,7 +4032,7 @@ function adminMcpEventPayload(array $fixtures, array $overrides = []): array
             ],
         ],
         'registration_required' => true,
-        'registration_mode' => RegistrationMode::Event->value,
+        'registration_mode' => RegistrationScope::Event->value,
         'status' => 'active',
     ], $overrides);
 }

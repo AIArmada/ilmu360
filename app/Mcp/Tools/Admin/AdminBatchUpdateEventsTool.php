@@ -10,7 +10,7 @@ use App\Enums\EventGenderRestriction;
 use App\Enums\EventPrayerTime;
 use App\Enums\EventType;
 use App\Enums\EventVisibility;
-use App\Enums\RegistrationMode;
+use App\Enums\RegistrationScope;
 use App\Models\Institution;
 use App\Models\Reference;
 use App\Models\Space;
@@ -336,7 +336,7 @@ class AdminBatchUpdateEventsTool extends AbstractAdminWriteTool
             'series' => $schema->array()->items($schema->string())->nullable(),
             'status' => $schema->string()->enum(['draft', 'pending', 'approved']),
             'registration_required' => $schema->boolean(),
-            'registration_mode' => $schema->string()->enum($this->enumValues(RegistrationMode::class)),
+            'registration_mode' => $schema->string()->enum($this->enumValues(RegistrationScope::class)),
             'is_priority' => $schema->boolean(),
             'is_featured' => $schema->boolean(),
         ]);

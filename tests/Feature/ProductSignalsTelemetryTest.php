@@ -5,6 +5,7 @@ use AIArmada\Communications\Enums\NotificationFamily;
 use AIArmada\Communications\Enums\NotificationPriority;
 use AIArmada\Communications\Enums\NotificationTrigger;
 use AIArmada\Communications\Models\NotificationInbox;
+use AIArmada\Signals\Contracts\SignalEventIngestor;
 use AIArmada\Signals\Models\SignalEvent;
 use App\Actions\Fortify\CreateNewUser;
 use App\Actions\Fortify\ResetUserPassword;
@@ -13,7 +14,6 @@ use App\Livewire\Pages\Dashboard\NotificationsIndex;
 use App\Models\Event;
 use App\Models\SavedSearch;
 use App\Models\User;
-use App\Services\Signals\SignalEventRecorder;
 use Illuminate\Auth\Events\Verified;
 use Laravel\Sanctum\Sanctum;
 use Livewire\Livewire;
@@ -56,8 +56,8 @@ it('stitches login telemetry to browser identity cookies when present', function
 });
 
 it('does not break password login when signals ingestion fails', function () {
-    $this->mock(SignalEventRecorder::class, function (MockInterface $mock): void {
-        $mock->shouldReceive('ingest')->andThrow(new RuntimeException('Signals ingestion failed.'));
+    $this->mock(SignalEventIngestor::class, function (MockInterface $mock): void {
+        $mock->shouldReceive('handle')->andThrow(new RuntimeException('Signals ingestion failed.'));
     });
 
     $user = User::factory()->create();
@@ -135,8 +135,8 @@ it('records a signals event when email verification completes', function () {
 });
 
 it('does not break report submission when signals ingestion fails', function () {
-    $this->mock(SignalEventRecorder::class, function (MockInterface $mock): void {
-        $mock->shouldReceive('ingest')->andThrow(new RuntimeException('Signals ingestion failed.'));
+    $this->mock(SignalEventIngestor::class, function (MockInterface $mock): void {
+        $mock->shouldReceive('handle')->andThrow(new RuntimeException('Signals ingestion failed.'));
     });
 
     $user = User::factory()->create();
@@ -188,8 +188,8 @@ it('records a signals event when a notification is read via the api', function (
 });
 
 it('does not break notification reads when signals ingestion fails', function () {
-    $this->mock(SignalEventRecorder::class, function (MockInterface $mock): void {
-        $mock->shouldReceive('ingest')->andThrow(new RuntimeException('Signals ingestion failed.'));
+    $this->mock(SignalEventIngestor::class, function (MockInterface $mock): void {
+        $mock->shouldReceive('handle')->andThrow(new RuntimeException('Signals ingestion failed.'));
     });
 
     $user = User::factory()->create();
@@ -382,8 +382,8 @@ it('records listing filtered events for filter-only discovery traffic', function
 });
 
 it('does not break search execution when signals ingestion fails', function () {
-    $this->mock(SignalEventRecorder::class, function (MockInterface $mock): void {
-        $mock->shouldReceive('ingest')->andThrow(new RuntimeException('Signals ingestion failed.'));
+    $this->mock(SignalEventIngestor::class, function (MockInterface $mock): void {
+        $mock->shouldReceive('handle')->andThrow(new RuntimeException('Signals ingestion failed.'));
     });
 
     $user = User::factory()->create();

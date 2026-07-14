@@ -39,7 +39,7 @@ Cutover maturity: 0 local only · 1 package exists/local dominates · 2 mixed ·
 
 ## What is genuinely fully adopted (level 5)
 
-- **addressing + filament-addressing** — legacy `Country/State/District/Subdistrict` models deleted; `AddressingCountryResolver` + seeders + observers live.
+- **addressing + filament-addressing** — legacy `Country/State/District/Subdistrict` models deleted; country resolution and State/AddressArea bridging now live in the addressing package, with app observers and seeders consuming them.
 - **contacting + filament-contacting** — `Contact`/`SocialMedia` removed; `HasContactMethods`/`HasSocialProfiles` traits + `HasPackageContactAliases`/`HasPackageSocialAliases` accessors in use.
 - **signals + filament-signals** — tracking, `ProductSignalsService`, signal pages extend package pages.
 

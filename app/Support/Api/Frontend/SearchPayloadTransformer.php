@@ -16,7 +16,7 @@ use Illuminate\Support\Str;
 class SearchPayloadTransformer
 {
     /**
-     * @return array{country_id: ?string, admin_area_1_id: ?string, admin_area_2_id: ?string, admin_area_4_id: ?string}|null
+     * @return array{country_id: ?string, state_id: ?string, city_id: ?string, admin_area_1_id: ?string, admin_area_2_id: ?string, admin_area_3_id: ?string, admin_area_4_id: ?string}|null
      */
     public function addressFilterData(?Address $address): ?array
     {
@@ -26,8 +26,11 @@ class SearchPayloadTransformer
 
         return [
             'country_id' => $this->optionalUuid($address->country_id),
+            'state_id' => $this->optionalUuid($address->state_id),
+            'city_id' => $this->optionalUuid($address->city_id),
             'admin_area_1_id' => $this->optionalUuid($address->admin_area_1_id),
             'admin_area_2_id' => $this->optionalUuid($address->admin_area_2_id),
+            'admin_area_3_id' => $this->optionalUuid($address->admin_area_3_id),
             'admin_area_4_id' => $this->optionalUuid($address->admin_area_4_id),
         ];
     }
