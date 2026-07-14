@@ -7,6 +7,7 @@ use App\Enums\DawahShareOutcomeType;
 use App\Enums\EventVisibility;
 use App\Enums\ScheduleState;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\RegisterEventRequest;
 use App\Models\Event;
 use App\Models\Registration;
 use App\Models\User;
@@ -46,15 +47,11 @@ class EventsController extends Controller
     }
 
     public function register(
-        Request $request,
+        RegisterEventRequest $request,
         Event $event,
         RegisterForFreeAction $registerForFree,
     ): RedirectResponse {
-        $validated = $request->validate([
-            'name' => 'required|string|max:100',
-            'email' => 'nullable|email|max:255',
-            'phone' => 'nullable|string|max:20',
-        ]);
+        $validated = $request->validated();
 
         /** @var User|null $user */
         $user = $request->user();

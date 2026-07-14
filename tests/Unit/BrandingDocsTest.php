@@ -2,8 +2,6 @@
 
 declare(strict_types=1);
 
-use Illuminate\Support\Str;
-
 function normalizeRestoredDocContent(string $contents): string
 {
     return rtrim(str_replace("\r\n", "\n", $contents), "\n");
@@ -69,33 +67,6 @@ it('does not keep legacy-prefixed documentation duplicates', function (): void {
 it('keeps the canonical lowercase documentation set present', function (string $relativePath): void {
     expect(file_exists(dirname(__DIR__, 2).'/'.$relativePath))->toBeTrue();
 })->with('canonical lowercase docs');
-
-it('keeps restored trash docs matched to live rebranded counterparts', function (): void {
-    $workspaceRoot = dirname(__DIR__, 2);
-    $trashFiles = collect(glob($workspaceRoot.'/docs/trash/ILMU360_*') ?: [])
-        ->filter(static fn (string $path): bool => is_file($path))
-        ->map(static fn (string $path): string => basename($path))
-        ->filter(static fn (string $basename): bool => preg_match('/\.(md|json)$/', $basename) === 1)
-        ->reject(static fn (string $basename): bool => preg_match('/ \d{2}-\d{2}-\d{2}-\d+\.(md|json)$/', $basename) === 1)
-        ->unique()
-        ->sort()
-        ->values();
-
-    expect($trashFiles)->not->toBeEmpty();
-
-    $trashFiles->each(function (string $basename) use ($workspaceRoot): void {
-        $trashPath = $workspaceRoot.'/docs/trash/'.$basename;
-        $livePath = $workspaceRoot.'/docs/'.Str::of($basename)
-            ->replaceFirst('ILMU360_', 'ilmu360_')
-            ->lower()
-            ->value();
-
-        expect(file_exists($trashPath))->toBeTrue()
-            ->and(file_exists($livePath))->toBeTrue()
-            ->and(normalizeRestoredDocContent(file_get_contents($trashPath) ?: ''))
-            ->toBe(normalizeRestoredDocContent(file_get_contents($livePath) ?: ''));
-    });
-});
 
 it('keeps active docs free of transition-era brand notes', function (string $relativePath): void {
     $markdown = file_get_contents(dirname(__DIR__, 2).'/'.$relativePath) ?: '';

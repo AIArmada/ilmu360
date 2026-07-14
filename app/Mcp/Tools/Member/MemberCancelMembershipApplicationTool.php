@@ -46,6 +46,7 @@ class MemberCancelMembershipApplicationTool extends AbstractMemberTool
             abort_unless($application instanceof MembershipApplication, 404);
 
             $this->cancelMembershipApplicationAction->handle($application);
+            $application->refresh();
 
             return [
                 'data' => [

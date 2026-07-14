@@ -138,7 +138,7 @@ class ManifestController extends FrontendController
 
     #[Endpoint(
         title: 'Get advanced-event field contract',
-        description: 'Returns the authenticated field contract for creating an advanced parent program before calling `POST /advanced-events`.',
+        description: 'Returns the authenticated field contract for creating an advanced event before calling `POST /advanced-events`.',
     )]
     public function advancedEvent(Request $request): JsonResponse
     {

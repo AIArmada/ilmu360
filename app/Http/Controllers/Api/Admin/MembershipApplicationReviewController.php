@@ -18,6 +18,7 @@ use Dedoc\Scramble\Attributes\Group;
 use Dedoc\Scramble\Attributes\PathParameter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 #[Group('Admin Membership Application Review', 'Explicit admin workflow endpoints for approving or rejecting membership applications. These actions mirror the Filament moderation workflow and are not part of the generic admin CRUD surface.')]
 class MembershipApplicationReviewController extends Controller
@@ -43,6 +44,7 @@ class MembershipApplicationReviewController extends Controller
         return response()->json([
             'data' => [
                 'schema' => [
+                    'action' => 'review_membership_application',
                     'defaults' => ['action' => 'approve', 'granted_role' => null, 'reviewer_note' => null],
                     'fields' => [
                         ['name' => 'action', 'type' => 'string', 'required' => true, 'default' => 'approve', 'allowed_values' => ['approve', 'reject']],
@@ -69,19 +71,32 @@ class MembershipApplicationReviewController extends Controller
         /** @var MembershipApplication $application */
         $application = $this->registry->resolveRecord(MembershipApplicationResource::class, $recordKey);
 
-        $action = (string) $request->input('action', '');
-        $reviewerNote = filled($request->input('reviewer_note')) ? (string) $request->input('reviewer_note') : null;
+        $validated = $request->validate([
+            'action' => ['required', 'string', Rule::in(['approve', 'reject'])],
+            'granted_role' => [
+                Rule::requiredIf(fn (): bool => (string) $request->input('action') === 'approve'),
+                'nullable',
+                'string',
+                Rule::in(array_keys(MembershipApplicationPresenter::approvalRoleOptions($application))),
+            ],
+            'reviewer_note' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $action = (string) $validated['action'];
+        $reviewerNote = filled($validated['reviewer_note'] ?? null) ? (string) $validated['reviewer_note'] : null;
 
         match ($action) {
             'approve' => $this->approveAction->handle(
                 $application,
                 $user,
-                MemberRole::tryFrom((string) $request->input('granted_role')) ?? MemberRole::Editor,
+                MemberRole::from((string) $validated['granted_role']),
                 $reviewerNote,
             ),
             'reject' => $this->rejectAction->handle($application, $user, $reviewerNote),
             default => abort(422, 'Unsupported action.'),
         };
+
+        $application->refresh();
 
         return response()->json([
             'data' => [

@@ -400,8 +400,32 @@
     "runtime_inventory": {
         "admin_panel": {
             "source_of_truth": "Filament::getPanel('admin')->getResources()",
-            "resource_count": 41,
+            "resource_count": 61,
             "resources": [
+                {
+                    "resource_key": "address-areas",
+                    "resource_class": "AIArmada\\FilamentAddressing\\Resources\\AddressAreaResource",
+                    "model_class": "AIArmada\\Addressing\\Models\\AddressArea",
+                    "source": "other",
+                    "page_keys": [
+                        "index",
+                        "view",
+                        "edit",
+                        "create"
+                    ],
+                    "generic_admin_write": true
+                },
+                {
+                    "resource_key": "address-countries",
+                    "resource_class": "AIArmada\\FilamentAddressing\\Resources\\AddressCountryResource",
+                    "model_class": "AIArmada\\Addressing\\Models\\AddressCountry",
+                    "source": "other",
+                    "page_keys": [
+                        "index",
+                        "view"
+                    ],
+                    "generic_admin_write": false
+                },
                 {
                     "resource_key": "ai-model-pricings",
                     "resource_class": "App\\Filament\\Resources\\AiModelPricings\\AiModelPricingResource",
@@ -559,10 +583,93 @@
                     "generic_admin_write": true
                 },
                 {
+                    "resource_key": "event-attendances",
+                    "resource_class": "AIArmada\\FilamentEvents\\Resources\\EventAttendanceResource",
+                    "model_class": "AIArmada\\Events\\Models\\EventAttendance",
+                    "source": "other",
+                    "page_keys": [
+                        "index",
+                        "view"
+                    ],
+                    "generic_admin_write": false
+                },
+                {
+                    "resource_key": "event-change-logs",
+                    "resource_class": "AIArmada\\FilamentEvents\\Resources\\EventChangeLogResource",
+                    "model_class": "AIArmada\\Events\\Models\\EventChangeLog",
+                    "source": "other",
+                    "page_keys": [
+                        "index",
+                        "view"
+                    ],
+                    "generic_admin_write": false
+                },
+                {
+                    "resource_key": "event-occurrences",
+                    "resource_class": "AIArmada\\FilamentEvents\\Resources\\EventOccurrenceResource",
+                    "model_class": "AIArmada\\Events\\Models\\EventOccurrence",
+                    "source": "other",
+                    "page_keys": [
+                        "index",
+                        "create",
+                        "view",
+                        "edit"
+                    ],
+                    "generic_admin_write": false
+                },
+                {
+                    "resource_key": "event-registration-participants",
+                    "resource_class": "AIArmada\\FilamentEvents\\Resources\\EventRegistrationParticipantResource",
+                    "model_class": "AIArmada\\Events\\Models\\EventRegistrationParticipant",
+                    "source": "other",
+                    "page_keys": [
+                        "index",
+                        "view"
+                    ],
+                    "generic_admin_write": false
+                },
+                {
+                    "resource_key": "event-registrations",
+                    "resource_class": "AIArmada\\FilamentEvents\\Resources\\EventRegistrationResource",
+                    "model_class": "AIArmada\\Events\\Models\\EventRegistration",
+                    "source": "other",
+                    "page_keys": [
+                        "index",
+                        "view"
+                    ],
+                    "generic_admin_write": false
+                },
+                {
+                    "resource_key": "event-sessions",
+                    "resource_class": "AIArmada\\FilamentEvents\\Resources\\EventSessionResource",
+                    "model_class": "AIArmada\\Events\\Models\\EventSession",
+                    "source": "other",
+                    "page_keys": [
+                        "index",
+                        "create",
+                        "view",
+                        "edit"
+                    ],
+                    "generic_admin_write": false
+                },
+                {
+                    "resource_key": "event-templates",
+                    "resource_class": "AIArmada\\FilamentEvents\\Resources\\EventTemplateResource",
+                    "model_class": "AIArmada\\Events\\Models\\EventTemplate",
+                    "source": "other",
+                    "page_keys": [
+                        "index",
+                        "create",
+                        "view",
+                        "edit"
+                    ],
+                    "generic_admin_write": false
+                },
+                {
                     "resource_key": "events",
-                    "resource_class": "App\\Filament\\Resources\\Events\\EventResource",
-                    "model_class": "App\\Models\\Event",
-                    "source": "app",
+                    "resource_class": "AIArmada\\FilamentEvents\\Resources\\EventResource",
+                    "model_class": "AIArmada\\Events\\Models\\Event",
+                    "source": "other",
                     "page_keys": [
                         "index",
                         "create",
@@ -607,10 +714,114 @@
                     "generic_admin_write": true
                 },
                 {
-                    "resource_key": "membership-claims",
-                    "resource_class": "App\\Filament\\Resources\\MembershipClaims\\MembershipClaimResource",
-                    "model_class": "App\\Models\\MembershipClaim",
+                    "resource_key": "inventory-allocations",
+                    "resource_class": "AIArmada\\FilamentInventory\\Resources\\InventoryAllocationResource",
+                    "model_class": "AIArmada\\Inventory\\Models\\InventoryAllocation",
+                    "source": "other",
+                    "page_keys": [
+                        "index",
+                        "view"
+                    ],
+                    "generic_admin_write": false
+                },
+                {
+                    "resource_key": "inventory-batches",
+                    "resource_class": "AIArmada\\FilamentInventory\\Resources\\InventoryBatchResource",
+                    "model_class": "AIArmada\\Inventory\\Models\\InventoryBatch",
+                    "source": "other",
+                    "page_keys": [
+                        "index",
+                        "create",
+                        "view",
+                        "edit"
+                    ],
+                    "generic_admin_write": false
+                },
+                {
+                    "resource_key": "inventory-levels",
+                    "resource_class": "AIArmada\\FilamentInventory\\Resources\\InventoryLevelResource",
+                    "model_class": "AIArmada\\Inventory\\Models\\InventoryLevel",
+                    "source": "other",
+                    "page_keys": [
+                        "index",
+                        "view",
+                        "edit"
+                    ],
+                    "generic_admin_write": false
+                },
+                {
+                    "resource_key": "inventory-locations",
+                    "resource_class": "AIArmada\\FilamentInventory\\Resources\\InventoryLocationResource",
+                    "model_class": "AIArmada\\Inventory\\Models\\InventoryLocation",
+                    "source": "other",
+                    "page_keys": [
+                        "index",
+                        "create",
+                        "view",
+                        "edit"
+                    ],
+                    "generic_admin_write": false
+                },
+                {
+                    "resource_key": "inventory-movements",
+                    "resource_class": "AIArmada\\FilamentInventory\\Resources\\InventoryMovementResource",
+                    "model_class": "AIArmada\\Inventory\\Models\\InventoryMovement",
+                    "source": "other",
+                    "page_keys": [
+                        "index",
+                        "view"
+                    ],
+                    "generic_admin_write": false
+                },
+                {
+                    "resource_key": "inventory-serials",
+                    "resource_class": "AIArmada\\FilamentInventory\\Resources\\InventorySerialResource",
+                    "model_class": "AIArmada\\Inventory\\Models\\InventorySerial",
+                    "source": "other",
+                    "page_keys": [
+                        "index",
+                        "create",
+                        "view",
+                        "edit"
+                    ],
+                    "generic_admin_write": false
+                },
+                {
+                    "resource_key": "membership-applications",
+                    "resource_class": "App\\Filament\\Resources\\MembershipApplications\\MembershipApplicationResource",
+                    "model_class": "App\\Models\\MembershipApplication",
                     "source": "app",
+                    "page_keys": [
+                        "index",
+                        "view"
+                    ],
+                    "generic_admin_write": false
+                },
+                {
+                    "resource_key": "pass-holders",
+                    "resource_class": "AIArmada\\FilamentTicketing\\Resources\\PassHolderResource",
+                    "model_class": "AIArmada\\Ticketing\\Models\\PassHolder",
+                    "source": "other",
+                    "page_keys": [
+                        "index"
+                    ],
+                    "generic_admin_write": false
+                },
+                {
+                    "resource_key": "pass-transfers",
+                    "resource_class": "AIArmada\\FilamentTicketing\\Resources\\PassTransferResource",
+                    "model_class": "AIArmada\\Ticketing\\Models\\PassTransfer",
+                    "source": "other",
+                    "page_keys": [
+                        "index"
+                    ],
+                    "generic_admin_write": false
+                },
+                {
+                    "resource_key": "passes",
+                    "resource_class": "AIArmada\\FilamentTicketing\\Resources\\PassResource",
+                    "model_class": "AIArmada\\Ticketing\\Models\\Pass",
+                    "source": "other",
                     "page_keys": [
                         "index",
                         "view"
@@ -706,6 +917,19 @@
                     "page_keys": [
                         "index",
                         "create",
+                        "edit"
+                    ],
+                    "generic_admin_write": false
+                },
+                {
+                    "resource_key": "seat-maps",
+                    "resource_class": "AIArmada\\FilamentSeating\\Resources\\SeatMapResource",
+                    "model_class": "AIArmada\\Seating\\Models\\SeatMap",
+                    "source": "other",
+                    "page_keys": [
+                        "index",
+                        "create",
+                        "view",
                         "edit"
                     ],
                     "generic_admin_write": false
@@ -843,6 +1067,19 @@
                     "generic_admin_write": true
                 },
                 {
+                    "resource_key": "ticket-types",
+                    "resource_class": "AIArmada\\FilamentTicketing\\Resources\\TicketTypeResource",
+                    "model_class": "AIArmada\\Ticketing\\Models\\TicketType",
+                    "source": "other",
+                    "page_keys": [
+                        "index",
+                        "create",
+                        "view",
+                        "edit"
+                    ],
+                    "generic_admin_write": false
+                },
+                {
                     "resource_key": "tracked-properties",
                     "resource_class": "AIArmada\\FilamentSignals\\Resources\\TrackedPropertyResource",
                     "model_class": "AIArmada\\Signals\\Models\\TrackedProperty",
@@ -869,14 +1106,12 @@
                 },
                 {
                     "resource_key": "venues",
-                    "resource_class": "App\\Filament\\Resources\\Venues\\VenueResource",
-                    "model_class": "App\\Models\\Venue",
-                    "source": "app",
+                    "resource_class": "AIArmada\\FilamentEvents\\Resources\\VenueResource",
+                    "model_class": "AIArmada\\Events\\Models\\Venue",
+                    "source": "other",
                     "page_keys": [
                         "index",
-                        "create",
-                        "view",
-                        "edit"
+                        "view"
                     ],
                     "generic_admin_write": true
                 }
@@ -884,18 +1119,125 @@
         },
         "ahli_panel": {
             "source_of_truth": "Filament::getPanel('ahli')->getResources()",
-            "resource_count": 4,
+            "resource_count": 19,
             "resources": [
                 {
-                    "resource_key": "events",
-                    "resource_class": "App\\Filament\\Ahli\\Resources\\Events\\EventResource",
-                    "model_class": "App\\Models\\Event",
+                    "resource_key": "bookmark-collections",
+                    "resource_class": "AIArmada\\FilamentEngagement\\Resources\\BookmarkCollectionResource",
+                    "model_class": "AIArmada\\Engagement\\Models\\BookmarkCollection",
                     "page_keys": [
                         "index",
+                        "create",
+                        "edit"
+                    ],
+                    "generic_member_write": false
+                },
+                {
+                    "resource_key": "bookmarks",
+                    "resource_class": "AIArmada\\FilamentEngagement\\Resources\\BookmarkResource",
+                    "model_class": "AIArmada\\Engagement\\Models\\Bookmark",
+                    "page_keys": [
+                        "index",
+                        "view"
+                    ],
+                    "generic_member_write": false
+                },
+                {
+                    "resource_key": "event-attendances",
+                    "resource_class": "AIArmada\\FilamentEvents\\Resources\\EventAttendanceResource",
+                    "model_class": "AIArmada\\Events\\Models\\EventAttendance",
+                    "page_keys": [
+                        "index",
+                        "view"
+                    ],
+                    "generic_member_write": false
+                },
+                {
+                    "resource_key": "event-change-logs",
+                    "resource_class": "AIArmada\\FilamentEvents\\Resources\\EventChangeLogResource",
+                    "model_class": "AIArmada\\Events\\Models\\EventChangeLog",
+                    "page_keys": [
+                        "index",
+                        "view"
+                    ],
+                    "generic_member_write": false
+                },
+                {
+                    "resource_key": "event-occurrences",
+                    "resource_class": "AIArmada\\FilamentEvents\\Resources\\EventOccurrenceResource",
+                    "model_class": "AIArmada\\Events\\Models\\EventOccurrence",
+                    "page_keys": [
+                        "index",
+                        "create",
+                        "view",
+                        "edit"
+                    ],
+                    "generic_member_write": false
+                },
+                {
+                    "resource_key": "event-registration-participants",
+                    "resource_class": "AIArmada\\FilamentEvents\\Resources\\EventRegistrationParticipantResource",
+                    "model_class": "AIArmada\\Events\\Models\\EventRegistrationParticipant",
+                    "page_keys": [
+                        "index",
+                        "view"
+                    ],
+                    "generic_member_write": false
+                },
+                {
+                    "resource_key": "event-registrations",
+                    "resource_class": "AIArmada\\FilamentEvents\\Resources\\EventRegistrationResource",
+                    "model_class": "AIArmada\\Events\\Models\\EventRegistration",
+                    "page_keys": [
+                        "index",
+                        "view"
+                    ],
+                    "generic_member_write": false
+                },
+                {
+                    "resource_key": "event-sessions",
+                    "resource_class": "AIArmada\\FilamentEvents\\Resources\\EventSessionResource",
+                    "model_class": "AIArmada\\Events\\Models\\EventSession",
+                    "page_keys": [
+                        "index",
+                        "create",
+                        "view",
+                        "edit"
+                    ],
+                    "generic_member_write": false
+                },
+                {
+                    "resource_key": "event-templates",
+                    "resource_class": "AIArmada\\FilamentEvents\\Resources\\EventTemplateResource",
+                    "model_class": "AIArmada\\Events\\Models\\EventTemplate",
+                    "page_keys": [
+                        "index",
+                        "create",
+                        "view",
+                        "edit"
+                    ],
+                    "generic_member_write": false
+                },
+                {
+                    "resource_key": "events",
+                    "resource_class": "AIArmada\\FilamentEvents\\Resources\\EventResource",
+                    "model_class": "AIArmada\\Events\\Models\\Event",
+                    "page_keys": [
+                        "index",
+                        "create",
                         "view",
                         "edit"
                     ],
                     "generic_member_write": true
+                },
+                {
+                    "resource_key": "follows",
+                    "resource_class": "AIArmada\\FilamentEngagement\\Resources\\FollowResource",
+                    "model_class": "AIArmada\\Engagement\\Models\\Follow",
+                    "page_keys": [
+                        "index"
+                    ],
+                    "generic_member_write": false
                 },
                 {
                     "resource_key": "institutions",
@@ -905,6 +1247,16 @@
                         "edit"
                     ],
                     "generic_member_write": true
+                },
+                {
+                    "resource_key": "reactions",
+                    "resource_class": "AIArmada\\FilamentEngagement\\Resources\\ReactionResource",
+                    "model_class": "AIArmada\\Engagement\\Models\\Reaction",
+                    "page_keys": [
+                        "index",
+                        "view"
+                    ],
+                    "generic_member_write": false
                 },
                 {
                     "resource_key": "references",
@@ -917,6 +1269,26 @@
                     "generic_member_write": true
                 },
                 {
+                    "resource_key": "reminders",
+                    "resource_class": "AIArmada\\FilamentEngagement\\Resources\\ReminderResource",
+                    "model_class": "AIArmada\\Engagement\\Models\\Reminder",
+                    "page_keys": [
+                        "index",
+                        "view"
+                    ],
+                    "generic_member_write": false
+                },
+                {
+                    "resource_key": "responses",
+                    "resource_class": "AIArmada\\FilamentEngagement\\Resources\\ResponseResource",
+                    "model_class": "AIArmada\\Engagement\\Models\\Response",
+                    "page_keys": [
+                        "index",
+                        "view"
+                    ],
+                    "generic_member_write": false
+                },
+                {
                     "resource_key": "speakers",
                     "resource_class": "App\\Filament\\Ahli\\Resources\\Speakers\\SpeakerResource",
                     "model_class": "App\\Models\\Speaker",
@@ -926,6 +1298,26 @@
                         "edit"
                     ],
                     "generic_member_write": true
+                },
+                {
+                    "resource_key": "subscriptions",
+                    "resource_class": "AIArmada\\FilamentEngagement\\Resources\\SubscriptionResource",
+                    "model_class": "AIArmada\\Engagement\\Models\\Subscription",
+                    "page_keys": [
+                        "index",
+                        "view"
+                    ],
+                    "generic_member_write": false
+                },
+                {
+                    "resource_key": "venues",
+                    "resource_class": "AIArmada\\FilamentEvents\\Resources\\VenueResource",
+                    "model_class": "AIArmada\\Events\\Models\\Venue",
+                    "page_keys": [
+                        "index",
+                        "view"
+                    ],
+                    "generic_member_write": false
                 }
             ]
         }

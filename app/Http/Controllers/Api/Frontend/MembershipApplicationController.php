@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers\Api\Frontend;
 
-use AIArmada\Membership\Actions\ApplyForMembershipAction;
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Membership\Actions\CancelMembershipApplicationAction;
 use AIArmada\Membership\Enums\ApplicationStatus;
+use App\Actions\Membership\SubmitMembershipApplicationAction;
 use App\Enums\MemberSubjectType;
 use App\Models\MembershipApplication;
 use App\Models\User;
+use App\Support\Api\Frontend\FrontendMediaSyncService;
 use App\Support\Membership\MembershipApplicationPresenter;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
@@ -49,7 +51,8 @@ class MembershipApplicationController extends FrontendController
         string $subjectType,
         string $subject,
         Request $request,
-        ApplyForMembershipAction $applyForMembershipAction,
+        SubmitMembershipApplicationAction $submitMembershipApplicationAction,
+        FrontendMediaSyncService $frontendMediaSyncService,
     ): JsonResponse {
         $resolvedSubjectType = MemberSubjectType::fromRouteSegment($subjectType);
         abort_unless($resolvedSubjectType?->isClaimable(), 404);
@@ -60,18 +63,29 @@ class MembershipApplicationController extends FrontendController
             abort(403, $user->directoryFeedbackBanMessage());
         }
 
+        $maxUploadSizeKb = (int) ceil(((int) config('media-library.max_file_size', 10 * 1024 * 1024)) / 1024);
+
         $validated = $request->validate([
             'justification' => ['required', 'string', 'max:2000'],
+            'evidence' => ['required', 'array', 'min:1', 'max:8'],
+            'evidence.*' => ['file', 'mimes:jpg,jpeg,png,webp,pdf', "max:{$maxUploadSizeKb}"],
         ]);
 
         $claimSubject = $resolvedSubjectType->resolveSubject($subject);
 
         try {
             /** @var MembershipApplication $application */
-            $application = $applyForMembershipAction->handle(
+            $application = $submitMembershipApplicationAction->handle(
                 $claimSubject,
                 $user,
                 (string) $validated['justification'],
+            );
+
+            $frontendMediaSyncService->syncMultiple(
+                $application,
+                is_array($request->file('evidence')) ? $request->file('evidence') : null,
+                'evidence',
+                replace: true,
             );
         } catch (RuntimeException $exception) {
             throw ValidationException::withMessages([
@@ -86,7 +100,7 @@ class MembershipApplicationController extends FrontendController
 
         return response()->json([
             'data' => [
-                'application' => $this->applicationData($application->fresh(['reviewer', 'media']) ?? $application, $user),
+                'application' => $this->applicationData($application->load(['reviewer', 'media']), $user),
             ],
             'meta' => [
                 'request_id' => $this->requestId($request),
@@ -111,6 +125,9 @@ class MembershipApplicationController extends FrontendController
 
         try {
             $cancelMembershipApplicationAction->handle($application);
+
+            $application = OwnerContext::withOwner(null, fn (): MembershipApplication => MembershipApplication::query()
+                ->findOrFail($application->getKey()));
         } catch (RuntimeException) {
             throw ValidationException::withMessages([
                 'application' => __('Only pending applications can be cancelled.'),
@@ -119,7 +136,7 @@ class MembershipApplicationController extends FrontendController
 
         return response()->json([
             'data' => [
-                'application' => $this->applicationData($application->fresh(['reviewer', 'media']) ?? $application, $user),
+                'application' => $this->applicationData($application->load(['reviewer', 'media']), $user),
             ],
             'meta' => [
                 'request_id' => $this->requestId($request),

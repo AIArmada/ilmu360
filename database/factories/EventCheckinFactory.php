@@ -23,12 +23,15 @@ class EventCheckinFactory extends EventAttendanceFactory
     {
         return [
             'event_id' => Event::factory(),
-            'user_id' => User::factory(),
-            'method' => fake()->randomElement(['self_reported', 'registered_self_checkin', 'organizer_verified']),
+            'attendee_type' => (new User)->getMorphClass(),
+            'attendee_id' => User::factory(),
+            'check_in_source' => fake()->randomElement(['self_reported', 'registered_self_checkin', 'organizer_verified']),
             'checked_in_at' => now()->subMinutes(fake()->numberBetween(1, 120)),
-            'lat' => fake()->optional()->latitude(1.2, 6.8),
-            'lng' => fake()->optional()->longitude(99.6, 119.3),
-            'accuracy_m' => fake()->optional()->randomFloat(2, 3, 80),
+            'metadata' => [
+                'lat' => fake()->optional()->latitude(1.2, 6.8),
+                'lng' => fake()->optional()->longitude(99.6, 119.3),
+                'accuracy_m' => fake()->optional()->randomFloat(2, 3, 80),
+            ],
             'attendance_type' => 'check_in',
         ];
     }

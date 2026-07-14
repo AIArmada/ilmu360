@@ -108,7 +108,7 @@ it('lets claimants cancel pending claims from the history page', function () {
     $user = User::factory()->create();
     $institution = Institution::factory()->create();
     $claim = MembershipApplication::factory()
-        ->forInstitution($institution)
+        ->for($institution, 'subject')
         ->create([
             'applicant_id' => $user->getKey(),
             'status' => ApplicationStatus::Pending,

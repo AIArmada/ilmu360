@@ -3,7 +3,7 @@
 namespace App\Enums;
 
 /**
- * Registration scope used by the advanced parent-program flow.
+ * Registration scope used by the advanced event flow.
  *
  * This is distinct from AIArmada\Events\Enums\RegistrationMode, which
  * describes whether registration is required, optional, or open-door.

@@ -1,14 +1,9 @@
 <?php
 
 use AIArmada\CommerceSupport\Models\Role;
-use App\Actions\Membership\AddMemberToSubject;
 use App\Mcp\Servers\AdminServer;
-use App\Mcp\Servers\MemberServer;
 use App\Mcp\Tools\Admin\AdminReadDebugLogTool;
-use App\Mcp\Tools\Member\MemberReadDebugLogTool;
-use App\Models\Institution;
 use App\Models\User;
-use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use Spatie\Permission\PermissionRegistrar;
 
@@ -138,25 +133,6 @@ it('accepts a custom filter string', function (): void {
             ->etc());
 });
 
-it('returns mcp.image_upload log lines for members', function (): void {
-    [$member] = debugLogMemberContext();
-
-    $logPath = debugLogTestPath();
-    file_put_contents($logPath, implode(PHP_EOL, [
-        '[2026-05-02 12:00:00] local.DEBUG: mcp.image_upload: start {"event":"member-event"}',
-        '[2026-05-02 12:00:01] local.DEBUG: Some other entry',
-    ]).PHP_EOL);
-
-    MemberServer::actingAs($member)
-        ->tool(MemberReadDebugLogTool::class, ['filter' => 'mcp.image_upload'])
-        ->assertOk()
-        ->assertStructuredContent(fn ($json) => $json
-            ->where('filter', 'mcp.image_upload')
-            ->where('all', false)
-            ->where('total_matched', 1)
-            ->etc());
-});
-
 it('reads mcp tool execution logs by default for admins', function (): void {
     $admin = debugLogAdminUser();
 
@@ -175,12 +151,10 @@ it('reads mcp tool execution logs by default for admins', function (): void {
             ->etc());
 });
 
-it('tool is registered and marked read-only on both servers', function (): void {
+it('admin debug log tool is registered and marked read-only', function (): void {
     $adminTool = app(AdminReadDebugLogTool::class)->toArray();
-    $memberTool = app(MemberReadDebugLogTool::class)->toArray();
 
-    expect($adminTool['annotations'] ?? [])->toMatchArray(['readOnlyHint' => true])
-        ->and($memberTool['annotations'] ?? [])->toMatchArray(['readOnlyHint' => true]);
+    expect($adminTool['annotations'] ?? [])->toMatchArray(['readOnlyHint' => true]);
 });
 
 function debugLogAdminUser(): User
@@ -200,23 +174,4 @@ function debugLogAdminUser(): User
     $user->assignRole($role);
 
     return $user;
-}
-
-/**
- * @return array{0: User}
- */
-function debugLogMemberContext(): array
-{
-    $member = User::factory()->create([
-        'phone' => '+60113334455',
-        'phone_verified_at' => now(),
-    ]);
-
-    // Assign an institution membership so hasMemberMcpAccess() is satisfied
-    $institution = Institution::factory()->create([
-        'status' => 'verified',
-    ]);
-    app(AddMemberToSubject::class)->handle($institution, $member, 'admin');
-
-    return [$member];
 }

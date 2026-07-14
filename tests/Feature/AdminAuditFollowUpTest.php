@@ -1,6 +1,5 @@
 <?php
 
-use App\Actions\Membership\AddMemberToSubject;
 use App\Filament\Resources\Series\Pages\EditSeries;
 use App\Filament\Resources\Spaces\Pages\EditSpace;
 use App\Models\Event;
@@ -176,7 +175,7 @@ it('records membership sync and role change audits on auditable subjects', funct
 
     $this->actingAs($administrator);
 
-    app(AddMemberToSubject::class)->handle($institution, $member, 'viewer');
+    addTestMember($institution, $member, 'viewer');
 
     $syncAudit = $institution->audits()
         ->where('event', 'sync')

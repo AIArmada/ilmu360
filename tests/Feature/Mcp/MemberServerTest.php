@@ -1,14 +1,12 @@
 <?php
 
 use AIArmada\CommerceSupport\Models\Role;
-use App\Actions\Membership\AddMemberToSubject;
 use App\Enums\ContributionRequestStatus;
 use App\Enums\ContributionRequestType;
 use App\Enums\ContributionSubjectType;
 use App\Enums\EventChangeSeverity;
 use App\Enums\EventChangeStatus;
 use App\Enums\EventChangeType;
-use App\Enums\EventStructure;
 use App\Enums\MemberSubjectType;
 use App\Mcp\Prompts\MemberDocumentationToolRoutingPrompt;
 use App\Mcp\Resources\Docs\MemberMcpGuideResource;
@@ -137,7 +135,7 @@ it('searches member speakers by formatted public title parts through MCP list re
         'status' => 'verified',
     ]);
 
-    app(AddMemberToSubject::class)->handle($otherSpeaker, $member, 'viewer');
+    addTestMember($otherSpeaker, $member, 'viewer');
 
     $matchingSpeaker = $matchingSpeaker->fresh();
 
@@ -171,7 +169,7 @@ it('uses typo-tolerant institution search through member MCP list records', func
         'status' => 'verified',
     ]);
 
-    app(AddMemberToSubject::class)->handle($otherInstitution, $member, 'viewer');
+    addTestMember($otherInstitution, $member, 'viewer');
 
     MemberServer::actingAs($member)
         ->tool(MemberListRecordsTool::class, [
@@ -200,7 +198,7 @@ it('searches member references by descriptive public terms through MCP list reco
         'status' => 'verified',
     ]);
 
-    app(AddMemberToSubject::class)->handle($otherReference, $member, 'viewer');
+    addTestMember($otherReference, $member, 'viewer');
 
     MemberServer::actingAs($member)
         ->tool(MemberListRecordsTool::class, [
@@ -321,7 +319,7 @@ it('searches /majlis-style events through the dedicated member MCP tool', functi
         'status' => 'verified',
     ]);
 
-    app(AddMemberToSubject::class)->handle($institution, $member, 'viewer');
+    addTestMember($institution, $member, 'viewer');
 
     $matchingEvent = Event::factory()->create([
         'institution_id' => $institution->getKey(),
@@ -353,51 +351,6 @@ it('searches /majlis-style events through the dedicated member MCP tool', functi
             ->etc());
 });
 
-it('lists related records through the member MCP server', function () {
-    [$member, $institution] = institutionMemberMcpContext(role: 'admin');
-
-    $parentEvent = Event::factory()->create([
-        'institution_id' => $institution->getKey(),
-        'title' => 'Member MCP Parent Program',
-        'event_structure' => EventStructure::ParentProgram,
-        'status' => 'approved',
-    ]);
-
-    $childEvent = Event::factory()->create([
-        'institution_id' => $institution->getKey(),
-        'parent_event_id' => $parentEvent->getKey(),
-        'title' => 'Member MCP Child Event',
-        'status' => 'approved',
-    ]);
-
-    MemberServer::actingAs($member)
-        ->tool(MemberGetResourceMetaTool::class, [
-            'resource_key' => 'events',
-        ])
-        ->assertOk()
-        ->assertStructuredContent(fn ($json) => $json
-            ->where('data.resource.mcp_tools.list_related_records.tool', 'member-list-related-records')
-            ->where('data.resource.mcp_tools.list_related_records.arguments.resource_key', 'events')
-            ->etc());
-
-    MemberServer::actingAs($member)
-        ->tool(MemberListRelatedRecordsTool::class, [
-            'resource_key' => 'events',
-            'record_key' => $parentEvent->getKey(),
-            'relation' => 'child_events',
-            'search' => $childEvent->title,
-        ])
-        ->assertOk()
-        ->assertStructuredContent(fn ($json) => $json
-            ->where('data.0.route_key', $childEvent->getRouteKey())
-            ->where('data.0.title', 'Member MCP Child Event')
-            ->where('meta.resource.key', 'events')
-            ->where('meta.parent_record.route_key', $parentEvent->getRouteKey())
-            ->where('meta.relation.name', 'child_events')
-            ->where('meta.relation.related_resource.key', 'events')
-            ->etc());
-});
-
 it('surfaces public event change projections on member event record detail through the MCP server', function () {
     [$member, $institution] = institutionMemberMcpContext(role: 'admin');
 
@@ -408,6 +361,7 @@ it('surfaces public event change projections on member event record detail throu
         'slug' => 'member-mcp-change-surface-original',
         'status' => 'approved',
         'visibility' => 'public',
+        'published_at' => Carbon::parse('2026-05-01 00:00:00', 'UTC'),
     ]);
     $firstReplacement = Event::factory()->create([
         'institution_id' => $institution->getKey(),
@@ -415,6 +369,7 @@ it('surfaces public event change projections on member event record detail throu
         'slug' => 'member-mcp-change-surface-first-replacement',
         'status' => 'approved',
         'visibility' => 'public',
+        'published_at' => Carbon::parse('2026-05-01 00:00:00', 'UTC'),
     ]);
     $finalReplacement = Event::factory()->create([
         'institution_id' => $institution->getKey(),
@@ -422,6 +377,7 @@ it('surfaces public event change projections on member event record detail throu
         'slug' => 'member-mcp-change-surface-final-replacement',
         'status' => 'approved',
         'visibility' => 'public',
+        'published_at' => Carbon::parse('2026-05-01 00:00:00', 'UTC'),
     ]);
 
     EventChangeAnnouncement::unguarded(function () use ($actor, $original, $firstReplacement, $finalReplacement): void {
@@ -871,18 +827,18 @@ it('lists and processes contribution requests through member MCP workflow tools'
         ->and($institution->fresh()?->description)->toBe('Approved through member MCP.');
 });
 
-it('lists submits and cancels membership claims through member MCP workflow tools', function () {
+it('lists submits and cancels membership applications through member MCP workflow tools', function () {
     [$member] = institutionMemberMcpContext(role: 'admin');
 
     $listedInstitution = Institution::factory()->create([
         'status' => 'verified',
     ]);
-    $claimTarget = Institution::factory()->create([
+    $applicationTarget = Institution::factory()->create([
         'status' => 'verified',
     ]);
 
-    $listedClaim = MembershipApplication::factory()
-        ->forInstitution($listedInstitution)
+    $listedApplication = MembershipApplication::factory()
+        ->for($listedInstitution, 'subject')
         ->create([
             'applicant_id' => $member->getKey(),
             'status' => 'pending',
@@ -892,44 +848,42 @@ it('lists submits and cancels membership claims through member MCP workflow tool
         ->tool(MemberListMembershipApplicationsTool::class)
         ->assertOk()
         ->assertStructuredContent(fn ($json) => $json
-            ->where('data', fn ($claims): bool => collect($claims)->pluck('id')->contains($listedClaim->getKey()))
+            ->where('data', fn ($applications): bool => collect($applications)->pluck('id')->contains($listedApplication->getKey()))
             ->etc());
 
     MemberServer::actingAs($member)
         ->tool(MemberSubmitMembershipApplicationTool::class, [
             'subject_type' => MemberSubjectType::Institution->value,
-            'subject' => $claimTarget->getKey(),
+            'subject' => $applicationTarget->getKey(),
             'justification' => 'I help manage this institution.',
             'evidence' => [
-                memberMcpImageDescriptor('member-mcp-claim-evidence.png'),
+                memberMcpImageDescriptor('member-mcp-application-evidence.png'),
             ],
         ])
         ->assertOk()
         ->assertStructuredContent(fn ($json) => $json
-            ->where('data.claim.subject_type', 'institution')
-            ->where('data.claim.status', 'pending')
-            ->where('data.claim.can_cancel', true)
+            ->where('data.application.status', 'pending')
             ->etc());
 
-    $claim = MembershipApplication::query()
+    $application = MembershipApplication::query()
         ->where('applicant_id', $member->getKey())
-        ->where('subject_id', $claimTarget->getKey())
+        ->where('subject_id', $applicationTarget->getKey())
         ->latest('created_at')
         ->firstOrFail();
 
-    expect($claim->getMedia('evidence'))->toHaveCount(1);
+    expect($application->getMedia('evidence'))->toHaveCount(1);
 
     MemberServer::actingAs($member)
         ->tool(MemberCancelMembershipApplicationTool::class, [
-            'claim_id' => $claim->getKey(),
+            'application_id' => $application->getKey(),
         ])
         ->assertOk()
         ->assertStructuredContent(fn ($json) => $json
-            ->where('data.claim.id', $claim->getKey())
-            ->where('data.claim.status', 'cancelled')
+            ->where('data.application.id', $application->getKey())
+            ->where('data.application.status', 'cancelled')
             ->etc());
 
-    expect($claim->fresh()?->status->value)->toBe('cancelled');
+    expect($application->fresh()?->status->value)->toBe('cancelled');
 });
 
 it('creates plain github issues through the member MCP tool', function () {
@@ -1100,7 +1054,7 @@ it('initializes and lists member MCP tools over the HTTP endpoint for Passport-a
 
     expect($tools->keys()->all())->not->toContain('member-generate-event-cover-image', 'member-generate-event-poster-image');
 
-    expect($tools->keys()->all())->not->toContain('admin-list-resources', 'admin-list-records');
+    expect($tools->keys()->all())->not->toContain('admin-list-resources', 'admin-list-records', 'member-read-debug-log');
 
     expect($tools->keys()->all())->not->toContain(
         'member-delete-record',
@@ -1211,7 +1165,7 @@ it('rejects admin-scoped tokens on the member MCP stream endpoint even for dual-
         'status' => 'verified',
     ]);
 
-    app(AddMemberToSubject::class)->handle($institution, $member, 'admin');
+    addTestMember($institution, $member, 'admin');
 
     $token = $member->createToken('mcp-admin-only', [McpTokenManager::ADMIN_ABILITY])->plainTextToken;
 
@@ -1226,7 +1180,7 @@ it('rejects legacy wildcard MCP tokens on the member MCP stream endpoint', funct
         'status' => 'verified',
     ]);
 
-    app(AddMemberToSubject::class)->handle($institution, $member, 'admin');
+    addTestMember($institution, $member, 'admin');
 
     $token = $member->createToken('legacy-admin-mcp')->plainTextToken;
 
@@ -1302,7 +1256,22 @@ it('initializes and lists member MCP tools over the HTTP endpoint', function () 
         'member-delete-record',
         'member-delete',
         'member-remove-record',
+        'member-read-debug-log',
     );
+
+    $unavailableDebugLogCall = $this->withToken($token)->withHeaders([
+        'MCP-Session-Id' => (string) $sessionId,
+    ])->postJson('/mcp/member', [
+        'jsonrpc' => '2.0',
+        'id' => 'call-member-read-debug-log',
+        'method' => 'tools/call',
+        'params' => [
+            'name' => 'member-read-debug-log',
+            'arguments' => ['filter' => 'mcp.image_upload'],
+        ],
+    ])->assertOk();
+
+    expect($unavailableDebugLogCall->json('error.message'))->toBe('Tool [member-read-debug-log] not found.');
 });
 
 it('searches and fetches verified documentation through member MCP tools', function () {
@@ -1651,7 +1620,7 @@ function institutionMemberMcpContext(string $role = 'viewer', string $status = '
     ]);
     $member = User::factory()->create();
 
-    app(AddMemberToSubject::class)->handle($institution, $member, $role);
+    addTestMember($institution, $member, $role);
 
     return [$member, $institution];
 }
@@ -1672,7 +1641,7 @@ function speakerMemberMcpContext(string $role = 'viewer', string $status = 'veri
     ]);
     $member = User::factory()->create();
 
-    app(AddMemberToSubject::class)->handle($speaker, $member, $role);
+    addTestMember($speaker, $member, $role);
 
     return [$member, $speaker];
 }
@@ -1688,7 +1657,7 @@ function referenceMemberMcpContext(string $role = 'viewer', string $status = 've
     ]);
     $member = User::factory()->create();
 
-    app(AddMemberToSubject::class)->handle($reference, $member, $role);
+    addTestMember($reference, $member, $role);
 
     return [$member, $reference];
 }

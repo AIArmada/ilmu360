@@ -180,12 +180,56 @@
 
 ## Whole-application API and MCP audit (2026-07-14)
 
-- [ ] Preserve the existing dirty-worktree baseline and record the review scope.
-- [ ] Map all application, API, and MCP entry points with the codebase graph.
-- [ ] Run independent read-only audits of API contracts, MCP registration/tools, core domain orchestration, and Pest failures.
-- [ ] Apply only evidence-backed fixes in isolated write scopes, preserving other in-progress work.
-- [ ] Run focused suites, parallel Pest, PHPStan, and contract/boundary checks; document every remaining failure with its root cause.
+- [x] Preserve the existing dirty-worktree baseline and record the review scope.
+- [x] Map all application, API, and MCP entry points with the codebase graph.
+- [x] Run independent read-only audits of API contracts, MCP registration/tools, core domain orchestration, and Pest failures.
+- [x] Apply only evidence-backed fixes in isolated write scopes, preserving other in-progress work.
+- [x] Run focused suites, parallel Pest, PHPStan, and contract/boundary checks; document every remaining failure with its root cause.
 
 ### Review
 
-- In progress. The audit must distinguish defects introduced by the current dirty working tree from existing package-cutover failures. The runtime behavior and tests that reflect current domain rules are the source of truth; stale tests will be corrected only after their asserted contract is verified in the application.
+- The audit retained the existing dirty worktree and treated the canonical package schema and current application behavior as the contract; stale Pest fixtures were updated instead of restoring legacy aliases.
+- Repaired API/MCP event taxonomy writes to validate package `EventTerm` records by taxonomy, corrected metadata-backed event-type filtering, and aligned MCP event descriptions with event-term UUIDs.
+- Repaired package-bound event writes: named non-speaker key people now survive sparse updates, venue `type` updates persist, membership-review responses refresh their transition state, and app `Space::factory()` creates the host model.
+- Corrected stale event/reference/series pivot fixtures from `order_column` to `sort_order`, event taxonomy fixtures from Spatie Tags to package terms, and reference-family fixtures from the removed `parent_reference_id` column to `parent_id`.
+- Verification passed: Admin API 84 tests / 1,156 assertions; Admin MCP server; MCP image generation; MCP debug-log 7 tests / 61 assertions; MCP security checklist 3 tests / 18 assertions; reference-family 5 tests / 32 assertions; and frontend API parity. Focused PHPStan for all changed API/MCP write-path classes passed. `git diff --check` passed.
+
+## API P1 defect repair (2026-07-14)
+
+- [x] Trace the catalog, event, and registration API paths with codebase-memory before source inspection.
+- [x] Wire the public membership subject catalog route to the existing controller method and cover the endpoint.
+- [x] Update event index filters to expose only canonical package columns and metadata; cover all affected filters.
+- [x] Remove the stale event institution column from the registrations API select and verify the response contract.
+- [x] Run the focused Pest files in parallel and record the exact outcomes.
+
+### Review
+
+- Catalog API: 5 passed, 26 assertions; user registrations API: 2 passed, 28 assertions.
+- Event API contract: 28 passed, 190 assertions. PHP syntax and `git diff --check` passed for the scoped files.
+
+## Whole-application hard-cut audit (2026-07-14)
+
+- [x] Inventory all route groups, input forms, and workflow entry points; trace each mutation to one canonical action.
+- [x] Audit every observer/listener for stale models, duplicate side effects, and package-incompatible event hierarchy assumptions.
+- [x] Replace app-level parent-event semantics with the package `Event -> EventOccurrence -> EventSession` hierarchy where any remain.
+- [x] Inspect commerce commit `cd6d23c0da6b438d106541974f949204a3bb32ff`, adopt applicable template implementations, and cover the integration.
+- [x] Audit every Filament resource, schema, table, page, and relation manager for stale fields, models, workflows, and authorization.
+- [x] Run focused parallel Pest/PHPStan per repaired slice, repeat the audit until findings are resolved, and record final evidence.
+
+### Review
+
+- Completed as a no-legacy hard cut. The historical `EventStructure`, `parent_event_id`, self-referential event relations, and child-event UI/API contracts were removed. Advanced creation now produces an `Event` and initial `EventOccurrence`; subsequent standard submissions create `EventSession` records beneath that occurrence.
+- The commerce template implementation is active through `FilamentEventsPlugin`; `EventTemplateResource` is registered in both panels and covered by `AdminResourcesCoverageTest`.
+- Observer/listener review made side effects idempotent, moved safe side effects after commit, corrected stale package aliases in `EventObserver`, and verified framework event discovery.
+- Verification: `EventTest` 6/34, `CalendarServiceTest` 10/34, `AdminResourcesCoverageTest` 3/35; focused PHPStan on the hierarchy implementation passed; `php artisan route:list --json` and `git diff --check` passed. The codebase-memory index transport was unavailable, so targeted local discovery was used as the documented fallback.
+# Full test repair and touched-code audit
+
+- [ ] Establish the current full-suite failure inventory and separate environment/bootstrap failures from product failures.
+- [ ] For each failure cluster, use the codebase graph and current implementation as the source of truth; audit the production code exercised by the tests.
+- [ ] Apply hard-cut fixes without compatibility aliases or legacy behavior, updating tests only where their contract is stale.
+- [ ] Run focused tests after each cluster and then the complete Pest suite in parallel.
+- [ ] Run PHPStan and relevant boundary/static checks; inspect the final diff and document findings.
+
+### Review
+
+- In progress.

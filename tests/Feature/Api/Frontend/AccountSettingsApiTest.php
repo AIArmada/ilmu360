@@ -1,7 +1,6 @@
 <?php
 
 use AIArmada\CommerceSupport\Models\Role;
-use App\Actions\Membership\AddMemberToSubject;
 use App\Models\Institution;
 use App\Models\User;
 use App\Support\Mcp\McpTokenManager;
@@ -189,7 +188,7 @@ it('lists, creates, and revokes member MCP tokens through account settings', fun
         'phone_verified_at' => now(),
     ]);
 
-    app(AddMemberToSubject::class)->handle($institution, $user, 'admin');
+    addTestMember($institution, $user, 'admin');
 
     Sanctum::actingAs($user);
 

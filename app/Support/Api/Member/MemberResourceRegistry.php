@@ -11,6 +11,7 @@ use App\Filament\Ahli\Resources\Institutions\InstitutionResource as AhliInstitut
 use App\Filament\Ahli\Resources\References\ReferenceResource as AhliReferenceResource;
 use App\Filament\Ahli\Resources\Speakers\SpeakerResource as AhliSpeakerResource;
 use App\Models\Event;
+use App\Models\Institution;
 use App\Models\Speaker;
 use App\Models\User;
 use Filament\Resources\Resource;
@@ -96,8 +97,12 @@ class MemberResourceRegistry
      */
     public function resolveForModel(string $modelClass): ?string
     {
+        if (is_a($modelClass, Event::class, true)) {
+            return AhliEventResource::class;
+        }
+
         foreach ($this->resources() as $resourceClass) {
-            if ($resourceClass::getModel() === $modelClass) {
+            if ($this->modelClassFor($resourceClass) === $modelClass) {
                 return $resourceClass;
             }
         }
@@ -136,7 +141,8 @@ class MemberResourceRegistry
         $key = $this->keyFor($resourceClass);
         $pages = $resourceClass::getPages();
         $relations = $this->relationNames($resourceClass);
-        $dateSemantics = is_a($resourceClass::getModel(), Event::class, true)
+        $modelClass = $this->modelClassFor($resourceClass);
+        $dateSemantics = $this->isEventResource($resourceClass)
             ? [
                 'storage_timezone' => 'UTC',
                 'viewer_timezone' => 'resolved at request time',
@@ -148,7 +154,7 @@ class MemberResourceRegistry
         return $this->metadataCache[$resourceClass] = [
             'key' => $key,
             'resource_class' => $resourceClass,
-            'model_class' => $resourceClass::getModel(),
+            'model_class' => $modelClass,
             'model_label' => $resourceClass::getModelLabel(),
             'plural_model_label' => $resourceClass::getPluralModelLabel(),
             'navigation_group' => $this->stringOrNull($resourceClass::getNavigationGroup()),
@@ -187,6 +193,17 @@ class MemberResourceRegistry
      */
     public function queryFor(string $resourceClass): Builder
     {
+        if ($this->isEventResource($resourceClass)) {
+            /** @var Builder<Event> $query */
+            $query = Event::query()->withCount('occurrences');
+
+            $this->scopeEventsToCurrentMember($query);
+            $this->applyDefaultApiEagerLoads($query);
+
+            /** @var Builder<Model> $query */
+            return $query;
+        }
+
         /** @var Builder<Model> $query */
         $query = $resourceClass::getEloquentQuery();
 
@@ -236,8 +253,7 @@ class MemberResourceRegistry
 
     public function keyFor(string $resourceClass): string
     {
-        /** @var class-string<Model> $modelClass */
-        $modelClass = $resourceClass::getModel();
+        $modelClass = $this->modelClassFor($resourceClass);
 
         return Str::kebab(Str::pluralStudly(class_basename($modelClass)));
     }
@@ -348,6 +364,69 @@ class MemberResourceRegistry
     }
 
     /**
+     * The package event resource is intentionally generic, while the product
+     * event model owns the morph map, metadata projections, and API payload.
+     * Member reads must use that canonical model rather than the package base
+     * model that the Filament resource declares.
+     *
+     * @return class-string<Model>
+     */
+    private function modelClassFor(string $resourceClass): string
+    {
+        if ($this->isEventResource($resourceClass)) {
+            return Event::class;
+        }
+
+        /** @var class-string<Model> $modelClass */
+        $modelClass = $resourceClass::getModel();
+
+        return $modelClass;
+    }
+
+    private function isEventResource(string $resourceClass): bool
+    {
+        return $resourceClass === AhliEventResource::class;
+    }
+
+    /**
+     * @param  Builder<Event>  $query
+     */
+    private function scopeEventsToCurrentMember(Builder $query): void
+    {
+        $user = auth()->user();
+
+        if (! $user instanceof User) {
+            $query->whereRaw('1 = 0');
+
+            return;
+        }
+
+        $query->where(function (Builder $eventQuery) use ($user): void {
+            $eventQuery
+                ->whereIn('institution_id', $user->institutions()->select('institutions.id'))
+                ->orWhereIn('events.id', $user->memberEvents()->select('events.id'))
+                ->orWhereHas('involvements', function (Builder $involvementQuery) use ($user): void {
+                    $involvementQuery
+                        ->where('role_code', 'organizer')
+                        ->where('is_primary', true)
+                        ->where(function (Builder $organizerQuery) use ($user): void {
+                            $organizerQuery
+                                ->where(function (Builder $institutionQuery) use ($user): void {
+                                    $institutionQuery
+                                        ->whereIn('involveable_type', [Institution::class, 'institution'])
+                                        ->whereIn('involveable_id', $user->institutions()->select('institutions.id'));
+                                })
+                                ->orWhere(function (Builder $speakerQuery) use ($user): void {
+                                    $speakerQuery
+                                        ->whereIn('involveable_type', [Speaker::class, 'speaker'])
+                                        ->whereIn('involveable_id', $user->speakers()->select('speakers.id'));
+                                });
+                        });
+                });
+        });
+    }
+
+    /**
      * @return array{
      *   id: string,
      *   route_key: string,
@@ -366,7 +445,9 @@ class MemberResourceRegistry
         return [
             'id' => (string) $record->getKey(),
             'route_key' => (string) $record->getRouteKey(),
-            'title' => $this->htmlableToString($resourceClass::getRecordTitle($record)),
+            'title' => $record instanceof Event
+                ? $record->title
+                : $this->htmlableToString($resourceClass::getRecordTitle($record)),
             'attributes' => $this->serializeAttributes($record),
             'abilities' => $this->recordAbilities($record),
             'panel_routes' => [
@@ -461,6 +542,10 @@ class MemberResourceRegistry
             $relationNames[] = $name;
         }
 
+        if ($this->isEventResource($resourceClass)) {
+            $relationNames[] = 'child_events';
+        }
+
         return array_values(array_unique($relationNames));
     }
 
@@ -490,7 +575,9 @@ class MemberResourceRegistry
     }
 
     /**
-     * @param  Builder<Model>  $query
+     * @template TModel of Model
+     *
+     * @param  Builder<TModel>  $query
      */
     private function applyDefaultApiEagerLoads(Builder $query): void
     {

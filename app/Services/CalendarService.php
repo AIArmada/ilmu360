@@ -265,28 +265,46 @@ class CalendarService
     {
         $windows = [];
 
-        if ($event->isParentProgram()) {
-            $childEvents = $event->relationLoaded('childEvents')
-                ? $event->childEvents
-                : $event->childEvents()->orderBy('starts_at')->get();
+        $occurrences = $event->relationLoaded('occurrences')
+            ? $event->occurrences
+            : $event->occurrences()->with('sessions')->orderBy('starts_at')->get();
 
-            foreach ($childEvents as $childEvent) {
-                $startAt = $this->asCarbon($childEvent->starts_at);
+        foreach ($occurrences as $occurrence) {
+            $sessions = $occurrence->relationLoaded('sessions')
+                ? $occurrence->sessions
+                : $occurrence->sessions()->orderBy('starts_at')->get();
+
+            if ($sessions->isEmpty()) {
+                $startAt = $this->asCarbon($occurrence->starts_at);
+
+                if ($startAt instanceof Carbon) {
+                    $windows[] = [
+                        'uid' => (string) $occurrence->id,
+                        'start' => $startAt->copy(),
+                        'end' => $this->defaultEndAt($startAt, $occurrence->ends_at) ?? $startAt->copy()->addHours(2),
+                    ];
+                }
+
+                continue;
+            }
+
+            foreach ($sessions as $session) {
+                $startAt = $this->asCarbon($session->starts_at);
 
                 if (! $startAt instanceof Carbon) {
                     continue;
                 }
 
                 $windows[] = [
-                    'uid' => (string) $childEvent->id,
+                    'uid' => (string) $session->id,
                     'start' => $startAt->copy(),
-                    'end' => $this->defaultEndAt($startAt, $childEvent->ends_at) ?? $startAt->copy()->addHours(2),
+                    'end' => $this->defaultEndAt($startAt, $session->ends_at) ?? $startAt->copy()->addHours(2),
                 ];
             }
+        }
 
-            if ($windows !== []) {
-                return $windows;
-            }
+        if ($windows !== []) {
+            return $windows;
         }
 
         $startAt = $this->asCarbon($event->starts_at);

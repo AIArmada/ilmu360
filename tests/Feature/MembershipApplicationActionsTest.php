@@ -1,10 +1,10 @@
 <?php
 
-use AIArmada\Membership\Actions\ApplyForMembershipAction;
 use AIArmada\Membership\Actions\ApproveMembershipApplicationAction;
 use AIArmada\Membership\Actions\CancelMembershipApplicationAction;
 use AIArmada\Membership\Actions\RejectMembershipApplicationAction;
 use AIArmada\Membership\Enums\ApplicationStatus;
+use App\Actions\Membership\SubmitMembershipApplicationAction;
 use App\Enums\MemberSubjectType;
 use App\Models\Institution;
 use App\Models\MemberInvitation;
@@ -27,7 +27,7 @@ it('submits a pending institution membership claim', function () {
     $institution = Institution::factory()->create(['status' => 'verified']);
     $claimant = User::factory()->create();
 
-    $claim = app(ApplyForMembershipAction::class)->handle(
+    $claim = app(SubmitMembershipApplicationAction::class)->handle(
         $institution,
         $claimant,
         'I help manage this institution.',
@@ -51,7 +51,7 @@ it('rejects duplicate pending claims for the same subject and claimant', functio
             'status' => ApplicationStatus::Pending,
         ]);
 
-    expect(fn () => app(ApplyForMembershipAction::class)->handle(
+    expect(fn () => app(SubmitMembershipApplicationAction::class)->handle(
         $speaker,
         $claimant,
         'I already submitted this once.',
@@ -73,7 +73,7 @@ it('rejects claims when a pending invitation already exists', function () {
         'invited_by' => User::factory()->create()->getKey(),
     ]);
 
-    expect(fn () => app(ApplyForMembershipAction::class)->handle(
+    expect(fn () => app(SubmitMembershipApplicationAction::class)->handle(
         $institution,
         $claimant,
         'I should use the invite instead.',
@@ -85,7 +85,7 @@ it('rejects claims when the user is already a member', function () {
     $claimant = User::factory()->create();
     $speaker->members()->attach($claimant);
 
-    expect(fn () => app(ApplyForMembershipAction::class)->handle(
+    expect(fn () => app(SubmitMembershipApplicationAction::class)->handle(
         $speaker,
         $claimant,
         'I am already attached.',
@@ -98,7 +98,7 @@ it('approves a claim and grants editor membership', function () {
     $reviewer = User::factory()->create();
 
     $claim = MembershipApplication::factory()
-        ->forInstitution($institution)
+        ->for($institution, 'subject')
         ->create([
             'applicant_id' => $claimant->getKey(),
             'status' => ApplicationStatus::Pending,
@@ -136,7 +136,7 @@ it('approves a claim and can grant owner through the central moderation path', f
 it('rejects a claim and records reviewer metadata', function () {
     $institution = Institution::factory()->create();
     $claim = MembershipApplication::factory()
-        ->forInstitution($institution)
+        ->for($institution, 'subject')
         ->create([
             'status' => ApplicationStatus::Pending,
         ]);
@@ -154,7 +154,7 @@ it('allows claimants to cancel their own pending claims', function () {
     $claimant = User::factory()->create();
 
     $claim = MembershipApplication::factory()
-        ->forInstitution($institution)
+        ->for($institution, 'subject')
         ->create([
             'applicant_id' => $claimant->getKey(),
             'status' => ApplicationStatus::Pending,

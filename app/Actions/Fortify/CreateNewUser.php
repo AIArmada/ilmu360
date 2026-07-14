@@ -2,7 +2,6 @@
 
 namespace App\Actions\Fortify;
 
-use App\Actions\Teams\CreateTeam;
 use App\Models\User;
 use App\Services\ShareTrackingService;
 use App\Services\Signals\ProductSignalsService;
@@ -51,8 +50,6 @@ class CreateNewUser implements CreatesNewUsers
                 'phone' => $input['phone'] ?? null,
                 'password' => $input['password'],
             ])->save();
-
-            app(CreateTeam::class)->handle($user, $user->name."'s Team", isPersonal: true);
 
             app(ShareTrackingService::class)->recordSignup($user, request());
             app(ProductSignalsService::class)->recordSignup($user, request());

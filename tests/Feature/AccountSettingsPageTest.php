@@ -2,10 +2,10 @@
 
 use App\Livewire\Pages\Dashboard\AccountSettings;
 use App\Models\Institution;
-use App\Models\NotificationDestination;
 use App\Models\User;
 use App\Notifications\Auth\VerifyEmailNotification;
 use App\Services\Notifications\NotificationSettingsManager;
+use AIArmada\Communications\Models\CommunicationDestination;
 use Filament\Forms\Components\Select as FormSelect;
 use Filament\Forms\Components\TextInput;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -123,12 +123,16 @@ it('updates account settings and resets verification when contact details change
         'phone_verified_at' => now(),
     ]);
 
-    NotificationDestination::factory()->for($user)->create([
+    CommunicationDestination::query()->create([
+        'recipient_type' => $user->getMorphClass(),
+        'recipient_id' => $user->getKey(),
         'channel' => 'email',
         'address' => 'old@example.test',
         'external_id' => null,
     ]);
-    NotificationDestination::factory()->for($user)->create([
+    CommunicationDestination::query()->create([
+        'recipient_type' => $user->getMorphClass(),
+        'recipient_id' => $user->getKey(),
         'channel' => 'whatsapp',
         'address' => '+60111111111',
         'external_id' => null,
@@ -154,27 +158,28 @@ it('updates account settings and resets verification when contact details change
         ->and($user->email_verified_at)->toBeNull()
         ->and($user->phone_verified_at)->toBeNull();
 
-    expect(NotificationDestination::query()
-        ->where('user_id', $user->id)
+    expect(CommunicationDestination::query()
+        ->where('recipient_type', $user->getMorphClass())
+        ->where('recipient_id', $user->id)
         ->where('channel', 'email')
         ->pluck('address')
         ->all())->toBe(['updated@example.test']);
 
-    $this->assertDatabaseHas('notification_destinations', [
-        'user_id' => $user->id,
+    $this->assertDatabaseHas('communication_destinations', [
+        'recipient_id' => $user->id,
         'channel' => 'email',
         'address' => 'updated@example.test',
         'status' => 'inactive',
     ]);
 
-    $this->assertDatabaseMissing('notification_destinations', [
-        'user_id' => $user->id,
+    $this->assertDatabaseMissing('communication_destinations', [
+        'recipient_id' => $user->id,
         'channel' => 'email',
         'address' => 'old@example.test',
     ]);
 
-    $this->assertDatabaseMissing('notification_destinations', [
-        'user_id' => $user->id,
+    $this->assertDatabaseMissing('communication_destinations', [
+        'recipient_id' => $user->id,
         'channel' => 'whatsapp',
         'address' => '+60111111111',
     ]);

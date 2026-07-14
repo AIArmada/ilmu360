@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Api\Frontend;
 
-use App\Actions\Events\CreateAdvancedParentProgramAction;
+use App\Actions\Events\CreateAdvancedEventAction;
 use App\Actions\Events\PrepareAdvancedParentProgramSubmissionAction;
 use App\Enums\EventFormat;
 use App\Enums\EventType;
@@ -16,21 +16,21 @@ use Illuminate\Validation\Rule;
 
 #[Group(
     'Advanced Event',
-    'Authenticated parent-program creation flow. '
-    .'Use this when you need to create a reusable parent event and then attach child event submissions to it.',
+    'Authenticated event, occurrence, and session creation flow. '
+    .'Create an event container with its first occurrence, then add sessions beneath that occurrence.',
     weight: 31,
 )]
 class AdvancedEventController extends FrontendController
 {
     #[Endpoint(
-        title: 'Create an advanced parent program',
-        description: 'Creates an authenticated parent program and returns the next submit-event endpoint to use for child sessions. '
+        title: 'Create an advanced event',
+        description: 'Creates an authenticated event with its first occurrence and returns the session-submission endpoint. '
             .'Fetch `GET /forms/advanced-events` first to discover the exact required fields and option catalogs.',
     )]
     public function store(
         Request $request,
         PrepareAdvancedParentProgramSubmissionAction $prepareAdvancedParentProgramSubmissionAction,
-        CreateAdvancedParentProgramAction $createAdvancedParentProgramAction,
+        CreateAdvancedEventAction $createAdvancedEventAction,
     ): JsonResponse {
         $user = $this->requireUser($request);
 
@@ -50,7 +50,7 @@ class AdvancedEventController extends FrontendController
         ]);
 
         $preparedSubmission = $prepareAdvancedParentProgramSubmissionAction->handle($user, $validated);
-        $parentEvent = $createAdvancedParentProgramAction->handle(
+        $event = $createAdvancedEventAction->handle(
             $user,
             $validated,
             $preparedSubmission['program_starts_at'],
@@ -62,13 +62,13 @@ class AdvancedEventController extends FrontendController
 
         return response()->json([
             'data' => [
-                'parent_event' => [
-                    'id' => $parentEvent->getKey(),
-                    'slug' => $parentEvent->slug,
-                    'title' => $parentEvent->title,
-                    'status' => (string) $parentEvent->status,
+                'event' => [
+                    'id' => $event->getKey(),
+                    'slug' => $event->slug,
+                    'title' => $event->title,
+                    'status' => (string) $event->status,
                 ],
-                'next_submit_event_endpoint' => route('api.client.forms.submit-event', ['parent_event_id' => $parentEvent->getKey()]),
+                'next_submit_event_endpoint' => route('api.client.forms.submit-event', ['event_id' => $event->getKey()]),
             ],
             'meta' => [
                 'request_id' => $this->requestId($request),

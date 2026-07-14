@@ -2,6 +2,7 @@
 
 namespace App\Actions\Events;
 
+use AIArmada\Events\Actions\CreateEventOccurrenceAction;
 use AIArmada\Events\Enums\RegistrationMode;
 use App\Models\Event;
 use App\Models\Institution;
@@ -11,7 +12,13 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Lorisleiva\Actions\Concerns\AsAction;
 
-class CreateAdvancedParentProgramAction
+/**
+ * Creates the event container and its first scheduled occurrence.
+ *
+ * Sessions are deliberately created beneath that occurrence; this action never
+ * models an event as the child of another event.
+ */
+class CreateAdvancedEventAction
 {
     use AsAction;
 
@@ -21,33 +28,29 @@ class CreateAdvancedParentProgramAction
     public function handle(
         User $user,
         array $form,
-        Carbon $programStartsAt,
-        Carbon $programEndsAt,
+        Carbon $startsAt,
+        Carbon $endsAt,
         string $timezone,
         Institution|Speaker $primaryOrganizer,
         ?string $locationInstitutionId,
     ): Event {
-        return DB::transaction(function () use ($user, $form, $programStartsAt, $programEndsAt, $timezone, $primaryOrganizer, $locationInstitutionId): Event {
+        return DB::transaction(function () use ($user, $form, $startsAt, $endsAt, $timezone, $primaryOrganizer, $locationInstitutionId): Event {
             $speakerSlugSegments = $primaryOrganizer instanceof Speaker
                 ? app(GenerateEventSlugAction::class)->speakerSlugSegmentsForSpeakerIds([(string) $primaryOrganizer->getKey()])
                 : [];
 
-            $parentEvent = Event::query()->create([
+            $event = Event::query()->create([
                 'user_id' => $user->id,
                 'submitter_id' => $user->id,
-                'parent_event_id' => null,
-                'event_structure' => 'parent_program',
                 'title' => (string) $form['title'],
                 'slug' => app(GenerateEventSlugAction::class)->handle(
                     (string) $form['title'],
-                    $programStartsAt,
+                    $startsAt,
                     $timezone,
                     null,
                     $speakerSlugSegments,
                 ),
                 'description' => (string) ($form['description'] ?? ''),
-                'starts_at' => $programStartsAt,
-                'ends_at' => $programEndsAt,
                 'timezone' => $timezone,
                 'institution_id' => $locationInstitutionId,
                 'event_type' => [(string) $form['default_event_type']],
@@ -56,20 +59,27 @@ class CreateAdvancedParentProgramAction
                 'registration_mode' => ! empty($form['registration_required'])
                     ? RegistrationMode::Required->value
                     : RegistrationMode::None->value,
-                'schedule_kind' => 'single',
-                'schedule_state' => 'active',
                 'status' => 'draft',
-
             ]);
 
-            $parentEvent->accessPolicy()->create([
+            app(CreateEventOccurrenceAction::class)->handle($event, [
+                'title' => $event->title,
+                'slug' => $event->slug,
+                'starts_at' => $startsAt,
+                'ends_at' => $endsAt,
+                'timezone' => $timezone,
+                'visibility' => $event->visibility,
+                'delivery_mode' => $event->delivery_mode,
+            ]);
+
+            $event->accessPolicy()->create([
                 'registration_required' => (bool) $form['registration_required'],
                 'walk_in_allowed' => ! (bool) $form['registration_required'],
             ]);
 
-            $parentEvent->setPrimaryOrganizer($primaryOrganizer);
+            $event->setPrimaryOrganizer($primaryOrganizer);
 
-            return $parentEvent;
+            return $event;
         });
     }
 }

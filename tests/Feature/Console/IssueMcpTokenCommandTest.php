@@ -1,7 +1,6 @@
 <?php
 
 use AIArmada\CommerceSupport\Models\Role;
-use App\Actions\Membership\AddMemberToSubject;
 use App\Models\Institution;
 use App\Models\User;
 use App\Support\Mcp\McpTokenManager;
@@ -28,7 +27,7 @@ it('issues a bearer token for a member-capable user when the member server is re
         'status' => 'verified',
     ]);
 
-    app(AddMemberToSubject::class)->handle($institution, $user, 'admin');
+    addTestMember($institution, $user, 'admin');
 
     $this->artisan('mcp:token', [
         'email' => $user->email,

@@ -29,7 +29,7 @@ class UserRegistrationController extends Controller
             ->active()
             ->with([
                 'event' => fn ($query) => $query
-                    ->select('id', 'title', 'slug', 'starts_at', 'status', 'visibility', 'institution_id', 'default_venue_id', 'metadata')
+                    ->select('id', 'title', 'slug', 'starts_at', 'status', 'visibility', 'default_venue_id', 'metadata')
                     ->with([
                         'institution:id,name,slug',
                         'venue:id,name',

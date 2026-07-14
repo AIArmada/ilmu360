@@ -1,5 +1,6 @@
 <?php
 
+use AIArmada\Events\Models\EventSession;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Venue;
@@ -81,24 +82,16 @@ describe('CalendarService', function () {
         expect($ics)->toContain('TRIGGER:-PT1H');
     });
 
-    it('generates one VEVENT per child event for parent programs', function () {
-        $event = Event::factory()->parentProgram()->create([
+    it('generates one VEVENT per session in an event occurrence', function () {
+        $event = Event::factory()->create([
             'title' => 'Siri Tafsir Mingguan',
             'starts_at' => now()->addDays(1)->setTime(20, 0),
             'ends_at' => now()->addDays(14)->setTime(22, 0),
         ]);
 
-        $childA = Event::factory()->childEvent($event)->create([
-            'title' => 'Tafsir Mingguan 1',
-            'starts_at' => now()->addDays(1)->setTime(20, 0),
-            'ends_at' => now()->addDays(1)->setTime(22, 0),
-        ]);
-
-        $childB = Event::factory()->childEvent($event)->create([
-            'title' => 'Tafsir Mingguan 2',
-            'starts_at' => now()->addDays(8)->setTime(20, 0),
-            'ends_at' => now()->addDays(8)->setTime(22, 0),
-        ]);
+        $occurrence = $event->primaryOccurrence;
+        $childA = EventSession::query()->create(['event_id' => $event->id, 'event_occurrence_id' => $occurrence->id, 'title' => 'Tafsir Mingguan 1', 'slug' => 'tafsir-mingguan-1', 'starts_at' => now()->addDays(1)->setTime(20, 0), 'ends_at' => now()->addDays(1)->setTime(22, 0), 'timezone' => $event->timezone, 'status' => 'scheduled', 'visibility' => 'public', 'delivery_mode' => 'in_person', 'sort_order' => 1]);
+        $childB = EventSession::query()->create(['event_id' => $event->id, 'event_occurrence_id' => $occurrence->id, 'title' => 'Tafsir Mingguan 2', 'slug' => 'tafsir-mingguan-2', 'starts_at' => now()->addDays(8)->setTime(20, 0), 'ends_at' => now()->addDays(8)->setTime(22, 0), 'timezone' => $event->timezone, 'status' => 'scheduled', 'visibility' => 'public', 'delivery_mode' => 'in_person', 'sort_order' => 2]);
 
         $ics = $this->calendarService->generateIcs($event);
 
@@ -107,22 +100,16 @@ describe('CalendarService', function () {
         expect($ics)->toContain($childB->starts_at?->copy()->setTimezone('UTC')->format('Ymd\THis\Z'));
     });
 
-    it('uses the latest past child event for parent-program deep links when no upcoming child exists', function () {
-        $event = Event::factory()->parentProgram()->create([
+    it('uses the latest past session for event calendar deep links when no session is upcoming', function () {
+        $event = Event::factory()->create([
             'title' => 'Siri Tazkirah Mingguan',
             'starts_at' => now()->subDays(10)->setTime(20, 0),
             'ends_at' => now()->subDays(10)->setTime(22, 0),
         ]);
 
-        $olderChild = Event::factory()->childEvent($event)->create([
-            'starts_at' => now()->subDays(10)->setTime(20, 0),
-            'ends_at' => now()->subDays(10)->setTime(22, 0),
-        ]);
-
-        $latestPastChild = Event::factory()->childEvent($event)->create([
-            'starts_at' => now()->subDay()->setTime(20, 0),
-            'ends_at' => now()->subDay()->setTime(22, 0),
-        ]);
+        $occurrence = $event->primaryOccurrence;
+        $olderChild = EventSession::query()->create(['event_id' => $event->id, 'event_occurrence_id' => $occurrence->id, 'title' => 'Older Session', 'slug' => 'older-session', 'starts_at' => now()->subDays(10)->setTime(20, 0), 'ends_at' => now()->subDays(10)->setTime(22, 0), 'timezone' => $event->timezone, 'status' => 'scheduled', 'visibility' => 'public', 'delivery_mode' => 'in_person', 'sort_order' => 1]);
+        $latestPastChild = EventSession::query()->create(['event_id' => $event->id, 'event_occurrence_id' => $occurrence->id, 'title' => 'Latest Session', 'slug' => 'latest-session', 'starts_at' => now()->subDay()->setTime(20, 0), 'ends_at' => now()->subDay()->setTime(22, 0), 'timezone' => $event->timezone, 'status' => 'scheduled', 'visibility' => 'public', 'delivery_mode' => 'in_person', 'sort_order' => 2]);
 
         $url = $this->calendarService->googleCalendarUrl($event);
 

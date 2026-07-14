@@ -183,9 +183,10 @@ it('clears homepage stats cache when event key people are created or deleted', f
     $homepageKeysAfterCreate = primeHomepageStatsCache();
     $eventKeyPerson = EventKeyPerson::factory()->create([
         'event_id' => $event->getKey(),
-        'speaker_id' => $speaker->getKey(),
-        'role' => EventKeyPersonRole::Speaker,
-        'is_public' => true,
+        'involveable_type' => 'speaker',
+        'involveable_id' => $speaker->getKey(),
+        'role_code' => EventKeyPersonRole::Speaker->value,
+        'visibility' => 'public',
     ]);
 
     assertHomepageStatsCacheWasCleared($homepageKeysAfterCreate);

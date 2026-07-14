@@ -145,14 +145,23 @@ ilmu360° exposes the admin MCP server for full admin-surface resource access. T
 
 ## Documentation search and fetch tools
 
-The admin server exposes two read-only documentation tools for model discoverability:
+The admin server exposes two read-only documentation tools for model discoverability. They search and fetch the broader verified, audience-scoped admin documentation catalog:
 
 | Tool | Purpose | Notes |
 |---|---|---|
-| `search` | Search the verified admin MCP guide exposed by this server | Input: one `query` string |
-| `fetch` | Fetch the admin guide by id | Input: one `id` string returned by `search` |
+| `search` | Search the verified admin MCP documentation catalog exposed by this server | Input: one `query` string |
+| `fetch` | Fetch any verified admin documentation page by id | Input: one `id` string returned by `search` |
 
-These tools search and fetch only the verified admin guide above. They do **not** search admin runtime records.
+These tools do **not** search admin runtime records. The primary guide remains `docs-admin-mcp-guide`; the current admin catalog IDs are:
+
+- `docs-api-mcp-filament-crud-comparison`
+- `docs-event-domain-understanding`
+- `docs-admin-mcp-guide`
+- `docs-admin-event-csv-json-create-guide`
+- `docs-general-mcp-guide`
+- `docs-mcp-tool-examples`
+- `docs-mobile-api-reference`
+- `docs-technical-documentation`
 
 ## Documentation routing prompt
 
@@ -192,11 +201,11 @@ Apply this before operational tools such as:
 - `admin-get-event-moderation-schema`
 - `admin-get-report-triage-schema`
 - `admin-get-contribution-request-review-schema`
-- `admin-get-membership-claim-review-schema`
+- `admin-get-membership-application-review-schema`
 - `admin-moderate-event`
 - `admin-triage-report`
 - `admin-review-contribution-request`
-- `admin-review-membership-claim`
+- `admin-review-membership-application`
 
 The client may skip a fresh docs fetch only when the verified guide is already active in context, or when the user provides the exact `resource_key`, `record_key`, tool, and intended read operation and no interpretation is required.
 
@@ -225,14 +234,14 @@ Use this section as the quick admin-only capability summary.
 | Record list | `admin-list-records` |
 | Record read | `admin-get-record` |
 | Record action guidance | `admin-get-record-actions` |
-| Explicit workflow schema discovery | `admin-get-event-moderation-schema`, `admin-get-report-triage-schema`, `admin-get-contribution-request-review-schema`, `admin-get-membership-claim-review-schema` |
+| Explicit workflow schema discovery | `admin-get-event-moderation-schema`, `admin-get-report-triage-schema`, `admin-get-contribution-request-review-schema`, `admin-get-membership-application-review-schema` |
 | Related-record traversal | `admin-list-related-records` |
 | Write schema discovery | `admin-get-write-schema` |
 | GitHub issue reporting | `admin-create-github-issue` |
 | Event moderation | `admin-moderate-event` |
 | Report triage | `admin-triage-report` |
 | Contribution-request workflows | `admin-review-contribution-request` |
-| Membership-claim workflows | `admin-review-membership-claim` |
+| Membership-application workflows | `admin-review-membership-application` |
 | Event image prompts | `admin-event-cover-image-prompt` (prompt), `admin-event-poster-image-prompt` (prompt) |
 | Event image upload | `admin-upload-event-cover-image`, `admin-upload-event-poster-image` |
 | Dedicated event create | `admin-create-event` |
@@ -309,15 +318,15 @@ Event image generation uses a 3-step workflow on the admin server:
 
 - Use `admin-get-record-actions` when you already have a specific record and want the shortest model-visible list of next MCP calls.
 - These read-only tools return focused next-step actions such as refreshing record detail, traversing exposed relations, fetching update schemas, previewing updates, and any explicit workflow tools that are currently valid for that record.
-- On the admin surface, workflow-bearing records such as events, reports, contribution requests, and membership claims include both dedicated workflow-schema tool hints and the action-specific defaults, fields, conditional rules, and currently available workflow actions in the same response.
+- On the admin surface, workflow-bearing records such as events, reports, contribution requests, and membership applications include both dedicated workflow-schema tool hints and the action-specific defaults, fields, conditional rules, and currently available workflow actions in the same response.
 - These tools do not execute mutations; they only point the client at the correct next MCP tool call.
 
 ## Explicit workflow schema tools
 
 - Use the dedicated admin workflow-schema tools when you want the canonical read-only workflow contract for one record before calling the matching mutation tool.
 - These tools return the same workflow payload shape used by the HTTP admin schema endpoints: defaults, available actions, fields, and conditional rules.
-- Current explicit workflow schema tools are `admin-get-event-moderation-schema`, `admin-get-report-triage-schema`, `admin-get-contribution-request-review-schema`, and `admin-get-membership-claim-review-schema`.
-- These workflow-schema tools and their matching execution tools (`admin-moderate-event`, `admin-triage-report`, `admin-review-contribution-request`, `admin-review-membership-claim`) are **conditionally registered** based on the current user's permissions: moderation tools require `canModerate`, triage tools require `canTriage`, and review tools require `canReview`. If any of these tools are absent from `tools/list`, the authenticated admin user lacks the corresponding permission.
+- Current explicit workflow schema tools are `admin-get-event-moderation-schema`, `admin-get-report-triage-schema`, `admin-get-contribution-request-review-schema`, and `admin-get-membership-application-review-schema`.
+- These workflow-schema tools and their matching execution tools (`admin-moderate-event`, `admin-triage-report`, `admin-review-contribution-request`, `admin-review-membership-application`) are **conditionally registered** based on the current user's permissions: moderation tools require `canModerate`, triage tools require `canTriage`, and review tools require `canReview`. If any of these tools are absent from `tools/list`, the authenticated admin user lacks the corresponding permission.
 - `admin-create-github-issue` is also **conditionally registered** — it is only present when the server-side GitHub issue reporter is configured. If it is absent from `tools/list`, GitHub issue reporting has not been set up on this server instance.
 
 ## Entity selection heuristics for record search
@@ -459,7 +468,7 @@ The admin server is the model-visible API-like surface for admin workflows. The 
 | `admin-get-event-moderation-schema` | Read the explicit moderation schema for one event | `GET /api/v1/admin/events/{recordKey}/moderation-schema` |
 | `admin-get-report-triage-schema` | Read the explicit triage schema for one report | `GET /api/v1/admin/reports/{recordKey}/triage-schema` |
 | `admin-get-contribution-request-review-schema` | Read the explicit review schema for one contribution request | `GET /api/v1/admin/contribution-requests/{recordKey}/review-schema` |
-| `admin-get-membership-claim-review-schema` | Read the explicit review schema for one membership claim | `GET /api/v1/admin/membership-claims/{recordKey}/review-schema` |
+| `admin-get-membership-application-review-schema` | Read the explicit review schema for one membership application | `GET /api/v1/admin/membership-applications/{recordKey}/review-schema` |
 | `admin-create-event` | MCP-only event wrapper for create/preview with event-first fields and relation route keys. Accepts scalar event fields (`title`, `event_date`, `prayer_time`, `event_type`, `description`, `custom_time`, `end_time`, `timezone`, `event_format`, `visibility`, `event_url`, `live_url`, `recording_url`, `gender`, `age_group`, `children_allowed`, `is_muslim_only`, `status`, `registration_required`, `registration_mode`, `is_priority`, `is_featured`, `is_active`), relation route keys (`organizer_type`, `organizer_key`, `institution_key`, `venue_key`, `space_key`), speaker/reference route-key arrays (`speaker_keys`, `reference_keys`), language IDs (`languages`), tag arrays (`domain_tags`, `discipline_tags`, `source_tags`, `issue_tags`), `other_key_people`, optional `series`, media descriptors (`cover`, `poster`, `gallery`), and control flags (`validate_only`, `apply_defaults`). `apply_defaults` is preview-only. | `POST /api/v1/admin/{resourceKey}` with `resourceKey=events` (MCP event-first wrapper) |
 | `admin-get-record-media` | List media attachments for one admin record to verify uploads or prefill image generation forms | MCP-only media inspection tool |
 | `admin-read-debug-log` | Read recent filtered lines from the application debug log | MCP-only debug log reader |
@@ -467,7 +476,7 @@ The admin server is the model-visible API-like surface for admin workflows. The 
 | `admin-moderate-event` | Run one explicit moderation action on an event | `POST /api/v1/admin/events/{recordKey}/moderate` |
 | `admin-triage-report` | Run one explicit triage action on a report | `POST /api/v1/admin/reports/{recordKey}/triage` |
 | `admin-review-contribution-request` | Approve or reject one pending contribution request | `POST /api/v1/admin/contribution-requests/{recordKey}/review` |
-| `admin-review-membership-claim` | Approve or reject a pending membership claim | `POST /api/v1/admin/membership-claims/{recordKey}/review` |
+| `admin-review-membership-application` | Approve or reject a pending membership application | `POST /api/v1/admin/membership-applications/{recordKey}/review` |
 | `admin-create-record` | Create or preview a writable admin record | `POST /api/v1/admin/{resourceKey}` |
 | `admin-update-record` | Update or preview a writable admin record | `PUT /api/v1/admin/{resourceKey}/{recordKey}` |
 

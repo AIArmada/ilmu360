@@ -3,11 +3,11 @@
 namespace Database\Seeders;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Events\Models\EventSession;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventKeyPersonRole;
-use App\Enums\EventStructure;
 use App\Enums\EventType;
 use App\Enums\EventVisibility;
 use App\Enums\ScheduleKind;
@@ -42,47 +42,46 @@ class AdvancedEventSeeder extends Seeder
         Event::unsetEventDispatcher();
 
         try {
-            $this->seedWeeklySeriesParent($institution, $speakerIds);
-            $this->seedRamadanProgramParent($institution, $speakerIds);
-            $this->seedWeekendIntensiveParent($institution, $speakerIds);
+            $this->seedWeeklySeries($institution, $speakerIds);
+            $this->seedRamadanProgram($institution, $speakerIds);
+            $this->seedWeekendIntensive($institution, $speakerIds);
             $this->seedMultiDayStandalone($institution, $speakerIds);
             $this->seedStandaloneSpecialLecture($institution, $speakerIds);
         } finally {
             Event::setEventDispatcher(app('events'));
         }
 
-        $this->command->info('  [AdvancedEventSeeder] Seeded 5 explicit advanced event examples (3 parent programs, 2 standalone events).');
+        $this->command->info('  [AdvancedEventSeeder] Seeded 5 event examples with package occurrences and sessions.');
     }
 
     /**
      * @param  list<string>  $speakerIds
      */
-    private function seedWeeklySeriesParent(?Institution $institution, array $speakerIds): void
+    private function seedWeeklySeries(?Institution $institution, array $speakerIds): void
     {
         $tz = 'Asia/Kuala_Lumpur';
         $firstFriday = now($tz)->next(Carbon::FRIDAY)->setTime(20, 30);
 
         $parent = $this->makeBaseEvent(
             title: 'Kelas / Daurah: Al-Arba\'in An-Nawawiyyah',
-            description: 'Program payung untuk siri pengajian mingguan. Setiap pertemuan diterbitkan sebagai child event tersendiri.',
+            description: 'Program payung untuk siri pengajian mingguan. Setiap pertemuan direkodkan sebagai sesi dalam occurrence program.',
             scheduleKind: ScheduleKind::CustomChain,
             institution: $institution,
             speakerIds: $speakerIds,
             tz: $tz,
-            eventStructure: EventStructure::ParentProgram,
             startsAt: $firstFriday->copy()->utc(),
             endsAt: $firstFriday->copy()->addWeeks(4)->utc(),
         );
 
-        $this->createChildEvent($parent, 'Minggu 1: Pengenalan Hadis', $firstFriday->copy(), $firstFriday->copy()->addHours(2));
-        $this->createChildEvent($parent, 'Minggu 2: Hadis Niat', $firstFriday->copy()->addWeek(), $firstFriday->copy()->addWeek()->addHours(2));
-        $this->createChildEvent($parent, 'Minggu 3: Hadis Ihsan', $firstFriday->copy()->addWeeks(2), $firstFriday->copy()->addWeeks(2)->addHours(2));
+        $this->createSession($parent, 'Minggu 1: Pengenalan Hadis', $firstFriday->copy(), $firstFriday->copy()->addHours(2));
+        $this->createSession($parent, 'Minggu 2: Hadis Niat', $firstFriday->copy()->addWeek(), $firstFriday->copy()->addWeek()->addHours(2));
+        $this->createSession($parent, 'Minggu 3: Hadis Ihsan', $firstFriday->copy()->addWeeks(2), $firstFriday->copy()->addWeeks(2)->addHours(2));
     }
 
     /**
      * @param  list<string>  $speakerIds
      */
-    private function seedRamadanProgramParent(?Institution $institution, array $speakerIds): void
+    private function seedRamadanProgram(?Institution $institution, array $speakerIds): void
     {
         $tz = 'Asia/Kuala_Lumpur';
         $nightOne = now($tz)->addDays(10)->setTime(21, 15);
@@ -94,40 +93,38 @@ class AdvancedEventSeeder extends Seeder
             institution: $institution,
             speakerIds: $speakerIds,
             tz: $tz,
-            eventStructure: EventStructure::ParentProgram,
             startsAt: $nightOne->copy()->utc(),
             endsAt: $nightOne->copy()->addDays(14)->utc(),
         );
 
-        $this->createChildEvent($parent, 'Malam 1: Tadabbur Selepas Tarawih', $nightOne->copy(), $nightOne->copy()->addHours(1)->addMinutes(30));
-        $this->createChildEvent($parent, 'Malam 2: Qiyam & Muhasabah', $nightOne->copy()->addDays(3), $nightOne->copy()->addDays(3)->addHours(1)->addMinutes(15));
-        $this->createChildEvent($parent, 'Hujung Minggu: Tadabbur Keluarga', $nightOne->copy()->addDays(6)->setTime(10, 0), $nightOne->copy()->addDays(6)->setTime(12, 0));
+        $this->createSession($parent, 'Malam 1: Tadabbur Selepas Tarawih', $nightOne->copy(), $nightOne->copy()->addHours(1)->addMinutes(30));
+        $this->createSession($parent, 'Malam 2: Qiyam & Muhasabah', $nightOne->copy()->addDays(3), $nightOne->copy()->addDays(3)->addHours(1)->addMinutes(15));
+        $this->createSession($parent, 'Hujung Minggu: Tadabbur Keluarga', $nightOne->copy()->addDays(6)->setTime(10, 0), $nightOne->copy()->addDays(6)->setTime(12, 0));
     }
 
     /**
      * @param  list<string>  $speakerIds
      */
-    private function seedWeekendIntensiveParent(?Institution $institution, array $speakerIds): void
+    private function seedWeekendIntensive(?Institution $institution, array $speakerIds): void
     {
         $tz = 'Asia/Kuala_Lumpur';
         $friday = now($tz)->next(Carbon::FRIDAY)->addWeeks(3)->setTime(20, 30);
 
         $parent = $this->makeBaseEvent(
             title: 'Weekend Intensive: Bulughul Maram',
-            description: 'Program intensif hujung minggu. Setiap sesi utama dihantar sebagai child event supaya jadual awam kekal jelas.',
+            description: 'Program intensif hujung minggu dengan sesi utama dalam satu occurrence supaya jadual awam kekal jelas.',
             scheduleKind: ScheduleKind::MultiDay,
             institution: $institution,
             speakerIds: $speakerIds,
             tz: $tz,
-            eventStructure: EventStructure::ParentProgram,
             startsAt: $friday->copy()->utc(),
             endsAt: $friday->copy()->addDays(2)->utc(),
         );
 
-        $this->createChildEvent($parent, 'Sesi 1: Pengantar Kitab', $friday->copy(), $friday->copy()->addHours(2));
-        $this->createChildEvent($parent, 'Sesi 2: Fiqh Taharah', $friday->copy()->addDay()->setTime(9, 0), $friday->copy()->addDay()->setTime(12, 0));
-        $this->createChildEvent($parent, 'Sesi 3: Fiqh Solat', $friday->copy()->addDay()->setTime(14, 0), $friday->copy()->addDay()->setTime(17, 0));
-        $this->createChildEvent($parent, 'Penutup & Soal Jawab', $friday->copy()->addDays(2)->setTime(9, 30), $friday->copy()->addDays(2)->setTime(11, 30));
+        $this->createSession($parent, 'Sesi 1: Pengantar Kitab', $friday->copy(), $friday->copy()->addHours(2));
+        $this->createSession($parent, 'Sesi 2: Fiqh Taharah', $friday->copy()->addDay()->setTime(9, 0), $friday->copy()->addDay()->setTime(12, 0));
+        $this->createSession($parent, 'Sesi 3: Fiqh Solat', $friday->copy()->addDay()->setTime(14, 0), $friday->copy()->addDay()->setTime(17, 0));
+        $this->createSession($parent, 'Penutup & Soal Jawab', $friday->copy()->addDays(2)->setTime(9, 30), $friday->copy()->addDays(2)->setTime(11, 30));
     }
 
     /**
@@ -170,20 +167,28 @@ class AdvancedEventSeeder extends Seeder
         );
     }
 
-    private function createChildEvent(Event $parentEvent, string $title, CarbonInterface $startsAt, CarbonInterface $endsAt): Event
+    private function createSession(Event $event, string $title, CarbonInterface $startsAt, CarbonInterface $endsAt): EventSession
     {
-        return $this->makeBaseEvent(
-            title: $title,
-            description: 'Child event attached to the parent program.',
-            scheduleKind: ScheduleKind::Single,
-            institution: $parentEvent->institution,
-            speakerIds: $parentEvent->speakers()->pluck('speakers.id')->map(static fn (mixed $id): string => (string) $id)->all(),
-            tz: $parentEvent->timezone ?: 'Asia/Kuala_Lumpur',
-            eventStructure: EventStructure::ChildEvent,
-            parentEvent: $parentEvent,
-            startsAt: $startsAt->copy()->utc(),
-            endsAt: $endsAt->copy()->utc(),
-        );
+        $occurrence = $event->primaryOccurrence;
+
+        if ($occurrence === null) {
+            throw new \RuntimeException('A seeded event must have a primary occurrence before sessions are added.');
+        }
+
+        return EventSession::query()->create([
+            'event_id' => $event->id,
+            'event_occurrence_id' => $occurrence->id,
+            'title' => $title,
+            'slug' => Str::slug($title).'-'.Str::lower(Str::random(6)),
+            'description' => 'Session in the event occurrence.',
+            'starts_at' => $startsAt->copy()->utc(),
+            'ends_at' => $endsAt->copy()->utc(),
+            'timezone' => $event->timezone ?: 'Asia/Kuala_Lumpur',
+            'status' => 'published',
+            'visibility' => EventVisibility::Public->value,
+            'delivery_mode' => EventFormat::Physical->value,
+            'sort_order' => (int) $occurrence->sessions()->max('sort_order') + 1,
+        ]);
     }
 
     /**
@@ -196,8 +201,6 @@ class AdvancedEventSeeder extends Seeder
         ?Institution $institution,
         array $speakerIds,
         string $tz,
-        EventStructure $eventStructure = EventStructure::Standalone,
-        ?Event $parentEvent = null,
         ?CarbonInterface $startsAt = null,
         ?CarbonInterface $endsAt = null,
     ): Event {
@@ -208,8 +211,6 @@ class AdvancedEventSeeder extends Seeder
             'id' => (string) Str::uuid(),
             'user_id' => null,
             'submitter_id' => null,
-            'parent_event_id' => $parentEvent?->id,
-            'event_structure' => $eventStructure->value,
             'institution_id' => $institution?->id,
             'default_venue_id' => null,
             'title' => $title,

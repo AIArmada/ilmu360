@@ -1,7 +1,9 @@
 <?php
 
 use AIArmada\FilamentEvents\Resources\EventResource;
+use AIArmada\FilamentEvents\Resources\EventTemplateResource;
 use AIArmada\FilamentEvents\Resources\VenueResource;
+use AIArmada\Events\Models\EventTemplate;
 use App\Filament\Resources\AiModelPricings\AiModelPricingResource;
 use App\Filament\Resources\AiUsageLogs\AiUsageLogResource;
 use App\Filament\Resources\ContributionRequests\ContributionRequestResource;
@@ -27,6 +29,9 @@ use App\Filament\Resources\Tags\TagResource;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
+use Filament\Facades\Filament;
+use Livewire\Livewire;
+use AIArmada\FilamentEvents\Resources\EventTemplateResource\Pages\CreateEventTemplate;
 
 it('allows super admin to access all core admin resource index pages', function () {
     $this->seed(PermissionSeeder::class);
@@ -37,6 +42,7 @@ it('allows super admin to access all core admin resource index pages', function 
 
     $resources = [
         EventResource::class,
+        EventTemplateResource::class,
         InstitutionResource::class,
         SpeakerResource::class,
         VenueResource::class,
@@ -58,6 +64,29 @@ it('allows super admin to access all core admin resource index pages', function 
             ->get($resource::getUrl('index'))
             ->assertSuccessful();
     }
+});
+
+it('registers and can create commerce event templates in both panels', function () {
+    expect(Filament::getPanel('admin')->getResources())->toContain(EventTemplateResource::class)
+        ->and(Filament::getPanel('ahli')->getResources())->toContain(EventTemplateResource::class)
+        ->and(config('filament-events.resources.enabled.event_template'))->toBeTrue()
+        ->and(EventTemplateResource::getPages())->toHaveKeys(['index', 'create', 'view', 'edit']);
+
+    $administrator = User::factory()->create();
+
+    Livewire::actingAs($administrator)
+        ->test(CreateEventTemplate::class)
+        ->fillForm([
+            'name' => 'Weekly Study Template',
+            'code' => 'weekly-study',
+            'template_type' => 'event',
+            'status' => 'draft',
+            'visibility' => 'private',
+        ])
+        ->call('create')
+        ->assertHasNoErrors();
+
+    expect(EventTemplate::query()->where('code', 'weekly-study')->value('payload'))->toBe([]);
 });
 
 it('registers expected relation managers on core admin resources', function () {

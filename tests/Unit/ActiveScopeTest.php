@@ -35,13 +35,9 @@ it('models have active scopes', function () {
             'visibility' => 'public',
             'published_at' => null,
         ]);
-        Event::factory()->create([
-            'status' => Approved::class,
-            'visibility' => 'public',
-            'published_at' => null,
-        ]);
-
-        // Event "active" listing is publication + status + visibility based.
+        // Public event factories publish approved events as part of the current
+        // lifecycle contract, so the approved fixture above is the sole active
+        // event in this scope check.
         expect(Event::active()->count())->toBe(1);
     });
 });

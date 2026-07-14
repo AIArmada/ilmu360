@@ -1,7 +1,6 @@
 <?php
 
 use AIArmada\CommerceSupport\Models\Role;
-use App\Actions\Membership\AddMemberToSubject;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
@@ -610,16 +609,17 @@ function eventImageGenerationEventFixture(?Institution $institution = null): arr
 
     EventKeyPerson::factory()->create([
         'event_id' => $event->getKey(),
-        'speaker_id' => $speaker->getKey(),
-        'role' => EventKeyPersonRole::Speaker->value,
-        'order_column' => 1,
-        'is_public' => true,
+        'involveable_type' => 'speaker',
+        'involveable_id' => $speaker->getKey(),
+        'role_code' => EventKeyPersonRole::Speaker->value,
+        'visibility' => 'public',
+        'sort_order' => 1,
     ]);
 
-    $event->references()->attach($reference->getKey(), ['order_column' => 1]);
+    $event->references()->attach($reference->getKey(), ['sort_order' => 1]);
     $event->series()->attach($series->getKey(), [
         'id' => (string) Str::uuid(),
-        'order_column' => 1,
+        'sort_order' => 1,
     ]);
 
     return [$event->refresh(), $speaker, $reference, $institution];
@@ -657,7 +657,7 @@ function eventImageGenerationMemberContext(): array
         'phone_verified_at' => now(),
     ]);
 
-    app(AddMemberToSubject::class)->handle($institution, $member, 'admin');
+    addTestMember($institution, $member, 'admin');
 
     return [$member, $institution];
 }

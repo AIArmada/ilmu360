@@ -322,3 +322,7 @@
 - When the consuming product is itself international, country-specific geography cannot remain in its forms, filters, APIs, seeders, or presenters; those surfaces must resolve the selected country profile and use country-scoped fallbacks when no structured provider exists.
 - When a slug test defines the canonical geography contract, preserve every required structured segment (city, district, state, country) in the generated URL; fix the address-ID/name resolution path instead of weakening the expectation.
 - When a user explicitly requires no backward compatibility, cut over to the package's canonical schema in one slice: delete invalid aliases and dead wrappers, update package consumers/tests/UI, and do not leave fallback reads or writes that make the old contract appear supported.
+- When a hard package cutover changes public API filters or MCP tool names, do not preserve legacy request keys, aliases, or compatibility assertions by default; update every in-scope client contract, documentation, and test to the canonical surface.
+# Subagent model preference
+
+- Use Luna high only for audit subagents. Do not assign Luna xhigh unless the user explicitly changes this preference.

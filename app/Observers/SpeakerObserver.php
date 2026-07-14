@@ -11,8 +11,9 @@ use App\Observers\Concerns\SyncsCurrentAndPreviousValues;
 use App\Support\Cache\PublicDirectoryCacheVersion;
 use App\Support\Cache\PublicListingsCache;
 use App\Support\Search\SpeakerSearchService;
+use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
-class SpeakerObserver
+class SpeakerObserver implements ShouldHandleEventsAfterCommit
 {
     use SyncsCurrentAndPreviousValues;
 
@@ -27,9 +28,20 @@ class SpeakerObserver
 
     public function saved(Speaker $speaker): void
     {
-        $this->speakerSearchService->syncSpeakerRecord($speaker);
+        if (! $speaker->wasRecentlyCreated && ! $speaker->wasChanged()) {
+            return;
+        }
 
-        if ($speaker->wasRecentlyCreated || $speaker->wasChanged(['name', 'honorific', 'pre_nominal', 'post_nominal'])) {
+        $searchableNameChanged = $speaker->wasRecentlyCreated || $speaker->wasChanged([
+            'name',
+            'honorific',
+            'pre_nominal',
+            'post_nominal',
+        ]);
+
+        if ($searchableNameChanged) {
+            $this->speakerSearchService->syncSpeakerRecord($speaker);
+
             OwnerContext::withOwner(null, function () use ($speaker): void {
                 $this->syncCurrentAndPreviousString(
                     $speaker->name,

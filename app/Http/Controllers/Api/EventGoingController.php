@@ -27,16 +27,28 @@ class EventGoingController extends Controller
     )]
     public function index(Request $request): JsonResponse
     {
-        $goingEvents = $this->currentUser($request)
-            ->goingEvents()
-            ->with(['institution:id,name,slug', 'venue:id,name', 'speakers:id,name,slug'])
+        $user = $this->currentUser($request);
+        $goingEvents = Event::query()
+            ->whereHas('goingBy', fn ($query) => $query
+                ->where('responder_type', $user->getMorphClass())
+                ->where('responder_id', $user->getKey())
+                ->where('status', 'active'))
+            ->with([
+                'institution:id,name,slug',
+                'venue:id,name',
+                'speakers:id,name,slug',
+                'goingBy' => fn ($query) => $query
+                    ->where('responder_type', $user->getMorphClass())
+                    ->where('responder_id', $user->getKey())
+                    ->where('status', 'active'),
+            ])
             ->active()
             ->orderBy('starts_at')
             ->simplePaginate(ApiPagination::normalizePerPage($request->integer('per_page', 20), default: 20, max: 100));
 
         return response()->json([
             'data' => collect($goingEvents->items())
-                ->map(fn (Event $event): array => EventEngagementListItemData::fromModel($event)->payload())
+                ->map(fn (Event $event): array => EventEngagementListItemData::fromModel($event, $event->goingBy->first())->payload())
                 ->all(),
             'meta' => [
                 'request_id' => $request->header('X-Request-ID', (string) Str::uuid()),
@@ -78,7 +90,7 @@ class EventGoingController extends Controller
             ], 403);
         }
 
-        $goingState = $markEventGoingAction->handle($event, $this->currentUser($request), $request);
+        $goingState = $markEventGoingAction->handle($event, $this->currentUser($request));
 
         if ($goingState['status'] === 'not_found') {
             return response()->json([

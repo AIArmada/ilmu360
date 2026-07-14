@@ -36,7 +36,7 @@ it('serializes follow state payloads for each followable type', function (string
     'institution by slug' => ['institution', 'slug', ['status' => 'verified']],
     'speaker by slug' => ['speaker', 'slug', ['status' => 'verified']],
     'reference by slug' => ['reference', 'slug', ['status' => 'verified']],
-    'reference by uuid' => ['reference', 'id', ['status' => 'active']],
+    'reference by uuid' => ['reference', 'id', ['status' => 'verified']],
     'series by slug' => ['series', 'slug', ['visibility' => 'public', 'status' => 'active']],
 ]);
 

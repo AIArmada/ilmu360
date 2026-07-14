@@ -38,7 +38,7 @@ function referenceFamilyFixtures(): array
         'title' => 'Riyadhus Solihin',
         'slug' => 'riyadhus-solihin-jilid-2',
         'type' => ReferenceType::Book->value,
-        'parent_reference_id' => $root->id,
+        'parent_id' => $root->id,
         'part_type' => ReferencePartType::Jilid->value,
         'part_number' => '2',
         'status' => 'verified',
@@ -48,7 +48,7 @@ function referenceFamilyFixtures(): array
         'title' => 'Riyadhus Solihin',
         'slug' => 'riyadhus-solihin-jilid-3',
         'type' => ReferenceType::Book->value,
-        'parent_reference_id' => $root->id,
+        'parent_id' => $root->id,
         'part_type' => ReferencePartType::Jilid->value,
         'part_number' => '3',
         'status' => 'verified',
@@ -79,7 +79,7 @@ it('shows root reference detail events from all child parts', function () {
     $partEvent = publicReferenceFamilyEvent(['title' => 'Kuliah Jilid 2']);
     $unrelatedEvent = publicReferenceFamilyEvent(['title' => 'Unrelated Kuliah']);
 
-    $partTwo->events()->attach($partEvent, ['order_column' => 1]);
+    $partTwo->events()->attach($partEvent, ['sort_order' => 1]);
 
     $response = $this->getJson(route('api.client.references.show', ['referenceKey' => $root->slug]));
 
@@ -98,8 +98,8 @@ it('shows child reference detail events exactly unless all parts are requested',
     $partTwoEvent = publicReferenceFamilyEvent(['title' => 'Kuliah Jilid 2']);
     $partThreeEvent = publicReferenceFamilyEvent(['title' => 'Kuliah Jilid 3']);
 
-    $partTwo->events()->attach($partTwoEvent, ['order_column' => 1]);
-    $partThree->events()->attach($partThreeEvent, ['order_column' => 1]);
+    $partTwo->events()->attach($partTwoEvent, ['sort_order' => 1]);
+    $partThree->events()->attach($partThreeEvent, ['sort_order' => 1]);
 
     $exactResponse = $this->getJson(route('api.client.references.show', ['referenceKey' => $partTwo->slug]));
     $exactResponse->assertOk();
@@ -132,8 +132,8 @@ it('expands root reference event filters while child filters stay exact', functi
     $partThreeEvent = publicReferenceFamilyEvent(['title' => 'Event Linked To Part Three']);
     $unrelatedEvent = publicReferenceFamilyEvent(['title' => 'Unrelated Event']);
 
-    $partTwo->events()->attach($partTwoEvent, ['order_column' => 1]);
-    $partThree->events()->attach($partThreeEvent, ['order_column' => 1]);
+    $partTwo->events()->attach($partTwoEvent, ['sort_order' => 1]);
+    $partThree->events()->attach($partThreeEvent, ['sort_order' => 1]);
 
     $rootFilterResponse = $this->getJson('/api/v1/events?filter[reference_ids][]='.$root->id);
     $rootFilterResponse->assertOk();

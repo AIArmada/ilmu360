@@ -200,7 +200,10 @@ it('shows a clear message when the signed-in user has no email for the invitatio
         ->test(ShowInvitation::class, [
             'token' => $invitation->token,
         ])
-        ->assertSee('Add an email address to your account before accepting this invitation.');
+        ->assertSee('Add an email address to your account before accepting this invitation.')
+        ->call('accept');
+
+    expect($invitation->fresh()?->accepted_at)->toBeNull();
 });
 
 it('shows invalid messaging for protected invitations that should no longer be accepted', function () {
@@ -225,7 +228,10 @@ it('shows invalid messaging for protected invitations that should no longer be a
         ->test(ShowInvitation::class, [
             'token' => $invitation->token,
         ])
-        ->assertSee('This invitation is no longer valid.');
+        ->assertSee('This invitation is no longer valid.')
+        ->call('accept');
+
+    expect($invitation->fresh()?->accepted_at)->toBeNull();
 });
 
 it('shows invalid messaging when the invited subject no longer exists', function () {

@@ -34,8 +34,8 @@ final readonly class SaveVenueAction
 
         $venue->fill([
             'name' => $this->normalizeRequiredString($data['name'] ?? $venue->name, 'Venue'),
-            'venue_type' => array_key_exists('venue_type', $data)
-                ? $this->normalizeVenueType($data['venue_type'] ?? null)
+            'venue_type' => array_key_exists('type', $data)
+                ? $this->normalizeVenueType($data['type'] ?? null)
                 : $this->normalizeVenueType($venue->venue_type),
             'description' => array_key_exists('description', $data) ? $data['description'] : $venue->description,
             'status' => array_key_exists('status', $data) ? (string) $data['status'] : ($creating ? 'verified' : (string) $venue->status),

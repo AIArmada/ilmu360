@@ -2,12 +2,12 @@
 
 namespace App\Data\Api\EventEngagement;
 
+use AIArmada\Engagement\Models\Response;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Speaker;
 use App\Models\Venue;
 use BackedEnum;
-use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Support\Arr;
 use Spatie\LaravelData\Data;
 
@@ -28,10 +28,8 @@ class EventEngagementListItemData extends Data
         public ?array $pivot,
     ) {}
 
-    public static function fromModel(Event $event): self
+    public static function fromModel(Event $event, ?Response $response = null): self
     {
-        $pivot = $event->relationLoaded('pivot') ? $event->getRelation('pivot') : null;
-
         return new self(
             attributes: [
                 'id' => (string) $event->getKey(),
@@ -66,7 +64,13 @@ class EventEngagementListItemData extends Data
                     ->values()
                     ->all()
                 : [],
-            pivot: $pivot instanceof Pivot ? $pivot->toArray() : null,
+            pivot: $response instanceof Response ? [
+                'id' => (string) $response->getKey(),
+                'event_id' => (string) $response->respondable_id,
+                'user_id' => (string) $response->responder_id,
+                'response_type' => $response->response_type,
+                'responded_at' => $response->responded_at?->toJSON(),
+            ] : null,
         );
     }
 

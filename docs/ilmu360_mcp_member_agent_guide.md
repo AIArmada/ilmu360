@@ -128,19 +128,19 @@ Key fields in each result:
 
 To act on a pending request, use `member-approve-contribution-request`, `member-reject-contribution-request`, or `member-cancel-contribution-request` with the `request_id` parameter. Note that `reason_code` is **required** (not optional) when calling `member-reject-contribution-request`.
 
-#### List my membership claims
+#### List my membership applications
 
-Use `member-list-membership-claims` to see the authenticated member's claims:
+Use `member-list-membership-applications` to see the authenticated member's applications:
 
 ```json
 {
-  "tool": "member-list-membership-claims"
+  "tool": "member-list-membership-applications"
 }
 ```
 
 Key fields: `status`, `institution.name`, `submitted_at`, `id`.
 
-To cancel a pending claim, use `member-cancel-membership-claim` with the `claim_id` parameter (pass the `id` value returned by the list tool).
+To cancel a pending application, use `member-cancel-membership-application` with the `application_id` parameter (pass the `id` value returned by the list tool).
 
 ---
 
@@ -156,14 +156,23 @@ ilmu360° exposes the member MCP server for Ahli-scoped resource access. Treat t
 
 ## Documentation search and fetch tools
 
-The member server exposes two read-only documentation tools for model discoverability:
+The member server exposes two read-only documentation tools for model discoverability. They search and fetch the broader verified, audience-scoped member documentation catalog:
 
 | Tool | Purpose | Notes |
 |---|---|---|
-| `search` | Search the verified member MCP guide exposed by this server | Input: one `query` string |
-| `fetch` | Fetch the member guide by id | Input: one `id` string returned by `search` |
+| `search` | Search the verified member MCP documentation catalog exposed by this server | Input: one `query` string |
+| `fetch` | Fetch any verified member documentation page by id | Input: one `id` string returned by `search` |
 
-These tools search and fetch only the verified member guide above. They do **not** search member runtime records.
+These tools do **not** search member runtime records. The primary guide remains `docs-member-mcp-guide`; the current member catalog IDs are:
+
+- `docs-api-mcp-filament-crud-comparison`
+- `docs-event-domain-understanding`
+- `docs-admin-event-csv-json-create-guide`
+- `docs-general-mcp-guide`
+- `docs-member-mcp-guide`
+- `docs-mcp-tool-examples`
+- `docs-mobile-api-reference`
+- `docs-technical-documentation`
 
 ## Documentation routing prompt
 
@@ -197,9 +206,9 @@ Apply this before operational tools such as:
 - `member-approve-contribution-request`
 - `member-reject-contribution-request`
 - `member-cancel-contribution-request`
-- `member-list-membership-claims`
-- `member-submit-membership-claim`
-- `member-cancel-membership-claim`
+- `member-list-membership-applications`
+- `member-submit-membership-application`
+- `member-cancel-membership-application`
 
 The client may skip a fresh docs fetch only when the verified guide is already active in context, or when the user provides the exact `resource_key`, `record_key`, tool, and intended read operation and no interpretation is required.
 
@@ -232,7 +241,7 @@ Use this section as the quick member-only capability summary.
 | Write schema discovery | `member-get-write-schema` |
 | GitHub issue reporting | `member-create-github-issue` |
 | Contribution-request workflows | `member-list-contribution-requests`, `member-approve-contribution-request`, `member-reject-contribution-request`, `member-cancel-contribution-request` |
-| Membership-claim workflows | `member-list-membership-claims`, `member-submit-membership-claim`, `member-cancel-membership-claim` |
+| Membership-application workflows | `member-list-membership-applications`, `member-submit-membership-application`, `member-cancel-membership-application` |
 | Event image prompts | `member-event-cover-image-prompt` (prompt), `member-event-poster-image-prompt` (prompt) |
 | Event image upload | `member-upload-event-cover-image`, `member-upload-event-poster-image` |
 | Update | `member-update-record` |
@@ -349,7 +358,7 @@ When the user asks you to “look for” a named place, start with the most like
 
 ## MCP media/file upload contract
 
-Member tools like `member-submit-membership-claim` accept media/file descriptors in JSON format. File uploads work identically to the admin MCP surface; see `docs/ilmu360_mcp_admin_agent_guide.md#mcp-mediafile-upload-contract` for full descriptor shape, aliases, and security rules.
+Member tools like `member-submit-membership-application` accept media/file descriptors in JSON format. File uploads work identically to the admin MCP surface; see `docs/ilmu360_mcp_admin_agent_guide.md#mcp-mediafile-upload-contract` for full descriptor shape, aliases, and security rules.
 
 **Quick reference** — all of these descriptor formats are accepted:
 
@@ -436,10 +445,9 @@ The member server is the model-visible API-like surface for Ahli-scoped workflow
 | `member-approve-contribution-request` | Approve a pending contribution request | `POST /api/v1/member/contribution-requests/{requestKey}/approve` |
 | `member-reject-contribution-request` | Reject a pending contribution request | `POST /api/v1/member/contribution-requests/{requestKey}/reject` |
 | `member-cancel-contribution-request` | Cancel one of the member's pending contribution requests | `DELETE /api/v1/member/contribution-requests/{requestKey}` |
-| `member-list-membership-claims` | List the authenticated member's membership claims | `GET /api/v1/member/membership-claims` |
-| `member-submit-membership-claim` | Submit a membership claim with evidence uploads | `POST /api/v1/member/membership-claims` |
-| `member-cancel-membership-claim` | Cancel one of the member's membership claims | `DELETE /api/v1/member/membership-claims/{claimKey}` |
-| `member-read-debug-log` | Read recent filtered lines from the application debug log | MCP-only debug log reader |
+| `member-list-membership-applications` | List the authenticated member's membership applications | `GET /api/v1/member/membership-applications` |
+| `member-submit-membership-application` | Submit a membership application with evidence uploads | `POST /api/v1/member/membership-applications/{subjectType}/{subject}` |
+| `member-cancel-membership-application` | Cancel one of the member's membership applications | `DELETE /api/v1/member/membership-applications/{applicationId}` |
 
 Member tool behavior notes:
 
@@ -472,6 +480,6 @@ Member tool behavior notes:
 
 - Member MCP currently supports read flows and schema-guided updates on writable member-scoped resources.
 - Member MCP does **not** expose generic delete tools (for example `member-delete-record`).
-- Treat delete-like lifecycle actions as explicit workflows only where dedicated tools exist (for example claim or contribution cancellation).
+- Treat delete-like lifecycle actions as explicit workflows only where dedicated tools exist (for example membership-application or contribution cancellation).
 - This guide is not the raw HTTP member API contract. Do not infer HTTP endpoint shapes, destructive media flags, or raw schema semantics from MCP behavior.
 - This guide is not a Filament panel parity matrix. Do not infer panel capabilities from MCP tool availability or vice versa.

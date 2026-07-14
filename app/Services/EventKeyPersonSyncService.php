@@ -47,6 +47,7 @@ class EventKeyPersonSyncService
                 'sort_order' => $order++,
                 'visibility' => $keyPerson['visibility'],
                 'notes' => $keyPerson['notes'],
+                'metadata' => $keyPerson['name'] !== null ? ['name' => $keyPerson['name']] : null,
             ]);
         }
 
@@ -68,7 +69,7 @@ class EventKeyPersonSyncService
 
     /**
      * @param  list<array<string, mixed>>  $keyPeople
-     * @return list<array{role: string, speaker_id: ?string, visibility: string, notes: ?string}>
+     * @return list<array{role: string, speaker_id: ?string, name: ?string, visibility: string, notes: ?string}>
      */
     protected function normalizeKeyPeople(array $keyPeople): array
     {
@@ -83,15 +84,24 @@ class EventKeyPersonSyncService
                 $speakerId = is_string($keyPerson['speaker_id'] ?? null) && $keyPerson['speaker_id'] !== ''
                     ? $keyPerson['speaker_id']
                     : null;
+                $name = is_string($keyPerson['name'] ?? null) && trim($keyPerson['name']) !== ''
+                    ? trim($keyPerson['name'])
+                    : null;
 
-                if ($speakerId === null) {
+                if ($speakerId === null && $name === null) {
                     return null;
                 }
+
+                $visibility = $keyPerson['visibility'] ?? null;
+                $isPublic = array_key_exists('is_public', $keyPerson)
+                    ? filter_var($keyPerson['is_public'], FILTER_VALIDATE_BOOLEAN)
+                    : $visibility !== 'private';
 
                 return [
                     'role' => $role,
                     'speaker_id' => $speakerId,
-                    'visibility' => (string) ($keyPerson['is_public'] ?? true) === 'true' || $keyPerson['is_public'] === true ? 'public' : 'private',
+                    'name' => $name,
+                    'visibility' => $isPublic ? 'public' : 'private',
                     'notes' => is_string($keyPerson['notes'] ?? null) && trim($keyPerson['notes']) !== ''
                         ? trim($keyPerson['notes'])
                         : null,

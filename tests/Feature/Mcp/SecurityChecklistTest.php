@@ -1,7 +1,6 @@
 <?php
 
 use AIArmada\CommerceSupport\Models\Role;
-use App\Actions\Membership\AddMemberToSubject;
 use App\Actions\Venues\SaveVenueAction;
 use App\Forms\SharedFormSchema;
 use App\Mcp\Servers\AdminServer;
@@ -161,7 +160,7 @@ function securityChecklistMemberInstitutionContext(): array
         'phone_verified_at' => now(),
     ]);
 
-    app(AddMemberToSubject::class)->handle($institution, $member, 'admin');
+    addTestMember($institution, $member, 'admin');
 
     return [$member, $institution];
 }

@@ -636,7 +636,6 @@ function createSlugRedirectEvent(string $id, string $title, string $slug, Carbon
         'id' => $id,
         'title' => $title,
         'slug' => $slug,
-        'event_structure' => 'standalone',
         'starts_at' => $startsAt,
         'timezone' => 'Asia/Kuala_Lumpur',
         'event_type' => ['other'],

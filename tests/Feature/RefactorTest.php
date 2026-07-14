@@ -25,10 +25,10 @@ class RefactorTest extends TestCase
         $this->assertFalse(Schema::hasTable('membership_claims'));
         $this->assertTrue(Schema::hasTable('reference_members'));
         $this->assertTrue(Schema::hasTable('membership_invitations'));
-        $this->assertTrue(Schema::hasTable('notification_settings'));
-        $this->assertTrue(Schema::hasTable('notification_rules'));
-        $this->assertTrue(Schema::hasTable('notification_destinations'));
-        $this->assertTrue(Schema::hasTable('notification_deliveries'));
+        $this->assertFalse(Schema::hasTable('notification_settings'));
+        $this->assertFalse(Schema::hasTable('notification_rules'));
+        $this->assertFalse(Schema::hasTable('notification_destinations'));
+        $this->assertFalse(Schema::hasTable('notification_deliveries'));
         $this->assertFalse(Schema::hasColumn('moderation_reviews', 'reviewer_id'));
         $this->assertFalse(Schema::hasTable('event_speaker'));
         $this->assertFalse(Schema::hasTable('event_participants'));
@@ -37,12 +37,6 @@ class RefactorTest extends TestCase
         $this->assertFalse(Schema::hasTable('event_interests'));
         $this->assertFalse(Schema::hasTable('dawah_share_links'));
         $this->assertFalse(Schema::hasTable('notifications'));
-        $this->assertTrue(Schema::hasColumn('notification_inboxes', 'family'));
-        $this->assertTrue(Schema::hasColumn('notification_inboxes', 'archived_at'));
-        $this->assertTrue(Schema::hasColumn('notification_messages', 'delivery_cadence'));
-        $this->assertTrue(Schema::hasColumn('notification_messages', 'processed_at'));
-        $this->assertTrue(Schema::hasColumn('notification_messages', 'dispatched_at'));
-        $this->assertTrue(Schema::hasColumn('notification_messages', 'notification_id'));
     }
 
     public function test_speaker_post_nominal_logic()

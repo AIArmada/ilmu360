@@ -25,7 +25,6 @@ use App\Mcp\Tools\Member\MemberListMembershipApplicationsTool;
 use App\Mcp\Tools\Member\MemberListRecordsTool;
 use App\Mcp\Tools\Member\MemberListRelatedRecordsTool;
 use App\Mcp\Tools\Member\MemberListResourcesTool;
-use App\Mcp\Tools\Member\MemberReadDebugLogTool;
 use App\Mcp\Tools\Member\MemberRejectContributionRequestTool;
 use App\Mcp\Tools\Member\MemberSearchEventsTool;
 use App\Mcp\Tools\Member\MemberSubmitMembershipApplicationTool;
@@ -64,7 +63,6 @@ class MemberServer extends Ilmu360Server
     protected array $tools = [
         MemberDocumentationSearchTool::class,
         MemberDocumentationFetchTool::class,
-        MemberReadDebugLogTool::class,
         MemberUploadEventCoverImageTool::class,
         MemberUploadEventPosterImageTool::class,
         MemberListResourcesTool::class,

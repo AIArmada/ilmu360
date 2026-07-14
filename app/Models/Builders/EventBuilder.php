@@ -31,8 +31,6 @@ class EventBuilder extends Builder
         'user_id',
         'institution_id',
         'submitter_id',
-        'parent_event_id',
-        'event_structure',
         'schedule_kind',
         'schedule_state',
         'timing_mode',

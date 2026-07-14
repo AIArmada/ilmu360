@@ -27,7 +27,7 @@ class EventCheckin extends EventAttendance
     protected function casts(): array
     {
         return array_merge(parent::casts(), [
-            'checked_in_at' => 'datetime',
+            'checked_in_at' => 'immutable_datetime',
         ]);
     }
 

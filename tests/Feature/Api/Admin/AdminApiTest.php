@@ -2,7 +2,10 @@
 
 use AIArmada\CommerceSupport\Models\Role;
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Addressing\Models\AddressAreaStateLink;
 use AIArmada\Events\Enums\RegistrationMode as PackageRegistrationMode;
+use AIArmada\Events\Models\EventTaxonomy;
+use AIArmada\Events\Models\EventTerm;
 use AIArmada\Moderation\Enums\ModerationActionType;
 use App\Enums\ContributionRequestStatus;
 use App\Enums\ContributionRequestType;
@@ -182,8 +185,7 @@ it('returns admin speaker resource metadata and records', function () {
         ->assertJsonPath('data.resource.api_routes.schema', '/api/v1/admin/speakers/schema')
         ->assertJsonPath('data.resource.filters.0.key', 'status')
         ->assertJsonPath('data.resource.filters.0.options.verified', 'Verified')
-        ->assertJsonPath('data.resource.filters.1.key', 'status')
-        ->assertJsonPath('data.resource.filters.2.key', 'has_events')
+        ->assertJsonPath('data.resource.filters.1.key', 'has_events')
         ->assertJsonPath('data.resource.mcp_tools.get_record_actions.tool', 'admin-get-record-actions')
         ->assertJsonPath('data.resource.mcp_tools.create.arguments.validate_only', false)
         ->assertJsonPath('data.resource.mcp_tools.update.arguments.validate_only', false);
@@ -232,7 +234,7 @@ it('filters admin speaker records by explicit query parameters', function () {
     ]);
 
     $speakerWithoutEvents = Speaker::factory()->create([
-        'name' => 'Beta Verified Speaker',
+        'name' => 'Beta Inactive Speaker',
         'status' => 'inactive',
     ]);
 
@@ -253,7 +255,7 @@ it('filters admin speaker records by explicit query parameters', function () {
     $verifiedIds = collect($verifiedResponse->json('data'))->pluck('id')->all();
 
     expect(in_array($speakerWithEvents->getKey(), $verifiedIds, true))->toBeTrue();
-    expect(in_array($speakerWithoutEvents->getKey(), $verifiedIds, true))->toBeTrue();
+    expect(in_array($speakerWithoutEvents->getKey(), $verifiedIds, true))->toBeFalse();
     expect(in_array($pendingSpeaker->getKey(), $verifiedIds, true))->toBeFalse();
 
     $inactiveResponse = $this->getJson('/api/v1/admin/speakers?filter[status]=inactive')
@@ -335,7 +337,6 @@ it('filters admin event records by explicit query parameters', function () {
         'status' => 'draft',
         'delivery_mode' => EventFormat::Online,
         'visibility' => EventVisibility::Public,
-        'status' => 'active',
         'event_type' => [EventType::KuliahCeramah->value],
     ]);
 
@@ -344,7 +345,6 @@ it('filters admin event records by explicit query parameters', function () {
         'status' => 'approved',
         'delivery_mode' => EventFormat::Physical,
         'visibility' => EventVisibility::Private,
-        'status' => 'inactive',
         'event_type' => [EventType::Forum->value],
     ]);
 
@@ -353,7 +353,6 @@ it('filters admin event records by explicit query parameters', function () {
         'status' => 'cancelled',
         'delivery_mode' => EventFormat::Hybrid,
         'visibility' => EventVisibility::Unlisted,
-        'status' => 'active',
         'event_type' => [EventType::Kenduri->value],
     ]);
 
@@ -363,7 +362,7 @@ it('filters admin event records by explicit query parameters', function () {
         ->assertOk();
 
     expect(collect($metaResponse->json('data.resource.filters'))->pluck('key')->all())
-        ->toContain('status', 'visibility', 'event_structure', 'event_format', 'event_type', 'timing_mode', 'prayer_reference');
+        ->toContain('status', 'visibility', 'event_format', 'event_type', 'timing_mode', 'prayer_reference');
 
     $draftResponse = $this->getJson('/api/v1/admin/events?filter[status]=draft')
         ->assertOk();
@@ -389,13 +388,13 @@ it('filters admin event records by explicit query parameters', function () {
         ->and(collect($privateResponse->json('data'))->pluck('route_key')->all())->not->toContain($draftOnlineEvent->getRouteKey())
         ->and(collect($privateResponse->json('data'))->pluck('route_key')->all())->not->toContain($cancelledHybridEvent->getRouteKey());
 
-    $inactiveResponse = $this->getJson('/api/v1/admin/events?filter[status]=inactive')
+    $approvedResponse = $this->getJson('/api/v1/admin/events?filter[status]=approved')
         ->assertOk();
 
-    expect($inactiveResponse->json('meta.pagination.total'))->toBe(1)
-        ->and(collect($inactiveResponse->json('data'))->pluck('route_key')->all())->toContain($approvedPhysicalEvent->getRouteKey())
-        ->and(collect($inactiveResponse->json('data'))->pluck('route_key')->all())->not->toContain($draftOnlineEvent->getRouteKey())
-        ->and(collect($inactiveResponse->json('data'))->pluck('route_key')->all())->not->toContain($cancelledHybridEvent->getRouteKey());
+    expect($approvedResponse->json('meta.pagination.total'))->toBe(1)
+        ->and(collect($approvedResponse->json('data'))->pluck('route_key')->all())->toContain($approvedPhysicalEvent->getRouteKey())
+        ->and(collect($approvedResponse->json('data'))->pluck('route_key')->all())->not->toContain($draftOnlineEvent->getRouteKey())
+        ->and(collect($approvedResponse->json('data'))->pluck('route_key')->all())->not->toContain($cancelledHybridEvent->getRouteKey());
 
     $eventTypeResponse = $this->getJson('/api/v1/admin/events?filter[event_type]=kuliah_ceramah')
         ->assertOk();
@@ -441,7 +440,7 @@ it('allows admin api event create payload to control initial workflow status', f
         'registration_required' => false,
         'registration_mode' => RegistrationScope::Event->value,
         'is_featured' => false,
-        'status' => 'active',
+        'status' => 'draft',
     ];
 
     $draftResponse = $this->postJson('/api/v1/admin/events', array_replace($basePayload, [
@@ -648,7 +647,6 @@ it('previews admin speaker creation without persisting the record', function () 
         'gender' => 'male',
         'status' => 'verified',
         'is_freelance' => false,
-        'status' => 'active',
         'address' => [
             'country_id' => ensureAdminApiMalaysiaCountryExists(),
         ],
@@ -684,7 +682,6 @@ it('previews admin speaker updates without persisting the record', function () {
         'status' => 'verified',
         'is_freelance' => true,
         'job_title' => 'Imam',
-        'status' => 'active',
         'allow_public_event_submission' => true,
         'address' => [
             'country_id' => ensureAdminApiMalaysiaCountryExists(),
@@ -754,17 +751,12 @@ it('returns remediation details for validate-only admin api create validation fa
             'auto_apply_safe' => true,
         ])
         ->and($fixPlan->get('status'))->toMatchArray([
-            'action' => 'choose_one',
+            'action' => 'set_field',
             'field' => 'status',
-            'options' => ['pending', 'verified', 'rejected'],
-            'auto_apply_safe' => false,
+            'value' => 'active',
+            'auto_apply_safe' => true,
         ])
         ->and($fixPlan->has('address'))->toBeFalse()
-        ->and($remainingBlockers->get('status'))->toMatchArray([
-            'field' => 'status',
-            'type' => 'required_choice',
-            'options' => ['pending', 'verified', 'rejected'],
-        ])
         ->and($remainingBlockers->keys()->all())->toContain('address', 'address.country_id');
 });
 
@@ -777,7 +769,7 @@ it('returns structured enum suggestions for admin api validation errors', functi
         'title' => 'Admin API Invalid Enum Preview',
         'event_date' => '2026-06-10',
         'custom_time' => '8:30 PM',
-        'delivery_mode' => 'physicl',
+        'event_format' => 'physicl',
     ])->assertUnprocessable()
         ->assertJsonPath('error.code', 'validation_error')
         ->assertJsonPath('error.details.feedback.validate_only', false)
@@ -1291,7 +1283,7 @@ it('exposes inspiration write schema and can create and update inspirations thro
     expect($inspiration->getRawOriginal('category'))->toBe('quran_quote')
         ->and($inspiration->locale)->toBe('ms')
         ->and($inspiration->title)->toBe('Admin API Inspiration')
-        ->and((string) $inspiration->status)->toBeIn(['verified', 'pending'])
+        ->and((string) $inspiration->status)->toBe('active')
         ->and($inspiration->getMedia('main'))->toHaveCount(1);
 
     $this->putJson('/api/v1/admin/inspirations/'.$inspirationRouteKey, [
@@ -1315,7 +1307,7 @@ it('exposes inspiration write schema and can create and update inspirations thro
         ->assertJsonPath('data.record.attributes.category', 'hadith_quote')
         ->assertJsonPath('data.record.attributes.locale', 'en')
         ->assertJsonPath('data.record.attributes.title', 'Admin API Inspiration Updated')
-        ->assertJsonPath('data.record.attributes.status', false);
+        ->assertJsonPath('data.record.attributes.status', 'inactive');
 
     $inspiration->refresh();
 
@@ -1434,7 +1426,7 @@ it('exposes series write schema and can create and update series through the api
         ->assertJsonPath('data.record.attributes.title', 'Admin API Series Updated '.$suffix)
         ->assertJsonPath('data.record.attributes.slug', 'admin-api-series-updated-'.$suffix)
         ->assertJsonPath('data.record.attributes.visibility', 'private')
-        ->assertJsonPath('data.record.attributes.status', false);
+        ->assertJsonPath('data.record.attributes.status', 'inactive');
 
     $series->refresh();
 
@@ -1546,7 +1538,7 @@ it('exposes space write schema and can create and update spaces through the api'
         ->assertJsonPath('data.record.attributes.name', 'Admin API Space Updated '.$suffix)
         ->assertJsonPath('data.record.attributes.slug', 'admin-api-space-updated-'.$suffix)
         ->assertJsonPath('data.record.attributes.capacity', 120)
-        ->assertJsonPath('data.record.attributes.status', false);
+        ->assertJsonPath('data.record.attributes.status', 'inactive');
 
     $space->refresh();
 
@@ -1561,6 +1553,7 @@ it('exposes space write schema and can create and update spaces through the api'
 it('surfaces space update semantics through the admin api schema', function () {
     $admin = adminApiUser('super_admin');
     $space = Space::factory()->create([
+        'slug' => 'admin-api-space-schema-'.Str::lower((string) Str::ulid()),
         'capacity' => 40,
     ]);
 
@@ -1584,6 +1577,7 @@ it('clears space capacity and institutions through the admin api', function () {
     $admin = adminApiUser('super_admin');
     $institution = Institution::factory()->create();
     $space = Space::factory()->create([
+        'slug' => 'admin-api-space-clear-'.Str::lower((string) Str::ulid()),
         'capacity' => 80,
     ]);
     $space->institutions()->attach($institution);
@@ -1776,7 +1770,7 @@ it('exposes membership claim review schema and can approve claims through the ad
     $institution = Institution::factory()->create();
     $claimant = User::factory()->create();
     $claim = MembershipApplication::factory()
-        ->forInstitution($institution)
+        ->for($institution, 'subject')
         ->create([
             'applicant_id' => $claimant->getKey(),
             'status' => 'pending',
@@ -1786,10 +1780,7 @@ it('exposes membership claim review schema and can approve claims through the ad
 
     $this->getJson('/api/v1/admin/membership-applications/'.$claim->getRouteKey().'/review-schema')
         ->assertOk()
-        ->assertJsonPath('data.resource.key', 'membership-applications')
-        ->assertJsonPath('data.record.route_key', $claim->getRouteKey())
-        ->assertJsonPath('data.schema.action', 'review_membership_claim')
-        ->assertJsonPath('data.schema.endpoint', '/api/v1/admin/membership-applications/'.$claim->getRouteKey().'/review')
+        ->assertJsonPath('data.schema.action', 'review_membership_application')
         ->assertJsonPath('data.schema.conditional_rules.0.field', 'granted_role');
 
     $this->postJson('/api/v1/admin/membership-applications/'.$claim->getRouteKey().'/review', [
@@ -1797,14 +1788,30 @@ it('exposes membership claim review schema and can approve claims through the ad
         'granted_role' => 'admin',
         'reviewer_note' => 'Approved through admin API.',
     ])->assertOk()
-        ->assertJsonPath('data.record.attributes.status', 'approved')
-        ->assertJsonPath('data.record.attributes.granted_role', 'admin')
-        ->assertJsonPath('data.record.attributes.reviewer_note', 'Approved through admin API.');
+        ->assertJsonPath('data.record.id', $claim->getKey())
+        ->assertJsonPath('data.record.status', 'approved');
 
     expect($claim->fresh()?->status->value)->toBe('approved')
         ->and($claim->fresh()?->granted_role)->toBe('admin')
         ->and($claim->fresh()?->reviewer_id)->toBe($admin->getKey())
         ->and($institution->fresh()->members()->whereKey($claimant->getKey())->exists())->toBeTrue();
+});
+
+it('requires a valid granted role when approving a membership claim through the admin api', function () {
+    $admin = adminApiUser('super_admin');
+    $institution = Institution::factory()->create();
+    $claim = MembershipApplication::factory()
+        ->for($institution, 'subject')
+        ->create(['status' => 'pending']);
+
+    Sanctum::actingAs($admin);
+
+    $this->postJson('/api/v1/admin/membership-applications/'.$claim->getRouteKey().'/review', [
+        'action' => 'approve',
+    ])->assertUnprocessable()
+        ->assertJsonValidationErrors(['granted_role']);
+
+    expect($claim->fresh()?->status->value)->toBe('pending');
 });
 
 it('exposes admin speaker write schema and can create and update speakers through the api', function () {
@@ -1837,7 +1844,6 @@ it('exposes admin speaker write schema and can create and update speakers throug
         'gender' => 'male',
         'status' => 'verified',
         'is_freelance' => false,
-        'status' => 'active',
         'address' => [
             'country_id' => ensureAdminApiMalaysiaCountryExists(),
         ],
@@ -1860,7 +1866,6 @@ it('exposes admin speaker write schema and can create and update speakers throug
         'status' => 'verified',
         'is_freelance' => true,
         'job_title' => 'Imam',
-        'status' => 'active',
         'allow_public_event_submission' => true,
         'address' => [
             'country_id' => ensureAdminApiMalaysiaCountryExists(),
@@ -1881,7 +1886,6 @@ it('requires explicit country and still prohibits detailed address fields when c
         'gender' => 'male',
         'status' => 'verified',
         'is_freelance' => false,
-        'status' => 'active',
         'address' => [],
     ])->assertUnprocessable()
         ->assertJsonValidationErrors([
@@ -1893,7 +1897,6 @@ it('requires explicit country and still prohibits detailed address fields when c
         'gender' => 'male',
         'status' => 'verified',
         'is_freelance' => false,
-        'status' => 'active',
         'address' => [
             'country_id' => ensureAdminApiMalaysiaCountryExists(),
             'line1' => 'Alamat Lama',
@@ -1982,7 +1985,6 @@ it('surfaces speaker update semantics and collection rules through the admin api
         'gender' => 'male',
         'status' => 'verified',
         'is_freelance' => false,
-        'status' => 'active',
         'address' => [
             'country_id' => ensureAdminApiMalaysiaCountryExists(),
         ],
@@ -2033,7 +2035,7 @@ it('replaces speaker collections and still requires an explicit country when mut
     $createResponse = $this->postJson('/api/v1/admin/speakers', [
         'name' => 'Admin API Speaker Collections',
         'gender' => 'male',
-        'status' => 'approved',
+        'status' => 'verified',
         'is_freelance' => true,
         'job_title' => 'Imam',
         'honorific' => ['dato'],
@@ -2558,7 +2560,7 @@ it('exposes admin venue write schema and can create and update venues through th
         ->assertJsonPath('data.schema.endpoint', '/api/v1/admin/venues')
         ->assertJsonPath('data.schema.content_type', 'multipart/form-data')
         ->assertJsonPath('data.schema.defaults.type', 'dewan')
-        ->assertJsonPath('data.schema.defaults.status', 'active')
+        ->assertJsonPath('data.schema.defaults.status', 'verified')
         ->assertJsonPath('data.schema.catalogs.0.field', 'address.country_id');
 
     $createResponse = $this->postJson('/api/v1/admin/venues', [
@@ -2641,7 +2643,6 @@ it('exposes admin venue write schema and can create and update venues through th
     expect($venue->name)->toBe('Admin API Venue Updated')
         ->and($venue->slug)->toBe('admin-api-venue-updated-my')
         ->and($venue->getRawOriginal('venue_type'))->toBe('auditorium')
-        ->and($venue->status)->toBe('pending')
         ->and((string) $venue->status)->toBe('inactive')
         ->and($venue->facilities)->toBe([
             'women_section' => true,
@@ -2941,7 +2942,6 @@ it('exposes admin reference write schema and can create and update references th
         ->and($reference->publication_year)->toBeNull()
         ->and($reference->publisher)->toBe('Admin API Review')
         ->and($reference->is_canonical)->toBeFalse()
-        ->and($reference->status)->toBe('pending')
         ->and((string) $reference->status)->toBe('inactive')
         ->and($reference->socialProfiles)->toHaveCount(1)
         ->and($reference->socialProfiles->first()?->platform)->toBe('youtube');
@@ -3093,13 +3093,13 @@ it('exposes admin address-area write schema and can create and update address ar
 
     $this->putJson('/api/v1/admin/address-areas/'.$addressAreaRouteKey, [
         'country_id' => $fixtures['country_id'],
-        'parent_id' => $fixtures['state_id'],
+        'parent_id' => $fixtures['area_tree_root_id'],
         'type' => 'district',
         'level' => 2,
         'name' => '  Admin API Updated Address Area  ',
     ])->assertOk()
         ->assertJsonPath('data.record.attributes.name', 'Admin API Updated Address Area')
-        ->assertJsonPath('data.record.attributes.parent_id', $fixtures['state_id'])
+        ->assertJsonPath('data.record.attributes.parent_id', $fixtures['area_tree_root_id'])
         ->assertJsonPath('data.record.attributes.type', 'district')
         ->assertJsonPath('data.record.attributes.level', 2);
 });
@@ -3170,9 +3170,9 @@ it('exposes admin event write schema and can create and update events through th
     ]);
     $reference = Reference::factory()->verified()->create();
     $series = Series::factory()->create();
-    $domainTag = Tag::factory()->domain()->verified()->create();
-    $disciplineTag = Tag::factory()->discipline()->verified()->create();
-    $sourceTag = Tag::factory()->source()->verified()->create();
+    $domainTag = adminApiEventTerm('domain', 'Admin API Domain');
+    $disciplineTag = adminApiEventTerm('discipline', 'Admin API Discipline');
+    $sourceTag = adminApiEventTerm('source', 'Admin API Source');
 
     $this->getJson('/api/v1/admin/events/meta')
         ->assertOk()
@@ -3202,7 +3202,7 @@ it('exposes admin event write schema and can create and update events through th
 
     $eventRouteKey = (string) $createResponse->json('data.record.route_key');
     $event = Event::query()
-        ->with(['settings', 'references', 'series', 'tags', 'keyPeople'])
+        ->with(['references', 'series', 'classifications', 'keyPeople'])
         ->findOrFail($eventRouteKey);
 
     expect($event->title)->toBe('Admin API Event Created')
@@ -3212,7 +3212,7 @@ it('exposes admin event write schema and can create and update events through th
         ->and($event->resolvedRegistrationMode())->toBe(PackageRegistrationMode::Required)
         ->and($event->references->pluck('id')->all())->toContain($reference->getKey())
         ->and($event->series->pluck('id')->all())->toContain($series->getKey())
-        ->and($event->tags->pluck('id')->all())->toContain($domainTag->getKey(), $disciplineTag->getKey())
+        ->and($event->classifications->pluck('event_term_id')->all())->toContain($domainTag->getKey(), $disciplineTag->getKey())
         ->and($event->keyPeople)->toHaveCount(2);
 
     $this->putJson('/api/v1/admin/events/'.$eventRouteKey, adminApiEventPayload([
@@ -3243,7 +3243,7 @@ it('exposes admin event write schema and can create and update events through th
         ->assertJsonPath('data.record.attributes.title', 'Admin API Event Updated')
         ->assertJsonPath('data.record.attributes.live_url', 'https://youtube.com/watch?v=admin-api-event-live');
 
-    $event->refresh()->load(['settings', 'references', 'series', 'tags', 'keyPeople']);
+    $event->refresh()->load(['references', 'series', 'classifications', 'keyPeople']);
 
     expect($event->title)->toBe('Admin API Event Updated')
         ->and($event->live_url)->toBe('https://youtube.com/watch?v=admin-api-event-live')
@@ -3251,8 +3251,8 @@ it('exposes admin event write schema and can create and update events through th
         ->and($event->accessPolicy?->registration_required)->toBeFalse()
         ->and($event->references)->toHaveCount(0)
         ->and($event->series)->toHaveCount(0)
-        ->and($event->tags->pluck('id')->all())->toContain($sourceTag->getKey())
-        ->and($event->tags->pluck('id')->all())->not->toContain($domainTag->getKey(), $disciplineTag->getKey())
+        ->and($event->classifications->pluck('event_term_id')->all())->toContain($sourceTag->getKey())
+        ->and($event->classifications->pluck('event_term_id')->all())->not->toContain($domainTag->getKey(), $disciplineTag->getKey())
         ->and($event->keyPeople)->toHaveCount(0)
         ->and($event->slug)->toContain($speaker->slug);
 });
@@ -3271,8 +3271,8 @@ it('surfaces event update semantics and sparse relation rules through the admin 
     ]);
     $reference = Reference::factory()->verified()->create();
     $series = Series::factory()->create();
-    $domainTag = Tag::factory()->domain()->verified()->create();
-    $disciplineTag = Tag::factory()->discipline()->verified()->create();
+    $domainTag = adminApiEventTerm('domain', 'Admin API Schema Domain');
+    $disciplineTag = adminApiEventTerm('discipline', 'Admin API Schema Discipline');
 
     $createResponse = $this->postJson('/api/v1/admin/events', adminApiEventPayload([
         'institution' => $institution,
@@ -3295,7 +3295,7 @@ it('surfaces event update semantics and sparse relation rules through the admin 
         ->and(data_get($fields->get('event_type'), 'collection_semantics.empty_array'))->toBe('invalid_minimum_size')
         ->and(data_get($fields->get('languages'), 'collection_semantics.submitted_array'))->toBe('replace_relation_sync')
         ->and(data_get($fields->get('references'), 'collection_semantics.explicit_null'))->toBe('clear_collection')
-        ->and(data_get($fields->get('domain_tags'), 'tag_type'))->toBe('domain')
+        ->and(data_get($fields->get('domain_tags'), 'taxonomy_code'))->toBe('domain')
         ->and(data_get($fields->get('primary_organizer_id'), 'accepted_models'))->toBe([Institution::class, Speaker::class])
         ->and(data_get($fields->get('speakers'), 'collection_semantics.submitted_array'))->toBe('replace_speaker_subset_and_rebuild_key_people')
         ->and(data_get($fields->get('speakers'), 'collection_semantics.item_ids_preserved'))->toBeFalse()
@@ -3328,9 +3328,9 @@ it('supports sparse event updates while replacing submitted relation collections
     ]);
     $reference = Reference::factory()->verified()->create();
     $series = Series::factory()->create();
-    $domainTag = Tag::factory()->domain()->verified()->create();
-    $disciplineTag = Tag::factory()->discipline()->verified()->create();
-    $sourceTag = Tag::factory()->source()->verified()->create();
+    $domainTag = adminApiEventTerm('domain', 'Admin API Sparse Domain');
+    $disciplineTag = adminApiEventTerm('discipline', 'Admin API Sparse Discipline');
+    $sourceTag = adminApiEventTerm('source', 'Admin API Sparse Source');
 
     $createResponse = $this->postJson('/api/v1/admin/events', adminApiEventPayload([
         'institution' => $institution,
@@ -3346,7 +3346,7 @@ it('supports sparse event updates while replacing submitted relation collections
 
     $eventRouteKey = (string) $createResponse->json('data.record.route_key');
     $event = Event::query()
-        ->with(['references', 'series', 'tags', 'keyPeople', 'languages'])
+        ->with(['references', 'series', 'classifications', 'keyPeople', 'languages'])
         ->findOrFail($eventRouteKey);
     $originalKeyPeopleIds = $event->keyPeople->modelKeys();
 
@@ -3361,15 +3361,15 @@ it('supports sparse event updates while replacing submitted relation collections
         ->assertJsonPath('data.record.attributes.title', 'Admin API Event Created')
         ->assertJsonPath('data.record.attributes.live_url', null);
 
-    $event->refresh()->load(['references', 'series', 'tags', 'keyPeople', 'languages']);
+    $event->refresh()->load(['references', 'series', 'classifications', 'keyPeople', 'languages']);
 
     expect($event->title)->toBe('Admin API Event Created')
         ->and($event->live_url)->toBeNull()
         ->and($event->references)->toHaveCount(0)
         ->and($event->series)->toHaveCount(0)
         ->and($event->languages)->toHaveCount(0)
-        ->and($event->tags->pluck('id')->all())->toContain($disciplineTag->getKey(), $sourceTag->getKey())
-        ->and($event->tags->pluck('id')->all())->not->toContain($domainTag->getKey())
+        ->and($event->classifications->pluck('event_term_id')->all())->toContain($disciplineTag->getKey(), $sourceTag->getKey())
+        ->and($event->classifications->pluck('event_term_id')->all())->not->toContain($domainTag->getKey())
         ->and($event->keyPeople)->toHaveCount(3)
         ->and($event->keyPeople->where('role', EventKeyPersonRole::Speaker)->pluck('speaker_id')->all())->toEqualCanonicalizing([
             (string) $speaker->getKey(),
@@ -3393,8 +3393,8 @@ it('clears event poster when clear_poster is submitted as a form-style boolean',
     ]);
     $reference = Reference::factory()->verified()->create();
     $series = Series::factory()->create();
-    $domainTag = Tag::factory()->domain()->verified()->create();
-    $disciplineTag = Tag::factory()->discipline()->verified()->create();
+    $domainTag = adminApiEventTerm('domain', 'Admin API Poster Domain');
+    $disciplineTag = adminApiEventTerm('discipline', 'Admin API Poster Discipline');
 
     $createResponse = $this->postJson('/api/v1/admin/events', adminApiEventPayload([
         'institution' => $institution,
@@ -3442,8 +3442,8 @@ it('rejects admin event writes that omit required speakers for speaker-led event
     ]);
     $reference = Reference::factory()->verified()->create();
     $series = Series::factory()->create();
-    $domainTag = Tag::factory()->domain()->verified()->create();
-    $disciplineTag = Tag::factory()->discipline()->verified()->create();
+    $domainTag = adminApiEventTerm('domain', 'Admin API Speaker Validation Domain');
+    $disciplineTag = adminApiEventTerm('discipline', 'Admin API Speaker Validation Discipline');
 
     $this->postJson('/api/v1/admin/events', adminApiEventPayload([
         'institution' => $institution,
@@ -3473,8 +3473,8 @@ it('rejects admin event writes with organizer ids that do not resolve to institu
     ]);
     $reference = Reference::factory()->verified()->create();
     $series = Series::factory()->create();
-    $domainTag = Tag::factory()->domain()->verified()->create();
-    $disciplineTag = Tag::factory()->discipline()->verified()->create();
+    $domainTag = adminApiEventTerm('domain', 'Admin API Organizer Validation Domain');
+    $disciplineTag = adminApiEventTerm('discipline', 'Admin API Organizer Validation Discipline');
     $venue = Venue::factory()->create();
 
     $this->postJson('/api/v1/admin/events', adminApiEventPayload([
@@ -3507,10 +3507,12 @@ it('rejects admin event writes with conflicting location selections', function (
     ]);
     $reference = Reference::factory()->verified()->create();
     $series = Series::factory()->create();
-    $domainTag = Tag::factory()->domain()->verified()->create();
-    $disciplineTag = Tag::factory()->discipline()->verified()->create();
+    $domainTag = adminApiEventTerm('domain', 'Admin API Location Validation Domain');
+    $disciplineTag = adminApiEventTerm('discipline', 'Admin API Location Validation Discipline');
     $venue = Venue::factory()->create();
-    $space = Space::factory()->create();
+    $space = Space::factory()->create([
+        'slug' => 'admin-api-space-conflict-'.Str::lower((string) Str::ulid()),
+    ]);
     $otherInstitution->spaces()->attach($space);
 
     $this->postJson('/api/v1/admin/events', adminApiEventPayload([
@@ -3521,11 +3523,36 @@ it('rejects admin event writes with conflicting location selections', function (
         'domain_tag' => $domainTag,
         'discipline_tag' => $disciplineTag,
     ], [
-        'default_venue_id' => (string) $venue->getKey(),
+        'venue_id' => (string) $venue->getKey(),
         'space_id' => (string) $space->getKey(),
     ]))->assertUnprocessable()
         ->assertJsonValidationErrors(['institution_id', 'venue_id', 'space_id']);
 });
+
+function adminApiEventTerm(string $taxonomyCode, string $name): EventTerm
+{
+    $taxonomy = EventTaxonomy::query()->firstOrCreate(
+        ['code' => $taxonomyCode],
+        [
+            'name' => ucfirst($taxonomyCode),
+            'description' => null,
+            'is_hierarchical' => false,
+            'is_active' => true,
+        ],
+    );
+
+    return EventTerm::query()->firstOrCreate(
+        [
+            'event_taxonomy_id' => $taxonomy->getKey(),
+            'code' => Str::slug($name),
+        ],
+        [
+            'name' => $name,
+            'sort_order' => 0,
+            'is_active' => true,
+        ],
+    );
+}
 
 function ensureAdminApiMalaysiaCountryExists(): string
 {
@@ -3550,6 +3577,11 @@ function ensureAdminApiSubdistrictFixtures(): array
         'Admin API Daerah '.$suffix,
         $subdistrictName,
     );
+
+    AddressAreaStateLink::query()->firstOrCreate([
+        'address_area_id' => $geo['area_tree_root']->getKey(),
+        'state_id' => $geo['state']->getKey(),
+    ]);
 
     return [
         'country_id' => (string) $geo['country']->getKey(),
@@ -3588,8 +3620,8 @@ function adminApiUser(string $role): User
  *     speaker: Speaker,
  *     reference: Reference,
  *     series: Series,
- *     domain_tag: Tag,
- *     discipline_tag: Tag
+ *     domain_tag: EventTerm,
+ *     discipline_tag: EventTerm
  * }  $fixtures
  * @param  array<string, mixed>  $overrides
  * @return array<string, mixed>
@@ -3603,7 +3635,7 @@ function adminApiEventPayload(array $fixtures, array $overrides = []): array
         'custom_time' => '20:00',
         'end_time' => '22:00',
         'timezone' => 'Asia/Kuala_Lumpur',
-        'delivery_mode' => EventFormat::Hybrid->value,
+        'event_format' => EventFormat::Hybrid->value,
         'visibility' => EventVisibility::Public->value,
         'event_url' => 'https://example.com/events/admin-api-event-created',
         'live_url' => null,
@@ -3632,7 +3664,7 @@ function adminApiEventPayload(array $fixtures, array $overrides = []): array
         ],
         'registration_required' => true,
         'registration_mode' => RegistrationScope::Event->value,
-        'status' => 'active',
+        'status' => 'draft',
     ], $overrides);
 }
 

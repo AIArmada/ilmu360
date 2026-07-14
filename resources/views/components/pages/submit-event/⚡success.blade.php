@@ -12,10 +12,10 @@ new class extends Component {};
     $submitAnotherRoute = session('submission_institution_id')
         ? route('dashboard.institutions.submit-event', array_filter([
             'institution' => session('submission_institution_id'),
-            'parent' => session('parent_event_id'),
+            'event' => session('event_container_id'),
         ]))
-        : (session('parent_event_id')
-            ? route('submit-event.create', ['parent' => session('parent_event_id')])
+        : (session('event_container_id')
+            ? route('submit-event.create', ['event' => session('event_container_id')])
             : route('submit-event.create'));
 @endphp
 
@@ -45,11 +45,11 @@ new class extends Component {};
                     : __('Terima kasih atas perkongsian anda! Pasukan kami akan menyemak butirannya dalam masa 24-48 jam.') }}
             </p>
 
-            @if(session('parent_event_title'))
+            @if(session('event_container_title'))
                 <div class="bg-emerald-50/70 rounded-2xl p-5 shadow-sm border border-emerald-100 text-center mb-8 max-w-lg mx-auto">
-                    <h3 class="font-heading text-lg font-bold text-emerald-900 mb-2">{{ __('Attached to Parent Program') }}</h3>
+                    <h3 class="font-heading text-lg font-bold text-emerald-900 mb-2">{{ __('Session Added') }}</h3>
                     <p class="text-sm text-emerald-800/80">
-                        {{ __('This event has been attached to :title as a child event.', ['title' => session('parent_event_title')]) }}
+                        {{ __('This session has been added to :title.', ['title' => session('event_container_title')]) }}
                     </p>
                 </div>
             @endif
@@ -117,12 +117,12 @@ new class extends Component {};
             <div class="flex flex-col sm:flex-row gap-4 justify-center">
                 <a href="{{ $submitAnotherRoute }}" wire:navigate
                     class="inline-flex h-12 items-center justify-center rounded-xl bg-emerald-600 px-6 font-semibold text-white shadow-lg shadow-emerald-600/30 hover:bg-emerald-700 transition-colors">
-                    {{ session('parent_event_id') ? __('Add Another Child Event') : __('Submit Another Event') }}
+                    {{ session('event_container_id') ? __('Add Another Session') : __('Submit Another Event') }}
                 </a>
-                @if(session('parent_event_id'))
-                    <a href="{{ \AIArmada\FilamentEvents\Resources\EventResource::getUrl('view', ['record' => session('parent_event_id')], panel: 'ahli') }}"
+                @if(session('event_container_id'))
+                    <a href="{{ \AIArmada\FilamentEvents\Resources\EventResource::getUrl('view', ['record' => session('event_container_id')], panel: 'ahli') }}"
                         class="inline-flex h-12 items-center justify-center rounded-xl bg-white border border-emerald-200 px-6 font-semibold text-emerald-700 hover:bg-emerald-50 transition-colors">
-                        {{ __('Back to Parent Program') }}
+                        {{ __('Back to Event') }}
                     </a>
                 @endif
                 @if(session('submission_institution_id'))

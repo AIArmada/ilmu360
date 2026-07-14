@@ -75,6 +75,26 @@ it('allows authenticated users to register without email or phone', function () 
         ->and($registration->statusValue())->toBe('confirmed');
 });
 
+it('rejects guest registration without email or phone on the web form', function () {
+    $event = Event::factory()
+        ->create([
+            'status' => 'approved',
+            'visibility' => 'public',
+            'published_at' => now(),
+        ]);
+
+    $response = $this
+        ->withSession(['_token' => 'test-token'])
+        ->post(route('events.register', $event), [
+            '_token' => 'test-token',
+            'name' => 'Guest Registrant',
+        ]);
+
+    $response->assertSessionHasErrors(['contact']);
+
+    expect(Registration::query()->where('event_id', $event->id)->count())->toBe(0);
+});
+
 it('allows registration for unlisted events when registration is enabled', function () {
     $event = Event::factory()
         ->create([

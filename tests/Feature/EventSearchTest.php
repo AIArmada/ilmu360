@@ -412,14 +412,14 @@ describe('Event Search Filters', function () {
             ->assertDontSee('Ceramah Subuh');
     });
 
-    it('does not show parent programs on the public events index while still showing child events', function () {
+    it('shows public event containers on the public events index', function () {
         $institution = Institution::factory()->create([
             'name' => 'Masjid Hierarki',
             'status' => 'verified',
         ]);
 
-        $parentEvent = Event::factory()->parentProgram()->for($institution)->create([
-            'title' => 'Umbrella Program Hidden From Index',
+        Event::factory()->for($institution)->create([
+            'title' => 'Public Program On Index',
             'status' => 'approved',
             'visibility' => 'public',
             'published_at' => now(),
@@ -427,8 +427,8 @@ describe('Event Search Filters', function () {
             'ends_at' => now()->addDays(5),
         ]);
 
-        Event::factory()->childEvent($parentEvent)->for($institution)->create([
-            'title' => 'Child Event Visible On Index',
+        Event::factory()->for($institution)->create([
+            'title' => 'Public Session Program On Index',
             'status' => 'approved',
             'visibility' => 'public',
             'published_at' => now(),
@@ -437,8 +437,8 @@ describe('Event Search Filters', function () {
 
         $this->get(eventsIndexUrl())
             ->assertOk()
-            ->assertSee('Child Event Visible On Index')
-            ->assertDontSee('Umbrella Program Hidden From Index');
+            ->assertSee('Public Session Program On Index')
+            ->assertSee('Public Program On Index');
     });
 
     it('searches events by institution name when the institution name matches', function () {

@@ -133,6 +133,7 @@ final readonly class SaveAdminEventAction
                 ->map(fn ($keyPerson): array => [
                     'role' => $keyPerson->role instanceof BackedEnum ? $keyPerson->role->value : (string) $keyPerson->role,
                     'speaker_id' => $keyPerson->speaker_id,
+                    'name' => $keyPerson->name,
                     'visibility' => $keyPerson->visibility ?? 'public',
                     'notes' => $keyPerson->notes,
                 ])

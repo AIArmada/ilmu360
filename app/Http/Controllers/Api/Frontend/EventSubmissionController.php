@@ -46,7 +46,7 @@ class EventSubmissionController extends FrontendController
         $maxUploadSizeKb = (int) ceil(((int) config('media-library.max_file_size', 10 * 1024 * 1024)) / 1024);
 
         $validated = $request->validate([
-            'parent_event_id' => ['nullable', 'uuid'],
+            'event_id' => ['nullable', 'uuid'],
             'scoped_institution_id' => ['nullable', 'uuid'],
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable'],
@@ -105,14 +105,14 @@ class EventSubmissionController extends FrontendController
 
         $this->assertGuestContactRules($validated, $user);
 
-        $parentEvent = $this->resolveParentEvent($validated['parent_event_id'] ?? null, $validated['scoped_institution_id'] ?? null, $user);
+        $eventContainer = $this->resolveEventContainer($validated['event_id'] ?? null, $validated['scoped_institution_id'] ?? null, $user);
         $scopedInstitution = $this->resolveScopedInstitution($validated['scoped_institution_id'] ?? null, $user);
 
         $result = $submitFrontendEventAction->handle(
             state: $validated,
             request: $request,
             submitter: $user,
-            parentEvent: $parentEvent,
+            eventContainer: $eventContainer,
             scopedInstitution: $scopedInstitution,
             persistRelationships: function (Event $event) use ($request, $frontendMediaSyncService): void {
                 $frontendMediaSyncService->syncSingle($event, $request->file('cover'), 'cover');
@@ -136,6 +136,10 @@ class EventSubmissionController extends FrontendController
                     'title' => $event->title,
                     'status' => (string) $event->status,
                     'visibility' => $result['visibility'],
+                ],
+                'session' => $result['session'] === null ? null : [
+                    'id' => $result['session']->getKey(),
+                    'title' => $result['session']->title,
                 ],
                 'submission' => [
                     'id' => $result['submission']->getKey(),
@@ -186,37 +190,38 @@ class EventSubmissionController extends FrontendController
         return $institution;
     }
 
-    private function resolveParentEvent(mixed $parentEventId, mixed $scopedInstitutionId, ?User $user): ?Event
+    private function resolveEventContainer(mixed $eventId, mixed $scopedInstitutionId, ?User $user): ?Event
     {
-        if (! is_string($parentEventId) || ! Str::isUuid($parentEventId)) {
+        if (! is_string($eventId) || ! Str::isUuid($eventId)) {
             return null;
         }
 
-        $parentEvent = Event::query()
+        $event = Event::query()
             ->with(['institution:id,name', 'accessPolicy'])
-            ->find($parentEventId);
+            ->find($eventId);
 
-        abort_unless($parentEvent instanceof Event && $parentEvent->isParentProgram(), 404);
+        abort_unless($event instanceof Event, 404);
+        abort_unless($user instanceof User && $user->can('update', $event), 403);
 
         $scopedInstitution = $this->resolveScopedInstitution($scopedInstitutionId, $user);
 
         if (
             $scopedInstitution instanceof Institution
-            && ! $this->parentEventMatchesScopedInstitution($parentEvent, $scopedInstitution)
+            && ! $this->eventMatchesScopedInstitution($event, $scopedInstitution)
         ) {
             abort(403);
         }
 
-        return $parentEvent;
+        return $event;
     }
 
-    private function parentEventMatchesScopedInstitution(Event $parentEvent, Institution $institution): bool
+    private function eventMatchesScopedInstitution(Event $event, Institution $institution): bool
     {
-        if ($parentEvent->institution_id === $institution->getKey()) {
+        if ($event->institution_id === $institution->getKey()) {
             return true;
         }
 
-        $organizer = $parentEvent->organizer;
+        $organizer = $event->organizer;
 
         return $organizer instanceof Institution && $organizer->getKey() === $institution->getKey();
     }

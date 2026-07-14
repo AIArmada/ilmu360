@@ -2,8 +2,9 @@
 
 use AIArmada\CommerceSupport\Models\Role;
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Events\Models\EventTaxonomy;
+use AIArmada\Events\Models\EventTerm;
 use AIArmada\Signals\Models\SignalEvent;
-use App\Actions\Membership\AddMemberToSubject;
 use App\Enums\ContributionRequestStatus;
 use App\Enums\ContributionRequestType;
 use App\Enums\ContributionSubjectType;
@@ -205,20 +206,20 @@ it('matches richer public search behavior for speakers, institutions, and refere
             ->etc());
 });
 
-it('reviews membership claims through the admin MCP workflow tool', function () {
+it('reviews membership applications through the admin MCP workflow tool', function () {
     $admin = adminMcpUser('super_admin');
     $institution = Institution::factory()->create();
-    $claimant = User::factory()->create();
-    $claim = MembershipApplication::factory()
-        ->forInstitution($institution)
+    $applicant = User::factory()->create();
+    $application = MembershipApplication::factory()
+        ->for($institution, 'subject')
         ->create([
-            'applicant_id' => $claimant->getKey(),
+            'applicant_id' => $applicant->getKey(),
             'status' => 'pending',
         ]);
 
     AdminServer::actingAs($admin)
         ->tool(AdminReviewMembershipApplicationTool::class, [
-            'record_key' => $claim->getKey(),
+            'record_key' => $application->getKey(),
             'action' => 'approve',
             'granted_role' => 'admin',
             'reviewer_note' => 'Approved through admin MCP.',
@@ -226,15 +227,15 @@ it('reviews membership claims through the admin MCP workflow tool', function () 
         ->assertOk()
         ->assertStructuredContent(fn ($json) => $json
             ->where('data.resource.key', 'membership-applications')
-            ->where('data.record.route_key', $claim->getRouteKey())
+            ->where('data.record.route_key', $application->getRouteKey())
             ->where('data.record.attributes.status', 'approved')
             ->where('data.record.attributes.granted_role', 'admin')
             ->etc());
 
-    expect($claim->fresh()?->status->value)->toBe('approved')
-        ->and($claim->fresh()?->granted_role)->toBe('admin')
-        ->and($claim->fresh()?->reviewer_id)->toBe($admin->getKey())
-        ->and($institution->fresh()->members()->whereKey($claimant->getKey())->exists())->toBeTrue();
+    expect($application->fresh()?->status->value)->toBe('approved')
+        ->and($application->fresh()?->granted_role)->toBe('admin')
+        ->and($application->fresh()?->reviewer_id)->toBe($admin->getKey())
+        ->and($institution->fresh()->members()->whereKey($applicant->getKey())->exists())->toBeTrue();
 });
 
 it('triages reports through the admin MCP workflow tool', function () {
@@ -535,18 +536,16 @@ it('filters admin event records by structured filters through the MCP server', f
     $draftOnlineEvent = Event::factory()->create([
         'title' => 'Admin MCP Filtered Draft Online Event',
         'status' => 'draft',
-        'delivery_mode' => EventFormat::Online,
+        'event_format' => EventFormat::Online,
         'visibility' => EventVisibility::Public,
-        'status' => 'active',
         'event_type' => [EventType::KuliahCeramah->value],
     ]);
 
     Event::factory()->create([
         'title' => 'Admin MCP Approved Physical Event',
         'status' => 'approved',
-        'delivery_mode' => EventFormat::Physical,
+        'event_format' => EventFormat::Physical,
         'visibility' => EventVisibility::Private,
-        'status' => 'inactive',
         'event_type' => [EventType::Forum->value],
     ]);
 
@@ -556,7 +555,7 @@ it('filters admin event records by structured filters through the MCP server', f
             'filters' => [
                 'status' => 'draft',
                 'event_format' => 'online',
-                'event_type' => 'kuliah_ceramah',
+                'visibility' => 'public',
             ],
         ])
         ->assertOk()
@@ -568,22 +567,21 @@ it('filters admin event records by structured filters through the MCP server', f
             ->etc());
 });
 
-it('filters admin event records by single status, boolean, visibility, and timing filters through the MCP server', function () {
+it('filters admin event records by status, boolean, and visibility filters through the MCP server', function () {
     $admin = adminMcpUser('super_admin');
 
-    $approvedActivePublicAbsolute = Event::factory()->create([
-        'title' => 'Admin MCP Single Filter Approved Active Public Absolute',
+    $approvedPublic = Event::factory()->create([
+        'title' => 'Admin MCP Single Filter Approved Public',
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'timing_mode' => 'absolute',
+        'published_at' => now(),
     ]);
 
-    $draftInactivePrivatePrayerRelative = Event::factory()->create([
-        'title' => 'Admin MCP Single Filter Draft Inactive Private Prayer Relative',
+    $draftPrivate = Event::factory()->create([
+        'title' => 'Admin MCP Single Filter Draft Private',
         'status' => 'draft',
         'visibility' => EventVisibility::Private,
-        'timing_mode' => 'prayer_relative',
-        'status' => 'inactive',
+        'published_at' => null,
     ]);
 
     AdminServer::actingAs($admin)
@@ -596,50 +594,50 @@ it('filters admin event records by single status, boolean, visibility, and timin
         ->assertOk()
         ->assertStructuredContent(fn ($json) => $json
             ->has('data', 1)
-            ->where('data.0.id', $approvedActivePublicAbsolute->getKey())
-            ->where('data.0.title', 'Admin MCP Single Filter Approved Active Public Absolute')
+            ->where('data.0.id', $approvedPublic->getKey())
+            ->where('data.0.title', 'Admin MCP Single Filter Approved Public')
             ->etc());
 
     AdminServer::actingAs($admin)
         ->tool(AdminListRecordsTool::class, [
             'resource_key' => 'events',
             'filters' => [
-                'status' => 'inactive',
+                'status' => 'draft',
             ],
         ])
         ->assertOk()
         ->assertStructuredContent(fn ($json) => $json
             ->has('data', 1)
-            ->where('data.0.id', $draftInactivePrivatePrayerRelative->getKey())
-            ->where('data.0.title', 'Admin MCP Single Filter Draft Inactive Private Prayer Relative')
+            ->where('data.0.id', $draftPrivate->getKey())
+            ->where('data.0.title', 'Admin MCP Single Filter Draft Private')
             ->etc());
 
     AdminServer::actingAs($admin)
         ->tool(AdminListRecordsTool::class, [
             'resource_key' => 'events',
             'filters' => [
-                'visibility' => 'public',
+                'published' => true,
             ],
         ])
         ->assertOk()
         ->assertStructuredContent(fn ($json) => $json
             ->has('data', 1)
-            ->where('data.0.id', $approvedActivePublicAbsolute->getKey())
-            ->where('data.0.title', 'Admin MCP Single Filter Approved Active Public Absolute')
+            ->where('data.0.id', $approvedPublic->getKey())
+            ->where('data.0.title', 'Admin MCP Single Filter Approved Public')
             ->etc());
 
     AdminServer::actingAs($admin)
         ->tool(AdminListRecordsTool::class, [
             'resource_key' => 'events',
             'filters' => [
-                'timing_mode' => 'prayer_relative',
+                'published' => false,
             ],
         ])
         ->assertOk()
         ->assertStructuredContent(fn ($json) => $json
             ->has('data', 1)
-            ->where('data.0.id', $draftInactivePrivatePrayerRelative->getKey())
-            ->where('data.0.title', 'Admin MCP Single Filter Draft Inactive Private Prayer Relative')
+            ->where('data.0.id', $draftPrivate->getKey())
+            ->where('data.0.title', 'Admin MCP Single Filter Draft Private')
             ->etc());
 });
 
@@ -1214,11 +1212,11 @@ it('returns explicit admin workflow schemas through dedicated MCP schema tools',
         ],
     ]);
     $institution = Institution::factory()->create();
-    $claimant = User::factory()->create();
-    $claim = MembershipApplication::factory()
-        ->forInstitution($institution)
+    $applicant = User::factory()->create();
+    $application = MembershipApplication::factory()
+        ->for($institution, 'subject')
         ->create([
-            'applicant_id' => $claimant->getKey(),
+            'applicant_id' => $applicant->getKey(),
             'status' => 'pending',
         ]);
 
@@ -1260,12 +1258,12 @@ it('returns explicit admin workflow schemas through dedicated MCP schema tools',
 
     AdminServer::actingAs($admin)
         ->tool(AdminGetMembershipApplicationReviewSchemaTool::class, [
-            'record_key' => $claim->getKey(),
+            'record_key' => $application->getKey(),
         ])
         ->assertOk()
         ->assertStructuredContent(fn ($json) => $json
             ->where('data.resource.key', 'membership-applications')
-            ->where('data.record.route_key', $claim->getRouteKey())
+            ->where('data.record.route_key', $application->getRouteKey())
             ->where('data.schema.action', 'review_membership_application')
             ->where('data.schema.defaults.action', 'approve')
             ->etc());
@@ -2366,9 +2364,9 @@ it('creates and updates events through MCP write tools', function () {
     ]);
     $reference = Reference::factory()->verified()->create();
     $series = Series::factory()->create();
-    $domainTag = Tag::factory()->domain()->verified()->create();
-    $disciplineTag = Tag::factory()->discipline()->verified()->create();
-    $sourceTag = Tag::factory()->source()->verified()->create();
+    $domainTag = adminMcpEventTerm('domain', 'Admin MCP Domain');
+    $disciplineTag = adminMcpEventTerm('discipline', 'Admin MCP Discipline');
+    $sourceTag = adminMcpEventTerm('source', 'Admin MCP Source');
 
     AdminServer::actingAs($admin)
         ->tool(AdminCreateRecordTool::class, [
@@ -2384,7 +2382,7 @@ it('creates and updates events through MCP write tools', function () {
         ])
         ->assertOk();
 
-    $event = Event::query()->where('title', 'Admin MCP Event Created')->with(['settings', 'references', 'series', 'tags', 'keyPeople'])->firstOrFail();
+    $event = Event::query()->where('title', 'Admin MCP Event Created')->with(['references', 'series', 'classifications', 'keyPeople'])->firstOrFail();
     $eventId = (string) $event->getKey();
     $oldPath = route('events.show', $event, false);
 
@@ -2409,7 +2407,7 @@ it('creates and updates events through MCP write tools', function () {
         ->and($event->accessPolicy?->registration_required)->toBeTrue()
         ->and($event->references->pluck('id')->all())->toContain($reference->getKey())
         ->and($event->series->pluck('id')->all())->toContain($series->getKey())
-        ->and($event->tags->pluck('id')->all())->toContain($domainTag->getKey(), $disciplineTag->getKey())
+        ->and($event->classifications->pluck('event_term_id')->all())->toContain($domainTag->getKey(), $disciplineTag->getKey())
         ->and($event->keyPeople)->toHaveCount(2);
 
     AdminServer::actingAs($admin)
@@ -2447,15 +2445,15 @@ it('creates and updates events through MCP write tools', function () {
             ->where('data.record.attributes.live_url', 'https://youtube.com/watch?v=admin-mcp-event-live')
             ->etc());
 
-    $event->refresh()->load(['settings', 'references', 'series', 'tags', 'keyPeople']);
+    $event->refresh()->load(['references', 'series', 'classifications', 'keyPeople']);
 
     expect($event->title)->toBe('Admin MCP Event Updated')
         ->and($event->live_url)->toBe('https://youtube.com/watch?v=admin-mcp-event-live')
         ->and($event->accessPolicy?->registration_required)->toBeFalse()
         ->and($event->references)->toHaveCount(0)
         ->and($event->series)->toHaveCount(0)
-        ->and($event->tags->pluck('id')->all())->toContain($sourceTag->getKey())
-        ->and($event->tags->pluck('id')->all())->not->toContain($domainTag->getKey(), $disciplineTag->getKey())
+        ->and($event->classifications->pluck('event_term_id')->all())->toContain($sourceTag->getKey())
+        ->and($event->classifications->pluck('event_term_id')->all())->not->toContain($domainTag->getKey(), $disciplineTag->getKey())
         ->and($event->keyPeople)->toHaveCount(0);
 
     $this->get($oldPath)
@@ -2476,7 +2474,7 @@ it('emulates production yasin create flow with validate-only then actual create'
         'event_date' => '2026-05-07',
         'prayer_time' => EventPrayerTime::SelepasMaghrib->value,
         'timezone' => 'Asia/Kuala_Lumpur',
-        'delivery_mode' => EventFormat::Physical->value,
+        'event_format' => EventFormat::Physical->value,
         'visibility' => EventVisibility::Public->value,
         'gender' => EventGenderRestriction::All->value,
         'age_group' => [EventAgeGroup::AllAges->value],
@@ -2486,10 +2484,8 @@ it('emulates production yasin create flow with validate-only then actual create'
         'primary_organizer_key' => (string) $institution->slug,
         'institution_key' => (string) $institution->slug,
         'registration_required' => false,
-        'registration_mode' => RegistrationScope::Event->value,
         'status' => 'pending',
         'is_featured' => false,
-        'status' => 'active',
     ];
 
     AdminServer::actingAs($admin)
@@ -2576,10 +2572,8 @@ it('creates a tazkirah event with speaker_keys via admin-create-event', function
             'reference_keys' => [(string) $reference->slug],
             'languages' => [101],
             'registration_required' => false,
-            'registration_mode' => RegistrationScope::Event->value,
             'status' => 'pending',
             'is_featured' => false,
-            'status' => 'active',
             'validate_only' => false,
             'apply_defaults' => false,
         ])
@@ -2621,9 +2615,8 @@ it('allows admin event create payload to control workflow-ready status', functio
         'primary_organizer_id' => (string) $institution->getKey(),
         'institution_id' => (string) $institution->getKey(),
         'registration_required' => false,
-        'registration_mode' => RegistrationScope::Event->value,
         'is_featured' => false,
-        'status' => 'active',
+        'status' => 'draft',
     ];
 
     AdminServer::actingAs($admin)
@@ -2689,8 +2682,8 @@ it('surfaces admin event validation failures through MCP write tools', function 
     ]);
     $reference = Reference::factory()->verified()->create();
     $series = Series::factory()->create();
-    $domainTag = Tag::factory()->domain()->verified()->create();
-    $disciplineTag = Tag::factory()->discipline()->verified()->create();
+    $domainTag = adminMcpEventTerm('domain', 'Admin MCP Validation Domain');
+    $disciplineTag = adminMcpEventTerm('discipline', 'Admin MCP Validation Discipline');
 
     AdminServer::actingAs($admin)
         ->tool(AdminCreateRecordTool::class, [
@@ -2773,8 +2766,8 @@ it('returns structured admin MCP validation feedback outside validate-only previ
     ]);
     $reference = Reference::factory()->verified()->create();
     $series = Series::factory()->create();
-    $domainTag = Tag::factory()->domain()->verified()->create();
-    $disciplineTag = Tag::factory()->discipline()->verified()->create();
+    $domainTag = adminMcpEventTerm('domain', 'Admin MCP Feedback Domain');
+    $disciplineTag = adminMcpEventTerm('discipline', 'Admin MCP Feedback Discipline');
 
     AdminServer::actingAs($admin)
         ->tool(AdminCreateRecordTool::class, [
@@ -3223,7 +3216,7 @@ it('initializes and lists admin MCP tools over the HTTP endpoint for Passport-au
         'admin-get-event-moderation-schema',
         'admin-get-report-triage-schema',
         'admin-get-contribution-request-review-schema',
-        'admin-get-membership-claim-review-schema',
+        'admin-get-membership-application-review-schema',
         'admin-create-event',
         'admin-batch-create-events',
         'admin-update-event',
@@ -3235,7 +3228,7 @@ it('initializes and lists admin MCP tools over the HTTP endpoint for Passport-au
         'admin-moderate-event',
         'admin-triage-report',
         'admin-review-contribution-request',
-        'admin-review-membership-claim',
+        'admin-review-membership-application',
         'admin-update-record',
     );
 
@@ -3385,7 +3378,7 @@ it('rejects member-scoped tokens on the admin MCP stream endpoint even for dual-
         'status' => 'verified',
     ]);
 
-    app(AddMemberToSubject::class)->handle($institution, $admin, 'admin');
+    addTestMember($institution, $admin, 'admin');
 
     $token = $admin->createToken('mcp-member-only', [McpTokenManager::MEMBER_ABILITY])->plainTextToken;
 
@@ -3446,7 +3439,7 @@ it('initializes and lists admin MCP tools over the HTTP endpoint', function () {
         'admin-get-event-moderation-schema',
         'admin-get-report-triage-schema',
         'admin-get-contribution-request-review-schema',
-        'admin-get-membership-claim-review-schema',
+        'admin-get-membership-application-review-schema',
         'admin-create-event',
         'admin-batch-create-events',
         'admin-update-event',
@@ -3456,7 +3449,7 @@ it('initializes and lists admin MCP tools over the HTTP endpoint', function () {
         'admin-moderate-event',
         'admin-triage-report',
         'admin-review-contribution-request',
-        'admin-review-membership-claim',
+        'admin-review-membership-application',
         'admin-update-record',
     );
 
@@ -3983,14 +3976,39 @@ function configureGithubIssueReportingForMcp(array $overrides = []): void
     ], $overrides));
 }
 
+function adminMcpEventTerm(string $taxonomyCode, string $name): EventTerm
+{
+    $taxonomy = EventTaxonomy::query()->firstOrCreate(
+        ['code' => $taxonomyCode],
+        [
+            'name' => ucfirst($taxonomyCode),
+            'description' => null,
+            'is_hierarchical' => false,
+            'is_active' => true,
+        ],
+    );
+
+    return EventTerm::query()->firstOrCreate(
+        [
+            'event_taxonomy_id' => $taxonomy->getKey(),
+            'code' => Str::slug($name),
+        ],
+        [
+            'name' => $name,
+            'sort_order' => 0,
+            'is_active' => true,
+        ],
+    );
+}
+
 /**
  * @param  array{
  *     institution: Institution,
  *     speaker: Speaker,
  *     reference: Reference,
  *     series: Series,
- *     domain_tag: Tag,
- *     discipline_tag: Tag
+ *     domain_tag: EventTerm,
+ *     discipline_tag: EventTerm
  * }  $fixtures
  * @param  array<string, mixed>  $overrides
  * @return array<string, mixed>
@@ -4004,7 +4022,7 @@ function adminMcpEventPayload(array $fixtures, array $overrides = []): array
         'custom_time' => '20:00',
         'end_time' => '22:00',
         'timezone' => 'Asia/Kuala_Lumpur',
-        'delivery_mode' => EventFormat::Hybrid->value,
+        'event_format' => EventFormat::Hybrid->value,
         'visibility' => EventVisibility::Public->value,
         'event_url' => 'https://example.com/events/admin-mcp-event-created',
         'live_url' => null,
@@ -4032,8 +4050,7 @@ function adminMcpEventPayload(array $fixtures, array $overrides = []): array
             ],
         ],
         'registration_required' => true,
-        'registration_mode' => RegistrationScope::Event->value,
-        'status' => 'active',
+        'status' => 'draft',
     ], $overrides);
 }
 
@@ -4061,8 +4078,9 @@ function adminMcpStableEvent(array $overrides = []): Event
         'live_url' => null,
         'recording_url' => null,
         'is_muslim_only' => true,
-        'status' => 'active',
     ], $overrides));
+
+    $event->setPrimaryOrganizer(Institution::query()->findOrFail((string) $event->institution_id));
 
     $event->accessPolicy()->delete();
 
@@ -4218,6 +4236,7 @@ it('batch-creates events via the admin-batch-create-events MCP tool with speaker
                     'gender' => EventGenderRestriction::All->value,
                     'age_group' => [EventAgeGroup::AllAges->value],
                     'event_type' => [EventType::Other->value],
+                    'primary_organizer_key' => $institution->slug,
                     'institution_key' => $institution->slug,
                     'speaker_keys' => [$speaker->slug],
                     'status' => 'draft',
@@ -4234,6 +4253,7 @@ it('batch-creates events via the admin-batch-create-events MCP tool with speaker
                     'gender' => EventGenderRestriction::All->value,
                     'age_group' => [EventAgeGroup::AllAges->value],
                     'event_type' => [EventType::Other->value],
+                    'primary_organizer_key' => $institution->slug,
                     'status' => 'draft',
                 ],
             ],
@@ -4255,6 +4275,10 @@ it('batch-creates events via the admin-batch-create-events MCP tool with speaker
 
 it('does not apply schema defaults during persisted admin-batch-create-events writes', function () {
     $admin = adminMcpUser('super_admin');
+    $institution = Institution::factory()->create([
+        'slug' => 'mcp-batch-defaults-institution',
+        'status' => 'verified',
+    ]);
 
     AdminServer::actingAs($admin)
         ->tool(AdminBatchCreateEventsTool::class, [
@@ -4266,6 +4290,7 @@ it('does not apply schema defaults during persisted admin-batch-create-events wr
                     'event_date' => '2026-07-17',
                     'prayer_time' => EventPrayerTime::SelepasMaghrib->value,
                     'event_type' => [EventType::Other->value],
+                    'primary_organizer_key' => $institution->slug,
                 ],
             ],
         ])
@@ -4285,6 +4310,10 @@ it('does not apply schema defaults during persisted admin-batch-create-events wr
 
 it('batch-creates events with validate_only via admin-batch-create-events without persisting', function () {
     $admin = adminMcpUser('super_admin');
+    $institution = Institution::factory()->create([
+        'slug' => 'mcp-batch-dry-run-institution',
+        'status' => 'verified',
+    ]);
 
     AdminServer::actingAs($admin)
         ->tool(AdminBatchCreateEventsTool::class, [
@@ -4296,6 +4325,8 @@ it('batch-creates events with validate_only via admin-batch-create-events withou
                     'prayer_time' => EventPrayerTime::LainWaktu->value,
                     'custom_time' => '20:00',
                     'event_type' => [EventType::Other->value],
+                    'primary_organizer_key' => $institution->slug,
+                    'registration_mode' => RegistrationScope::Event->value,
                     'status' => 'draft',
                 ],
             ],

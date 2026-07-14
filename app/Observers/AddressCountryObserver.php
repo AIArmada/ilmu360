@@ -9,9 +9,10 @@ use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressCountry;
 use App\Support\Cache\PublicDirectoryCacheVersion;
 use App\Support\Cache\PublicListingsCache;
+use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 use Illuminate\Validation\ValidationException;
 
-class AddressCountryObserver
+class AddressCountryObserver implements ShouldHandleEventsAfterCommit
 {
     public function __construct(
         private readonly PublicDirectoryCacheVersion $publicDirectoryCacheVersion,
@@ -29,6 +30,10 @@ class AddressCountryObserver
 
     public function saved(AddressCountry $country): void
     {
+        if (! $country->wasRecentlyCreated && ! $country->wasChanged()) {
+            return;
+        }
+
         $this->flushCountryCaches();
     }
 

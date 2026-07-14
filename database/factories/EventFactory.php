@@ -8,7 +8,6 @@ use AIArmada\Events\Models\EventLink;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
-use App\Enums\EventStructure;
 use App\Enums\EventType;
 use App\Enums\EventVisibility;
 use App\Enums\PrayerOffset;
@@ -112,7 +111,6 @@ class EventFactory extends PackageEventFactory
         ]);
 
         return [
-            'parent_event_id' => null,
             'institution_id' => function (array $attributes) {
                 $eventFormat = $this->eventFormatFromAttributes($attributes);
 
@@ -129,7 +127,6 @@ class EventFactory extends PackageEventFactory
             'default_venue_id' => null,
             'title' => $title,
             'slug' => Str::slug($title).'-'.Str::lower(Str::random(7)),
-            'event_structure' => EventStructure::Standalone,
             'description' => fake()->optional()->paragraphs(2, true),
             'starts_at' => $startsAt,
             'ends_at' => $endsAt,
@@ -165,14 +162,17 @@ class EventFactory extends PackageEventFactory
     #[\Override]
     public function configure(): static
     {
-        return $this->afterCreating(function (Event $event) {
+        return $this->afterMaking(function (Event $event): void {
+            if (in_array((string) $event->status, Event::PUBLIC_STATUSES, true) && $event->published_at === null) {
+                $event->published_at = $event->starts_at?->copy()->subDay() ?? now();
+            }
+        })->afterCreating(function (Event $event) {
             // Create EventLink rows for streaming/recording URLs
             $this->ensureFactoryUrlLinks($event);
 
             // 30% of events have registration settings
             if (
-                $event->eventStructure() !== EventStructure::ParentProgram
-                && fake()->boolean(30)
+                fake()->boolean(30)
                 && ! $event->accessPolicy()->exists()
             ) {
                 $event->forceFill([
@@ -260,22 +260,6 @@ class EventFactory extends PackageEventFactory
                 'Adab Menuntut Ilmu',
                 'Zikir Pagi',
             ]),
-        ]);
-    }
-
-    public function parentProgram(): static
-    {
-        return $this->state(fn (array $attributes): array => [
-            'parent_event_id' => null,
-            'event_structure' => EventStructure::ParentProgram,
-        ]);
-    }
-
-    public function childEvent(?Event $parentEvent = null): static
-    {
-        return $this->state(fn (array $attributes): array => [
-            'parent_event_id' => $parentEvent instanceof Event ? $parentEvent->id : Event::factory()->parentProgram(),
-            'event_structure' => EventStructure::ChildEvent,
         ]);
     }
 

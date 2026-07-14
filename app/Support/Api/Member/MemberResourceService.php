@@ -245,7 +245,7 @@ class MemberResourceService
         abort_unless($actor instanceof User, 403);
 
         $record = $this->registry->resolveRecord($resourceClass, trim($recordKey));
-        abort_unless($actor->can('update', $record), 403);
+        abort_unless($this->mutationService->canWriteRecord($resourceClass, $actor, $record), 403);
 
         return [
             'data' => [
@@ -266,7 +266,7 @@ class MemberResourceService
         abort_unless($actor instanceof User, 403);
 
         $record = $this->registry->resolveRecord($resourceClass, $recordKey);
-        abort_unless($actor->can('update', $record), 403);
+        abort_unless($this->mutationService->canWriteRecord($resourceClass, $actor, $record), 403);
 
         $validated = Validator::make(
             $payload,

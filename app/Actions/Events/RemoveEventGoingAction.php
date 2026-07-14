@@ -10,16 +10,36 @@ final readonly class RemoveEventGoingAction
 {
     use AsAction;
 
+    public function __construct(
+        private SyncEventGoingCountAction $syncEventGoingCount,
+    ) {}
+
+    /**
+     * @return array{deleted: bool, going_count: int}
+     */
     public function handle(string $eventId, User $user): array
     {
         $event = Event::query()->find($eventId);
 
-        if ($event !== null) {
+        if (! $event instanceof Event) {
+            return [
+                'deleted' => false,
+                'going_count' => 0,
+            ];
+        }
+
+        $deleted = $event->goingBy()
+            ->forResponder($user)
+            ->active()
+            ->exists();
+
+        if ($deleted) {
             $user->cancelResponse($event);
         }
 
         return [
-            'event_attendees' => [],
+            'deleted' => $deleted,
+            'going_count' => $this->syncEventGoingCount->handle($event),
         ];
     }
 }

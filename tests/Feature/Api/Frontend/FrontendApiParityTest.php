@@ -7,10 +7,8 @@ use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\Contacting\Enums\SocialPlatform;
 use AIArmada\FilamentAuthz\Facades\Authz;
 use App\Actions\Location\NormalizeGoogleMapsInputAction;
-use App\Actions\Membership\AddMemberToSubject;
 use App\Enums\EventFormat;
 use App\Enums\EventKeyPersonRole;
-use App\Enums\EventStructure;
 use App\Enums\EventType;
 use App\Enums\EventVisibility;
 use App\Enums\InspirationCategory;
@@ -118,7 +116,7 @@ it('exposes corrected frontend contract metadata', function () {
         ->and($documentationLibrary->pluck('id')->all())->toContain('docs-mobile-api-reference', 'docs-admin-mcp-guide', 'docs-review-and-enhancement-plan')
         ->and($documentationLibrary->firstWhere('id', 'docs-mobile-api-reference')['endpoint'] ?? null)->toContain('/api/v1/documentation/docs-mobile-api-reference')
         ->and($quickstart[0]['endpoint'] ?? null)->toBe('https://api.ilmu360.test/docs.json')
-        ->and($submitEventFields)->toContain('parent_event_id', 'scoped_institution_id')
+        ->and($submitEventFields)->toContain('event_id', 'scoped_institution_id')
         ->and($submitEventFields)->toContain('cover', 'poster', 'gallery')
         ->and($submitEventFields)->toContain('submission_country_id')
         ->and($submitEventFields)->not->toContain('submission_country_code', 'submission_country_key')
@@ -1385,7 +1383,6 @@ it('serializes institution directory payloads with card media aliases for mobile
             ->whereNotNull('events.published_at')
             ->whereIn('events.status', Event::PUBLIC_STATUSES)
             ->where('events.visibility', EventVisibility::Public)
-            ->where('events.event_structure', '!=', EventStructure::ParentProgram->value)
             ->count()),
     ]);
 
@@ -1617,7 +1614,6 @@ it('bumps the institution directory cache version when public institution events
     Event::factory()->for($institution)->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'event_structure' => EventStructure::Standalone,
     ]);
 
     $updatedVersion = $this->getJson(route('api.client.institutions.index'))
@@ -2233,20 +2229,18 @@ it('counts all public linked events on the reference directory cards', function 
     $upcomingEvent = Event::factory()->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'event_structure' => EventStructure::Standalone,
         'starts_at' => now()->addDays(2),
     ]);
 
     $pastEvent = Event::factory()->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'event_structure' => EventStructure::Standalone,
         'starts_at' => now()->subDays(2),
     ]);
 
     withGlobalOwnerContext(function () use ($reference, $upcomingEvent, $pastEvent): void {
-        $reference->events()->attach($upcomingEvent, ['order_column' => 1]);
-        $reference->events()->attach($pastEvent, ['order_column' => 2]);
+        $reference->events()->attach($upcomingEvent, ['sort_order' => 1]);
+        $reference->events()->attach($pastEvent, ['sort_order' => 2]);
     });
 
     $this->getJson('/api/v1/references?search='.urlencode('Reference Event Count Coverage'))
@@ -2492,7 +2486,6 @@ it('bumps the speaker directory cache version when speaker event participation c
     $event = Event::factory()->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'event_structure' => EventStructure::Standalone,
         'starts_at' => now()->addDays(3)->setTime(19, 0),
     ]);
 
@@ -2709,8 +2702,8 @@ it('enforces institution workspace member management permissions', function () {
     $viewer = User::factory()->create();
     $newMember = User::factory()->create();
 
-    app(AddMemberToSubject::class)->handle($institution, $admin, 'admin');
-    app(AddMemberToSubject::class)->handle($institution, $viewer, 'viewer');
+    addTestMember($institution, $admin, 'admin');
+    addTestMember($institution, $viewer, 'viewer');
 
     Sanctum::actingAs($viewer);
 
@@ -2736,7 +2729,7 @@ it('forbids institution member management over bearer tokens for viewers even wi
     $viewer = User::factory()->create();
     $newMember = User::factory()->create();
 
-    app(AddMemberToSubject::class)->handle($institution, $viewer, 'viewer');
+    addTestMember($institution, $viewer, 'viewer');
 
     $viewerToken = $viewer->createToken('viewer-device', ['institution.manage-members'])->plainTextToken;
 
@@ -2752,7 +2745,7 @@ it('allows institution member management over bearer tokens for admins without t
     $admin = User::factory()->create();
     $newMember = User::factory()->create();
 
-    app(AddMemberToSubject::class)->handle($institution, $admin, 'admin');
+    addTestMember($institution, $admin, 'admin');
 
     $adminToken = $admin->createToken('admin-device', [])->plainTextToken;
 
@@ -2857,9 +2850,9 @@ it('returns the institution workspace payload for the selected accessible instit
     $admin = User::factory()->create();
     $viewer = User::factory()->create();
 
-    app(AddMemberToSubject::class)->handle($institution, $admin, 'admin');
-    app(AddMemberToSubject::class)->handle($institution, $viewer, 'viewer');
-    app(AddMemberToSubject::class)->handle($secondInstitution, $admin, 'admin');
+    addTestMember($institution, $admin, 'admin');
+    addTestMember($institution, $viewer, 'viewer');
+    addTestMember($secondInstitution, $admin, 'admin');
 
     Event::factory()->create([
         'institution_id' => $institution->getKey(),
@@ -3422,10 +3415,11 @@ it('mirrors the public speaker page payload for app clients', function () {
 
     EventKeyPerson::factory()->create([
         'event_id' => $otherRoleEvent->id,
-        'speaker_id' => $speaker->id,
-        'role' => EventKeyPersonRole::Moderator,
-        'is_public' => true,
-        'order_column' => 1,
+        'involveable_type' => 'speaker',
+        'involveable_id' => $speaker->id,
+        'role_code' => EventKeyPersonRole::Moderator->value,
+        'visibility' => 'public',
+        'sort_order' => 1,
     ]);
 
     $response = $this->withUnencryptedCookie('user_timezone', 'Asia/Kuala_Lumpur')

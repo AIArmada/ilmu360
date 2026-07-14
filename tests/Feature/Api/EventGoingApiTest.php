@@ -32,9 +32,12 @@ it('allows an authenticated user to mark going for an event', function () {
         ->assertJsonPath('data.going_count', 1)
         ->assertJsonPath('meta.request_id', fn (string $requestId) => filled($requestId));
 
-    $this->assertDatabaseHas('event_attendees', [
-        'user_id' => $this->user->id,
-        'event_id' => $this->event->id,
+    $this->assertDatabaseHas((string) config('engagement.database.tables.responses'), [
+        'responder_type' => $this->user->getMorphClass(),
+        'responder_id' => $this->user->id,
+        'respondable_type' => $this->event->getMorphClass(),
+        'respondable_id' => $this->event->id,
+        'response_type' => 'going',
     ]);
 });
 
@@ -79,20 +82,20 @@ it('lists the current users going events', function () {
         'title' => 'Going Event Two',
         'status' => 'cancelled',
         'visibility' => 'public',
-        'status' => 'active',
         'starts_at' => now()->addDays(2),
     ]);
     $inactive = Event::factory()->create([
         'title' => 'Inactive Going Event',
-        'status' => 'approved',
-        'visibility' => 'public',
-        'status' => 'inactive',
+        'status' => 'draft',
+        'visibility' => 'private',
         'starts_at' => now()->addDays(4),
     ]);
 
     $first->speakers()->attach($speaker->id);
 
-    $this->user->goingEvents()->attach([$first->id, $second->id, $inactive->id]);
+    foreach ([$first, $second, $inactive] as $event) {
+        $this->user->respond($event, 'going');
+    }
 
     $this->getJson(route('api.events.going.index'))
         ->assertOk()
@@ -130,9 +133,13 @@ it('allows an authenticated user to remove a going record', function () {
         ->assertJsonPath('data.going_count', 0)
         ->assertJsonPath('meta.request_id', fn (string $requestId) => filled($requestId));
 
-    $this->assertDatabaseMissing('event_attendees', [
-        'user_id' => $this->user->id,
-        'event_id' => $this->event->id,
+    $this->assertDatabaseMissing((string) config('engagement.database.tables.responses'), [
+        'responder_type' => $this->user->getMorphClass(),
+        'responder_id' => $this->user->id,
+        'respondable_type' => $this->event->getMorphClass(),
+        'respondable_id' => $this->event->id,
+        'response_type' => 'going',
+        'status' => 'active',
     ]);
 });
 
@@ -163,13 +170,12 @@ it('rejects marking going for past events', function () {
 
 });
 
-it('rejects marking going for inactive events', function () {
+it('rejects marking going for non-public events', function () {
     Sanctum::actingAs($this->user);
 
     $inactiveEvent = Event::factory()->create([
-        'status' => 'approved',
-        'visibility' => 'public',
-        'status' => 'inactive',
+        'status' => 'draft',
+        'visibility' => 'private',
         'starts_at' => now()->addDay(),
     ]);
 
@@ -205,7 +211,7 @@ it('keeps missing institution and venue relations as null in the going events li
         'default_venue_id' => null,
     ]);
 
-    $this->user->goingEvents()->attach($event->id);
+    $this->user->respond($event, 'going');
 
     $this->getJson(route('api.events.going.index'))
         ->assertOk()

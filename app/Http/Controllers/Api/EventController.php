@@ -54,7 +54,7 @@ class EventController extends Controller
      *
      * @var list<string>
      */
-    private const array PUBLIC_STATUSES = ['approved', 'published', 'pending', 'cancelled'];
+    private const array PUBLIC_STATUSES = ['approved', 'pending', 'cancelled'];
 
     /**
      * @var list<string>
@@ -96,7 +96,7 @@ class EventController extends Controller
      *
      * Example API calls:
      * /api/v1/events?filter[status]=approved
-     * /api/v1/events?filter[event_format]=online
+     * /api/v1/events?filter[delivery_mode]=online
      * /api/v1/events?filter[starts_after]=2026-02-01
      * /api/v1/events?filter[starts_at_after]=2026-02-01T08:00:00Z
      * /api/v1/events?filter[starts_on_local_date]=2026-02-01
@@ -123,22 +123,10 @@ class EventController extends Controller
                 $query->whereIn('status', $statuses);
             }),
             AllowedFilter::exact('visibility'),
-            AllowedFilter::exact('event_format'),
-            AllowedFilter::exact('institution_id'),
-            AllowedFilter::exact('venue_id'),
-            AllowedFilter::callback('event_type', function (Builder $query, mixed $value): void {
-                $eventTypes = $this->normalizeArrayFilter($value);
-
-                if ($eventTypes === []) {
-                    return;
-                }
-
-                $query->where(function (Builder $eventTypeQuery) use ($eventTypes): void {
-                    foreach ($eventTypes as $eventType) {
-                        $eventTypeQuery->orWhereJsonContains('event_type', $eventType);
-                    }
-                });
-            }),
+            AllowedFilter::exact('delivery_mode'),
+            AllowedFilter::exact('metadata->institution_id'),
+            AllowedFilter::exact('default_venue_id'),
+            AllowedFilter::exact('type'),
             AllowedFilter::callback('starts_after', function (Builder $query, mixed $value): void {
                 $startsAfter = $this->parseDate($value, false);
                 if ($startsAfter instanceof Carbon) {
@@ -253,7 +241,7 @@ class EventController extends Controller
                 }
 
                 $query->whereHas('keyPeople', function (Builder $keyPersonQuery) use ($keyPersonRoles): void {
-                    $keyPersonQuery->whereIn('role', $keyPersonRoles);
+                    $keyPersonQuery->whereIn('role_code', $keyPersonRoles);
                 });
             }),
             AllowedFilter::callback('moderator_ids', function (Builder $query, mixed $value): void {
@@ -265,8 +253,9 @@ class EventController extends Controller
 
                 $query->whereHas('keyPeople', function (Builder $keyPersonQuery) use ($speakerIds): void {
                     $keyPersonQuery
-                        ->where('role', EventKeyPersonRole::Moderator->value)
-                        ->whereIn('speaker_id', $speakerIds);
+                        ->where('role_code', EventKeyPersonRole::Moderator->value)
+                        ->where('involveable_type', 'speaker')
+                        ->whereIn('involveable_id', $speakerIds);
                 });
             }),
             AllowedFilter::callback('person_in_charge_ids', function (Builder $query, mixed $value): void {
@@ -278,8 +267,9 @@ class EventController extends Controller
 
                 $query->whereHas('keyPeople', function (Builder $keyPersonQuery) use ($speakerIds): void {
                     $keyPersonQuery
-                        ->where('role', EventKeyPersonRole::PersonInCharge->value)
-                        ->whereIn('speaker_id', $speakerIds);
+                        ->where('role_code', EventKeyPersonRole::PersonInCharge->value)
+                        ->where('involveable_type', 'speaker')
+                        ->whereIn('involveable_id', $speakerIds);
                 });
             }),
             AllowedFilter::callback('person_in_charge_search', function (Builder $query, mixed $value): void {
@@ -293,10 +283,10 @@ class EventController extends Controller
 
                 $query->whereHas('keyPeople', function (Builder $keyPersonQuery) use ($operator, $searchTerm): void {
                     $keyPersonQuery
-                        ->where('role', EventKeyPersonRole::PersonInCharge->value)
+                        ->where('role_code', EventKeyPersonRole::PersonInCharge->value)
                         ->where(function (Builder $personInChargeQuery) use ($operator, $searchTerm): void {
                             $personInChargeQuery
-                                ->where('name', $operator, "%{$searchTerm}%")
+                                ->where('metadata->name', $operator, "%{$searchTerm}%")
                                 ->orWhereHas('speaker', function (Builder $speakerQuery) use ($operator, $searchTerm): void {
                                     $speakerQuery
                                         ->where('speakers.name', $operator, "%{$searchTerm}%")
@@ -314,8 +304,9 @@ class EventController extends Controller
 
                 $query->whereHas('keyPeople', function (Builder $keyPersonQuery) use ($speakerIds): void {
                     $keyPersonQuery
-                        ->where('role', EventKeyPersonRole::Imam->value)
-                        ->whereIn('speaker_id', $speakerIds);
+                        ->where('role_code', EventKeyPersonRole::Imam->value)
+                        ->where('involveable_type', 'speaker')
+                        ->whereIn('involveable_id', $speakerIds);
                 });
             }),
             AllowedFilter::callback('khatib_ids', function (Builder $query, mixed $value): void {
@@ -327,8 +318,9 @@ class EventController extends Controller
 
                 $query->whereHas('keyPeople', function (Builder $keyPersonQuery) use ($speakerIds): void {
                     $keyPersonQuery
-                        ->where('role', EventKeyPersonRole::Khatib->value)
-                        ->whereIn('speaker_id', $speakerIds);
+                        ->where('role_code', EventKeyPersonRole::Khatib->value)
+                        ->where('involveable_type', 'speaker')
+                        ->whereIn('involveable_id', $speakerIds);
                 });
             }),
             AllowedFilter::callback('bilal_ids', function (Builder $query, mixed $value): void {
@@ -340,8 +332,9 @@ class EventController extends Controller
 
                 $query->whereHas('keyPeople', function (Builder $keyPersonQuery) use ($speakerIds): void {
                     $keyPersonQuery
-                        ->where('role', EventKeyPersonRole::Bilal->value)
-                        ->whereIn('speaker_id', $speakerIds);
+                        ->where('role_code', EventKeyPersonRole::Bilal->value)
+                        ->where('involveable_type', 'speaker')
+                        ->whereIn('involveable_id', $speakerIds);
                 });
             }),
             AllowedFilter::callback('series', function (Builder $query, mixed $value): void {

@@ -8,9 +8,10 @@ use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressArea;
 use App\Support\Cache\PublicDirectoryCacheVersion;
 use App\Support\Cache\PublicListingsCache;
+use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 use Illuminate\Validation\ValidationException;
 
-class AddressAreaObserver
+class AddressAreaObserver implements ShouldHandleEventsAfterCommit
 {
     public function __construct(
         private readonly PublicDirectoryCacheVersion $publicDirectoryCacheVersion,
@@ -19,6 +20,10 @@ class AddressAreaObserver
 
     public function saved(AddressArea $addressArea): void
     {
+        if (! $addressArea->wasRecentlyCreated && ! $addressArea->wasChanged()) {
+            return;
+        }
+
         $this->flushLocationCaches();
     }
 

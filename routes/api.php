@@ -92,7 +92,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/submit-speakers', [CatalogController::class, 'submitSpeakers'])->name('submit-speakers');
             Route::get('/venues', [CatalogController::class, 'venues'])->name('venues');
             Route::get('/spaces', [CatalogController::class, 'spaces'])->name('spaces');
-            Route::get('/membership-application-subjects/{subjectType}', [CatalogController::class, 'membershipApplicationSubjects'])
+            Route::get('/membership-application-subjects/{subjectType}', [CatalogController::class, 'membershipClaimSubjects'])
                 ->whereIn('subjectType', MemberSubjectType::claimableRouteSegments())
                 ->name('membership-application-subjects');
             Route::get('/prayer-institutions', [CatalogController::class, 'prayerInstitutions'])->name('prayer-institutions');

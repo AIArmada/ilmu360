@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use AIArmada\CommerceSupport\Models\Role;
-use App\Actions\Membership\AddMemberToSubject;
 use App\Mcp\Servers\AdminServer;
 use App\Mcp\Servers\MemberServer;
 use App\Mcp\Tools\Admin\AdminDocumentationFetchTool;
@@ -12,6 +11,7 @@ use App\Mcp\Tools\Member\MemberDocumentationFetchTool;
 use App\Mcp\Tools\Member\MemberDocumentationSearchTool;
 use App\Models\Institution;
 use App\Models\User;
+use App\Support\Documentation\DocumentationLibrary;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -107,6 +107,21 @@ it('lets member MCP documentation tools search and fetch broader verified docs',
         ]);
 });
 
+it('documents every audience-scoped MCP documentation catalog id', function (): void {
+    $guides = [
+        DocumentationLibrary::AUDIENCE_MCP_ADMIN => file_get_contents(dirname(__DIR__, 2).'/docs/ilmu360_mcp_admin_agent_guide.md') ?: '',
+        DocumentationLibrary::AUDIENCE_MCP_MEMBER => file_get_contents(dirname(__DIR__, 2).'/docs/ilmu360_mcp_member_agent_guide.md') ?: '',
+    ];
+
+    foreach ($guides as $audience => $markdown) {
+        $catalogIds = collect(app(DocumentationLibrary::class)->forAudience($audience))
+            ->pluck('id')
+            ->all();
+
+        expect($markdown)->toContain(...array_map(static fn (string $id): string => '`'.$id.'`', $catalogIds));
+    }
+});
+
 function documentationMcpAdminUser(string $role = 'super_admin'): User
 {
     $roleRecord = Role::query()->where('name', $role)->where('guard_name', 'web')->first();
@@ -149,7 +164,7 @@ function documentationMcpMemberUser(string $role = 'admin'): User
     ]);
     $member = User::factory()->create();
 
-    app(AddMemberToSubject::class)->handle($institution, $member, $role);
+    addTestMember($institution, $member, $role);
 
     return $member;
 }

@@ -101,11 +101,10 @@ it('allows registration for unlisted events when registration is enabled', funct
         ->assertJsonPath('data.event_id', $event->id);
 });
 
-it('returns current user event state for active unlisted events', function () {
+it('returns current user event state for approved unlisted events', function () {
     $user = User::factory()->create();
     $event = registrationReadyEvent([
         'visibility' => EventVisibility::Unlisted,
-        'status' => 'active',
     ]);
 
     Sanctum::actingAs($user);

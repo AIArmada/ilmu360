@@ -57,13 +57,12 @@ test('saving the same event twice is idempotent', function () {
         ->assertJsonPath('data.saves_count', 1);
 });
 
-test('authenticated user can save a pending active public event', function () {
+test('authenticated user can save a pending public event', function () {
     Sanctum::actingAs($this->user);
 
     $event = Event::factory()->create([
         'status' => 'pending',
         'visibility' => 'public',
-        'status' => 'active',
     ]);
 
     $this->putJson(route('api.events.saved.update', $event))
@@ -72,13 +71,12 @@ test('authenticated user can save a pending active public event', function () {
         ->assertJsonPath('data.saves_count', 1);
 });
 
-test('inactive events cannot be saved through the api', function () {
+test('non-public events cannot be saved through the api', function () {
     Sanctum::actingAs($this->user);
 
     $event = Event::factory()->create([
-        'status' => 'approved',
-        'visibility' => 'public',
-        'status' => 'inactive',
+        'status' => 'draft',
+        'visibility' => 'private',
     ]);
 
     $this->putJson(route('api.events.saved.update', $event))
@@ -180,13 +178,11 @@ test('saved events index still includes cancelled events', function () {
     $cancelledEvent = Event::factory()->create([
         'status' => 'cancelled',
         'visibility' => 'public',
-        'status' => 'active',
         'starts_at' => now()->addDays(10),
     ]);
     $inactiveEvent = Event::factory()->create([
-        'status' => 'approved',
-        'visibility' => 'public',
-        'status' => 'inactive',
+        'status' => 'draft',
+        'visibility' => 'private',
         'starts_at' => now()->addDays(12),
     ]);
 

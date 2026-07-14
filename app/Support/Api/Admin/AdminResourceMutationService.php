@@ -5,6 +5,8 @@ namespace App\Support\Api\Admin;
 use AIArmada\Addressing\Actions\SaveAddressAreaAction;
 use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressCountry;
+use AIArmada\Events\Models\EventTaxonomy;
+use AIArmada\Events\Models\EventTerm;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\Contacting\Enums\SocialPlatform;
@@ -753,9 +755,11 @@ class AdminResourceMutationService
         }
 
         if ($record instanceof Space) {
+            $slug = $record->getAttribute('slug');
+
             $defaults = [
                 'name' => $record->name,
-                'slug' => $record->slug,
+                'slug' => is_string($slug) ? $slug : '',
                 'capacity' => $record->capacity,
                 'status' => (string) $record->status,
                 'visibility' => (string) ($record->visibility ?? 'public'),
@@ -1638,47 +1642,47 @@ class AdminResourceMutationService
             ]),
             $this->field('domain_tags', 'array<string>', required: false, meta: array_merge(
                 $this->relationCollectionMeta(
-                    'tags',
+                    'classifications',
                     submittedArray: 'replace_relation_sync',
                     itemIdsPreserved: null,
                     ordering: null,
-                    safeClientStrategy: 'omit_field_to_preserve_or_send_full_tag_ids',
+                    safeClientStrategy: 'omit_field_to_preserve_or_send_full_event_term_ids',
                     omitted: 'preserve_existing_collection_via_server_state_merge',
                 ),
-                ['tag_type' => TagType::Domain->value],
+                ['taxonomy_code' => TagType::Domain->value],
             )),
             $this->field('discipline_tags', 'array<string>', required: false, meta: array_merge(
                 $this->relationCollectionMeta(
-                    'tags',
+                    'classifications',
                     submittedArray: 'replace_relation_sync',
                     itemIdsPreserved: null,
                     ordering: null,
-                    safeClientStrategy: 'omit_field_to_preserve_or_send_full_tag_ids',
+                    safeClientStrategy: 'omit_field_to_preserve_or_send_full_event_term_ids',
                     omitted: 'preserve_existing_collection_via_server_state_merge',
                 ),
-                ['tag_type' => TagType::Discipline->value],
+                ['taxonomy_code' => TagType::Discipline->value],
             )),
             $this->field('source_tags', 'array<string>', required: false, meta: array_merge(
                 $this->relationCollectionMeta(
-                    'tags',
+                    'classifications',
                     submittedArray: 'replace_relation_sync',
                     itemIdsPreserved: null,
                     ordering: null,
-                    safeClientStrategy: 'omit_field_to_preserve_or_send_full_tag_ids',
+                    safeClientStrategy: 'omit_field_to_preserve_or_send_full_event_term_ids',
                     omitted: 'preserve_existing_collection_via_server_state_merge',
                 ),
-                ['tag_type' => TagType::Source->value],
+                ['taxonomy_code' => TagType::Source->value],
             )),
             $this->field('issue_tags', 'array<string>', required: false, meta: array_merge(
                 $this->relationCollectionMeta(
-                    'tags',
+                    'classifications',
                     submittedArray: 'replace_relation_sync',
                     itemIdsPreserved: null,
                     ordering: null,
-                    safeClientStrategy: 'omit_field_to_preserve_or_send_full_tag_ids',
+                    safeClientStrategy: 'omit_field_to_preserve_or_send_full_event_term_ids',
                     omitted: 'preserve_existing_collection_via_server_state_merge',
                 ),
-                ['tag_type' => TagType::Issue->value],
+                ['taxonomy_code' => TagType::Issue->value],
             )),
             $this->field('references', 'array<string>', required: false, meta: $this->relationCollectionMeta(
                 'references',
@@ -2266,13 +2270,13 @@ class AdminResourceMutationService
             'event_type' => [$required, 'array', 'min:1'],
             'event_type.*' => [Rule::enum(EventType::class)],
             'domain_tags' => ['nullable', 'array'],
-            'domain_tags.*' => ['uuid', 'exists:tags,id'],
+            'domain_tags.*' => $this->eventTermRules(TagType::Domain),
             'discipline_tags' => ['nullable', 'array'],
-            'discipline_tags.*' => ['uuid', 'exists:tags,id'],
+            'discipline_tags.*' => $this->eventTermRules(TagType::Discipline),
             'source_tags' => ['nullable', 'array'],
-            'source_tags.*' => ['uuid', 'exists:tags,id'],
+            'source_tags.*' => $this->eventTermRules(TagType::Source),
             'issue_tags' => ['nullable', 'array'],
-            'issue_tags.*' => ['uuid', 'exists:tags,id'],
+            'issue_tags.*' => $this->eventTermRules(TagType::Issue),
             'references' => ['nullable', 'array'],
             'references.*' => ['uuid', 'exists:references,id'],
             'series' => ['nullable', 'array'],
@@ -2325,6 +2329,22 @@ class AdminResourceMutationService
         }
 
         return $rules;
+    }
+
+    /**
+     * @return list<mixed>
+     */
+    private function eventTermRules(TagType $taxonomy): array
+    {
+        $taxonomyId = EventTaxonomy::query()
+            ->where('code', $taxonomy->value)
+            ->value('id');
+
+        return [
+            'uuid',
+            Rule::exists((new EventTerm)->getTable(), 'id')
+                ->where('event_taxonomy_id', $taxonomyId),
+        ];
     }
 
     /**

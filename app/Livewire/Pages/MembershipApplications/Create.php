@@ -2,11 +2,11 @@
 
 namespace App\Livewire\Pages\MembershipApplications;
 
-use AIArmada\Membership\Actions\ApplyForMembershipAction;
-use AIArmada\Membership\Models\MembershipApplication;
+use App\Actions\Membership\SubmitMembershipApplicationAction;
 use App\Enums\MemberSubjectType;
 use App\Livewire\Concerns\InteractsWithToasts;
 use App\Models\Institution;
+use App\Models\MembershipApplication;
 use App\Models\Speaker;
 use App\Models\User;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
@@ -106,7 +106,7 @@ class Create extends Component implements HasForms
             ]);
     }
 
-    public function submit(ApplyForMembershipAction $applyForMembershipAction): void
+    public function submit(SubmitMembershipApplicationAction $submitMembershipApplicationAction): void
     {
         $user = auth()->user();
         abort_unless($user instanceof User, 403);
@@ -118,7 +118,7 @@ class Create extends Component implements HasForms
         $state = $this->claimForm()->getState();
 
         try {
-            $claim = $applyForMembershipAction->handle(
+            $claim = $submitMembershipApplicationAction->handle(
                 $this->subject,
                 $user,
                 (string) ($state['justification'] ?? ''),

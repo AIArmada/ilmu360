@@ -169,9 +169,9 @@ Use **curated parity**, not full symmetry at any cost.
 	- Does the public or authenticated workflow API surface change?
 	- If a surface does not change, is the gap intentional and documented?
 
-## Runtime admin resource inventory (41 registered resources)
+## Runtime admin resource inventory (61 registered resources)
 
-This is the runtime admin panel inventory, not just the local `app/Filament/Resources` directory. The generic admin HTTP API and Admin MCP start from this inventory but may append explicit fallback plugin resources such as `address-countries` and `address-areas` when they are enabled outside the cached panel registration.
+This is the runtime admin panel inventory, not just the local `app/Filament/Resources` directory. It includes resources registered by application code and enabled plugins. The generic admin HTTP API and Admin MCP may additionally append explicit fallback resources when they are enabled outside the cached panel registration.
 
 ### Local app resources
 
@@ -182,10 +182,9 @@ This is the runtime admin panel inventory, not just the local `app/Filament/Reso
 | `audits` | app | `index`, `view` | no |
 | `contribution-requests` | app | `index`, `view` | no |
 | `donation-channels` | app | `index`, `create`, `edit` | yes |
-| `events` | app | `index`, `create`, `view`, `edit` | yes |
 | `inspirations` | app | `index`, `create`, `edit` | yes |
 | `institutions` | app | `index`, `create`, `view`, `edit` | yes |
-| `membership-claims` | app | `index`, `view` | no |
+| `membership-applications` | app | `index`, `view` | no |
 | `references` | app | `index`, `create`, `edit` | yes |
 | `reports` | app | `index`, `create`, `edit` | yes |
 | `series` | app | `index`, `create`, `edit` | yes |
@@ -194,7 +193,6 @@ This is the runtime admin panel inventory, not just the local `app/Filament/Reso
 | `speakers` | app | `index`, `create`, `view`, `edit` | yes |
 | `tags` | app | `index`, `create`, `edit` | yes |
 | `users` | app | `index`, `create`, `view`, `edit` | no |
-| `venues` | app | `index`, `create`, `view`, `edit` | yes |
 
 ### Vendor/plugin resources
 
@@ -202,6 +200,8 @@ These are registered at runtime and therefore part of the admin registry surface
 
 | Resource key | Package family | Pages | Generic admin write |
 | --- | --- | --- | --- |
+| `address-areas` | `aiarmada/filament-addressing` | `index`, `view`, `edit`, `create` | yes |
+| `address-countries` | `aiarmada/filament-addressing` | `index`, `view` | no |
 | `bookmark-collections` | `aiarmada/filament-engagement` | `index`, `create`, `edit` | no |
 | `bookmarks` | `aiarmada/filament-engagement` | `index`, `view` | no |
 | `communication-batches` | `aiarmada/filament-communications` | `index`, `view` | no |
@@ -211,20 +211,39 @@ These are registered at runtime and therefore part of the admin registry surface
 | `communication-templates` | `aiarmada/filament-communications` | `index`, `view` | no |
 | `communication-threads` | `aiarmada/filament-communications` | `index`, `view` | no |
 | `communications` | `aiarmada/filament-communications` | `index`, `view` | no |
+| `event-attendances` | `aiarmada/filament-events` | `index`, `view` | no |
+| `event-change-logs` | `aiarmada/filament-events` | `index`, `view` | no |
+| `event-occurrences` | `aiarmada/filament-events` | `index`, `create`, `view`, `edit` | no |
+| `event-registration-participants` | `aiarmada/filament-events` | `index`, `view` | no |
+| `event-registrations` | `aiarmada/filament-events` | `index`, `view` | no |
+| `event-sessions` | `aiarmada/filament-events` | `index`, `create`, `view`, `edit` | no |
+| `events` | `aiarmada/filament-events` | `index`, `create`, `view`, `edit` | yes |
 | `follows` | `aiarmada/filament-engagement` | `index` | no |
+| `inventory-allocations` | `aiarmada/filament-inventory` | `index`, `view` | no |
+| `inventory-batches` | `aiarmada/filament-inventory` | `index`, `create`, `view`, `edit` | no |
+| `inventory-levels` | `aiarmada/filament-inventory` | `index`, `view`, `edit` | no |
+| `inventory-locations` | `aiarmada/filament-inventory` | `index`, `create`, `view`, `edit` | no |
+| `inventory-movements` | `aiarmada/filament-inventory` | `index`, `view` | no |
+| `inventory-serials` | `aiarmada/filament-inventory` | `index`, `create`, `view`, `edit` | no |
+| `pass-holders` | `aiarmada/filament-ticketing` | `index` | no |
+| `pass-transfers` | `aiarmada/filament-ticketing` | `index` | no |
+| `passes` | `aiarmada/filament-ticketing` | `index`, `view` | no |
 | `permissions` | `aiarmada/filament-authz` | `index`, `create`, `edit` | no |
 | `reactions` | `aiarmada/filament-engagement` | `index`, `view` | no |
 | `reminders` | `aiarmada/filament-engagement` | `index`, `view` | no |
 | `responses` | `aiarmada/filament-engagement` | `index`, `view` | no |
 | `roles` | `aiarmada/filament-authz` | `index`, `create`, `edit` | no |
 | `saved-signal-reports` | `aiarmada/filament-signals` | `index`, `create`, `edit` | no |
+| `seat-maps` | `aiarmada/filament-seating` | `index`, `create`, `view`, `edit` | no |
 | `signal-alert-logs` | `aiarmada/filament-signals` | `index` | no |
 | `signal-alert-rules` | `aiarmada/filament-signals` | `index`, `create`, `edit` | no |
 | `signal-goals` | `aiarmada/filament-signals` | `index`, `create`, `edit` | no |
 | `signal-interaction-rules` | `aiarmada/filament-signals` | `index`, `create`, `edit` | no |
 | `signal-segments` | `aiarmada/filament-signals` | `index`, `create`, `edit` | no |
 | `subscriptions` | `aiarmada/filament-engagement` | `index`, `view` | no |
+| `ticket-types` | `aiarmada/filament-ticketing` | `index`, `create`, `view`, `edit` | no |
 | `tracked-properties` | `aiarmada/filament-signals` | `index`, `create`, `edit` | no |
+| `venues` | `aiarmada/filament-events` | `index`, `view` | yes |
 
 ### What “generic admin write” means here
 
@@ -247,16 +266,30 @@ These are registered at runtime and therefore part of the admin registry surface
 
 It does **not** mean every admin-facing actor can write it. Actual create/update access is still policy-driven per request.
 
-## Runtime Ahli resource inventory (4 registered resources)
+## Runtime Ahli resource inventory (19 registered resources)
 
 | Resource key | Pages | Generic member write | Scope |
 | --- | --- | --- | --- |
-| `events` | `index`, `view`, `edit` | yes | member-owned or member-linked events |
+| `bookmark-collections` | `index`, `create`, `edit` | no | plugin resource |
+| `bookmarks` | `index`, `view` | no | plugin resource |
+| `event-attendances` | `index`, `view` | no | plugin resource |
+| `event-change-logs` | `index`, `view` | no | plugin resource |
+| `event-occurrences` | `index`, `create`, `view`, `edit` | no | plugin resource |
+| `event-registration-participants` | `index`, `view` | no | plugin resource |
+| `event-registrations` | `index`, `view` | no | plugin resource |
+| `event-sessions` | `index`, `create`, `view`, `edit` | no | plugin resource |
+| `events` | `index`, `create`, `view`, `edit` | yes | member-owned or member-linked events |
+| `follows` | `index` | no | plugin resource |
 | `institutions` | `edit` | yes | institutions the current member belongs to |
+| `reactions` | `index`, `view` | no | plugin resource |
 | `references` | `index`, `edit` | yes | references the current member belongs to |
+| `reminders` | `index`, `view` | no | plugin resource |
+| `responses` | `index`, `view` | no | plugin resource |
 | `speakers` | `index`, `view`, `edit` | yes | speakers the current member belongs to |
+| `subscriptions` | `index`, `view` | no | plugin resource |
+| `venues` | `index`, `view` | no | plugin resource |
 
-All four Ahli resources are update-capable through Member MCP. None expose generic member create or generic member delete.
+The four application-owned Ahli resources are update-capable through Member MCP. Plugin resources are registered for panel visibility but are not generic member-write capable. None expose generic member create or generic member delete.
 
 ## Structural write-capable intersection
 

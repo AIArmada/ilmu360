@@ -8,7 +8,6 @@ use AIArmada\Engagement\Contracts\EngagementManager;
 use AIArmada\FilamentAuthz\Facades\Authz;
 use AIArmada\FilamentEvents\Resources\EventResource;
 use App\Enums\ContributionSubjectType;
-use App\Enums\EventStructure;
 use App\Enums\EventVisibility;
 use App\Livewire\Pages\Dashboard\InstitutionDashboard;
 use App\Livewire\Pages\Dashboard\UserDashboard;
@@ -688,14 +687,6 @@ it('shows institution profile and events for members without a separate registra
     $eventInInstitution->speakers()->attach($speaker->id);
     $eventInInstitution->references()->attach($reference->id);
 
-    $parentProgram = Event::factory()->for($institution)->create([
-        'title' => 'Institution Parent Majlis',
-        'event_structure' => EventStructure::ParentProgram->value,
-        'status' => 'draft',
-        'visibility' => 'public',
-        'starts_at' => now()->addDays(7),
-    ]);
-
     $eventOutsideInstitution = Event::factory()->for($otherInstitution)->create([
         'title' => 'Outside Institution Event',
         'status' => 'approved',
@@ -1009,7 +1000,6 @@ it('filters and sorts institution events on the dedicated event list page', func
         ->assertTableColumnExists('space.name')
         ->assertTableColumnExists('dashboard_registrations_count')
         ->assertTableColumnExists('visibility')
-        ->assertTableColumnExists('event_structure')
         ->assertTableColumnExists('status')
         ->searchTable('alpha')
         ->filterTable('status', 'pending')
@@ -1023,7 +1013,6 @@ it('filters and sorts institution events on the dedicated event list page', func
     // Status stays visible by default (primary dashboard signal); secondary columns start hidden.
     expect($tableInstance->getTable()->getColumn('dashboard_registrations_count')?->isToggledHiddenByDefault())->toBeTrue()
         ->and($tableInstance->getTable()->getColumn('visibility')?->isToggledHiddenByDefault())->toBeTrue()
-        ->and($tableInstance->getTable()->getColumn('event_structure')?->isToggledHiddenByDefault())->toBeTrue()
         ->and($tableInstance->getTable()->getColumn('status')?->isToggledHiddenByDefault())->toBeFalse();
 
     Livewire::withQueryParams(['institution' => $institution->id])

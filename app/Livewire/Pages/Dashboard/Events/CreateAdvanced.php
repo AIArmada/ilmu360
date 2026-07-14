@@ -3,7 +3,7 @@
 namespace App\Livewire\Pages\Dashboard\Events;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Actions\Events\CreateAdvancedParentProgramAction;
+use App\Actions\Events\CreateAdvancedEventAction;
 use App\Actions\Events\PrepareAdvancedParentProgramSubmissionAction;
 use App\Actions\Events\ResolveAdvancedBuilderContextAction;
 use App\Enums\EventFormat;
@@ -85,7 +85,7 @@ class CreateAdvanced extends Component
         $templateState = match ($template) {
             'weekly_series' => [
                 'title' => $this->form['title'] ?: __('Weekly Knowledge Series'),
-                'description' => $this->form['description'] ?: __('A repeating program with one featured child event every week.'),
+                'description' => $this->form['description'] ?: __('A repeating program with one featured session every week.'),
                 'program_starts_at' => $startsAt->copy()->format('Y-m-d\TH:i'),
                 'program_ends_at' => $startsAt->copy()->addWeeks(4)->format('Y-m-d\TH:i'),
             ],
@@ -97,7 +97,7 @@ class CreateAdvanced extends Component
             ],
             'ramadan_program' => [
                 'title' => $this->form['title'] ?: __('Ramadan Companion Program'),
-                'description' => $this->form['description'] ?: __('An umbrella program with nightly child events and lighter weekend highlights.'),
+                'description' => $this->form['description'] ?: __('An umbrella program with nightly sessions and lighter weekend highlights.'),
                 'program_starts_at' => $startsAt->copy()->setTime(21, 15)->format('Y-m-d\TH:i'),
                 'program_ends_at' => $startsAt->copy()->addDays(10)->setTime(22, 30)->format('Y-m-d\TH:i'),
             ],
@@ -133,7 +133,7 @@ class CreateAdvanced extends Component
     }
 
     public function submit(
-        CreateAdvancedParentProgramAction $createAdvancedParentProgramAction,
+        CreateAdvancedEventAction $createAdvancedEventAction,
         PrepareAdvancedParentProgramSubmissionAction $prepareAdvancedParentProgramSubmissionAction,
     ): mixed {
         $validated = $this->validate($this->rules());
@@ -145,7 +145,7 @@ class CreateAdvanced extends Component
         $preparedSubmission = $prepareAdvancedParentProgramSubmissionAction->handle($user, $validated['form']);
 
         try {
-            $parentEvent = OwnerContext::withOwner(null, fn (): Event => $createAdvancedParentProgramAction->handle(
+            $event = OwnerContext::withOwner(null, fn (): Event => $createAdvancedEventAction->handle(
                 $user,
                 $validated['form'],
                 $preparedSubmission['program_starts_at'],
@@ -162,7 +162,7 @@ class CreateAdvanced extends Component
             return null;
         }
 
-        return redirect()->route('submit-event.create', ['parent' => $parentEvent->id]);
+        return redirect()->route('submit-event.create', ['event' => $event->id]);
     }
 
     /**
@@ -225,7 +225,7 @@ class CreateAdvanced extends Component
         return [
             1 => ['number' => 1, 'title' => __('Program Identity'), 'description' => __('Name the umbrella program and ownership')],
             2 => ['number' => 2, 'title' => __('Program Defaults'), 'description' => __('Set timeframe, visibility, and registration defaults')],
-            3 => ['number' => 3, 'title' => __('Review & Continue'), 'description' => __('Create the parent first, then add child events individually')],
+            3 => ['number' => 3, 'title' => __('Review & Continue'), 'description' => __('Create the event, then add sessions to its occurrence')],
         ];
     }
 
@@ -235,9 +235,9 @@ class CreateAdvanced extends Component
     protected function templateOptions(): array
     {
         return [
-            ['key' => 'weekly_series', 'title' => __('Weekly Series'), 'description' => __('Use one parent program for a weekly chain of child event submissions.'), 'eyebrow' => __('Series')],
-            ['key' => 'weekend_intensive', 'title' => __('Weekend Intensive'), 'description' => __('Create one parent, then submit each child event separately under it.'), 'eyebrow' => __('Focused')],
-            ['key' => 'ramadan_program', 'title' => __('Ramadan Program'), 'description' => __('Set up the parent first, then add nightly child events one by one.'), 'eyebrow' => __('Seasonal')],
+            ['key' => 'weekly_series', 'title' => __('Weekly Series'), 'description' => __('Use one event occurrence for a weekly chain of sessions.'), 'eyebrow' => __('Series')],
+            ['key' => 'weekend_intensive', 'title' => __('Weekend Intensive'), 'description' => __('Create one event, then add each session to its occurrence.'), 'eyebrow' => __('Focused')],
+            ['key' => 'ramadan_program', 'title' => __('Ramadan Program'), 'description' => __('Set up the event first, then add nightly sessions one by one.'), 'eyebrow' => __('Seasonal')],
         ];
     }
 

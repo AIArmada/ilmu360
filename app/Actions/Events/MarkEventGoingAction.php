@@ -2,37 +2,61 @@
 
 namespace App\Actions\Events;
 
-use AIArmada\Events\Actions\IssueEventRegistrationPassesAction;
-use AIArmada\Events\Contracts\RegistrationServiceInterface;
+use AIArmada\Events\Actions\RegisterForFreeAction;
 use AIArmada\Events\Enums\PricingMode;
 use App\Models\Event;
 use App\Models\Registration;
 use App\Models\User;
-use Illuminate\Http\Request;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 final readonly class MarkEventGoingAction
 {
     use AsAction;
 
-    public function handle(Event $event, User $user, Request $request): array
+    public function __construct(
+        private SyncEventGoingCountAction $syncEventGoingCount,
+    ) {}
+
+    /**
+     * @return array{status: 'created'|'existing', going_count: int}
+     */
+    public function handle(Event $event, User $user): array
     {
+        $alreadyGoing = $event->goingBy()
+            ->forResponder($user)
+            ->active()
+            ->exists();
+
         $user->respond($event, 'going');
 
-        if ($event->pricing_mode === PricingMode::Free?->value || $event->pricing_mode === null) {
+        if ($event->pricing_mode === PricingMode::Free->value || $event->pricing_mode === null) {
             if (config('events.features.auto_issue_passes', true)) {
-                $regData = app(RegistrationServiceInterface::class)->register([
-                    'event_id' => $event->getKey(),
-                    'user_id' => $user->getKey(),
-                ]);
-                $registration = Registration::findOrFail($regData->id);
-                app(IssueEventRegistrationPassesAction::class)->handle($registration);
+                $registration = Registration::query()
+                    ->forUser($user)
+                    ->where('event_id', $event->getKey())
+                    ->active()
+                    ->first();
+
+                if (! $registration instanceof Registration) {
+                    app(RegisterForFreeAction::class)->execute(
+                        target: $event,
+                        participants: [[
+                            'name' => $user->name,
+                            'email' => $user->email,
+                            'phone' => $user->phone,
+                            'is_primary' => true,
+                            'is_purchaser' => true,
+                        ]],
+                        registrant: $user,
+                        options: ['with_pass' => true],
+                    );
+                }
             }
         }
 
         return [
-            'status' => 'going',
-            'going_count' => $event->goingBy()->active()->count(),
+            'status' => $alreadyGoing ? 'existing' : 'created',
+            'going_count' => $this->syncEventGoingCount->handle($event),
         ];
     }
 }

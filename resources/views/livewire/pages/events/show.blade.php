@@ -2080,7 +2080,7 @@
                     @php
                         $regOpen = !$event->accessPolicy?->opens_at || $event->accessPolicy->opens_at <= now();
                         $regClosed = $event->accessPolicy?->closes_at && $event->accessPolicy->closes_at < now();
-                        $atCapacity = $registrationMode === \App\Enums\RegistrationMode::Event && $event->accessPolicy?->capacity && $event->registrations_count >= $event->accessPolicy->capacity;
+                        $atCapacity = $registrationMode === \AIArmada\Events\Enums\RegistrationMode::Required && $event->accessPolicy?->capacity && $event->registrations_count >= $event->accessPolicy->capacity;
                     @endphp
 
                     @if($eventActionsDisabled)
@@ -2124,7 +2124,7 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
                                 </svg>
                             </span>
-                            @if($registrationMode === \App\Enums\RegistrationMode::Event && $event->accessPolicy?->capacity)
+                            @if($registrationMode === \AIArmada\Events\Enums\RegistrationMode::Required && $event->accessPolicy?->capacity)
                                 <span
                                     class="relative ml-2 text-xs opacity-80">({{ $event->accessPolicy->capacity - $event->registrations_count }}
                                     {{ __('spots left') }})</span>

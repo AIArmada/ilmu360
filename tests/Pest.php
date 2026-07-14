@@ -6,9 +6,12 @@ use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Addressing\Models\City;
 use AIArmada\Addressing\Models\State;
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Membership\Actions\AddMemberAction;
+use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Signals\Models\TrackedProperty;
 use App\Support\Cache\PublicListingsCache;
 use App\Support\Signals\ProductSignalsSurfaceResolver;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -158,6 +161,15 @@ expect()->extend('toBeOne', fn () => $this->toBe(1));
 function something()
 {
     // ..
+}
+
+function addTestMember(Model $subject, Model $user, MemberRole|string $role = MemberRole::Viewer): void
+{
+    app(AddMemberAction::class)->handle(
+        $subject,
+        $user,
+        is_string($role) ? MemberRole::from($role) : $role,
+    );
 }
 
 /**

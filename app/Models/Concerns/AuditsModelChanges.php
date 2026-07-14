@@ -2,6 +2,7 @@
 
 namespace App\Models\Concerns;
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Support\Auditing\FixedValueRedactor;
 use BackedEnum;
 use DateTimeInterface;
@@ -228,7 +229,12 @@ trait AuditsModelChanges
             return null;
         }
 
-        $related = $modelClass::query()->find($value);
+        $resolveRelated = static fn (): ?Model => $modelClass::query()->find($value);
+
+        /** @var Model|null $related */
+        $related = OwnerContext::hasOverride()
+            ? $resolveRelated()
+            : OwnerContext::withOwner(null, $resolveRelated);
 
         if (! $related instanceof Model) {
             return null;

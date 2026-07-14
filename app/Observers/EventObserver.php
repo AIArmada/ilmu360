@@ -18,9 +18,10 @@ use App\Support\Cache\PublicDirectoryCacheVersion;
 use App\Support\Cache\PublicListingsCache;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
+use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 use Illuminate\Support\Facades\Log;
 
-class EventObserver
+class EventObserver implements ShouldHandleEventsAfterCommit
 {
     use SyncsCurrentAndPreviousValues;
 
@@ -54,13 +55,8 @@ class EventObserver
     public function updating(Event $event): void
     {
         // Only recalculate if timing-related fields changed
-        if (
-            $event->isDirty([
-                'timing_mode',
-                'venue_id',
-            ])
-            || ($event->isPrayerRelative() && $event->isDirty('metadata'))
-        ) {
+        if ($event->isDirty('default_venue_id')
+            || ($event->isPrayerRelative() && $event->isDirty('metadata'))) {
             $this->calculatePrayerRelativeTime($event);
         }
     }
@@ -108,15 +104,33 @@ class EventObserver
             });
         }
 
-        if ($event->searchIndexShouldBeUpdated()) {
-            if ($event->shouldBeSearchable()) {
-                $event->searchable();
+    }
 
-                return;
+    /**
+     * Scout's model observer covers the app-owned fields. These package-backed
+     * fields are intentionally synced here because the app model exposes them
+     * through aliases or metadata instead of dirtying the product field name.
+     */
+    public function saved(Event $event): void
+    {
+        if ($event->wasRecentlyCreated || ! $event->wasChanged([
+            'metadata',
+            'default_venue_id',
+            'delivery_mode',
+            'timezone',
+        ])) {
+            return;
+        }
+
+        if (! $event->shouldBeSearchable()) {
+            if ($event->wasSearchableBeforeUpdate()) {
+                $event->unsearchable();
             }
 
-            $event->unsearchable();
+            return;
         }
+
+        $event->searchable();
     }
 
     public function deleted(Event $event): void

@@ -12,6 +12,9 @@ use App\Filament\Ahli\Resources\Speakers\SpeakerResource as AhliSpeakerResource;
 use App\Filament\Resources\Institutions\InstitutionResource;
 use App\Filament\Resources\References\ReferenceResource;
 use App\Filament\Resources\Speakers\SpeakerResource;
+use App\Models\Event;
+use App\Models\Institution;
+use App\Models\Speaker;
 use App\Models\User;
 use App\Support\Api\Admin\AdminResourceMutationService;
 use App\Support\Authz\MemberPermissionGate;
@@ -59,6 +62,43 @@ class MemberResourceMutationService
                 || $this->memberPermissionGate->hasAnySpeakerPermission($user, 'event.update'),
             default => false,
         };
+    }
+
+    /**
+     * @param  class-string<resource>  $resourceClass
+     */
+    public function canWriteRecord(string $resourceClass, User $user, Model $record): bool
+    {
+        if (! $this->supports($resourceClass)) {
+            return false;
+        }
+
+        if ($resourceClass !== AhliEventResource::class || ! $record instanceof Event) {
+            return $user->can('update', $record);
+        }
+
+        $memberPermissionGate = $this->memberPermissionGate;
+
+        if ($memberPermissionGate->canEvent($user, 'event.update', $record)) {
+            return true;
+        }
+
+        $institutionId = $record->institution_id;
+
+        if (is_string($institutionId) && $institutionId !== '') {
+            /** @var Institution|null $institution */
+            $institution = $user->institutions()->whereKey($institutionId)->first();
+
+            if ($institution instanceof Institution && $memberPermissionGate->canInstitution($user, 'event.update', $institution)) {
+                return true;
+            }
+        }
+
+        $record->loadMissing('primaryOrganizerInvolvement.involveable');
+        $organizer = $record->organizer;
+
+        return ($organizer instanceof Institution && $memberPermissionGate->canInstitution($user, 'event.update', $organizer))
+            || ($organizer instanceof Speaker && $memberPermissionGate->canSpeaker($user, 'event.update', $organizer));
     }
 
     /**

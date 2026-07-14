@@ -87,7 +87,6 @@ it('keeps admin api and admin mcp event filter results aligned', function () {
         'status' => 'draft',
         'delivery_mode' => EventFormat::Online,
         'visibility' => EventVisibility::Public,
-        'status' => 'active',
     ]);
 
     Sanctum::actingAs($admin);
@@ -158,7 +157,6 @@ it('keeps admin api and admin mcp validate-only update previews aligned', functi
         'status' => 'verified',
         'is_freelance' => true,
         'job_title' => 'Imam',
-        'status' => 'active',
         'allow_public_event_submission' => true,
         'address' => [
             'country_id' => parityEnsureMalaysiaCountryExists(),
@@ -397,14 +395,14 @@ it('keeps admin api and admin mcp membership claim review workflows aligned', fu
     $mcpClaimant = User::factory()->create();
 
     $apiClaim = MembershipApplication::factory()
-        ->forInstitution($apiInstitution)
+        ->for($apiInstitution, 'subject')
         ->create([
             'applicant_id' => $apiClaimant->getKey(),
             'status' => 'pending',
         ]);
 
     $mcpClaim = MembershipApplication::factory()
-        ->forInstitution($mcpInstitution)
+        ->for($mcpInstitution, 'subject')
         ->create([
             'applicant_id' => $mcpClaimant->getKey(),
             'status' => 'pending',

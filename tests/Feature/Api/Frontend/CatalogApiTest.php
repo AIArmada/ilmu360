@@ -2,6 +2,8 @@
 
 use AIArmada\Addressing\Models\City;
 use AIArmada\Addressing\Models\State;
+use App\Enums\MemberSubjectType;
+use App\Models\Institution;
 use App\Models\Venue;
 
 it('requires an explicit country for public states catalog options', function () {
@@ -107,4 +109,21 @@ it('returns public venue catalog options for active visible venues', function ()
     expect(collect($response->json('data'))->pluck('label')->all())
         ->toContain('Catalog API Visible Venue', 'Catalog API Pending Venue')
         ->not->toContain('Catalog API Rejected Venue', 'Catalog API Inactive Venue');
+});
+
+it('lists membership claim subjects from the public catalog endpoint', function () {
+    $institution = Institution::factory()->create([
+        'name' => 'Catalog API Membership Institution',
+        'status' => 'verified',
+    ]);
+
+    $response = $this->getJson(route('api.client.catalogs.membership-application-subjects', [
+        'subjectType' => MemberSubjectType::Institution->publicRouteSegment(),
+        'q' => 'Membership Institution',
+    ]));
+
+    $response->assertSuccessful()
+        ->assertJsonPath('data.0.id', $institution->id)
+        ->assertJsonPath('data.0.slug', $institution->slug)
+        ->assertJsonPath('data.0.label', $institution->display_name);
 });

@@ -6,14 +6,12 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Engagement\Contracts\EngagementManager;
 use AIArmada\Engagement\Models\Bookmark;
 use AIArmada\Events\Enums\RegistrationMode;
-use AIArmada\FilamentEvents\Resources\EventResource as AhliEventResource;
 use App\Actions\Events\MarkEventGoingAction;
 use App\Actions\Events\RecordEventCheckInAction;
 use App\Actions\Events\RemoveEventGoingAction;
 use App\Actions\Events\ResolveEventCheckInStateAction;
 use App\Enums\DawahShareOutcomeType;
 use App\Enums\EventKeyPersonRole;
-use App\Enums\EventStructure;
 use App\Enums\EventVisibility;
 use App\Enums\ScheduleState;
 use App\Models\Event;
@@ -110,11 +108,6 @@ class Show extends Component
                 'latestPublishedReplacementAnnouncement.replacementEvent.institution.media',
                 'latestPublishedReplacementAnnouncement.replacementEvent.speakers.media',
                 'publishedChangeAnnouncements.replacementEvent',
-                'childEvents.media',
-                'childEvents.institution.media',
-                'childEvents.institution.addresses.country',
-                'childEvents.venue.media',
-                'childEvents.venue.addresses.country',
             ]);
 
             if ($involveable = $event->primaryOrganizerInvolvement?->involveable) {
@@ -168,24 +161,6 @@ class Show extends Component
         return $this->isSearchIndexable($this->event) ? 'index, follow' : 'noindex, nofollow';
     }
 
-    /**
-     * @return Collection<int, Event>
-     */
-    #[Computed]
-    public function publicChildEvents(): Collection
-    {
-        if (! $this->event->isParentProgram()) {
-            return collect();
-        }
-
-        return $this->event->childEvents
-            ->filter(fn (Event $childEvent): bool => $childEvent->published_at !== null
-                && in_array((string) $childEvent->status, Event::PUBLIC_STATUSES, true)
-                && $childEvent->visibility === EventVisibility::Public)
-            ->sortBy('starts_at')
-            ->values();
-    }
-
     #[Computed]
     public function activeChangeNotice(): ?EventChangeAnnouncement
     {
@@ -223,28 +198,6 @@ class Show extends Component
     public function registrationMode(): RegistrationMode
     {
         return $this->event->resolvedRegistrationMode();
-    }
-
-    /**
-     * @return array{create_child_url: string, ahli_url: string}|null
-     */
-    #[Computed]
-    public function parentProgramManagementLinks(): ?array
-    {
-        if (! $this->event->isParentProgram()) {
-            return null;
-        }
-
-        $user = auth()->user();
-
-        if (! $user instanceof User || ! $user->can('update', $this->event)) {
-            return null;
-        }
-
-        return [
-            'create_child_url' => route('submit-event.create', ['parent' => $this->event]),
-            'ahli_url' => AhliEventResource::getUrl('view', ['record' => $this->event], panel: 'ahli'),
-        ];
     }
 
     /**
@@ -509,7 +462,7 @@ class Show extends Component
 
                     return ['saves_count' => app(Bookmark::class)::forBookmarkable($this->event)->active()->count()];
                 })(),
-                'goingEvents' => app(MarkEventGoingAction::class)->handle($this->event, $user, request()),
+                'goingEvents' => app(MarkEventGoingAction::class)->handle($this->event, $user),
                 default => ['status' => 'conflict', $countColumn => (int) ($this->event->{$countColumn} ?? 0)],
             };
 
@@ -592,10 +545,6 @@ class Show extends Component
 
     public function render(): View
     {
-        if ($this->event->isParentProgram()) {
-            return view('livewire.pages.events.show-parent-program');
-        }
-
         return view('livewire.pages.events.show');
     }
 
@@ -625,7 +574,7 @@ class Show extends Component
 
     protected function isSearchIndexable(Event $event): bool
     {
-        if ($event->published_at === null || $event->visibility !== EventVisibility::Public || $event->eventStructure() === EventStructure::ParentProgram) {
+        if ($event->published_at === null || $event->visibility !== EventVisibility::Public) {
             return false;
         }
 

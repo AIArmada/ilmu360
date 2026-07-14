@@ -268,6 +268,19 @@ describe('Saved Search API Endpoints', function () {
                     ->assertJsonValidationErrors(['filters.starts_on_local_date']);
             });
 
+            it('rejects removed geography filter keys instead of silently dropping them', function () {
+                $response = $this->postJson('/api/v1/saved-searches', [
+                    'name' => 'Removed Geography Search',
+                    'filters' => [
+                        'admin_area_3_id' => (string) Str::uuid(),
+                    ],
+                    'notify' => 'daily',
+                ]);
+
+                $response->assertUnprocessable()
+                    ->assertJsonValidationErrors(['filters']);
+            });
+
             it('enforces max 10 saved searches per user', function () {
                 SavedSearch::factory()->count(10)->create(['user_id' => $this->user->id]);
 

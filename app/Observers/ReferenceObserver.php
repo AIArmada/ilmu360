@@ -6,8 +6,9 @@ use App\Actions\References\GenerateReferenceSlugAction;
 use App\Actions\Slugs\SyncSlugRedirectAction;
 use App\Models\Reference;
 use App\Observers\Concerns\SyncsCurrentAndPreviousValues;
+use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
-class ReferenceObserver
+class ReferenceObserver implements ShouldHandleEventsAfterCommit
 {
     use SyncsCurrentAndPreviousValues;
 

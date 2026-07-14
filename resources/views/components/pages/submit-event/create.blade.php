@@ -104,7 +104,7 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
     #[Url(as: 'step')]
     public ?string $wizardStep = null;
 
-    public ?string $parentEventId = null;
+    public ?string $eventId = null;
 
     public ?string $duplicateEventId = null;
 
@@ -121,7 +121,7 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
 
     public function mount(): void
     {
-        $this->parentEventId = request()->query('parent');
+        $this->eventId = request()->query('event');
         $this->duplicateEventId = request()->query('duplicate');
         $scopedInstitution = $this->resolveScopedInstitution(request()->query('institution'));
 
@@ -147,8 +147,8 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
             'submission_country_id' => $this->defaultSubmissionCountryId(),
         ];
 
-        if ($parentEvent = $this->selectedParentEvent()) {
-            $state = array_replace($state, $this->parentEventDefaults($parentEvent));
+        if ($eventContainer = $this->selectedEventContainer()) {
+            $state = array_replace($state, $this->eventContainerDefaults($eventContainer));
         }
 
         if ($duplicateEvent = $this->selectedDuplicateEvent()) {
@@ -1547,12 +1547,12 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
 
     public function submit(): mixed
     {
-        $parentEvent = $this->selectedParentEvent();
+        $eventContainer = $this->selectedEventContainer();
         $result = app(SubmitFrontendEventAction::class)->handle(
             state: $this->eventForm()->getState(),
             request: request(),
             submitter: $this->submitterUser(),
-            parentEvent: $parentEvent,
+            eventContainer: $eventContainer,
             scopedInstitution: $this->scopedInstitution(),
             persistRelationships: function (Event $event): void {
                 $this->eventForm()->model($event);
@@ -1570,9 +1570,9 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
         session()->flash('submission_institution_id', $this->scopedInstitutionId);
         session()->flash('event_visibility', $result['visibility']);
 
-        if ($parentEvent instanceof Event) {
-            session()->flash('parent_event_id', $parentEvent->id);
-            session()->flash('parent_event_title', $parentEvent->title);
+        if ($eventContainer instanceof Event) {
+            session()->flash('event_container_id', $eventContainer->id);
+            session()->flash('event_container_title', $eventContainer->title);
         }
 
         return redirect()->route('submit-event.success');
@@ -1624,99 +1624,60 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
         return $validated;
     }
 
-    protected function persistRegistrationSettings(Event $event): void
-    {
-        $parentEvent = $this->selectedParentEvent();
-
-        if ($parentEvent instanceof Event && $parentEvent->accessPolicy !== null) {
-            $resolvedRegistrationMode = $parentEvent->resolvedRegistrationMode();
-
-            $event->forceFill([
-                'registration_mode' => $resolvedRegistrationMode->value,
-            ])->save();
-
-            $event->accessPolicy()->updateOrCreate(
-                ['event_id' => $event->id],
-                [
-                    'registration_required' => (bool) $parentEvent->accessPolicy->registration_required,
-                    'walk_in_allowed' => ! $parentEvent->accessPolicy->registration_required,
-                ]
-            );
-
-            return;
-        }
-
-        $event->forceFill([
-            'registration_mode' => RegistrationMode::None->value,
-        ])->save();
-
-        $event->accessPolicy()->updateOrCreate(
-            ['event_id' => $event->id],
-            [
-                'registration_required' => false,
-                'walk_in_allowed' => true,
-            ]
-        );
-    }
-
     protected function shouldAutoApproveSubmission(): bool
     {
         return $this->hasScopedInstitution();
     }
 
-    protected function selectedParentEvent(): ?Event
+    protected function selectedEventContainer(): ?Event
     {
-        $parentId = $this->parentEventId;
+        $eventId = $this->eventId;
 
-        if (! is_string($parentId) || ! Str::isUuid($parentId)) {
+        if (! is_string($eventId) || ! Str::isUuid($eventId)) {
             return null;
         }
 
-        $parentEvent = Event::query()
+        $event = Event::query()
             ->with(['institution:id,name', 'accessPolicy'])
-            ->find($parentId);
+            ->find($eventId);
 
         $scopedInstitution = $this->scopedInstitution();
 
         if (
-            $parentEvent instanceof Event
+            $event instanceof Event
             && $scopedInstitution instanceof Institution
-            && ! $this->parentEventMatchesScopedInstitution($parentEvent, $scopedInstitution)
+            && ! $this->eventMatchesScopedInstitution($event, $scopedInstitution)
         ) {
             abort(403);
         }
 
-        return $parentEvent instanceof Event && $parentEvent->isParentProgram()
-            ? $parentEvent
-            : null;
+        return $event instanceof Event ? $event : null;
     }
 
-    protected function parentEventMatchesScopedInstitution(Event $parentEvent, Institution $institution): bool
+    protected function eventMatchesScopedInstitution(Event $event, Institution $institution): bool
     {
-        if ($parentEvent->institution_id === $institution->id) {
+        if ($event->institution_id === $institution->id) {
             return true;
         }
 
-        return $parentEvent->primaryOrganizerInvolvement?->involveable_type === Institution::class
-            && $parentEvent->primaryOrganizerInvolvement?->involveable_id === $institution->id;
+        return $event->primaryOrganizerInvolvement?->involveable_type === Institution::class
+            && $event->primaryOrganizerInvolvement?->involveable_id === $institution->id;
     }
 
     /**
      * @return array<string, mixed>
      */
-    protected function parentEventDefaults(Event $parentEvent): array
+    protected function eventContainerDefaults(Event $event): array
     {
-        $parentVisibility = $parentEvent->visibility;
-
-        $duplicateClassifications = $duplicateEvent->classifications->groupBy('taxonomy_code');
+        $eventVisibility = $event->visibility;
 
         $defaults = [
-            'visibility' => $parentVisibility instanceof EventVisibility
-                ? $parentVisibility->value
-                : (is_string($parentVisibility) && $parentVisibility !== '' ? $parentVisibility : EventVisibility::Public->value),
+            'visibility' => $eventVisibility instanceof EventVisibility
+                ? $eventVisibility->value
+                : (is_string($eventVisibility) && $eventVisibility !== '' ? $eventVisibility : EventVisibility::Public->value),
         ];
 
-        $organizer = $parentEvent->primaryOrganizerInvolvement;
+        $organizer = $event->primaryOrganizerInvolvement;
 
         if ($organizer?->involveable_type === Institution::class && filled($organizer->involveable_id)) {
             $defaults['primary_organizer_kind'] = 'institution';
@@ -1725,7 +1686,7 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
             $defaults['primary_organizer_speaker_id'] = null;
             $defaults['location_same_as_institution'] = true;
             $defaults['location_type'] = 'institution';
-            $defaults['location_institution_id'] = $parentEvent->institution_id ?: $organizer->involveable_id;
+            $defaults['location_institution_id'] = $event->institution_id ?: $organizer->involveable_id;
         }
 
         if ($organizer?->involveable_type === Speaker::class && filled($organizer->involveable_id)) {
@@ -1733,12 +1694,12 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
             $defaults['primary_organizer_id'] = $organizer->involveable_id;
             $defaults['primary_organizer_institution_id'] = null;
             $defaults['primary_organizer_speaker_id'] = $organizer->involveable_id;
-            $defaults['location_type'] = $parentEvent->venue_id ? 'venue' : 'institution';
-            $defaults['location_institution_id'] = $parentEvent->institution_id;
+            $defaults['location_type'] = $event->venue_id ? 'venue' : 'institution';
+            $defaults['location_institution_id'] = $event->institution_id;
 
-            if ($parentEvent->venue_id) {
+            if ($event->venue_id) {
                 $defaults['location_same_as_institution'] = false;
-                $defaults['location_venue_id'] = $parentEvent->venue_id;
+                $defaults['location_venue_id'] = $event->venue_id;
             }
         }
 
@@ -2068,12 +2029,12 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
         return $defaults;
     }
 
-    public function parentProgramManagementUrl(): ?string
+    public function eventManagementUrl(): ?string
     {
-        $parentEvent = $this->selectedParentEvent();
+        $event = $this->selectedEventContainer();
 
-        return $parentEvent instanceof Event
-            ? EventResource::getUrl('view', ['record' => $parentEvent], panel: 'ahli')
+        return $event instanceof Event
+            ? EventResource::getUrl('view', ['record' => $event], panel: 'ahli')
             : null;
     }
 
@@ -2562,20 +2523,20 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
 <div class="bg-slate-50 min-h-screen py-12 pb-32">
     <div class="container mx-auto px-6 lg:px-12">
         <div class="max-w-6xl xl:max-w-7xl mx-auto">
-            @if(($parentEvent = $this->selectedParentEvent()) instanceof \App\Models\Event)
+            @if(($eventContainer = $this->selectedEventContainer()) instanceof \App\Models\Event)
                 <div class="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-5 shadow-sm">
                     <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                         <div>
-                            <p class="text-xs font-bold uppercase tracking-[0.18em] text-emerald-700">{{ __('Parent Program') }}</p>
-                            <h2 class="mt-2 font-heading text-2xl font-bold text-emerald-950">{{ $parentEvent->title }}</h2>
+                            <p class="text-xs font-bold uppercase tracking-[0.18em] text-emerald-700">{{ __('Event') }}</p>
+                            <h2 class="mt-2 font-heading text-2xl font-bold text-emerald-950">{{ $eventContainer->title }}</h2>
                             <p class="mt-2 text-sm text-emerald-900/75">
-                                {{ __('This submission will be attached as a child event under the selected parent program.') }}
+                                {{ __('This submission will be added as a session in the selected event occurrence.') }}
                             </p>
                         </div>
-                        @if($parentProgramManagementUrl = $this->parentProgramManagementUrl())
-                            <a href="{{ $parentProgramManagementUrl }}"
+                        @if($eventManagementUrl = $this->eventManagementUrl())
+                            <a href="{{ $eventManagementUrl }}"
                                 class="inline-flex h-11 items-center justify-center rounded-xl border border-emerald-300 bg-white px-5 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100/70">
-                                {{ __('Back to Parent Program') }}
+                                {{ __('Back to Event') }}
                             </a>
                         @endif
                     </div>

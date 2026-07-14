@@ -335,7 +335,7 @@ class FrontendFormContractService
             'auth_required' => false,
             'captcha_required_when_turnstile_enabled' => true,
             'defaults' => [
-                'parent_event_id' => null,
+                'event_id' => null,
                 'scoped_institution_id' => null,
                 'submitter_name' => $user?->name,
                 'submitter_email' => $user?->email,
@@ -356,7 +356,7 @@ class FrontendFormContractService
             'fields' => [
                 $this->field('title', 'string', required: true, maxLength: 255),
                 $this->field('description', 'rich_text', required: false),
-                $this->field('parent_event_id', 'uuid', required: false),
+                $this->field('event_id', 'uuid', required: false),
                 $this->field('scoped_institution_id', 'uuid', required: false),
                 $this->field('event_type', 'array<string>', required: true, allowedValues: $this->enumValues(EventType::class)),
                 $this->field('event_date', 'date', required: true),

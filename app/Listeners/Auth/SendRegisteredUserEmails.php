@@ -7,8 +7,9 @@ namespace App\Listeners\Auth;
 use App\Models\User;
 use App\Notifications\Auth\WelcomeNotification;
 use Illuminate\Auth\Events\Registered;
+use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
-final class SendRegisteredUserEmails
+final class SendRegisteredUserEmails implements ShouldHandleEventsAfterCommit
 {
     public function handle(Registered $event): void
     {

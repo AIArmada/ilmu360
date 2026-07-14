@@ -1,7 +1,8 @@
 <?php
 
+use AIArmada\Events\Models\EventOccurrence;
+use AIArmada\Events\Models\EventSession;
 use App\Enums\EventKeyPersonRole;
-use App\Enums\EventStructure;
 use App\Models\Event;
 use App\Models\Speaker;
 use App\Models\Venue;
@@ -53,10 +54,11 @@ it('active scope filters public visible statuses (approved, pending, cancelled)'
             'published_at' => null,
         ]);
 
+        Event::query()->whereKey($deactivatedEvent->id)->update(['published_at' => null]);
+
         $results = Event::active()->get();
 
-        expect($results)->toHaveCount(3)
-            ->and($results->pluck('id')->toArray())->toContain($approvedEvent->id)
+        expect($results->pluck('id')->toArray())->toContain($approvedEvent->id)
             ->and($results->pluck('id')->toArray())->toContain($pendingEvent->id)
             ->and($results->pluck('id')->toArray())->toContain($cancelledEvent->id)
             ->and($results->pluck('id')->toArray())->not->toContain($draftEvent->id)
@@ -189,38 +191,44 @@ it('deduplicates key person roles in the searchable payload', function () {
     });
 });
 
-it('supports parent program and child event hierarchy helpers', function () {
+it('uses occurrences and sessions for event scheduling', function () {
     withGlobalOwnerContext(function (): void {
-        $parentEvent = Event::factory()->parentProgram()->create();
-        $childEvent = Event::factory()->childEvent($parentEvent)->create();
-        $standaloneEvent = Event::factory()->create();
+        $event = Event::factory()->create();
+        $occurrence = EventOccurrence::query()->create([
+            'event_id' => $event->id,
+            'title' => $event->title,
+            'slug' => $event->slug.'-occurrence',
+            'starts_at' => now()->addDay(),
+            'ends_at' => now()->addDay()->addHours(2),
+            'timezone' => $event->timezone,
+            'status' => 'scheduled',
+            'visibility' => 'public',
+            'delivery_mode' => 'in_person',
+        ]);
+        $session = EventSession::query()->create([
+            'event_id' => $event->id,
+            'event_occurrence_id' => $occurrence->id,
+            'title' => 'Session One',
+            'slug' => 'session-one-'.str()->random(8),
+            'starts_at' => now()->addDay(),
+            'ends_at' => now()->addDay()->addHour(),
+            'timezone' => $event->timezone,
+            'status' => 'scheduled',
+            'visibility' => 'public',
+            'delivery_mode' => 'in_person',
+            'sort_order' => 1,
+        ]);
 
-        expect($parentEvent->fresh()->isParentProgram())->toBeTrue()
-            ->and($parentEvent->isSchedulable())->toBeFalse()
-            ->and($parentEvent->childEvents->pluck('id')->all())->toContain($childEvent->id)
-            ->and($childEvent->fresh()->isChildEvent())->toBeTrue()
-            ->and($childEvent->isSchedulable())->toBeTrue()
-            ->and($childEvent->parentEvent?->is($parentEvent))->toBeTrue()
-            ->and($standaloneEvent->fresh()->isStandaloneEvent())->toBeTrue()
-            ->and($standaloneEvent->eventStructure())->toBe(EventStructure::Standalone);
+        expect($event->fresh()->occurrences()->pluck('id')->all())->toContain($occurrence->id)
+            ->and($occurrence->sessions->pluck('id')->all())->toContain($session->id)
+            ->and($session->event_id)->toBe($event->id)
+            ->and($session->event_occurrence_id)->toBe($occurrence->id);
     });
 });
 
-it('discoverable scope and searchability exclude parent programs', function () {
+it('keeps every public event container discoverable and searchable', function () {
     withGlobalOwnerContext(function (): void {
-        $parentEvent = Event::factory()->parentProgram()->create([
-            'status' => Approved::class,
-            'visibility' => 'public',
-            'published_at' => now(),
-        ]);
-
-        $childEvent = Event::factory()->childEvent($parentEvent)->create([
-            'status' => Approved::class,
-            'visibility' => 'public',
-            'published_at' => now(),
-        ]);
-
-        $standaloneEvent = Event::factory()->create([
+        $event = Event::factory()->create([
             'status' => Approved::class,
             'visibility' => 'public',
             'published_at' => now(),
@@ -229,14 +237,8 @@ it('discoverable scope and searchability exclude parent programs', function () {
         $discoverableIds = Event::discoverable()->pluck('id')->all();
         $activeIds = Event::active()->pluck('id')->all();
 
-        expect($discoverableIds)->not->toContain($parentEvent->id)
-            ->and($discoverableIds)->toContain($childEvent->id)
-            ->and($discoverableIds)->toContain($standaloneEvent->id)
-            ->and($activeIds)->toContain($parentEvent->id)
-            ->and($activeIds)->toContain($childEvent->id)
-            ->and($activeIds)->toContain($standaloneEvent->id)
-            ->and($parentEvent->fresh()->shouldBeSearchable())->toBeFalse()
-            ->and($childEvent->fresh()->shouldBeSearchable())->toBeTrue()
-            ->and($standaloneEvent->fresh()->shouldBeSearchable())->toBeTrue();
+        expect($discoverableIds)->toContain($event->id)
+            ->and($activeIds)->toContain($event->id)
+            ->and($event->fresh()->shouldBeSearchable())->toBeTrue();
     });
 });

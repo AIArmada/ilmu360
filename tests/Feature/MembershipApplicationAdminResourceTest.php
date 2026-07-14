@@ -26,7 +26,7 @@ it('allows moderators to approve pending membership applications from the admin 
     $institution = Institution::factory()->create();
     $claimant = User::factory()->create();
     $claim = MembershipApplication::factory()
-        ->forInstitution($institution)
+        ->for($institution, 'subject')
         ->create([
             'applicant_id' => $claimant->getKey(),
             'status' => ApplicationStatus::Pending,
@@ -81,7 +81,7 @@ it('allows moderators to reject pending membership applications from the admin v
 
     $institution = Institution::factory()->create();
     $claim = MembershipApplication::factory()
-        ->forInstitution($institution)
+        ->for($institution, 'subject')
         ->create([
             'status' => ApplicationStatus::Pending,
         ]);
@@ -106,7 +106,7 @@ it('shows membership application subjects on the admin index and links to the vi
         'name' => 'Institusi Untuk Tuntutan',
     ]);
     $claim = MembershipApplication::factory()
-        ->forInstitution($institution)
+        ->for($institution, 'subject')
         ->create();
 
     $this->actingAs($administrator)

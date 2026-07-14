@@ -9,8 +9,9 @@ use App\Observers\Concerns\SyncsCurrentAndPreviousValues;
 use App\Support\Cache\PublicDirectoryCacheVersion;
 use App\Support\Cache\PublicListingsCache;
 use App\Support\Search\InstitutionSearchService;
+use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
-class InstitutionObserver
+class InstitutionObserver implements ShouldHandleEventsAfterCommit
 {
     use SyncsCurrentAndPreviousValues;
 
@@ -24,11 +25,17 @@ class InstitutionObserver
 
     public function saved(Institution $institution): void
     {
-        $this->syncCurrentAndPreviousString(
-            $institution->name,
-            $institution->wasChanged('name') ? ($institution->getPrevious()['name'] ?? null) : null,
-            fn (string $name): bool => $this->generateInstitutionSlugAction->syncInstitutionSlugsForName($name),
-        );
+        if (! $institution->wasRecentlyCreated && ! $institution->wasChanged()) {
+            return;
+        }
+
+        if ($institution->wasRecentlyCreated || $institution->wasChanged('name')) {
+            $this->syncCurrentAndPreviousString(
+                $institution->name,
+                $institution->wasChanged('name') ? ($institution->getPrevious()['name'] ?? null) : null,
+                fn (string $name): bool => $this->generateInstitutionSlugAction->syncInstitutionSlugsForName($name),
+            );
+        }
 
         $this->publicListingsCache->bustHomepageStats();
         $this->publicListingsCache->bustMajlisListing();

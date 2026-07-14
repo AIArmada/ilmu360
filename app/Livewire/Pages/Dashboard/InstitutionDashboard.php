@@ -657,11 +657,6 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
                     ->badge()
                     ->formatStateUsing(fn (mixed $state): string => $this->translateStatusLabel($state))
                     ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('event_structure')
-                    ->label(__('Structure'))
-                    ->badge()
-                    ->formatStateUsing(fn (mixed $state): string => $this->translateStatusLabel($state))
-                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('published_at')
                     ->label(__('Published At'))
                     ->dateTime()

@@ -4,9 +4,12 @@ namespace App\Data\Api\Event;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Data\Api\Frontend\Search\ReferenceDetailMediaData;
+use App\Enums\EventChangeSeverity;
+use App\Enums\EventChangeType;
 use App\Enums\EventType;
 use App\Models\Event;
 use App\Models\EventChangeAnnouncement;
+use App\Models\EventKeyPerson;
 use App\Models\Institution;
 use App\Models\Reference;
 use App\Models\Speaker;
@@ -44,7 +47,6 @@ class EventPayloadData extends Data
             ...OwnerContext::withOwner(null, fn (): array => $event->toArray()),
             'institution_id' => $event->institution_id,
             'venue_id' => $event->default_venue_id,
-            'event_structure' => self::enumValue($event->event_structure),
             'schedule_kind' => $event->schedule_kind,
             'schedule_state' => self::enumValue($event->schedule_state),
             'timing_mode' => self::enumValue($event->timing_mode),
@@ -65,7 +67,7 @@ class EventPayloadData extends Data
             'going_count' => $event->going_count,
             'is_priority' => $event->is_priority,
             'is_featured' => $event->is_featured,
-            'published_at' => $event->published_at,
+            'published_at' => self::utcDateTimeString($event->published_at),
             'is_muslim_only' => $event->is_muslim_only,
             'reference_study_subtitle' => $event->reference_study_subtitle,
             'card_image_url' => $event->card_image_url,
@@ -109,6 +111,13 @@ class EventPayloadData extends Data
 
             $payload['speakers'] = $event->speakers
                 ->map(fn (Speaker $speaker): array => EventSpeakerData::fromModel($speaker)->toArray())
+                ->values()
+                ->all();
+        }
+
+        if ($event->relationLoaded('keyPeople')) {
+            $payload['key_people'] = $event->keyPeople
+                ->map(fn (EventKeyPerson $keyPerson): array => self::serializeKeyPerson($keyPerson))
                 ->values()
                 ->all();
         }
@@ -228,6 +237,23 @@ class EventPayloadData extends Data
     }
 
     /**
+     * @return array<string, mixed>
+     */
+    private static function serializeKeyPerson(EventKeyPerson $keyPerson): array
+    {
+        return [
+            'id' => (string) $keyPerson->getKey(),
+            'role' => self::enumValue($keyPerson->role),
+            'name' => $keyPerson->name,
+            'visibility' => $keyPerson->visibility,
+            'sort_order' => $keyPerson->sort_order,
+            'speaker' => $keyPerson->speaker instanceof Speaker
+                ? EventSpeakerData::fromModel($keyPerson->speaker)->toArray()
+                : null,
+        ];
+    }
+
+    /**
      * @param  list<string>  $preferredConversions
      */
     private static function preferredMediaUrl(?Media $media, array $preferredConversions = []): ?string
@@ -276,13 +302,20 @@ class EventPayloadData extends Data
             return null;
         }
 
+        $type = $announcement->update_type instanceof EventChangeType
+            ? $announcement->update_type
+            : EventChangeType::tryFrom((string) $announcement->update_type) ?? EventChangeType::Other;
+        $severity = $announcement->severity instanceof EventChangeSeverity
+            ? $announcement->severity
+            : EventChangeSeverity::tryFrom((string) $announcement->severity) ?? EventChangeSeverity::Info;
+
         return [
             'id' => (string) $announcement->getKey(),
-            'type' => $announcement->update_type->value,
-            'type_label' => $announcement->update_type->label(),
-            'type_badge_label' => $announcement->update_type->publicBadgeLabel(),
-            'severity' => $announcement->severity->value,
-            'severity_label' => $announcement->severity->label(),
+            'type' => $type->value,
+            'type_label' => $type->label(),
+            'type_badge_label' => $type->publicBadgeLabel(),
+            'severity' => $severity->value,
+            'severity_label' => $severity->label(),
             'public_message' => $announcement->message,
             'display_message' => filled($announcement->message)
                 ? (string) $announcement->message

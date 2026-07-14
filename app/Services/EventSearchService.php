@@ -5,7 +5,6 @@ namespace App\Services;
 use AIArmada\Events\Models\EventLanguage;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventPrayerTime;
-use App\Enums\EventStructure;
 use App\Enums\EventVisibility;
 use App\Enums\PrayerReference;
 use App\Enums\TimingMode;
@@ -342,7 +341,6 @@ class EventSearchService
         $filterParts = [
             'status:['.implode(', ', Event::PUBLIC_STATUSES).']',
             'visibility:public',
-            'event_structure:!=parent_program',
         ];
 
         $startsAfterTimestamp = $this->startsAfterTimestamp($filters, $timeScope);
@@ -523,8 +521,7 @@ class EventSearchService
         $queryBuilder
             ->whereIn("{$table}.status", Event::PUBLIC_STATUSES)
             ->where("{$table}.visibility", EventVisibility::Public->value)
-            ->whereNotNull("{$table}.published_at")
-            ->where("{$table}.event_structure", '!=', EventStructure::ParentProgram->value);
+            ->whereNotNull("{$table}.published_at");
 
         $startsAfter = $this->startsAfterDateTime($filters, $timeScope);
 
@@ -691,7 +688,8 @@ class EventSearchService
             $queryBuilder->whereHas('keyPeople', function (Builder $keyPersonQuery) use ($roleSpecificIds, $role): void {
                 $keyPersonQuery
                     ->where('role_code', $role->value)
-                    ->whereIn('speaker_id', $roleSpecificIds);
+                    ->where('involveable_type', 'speaker')
+                    ->whereIn('involveable_id', $roleSpecificIds);
             });
         }
 
@@ -705,7 +703,7 @@ class EventSearchService
                     ->where('role_code', EventKeyPersonRole::PersonInCharge->value)
                     ->where(function (Builder $personInChargeQuery) use ($operator, $personInChargeSearch): void {
                         $personInChargeQuery
-                            ->where('name', $operator, "%{$personInChargeSearch}%")
+                            ->where('metadata->name', $operator, "%{$personInChargeSearch}%")
                             ->orWhereHas('speaker', function (Builder $speakerQuery) use ($operator, $personInChargeSearch): void {
                                 $speakerQuery
                                     ->where('speakers.name', $operator, "%{$personInChargeSearch}%")
@@ -904,10 +902,12 @@ class EventSearchService
             if ($includeSpeakers) {
                 $nestedQuery->orWhereHas('keyPeople', function (Builder $keyPeopleQuery) use ($speakerIds, $normalizedSearch, $operator): void {
                     $keyPeopleQuery->where(function (Builder $inner) use ($speakerIds, $normalizedSearch, $operator): void {
-                        $inner->whereHas('speaker', fn (Builder $speakerQuery) => $speakerQuery
-                            ->where('name', $operator, "%{$normalizedSearch}%")
-                            ->orWhere('searchable_name', $operator, "%{$normalizedSearch}%")
-                        );
+                        $inner
+                            ->where('metadata->name', $operator, "%{$normalizedSearch}%")
+                            ->orWhereHas('speaker', fn (Builder $speakerQuery) => $speakerQuery
+                                ->where('name', $operator, "%{$normalizedSearch}%")
+                                ->orWhere('searchable_name', $operator, "%{$normalizedSearch}%")
+                            );
 
                         if ($speakerIds !== []) {
                             $inner->orWhereIn('event_involvements.involveable_id', $speakerIds);

@@ -2,9 +2,11 @@
 
 namespace App\Livewire\Pages\Membership;
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Membership\Actions\AcceptInvitationAction;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Enums\MemberSubjectType;
+use App\Livewire\Concerns\InteractsWithToasts;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\MemberInvitation;
@@ -20,6 +22,8 @@ use RuntimeException;
 #[Layout('layouts.app')]
 class ShowInvitation extends Component
 {
+    use InteractsWithToasts;
+
     public MemberInvitation $invitation;
 
     public Event|Institution|Reference|Speaker $subject;
@@ -84,7 +88,24 @@ class ShowInvitation extends Component
         /** @var User $user */
         $user = auth()->user();
 
-        $acceptInvitationAction->handle($this->invitation->fresh() ?? $this->invitation, $user);
+        $acceptanceError = $this->acceptanceError();
+
+        if ($acceptanceError !== null) {
+            $this->errorToast($acceptanceError);
+
+            return;
+        }
+
+        try {
+            OwnerContext::withOwner(null, fn (): null => $acceptInvitationAction->handle(
+                $this->invitation->fresh() ?? $this->invitation,
+                $user,
+            ));
+        } catch (RuntimeException) {
+            $this->errorToast(__('This invitation is no longer valid.'));
+
+            return;
+        }
 
         session()->flash('success', __('Invitation accepted.'));
 
@@ -121,6 +142,10 @@ class ShowInvitation extends Component
             return __('This invitation is no longer valid.');
         }
 
+        if ($this->invitation->role === MemberRole::Owner->value) {
+            return __('This invitation is no longer valid.');
+        }
+
         if ($this->subjectUnavailable) {
             return __('This invitation is no longer valid.');
         }
@@ -153,8 +178,7 @@ class ShowInvitation extends Component
     private function resolveInvitationByToken(string $token): MemberInvitation
     {
         $invitation = MemberInvitation::query()
-            ->where('token', $token)
-            ->orWhereRaw('SHA2(?, 256) = token', [$token])
+            ->whereIn('token', [$token, MemberInvitation::tokenForStorage($token)])
             ->first();
 
         abort_unless($invitation instanceof MemberInvitation, 404);

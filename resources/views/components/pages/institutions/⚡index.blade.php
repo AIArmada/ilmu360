@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\EventStructure;
 use App\Enums\EventVisibility;
 use App\Forms\SharedFormSchema;
 use App\Models\Event;
@@ -83,8 +82,7 @@ class extends Component
             ->whereRaw("{$this->eventInstitutionIdSelector()} = institutions.id")
             ->whereNotNull('events.published_at')
             ->whereIn('events.status', Event::PUBLIC_STATUSES)
-            ->where('events.visibility', EventVisibility::Public->value)
-            ->where('events.event_structure', '!=', EventStructure::ParentProgram->value);
+            ->where('events.visibility', EventVisibility::Public->value);
     }
 
     private function eventInstitutionIdSelector(): string

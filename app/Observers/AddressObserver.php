@@ -43,6 +43,10 @@ class AddressObserver
 
     public function saved(Address $address): void
     {
+        if (! $address->wasRecentlyCreated && ! $address->wasChanged()) {
+            return;
+        }
+
         $this->syncInstitutionSlug($address);
         $this->publicDirectoryCacheVersion->bumpForAddress($address);
     }

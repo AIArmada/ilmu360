@@ -658,7 +658,7 @@ it('documents admin schema-driven writes and dynamic payload discovery', functio
         ->and($paths['/admin/{resourceKey}/schema']['get']['description'] ?? null)->toContain('mutation payloads are resource-specific')
         ->and($paths['/admin/{resourceKey}']['post']['summary'] ?? null)->toBe('Create an admin resource record')
         ->and($paths['/admin/{resourceKey}']['post']['description'] ?? null)->toContain('fetch `GET /admin/{resourceKey}/schema?operation=create` first')
-        ->and($adminListParameters)->toContain('filter[visibility]', 'filter[event_structure]', 'filter[event_format]', 'filter[event_type]', 'filter[timing_mode]', 'filter[prayer_reference]')
+        ->and($adminListParameters)->toContain('filter[visibility]', 'filter[event_format]', 'filter[event_type]', 'filter[timing_mode]', 'filter[prayer_reference]')
         ->and($paths['/admin/{resourceKey}/{recordKey}/relations/{relation}']['get']['summary'] ?? null)->toBe('List admin related records')
         ->and($paths['/admin/{resourceKey}/{recordKey}/relations/{relation}']['get']['description'] ?? null)->toContain('Use the relation keys from `GET /admin/{resourceKey}/meta`')
         ->and($paths['/admin/{resourceKey}/{recordKey}']['put']['summary'] ?? null)->toBe('Update an admin resource record')

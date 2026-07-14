@@ -7,7 +7,6 @@ namespace App\Support\Api\Admin;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\FilamentEvents\Resources\EventResource;
 use App\Enums\EventFormat;
-use App\Enums\EventStructure;
 use App\Enums\EventType;
 use App\Enums\EventVisibility;
 use App\Enums\PrayerReference;
@@ -1029,20 +1028,6 @@ class AdminResourceService
             $query->whereIn($model->qualifyColumn('visibility'), $visibleValues);
         }
 
-        if (array_key_exists('event_structure', $filters)) {
-            $structures = array_values(array_filter(
-                array_map(static fn (string $value): ?string => EventStructure::tryFrom($value)?->value, $this->normalizeArrayFilter($filters['event_structure'])),
-            ));
-
-            if ($structures === []) {
-                $query->whereRaw('1 = 0');
-
-                return;
-            }
-
-            $query->whereIn($model->qualifyColumn('event_structure'), $structures);
-        }
-
         if (array_key_exists('event_format', $filters)) {
             $formats = array_values(array_filter(
                 array_map(static fn (string $value): ?string => EventFormat::tryFrom($value)?->value, $this->normalizeArrayFilter($filters['event_format'])),
@@ -1071,7 +1056,7 @@ class AdminResourceService
             $query->where(function (Builder $eventTypeQuery) use ($eventTypes, $model): void {
                 foreach ($eventTypes as $index => $eventType) {
                     $method = $index === 0 ? 'whereJsonContains' : 'orWhereJsonContains';
-                    $eventTypeQuery->{$method}($model->qualifyColumn('event_type'), $eventType);
+                    $eventTypeQuery->{$method}($model->qualifyColumn('metadata->event_type'), $eventType);
                 }
             });
         }

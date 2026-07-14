@@ -4,13 +4,14 @@ namespace App\Observers;
 
 use App\Support\Auditing\MediaCollectionAuditSnapshot;
 use App\Support\Cache\PublicDirectoryCacheVersion;
+use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 use Illuminate\Database\Eloquent\Model;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Spatie\MediaLibrary\MediaCollections\Models\Observers\MediaObserver;
 use WeakMap;
 
-class AuditedMediaObserver extends MediaObserver
+class AuditedMediaObserver extends MediaObserver implements ShouldHandleEventsAfterCommit
 {
     /**
      * @var WeakMap<Media, array<string, mixed>>|null

@@ -32,7 +32,6 @@ use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventPrayerTime;
-use App\Enums\EventStructure;
 use App\Enums\EventType;
 use App\Enums\EventVisibility;
 use App\Enums\MemberSubjectType;
@@ -55,6 +54,7 @@ use Database\Factories\EventFactory;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -79,8 +79,8 @@ use Spatie\ModelStates\HasStates;
  *
  * Package-backed schedule/links/audience/flags/location are projected as flat
  * form attributes and synced on save into package child tables only (no dual
- * metadata+child write). Product-only keys (institution, structure, counters,
- * schedule labels) live in events.metadata via productMetadataValue().
+ * metadata+child write). Product-only keys (institution and counters) live in
+ * events.metadata via productMetadataValue().
  *
  * @property string $id
  * @property string|null $user_id
@@ -88,7 +88,6 @@ use Spatie\ModelStates\HasStates;
  * @property string|null $submitter_id
  * @property string|null $default_venue_id
  * @property string|null $space_id
- * @property string|null $parent_event_id
  * @property string $title
  * @property string $slug
  * @property array<string, mixed>|string|null $description
@@ -96,11 +95,9 @@ use Spatie\ModelStates\HasStates;
  * @property Carbon|null $ends_at
  * @property string|null $timezone
  * @property EventStatus|string $status
- * @property string|null $schedule_kind
  * @property ScheduleState|string|null $schedule_state
  * @property EventVisibility|string|null $visibility
  * @property EventFormat|string|null $event_format
- * @property EventStructure|string $event_structure
  * @property TimingMode|string|null $timing_mode
  * @property PrayerReference|string|null $prayer_reference
  * @property PrayerOffset|string|null $prayer_offset
@@ -139,7 +136,10 @@ use Spatie\ModelStates\HasStates;
  */
 class Event extends PackageEvent implements AuditableContract
 {
-    /** @use HasFactory<EventFactory> */
+    /**
+     * @use HasFactory<EventFactory>
+     * @use HasMembers<User>
+     */
     use AuditsModelChanges, HasAddresses, HasDonationChannels, HasFactory, HasMembers, HasResponses, HasStates, KeepsDeletedModels, Searchable;
 
     protected static string $ownerScopeConfigKey = '';
@@ -151,14 +151,14 @@ class Event extends PackageEvent implements AuditableContract
      *
      * @var list<string>
      */
-    public const array PUBLIC_STATUSES = ['approved', 'published', 'pending', 'cancelled'];
+    public const array PUBLIC_STATUSES = ['approved', 'pending', 'cancelled'];
 
     /**
      * Statuses that still allow engagement actions (save/going).
      *
      * @var list<string>
      */
-    public const array ENGAGEABLE_STATUSES = ['approved', 'published', 'pending'];
+    public const array ENGAGEABLE_STATUSES = ['approved', 'pending'];
 
     public $incrementing = false;
 
@@ -186,10 +186,6 @@ class Event extends PackageEvent implements AuditableContract
         'user_id',
         'institution_id',
         'submitter_id',
-        'parent_event_id',
-        'event_structure',
-        'schedule_kind',
-        'schedule_state',
         'timing_mode',
         'views_count',
         'registrations_count',
@@ -206,8 +202,6 @@ class Event extends PackageEvent implements AuditableContract
      * @var array<string, string|null>
      */
     private array $pendingTimeExpressionWrites = [];
-
-    private const array PRAYER_TIME_FIELDS = ['prayer_reference', 'prayer_offset', 'prayer_display_text'];
 
     /**
      * @var array<string, mixed>
@@ -229,8 +223,6 @@ class Event extends PackageEvent implements AuditableContract
      */
     private array $pendingLocationWrites = [];
 
-    private const array ATTRIBUTE_FIELDS = ['is_featured', 'is_priority', 'escalated_at'];
-
     #[\Override]
     protected static function booted(): void
     {
@@ -244,16 +236,12 @@ class Event extends PackageEvent implements AuditableContract
         });
 
         static::deleting(function (Event $event) {
-            $event->childEvents()->each(function (Event $childEvent): void {
-                $childEvent->delete();
-            });
-
             $event->members()->detach();
             $event->involvements()->delete();
             $event->accessPolicies()->delete();
             $event->keyPeople()->delete();
             $event->eventReferences()->delete();
-            $event->savedBy()->detach();
+            $event->savedBy()->delete();
             $event->goingBy()->delete();
 
             $event->registrations()->each(function ($registration): void {
@@ -288,11 +276,9 @@ class Event extends PackageEvent implements AuditableContract
         'institution_id',
         'submitter_id',
         'space_id',
-        'parent_event_id',
 
         'title',
         'slug',
-        'event_structure',
         'description',
         'escalated_at',
         'starts_at',
@@ -608,8 +594,6 @@ class Event extends PackageEvent implements AuditableContract
         'event_url' => 'external',
         'recording_url' => 'recording',
     ];
-
-    private const array LINK_TYPE_FIELDS = ['live_url', 'event_url', 'recording_url'];
 
     public function getLiveUrlAttribute(): ?string
     {
@@ -938,7 +922,7 @@ class Event extends PackageEvent implements AuditableContract
         }
 
         $attr = $this->relationLoaded('attributes')
-            ? $this->attributes?->firstWhere('attribute_key', 'is_featured')
+            ? $this->getRelation('attributes')->firstWhere('attribute_key', 'is_featured')
             : EventAttribute::where('event_id', $this->id)->where('attribute_key', 'is_featured')->value('attribute_value');
 
         return $attr === null ? null : $attr !== '0';
@@ -951,7 +935,7 @@ class Event extends PackageEvent implements AuditableContract
         }
 
         $val = $this->relationLoaded('attributes')
-            ? $this->attributes?->firstWhere('attribute_key', 'is_priority')?->attribute_value
+            ? $this->getRelation('attributes')->firstWhere('attribute_key', 'is_priority')?->attribute_value
             : EventAttribute::where('event_id', $this->id)->where('attribute_key', 'is_priority')->value('attribute_value');
 
         return $val === null ? null : $val !== '0';
@@ -1164,7 +1148,7 @@ class Event extends PackageEvent implements AuditableContract
     private function occurrenceStatusValue(): string
     {
         return match ((string) $this->status) {
-            'approved', 'published' => EventOccurrence::PUBLISHED,
+            'approved' => EventOccurrence::PUBLISHED,
             'cancelled' => EventOccurrence::CANCELLED,
             default => EventOccurrence::SCHEDULED,
         };
@@ -1355,16 +1339,15 @@ class Event extends PackageEvent implements AuditableContract
     }
 
     /**
-     * Scope a query to only include standalone events and child events.
+     * Scope a query to public event containers. Scheduling lives in occurrences
+     * and sessions, so every event remains discoverable at the event level.
      *
      * @param  Builder<self>  $query
      */
     #[Scope]
     protected function discoverable(Builder $query): void
     {
-        $table = $query->getModel()->getTable();
-
-        $query->where("{$table}.event_structure", '!=', EventStructure::ParentProgram->value);
+        // Kept as a named scope for callers; there is no legacy event hierarchy.
     }
 
     public function bookReference(): ?Reference
@@ -1410,7 +1393,6 @@ class Event extends PackageEvent implements AuditableContract
     {
         return $this->published_at !== null
             && in_array((string) $this->status, self::PUBLIC_STATUSES, true)
-            && $this->eventStructure()->isDiscoverable()
             && $this->visibility === EventVisibility::Public;
     }
 
@@ -1438,7 +1420,7 @@ class Event extends PackageEvent implements AuditableContract
         return $this->resolveReachableReplacementEvent($announcement?->replacementEvent);
     }
 
-    private function resolveReachableReplacementEvent(?self $event): ?self
+    private function resolveReachableReplacementEvent(?Model $event): ?self
     {
         if (! $event instanceof self) {
             return null;
@@ -1477,8 +1459,6 @@ class Event extends PackageEvent implements AuditableContract
             'title',
             'description',
             'slug',
-            'event_structure',
-            'parent_event_id',
             'starts_at',
             'ends_at',
             'language',
@@ -1511,7 +1491,9 @@ class Event extends PackageEvent implements AuditableContract
             return null;
         }
 
-        return $notice->update_type->publicBadgeLabel();
+        $updateType = $notice->update_type;
+
+        return $updateType instanceof EventChangeType ? $updateType->publicBadgeLabel() : null;
     }
 
     /**
@@ -1524,8 +1506,7 @@ class Event extends PackageEvent implements AuditableContract
             ->with(['institution', 'institution.addresses', 'venue', 'venue.addresses', 'speakers', 'keyPeople.speaker', 'references', 'classifications'])
             ->whereNotNull('events.published_at')
             ->whereIn('events.status', self::PUBLIC_STATUSES)
-            ->where('events.visibility', EventVisibility::Public)
-            ->where('events.event_structure', '!=', EventStructure::ParentProgram->value);
+            ->where('events.visibility', EventVisibility::Public);
     }
 
     /**
@@ -1697,8 +1678,6 @@ class Event extends PackageEvent implements AuditableContract
             'title' => $this->title,
             'description' => $this->description_text,
             'slug' => $this->slug,
-            'event_structure' => $this->eventStructure()->value,
-            'parent_event_id' => $this->parent_event_id,
             'speaker_names' => $this->speakerKeyPeople
                 ->map(fn (EventKeyPerson $keyPerson): string => $keyPerson->speaker !== null ? $keyPerson->speaker->name : (string) ($keyPerson->name ?? ''))
                 ->filter(fn (string $name): bool => $name !== '')
@@ -1785,14 +1764,6 @@ class Event extends PackageEvent implements AuditableContract
     }
 
     /**
-     * @return BelongsTo<Event, $this>
-     */
-    public function parentEvent(): BelongsTo
-    {
-        return $this->belongsTo(self::class, 'parent_event_id');
-    }
-
-    /**
      * @return BelongsTo<User, $this>
      */
     public function user(): BelongsTo
@@ -1831,14 +1802,6 @@ class Event extends PackageEvent implements AuditableContract
     public function space(): BelongsTo
     {
         return $this->belongsTo(Space::class);
-    }
-
-    /**
-     * @return HasMany<Event, $this>
-     */
-    public function childEvents(): HasMany
-    {
-        return $this->hasMany(self::class, 'parent_event_id')->orderBy('created_at');
     }
 
     /**
@@ -1899,37 +1862,6 @@ class Event extends PackageEvent implements AuditableContract
         return $this->keyPeople()->where('role_code', '!=', EventKeyPersonRole::Speaker->value);
     }
 
-    public function eventStructure(): EventStructure
-    {
-        $eventStructure = $this->event_structure;
-
-        if ($eventStructure instanceof EventStructure) {
-            return $eventStructure;
-        }
-
-        return EventStructure::tryFrom((string) $eventStructure) ?? EventStructure::Standalone;
-    }
-
-    public function isStandaloneEvent(): bool
-    {
-        return $this->eventStructure() === EventStructure::Standalone;
-    }
-
-    public function isParentProgram(): bool
-    {
-        return $this->eventStructure() === EventStructure::ParentProgram;
-    }
-
-    public function isChildEvent(): bool
-    {
-        return $this->eventStructure() === EventStructure::ChildEvent;
-    }
-
-    public function isSchedulable(): bool
-    {
-        return $this->eventStructure()->isSchedulable();
-    }
-
     public function resolvedRegistrationMode(): PackageRegistrationMode
     {
         $mode = parent::getAttribute('registration_mode');
@@ -1970,7 +1902,7 @@ class Event extends PackageEvent implements AuditableContract
     /**
      * Catalog references attached via package event_references pivot.
      *
-     * @return BelongsToMany<Reference, $this>
+     * @return BelongsToMany<Reference, $this, EventReferencePivot, 'pivot'>
      */
     public function references(): BelongsToMany
     {

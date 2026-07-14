@@ -129,7 +129,10 @@ it('preserves the authenticated user endpoint payload contract', function () {
             ->assertJsonPath('data.roles', ['viewer'])
             ->assertJsonPath('meta.request_id', fn (string $requestId) => filled($requestId));
 
-        expect($response->json('data'))->toEqual(array_merge($user->fresh()->toArray(), [
+        $expectedPayload = $user->fresh()->toArray();
+        unset($expectedPayload['current_team_id']);
+
+        expect($response->json('data'))->toEqual(array_merge($expectedPayload, [
             'roles' => ['viewer'],
         ]));
     } finally {
@@ -152,7 +155,7 @@ it('deletes the authenticated user account, revokes tokens, and keeps a sanitize
     ]);
 
     app(EngagementManager::class)->bookmark($user, $engagementEvent);
-    $user->goingEvents()->attach($engagementEvent->id);
+    $user->respond($engagementEvent, 'going');
 
     $plainTextToken = $user->createToken('iPhone 17')->plainTextToken;
     $passportAccessTokenId = Str::random(80);
@@ -235,9 +238,12 @@ it('deletes the authenticated user account, revokes tokens, and keeps a sanitize
         'bookmarker_id' => $user->id,
         'status' => 'active',
     ]);
-    $this->assertDatabaseMissing('event_attendees', [
-        'event_id' => $engagementEvent->id,
-        'user_id' => $user->id,
+    $this->assertDatabaseMissing((string) config('engagement.database.tables.responses'), [
+        'respondable_type' => $engagementEvent->getMorphClass(),
+        'respondable_id' => $engagementEvent->id,
+        'responder_type' => $user->getMorphClass(),
+        'responder_id' => $user->id,
+        'response_type' => 'going',
     ]);
     expect($engagementEvent->fresh())
         ->not->toBeNull()

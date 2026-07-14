@@ -11,7 +11,6 @@ use AIArmada\FilamentEvents\Resources\VenueResource;
 use AIArmada\Signals\Models\TrackedProperty;
 use App\Data\Api\Event\EventPayloadData;
 use App\Enums\EventFormat;
-use App\Enums\EventStructure;
 use App\Enums\EventType;
 use App\Enums\EventVisibility;
 use App\Enums\PrayerReference;
@@ -342,14 +341,6 @@ class AdminResourceRegistry
                     'type' => 'select',
                     'options' => collect(EventVisibility::cases())->mapWithKeys(
                         static fn (EventVisibility $visibility): array => [$visibility->value => $visibility->getLabel()]
-                    )->all(),
-                ],
-                [
-                    'key' => 'event_structure',
-                    'label' => 'Event Structure',
-                    'type' => 'select',
-                    'options' => collect(EventStructure::cases())->mapWithKeys(
-                        static fn (EventStructure $structure): array => [$structure->value => $structure->label()]
                     )->all(),
                 ],
                 [

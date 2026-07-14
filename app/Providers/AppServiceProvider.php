@@ -12,6 +12,7 @@ use AIArmada\Communications\Contracts\QuietHoursResolver;
 use AIArmada\Communications\Contracts\SuppressionResolver;
 use AIArmada\Contacting\Models\ContactMethod;
 use AIArmada\Contacting\Models\SocialProfile;
+use AIArmada\Events\Models\EventAccessPolicy;
 use AIArmada\Events\Models\EventRegistrationParticipant;
 use AIArmada\FilamentSignals\Policies\TrackedPropertyPolicy;
 use AIArmada\Membership\Contracts\MembershipApplicationNotifier;
@@ -100,13 +101,9 @@ use PhpParser\PrettyPrinter;
 
 class AppServiceProvider extends ServiceProvider
 {
-    protected static bool $eventObserverRegistered = false;
-
     protected static bool $languageSwitchConfigured = false;
 
     protected static bool $mediaUploadConfigured = false;
-
-    protected static bool $publicListingObserversRegistered = false;
 
     protected static bool $publicSlugBindingsRegistered = false;
 
@@ -218,29 +215,7 @@ class AppServiceProvider extends ServiceProvider
             Js::make('user-timezone', __DIR__.'/../../resources/js/filament/user-timezone.js'),
         ]);
 
-        if (app()->runningUnitTests() || ! self::$eventObserverRegistered) {
-            Event::observe(EventObserver::class);
-
-            if (! app()->runningUnitTests()) {
-                self::$eventObserverRegistered = true;
-            }
-        }
-
-        if (app()->runningUnitTests() || ! self::$publicListingObserversRegistered) {
-            Address::observe(AddressObserver::class);
-            AddressArea::observe(AddressAreaObserver::class);
-            Addressable::observe(AddressableObserver::class);
-            AddressCountry::observe(AddressCountryObserver::class);
-            EventKeyPerson::observe(EventKeyPersonObserver::class);
-            Institution::observe(InstitutionObserver::class);
-            Reference::observe(ReferenceObserver::class);
-            Speaker::observe(SpeakerObserver::class);
-            Venue::observe(VenueObserver::class);
-            Tag::observe(TagObserver::class);
-            if (! app()->runningUnitTests()) {
-                self::$publicListingObserversRegistered = true;
-            }
-        }
+        $this->registerModelObservers();
 
         if (! app()->bound('ai.usage.listeners.registered')) {
             EventFacade::listen(AgentPrompted::class, [RecordAiUsage::class, 'handle']);
@@ -276,6 +251,7 @@ class AppServiceProvider extends ServiceProvider
             'contact' => ContactMethod::class,
             'user' => User::class,
             'event' => Event::class,
+            'event_access_policy' => EventAccessPolicy::class,
             'event_key_person' => EventKeyPerson::class,
             'event_submission' => EventSubmission::class,
             'contribution_request' => ContributionRequest::class,
@@ -353,6 +329,29 @@ class AppServiceProvider extends ServiceProvider
             });
             self::$mediaUploadConfigured = true;
         }
+    }
+
+    private function registerModelObservers(): void
+    {
+        $registrationKey = 'ilmu360.model_observers.registered';
+
+        if (app()->bound($registrationKey)) {
+            return;
+        }
+
+        Event::observe(EventObserver::class);
+        Address::observe(AddressObserver::class);
+        AddressArea::observe(AddressAreaObserver::class);
+        Addressable::observe(AddressableObserver::class);
+        AddressCountry::observe(AddressCountryObserver::class);
+        EventKeyPerson::observe(EventKeyPersonObserver::class);
+        Institution::observe(InstitutionObserver::class);
+        Reference::observe(ReferenceObserver::class);
+        Speaker::observe(SpeakerObserver::class);
+        Venue::observe(VenueObserver::class);
+        Tag::observe(TagObserver::class);
+
+        app()->instance($registrationKey, true);
     }
 
     private function registerPublicSlugBindings(): void

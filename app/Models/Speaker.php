@@ -46,7 +46,10 @@ class Speaker extends Model implements AuditableContract, HasMedia
 {
     public const string PUBLIC_DIRECTORY_SESSION_KEY = 'public_speakers_directory_seed';
 
-    /** @use HasFactory<SpeakerFactory> */
+    /**
+     * @use HasFactory<SpeakerFactory>
+     * @use HasMembers<User>
+     */
     use AuditsModelChanges, HasAddresses, HasContactMethods, HasDonationChannels, HasFactory, HasLanguages, HasMembers, HasSocialProfiles, HasUuids, InteractsWithMedia, KeepsDeletedModels, Searchable;
 
     public $incrementing = false;
@@ -617,11 +620,12 @@ class Speaker extends Model implements AuditableContract, HasMedia
     }
 
     /**
-     * @return BelongsToMany<Institution, $this>
+     * @return BelongsToMany<Institution, $this, InstitutionSpeakerPivot, 'pivot'>
      */
     public function institutions(): BelongsToMany
     {
         return $this->belongsToMany(Institution::class, 'institution_speaker')
+            ->using(InstitutionSpeakerPivot::class)
             ->withPivot(['position', 'is_primary', 'joined_at'])
             ->withTimestamps();
     }

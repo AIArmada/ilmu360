@@ -5,14 +5,16 @@ namespace App\Actions\Events;
 use AIArmada\Addressing\Support\AddressCountryResolver;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
+use AIArmada\Events\Actions\CreateEventSessionAction;
 use AIArmada\Events\Enums\RegistrationMode;
+use AIArmada\Events\Models\EventOccurrence;
+use AIArmada\Events\Models\EventSession;
 use App\Contracts\CaptchaVerifier;
 use App\Enums\DawahShareOutcomeType;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventPrayerTime;
-use App\Enums\EventStructure;
 use App\Enums\EventType;
 use App\Enums\EventVisibility;
 use App\Models\Event;
@@ -47,13 +49,13 @@ class SubmitFrontendEventAction
     /**
      * @param  array<string, mixed>  $state
      * @param  (callable(Event): void)|null  $persistRelationships
-     * @return array{event: Event, submission: EventSubmission, auto_approved: bool, visibility: string}
+     * @return array{event: Event, session: EventSession|null, submission: EventSubmission, auto_approved: bool, visibility: string}
      */
     public function handle(
         array $state,
         Request $request,
         ?User $submitter = null,
-        ?Event $parentEvent = null,
+        ?Event $eventContainer = null,
         ?Institution $scopedInstitution = null,
         ?callable $persistRelationships = null,
         string $validationKeyPrefix = '',
@@ -149,7 +151,11 @@ class SubmitFrontendEventAction
             ]);
         }
 
-        $event = Event::query()->create(array_merge([
+        $endsAt = $this->resolveEndsAt($validated, $startsAt, $timezone);
+        $isSessionSubmission = $eventContainer instanceof Event;
+        $session = null;
+
+        $event = $eventContainer ?? Event::query()->create(array_merge([
             'title' => $validated['title'],
             'slug' => app(GenerateEventSlugAction::class)->handle(
                 (string) $validated['title'],
@@ -161,12 +167,10 @@ class SubmitFrontendEventAction
             'description' => $validated['description'] ?? null,
             'timezone' => $timezone,
             'starts_at' => $startsAt,
-            'ends_at' => $this->resolveEndsAt($validated, $startsAt, $timezone),
+            'ends_at' => $endsAt,
             'institution_id' => $targetInstitutionId,
             'venue_id' => $targetVenueId,
             'space_id' => $validated['space_id'] ?? null,
-            'parent_event_id' => $parentEvent?->getKey(),
-            'event_structure' => $parentEvent instanceof Event ? EventStructure::ChildEvent->value : EventStructure::Standalone->value,
             'event_type' => $validated['event_type'] ?? [EventType::KuliahCeramah->value],
             'gender' => $validated['gender'] ?? EventGenderRestriction::All->value,
             'age_group' => $validated['age_group'] ?? [EventAgeGroup::AllAges->value],
@@ -182,6 +186,34 @@ class SubmitFrontendEventAction
             'visibility' => $validated['visibility'] ?? EventVisibility::Public->value,
             'submitter_id' => $submitter?->getKey(),
         ], $autoApproved ? ['status' => 'pending'] : []));
+
+        if ($isSessionSubmission) {
+            $occurrence = $event->primaryOccurrence;
+
+            if (! $occurrence instanceof EventOccurrence) {
+                throw ValidationException::withMessages([
+                    $this->validationKey('event_id', $validationKeyPrefix) => __('The selected event has no occurrence for this session.'),
+                ]);
+            }
+
+            $session = app(CreateEventSessionAction::class)->handle($occurrence, [
+                'title' => $validated['title'],
+                'slug' => app(GenerateEventSlugAction::class)->handle(
+                    (string) $validated['title'],
+                    $validated['event_date'] ?? null,
+                    $timezone,
+                    null,
+                    $speakerSlugSegments,
+                ),
+                'summary' => $validated['description'] ?? null,
+                'description' => $validated['description'] ?? null,
+                'starts_at' => $startsAt,
+                'ends_at' => $endsAt,
+                'timezone' => $timezone,
+                'visibility' => $validated['visibility'] ?? $event->visibility,
+                'delivery_mode' => $event->delivery_mode,
+            ]);
+        }
 
         $event->setPrimaryOrganizer($primaryOrganizer);
 
@@ -244,11 +276,13 @@ class SubmitFrontendEventAction
             $this->storeSubmitterContacts($submission, $validated);
         }
 
-        $this->persistRegistrationSettings($event, $parentEvent);
+        if (! $isSessionSubmission) {
+            $this->persistRegistrationSettings($event);
+        }
 
         if ($autoApproved) {
             $this->moderationService->approve($event, null, 'Auto-approved from institution dashboard submission.');
-        } else {
+        } elseif ((string) $event->status === 'draft') {
             $event->status->transitionTo(Pending::class);
         }
 
@@ -256,6 +290,7 @@ class SubmitFrontendEventAction
 
         return [
             'event' => $event->fresh() ?? $event,
+            'session' => $session?->fresh() ?? $session,
             'submission' => $submission->fresh() ?? $submission,
             'auto_approved' => $autoApproved,
             'visibility' => $visibility instanceof EventVisibility ? $visibility->value : (string) $visibility,
@@ -628,26 +663,8 @@ class SubmitFrontendEventAction
         }
     }
 
-    private function persistRegistrationSettings(Event $event, ?Event $parentEvent): void
+    private function persistRegistrationSettings(Event $event): void
     {
-        if ($parentEvent instanceof Event && $parentEvent->accessPolicy !== null) {
-            $resolvedRegistrationMode = $parentEvent->resolvedRegistrationMode();
-
-            $event->forceFill([
-                'registration_mode' => $resolvedRegistrationMode->value,
-            ])->save();
-
-            $event->accessPolicy()->updateOrCreate(
-                ['event_id' => $event->getKey()],
-                [
-                    'registration_required' => (bool) $parentEvent->accessPolicy->registration_required,
-                    'walk_in_allowed' => ! $parentEvent->accessPolicy->registration_required,
-                ],
-            );
-
-            return;
-        }
-
         $event->forceFill([
             'registration_mode' => RegistrationMode::None->value,
         ])->save();

@@ -14,9 +14,10 @@ use App\Models\Speaker;
 use App\Models\Venue;
 use App\Support\Cache\PublicDirectoryCacheVersion;
 use App\Support\Cache\PublicListingsCache;
+use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
-class AddressableObserver
+class AddressableObserver implements ShouldHandleEventsAfterCommit
 {
     public function __construct(
         private readonly GenerateEventSlugAction $generateEventSlugAction,

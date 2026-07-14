@@ -3,6 +3,7 @@
 use App\Enums\EventChangeSeverity;
 use App\Enums\EventChangeStatus;
 use App\Enums\EventChangeType;
+use App\Enums\EventFormat;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventType;
 use App\Enums\EventVisibility;
@@ -22,7 +23,7 @@ use Illuminate\Support\Facades\Storage;
 
 uses(RefreshDatabase::class);
 
-it('lists only active public visible statuses (approved, pending, cancelled)', function () {
+it('lists only publicly reachable statuses (approved, pending, cancelled)', function () {
     $approvedPublic = Event::factory()->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
@@ -31,19 +32,16 @@ it('lists only active public visible statuses (approved, pending, cancelled)', f
     $pendingPublic = Event::factory()->create([
         'status' => 'pending',
         'visibility' => EventVisibility::Public,
-        'status' => 'active',
     ]);
 
     $cancelledPublic = Event::factory()->create([
         'status' => 'cancelled',
         'visibility' => EventVisibility::Public,
-        'status' => 'active',
     ]);
 
     $draftPublic = Event::factory()->create([
         'status' => 'draft',
         'visibility' => EventVisibility::Public,
-        'status' => 'active',
     ]);
 
     $approvedUnlisted = Event::factory()->create([
@@ -52,9 +50,8 @@ it('lists only active public visible statuses (approved, pending, cancelled)', f
     ]);
 
     $inactiveApproved = Event::factory()->create([
-        'status' => 'approved',
+        'status' => 'draft',
         'visibility' => EventVisibility::Public,
-        'status' => 'inactive',
     ]);
 
     $response = $this->getJson(route('api.events.index'));
@@ -76,20 +73,22 @@ it('lists only active public visible statuses (approved, pending, cancelled)', f
         ->not()->toContain($inactiveApproved->id);
 });
 
-it('filters events by json event_type values', function () {
+it('filters events by canonical type values', function () {
     $kuliah = Event::factory()->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'event_type' => [EventType::KuliahCeramah->value],
+        'published_at' => now(),
+        'type' => EventType::KuliahCeramah->value,
     ]);
 
     $forum = Event::factory()->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
-        'event_type' => [EventType::Forum->value],
+        'published_at' => now(),
+        'type' => EventType::Forum->value,
     ]);
 
-    $response = $this->getJson('/api/v1/events?filter[event_type]=kuliah_ceramah');
+    $response = $this->getJson('/api/v1/events?filter[type]=kuliah_ceramah');
 
     $response->assertOk();
 
@@ -98,6 +97,51 @@ it('filters events by json event_type values', function () {
     expect($eventIds)
         ->toContain($kuliah->id)
         ->not()->toContain($forum->id);
+});
+
+it('filters events through canonical package query parameters', function () {
+    $institution = Institution::factory()->create();
+    $venue = Venue::factory()->create();
+    $otherInstitution = Institution::factory()->create();
+    $otherVenue = Venue::factory()->create();
+
+    $matchingEvent = Event::factory()->create([
+        'status' => 'approved',
+        'visibility' => EventVisibility::Public,
+        'published_at' => now(),
+        'delivery_mode' => EventFormat::Online,
+        'institution_id' => $institution->id,
+        'default_venue_id' => $venue->id,
+        'type' => EventType::KuliahCeramah->value,
+    ]);
+
+    $otherEvent = Event::factory()->create([
+        'status' => 'approved',
+        'visibility' => EventVisibility::Public,
+        'published_at' => now(),
+        'delivery_mode' => EventFormat::Physical,
+        'institution_id' => $otherInstitution->id,
+        'default_venue_id' => $otherVenue->id,
+        'type' => EventType::Forum->value,
+    ]);
+
+    foreach ([
+        'delivery_mode' => EventFormat::Online->value,
+        'metadata->institution_id' => $institution->id,
+        'default_venue_id' => $venue->id,
+        'type' => EventType::KuliahCeramah->value,
+    ] as $filter => $value) {
+        $response = $this->getJson('/api/v1/events?'.http_build_query([
+            'filter' => [$filter => $value],
+        ]));
+
+        $response->assertSuccessful()
+            ->assertJsonPath('meta.pagination.total', 1)
+            ->assertJsonPath('data.0.id', $matchingEvent->id);
+
+        expect(collect($response->json('data'))->pluck('id')->all())
+            ->not->toContain($otherEvent->id);
+    }
 });
 
 it('filters events by linked reference ids', function () {
@@ -115,7 +159,7 @@ it('filters events by linked reference ids', function () {
         'visibility' => EventVisibility::Public,
     ]);
 
-    $reference->events()->attach($matchingEvent, ['order_column' => 1]);
+    $reference->events()->attach($matchingEvent, ['sort_order' => 1]);
 
     $response = $this->getJson('/api/v1/events?filter[reference_ids][]='.$reference->id);
 
@@ -544,8 +588,8 @@ it('filters events by key person roles and role-specific linked speakers', funct
     $imamEvent->keyPeople()->create([
         'role' => EventKeyPersonRole::Imam,
         'speaker_id' => $imamSpeaker->id,
-        'order_column' => 1,
-        'is_public' => true,
+        'sort_order' => 1,
+        'visibility' => 'public',
     ]);
 
     $moderatedEvent = Event::factory()->create([
@@ -556,8 +600,8 @@ it('filters events by key person roles and role-specific linked speakers', funct
     $moderatedEvent->keyPeople()->create([
         'role' => EventKeyPersonRole::Moderator,
         'speaker_id' => $moderatorSpeaker->id,
-        'order_column' => 1,
-        'is_public' => true,
+        'sort_order' => 1,
+        'visibility' => 'public',
     ]);
 
     $personInChargeEvent = Event::factory()->create([
@@ -569,8 +613,8 @@ it('filters events by key person roles and role-specific linked speakers', funct
     $personInChargeEvent->keyPeople()->create([
         'role' => EventKeyPersonRole::PersonInCharge,
         'speaker_id' => $personInChargeSpeaker->id,
-        'order_column' => 1,
-        'is_public' => true,
+        'sort_order' => 1,
+        'visibility' => 'public',
     ]);
 
     $freeTextPersonInChargeEvent = Event::factory()->create([
@@ -582,8 +626,8 @@ it('filters events by key person roles and role-specific linked speakers', funct
     $freeTextPersonInChargeEvent->keyPeople()->create([
         'role' => EventKeyPersonRole::PersonInCharge,
         'name' => 'Encik API Free Text PIC',
-        'order_column' => 1,
-        'is_public' => true,
+        'sort_order' => 1,
+        'visibility' => 'public',
     ]);
 
     $roleResponse = $this->getJson('/api/v1/events?filter[key_person_roles]=imam');
@@ -643,7 +687,7 @@ it('includes reference study subtitle in the generic paginated events payload', 
 
     $event->references()->attach($bookReference->id);
 
-    $response = $this->getJson('/api/v1/events?filter[institution_id]='.$event->institution_id.'&filter[status]=approved&include=speakers&page=1&per_page=15&sort=starts_at');
+    $response = $this->getJson('/api/v1/events?filter[metadata->institution_id]='.$event->institution_id.'&filter[status]=approved&include=speakers&page=1&per_page=15&sort=starts_at');
 
     $response->assertOk()
         ->assertJsonPath('data.0.id', $event->id)
@@ -661,8 +705,8 @@ it('includes key person data in the event api response', function () {
     $event->keyPeople()->create([
         'role' => EventKeyPersonRole::Imam,
         'speaker_id' => $imamSpeaker->id,
-        'order_column' => 1,
-        'is_public' => true,
+        'sort_order' => 1,
+        'visibility' => 'public',
     ]);
 
     $response = $this->getJson('/api/v1/events/'.$event->id);

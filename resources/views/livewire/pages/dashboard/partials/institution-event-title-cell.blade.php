@@ -8,8 +8,8 @@
     $duplicateEventUrl = $canEditEvent && $canUseSelectedInstitutionForScopedSubmission && filled($selectedInstitutionId)
         ? route('dashboard.institutions.submit-event', ['institution' => $selectedInstitutionId, 'duplicate' => $event->id])
         : null;
-    $createChildEventUrl = $event->isParentProgram()
-        ? route('submit-event.create', ['parent' => $event->id])
+    $createSessionUrl = $canEditEvent
+        ? route('submit-event.create', ['event' => $event->id])
         : null;
 @endphp
 
@@ -30,7 +30,7 @@
         </div>
     @endif
 
-    @if($ahliEventEditUrl || $duplicateEventUrl || $createChildEventUrl)
+    @if($ahliEventEditUrl || $duplicateEventUrl || $createSessionUrl)
         <div class="mt-2 flex flex-wrap items-center gap-2">
             @if($ahliEventEditUrl)
                 <a
@@ -55,9 +55,9 @@
                 </a>
             @endif
 
-            @if($createChildEventUrl)
-                <a href="{{ $createChildEventUrl }}" wire:navigate class="text-xs font-semibold text-indigo-700 hover:underline">
-                    {{ __('Add Child Event') }}
+            @if($createSessionUrl)
+                <a href="{{ $createSessionUrl }}" wire:navigate class="text-xs font-semibold text-indigo-700 hover:underline">
+                    {{ __('Add Session') }}
                 </a>
             @endif
         </div>

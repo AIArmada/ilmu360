@@ -7,8 +7,9 @@ use App\Actions\Venues\GenerateVenueSlugAction;
 use App\Models\Venue;
 use App\Observers\Concerns\SyncsCurrentAndPreviousValues;
 use App\Support\Cache\PublicListingsCache;
+use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
-class VenueObserver
+class VenueObserver implements ShouldHandleEventsAfterCommit
 {
     use SyncsCurrentAndPreviousValues;
 
@@ -20,6 +21,10 @@ class VenueObserver
 
     public function saved(Venue $venue): void
     {
+        if (! $venue->wasRecentlyCreated && ! $venue->wasChanged()) {
+            return;
+        }
+
         if ($venue->wasRecentlyCreated || $venue->wasChanged('name')) {
             $this->syncCurrentAndPreviousString(
                 $venue->name,

@@ -6,8 +6,9 @@ namespace App\Observers;
 
 use App\Models\Tag;
 use App\Support\Cache\PublicListingsCache;
+use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
-class TagObserver
+class TagObserver implements ShouldHandleEventsAfterCommit
 {
     public function __construct(
         protected PublicListingsCache $publicListingsCache
@@ -15,6 +16,10 @@ class TagObserver
 
     public function saved(Tag $tag): void
     {
+        if (! $tag->wasRecentlyCreated && ! $tag->wasChanged()) {
+            return;
+        }
+
         $this->publicListingsCache->bustMajlisListing();
     }
 

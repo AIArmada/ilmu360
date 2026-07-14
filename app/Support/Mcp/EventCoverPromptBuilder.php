@@ -10,7 +10,6 @@ use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventKeyPersonRole;
-use App\Enums\EventStructure;
 use App\Enums\EventType;
 use App\Enums\EventVisibility;
 use App\Enums\ReferenceType;
@@ -537,7 +536,6 @@ class EventCoverPromptBuilder
                 'gender_label' => $this->genderLabel($event->gender),
                 'event_format_label' => $this->formatLabel($event->delivery_mode),
                 'visibility_label' => $this->visibilityLabel($event->visibility),
-                'event_structure_label' => $this->structureLabel($event->event_structure),
             ],
             'relations' => [
                 'address' => $this->addressPayload($event->primaryAddress()),
@@ -1042,15 +1040,6 @@ class EventCoverPromptBuilder
         }
 
         return EventVisibility::tryFrom((string) $visibility)?->getLabel();
-    }
-
-    private function structureLabel(mixed $structure): ?string
-    {
-        if ($structure instanceof EventStructure) {
-            return $structure->label();
-        }
-
-        return EventStructure::tryFrom((string) $structure)?->label();
     }
 
     private function stringAttribute(Model $model, string $attribute): ?string

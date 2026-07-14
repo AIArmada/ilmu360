@@ -292,10 +292,10 @@ class AdminCreateEventTool extends AbstractAdminWriteTool
             'speaker_keys' => $schema->array()->items($schema->string())->nullable()->description('MCP-only route-key alias for the underlying speakers UUID array. On create, omit/null/[] all mean no speakers; event types that require a speaker will fail validation if this resolves to an empty list. Pass speaker slugs/UUIDs to attach those speakers in payload order. Required for event types that mandate a speaker: kuliah_ceramah, kelas_daurah, talim, forum, seminar_konvensyen, tazkirah.'),
             'reference_keys' => $schema->array()->items($schema->string())->nullable()->description('MCP-only route-key alias for the underlying references UUID array. On create, omit/null/[] all mean no references. Pass reference slugs/UUIDs to link those references.'),
             'languages' => $schema->array()->items($schema->integer())->nullable()->description('Array of language record IDs (integers) for the event language(s). Use admin-list-records on the languages resource to discover available IDs.'),
-            'domain_tags' => $schema->array()->items($schema->string())->nullable()->description('Array of domain/category tag UUIDs (max 3). Use admin-list-records on the tags resource filtered by type=domain.'),
-            'discipline_tags' => $schema->array()->items($schema->string())->nullable()->description('Array of discipline/field-of-study tag UUIDs. Use admin-list-records on the tags resource filtered by type=discipline.'),
-            'source_tags' => $schema->array()->items($schema->string())->nullable()->description('Array of source tag UUIDs (e.g. Quran, Hadith). Use admin-list-records on the tags resource filtered by type=source.'),
-            'issue_tags' => $schema->array()->items($schema->string())->nullable()->description('Array of issue/theme tag UUIDs. Use admin-list-records on the tags resource filtered by type=issue.'),
+            'domain_tags' => $schema->array()->items($schema->string())->nullable()->description('Array of domain event-term UUIDs (max 3).'),
+            'discipline_tags' => $schema->array()->items($schema->string())->nullable()->description('Array of discipline event-term UUIDs.'),
+            'source_tags' => $schema->array()->items($schema->string())->nullable()->description('Array of source event-term UUIDs (for example Quran or Hadith).'),
+            'issue_tags' => $schema->array()->items($schema->string())->nullable()->description('Array of issue event-term UUIDs.'),
             'other_key_people' => $schema->array()->items(
                 $schema->object([
                     'role' => $schema->string()->required()->description('One of the non-speaker EventKeyPersonRole values: moderator, khatib, imam, bilal, pic, other.'),

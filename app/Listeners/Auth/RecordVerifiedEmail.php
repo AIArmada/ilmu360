@@ -7,8 +7,9 @@ namespace App\Listeners\Auth;
 use App\Models\User;
 use App\Services\Signals\ProductSignalsService;
 use Illuminate\Auth\Events\Verified;
+use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
-final readonly class RecordVerifiedEmail
+final readonly class RecordVerifiedEmail implements ShouldHandleEventsAfterCommit
 {
     public function __construct(
         private ProductSignalsService $productSignalsService,

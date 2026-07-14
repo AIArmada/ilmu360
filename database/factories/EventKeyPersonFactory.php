@@ -24,11 +24,11 @@ class EventKeyPersonFactory extends Factory
     {
         return [
             'event_id' => Event::factory(),
-            'speaker_id' => Speaker::factory(),
-            'role' => EventKeyPersonRole::Speaker,
-            'name' => null,
-            'order_column' => 1,
-            'is_public' => true,
+            'involveable_type' => 'speaker',
+            'involveable_id' => Speaker::factory(),
+            'role_code' => EventKeyPersonRole::Speaker->value,
+            'visibility' => 'public',
+            'sort_order' => 1,
             'notes' => null,
         ];
     }

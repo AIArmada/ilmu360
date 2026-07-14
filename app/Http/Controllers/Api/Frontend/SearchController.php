@@ -16,7 +16,6 @@ use App\Data\Api\Frontend\Search\SpeakerInstitutionData;
 use App\Data\Api\Frontend\Search\SpeakerListData;
 use App\Data\Api\Frontend\Search\VenueDetailData;
 use App\Enums\EventKeyPersonRole;
-use App\Enums\EventStructure;
 use App\Enums\EventVisibility;
 use App\Enums\InspirationCategory;
 use App\Enums\InstitutionType;
@@ -542,7 +541,6 @@ class SearchController extends FrontendController
                     ->whereNotNull('events.published_at')
                     ->whereIn('events.status', Event::PUBLIC_STATUSES)
                     ->where('events.visibility', EventVisibility::Public)
-                    ->where('events.event_structure', '!=', EventStructure::ParentProgram->value)
                     ->where('starts_at', '>=', $now);
             })
             ->with([
@@ -571,7 +569,6 @@ class SearchController extends FrontendController
                     ->whereNotNull('events.published_at')
                     ->whereIn('events.status', Event::PUBLIC_STATUSES)
                     ->where('events.visibility', EventVisibility::Public)
-                    ->where('events.event_structure', '!=', EventStructure::ParentProgram->value)
                     ->where('starts_at', '<', $now);
             })
             ->with([
@@ -1102,8 +1099,7 @@ class SearchController extends FrontendController
             ->whereRaw("{$institutionIdExpression} = institutions.id")
             ->whereNotNull('events.published_at')
             ->whereIn('events.status', Event::PUBLIC_STATUSES)
-            ->where('events.visibility', EventVisibility::Public)
-            ->where('events.event_structure', '!=', EventStructure::ParentProgram->value);
+            ->where('events.visibility', EventVisibility::Public);
 
         if ($upcomingOnly) {
             $query->where('events.starts_at', '>=', now());
@@ -1318,7 +1314,6 @@ class SearchController extends FrontendController
                     ->whereNotNull('events.published_at')
                     ->whereIn('events.status', Event::PUBLIC_STATUSES)
                     ->where('events.visibility', EventVisibility::Public)
-                    ->where('events.event_structure', '!=', EventStructure::ParentProgram->value)
                     ->where('events.starts_at', '>=', now());
             }])
             ->with(['media', 'addresses']);
@@ -1573,8 +1568,7 @@ class SearchController extends FrontendController
                 $query
                     ->whereNotNull('events.published_at')
                     ->whereIn('events.status', Event::PUBLIC_STATUSES)
-                    ->where('events.visibility', EventVisibility::Public)
-                    ->where('events.event_structure', '!=', EventStructure::ParentProgram->value);
+                    ->where('events.visibility', EventVisibility::Public);
             }])
             ->with(['media']);
     }

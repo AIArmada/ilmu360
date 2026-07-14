@@ -2,7 +2,6 @@
 
 namespace App\Livewire\Pages\Search;
 
-use App\Enums\EventStructure;
 use App\Enums\EventVisibility;
 use App\Models\Event;
 use App\Models\Institution;
@@ -210,7 +209,6 @@ class Index extends Component
                         ->whereNotNull('events.published_at')
                         ->whereIn('events.status', Event::PUBLIC_STATUSES)
                         ->where('events.visibility', EventVisibility::Public)
-                        ->where('events.event_structure', '!=', EventStructure::ParentProgram->value)
                         ->where('events.starts_at', '>=', now());
                 }])
                 ->with('media'),
@@ -245,7 +243,6 @@ class Index extends Component
             ->whereNotNull('events.published_at')
             ->whereIn('events.status', Event::PUBLIC_STATUSES)
             ->where('events.visibility', EventVisibility::Public)
-            ->where('events.event_structure', '!=', EventStructure::ParentProgram->value)
             ->where('events.starts_at', '>=', now());
     }
 
@@ -286,7 +283,6 @@ class Index extends Component
                         ->whereNotNull('events.published_at')
                         ->whereIn('events.status', Event::PUBLIC_STATUSES)
                         ->where('events.visibility', EventVisibility::Public)
-                        ->where('events.event_structure', '!=', EventStructure::ParentProgram->value)
                         ->where('events.starts_at', '>=', now());
                 }])
                 ->with('media'),
