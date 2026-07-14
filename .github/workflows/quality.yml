@@ -50,8 +50,6 @@ jobs:
     if: needs.changes.outputs.php == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    env:
-      DB_CONNECTION: pgsql
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -60,9 +58,8 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
+          extensions: mbstring, dom, fileinfo, intl, pcntl, pgsql
           coverage: none
-          extensions: mbstring, dom, fileinfo, intl, pcntl, pdo_sqlite, sqlite3, pgsql
-          ini-values: memory_limit=-1
           tools: composer:v2
 
       - name: Get Composer cache directory
@@ -76,34 +73,6 @@ jobs:
           key: ${{ runner.os }}-rector-${{ hashFiles('**/composer.lock') }}
           restore-keys: ${{ runner.os }}-rector-
 
-      - name: Prepare application environment
-        run: cp .env.example .env
-
-      - name: Verify Composer private repository auth
-        env:
-          COMPOSER_AUTH: ${{ secrets.COMPOSER_AUTH }}
-        run: |
-          if [ -z "$COMPOSER_AUTH" ]; then
-            echo "::error::Missing COMPOSER_AUTH GitHub secret. Set it to a Composer auth JSON payload that includes http-basic credentials for packages.filamentphp.com."
-            exit 1
-          fi
-
-          python3 - <<'PY'
-          import json, os, sys
-
-          try:
-              auth = json.loads(os.environ['COMPOSER_AUTH'])
-          except json.JSONDecodeError as error:
-              print(f"::error::COMPOSER_AUTH is not valid JSON: {error}")
-              sys.exit(1)
-
-          credentials = auth.get('http-basic', {}).get('packages.filamentphp.com', {})
-
-          if not credentials.get('username') or not credentials.get('password'):
-              print('::error::COMPOSER_AUTH must include http-basic credentials for packages.filamentphp.com.')
-              sys.exit(1)
-          PY
-
       - name: Install dependencies
         env:
           COMPOSER_AUTH: ${{ secrets.COMPOSER_AUTH }}
@@ -111,12 +80,6 @@ jobs:
         run: |
           composer config --global github-oauth.github.com "$GITHUB_TOKEN"
           composer install --no-interaction --no-progress --prefer-dist --optimize-autoloader
-
-      - name: Generate application key
-        run: php artisan key:generate --ansi --force
-
-      - name: Clear config cache
-        run: php artisan config:clear --ansi
 
       - name: Check Rector (dry-run)
         run: vendor/bin/rector process --dry-run --ansi
@@ -127,8 +90,6 @@ jobs:
     if: needs.changes.outputs.php == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    env:
-      DB_CONNECTION: pgsql
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -137,9 +98,8 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
+          extensions: mbstring, dom, fileinfo, intl, pcntl, pgsql
           coverage: none
-          extensions: mbstring, dom, fileinfo, intl, pcntl, pdo_sqlite, sqlite3, pgsql
-          ini-values: memory_limit=-1
           tools: composer:v2
 
       - name: Get Composer cache directory
@@ -152,34 +112,6 @@ jobs:
           path: ${{ steps.composer-cache.outputs.dir }}
           key: ${{ runner.os }}-pint-${{ hashFiles('**/composer.lock') }}
           restore-keys: ${{ runner.os }}-pint-
-
-      - name: Prepare application environment
-        run: cp .env.example .env
-
-      - name: Verify Composer private repository auth
-        env:
-          COMPOSER_AUTH: ${{ secrets.COMPOSER_AUTH }}
-        run: |
-          if [ -z "$COMPOSER_AUTH" ]; then
-            echo "::error::Missing COMPOSER_AUTH GitHub secret."
-            exit 1
-          fi
-
-          python3 - <<'PY'
-          import json, os, sys
-
-          try:
-              auth = json.loads(os.environ['COMPOSER_AUTH'])
-          except json.JSONDecodeError as error:
-              print(f"::error::COMPOSER_AUTH is not valid JSON: {error}")
-              sys.exit(1)
-
-          credentials = auth.get('http-basic', {}).get('packages.filamentphp.com', {})
-
-          if not credentials.get('username') or not credentials.get('password'):
-              print('::error::COMPOSER_AUTH must include http-basic credentials for packages.filamentphp.com.')
-              sys.exit(1)
-          PY
 
       - name: Install dependencies
         env:
@@ -198,8 +130,6 @@ jobs:
     if: needs.changes.outputs.php == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    env:
-      DB_CONNECTION: pgsql
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -208,9 +138,8 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
+          extensions: mbstring, dom, fileinfo, intl, pcntl, pgsql
           coverage: none
-          extensions: mbstring, dom, fileinfo, intl, pcntl, pdo_sqlite, sqlite3, pgsql
-          ini-values: memory_limit=-1
           tools: composer:v2
 
       - name: Get Composer cache directory
@@ -224,34 +153,6 @@ jobs:
           key: ${{ runner.os }}-phpstan-${{ hashFiles('**/composer.lock') }}
           restore-keys: ${{ runner.os }}-phpstan-
 
-      - name: Prepare application environment
-        run: cp .env.example .env
-
-      - name: Verify Composer private repository auth
-        env:
-          COMPOSER_AUTH: ${{ secrets.COMPOSER_AUTH }}
-        run: |
-          if [ -z "$COMPOSER_AUTH" ]; then
-            echo "::error::Missing COMPOSER_AUTH GitHub secret."
-            exit 1
-          fi
-
-          python3 - <<'PY'
-          import json, os, sys
-
-          try:
-              auth = json.loads(os.environ['COMPOSER_AUTH'])
-          except json.JSONDecodeError as error:
-              print(f"::error::COMPOSER_AUTH is not valid JSON: {error}")
-              sys.exit(1)
-
-          credentials = auth.get('http-basic', {}).get('packages.filamentphp.com', {})
-
-          if not credentials.get('username') or not credentials.get('password'):
-              print('::error::COMPOSER_AUTH must include http-basic credentials for packages.filamentphp.com.')
-              sys.exit(1)
-          PY
-
       - name: Install dependencies
         env:
           COMPOSER_AUTH: ${{ secrets.COMPOSER_AUTH }}
@@ -259,12 +160,6 @@ jobs:
         run: |
           composer config --global github-oauth.github.com "$GITHUB_TOKEN"
           composer install --no-interaction --no-progress --prefer-dist --optimize-autoloader
-
-      - name: Generate application key
-        run: php artisan key:generate --ansi --force
-
-      - name: Clear config cache
-        run: php artisan config:clear --ansi
 
       - name: Run PHPStan
         run: vendor/bin/phpstan analyse --ansi --no-progress
@@ -287,9 +182,8 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
-          coverage: none
           extensions: mbstring, dom, fileinfo, intl, pcntl, pdo_sqlite, sqlite3, pgsql
-          ini-values: memory_limit=-1
+          coverage: none
           tools: composer:v2
 
       - name: Get Composer cache directory
@@ -304,32 +198,9 @@ jobs:
           restore-keys: ${{ runner.os }}-composer-
 
       - name: Prepare application environment
-        run: cp .env.example .env
-
-      - name: Verify Composer private repository auth
-        env:
-          COMPOSER_AUTH: ${{ secrets.COMPOSER_AUTH }}
         run: |
-          if [ -z "$COMPOSER_AUTH" ]; then
-            echo "::error::Missing COMPOSER_AUTH GitHub secret."
-            exit 1
-          fi
-
-          python3 - <<'PY'
-          import json, os, sys
-
-          try:
-              auth = json.loads(os.environ['COMPOSER_AUTH'])
-          except json.JSONDecodeError as error:
-              print(f"::error::COMPOSER_AUTH is not valid JSON: {error}")
-              sys.exit(1)
-
-          credentials = auth.get('http-basic', {}).get('packages.filamentphp.com', {})
-
-          if not credentials.get('username') or not credentials.get('password'):
-              print('::error::COMPOSER_AUTH must include http-basic credentials for packages.filamentphp.com.')
-              sys.exit(1)
-          PY
+          cp .env.example .env
+          touch database/database.sqlite
 
       - name: Install dependencies
         env:
