@@ -108,11 +108,15 @@ class EditUser extends EditRecord
         $role = $selectedRoleId !== '' ? MemberRole::tryFrom($selectedRoleId) : null;
 
         if ($role !== null) {
-            app(ChangeMemberRoleAction::class)->handle(
-                $subjectType->resolveSubjectCollection($user)->first() ?? throw new \RuntimeException('No subject found'),
-                $user,
-                $role,
-            );
+            $subject = $this->firstResolvedSubject($subjectType, $user);
+
+            if ($subject !== null) {
+                app(ChangeMemberRoleAction::class)->handle(
+                    $subject,
+                    $user,
+                    $role,
+                );
+            }
         }
 
         $this->reloadUserRecord();
@@ -179,11 +183,25 @@ class EditUser extends EditRecord
 
     private function pivotRoleSlug(User $user, MemberSubjectType $subjectType): ?string
     {
+        $pivot = match ($subjectType) {
+            MemberSubjectType::Institution => $user->institutions->first()?->getRelationValue('pivot'),
+            MemberSubjectType::Speaker => $user->speakers->first()?->getRelationValue('pivot'),
+            MemberSubjectType::Event => $user->memberEvents->first()?->getRelationValue('pivot'),
+            MemberSubjectType::Reference => $user->references->first()?->getRelationValue('pivot'),
+        };
+
+        $role = $pivot?->getAttribute('role');
+
+        return is_string($role) && $role !== '' ? $role : null;
+    }
+
+    private function firstResolvedSubject(MemberSubjectType $subjectType, User $user): Institution|Speaker|Event|Reference|null
+    {
         return match ($subjectType) {
-            MemberSubjectType::Institution => $user->institutions->first()?->pivot?->role,
-            MemberSubjectType::Speaker => $user->speakers->first()?->pivot?->role,
-            MemberSubjectType::Event => $user->memberEvents->first()?->pivot?->role,
-            MemberSubjectType::Reference => $user->references->first()?->pivot?->role,
+            MemberSubjectType::Institution => $user->institutions->first(),
+            MemberSubjectType::Speaker => $user->speakers->first(),
+            MemberSubjectType::Event => $user->memberEvents->first(),
+            MemberSubjectType::Reference => $user->references->first(),
         };
     }
 }

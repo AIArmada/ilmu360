@@ -292,7 +292,6 @@ class EventContributionFormSchema
                                 'description' => $data['description'] ?? null,
                                 'is_canonical' => false,
                                 'status' => 'pending',
-                                'status' => 'active',
                             ]);
 
                             $schema->model($reference)->saveRelationships();

@@ -95,6 +95,7 @@ use Spatie\ModelStates\HasStates;
  * @property Carbon|null $ends_at
  * @property string|null $timezone
  * @property EventStatus|string $status
+ * @property string|null $schedule_kind
  * @property ScheduleState|string|null $schedule_state
  * @property EventVisibility|string|null $visibility
  * @property EventFormat|string|null $event_format
@@ -186,6 +187,8 @@ class Event extends PackageEvent implements AuditableContract
         'user_id',
         'institution_id',
         'submitter_id',
+        'schedule_kind',
+        'schedule_state',
         'timing_mode',
         'views_count',
         'registrations_count',

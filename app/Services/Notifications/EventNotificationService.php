@@ -255,6 +255,11 @@ class EventNotificationService
     {
         $announcement->loadMissing(['event', 'replacementEvent']);
         $event = $announcement->event;
+
+        if (! $event instanceof Event) {
+            return;
+        }
+
         $recipients = $this->changeAnnouncementRecipients($event);
 
         if ($recipients->isEmpty()) {
@@ -265,7 +270,7 @@ class EventNotificationService
         $priority = $this->announcementPriority($announcement);
         $summary = trim((string) $announcement->message);
 
-        if ($summary === '') {
+        if ($summary === '' && $announcement->update_type instanceof EventChangeType) {
             $summary = $announcement->update_type->label();
         }
 
@@ -285,7 +290,7 @@ class EventNotificationService
             fingerprint: 'event-change:'.$announcement->id,
             meta: [
                 'event_change_announcement_id' => $announcement->id,
-                'event_change_type' => $announcement->update_type->value,
+                'event_change_type' => $announcement->update_type instanceof EventChangeType ? $announcement->update_type->value : (string) $announcement->update_type,
                 'changed_fields' => data_get($announcement->metadata, 'changed_fields', []),
                 'old_new_summary' => $this->announcementOldNewSummary($announcement),
                 'replacement_event_id' => $announcement->replacement_event_id,
@@ -712,7 +717,7 @@ class EventNotificationService
         }
 
         $results = $this->eventSearchService->search(
-            query: $savedSearch->query,
+            query: is_string($savedSearch->query) ? $savedSearch->query : null,
             filters: $filters,
             perPage: 50,
         );

@@ -61,6 +61,7 @@ use App\Observers\TagObserver;
 use App\Observers\VenueObserver;
 use App\Policies\AddressAreaPolicy;
 use App\Policies\AddressCountryPolicy;
+use App\Policies\EventPolicy;
 use App\Policies\FilamentAuditPolicy;
 use App\Services\Captcha\TurnstileVerifier;
 use App\Services\GitHub\GitHubIssueReporter;
@@ -277,6 +278,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(FilamentAudit::class, FilamentAuditPolicy::class);
         Gate::policy(AddressArea::class, AddressAreaPolicy::class);
         Gate::policy(AddressCountry::class, AddressCountryPolicy::class);
+        Gate::policy(Event::class, EventPolicy::class);
         Gate::policy(TrackedProperty::class, TrackedPropertyPolicy::class);
 
         Gate::define('audit', static fn (mixed $user, mixed $resource): bool => $user instanceof User

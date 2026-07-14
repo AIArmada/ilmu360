@@ -162,11 +162,19 @@ class EventFactory extends PackageEventFactory
     #[\Override]
     public function configure(): static
     {
-        return $this->afterMaking(function (Event $event): void {
+        return $this->afterMaking(function ($event): void {
+            if (! $event instanceof Event) {
+                return;
+            }
+
             if (in_array((string) $event->status, Event::PUBLIC_STATUSES, true) && $event->published_at === null) {
                 $event->published_at = $event->starts_at?->copy()->subDay() ?? now();
             }
-        })->afterCreating(function (Event $event) {
+        })->afterCreating(function ($event): void {
+            if (! $event instanceof Event) {
+                return;
+            }
+
             // Create EventLink rows for streaming/recording URLs
             $this->ensureFactoryUrlLinks($event);
 

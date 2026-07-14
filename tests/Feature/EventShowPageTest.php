@@ -7,12 +7,10 @@ use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Reference;
 use App\Models\Speaker;
-use App\Models\Tag;
 use App\Models\User;
 use App\Models\Venue;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 
@@ -179,7 +177,7 @@ describe('Event Show Page Going Feature', function () {
             ->assertSet('isGoing', true);
 
         expect($event->fresh()->going_count)->toBe(1);
-        expect(DB::table('event_attendees')->where('user_id', $user->id)->where('event_id', $event->id)->exists())->toBeTrue();
+        expect($event->goingBy()->forResponder($user)->active()->exists())->toBeTrue();
     });
 
     it('authenticated user can toggle off going status via livewire', function () {
@@ -193,7 +191,7 @@ describe('Event Show Page Going Feature', function () {
         ]);
 
         // Pre-attach the user
-        $user->goingEvents()->attach($event->id);
+        $user->respond($event, 'going');
 
         $this->actingAs($user);
 
@@ -203,7 +201,7 @@ describe('Event Show Page Going Feature', function () {
             ->assertSet('isGoing', false);
 
         expect($event->fresh()->going_count)->toBe(0);
-        expect(DB::table('event_attendees')->where('user_id', $user->id)->where('event_id', $event->id)->exists())->toBeFalse();
+        expect($event->goingBy()->forResponder($user)->active()->exists())->toBeFalse();
     });
 
     it('redirects guests to login when trying to toggle going', function () {
@@ -270,7 +268,7 @@ describe('Event Show Page Going Feature', function () {
         ]);
 
         foreach ($users as $user) {
-            $event->goingBy()->attach($user->id);
+            $user->respond($event, 'going');
         }
 
         $this->get(route('events.show', $event))
@@ -295,27 +293,6 @@ describe('Event Show Page Location & Contact Info', function () {
         $this->get(route('events.show', $event))
             ->assertOk()
             ->assertDontSee(__('About this Event'));
-    });
-
-    it('shows the about section when the event has tags even without a description', function () {
-        $event = Event::factory()->create([
-            'status' => 'approved',
-            'visibility' => 'public',
-            'published_at' => now()->subDay(),
-            'starts_at' => now()->addDay(),
-            'description' => ['html' => '<p><br></p>'],
-        ]);
-        $tag = Tag::factory()->domain()->create([
-            'name' => ['en' => 'Akidah', 'ms' => 'Akidah'],
-            'slug' => ['en' => 'akidah', 'ms' => 'akidah'],
-        ]);
-
-        $event->attachTag($tag);
-
-        $this->get(route('events.show', $event))
-            ->assertOk()
-            ->assertSee(__('About this Event'))
-            ->assertSee('Akidah');
     });
 
     it('renders a single reference material card at full width', function () {

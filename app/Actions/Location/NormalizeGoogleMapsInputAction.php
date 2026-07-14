@@ -309,8 +309,7 @@ class NormalizeGoogleMapsInputAction
         ?float $lat,
         ?float $lng,
         ?string $countryCode,
-    ): ?array
-    {
+    ): ?array {
         try {
             $response = Http::withHeaders([
                 'X-Goog-Api-Key' => GooglePlacesConfiguration::serverApiKey(),
@@ -380,6 +379,9 @@ class NormalizeGoogleMapsInputAction
         return $match;
     }
 
+    /**
+     * @param  array<string, mixed>  $input
+     */
     private function countryCode(array $input): ?string
     {
         $countryCode = $input['country_code'] ?? null;

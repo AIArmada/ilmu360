@@ -224,12 +224,71 @@
 - Verification: `EventTest` 6/34, `CalendarServiceTest` 10/34, `AdminResourcesCoverageTest` 3/35; focused PHPStan on the hierarchy implementation passed; `php artisan route:list --json` and `git diff --check` passed. The codebase-memory index transport was unavailable, so targeted local discovery was used as the documented fallback.
 # Full test repair and touched-code audit
 
-- [ ] Establish the current full-suite failure inventory and separate environment/bootstrap failures from product failures.
-- [ ] For each failure cluster, use the codebase graph and current implementation as the source of truth; audit the production code exercised by the tests.
-- [ ] Apply hard-cut fixes without compatibility aliases or legacy behavior, updating tests only where their contract is stale.
-- [ ] Run focused tests after each cluster and then the complete Pest suite in parallel.
-- [ ] Run PHPStan and relevant boundary/static checks; inspect the final diff and document findings.
+- [x] Establish the current full-suite failure inventory and separate environment/bootstrap failures from product failures.
+- [x] For each failure cluster, use the codebase graph and current implementation as the source of truth; audit the production code exercised by the tests.
+- [x] Apply hard-cut fixes without compatibility aliases or legacy behavior, updating tests only where their contract is stale.
+- [x] Run focused tests after each cluster and then the complete Pest suite in parallel.
+- [x] Run PHPStan and relevant boundary/static checks; inspect the final diff and document findings.
 
 ### Review
 
-- In progress.
+- Repaired API event metadata serialization, frontend membership authorization fixtures, engagement-based event tests, communications destinations, notification routing tests, contribution owner-context boundaries, event submission relation hydration, and membership audit hooks.
+- Removed tests for deleted scoped-role/tag APIs instead of retaining compatibility shims.
+- Focused repaired suites are green; the full feature suite remains resource-limited by the nested Scramble documentation process and PHPStan still reports pre-existing refactor errors outside the touched paths.
+
+# Scramble documentation hardening
+
+- [x] Reproduce the Scramble memory failure from a cold documentation cache.
+- [x] Align Scramble assertions and the membership application manifest route with the refactored codebase.
+- [x] Make stale OpenAPI responses immediate and prevent the cache pointer from advancing to an uncached document.
+- [x] Run the cold-cache Scramble suite and adjacent documentation boundary checks.
+
+### Review
+
+- `DocsJsonController` now uses stale-while-revalidate behavior when a prior OpenAPI artifact exists: lock contention does not wait for large regeneration, and the latest-key pointer changes only after the new artifact is cached.
+- The membership application manifest route now calls the canonical `membershipClaim` controller method; stale Scramble expectations were updated for canonical admin geography, catalog, filter, and schema contracts.
+- Verification passed: `ScrambleDocsTest` 30 tests / 387 assertions from a cold cache; API documentation schema serialization 2 / 11; documentation support 1 / 3; documentation URL resolver 2 / 6; and route caching guard 1 / 1. `git diff --check` passed.
+- The parallel frontend parity command remains non-green because its large stateful fixture file is not parallel-safe (17 failures / 82 passed); this is unrelated to Scramble and is not included in the Scramble change.
+
+# Scramble documentation discovery index
+
+- [x] Add a lightweight JSON index linking to the complete and focused OpenAPI contracts.
+- [x] Add focused section specifications derived from the canonical cached Scramble document.
+- [x] Update AI quickstart discovery order and cover host, response, and section behavior.
+- [x] Run the complete Scramble suite and scoped PHPStan verification.
+
+### Review
+
+- Added `/docs/index.json` with complete-spec, human-docs, and section URLs.
+- Added focused OpenAPI endpoints such as `/docs/events.json`, `/docs/admin.json`, and `/docs/catalogs.json`; they filter the canonical document by route prefixes and retain the full `/docs.json` contract for tooling that requires one specification.
+- Centralized full-document generation, locking, stale fallback, and caching in `ApiDocumentationDocumentResolver`; this prevents the complete and focused routes from drifting.
+- Verification passed: `ScrambleDocsTest` 33 tests / 402 assertions; scoped PHPStan 6 files; route registration and `git diff --check` passed.
+
+# Package-owned test cleanup
+
+- [x] Inventory application tests that call `aiarmada/*` package APIs directly.
+- [x] Remove tests that assert package behavior without an ilmu360° integration seam.
+- [x] Retain application route, UI, policy, orchestration, notification, serialization, and package-extension coverage.
+- [x] Run the affected application integration tests and inspect the final diff.
+
+### Review
+
+- Removed `tests/Feature/Engagement/FollowTest.php`, which only tested the package `EngagementManager` and `Follow` model.
+- Removed the direct package registration-service test from `tests/Feature/Events/RegisterForEventTest.php`; retained the web and API route tests that prove ilmu360° integration.
+- Retained package-backed tests where the application adds behavior or owns the contract, including speaker follow UI, event registration routes, membership hooks/roles, notification routing, API/MCP parity, address resolution, and admin resources.
+- A codebase-memory index lookup was attempted but its transport was unavailable; targeted local discovery was used as the documented fallback.
+- Verification passed: registration routes 3 tests / 6 assertions, speaker follow UI 7 / 28, frontend follow API 6 / 44, and `git diff --check`.
+
+## Event package-owned test cleanup follow-up
+
+- [x] Audit event relationship, engagement, attendance, and occurrence tests against package-owned traits/models.
+- [x] Remove pure package event tests and preserve application event seams.
+- [x] Run retained event unit, policy, Livewire, and API coverage.
+
+### Review
+
+- Removed `EventUserTest` for the package `HasMembers` pivot trait, `EventGoingTest` for package engagement responses, and the unused default `EventOwnershipTest`.
+- Removed the package attendance factory-shape assertion from `EventCheckInTest`; retained all Livewire check-in authorization and persistence coverage.
+- Removed the package occurrence/session relationship assertion from `Unit/EventTest`; retained app-owned scopes, searchable payload transforms, language serialization, and discoverability behavior.
+- Retained application event tests for policies, visibility, submissions, calendar rendering, search, notifications, APIs, MCP tools, registration routes, and app-specific package adapters.
+- Verification passed: retained event unit tests 5 / 30 assertions, event check-in Livewire tests 5 / 12, event-going API tests 5 / 12, event-save API tests 30 / 30, and event policy tests 10 / 55. `git diff --check` passed.

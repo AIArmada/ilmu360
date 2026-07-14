@@ -1,6 +1,6 @@
 <?php
 
-use AIArmada\FilamentAuthz\Facades\Authz;
+use AIArmada\Membership\Enums\MemberRole;
 use App\Actions\Contributions\ApproveContributionRequestAction;
 use App\Actions\Contributions\CancelContributionRequestAction;
 use App\Actions\Contributions\CanReviewContributionRequestAction;
@@ -26,8 +26,6 @@ use App\Models\Institution;
 use App\Models\Reference;
 use App\Models\Speaker;
 use App\Models\User;
-use App\Support\Authz\MemberRoleScopes;
-use App\Support\Authz\ScopedMemberRoleSeeder;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Carbon;
@@ -43,12 +41,7 @@ beforeEach(function () {
 
 function assignInstitutionOwnerForContributionActions(User $user, Institution $institution): void
 {
-    app(ScopedMemberRoleSeeder::class)->ensureForInstitution();
-    $institution->members()->syncWithoutDetaching([$user->id]);
-
-    Authz::withScope(app(MemberRoleScopes::class)->institution(), function () use ($user): void {
-        $user->syncRoles(['owner']);
-    }, $user);
+    addTestMember($institution, $user, MemberRole::Owner);
 }
 
 it('submits contribution create requests through the action layer', function () {

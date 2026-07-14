@@ -5,7 +5,9 @@ namespace App\Models;
 use AIArmada\Membership\Models\MembershipApplication as BaseMembershipApplication;
 use App\Enums\MemberSubjectType;
 use App\Models\Concerns\AuditsModelChanges;
+use Database\Factories\MembershipApplicationFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 use Spatie\Image\Enums\Fit;
@@ -15,6 +17,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class MembershipApplication extends BaseMembershipApplication implements AuditableContract, HasMedia
 {
+    /** @use HasFactory<MembershipApplicationFactory> */
     use AuditsModelChanges, HasFactory, InteractsWithMedia;
 
     protected function casts(): array
@@ -24,6 +27,9 @@ class MembershipApplication extends BaseMembershipApplication implements Auditab
         ]);
     }
 
+    /**
+     * @return MorphTo<Model, $this>
+     */
     public function subject(): MorphTo
     {
         return $this->morphTo();

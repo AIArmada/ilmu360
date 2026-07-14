@@ -261,7 +261,7 @@ class ReferenceSeeder extends Seeder
                         'referenceable_id' => $referenceId,
                     ],
                     [
-                        'reference_type' => $reference?->type?->value ?? $reference?->type ?? 'book',
+                        'reference_type' => $reference->type->value ?? 'book',
                         'title' => $reference?->title,
                         'visibility' => 'public',
                         'sort_order' => $order,

@@ -4,12 +4,8 @@ namespace Database\Factories;
 
 use AIArmada\Events\Database\Factories\EventSeriesFactory;
 use App\Models\Series;
-use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
-/**
- * @extends Factory<Series>
- */
 class SeriesFactory extends EventSeriesFactory
 {
     protected $model = Series::class;

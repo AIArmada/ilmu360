@@ -7,6 +7,9 @@ use Spatie\LaravelSettings\SettingsRepositories\DatabaseSettingsRepository;
 
 class UuidDatabaseSettingsRepository extends DatabaseSettingsRepository
 {
+    /**
+     * @param  mixed  $payload
+     */
     #[\Override]
     public function createProperty(string $group, string $name, $payload, bool $locked = false): void
     {

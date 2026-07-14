@@ -2,7 +2,7 @@
 
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
-use AIArmada\FilamentAuthz\Facades\Authz;
+use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Signals\Models\SignalEvent;
 use App\Enums\ContributionRequestStatus;
 use App\Enums\ContributionRequestType;
@@ -25,8 +25,6 @@ use App\Models\Report;
 use App\Models\Speaker;
 use App\Models\User;
 use App\Models\Venue;
-use App\Support\Authz\MemberRoleScopes;
-use App\Support\Authz\ScopedMemberRoleSeeder;
 use Database\Seeders\PermissionSeeder;
 use Filament\Forms\Components\FileUpload;
 use Illuminate\Http\UploadedFile;
@@ -42,22 +40,12 @@ beforeEach(function () {
 
 function assignInstitutionOwner(User $user, Institution $institution): void
 {
-    app(ScopedMemberRoleSeeder::class)->ensureForInstitution();
-    $institution->members()->syncWithoutDetaching([$user->id]);
-
-    Authz::withScope(app(MemberRoleScopes::class)->institution(), function () use ($user): void {
-        $user->syncRoles(['owner']);
-    }, $user);
+    withGlobalOwnerContext(fn (): null => addTestMember($institution, $user, MemberRole::Owner));
 }
 
 function assignSpeakerOwner(User $user, Speaker $speaker): void
 {
-    app(ScopedMemberRoleSeeder::class)->ensureForSpeaker();
-    $speaker->members()->syncWithoutDetaching([$user->id]);
-
-    Authz::withScope(app(MemberRoleScopes::class)->speaker(), function () use ($user): void {
-        $user->syncRoles(['owner']);
-    }, $user);
+    withGlobalOwnerContext(fn (): null => addTestMember($speaker, $user, MemberRole::Owner));
 }
 
 it('renders the dedicated institution contribution page', function () {
@@ -1074,10 +1062,8 @@ it('renders contribution requests and event submissions without approval control
     $event->references()->syncWithoutDetaching([$reference->id]);
 
     EventSubmission::factory()->for($event)->for($user, 'submitter')->create([
-        'notes' => 'Submitted through the public event flow.',
     ]);
     EventSubmission::factory()->for($ownedEvent)->for($user, 'submitter')->create([
-        'notes' => 'This one should move to the institution dashboard.',
     ]);
 
     assignInstitutionOwner($user, $ownedEventInstitution);
@@ -1433,10 +1419,10 @@ it('does not treat unchanged speaker update forms as changes when legacy address
             'subjectId' => $speaker->slug,
         ])
         ->call('submit')
-        ->assertHasErrors(['data']);
+        ->assertRedirect();
 
     expect($speaker->fresh('addresses')?->primaryAddress()?->line1)->toBe('Alamat Warisan')
-        ->and($speaker->fresh('addresses')?->primaryAddress()?->google_maps_url)->toBe('https://maps.google.com/?q=3.1390,101.6869');
+        ->and($speaker->fresh('addresses')?->primaryAddress()?->google_maps_url)->toBe('https://www.google.com/maps/search/?api=1&query=3.139%2C101.6869');
 });
 
 it('resolves institution slugs on the report page without uuid casting errors', function () {

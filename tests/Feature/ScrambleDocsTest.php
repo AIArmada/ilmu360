@@ -12,6 +12,15 @@ use Symfony\Component\Process\Process;
 
 use function Pest\Laravel\mock;
 
+// The generated OpenAPI document is intentionally large. The application-wide
+// array cache is isolated per refreshed test application, which regenerates and
+// retains the document for every test until PHPUnit reaches its memory limit.
+// Use the normal local file cache for this suite so the artifact is reused while
+// keeping the lock and stale-cache paths real.
+beforeEach(function (): void {
+    config()->set('cache.default', 'file');
+});
+
 it('serves scramble docs only on the api host', function () {
     $this->get('https://api.ilmu360.test/docs', [
         'Host' => 'api.ilmu360.test',
@@ -60,6 +69,47 @@ it('publishes openapi json on the api host with the api v1 server url', function
         ->assertOk()
         ->assertJsonPath('openapi', '3.1.0')
         ->assertJsonPath('servers.0.url', 'https://api.ilmu360.test/api/v1');
+});
+
+it('publishes a lightweight documentation index with focused specification links', function () {
+    $response = $this->getJson('https://api.ilmu360.test/docs/index.json', [
+        'Host' => 'api.ilmu360.test',
+    ])->assertOk();
+
+    expect($response->json('openapi'))->toBe('3.1.0')
+        ->and($response->json('complete_spec_url'))->toBe('https://api.ilmu360.test/docs.json')
+        ->and($response->json('human_docs_url'))->toBe('https://api.ilmu360.test/docs')
+        ->and($response->json('sections'))->toContainEqual([
+            'key' => 'events',
+            'title' => 'Events',
+            'description' => 'Event discovery, event details, attendance, and event submissions.',
+            'url' => 'https://api.ilmu360.test/docs/events.json',
+        ]);
+});
+
+it('publishes focused openapi documents from the canonical cached specification', function () {
+    $response = $this->getJson('https://api.ilmu360.test/docs/events.json', [
+        'Host' => 'api.ilmu360.test',
+    ])->assertOk();
+
+    $paths = $response->json('paths');
+
+    expect($response->json('openapi'))->toBe('3.1.0')
+        ->and($response->json('x-ilmu360-section'))->toBe('events')
+        ->and($response->json('x-ilmu360-complete-spec'))->toBe('https://api.ilmu360.test/docs.json')
+        ->and($paths)->not->toBeEmpty()
+        ->and($paths['/events']['get'] ?? null)->not->toBeNull()
+        ->and($paths['/admin/manifest'] ?? null)->toBeNull();
+});
+
+it('keeps documentation index and focused specifications on the api host', function () {
+    $this->getJson('https://ilmu360.test/docs/index.json', [
+        'Host' => 'ilmu360.test',
+    ])->assertNotFound();
+
+    $this->getJson('https://ilmu360.test/docs/events.json', [
+        'Host' => 'ilmu360.test',
+    ])->assertNotFound();
 });
 
 it('serves docs json with cache and etag headers for agent and cdn clients', function () {
@@ -132,6 +182,10 @@ it('serves stale docs json when lock acquisition times out', function () {
     ]);
     Cache::forever($latestCacheKeyPointer, $previousCacheKey);
 
+    // A previous fatal test process can leave a file-store lock behind; clean
+    // that test-owned lock before acquiring it so the timeout scenario is
+    // deterministic on reruns.
+    Cache::lock($currentCacheKey.':lock', 120)->forceRelease();
     $lock = Cache::lock($currentCacheKey.':lock', 120);
     expect($lock->get())->toBeTrue();
 
@@ -141,6 +195,8 @@ it('serves stale docs json when lock acquisition times out', function () {
         ])
             ->assertOk()
             ->assertJsonPath('info.title', 'ilmu360° API Stale');
+
+        expect(Cache::get($latestCacheKeyPointer))->toBe($previousCacheKey);
     } finally {
         $lock->forceRelease();
         Cache::clearResolvedInstances();
@@ -263,10 +319,8 @@ it('publishes named speaker institution and reference schemas for the public dir
     ])
         ->and(data_get($schemas, 'Speaker.properties.gender'))->not->toBeNull()
         ->and(data_get($schemas, 'SpeakerListItem.properties.status.type'))->toBe('string')
-        ->and(data_get($schemas, 'SpeakerListItem.properties.status.type'))->toBe('boolean')
         ->and(data_get($schemas, 'SpeakerListItem.properties.gender'))->not->toBeNull()
         ->and(data_get($schemas, 'SpeakerDirectoryItem.properties.status.type'))->toBe('string')
-        ->and(data_get($schemas, 'SpeakerDirectoryItem.properties.status.type'))->toBe('boolean')
         ->and(data_get($schemas, 'SpeakerDirectoryItem.properties.gender'))->not->toBeNull()
         ->and(data_get($schemas, 'Institution.properties.type'))->not->toBeNull()
         ->and(data_get($schemas, 'InstitutionListItem.properties.distance_km'))->not->toBeNull()
@@ -373,8 +427,8 @@ it('exposes the admin api foundation in scramble docs under dedicated admin tags
     expect($paths['/admin/manifest']['get']['tags'] ?? null)->toContain('Admin Manifest')
         ->and($paths['/admin/catalogs/countries']['get']['tags'] ?? null)->toContain('Admin Catalog')
         ->and($paths['/admin/catalogs/states']['get']['tags'] ?? null)->toContain('Admin Catalog')
-        ->and($paths['/admin/catalogs/districts']['get']['tags'] ?? null)->toContain('Admin Catalog')
-        ->and($paths['/admin/catalogs/subdistricts']['get']['tags'] ?? null)->toContain('Admin Catalog')
+        ->and($paths['/admin/catalogs/admin-area-level-1']['get']['tags'] ?? null)->toContain('Admin Catalog')
+        ->and($paths['/admin/catalogs/admin-area-level-2']['get']['tags'] ?? null)->toContain('Admin Catalog')
         ->and($paths['/admin/{resourceKey}']['get']['tags'] ?? null)->toContain('Admin Resource')
         ->and($paths['/admin/{resourceKey}']['post']['tags'] ?? null)->toContain('Admin Resource')
         ->and($paths['/admin/{resourceKey}/meta']['get']['tags'] ?? null)->toContain('Admin Resource')
@@ -415,7 +469,7 @@ it('documents public and admin mutation capability boundaries in the api overvie
         ->toContain('Resource manifests now expose explicit `mcp_tools` for collection, meta, schema, store, and update call surfaces; use those tool names and argument templates instead of guessing URLs.')
         ->toContain('Event discovery supports `filter[starts_on_local_date]=YYYY-MM-DD` and returns `starts_at_local` / `starts_on_local_date` in event payloads.')
         ->toContain('Enum filters and write fields use enum backing values such as `kuliah_ceramah`, `all_ages`, and `prayer_relative`, not display labels such as `Kuliah / Ceramah`.')
-        ->toContain('Event collections expose explicit filters such as filter[status], filter[visibility], filter[event_format], filter[event_type], filter[timing_mode], and filter[prayer_reference]. Speaker collections expose filter[status], filter[status], and filter[has_events]. Date-aware admin resources also accept starts_after, starts_before, and starts_on_local_date.')
+        ->toContain('Event collections expose explicit filters such as filter[status], filter[visibility], filter[event_format], filter[event_type], filter[timing_mode], and filter[prayer_reference]. Speaker collections expose filter[status], filter[is_active], and filter[has_events]. Date-aware admin resources also accept starts_after, starts_before, and starts_on_local_date.')
         ->toContain('use the admin record `route_key` returned by admin collection or detail payloads')
         ->toContain('If you only have a public UUID-backed payload and route_key is unavailable, use the UUID id directly as recordKey.')
         ->toContain('Collection endpoints clamp per_page to server-supported maxima')
@@ -830,7 +884,7 @@ it('adds summaries and descriptions to catalog and authenticated workflow endpoi
     $tags = collect($response->json('tags'))->keyBy('name');
 
     expect($paths['/catalogs/countries']['get']['summary'] ?? null)->toBe('List public countries catalog')
-        ->and($paths['/catalogs/membership-claim-subjects/{subjectType}']['get']['summary'] ?? null)->toBe('List membership-claim subjects')
+        ->and($paths['/catalogs/membership-application-subjects/{subjectType}']['get']['summary'] ?? null)->toBe('List membership-claim subjects')
         ->and($paths['/catalogs/spaces']['get']['description'] ?? null)->toContain('global space options when no `institution_id` is selected')
         ->and($paths['/me/events/going']['get']['summary'] ?? null)->toBe('List going events')
         ->and($paths['/me/events/saved']['get']['summary'] ?? null)->toBe('List saved events')

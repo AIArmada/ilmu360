@@ -73,6 +73,11 @@ class SuggestUpdate extends Component implements HasActions, HasForms
         ResolveContributionUpdateContextAction $resolveContributionUpdateContextAction,
         ResolveContributionSubjectPresentationAction $resolveContributionSubjectPresentationAction,
     ): void {
+        // Directory contribution pages operate on globally visible records. Keep the
+        // explicit global context active for the full Livewire render, including
+        // deferred media-field hydration after mount returns.
+        OwnerContext::setForRequest(null);
+
         OwnerContext::withOwner(null, function () use (
             $resolveContributionSubjectPresentationAction,
             $resolveContributionUpdateContextAction,
@@ -149,7 +154,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
 
     public function form(Schema $schema): Schema
     {
-        return $schema
+        return OwnerContext::withOwner(null, fn (): Schema => $schema
             ->model($this->entity)
             ->statePath('data')
             ->components([
@@ -160,7 +165,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
                     ->rows(4)
                     ->maxLength(2000)
                     ->hidden(fn (): bool => $this->canDirectEdit()),
-            ]);
+            ]));
     }
 
     public function submit(

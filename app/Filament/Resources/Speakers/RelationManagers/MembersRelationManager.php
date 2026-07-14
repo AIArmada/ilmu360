@@ -37,7 +37,7 @@ class MembersRelationManager extends RelationManager
                     ->sortable(),
                 TextColumn::make('role')
                     ->label('Role')
-                    ->getStateUsing(fn (User $record): string => $record->pivot?->role ?? '—'),
+                    ->getStateUsing(fn (User $record): string => $record->pivot->role ?? '—'),
             ])
             ->headerActions([
                 Action::make('addMember')
@@ -114,7 +114,7 @@ class MembersRelationManager extends RelationManager
     {
         $member = $this->getSpeakerOwner()->members()->whereKey($user->getKey())->first();
 
-        return $member?->pivot?->role;
+        return $member?->pivot->getAttribute('role');
     }
 
     private function makeRoleSelect(): Select

@@ -37,7 +37,7 @@ final readonly class ExecuteSavedSearchAction
                 perPage: 20,
             )
             : $this->searchService->search(
-                query: $savedSearch->query,
+                query: is_string($savedSearch->query) ? $savedSearch->query : null,
                 filters: $filters,
                 perPage: 20,
             );
@@ -49,7 +49,7 @@ final readonly class ExecuteSavedSearchAction
             user: $user instanceof User ? $user : null,
             request: $resolvedRequest,
             surface: 'saved_search.execute',
-            query: $savedSearch->query,
+            query: is_string($savedSearch->query) ? $savedSearch->query : null,
             filters: array_merge($filters, array_filter([
                 'lat' => $savedSearch->lat,
                 'lng' => $savedSearch->lng,

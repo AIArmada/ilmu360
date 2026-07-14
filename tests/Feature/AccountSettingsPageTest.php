@@ -1,11 +1,11 @@
 <?php
 
+use AIArmada\Communications\Models\CommunicationDestination;
 use App\Livewire\Pages\Dashboard\AccountSettings;
 use App\Models\Institution;
 use App\Models\User;
 use App\Notifications\Auth\VerifyEmailNotification;
 use App\Services\Notifications\NotificationSettingsManager;
-use AIArmada\Communications\Models\CommunicationDestination;
 use Filament\Forms\Components\Select as FormSelect;
 use Filament\Forms\Components\TextInput;
 use Illuminate\Foundation\Testing\RefreshDatabase;

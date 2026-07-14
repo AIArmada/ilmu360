@@ -3,6 +3,7 @@
 namespace App\Livewire\Pages\Dashboard;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Engagement\Models\Response;
 use App\Models\Event;
 use App\Models\EventCheckin;
 use App\Models\EventSubmission;
@@ -18,7 +19,6 @@ use Carbon\CarbonInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Pagination\LengthAwarePaginator as Paginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
@@ -85,11 +85,12 @@ class UserDashboard extends Component
     #[Computed]
     public function savedEvents(): Collection
     {
-        return $this->sortEventsForPlanner(
-            $this->savedEventsQuery($this->user())
-                ->with($this->plannerEventRelations())
-                ->get()
-        );
+        /** @var Collection<int, Event> $events */
+        $events = $this->savedEventsQuery($this->user())
+            ->with($this->plannerEventRelations())
+            ->get();
+
+        return $this->sortEventsForPlanner($events);
     }
 
     /**
@@ -98,11 +99,12 @@ class UserDashboard extends Component
     #[Computed]
     public function goingEvents(): Collection
     {
-        return $this->sortEventsForPlanner(
-            $this->goingEventsQuery($this->user())
-                ->with($this->plannerEventRelations())
-                ->get()
-        );
+        /** @var Collection<int, Event> $events */
+        $events = $this->goingEventsQuery($this->user())
+            ->with($this->plannerEventRelations())
+            ->get();
+
+        return $this->sortEventsForPlanner($events);
     }
 
     /**
@@ -166,6 +168,9 @@ class UserDashboard extends Component
         return $savedSearches;
     }
 
+    /**
+     * @return Collection<int, mixed>
+     */
     #[Computed]
     public function recentNotifications(): Collection
     {
@@ -592,19 +597,20 @@ class UserDashboard extends Component
     }
 
     /**
-     * @return BelongsToMany<Event, User>
+     * @return Builder<Event>
      */
     protected function goingEventsQuery(User $user): Builder
     {
+        $goingIds = Response::query()
+            ->where('responder_type', $user->getMorphClass())
+            ->where('responder_id', $user->getKey())
+            ->where('response_type', 'going')
+            ->where('status', 'active')
+            ->pluck('respondable_id')
+            ->toArray();
+
         return Event::query()
-            ->whereIn('id', function ($q) use ($user): void {
-                $q->select('respondable_id')
-                    ->from('responses')
-                    ->where('responder_type', $user->getMorphClass())
-                    ->where('responder_id', $user->getKey())
-                    ->where('response_type', 'going')
-                    ->where('status', 'active');
-            })
+            ->whereIn('id', $goingIds)
             ->orderBy('starts_at');
     }
 
@@ -649,8 +655,10 @@ class UserDashboard extends Component
     {
         return $registrations
             ->sort(function (Registration $left, Registration $right): int {
-                $leftDate = $left->event?->starts_at;
-                $rightDate = $right->event?->starts_at;
+                $leftEvent = $left->event;
+                $rightEvent = $right->event;
+                $leftDate = $leftEvent instanceof Event ? $leftEvent->starts_at : null;
+                $rightDate = $rightEvent instanceof Event ? $rightEvent->starts_at : null;
 
                 return $this->comparePlannerDates($leftDate, $rightDate);
             })
@@ -739,6 +747,7 @@ class UserDashboard extends Component
     protected function mergeCheckinIntoCalendarEntries(array &$entries, EventCheckin $checkin): void
     {
         $event = $checkin->event;
+        $eventModel = $event instanceof Event ? $event : null;
         $baseDate = $event instanceof Event
             ? $event->starts_at
             : $checkin->checked_in_at;
@@ -755,11 +764,11 @@ class UserDashboard extends Component
         if (! array_key_exists($key, $entries)) {
             $entries[$key] = $this->makeCalendarEntry(
                 key: $key,
-                event: $event,
+                event: $eventModel,
                 dateKey: $dateKey,
                 startsAt: $baseDate,
                 timeLabel: $this->checkinTimeLabel($checkin),
-                secondaryLabel: $event instanceof Event ? $this->eventLocationLabel($event) : __('Attendance history'),
+                secondaryLabel: $eventModel instanceof Event ? $this->eventLocationLabel($eventModel) : __('Attendance history'),
                 isCheckin: true,
             );
         }

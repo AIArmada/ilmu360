@@ -9,6 +9,7 @@ use AIArmada\Membership\Enums\MemberRole;
 use App\Filament\Resources\Authz\UserResource as AuthzUserResource;
 use App\Models\Reference;
 use App\Models\User;
+use App\Support\Submission\PublicSubmissionUiEvents;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Resources\RelationManagers\RelationManager;
@@ -36,7 +37,7 @@ class MembersRelationManager extends RelationManager
                     ->sortable(),
                 TextColumn::make('role')
                     ->label('Role')
-                    ->getStateUsing(fn (User $record): string => $record->pivot?->role ?? '—'),
+                    ->getStateUsing(fn (User $record): string => $record->pivot->role ?? '—'),
             ])
             ->headerActions([
                 Action::make('addMember')
@@ -113,7 +114,7 @@ class MembersRelationManager extends RelationManager
     {
         $member = $this->getReferenceOwner()->members()->whereKey($user->getKey())->first();
 
-        return $member?->pivot?->role;
+        return $member?->pivot->getAttribute('role');
     }
 
     private function makeRoleSelect(): Select

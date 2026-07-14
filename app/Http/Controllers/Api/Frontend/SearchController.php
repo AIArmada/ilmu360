@@ -543,17 +543,21 @@ class SearchController extends FrontendController
                     ->where('events.visibility', EventVisibility::Public)
                     ->where('starts_at', '>=', $now);
             })
-            ->with([
-                'event.institution',
-                'event.institution.media',
-                'event.institution.addresses.country',
-                'event.venue.addresses.country',
-                'event.media',
-                'event.references',
-            ])
-            ->get()
+            ->get();
+
+        $otherRoleUpcomingMatches->loadMissing([
+            'event.institution',
+            'event.institution.media',
+            'event.institution.addresses.country',
+            'event.venue.addresses.country',
+            'event.media',
+            'event.references',
+        ]);
+
+        $otherRoleUpcomingMatches = $otherRoleUpcomingMatches
             ->sortBy(function (EventKeyPerson $keyPerson): int {
-                $startsAt = $keyPerson->event?->starts_at;
+                $event = $keyPerson->event;
+                $startsAt = $event instanceof Event ? $event->starts_at : null;
 
                 return $startsAt instanceof \DateTimeInterface ? $startsAt->getTimestamp() : PHP_INT_MAX;
             })
@@ -571,17 +575,21 @@ class SearchController extends FrontendController
                     ->where('events.visibility', EventVisibility::Public)
                     ->where('starts_at', '<', $now);
             })
-            ->with([
-                'event.institution',
-                'event.institution.media',
-                'event.institution.addresses.country',
-                'event.venue.addresses.country',
-                'event.media',
-                'event.references',
-            ])
-            ->get()
+            ->get();
+
+        $otherRolePastMatches->loadMissing([
+            'event.institution',
+            'event.institution.media',
+            'event.institution.addresses.country',
+            'event.venue.addresses.country',
+            'event.media',
+            'event.references',
+        ]);
+
+        $otherRolePastMatches = $otherRolePastMatches
             ->sortByDesc(function (EventKeyPerson $keyPerson): int {
-                $startsAt = $keyPerson->event?->starts_at;
+                $event = $keyPerson->event;
+                $startsAt = $event instanceof Event ? $event->starts_at : null;
 
                 return $startsAt instanceof \DateTimeInterface ? $startsAt->getTimestamp() : 0;
             })
@@ -1809,7 +1817,7 @@ class SearchController extends FrontendController
             'role' => $this->enumValue($keyPerson->role),
             'role_label' => $this->searchPayloadTransformer->keyPersonRoleLabel($keyPerson->role),
             'display_name' => $keyPerson->display_name,
-            'event' => $keyPerson->event ? $this->eventListData($keyPerson->event) : null,
+            'event' => $keyPerson->event instanceof Event ? $this->eventListData($keyPerson->event) : null,
         ];
     }
 

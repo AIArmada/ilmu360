@@ -113,7 +113,7 @@ final class EnumMapper
         return $appValue !== null ? AppTrigger::tryFrom($appValue) : null;
     }
 
-    public static function toAppPriority(PkgPriority $priority): ?AppPriority
+    public static function toAppPriority(PkgPriority $priority): AppPriority
     {
         return AppPriority::tryFrom(self::REVERSE_PRIORITY_MAP[$priority->value] ?? 'medium');
     }

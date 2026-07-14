@@ -226,7 +226,7 @@ trait SeedsPackageAddresses
             }
         }
 
-        $attributes['country'] ??= $country?->name ?? ($state instanceof State
+        $attributes['country'] ??= $country->name ?? ($state instanceof State
             ? AddressCountry::query()->whereKey($state->country_id)->value('name')
             : null);
         $attributes['country_code'] ??= $country?->iso2;
@@ -236,7 +236,7 @@ trait SeedsPackageAddresses
             $attributes['state'] = AddressArea::query()->whereKey($adminArea1->parent_id)->value('name');
         }
 
-        $attributes['city'] ??= $adminArea2?->name ?? $adminArea1?->name;
+        $attributes['city'] ??= $adminArea2->name ?? $adminArea1->name;
         $attributes['admin_area_3_id'] = null;
         $attributes['admin_area_4_id'] = null;
 

@@ -179,7 +179,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
             Route::get('/account-settings', [ManifestController::class, 'accountSettings'])->name('account-settings');
             Route::get('/advanced-events', [ManifestController::class, 'advancedEvent'])->name('advanced-events');
             Route::get('/institution-workspace', [ManifestController::class, 'institutionWorkspace'])->name('institution-workspace');
-            Route::get('/membership-applications/{subjectType}', [ManifestController::class, 'membershipApplication'])
+            Route::get('/membership-applications/{subjectType}', [ManifestController::class, 'membershipClaim'])
                 ->whereIn('subjectType', MemberSubjectType::claimableRouteSegments())
                 ->name('membership-applications');
             Route::get('/contributions/{subjectType}/{subject}/suggest', [ContributionController::class, 'suggestContext'])

@@ -7,6 +7,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\MorphPivot;
 
+/**
+ * @property string $referenceable_type
+ * @property string $reference_type
+ * @property string $visibility
+ * @property int $sort_order
+ */
 class EventReferencePivot extends MorphPivot
 {
     use HasUuids;

@@ -2,12 +2,14 @@
 
 namespace App\Livewire\Pages\Contributions;
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Actions\Contributions\CancelContributionRequestAction;
 use App\Actions\Contributions\ResolveOwnContributionRequestAction;
 use App\Enums\ContributionRequestType;
 use App\Enums\MemberSubjectType;
 use App\Livewire\Concerns\InteractsWithToasts;
 use App\Models\ContributionRequest;
+use App\Models\Event;
 use App\Models\EventSubmission;
 use App\Models\Institution;
 use App\Models\Report;
@@ -80,11 +82,11 @@ class Index extends Component implements HasForms
         /** @var User $user */
         $user = auth()->user();
 
-        return $user->contributionRequests()
+        return OwnerContext::withOwner(null, fn (): LengthAwarePaginator => $user->contributionRequests()
             ->where('type', ContributionRequestType::Create->value)
             ->with(['entity', 'reviewer'])
             ->latest('created_at')
-            ->paginate(perPage: 5, pageName: 'my_requests_page');
+            ->paginate(perPage: 5, pageName: 'my_requests_page'));
     }
 
     /**
@@ -96,11 +98,11 @@ class Index extends Component implements HasForms
         /** @var User $user */
         $user = auth()->user();
 
-        return $user->contributionRequests()
+        return OwnerContext::withOwner(null, fn (): LengthAwarePaginator => $user->contributionRequests()
             ->where('type', ContributionRequestType::Update->value)
             ->with(['entity', 'reviewer'])
             ->latest('created_at')
-            ->paginate(perPage: 5, pageName: 'my_update_requests_page');
+            ->paginate(perPage: 5, pageName: 'my_update_requests_page'));
     }
 
     /**
@@ -112,7 +114,7 @@ class Index extends Component implements HasForms
         /** @var User $user */
         $user = auth()->user();
 
-        return EventSubmission::query()
+        return OwnerContext::withOwner(null, fn (): LengthAwarePaginator => EventSubmission::query()
             ->where('submitter_id', $user->id)
             ->whereHas('event', function (Builder $query) use ($user): void {
                 $institutionIdSelector = $this->eventInstitutionIdSelector();
@@ -134,7 +136,7 @@ class Index extends Component implements HasForms
                 'event' => fn ($query) => $query->with(['institution', 'speakers', 'references']),
             ])
             ->latest('created_at')
-            ->paginate(perPage: 5, pageName: 'submitted_events_page');
+            ->paginate(perPage: 5, pageName: 'submitted_events_page'));
     }
 
     /**
@@ -146,10 +148,10 @@ class Index extends Component implements HasForms
         /** @var User $user */
         $user = auth()->user();
 
-        return $user->reports()
+        return OwnerContext::withOwner(null, fn (): LengthAwarePaginator => $user->reports()
             ->with(['entity', 'handler'])
             ->latest('created_at')
-            ->paginate(perPage: 5, pageName: 'my_reports_page');
+            ->paginate(perPage: 5, pageName: 'my_reports_page'));
     }
 
     /**
@@ -158,6 +160,11 @@ class Index extends Component implements HasForms
     public function eventSubmissionDetails(EventSubmission $submission): array
     {
         $event = $submission->event;
+
+        if (! $event instanceof Event) {
+            return [];
+        }
+
         $details = [];
 
         if (filled($event->institution?->display_name)) {

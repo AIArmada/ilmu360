@@ -342,5 +342,4 @@ class GenerateEventSlugAction
 
         return Carbon::parse($date, $timezone ?: (string) config('app.timezone', 'UTC'));
     }
-
 }

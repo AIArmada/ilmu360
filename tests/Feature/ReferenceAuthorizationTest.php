@@ -1,36 +1,21 @@
 <?php
 
-use AIArmada\CommerceSupport\Models\Role;
-use AIArmada\FilamentAuthz\Facades\Authz;
+use AIArmada\Membership\Enums\MemberRole;
 use App\Models\Reference;
 use App\Models\User;
 use App\Support\Authz\MemberPermissionGate;
-use App\Support\Authz\MemberRoleScopes;
-use App\Support\Authz\ScopedMemberRoleSeeder;
 use Spatie\Permission\PermissionRegistrar;
 
 beforeEach(function () {
     app(PermissionRegistrar::class)->forgetCachedPermissions();
-    app(ScopedMemberRoleSeeder::class)->ensureForReference();
 });
-
-function assignReferenceScopedRole(User $user, string $roleName): void
-{
-    $scope = app(MemberRoleScopes::class)->reference();
-
-    Authz::withScope($scope, function () use ($user, $roleName): void {
-        $role = Role::findOrCreate($roleName, 'web');
-        $user->assignRole($role);
-    }, $user);
-}
 
 it('requires reference membership even when a user has a shared reference scoped role', function () {
     $referenceWithMembership = Reference::factory()->create();
     $referenceWithoutMembership = Reference::factory()->create();
     $user = User::factory()->create();
 
-    $referenceWithMembership->members()->syncWithoutDetaching([$user->id]);
-    assignReferenceScopedRole($user, 'admin');
+    addTestMember($referenceWithMembership, $user, MemberRole::Admin);
 
     $gate = app(MemberPermissionGate::class);
 
@@ -42,8 +27,7 @@ it('allows owner members to approve reference updates', function () {
     $reference = Reference::factory()->pending()->create();
     $user = User::factory()->create();
 
-    $reference->members()->syncWithoutDetaching([$user->id]);
-    assignReferenceScopedRole($user, 'owner');
+    addTestMember($reference, $user, MemberRole::Owner);
 
     expect($user->can('approve', $reference))->toBeTrue()
         ->and($user->can('manageMembers', $reference))->toBeTrue();
@@ -53,8 +37,7 @@ it('denies viewer members from approving reference updates', function () {
     $reference = Reference::factory()->pending()->create();
     $user = User::factory()->create();
 
-    $reference->members()->syncWithoutDetaching([$user->id]);
-    assignReferenceScopedRole($user, 'viewer');
+    addTestMember($reference, $user, MemberRole::Viewer);
 
     expect($user->can('approve', $reference))->toBeFalse()
         ->and($user->can('update', $reference))->toBeFalse();

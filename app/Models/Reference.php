@@ -53,8 +53,13 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  */
 class Reference extends PackageReference implements AuditableContract
 {
+    use AuditsModelChanges, HasSocialProfiles, KeepsDeletedModels, Searchable;
+
     /** @use HasFactory<ReferenceFactory> */
-    use AuditsModelChanges, HasFactory, HasMembers, HasSocialProfiles, KeepsDeletedModels, Searchable;
+    use HasFactory;
+
+    /** @use HasMembers<User> */
+    use HasMembers;
 
     #[\Override]
     protected static function newFactory(): ReferenceFactory
@@ -570,7 +575,9 @@ class Reference extends PackageReference implements AuditableContract
 
     private function setMetadataValue(string $key, mixed $value): void
     {
-        $metadata = $this->metadata;
+        $metadata = array_key_exists('metadata', $this->attributes)
+            ? $this->metadata
+            : null;
         $metadata = is_array($metadata) ? $metadata : [];
         $metadata[$key] = $this->metadataSerializableValue($value);
 
@@ -634,7 +641,7 @@ class Reference extends PackageReference implements AuditableContract
     }
 
     /**
-     * @return BelongsToMany<Event, $this>
+     * @return MorphToMany<Event, $this, EventReferencePivot, 'pivot'>
      */
     public function events(): BelongsToMany
     {

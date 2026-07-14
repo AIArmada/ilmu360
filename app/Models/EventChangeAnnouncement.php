@@ -40,14 +40,21 @@ class EventChangeAnnouncement extends EventUpdate
 
     public function event(): BelongsTo
     {
+        /** @phpstan-ignore-next-line childReturnType (covariant override) */
         return $this->belongsTo(Event::class);
     }
 
+    /**
+     * @return BelongsTo<Event, $this>
+     */
     public function replacementEvent(): BelongsTo
     {
         return $this->belongsTo(Event::class, 'replacement_event_id');
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function actor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by_id');
@@ -73,6 +80,9 @@ class EventChangeAnnouncement extends EventUpdate
         });
     }
 
+    /**
+     * @param  Builder<EventChangeAnnouncement>  $query
+     */
     #[Scope]
     protected function published(Builder $query): void
     {

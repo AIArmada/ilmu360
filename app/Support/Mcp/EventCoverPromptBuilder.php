@@ -521,6 +521,15 @@ class EventCoverPromptBuilder
      */
     private function sourceData(Event $event): array
     {
+        /** @var \Illuminate\Database\Eloquent\Collection<int, Language> $languages */
+        $languages = $event->languages;
+        /** @var Event|null $parentEvent */
+        $parentEvent = $event->getRelationValue('parentEvent');
+        /** @var \Illuminate\Database\Eloquent\Collection<int, Event> $childEvents */
+        $childEvents = $event->getRelationValue('childEvents');
+        /** @var Collection<int, Model> $classifications */
+        $classifications = $event->classifications;
+
         return [
             'direct_attributes' => $this->normalizeArray($event->getAttributes()),
             'computed' => [
@@ -547,13 +556,13 @@ class EventCoverPromptBuilder
                 'speakers' => $event->speakers->map(fn (Speaker $speaker): array => $this->modelPayload($speaker))->values()->all(),
                 'references' => $event->references->map(fn (Reference $reference): array => $this->referencePayload($reference))->values()->all(),
                 'series' => $event->series->map(fn (Series $series): array => $this->modelPayload($series))->values()->all(),
-                'classifications' => $this->classificationsPayload($event->classifications),
-                'languages' => $event->languages->map(fn (Language $language): array => $this->languagePayload($language))->values()->all(),
+                'classifications' => $this->classificationsPayload($classifications),
+                'languages' => $languages->map(fn (Language $language): array => $this->languagePayload($language))->values()->all(),
                 'access_policy' => $event->accessPolicy instanceof EventAccessPolicy ? $this->modelPayload($event->accessPolicy) : null,
                 'donation_channel' => $event->donationChannel instanceof DonationChannel ? $this->modelPayload($event->donationChannel) : null,
                 'media_links' => $event->mediaLinks->map(fn (MediaLink $mediaLink): array => $this->modelPayload($mediaLink))->values()->all(),
-                'parent_event' => $event->parentEvent instanceof Event ? $this->relatedEventPayload($event->parentEvent) : null,
-                'child_events' => $event->childEvents->map(fn (Event $childEvent): array => $this->relatedEventPayload($childEvent))->values()->all(),
+                'parent_event' => $parentEvent instanceof Event ? $this->relatedEventPayload($parentEvent) : null,
+                'child_events' => $childEvents->map(fn (Event $childEvent): array => $this->relatedEventPayload($childEvent))->values()->all(),
             ],
             'available_media' => $this->modelMediaPayloads($event),
         ];
@@ -656,7 +665,7 @@ class EventCoverPromptBuilder
     }
 
     /**
-     * @param  Collection<int, Model>  $tags
+     * @param  Collection<int, Model>  $classifications
      * @return array<string, list<array<string, mixed>>>
      */
     private function classificationsPayload(Collection $classifications): array
@@ -668,16 +677,17 @@ class EventCoverPromptBuilder
         }
 
         foreach ($classifications as $classification) {
-            $type = is_string($classification->taxonomy_code) && $classification->taxonomy_code !== ''
-                ? $classification->taxonomy_code
+            $taxonomyCode = $classification->getAttribute('taxonomy_code');
+            $type = is_string($taxonomyCode) && $taxonomyCode !== ''
+                ? $taxonomyCode
                 : 'unknown';
             $grouped[$type] ??= [];
             $grouped[$type][] = [
                 'id' => (string) $classification->getKey(),
-                'term_id' => (string) ($classification->event_term_id ?? ''),
-                'term_code' => (string) ($classification->term_code ?? ''),
+                'term_id' => (string) ($classification->getAttribute('event_term_id') ?? ''),
+                'term_code' => (string) ($classification->getAttribute('term_code') ?? ''),
                 'taxonomy_code' => $type,
-                'is_primary' => (bool) ($classification->is_primary ?? false),
+                'is_primary' => (bool) ($classification->getAttribute('is_primary') ?? false),
             ];
         }
 

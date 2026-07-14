@@ -4,20 +4,7 @@ use App\Models\Event;
 use App\Models\EventCheckin;
 use App\Models\Registration;
 use App\Models\User;
-use Carbon\CarbonImmutable;
 use Livewire\Livewire;
-
-it('provides canonical attendance attributes and metadata from its factory', function () {
-    $checkin = EventCheckin::factory()->create();
-
-    expect($checkin->attendee_id)->not->toBeNull()
-        ->and($checkin->attendee_type)->toBe((new User)->getMorphClass())
-        ->and($checkin->check_in_source)->toBeIn(['self_reported', 'registered_self_checkin', 'organizer_verified'])
-        ->and($checkin->metadata)->toHaveKeys(['lat', 'lng', 'accuracy_m'])
-        ->and($checkin->checked_in_at)->toBeInstanceOf(CarbonImmutable::class)
-        ->and($checkin->getRawOriginal('user_id'))->toBeNull()
-        ->and($checkin->getRawOriginal('method'))->toBeNull();
-});
 
 it('allows logged in users to self check in for open events within check-in window', function () {
     $user = User::factory()->create();

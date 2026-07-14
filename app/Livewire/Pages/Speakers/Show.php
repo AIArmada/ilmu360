@@ -140,13 +140,21 @@ class Show extends Component
                     ->whereNotNull('events.published_at');
             })
             ->with([
-                'event.institution.addresses',
-                'event.venue.addresses',
-                'event.references',
-                'event.media',
+                'event' => fn ($q) => $q->with([
+                    'institution.addresses',
+                    'venue.addresses',
+                    'references',
+                    'media',
+                ]),
             ])
             ->get()
-            ->sortBy(fn (EventKeyPerson $keyPerson): int => $keyPerson->event?->starts_at->timestamp ?? PHP_INT_MAX)
+            ->sortBy(function (EventKeyPerson $keyPerson): int {
+                $event = $keyPerson->event;
+
+                return $event instanceof Event && $event->starts_at !== null
+                    ? $event->starts_at->timestamp
+                    : PHP_INT_MAX;
+            })
             ->values();
     }
 

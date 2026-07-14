@@ -4,8 +4,8 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Communications\Enums\NotificationFamily;
 use AIArmada\Communications\Enums\NotificationPriority;
 use AIArmada\Communications\Enums\NotificationTrigger;
+use AIArmada\Communications\Models\CommunicationDestination;
 use AIArmada\Communications\Models\NotificationInbox;
-use App\Models\NotificationDestination;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
@@ -158,16 +158,18 @@ it('registers updates and removes push destinations through the api', function (
         ->assertJsonPath('data.device_label', 'Aiman iPhone Pro')
         ->assertJsonPath('data.locale', 'en');
 
-    expect(NotificationDestination::query()
-        ->where('user_id', $user->id)
+    expect(CommunicationDestination::query()
+        ->where('recipient_type', $user->getMorphClass())
+        ->where('recipient_id', $user->id)
         ->where('address', 'iphone-1')
         ->value('external_id'))->toBe('token-2');
 
     $this->deleteJson('/api/v1/notification-destinations/push/iphone-1')
         ->assertNoContent();
 
-    $this->assertDatabaseMissing('notification_destinations', [
-        'user_id' => $user->id,
+    $this->assertDatabaseMissing('communication_destinations', [
+        'recipient_type' => $user->getMorphClass(),
+        'recipient_id' => $user->id,
         'address' => 'iphone-1',
     ]);
 });

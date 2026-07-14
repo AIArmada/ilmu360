@@ -117,5 +117,4 @@ class EventKeyPerson extends EventInvolvement
     {
         return $this->belongsTo(Speaker::class, 'involveable_id');
     }
-
 }

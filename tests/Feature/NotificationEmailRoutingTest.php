@@ -1,9 +1,5 @@
 <?php
 
-use App\Enums\NotificationChannel;
-use App\Enums\NotificationFamily;
-use App\Enums\NotificationPriority;
-use App\Enums\NotificationTrigger;
 use App\Models\Event;
 use App\Models\Report;
 use App\Models\User;
@@ -13,14 +9,13 @@ use App\Notifications\Auth\WelcomeNotification;
 use App\Notifications\EventEscalationNotification;
 use App\Notifications\EventSubmittedNotification;
 use App\Notifications\Membership\MemberInvitationNotification;
-use App\Notifications\NotificationCenterMessage;
 use App\Notifications\ReportResolvedNotification;
 use App\Services\Notifications\NotificationSettingsManager;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
-it('only routes notification-center mail through verified email destinations', function () {
+it('routes mail notifications through the user email address and tracks destination verification', function () {
     $user = User::factory()->create([
         'email' => 'routing@example.test',
         'email_verified_at' => null,
@@ -28,27 +23,14 @@ it('only routes notification-center mail through verified email destinations', f
 
     app(NotificationSettingsManager::class)->syncSystemDestinations($user);
 
-    $notification = new NotificationCenterMessage(
-        pendingNotificationId: 'pending-id',
-        targetChannel: NotificationChannel::Email,
-        family: NotificationFamily::EventUpdates,
-        trigger: NotificationTrigger::EventApproved,
-        priority: NotificationPriority::Medium,
-        title: 'Approved',
-        body: 'Approved body',
-        actionUrl: null,
-        entityType: null,
-        entityId: null,
-        occurredAt: null,
-    );
-
-    expect($user->routeNotificationForMail($notification))->toBeNull()
-        ->and($user->routeNotificationForMail(new WelcomeNotification))->toBe('routing@example.test');
+    expect($user->routeNotificationForMail(new WelcomeNotification))->toBe('routing@example.test')
+        ->and($user->notificationDestinations()->where('channel', 'email')->value('status'))->toBe('inactive');
 
     $user->forceFill(['email_verified_at' => now()])->save();
     app(NotificationSettingsManager::class)->syncSystemDestinations($user->fresh() ?? $user);
 
-    expect(($user->fresh() ?? $user)->routeNotificationForMail($notification))->toBe('routing@example.test');
+    expect(($user->fresh() ?? $user)->routeNotificationForMail(new WelcomeNotification))->toBe('routing@example.test')
+        ->and(($user->fresh() ?? $user)->notificationDestinations()->where('channel', 'email')->value('status'))->toBe('active');
 });
 
 it('keeps the mail-capable notifications on the notifications-mail queue', function () {

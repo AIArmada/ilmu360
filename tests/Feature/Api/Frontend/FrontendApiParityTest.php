@@ -1,11 +1,10 @@
 <?php
 
 use AIArmada\Addressing\Models\AddressCountry;
-use AIArmada\CommerceSupport\Models\Role;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\Contacting\Enums\SocialPlatform;
-use AIArmada\FilamentAuthz\Facades\Authz;
+use AIArmada\Membership\Enums\MemberRole;
 use App\Actions\Location\NormalizeGoogleMapsInputAction;
 use App\Enums\EventFormat;
 use App\Enums\EventKeyPersonRole;
@@ -28,8 +27,6 @@ use App\Models\Speaker;
 use App\Models\Tag;
 use App\Models\User;
 use App\Models\Venue;
-use App\Support\Authz\MemberRoleScopes;
-use App\Support\Authz\ScopedMemberRoleSeeder;
 use App\Support\Search\InstitutionSearchService;
 use App\Support\Search\ReferenceSearchService;
 use App\Support\Search\SpeakerSearchService;
@@ -48,22 +45,12 @@ beforeEach(function () {
 
 function assignInstitutionOwnerForFrontendApi(User $user, Institution $institution): void
 {
-    app(ScopedMemberRoleSeeder::class)->ensureForInstitution();
-    $institution->members()->syncWithoutDetaching([$user->id]);
-
-    Authz::withScope(app(MemberRoleScopes::class)->institution(), function () use ($user): void {
-        $user->syncRoles(['owner']);
-    }, $user);
+    addTestMember($institution, $user, MemberRole::Owner);
 }
 
 function assignSpeakerOwnerForFrontendApi(User $user, Speaker $speaker): void
 {
-    app(ScopedMemberRoleSeeder::class)->ensureForSpeaker();
-    $speaker->members()->syncWithoutDetaching([$user->id]);
-
-    Authz::withScope(app(MemberRoleScopes::class)->speaker(), function () use ($user): void {
-        $user->syncRoles(['owner']);
-    }, $user);
+    addTestMember($speaker, $user, MemberRole::Owner);
 }
 
 function ensureFrontendApiMalaysiaCountryExists(): string
@@ -446,9 +433,7 @@ it('reflects scoped institution role grants and removals on an existing bearer t
         ->assertOk()
         ->assertJsonPath('data.can_direct_edit', true);
 
-    Authz::withScope(app(MemberRoleScopes::class)->institution(), function () use ($user): void {
-        $user->syncRoles([]);
-    }, $user);
+    $institution->members()->detach($user);
 
     $this->withToken($token)
         ->getJson(route('api.client.forms.contributions.suggest', [

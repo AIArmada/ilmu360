@@ -7,6 +7,7 @@ use App\Models\Concerns\AuditsModelChanges;
 use Database\Factories\ReportFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
@@ -84,16 +85,25 @@ class Report extends BaseReport implements AuditableContract, HasMedia
         $this->resolution = $value;
     }
 
+    /**
+     * @return MorphTo<Model, $this>
+     */
     public function reportable(): MorphTo
     {
         return $this->morphTo(null, 'entity_type', 'entity_id');
     }
 
+    /**
+     * @return MorphTo<Model, $this>
+     */
     public function entity(): MorphTo
     {
         return $this->morphTo('entity');
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function handler(): BelongsTo
     {
         return $this->belongsTo(User::class, 'handled_by');

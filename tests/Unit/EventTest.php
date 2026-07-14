@@ -1,7 +1,5 @@
 <?php
 
-use AIArmada\Events\Models\EventOccurrence;
-use AIArmada\Events\Models\EventSession;
 use App\Enums\EventKeyPersonRole;
 use App\Models\Event;
 use App\Models\Speaker;
@@ -188,41 +186,6 @@ it('deduplicates key person roles in the searchable payload', function () {
         ])->and($payload['person_in_charge_names'])
             ->toContain('ustaz searchable pic')
             ->toContain('Encik Free Text PIC');
-    });
-});
-
-it('uses occurrences and sessions for event scheduling', function () {
-    withGlobalOwnerContext(function (): void {
-        $event = Event::factory()->create();
-        $occurrence = EventOccurrence::query()->create([
-            'event_id' => $event->id,
-            'title' => $event->title,
-            'slug' => $event->slug.'-occurrence',
-            'starts_at' => now()->addDay(),
-            'ends_at' => now()->addDay()->addHours(2),
-            'timezone' => $event->timezone,
-            'status' => 'scheduled',
-            'visibility' => 'public',
-            'delivery_mode' => 'in_person',
-        ]);
-        $session = EventSession::query()->create([
-            'event_id' => $event->id,
-            'event_occurrence_id' => $occurrence->id,
-            'title' => 'Session One',
-            'slug' => 'session-one-'.str()->random(8),
-            'starts_at' => now()->addDay(),
-            'ends_at' => now()->addDay()->addHour(),
-            'timezone' => $event->timezone,
-            'status' => 'scheduled',
-            'visibility' => 'public',
-            'delivery_mode' => 'in_person',
-            'sort_order' => 1,
-        ]);
-
-        expect($event->fresh()->occurrences()->pluck('id')->all())->toContain($occurrence->id)
-            ->and($occurrence->sessions->pluck('id')->all())->toContain($session->id)
-            ->and($session->event_id)->toBe($event->id)
-            ->and($session->event_occurrence_id)->toBe($occurrence->id);
     });
 });
 

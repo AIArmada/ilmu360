@@ -8,14 +8,11 @@ use App\Support\Mcp\McpDocumentationPreflight;
 use Generator;
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Container\BindingResolutionException;
-use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Request;
-use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Methods\ReadResource;
 use Laravel\Mcp\Server\ServerContext;
-use Laravel\Mcp\Support\ValidationMessages;
 use Laravel\Mcp\Transport\JsonRpcRequest;
 use Laravel\Mcp\Transport\JsonRpcResponse;
 
@@ -37,11 +34,7 @@ class ReadResourceWithDocumentationPreflight extends ReadResource
             throw new JsonRpcException($invalidArgumentException->getMessage(), -32002, $request->id);
         }
 
-        try {
-            $response = $this->invokeResource($resource, $uri);
-        } catch (ValidationException $validationException) {
-            $response = Response::error('Invalid params: '.ValidationMessages::from($validationException));
-        }
+        $response = $this->invokeResource($resource, $uri);
 
         if ($uri === McpDocumentationPreflight::GUIDE_RESOURCE_URI) {
             /** @var Request $mcpRequest */

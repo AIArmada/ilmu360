@@ -110,6 +110,10 @@ final readonly class MemberPermissionGate
 
     private function memberCan(Model $subject, User $user, string $permission): bool
     {
+        if (! method_exists($subject, 'members')) {
+            return false;
+        }
+
         $shortName = $this->shortPermissionName($permission);
         $threshold = self::PERMISSION_THRESHOLD[$shortName] ?? null;
 
@@ -135,11 +139,15 @@ final readonly class MemberPermissionGate
             return collect();
         }
 
+        if (! method_exists($subject, 'members')) {
+            return collect();
+        }
+
         /** @var Collection<int, User> $members */
         $members = $subject->members()->get();
 
         return $members->filter(
-            fn (User $member): bool => (self::ROLE_WEIGHT[$member->pivot?->role ?? ''] ?? 0) >= $threshold,
+            fn (User $member): bool => (self::ROLE_WEIGHT[$member->pivot->role ?? ''] ?? 0) >= $threshold,
         )->values();
     }
 

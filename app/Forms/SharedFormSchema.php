@@ -2,12 +2,12 @@
 
 namespace App\Forms;
 
+use AIArmada\Addressing\Data\AddressLevelDefinition;
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Addressing\Models\City;
 use AIArmada\Addressing\Models\State;
-use AIArmada\Addressing\Data\AddressLevelDefinition;
 use AIArmada\Addressing\Support\AddressAreaStateBridge;
 use AIArmada\Addressing\Support\CountryAddressProfileResolver;
 use AIArmada\Contacting\Enums\ContactMethodType;
@@ -978,8 +978,7 @@ class SharedFormSchema
         int|string|null $stateId,
         int|string|null $districtId,
         int|string|null $countryId = null,
-    ): array
-    {
+    ): array {
         $districtId = self::normalizeLocationId($districtId);
         $stateId = self::normalizeLocationId($stateId);
         $countryId = self::normalizeLocationId($countryId) ?? self::countryIdForState($stateId);
@@ -1000,8 +999,7 @@ class SharedFormSchema
         int|string|null $stateId,
         int|string|null $districtId,
         int|string|null $countryId = null,
-    ): bool
-    {
+    ): bool {
         return self::subdistrictOptionsForSelection($stateId, $districtId, $countryId) !== [];
     }
 
@@ -1090,8 +1088,7 @@ class SharedFormSchema
         ?string $area2Id,
         ?string $area3Id = null,
         ?string $area4Id = null,
-    ): ?string
-    {
+    ): ?string {
         foreach ([$area1Id, $area2Id, $area3Id, $area4Id] as $areaId) {
             $areaId = self::normalizeLocationId($areaId);
 
@@ -1298,7 +1295,7 @@ class SharedFormSchema
             return $fallback;
         }
 
-        return self::profileLevel($countryId, $storageColumn)?->label ?? $fallback;
+        return self::profileLevel($countryId, $storageColumn)->label ?? $fallback;
     }
 
     private static function countryCascadeResetScript(): string

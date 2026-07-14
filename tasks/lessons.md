@@ -1,5 +1,9 @@
 # Lessons
 
+- Package model relations must be overridden in app subclasses when package polymorphic relations hydrate the base package model; otherwise app-only relations disappear from views.
+- Do not resurrect removed scoped-role, Spatie tag, notification-destination, or event-submission fields to satisfy stale tests; migrate assertions to current package contracts or remove legacy-only coverage.
+- Owner-protected public Livewire components need explicit global owner context across deferred form/media hydration, not only during mount callbacks.
+
 - Package-first refactors do not need to preserve legacy compatibility paths: once a generic package workflow is adopted, make its contract authoritative and keep app code only for product policy, presentation, and integrations.
 - Before an app-to-package architecture audit, reindex the repository even when codebase-memory reports a ready index; the audit must reflect the current working tree, not only an existing graph snapshot.
 - When an app and package enum share a name, compare their value semantics before deleting either one; if one is scope and the other is policy, rename the app enum to expose the real seam and preserve both contracts.
@@ -323,6 +327,10 @@
 - When a slug test defines the canonical geography contract, preserve every required structured segment (city, district, state, country) in the generated URL; fix the address-ID/name resolution path instead of weakening the expectation.
 - When a user explicitly requires no backward compatibility, cut over to the package's canonical schema in one slice: delete invalid aliases and dead wrappers, update package consumers/tests/UI, and do not leave fallback reads or writes that make the old contract appear supported.
 - When a hard package cutover changes public API filters or MCP tool names, do not preserve legacy request keys, aliases, or compatibility assertions by default; update every in-scope client contract, documentation, and test to the canonical surface.
+- Large generated OpenAPI documents must use a persistent cache across refreshed application instances in tests; an in-memory array cache retains repeated artifacts until the PHP process reaches its memory limit.
+- For stale-while-revalidate documentation, return the previous artifact immediately when a newer cache key is locked, and only promote the latest-key pointer after the new artifact is actually cached.
+- For growing OpenAPI contracts, expose a small discovery index and derive focused specs from the canonical cached document; keep the complete spec available because many clients require a single OpenAPI source.
+- After a package cutover, remove tests that only exercise package services/models directly; retain tests at the application seam where the app adds routing, authorization, UI state, serialization, orchestration, or side effects.
 # Subagent model preference
 
 - Use Luna high only for audit subagents. Do not assign Luna xhigh unless the user explicitly changes this preference.

@@ -20,6 +20,54 @@ return [
      */
     'export_path' => env('SCRAMBLE_EXPORT_PATH', 'docs/openapi.json'),
 
+    'documentation_sections' => [
+        'auth' => [
+            'title' => 'Authentication',
+            'description' => 'Login, registration, tokens, and authenticated sessions.',
+            'prefixes' => ['/auth'],
+        ],
+        'events' => [
+            'title' => 'Events',
+            'description' => 'Event discovery, event details, attendance, and event submissions.',
+            'prefixes' => ['/events', '/me/events', '/forms/advanced-events'],
+        ],
+        'catalogs' => [
+            'title' => 'Catalogs',
+            'description' => 'Geography, taxonomy, references, venues, spaces, and form catalogs.',
+            'prefixes' => ['/catalogs'],
+        ],
+        'directories' => [
+            'title' => 'Directories',
+            'description' => 'Public speakers, institutions, references, venues, and series.',
+            'prefixes' => ['/speakers', '/institutions', '/references', '/venues', '/series'],
+        ],
+        'contributions' => [
+            'title' => 'Contributions',
+            'description' => 'Public contribution, review, and suggestion workflows.',
+            'prefixes' => ['/contributions', '/submissions', '/forms/contributions'],
+        ],
+        'memberships' => [
+            'title' => 'Memberships',
+            'description' => 'Membership applications, claims, invitations, and workspace membership.',
+            'prefixes' => ['/membership-applications', '/me/memberships', '/forms/membership-applications', '/institution-workspace'],
+        ],
+        'admin' => [
+            'title' => 'Administration',
+            'description' => 'Admin manifests, schemas, catalogs, resources, and mutations.',
+            'prefixes' => ['/admin'],
+        ],
+        'mobile' => [
+            'title' => 'Mobile and telemetry',
+            'description' => 'Mobile client contracts, telemetry, sharing, and device-facing workflows.',
+            'prefixes' => ['/mobile', '/share'],
+        ],
+        'forms' => [
+            'title' => 'Form contracts',
+            'description' => 'Dynamic public form schemas and write-flow metadata.',
+            'prefixes' => ['/forms'],
+        ],
+    ],
+
     'info' => [
         /*
          * API version.

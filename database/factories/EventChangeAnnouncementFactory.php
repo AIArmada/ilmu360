@@ -12,9 +12,6 @@ use App\Models\Event;
 use App\Models\EventChangeAnnouncement;
 use App\Models\User;
 
-/**
- * @extends EventUpdateFactory
- */
 class EventChangeAnnouncementFactory extends EventUpdateFactory
 {
     protected $model = EventChangeAnnouncement::class;

@@ -9,9 +9,6 @@ use App\Models\Event;
 use App\Models\EventSubmission;
 use App\Models\User;
 
-/**
- * @extends PackageEventSubmissionFactory
- */
 class EventSubmissionFactory extends PackageEventSubmissionFactory
 {
     protected $model = EventSubmission::class;

@@ -17,6 +17,9 @@ readonly class PrayerTimeExpressionResolver implements ResolvesEventTimeExpressi
         private PrayerTimeService $prayerTimeService,
     ) {}
 
+    /**
+     * @param  array<string, mixed>  $context
+     */
     public function resolve(EventTimeExpression $expression, array $context = []): ?DateTimeInterface
     {
         if ($expression->anchor_type !== 'prayer' || $expression->anchor_code === null) {
@@ -39,10 +42,6 @@ readonly class PrayerTimeExpressionResolver implements ResolvesEventTimeExpressi
 
         $coordinates = $this->resolveCoordinates($event);
 
-        if ($coordinates === null) {
-            return null;
-        }
-
         $timezone = $event->timezone ?? 'Asia/Kuala_Lumpur';
 
         $date = Carbon::parse($eventDate)->setTimezone($timezone);
@@ -62,9 +61,9 @@ readonly class PrayerTimeExpressionResolver implements ResolvesEventTimeExpressi
     }
 
     /**
-     * @return array{lat: float, lng: float}|null
+     * @return array{lat: float, lng: float}
      */
-    private function resolveCoordinates(Event $event): ?array
+    private function resolveCoordinates(Event $event): array
     {
         $venue = $event->venue;
 

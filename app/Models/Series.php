@@ -38,7 +38,7 @@ class Series extends PackageEventSeries implements AuditableContract, HasMedia
     protected static string $ownerScopeConfigKey = 'series.owner';
 
     /** @use HasFactory<SeriesFactory> */
-    use AuditsModelChanges, HasLanguages, InteractsWithMedia;
+    use AuditsModelChanges, HasFactory, HasLanguages, InteractsWithMedia;
 
     #[\Override]
     protected static function newFactory(): SeriesFactory

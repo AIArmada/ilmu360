@@ -156,9 +156,7 @@ class GeneratedFileFinalFixedPoskodSeeder extends Seeder
             });
 
             Addressable::withoutEvents(function () use ($institution, $record, $state, $district, $subdistrict): void {
-                $packageStateId = $state instanceof AddressArea
-                    ? AddressAreaStateBridge::stateIdForArea($state)
-                    : null;
+                $packageStateId = AddressAreaStateBridge::stateIdForArea($state);
 
                 $this->seedPrimaryPackageAddress($institution, [
                     'line1' => $this->nullableString($record['Alamat']),

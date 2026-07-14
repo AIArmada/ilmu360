@@ -1,12 +1,10 @@
 <?php
 
-use AIArmada\FilamentAuthz\Facades\Authz;
+use AIArmada\Membership\Enums\MemberRole;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\User;
 use App\Support\Authz\MemberPermissionGate;
-use App\Support\Authz\MemberRoleScopes;
-use App\Support\Authz\ScopedMemberRoleSeeder;
 use Spatie\Permission\PermissionRegistrar;
 
 beforeEach(function () {
@@ -18,14 +16,7 @@ it('requires institution membership even when user has shared institution scope 
     $institutionWithoutMembership = Institution::factory()->create();
     $user = User::factory()->create();
 
-    app(ScopedMemberRoleSeeder::class)->ensureForInstitution();
-    $institutionWithMembership->members()->syncWithoutDetaching([$user->id]);
-
-    $scope = app(MemberRoleScopes::class)->institution();
-
-    Authz::withScope($scope, function () use ($user): void {
-        $user->syncRoles(['admin']);
-    }, $user);
+    addTestMember($institutionWithMembership, $user, MemberRole::Admin);
 
     $gate = app(MemberPermissionGate::class);
 
@@ -38,14 +29,7 @@ it('requires event membership even when user has shared event scope role', funct
     $eventWithoutMembership = Event::factory()->create();
     $user = User::factory()->create();
 
-    app(ScopedMemberRoleSeeder::class)->ensureForEvent();
-    $eventWithMembership->members()->syncWithoutDetaching([$user->id]);
-
-    $scope = app(MemberRoleScopes::class)->event();
-
-    Authz::withScope($scope, function () use ($user): void {
-        $user->syncRoles(['organizer']);
-    }, $user);
+    addTestMember($eventWithMembership, $user, MemberRole::Owner);
 
     $gate = app(MemberPermissionGate::class);
 

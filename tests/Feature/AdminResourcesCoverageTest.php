@@ -1,9 +1,10 @@
 <?php
 
+use AIArmada\Events\Models\EventTemplate;
 use AIArmada\FilamentEvents\Resources\EventResource;
 use AIArmada\FilamentEvents\Resources\EventTemplateResource;
+use AIArmada\FilamentEvents\Resources\EventTemplateResource\Pages\CreateEventTemplate;
 use AIArmada\FilamentEvents\Resources\VenueResource;
-use AIArmada\Events\Models\EventTemplate;
 use App\Filament\Resources\AiModelPricings\AiModelPricingResource;
 use App\Filament\Resources\AiUsageLogs\AiUsageLogResource;
 use App\Filament\Resources\ContributionRequests\ContributionRequestResource;
@@ -31,7 +32,6 @@ use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Filament\Facades\Filament;
 use Livewire\Livewire;
-use AIArmada\FilamentEvents\Resources\EventTemplateResource\Pages\CreateEventTemplate;
 
 it('allows super admin to access all core admin resource index pages', function () {
     $this->seed(PermissionSeeder::class);

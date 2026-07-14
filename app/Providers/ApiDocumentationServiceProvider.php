@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Http\Controllers\Api\Documentation\DocsIndexController;
 use App\Http\Controllers\Api\Documentation\DocsJsonController;
+use App\Http\Controllers\Api\Documentation\DocsSectionController;
 use App\Http\Controllers\Api\Documentation\DocsUiController;
 use App\Support\ApiDocumentation\ApiDocumentationUrlResolver;
 use App\Support\ApiDocumentation\ApiExceptionToResponseExtension;
@@ -26,7 +28,11 @@ class ApiDocumentationServiceProvider extends ServiceProvider
             $registerDocsRoutes = function () use ($docsMiddleware): void {
                 Route::middleware($docsMiddleware)->group(function (): void {
                     Route::get('docs', DocsUiController::class)->name('scramble.docs.ui');
+                    Route::get('docs/index.json', DocsIndexController::class)->name('scramble.docs.index');
                     Route::get('docs.json', DocsJsonController::class)->name('scramble.docs.document');
+                    Route::get('docs/{sectionKey}.json', DocsSectionController::class)
+                        ->where('sectionKey', '[a-z0-9-]+')
+                        ->name('scramble.docs.section');
                 });
             };
 

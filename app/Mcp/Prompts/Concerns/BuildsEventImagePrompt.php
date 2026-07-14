@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Mcp\Prompts\Concerns;
 
-use AIArmada\Events\Models\Event;
+use App\Models\Event;
 use App\Support\Mcp\EventCoverPromptBuilder;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Mcp\Response;

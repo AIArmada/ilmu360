@@ -69,14 +69,21 @@ class EventCheckin extends EventAttendance
 
     public function registration(): BelongsTo
     {
+        /** @phpstan-ignore-next-line childReturnType (covariant override) */
         return $this->belongsTo(Registration::class, 'event_registration_id');
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'attendee_id');
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function verifiedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'verified_by_user_id');

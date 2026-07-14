@@ -9,9 +9,6 @@ use App\Models\Event;
 use App\Models\EventCheckin;
 use App\Models\User;
 
-/**
- * @extends Factory<EventCheckin>
- */
 class EventCheckinFactory extends EventAttendanceFactory
 {
     protected $model = EventCheckin::class;

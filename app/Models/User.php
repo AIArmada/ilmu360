@@ -116,7 +116,7 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
                 $user->captureDeletedRelationsSnapshot();
             }
 
-            $savedEventIds = collect($user->deletedRelationsSnapshot['event_saves'] ?? [])
+            $savedEventIds = collect((array) ($user->deletedRelationsSnapshot['event_saves'] ?? []))
                 ->pluck('bookmarkable_id')
                 ->filter(fn (mixed $id): bool => is_string($id) || is_int($id))
                 ->map(static fn (mixed $id): string => (string) $id)
@@ -303,17 +303,21 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
             'notification_inboxes' => $this->notificationInboxes()->get()->map->attributesToArray()->all(),
             'followings' => Follow::forFollower($this)
                 ->get()
-                ->map(fn (Follow $follow): array => [
-                    'follower_type' => $follow->follower_type,
-                    'follower_id' => $follow->follower_id,
-                    'followable_id' => $follow->followable_id,
-                    'followable_type' => $follow->followable_type,
-                    'status' => $follow->status->value,
-                    'followed_at' => $follow->followed_at?->toISOString(),
-                    'unfollowed_at' => $follow->unfollowed_at?->toISOString(),
-                    'notification_level' => $follow->notification_level,
-                    'source' => $follow->source,
-                ])
+                ->map(function (Follow $follow): array {
+                    $status = $follow->getAttribute('status');
+
+                    return [
+                        'follower_type' => $follow->follower_type,
+                        'follower_id' => $follow->follower_id,
+                        'followable_id' => $follow->followable_id,
+                        'followable_type' => $follow->followable_type,
+                        'status' => $status,
+                        'followed_at' => $follow->followed_at?->toISOString(),
+                        'unfollowed_at' => $follow->unfollowed_at?->toISOString(),
+                        'notification_level' => $follow->notification_level,
+                        'source' => $follow->source,
+                    ];
+                })
                 ->all(),
         ];
 
@@ -383,7 +387,7 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
      */
     protected function restoreManyToManyRelations(array $snapshot): void
     {
-        $savedEventIds = collect($snapshot['event_saves'] ?? [])
+        $savedEventIds = collect((array) ($snapshot['event_saves'] ?? []))
             ->pluck('bookmarkable_id')
             ->filter(fn (mixed $id): bool => is_string($id) || is_int($id))
             ->map(static fn (mixed $id): string => (string) $id)
@@ -1159,6 +1163,9 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
             ->where("{$table}.status", 'active');
     }
 
+    /**
+     * @param  array<string, mixed>  $options
+     */
     public function follow(mixed $subject, array $options = []): Follow
     {
         return OwnerContext::withOwner(null, fn (): Follow => $this->traitFollow($subject, $options));
@@ -1199,7 +1206,7 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
     }
 
     /**
-     * @return BelongsToMany<Event, $this, EventUser>
+     * @return BelongsToMany<Event, $this>
      */
     public function memberEvents(): BelongsToMany
     {

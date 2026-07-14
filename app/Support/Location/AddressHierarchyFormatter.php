@@ -16,8 +16,7 @@ class AddressHierarchyFormatter
     public static function parts(
         ?Address $address,
         array $order = ['city', 'area_4', 'area_3', 'area_2', 'area_1', 'state'],
-    ): array
-    {
+    ): array {
         $areaNames = [];
 
         foreach (range(1, 4) as $slot) {
@@ -133,8 +132,7 @@ class AddressHierarchyFormatter
         ?Address $address,
         array $order = ['city', 'area_4', 'area_3', 'area_2', 'area_1', 'state'],
         string $separator = ', ',
-    ): string
-    {
+    ): string {
         return implode($separator, self::parts($address, $order));
     }
 

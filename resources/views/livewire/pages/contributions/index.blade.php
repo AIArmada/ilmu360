@@ -268,10 +268,6 @@
 
                                             <p class="text-xs text-slate-500">{{ __('Submitted :date', ['date' => $submission->created_at?->diffForHumans()]) }}</p>
 
-                                            @if(filled($submission->notes))
-                                                <p class="text-sm leading-6 text-slate-700">{{ $submission->notes }}</p>
-                                            @endif
-
                                             @if($eventDetails !== [])
                                                 <div class="flex flex-wrap gap-2 pt-1">
                                                     @foreach($eventDetails as $detail)

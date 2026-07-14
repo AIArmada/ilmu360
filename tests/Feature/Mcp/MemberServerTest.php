@@ -24,7 +24,6 @@ use App\Mcp\Tools\Member\MemberGetWriteSchemaTool;
 use App\Mcp\Tools\Member\MemberListContributionRequestsTool;
 use App\Mcp\Tools\Member\MemberListMembershipApplicationsTool;
 use App\Mcp\Tools\Member\MemberListRecordsTool;
-use App\Mcp\Tools\Member\MemberListRelatedRecordsTool;
 use App\Mcp\Tools\Member\MemberListResourcesTool;
 use App\Mcp\Tools\Member\MemberRejectContributionRequestTool;
 use App\Mcp\Tools\Member\MemberSearchEventsTool;

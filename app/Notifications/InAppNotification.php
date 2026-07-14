@@ -11,6 +11,9 @@ use Illuminate\Notifications\Notification;
 
 class InAppNotification extends Notification
 {
+    /**
+     * @param  array<string, mixed>  $meta
+     */
     public function __construct(
         public string $pendingNotificationId,
         public NotificationFamily $family,
@@ -26,6 +29,7 @@ class InAppNotification extends Notification
     ) {}
 
     /**
+     * @param  mixed  $notifiable
      * @return list<class-string>
      */
     public function via($notifiable): array
@@ -34,6 +38,7 @@ class InAppNotification extends Notification
     }
 
     /**
+     * @param  mixed  $notifiable
      * @return array<string, mixed>
      */
     public function toArray($notifiable): array

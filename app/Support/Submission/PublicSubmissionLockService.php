@@ -16,8 +16,11 @@ final readonly class PublicSubmissionLockService
 {
     public function institutionEligibility(Institution $institution): SubmissionLockEligibilityResult
     {
+        /** @var Collection<int, User> $members */
+        $members = $institution->members()->get();
+
         return $this->resolveEligibility(
-            $institution->members()->get(),
+            $members,
             __('Tiada ahli institusi yang didaftarkan.'),
             __('Tiada ahli institusi dengan peranan owner/admin.'),
             __('Peranan owner/admin memerlukan nombor telefon yang telah disahkan.'),
@@ -26,8 +29,11 @@ final readonly class PublicSubmissionLockService
 
     public function speakerEligibility(Speaker $speaker): SubmissionLockEligibilityResult
     {
+        /** @var Collection<int, User> $members */
+        $members = $speaker->members()->get();
+
         return $this->resolveEligibility(
-            $speaker->members()->get(),
+            $members,
             __('Tiada ahli penceramah yang didaftarkan.'),
             __('Tiada ahli penceramah dengan peranan owner/admin.'),
             __('Peranan owner/admin memerlukan nombor telefon yang telah disahkan.'),
@@ -222,7 +228,7 @@ final readonly class PublicSubmissionLockService
                 continue;
             }
 
-            $role = $member->pivot?->role;
+            $role = $member->getRelationValue('pivot')?->getAttribute('role');
             $hasRole = in_array($role, [MemberRole::Owner->value, MemberRole::Admin->value], true);
 
             if (! $hasRole) {

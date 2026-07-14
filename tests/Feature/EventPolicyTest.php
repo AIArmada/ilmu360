@@ -1,15 +1,11 @@
 <?php
 
-use AIArmada\CommerceSupport\Models\Role;
-use AIArmada\FilamentAuthz\Facades\Authz;
+use AIArmada\Membership\Enums\MemberRole;
 use App\Models\Event;
-use App\Models\EventUser;
 use App\Models\User;
 use App\States\EventStatus\Approved;
 use App\States\EventStatus\Draft;
 use App\States\EventStatus\Pending;
-use App\Support\Authz\MemberRoleScopes;
-use App\Support\Authz\ScopedMemberRoleSeeder;
 use Illuminate\Support\Facades\Gate;
 use Spatie\Permission\PermissionRegistrar;
 
@@ -37,29 +33,17 @@ beforeEach(function () {
 });
 
 /**
- * Helper: assign a shared event-member scoped role to a user.
- */
-function assignEventScopedRole(User $user, string $roleName): void
-{
-    app(ScopedMemberRoleSeeder::class)->ensureForEvent();
-    $scope = app(MemberRoleScopes::class)->event();
-
-    Authz::withScope($scope, function () use ($user, $roleName): void {
-        $role = Role::findOrCreate($roleName, 'web');
-        $user->assignRole($role);
-    }, $user);
-}
-
-/**
  * Helper: make a user an event member with a scoped role.
  */
 function makeEventMember(User $user, Event $event, ?string $roleName = null): void
 {
-    EventUser::factory()->for($event)->for($user)->create();
+    addTestMember($event, $user, match ($roleName) {
+        'organizer' => MemberRole::Owner,
+        'editor' => MemberRole::Editor,
+        'viewer' => MemberRole::Viewer,
+        default => MemberRole::Viewer,
+    });
 
-    if ($roleName) {
-        assignEventScopedRole($user, $roleName);
-    }
 }
 
 describe('viewAny', function () {
@@ -347,10 +331,7 @@ describe('userCanManage helper', function () {
         $user = User::factory()->create();
         $event = Event::factory()->create();
 
-        EventUser::factory()
-            ->for($event)
-            ->for($user)
-            ->create();
+        addTestMember($event, $user);
 
         expect($event->userCanManage($user))->toBeFalse();
     });
