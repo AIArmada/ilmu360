@@ -75,7 +75,9 @@ jobs:
           restore-keys: ${{ runner.os }}-rector-
 
       - name: Prepare application environment
-        run: cp .env.example .env
+        run: |
+          cp .env.example .env
+          touch database/database.sqlite
 
       - name: Verify Composer private repository auth
         env:
@@ -150,7 +152,9 @@ jobs:
           restore-keys: ${{ runner.os }}-pint-
 
       - name: Prepare application environment
-        run: cp .env.example .env
+        run: |
+          cp .env.example .env
+          touch database/database.sqlite
 
       - name: Verify Composer private repository auth
         env:
@@ -219,7 +223,9 @@ jobs:
           restore-keys: ${{ runner.os }}-phpstan-
 
       - name: Prepare application environment
-        run: cp .env.example .env
+        run: |
+          cp .env.example .env
+          touch database/database.sqlite
 
       - name: Verify Composer private repository auth
         env:
@@ -298,7 +304,9 @@ jobs:
           restore-keys: ${{ runner.os }}-composer-
 
       - name: Prepare application environment
-        run: cp .env.example .env
+        run: |
+          cp .env.example .env
+          touch database/database.sqlite
 
       - name: Verify Composer private repository auth
         env:
