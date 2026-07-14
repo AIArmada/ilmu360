@@ -50,6 +50,8 @@ jobs:
     if: needs.changes.outputs.php == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      DB_CONNECTION: pgsql
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -75,9 +77,7 @@ jobs:
           restore-keys: ${{ runner.os }}-rector-
 
       - name: Prepare application environment
-        run: |
-          cp .env.example .env
-          touch database/database.sqlite
+        run: cp .env.example .env
 
       - name: Verify Composer private repository auth
         env:
@@ -127,6 +127,8 @@ jobs:
     if: needs.changes.outputs.php == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      DB_CONNECTION: pgsql
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -152,9 +154,7 @@ jobs:
           restore-keys: ${{ runner.os }}-pint-
 
       - name: Prepare application environment
-        run: |
-          cp .env.example .env
-          touch database/database.sqlite
+        run: cp .env.example .env
 
       - name: Verify Composer private repository auth
         env:
@@ -198,6 +198,8 @@ jobs:
     if: needs.changes.outputs.php == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      DB_CONNECTION: pgsql
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -223,9 +225,7 @@ jobs:
           restore-keys: ${{ runner.os }}-phpstan-
 
       - name: Prepare application environment
-        run: |
-          cp .env.example .env
-          touch database/database.sqlite
+        run: cp .env.example .env
 
       - name: Verify Composer private repository auth
         env:
@@ -304,9 +304,7 @@ jobs:
           restore-keys: ${{ runner.os }}-composer-
 
       - name: Prepare application environment
-        run: |
-          cp .env.example .env
-          touch database/database.sqlite
+        run: cp .env.example .env
 
       - name: Verify Composer private repository auth
         env:
@@ -348,7 +346,7 @@ jobs:
         run: php artisan config:clear --ansi
 
       - name: Run tests (Pest)
-        run: composer test -- --parallel --shard=${{ matrix.shard }}/4 --compact
+        run: vendor/bin/pest --parallel --shard=${{ matrix.shard }}/4 --compact
 
   quality:
     name: Quality
