@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Database\Seeders\AIArmada;
 
 use AIArmada\Events\Models\EventTaxonomy;

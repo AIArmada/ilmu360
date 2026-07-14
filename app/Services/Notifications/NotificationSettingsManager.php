@@ -141,9 +141,7 @@ class NotificationSettingsManager
             $rule = $familyRuleMap->get($familyKey);
             $ruleMeta = $rule instanceof CommunicationPreference ? $this->metaArray($rule) : [];
 
-            $familyCadence = isset($ruleMeta['cadence'])
-                ? $ruleMeta['cadence']
-                : $definition['default_cadence']->value;
+            $familyCadence = $ruleMeta['cadence'] ?? $definition['default_cadence']->value;
             $familyChannels = $this->normalizeChannels(
                 $ruleMeta['channels'] ?? null,
                 $definition['allowed_channels'],

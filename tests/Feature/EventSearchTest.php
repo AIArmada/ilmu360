@@ -668,7 +668,6 @@ describe('Event Search Filters', function () {
         $noMatchEvent->references()->attach($otherReference->id);
 
         $results = app(EventSearchService::class)->search(
-            query: null,
             filters: ['reference_author_search' => ['Muhammad Abduh']],
             perPage: 20,
             sort: 'time',
@@ -1949,7 +1948,6 @@ describe('Event Search Filters', function () {
             ]);
 
         $events = app(EventSearchService::class)->search(
-            query: null,
             filters: [],
             perPage: 20,
             sort: 'time'

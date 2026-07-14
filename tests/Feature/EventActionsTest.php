@@ -84,9 +84,9 @@ it('publishes the advanced event contract with the primary organizer field and g
 it('resolves advanced builder membership options from active member organizers only', function () {
     $user = User::factory()->create();
     $activeInstitution = Institution::factory()->create(['name' => 'Masjid Aktif', 'status' => 'verified']);
-    $inactiveInstitution = Institution::factory()->create(['name' => 'Masjid Pasif', 'status' => 'verified', 'status' => 'inactive']);
-    $activeSpeaker = Speaker::factory()->create(['name' => 'Speaker Aktif', 'status' => 'pending', 'status' => 'active']);
-    $inactiveSpeaker = Speaker::factory()->create(['name' => 'Speaker Pasif', 'status' => 'verified', 'status' => 'inactive']);
+    $inactiveInstitution = Institution::factory()->create(['name' => 'Masjid Pasif', 'status' => 'inactive']);
+    $activeSpeaker = Speaker::factory()->create(['name' => 'Speaker Aktif', 'status' => 'active']);
+    $inactiveSpeaker = Speaker::factory()->create(['name' => 'Speaker Pasif', 'status' => 'inactive']);
 
     $user->institutions()->syncWithoutDetaching([$activeInstitution->id, $inactiveInstitution->id]);
     $user->speakers()->syncWithoutDetaching([$activeSpeaker->id, $inactiveSpeaker->id]);

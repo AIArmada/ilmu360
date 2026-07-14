@@ -15,7 +15,6 @@ final readonly class MemberRoleCatalog
 {
     public function __construct(
         private MemberRoleScopes $scopes,
-        private PermissionRegistrar $permissionRegistrar,
     ) {}
 
     /**
@@ -67,10 +66,10 @@ final readonly class MemberRoleCatalog
     private function subjectForUser(User $user, string $modelClass): mixed
     {
         $relation = match ($modelClass) {
-            'App\Models\Institution' => 'institutions',
-            'App\Models\Speaker' => 'speakers',
-            'App\Models\Event' => 'memberEvents',
-            'App\Models\Reference' => 'references',
+            \App\Models\Institution::class => 'institutions',
+            \App\Models\Speaker::class => 'speakers',
+            \App\Models\Event::class => 'memberEvents',
+            \App\Models\Reference::class => 'references',
             default => null,
         };
 

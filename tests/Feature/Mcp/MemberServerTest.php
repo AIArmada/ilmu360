@@ -1636,7 +1636,6 @@ function speakerMemberMcpContext(string $role = 'viewer', string $status = 'veri
 {
     $speaker = Speaker::factory()->create([
         'status' => $status,
-        'status' => $status,
     ]);
     $member = User::factory()->create();
 
@@ -1651,7 +1650,6 @@ function speakerMemberMcpContext(string $role = 'viewer', string $status = 'veri
 function referenceMemberMcpContext(string $role = 'viewer', string $status = 'verified'): array
 {
     $reference = Reference::factory()->create([
-        'status' => $status,
         'status' => $status,
     ]);
     $member = User::factory()->create();

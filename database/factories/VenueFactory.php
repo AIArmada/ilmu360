@@ -17,6 +17,7 @@ class VenueFactory extends PackageVenueFactory
      *
      * @return array<string, mixed>
      */
+    #[\Override]
     public function definition(): array
     {
         $name = fake()->randomElement([

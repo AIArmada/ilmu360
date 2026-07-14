@@ -74,7 +74,6 @@ class MembershipApplicationController extends FrontendController
         $claimSubject = $resolvedSubjectType->resolveSubject($subject);
 
         try {
-            /** @var MembershipApplication $application */
             $application = $submitMembershipApplicationAction->handle(
                 $claimSubject,
                 $user,

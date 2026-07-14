@@ -23,7 +23,7 @@ class AppConsentResolver implements ConsentResolver
 
         $appChannel = $this->toAppChannel($channel);
 
-        if ($appChannel === null) {
+        if (!$appChannel instanceof \App\Enums\NotificationChannel) {
             return new ConsentDecisionData(consented: true);
         }
 

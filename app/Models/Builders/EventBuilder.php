@@ -172,7 +172,7 @@ class EventBuilder extends Builder
             return $this;
         }
 
-        $columnName = $this->columnName($column);
+        $this->columnName($column);
 
         parent::whereJsonContains($column, $value, $boolean, $not);
 

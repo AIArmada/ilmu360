@@ -36,7 +36,6 @@ final readonly class CreateSavedSearchAction
         $this->shareTrackingService->recordOutcome(
             type: DawahShareOutcomeType::SavedSearchCreated,
             outcomeKey: 'saved_search_created:saved_search:'.$savedSearch->id,
-            subject: null,
             actor: $user,
             request: $request ?? request(),
             metadata: [

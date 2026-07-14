@@ -46,6 +46,6 @@ class EventPassController extends Controller
             $qrSvg = $writer->writeString($pass->qr_code);
         }
 
-        return view('pages.event-pass', compact('pass', 'event', 'qrSvg'));
+        return view('pages.event-pass', ['pass' => $pass, 'event' => $event, 'qrSvg' => $qrSvg]);
     }
 }

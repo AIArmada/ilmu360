@@ -38,7 +38,7 @@ it('sets cancelled_at when cancelling an event', function () {
         'published_at' => now(),
     ]);
 
-    $cancelled = (new CancelEvent($event, $moderator, 'Test cancel'))->handle();
+    $cancelled = new CancelEvent($event, $moderator, 'Test cancel')->handle();
 
     expect($cancelled->status)->toBeInstanceOf(Cancelled::class)
         ->and($cancelled->cancelled_at)->not->toBeNull()

@@ -27,7 +27,7 @@ class MemberCancelMembershipApplicationTool extends AbstractMemberTool
     protected string $description = 'Use this when the authenticated Ahli/member needs to cancel a pending membership application they own. Do not use for cancelling applications owned by other members.';
 
     public function __construct(
-        private CancelMembershipApplicationAction $cancelMembershipApplicationAction,
+        private readonly CancelMembershipApplicationAction $cancelMembershipApplicationAction,
     ) {}
 
     public function handle(Request $request): ResponseFactory|Response

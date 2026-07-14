@@ -12,6 +12,7 @@ class EventSubmission extends PackageEventSubmission implements Auditable
 {
     use AuditsModelChanges, HasContactMethods;
 
+    #[\Override]
     public function event(): BelongsTo
     {
         /** @phpstan-ignore-next-line childReturnType (covariant override) */

@@ -160,7 +160,7 @@ it('allows claimants to cancel their own pending claims', function () {
             'status' => ApplicationStatus::Pending,
         ]);
 
-    app(CancelMembershipApplicationAction::class)->handle($claim, $claimant);
+    app(CancelMembershipApplicationAction::class)->handle($claim);
 
     expect($claim->fresh()->status)->toBe(ApplicationStatus::Cancelled)
         ->and($claim->fresh()->cancelled_at)->not->toBeNull();

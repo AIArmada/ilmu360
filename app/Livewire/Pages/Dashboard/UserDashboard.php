@@ -174,13 +174,11 @@ class UserDashboard extends Component
     #[Computed]
     public function recentNotifications(): Collection
     {
-        $notifications = $this->user()
+        return $this->user()
             ->notificationInboxes()
             ->whereNull('archived_at')
             ->limit(3)
             ->get();
-
-        return $notifications;
     }
 
     #[Computed]

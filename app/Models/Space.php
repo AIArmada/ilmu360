@@ -25,6 +25,7 @@ class Space extends VenueSpace implements AuditableContract
      * @param  callable(array<string, mixed>, static|null): array<string, mixed>|array<string, mixed>|int|null  $count
      * @param  callable(array<string, mixed>, static|null): array<string, mixed>|array<string, mixed>  $state
      */
+    #[\Override]
     public static function factory($count = null, $state = []): SpaceFactory
     {
         return SpaceFactory::new()

@@ -1791,7 +1791,6 @@ it('previews admin speaker creation through the MCP write tool without persistin
             'payload' => [
                 'name' => 'Previewed Admin MCP Speaker',
                 'gender' => 'male',
-                'status' => 'verified',
                 'is_freelance' => false,
                 'status' => 'active',
                 'address' => [
@@ -1829,7 +1828,6 @@ it('previews admin speaker updates through the MCP write tool without persisting
             'payload' => [
                 'name' => 'Previewed Admin MCP Speaker Updated',
                 'gender' => 'male',
-                'status' => 'verified',
                 'is_freelance' => true,
                 'job_title' => 'Imam',
                 'status' => 'active',
@@ -1855,7 +1853,6 @@ it('previews admin speaker updates through the MCP write tool without persisting
             'payload' => [
                 'name' => 'Previewed Admin MCP Speaker Updated',
                 'gender' => 'male',
-                'status' => 'verified',
                 'is_freelance' => true,
                 'job_title' => 'Imam',
                 'status' => 'active',
@@ -1988,7 +1985,6 @@ it('creates and updates speakers through MCP write tools', function () {
             'payload' => [
                 'name' => 'Admin MCP Created Speaker',
                 'gender' => 'male',
-                'status' => 'verified',
                 'is_freelance' => false,
                 'status' => 'active',
                 'avatar' => adminMcpImageDescriptor('admin-mcp-avatar'),
@@ -2040,7 +2036,6 @@ it('creates and updates speakers through MCP write tools', function () {
             'payload' => [
                 'name' => 'Admin MCP Updated Speaker',
                 'gender' => 'male',
-                'status' => 'verified',
                 'is_freelance' => true,
                 'job_title' => 'Imam',
                 'status' => 'active',
@@ -2803,7 +2798,6 @@ it('rejects malformed MCP media descriptors through write tools', function () {
             'payload' => [
                 'name' => 'Speaker With Media',
                 'gender' => 'male',
-                'status' => 'verified',
                 'is_freelance' => false,
                 'status' => 'active',
                 'avatar' => 'base64-data',
@@ -4209,7 +4203,6 @@ it('batch-creates events via the admin-batch-create-events MCP tool with speaker
     $speaker = Speaker::factory()->create([
         'name' => 'MCP Batch Event Speaker',
         'slug' => 'mcp-batch-event-speaker',
-        'status' => 'verified',
         'gender' => 'male',
         'status' => 'active',
     ]);

@@ -19,6 +19,7 @@ class RegistrationFactory extends PackageEventRegistrationFactory
      *
      * @return array<string, mixed>
      */
+    #[\Override]
     public function definition(): array
     {
         return [

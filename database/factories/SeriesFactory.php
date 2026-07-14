@@ -15,6 +15,7 @@ class SeriesFactory extends EventSeriesFactory
      *
      * @return array<string, mixed>
      */
+    #[\Override]
     public function definition(): array
     {
         $topics = [

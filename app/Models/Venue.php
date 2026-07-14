@@ -170,6 +170,7 @@ class Venue extends PackageVenue implements AuditableContract
     /**
      * Register media collections for Spatie Media Library.
      */
+    #[\Override]
     public function registerMediaCollections(): void
     {
         $this->addMediaCollection('cover')

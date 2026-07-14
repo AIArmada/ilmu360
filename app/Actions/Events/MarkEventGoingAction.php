@@ -29,28 +29,25 @@ final readonly class MarkEventGoingAction
 
         $user->respond($event, 'going');
 
-        if ($event->pricing_mode === PricingMode::Free->value || $event->pricing_mode === null) {
-            if (config('events.features.auto_issue_passes', true)) {
-                $registration = Registration::query()
-                    ->forUser($user)
-                    ->where('event_id', $event->getKey())
-                    ->active()
-                    ->first();
-
-                if (! $registration instanceof Registration) {
-                    app(RegisterForFreeAction::class)->execute(
-                        target: $event,
-                        participants: [[
-                            'name' => $user->name,
-                            'email' => $user->email,
-                            'phone' => $user->phone,
-                            'is_primary' => true,
-                            'is_purchaser' => true,
-                        ]],
-                        registrant: $user,
-                        options: ['with_pass' => true],
-                    );
-                }
+        if (($event->pricing_mode === PricingMode::Free->value || $event->pricing_mode === null) && config('events.features.auto_issue_passes', true)) {
+            $registration = Registration::query()
+                ->forUser($user)
+                ->where('event_id', $event->getKey())
+                ->active()
+                ->first();
+            if (! $registration instanceof Registration) {
+                app(RegisterForFreeAction::class)->execute(
+                    target: $event,
+                    participants: [[
+                        'name' => $user->name,
+                        'email' => $user->email,
+                        'phone' => $user->phone,
+                        'is_primary' => true,
+                        'is_purchaser' => true,
+                    ]],
+                    registrant: $user,
+                    options: ['with_pass' => true],
+                );
             }
         }
 

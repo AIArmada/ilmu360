@@ -71,6 +71,7 @@ class MemberInvitation extends PackageMembershipInvitation implements Auditable
         return $this->belongsTo(User::class, 'revoked_by');
     }
 
+    #[\Override]
     public function isExpired(): bool
     {
         return $this->expires_at instanceof CarbonInterface && $this->expires_at->isPast();

@@ -9,9 +9,9 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    private const TABLE = 'institution_speaker';
+    private const string TABLE = 'institution_speaker';
 
-    private const TEMPORARY_TABLE = 'institution_speaker_uuid_migration';
+    private const string TEMPORARY_TABLE = 'institution_speaker_uuid_migration';
 
     public function up(): void
     {

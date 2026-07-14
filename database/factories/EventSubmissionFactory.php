@@ -13,6 +13,7 @@ class EventSubmissionFactory extends PackageEventSubmissionFactory
 {
     protected $model = EventSubmission::class;
 
+    #[\Override]
     public function definition(): array
     {
         return array_merge(parent::definition(), [

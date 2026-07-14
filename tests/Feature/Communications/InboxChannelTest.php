@@ -21,9 +21,6 @@ it('writes to notification_inboxes when InApp notification is sent', function ()
         priority: NotificationPriority::Medium,
         title: 'Inbox Test Title',
         body: 'Inbox Test Body',
-        actionUrl: null,
-        entityType: null,
-        entityId: null,
         occurredAt: now(),
         meta: [],
     );

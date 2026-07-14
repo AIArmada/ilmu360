@@ -127,7 +127,6 @@ class InstitutionFormSchema
                 requireGoogleMaps: true,
                 includeCountryField: true,
                 showCountryField: false,
-                defaultCountryId: null,
                 requireCountryField: true,
             );
         }
@@ -154,7 +153,6 @@ class InstitutionFormSchema
                     enableGoogleMapsRemoteLookup: $shouldRenderLocationPicker,
                     includeCountryField: true,
                     showCountryField: false,
-                    defaultCountryId: null,
                     requireCountryField: true,
                 ),
             ])

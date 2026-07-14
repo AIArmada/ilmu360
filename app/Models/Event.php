@@ -441,6 +441,7 @@ class Event extends PackageEvent implements AuditableContract
     /**
      * @return HasMany<EventOccurrence, $this>
      */
+    #[\Override]
     public function occurrences(): HasMany
     {
         return $this->hasMany(EventOccurrence::class)->orderBy('starts_at')->orderBy('created_at');
@@ -1072,7 +1073,7 @@ class Event extends PackageEvent implements AuditableContract
 
     private function syncSingleAudience(string $type, mixed $value): void
     {
-        if ($value !== null && $value !== '' && $value !== false) {
+        if (!in_array($value, [null, '', false], true)) {
             EventAudience::updateOrCreate(
                 ['event_id' => $this->id, 'audience_type' => $type],
                 ['value' => (string) $value],
@@ -1090,7 +1091,7 @@ class Event extends PackageEvent implements AuditableContract
             ->where('audience_type', 'age_group')
             ->delete();
 
-        if ($value === null || $value === [] || $value === '') {
+        if (in_array($value, [null, [], ''], true)) {
             return;
         }
 
@@ -2154,6 +2155,7 @@ class Event extends PackageEvent implements AuditableContract
     /**
      * Register media collections for Spatie Media Library.
      */
+    #[\Override]
     public function registerMediaCollections(): void
     {
         $this->addMediaCollection('cover')

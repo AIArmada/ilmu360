@@ -342,7 +342,7 @@ final readonly class AffiliatesShareTrackingService
                 ],
             );
 
-            if ($conversionData === null) {
+            if (!$conversionData instanceof \AIArmada\Affiliates\Data\AffiliateConversionData) {
                 return $this->mapOutcome(AffiliateConversion::query()
                     ->where('external_reference', $outcomeKey)
                     ->firstOrFail());

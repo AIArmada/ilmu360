@@ -7,7 +7,6 @@ namespace App\Actions\Membership;
 use AIArmada\Membership\Actions\AcceptInvitationAction;
 use App\Models\MemberInvitation;
 use App\Models\User;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
 

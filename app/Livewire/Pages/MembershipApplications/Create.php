@@ -162,7 +162,7 @@ class Create extends Component implements HasForms
     {
         $resolvedSubjectType = MemberSubjectType::fromRouteSegment($subjectType);
 
-        abort_unless($resolvedSubjectType !== null, 404);
+        abort_unless($resolvedSubjectType instanceof \App\Enums\MemberSubjectType, 404);
 
         return $resolvedSubjectType->resolveSubject($subjectId);
     }

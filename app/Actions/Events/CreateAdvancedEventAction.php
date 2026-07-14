@@ -56,9 +56,9 @@ class CreateAdvancedEventAction
                 'event_type' => [(string) $form['default_event_type']],
                 'event_format' => (string) $form['default_event_format'],
                 'visibility' => (string) $form['visibility'],
-                'registration_mode' => ! empty($form['registration_required'])
-                    ? RegistrationMode::Required->value
-                    : RegistrationMode::None->value,
+                'registration_mode' => empty($form['registration_required'])
+                    ? RegistrationMode::None->value
+                    : RegistrationMode::Required->value,
                 'status' => 'draft',
             ]);
 

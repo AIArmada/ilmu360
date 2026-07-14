@@ -135,7 +135,7 @@ class MasjidSeeder extends Seeder
                     'country_id' => $malaysia?->id,
                     'latitude' => null,
                     'longitude' => null,
-                ], $state, $district, null));
+                ], $state, $district));
             } catch (\Exception $e) {
                 $this->command->warn("Failed to create address for {$nama}: ".$e->getMessage());
             }

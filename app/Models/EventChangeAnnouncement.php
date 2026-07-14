@@ -30,6 +30,7 @@ class EventChangeAnnouncement extends EventUpdate
         'metadata',
     ];
 
+    #[\Override]
     protected function casts(): array
     {
         return array_merge(parent::casts(), [
@@ -38,6 +39,7 @@ class EventChangeAnnouncement extends EventUpdate
         ]);
     }
 
+    #[\Override]
     public function event(): BelongsTo
     {
         /** @phpstan-ignore-next-line childReturnType (covariant override) */
@@ -60,11 +62,13 @@ class EventChangeAnnouncement extends EventUpdate
         return $this->belongsTo(User::class, 'created_by_id');
     }
 
+    #[\Override]
     protected static function newFactory(): EventChangeAnnouncementFactory
     {
         return EventChangeAnnouncementFactory::new();
     }
 
+    #[\Override]
     protected static function boot(): void
     {
         parent::boot();

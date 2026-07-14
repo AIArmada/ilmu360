@@ -98,59 +98,57 @@ it('keeps member api and member mcp contribution request actions aligned', funct
     $memberServer = MemberServer::actingAs($member);
     $proposer = User::factory()->create();
 
-    $makeReviewablePair = function (string $label, string $originalDescription, string $updatedDescription) use ($member, $proposer): array {
-        return OwnerContext::withOwner(null, function () use ($label, $originalDescription, $updatedDescription, $member, $proposer): array {
-            $apiInstitution = Institution::factory()->create([
-                'name' => 'Member Parity '.$label.' Contribution Subject',
+    $makeReviewablePair = (fn(string $label, string $originalDescription, string $updatedDescription): array => OwnerContext::withOwner(null, function () use ($label, $originalDescription, $updatedDescription, $member, $proposer): array {
+        $apiInstitution = Institution::factory()->create([
+            'name' => 'Member Parity '.$label.' Contribution Subject',
+            'description' => $originalDescription,
+            'status' => 'verified',
+        ]);
+
+        $mcpInstitution = Institution::factory()->create([
+            'name' => 'Member Parity '.$label.' Contribution Subject',
+            'description' => $originalDescription,
+            'status' => 'verified',
+        ]);
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+        addTestMember($apiInstitution, $member, 'admin');
+        addTestMember($mcpInstitution, $member, 'admin');
+
+        $apiRequest = ContributionRequest::factory()->create([
+            'type' => ContributionRequestType::Update,
+            'subject_type' => ContributionSubjectType::Institution,
+            'entity_type' => $apiInstitution->getMorphClass(),
+            'entity_id' => $apiInstitution->getKey(),
+            'proposer_id' => $proposer->getKey(),
+            'proposer_note' => 'Member parity proposer note.',
+            'status' => ContributionRequestStatus::Pending,
+            'proposed_data' => [
+                'description' => $updatedDescription,
+            ],
+            'original_data' => [
                 'description' => $originalDescription,
-                'status' => 'verified',
-            ]);
+            ],
+        ]);
 
-            $mcpInstitution = Institution::factory()->create([
-                'name' => 'Member Parity '.$label.' Contribution Subject',
+        $mcpRequest = ContributionRequest::factory()->create([
+            'type' => ContributionRequestType::Update,
+            'subject_type' => ContributionSubjectType::Institution,
+            'entity_type' => $mcpInstitution->getMorphClass(),
+            'entity_id' => $mcpInstitution->getKey(),
+            'proposer_id' => $proposer->getKey(),
+            'proposer_note' => 'Member parity proposer note.',
+            'status' => ContributionRequestStatus::Pending,
+            'proposed_data' => [
+                'description' => $updatedDescription,
+            ],
+            'original_data' => [
                 'description' => $originalDescription,
-                'status' => 'verified',
-            ]);
+            ],
+        ]);
 
-            app(PermissionRegistrar::class)->forgetCachedPermissions();
-            addTestMember($apiInstitution, $member, 'admin');
-            addTestMember($mcpInstitution, $member, 'admin');
-
-            $apiRequest = ContributionRequest::factory()->create([
-                'type' => ContributionRequestType::Update,
-                'subject_type' => ContributionSubjectType::Institution,
-                'entity_type' => $apiInstitution->getMorphClass(),
-                'entity_id' => $apiInstitution->getKey(),
-                'proposer_id' => $proposer->getKey(),
-                'proposer_note' => 'Member parity proposer note.',
-                'status' => ContributionRequestStatus::Pending,
-                'proposed_data' => [
-                    'description' => $updatedDescription,
-                ],
-                'original_data' => [
-                    'description' => $originalDescription,
-                ],
-            ]);
-
-            $mcpRequest = ContributionRequest::factory()->create([
-                'type' => ContributionRequestType::Update,
-                'subject_type' => ContributionSubjectType::Institution,
-                'entity_type' => $mcpInstitution->getMorphClass(),
-                'entity_id' => $mcpInstitution->getKey(),
-                'proposer_id' => $proposer->getKey(),
-                'proposer_note' => 'Member parity proposer note.',
-                'status' => ContributionRequestStatus::Pending,
-                'proposed_data' => [
-                    'description' => $updatedDescription,
-                ],
-                'original_data' => [
-                    'description' => $originalDescription,
-                ],
-            ]);
-
-            return [$apiInstitution, $apiRequest, $mcpInstitution, $mcpRequest];
-        });
-    };
+        return [$apiInstitution, $apiRequest, $mcpInstitution, $mcpRequest];
+    }));
 
     [$apiApproveInstitution, $apiApproveRequest, $mcpApproveInstitution, $mcpApproveRequest] = $makeReviewablePair(
         'Approve',
@@ -341,20 +339,18 @@ it('keeps member API and MCP membership application workflows aligned', function
         ])
         ->assertOk();
 
-    [$apiApplication, $mcpApplication] = OwnerContext::withOwner(null, function () use ($member, $apiSubmitTarget, $mcpSubmitTarget): array {
-        return [
-            MembershipApplication::query()
-                ->where('applicant_id', $member->getKey())
-                ->where('subject_id', $apiSubmitTarget->getKey())
-                ->latest('created_at')
-                ->firstOrFail(),
-            MembershipApplication::query()
-                ->where('applicant_id', $member->getKey())
-                ->where('subject_id', $mcpSubmitTarget->getKey())
-                ->latest('created_at')
-                ->firstOrFail(),
-        ];
-    });
+    [$apiApplication, $mcpApplication] = OwnerContext::withOwner(null, fn(): array => [
+        MembershipApplication::query()
+            ->where('applicant_id', $member->getKey())
+            ->where('subject_id', $apiSubmitTarget->getKey())
+            ->latest('created_at')
+            ->firstOrFail(),
+        MembershipApplication::query()
+            ->where('applicant_id', $member->getKey())
+            ->where('subject_id', $mcpSubmitTarget->getKey())
+            ->latest('created_at')
+            ->firstOrFail(),
+    ]);
 
     expect($apiSubmitResponse->json('data.application.status'))
         ->toBe('pending')
@@ -375,24 +371,22 @@ it('keeps member API and MCP membership application workflows aligned', function
         'status' => 'verified',
     ]);
 
-    [$apiApplicationToCancel, $mcpApplicationToCancel] = OwnerContext::withOwner(null, function () use ($apiCancelTarget, $mcpCancelTarget, $member): array {
-        return [
-            MembershipApplication::factory()
-                ->for($apiCancelTarget, 'subject')
-                ->create([
-                    'applicant_id' => $member->getKey(),
-                    'status' => ApplicationStatus::Pending,
-                    'justification' => 'Cancel membership application justification.',
-                ]),
-            MembershipApplication::factory()
-                ->for($mcpCancelTarget, 'subject')
-                ->create([
-                    'applicant_id' => $member->getKey(),
-                    'status' => ApplicationStatus::Pending,
-                    'justification' => 'Cancel membership application justification.',
-                ]),
-        ];
-    });
+    [$apiApplicationToCancel, $mcpApplicationToCancel] = OwnerContext::withOwner(null, fn(): array => [
+        MembershipApplication::factory()
+            ->for($apiCancelTarget, 'subject')
+            ->create([
+                'applicant_id' => $member->getKey(),
+                'status' => ApplicationStatus::Pending,
+                'justification' => 'Cancel membership application justification.',
+            ]),
+        MembershipApplication::factory()
+            ->for($mcpCancelTarget, 'subject')
+            ->create([
+                'applicant_id' => $member->getKey(),
+                'status' => ApplicationStatus::Pending,
+                'justification' => 'Cancel membership application justification.',
+            ]),
+    ]);
 
     $apiCancelResponse = $this->deleteJson(route('api.client.membership-applications.cancel', ['applicationId' => $apiApplicationToCancel->getKey()]))
         ->assertOk();
@@ -403,12 +397,10 @@ it('keeps member API and MCP membership application workflows aligned', function
         ])
         ->assertOk();
 
-    [$apiCancelledApplication, $mcpCancelledApplication] = OwnerContext::withOwner(null, function () use ($apiApplicationToCancel, $mcpApplicationToCancel): array {
-        return [
-            MembershipApplication::query()->findOrFail($apiApplicationToCancel->getKey()),
-            MembershipApplication::query()->findOrFail($mcpApplicationToCancel->getKey()),
-        ];
-    });
+    [$apiCancelledApplication, $mcpCancelledApplication] = OwnerContext::withOwner(null, fn(): array => [
+        MembershipApplication::query()->findOrFail($apiApplicationToCancel->getKey()),
+        MembershipApplication::query()->findOrFail($mcpApplicationToCancel->getKey()),
+    ]);
 
     expect($apiCancelResponse->json('data.application.status'))
         ->toBe('cancelled')
@@ -421,7 +413,6 @@ it('keeps member API and MCP membership application workflows aligned', function
 function memberParityAccessContext(string $role = 'admin', string $status = 'verified'): array
 {
     $institution = Institution::factory()->create([
-        'status' => $status,
         'status' => 'active',
     ]);
 

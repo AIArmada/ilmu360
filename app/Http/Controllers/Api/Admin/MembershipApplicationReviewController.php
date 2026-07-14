@@ -24,9 +24,9 @@ use Illuminate\Validation\Rule;
 class MembershipApplicationReviewController extends Controller
 {
     public function __construct(
-        private AdminResourceRegistry $registry,
-        private ApproveMembershipApplicationAction $approveAction,
-        private RejectMembershipApplicationAction $rejectAction,
+        private readonly AdminResourceRegistry $registry,
+        private readonly ApproveMembershipApplicationAction $approveAction,
+        private readonly RejectMembershipApplicationAction $rejectAction,
     ) {}
 
     #[PathParameter('recordKey', 'Existing membership application route key returned by the admin collection or record endpoints.', example: '0195b86a-3c15-73fa-a2d8-5a45f6a7f701')]

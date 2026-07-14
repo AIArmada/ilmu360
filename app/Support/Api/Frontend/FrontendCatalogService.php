@@ -126,7 +126,7 @@ class FrontendCatalogService
     public function adminAreaLevel2(?string $adminArea1Id, ?string $countryId = null, ?string $stateId = null): array
     {
         if (is_string($adminArea1Id) && $adminArea1Id !== '') {
-            return $this->addressAreas(countryId: $countryId, parentId: $adminArea1Id, level: null);
+            return $this->addressAreas(countryId: $countryId, parentId: $adminArea1Id);
         }
 
         if (is_string($stateId) && $stateId !== '') {

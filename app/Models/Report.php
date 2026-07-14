@@ -38,6 +38,7 @@ class Report extends BaseReport implements AuditableContract, HasMedia
         'internal_notes', 'metadata',
     ];
 
+    #[\Override]
     protected function casts(): array
     {
         return [
@@ -50,6 +51,7 @@ class Report extends BaseReport implements AuditableContract, HasMedia
         ];
     }
 
+    #[\Override]
     public function getTable(): string
     {
         return 'reports';
@@ -88,6 +90,7 @@ class Report extends BaseReport implements AuditableContract, HasMedia
     /**
      * @return MorphTo<Model, $this>
      */
+    #[\Override]
     public function reportable(): MorphTo
     {
         return $this->morphTo(null, 'entity_type', 'entity_id');
@@ -125,6 +128,7 @@ class Report extends BaseReport implements AuditableContract, HasMedia
             ->format('webp');
     }
 
+    #[\Override]
     protected static function booted(): void
     {
         static::creating(function (self $report) {

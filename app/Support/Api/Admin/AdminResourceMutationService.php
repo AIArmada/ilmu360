@@ -1436,8 +1436,6 @@ class AdminResourceMutationService
             $this->field('languages', 'array<int>', required: false, meta: $this->relationCollectionMeta(
                 'languages',
                 submittedArray: 'replace_relation_sync',
-                itemIdsPreserved: null,
-                ordering: null,
                 safeClientStrategy: 'omit_field_to_preserve_or_send_full_relation_ids',
             )),
             $this->field('cover', 'file', required: false, acceptedMimeTypes: $this->imageMimeTypes(), maxFileSizeKb: $this->maxUploadSizeKb()),
@@ -1498,8 +1496,6 @@ class AdminResourceMutationService
             $this->field('institutions', 'array<string>', required: false, meta: $this->relationCollectionMeta(
                 'institutions',
                 submittedArray: 'replace_relation_sync',
-                itemIdsPreserved: null,
-                ordering: null,
                 safeClientStrategy: 'omit_field_to_preserve_or_send_full_institution_ids',
             )),
         ];
@@ -1625,8 +1621,6 @@ class AdminResourceMutationService
             $this->field('languages', 'array<int>', required: false, meta: $this->relationCollectionMeta(
                 'languages',
                 submittedArray: 'replace_relation_sync',
-                itemIdsPreserved: null,
-                ordering: null,
                 safeClientStrategy: 'omit_field_to_preserve_or_send_full_relation_ids',
                 omitted: 'preserve_existing_collection_via_server_state_merge',
             )),
@@ -1644,8 +1638,6 @@ class AdminResourceMutationService
                 $this->relationCollectionMeta(
                     'classifications',
                     submittedArray: 'replace_relation_sync',
-                    itemIdsPreserved: null,
-                    ordering: null,
                     safeClientStrategy: 'omit_field_to_preserve_or_send_full_event_term_ids',
                     omitted: 'preserve_existing_collection_via_server_state_merge',
                 ),
@@ -1655,8 +1647,6 @@ class AdminResourceMutationService
                 $this->relationCollectionMeta(
                     'classifications',
                     submittedArray: 'replace_relation_sync',
-                    itemIdsPreserved: null,
-                    ordering: null,
                     safeClientStrategy: 'omit_field_to_preserve_or_send_full_event_term_ids',
                     omitted: 'preserve_existing_collection_via_server_state_merge',
                 ),
@@ -1666,8 +1656,6 @@ class AdminResourceMutationService
                 $this->relationCollectionMeta(
                     'classifications',
                     submittedArray: 'replace_relation_sync',
-                    itemIdsPreserved: null,
-                    ordering: null,
                     safeClientStrategy: 'omit_field_to_preserve_or_send_full_event_term_ids',
                     omitted: 'preserve_existing_collection_via_server_state_merge',
                 ),
@@ -1677,8 +1665,6 @@ class AdminResourceMutationService
                 $this->relationCollectionMeta(
                     'classifications',
                     submittedArray: 'replace_relation_sync',
-                    itemIdsPreserved: null,
-                    ordering: null,
                     safeClientStrategy: 'omit_field_to_preserve_or_send_full_event_term_ids',
                     omitted: 'preserve_existing_collection_via_server_state_merge',
                 ),
@@ -1687,16 +1673,12 @@ class AdminResourceMutationService
             $this->field('references', 'array<string>', required: false, meta: $this->relationCollectionMeta(
                 'references',
                 submittedArray: 'replace_relation_sync',
-                itemIdsPreserved: null,
-                ordering: null,
                 safeClientStrategy: 'omit_field_to_preserve_or_send_full_reference_ids',
                 omitted: 'preserve_existing_collection_via_server_state_merge',
             )),
             $this->field('series', 'array<string>', required: false, meta: $this->relationCollectionMeta(
                 'series',
                 submittedArray: 'replace_relation_sync',
-                itemIdsPreserved: null,
-                ordering: null,
                 safeClientStrategy: 'omit_field_to_preserve_or_send_full_series_ids',
                 omitted: 'preserve_existing_collection_via_server_state_merge',
             )),

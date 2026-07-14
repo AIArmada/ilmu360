@@ -76,7 +76,7 @@ class EditUser extends EditRecord
                     'current_role' => $currentRoleLabel,
                     'membership_count' => count($membershipLabels),
                     'membership_labels' => $membershipLabels,
-                    'options' => ['' => 'No scoped role'] + $this->roleOptionsFor($subjectType),
+                    'options' => ['' => 'No scoped role'] + $this->roleOptionsFor(),
                     'selection' => $this->protectedRoleSelections[$subjectType->value] ?? '',
                 ];
             })
@@ -138,7 +138,7 @@ class EditUser extends EditRecord
     /**
      * @return array<string, string>
      */
-    private function roleOptionsFor(MemberSubjectType $subjectType): array
+    private function roleOptionsFor(): array
     {
         return collect(MemberRole::cases())
             ->mapWithKeys(fn (MemberRole $r): array => [$r->value => $r->label()])

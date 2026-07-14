@@ -90,28 +90,24 @@ class SpeakerContributionFormSchema
                             ? SharedFormSchema::regionAddressFields(
                                 includeCountryField: true,
                                 showCountryField: $showCountryField,
-                                defaultCountryId: null,
                                 requireCountryField: false,
                             )
                             : [SharedFormSchema::regionAddressGroup(
                                 statePath: $addressStatePath,
                                 includeCountryField: true,
                                 showCountryField: $showCountryField,
-                                defaultCountryId: null,
                                 requireCountryField: false,
                             )])
                         : ($addressStatePath === null
                             ? SharedFormSchema::addressFields(
                                 includeCountryField: true,
                                 showCountryField: $showCountryField,
-                                defaultCountryId: null,
                                 requireCountryField: false,
                             )
                             : [SharedFormSchema::addressGroup(
                                 statePath: $addressStatePath,
                                 includeCountryField: true,
                                 showCountryField: $showCountryField,
-                                defaultCountryId: null,
                                 requireCountryField: false,
                             )])),
                 ])

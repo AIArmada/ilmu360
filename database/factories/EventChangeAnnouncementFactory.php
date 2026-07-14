@@ -19,6 +19,7 @@ class EventChangeAnnouncementFactory extends EventUpdateFactory
     /**
      * @return array<string, mixed>
      */
+    #[\Override]
     public function definition(): array
     {
         $message = fake()->sentence();

@@ -35,7 +35,7 @@ class DocsSectionController extends Controller
         $sectionDocument = $document;
         $sectionDocument['info'] = array_merge(
             is_array($document['info'] ?? null) ? $document['info'] : [],
-            ['title' => 'ilmu360° '.(string) $section['title'].' API'],
+            ['title' => 'ilmu360° '.$section['title'].' API'],
         );
         $sectionDocument['paths'] = $paths;
         $sectionDocument['x-ilmu360-section'] = $sectionKey;

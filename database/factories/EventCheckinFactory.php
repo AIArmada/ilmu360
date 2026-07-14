@@ -16,6 +16,7 @@ class EventCheckinFactory extends EventAttendanceFactory
     /**
      * @return array<string, mixed>
      */
+    #[\Override]
     public function definition(): array
     {
         return [

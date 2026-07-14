@@ -546,7 +546,7 @@ class SharedFormSchema
             $data['longitude'] ?? null,
         ])->contains(static fn (mixed $value): bool => filled($value));
 
-        if (! $hasAddressContent && ! ($allowCountryOnly && ($countryProvided || $countryId !== null))) {
+        if (! $hasAddressContent && (!$allowCountryOnly || !$countryProvided && $countryId === null)) {
             return;
         }
 

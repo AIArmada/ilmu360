@@ -67,6 +67,7 @@ class Reference extends PackageReference implements AuditableContract
         return ReferenceFactory::new();
     }
 
+    #[\Override]
     protected static function bootHasSlug(): void {}
 
     #[\Override]

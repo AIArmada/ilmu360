@@ -24,6 +24,7 @@ class EventCheckin extends EventAttendance
         'metadata',
     ];
 
+    #[\Override]
     protected function casts(): array
     {
         return array_merge(parent::casts(), [
@@ -67,6 +68,7 @@ class EventCheckin extends EventAttendance
         $this->metadata = $metadata;
     }
 
+    #[\Override]
     public function registration(): BelongsTo
     {
         /** @phpstan-ignore-next-line childReturnType (covariant override) */
@@ -89,6 +91,7 @@ class EventCheckin extends EventAttendance
         return $this->belongsTo(User::class, 'verified_by_user_id');
     }
 
+    #[\Override]
     protected static function newFactory(): EventCheckinFactory
     {
         return EventCheckinFactory::new();

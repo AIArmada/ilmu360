@@ -88,7 +88,6 @@ class SpeakerForm
                     ->components(SharedFormSchema::regionAddressFields(
                         includeCountryField: true,
                         showCountryField: false,
-                        defaultCountryId: null,
                         requireCountryField: false,
                     ))
                     ->columns(2),

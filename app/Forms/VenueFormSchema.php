@@ -108,7 +108,6 @@ class VenueFormSchema
                 requireGoogleMaps: true,
                 includeCountryField: true,
                 showCountryField: false,
-                defaultCountryId: null,
                 requireCountryField: true,
             );
         }
@@ -135,7 +134,6 @@ class VenueFormSchema
                     enableGoogleMapsRemoteLookup: $shouldRenderLocationPicker,
                     includeCountryField: true,
                     showCountryField: false,
-                    defaultCountryId: null,
                     requireCountryField: true,
                 ),
             ])

@@ -256,7 +256,7 @@ class SubmitFrontendEventAction
             'status' => 'pending',
             'submitted_at' => now(),
             'submission_data' => $submissionData,
-            'submitter_type' => $submitter !== null ? User::class : null,
+            'submitter_type' => $submitter instanceof \App\Models\User ? User::class : null,
             'submitter_id' => $submitter?->getKey(),
         ]);
 
@@ -712,12 +712,10 @@ class SubmitFrontendEventAction
             } else {
                 $targetVenueId = $validated['location_venue_id'] ?? null;
             }
-        } else {
-            if ($locationInstitutionId) {
-                $targetInstitutionId = $locationInstitutionId;
-            } elseif ($venueId) {
-                $targetVenueId = $venueId;
-            }
+        } elseif ($locationInstitutionId) {
+            $targetInstitutionId = $locationInstitutionId;
+        } elseif ($venueId) {
+            $targetVenueId = $venueId;
         }
 
         return [$primaryOrganizer, $targetInstitutionId, $targetVenueId];

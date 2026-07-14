@@ -33,9 +33,9 @@ class AdminReviewMembershipApplicationTool extends AbstractAdminTool
     protected string $description = 'Use this when you need to approve or reject a pending membership application. Fetch the review schema first with admin-get-membership-application-review-schema. Do not use for reading application details; use admin-get-record for that.';
 
     public function __construct(
-        private ApproveMembershipApplicationAction $approveAction,
-        private RejectMembershipApplicationAction $rejectAction,
-        private AdminResourceRegistry $registry,
+        private readonly ApproveMembershipApplicationAction $approveAction,
+        private readonly RejectMembershipApplicationAction $rejectAction,
+        private readonly AdminResourceRegistry $registry,
     ) {}
 
     public function handle(Request $request): ResponseFactory|Response

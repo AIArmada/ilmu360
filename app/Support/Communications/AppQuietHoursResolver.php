@@ -19,7 +19,7 @@ class AppQuietHoursResolver implements QuietHoursResolver
 
         $setting = $this->resolveSetting($recipientType, $recipientId);
 
-        if ($setting === null) {
+        if (!$setting instanceof \AIArmada\Communications\Models\CommunicationPreference) {
             return false;
         }
 
@@ -51,7 +51,7 @@ class AppQuietHoursResolver implements QuietHoursResolver
 
         $setting = $this->resolveSetting($recipientType, $recipientId);
 
-        if ($setting === null) {
+        if (!$setting instanceof \AIArmada\Communications\Models\CommunicationPreference) {
             return null;
         }
 

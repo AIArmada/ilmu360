@@ -20,6 +20,7 @@ class MembershipApplication extends BaseMembershipApplication implements Auditab
     /** @use HasFactory<MembershipApplicationFactory> */
     use AuditsModelChanges, HasFactory, InteractsWithMedia;
 
+    #[\Override]
     protected function casts(): array
     {
         return array_merge(parent::casts(), [
@@ -30,6 +31,7 @@ class MembershipApplication extends BaseMembershipApplication implements Auditab
     /**
      * @return MorphTo<Model, $this>
      */
+    #[\Override]
     public function subject(): MorphTo
     {
         return $this->morphTo();

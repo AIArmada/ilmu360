@@ -103,7 +103,8 @@ class Registration extends PackageEventRegistration implements AuditableContract
      * @param  Builder<self>  $query
      * @return Builder<self>
      */
-    public function scopeActive(Builder $query): Builder
+    #[\Illuminate\Database\Eloquent\Attributes\Scope]
+    protected function active(Builder $query): Builder
     {
         return $query->where('status', '!=', 'cancelled');
     }
@@ -112,7 +113,8 @@ class Registration extends PackageEventRegistration implements AuditableContract
      * @param  Builder<self>  $query
      * @return Builder<self>
      */
-    public function scopeForRegistrant(Builder $query, Model $registrant): Builder
+    #[\Illuminate\Database\Eloquent\Attributes\Scope]
+    protected function forRegistrant(Builder $query, Model $registrant): Builder
     {
         return $query
             ->where('registrant_type', $registrant->getMorphClass())
@@ -123,7 +125,8 @@ class Registration extends PackageEventRegistration implements AuditableContract
      * @param  Builder<self>  $query
      * @return Builder<self>
      */
-    public function scopeForUser(Builder $query, User $user): Builder
+    #[\Illuminate\Database\Eloquent\Attributes\Scope]
+    protected function forUser(Builder $query, User $user): Builder
     {
         return $query
             ->where('registrant_type', $user->getMorphClass())
@@ -134,7 +137,8 @@ class Registration extends PackageEventRegistration implements AuditableContract
      * @param  Builder<self>  $query
      * @return Builder<self>
      */
-    public function scopeForPrimaryContact(Builder $query, ?string $email = null, ?string $phone = null): Builder
+    #[\Illuminate\Database\Eloquent\Attributes\Scope]
+    protected function forPrimaryContact(Builder $query, ?string $email = null, ?string $phone = null): Builder
     {
         if ($email === null && $phone === null) {
             return $query->whereRaw('0 = 1');
@@ -187,7 +191,7 @@ class Registration extends PackageEventRegistration implements AuditableContract
 
     public function resolvedUserId(): ?string
     {
-        return parent::getAttribute('registrant_type') === self::userMorphClass()
+        return parent::getAttribute('registrant_type') === $this->userMorphClass()
             ? (string) parent::getAttribute('registrant_id')
             : null;
     }
@@ -287,7 +291,7 @@ class Registration extends PackageEventRegistration implements AuditableContract
         // after creating the registration. Do not synthesize a second primary
         // participant during the initial model event; still allow user/profile
         // synchronization when an app participant already exists.
-        if ($existingParticipant === null && $draftName === null) {
+        if (!$existingParticipant instanceof \AIArmada\Events\Models\EventRegistrationParticipant && $draftName === null) {
             return;
         }
 
@@ -418,7 +422,7 @@ class Registration extends PackageEventRegistration implements AuditableContract
         return is_string($value) && $value !== '' ? $value : null;
     }
 
-    private static function userMorphClass(): string
+    private function userMorphClass(): string
     {
         return (new User)->getMorphClass();
     }

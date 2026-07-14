@@ -24,8 +24,6 @@ use RuntimeException;
 #[Group('InstitutionWorkspace', 'Authenticated institution workspace endpoints for member-management and institution-scoped event listings.')]
 class InstitutionWorkspaceController extends FrontendController
 {
-    public function __construct() {}
-
     #[Endpoint(
         title: 'Get institution workspace',
         description: 'Returns the current user\'s institution workspace payload, including accessible institutions, the selected institution, events, members, and role options. When `institution_id` is omitted, the first accessible institution is selected automatically.',

@@ -329,7 +329,7 @@ final readonly class AdminRecordActionService
      */
     private function membershipClaimWorkflowActions(MembershipApplication $record, string $recordKey, ?User $actor = null): array
     {
-        if ($record->status !== ApplicationStatus::Pending || ! ($actor instanceof User && $actor->hasAnyRole(['super_admin', 'admin', 'moderator']))) {
+        if ($record->status !== ApplicationStatus::Pending || (!$actor instanceof User || !$actor->hasAnyRole(['super_admin', 'admin', 'moderator']))) {
             return [];
         }
 

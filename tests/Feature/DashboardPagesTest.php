@@ -1154,7 +1154,6 @@ it('clearly distinguishes public and internal institution data for members', fun
 
     $internalEvent = Event::factory()->for($institution)->create([
         'title' => 'Internal Institution Event',
-        'status' => 'draft',
         'visibility' => 'private',
         'status' => 'active',
         'starts_at' => now()->addDays(4),

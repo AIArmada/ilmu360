@@ -653,11 +653,7 @@ class Index extends Component
         if (! array_key_exists($id, $this->tagNames)) {
             $term = EventTerm::query()->whereKey($id)->first(['id', 'name']);
 
-            if (! $term instanceof EventTerm) {
-                $this->tagNames[$id] = null;
-            } else {
-                $this->tagNames[$id] = (string) $term->name;
-            }
+            $this->tagNames[$id] = $term instanceof EventTerm ? (string) $term->name : null;
         }
 
         return $this->tagNames[$id];

@@ -27,7 +27,7 @@ class AdminGetMembershipApplicationReviewSchemaTool extends AbstractAdminTool
     protected string $description = 'Use this when you need the review schema for a membership application before submitting an approve or reject decision. Returns available actions, required fields, and conditional rules.';
 
     public function __construct(
-        private AdminResourceRegistry $registry,
+        private readonly AdminResourceRegistry $registry,
     ) {}
 
     public function handle(Request $request): ResponseFactory|Response

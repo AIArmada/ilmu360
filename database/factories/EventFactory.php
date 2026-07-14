@@ -27,6 +27,7 @@ class EventFactory extends PackageEventFactory
      *
      * @return array<string, mixed>
      */
+    #[\Override]
     public function definition(): array
     {
         $eventTypes = [
@@ -91,8 +92,8 @@ class EventFactory extends PackageEventFactory
         $publishedAt = $status === 'approved'
             ? $startsAtLocal->copy()->subDays(fake()->numberBetween(1, 14))->utc()
             : null;
-        $livestreamUrl = fake()->optional()->url();
-        $recordingUrl = fake()->optional()->url();
+        fake()->optional()->url();
+        fake()->optional()->url();
 
         // Determine event format: 60% physical, 25% online, 15% hybrid
         $defaultEventFormat = fake()->randomElement([

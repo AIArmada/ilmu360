@@ -36,7 +36,8 @@ class ModerationReview extends ModerationAction implements Auditable
      * @param  Builder<static>  $query
      * @return Builder<static>
      */
-    public function scopeWhereEventId(Builder $query, string $eventId): Builder
+    #[\Illuminate\Database\Eloquent\Attributes\Scope]
+    protected function whereEventId(Builder $query, string $eventId): Builder
     {
         return $query
             ->where('actionable_id', $eventId)

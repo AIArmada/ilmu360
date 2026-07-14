@@ -64,7 +64,6 @@ class InstitutionContributionFormSchema
                             enableGoogleMapsRemoteLookup: $shouldRenderLocationPicker,
                             includeCountryField: true,
                             showCountryField: false,
-                            defaultCountryId: null,
                             requireCountryField: true,
                         )
                         : [SharedFormSchema::addressGroup(
@@ -75,7 +74,6 @@ class InstitutionContributionFormSchema
                             enableGoogleMapsRemoteLookup: $shouldRenderLocationPicker,
                             includeCountryField: true,
                             showCountryField: false,
-                            defaultCountryId: null,
                             requireCountryField: true,
                         )]),
                 ])

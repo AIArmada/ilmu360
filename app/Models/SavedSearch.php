@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use AIArmada\CommerceSupport\Models\SavedSearch as BaseSavedSearch;
@@ -17,6 +19,7 @@ class SavedSearch extends BaseSavedSearch
         'radius_km', 'lat', 'lng', 'notify',
     ];
 
+    #[\Override]
     protected function casts(): array
     {
         return array_merge(parent::casts(), [
@@ -26,6 +29,7 @@ class SavedSearch extends BaseSavedSearch
         ]);
     }
 
+    #[\Override]
     protected static function booted(): void
     {
         static::creating(function (self $savedSearch) {
