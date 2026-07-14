@@ -50,6 +50,8 @@ jobs:
     if: needs.changes.outputs.php == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      DB_CONNECTION: pgsql
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -90,6 +92,8 @@ jobs:
     if: needs.changes.outputs.php == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      DB_CONNECTION: pgsql
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -130,6 +134,8 @@ jobs:
     if: needs.changes.outputs.php == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      DB_CONNECTION: pgsql
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -169,6 +175,27 @@ jobs:
     if: needs.changes.outputs.tests == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DB_CONNECTION: pgsql
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_DATABASE: test
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
     strategy:
       fail-fast: false
       matrix:
@@ -182,7 +209,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
-          extensions: mbstring, dom, fileinfo, intl, pcntl, pdo_sqlite, sqlite3, pgsql
+          extensions: mbstring, dom, fileinfo, intl, pcntl, pgsql
           coverage: none
           tools: composer:v2
 
@@ -197,11 +224,6 @@ jobs:
           key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
           restore-keys: ${{ runner.os }}-composer-
 
-      - name: Prepare application environment
-        run: |
-          cp .env.example .env
-          touch database/database.sqlite
-
       - name: Install dependencies
         env:
           COMPOSER_AUTH: ${{ secrets.COMPOSER_AUTH }}
@@ -209,12 +231,6 @@ jobs:
         run: |
           composer config --global github-oauth.github.com "$GITHUB_TOKEN"
           composer install --no-interaction --no-progress --prefer-dist --optimize-autoloader
-
-      - name: Generate application key
-        run: php artisan key:generate --ansi --force
-
-      - name: Clear config cache
-        run: php artisan config:clear --ansi
 
       - name: Run tests (Pest)
         run: vendor/bin/pest --parallel --shard=${{ matrix.shard }}/4 --compact
