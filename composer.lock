@@ -4,15 +4,21 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "8a8aab428973a51a4f5cb889f0882df1",
+    "content-hash": "4e81d3e56976406bd1161b415261279a",
     "packages": [
         {
             "name": "aiarmada/addressing",
             "version": "dev-main",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/AIArmada/addressing.git",
+                "reference": "2cef9f8ff81ce8e676860e71795a128ae5f9e263"
+            },
             "dist": {
-                "type": "path",
-                "url": "/Users/Saiffil/Herd/commerce/packages/addressing",
-                "reference": "74ea55ae3b0755d6161d04040afd834ad9ad5a47"
+                "type": "zip",
+                "url": "https://api.github.com/repos/AIArmada/addressing/zipball/2cef9f8ff81ce8e676860e71795a128ae5f9e263",
+                "reference": "2cef9f8ff81ce8e676860e71795a128ae5f9e263",
+                "shasum": ""
             },
             "require": {
                 "aiarmada/commerce-support": "self.version",
@@ -22,6 +28,7 @@
             "suggest": {
                 "nnjeim/world": "Optional source for comparing/importing country, state and city data through an adapter."
             },
+            "default-branch": true,
             "type": "library",
             "extra": {
                 "laravel": {
@@ -33,10 +40,11 @@
             "autoload": {
                 "psr-4": {
                     "AIArmada\\Addressing\\": "src/",
-                    "AIArmada\\Addressing\\Database\\Factories\\": "database/factories",
-                    "AIArmada\\Addressing\\Database\\Seeders\\": "database/seeders"
+                    "AIArmada\\Addressing\\Database\\Seeders\\": "database/seeders",
+                    "AIArmada\\Addressing\\Database\\Factories\\": "database/factories"
                 }
             },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
@@ -55,17 +63,24 @@
                 "laravel",
                 "normalization"
             ],
-            "transport-options": {
-                "relative": false
-            }
+            "support": {
+                "source": "https://github.com/AIArmada/addressing/tree/main"
+            },
+            "time": "2026-07-14T09:09:26+00:00"
         },
         {
             "name": "aiarmada/affiliates",
             "version": "dev-main",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/AIArmada/affiliates.git",
+                "reference": "54764f620f7759a48ae57f4ae713e86019d6c9f1"
+            },
             "dist": {
-                "type": "path",
-                "url": "/Users/Saiffil/Herd/commerce/packages/affiliates",
-                "reference": "f868671b9a7a2bc8fa22bd2a4f333ae52fd19a8d"
+                "type": "zip",
+                "url": "https://api.github.com/repos/AIArmada/affiliates/zipball/54764f620f7759a48ae57f4ae713e86019d6c9f1",
+                "reference": "54764f620f7759a48ae57f4ae713e86019d6c9f1",
+                "shasum": ""
             },
             "require": {
                 "aiarmada/commerce-support": "self.version",
@@ -74,17 +89,19 @@
             },
             "suggest": {
                 "aiarmada/cart": "Enables cart level attribution helpers and conversion tracking",
+                "aiarmada/orders": "Optional integration",
                 "aiarmada/vouchers": "Auto associates affiliate codes with voucher campaigns"
             },
+            "default-branch": true,
             "type": "library",
             "extra": {
                 "laravel": {
-                    "providers": [
-                        "AIArmada\\Affiliates\\AffiliatesServiceProvider"
-                    ],
                     "aliases": {
                         "Affiliate": "AIArmada\\Affiliates\\Facades\\Affiliate"
-                    }
+                    },
+                    "providers": [
+                        "AIArmada\\Affiliates\\AffiliatesServiceProvider"
+                    ]
                 }
             },
             "autoload": {
@@ -92,6 +109,7 @@
                     "AIArmada\\Affiliates\\": "src/"
                 }
             },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
@@ -101,23 +119,31 @@
                 "issues": "https://github.com/aiarmada/commerce/issues",
                 "source": "https://github.com/aiarmada/commerce"
             },
-            "transport-options": {
-                "relative": false
-            }
+            "time": "2026-07-14T09:09:33+00:00"
         },
         {
             "name": "aiarmada/authz",
             "version": "dev-main",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/AIArmada/authz.git",
+                "reference": "0d9ec6a01591b0549a9c62e475729fdce59e1603"
+            },
             "dist": {
-                "type": "path",
-                "url": "/Users/Saiffil/Herd/commerce/packages/authz",
-                "reference": "3cb052320e8813c6ceebc466ca72f7cef98470bb"
+                "type": "zip",
+                "url": "https://api.github.com/repos/AIArmada/authz/zipball/0d9ec6a01591b0549a9c62e475729fdce59e1603",
+                "reference": "0d9ec6a01591b0549a9c62e475729fdce59e1603",
+                "shasum": ""
             },
             "require": {
                 "aiarmada/commerce-support": "self.version",
                 "php": "^8.4",
                 "spatie/laravel-permission": "^8.0.0"
             },
+            "suggest": {
+                "aiarmada/filament-authz": "Optional integration"
+            },
+            "default-branch": true,
             "type": "library",
             "extra": {
                 "laravel": {
@@ -127,28 +153,37 @@
                 }
             },
             "autoload": {
-                "psr-4": {
-                    "AIArmada\\Authz\\": "src/"
-                },
                 "files": [
                     "src/helpers.php"
-                ]
+                ],
+                "psr-4": {
+                    "AIArmada\\Authz\\": "src/"
+                }
             },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
             "description": "Generic Spatie Permission wrapper with scoped authorization and impersonation for Laravel applications.",
-            "transport-options": {
-                "relative": false
-            }
+            "support": {
+                "issues": "https://github.com/AIArmada/authz/issues",
+                "source": "https://github.com/AIArmada/authz/tree/main"
+            },
+            "time": "2026-07-13T17:42:44+00:00"
         },
         {
             "name": "aiarmada/commerce-support",
             "version": "dev-main",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/AIArmada/commerce-support.git",
+                "reference": "7a4d9e0758755bfabe89a42ad3d7ed1f3120e106"
+            },
             "dist": {
-                "type": "path",
-                "url": "/Users/Saiffil/Herd/commerce/packages/commerce-support",
-                "reference": "ac38085ce92cda234f4c9305f13d852e12425e9e"
+                "type": "zip",
+                "url": "https://api.github.com/repos/AIArmada/commerce-support/zipball/7a4d9e0758755bfabe89a42ad3d7ed1f3120e106",
+                "reference": "7a4d9e0758755bfabe89a42ad3d7ed1f3120e106",
+                "shasum": ""
             },
             "require": {
                 "akaunting/laravel-money": "^6.0.3",
@@ -176,6 +211,7 @@
                 "filament/filament": "Required to use the optional Commerce Navigation Filament plugin.",
                 "laravel/octane": "Required for high-performance Octane support"
             },
+            "default-branch": true,
             "type": "library",
             "extra": {
                 "laravel": {
@@ -192,6 +228,7 @@
                     "AIArmada\\CommerceSupport\\": "src/"
                 }
             },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
@@ -201,17 +238,21 @@
                 "issues": "https://github.com/aiarmada/commerce/issues",
                 "source": "https://github.com/aiarmada/commerce"
             },
-            "transport-options": {
-                "relative": false
-            }
+            "time": "2026-07-13T17:42:57+00:00"
         },
         {
             "name": "aiarmada/communications",
             "version": "dev-main",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/AIArmada/communications.git",
+                "reference": "9563321e59510c42a88132903ac5883180e03825"
+            },
             "dist": {
-                "type": "path",
-                "url": "/Users/Saiffil/Herd/commerce/packages/communications",
-                "reference": "0063e2801e71ff51d06c502e12b29f5282f3e984"
+                "type": "zip",
+                "url": "https://api.github.com/repos/AIArmada/communications/zipball/9563321e59510c42a88132903ac5883180e03825",
+                "reference": "9563321e59510c42a88132903ac5883180e03825",
+                "shasum": ""
             },
             "require": {
                 "aiarmada/commerce-support": "self.version",
@@ -225,15 +266,16 @@
                 "owen-it/laravel-auditing": "Compliance-grade model before/after auditing.",
                 "spatie/laravel-activitylog": "Human-readable business activity logging."
             },
+            "default-branch": true,
             "type": "library",
             "extra": {
                 "laravel": {
-                    "providers": [
-                        "AIArmada\\Communications\\CommunicationsServiceProvider"
-                    ],
                     "aliases": {
                         "Communications": "AIArmada\\Communications\\Facades\\Communications"
-                    }
+                    },
+                    "providers": [
+                        "AIArmada\\Communications\\CommunicationsServiceProvider"
+                    ]
                 }
             },
             "autoload": {
@@ -242,6 +284,7 @@
                     "AIArmada\\Communications\\Database\\Factories\\": "database/factories"
                 }
             },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
@@ -260,17 +303,25 @@
                 "sms",
                 "webhook"
             ],
-            "transport-options": {
-                "relative": false
-            }
+            "support": {
+                "issues": "https://github.com/AIArmada/communications/issues",
+                "source": "https://github.com/AIArmada/communications/tree/main"
+            },
+            "time": "2026-07-13T17:43:06+00:00"
         },
         {
             "name": "aiarmada/contacting",
             "version": "dev-main",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/AIArmada/contacting.git",
+                "reference": "d52909cfc4b1d143d801b15fcc1c420ce2511c87"
+            },
             "dist": {
-                "type": "path",
-                "url": "/Users/Saiffil/Herd/commerce/packages/contacting",
-                "reference": "ebe5a4738330c1b9b95196cabf416facb1b5a658"
+                "type": "zip",
+                "url": "https://api.github.com/repos/AIArmada/contacting/zipball/d52909cfc4b1d143d801b15fcc1c420ce2511c87",
+                "reference": "d52909cfc4b1d143d801b15fcc1c420ce2511c87",
+                "shasum": ""
             },
             "require": {
                 "aiarmada/commerce-support": "self.version",
@@ -282,6 +333,7 @@
             "suggest": {
                 "aiarmada/filament-contacting": "Filament admin UI for contact methods and social profiles."
             },
+            "default-branch": true,
             "type": "library",
             "extra": {
                 "laravel": {
@@ -296,6 +348,7 @@
                     "AIArmada\\Contacting\\Database\\Factories\\": "database/factories"
                 }
             },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
@@ -315,17 +368,24 @@
                 "social",
                 "whatsapp"
             ],
-            "transport-options": {
-                "relative": false
-            }
+            "support": {
+                "source": "https://github.com/AIArmada/contacting/tree/main"
+            },
+            "time": "2026-07-12T09:34:04+00:00"
         },
         {
             "name": "aiarmada/engagement",
             "version": "dev-main",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/AIArmada/engagement.git",
+                "reference": "fb4d52f824e44a52117ac81264bdd07c9c7327e8"
+            },
             "dist": {
-                "type": "path",
-                "url": "/Users/Saiffil/Herd/commerce/packages/engagement",
-                "reference": "02dd933489cc9fef424cd9c21e7a43dbe3eca7ba"
+                "type": "zip",
+                "url": "https://api.github.com/repos/AIArmada/engagement/zipball/fb4d52f824e44a52117ac81264bdd07c9c7327e8",
+                "reference": "fb4d52f824e44a52117ac81264bdd07c9c7327e8",
+                "shasum": ""
             },
             "require": {
                 "aiarmada/commerce-support": "self.version",
@@ -336,15 +396,16 @@
                 "aiarmada/events": "Enables EventEngagementManager integration adapter.",
                 "filament/filament": "Enables the Filament admin UI for engagement management."
             },
+            "default-branch": true,
             "type": "library",
             "extra": {
                 "laravel": {
-                    "providers": [
-                        "AIArmada\\Engagement\\EngagementServiceProvider"
-                    ],
                     "aliases": {
                         "Engagement": "AIArmada\\Engagement\\Facades\\Engagement"
-                    }
+                    },
+                    "providers": [
+                        "AIArmada\\Engagement\\EngagementServiceProvider"
+                    ]
                 }
             },
             "autoload": {
@@ -352,6 +413,7 @@
                     "AIArmada\\Engagement\\": "src/"
                 }
             },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
@@ -363,26 +425,34 @@
             ],
             "description": "Generic Laravel engagement package: follow, bookmark, respond, react, subscribe, reminders, share",
             "keywords": [
+                "Follow",
                 "bookmark",
                 "engagement",
-                "follow",
                 "laravel",
                 "reactions",
                 "reminders",
                 "share",
                 "subscriptions"
             ],
-            "transport-options": {
-                "relative": false
-            }
+            "support": {
+                "issues": "https://github.com/AIArmada/engagement/issues",
+                "source": "https://github.com/AIArmada/engagement/tree/main"
+            },
+            "time": "2026-07-12T09:34:39+00:00"
         },
         {
             "name": "aiarmada/events",
             "version": "dev-main",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/AIArmada/events.git",
+                "reference": "1c07819e9ac879ecfa250e816336323b3121b1d5"
+            },
             "dist": {
-                "type": "path",
-                "url": "/Users/Saiffil/Herd/commerce/packages/events",
-                "reference": "c70255d30ce6e8999a3df2893e914e73eac7876c"
+                "type": "zip",
+                "url": "https://api.github.com/repos/AIArmada/events/zipball/1c07819e9ac879ecfa250e816336323b3121b1d5",
+                "reference": "1c07819e9ac879ecfa250e816336323b3121b1d5",
+                "shasum": ""
             },
             "require": {
                 "aiarmada/commerce-support": "self.version",
@@ -397,31 +467,37 @@
                 "spatie/laravel-package-tools": "^1.16"
             },
             "suggest": {
+                "aiarmada/addressing": "Optional integration",
+                "aiarmada/cart": "Optional integration",
                 "aiarmada/checkout": "Enables cart and checkout orchestration for ticket purchasing.",
                 "aiarmada/customers": "Enables customer-backed registrants and participants.",
+                "aiarmada/engagement": "Optional integration",
+                "aiarmada/filament-authz": "Optional integration",
                 "aiarmada/orders": "Enables order-item fulfillment and event order completion sync.",
                 "aiarmada/products": "Enables product/variant relationships for tickets and merchandise."
             },
+            "default-branch": true,
             "type": "library",
             "extra": {
                 "laravel": {
-                    "providers": [
-                        "AIArmada\\Events\\EventsServiceProvider"
-                    ],
                     "aliases": {
                         "Events": "AIArmada\\Events\\Facades\\Events"
-                    }
+                    },
+                    "providers": [
+                        "AIArmada\\Events\\EventsServiceProvider"
+                    ]
                 }
             },
             "autoload": {
+                "files": [
+                    "src/helpers.php"
+                ],
                 "psr-4": {
                     "AIArmada\\Events\\": "src/",
                     "AIArmada\\Events\\Database\\Factories\\": "database/factories"
-                },
-                "files": [
-                    "src/helpers.php"
-                ]
+                }
             },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
@@ -441,23 +517,32 @@
                 "ticketing",
                 "venues"
             ],
-            "transport-options": {
-                "relative": false
-            }
+            "support": {
+                "issues": "https://github.com/AIArmada/events/issues",
+                "source": "https://github.com/AIArmada/events/tree/main"
+            },
+            "time": "2026-07-14T14:13:51+00:00"
         },
         {
             "name": "aiarmada/filament-addressing",
             "version": "dev-main",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/AIArmada/filament-addressing.git",
+                "reference": "45ae90f18d97853826d347e138c7017c88241336"
+            },
             "dist": {
-                "type": "path",
-                "url": "/Users/Saiffil/Herd/commerce/packages/filament-addressing",
-                "reference": "2a73e57861783f51f081e432a927dc960a62b2dd"
+                "type": "zip",
+                "url": "https://api.github.com/repos/AIArmada/filament-addressing/zipball/45ae90f18d97853826d347e138c7017c88241336",
+                "reference": "45ae90f18d97853826d347e138c7017c88241336",
+                "shasum": ""
             },
             "require": {
                 "aiarmada/addressing": "self.version",
                 "filament/filament": "^5.6.7",
                 "php": "^8.4"
             },
+            "default-branch": true,
             "type": "library",
             "extra": {
                 "laravel": {
@@ -471,26 +556,30 @@
                     "AIArmada\\FilamentAddressing\\": "src/"
                 }
             },
-            "autoload-dev": {
-                "psr-4": {
-                    "AIArmada\\FilamentAddressing\\Tests\\": "tests/"
-                }
-            },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
             "description": "Filament v5 adapter for aiarmada/addressing.",
-            "transport-options": {
-                "relative": false
-            }
+            "support": {
+                "issues": "https://github.com/AIArmada/filament-addressing/issues",
+                "source": "https://github.com/AIArmada/filament-addressing/tree/main"
+            },
+            "time": "2026-07-14T09:30:13+00:00"
         },
         {
             "name": "aiarmada/filament-authz",
             "version": "dev-main",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/AIArmada/filament-authz.git",
+                "reference": "645061a864c8dba6f8e1fe4a3167506f589bf33e"
+            },
             "dist": {
-                "type": "path",
-                "url": "/Users/Saiffil/Herd/commerce/packages/filament-authz",
-                "reference": "c9d3a0eeb3a5a71a1e0e20d9e5697c4c0a9a2379"
+                "type": "zip",
+                "url": "https://api.github.com/repos/AIArmada/filament-authz/zipball/645061a864c8dba6f8e1fe4a3167506f589bf33e",
+                "reference": "645061a864c8dba6f8e1fe4a3167506f589bf33e",
+                "shasum": ""
             },
             "require": {
                 "aiarmada/authz": "self.version",
@@ -499,6 +588,7 @@
                 "php": "^8.4",
                 "spatie/laravel-permission": "^8.0.0"
             },
+            "default-branch": true,
             "type": "library",
             "extra": {
                 "laravel": {
@@ -512,21 +602,30 @@
                     "AIArmada\\FilamentAuthz\\": "src/"
                 }
             },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
             "description": "Filament v5 permissions suite powered by Spatie laravel-permission with multi-guard, panel-aware gating, and admin UX.",
-            "transport-options": {
-                "relative": false
-            }
+            "support": {
+                "issues": "https://github.com/AIArmada/filament-authz/issues",
+                "source": "https://github.com/AIArmada/filament-authz/tree/main"
+            },
+            "time": "2026-07-02T23:18:49+00:00"
         },
         {
             "name": "aiarmada/filament-commerce-support",
             "version": "dev-main",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/AIArmada/filament-commerce-support.git",
+                "reference": "195871db77719320a52649f3993fa43c1d28ee17"
+            },
             "dist": {
-                "type": "path",
-                "url": "/Users/Saiffil/Herd/commerce/packages/filament-commerce-support",
-                "reference": "a4a4b9e661cfbabab9ab2cd42c0baa13fdcb4b5c"
+                "type": "zip",
+                "url": "https://api.github.com/repos/AIArmada/filament-commerce-support/zipball/195871db77719320a52649f3993fa43c1d28ee17",
+                "reference": "195871db77719320a52649f3993fa43c1d28ee17",
+                "shasum": ""
             },
             "require": {
                 "aiarmada/commerce-support": "self.version",
@@ -534,6 +633,7 @@
                 "php": "^8.4",
                 "spatie/laravel-settings": "^3.8.1"
             },
+            "default-branch": true,
             "type": "library",
             "extra": {
                 "laravel": {
@@ -547,6 +647,7 @@
                     "AIArmada\\FilamentCommerceSupport\\": "src/"
                 }
             },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
@@ -556,17 +657,21 @@
                 "issues": "https://github.com/aiarmada/commerce/issues",
                 "source": "https://github.com/aiarmada/commerce"
             },
-            "transport-options": {
-                "relative": false
-            }
+            "time": "2026-06-27T17:12:31+00:00"
         },
         {
             "name": "aiarmada/filament-communications",
             "version": "dev-main",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/AIArmada/filament-communications.git",
+                "reference": "0607eb0a9b83fdbf4f72ca2139a4370c8c8ed917"
+            },
             "dist": {
-                "type": "path",
-                "url": "/Users/Saiffil/Herd/commerce/packages/filament-communications",
-                "reference": "0deb595c1645c171f80da1f4e83ee2f12faf9b20"
+                "type": "zip",
+                "url": "https://api.github.com/repos/AIArmada/filament-communications/zipball/0607eb0a9b83fdbf4f72ca2139a4370c8c8ed917",
+                "reference": "0607eb0a9b83fdbf4f72ca2139a4370c8c8ed917",
+                "shasum": ""
             },
             "require": {
                 "aiarmada/commerce-support": "self.version",
@@ -575,6 +680,7 @@
                 "php": "^8.4",
                 "spatie/laravel-package-tools": "^1.16"
             },
+            "default-branch": true,
             "type": "library",
             "extra": {
                 "laravel": {
@@ -588,6 +694,7 @@
                     "AIArmada\\Filament\\Communications\\": "src/"
                 }
             },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
@@ -604,17 +711,25 @@
                 "filament",
                 "laravel"
             ],
-            "transport-options": {
-                "relative": false
-            }
+            "support": {
+                "issues": "https://github.com/AIArmada/filament-communications/issues",
+                "source": "https://github.com/AIArmada/filament-communications/tree/main"
+            },
+            "time": "2026-06-27T17:15:51+00:00"
         },
         {
             "name": "aiarmada/filament-contacting",
             "version": "dev-main",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/AIArmada/filament-contacting.git",
+                "reference": "6773fed3b7c1dcd27fe44940218385f01391fa2e"
+            },
             "dist": {
-                "type": "path",
-                "url": "/Users/Saiffil/Herd/commerce/packages/filament-contacting",
-                "reference": "43381e43ea577ce33935964801ebf2343cd21c43"
+                "type": "zip",
+                "url": "https://api.github.com/repos/AIArmada/filament-contacting/zipball/6773fed3b7c1dcd27fe44940218385f01391fa2e",
+                "reference": "6773fed3b7c1dcd27fe44940218385f01391fa2e",
+                "shasum": ""
             },
             "require": {
                 "aiarmada/contacting": "self.version",
@@ -622,6 +737,7 @@
                 "php": "^8.4",
                 "ysfkaya/filament-phone-input": "^4.0"
             },
+            "default-branch": true,
             "type": "library",
             "extra": {
                 "laravel": {
@@ -635,26 +751,29 @@
                     "AIArmada\\FilamentContacting\\": "src/"
                 }
             },
-            "autoload-dev": {
-                "psr-4": {
-                    "AIArmada\\FilamentContacting\\Tests\\": "tests/"
-                }
-            },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
             "description": "Filament v5 adapter for aiarmada/contacting.",
-            "transport-options": {
-                "relative": false
-            }
+            "support": {
+                "source": "https://github.com/AIArmada/filament-contacting/tree/main"
+            },
+            "time": "2026-06-27T17:14:30+00:00"
         },
         {
             "name": "aiarmada/filament-engagement",
             "version": "dev-main",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/AIArmada/filament-engagement.git",
+                "reference": "c9e5cb5d8756ed8489608ee0df8c26c1cbf2d7bc"
+            },
             "dist": {
-                "type": "path",
-                "url": "/Users/Saiffil/Herd/commerce/packages/filament-engagement",
-                "reference": "821a2422a129e26f9785fab6f5d18bf260afb798"
+                "type": "zip",
+                "url": "https://api.github.com/repos/AIArmada/filament-engagement/zipball/c9e5cb5d8756ed8489608ee0df8c26c1cbf2d7bc",
+                "reference": "c9e5cb5d8756ed8489608ee0df8c26c1cbf2d7bc",
+                "shasum": ""
             },
             "require": {
                 "aiarmada/commerce-support": "self.version",
@@ -662,6 +781,7 @@
                 "filament/filament": "^5.6.7",
                 "php": "^8.4"
             },
+            "default-branch": true,
             "type": "library",
             "extra": {
                 "laravel": {
@@ -675,21 +795,30 @@
                     "AIArmada\\FilamentEngagement\\": "src/"
                 }
             },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
             "description": "Filament admin for aiarmada/engagement: manage follows, bookmarks, responses, reactions, subscriptions, reminders.",
-            "transport-options": {
-                "relative": false
-            }
+            "support": {
+                "issues": "https://github.com/AIArmada/filament-engagement/issues",
+                "source": "https://github.com/AIArmada/filament-engagement/tree/main"
+            },
+            "time": "2026-06-27T22:54:59+00:00"
         },
         {
             "name": "aiarmada/filament-events",
             "version": "dev-main",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/AIArmada/filament-events.git",
+                "reference": "464a59c7040b9d7983a93448f3e002143ab33c18"
+            },
             "dist": {
-                "type": "path",
-                "url": "/Users/Saiffil/Herd/commerce/packages/filament-events",
-                "reference": "e89dd1cea498e19f299ac4578e4648e2578748b8"
+                "type": "zip",
+                "url": "https://api.github.com/repos/AIArmada/filament-events/zipball/464a59c7040b9d7983a93448f3e002143ab33c18",
+                "reference": "464a59c7040b9d7983a93448f3e002143ab33c18",
+                "shasum": ""
             },
             "require": {
                 "aiarmada/commerce-support": "self.version",
@@ -697,6 +826,11 @@
                 "filament/filament": "^5.6.7",
                 "php": "^8.4"
             },
+            "suggest": {
+                "aiarmada/customers": "Optional integration",
+                "aiarmada/ticketing": "Optional integration"
+            },
+            "default-branch": true,
             "type": "library",
             "extra": {
                 "laravel": {
@@ -710,21 +844,30 @@
                     "AIArmada\\FilamentEvents\\": "src/"
                 }
             },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
             "description": "Filament admin for aiarmada/events: manage events, occurrences, registrations, attendance, venues.",
-            "transport-options": {
-                "relative": false
-            }
+            "support": {
+                "issues": "https://github.com/AIArmada/filament-events/issues",
+                "source": "https://github.com/AIArmada/filament-events/tree/main"
+            },
+            "time": "2026-07-14T15:41:20+00:00"
         },
         {
             "name": "aiarmada/filament-inventory",
             "version": "dev-main",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/AIArmada/filament-inventory.git",
+                "reference": "c08947fe1ed28b029c1b4ca1dc8f29c51e7573a0"
+            },
             "dist": {
-                "type": "path",
-                "url": "/Users/Saiffil/Herd/commerce/packages/filament-inventory",
-                "reference": "885a13cba4fe038efd688800a07e62951f8a79e0"
+                "type": "zip",
+                "url": "https://api.github.com/repos/AIArmada/filament-inventory/zipball/c08947fe1ed28b029c1b4ca1dc8f29c51e7573a0",
+                "reference": "c08947fe1ed28b029c1b4ca1dc8f29c51e7573a0",
+                "shasum": ""
             },
             "require": {
                 "aiarmada/commerce-support": "self.version",
@@ -732,6 +875,7 @@
                 "filament/filament": "^5.6.7",
                 "php": "^8.4"
             },
+            "default-branch": true,
             "type": "library",
             "extra": {
                 "laravel": {
@@ -745,6 +889,7 @@
                     "AIArmada\\FilamentInventory\\": "src/"
                 }
             },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
@@ -754,17 +899,21 @@
                 "issues": "https://github.com/aiarmada/commerce/issues",
                 "source": "https://github.com/aiarmada/commerce"
             },
-            "transport-options": {
-                "relative": false
-            }
+            "time": "2026-06-27T17:13:28+00:00"
         },
         {
             "name": "aiarmada/filament-seating",
             "version": "dev-main",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/AIArmada/filament-seating.git",
+                "reference": "e952148533c6c1cd07b8d78ebbe8fb4ae573c0df"
+            },
             "dist": {
-                "type": "path",
-                "url": "/Users/Saiffil/Herd/commerce/packages/filament-seating",
-                "reference": "71a11a2b5bdf69e70a05a1d4615bae63373525f6"
+                "type": "zip",
+                "url": "https://api.github.com/repos/AIArmada/filament-seating/zipball/e952148533c6c1cd07b8d78ebbe8fb4ae573c0df",
+                "reference": "e952148533c6c1cd07b8d78ebbe8fb4ae573c0df",
+                "shasum": ""
             },
             "require": {
                 "aiarmada/filament-commerce-support": "self.version",
@@ -772,6 +921,7 @@
                 "filament/filament": "^5.6.7",
                 "php": "^8.4"
             },
+            "default-branch": true,
             "type": "library",
             "extra": {
                 "laravel": {
@@ -785,21 +935,30 @@
                     "AIArmada\\FilamentSeating\\": "src/"
                 }
             },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
             "description": "Filament admin for aiarmada/seating: manage seat maps, sections, and occupancy.",
-            "transport-options": {
-                "relative": false
-            }
+            "support": {
+                "issues": "https://github.com/AIArmada/filament-seating/issues",
+                "source": "https://github.com/AIArmada/filament-seating/tree/main"
+            },
+            "time": "2026-07-02T23:14:59+00:00"
         },
         {
             "name": "aiarmada/filament-signals",
             "version": "dev-main",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/AIArmada/filament-signals.git",
+                "reference": "2fdf61659ef5c7f1a5b23df7f5530df33df9931c"
+            },
             "dist": {
-                "type": "path",
-                "url": "/Users/Saiffil/Herd/commerce/packages/filament-signals",
-                "reference": "163c66d4cd02d756c9a502995f8fdafe1d4d5f94"
+                "type": "zip",
+                "url": "https://api.github.com/repos/AIArmada/filament-signals/zipball/2fdf61659ef5c7f1a5b23df7f5530df33df9931c",
+                "reference": "2fdf61659ef5c7f1a5b23df7f5530df33df9931c",
+                "shasum": ""
             },
             "require": {
                 "aiarmada/commerce-support": "self.version",
@@ -807,6 +966,7 @@
                 "filament/filament": "^5.6.7",
                 "php": "^8.4"
             },
+            "default-branch": true,
             "type": "library",
             "extra": {
                 "laravel": {
@@ -820,6 +980,7 @@
                     "AIArmada\\FilamentSignals\\": "src/"
                 }
             },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
@@ -837,17 +998,25 @@
                 "product-analytics",
                 "signals"
             ],
-            "transport-options": {
-                "relative": false
-            }
+            "support": {
+                "issues": "https://github.com/AIArmada/filament-signals/issues",
+                "source": "https://github.com/AIArmada/filament-signals/tree/main"
+            },
+            "time": "2026-07-13T17:42:32+00:00"
         },
         {
             "name": "aiarmada/filament-ticketing",
             "version": "dev-main",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/AIArmada/filament-ticketing.git",
+                "reference": "e56eae69a413f6210cec7f5c0de15e3d687e441e"
+            },
             "dist": {
-                "type": "path",
-                "url": "/Users/Saiffil/Herd/commerce/packages/filament-ticketing",
-                "reference": "3446c880c1e41cb6622a7f0bcfc97a8cb1df98ef"
+                "type": "zip",
+                "url": "https://api.github.com/repos/AIArmada/filament-ticketing/zipball/e56eae69a413f6210cec7f5c0de15e3d687e441e",
+                "reference": "e56eae69a413f6210cec7f5c0de15e3d687e441e",
+                "shasum": ""
             },
             "require": {
                 "aiarmada/filament-commerce-support": "self.version",
@@ -855,6 +1024,7 @@
                 "filament/filament": "^5.6.7",
                 "php": "^8.4"
             },
+            "default-branch": true,
             "type": "library",
             "extra": {
                 "laravel": {
@@ -868,21 +1038,30 @@
                     "AIArmada\\FilamentTicketing\\": "src/"
                 }
             },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
             "description": "Filament admin for aiarmada/ticketing: manage ticket types, passes, pass holders, transfers, and pass issuance.",
-            "transport-options": {
-                "relative": false
-            }
+            "support": {
+                "issues": "https://github.com/AIArmada/filament-ticketing/issues",
+                "source": "https://github.com/AIArmada/filament-ticketing/tree/main"
+            },
+            "time": "2026-07-02T23:14:59+00:00"
         },
         {
             "name": "aiarmada/inventory",
             "version": "dev-main",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/AIArmada/inventory.git",
+                "reference": "451083ff0fdcb9d083011103a40e77bd7b3d1fdf"
+            },
             "dist": {
-                "type": "path",
-                "url": "/Users/Saiffil/Herd/commerce/packages/inventory",
-                "reference": "6cd2a518af4de7a6caec7bb13d517e6ffbcee915"
+                "type": "zip",
+                "url": "https://api.github.com/repos/AIArmada/inventory/zipball/451083ff0fdcb9d083011103a40e77bd7b3d1fdf",
+                "reference": "451083ff0fdcb9d083011103a40e77bd7b3d1fdf",
+                "shasum": ""
             },
             "require": {
                 "aiarmada/commerce-support": "self.version",
@@ -890,20 +1069,23 @@
             },
             "suggest": {
                 "aiarmada/cart": "Required for cart integration features (stock reservation, allocation on checkout)",
+                "aiarmada/cashier": "Optional integration",
+                "aiarmada/cashier-chip": "Optional integration",
                 "aiarmada/orders": "Required for automatic inventory deduction on payment and release on cancellation",
                 "aiarmada/products": "Recommended for product stock queries via Inventoryable interface",
                 "aiarmada/shipping": "Required for fulfillment location optimization"
             },
+            "default-branch": true,
             "type": "library",
             "extra": {
                 "laravel": {
-                    "providers": [
-                        "AIArmada\\Inventory\\InventoryServiceProvider"
-                    ],
                     "aliases": {
                         "Inventory": "AIArmada\\Inventory\\Facades\\Inventory",
                         "InventoryAllocation": "AIArmada\\Inventory\\Facades\\InventoryAllocation"
-                    }
+                    },
+                    "providers": [
+                        "AIArmada\\Inventory\\InventoryServiceProvider"
+                    ]
                 }
             },
             "autoload": {
@@ -912,6 +1094,7 @@
                     "AIArmada\\Inventory\\Database\\Factories\\": "database/factories/"
                 }
             },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
@@ -921,17 +1104,21 @@
                 "issues": "https://github.com/aiarmada/commerce/issues",
                 "source": "https://github.com/aiarmada/commerce"
             },
-            "transport-options": {
-                "relative": false
-            }
+            "time": "2026-07-13T17:42:11+00:00"
         },
         {
             "name": "aiarmada/membership",
             "version": "dev-main",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/AIArmada/membership.git",
+                "reference": "5e48e3725ee15afce3faf8c709b28eaad2da1149"
+            },
             "dist": {
-                "type": "path",
-                "url": "/Users/Saiffil/Herd/commerce/packages/membership",
-                "reference": "f8de84194c1d3e76dd4f4b479a622528e42575ba"
+                "type": "zip",
+                "url": "https://api.github.com/repos/AIArmada/membership/zipball/5e48e3725ee15afce3faf8c709b28eaad2da1149",
+                "reference": "5e48e3725ee15afce3faf8c709b28eaad2da1149",
+                "shasum": ""
             },
             "require": {
                 "aiarmada/authz": "self.version",
@@ -939,6 +1126,7 @@
                 "lorisleiva/laravel-actions": "^2.10.1",
                 "php": "^8.4"
             },
+            "default-branch": true,
             "type": "library",
             "extra": {
                 "laravel": {
@@ -952,27 +1140,37 @@
                     "AIArmada\\Membership\\": "src/"
                 }
             },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
             "description": "Multi-tenant membership management: applications, invitations, and member roles for Laravel applications.",
-            "transport-options": {
-                "relative": false
-            }
+            "support": {
+                "issues": "https://github.com/AIArmada/membership/issues",
+                "source": "https://github.com/AIArmada/membership/tree/main"
+            },
+            "time": "2026-07-14T14:13:36+00:00"
         },
         {
             "name": "aiarmada/moderation",
             "version": "dev-main",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/AIArmada/moderation.git",
+                "reference": "a757fc4fee3c2dc78564de6fe32f6541c7500dfc"
+            },
             "dist": {
-                "type": "path",
-                "url": "/Users/Saiffil/Herd/commerce/packages/moderation",
-                "reference": "9bcf66c929159f49184bf3ed48ea0cb1ce799a0b"
+                "type": "zip",
+                "url": "https://api.github.com/repos/AIArmada/moderation/zipball/a757fc4fee3c2dc78564de6fe32f6541c7500dfc",
+                "reference": "a757fc4fee3c2dc78564de6fe32f6541c7500dfc",
+                "shasum": ""
             },
             "require": {
                 "aiarmada/commerce-support": "self.version",
                 "php": "^8.4",
                 "spatie/laravel-package-tools": "^1.16"
             },
+            "default-branch": true,
             "type": "library",
             "extra": {
                 "laravel": {
@@ -982,28 +1180,37 @@
                 }
             },
             "autoload": {
-                "psr-4": {
-                    "AIArmada\\Moderation\\": "src/"
-                },
                 "files": [
                     "src/helpers.php"
-                ]
+                ],
+                "psr-4": {
+                    "AIArmada\\Moderation\\": "src/"
+                }
             },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
             "description": "Generic moderation, blocking, and ban management for Laravel applications",
-            "transport-options": {
-                "relative": false
-            }
+            "support": {
+                "issues": "https://github.com/AIArmada/moderation/issues",
+                "source": "https://github.com/AIArmada/moderation/tree/main"
+            },
+            "time": "2026-07-12T09:34:02+00:00"
         },
         {
             "name": "aiarmada/references",
             "version": "dev-main",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/AIArmada/references.git",
+                "reference": "38d59eb75c8b9c184fb0c5575d0e305ea01dc5a1"
+            },
             "dist": {
-                "type": "path",
-                "url": "/Users/Saiffil/Herd/commerce/packages/references",
-                "reference": "66fca571b136c31d662a67f2a8cf40c5588028ba"
+                "type": "zip",
+                "url": "https://api.github.com/repos/AIArmada/references/zipball/38d59eb75c8b9c184fb0c5575d0e305ea01dc5a1",
+                "reference": "38d59eb75c8b9c184fb0c5575d0e305ea01dc5a1",
+                "shasum": ""
             },
             "require": {
                 "php": "^8.4",
@@ -1011,6 +1218,7 @@
                 "spatie/laravel-package-tools": "^1.16",
                 "spatie/laravel-sluggable": "^4.0.2"
             },
+            "default-branch": true,
             "type": "library",
             "extra": {
                 "laravel": {
@@ -1020,28 +1228,37 @@
                 }
             },
             "autoload": {
-                "psr-4": {
-                    "AIArmada\\References\\": "src/"
-                },
                 "files": [
                     "src/helpers.php"
-                ]
+                ],
+                "psr-4": {
+                    "AIArmada\\References\\": "src/"
+                }
             },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
             "description": "Generic reference/source management for Laravel - scholarly references with hierarchical parts support",
-            "transport-options": {
-                "relative": false
-            }
+            "support": {
+                "issues": "https://github.com/AIArmada/references/issues",
+                "source": "https://github.com/AIArmada/references/tree/main"
+            },
+            "time": "2026-07-13T17:42:55+00:00"
         },
         {
             "name": "aiarmada/seating",
             "version": "dev-main",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/AIArmada/seating.git",
+                "reference": "93a4ffc1a21caa04d37f63f24f53c24e5cf4da22"
+            },
             "dist": {
-                "type": "path",
-                "url": "/Users/Saiffil/Herd/commerce/packages/seating",
-                "reference": "c06c89831945cd18c296c4d98644942055946365"
+                "type": "zip",
+                "url": "https://api.github.com/repos/AIArmada/seating/zipball/93a4ffc1a21caa04d37f63f24f53c24e5cf4da22",
+                "reference": "93a4ffc1a21caa04d37f63f24f53c24e5cf4da22",
+                "shasum": ""
             },
             "require": {
                 "aiarmada/commerce-support": "self.version",
@@ -1054,6 +1271,7 @@
                 "aiarmada/events": "Enables event-scoped seat maps.",
                 "aiarmada/ticketing": "Enables seat allocation for passes."
             },
+            "default-branch": true,
             "type": "library",
             "extra": {
                 "laravel": {
@@ -1068,6 +1286,7 @@
                     "AIArmada\\Seating\\Database\\Factories\\": "database/factories"
                 }
             },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
@@ -1085,23 +1304,35 @@
                 "seats",
                 "venues"
             ],
-            "transport-options": {
-                "relative": false
-            }
+            "support": {
+                "issues": "https://github.com/AIArmada/seating/issues",
+                "source": "https://github.com/AIArmada/seating/tree/main"
+            },
+            "time": "2026-07-13T11:30:49+00:00"
         },
         {
             "name": "aiarmada/signals",
             "version": "dev-main",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/AIArmada/signals.git",
+                "reference": "2696e8cd466a56af96ed920fc3ef21e804926eb5"
+            },
             "dist": {
-                "type": "path",
-                "url": "/Users/Saiffil/Herd/commerce/packages/signals",
-                "reference": "89e142e2d5f5b4416348cb96f397b24e6179e8ab"
+                "type": "zip",
+                "url": "https://api.github.com/repos/AIArmada/signals/zipball/2696e8cd466a56af96ed920fc3ef21e804926eb5",
+                "reference": "2696e8cd466a56af96ed920fc3ef21e804926eb5",
+                "shasum": ""
             },
             "require": {
                 "aiarmada/commerce-support": "self.version",
                 "matomo/device-detector": "^6.5.0",
                 "php": "^8.4"
             },
+            "suggest": {
+                "aiarmada/growth": "Optional integration"
+            },
+            "default-branch": true,
             "type": "library",
             "extra": {
                 "laravel": {
@@ -1115,6 +1346,7 @@
                     "AIArmada\\Signals\\": "src/"
                 }
             },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
@@ -1132,17 +1364,25 @@
                 "product-analytics",
                 "signals"
             ],
-            "transport-options": {
-                "relative": false
-            }
+            "support": {
+                "issues": "https://github.com/AIArmada/signals/issues",
+                "source": "https://github.com/AIArmada/signals/tree/main"
+            },
+            "time": "2026-07-14T09:09:18+00:00"
         },
         {
             "name": "aiarmada/ticketing",
             "version": "dev-main",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/AIArmada/ticketing.git",
+                "reference": "277ebabdcade31c9b509776438f37682a011c14e"
+            },
             "dist": {
-                "type": "path",
-                "url": "/Users/Saiffil/Herd/commerce/packages/ticketing",
-                "reference": "2dcf56c045b6002946968fb447827567dffb8bcb"
+                "type": "zip",
+                "url": "https://api.github.com/repos/AIArmada/ticketing/zipball/277ebabdcade31c9b509776438f37682a011c14e",
+                "reference": "277ebabdcade31c9b509776438f37682a011c14e",
+                "shasum": ""
             },
             "require": {
                 "aiarmada/commerce-support": "self.version",
@@ -1160,6 +1400,7 @@
                 "aiarmada/orders": "Enables automatic pass issuance on order paid.",
                 "aiarmada/products": "Enables ticket-bundled products and variants."
             },
+            "default-branch": true,
             "type": "library",
             "extra": {
                 "laravel": {
@@ -1174,6 +1415,7 @@
                     "AIArmada\\Ticketing\\Database\\Factories\\": "database/factories"
                 }
             },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
@@ -1191,9 +1433,11 @@
                 "ticketing",
                 "tickets"
             ],
-            "transport-options": {
-                "relative": false
-            }
+            "support": {
+                "issues": "https://github.com/AIArmada/ticketing/issues",
+                "source": "https://github.com/AIArmada/ticketing/tree/main"
+            },
+            "time": "2026-07-13T11:30:50+00:00"
         },
         {
             "name": "akaunting/laravel-money",
@@ -1384,16 +1628,16 @@
         },
         {
             "name": "aws/aws-sdk-php",
-            "version": "3.388.0",
+            "version": "3.388.5",
             "source": {
                 "type": "git",
                 "url": "https://github.com/aws/aws-sdk-php.git",
-                "reference": "6dd9a0674641ef7d302a50cc8f275eb443182dc9"
+                "reference": "6104783c60d9134e7ceaeef03997767a547462b8"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/aws/aws-sdk-php/zipball/6dd9a0674641ef7d302a50cc8f275eb443182dc9",
-                "reference": "6dd9a0674641ef7d302a50cc8f275eb443182dc9",
+                "url": "https://api.github.com/repos/aws/aws-sdk-php/zipball/6104783c60d9134e7ceaeef03997767a547462b8",
+                "reference": "6104783c60d9134e7ceaeef03997767a547462b8",
                 "shasum": ""
             },
             "require": {
@@ -1475,9 +1719,9 @@
             "support": {
                 "forum": "https://github.com/aws/aws-sdk-php/discussions",
                 "issues": "https://github.com/aws/aws-sdk-php/issues",
-                "source": "https://github.com/aws/aws-sdk-php/tree/3.388.0"
+                "source": "https://github.com/aws/aws-sdk-php/tree/3.388.5"
             },
-            "time": "2026-07-07T18:11:48+00:00"
+            "time": "2026-07-13T18:09:02+00:00"
         },
         {
             "name": "bacon/bacon-qr-code",
@@ -2433,16 +2677,16 @@
         },
         {
             "name": "dedoc/scramble",
-            "version": "v0.13.31",
+            "version": "v0.13.34",
             "source": {
                 "type": "git",
                 "url": "https://github.com/dedoc/scramble.git",
-                "reference": "422c759a26395933be308aec5eeeeae0f78229cf"
+                "reference": "af86ba277ee71640215ec4715bac1aa04e0767f6"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/dedoc/scramble/zipball/422c759a26395933be308aec5eeeeae0f78229cf",
-                "reference": "422c759a26395933be308aec5eeeeae0f78229cf",
+                "url": "https://api.github.com/repos/dedoc/scramble/zipball/af86ba277ee71640215ec4715bac1aa04e0767f6",
+                "reference": "af86ba277ee71640215ec4715bac1aa04e0767f6",
                 "shasum": ""
             },
             "require": {
@@ -2502,7 +2746,7 @@
             ],
             "support": {
                 "issues": "https://github.com/dedoc/scramble/issues",
-                "source": "https://github.com/dedoc/scramble/tree/v0.13.31"
+                "source": "https://github.com/dedoc/scramble/tree/v0.13.34"
             },
             "funding": [
                 {
@@ -2510,7 +2754,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-07-07T14:30:53+00:00"
+            "time": "2026-07-12T08:47:55+00:00"
         },
         {
             "name": "defuse/php-encryption",
@@ -3995,22 +4239,22 @@
         },
         {
             "name": "guzzlehttp/guzzle",
-            "version": "7.13.2",
+            "version": "7.14.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/guzzle/guzzle.git",
-                "reference": "bcd989ad36c92d42a3715379af91f2defee5b8dd"
+                "reference": "6b1d2429a2c312474c523aa9017fba0c07b5f4a0"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/guzzle/guzzle/zipball/bcd989ad36c92d42a3715379af91f2defee5b8dd",
-                "reference": "bcd989ad36c92d42a3715379af91f2defee5b8dd",
+                "url": "https://api.github.com/repos/guzzle/guzzle/zipball/6b1d2429a2c312474c523aa9017fba0c07b5f4a0",
+                "reference": "6b1d2429a2c312474c523aa9017fba0c07b5f4a0",
                 "shasum": ""
             },
             "require": {
                 "ext-json": "*",
-                "guzzlehttp/promises": "^2.5",
-                "guzzlehttp/psr7": "^2.12.3",
+                "guzzlehttp/promises": "^2.5.1",
+                "guzzlehttp/psr7": "^2.12.5",
                 "php": "^7.2.5 || ^8.0",
                 "psr/http-client": "^1.0",
                 "symfony/deprecation-contracts": "^2.5 || ^3.0",
@@ -4103,7 +4347,7 @@
             ],
             "support": {
                 "issues": "https://github.com/guzzle/guzzle/issues",
-                "source": "https://github.com/guzzle/guzzle/tree/7.13.2"
+                "source": "https://github.com/guzzle/guzzle/tree/7.14.1"
             },
             "funding": [
                 {
@@ -4119,20 +4363,20 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-07-05T19:00:11+00:00"
+            "time": "2026-07-13T01:32:54+00:00"
         },
         {
             "name": "guzzlehttp/promises",
-            "version": "2.5.0",
+            "version": "2.5.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/guzzle/promises.git",
-                "reference": "4360e982f87f5f258bf872d094647791db2f4c8e"
+                "reference": "9ad1e4fc607446a055b95870c7f668e93b5cff29"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/guzzle/promises/zipball/4360e982f87f5f258bf872d094647791db2f4c8e",
-                "reference": "4360e982f87f5f258bf872d094647791db2f4c8e",
+                "url": "https://api.github.com/repos/guzzle/promises/zipball/9ad1e4fc607446a055b95870c7f668e93b5cff29",
+                "reference": "9ad1e4fc607446a055b95870c7f668e93b5cff29",
                 "shasum": ""
             },
             "require": {
@@ -4187,7 +4431,7 @@
             ],
             "support": {
                 "issues": "https://github.com/guzzle/promises/issues",
-                "source": "https://github.com/guzzle/promises/tree/2.5.0"
+                "source": "https://github.com/guzzle/promises/tree/2.5.1"
             },
             "funding": [
                 {
@@ -4203,20 +4447,20 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-06-02T12:23:43+00:00"
+            "time": "2026-07-08T15:48:39+00:00"
         },
         {
             "name": "guzzlehttp/psr7",
-            "version": "2.12.3",
+            "version": "2.12.5",
             "source": {
                 "type": "git",
                 "url": "https://github.com/guzzle/psr7.git",
-                "reference": "7ec62dc3f44aa218487dbed81a9bf9bc647be55d"
+                "reference": "9365d578a9fd1552ad6ca9c3cb530708526feb09"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/guzzle/psr7/zipball/7ec62dc3f44aa218487dbed81a9bf9bc647be55d",
-                "reference": "7ec62dc3f44aa218487dbed81a9bf9bc647be55d",
+                "url": "https://api.github.com/repos/guzzle/psr7/zipball/9365d578a9fd1552ad6ca9c3cb530708526feb09",
+                "reference": "9365d578a9fd1552ad6ca9c3cb530708526feb09",
                 "shasum": ""
             },
             "require": {
@@ -4306,7 +4550,7 @@
             ],
             "support": {
                 "issues": "https://github.com/guzzle/psr7/issues",
-                "source": "https://github.com/guzzle/psr7/tree/2.12.3"
+                "source": "https://github.com/guzzle/psr7/tree/2.12.5"
             },
             "funding": [
                 {
@@ -4322,20 +4566,20 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-06-23T15:21:08+00:00"
+            "time": "2026-07-13T01:27:20+00:00"
         },
         {
             "name": "guzzlehttp/uri-template",
-            "version": "v1.0.8",
+            "version": "v1.0.9",
             "source": {
                 "type": "git",
                 "url": "https://github.com/guzzle/uri-template.git",
-                "reference": "9c19128923b05a5d7355e5d2318d7808b7e33bbd"
+                "reference": "d7580af6d3f8384325d9cd3e99b21c3ed1848176"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/guzzle/uri-template/zipball/9c19128923b05a5d7355e5d2318d7808b7e33bbd",
-                "reference": "9c19128923b05a5d7355e5d2318d7808b7e33bbd",
+                "url": "https://api.github.com/repos/guzzle/uri-template/zipball/d7580af6d3f8384325d9cd3e99b21c3ed1848176",
+                "reference": "d7580af6d3f8384325d9cd3e99b21c3ed1848176",
                 "shasum": ""
             },
             "require": {
@@ -4392,7 +4636,7 @@
             ],
             "support": {
                 "issues": "https://github.com/guzzle/uri-template/issues",
-                "source": "https://github.com/guzzle/uri-template/tree/v1.0.8"
+                "source": "https://github.com/guzzle/uri-template/tree/v1.0.9"
             },
             "funding": [
                 {
@@ -4408,7 +4652,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-06-23T13:02:23+00:00"
+            "time": "2026-07-08T16:19:22+00:00"
         },
         {
             "name": "http-interop/http-factory-guzzle",
@@ -4835,16 +5079,16 @@
         },
         {
             "name": "laravel/framework",
-            "version": "v13.19.0",
+            "version": "v13.20.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/laravel/framework.git",
-                "reference": "514502b38e11bd676ecf83b271c9452cc7500f16"
+                "reference": "b9d1bccad5fbc32578dca22566bb11e7c0e545d7"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/laravel/framework/zipball/514502b38e11bd676ecf83b271c9452cc7500f16",
-                "reference": "514502b38e11bd676ecf83b271c9452cc7500f16",
+                "url": "https://api.github.com/repos/laravel/framework/zipball/b9d1bccad5fbc32578dca22566bb11e7c0e545d7",
+                "reference": "b9d1bccad5fbc32578dca22566bb11e7c0e545d7",
                 "shasum": ""
             },
             "require": {
@@ -4923,6 +5167,7 @@
                 "illuminate/filesystem": "self.version",
                 "illuminate/hashing": "self.version",
                 "illuminate/http": "self.version",
+                "illuminate/image": "self.version",
                 "illuminate/json-schema": "self.version",
                 "illuminate/log": "self.version",
                 "illuminate/macroable": "self.version",
@@ -4949,6 +5194,7 @@
                 "ext-gmp": "*",
                 "fakerphp/faker": "^1.24",
                 "guzzlehttp/psr7": "^2.9",
+                "intervention/image": "^4.0",
                 "laravel/pint": "^1.18",
                 "league/flysystem-aws-s3-v3": "^3.25.1",
                 "league/flysystem-ftp": "^3.25.1",
@@ -4985,6 +5231,7 @@
                 "ext-redis": "Required to use the Redis cache and queue drivers (^4.0 || ^5.0 || ^6.0).",
                 "fakerphp/faker": "Required to generate fake data using the fake() helper (^1.23).",
                 "filp/whoops": "Required for friendly error pages in development (^2.14.3).",
+                "intervention/image": "Required to use the image processing features (^4.0).",
                 "laravel/tinker": "Required to use the tinker console command (^2.0).",
                 "league/flysystem-aws-s3-v3": "Required to use the Flysystem S3 driver (^3.25.1).",
                 "league/flysystem-ftp": "Required to use the Flysystem FTP driver (^3.25.1).",
@@ -5055,7 +5302,7 @@
                 "issues": "https://github.com/laravel/framework/issues",
                 "source": "https://github.com/laravel/framework"
             },
-            "time": "2026-07-07T14:13:33+00:00"
+            "time": "2026-07-14T14:22:22+00:00"
         },
         {
             "name": "laravel/horizon",
@@ -5978,16 +6225,16 @@
         },
         {
             "name": "league/commonmark",
-            "version": "2.8.2",
+            "version": "2.8.3",
             "source": {
                 "type": "git",
                 "url": "https://github.com/thephpleague/commonmark.git",
-                "reference": "59fb075d2101740c337c7216e3f32b36c204218b"
+                "reference": "1902f60f984235023acbe03db6ad614a37b3c3e7"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/thephpleague/commonmark/zipball/59fb075d2101740c337c7216e3f32b36c204218b",
-                "reference": "59fb075d2101740c337c7216e3f32b36c204218b",
+                "url": "https://api.github.com/repos/thephpleague/commonmark/zipball/1902f60f984235023acbe03db6ad614a37b3c3e7",
+                "reference": "1902f60f984235023acbe03db6ad614a37b3c3e7",
                 "shasum": ""
             },
             "require": {
@@ -6009,8 +6256,8 @@
                 "github/gfm": "0.29.0",
                 "michelf/php-markdown": "^1.4 || ^2.0",
                 "nyholm/psr7": "^1.5",
-                "phpstan/phpstan": "^1.8.2",
-                "phpunit/phpunit": "^9.5.21 || ^10.5.9 || ^11.0.0",
+                "phpstan/phpstan": "^2.0.0",
+                "phpunit/phpunit": "^9.5.21 || ^10.5.9 || ^11.0.0 || ^12.0.0 || ^13.0.0",
                 "scrutinizer/ocular": "^1.8.1",
                 "symfony/finder": "^5.3 | ^6.0 | ^7.0 || ^8.0",
                 "symfony/process": "^5.4 | ^6.0 | ^7.0 || ^8.0",
@@ -6081,7 +6328,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-03-19T13:16:38+00:00"
+            "time": "2026-07-12T15:29:16+00:00"
         },
         {
             "name": "league/config",
@@ -6504,16 +6751,16 @@
         },
         {
             "name": "league/mime-type-detection",
-            "version": "1.16.0",
+            "version": "1.17.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/thephpleague/mime-type-detection.git",
-                "reference": "2d6702ff215bf922936ccc1ad31007edc76451b9"
+                "reference": "f5f47eff7c48ed1003069a2ca67f316fb4021c76"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/thephpleague/mime-type-detection/zipball/2d6702ff215bf922936ccc1ad31007edc76451b9",
-                "reference": "2d6702ff215bf922936ccc1ad31007edc76451b9",
+                "url": "https://api.github.com/repos/thephpleague/mime-type-detection/zipball/f5f47eff7c48ed1003069a2ca67f316fb4021c76",
+                "reference": "f5f47eff7c48ed1003069a2ca67f316fb4021c76",
                 "shasum": ""
             },
             "require": {
@@ -6523,7 +6770,7 @@
             "require-dev": {
                 "friendsofphp/php-cs-fixer": "^3.2",
                 "phpstan/phpstan": "^0.12.68",
-                "phpunit/phpunit": "^8.5.8 || ^9.3 || ^10.0"
+                "phpunit/phpunit": "^8.5.8 || ^9.3 || ^10.0 || ^11.0 || ^12.0"
             },
             "type": "library",
             "autoload": {
@@ -6544,7 +6791,7 @@
             "description": "Mime-type detection for Flysystem",
             "support": {
                 "issues": "https://github.com/thephpleague/mime-type-detection/issues",
-                "source": "https://github.com/thephpleague/mime-type-detection/tree/1.16.0"
+                "source": "https://github.com/thephpleague/mime-type-detection/tree/1.17.0"
             },
             "funding": [
                 {
@@ -6556,7 +6803,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2024-09-21T08:32:55+00:00"
+            "time": "2026-07-09T11:49:27+00:00"
         },
         {
             "name": "league/oauth1-client",
@@ -7892,16 +8139,16 @@
         },
         {
             "name": "nesbot/carbon",
-            "version": "3.13.0",
+            "version": "3.13.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/CarbonPHP/carbon.git",
-                "reference": "40f6618f052df16b545f626fbf9a878e6497d16a"
+                "reference": "2937ad3d1d2c506fd2bc97d571438a95641f44e2"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/CarbonPHP/carbon/zipball/40f6618f052df16b545f626fbf9a878e6497d16a",
-                "reference": "40f6618f052df16b545f626fbf9a878e6497d16a",
+                "url": "https://api.github.com/repos/CarbonPHP/carbon/zipball/2937ad3d1d2c506fd2bc97d571438a95641f44e2",
+                "reference": "2937ad3d1d2c506fd2bc97d571438a95641f44e2",
                 "shasum": ""
             },
             "require": {
@@ -7993,7 +8240,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-06-18T13:49:15+00:00"
+            "time": "2026-07-09T18:23:49+00:00"
         },
         {
             "name": "nette/php-generator",
@@ -11458,16 +11705,16 @@
         },
         {
             "name": "spatie/laravel-medialibrary",
-            "version": "11.23.1",
+            "version": "11.23.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/spatie/laravel-medialibrary.git",
-                "reference": "143106b61b945f1ca815e6a71598c03881469228"
+                "reference": "cc1fdc4a9a9007101df610cd4a6733be71db4828"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/spatie/laravel-medialibrary/zipball/143106b61b945f1ca815e6a71598c03881469228",
-                "reference": "143106b61b945f1ca815e6a71598c03881469228",
+                "url": "https://api.github.com/repos/spatie/laravel-medialibrary/zipball/cc1fdc4a9a9007101df610cd4a6733be71db4828",
+                "reference": "cc1fdc4a9a9007101df610cd4a6733be71db4828",
                 "shasum": ""
             },
             "require": {
@@ -11552,7 +11799,7 @@
             ],
             "support": {
                 "issues": "https://github.com/spatie/laravel-medialibrary/issues",
-                "source": "https://github.com/spatie/laravel-medialibrary/tree/11.23.1"
+                "source": "https://github.com/spatie/laravel-medialibrary/tree/11.23.2"
             },
             "funding": [
                 {
@@ -11564,7 +11811,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-06-24T08:31:39+00:00"
+            "time": "2026-07-09T13:26:15+00:00"
         },
         {
             "name": "spatie/laravel-model-states",
@@ -17430,16 +17677,16 @@
         },
         {
             "name": "laravel/boost",
-            "version": "v2.4.11",
+            "version": "v2.4.12",
             "source": {
                 "type": "git",
                 "url": "https://github.com/laravel/boost.git",
-                "reference": "c98fc9d151de97a1864b51fc7c710fc03023ba17"
+                "reference": "d43bdf901fee8d216145cb062c9847c892844908"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/laravel/boost/zipball/c98fc9d151de97a1864b51fc7c710fc03023ba17",
-                "reference": "c98fc9d151de97a1864b51fc7c710fc03023ba17",
+                "url": "https://api.github.com/repos/laravel/boost/zipball/d43bdf901fee8d216145cb062c9847c892844908",
+                "reference": "d43bdf901fee8d216145cb062c9847c892844908",
                 "shasum": ""
             },
             "require": {
@@ -17492,7 +17739,7 @@
                 "issues": "https://github.com/laravel/boost/issues",
                 "source": "https://github.com/laravel/boost"
             },
-            "time": "2026-06-26T08:21:49+00:00"
+            "time": "2026-07-08T09:53:34+00:00"
         },
         {
             "name": "laravel/pail",
@@ -19029,16 +19276,16 @@
         },
         {
             "name": "rector/rector",
-            "version": "2.5.4",
+            "version": "2.5.7",
             "source": {
                 "type": "git",
                 "url": "https://github.com/rectorphp/rector.git",
-                "reference": "adaa18d7cd6b3c960967cfbc98c03efb3116ac0e"
+                "reference": "ba22f8c087848278fed6b4910d4cf1108096d8d3"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/rectorphp/rector/zipball/adaa18d7cd6b3c960967cfbc98c03efb3116ac0e",
-                "reference": "adaa18d7cd6b3c960967cfbc98c03efb3116ac0e",
+                "url": "https://api.github.com/repos/rectorphp/rector/zipball/ba22f8c087848278fed6b4910d4cf1108096d8d3",
+                "reference": "ba22f8c087848278fed6b4910d4cf1108096d8d3",
                 "shasum": ""
             },
             "require": {
@@ -19077,7 +19324,7 @@
             ],
             "support": {
                 "issues": "https://github.com/rectorphp/rector/issues",
-                "source": "https://github.com/rectorphp/rector/tree/2.5.4"
+                "source": "https://github.com/rectorphp/rector/tree/2.5.7"
             },
             "funding": [
                 {
@@ -19085,7 +19332,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-07-06T12:41:46+00:00"
+            "time": "2026-07-13T15:24:18+00:00"
         },
         {
             "name": "sebastian/cli-parser",
