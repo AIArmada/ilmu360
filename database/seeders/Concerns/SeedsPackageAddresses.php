@@ -236,7 +236,9 @@ trait SeedsPackageAddresses
             $attributes['state'] = AddressArea::query()->whereKey($adminArea1->parent_id)->value('name');
         }
 
-        $attributes['city'] ??= $adminArea2->name ?? $adminArea1->name;
+        $attributes['city'] ??= is_object($adminArea2)
+            ? $adminArea2->name
+            : (is_object($adminArea1) ? $adminArea1->name : ($attributes['state'] ?? $attributes['country'] ?? ''));
         $attributes['admin_area_3_id'] = null;
         $attributes['admin_area_4_id'] = null;
 

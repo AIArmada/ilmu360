@@ -2,6 +2,7 @@
 
 use App\Models\User;
 use Database\Seeders\AdvancedEventSeeder;
+use Database\Seeders\AIArmada\FoundationSeeder;
 use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\DistrictSeeder;
 use Database\Seeders\DonationChannelSeeder;
@@ -60,6 +61,7 @@ it('runs the full demo seeding pipeline in the expected order', function () {
         ScopedMemberRolesSeeder::class,
         TagSeeder::class,
         LanguageSeeder::class,
+        FoundationSeeder::class,
         UserSeeder::class,
     ]);
 

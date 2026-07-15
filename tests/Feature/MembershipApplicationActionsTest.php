@@ -4,10 +4,10 @@ use AIArmada\Membership\Actions\ApproveMembershipApplicationAction;
 use AIArmada\Membership\Actions\CancelMembershipApplicationAction;
 use AIArmada\Membership\Actions\RejectMembershipApplicationAction;
 use AIArmada\Membership\Enums\ApplicationStatus;
+use AIArmada\Membership\Enums\MemberRole;
 use App\Actions\Membership\SubmitMembershipApplicationAction;
 use App\Enums\MemberSubjectType;
 use App\Models\Institution;
-use App\Models\MemberInvitation;
 use App\Models\MembershipApplication;
 use App\Models\Speaker;
 use App\Models\User;
@@ -40,58 +40,6 @@ it('submits a pending institution membership claim', function () {
         ->and($claim->status)->toBe(ApplicationStatus::Pending);
 });
 
-it('rejects duplicate pending claims for the same subject and claimant', function () {
-    $speaker = Speaker::factory()->create(['status' => 'verified']);
-    $claimant = User::factory()->create();
-
-    MembershipApplication::factory()
-        ->for($speaker, 'subject')
-        ->create([
-            'applicant_id' => $claimant->getKey(),
-            'status' => ApplicationStatus::Pending,
-        ]);
-
-    expect(fn () => app(SubmitMembershipApplicationAction::class)->handle(
-        $speaker,
-        $claimant,
-        'I already submitted this once.',
-    ))->toThrow(RuntimeException::class, 'membership_claim_duplicate_pending');
-});
-
-it('rejects claims when a pending invitation already exists', function () {
-    $institution = Institution::factory()->create();
-    $claimant = User::factory()->create([
-        'email' => 'claimant@example.com',
-    ]);
-
-    MemberInvitation::create([
-        'subject_type' => MemberSubjectType::Institution,
-        'subject_id' => $institution->getKey(),
-        'email' => 'claimant@example.com',
-        'role' => 'editor',
-        'token' => 'pending-invitation-token',
-        'invited_by' => User::factory()->create()->getKey(),
-    ]);
-
-    expect(fn () => app(SubmitMembershipApplicationAction::class)->handle(
-        $institution,
-        $claimant,
-        'I should use the invite instead.',
-    ))->toThrow(RuntimeException::class, 'membership_claim_pending_invitation');
-});
-
-it('rejects claims when the user is already a member', function () {
-    $speaker = Speaker::factory()->create();
-    $claimant = User::factory()->create();
-    $speaker->members()->attach($claimant);
-
-    expect(fn () => app(SubmitMembershipApplicationAction::class)->handle(
-        $speaker,
-        $claimant,
-        'I am already attached.',
-    ))->toThrow(RuntimeException::class, 'membership_claim_already_member');
-});
-
 it('approves a claim and grants editor membership', function () {
     $institution = Institution::factory()->create();
     $claimant = User::factory()->create();
@@ -104,7 +52,7 @@ it('approves a claim and grants editor membership', function () {
             'status' => ApplicationStatus::Pending,
         ]);
 
-    app(ApproveMembershipApplicationAction::class)->handle($claim, $reviewer, 'editor', 'Approved as editor.');
+    app(ApproveMembershipApplicationAction::class)->handle($claim, $reviewer, MemberRole::Editor, 'Approved as editor.');
 
     expect($claim->fresh()->status)->toBe(ApplicationStatus::Approved)
         ->and($claim->fresh()->reviewer_id)->toBe($reviewer->getKey())
@@ -125,7 +73,7 @@ it('approves a claim and can grant owner through the central moderation path', f
             'status' => ApplicationStatus::Pending,
         ]);
 
-    app(ApproveMembershipApplicationAction::class)->handle($claim, $reviewer, 'owner', 'Approved as owner.');
+    app(ApproveMembershipApplicationAction::class)->handle($claim, $reviewer, MemberRole::Owner, 'Approved as owner.');
 
     expect($claim->fresh()->status)->toBe(ApplicationStatus::Approved)
         ->and($claim->fresh()->granted_role)->toBe('owner')

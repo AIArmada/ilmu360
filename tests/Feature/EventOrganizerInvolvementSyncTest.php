@@ -8,7 +8,6 @@ use App\Enums\EventVisibility;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Speaker;
-use App\Models\Tag;
 use App\Models\User;
 use App\Models\Venue;
 
@@ -112,8 +111,8 @@ it('creates organizer involvement via submit-event flow with a speaker organizer
     $user = User::factory()->create();
     $speaker = Speaker::factory()->create(['status' => 'verified']);
     $venue = Venue::factory()->create(['status' => 'verified']);
-    $domainTag = Tag::factory()->domain()->create();
-    $disciplineTag = Tag::factory()->discipline()->create();
+    $domainTag = submitEventTerm('domain');
+    $disciplineTag = submitEventTerm('discipline');
 
     setSubmitEventFormState(
         Livewire::actingAs($user)->test('pages.submit-event.create'),

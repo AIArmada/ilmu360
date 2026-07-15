@@ -1,11 +1,12 @@
 <?php
 
+use AIArmada\Events\Models\EventTaxonomy;
+use AIArmada\Events\Models\EventTerm;
 use App\Enums\TagType;
 use App\Forms\EventContributionFormSchema;
 use App\Models\Institution;
 use App\Models\Reference;
 use App\Models\Speaker;
-use App\Models\Tag;
 use App\Models\Venue;
 use Filament\Forms\Components\Select;
 use Filament\Schemas\Schema;
@@ -135,13 +136,13 @@ it('creates pending tags from event update quick-add actions', function () {
         'name' => 'Pemuda Quick Add',
     ]);
 
-    $disciplineTag = Tag::query()->findOrFail($disciplineTagId);
-    $issueTag = Tag::query()->findOrFail($issueTagId);
+    $disciplineTag = EventTerm::query()->findOrFail($disciplineTagId);
+    $issueTag = EventTerm::query()->findOrFail($issueTagId);
 
-    expect($disciplineTag->status)->toBe('pending')
-        ->and($disciplineTag->type)->toBe(TagType::Discipline->value)
-        ->and($disciplineTag->getTranslation('name', 'ms'))->toBe('Usul Fiqh Quick Add')
-        ->and($issueTag->status)->toBe('pending')
-        ->and($issueTag->type)->toBe(TagType::Issue->value)
-        ->and($issueTag->getTranslation('name', 'ms'))->toBe('Pemuda Quick Add');
+    expect($disciplineTag->is_active)->toBeTrue()
+        ->and(EventTaxonomy::query()->findOrFail($disciplineTag->event_taxonomy_id)->code)->toBe(TagType::Discipline->value)
+        ->and($disciplineTag->name)->toBe('Usul Fiqh Quick Add')
+        ->and($issueTag->is_active)->toBeTrue()
+        ->and(EventTaxonomy::query()->findOrFail($issueTag->event_taxonomy_id)->code)->toBe(TagType::Issue->value)
+        ->and($issueTag->name)->toBe('Pemuda Quick Add');
 });

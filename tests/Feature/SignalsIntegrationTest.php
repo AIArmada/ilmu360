@@ -35,7 +35,7 @@ it('injects the signals tracker script into public layouts when a tracked proper
     expect($trackerConfig)->not->toBeNull();
     expect(data_get($trackerConfig, 'write_key'))->toBe((string) $trackedProperty?->write_key);
     expect(data_get($trackerConfig, 'script_url'))->toContain('/api/signals/tracker.js');
-    expect(data_get($trackerConfig, 'event_endpoint'))->toContain('/api/signals/collect/event');
+    expect(data_get($trackerConfig, 'event_endpoint'))->toContain('/api/signals/collect/browser-event');
     expect(data_get($trackerConfig, 'identify_endpoint'))->toContain('/api/signals/collect/identify');
     expect(data_get($trackerConfig, 'anonymous_cookie_name'))->toBe('mi_signals_anonymous_id');
     expect(data_get($trackerConfig, 'session_cookie_name'))->toBe('mi_signals_session_id');
@@ -45,7 +45,7 @@ it('renders the centralized custom UI event tracker and discovery funnel hooks',
     $this->get(route('home'))
         ->assertSuccessful()
         ->assertSee('window.ilmu360.trackSignal', false)
-        ->assertSee('/api/signals/collect/event', false)
+        ->assertSee('/api/signals/collect/browser-event', false)
         ->assertSee("client_origin: 'web'", false)
         ->assertSee("client_transport: 'web'", false)
         ->assertSee('data-signal-submit-event="search.submitted"', false)
@@ -68,6 +68,7 @@ it('renders event detail conversion tracking hooks', function () {
         'starts_at' => now()->addWeek(),
         'status' => 'approved',
         'visibility' => 'public',
+        'published_at' => now(),
     ]);
 
     $this->get(route('events.show', $event))

@@ -4,6 +4,9 @@ use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Events\Models\EventAccessPolicy;
+use AIArmada\Events\Models\EventClassification;
+use AIArmada\Events\Models\EventTaxonomy;
+use AIArmada\Events\Models\EventTerm;
 use App\Enums\EventFormat;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventPrayerTime;
@@ -17,7 +20,6 @@ use App\Models\Institution;
 use App\Models\Reference;
 use App\Models\Registration;
 use App\Models\Speaker;
-use App\Models\Tag;
 use App\Models\User;
 use App\Models\Venue;
 use App\Services\EventSearchService;
@@ -28,7 +30,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
@@ -175,12 +176,14 @@ function hiddenAttributeRegexForTestId(string $testId): string
     return '/data-testid="'.preg_quote($testId, '/').'"[^>]*\shidden(?:=|(?=[\s>]))/';
 }
 
-function attachTagToEventForTest(Event $event, Tag $tag): void
+function attachTermToEventForTest(Event $event, EventTerm $term): void
 {
-    DB::table('taggables')->insert([
-        'tag_id' => $tag->id,
-        'taggable_id' => $event->id,
-        'taggable_type' => $event->getMorphClass(),
+    EventClassification::query()->create([
+        'event_id' => $event->id,
+        'event_taxonomy_id' => $term->event_taxonomy_id,
+        'event_term_id' => $term->id,
+        'taxonomy_code' => EventTaxonomy::query()->findOrFail($term->event_taxonomy_id)->code,
+        'term_code' => $term->code,
     ]);
 }
 
@@ -1051,7 +1054,7 @@ describe('Event Search Filters', function () {
         ]);
 
         $response = $this->get(eventsIndexUrl([
-            'default_venue_id' => $includedVenue->id,
+            'venue_id' => $includedVenue->id,
         ]));
 
         $response->assertOk()
@@ -1163,7 +1166,7 @@ describe('Event Search Filters', function () {
             'title' => 'Online Format Event',
             'status' => 'approved',
             'visibility' => 'public',
-            'delivery_mode' => EventFormat::Online,
+            'event_format' => EventFormat::Online,
             'published_at' => now(),
             'starts_at' => now()->addDays(1),
         ]);
@@ -1607,13 +1610,10 @@ describe('Event Search Filters', function () {
     });
 
     it('filters events by selected bidang ilmu', function () {
-        $tafsirTag = Tag::factory()->discipline()->create([
-            'name' => ['en' => 'Tafsir', 'ms' => 'Tafsir'],
-        ]);
-
-        $fiqhTag = Tag::factory()->discipline()->create([
-            'name' => ['en' => 'Fiqh', 'ms' => 'Fiqh'],
-        ]);
+        $tafsirTag = submitEventTerm('discipline');
+        $tafsirTag->update(['name' => 'Tafsir']);
+        $fiqhTag = submitEventTerm('discipline');
+        $fiqhTag->update(['name' => 'Fiqh']);
 
         $tafsirEvent = createVisibleEventForSearch([
             'title' => 'Tafsir Session',
@@ -1622,7 +1622,7 @@ describe('Event Search Filters', function () {
             'published_at' => now(),
             'starts_at' => now()->addDays(1),
         ]);
-        attachTagToEventForTest($tafsirEvent, $tafsirTag);
+        attachTermToEventForTest($tafsirEvent, $tafsirTag);
 
         $fiqhEvent = createVisibleEventForSearch([
             'title' => 'Fiqh Session',
@@ -1631,7 +1631,7 @@ describe('Event Search Filters', function () {
             'published_at' => now(),
             'starts_at' => now()->addDays(2),
         ]);
-        attachTagToEventForTest($fiqhEvent, $fiqhTag);
+        attachTermToEventForTest($fiqhEvent, $fiqhTag);
 
         $query = http_build_query(['topic_ids' => [$tafsirTag->id]]);
 
@@ -1688,7 +1688,7 @@ describe('Event Search Filters', function () {
             'role' => EventKeyPersonRole::Moderator,
             'name' => 'Encik Free Text Penyelaras',
             'order_column' => 1,
-            'is_public' => true,
+            'visibility' => 'public',
         ]);
 
         $linkedProfileQuery = http_build_query(['person_in_charge_ids' => [$linkedPic->id]]);
@@ -1711,13 +1711,10 @@ describe('Event Search Filters', function () {
     });
 
     it('filters events by selected kategori (domain tags)', function () {
-        $aqidahTag = Tag::factory()->domain()->create([
-            'name' => ['en' => 'Aqidah', 'ms' => 'Aqidah'],
-        ]);
-
-        $akhlakTag = Tag::factory()->domain()->create([
-            'name' => ['en' => 'Akhlak', 'ms' => 'Akhlak'],
-        ]);
+        $aqidahTag = submitEventTerm('domain');
+        $aqidahTag->update(['name' => 'Aqidah']);
+        $akhlakTag = submitEventTerm('domain');
+        $akhlakTag->update(['name' => 'Akhlak']);
 
         $aqidahEvent = createVisibleEventForSearch([
             'title' => 'Aqidah Intensive',
@@ -1726,7 +1723,7 @@ describe('Event Search Filters', function () {
             'published_at' => now(),
             'starts_at' => now()->addDays(1),
         ]);
-        attachTagToEventForTest($aqidahEvent, $aqidahTag);
+        attachTermToEventForTest($aqidahEvent, $aqidahTag);
 
         $akhlakEvent = createVisibleEventForSearch([
             'title' => 'Akhlak Session',
@@ -1735,7 +1732,7 @@ describe('Event Search Filters', function () {
             'published_at' => now(),
             'starts_at' => now()->addDays(2),
         ]);
-        attachTagToEventForTest($akhlakEvent, $akhlakTag);
+        attachTermToEventForTest($akhlakEvent, $akhlakTag);
 
         $query = http_build_query(['domain_tag_ids' => [$aqidahTag->id]]);
 
@@ -1748,13 +1745,10 @@ describe('Event Search Filters', function () {
     });
 
     it('filters events by selected sumber rujukan utama tags', function () {
-        $quranTag = Tag::factory()->source()->create([
-            'name' => ['en' => 'Quran', 'ms' => 'Quran'],
-        ]);
-
-        $hadithTag = Tag::factory()->source()->create([
-            'name' => ['en' => 'Hadith', 'ms' => 'Hadith'],
-        ]);
+        $quranTag = submitEventTerm('source');
+        $quranTag->update(['name' => 'Quran']);
+        $hadithTag = submitEventTerm('source');
+        $hadithTag->update(['name' => 'Hadith']);
 
         $quranEvent = createVisibleEventForSearch([
             'title' => 'Quran Study Circle',
@@ -1763,7 +1757,7 @@ describe('Event Search Filters', function () {
             'published_at' => now(),
             'starts_at' => now()->addDays(1),
         ]);
-        attachTagToEventForTest($quranEvent, $quranTag);
+        attachTermToEventForTest($quranEvent, $quranTag);
 
         $hadithEvent = createVisibleEventForSearch([
             'title' => 'Hadith Workshop',
@@ -1772,7 +1766,7 @@ describe('Event Search Filters', function () {
             'published_at' => now(),
             'starts_at' => now()->addDays(2),
         ]);
-        attachTagToEventForTest($hadithEvent, $hadithTag);
+        attachTermToEventForTest($hadithEvent, $hadithTag);
 
         $query = http_build_query(['source_tag_ids' => [$quranTag->id]]);
 
@@ -1784,13 +1778,10 @@ describe('Event Search Filters', function () {
     });
 
     it('filters events by selected tema isu tags', function () {
-        $familyTag = Tag::factory()->issue()->create([
-            'name' => ['en' => 'Keluarga', 'ms' => 'Keluarga'],
-        ]);
-
-        $economyTag = Tag::factory()->issue()->create([
-            'name' => ['en' => 'Ekonomi', 'ms' => 'Ekonomi'],
-        ]);
+        $familyTag = submitEventTerm('issue');
+        $familyTag->update(['name' => 'Keluarga']);
+        $economyTag = submitEventTerm('issue');
+        $economyTag->update(['name' => 'Ekonomi']);
 
         $familyEvent = createVisibleEventForSearch([
             'title' => 'Isu Keluarga Semasa',
@@ -1799,7 +1790,7 @@ describe('Event Search Filters', function () {
             'published_at' => now(),
             'starts_at' => now()->addDays(1),
         ]);
-        attachTagToEventForTest($familyEvent, $familyTag);
+        attachTermToEventForTest($familyEvent, $familyTag);
 
         $economyEvent = createVisibleEventForSearch([
             'title' => 'Perbincangan Isu Ekonomi',
@@ -1808,7 +1799,7 @@ describe('Event Search Filters', function () {
             'published_at' => now(),
             'starts_at' => now()->addDays(2),
         ]);
-        attachTagToEventForTest($economyEvent, $economyTag);
+        attachTermToEventForTest($economyEvent, $economyTag);
 
         $query = http_build_query(['issue_tag_ids' => [$familyTag->id]]);
 

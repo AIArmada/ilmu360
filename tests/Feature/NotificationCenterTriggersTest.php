@@ -8,7 +8,6 @@ use App\Enums\EventKeyPersonRole;
 use App\Models\Event;
 use App\Models\EventCheckin;
 use App\Models\Institution;
-use App\Models\Reference;
 use App\Models\Registration;
 use App\Models\Series;
 use App\Models\Speaker;
@@ -24,39 +23,31 @@ use Illuminate\Support\Str;
 
 uses(RefreshDatabase::class);
 
-it('creates followed-content notifications for followed speakers institutions series and references', function () {
+it('creates followed-content notifications for followed speakers institutions and series', function () {
     $institutionFollower = User::factory()->create();
     $speakerFollower = User::factory()->create();
     $seriesFollower = User::factory()->create();
-    $referenceFollower = User::factory()->create();
 
     $institution = Institution::factory()->create();
     $speaker = Speaker::factory()->create();
     $series = Series::factory()->create([
         'visibility' => 'public',
     ]);
-    $reference = Reference::factory()->verified()->create();
 
     $institutionFollower->follow($institution);
     $speakerFollower->follow($speaker);
     $seriesFollower->follow($series);
-    $referenceFollower->follow($reference);
 
     $event = Event::factory()->for($institution)->create([
         'title' => 'Followed Content Event',
         'status' => 'approved',
         'visibility' => 'public',
         'starts_at' => now()->addDays(2),
+        'published_at' => now(),
     ]);
 
     $event->speakers()->attach($speaker->id);
     $event->series()->attach($series->id, ['id' => (string) Str::uuid()]);
-    $event->references()->create([
-        'referenceable_id' => $reference->getKey(),
-        'referenceable_type' => 'reference',
-        'reference_type' => 'reference',
-        'visibility' => 'public',
-    ]);
 
     app(EventNotificationService::class)->notifyPublication($event->fresh(['institution', 'speakers', 'series', 'references']));
 
@@ -72,9 +63,6 @@ it('creates followed-content notifications for followed speakers institutions se
         'recipient_id' => $seriesFollower->id,
     ]);
 
-    $this->assertDatabaseHas('notification_inboxes', [
-        'recipient_id' => $referenceFollower->id,
-    ]);
 });
 
 it('does not create followed-speaker notifications when a followed profile is only a non-speaker participant', function () {

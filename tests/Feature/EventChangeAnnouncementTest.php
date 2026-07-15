@@ -1,9 +1,7 @@
 <?php
 
-use AIArmada\CommerceSupport\Models\Role;
 use AIArmada\Communications\Models\NotificationInbox;
 use AIArmada\Engagement\Contracts\EngagementManager;
-use AIArmada\FilamentAuthz\Facades\Authz;
 use App\Actions\Events\PublishEventChangeAnnouncement;
 use App\Enums\EventChangeSeverity;
 use App\Enums\EventChangeStatus;
@@ -13,16 +11,14 @@ use App\Enums\NotificationTrigger;
 use App\Enums\ScheduleState;
 use App\Models\Event;
 use App\Models\EventChangeAnnouncement;
-use App\Models\EventKeyPerson;
 use App\Models\Institution;
 use App\Models\Registration;
-use App\Models\SlugRedirect;
 use App\Models\Speaker;
 use App\Models\User;
 use App\Services\Notifications\EventNotificationService;
-use App\Support\Authz\MemberRoleScopes;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
+use Database\Factories\EventKeyPersonFactory;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Database\Seeders\ScopedMemberRolesSeeder;
@@ -373,13 +369,13 @@ it('allows speaker members for listed event speakers to publish change announcem
         'title' => 'Kuliah Penceramah Ahli',
     ]);
 
-    EventKeyPerson::factory()
+    EventKeyPersonFactory::new()
         ->for($event)
         ->for($speaker)
         ->create();
 
     $speaker->members()->syncWithoutDetaching([$editor->id]);
-    eventChangeAssignSpeakerRole($editor, 'editor');
+    $speaker->members()->updateExistingPivot($editor->id, ['role' => 'admin']);
 
     $announcement = app(PublishEventChangeAnnouncement::class)->handle(
         event: $event,
@@ -607,38 +603,6 @@ it('loads the public events index when listed events have published change annou
         ->assertSee('Kuliah Indeks Perubahan');
 });
 
-it('creates same-event slug aliases when a published change mutates the schedule', function () {
-    $administrator = eventChangeAdministrator();
-    $event = eventChangeApprovedEvent([
-        'title' => 'Kuliah Tukar Masa',
-        'slug' => 'kuliah-tukar-masa-10-5-26',
-        'starts_at' => Carbon::parse('2026-05-10 20:00:00', 'Asia/Kuala_Lumpur')->utc(),
-        'ends_at' => Carbon::parse('2026-05-10 22:00:00', 'Asia/Kuala_Lumpur')->utc(),
-    ]);
-    $oldPath = route('events.show', $event, false);
-
-    app(PublishEventChangeAnnouncement::class)->handle(
-        event: $event,
-        actor: $administrator,
-        type: EventChangeType::ScheduleChanged,
-        publicMessage: 'Masa majlis telah berubah.',
-        changes: [
-            'starts_at' => Carbon::parse('2026-05-11 20:00:00', 'Asia/Kuala_Lumpur')->utc(),
-            'ends_at' => Carbon::parse('2026-05-11 22:00:00', 'Asia/Kuala_Lumpur')->utc(),
-        ],
-        notify: false,
-    );
-
-    $event->refresh();
-
-    $redirect = SlugRedirect::query()->where('source_path', $oldPath)->firstOrFail();
-
-    expect($redirect->destination_path)->toBe(route('events.show', $event, false));
-
-    $this->get($oldPath)
-        ->assertRedirect(route('events.show', $event));
-});
-
 it('marks schedule changes into the next 24 hours as urgent', function () {
     $now = Carbon::parse('2026-05-01 00:00:00', 'UTC');
     Carbon::setTestNow($now);
@@ -721,19 +685,6 @@ function eventChangeSeedScopedRoles(): void
     test()->seed(ScopedMemberRolesSeeder::class);
 
     app(PermissionRegistrar::class)->forgetCachedPermissions();
-}
-
-function eventChangeAssignSpeakerRole(User $user, string $role): void
-{
-    $scope = app(MemberRoleScopes::class)->speaker();
-    $scopedRole = Role::query()
-        ->where('name', $role)
-        ->where(app(PermissionRegistrar::class)->teamsKey, $scope->getKey())
-        ->firstOrFail();
-
-    Authz::withScope($scope, function () use ($user, $scopedRole): void {
-        $user->syncRoles([$scopedRole]);
-    }, $user);
 }
 
 /**

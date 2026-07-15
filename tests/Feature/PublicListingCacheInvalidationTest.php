@@ -11,7 +11,6 @@ use App\Models\Event;
 use App\Models\EventKeyPerson;
 use App\Models\Institution;
 use App\Models\Speaker;
-use App\Models\Tag;
 use App\Models\Venue;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
@@ -98,8 +97,8 @@ function assertHomepageStatsCacheWasCleared(array $keys): void
 }
 
 it('clears majlis listing cache when event is submitted from public submit form', function () {
-    $domainTag = Tag::factory()->domain()->create();
-    $disciplineTag = Tag::factory()->discipline()->create();
+    $domainTag = submitEventTerm('domain');
+    $disciplineTag = submitEventTerm('discipline');
     $institution = Institution::factory()->create(['status' => 'verified']);
     $speaker = Speaker::factory()->create(['status' => 'verified']);
 
@@ -181,7 +180,7 @@ it('clears homepage stats cache when event key people are created or deleted', f
     $speaker = Speaker::factory()->create(['status' => 'verified']);
 
     $homepageKeysAfterCreate = primeHomepageStatsCache();
-    $eventKeyPerson = EventKeyPerson::factory()->create([
+    $eventKeyPerson = EventKeyPerson::query()->create([
         'event_id' => $event->getKey(),
         'involveable_type' => 'speaker',
         'involveable_id' => $speaker->getKey(),

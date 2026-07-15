@@ -29,7 +29,7 @@ it('imports the postcode csv against the production geography seed', function ()
 
     $menora = $findInstitution(GeneratedPoskodInstitutionData::canonicalSlug('MASJID AL - MUNARIAH', '500'));
     expect($menora)->not()->toBeNull();
-    expect($menora->primaryAddress()?->state?->name)->toBe('Perak');
+    expect($menora->primaryAddress()?->state)->toBe('Perak');
     expect($menora->primaryAddress()?->adminArea1?->name)->toBe('Kuala Kangsar');
 
     $tekam = $findInstitution(GeneratedPoskodInstitutionData::canonicalSlug('MASJID RIDZUANIAH FELDA SG TEKAM GETAH', '1880'));
@@ -81,7 +81,7 @@ it('imports the postcode csv against the production geography seed', function ()
     expect($junkSarawak)->not()->toBeNull();
     expect($junkSarawak?->slug)->toBe('masjid-nurulllllllllllll-6082');
     expect($junkSarawak)->not()->toBeNull();
-    expect($junkSarawak->primaryAddress()?->state?->name)->toBe('Sarawak');
+    expect($junkSarawak->primaryAddress()?->state)->toBe('Sarawak');
     expect($junkSarawak->primaryAddress()?->adminArea1)->toBeNull();
     expect($junkSarawak->primaryAddress()?->adminArea2)->toBeNull();
 

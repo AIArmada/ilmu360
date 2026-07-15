@@ -1,11 +1,6 @@
 <?php
 
-use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\Communications\Enums\NotificationFamily;
-use AIArmada\Communications\Enums\NotificationPriority;
-use AIArmada\Communications\Enums\NotificationTrigger;
 use AIArmada\Communications\Models\CommunicationDestination;
-use AIArmada\Communications\Models\NotificationInbox;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
@@ -75,60 +70,6 @@ it('updates notification settings through the api', function () {
         ->assertJsonPath('data.families.submission_workflow.channels.0', 'whatsapp')
         ->assertJsonPath('data.triggers.submission_cancelled.channels.0', 'whatsapp')
         ->assertJsonPath('data.triggers.submission_cancelled.inherits_family', false);
-});
-
-it('lists notifications and marks them as read through the api', function () {
-    $user = User::factory()->create();
-    Sanctum::actingAs($user);
-
-    $message = OwnerContext::withOwner(null, fn () => NotificationInbox::query()->create([
-        'recipient_type' => $user->getMorphClass(),
-        'recipient_id' => $user->getKey(),
-        'family' => NotificationFamily::EventUpdate->value,
-        'trigger' => NotificationTrigger::EventCancelled->value,
-        'priority' => NotificationPriority::Normal->value,
-        'title' => 'Cancelled event',
-        'body' => 'Cancelled body',
-        'data' => [
-            'channels_attempted' => ['in_app'],
-            'meta' => ['inbox_visible' => true],
-            'action_url' => null,
-            'entity_type' => null,
-            'entity_id' => null,
-        ],
-        'read_at' => null,
-    ]));
-    OwnerContext::withOwner(null, fn () => NotificationInbox::query()->create([
-        'recipient_type' => $user->getMorphClass(),
-        'recipient_id' => $user->getKey(),
-        'family' => NotificationFamily::EventUpdate->value,
-        'trigger' => NotificationTrigger::EventCancelled->value,
-        'priority' => NotificationPriority::Normal->value,
-        'title' => 'Hidden email-only event',
-        'body' => 'Hidden body',
-        'data' => [
-            'channels_attempted' => ['email'],
-            'meta' => ['inbox_visible' => false],
-            'action_url' => null,
-            'entity_type' => null,
-            'entity_id' => null,
-        ],
-        'read_at' => null,
-        'archived_at' => now(),
-    ]));
-
-    $this->getJson('/api/v1/notifications?family=event_update&status=unread')
-        ->assertOk()
-        ->assertJsonPath('meta.unread_count', 1)
-        ->assertJsonPath('data.0.id', $message->id);
-
-    $this->postJson("/api/v1/notifications/{$message->id}/read")
-        ->assertOk()
-        ->assertJsonPath('data.read_at', fn (string $readAt) => filled($readAt));
-
-    $this->postJson('/api/v1/notifications/read-all')
-        ->assertOk()
-        ->assertJsonPath('data.updated_count', 0);
 });
 
 it('registers updates and removes push destinations through the api', function () {

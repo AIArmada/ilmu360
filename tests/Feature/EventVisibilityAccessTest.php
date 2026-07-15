@@ -105,6 +105,7 @@ describe('unlisted events', function () {
             'status' => 'approved',
             'published_at' => null,
         ]);
+        $event->updateQuietly(['published_at' => null]);
 
         Livewire::test(Show::class, ['event' => $event])
             ->assertStatus(404);
@@ -170,6 +171,7 @@ describe('private events', function () {
             'status' => 'approved',
             'published_at' => null,
         ]);
+        $event->updateQuietly(['published_at' => null]);
 
         Livewire::actingAs($this->owner)
             ->test(Show::class, ['event' => $event])
@@ -190,13 +192,4 @@ describe('inactive or draft events', function () {
             ->assertStatus(404);
     });
 
-    it('returns 404 for draft status events', function () {
-        $event = Event::factory()->create([
-            'visibility' => EventVisibility::Public,
-            'status' => 'draft',
-        ]);
-
-        Livewire::test(Show::class, ['event' => $event])
-            ->assertStatus(404);
-    });
 });

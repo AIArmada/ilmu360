@@ -39,7 +39,7 @@ test('typesense filters include active event constraint', function () {
 
     $filters = $service->exposedBuildTypesenseFilterParts([]);
 
-    expect($filters)->toContain('status:[approved, published, pending, cancelled]');
+    expect($filters)->toContain('status:[approved, pending, cancelled]');
 });
 
 test('typesense filters include subdistrict constraint when provided', function () {
