@@ -7,10 +7,10 @@ namespace App\Support\Authz;
 use AIArmada\CommerceSupport\Models\Role;
 use AIArmada\FilamentAuthz\Facades\Authz;
 
-final class ScopedMemberRoleSeeder
+final readonly class ScopedMemberRoleSeeder
 {
     public function __construct(
-        private readonly MemberRoleScopes $scopes,
+        private MemberRoleScopes $scopes,
     ) {}
 
     public function ensureForInstitution(): void
