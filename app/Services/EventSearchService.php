@@ -1297,11 +1297,7 @@ class EventSearchService
      */
     protected function expandedReferenceIdsForFiltering(mixed $value): array
     {
-        $referenceIds = collect($this->normalizeArrayFilter($value))
-            ->map(static fn (mixed $referenceId): string => (string) $referenceId)
-            ->filter(static fn (string $referenceId): bool => $referenceId !== '')
-            ->values()
-            ->all();
+        $referenceIds = $this->uuidFilterValues($value);
 
         return Reference::expandRootReferenceIdsForFiltering($referenceIds);
     }

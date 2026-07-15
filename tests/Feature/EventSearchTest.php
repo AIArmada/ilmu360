@@ -276,14 +276,16 @@ describe('Event Search Filters', function () {
             'status' => 'active',
         ]);
 
-        Tag::factory()->discipline()->create([
-            'name' => ['en' => 'Discipline Hidden Filter Payload Test', 'ms' => 'Discipline Hidden Filter Payload Test'],
-            'status' => 'verified',
+        EventTerm::factory()->create([
+            'event_taxonomy_id' => EventTaxonomy::factory()->create(['code' => 'discipline', 'is_active' => true])->id,
+            'name' => 'Discipline Hidden Filter Payload Test',
+            'is_active' => true,
         ]);
 
-        Tag::factory()->domain()->create([
-            'name' => ['en' => 'Domain Hidden Filter Payload Test', 'ms' => 'Domain Hidden Filter Payload Test'],
-            'status' => 'verified',
+        EventTerm::factory()->create([
+            'event_taxonomy_id' => EventTaxonomy::factory()->create(['code' => 'domain', 'is_active' => true])->id,
+            'name' => 'Domain Hidden Filter Payload Test',
+            'is_active' => true,
         ]);
 
         $this->get(eventsIndexUrl())
@@ -2608,7 +2610,10 @@ describe('Event Detail Page', function () {
 
     it('displays related events section', function () {
         $institution = Institution::factory()->create();
-        $sharedTag = Tag::factory()->discipline()->create();
+        $sharedTerm = EventTerm::factory()->create([
+            'event_taxonomy_id' => EventTaxonomy::factory()->create(['code' => 'discipline', 'is_active' => true])->id,
+            'is_active' => true,
+        ]);
 
         $event = Event::factory()->for($institution)->create([
             'title' => 'Main Related Event',
@@ -2617,7 +2622,7 @@ describe('Event Detail Page', function () {
             'published_at' => now(),
             'starts_at' => now()->addDay(),
         ]);
-        attachTagToEventForTest($event, $sharedTag);
+        attachTermToEventForTest($event, $sharedTerm);
 
         Event::factory()->for($institution)->create([
             'title' => 'Institution Related Event',
@@ -2634,7 +2639,7 @@ describe('Event Detail Page', function () {
             'published_at' => now(),
             'starts_at' => now()->addDays(3),
         ]);
-        attachTagToEventForTest($tagRelatedEvent, $sharedTag);
+        attachTermToEventForTest($tagRelatedEvent, $sharedTerm);
 
         Event::factory()->create([
             'title' => 'Private Hidden Event',

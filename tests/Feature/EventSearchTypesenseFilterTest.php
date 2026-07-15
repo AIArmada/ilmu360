@@ -5,6 +5,7 @@ use App\Support\Search\InstitutionSearchService;
 use App\Support\Search\ReferenceSearchService;
 use App\Support\Search\SpeakerSearchService;
 use App\Support\Search\TypesenseHealthCheckService;
+use Illuminate\Support\Str;
 
 /**
  * @return array{0: TypesenseHealthCheckService, 1: SpeakerSearchService, 2: InstitutionSearchService, 3: ReferenceSearchService}
@@ -157,16 +158,18 @@ test('typesense filters include source, issue, and reference constraints when pr
         }
     };
 
+    $referenceId = (string) Str::uuid();
+
     $filters = $service->exposedBuildTypesenseFilterParts([
         'source_tag_ids' => ['source-1'],
         'issue_tag_ids' => ['issue-1'],
-        'reference_ids' => ['ref-1'],
+        'reference_ids' => [$referenceId],
     ]);
 
     expect($filters)
         ->toContain('source_tag_ids:[source-1]')
         ->toContain('issue_tag_ids:[issue-1]')
-        ->toContain('reference_ids:[ref-1]');
+        ->toContain('reference_ids:['.$referenceId.']');
 });
 
 test('typesense filters include linked PIC profile ids and free-text PIC search forces database fallback', function () {

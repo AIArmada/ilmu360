@@ -187,6 +187,7 @@ describe('inactive or draft events', function () {
             'status' => 'approved',
             'published_at' => null,
         ]);
+        $event->updateQuietly(['published_at' => null]);
 
         Livewire::test(Show::class, ['event' => $event])
             ->assertStatus(404);

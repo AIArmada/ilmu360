@@ -150,47 +150,55 @@ it('loads the upcoming events component', function () {
 
 it('groups homepage date filter counts by the viewer local date', function () {
     $userTimezone = 'Asia/Kuala_Lumpur';
+    $originalAppTimezone = config('app.timezone');
+    $originalDefaultTimezone = date_default_timezone_get();
 
+    config(['app.timezone' => 'UTC']);
+    date_default_timezone_set('UTC');
     Carbon::setTestNow(Carbon::create(2026, 4, 16, 18, 0, 0, 'UTC'));
 
-    Event::factory()->create([
-        'title' => 'Local Today Event',
-        'status' => 'approved',
-        'visibility' => 'public',
-        'published_at' => now(),
-        'starts_at' => Carbon::parse('2026-04-17 00:30:00', $userTimezone),
-    ]);
+    try {
+        Event::factory()->create([
+            'title' => 'Local Today Event',
+            'status' => 'approved',
+            'visibility' => 'public',
+            'published_at' => now(),
+            'starts_at' => Carbon::create(2026, 4, 16, 16, 30, 0, 'UTC'),
+        ]);
 
-    Event::factory()->create([
-        'title' => 'Previous Local Day Event',
-        'status' => 'approved',
-        'visibility' => 'public',
-        'published_at' => now(),
-        'starts_at' => Carbon::parse('2026-04-16 23:30:00', $userTimezone),
-    ]);
+        Event::factory()->create([
+            'title' => 'Previous Local Day Event',
+            'status' => 'approved',
+            'visibility' => 'public',
+            'published_at' => now(),
+            'starts_at' => Carbon::create(2026, 4, 16, 15, 30, 0, 'UTC'),
+        ]);
 
-    Event::factory()->create([
-        'title' => 'Local Tomorrow Event',
-        'status' => 'approved',
-        'visibility' => 'public',
-        'published_at' => now(),
-        'starts_at' => Carbon::parse('2026-04-18 00:30:00', $userTimezone),
-    ]);
+        Event::factory()->create([
+            'title' => 'Local Tomorrow Event',
+            'status' => 'approved',
+            'visibility' => 'public',
+            'published_at' => now(),
+            'starts_at' => Carbon::create(2026, 4, 17, 16, 30, 0, 'UTC'),
+        ]);
 
-    $dates = Livewire::withCookie('user_timezone', $userTimezone)
-        ->test('home.date-filter')
-        ->instance()
-        ->upcomingDates;
+        $dates = Livewire::withCookie('user_timezone', $userTimezone)
+            ->test('home.date-filter')
+            ->instance()
+            ->upcomingDates;
 
-    $today = $dates->first(fn (array $dateItem): bool => $dateItem['date']->format('Y-m-d') === '2026-04-17');
-    $tomorrow = $dates->first(fn (array $dateItem): bool => $dateItem['date']->format('Y-m-d') === '2026-04-18');
+        $today = $dates->first(fn (array $dateItem): bool => $dateItem['date']->format('Y-m-d') === '2026-04-17');
+        $tomorrow = $dates->first(fn (array $dateItem): bool => $dateItem['date']->format('Y-m-d') === '2026-04-18');
 
-    expect($today)->not->toBeNull()
-        ->and($tomorrow)->not->toBeNull()
-        ->and($today['count'])->toBe(1)
-        ->and($tomorrow['count'])->toBe(1);
-
-    Carbon::setTestNow();
+        expect($today)->not->toBeNull()
+            ->and($tomorrow)->not->toBeNull()
+            ->and($today['count'])->toBe(1)
+            ->and($tomorrow['count'])->toBe(1);
+    } finally {
+        Carbon::setTestNow();
+        config(['app.timezone' => $originalAppTimezone]);
+        date_default_timezone_set($originalDefaultTimezone);
+    }
 });
 
 it('uses canonical date range query parameters in homepage date components', function () {
