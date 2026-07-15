@@ -446,10 +446,12 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
             });
         }
         foreach ($snapshot['event_attendees'] ?? [] as $goingData) {
-            $event = Event::query()->find($goingData['event_id'] ?? null);
-            if ($event instanceof Event) {
-                $this->respond($event, $goingData['response_type'] ?? 'going');
-            }
+            OwnerContext::withOwner(null, function () use ($goingData): void {
+                $event = Event::query()->find($goingData['event_id'] ?? null);
+                if ($event instanceof Event) {
+                    $this->respond($event, $goingData['response_type'] ?? 'going');
+                }
+            });
         }
         DB::table('event_members')->insertOrIgnore($this->snapshotRows($snapshot, 'event_members'));
         DB::table($this->permissionTable('model_has_roles'))->insertOrIgnore($this->snapshotRows($snapshot, 'model_has_roles'));
