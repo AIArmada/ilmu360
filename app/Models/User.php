@@ -231,10 +231,12 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
             return;
         }
 
-        $restoredModel->restoreManyToManyRelations($snapshot);
-        $restoredModel->restoreReassignedRelations($snapshot);
-        $restoredModel->restoreDeletedAffiliateTrackingSnapshot($deletedModel->value('deleted_affiliate_tracking_snapshot'));
-        $restoredModel->restoreDeletedChildModels($snapshot);
+        OwnerContext::withOwner(null, function () use ($restoredModel, $snapshot, $deletedModel): void {
+            $restoredModel->restoreManyToManyRelations($snapshot);
+            $restoredModel->restoreReassignedRelations($snapshot);
+            $restoredModel->restoreDeletedAffiliateTrackingSnapshot($deletedModel->value('deleted_affiliate_tracking_snapshot'));
+            $restoredModel->restoreDeletedChildModels($snapshot);
+        });
     }
 
     protected function captureDeletedRelationsSnapshot(): void
