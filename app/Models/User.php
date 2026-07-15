@@ -612,6 +612,15 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
             $model = new $modelClass;
             $model->timestamps = false;
             $model->forceFill($attributes);
+
+            if ($model instanceof SocialAccount) {
+                $existing = SocialAccount::query()->find($model->getKey());
+
+                if ($existing instanceof SocialAccount && (string) $existing->user_id === (string) $this->getKey()) {
+                    $existing->delete();
+                }
+            }
+
             $model->saveQuietly();
 
             if ($relationName === 'registrations' && $model instanceof Registration) {
