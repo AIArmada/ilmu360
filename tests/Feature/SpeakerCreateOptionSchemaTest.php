@@ -68,8 +68,8 @@ it('stores biography and institution pivot position when creating a speaker via 
         'content' => [[
             'type' => 'paragraph',
             'content' => [[
-                'type' => 'text',
                 'text' => 'Biografi ujian penceramah.',
+                'type' => 'text',
             ]],
         ]],
     ];

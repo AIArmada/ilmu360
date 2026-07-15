@@ -14,6 +14,7 @@ use AIArmada\Contacting\Models\ContactMethod;
 use AIArmada\Contacting\Models\SocialProfile;
 use AIArmada\Events\Models\EventAccessPolicy;
 use AIArmada\Events\Models\EventRegistrationParticipant;
+use AIArmada\Events\Models\EventTerm;
 use AIArmada\FilamentSignals\Policies\TrackedPropertyPolicy;
 use AIArmada\Membership\Contracts\MembershipApplicationNotifier;
 use AIArmada\Membership\Contracts\MembershipHook;
@@ -54,6 +55,7 @@ use App\Observers\AddressCountryObserver;
 use App\Observers\AddressObserver;
 use App\Observers\EventKeyPersonObserver;
 use App\Observers\EventObserver;
+use App\Observers\EventTermObserver;
 use App\Observers\InstitutionObserver;
 use App\Observers\ReferenceObserver;
 use App\Observers\SpeakerObserver;
@@ -340,6 +342,7 @@ class AppServiceProvider extends ServiceProvider
         }
 
         Event::observe(EventObserver::class);
+        EventTerm::observe(EventTermObserver::class);
         Address::observe(AddressObserver::class);
         AddressArea::observe(AddressAreaObserver::class);
         Addressable::observe(AddressableObserver::class);

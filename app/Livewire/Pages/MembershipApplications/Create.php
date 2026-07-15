@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Pages\MembershipApplications;
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Actions\Membership\SubmitMembershipApplicationAction;
 use App\Enums\MemberSubjectType;
 use App\Livewire\Concerns\InteractsWithToasts;
@@ -26,6 +27,11 @@ class Create extends Component implements HasForms
     use InteractsWithForms;
     use InteractsWithToasts;
     use WithFileUploads;
+
+    public function boot(): void
+    {
+        OwnerContext::setForRequest(null);
+    }
 
     public Institution|Speaker $subject;
 

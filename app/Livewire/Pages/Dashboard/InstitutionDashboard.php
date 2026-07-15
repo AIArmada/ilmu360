@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Pages\Dashboard;
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Membership\Actions\AddMemberAction;
 use AIArmada\Membership\Actions\ChangeMemberRoleAction;
 use AIArmada\Membership\Actions\RemoveMemberAction;
@@ -46,6 +47,11 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
         bootedInteractsWithTable as protected filamentBootedInteractsWithTable;
     }
     use InteractsWithToasts;
+
+    public function boot(): void
+    {
+        OwnerContext::setForRequest(null);
+    }
 
     #[Url(as: 'institution')]
     public ?string $institutionId = null;
@@ -198,7 +204,11 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
             ]);
         }
 
-        AddMemberAction::run($institution, $member, MemberRole::tryFrom($validated['newMemberRoleId']) ?? MemberRole::Viewer);
+        OwnerContext::withOwner($institution, fn () => AddMemberAction::run(
+            $institution,
+            $member,
+            MemberRole::tryFrom($validated['newMemberRoleId']) ?? MemberRole::Viewer,
+        ));
 
         $this->newMemberEmail = '';
         $this->newMemberRoleId = '';

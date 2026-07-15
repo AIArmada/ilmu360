@@ -55,7 +55,7 @@ it('allows moderators to approve membership applications as owner from the admin
     $speaker = Speaker::factory()->create();
     $claimant = User::factory()->create();
     $claim = MembershipApplication::factory()
-        ->forSpeaker($speaker)
+        ->for($speaker, 'subject')
         ->create([
             'applicant_id' => $claimant->getKey(),
             'status' => ApplicationStatus::Pending,

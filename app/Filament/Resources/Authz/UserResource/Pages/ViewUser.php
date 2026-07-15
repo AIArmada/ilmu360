@@ -30,6 +30,11 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class ViewUser extends ViewRecord
 {
+    public function boot(): void
+    {
+        OwnerContext::setForRequest(null);
+    }
+
     protected static string $resource = UserResource::class;
 
     protected Width|string|null $maxContentWidth = Width::Full;
@@ -127,22 +132,22 @@ class ViewUser extends ViewRecord
                     ->with(['institution:id,name', 'venue:id,name'])
                     ->orderBy((new Response)->getTable().'.created_at', 'desc'),
                 'eventCheckins' => fn ($query) => $query
-                    ->with(['event:id,title,status,starts_at', 'verifiedBy:id,name'])
+                    ->with(['event', 'verifiedBy:id,name'])
                     ->orderByDesc('checked_in_at'),
                 'registrations' => fn ($query) => $query
-                    ->with(['event:id,title,status,starts_at'])
+                    ->with('event')
                     ->latest(),
                 'followingInstitutions' => fn ($query) => $query->orderBy('name'),
                 'followingSpeakers' => fn ($query) => $query->orderBy('name'),
                 'followingReferences' => fn ($query) => $query->orderBy('title'),
                 'eventSubmissions' => fn ($query) => $query
-                    ->with(['event:id,title,status,starts_at'])
+                    ->with('event')
                     ->latest(),
                 'institutions' => fn ($query) => $query->orderBy('name'),
                 'speakers' => fn ($query) => $query->orderBy('name'),
                 'memberEvents' => fn ($query) => $query
                     ->with(['institution:id,name', 'venue:id,name'])
-                    ->orderByDesc('starts_at'),
+                    ->orderByDesc('created_at'),
                 'references' => fn ($query) => $query->orderBy('title'),
                 'savedSearches' => fn ($query) => $query->latest(),
             ]);

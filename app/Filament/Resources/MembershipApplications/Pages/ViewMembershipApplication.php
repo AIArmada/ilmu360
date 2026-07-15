@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\MembershipApplications\Pages;
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Membership\Actions\ApproveMembershipApplicationAction;
 use AIArmada\Membership\Actions\RejectMembershipApplicationAction;
 use AIArmada\Membership\Enums\ApplicationStatus;
@@ -20,6 +21,11 @@ use Filament\Support\Icons\Heroicon;
 
 class ViewMembershipApplication extends ViewRecord
 {
+    public function boot(): void
+    {
+        OwnerContext::setForRequest(null);
+    }
+
     protected static string $resource = MembershipApplicationResource::class;
 
     protected Width|string|null $maxContentWidth = Width::Full;

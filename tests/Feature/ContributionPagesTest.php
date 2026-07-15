@@ -1155,10 +1155,10 @@ it('formats institution membership claim options with the location hierarchy', f
 
     $searchOptions = Closure::bind(fn () => $this->membershipClaimSearchOptions(MemberSubjectType::Institution->value, 'Payung'), $component, ContributionsIndex::class)();
 
-    $selectedLabel = Closure::bind(fn () => $this->membershipClaimOptionLabel(MemberSubjectType::Institution->value, $institution->slug), $component, ContributionsIndex::class)();
+    $selectedLabel = Closure::bind(fn () => $this->membershipClaimOptionLabel(MemberSubjectType::Institution->value, $institution->getKey()), $component, ContributionsIndex::class)();
 
-    expect($searchOptions)->toHaveKey($institution->slug)
-        ->and($searchOptions[$institution->slug])->toBe('Masjid Payung - Shah Alam, Petaling, Selangor')
+    expect($searchOptions)->toHaveKey($institution->getKey())
+        ->and($searchOptions[$institution->getKey()])->toBe('Masjid Payung - Shah Alam, Petaling, Selangor')
         ->and($selectedLabel)->toBe('Masjid Payung - Shah Alam, Petaling, Selangor');
 });
 

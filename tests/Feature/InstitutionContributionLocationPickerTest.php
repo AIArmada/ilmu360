@@ -151,8 +151,8 @@ it('keeps manual fallback mode off the places api while still normalizing pasted
     expect($institution)->not->toBeNull()
         ->and($institution?->primaryAddress()?->google_maps_url)->toBe('https://www.google.com/maps/search/?api=1&query=1.9089362%2C102.865462')
         ->and($institution?->primaryAddress()?->google_place_id)->toBeNull()
-        ->and($institution?->primaryAddress()?->lat)->toBe(1.9089362)
-        ->and($institution?->primaryAddress()?->lng)->toBe(102.865462);
+        ->and((float) $institution?->primaryAddress()?->lat)->toBe(1.9089362)
+        ->and((float) $institution?->primaryAddress()?->lng)->toBe(102.865462);
 
     Http::assertSentCount(1);
     Http::assertSent(fn ($request) => str_starts_with((string) $request->url(), 'https://maps.app.goo.gl/'));

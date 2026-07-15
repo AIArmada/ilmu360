@@ -365,12 +365,12 @@ class Index extends Component implements HasForms
         return "{$institution->display_name} - {$location}";
     }
 
-    private function resolveInstitutionMembershipApplicationOptionLabel(string $subjectSlug): ?string
+    private function resolveInstitutionMembershipApplicationOptionLabel(string $subjectId): ?string
     {
         $institution = Institution::query()
             ->where('status', 'verified')
             ->whereIn('status', ['verified', 'pending'])
-            ->where('slug', $subjectSlug)
+            ->whereKey($subjectId)
             ->with(['addresses'])
             ->first(['id', 'name', 'nickname']);
 

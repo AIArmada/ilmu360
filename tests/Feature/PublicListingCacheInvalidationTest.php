@@ -164,7 +164,7 @@ it('clears majlis listing cache when admin-managed related records are created',
     assertHomepageStatsCacheWasCleared($homepageKeysAfterSpeakerPrime);
 
     $keysAfterTagPrime = primeMajlisListingCache();
-    Tag::factory()->issue()->create();
+    submitEventTerm('issue');
     assertMajlisCacheWasCleared($keysAfterTagPrime);
 
     $keysAfterVenuePrime = primeMajlisListingCache();

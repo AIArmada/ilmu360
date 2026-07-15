@@ -1,6 +1,5 @@
 <?php
 
-use AIArmada\CommerceSupport\Models\Role;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\FilamentAuthz\Facades\Authz;
@@ -135,9 +134,6 @@ it('dispatches an institution toggle refresh event after adding an eligible memb
         'phone_verified_at' => Carbon::now(),
     ]);
 
-    $scope = app(MemberRoleScopes::class)->institution();
-    $ownerRoleId = Authz::withScope($scope, fn (): string => (string) Role::findByName('owner', 'web')->getKey());
-
     Livewire::actingAs($admin)
         ->test(InstitutionMembersRelationManager::class, [
             'ownerRecord' => $institution,
@@ -145,7 +141,7 @@ it('dispatches an institution toggle refresh event after adding an eligible memb
         ])
         ->callTableAction('addMember', data: [
             'user_id' => $member->id,
-            'role_id' => $ownerRoleId,
+            'role_id' => 'owner',
         ])
         ->assertDispatchedTo(EditInstitution::class, PublicSubmissionUiEvents::REFRESH_TOGGLE);
 });

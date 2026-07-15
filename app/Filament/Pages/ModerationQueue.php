@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\FilamentEvents\Resources\EventResource;
 use App\Models\Event;
 use App\Services\ModerationService;
@@ -29,6 +30,11 @@ use UnitEnum;
 class ModerationQueue extends Page implements HasTable
 {
     use InteractsWithTable;
+
+    public function boot(): void
+    {
+        OwnerContext::setForRequest(null);
+    }
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedClipboardDocumentCheck;
 
