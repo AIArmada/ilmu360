@@ -311,17 +311,19 @@ it('shows linked non-speaker roles in a separate section on the speaker page', f
     ]);
 
     $speakerEvent->keyPeople()->create([
-        'speaker_id' => $speaker->id,
-        'role' => EventKeyPersonRole::Speaker,
-        'order_column' => 1,
-        'is_public' => true,
+        'involveable_type' => 'speaker',
+        'involveable_id' => $speaker->id,
+        'role_code' => EventKeyPersonRole::Speaker->value,
+        'sort_order' => 1,
+        'visibility' => 'public',
     ]);
 
     $moderatedEvent->keyPeople()->create([
-        'speaker_id' => $speaker->id,
-        'role' => EventKeyPersonRole::Moderator,
-        'order_column' => 1,
-        'is_public' => true,
+        'involveable_type' => 'speaker',
+        'involveable_id' => $speaker->id,
+        'role_code' => EventKeyPersonRole::Moderator->value,
+        'sort_order' => 1,
+        'visibility' => 'public',
     ]);
 
     $response = $this->get(route('speakers.show', $speaker));

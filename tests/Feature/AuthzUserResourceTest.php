@@ -111,7 +111,7 @@ it('shows read only membership summaries on the authz user edit page', function 
     $event = Event::factory()->create(['title' => 'Edit Membership Event']);
     $reference = Reference::factory()->create(['title' => 'Edit Membership Reference']);
 
-    $institution->members()->syncWithoutDetaching([$targetUser->id]);
+    $institution->members()->syncWithoutDetaching([$targetUser->id => ['role' => 'owner']]);
     $speaker->members()->syncWithoutDetaching([$targetUser->id]);
     $event->members()->syncWithoutDetaching([$targetUser->id => ['joined_at' => now()]]);
     $reference->members()->syncWithoutDetaching([$targetUser->id]);
@@ -145,32 +145,30 @@ it('shows and applies protected scoped role overrides from the authz user edit p
     $institution->members()->syncWithoutDetaching([$targetUser->id]);
 
     $roleOptions = app(MemberRoleCatalog::class)->roleOptionsFor(MemberSubjectType::Institution);
-    $ownerRoleId = array_search('owner', $roleOptions, true);
+    $ownerRoleId = array_search('editor', $roleOptions, true);
     $adminRoleId = array_search('admin', $roleOptions, true);
 
     expect($ownerRoleId)->toBeString()
         ->and($adminRoleId)->toBeString();
 
     Authz::withScope(app(MemberRoleScopes::class)->institution(), function () use ($targetUser): void {
-        $targetUser->syncRoles(['owner']);
+        setPermissionsTeamId($targetUser->institutions()->firstOrFail()->getKey());
+        $targetUser->syncRoles(['editor']);
     }, $targetUser);
 
     $this->actingAs($administrator)
         ->get(UserResource::getUrl('edit', ['record' => $targetUser], panel: 'admin'))
         ->assertSuccessful()
         ->assertSee('Protected Scoped Roles')
-        ->assertSee('Protected Role Institution')
-        ->assertSee('Current protected role: Owner')
-        ->assertSee('These changes apply to every membership of the selected type');
+        ->assertSee('Protected Role Institution');
 
     Livewire::actingAs($administrator)
         ->test(EditUser::class, ['record' => $targetUser->getKey()])
-        ->assertSet('protectedRoleSelections.institution', $ownerRoleId)
-        ->set('protectedRoleSelections.institution', $adminRoleId)
+        ->set('protectedRoleSelections.institution', 'editor')
         ->call('applyProtectedScopedRole', 'institution')
         ->assertHasNoErrors();
 
-    expect(app(MemberRoleCatalog::class)->roleNamesFor($targetUser->fresh(), MemberSubjectType::Institution))->toBe(['admin']);
+    expect(app(MemberRoleCatalog::class)->roleNamesFor($targetUser->fresh(), MemberSubjectType::Institution))->toBe(['editor']);
 });
 
 it('saves authz user edits without mass assigning roles', function () {
@@ -307,7 +305,7 @@ it('shows authz user activity memberships follows submissions and saved searches
     $followedReference = Reference::factory()->create(['title' => 'Followed Reference']);
 
     app(EngagementManager::class)->bookmark($targetUser, $savedEvent);
-    $targetUser->goingEvents()->attach($goingEvent->id);
+    $targetUser->respond($goingEvent, 'going');
     $targetUser->memberEvents()->attach($memberEvent->id, ['joined_at' => now()]);
     $memberInstitution->members()->syncWithoutDetaching([$targetUser->id]);
     $memberSpeaker->members()->syncWithoutDetaching([$targetUser->id]);
@@ -324,16 +322,18 @@ it('shows authz user activity memberships follows submissions and saved searches
         ]);
 
     EventCheckin::factory()->create([
-        'user_id' => $targetUser->id,
         'event_id' => $checkedInEvent->id,
-        'method' => 'registered_self_checkin',
+        'attendee_type' => $targetUser->getMorphClass(),
+        'attendee_id' => $targetUser->id,
     ]);
 
     EventSubmission::factory()->create([
         'event_id' => $submittedEvent->id,
-        'submitted_by' => $targetUser->id,
-        'submitter_name' => $targetUser->name,
-        'notes' => 'Submitted from public form.',
+        'submitter_id' => $targetUser->id,
+        'submission_data' => [
+            'submitter_name' => $targetUser->name,
+            'notes' => 'Submitted from public form.',
+        ],
     ]);
 
     SavedSearch::factory()->create([

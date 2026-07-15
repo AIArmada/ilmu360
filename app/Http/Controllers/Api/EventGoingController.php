@@ -6,11 +6,13 @@ use App\Actions\Events\MarkEventGoingAction;
 use App\Actions\Events\RemoveEventGoingAction;
 use App\Data\Api\EventEngagement\EventEngagementListItemData;
 use App\Data\Api\EventGoing\EventGoingStateData;
+use App\Enums\DawahShareOutcomeType;
 use App\Enums\EventVisibility;
 use App\Enums\ScheduleState;
 use App\Http\Controllers\Controller;
 use App\Models\Event;
 use App\Models\User;
+use App\Services\ShareTrackingService;
 use App\Support\Api\ApiPagination;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
@@ -102,6 +104,17 @@ class EventGoingController extends Controller
         }
 
         $created = $goingState['status'] === 'created';
+
+        if ($created) {
+            app(ShareTrackingService::class)->recordOutcome(
+                type: DawahShareOutcomeType::EventGoing,
+                outcomeKey: 'event_going:user:'.$this->currentUser($request)->getKey().':event:'.$event->getKey(),
+                subject: $event,
+                actor: $this->currentUser($request),
+                request: $request,
+                metadata: ['subject_id' => $event->getKey(), 'subject_type' => $event->getMorphClass()],
+            );
+        }
 
         return response()->json([
             'message' => $created ? 'Going recorded successfully.' : 'Event already marked as going.',

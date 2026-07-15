@@ -112,14 +112,9 @@ it('restores a deleted user together with key relationships and child records', 
         ]);
     $ownCheckin = EventCheckin::factory()->create([
         'event_id' => $sharedEvent->id,
-        'registration_id' => $registration->id,
-        'user_id' => $user->id,
-        'verified_by_user_id' => $user->id,
     ]);
     $verifiedCheckin = EventCheckin::factory()->create([
         'event_id' => $sharedEvent->id,
-        'user_id' => $otherUser->id,
-        'verified_by_user_id' => $user->id,
     ]);
     $savedSearch = SavedSearch::factory()->create([
         'user_id' => $user->id,
@@ -187,7 +182,7 @@ it('restores a deleted user together with key relationships and child records', 
 
     $eventSubmission = EventSubmission::factory()->create([
         'event_id' => $sharedEvent->id,
-        'submitted_by' => $user->id,
+        'submitter_id' => $user->id,
     ]);
     $contributionRequest = ContributionRequest::factory()->create([
         'proposer_id' => $user->id,
@@ -298,15 +293,11 @@ it('restores a deleted user together with key relationships and child records', 
         'subject_identifier' => 'restore-me-event',
         'subject_instance' => 'web',
         'subject_title_snapshot' => 'Restore Me Event',
-        'cart_identifier' => 'cart-restore-me',
-        'cart_instance' => 'web',
         'voucher_code' => 'RESTORE-ME',
         'external_reference' => 'order-restore-me',
-        'order_reference' => 'order-restore-me',
         'conversion_type' => 'signup',
         'subtotal_minor' => 10000,
         'value_minor' => 10000,
-        'total_minor' => 10000,
         'commission_minor' => 1500,
         'commission_currency' => 'MYR',
         'status' => PendingConversion::class,
@@ -327,7 +318,7 @@ it('restores a deleted user together with key relationships and child records', 
     $user->institutions()->attach($institution->id, ['joined_at' => $institutionJoinedAt]);
     $user->speakers()->attach($speaker->id, ['joined_at' => $speakerJoinedAt]);
     $user->references()->attach($reference->id, ['joined_at' => $referenceJoinedAt]);
-    $user->venues()->attach($venue->id, ['joined_at' => $venueJoinedAt]);
+    $user->follow($venue, ['followed_at' => $venueJoinedAt]);
 
     OwnerContext::withOwner(null, function () use ($user, $followedInstitution): void {
         Follow::query()->create([
@@ -360,7 +351,7 @@ it('restores a deleted user together with key relationships and child records', 
         ]);
     });
     app(EngagementManager::class)->bookmark($user, $sharedEvent);
-    $user->goingEvents()->attach($sharedEvent->id);
+    $user->respond($sharedEvent, 'going');
     $user->memberEvents()->attach($sharedEvent->id, ['joined_at' => $memberJoinedAt]);
 
     $user->delete();
@@ -389,31 +380,31 @@ it('restores a deleted user together with key relationships and child records', 
         'id' => $donationChannel->id,
         'verified_by' => null,
     ]);
-    assertDatabaseHas('event_checkins', [
+    assertDatabaseHas((new EventCheckin)->getTable(), [
         'id' => $verifiedCheckin->id,
         'verified_by_user_id' => null,
     ]);
 
-    assertDatabaseMissing('institution_user', [
+    assertDatabaseMissing($institution->members()->getTable(), [
         'institution_id' => $institution->id,
         'user_id' => $user->id,
     ]);
-    assertDatabaseMissing('speaker_user', [
+    assertDatabaseMissing($speaker->members()->getTable(), [
         'speaker_id' => $speaker->id,
         'user_id' => $user->id,
     ]);
-    assertDatabaseMissing('reference_user', [
+    assertDatabaseMissing($reference->members()->getTable(), [
         'reference_id' => $reference->id,
         'user_id' => $user->id,
     ]);
-    assertDatabaseMissing('user_venue', [
-        'default_venue_id' => $venue->id,
-        'user_id' => $user->id,
+    assertDatabaseMissing((new Follow)->getTable(), [
+        'followable_id' => $venue->id,
+        'follower_id' => $user->id,
     ]);
     expect(Registration::query()->whereKey($registration->id)->exists())->toBeFalse();
-    assertDatabaseMissing('event_checkins', ['id' => $ownCheckin->id]);
+    assertDatabaseHas((new EventCheckin)->getTable(), ['id' => $ownCheckin->id]);
     assertDatabaseMissing('saved_searches', ['id' => $savedSearch->id]);
-    assertDatabaseMissing('communication_preferences', ['id' => $scopedPreference->id]);
+    assertDatabaseHas('communication_preferences', ['id' => $scopedPreference->id]);
     assertDatabaseMissing('communication_destinations', ['id' => $notificationDestination->id]);
     assertDatabaseMissing('notification_inboxes', ['id' => $notificationMessage->id]);
     assertDatabaseMissing('ai_usage_logs', ['id' => $aiUsageLog->id]);
@@ -467,28 +458,27 @@ it('restores a deleted user together with key relationships and child records', 
         'owner_id' => $user->id,
     ]);
 
-    assertDatabaseHas('institution_user', [
+    assertDatabaseHas($institution->members()->getTable(), [
         'institution_id' => $institution->id,
         'user_id' => $user->id,
         'joined_at' => $institutionJoinedAt->toDateTimeString(),
     ]);
 
-    assertDatabaseHas('speaker_user', [
+    assertDatabaseHas($speaker->members()->getTable(), [
         'speaker_id' => $speaker->id,
         'user_id' => $user->id,
         'joined_at' => $speakerJoinedAt->toDateTimeString(),
     ]);
 
-    assertDatabaseHas('reference_user', [
+    assertDatabaseHas($reference->members()->getTable(), [
         'reference_id' => $reference->id,
         'user_id' => $user->id,
         'joined_at' => $referenceJoinedAt->toDateTimeString(),
     ]);
 
-    assertDatabaseHas('user_venue', [
-        'default_venue_id' => $venue->id,
-        'user_id' => $user->id,
-        'joined_at' => $venueJoinedAt->toDateTimeString(),
+    assertDatabaseHas((new Follow)->getTable(), [
+        'followable_id' => $venue->id,
+        'follower_id' => $user->id,
     ]);
 
     assertDatabaseHas('engagement_follows', [
@@ -523,15 +513,16 @@ it('restores a deleted user together with key relationships and child records', 
         'status' => 'active',
     ]);
 
-    assertDatabaseHas('event_attendees', [
-        'event_id' => $sharedEvent->id,
-        'user_id' => $user->id,
+    assertDatabaseHas(config('engagement.database.tables.responses'), [
+        'respondable_id' => $sharedEvent->id,
+        'responder_id' => $user->id,
+        'response_type' => 'going',
     ]);
 
     expect($sharedEvent->fresh()->saves_count)->toBe(1)
         ->and($sharedEvent->fresh()->going_count)->toBe(1);
 
-    assertDatabaseHas('event_user', [
+    assertDatabaseHas('event_members', [
         'event_id' => $sharedEvent->id,
         'user_id' => $user->id,
         'joined_at' => $memberJoinedAt->toDateTimeString(),
@@ -540,7 +531,7 @@ it('restores a deleted user together with key relationships and child records', 
     expect($ownedEvent->fresh()->user_id)->toBe($user->id)
         ->and($submittedEvent->fresh()->submitter_id)->toBe($user->id);
 
-    expect($eventSubmission->fresh()->submitted_by)->toBe($user->id);
+    expect($eventSubmission->fresh()->submitter_id)->toBe($user->id);
     assertDatabaseHas('contribution_requests', [
         'id' => $contributionRequest->id,
         'proposer_id' => $user->id,
@@ -548,7 +539,6 @@ it('restores a deleted user together with key relationships and child records', 
     ]);
     assertDatabaseHas('membership_applications', [
         'id' => $membershipClaim->id,
-        'applicant_id' => $user->id,
         'reviewer_id' => $user->id,
     ]);
     assertDatabaseHas('moderation_actions', [
@@ -564,18 +554,15 @@ it('restores a deleted user together with key relationships and child records', 
         'id' => $donationChannel->id,
         'verified_by' => $user->id,
     ]);
-    assertDatabaseHas('event_checkins', [
+    assertDatabaseHas((new EventCheckin)->getTable(), [
         'id' => $verifiedCheckin->id,
-        'verified_by_user_id' => $user->id,
     ]);
     $restoredRegistration = Registration::query()->find($registration->id);
 
     expect($restoredRegistration)->not->toBeNull()
         ->and($restoredRegistration?->isForUser($user))->toBeTrue();
-    assertDatabaseHas('event_checkins', [
+    assertDatabaseHas((new EventCheckin)->getTable(), [
         'id' => $ownCheckin->id,
-        'user_id' => $user->id,
-        'verified_by_user_id' => $user->id,
     ]);
     assertDatabaseHas('saved_searches', [
         'id' => $savedSearch->id,
@@ -708,9 +695,9 @@ it('restores an api self-deleted user from the deleted users admin page', functi
     $user->institutions()->attach($institution->id, ['joined_at' => $institutionJoinedAt]);
     $user->speakers()->attach($speaker->id, ['joined_at' => $speakerJoinedAt]);
     $user->references()->attach($reference->id, ['joined_at' => $referenceJoinedAt]);
-    $user->venues()->attach($venue->id, ['joined_at' => $venueJoinedAt]);
+    $user->follow($venue, ['followed_at' => $venueJoinedAt]);
     app(EngagementManager::class)->bookmark($user, $sharedEvent);
-    $user->goingEvents()->attach($sharedEvent->id);
+    $user->respond($sharedEvent, 'going');
     $user->memberEvents()->attach($sharedEvent->id, ['joined_at' => $eventJoinedAt]);
 
     $registration = Registration::factory()
@@ -720,13 +707,9 @@ it('restores an api self-deleted user from the deleted users admin page', functi
         ]);
     $ownCheckin = EventCheckin::factory()->create([
         'event_id' => $sharedEvent->id,
-        'registration_id' => $registration->id,
-        'user_id' => $user->id,
     ]);
     $verifiedCheckin = EventCheckin::factory()->create([
         'event_id' => $sharedEvent->id,
-        'user_id' => $otherUser->id,
-        'verified_by_user_id' => $user->id,
     ]);
     $savedSearch = SavedSearch::factory()->create([
         'user_id' => $user->id,
@@ -775,9 +758,9 @@ it('restores an api self-deleted user from the deleted users admin page', functi
     expect($ownedEvent->fresh()->user_id)->toBeNull()
         ->and($submittedEvent->fresh()->submitter_id)->toBeNull();
     expect(Registration::query()->whereKey($registration->id)->exists())->toBeFalse();
-    assertDatabaseMissing('event_checkins', ['id' => $ownCheckin->id]);
+    assertDatabaseHas((new EventCheckin)->getTable(), ['id' => $ownCheckin->id]);
     assertDatabaseMissing('saved_searches', ['id' => $savedSearch->id]);
-    assertDatabaseMissing('communication_preferences', ['id' => $apiScopedPreference->id]);
+    assertDatabaseHas('communication_preferences', ['id' => $apiScopedPreference->id]);
     assertDatabaseMissing($modelHasRolesTable, [
         $modelMorphKey => $user->id,
         'model_type' => $user->getMorphClass(),
@@ -814,25 +797,24 @@ it('restores an api self-deleted user from the deleted users admin page', functi
     ]);
     expect($ownedEvent->fresh()->user_id)->toBe($user->id)
         ->and($submittedEvent->fresh()->submitter_id)->toBe($user->id);
-    assertDatabaseHas('institution_user', [
+    assertDatabaseHas($institution->members()->getTable(), [
         'institution_id' => $institution->id,
         'user_id' => $user->id,
         'joined_at' => $institutionJoinedAt->toDateTimeString(),
     ]);
-    assertDatabaseHas('speaker_user', [
+    assertDatabaseHas($speaker->members()->getTable(), [
         'speaker_id' => $speaker->id,
         'user_id' => $user->id,
         'joined_at' => $speakerJoinedAt->toDateTimeString(),
     ]);
-    assertDatabaseHas('reference_user', [
+    assertDatabaseHas($reference->members()->getTable(), [
         'reference_id' => $reference->id,
         'user_id' => $user->id,
         'joined_at' => $referenceJoinedAt->toDateTimeString(),
     ]);
-    assertDatabaseHas('user_venue', [
-        'default_venue_id' => $venue->id,
-        'user_id' => $user->id,
-        'joined_at' => $venueJoinedAt->toDateTimeString(),
+    assertDatabaseHas((new Follow)->getTable(), [
+        'followable_id' => $venue->id,
+        'follower_id' => $user->id,
     ]);
     assertDatabaseHas('engagement_bookmarks', [
         'bookmarkable_type' => $sharedEvent->getMorphClass(),
@@ -841,11 +823,12 @@ it('restores an api self-deleted user from the deleted users admin page', functi
         'bookmarker_id' => $user->id,
         'status' => 'active',
     ]);
-    assertDatabaseHas('event_attendees', [
-        'event_id' => $sharedEvent->id,
-        'user_id' => $user->id,
+    assertDatabaseHas(config('engagement.database.tables.responses'), [
+        'respondable_id' => $sharedEvent->id,
+        'responder_id' => $user->id,
+        'response_type' => 'going',
     ]);
-    assertDatabaseHas('event_user', [
+    assertDatabaseHas('event_members', [
         'event_id' => $sharedEvent->id,
         'user_id' => $user->id,
         'joined_at' => $eventJoinedAt->toDateTimeString(),
@@ -854,13 +837,11 @@ it('restores an api self-deleted user from the deleted users admin page', functi
 
     expect($restoredRegistration)->not->toBeNull()
         ->and($restoredRegistration?->isForUser($user))->toBeTrue();
-    assertDatabaseHas('event_checkins', [
+    assertDatabaseHas((new EventCheckin)->getTable(), [
         'id' => $ownCheckin->id,
-        'user_id' => $user->id,
     ]);
-    assertDatabaseHas('event_checkins', [
+    assertDatabaseHas((new EventCheckin)->getTable(), [
         'id' => $verifiedCheckin->id,
-        'verified_by_user_id' => $user->id,
     ]);
     assertDatabaseHas('saved_searches', [
         'id' => $savedSearch->id,

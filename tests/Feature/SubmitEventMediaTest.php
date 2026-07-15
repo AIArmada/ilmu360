@@ -8,7 +8,6 @@ use App\Enums\EventVisibility;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Speaker;
-use App\Models\Tag;
 use App\Models\User;
 use Filament\Forms\Components\FileUpload;
 use Illuminate\Http\UploadedFile;
@@ -27,8 +26,8 @@ function submitEventMediaFixtures(): array
 {
     return [
         'event_date' => now()->addDay()->toDateString(),
-        'domain_tag_ids' => Tag::factory()->domain()->count(2)->create()->pluck('id')->all(),
-        'discipline_tag_ids' => Tag::factory()->discipline()->count(1)->create()->pluck('id')->all(),
+        'domain_tag_ids' => [submitEventTerm('domain')->id, submitEventTerm('domain')->id],
+        'discipline_tag_ids' => [submitEventTerm('discipline')->id],
         'speaker_ids' => Speaker::factory()->count(2)->create()->pluck('id')->all(),
         'institution_id' => Institution::factory()->create(['status' => 'verified'])->id,
     ];
@@ -97,7 +96,7 @@ it('stores cover, poster, and gallery uploads when submitting an event', functio
     expect($event->getMedia('cover'))->toHaveCount(1);
     expect($event->getMedia('poster'))->toHaveCount(1);
     expect($event->getMedia('gallery'))->toHaveCount(2);
-    expect($event->tags)->toHaveCount(3)
+    expect($event->classifications()->count())->toBe(3)
         ->and($event->slug)->toBe(sprintf(
             'test-event-media-upload-%s-%s',
             implode('-', $speakerSlugSegments),

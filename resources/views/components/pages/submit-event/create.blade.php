@@ -1547,9 +1547,12 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
 
     public function submit(): mixed
     {
+        $state = $this->eventForm()->getState();
+        $state['captcha_token'] = $this->data['captcha_token'] ?? null;
+
         $eventContainer = $this->selectedEventContainer();
         $result = app(SubmitFrontendEventAction::class)->handle(
-            state: $this->eventForm()->getState(),
+            state: $state,
             request: request(),
             submitter: $this->submitterUser(),
             eventContainer: $eventContainer,

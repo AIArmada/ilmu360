@@ -12,6 +12,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 uses(RefreshDatabase::class);
 
 it('removes the ahli workspace wrapper and makes events the ahli navigation anchor', function () {
+    app()->setLocale('en');
+
     $user = User::factory()->create();
     $institution = Institution::factory()->create();
 

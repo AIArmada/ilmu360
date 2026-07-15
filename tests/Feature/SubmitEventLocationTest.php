@@ -5,12 +5,10 @@ use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventType;
 use App\Enums\EventVisibility;
-use App\Enums\TagType;
 use App\Livewire\Pages\Events\Index;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Speaker;
-use App\Models\Tag;
 use App\Models\User;
 use App\Models\Venue;
 use Livewire\Livewire;
@@ -19,8 +17,8 @@ beforeEach(function () {
     fakePrayerTimesApi();
     $this->user = User::factory()->create();
 
-    $this->domainTag = Tag::factory()->create(['type' => TagType::Domain->value]);
-    $this->disciplineTag = Tag::factory()->create(['type' => TagType::Discipline->value]);
+    $this->domainTag = submitEventTerm('domain');
+    $this->disciplineTag = submitEventTerm('discipline');
 });
 
 /**
@@ -189,9 +187,8 @@ it('matches institution nicknames in event filter search options', function () {
     /** @var array<string, string> $results */
     $results = (fn (): array => $this->searchInstitutionOptions(
         countryId: null,
-        stateId: null,
         adminArea1Id: null,
-        subadminArea1Id: null,
+        adminArea2Id: null,
         search: 'Masjid Biru',
     ))->call($component->instance());
 

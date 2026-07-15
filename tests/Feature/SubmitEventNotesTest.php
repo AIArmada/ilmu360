@@ -1,5 +1,6 @@
 <?php
 
+use AIArmada\Events\Models\EventTerm;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
@@ -10,7 +11,6 @@ use App\Models\Event;
 use App\Models\EventSubmission;
 use App\Models\Institution;
 use App\Models\Speaker;
-use App\Models\Tag;
 use Livewire\Livewire;
 
 beforeEach(function () {
@@ -18,20 +18,20 @@ beforeEach(function () {
 });
 
 /**
- * @return array{domain_tag: Tag, discipline_tag: Tag, institution: Institution, speaker: Speaker}
+ * @return array{domain_tag: EventTerm, discipline_tag: EventTerm, institution: Institution, speaker: Speaker}
  */
 function submitEventNotesFixtures(): array
 {
     return [
-        'domain_tag' => Tag::factory()->domain()->create(),
-        'discipline_tag' => Tag::factory()->discipline()->create(),
+        'domain_tag' => submitEventTerm('domain'),
+        'discipline_tag' => submitEventTerm('discipline'),
         'institution' => Institution::factory()->create(['status' => 'verified']),
         'speaker' => Speaker::factory()->create(['status' => 'verified']),
     ];
 }
 
 /**
- * @param  array{domain_tag: Tag, discipline_tag: Tag, institution: Institution, speaker: Speaker}  $fixtures
+ * @param  array{domain_tag: EventTerm, discipline_tag: EventTerm, institution: Institution, speaker: Speaker}  $fixtures
  * @return array<string, mixed>
  */
 function submitEventNotesFormData(array $fixtures, array $overrides = []): array
@@ -74,7 +74,7 @@ it('saves notes to event submission when provided', function () {
     $event = Event::where('title', 'Event With Notes')->firstOrFail();
     $submission = EventSubmission::where('event_id', $event->id)->firstOrFail();
 
-    expect($submission->notes)->toBe($notes);
+    expect($submission->submission_data['notes'] ?? null)->toBe($notes);
 });
 
 it('allows submitting event without notes', function () {
@@ -93,5 +93,5 @@ it('allows submitting event without notes', function () {
     $event = Event::where('title', 'Event Without Notes')->firstOrFail();
     $submission = EventSubmission::where('event_id', $event->id)->firstOrFail();
 
-    expect($submission->notes)->toBeNull();
+    expect($submission->submission_data['notes'] ?? null)->toBeNull();
 });

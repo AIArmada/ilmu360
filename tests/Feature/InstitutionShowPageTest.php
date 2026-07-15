@@ -256,24 +256,27 @@ it('renders institution event cards with localized prayer timing stacked speaker
         ]);
 
         $event->keyPeople()->create([
-            'speaker_id' => $speaker->id,
-            'role' => EventKeyPersonRole::Speaker,
-            'order_column' => 1,
-            'is_public' => true,
+            'involveable_type' => 'speaker',
+            'involveable_id' => $speaker->id,
+            'role_code' => EventKeyPersonRole::Speaker->value,
+            'sort_order' => 1,
+            'visibility' => 'public',
         ]);
 
         $event->keyPeople()->create([
-            'speaker_id' => $secondSpeaker->id,
-            'role' => EventKeyPersonRole::Speaker,
-            'order_column' => 2,
-            'is_public' => true,
+            'involveable_type' => 'speaker',
+            'involveable_id' => $secondSpeaker->id,
+            'role_code' => EventKeyPersonRole::Speaker->value,
+            'sort_order' => 2,
+            'visibility' => 'public',
         ]);
 
         $event->keyPeople()->create([
-            'speaker_id' => $moderator->id,
-            'role' => EventKeyPersonRole::Moderator,
-            'order_column' => 3,
-            'is_public' => true,
+            'involveable_type' => 'speaker',
+            'involveable_id' => $moderator->id,
+            'role_code' => EventKeyPersonRole::Moderator->value,
+            'sort_order' => 3,
+            'visibility' => 'public',
         ]);
 
         $response = $this->get(route('institutions.show', $institution->fresh()));

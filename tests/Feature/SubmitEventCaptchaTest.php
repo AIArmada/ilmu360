@@ -1,5 +1,7 @@
 <?php
 
+use AIArmada\Events\Models\EventTaxonomy;
+use AIArmada\Events\Models\EventTerm;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
@@ -9,7 +11,6 @@ use App\Enums\EventVisibility;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Speaker;
-use App\Models\Tag;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Livewire\Livewire;
@@ -17,20 +18,26 @@ use Livewire\Livewire;
 uses(RefreshDatabase::class);
 
 /**
- * @return array{domain_tag: Tag, discipline_tag: Tag, institution: Institution, speaker: Speaker}
+ * @return array{domain_tag: EventTerm, discipline_tag: EventTerm, institution: Institution, speaker: Speaker}
  */
 function submitEventCaptchaFixtures(): array
 {
     return [
-        'domain_tag' => Tag::factory()->domain()->create(['status' => 'verified']),
-        'discipline_tag' => Tag::factory()->discipline()->create(['status' => 'verified']),
+        'domain_tag' => EventTerm::factory()->create([
+            'event_taxonomy_id' => EventTaxonomy::factory()->create(['code' => 'domain', 'is_active' => true])->id,
+            'is_active' => true,
+        ]),
+        'discipline_tag' => EventTerm::factory()->create([
+            'event_taxonomy_id' => EventTaxonomy::factory()->create(['code' => 'discipline', 'is_active' => true])->id,
+            'is_active' => true,
+        ]),
         'institution' => Institution::factory()->create(['status' => 'verified']),
         'speaker' => Speaker::factory()->create(['status' => 'verified']),
     ];
 }
 
 /**
- * @param  array{domain_tag: Tag, discipline_tag: Tag, institution: Institution, speaker: Speaker}  $fixtures
+ * @param  array{domain_tag: EventTerm, discipline_tag: EventTerm, institution: Institution, speaker: Speaker}  $fixtures
  */
 function fillSubmitEventCaptchaForm(mixed $component, array $fixtures, string $title): void
 {

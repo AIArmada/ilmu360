@@ -406,7 +406,7 @@
                     "resource_key": "address-areas",
                     "resource_class": "AIArmada\\FilamentAddressing\\Resources\\AddressAreaResource",
                     "model_class": "AIArmada\\Addressing\\Models\\AddressArea",
-                    "source": "other",
+                    "source": "vendor",
                     "page_keys": [
                         "index",
                         "view",
@@ -419,7 +419,7 @@
                     "resource_key": "address-countries",
                     "resource_class": "AIArmada\\FilamentAddressing\\Resources\\AddressCountryResource",
                     "model_class": "AIArmada\\Addressing\\Models\\AddressCountry",
-                    "source": "other",
+                    "source": "vendor",
                     "page_keys": [
                         "index",
                         "view"
@@ -463,7 +463,7 @@
                     "resource_key": "bookmark-collections",
                     "resource_class": "AIArmada\\FilamentEngagement\\Resources\\BookmarkCollectionResource",
                     "model_class": "AIArmada\\Engagement\\Models\\BookmarkCollection",
-                    "source": "other",
+                    "source": "vendor",
                     "page_keys": [
                         "index",
                         "create",
@@ -475,7 +475,7 @@
                     "resource_key": "bookmarks",
                     "resource_class": "AIArmada\\FilamentEngagement\\Resources\\BookmarkResource",
                     "model_class": "AIArmada\\Engagement\\Models\\Bookmark",
-                    "source": "other",
+                    "source": "vendor",
                     "page_keys": [
                         "index",
                         "view"
@@ -486,7 +486,7 @@
                     "resource_key": "communication-batches",
                     "resource_class": "AIArmada\\Filament\\Communications\\Resources\\CommunicationBatchResource",
                     "model_class": "AIArmada\\Communications\\Models\\CommunicationBatch",
-                    "source": "other",
+                    "source": "vendor",
                     "page_keys": [
                         "index",
                         "view"
@@ -497,7 +497,7 @@
                     "resource_key": "communication-deliveries",
                     "resource_class": "AIArmada\\Filament\\Communications\\Resources\\CommunicationDeliveryResource",
                     "model_class": "AIArmada\\Communications\\Models\\CommunicationDelivery",
-                    "source": "other",
+                    "source": "vendor",
                     "page_keys": [
                         "index",
                         "view"
@@ -508,7 +508,7 @@
                     "resource_key": "communication-preferences",
                     "resource_class": "AIArmada\\Filament\\Communications\\Resources\\CommunicationPreferenceResource",
                     "model_class": "AIArmada\\Communications\\Models\\CommunicationPreference",
-                    "source": "other",
+                    "source": "vendor",
                     "page_keys": [
                         "index",
                         "view"
@@ -519,7 +519,7 @@
                     "resource_key": "communication-suppressions",
                     "resource_class": "AIArmada\\Filament\\Communications\\Resources\\CommunicationSuppressionResource",
                     "model_class": "AIArmada\\Communications\\Models\\CommunicationSuppression",
-                    "source": "other",
+                    "source": "vendor",
                     "page_keys": [
                         "index",
                         "view"
@@ -530,7 +530,7 @@
                     "resource_key": "communication-templates",
                     "resource_class": "AIArmada\\Filament\\Communications\\Resources\\CommunicationTemplateResource",
                     "model_class": "AIArmada\\Communications\\Models\\CommunicationTemplate",
-                    "source": "other",
+                    "source": "vendor",
                     "page_keys": [
                         "index",
                         "view"
@@ -541,7 +541,7 @@
                     "resource_key": "communication-threads",
                     "resource_class": "AIArmada\\Filament\\Communications\\Resources\\CommunicationThreadResource",
                     "model_class": "AIArmada\\Communications\\Models\\CommunicationThread",
-                    "source": "other",
+                    "source": "vendor",
                     "page_keys": [
                         "index",
                         "view"
@@ -552,7 +552,7 @@
                     "resource_key": "communications",
                     "resource_class": "AIArmada\\Filament\\Communications\\Resources\\CommunicationResource",
                     "model_class": "AIArmada\\Communications\\Models\\Communication",
-                    "source": "other",
+                    "source": "vendor",
                     "page_keys": [
                         "index",
                         "view"
@@ -586,7 +586,7 @@
                     "resource_key": "event-attendances",
                     "resource_class": "AIArmada\\FilamentEvents\\Resources\\EventAttendanceResource",
                     "model_class": "AIArmada\\Events\\Models\\EventAttendance",
-                    "source": "other",
+                    "source": "vendor",
                     "page_keys": [
                         "index",
                         "view"
@@ -597,7 +597,7 @@
                     "resource_key": "event-change-logs",
                     "resource_class": "AIArmada\\FilamentEvents\\Resources\\EventChangeLogResource",
                     "model_class": "AIArmada\\Events\\Models\\EventChangeLog",
-                    "source": "other",
+                    "source": "vendor",
                     "page_keys": [
                         "index",
                         "view"
@@ -608,7 +608,7 @@
                     "resource_key": "event-occurrences",
                     "resource_class": "AIArmada\\FilamentEvents\\Resources\\EventOccurrenceResource",
                     "model_class": "AIArmada\\Events\\Models\\EventOccurrence",
-                    "source": "other",
+                    "source": "vendor",
                     "page_keys": [
                         "index",
                         "create",
@@ -621,7 +621,7 @@
                     "resource_key": "event-registration-participants",
                     "resource_class": "AIArmada\\FilamentEvents\\Resources\\EventRegistrationParticipantResource",
                     "model_class": "AIArmada\\Events\\Models\\EventRegistrationParticipant",
-                    "source": "other",
+                    "source": "vendor",
                     "page_keys": [
                         "index",
                         "view"
@@ -632,7 +632,7 @@
                     "resource_key": "event-registrations",
                     "resource_class": "AIArmada\\FilamentEvents\\Resources\\EventRegistrationResource",
                     "model_class": "AIArmada\\Events\\Models\\EventRegistration",
-                    "source": "other",
+                    "source": "vendor",
                     "page_keys": [
                         "index",
                         "view"
@@ -643,7 +643,7 @@
                     "resource_key": "event-sessions",
                     "resource_class": "AIArmada\\FilamentEvents\\Resources\\EventSessionResource",
                     "model_class": "AIArmada\\Events\\Models\\EventSession",
-                    "source": "other",
+                    "source": "vendor",
                     "page_keys": [
                         "index",
                         "create",
@@ -656,7 +656,7 @@
                     "resource_key": "event-templates",
                     "resource_class": "AIArmada\\FilamentEvents\\Resources\\EventTemplateResource",
                     "model_class": "AIArmada\\Events\\Models\\EventTemplate",
-                    "source": "other",
+                    "source": "vendor",
                     "page_keys": [
                         "index",
                         "create",
@@ -669,7 +669,7 @@
                     "resource_key": "events",
                     "resource_class": "AIArmada\\FilamentEvents\\Resources\\EventResource",
                     "model_class": "AIArmada\\Events\\Models\\Event",
-                    "source": "other",
+                    "source": "vendor",
                     "page_keys": [
                         "index",
                         "create",
@@ -682,7 +682,7 @@
                     "resource_key": "follows",
                     "resource_class": "AIArmada\\FilamentEngagement\\Resources\\FollowResource",
                     "model_class": "AIArmada\\Engagement\\Models\\Follow",
-                    "source": "other",
+                    "source": "vendor",
                     "page_keys": [
                         "index"
                     ],
@@ -717,7 +717,7 @@
                     "resource_key": "inventory-allocations",
                     "resource_class": "AIArmada\\FilamentInventory\\Resources\\InventoryAllocationResource",
                     "model_class": "AIArmada\\Inventory\\Models\\InventoryAllocation",
-                    "source": "other",
+                    "source": "vendor",
                     "page_keys": [
                         "index",
                         "view"
@@ -728,7 +728,7 @@
                     "resource_key": "inventory-batches",
                     "resource_class": "AIArmada\\FilamentInventory\\Resources\\InventoryBatchResource",
                     "model_class": "AIArmada\\Inventory\\Models\\InventoryBatch",
-                    "source": "other",
+                    "source": "vendor",
                     "page_keys": [
                         "index",
                         "create",
@@ -741,7 +741,7 @@
                     "resource_key": "inventory-levels",
                     "resource_class": "AIArmada\\FilamentInventory\\Resources\\InventoryLevelResource",
                     "model_class": "AIArmada\\Inventory\\Models\\InventoryLevel",
-                    "source": "other",
+                    "source": "vendor",
                     "page_keys": [
                         "index",
                         "view",
@@ -753,7 +753,7 @@
                     "resource_key": "inventory-locations",
                     "resource_class": "AIArmada\\FilamentInventory\\Resources\\InventoryLocationResource",
                     "model_class": "AIArmada\\Inventory\\Models\\InventoryLocation",
-                    "source": "other",
+                    "source": "vendor",
                     "page_keys": [
                         "index",
                         "create",
@@ -766,7 +766,7 @@
                     "resource_key": "inventory-movements",
                     "resource_class": "AIArmada\\FilamentInventory\\Resources\\InventoryMovementResource",
                     "model_class": "AIArmada\\Inventory\\Models\\InventoryMovement",
-                    "source": "other",
+                    "source": "vendor",
                     "page_keys": [
                         "index",
                         "view"
@@ -777,7 +777,7 @@
                     "resource_key": "inventory-serials",
                     "resource_class": "AIArmada\\FilamentInventory\\Resources\\InventorySerialResource",
                     "model_class": "AIArmada\\Inventory\\Models\\InventorySerial",
-                    "source": "other",
+                    "source": "vendor",
                     "page_keys": [
                         "index",
                         "create",
@@ -801,7 +801,7 @@
                     "resource_key": "pass-holders",
                     "resource_class": "AIArmada\\FilamentTicketing\\Resources\\PassHolderResource",
                     "model_class": "AIArmada\\Ticketing\\Models\\PassHolder",
-                    "source": "other",
+                    "source": "vendor",
                     "page_keys": [
                         "index"
                     ],
@@ -811,7 +811,7 @@
                     "resource_key": "pass-transfers",
                     "resource_class": "AIArmada\\FilamentTicketing\\Resources\\PassTransferResource",
                     "model_class": "AIArmada\\Ticketing\\Models\\PassTransfer",
-                    "source": "other",
+                    "source": "vendor",
                     "page_keys": [
                         "index"
                     ],
@@ -821,7 +821,7 @@
                     "resource_key": "passes",
                     "resource_class": "AIArmada\\FilamentTicketing\\Resources\\PassResource",
                     "model_class": "AIArmada\\Ticketing\\Models\\Pass",
-                    "source": "other",
+                    "source": "vendor",
                     "page_keys": [
                         "index",
                         "view"
@@ -832,7 +832,7 @@
                     "resource_key": "permissions",
                     "resource_class": "AIArmada\\FilamentAuthz\\Resources\\PermissionResource",
                     "model_class": "AIArmada\\CommerceSupport\\Models\\Permission",
-                    "source": "other",
+                    "source": "vendor",
                     "page_keys": [
                         "index",
                         "create",
@@ -844,7 +844,7 @@
                     "resource_key": "reactions",
                     "resource_class": "AIArmada\\FilamentEngagement\\Resources\\ReactionResource",
                     "model_class": "AIArmada\\Engagement\\Models\\Reaction",
-                    "source": "other",
+                    "source": "vendor",
                     "page_keys": [
                         "index",
                         "view"
@@ -867,7 +867,7 @@
                     "resource_key": "reminders",
                     "resource_class": "AIArmada\\FilamentEngagement\\Resources\\ReminderResource",
                     "model_class": "AIArmada\\Engagement\\Models\\Reminder",
-                    "source": "other",
+                    "source": "vendor",
                     "page_keys": [
                         "index",
                         "view"
@@ -890,7 +890,7 @@
                     "resource_key": "responses",
                     "resource_class": "AIArmada\\FilamentEngagement\\Resources\\ResponseResource",
                     "model_class": "AIArmada\\Engagement\\Models\\Response",
-                    "source": "other",
+                    "source": "vendor",
                     "page_keys": [
                         "index",
                         "view"
@@ -901,7 +901,7 @@
                     "resource_key": "roles",
                     "resource_class": "AIArmada\\FilamentAuthz\\Resources\\RoleResource",
                     "model_class": "AIArmada\\CommerceSupport\\Models\\Role",
-                    "source": "other",
+                    "source": "vendor",
                     "page_keys": [
                         "index",
                         "create",
@@ -913,7 +913,7 @@
                     "resource_key": "saved-signal-reports",
                     "resource_class": "AIArmada\\FilamentSignals\\Resources\\SavedSignalReportResource",
                     "model_class": "AIArmada\\Signals\\Models\\SavedSignalReport",
-                    "source": "other",
+                    "source": "vendor",
                     "page_keys": [
                         "index",
                         "create",
@@ -925,7 +925,7 @@
                     "resource_key": "seat-maps",
                     "resource_class": "AIArmada\\FilamentSeating\\Resources\\SeatMapResource",
                     "model_class": "AIArmada\\Seating\\Models\\SeatMap",
-                    "source": "other",
+                    "source": "vendor",
                     "page_keys": [
                         "index",
                         "create",
@@ -950,7 +950,7 @@
                     "resource_key": "signal-alert-logs",
                     "resource_class": "AIArmada\\FilamentSignals\\Resources\\SignalAlertLogResource",
                     "model_class": "AIArmada\\Signals\\Models\\SignalAlertLog",
-                    "source": "other",
+                    "source": "vendor",
                     "page_keys": [
                         "index"
                     ],
@@ -960,7 +960,7 @@
                     "resource_key": "signal-alert-rules",
                     "resource_class": "AIArmada\\FilamentSignals\\Resources\\SignalAlertRuleResource",
                     "model_class": "AIArmada\\Signals\\Models\\SignalAlertRule",
-                    "source": "other",
+                    "source": "vendor",
                     "page_keys": [
                         "index",
                         "create",
@@ -972,7 +972,7 @@
                     "resource_key": "signal-goals",
                     "resource_class": "AIArmada\\FilamentSignals\\Resources\\SignalGoalResource",
                     "model_class": "AIArmada\\Signals\\Models\\SignalGoal",
-                    "source": "other",
+                    "source": "vendor",
                     "page_keys": [
                         "index",
                         "create",
@@ -984,7 +984,7 @@
                     "resource_key": "signal-interaction-rules",
                     "resource_class": "AIArmada\\FilamentSignals\\Resources\\SignalInteractionRuleResource",
                     "model_class": "AIArmada\\Signals\\Models\\SignalInteractionRule",
-                    "source": "other",
+                    "source": "vendor",
                     "page_keys": [
                         "index",
                         "create",
@@ -996,7 +996,7 @@
                     "resource_key": "signal-segments",
                     "resource_class": "AIArmada\\FilamentSignals\\Resources\\SignalSegmentResource",
                     "model_class": "AIArmada\\Signals\\Models\\SignalSegment",
-                    "source": "other",
+                    "source": "vendor",
                     "page_keys": [
                         "index",
                         "create",
@@ -1047,7 +1047,7 @@
                     "resource_key": "subscriptions",
                     "resource_class": "AIArmada\\FilamentEngagement\\Resources\\SubscriptionResource",
                     "model_class": "AIArmada\\Engagement\\Models\\Subscription",
-                    "source": "other",
+                    "source": "vendor",
                     "page_keys": [
                         "index",
                         "view"
@@ -1070,7 +1070,7 @@
                     "resource_key": "ticket-types",
                     "resource_class": "AIArmada\\FilamentTicketing\\Resources\\TicketTypeResource",
                     "model_class": "AIArmada\\Ticketing\\Models\\TicketType",
-                    "source": "other",
+                    "source": "vendor",
                     "page_keys": [
                         "index",
                         "create",
@@ -1083,7 +1083,7 @@
                     "resource_key": "tracked-properties",
                     "resource_class": "AIArmada\\FilamentSignals\\Resources\\TrackedPropertyResource",
                     "model_class": "AIArmada\\Signals\\Models\\TrackedProperty",
-                    "source": "other",
+                    "source": "vendor",
                     "page_keys": [
                         "index",
                         "create",
@@ -1108,7 +1108,7 @@
                     "resource_key": "venues",
                     "resource_class": "AIArmada\\FilamentEvents\\Resources\\VenueResource",
                     "model_class": "AIArmada\\Events\\Models\\Venue",
-                    "source": "other",
+                    "source": "vendor",
                     "page_keys": [
                         "index",
                         "view"

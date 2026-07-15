@@ -5,16 +5,31 @@ declare(strict_types=1);
 namespace App\Support\Authz;
 
 use AIArmada\CommerceSupport\Models\Role;
+use AIArmada\FilamentAuthz\Facades\Authz;
 
 final class ScopedMemberRoleSeeder
 {
+    public function __construct(
+        private readonly MemberRoleScopes $scopes,
+    ) {}
+
     public function ensureForInstitution(): void
     {
-        $roles = ['admin', 'editor', 'viewer'];
+        $roles = ['owner', 'admin', 'editor', 'viewer'];
 
-        foreach ($roles as $roleName) {
-            Role::findOrCreate($roleName, 'web');
-        }
+        Authz::withScope($this->scopes->institution(), function () use ($roles): void {
+            $previousTeamId = getPermissionsTeamId();
+
+            try {
+                setPermissionsTeamId($this->scopes->institution()->getKey());
+
+                foreach ($roles as $roleName) {
+                    Role::findOrCreate($roleName, 'web');
+                }
+            } finally {
+                setPermissionsTeamId($previousTeamId);
+            }
+        });
     }
 
     public function ensureForSpeaker(): void

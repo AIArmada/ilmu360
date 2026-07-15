@@ -604,7 +604,7 @@ class AdvancedFiltersPanel extends Component implements HasForms
         return $this->pluckOptions(
             EventTerm::query()
                 ->whereIn('event_taxonomy_id', $this->activeTaxonomyIds($taxonomyCode))
-                ->whereIn('status', ['verified', 'pending'])
+                ->where('is_active', true)
                 ->whereIn('id', $values)
                 ->orderBy('sort_order'),
             'name',
@@ -899,7 +899,7 @@ class AdvancedFiltersPanel extends Component implements HasForms
         return $this->pluckOptions(
             EventTerm::query()
                 ->whereIn('event_taxonomy_id', $this->activeTaxonomyIds($taxonomyCode))
-                ->whereIn('status', ['verified', 'pending'])
+                ->where('is_active', true)
                 ->tap(fn (Builder $query): Builder => $this->applySearchConstraint($query, 'name', $search))
                 ->orderBy('sort_order'),
             'name',
@@ -914,7 +914,7 @@ class AdvancedFiltersPanel extends Component implements HasForms
     {
         return EventTaxonomy::query()
             ->where('code', $code)
-            ->whereIn('status', ['verified', 'pending'])
+            ->where('is_active', true)
             ->pluck('id');
     }
 

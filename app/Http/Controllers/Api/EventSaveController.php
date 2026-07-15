@@ -6,10 +6,12 @@ use AIArmada\Engagement\Contracts\EngagementManager;
 use AIArmada\Engagement\Models\Bookmark;
 use App\Data\Api\EventEngagement\EventEngagementListItemData;
 use App\Data\Api\EventSave\EventSaveStateData;
+use App\Enums\DawahShareOutcomeType;
 use App\Enums\EventVisibility;
 use App\Http\Controllers\Controller;
 use App\Models\Event;
 use App\Models\User;
+use App\Services\ShareTrackingService;
 use App\Support\Api\ApiPagination;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
@@ -82,6 +84,17 @@ class EventSaveController extends Controller
         $created = $bookmark->wasRecentlyCreated;
         $savesCount = Bookmark::forBookmarkable($event)->active()->count();
         $event->update(['saves_count' => $savesCount]);
+
+        if ($created) {
+            app(ShareTrackingService::class)->recordOutcome(
+                type: DawahShareOutcomeType::EventSave,
+                outcomeKey: 'event_save:user:'.$user->getKey().':event:'.$event->getKey(),
+                subject: $event,
+                actor: $user,
+                request: $request,
+                metadata: ['subject_id' => $event->getKey(), 'subject_type' => $event->getMorphClass()],
+            );
+        }
 
         return response()->json([
             'message' => $created ? 'Event saved successfully.' : 'Event already saved.',

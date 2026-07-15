@@ -7,13 +7,10 @@ use App\Actions\Events\PrepareAdvancedParentProgramSubmissionAction;
 use App\Actions\Events\ResolveAdvancedBuilderContextAction;
 use App\Actions\Events\ResolveAdvancedBuilderMembershipOptionsAction;
 use App\Actions\Events\SyncEventResourceRelationsAction;
-use App\Enums\RegistrationScope;
-use App\Enums\TagType;
 use App\Models\Event;
 use App\Models\EventChangeAnnouncement;
 use App\Models\Institution;
 use App\Models\Speaker;
-use App\Models\Tag;
 use App\Models\User;
 use App\Support\Api\Frontend\FrontendFormContractService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -85,7 +82,7 @@ it('resolves advanced builder membership options from active member organizers o
     $user = User::factory()->create();
     $activeInstitution = Institution::factory()->create(['name' => 'Masjid Aktif', 'status' => 'verified']);
     $inactiveInstitution = Institution::factory()->create(['name' => 'Masjid Pasif', 'status' => 'inactive']);
-    $activeSpeaker = Speaker::factory()->create(['name' => 'Speaker Aktif', 'status' => 'active']);
+    $activeSpeaker = Speaker::factory()->create(['name' => 'Speaker Aktif', 'status' => 'verified']);
     $inactiveSpeaker = Speaker::factory()->create(['name' => 'Speaker Pasif', 'status' => 'inactive']);
 
     $user->institutions()->syncWithoutDetaching([$activeInstitution->id, $inactiveInstitution->id]);
@@ -101,30 +98,26 @@ it('syncs event resource relations and persists the requested registration mode'
     $event = Event::factory()->create();
 
     $speaker = Speaker::factory()->create(['status' => 'verified']);
-    $domainTag = Tag::factory()->create(['type' => TagType::Domain->value, 'status' => 'verified']);
-    $issueTag = Tag::factory()->create(['type' => TagType::Issue->value, 'status' => 'verified']);
-
     $result = app(SyncEventResourceRelationsAction::class)->handle($event, [
-        'registration_mode' => RegistrationScope::Event->value,
-        'domain_tags' => [$domainTag->id],
+        'registration_required' => false,
+        'domain_tags' => [],
         'discipline_tags' => [],
         'source_tags' => [],
-        'issue_tags' => [$issueTag->id],
+        'issue_tags' => [],
         'languages' => [],
         'speakers' => [$speaker->id],
         'other_key_people' => [],
     ]);
 
     $event->refresh();
-    $event->load(['accessPolicy', 'tags', 'speakers']);
+    $event->load(['accessPolicy', 'speakers']);
 
     expect($result)->toMatchArray([
-        'registration_mode' => RegistrationScope::Event->value,
+        'registration_mode' => PackageRegistrationMode::None->value,
         'registration_mode_locked' => false,
     ])
         ->and($event->accessPolicy?->registration_required)->toBeFalse()
         ->and($event->resolvedRegistrationMode())->toBe(PackageRegistrationMode::None)
-        ->and($event->tags->pluck('id')->sort()->values()->all())->toBe([$domainTag->id, $issueTag->id])
         ->and($event->speakers->pluck('id')->all())->toBe([$speaker->id]);
 });
 

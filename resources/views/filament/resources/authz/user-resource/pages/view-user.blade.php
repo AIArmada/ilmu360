@@ -231,7 +231,7 @@
                                 Checked In At: {{ $checkin->checked_in_at?->format('d M Y H:i') ?: '-' }}
                             </div>
                             <div class="text-sm text-gray-500">
-                                Method: {{ $this->humanLabel($checkin->method) }}
+                                Source: {{ $this->humanLabel($checkin->check_in_source) }}
                             </div>
                             <div class="text-sm text-gray-500">
                                 Verified By: {{ $checkin->verifiedBy?->name ?: '-' }}
@@ -282,7 +282,7 @@
                                 Submitted At: {{ $submission->created_at?->format('d M Y H:i') ?: '-' }}
                             </div>
                             <div class="text-sm text-gray-500">
-                                Notes: {{ $submission->notes ?: '-' }}
+                                Notes: {{ data_get($submission->submission_data, 'notes') ?: '-' }}
                             </div>
                         </div>
                     @empty

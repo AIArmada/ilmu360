@@ -1,6 +1,7 @@
 <?php
 
 use AIArmada\Addressing\Models\AddressCountry;
+use AIArmada\Events\Models\EventTerm;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
@@ -10,7 +11,6 @@ use App\Enums\EventVisibility;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Speaker;
-use App\Models\Tag;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
 
@@ -19,13 +19,13 @@ beforeEach(function () {
 });
 
 /**
- * @return array{domain_tag: Tag, discipline_tag: Tag, institution: Institution, speaker: Speaker}
+ * @return array{domain_tag: EventTerm, discipline_tag: EventTerm, institution: Institution, speaker: Speaker}
  */
 function submitEventEndTimeFixtures(): array
 {
     return [
-        'domain_tag' => Tag::factory()->domain()->create(),
-        'discipline_tag' => Tag::factory()->discipline()->create(),
+        'domain_tag' => submitEventTerm('domain'),
+        'discipline_tag' => submitEventTerm('discipline'),
         'institution' => Institution::factory()->create(['status' => 'verified']),
         'speaker' => Speaker::factory()->create(['status' => 'verified']),
     ];
@@ -45,7 +45,7 @@ function submitEventAddressCountry(string $iso2 = 'MY', string $name = 'Malaysia
 }
 
 /**
- * @param  array{domain_tag: Tag, discipline_tag: Tag, institution: Institution, speaker: Speaker}  $fixtures
+ * @param  array{domain_tag: EventTerm, discipline_tag: EventTerm, institution: Institution, speaker: Speaker}  $fixtures
  * @return array<string, mixed>
  */
 function submitEventEndTimeFormData(array $fixtures, array $overrides = []): array

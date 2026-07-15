@@ -238,11 +238,16 @@ it('records event submission creation in audits', function () {
 
     $this->actingAs($administrator);
 
-    $submission = EventSubmission::factory()->create([
+    $submission = EventSubmission::query()->create([
         'event_id' => $event->getKey(),
-        'submitted_by' => $administrator->getKey(),
-        'submitter_name' => $administrator->name,
-        'notes' => 'Submitted from the public contribution flow.',
+        'status' => 'pending',
+        'submitted_at' => now(),
+        'submitter_type' => User::class,
+        'submitter_id' => $administrator->getKey(),
+        'submission_data' => [
+            'submitter_name' => $administrator->name,
+            'notes' => 'Submitted from the public contribution flow.',
+        ],
     ]);
 
     $audit = $submission->audits()

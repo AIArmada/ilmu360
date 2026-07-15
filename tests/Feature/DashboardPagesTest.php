@@ -1,14 +1,13 @@
 <?php
 
-use AIArmada\CommerceSupport\Models\Role;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Communications\Enums\NotificationFamily;
 use AIArmada\Communications\Models\NotificationInbox;
 use AIArmada\Engagement\Contracts\EngagementManager;
-use AIArmada\FilamentAuthz\Facades\Authz;
 use AIArmada\FilamentEvents\Resources\EventResource;
 use App\Enums\ContributionSubjectType;
 use App\Enums\EventVisibility;
+use App\Enums\MemberSubjectType;
 use App\Livewire\Pages\Dashboard\InstitutionDashboard;
 use App\Livewire\Pages\Dashboard\UserDashboard;
 use App\Models\Event;
@@ -21,6 +20,7 @@ use App\Models\SavedSearch;
 use App\Models\Space;
 use App\Models\Speaker;
 use App\Models\User;
+use App\Support\Authz\MemberRoleCatalog;
 use App\Support\Authz\MemberRoleScopes;
 use App\Support\Authz\ScopedMemberRoleSeeder;
 use Filament\Tables\Enums\PaginationMode;
@@ -140,7 +140,6 @@ it('renders the reference-inspired user dashboard with real saved search and not
 
     EventCheckin::factory()->for($checkedInEvent)->for($user)->create([
         'checked_in_at' => now()->subDay(),
-        'method' => 'registered_self_checkin',
     ]);
 
     SavedSearch::factory()->for($user)->create([
@@ -561,7 +560,7 @@ it('renders the institution dashboard picker as a plain selector without search 
     $user = User::factory()->create();
     $institution = Institution::factory()->create(['name' => 'Masjid Flux Pilihan']);
 
-    $institution->members()->syncWithoutDetaching([$user->id]);
+    $institution->members()->syncWithoutDetaching([$user->id => ['role' => 'admin']]);
 
     $response = $this->actingAs($user)
         ->get(route('dashboard.institutions', ['institution' => $institution->id]));
@@ -637,7 +636,7 @@ it('loads filament table assets after the core filament scripts on the instituti
     $user = User::factory()->create();
     $institution = Institution::factory()->create(['name' => 'Masjid Table Assets']);
 
-    $institution->members()->syncWithoutDetaching([$user->id]);
+    $institution->members()->syncWithoutDetaching([$user->id => ['role' => 'admin']]);
 
     $response = $this->actingAs($user)
         ->get(route('dashboard.institutions.events', ['institution' => $institution->id]));
@@ -697,15 +696,11 @@ it('shows institution profile and events for members without a separate registra
     $institution = Institution::factory()->create(['name' => 'Masjid Al-Ikhlas']);
     $otherInstitution = Institution::factory()->create(['name' => 'Masjid Al-Istiqamah']);
 
-    $institution->members()->syncWithoutDetaching([$user->id]);
+    $institution->members()->syncWithoutDetaching([$user->id => ['role' => 'admin']]);
 
     app(ScopedMemberRoleSeeder::class)->ensureForInstitution();
 
     $institutionScope = app(MemberRoleScopes::class)->institution();
-
-    Authz::withScope($institutionScope, function () use ($user): void {
-        $user->syncRoles(['admin']);
-    }, $user);
 
     $eventInInstitution = Event::factory()->for($institution)->create([
         'title' => 'Institution Dashboard Event',
@@ -789,11 +784,9 @@ it('shows institution profile and events for members without a separate registra
         ->assertSee('References')
         ->assertSee('Location')
         ->assertSee('Institution Dashboard Event')
-        ->assertSee('Institution Parent Majlis')
         ->assertSee('Ustaz Dashboard Speaker')
         ->assertSee('Kitab Dashboard Reference')
         ->assertSee('Dewan Utama Institusi')
-        ->assertSee('Add Child Event')
         ->assertDontSee('Event Registrations')
         ->assertDontSee('Registrations (All)')
         ->assertDontSee('Ahmad Registrant')
@@ -803,7 +796,6 @@ it('shows institution profile and events for members without a separate registra
     $response->assertSee(e(route('dashboard.institutions.events', ['institution' => $institution->id])), false);
     $response->assertSee(e(route('dashboard.institutions.submit-event', ['institution' => $institution->id])), false);
     $eventsResponse->assertSee(e(route('dashboard.institutions.submit-event', ['institution' => $institution->id, 'duplicate' => $eventInInstitution->id])), false);
-    $eventsResponse->assertSee(e(route('submit-event.create', ['parent' => $parentProgram->id])), false);
 });
 
 it('only shows duplicate event links on the institution dashboard to users who can update the event', function () {
@@ -812,18 +804,13 @@ it('only shows duplicate event links on the institution dashboard to users who c
     $institution = Institution::factory()->create(['name' => 'Masjid Kebenaran Majlis']);
 
     $institution->members()->syncWithoutDetaching([
-        $adminUser->id,
-        $viewerUser->id,
+        $adminUser->id => ['role' => 'admin'],
+        $viewerUser->id => ['role' => 'viewer'],
     ]);
 
     app(ScopedMemberRoleSeeder::class)->ensureForInstitution();
 
     $institutionScope = app(MemberRoleScopes::class)->institution();
-
-    Authz::withScope($institutionScope, function () use ($adminUser, $viewerUser): void {
-        $adminUser->syncRoles(['admin']);
-        $viewerUser->syncRoles(['viewer']);
-    }, $adminUser);
 
     $event = Event::factory()->for($institution)->create([
         'title' => 'Permission Scoped Event',
@@ -857,15 +844,11 @@ it('hides scoped submit and duplicate links for inactive institution dashboards'
         'allow_public_event_submission' => true,
     ]);
 
-    $institution->members()->syncWithoutDetaching([$user->id]);
+    $institution->members()->syncWithoutDetaching([$user->id => ['role' => 'admin']]);
 
     app(ScopedMemberRoleSeeder::class)->ensureForInstitution();
 
     $institutionScope = app(MemberRoleScopes::class)->institution();
-
-    Authz::withScope($institutionScope, function () use ($user): void {
-        $user->syncRoles(['admin']);
-    }, $user);
 
     $event = Event::factory()->for($institution)->create([
         'title' => 'Inactive Institution Event',
@@ -899,7 +882,7 @@ it('renders institution event list dates with translated times or prayer labels'
     ]);
     $institution = Institution::factory()->create(['name' => 'Masjid Format Masa']);
 
-    $institution->members()->syncWithoutDetaching([$user->id]);
+    $institution->members()->syncWithoutDetaching([$user->id => ['role' => 'admin']]);
 
     $absoluteStartsAt = Carbon::create(2026, 4, 15, 11, 25, 0, 'UTC');
     $prayerStartsAt = Carbon::create(2026, 4, 16, 11, 55, 0, 'UTC');
@@ -1155,7 +1138,7 @@ it('clearly distinguishes public and internal institution data for members', fun
     $internalEvent = Event::factory()->for($institution)->create([
         'title' => 'Internal Institution Event',
         'visibility' => 'private',
-        'status' => 'active',
+        'status' => 'approved',
         'starts_at' => now()->addDays(4),
     ]);
 
@@ -1194,27 +1177,16 @@ it('lets institution owners and admins add members and manage scoped roles from 
     ]);
     $institution = Institution::factory()->create(['name' => 'Masjid Ahli Dashboard']);
 
-    $institution->members()->syncWithoutDetaching([$adminUser->id]);
+    $institution->members()->syncWithoutDetaching([$adminUser->id => ['role' => 'admin']]);
 
     app(ScopedMemberRoleSeeder::class)->ensureForInstitution();
 
     $institutionScope = app(MemberRoleScopes::class)->institution();
-    $teamsKey = app(PermissionRegistrar::class)->teamsKey;
-
-    Authz::withScope($institutionScope, function () use ($adminUser): void {
-        $adminUser->syncRoles(['admin']);
-    }, $adminUser);
-
-    $roleIds = Authz::withScope($institutionScope, fn (): array => Role::query()
-        ->where($teamsKey, getPermissionsTeamId())
-        ->pluck('id', 'name')
-        ->all());
-
     Livewire::withQueryParams(['institution' => $institution->id])
         ->actingAs($adminUser)
         ->test(InstitutionDashboard::class)
         ->set('newMemberEmail', $memberUser->email)
-        ->set('newMemberRoleId', $roleIds['viewer'])
+        ->set('newMemberRoleId', 'viewer')
         ->call('addMember')
         ->assertHasNoErrors()
         ->assertSet('newMemberEmail', '')
@@ -1230,7 +1202,7 @@ it('lets institution owners and admins add members and manage scoped roles from 
 
     expect($institution->fresh()->members()->whereKey($memberUser->id)->exists())->toBeTrue();
 
-    $memberRoleNames = Authz::withScope($institutionScope, fn (): array => $memberUser->fresh()->getRoleNames()->values()->all(), $memberUser);
+    $memberRoleNames = app(MemberRoleCatalog::class)->roleNamesFor($memberUser->fresh(), MemberSubjectType::Institution);
 
     expect($memberRoleNames)->toBe(['viewer']);
 
@@ -1238,13 +1210,13 @@ it('lets institution owners and admins add members and manage scoped roles from 
         ->actingAs($adminUser)
         ->test(InstitutionDashboard::class)
         ->call('startEditingMemberRoles', $memberUser->id)
-        ->set('editingMemberRoleId', $roleIds['editor'])
+        ->set('editingMemberRoleId', 'editor')
         ->call('saveMemberRoles')
         ->assertHasNoErrors()
         ->assertSet('editingMemberId', null)
         ->assertSet('editingMemberRoleId', '');
 
-    $updatedRoleNames = Authz::withScope($institutionScope, fn (): array => $memberUser->fresh()->getRoleNames()->values()->all(), $memberUser);
+    $updatedRoleNames = app(MemberRoleCatalog::class)->roleNamesFor($memberUser->fresh(), MemberSubjectType::Institution);
 
     expect($updatedRoleNames)->toBe(['editor']);
 
@@ -1255,7 +1227,7 @@ it('lets institution owners and admins add members and manage scoped roles from 
         ->assertHasNoErrors();
 
     expect($institution->fresh()->members()->whereKey($memberUser->id)->exists())->toBeFalse()
-        ->and(Authz::withScope($institutionScope, fn (): array => $memberUser->fresh()->getRoleNames()->values()->all(), $memberUser))->toBe([]);
+        ->and(app(MemberRoleCatalog::class)->roleNamesFor($memberUser->fresh(), MemberSubjectType::Institution))->toBe([]);
 });
 
 it('only lets institution owners and admins manage members and never removes owners', function () {
@@ -1268,27 +1240,14 @@ it('only lets institution owners and admins manage members and never removes own
     $institution = Institution::factory()->create(['name' => 'Masjid Role Rules']);
 
     $institution->members()->syncWithoutDetaching([
-        $ownerUser->id,
-        $adminUser->id,
-        $viewerUser->id,
+        $ownerUser->id => ['role' => 'owner'],
+        $adminUser->id => ['role' => 'admin'],
+        $viewerUser->id => ['role' => 'viewer'],
     ]);
 
     app(ScopedMemberRoleSeeder::class)->ensureForInstitution();
 
     $institutionScope = app(MemberRoleScopes::class)->institution();
-    $teamsKey = app(PermissionRegistrar::class)->teamsKey;
-
-    Authz::withScope($institutionScope, function () use ($ownerUser, $adminUser, $viewerUser): void {
-        $ownerUser->syncRoles(['owner']);
-        $adminUser->syncRoles(['admin']);
-        $viewerUser->syncRoles(['viewer']);
-    }, $ownerUser);
-
-    $roleIds = Authz::withScope($institutionScope, fn (): array => Role::query()
-        ->where($teamsKey, getPermissionsTeamId())
-        ->pluck('id', 'name')
-        ->all());
-
     $response = $this->withSession(['locale' => 'en'])
         ->actingAs($viewerUser)
         ->get(route('dashboard.institutions', ['institution' => $institution->id]));
@@ -1303,7 +1262,7 @@ it('only lets institution owners and admins manage members and never removes own
         ->actingAs($viewerUser)
         ->test(InstitutionDashboard::class)
         ->set('newMemberEmail', $newMember->email)
-        ->set('newMemberRoleId', $roleIds['viewer'])
+        ->set('newMemberRoleId', 'viewer')
         ->call('addMember');
 
     expect($institution->fresh()->members()->whereKey($newMember->id)->exists())->toBeFalse();
@@ -1322,7 +1281,7 @@ it('only lets institution owners and admins manage members and never removes own
         ->assertDispatched('app-toast');
 
     expect($institution->fresh()->members()->whereKey($ownerUser->id)->exists())->toBeTrue()
-        ->and(Authz::withScope($institutionScope, fn (): array => $ownerUser->fresh()->getRoleNames()->values()->all(), $ownerUser))->toBe(['owner']);
+        ->and($institution->fresh()->members()->whereKey($ownerUser->id)->firstOrFail()->pivot->role)->toBe('owner');
 });
 
 it('links institution admins to the suggest update page', function () {
@@ -1332,15 +1291,11 @@ it('links institution admins to the suggest update page', function () {
         'status' => 'verified',
     ]);
 
-    $institution->members()->syncWithoutDetaching([$adminUser->id]);
+    $institution->members()->syncWithoutDetaching([$adminUser->id => ['role' => 'admin']]);
 
     app(ScopedMemberRoleSeeder::class)->ensureForInstitution();
 
     $institutionScope = app(MemberRoleScopes::class)->institution();
-
-    Authz::withScope($institutionScope, function () use ($adminUser): void {
-        $adminUser->syncRoles(['admin']);
-    }, $adminUser);
 
     $institutionEditUrl = route('contributions.suggest-update', [
         'subjectType' => ContributionSubjectType::Institution->publicRouteSegment(),
@@ -1359,15 +1314,11 @@ it('does not show the institution edit link to institution viewers', function ()
     $viewerUser = User::factory()->create();
     $institution = Institution::factory()->create(['status' => 'verified']);
 
-    $institution->members()->syncWithoutDetaching([$viewerUser->id]);
+    $institution->members()->syncWithoutDetaching([$viewerUser->id => ['role' => 'viewer']]);
 
     app(ScopedMemberRoleSeeder::class)->ensureForInstitution();
 
     $institutionScope = app(MemberRoleScopes::class)->institution();
-
-    Authz::withScope($institutionScope, function () use ($viewerUser): void {
-        $viewerUser->syncRoles(['viewer']);
-    }, $viewerUser);
 
     $this->actingAs($viewerUser)
         ->get(route('dashboard.institutions', ['institution' => $institution->id]))

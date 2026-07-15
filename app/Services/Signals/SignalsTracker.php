@@ -36,14 +36,14 @@ final readonly class SignalsTracker
 
         $router = app('router');
 
-        if (! $router->has('signals.tracker.script') || ! $router->has('signals.collect.event') || ! $router->has('signals.collect.identify') || ! $router->has('signals.collect.pageview')) {
+        if (! $router->has('signals.tracker.script') || ! $router->has('signals.collect.browser-event') || ! $router->has('signals.collect.identify') || ! $router->has('signals.collect.pageview')) {
             return null;
         }
 
         return [
             'anonymous_cookie_name' => (string) config('product-signals.identity.anonymous_cookie', 'mi_signals_anonymous_id'),
             'endpoint' => route('signals.collect.pageview'),
-            'event_endpoint' => route('signals.collect.event'),
+            'event_endpoint' => route('signals.collect.browser-event'),
             'identify_endpoint' => route('signals.collect.identify'),
             'script_url' => route('signals.tracker.script'),
             'session_cookie_name' => (string) config('product-signals.identity.session_cookie', 'mi_signals_session_id'),

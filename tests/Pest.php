@@ -6,6 +6,8 @@ use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Addressing\Models\City;
 use AIArmada\Addressing\Models\State;
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Events\Models\EventTaxonomy;
+use AIArmada\Events\Models\EventTerm;
 use AIArmada\Membership\Actions\AddMemberAction;
 use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Signals\Models\TrackedProperty;
@@ -351,6 +353,22 @@ function setSubmitEventFormState(mixed $component, array $state): mixed
     }
 
     return $component;
+}
+
+function submitEventTerm(string $taxonomyCode): EventTerm
+{
+    $taxonomy = EventTaxonomy::query()->firstOrCreate(
+        ['code' => $taxonomyCode],
+        ['name' => ucfirst($taxonomyCode), 'is_active' => true],
+    );
+
+    return EventTerm::query()->create([
+        'event_taxonomy_id' => $taxonomy->id,
+        'code' => "test-{$taxonomyCode}-".Str::lower(Str::random(8)),
+        'name' => ucfirst($taxonomyCode),
+        'sort_order' => 0,
+        'is_active' => true,
+    ]);
 }
 
 function ensureTestAddressCountry(

@@ -94,8 +94,8 @@ it('does not create followed-speaker notifications when a followed profile is on
     $event->keyPeople()->create([
         'involveable_id' => $speaker->id,
         'involveable_type' => 'speaker',
-        'role' => EventKeyPersonRole::Moderator,
-        'order_column' => 1,
+        'role_code' => EventKeyPersonRole::Moderator->value,
+        'sort_order' => 1,
         'visibility' => 'public',
     ]);
 

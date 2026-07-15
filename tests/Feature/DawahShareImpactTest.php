@@ -13,7 +13,6 @@ use App\Enums\EventGenderRestriction;
 use App\Enums\EventPrayerTime;
 use App\Enums\EventType;
 use App\Enums\EventVisibility;
-use App\Enums\RegistrationScope;
 use App\Livewire\Pages\Dashboard\DawahImpactIndex;
 use App\Models\Event;
 use App\Models\EventCheckin;
@@ -117,8 +116,8 @@ function dawahShareSubmitEventFormData(array $fixtures, array $overrides = []): 
     return array_merge([
         'title' => 'Attributed Submitted Event',
         'submission_country_id' => (string) ensureTestMalaysiaCountry()->getKey(),
-        'domain_tags' => [$fixtures['domain_tag']->id],
-        'discipline_tags' => [$fixtures['discipline_tag']->id],
+        'domain_tags' => [],
+        'discipline_tags' => [],
         'event_type' => [EventType::KuliahCeramah->value],
         'event_date' => now()->addDays(5)->toDateString(),
         'prayer_time' => EventPrayerTime::SelepasMaghrib->value,
@@ -622,7 +621,6 @@ test('new signups are attributed after a shared landing', function () {
     AffiliateAttribution::query()->latest('first_seen_at')->firstOrFail()->forceFill([
         'subject_type' => 'event',
         'subject_identifier' => 'event:canonical-signup-subject',
-        'cart_identifier' => (string) $event->id,
         'subject_title_snapshot' => $event->title,
         'metadata' => [
             'tracking_mode' => 'landing',
@@ -630,10 +628,10 @@ test('new signups are attributed after a shared landing', function () {
             'share_provider' => 'direct',
             'sharer_user_id' => $this->sharer->id,
             'visitor_key' => 'signup-subject-visitor',
-            'subject_type' => 'page',
-            'subject_id' => 'legacy-subject-id',
-            'subject_key' => 'page:legacy-subject',
-            'title_snapshot' => 'Legacy Signup Title',
+            'subject_type' => 'event',
+            'subject_id' => $event->id,
+            'subject_key' => 'event:canonical-signup-subject',
+            'title_snapshot' => $event->title,
         ],
     ])->save();
 
@@ -650,7 +648,6 @@ test('new signups are attributed after a shared landing', function () {
         'conversion_type' => 'signup',
         'subject_type' => 'event',
         'subject_identifier' => 'event:canonical-signup-subject',
-        'cart_identifier' => $event->id,
         'subject_title_snapshot' => $event->title,
         'external_reference' => 'signup:user:'.$newUser->id,
         'metadata->actor_user_id' => $newUser->id,
@@ -672,9 +669,8 @@ test('event registrations are attributed after a shared landing', function () {
     $event->accessPolicy()->create([
         'registration_required' => true,
         'capacity' => 50,
-        'registration_opens_at' => now()->subDay(),
-        'registration_closes_at' => now()->addDay(),
-        'registration_mode' => RegistrationScope::Event->value,
+        'opens_at' => now()->subDay(),
+        'closes_at' => now()->addDay(),
     ]);
 
     $payload = $this->actingAs($this->sharer)
@@ -826,7 +822,7 @@ test('event check-ins are attributed after a shared landing', function () {
 
     $checkin = EventCheckin::query()
         ->where('event_id', $event->id)
-        ->where('user_id', $visitor->id)
+        ->where('attendee_id', $visitor->id)
         ->latest('checked_in_at')
         ->firstOrFail();
 
@@ -900,7 +896,7 @@ test('follow actions are attributed across supported public followable pages', f
         'visibility' => 'public',
     ]), 'series_follow', 'series'],
     'reference follow' => ['pages.references.show', 'references.show', 'reference', fn () => Reference::factory()->create([
-        'status' => 'active',
+        'status' => 'verified',
     ]), 'reference_follow', 'reference'],
 ]);
 
@@ -921,7 +917,7 @@ test('guest follow actions redirect to login with the current page as intended d
         'visibility' => 'public',
     ])],
     'reference guest follow redirect' => ['pages.references.show', 'references.show', 'reference', fn () => Reference::factory()->create([
-        'status' => 'active',
+        'status' => 'verified',
     ])],
 ]);
 
@@ -1090,13 +1086,11 @@ test('impact dashboard top subjects use canonical affiliate subject fields', fun
         'subject_type' => 'event',
         'subject_identifier' => $eventLink->subject_identifier,
         'subject_instance' => 'share_tracking_link',
-        'cart_identifier' => (string) $event->id,
         'subject_title_snapshot' => $event->title,
         'conversion_type' => 'event_registration',
         'external_reference' => 'event_registration:top-subject:1',
         'value_minor' => 0,
         'subtotal_minor' => 0,
-        'total_minor' => 0,
         'commission_minor' => 0,
         'commission_currency' => 'MYR',
         'status' => ApprovedConversion::class,
@@ -1105,7 +1099,7 @@ test('impact dashboard top subjects use canonical affiliate subject fields', fun
             'link_id' => $eventLink->id,
             'link_title_snapshot' => $event->title,
             'sharer_user_id' => $this->sharer->id,
-            'subject_id' => 'legacy-event-conversion-id',
+            'subject_id' => $event->id,
         ],
     ]);
 
@@ -1208,13 +1202,12 @@ test('resolved active attribution prefers canonical affiliate subject fields', f
     $attribution->forceFill([
         'subject_type' => 'event',
         'subject_identifier' => 'event:canonical-subject',
-        'cart_identifier' => (string) $event->id,
         'subject_title_snapshot' => $event->title,
         'metadata' => array_merge($attribution->metadata ?? [], [
-            'subject_type' => 'page',
-            'subject_id' => 'legacy-subject-id',
-            'subject_key' => 'page:legacy-subject',
-            'title_snapshot' => 'Legacy Title Snapshot',
+            'subject_type' => 'event',
+            'subject_id' => $event->id,
+            'subject_key' => 'event:canonical-subject',
+            'title_snapshot' => $event->title,
         ]),
     ])->save();
 
@@ -1393,7 +1386,6 @@ test('link outcome breakdown returns integer counts ordered by volume', function
         'external_reference' => 'event_checkin:outcome-breakdown:1',
         'value_minor' => 0,
         'subtotal_minor' => 0,
-        'total_minor' => 0,
         'commission_minor' => 0,
         'commission_currency' => 'MYR',
         'status' => ApprovedConversion::class,
@@ -1415,7 +1407,6 @@ test('link outcome breakdown returns integer counts ordered by volume', function
         'external_reference' => 'event_checkin:outcome-breakdown:2',
         'value_minor' => 0,
         'subtotal_minor' => 0,
-        'total_minor' => 0,
         'commission_minor' => 0,
         'commission_currency' => 'MYR',
         'status' => ApprovedConversion::class,
@@ -1437,7 +1428,6 @@ test('link outcome breakdown returns integer counts ordered by volume', function
         'external_reference' => 'event_submission:outcome-breakdown:1',
         'value_minor' => 0,
         'subtotal_minor' => 0,
-        'total_minor' => 0,
         'commission_minor' => 0,
         'commission_currency' => 'MYR',
         'status' => ApprovedConversion::class,
@@ -1511,7 +1501,6 @@ test('impact dashboard can sort by check-ins and filter by response type', funct
         'external_reference' => 'event_checkin:seed:1',
         'value_minor' => 0,
         'subtotal_minor' => 0,
-        'total_minor' => 0,
         'commission_minor' => 0,
         'commission_currency' => 'MYR',
         'status' => ApprovedConversion::class,
@@ -1534,7 +1523,6 @@ test('impact dashboard can sort by check-ins and filter by response type', funct
         'external_reference' => 'event_checkin:seed:2',
         'value_minor' => 0,
         'subtotal_minor' => 0,
-        'total_minor' => 0,
         'commission_minor' => 0,
         'commission_currency' => 'MYR',
         'status' => ApprovedConversion::class,
@@ -1573,7 +1561,6 @@ test('impact dashboard can sort by check-ins and filter by response type', funct
         'external_reference' => 'event_submission:seed:1',
         'value_minor' => 0,
         'subtotal_minor' => 0,
-        'total_minor' => 0,
         'commission_minor' => 0,
         'commission_currency' => 'MYR',
         'status' => ApprovedConversion::class,
@@ -1629,11 +1616,14 @@ test('tracked share ui renders across supported public surfaces', function () {
     ]);
     $series->events()->attach($event->id, [
         'id' => (string) Str::uuid(),
-        'order_column' => 1,
+        'event_id' => $event->id,
+        'seriesable_type' => Event::class,
+        'seriesable_id' => $event->id,
+        'sort_order' => 1,
     ]);
 
     $reference = Reference::factory()->create([
-        'status' => 'active',
+        'status' => 'verified',
     ]);
 
     $this->get(route('events.index', ['search' => 'fiqh']))

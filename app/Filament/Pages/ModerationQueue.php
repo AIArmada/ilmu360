@@ -423,7 +423,7 @@ class ModerationQueue extends Page implements HasTable
         };
 
         return $query
-            ->orderByDesc('is_priority')
+            ->orderByRaw("(select attribute_value from event_attributes where event_attributes.event_id = events.id and event_attributes.attribute_key = 'is_priority' limit 1) desc")
             ->orderBy('starts_at')
             ->orderByDesc('events.created_at');
     }

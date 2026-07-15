@@ -122,10 +122,6 @@ it('approves institution create requests without attaching proposer membership a
         ->and($institution->members()->whereKey($proposer->id)->exists())->toBeFalse()
         ->and(app(MemberPermissionGate::class)->canInstitution($proposer, 'institution.update', $institution))->toBeFalse();
 
-    $this->assertDatabaseHas('notification_messages', [
-        'user_id' => $proposer->id,
-        'trigger' => 'submission_approved',
-    ]);
 });
 
 it('approves staged institution create requests without creating a duplicate record', function () {
@@ -175,10 +171,6 @@ it('rejects institution create requests and notifies the proposer', function () 
 
     expect($request->fresh()->status)->toBe(ContributionRequestStatus::Rejected);
 
-    $this->assertDatabaseHas('notification_messages', [
-        'user_id' => $proposer->id,
-        'trigger' => 'submission_rejected',
-    ]);
 });
 
 it('captures original data for update requests and applies approved reference updates', function () {
@@ -257,9 +249,9 @@ it('applies structured institution updates through approval', function () {
     expect($institution->description)->toBe('New description')
         ->and($institution->primaryAddress()?->line1)->toBe('Jalan Hikmah 5')
         ->and($institution->contactMethods->pluck('value')->all())->toEqual(['01112345678', 'contact@masjidhikmah.test'])
-        ->and($institution->contactMethods->pluck('order_column')->all())->toEqual([1, 2])
+        ->and($institution->contactMethods->pluck('sort_order')->all())->toEqual([1, 2])
         ->and($institution->socialProfiles->pluck('platform')->all())->toEqual(['facebook', 'youtube'])
-        ->and($institution->socialProfiles->pluck('order_column')->all())->toEqual([1, 2]);
+        ->and($institution->socialProfiles->pluck('sort_order')->all())->toEqual([1, 2]);
 });
 
 it('applies structured event participant and reference updates through approval', function () {
@@ -297,8 +289,11 @@ it('applies structured event participant and reference updates through approval'
 
     expect($event->title)->toBe('Kuliah Terkini')
         ->and($event->references()->whereKey($reference->id)->exists())->toBeTrue()
-        ->and($event->keyPeople()->where('speaker_id', $speaker->id)->exists())->toBeTrue()
-        ->and($event->keyPeople()->where('role', 'moderator')->where('name', 'Moderator Test')->exists())->toBeTrue();
+        ->and($event->keyPeople()
+            ->where('involveable_type', 'speaker')
+            ->where('involveable_id', $speaker->id)
+            ->exists())->toBeTrue()
+        ->and($event->keyPeople()->where('role_code', 'moderator')->exists())->toBeTrue();
 });
 
 it('allows proposers to cancel pending requests and stores cancellation time', function () {

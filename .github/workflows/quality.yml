@@ -256,8 +256,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
-    name: Pest (PHP 8.4) - Shard ${{ matrix.shard }}/4
+        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    name: Pest (PHP 8.4) - Shard ${{ matrix.shard }}/10
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -290,7 +290,7 @@ jobs:
           composer install --no-interaction --no-progress --prefer-dist --optimize-autoloader
 
       - name: Run tests (Pest)
-        run: vendor/bin/pest --parallel --shard=${{ matrix.shard }}/4 --compact
+        run: vendor/bin/pest --parallel --shard=${{ matrix.shard }}/10 --compact
 
   quality:
     name: Quality

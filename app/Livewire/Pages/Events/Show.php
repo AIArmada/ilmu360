@@ -516,7 +516,7 @@ class Show extends Component
         }
 
         $this->isSaved = Bookmark::forBookmarker($user)->forBookmarkable($this->event)->active()->exists();
-        $this->isGoing = $user->goingEvents()->forRespondable($this->event)->active()->exists();
+        $this->isGoing = $user->goingEvents()->whereKey($this->event->getKey())->exists();
         $this->isCheckedIn = EventCheckin::query()
             ->where('event_id', $this->event->id)
             ->where('attendee_id', $user->id)

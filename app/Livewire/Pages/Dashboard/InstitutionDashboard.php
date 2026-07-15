@@ -372,7 +372,9 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
         $publicEvents = (int) ($institution->public_events_count ?? 0);
         $registrationsCount = (int) Event::query()
             ->where('institution_id', $institution->id)
-            ->sum('registrations_count');
+            ->withCount('registrations')
+            ->get()
+            ->sum(fn (Event $event): int => (int) $event->getRawOriginal('registrations_count'));
 
         return [
             'events_count' => $totalEvents,

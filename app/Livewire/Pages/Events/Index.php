@@ -829,7 +829,7 @@ class Index extends Component implements HasForms
             ttl: 300,
             query: EventTerm::query()
                 ->whereIn('event_taxonomy_id', $this->activeTaxonomyIds('discipline'))
-                ->whereIn('status', ['verified', 'pending'])
+                ->where('is_active', true)
                 ->orderBy('sort_order'),
         );
     }
@@ -845,7 +845,7 @@ class Index extends Component implements HasForms
             ttl: 300,
             query: EventTerm::query()
                 ->whereIn('event_taxonomy_id', $this->activeTaxonomyIds('domain'))
-                ->whereIn('status', ['verified', 'pending'])
+                ->where('is_active', true)
                 ->orderBy('sort_order'),
         );
     }
@@ -861,7 +861,7 @@ class Index extends Component implements HasForms
             ttl: 300,
             query: EventTerm::query()
                 ->whereIn('event_taxonomy_id', $this->activeTaxonomyIds('source'))
-                ->whereIn('status', ['verified', 'pending'])
+                ->where('is_active', true)
                 ->orderBy('sort_order'),
         );
     }
@@ -877,7 +877,7 @@ class Index extends Component implements HasForms
             ttl: 300,
             query: EventTerm::query()
                 ->whereIn('event_taxonomy_id', $this->activeTaxonomyIds('issue'))
-                ->whereIn('status', ['verified', 'pending'])
+                ->where('is_active', true)
                 ->orderBy('sort_order'),
         );
     }
@@ -1009,7 +1009,7 @@ class Index extends Component implements HasForms
         return $this->pluckOptions(
             EventTerm::query()
                 ->whereIn('event_taxonomy_id', $this->activeTaxonomyIds($taxonomyCode))
-                ->whereIn('status', ['verified', 'pending'])
+                ->where('is_active', true)
                 ->tap(fn (Builder $query): Builder => $this->applySearchConstraint($query, 'name', $search))
                 ->orderBy('sort_order'),
             'name',
@@ -1030,7 +1030,7 @@ class Index extends Component implements HasForms
         return $this->pluckOptions(
             EventTerm::query()
                 ->whereIn('event_taxonomy_id', $this->activeTaxonomyIds($taxonomyCode))
-                ->whereIn('status', ['verified', 'pending'])
+                ->where('is_active', true)
                 ->whereIn('id', $values)
                 ->orderBy('sort_order'),
             'name',
@@ -1045,7 +1045,7 @@ class Index extends Component implements HasForms
     {
         return EventTaxonomy::query()
             ->where('code', $code)
-            ->whereIn('status', ['verified', 'pending'])
+            ->where('is_active', true)
             ->pluck('id');
     }
 

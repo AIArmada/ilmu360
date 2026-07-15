@@ -11,7 +11,6 @@ use App\Enums\TimingMode;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Speaker;
-use App\Models\Tag;
 use Livewire\Livewire;
 
 beforeEach(function () {
@@ -24,8 +23,8 @@ beforeEach(function () {
 function submitEventTimingFixtures(): array
 {
     return [
-        'domain_tag' => Tag::factory()->domain()->create(),
-        'discipline_tag' => Tag::factory()->discipline()->create(),
+        'domain_tag' => submitEventTerm('domain'),
+        'discipline_tag' => submitEventTerm('discipline'),
         'institution' => Institution::factory()->create(['status' => 'verified']),
         'speaker' => Speaker::factory()->create(['status' => 'verified']),
     ];

@@ -573,8 +573,7 @@ class EventController extends Controller
         $goingCount = (int) ($event->going_count ?? 0);
 
         $isGoing = $user->goingEvents()
-            ->forRespondable($event)
-            ->active()
+            ->whereKey($event->getKey())
             ->exists();
 
         return response()->json([

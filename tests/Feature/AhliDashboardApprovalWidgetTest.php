@@ -110,16 +110,17 @@ it('links submitter phone numbers to whatsapp in the ahli approval widget', func
     $event = Event::factory()->create([
         'title' => 'Widget WhatsApp Contact Event',
         'status' => 'pending',
-        'submitter_id' => $submitter->id,
     ]);
     OwnerContext::withOwner(null, fn () => $event->setPrimaryOrganizer($institution));
 
-    EventSubmission::factory()
-        ->for($event)
-        ->for($submitter, 'submitter')
-        ->create([
-            'submitter_name' => $submitter->name,
-        ]);
+    EventSubmission::query()->create([
+        'event_id' => $event->id,
+        'status' => 'pending',
+        'submitted_at' => now(),
+        'submitter_type' => $submitter->getMorphClass(),
+        'submitter_id' => $submitter->id,
+        'submission_data' => ['submitter_name' => $submitter->name],
+    ]);
 
     OwnerContext::withOwner(null, fn () => Livewire::actingAs($user)
         ->test(PendingApprovalEventsWidget::class)

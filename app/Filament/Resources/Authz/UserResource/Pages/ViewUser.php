@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Authz\UserResource\Pages;
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Engagement\Models\Response;
 use AIArmada\FilamentAuthz\Facades\Authz;
 use AIArmada\FilamentEvents\Resources\EventResource;
 use App\Filament\Resources\Authz\UserResource;
@@ -42,6 +44,7 @@ class ViewUser extends ViewRecord
     public function mount(int|string $record): void
     {
         parent::mount($record);
+        OwnerContext::setForRequest(null);
 
         $this->reloadUserRecord();
     }
@@ -117,31 +120,33 @@ class ViewUser extends ViewRecord
         /** @var User $user */
         $user = User::query()->findOrFail($this->getRecord()->getKey());
 
-        $user->loadMissing([
-            'roles',
-            'goingEvents' => fn ($query) => $query
-                ->with(['institution:id,name', 'venue:id,name'])
-                ->orderBy('responses.created_at', 'desc'),
-            'eventCheckins' => fn ($query) => $query
-                ->with(['event:id,title,status,starts_at', 'verifiedBy:id,name'])
-                ->orderByDesc('checked_in_at'),
-            'registrations' => fn ($query) => $query
-                ->with(['event:id,title,status,starts_at'])
-                ->latest(),
-            'followingInstitutions' => fn ($query) => $query->orderBy('name'),
-            'followingSpeakers' => fn ($query) => $query->orderBy('name'),
-            'followingReferences' => fn ($query) => $query->orderBy('title'),
-            'eventSubmissions' => fn ($query) => $query
-                ->with(['event:id,title,status,starts_at'])
-                ->latest(),
-            'institutions' => fn ($query) => $query->orderBy('name'),
-            'speakers' => fn ($query) => $query->orderBy('name'),
-            'memberEvents' => fn ($query) => $query
-                ->with(['institution:id,name', 'venue:id,name'])
-                ->orderByDesc('starts_at'),
-            'references' => fn ($query) => $query->orderBy('title'),
-            'savedSearches' => fn ($query) => $query->latest(),
-        ]);
+        OwnerContext::withOwner(null, function () use ($user): void {
+            $user->loadMissing([
+                'roles',
+                'goingEvents' => fn ($query) => $query
+                    ->with(['institution:id,name', 'venue:id,name'])
+                    ->orderBy((new Response)->getTable().'.created_at', 'desc'),
+                'eventCheckins' => fn ($query) => $query
+                    ->with(['event:id,title,status,starts_at', 'verifiedBy:id,name'])
+                    ->orderByDesc('checked_in_at'),
+                'registrations' => fn ($query) => $query
+                    ->with(['event:id,title,status,starts_at'])
+                    ->latest(),
+                'followingInstitutions' => fn ($query) => $query->orderBy('name'),
+                'followingSpeakers' => fn ($query) => $query->orderBy('name'),
+                'followingReferences' => fn ($query) => $query->orderBy('title'),
+                'eventSubmissions' => fn ($query) => $query
+                    ->with(['event:id,title,status,starts_at'])
+                    ->latest(),
+                'institutions' => fn ($query) => $query->orderBy('name'),
+                'speakers' => fn ($query) => $query->orderBy('name'),
+                'memberEvents' => fn ($query) => $query
+                    ->with(['institution:id,name', 'venue:id,name'])
+                    ->orderByDesc('starts_at'),
+                'references' => fn ($query) => $query->orderBy('title'),
+                'savedSearches' => fn ($query) => $query->latest(),
+            ]);
+        });
 
         $this->record = $user;
     }

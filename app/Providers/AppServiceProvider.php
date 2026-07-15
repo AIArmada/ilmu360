@@ -146,7 +146,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(MembershipHook::class, AppMembershipHook::class);
         $this->app->singleton(MembershipApplicationNotifier::class, AppMembershipApplicationNotifier::class);
 
-        $this->app->singleton(
+        $this->app->bind(
             function ($app): CaptchaVerifier {
                 $verifier = $app->make(TurnstileVerifier::class);
 

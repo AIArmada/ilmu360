@@ -15,8 +15,8 @@ it('seeds registrations whether or not the users table has a phone column', func
     $event = Event::factory()
         ->has(EventAccessPolicy::factory()->state([
             'registration_required' => true,
-            'registration_opens_at' => now()->subDay(),
-            'registration_closes_at' => now()->addDay(),
+            'opens_at' => now()->subDay(),
+            'closes_at' => now()->addDay(),
         ]), 'accessPolicy')
         ->create();
 

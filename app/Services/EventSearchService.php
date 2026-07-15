@@ -656,7 +656,7 @@ class EventSearchService
             $queryBuilder->where('default_venue_id', $filters['venue_id']);
         }
 
-        $speakerIds = $this->normalizeArrayFilter($filters['speaker_ids'] ?? null);
+        $speakerIds = $this->uuidFilterValues($filters['speaker_ids'] ?? null);
 
         if ($speakerIds !== []) {
             $queryBuilder->whereHas('speakers', function (Builder $speakerQuery) use ($speakerIds) {
@@ -679,7 +679,7 @@ class EventSearchService
             'khatib_ids' => EventKeyPersonRole::Khatib,
             'bilal_ids' => EventKeyPersonRole::Bilal,
         ] as $filterKey => $role) {
-            $roleSpecificIds = $this->normalizeArrayFilter($filters[$filterKey] ?? null);
+            $roleSpecificIds = $this->uuidFilterValues($filters[$filterKey] ?? null);
 
             if ($roleSpecificIds === []) {
                 continue;
@@ -1279,6 +1279,17 @@ class EventSearchService
         $values = is_array($value) ? $value : [$value];
 
         return array_values(array_filter($values, fn (mixed $item): bool => $item !== null && $item !== ''));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function uuidFilterValues(mixed $value): array
+    {
+        return array_values(array_filter(
+            $this->normalizeArrayFilter($value),
+            fn (string $candidate): bool => Str::isUuid($candidate),
+        ));
     }
 
     /**

@@ -65,7 +65,6 @@ class RegistrationSeeder extends Seeder
 
                         // Event dispatcher is unset for bulk seed speed; assign package defaults explicitly.
                         $registration = new Registration([
-                            'id' => (string) Str::uuid(),
                             'registration_no' => 'REG-'.mb_strtoupper(Str::random(10)),
                             'registered_at' => now(),
                             'event_id' => $eventId,
@@ -76,6 +75,7 @@ class RegistrationSeeder extends Seeder
                             'source' => 'website',
                             'total_participants' => 1,
                         ]);
+                        $registration->id = (string) Str::uuid();
                         $registration
                             ->stagePrimaryParticipant(
                                 $user['name'] ?? fake()->name(),

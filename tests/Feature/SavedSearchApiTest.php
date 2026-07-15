@@ -471,12 +471,3 @@ describe('Saved Search API Endpoints', function () {
         });
     });
 });
-
-function runLegacySavedSearchEnumFilterRepairMigration(): void
-{
-    $migration = require base_path('database/migrations/2026_04_23_121000_repair_legacy_saved_search_enum_filters.php');
-
-    assert(is_object($migration) && method_exists($migration, 'up'));
-
-    $migration->up();
-}

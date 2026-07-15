@@ -132,7 +132,7 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
             $user->venues()->each(fn (Follow $f): ?bool => $f->delete());
             $user->memberEvents()->detach();
             $user->eventBookmarks()->delete();
-            $user->goingEvents()->get()->each->delete();
+            $user->responses()->where('response_type', 'going')->get()->each->delete();
 
             $user->syncBookmarkCounts($savedEventIds);
             $user->syncEventEngagementCounts($goingEventIds, 'responses', 'going_count');
@@ -266,7 +266,7 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
                 'created_at' => $bookmark->created_at?->toIso8601String(),
                 'updated_at' => $bookmark->updated_at?->toIso8601String(),
             ])->all(),
-            'event_attendees' => $this->goingEvents()->get()->map(fn (Response $response): array => [
+            'event_attendees' => $this->responses()->where('response_type', 'going')->get()->map(fn (Response $response): array => [
                 'event_id' => $response->respondable_id,
                 'response_type' => $response->response_type,
                 'created_at' => $response->created_at?->toIso8601String(),
@@ -1182,11 +1182,24 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
     }
 
     /**
-     * @return MorphMany<Response, $this>
+     * @return BelongsToMany<Event, $this>
      */
-    public function goingEvents(): MorphMany
+    public function goingEvents(): BelongsToMany
     {
-        return $this->responses()->where('response_type', 'going');
+        $responsesTable = config('engagement.database.tables.responses', 'responses');
+
+        return $this->belongsToMany(
+            Event::class,
+            $responsesTable,
+            'responder_id',
+            'respondable_id',
+            'id',
+            'id',
+        )
+            ->where("{$responsesTable}.responder_type", $this->getMorphClass())
+            ->where("{$responsesTable}.respondable_type", (new Event)->getMorphClass())
+            ->where("{$responsesTable}.response_type", 'going')
+            ->where("{$responsesTable}.status", 'active');
     }
 
     /**

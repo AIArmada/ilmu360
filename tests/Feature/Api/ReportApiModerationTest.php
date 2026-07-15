@@ -38,9 +38,9 @@ it('uses moderation transition when a high risk event report is submitted', func
 
     expect((string) $event->status)->toBe('pending');
 
-    $this->assertDatabaseHas('moderation_reviews', [
-        'event_id' => $event->id,
-        'decision' => 'remoderated',
+    $this->assertDatabaseHas(config('moderation.database.tables.moderation_actions'), [
+        'actionable_id' => $event->id,
+        'type' => 'remoderated',
     ]);
 });
 
@@ -102,9 +102,9 @@ it('escalates when two distinct anonymous reporters submit reports within 24 hou
 
     expect((string) $event->status)->toBe('pending');
 
-    $this->assertDatabaseHas('moderation_reviews', [
-        'event_id' => $event->id,
-        'decision' => 'remoderated',
+    $this->assertDatabaseHas(config('moderation.database.tables.moderation_actions'), [
+        'actionable_id' => $event->id,
+        'type' => 'remoderated',
     ]);
 });
 

@@ -8,6 +8,7 @@ use App\Models\EventKeyPerson;
 use App\Models\Institution;
 use App\Models\Speaker;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
@@ -32,8 +33,16 @@ class PublicDirectoryCacheVersion
      */
     public function speaker(): array
     {
+        $involvementsTable = config('events.database.tables.event_involvements', 'event_involvements');
+        $participationCount = DB::table($involvementsTable)->count();
+        $latestParticipationChange = DB::table($involvementsTable)->max('updated_at');
+
         return [
-            'version' => $this->compositeVersion(self::SPEAKER_DIRECTORY_VERSION_KEY),
+            'version' => implode('|', [
+                $this->compositeVersion(self::SPEAKER_DIRECTORY_VERSION_KEY),
+                $participationCount,
+                (string) $latestParticipationChange,
+            ]),
         ];
     }
 

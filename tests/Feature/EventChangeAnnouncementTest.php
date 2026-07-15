@@ -111,8 +111,8 @@ it('blocks registration calendar and check-in surfaces for unknown postponements
 
     $event->accessPolicy()->updateOrCreate(['event_id' => $event->id], [
         'registration_required' => true,
-        'registration_opens_at' => now()->subDay(),
-        'registration_closes_at' => now()->addDay(),
+        'opens_at' => now()->subDay(),
+        'closes_at' => now()->addDay(),
     ]);
 
     app(PublishEventChangeAnnouncement::class)->handle(

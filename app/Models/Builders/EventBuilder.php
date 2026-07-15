@@ -5,6 +5,7 @@ namespace App\Models\Builders;
 use App\Models\Event;
 use Illuminate\Contracts\Database\Query\Expression;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Database\Query\Builder as BaseQueryBuilder;
 use Illuminate\Database\Query\SortDirection;
 use Illuminate\Support\Collection;
@@ -120,7 +121,25 @@ class EventBuilder extends Builder
         if ($mappedColumn !== null) {
             if ($mappedColumn instanceof Expression) {
                 $sql = $mappedColumn->getValue($this->getQuery()->getGrammar());
-                $values = array_values(is_array($values) ? $values : ($values instanceof Enumerable ? $values->all() : iterator_to_array($values)));
+
+                if ($values instanceof Relation) {
+                    $subquery = $values->getQuery()->toBase();
+                    $this->whereRaw(
+                        $sql.' '.($not ? 'not ' : '').'in ('.$subquery->toSql().')',
+                        $subquery->getBindings(),
+                        $boolean,
+                    );
+
+                    return $this;
+                }
+
+                $values = array_values(
+                    is_array($values)
+                        ? $values
+                        : ($values instanceof Enumerable
+                            ? $values->all()
+                            : ($values instanceof \Traversable ? iterator_to_array($values) : [$values])),
+                );
 
                 if ($values === []) {
                     $this->whereRaw($not ? '1 = 1' : '0 = 1', [], $boolean);
@@ -208,6 +227,14 @@ class EventBuilder extends Builder
 
     public function whereJsonContains(string $column, mixed $value, string $boolean = 'and', bool $not = false): static
     {
+        if ($this->columnName($column) === 'event_type' && ! $this->isJsonSelector($column)) {
+            $metadataColumn = $this->qualifyModelColumn('metadata').'->event_type';
+
+            parent::whereJsonContains($metadataColumn, $value, $boolean, $not);
+
+            return $this;
+        }
+
         if ($this->isJsonSelector($column) || ! $this->shouldMapColumn($column)) {
             parent::whereJsonContains($column, $value, $boolean, $not);
 

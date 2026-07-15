@@ -16,6 +16,7 @@ use App\Models\Reference;
 use App\Models\Speaker;
 use App\Models\User;
 use App\Models\Venue;
+use App\States\EventStatus\Draft;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Filament\Widgets\StatsOverviewWidget\Stat;
@@ -81,7 +82,7 @@ it('renders the admin event edit page without missing dashboard navigation route
     $administrator = User::factory()->create();
     $administrator->assignRole('super_admin');
 
-    $event = Event::factory()->create();
+    $event = Event::factory()->create(['status' => Draft::class]);
 
     $this->actingAs($administrator)
         ->get(EditEvent::getUrl(['record' => $event->getKey()], panel: 'admin'))

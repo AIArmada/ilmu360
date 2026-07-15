@@ -1052,7 +1052,13 @@ class Event extends PackageEvent implements AuditableContract
         if ($spaceId !== null && $spaceId !== '') {
             EventLocation::updateOrCreate(
                 ['event_id' => $this->id],
-                ['venue_space_id' => $spaceId, 'location_role' => 'main'],
+                [
+                    'venue_space_id' => $spaceId,
+                    'location_role' => 'main',
+                    'visibility' => 'public',
+                    'status' => 'active',
+                    'sort_order' => 0,
+                ],
             );
         } else {
             EventLocation::where('event_id', $this->id)->delete();

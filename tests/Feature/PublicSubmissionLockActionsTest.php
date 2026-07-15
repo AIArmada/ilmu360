@@ -42,6 +42,11 @@ function normalizeInstitutionContactsForAdminForm(Institution $institution): voi
         ->update(['value' => '+60112223344']);
 }
 
+function setMembershipRole(Institution|Speaker $subject, User $member, string $role): void
+{
+    $subject->members()->updateExistingPivot($member->id, ['role' => $role]);
+}
+
 it('uses a rich editor for institution description on the admin edit form', function () {
     $admin = User::factory()->create();
     assignGlobalRole($admin, 'super_admin');
@@ -75,6 +80,7 @@ it('disables turning off institution public submission when credible preconditio
     Authz::withScope($scope, function () use ($member): void {
         $member->syncRoles(['owner']);
     }, $member);
+    setMembershipRole($institution, $member, 'owner');
 
     $this->actingAs($admin);
 
@@ -109,6 +115,7 @@ it('refreshes institution public submission toggle eligibility without remountin
     Authz::withScope($scope, function () use ($member): void {
         $member->syncRoles(['owner']);
     }, $member);
+    setMembershipRole($institution, $member, 'owner');
 
     $page->dispatch(PublicSubmissionUiEvents::REFRESH_TOGGLE)
         ->assertFormFieldEnabled('allow_public_event_submission');
@@ -163,6 +170,7 @@ it('keeps institution submission public until the toggle is explicitly turned of
     Authz::withScope($scope, function () use ($member): void {
         $member->syncRoles(['admin']);
     }, $member);
+    setMembershipRole($institution, $member, 'admin');
 
     $this->actingAs($admin);
 
@@ -195,6 +203,7 @@ it('locks institution submission through the toggle and stores lock metadata', f
     Authz::withScope($scope, function () use ($member): void {
         $member->syncRoles(['owner']);
     }, $member);
+    setMembershipRole($institution, $member, 'owner');
 
     $this->actingAs($admin);
 
@@ -251,6 +260,7 @@ it('only enables the public submission toggle for global admin, admin, and moder
     Authz::withScope($scope, function () use ($member): void {
         $member->syncRoles(['owner']);
     }, $member);
+    setMembershipRole($institution, $member, 'owner');
 
     $superAdmin = User::factory()->create();
     assignGlobalRole($superAdmin, 'super_admin');
@@ -294,6 +304,7 @@ it('auto-reopens institution submission when lock credibility drifts', function 
     Authz::withScope($scope, function () use ($member): void {
         $member->syncRoles(['owner']);
     }, $member);
+    setMembershipRole($institution, $member, 'owner');
 
     $this->actingAs($admin);
 
@@ -337,6 +348,7 @@ it('supports locking and unlocking speaker records through the toggle', function
     Authz::withScope($scope, function () use ($member): void {
         $member->syncRoles(['admin']);
     }, $member);
+    setMembershipRole($speaker, $member, 'admin');
 
     $this->actingAs($admin);
 
@@ -387,6 +399,7 @@ it('refreshes speaker public submission toggle eligibility without remounting th
     Authz::withScope($scope, function () use ($member): void {
         $member->syncRoles(['admin']);
     }, $member);
+    setMembershipRole($speaker, $member, 'admin');
 
     $page->dispatch(PublicSubmissionUiEvents::REFRESH_TOGGLE)
         ->assertFormFieldEnabled('allow_public_event_submission');

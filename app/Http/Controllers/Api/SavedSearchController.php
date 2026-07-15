@@ -192,7 +192,7 @@ class SavedSearchController extends Controller
             'name' => $partial ? 'sometimes|required|string|max:100' : 'required|string|max:100',
             'query' => 'nullable|string|max:255',
             'filters' => 'nullable|array:'.implode(',', $this->allowedFilterKeys()),
-            'filters.country_id' => 'nullable|uuid|exists:address_countries,id',
+            'filters.country_id' => 'nullable|uuid|exists:'.config('addressing.tables.countries', 'countries').',id',
             'filters.state_id' => 'nullable|uuid|exists:states,id',
             'filters.city_id' => 'nullable|uuid|exists:cities,id',
             'filters.admin_area_1_id' => 'nullable|uuid|exists:address_areas,id',

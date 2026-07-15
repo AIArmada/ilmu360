@@ -7,7 +7,6 @@ use App\Enums\EventType;
 use App\Enums\EventVisibility;
 use App\Models\Event;
 use App\Models\Speaker;
-use App\Models\Tag;
 use App\Models\Venue;
 use Illuminate\Support\Carbon;
 use Livewire\Livewire;
@@ -23,8 +22,8 @@ function submitEventOrganizerFixtures(): array
 {
     return [
         'speaker' => Speaker::factory()->create(['status' => 'verified']),
-        'domain_tag' => Tag::factory()->domain()->create(),
-        'discipline_tag' => Tag::factory()->discipline()->create(),
+        'domain_tag' => submitEventTerm('domain'),
+        'discipline_tag' => submitEventTerm('discipline'),
         'venue' => Venue::factory()->create(['status' => 'verified']),
     ];
 }
