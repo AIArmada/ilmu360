@@ -68,6 +68,9 @@ it('is accessible when diagnostics token is not configured', function (): void {
 });
 
 it('reads target database credentials from the raw env file when runtime env values are unavailable', function (): void {
+    $originalDatabaseDefault = config('database.default');
+    $originalSqliteConnection = config('database.connections.sqlite');
+
     config()->set('database.default', 'sqlite');
     config()->set('database.connections.sqlite', [
         'driver' => 'sqlite',
@@ -91,6 +94,8 @@ ENV
             ->assertDontSee('Target database credentials are not configured yet.');
     } finally {
         @unlink($environmentFilePath);
+        config()->set('database.default', $originalDatabaseDefault);
+        config()->set('database.connections.sqlite', $originalSqliteConnection);
     }
 });
 

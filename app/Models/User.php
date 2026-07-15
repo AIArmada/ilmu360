@@ -1266,7 +1266,8 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
     {
         return $this->morphOne(CommunicationPreference::class, 'recipient')
             ->whereNull('channel')
-            ->whereNull('category');
+            ->whereNull('category')
+            ->whereNull('scope_type');
     }
 
     /**
