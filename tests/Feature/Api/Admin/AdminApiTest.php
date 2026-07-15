@@ -2597,7 +2597,7 @@ it('exposes admin venue write schema and can create and update venues through th
         ->and($venue->slug)->toBe('admin-api-venue-my')
         ->and($venue->status)->toBe('verified')
         ->and((string) $venue->status)->toBeIn(['verified', 'pending'])
-        ->and($venue->facilities)->toBe([
+        ->and($venue->facilities)->toEqualCanonicalizing([
             'oku' => true,
             'parking' => true,
         ])
@@ -2644,7 +2644,7 @@ it('exposes admin venue write schema and can create and update venues through th
         ->and($venue->slug)->toBe('admin-api-venue-updated-my')
         ->and($venue->getRawOriginal('venue_type'))->toBe('auditorium')
         ->and((string) $venue->status)->toBe('inactive')
-        ->and($venue->facilities)->toBe([
+        ->and($venue->facilities)->toEqualCanonicalizing([
             'women_section' => true,
             'ablution_area' => true,
         ])

@@ -887,21 +887,23 @@ class Event extends PackageEvent implements AuditableContract
             return;
         }
 
-        foreach ($this->pendingAudienceWrites as $type => $value) {
-            match ($type) {
-                'gender' => $this->syncSingleAudience('gender', $value),
-                'age_group' => $this->syncAgeGroupAudience($value),
-                'is_muslim_only' => $this->syncSingleAudience('religion', $value ? 'muslim_only' : null),
-                default => null,
-            };
-        }
+        OwnerContext::withOwner(null, function (): void {
+            foreach ($this->pendingAudienceWrites as $type => $value) {
+                match ($type) {
+                    'gender' => $this->syncSingleAudience('gender', $value),
+                    'age_group' => $this->syncAgeGroupAudience($value),
+                    'is_muslim_only' => $this->syncSingleAudience('religion', $value ? 'muslim_only' : null),
+                    default => null,
+                };
+            }
 
-        if ($this->pendingAudienceProfileWrites !== []) {
-            EventAudienceProfile::updateOrCreate(
-                ['event_id' => $this->id],
-                ['is_child_friendly' => $this->pendingAudienceProfileWrites['children_allowed'] ?? null],
-            );
-        }
+            if ($this->pendingAudienceProfileWrites !== []) {
+                EventAudienceProfile::updateOrCreate(
+                    ['event_id' => $this->id],
+                    ['is_child_friendly' => $this->pendingAudienceProfileWrites['children_allowed'] ?? null],
+                );
+            }
+        });
 
         $this->pendingAudienceWrites = [];
         $this->pendingAudienceProfileWrites = [];
@@ -1085,24 +1087,26 @@ class Event extends PackageEvent implements AuditableContract
 
     private function syncAgeGroupAudience(mixed $value): void
     {
-        EventAudience::where('event_id', $this->id)
-            ->where('audience_type', 'age_group')
-            ->delete();
+        OwnerContext::withOwner(null, function () use ($value): void {
+            EventAudience::where('event_id', $this->id)
+                ->where('audience_type', 'age_group')
+                ->delete();
 
-        if (in_array($value, [null, [], ''], true)) {
-            return;
-        }
+            if (in_array($value, [null, [], ''], true)) {
+                return;
+            }
 
-        $values = is_array($value) ? $value : [$value];
+            $values = is_array($value) ? $value : [$value];
 
-        foreach (array_values($values) as $i => $v) {
-            EventAudience::create([
-                'event_id' => $this->id,
-                'audience_type' => 'age_group',
-                'value' => (string) $v,
-                'sort_order' => $i,
-            ]);
-        }
+            foreach (array_values($values) as $i => $v) {
+                EventAudience::create([
+                    'event_id' => $this->id,
+                    'audience_type' => 'age_group',
+                    'value' => (string) $v,
+                    'sort_order' => $i,
+                ]);
+            }
+        });
     }
 
     private function syncPrimaryOccurrenceFromPendingState(): void
