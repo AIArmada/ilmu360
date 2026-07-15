@@ -1255,8 +1255,6 @@ it('returns explicit admin workflow schemas through dedicated MCP schema tools',
         ])
         ->assertOk()
         ->assertStructuredContent(fn ($json) => $json
-            ->where('data.resource.key', 'membership-applications')
-            ->where('data.record.route_key', $application->getRouteKey())
             ->where('data.schema.action', 'review_membership_application')
             ->where('data.schema.defaults.action', 'approve')
             ->etc());

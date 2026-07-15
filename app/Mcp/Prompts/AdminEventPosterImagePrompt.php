@@ -9,7 +9,7 @@ use App\Models\Event;
 use App\Models\User;
 use App\Support\Api\Admin\AdminResourceRegistry;
 use App\Support\Mcp\McpAuthenticatedUserResolver;
-use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Str;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Attributes\Description;
@@ -74,13 +74,9 @@ class AdminEventPosterImagePrompt extends Prompt
         $query = $this->registry->queryFor($resourceClass);
         $model = $query->getModel();
 
-        $record = $query
-            ->where(function (Builder $query) use ($model, $eventKey): void {
-                $query
-                    ->where($model->qualifyColumn($model->getRouteKeyName()), $eventKey)
-                    ->orWhere($model->qualifyColumn('slug'), $eventKey);
-            })
-            ->first();
+        $record = Str::isUuid($eventKey)
+            ? $query->where($model->qualifyColumn($model->getRouteKeyName()), $eventKey)->first()
+            : $query->where($model->qualifyColumn('slug'), $eventKey)->first();
 
         return $record instanceof Event ? $record : null;
     }

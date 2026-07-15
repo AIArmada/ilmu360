@@ -9,8 +9,8 @@ use App\Models\Event;
 use App\Support\Api\Member\MemberResourceRegistry;
 use App\Support\Mcp\EventImageUploadService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\JsonSchema\Types\Type;
+use Illuminate\Support\Str;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
@@ -115,13 +115,9 @@ class MemberUploadEventPosterImageTool extends AbstractMemberTool
         $query = $this->registry->queryFor($resourceClass);
         $model = $query->getModel();
 
-        $record = $query
-            ->where(function (Builder $query) use ($model, $eventKey): void {
-                $query
-                    ->where($model->qualifyColumn($model->getRouteKeyName()), $eventKey)
-                    ->orWhere($model->qualifyColumn('slug'), $eventKey);
-            })
-            ->first();
+        $record = Str::isUuid($eventKey)
+            ? $query->where($model->qualifyColumn($model->getRouteKeyName()), $eventKey)->first()
+            : $query->where($model->qualifyColumn('slug'), $eventKey)->first();
 
         return $record instanceof Event ? $record : null;
     }

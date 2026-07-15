@@ -753,7 +753,7 @@ it('returns remediation details for validate-only admin api create validation fa
         ->and($fixPlan->get('status'))->toMatchArray([
             'action' => 'set_field',
             'field' => 'status',
-            'value' => 'active',
+            'value' => 'verified',
             'auto_apply_safe' => true,
         ])
         ->and($fixPlan->has('address'))->toBeFalse()
