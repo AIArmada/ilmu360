@@ -430,18 +430,20 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
             }
         }
         foreach ($snapshot['event_saves'] ?? [] as $data) {
-            Bookmark::query()->firstOrCreate(
-                [
-                    'bookmarker_type' => $data['bookmarker_type'] ?? $this->getMorphClass(),
-                    'bookmarker_id' => $data['bookmarker_id'] ?? $this->getKey(),
-                    'bookmarkable_type' => (new Event)->getMorphClass(),
-                    'bookmarkable_id' => $data['bookmarkable_id'],
-                ],
-                [
-                    'status' => 'active',
-                    'bookmarked_at' => $data['bookmarked_at'] ?? now(),
-                ]
-            );
+            OwnerContext::withOwner(null, function () use ($data): void {
+                Bookmark::query()->firstOrCreate(
+                    [
+                        'bookmarker_type' => $data['bookmarker_type'] ?? $this->getMorphClass(),
+                        'bookmarker_id' => $data['bookmarker_id'] ?? $this->getKey(),
+                        'bookmarkable_type' => (new Event)->getMorphClass(),
+                        'bookmarkable_id' => $data['bookmarkable_id'],
+                    ],
+                    [
+                        'status' => 'active',
+                        'bookmarked_at' => $data['bookmarked_at'] ?? now(),
+                    ]
+                );
+            });
         }
         foreach ($snapshot['event_attendees'] ?? [] as $goingData) {
             $event = Event::query()->find($goingData['event_id'] ?? null);
