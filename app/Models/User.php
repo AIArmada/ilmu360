@@ -479,8 +479,10 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
             });
         }
 
-        $this->syncBookmarkCounts($savedEventIds);
-        $this->syncEventEngagementCounts($goingEventIds, 'responses', 'going_count');
+        OwnerContext::withOwner(null, function () use ($savedEventIds, $goingEventIds): void {
+            $this->syncBookmarkCounts($savedEventIds);
+            $this->syncEventEngagementCounts($goingEventIds, 'responses', 'going_count');
+        });
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
