@@ -114,7 +114,7 @@ it('purges the full disposable affiliate package dataset before launch', functio
             'affiliate_id' => $affiliateId,
             'affiliate_code' => 'AFF-001',
             'subtotal_minor' => 1000,
-            'total_minor' => 1000,
+            'value_minor' => 1000,
             'commission_minor' => 100,
             'created_at' => $now,
             'updated_at' => $now,

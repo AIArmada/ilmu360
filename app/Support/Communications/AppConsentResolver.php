@@ -4,6 +4,7 @@ namespace App\Support\Communications;
 
 use AIArmada\Communications\Contracts\ConsentResolver;
 use AIArmada\Communications\Data\ConsentDecisionData;
+use App\Enums\NotificationChannel;
 use App\Enums\NotificationChannel as AppChannel;
 use Illuminate\Database\Eloquent\Relations\Relation;
 
@@ -23,7 +24,7 @@ class AppConsentResolver implements ConsentResolver
 
         $appChannel = $this->toAppChannel($channel);
 
-        if (!$appChannel instanceof \App\Enums\NotificationChannel) {
+        if (! $appChannel instanceof NotificationChannel) {
             return new ConsentDecisionData(consented: true);
         }
 

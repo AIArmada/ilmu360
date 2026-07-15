@@ -58,7 +58,7 @@ readonly class AppMembershipHook implements MembershipHook
         $members = $subject->members()->get();
 
         $subject->recordCustomAudit('sync', [], [
-            'members' => $members->map(fn(Model $member): array => [
+            'members' => $members->map(fn (Model $member): array => [
                 'id' => $member->getKey(),
                 'name' => $member->getAttribute('name'),
                 'role' => $member->getRelationValue('pivot')?->getAttribute('role'),

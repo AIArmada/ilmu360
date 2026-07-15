@@ -44,7 +44,7 @@ final readonly class InviteSubjectMember
 
         $acceptUrl = route('member-invitations.show', ['token' => $rawToken]);
 
-        $inviterName = method_exists($inviter, 'name') && is_string($inviter->name) ? $inviter->name : (string) $inviter->getAttribute('name');
+        $inviterName = (string) ($inviter->getAttribute('name') ?? '');
         $subjectName = (string) ($subject->getAttribute('name') ?? $subject->getAttribute('title') ?? '');
 
         $notifiable = new AnonymousNotifiable;

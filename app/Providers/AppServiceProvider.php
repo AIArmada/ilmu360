@@ -147,7 +147,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(MembershipApplicationNotifier::class, AppMembershipApplicationNotifier::class);
 
         $this->app->singleton(
-            function ($app): \App\Contracts\CaptchaVerifier {
+            function ($app): CaptchaVerifier {
                 $verifier = $app->make(TurnstileVerifier::class);
 
                 return $verifier->isEnabled()
@@ -157,7 +157,7 @@ class AppServiceProvider extends ServiceProvider
         );
 
         $this->app->singleton(
-            function ($app): \App\Contracts\GitHubIssueReporterContract {
+            function ($app): GitHubIssueReporterContract {
                 $reporter = $app->make(GitHubIssueReporter::class);
 
                 return $reporter->isConfigured()

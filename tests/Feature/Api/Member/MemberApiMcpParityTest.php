@@ -98,7 +98,7 @@ it('keeps member api and member mcp contribution request actions aligned', funct
     $memberServer = MemberServer::actingAs($member);
     $proposer = User::factory()->create();
 
-    $makeReviewablePair = (fn(string $label, string $originalDescription, string $updatedDescription): array => OwnerContext::withOwner(null, function () use ($label, $originalDescription, $updatedDescription, $member, $proposer): array {
+    $makeReviewablePair = (fn (string $label, string $originalDescription, string $updatedDescription): array => OwnerContext::withOwner(null, function () use ($label, $originalDescription, $updatedDescription, $member, $proposer): array {
         $apiInstitution = Institution::factory()->create([
             'name' => 'Member Parity '.$label.' Contribution Subject',
             'description' => $originalDescription,
@@ -339,7 +339,7 @@ it('keeps member API and MCP membership application workflows aligned', function
         ])
         ->assertOk();
 
-    [$apiApplication, $mcpApplication] = OwnerContext::withOwner(null, fn(): array => [
+    [$apiApplication, $mcpApplication] = OwnerContext::withOwner(null, fn (): array => [
         MembershipApplication::query()
             ->where('applicant_id', $member->getKey())
             ->where('subject_id', $apiSubmitTarget->getKey())
@@ -371,7 +371,7 @@ it('keeps member API and MCP membership application workflows aligned', function
         'status' => 'verified',
     ]);
 
-    [$apiApplicationToCancel, $mcpApplicationToCancel] = OwnerContext::withOwner(null, fn(): array => [
+    [$apiApplicationToCancel, $mcpApplicationToCancel] = OwnerContext::withOwner(null, fn (): array => [
         MembershipApplication::factory()
             ->for($apiCancelTarget, 'subject')
             ->create([
@@ -397,7 +397,7 @@ it('keeps member API and MCP membership application workflows aligned', function
         ])
         ->assertOk();
 
-    [$apiCancelledApplication, $mcpCancelledApplication] = OwnerContext::withOwner(null, fn(): array => [
+    [$apiCancelledApplication, $mcpCancelledApplication] = OwnerContext::withOwner(null, fn (): array => [
         MembershipApplication::query()->findOrFail($apiApplicationToCancel->getKey()),
         MembershipApplication::query()->findOrFail($mcpApplicationToCancel->getKey()),
     ]);

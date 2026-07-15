@@ -7,9 +7,12 @@ namespace App\Support\Authz;
 use AIArmada\CommerceSupport\Models\Role;
 use AIArmada\FilamentAuthz\Facades\Authz;
 use App\Enums\MemberSubjectType;
+use App\Models\Event;
+use App\Models\Institution;
+use App\Models\Reference;
+use App\Models\Speaker;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
-use Spatie\Permission\PermissionRegistrar;
 
 final readonly class MemberRoleCatalog
 {
@@ -54,7 +57,10 @@ final readonly class MemberRoleCatalog
         try {
             setPermissionsTeamId($subject->getKey());
 
-            return Collection::make($user->roles)
+            /** @var Collection<int, Role> $roles */
+            $roles = $user->roles;
+
+            return $roles
                 ->map(fn (Role $role): string => $role->name)
                 ->values()
                 ->all();
@@ -66,10 +72,10 @@ final readonly class MemberRoleCatalog
     private function subjectForUser(User $user, string $modelClass): mixed
     {
         $relation = match ($modelClass) {
-            \App\Models\Institution::class => 'institutions',
-            \App\Models\Speaker::class => 'speakers',
-            \App\Models\Event::class => 'memberEvents',
-            \App\Models\Reference::class => 'references',
+            Institution::class => 'institutions',
+            Speaker::class => 'speakers',
+            Event::class => 'memberEvents',
+            Reference::class => 'references',
             default => null,
         };
 

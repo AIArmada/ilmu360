@@ -21,6 +21,14 @@ abstract class EventStatus extends State
     {
         return parent::config()
             ->default(Draft::class)
+            ->registerState([
+                Approved::class,
+                Cancelled::class,
+                Draft::class,
+                NeedsChanges::class,
+                Pending::class,
+                Rejected::class,
+            ])
             // Submission flow
             ->allowTransition(Draft::class, Pending::class, Transitions\SubmitForModeration::class)
             ->allowTransition(NeedsChanges::class, Pending::class, Transitions\SubmitForModeration::class)

@@ -446,12 +446,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/AIArmada/events.git",
-                "reference": "1c07819e9ac879ecfa250e816336323b3121b1d5"
+                "reference": "68caf1f82d861e4f3cc7ac0eb88de88e6bc2f848"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/AIArmada/events/zipball/1c07819e9ac879ecfa250e816336323b3121b1d5",
-                "reference": "1c07819e9ac879ecfa250e816336323b3121b1d5",
+                "url": "https://api.github.com/repos/AIArmada/events/zipball/68caf1f82d861e4f3cc7ac0eb88de88e6bc2f848",
+                "reference": "68caf1f82d861e4f3cc7ac0eb88de88e6bc2f848",
                 "shasum": ""
             },
             "require": {
@@ -521,7 +521,7 @@
                 "issues": "https://github.com/AIArmada/events/issues",
                 "source": "https://github.com/AIArmada/events/tree/main"
             },
-            "time": "2026-07-14T14:13:51+00:00"
+            "time": "2026-07-15T04:43:12+00:00"
         },
         {
             "name": "aiarmada/filament-addressing",
@@ -1628,16 +1628,16 @@
         },
         {
             "name": "aws/aws-sdk-php",
-            "version": "3.388.5",
+            "version": "3.388.6",
             "source": {
                 "type": "git",
                 "url": "https://github.com/aws/aws-sdk-php.git",
-                "reference": "6104783c60d9134e7ceaeef03997767a547462b8"
+                "reference": "b89b2b0e0741900c9e25d12302ed8300fa50f22b"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/aws/aws-sdk-php/zipball/6104783c60d9134e7ceaeef03997767a547462b8",
-                "reference": "6104783c60d9134e7ceaeef03997767a547462b8",
+                "url": "https://api.github.com/repos/aws/aws-sdk-php/zipball/b89b2b0e0741900c9e25d12302ed8300fa50f22b",
+                "reference": "b89b2b0e0741900c9e25d12302ed8300fa50f22b",
                 "shasum": ""
             },
             "require": {
@@ -1719,9 +1719,9 @@
             "support": {
                 "forum": "https://github.com/aws/aws-sdk-php/discussions",
                 "issues": "https://github.com/aws/aws-sdk-php/issues",
-                "source": "https://github.com/aws/aws-sdk-php/tree/3.388.5"
+                "source": "https://github.com/aws/aws-sdk-php/tree/3.388.6"
             },
-            "time": "2026-07-13T18:09:02+00:00"
+            "time": "2026-07-14T18:07:03+00:00"
         },
         {
             "name": "bacon/bacon-qr-code",
@@ -4239,16 +4239,16 @@
         },
         {
             "name": "guzzlehttp/guzzle",
-            "version": "7.14.1",
+            "version": "7.14.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/guzzle/guzzle.git",
-                "reference": "6b1d2429a2c312474c523aa9017fba0c07b5f4a0"
+                "reference": "fa88c57803501ad0770f5cddb1e60525d49da9a1"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/guzzle/guzzle/zipball/6b1d2429a2c312474c523aa9017fba0c07b5f4a0",
-                "reference": "6b1d2429a2c312474c523aa9017fba0c07b5f4a0",
+                "url": "https://api.github.com/repos/guzzle/guzzle/zipball/fa88c57803501ad0770f5cddb1e60525d49da9a1",
+                "reference": "fa88c57803501ad0770f5cddb1e60525d49da9a1",
                 "shasum": ""
             },
             "require": {
@@ -4347,7 +4347,7 @@
             ],
             "support": {
                 "issues": "https://github.com/guzzle/guzzle/issues",
-                "source": "https://github.com/guzzle/guzzle/tree/7.14.1"
+                "source": "https://github.com/guzzle/guzzle/tree/7.14.2"
             },
             "funding": [
                 {
@@ -4363,7 +4363,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-07-13T01:32:54+00:00"
+            "time": "2026-07-14T18:15:01+00:00"
         },
         {
             "name": "guzzlehttp/promises",

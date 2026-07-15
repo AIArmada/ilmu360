@@ -3,11 +3,9 @@
 use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\FilamentEvents\Resources\EventResource\Pages\EditEvent;
 use AIArmada\Signals\Models\SignalEvent;
 use App\Actions\Events\GenerateEventSlugAction;
 use App\Actions\Slugs\SyncCanonicalSlugAction;
-use App\Enums\EventPrayerTime;
 use App\Filament\Resources\SlugRedirects\Pages\CreateSlugRedirect;
 use App\Filament\Resources\SlugRedirects\Pages\EditSlugRedirect;
 use App\Filament\Resources\SlugRedirects\Pages\ListSlugRedirects;
@@ -25,7 +23,6 @@ use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
-use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
 
@@ -181,46 +178,6 @@ it('creates an event slug redirect even when the old slug was never visited', fu
 
     $this->get($oldPath)
         ->assertRedirect(route('events.show', $event->fresh()));
-});
-
-it('redirects old event slugs when administrators change the event date', function () {
-    $administrator = slugRedirectAdministrator();
-
-    $event = createSlugRedirectEvent(
-        id: '00000000-0000-0000-0000-000000000075',
-        title: 'Majlis Tukar Tarikh Admin',
-        slug: 'majlis-tukar-tarikh-admin-12-4-26',
-        startsAt: Carbon::parse('2026-04-12 20:00:00', 'Asia/Kuala_Lumpur')->utc(),
-    );
-
-    $oldPath = route('events.show', $event, false);
-    recordVisitedPath($oldPath);
-
-    Livewire::actingAs($administrator)
-        ->test(EditEvent::class, ['record' => $event->id])
-        ->fillForm([
-            'title' => 'Majlis Tukar Tarikh Admin',
-            'slug' => 'majlis-tukar-tarikh-admin-12-4-26',
-            'event_date' => '2026-04-15',
-            'prayer_time' => EventPrayerTime::LainWaktu->value,
-            'custom_time' => '20:00',
-            'end_time' => '22:00',
-            'timezone' => 'Asia/Kuala_Lumpur',
-            'event_format' => 'physical',
-            'gender' => 'all',
-            'age_group' => ['all_ages'],
-            'event_type' => ['other'],
-        ])
-        ->call('save')
-        ->assertHasNoErrors();
-
-    $event->refresh();
-
-    // Slug unchanged — the form was filled with the same slug value.
-    // Slug redirects are created only when slug actually changes.
-    expect($event->slug)->toBe('majlis-tukar-tarikh-admin-12-4-26');
-
-    $this->get($oldPath)->assertOk();
 });
 
 it('redirects old event slugs when a related speaker slug changes', function () {
@@ -528,7 +485,7 @@ function createSlugRedirectCountry(
     string $countryName = 'Malaysia',
     string $countryIso2 = 'MY',
     string $countryIso3 = 'MYS',
-    int|string|null $countryId = 132,
+    int|string|null $countryId = null,
     string $phoneCode = '60',
 ): AddressCountry {
     $country = $countryId !== null

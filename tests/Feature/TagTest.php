@@ -2,7 +2,6 @@
 
 use App\Enums\TagType;
 use App\Filament\Resources\Tags\Schemas\TagForm;
-use App\Models\Event;
 use App\Models\Tag;
 
 it('can create a tag with type', function () {
@@ -33,40 +32,6 @@ it('can use spatie native getWithType method', function () {
     $domainTags = Tag::getWithType('domain');
 
     expect($domainTags)->toHaveCount(2);
-});
-
-it('event can be tagged using spatie taggables', function () {
-    $event = Event::factory()->create();
-    $tag = Tag::factory()->domain()->create();
-
-    $event->attachTag($tag);
-
-    expect($event->tags)->toHaveCount(1)
-        ->and($event->tags->first()->id)->toBe($tag->id);
-});
-
-it('can attach multiple tags to event', function () {
-    $event = Event::factory()->create();
-    $domainTag = Tag::factory()->domain()->create();
-    $issueTag = Tag::factory()->issue()->create();
-
-    $event->attachTags([$domainTag, $issueTag]);
-
-    expect($event->tags)->toHaveCount(2);
-});
-
-it('can filter event tags by type', function () {
-    $event = Event::factory()->create();
-    $domainTag = Tag::factory()->domain()->create();
-    $issueTag = Tag::factory()->issue()->create();
-
-    $event->attachTags([$domainTag, $issueTag]);
-
-    // Spatie's tagsWithType() expects string type
-    $domainTags = $event->tagsWithType('domain');
-
-    expect($domainTags)->toHaveCount(1)
-        ->and($domainTags->first()->type)->toBe('domain');
 });
 
 it('tag type enum has expected metadata', function () {

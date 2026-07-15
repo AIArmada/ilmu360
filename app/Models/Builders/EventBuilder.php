@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Builder as BaseQueryBuilder;
 use Illuminate\Database\Query\SortDirection;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Enumerable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -66,6 +67,32 @@ class EventBuilder extends Builder
         $mappedColumn = $this->mapColumn($columnName);
 
         if ($mappedColumn !== null) {
+            if ($mappedColumn instanceof Expression) {
+                $sql = $mappedColumn->getValue($this->getQuery()->getGrammar());
+
+                if (func_num_args() === 2) {
+                    if ($operator === null) {
+                        $this->whereRaw($sql.' is null', [], $boolean);
+
+                        return $this;
+                    }
+
+                    $this->whereRaw($sql.' = ?', [$operator], $boolean);
+
+                    return $this;
+                }
+
+                if ($value === null) {
+                    $this->whereRaw($sql.' is '.(in_array(strtolower((string) $operator), ['!=', '<>', 'is not'], true) ? 'not ' : '').'null', [], $boolean);
+
+                    return $this;
+                }
+
+                $this->whereRaw($sql.' '.$operator.' ?', [$value], $boolean);
+
+                return $this;
+            }
+
             return parent::where($mappedColumn, $operator, $value, $boolean);
         }
 
@@ -91,6 +118,21 @@ class EventBuilder extends Builder
         $mappedColumn = $this->mapColumn($columnName);
 
         if ($mappedColumn !== null) {
+            if ($mappedColumn instanceof Expression) {
+                $sql = $mappedColumn->getValue($this->getQuery()->getGrammar());
+                $values = array_values(is_array($values) ? $values : ($values instanceof Enumerable ? $values->all() : iterator_to_array($values)));
+
+                if ($values === []) {
+                    $this->whereRaw($not ? '1 = 1' : '0 = 1', [], $boolean);
+
+                    return $this;
+                }
+
+                $this->whereRaw($sql.' '.($not ? 'not ' : '').'in ('.implode(', ', array_fill(0, count($values), '?')).')', $values, $boolean);
+
+                return $this;
+            }
+
             parent::whereIn($mappedColumn, $values, $boolean, $not);
 
             return $this;
@@ -211,6 +253,12 @@ class EventBuilder extends Builder
         $mappedColumn = $this->mapColumn($columnName);
 
         if ($mappedColumn !== null) {
+            if ($mappedColumn instanceof Expression) {
+                $this->whereRaw($mappedColumn->getValue($this->getQuery()->getGrammar()).' is '.($not ? 'not ' : '').'null', [], $boolean);
+
+                return $this;
+            }
+
             parent::whereNull($mappedColumn, $boolean, $not);
 
             return $this;
@@ -246,6 +294,12 @@ class EventBuilder extends Builder
         $mappedColumn = $this->mapColumn($columnName);
 
         if ($mappedColumn !== null) {
+            if ($mappedColumn instanceof Expression) {
+                $this->whereRaw($mappedColumn->getValue($this->getQuery()->getGrammar()).' is not null', [], $boolean);
+
+                return $this;
+            }
+
             parent::whereNotNull($mappedColumn, $boolean);
 
             return $this;
@@ -283,6 +337,12 @@ class EventBuilder extends Builder
         $mappedColumn = $this->mapColumn($columnName);
 
         if ($mappedColumn !== null) {
+            if ($mappedColumn instanceof Expression) {
+                parent::orderBy($mappedColumn, $direction);
+
+                return $this;
+            }
+
             parent::orderBy($mappedColumn, $direction);
 
             return $this;
@@ -323,7 +383,7 @@ class EventBuilder extends Builder
         return $this;
     }
 
-    private function mapColumn(string $column): ?string
+    private function mapColumn(string $column): string|Expression|null
     {
         if (isset(self::PackageColumnAliases[$column])) {
             return $this->qualifyModelColumn(self::PackageColumnAliases[$column]);
@@ -355,7 +415,7 @@ class EventBuilder extends Builder
         return Str::beforeLast($column, '.') === $this->getModel()->getTable();
     }
 
-    private function qualifiedMetadataSelector(string $key): string
+    private function qualifiedMetadataSelector(string $key): Expression
     {
         $metadata = $this->qualifyModelColumn('metadata');
 
@@ -364,14 +424,14 @@ class EventBuilder extends Builder
         if ($driver === 'pgsql') {
             $selector = "{$metadata}->>'{$key}'";
 
-            return Str::endsWith($key, '_id') ? "({$selector})::uuid" : $selector;
+            return DB::raw(Str::endsWith($key, '_id') ? "({$selector})::uuid" : $selector);
         }
 
         if (in_array($driver, ['mysql', 'mariadb'], true)) {
-            return "json_unquote(json_extract({$metadata}, '$.\"{$key}\"'))";
+            return DB::raw("json_unquote(json_extract({$metadata}, '$.\"{$key}\"'))");
         }
 
-        return "{$metadata}->>'{$key}'";
+        return DB::raw("{$metadata}->>'{$key}'");
     }
 
     private function qualifyModelColumn(string $column): string

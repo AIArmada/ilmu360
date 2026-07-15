@@ -448,16 +448,6 @@ class Event extends PackageEvent implements AuditableContract
     }
 
     /**
-     * Package-native primary schedule row (earliest occurrence).
-     *
-     * @return HasOne<EventOccurrence, $this>
-     */
-    public function primaryOccurrence(): HasOne
-    {
-        return $this->hasOne(EventOccurrence::class)->oldestOfMany('starts_at');
-    }
-
-    /**
      * @return HasMany<EventLanguage, $this>
      */
     public function languageRecords(): HasMany
@@ -1073,7 +1063,7 @@ class Event extends PackageEvent implements AuditableContract
 
     private function syncSingleAudience(string $type, mixed $value): void
     {
-        if (!in_array($value, [null, '', false], true)) {
+        if (! in_array($value, [null, '', false], true)) {
             EventAudience::updateOrCreate(
                 ['event_id' => $this->id, 'audience_type' => $type],
                 ['value' => (string) $value],

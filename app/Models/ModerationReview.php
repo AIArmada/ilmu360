@@ -4,6 +4,7 @@ namespace App\Models;
 
 use AIArmada\Moderation\Models\ModerationAction;
 use App\Models\Concerns\AuditsModelChanges;
+use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use OwenIt\Auditing\Contracts\Auditable;
@@ -36,7 +37,7 @@ class ModerationReview extends ModerationAction implements Auditable
      * @param  Builder<static>  $query
      * @return Builder<static>
      */
-    #[\Illuminate\Database\Eloquent\Attributes\Scope]
+    #[Scope]
     protected function whereEventId(Builder $query, string $eventId): Builder
     {
         return $query

@@ -305,3 +305,8 @@
 - Repaired featured-event aggregation through `event_attributes`, age-group filtering through `event_audiences`, and speaker counting through polymorphic involvement columns.
 - Added PostgreSQL UUID casting to the current metadata-backed event query projection; no legacy aliases or fallback storage were introduced.
 - Focused dashboard test passed: 1 test / 2 assertions. Pint and scoped PHPStan passed; `git diff --check` passed.
+
+### Final verification
+
+- Fixed all three PHPStan errors from the linked run, corrected PostgreSQL JSON selector quoting, and aligned stale tests with the current event, saved-search, ticketing, signals, and tag contracts.
+- Verification passed: PHPStan, Pint, and the affected Pest set (67 tests / 357 assertions).

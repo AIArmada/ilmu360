@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
@@ -176,6 +177,7 @@ class AdvancedEventSeeder extends Seeder
         }
 
         return EventSession::query()->create([
+            'id' => (string) Str::uuid(),
             'event_id' => $event->id,
             'event_occurrence_id' => $occurrence->id,
             'title' => $title,
@@ -235,6 +237,22 @@ class AdvancedEventSeeder extends Seeder
             'prayer_offset' => null,
             'prayer_display_text' => null,
         ]);
+
+        EventOccurrence::query()->create([
+            'id' => (string) Str::uuid(),
+            'event_id' => $event->id,
+            'title' => $event->title,
+            'slug' => $event->slug,
+            'starts_at' => $event->starts_at,
+            'ends_at' => $event->ends_at,
+            'timezone' => $event->timezone,
+            'status' => 'published',
+            'visibility' => EventVisibility::Public->value,
+            'delivery_mode' => EventFormat::Physical->value,
+            'published_at' => $event->published_at,
+        ]);
+
+        $event->unsetRelation('primaryOccurrence');
 
         OwnerContext::withOwner(null, function () use ($event, $institution, $speakerIds): void {
             if ($institution instanceof Institution) {

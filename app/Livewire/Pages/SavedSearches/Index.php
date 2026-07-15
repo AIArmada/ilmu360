@@ -620,6 +620,10 @@ class Index extends Component
 
     private function institutionName(string $id): ?string
     {
+        if (! Str::isUuid($id)) {
+            return null;
+        }
+
         if (! array_key_exists($id, $this->institutionNames)) {
             $this->institutionNames[$id] = Institution::query()
                 ->whereKey($id)
@@ -632,6 +636,10 @@ class Index extends Component
 
     private function venueName(string $id): ?string
     {
+        if (! Str::isUuid($id)) {
+            return null;
+        }
+
         if (! array_key_exists($id, $this->venueNames)) {
             $this->venueNames[$id] = Venue::query()->whereKey($id)->value('name');
         }
@@ -641,6 +649,10 @@ class Index extends Component
 
     private function speakerName(string $id): ?string
     {
+        if (! Str::isUuid($id)) {
+            return null;
+        }
+
         if (! array_key_exists($id, $this->speakerNames)) {
             $this->speakerNames[$id] = Speaker::query()->whereKey($id)->value('name');
         }

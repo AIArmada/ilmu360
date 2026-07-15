@@ -590,25 +590,6 @@ class EventCoverPromptBuilder
     /**
      * @return array<string, mixed>
      */
-    private function relatedEventPayload(Event $event): array
-    {
-        return [
-            'type' => $event->getMorphClass(),
-            'class' => $event::class,
-            'attributes' => $this->normalizeArray($event->getAttributes()),
-            'computed' => [
-                'title' => (string) $event->title,
-                'route_key' => (string) $event->getRouteKey(),
-                'timing_display' => $event->timing_display,
-                'card_image_url' => $event->card_image_url,
-            ],
-            'media' => $this->modelMediaPayloads($event),
-        ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
     private function modelPayload(Model $model): array
     {
         return [

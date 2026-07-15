@@ -1,17 +1,28 @@
 <?php
 
 use AIArmada\Addressing\Models\State;
+use AIArmada\Events\Models\EventTaxonomy;
+use AIArmada\Events\Models\EventTerm;
 use App\Enums\EventKeyPersonRole;
 use App\Livewire\Pages\SavedSearches\Index as SavedSearchesIndex;
 use App\Models\Reference;
 use App\Models\SavedSearch;
 use App\Models\Speaker;
-use App\Models\Tag;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
+
+function savedSearchTerm(string $name): EventTerm
+{
+    $taxonomy = EventTaxonomy::factory()->create();
+
+    return EventTerm::factory()->create([
+        'event_taxonomy_id' => $taxonomy->getKey(),
+        'name' => $name,
+    ]);
+}
 
 it('requires authentication for the saved searches page', function () {
     $response = $this->get(route('saved-searches.index'));
@@ -189,9 +200,7 @@ it('prefills country filter from query string when saving searches', function ()
 
 it('prefills domain kategori filters from query string when saving searches', function () {
     $user = User::factory()->create();
-    $domainTag = Tag::factory()->domain()->create([
-        'name' => ['en' => 'Aqidah', 'ms' => 'Aqidah'],
-    ]);
+    $domainTag = savedSearchTerm('Aqidah');
 
     $this->actingAs($user);
 
@@ -203,9 +212,7 @@ it('prefills domain kategori filters from query string when saving searches', fu
 
 it('renders domain kategori chip using human-readable tag name', function () {
     $user = User::factory()->create();
-    $domainTag = Tag::factory()->domain()->create([
-        'name' => ['en' => 'Aqidah', 'ms' => 'Aqidah'],
-    ]);
+    $domainTag = savedSearchTerm('Aqidah');
 
     $this->actingAs($user)
         ->get(route('saved-searches.index', [
@@ -217,12 +224,8 @@ it('renders domain kategori chip using human-readable tag name', function () {
 
 it('renders source issue and reference chips using human-readable values', function () {
     $user = User::factory()->create();
-    $sourceTag = Tag::factory()->source()->create([
-        'name' => ['en' => 'Quran', 'ms' => 'Quran'],
-    ]);
-    $issueTag = Tag::factory()->issue()->create([
-        'name' => ['en' => 'Keluarga', 'ms' => 'Keluarga'],
-    ]);
+    $sourceTag = savedSearchTerm('Quran');
+    $issueTag = savedSearchTerm('Keluarga');
     $reference = Reference::factory()->create([
         'title' => 'Riyadhus Solihin',
         'status' => 'active',
