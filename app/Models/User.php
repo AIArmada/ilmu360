@@ -616,7 +616,8 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
             if ($model instanceof SocialAccount) {
                 $existing = SocialAccount::query()->find($model->getKey());
 
-                if ($existing instanceof SocialAccount && (string) $existing->user_id === (string) $this->getKey()) {
+                if ($existing instanceof SocialAccount
+                    && ($existing->user_id === null || (string) $existing->user_id === (string) $this->getKey())) {
                     $existing->delete();
                 }
             }
