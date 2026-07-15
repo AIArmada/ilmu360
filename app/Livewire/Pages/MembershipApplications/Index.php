@@ -52,7 +52,9 @@ class Index extends Component
         abort_unless($claim instanceof MembershipApplication, 404);
 
         try {
-            OwnerContext::withOwner(null, fn (): mixed => $cancelMembershipApplicationAction->handle($claim));
+            OwnerContext::withOwner(null, function () use ($cancelMembershipApplicationAction, $claim): void {
+                $cancelMembershipApplicationAction->handle($claim);
+            });
         } catch (RuntimeException $exception) {
             if ($exception->getMessage() !== 'Only pending membership applications can be cancelled.') {
                 throw $exception;
