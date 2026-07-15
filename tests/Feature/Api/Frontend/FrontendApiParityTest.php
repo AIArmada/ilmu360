@@ -2676,7 +2676,7 @@ it('submits and cancels membership claims through the frontend api', function ()
 
     $claimId = $storeResponse->json('data.application.id');
 
-    expect(MembershipApplication::query()->whereKey($claimId)->exists())->toBeTrue();
+    expect(withGlobalOwnerContext(fn (): bool => MembershipApplication::query()->whereKey($claimId)->exists()))->toBeTrue();
 
     $this->deleteJson(route('api.client.membership-applications.cancel', ['applicationId' => $claimId]))
         ->assertOk()

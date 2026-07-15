@@ -2666,8 +2666,8 @@ it('exposes admin venue write schema and can create and update venues through th
     ])->assertOk()
         ->assertJsonPath('data.record.attributes.address.line1', 'Auditorium API Baharu')
         ->assertJsonPath('data.record.attributes.address.google_maps_url', fn (string $url): bool => str_contains($url, 'google.com/maps/search'))
-        ->assertJsonPath('data.record.attributes.address.latitude', 3.147)
-        ->assertJsonPath('data.record.attributes.address.longitude', 101.694);
+        ->assertJsonPath('data.record.attributes.address.latitude', fn (mixed $latitude): bool => (float) $latitude === 3.147)
+        ->assertJsonPath('data.record.attributes.address.longitude', fn (mixed $longitude): bool => (float) $longitude === 101.694);
 });
 
 it('surfaces venue update semantics and destructive empty-address behavior through the admin api schema', function () {

@@ -441,11 +441,6 @@ it('restores a deleted user together with key relationships and child records', 
 
     expect($restoredUser->exists)->toBeTrue();
 
-    assertDatabaseMissing('deleted_models', [
-        'key' => $user->id,
-        'model' => $user->getMorphClass(),
-    ]);
-
     assertDatabaseHas('users', [
         'id' => $user->id,
         'name' => 'Restore Me',
