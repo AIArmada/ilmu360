@@ -303,7 +303,12 @@ jobs:
           '
 
       - name: Run tests (Pest)
-        run: vendor/bin/pest --parallel --shard=${{ matrix.shard }}/10 --compact
+        run: |
+          if [[ "${{ matrix.shard }}" =~ ^(1|2|9|10)$ ]]; then
+            vendor/bin/pest --shard=${{ matrix.shard }}/10 --compact
+          else
+            vendor/bin/pest --parallel --shard=${{ matrix.shard }}/10 --compact
+          fi
 
   quality:
     name: Quality
