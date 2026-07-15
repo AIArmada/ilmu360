@@ -28,12 +28,10 @@ class UserRegistrationController extends Controller
             ->registrations()
             ->active()
             ->with([
-                'event' => fn ($query) => $query
-                    ->select('id', 'title', 'slug', 'starts_at', 'status', 'visibility', 'default_venue_id', 'metadata')
-                    ->with([
-                        'institution:id,name,slug',
-                        'venue:id,name',
-                    ]),
+                'event' => fn ($query) => $query->with([
+                    'institution:id,name,slug',
+                    'venue:id,name',
+                ]),
             ])
             ->latest()
             ->paginate(ApiPagination::normalizePerPage($request->integer('per_page', 20), default: 20, max: 100));

@@ -2271,8 +2271,8 @@ it('preserves institution address line1 when sparse map fields are updated throu
     expect($institution->primaryAddress())->not->toBeNull()
         ->and($institution->primaryAddress()?->line1)->toBe('Alamat Asal Institusi')
         ->and($institution->primaryAddress()?->google_maps_url)->toContain('google.com/maps/search')
-        ->and($institution->primaryAddress()?->latitude)->toBe(3.123456)
-        ->and($institution->primaryAddress()?->longitude)->toBe(101.654321);
+        ->and((float) $institution->primaryAddress()?->latitude)->toBe(3.123456)
+        ->and((float) $institution->primaryAddress()?->longitude)->toBe(101.654321);
 });
 
 it('surfaces institution update semantics and nested item schemas through the admin api schema', function () {

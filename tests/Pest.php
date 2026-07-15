@@ -167,11 +167,13 @@ function something()
 
 function addTestMember(Model $subject, Model $user, MemberRole|string $role = MemberRole::Viewer): void
 {
-    app(AddMemberAction::class)->handle(
-        $subject,
-        $user,
-        is_string($role) ? MemberRole::from($role) : $role,
-    );
+    withGlobalOwnerContext(function () use ($role, $subject, $user): void {
+        app(AddMemberAction::class)->handle(
+            $subject,
+            $user,
+            is_string($role) ? MemberRole::from($role) : $role,
+        );
+    });
 }
 
 /**

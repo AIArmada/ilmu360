@@ -1920,17 +1920,17 @@ class SearchController extends FrontendController
 
     private function institutionSpeakerCount(Institution $institution): int
     {
+        $eventIds = Event::query()
+            ->where('institution_id', $institution->id)
+            ->whereIn('status', ['verified', 'pending'])
+            ->where('starts_at', '>=', now())
+            ->select('id');
+
         return (int) DB::table('event_involvements')
             ->where('role_code', EventKeyPersonRole::Speaker->value)
             ->where('involveable_type', 'speaker')
             ->whereNotNull('involveable_id')
-            ->whereIn('event_id', function ($sub) use ($institution): void {
-                $sub->select('id')
-                    ->from('events')
-                    ->where('institution_id', $institution->id)
-                    ->whereIn('status', ['verified', 'pending'])
-                    ->where('starts_at', '>=', now());
-            })
+            ->whereIn('event_id', $eventIds)
             ->distinct('involveable_id')
             ->count();
     }

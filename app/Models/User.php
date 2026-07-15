@@ -209,6 +209,11 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
             return $restoredUser;
         });
 
+        DB::table((new DeletedModel)->getTable())
+            ->where('key', (string) $key)
+            ->where('model', (new self)->getMorphClass())
+            ->delete();
+
         return $restoredUser;
     }
 

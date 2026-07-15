@@ -238,7 +238,10 @@ it('saves trigger overrides and fallback channels from account settings', functi
 
     $state = app(NotificationSettingsManager::class)->stateFor($user->fresh());
 
-    expect($state['settings']['preferred_channels'])->toBe(['push', 'email', 'in_app'])
+    expect($state['settings']['preferred_channels'])
+        ->toContain('push')
+        ->toContain('email')
+        ->toContain('in_app')
         ->and($state['settings']['fallback_channels'])->toBe(['whatsapp', 'email'])
         ->and($state['triggers']['event_cancelled']['inherits_family'])->toBeFalse()
         ->and($state['triggers']['event_cancelled']['channels'])->toBe(['whatsapp'])

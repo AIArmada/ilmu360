@@ -1069,16 +1069,18 @@ class Event extends PackageEvent implements AuditableContract
 
     private function syncSingleAudience(string $type, mixed $value): void
     {
-        if (! in_array($value, [null, '', false], true)) {
-            EventAudience::updateOrCreate(
-                ['event_id' => $this->id, 'audience_type' => $type],
-                ['value' => (string) $value],
-            );
-        } else {
-            EventAudience::where('event_id', $this->id)
-                ->where('audience_type', $type)
-                ->delete();
-        }
+        OwnerContext::withOwner(null, function () use ($type, $value): void {
+            if (! in_array($value, [null, '', false], true)) {
+                EventAudience::updateOrCreate(
+                    ['event_id' => $this->id, 'audience_type' => $type],
+                    ['value' => (string) $value],
+                );
+            } else {
+                EventAudience::where('event_id', $this->id)
+                    ->where('audience_type', $type)
+                    ->delete();
+            }
+        });
     }
 
     private function syncAgeGroupAudience(mixed $value): void
