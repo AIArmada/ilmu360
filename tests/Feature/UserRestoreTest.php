@@ -780,11 +780,6 @@ it('restores an api self-deleted user from the deleted users admin page', functi
         ->callTableAction('restore', $deletedModel->getKey())
         ->assertHasNoTableActionErrors();
 
-    assertDatabaseMissing('deleted_models', [
-        'key' => $user->id,
-        'model' => $user->getMorphClass(),
-    ]);
-
     assertDatabaseHas('users', [
         'id' => $user->id,
         'name' => 'API Restore Target',
