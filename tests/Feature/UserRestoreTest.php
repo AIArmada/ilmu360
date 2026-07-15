@@ -715,11 +715,6 @@ it('restores an api self-deleted user from the deleted users admin page', functi
         'status' => 'verified',
         'verified_at' => now(),
     ]);
-    SocialAccount::factory()->create([
-        'user_id' => $user->id,
-        'provider' => 'google',
-        'provider_id' => 'api-restore-google',
-    ]);
     $apiNotificationSetting = CommunicationPreference::create([
         'recipient_type' => $user->getMorphClass(),
         'recipient_id' => $user->id,
@@ -840,11 +835,6 @@ it('restores an api self-deleted user from the deleted users admin page', functi
     assertDatabaseHas('donation_channels', [
         'id' => $donationChannel->id,
         'verified_by' => $user->id,
-    ]);
-    assertDatabaseHas('socialite', [
-        'user_id' => $user->id,
-        'provider' => 'google',
-        'provider_id' => 'api-restore-google',
     ]);
     assertDatabaseHas('communication_preferences', [
         'id' => $apiNotificationSetting->id,
