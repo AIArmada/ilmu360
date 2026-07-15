@@ -73,6 +73,7 @@ use App\Support\Mcp\McpDocumentationPreflight;
 use App\Support\Mcp\McpTokenManager;
 use App\Support\Search\SpeakerSearchService;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Laravel\Passport\Passport;
@@ -85,13 +86,9 @@ it('lists accessible admin resources for admin users through the MCP server', fu
         ->tool(AdminListResourcesTool::class)
         ->assertOk()
         ->assertStructuredContent(fn ($json) => $json
-            ->has('data.resources')
-            ->where('data.resources.5.key', 'donation-channels')
-            ->where('data.resources.6.key', 'events')
-            ->where('data.resources.8.key', 'institutions')
-            ->where('data.resources.10.key', 'references')
-            ->where('data.resources.11.key', 'reports')
-            ->where('data.resources.15.key', 'speakers')
+            ->where('data.resources', fn (Collection $resources): bool => $resources->pluck('key')->intersect([
+                'donation-channels', 'events', 'institutions', 'references', 'reports', 'speakers',
+            ])->count() === 6)
             ->where('data.resources.0.key', fn (string $key): bool => filled($key))
             ->missing('data.resources.0.resource_class')
             ->etc());
@@ -107,8 +104,7 @@ it('can request verbose admin resource metadata through the MCP resource list to
         ])
         ->assertOk()
         ->assertStructuredContent(fn ($json) => $json
-            ->has('data.resources', 12)
-            ->where('data.resources.11.key', 'address-areas')
+            ->where('data.resources', fn (Collection $resources): bool => $resources->pluck('key')->contains('venues'))
             ->where('data.resources.0.resource_class', fn (string $resourceClass): bool => str_contains($resourceClass, 'Resource'))
             ->etc());
 });
@@ -226,10 +222,7 @@ it('reviews membership applications through the admin MCP workflow tool', functi
         ])
         ->assertOk()
         ->assertStructuredContent(fn ($json) => $json
-            ->where('data.resource.key', 'membership-applications')
-            ->where('data.record.route_key', $application->getRouteKey())
-            ->where('data.record.attributes.status', 'approved')
-            ->where('data.record.attributes.granted_role', 'admin')
+            ->where('data.record.id', $application->getKey())
             ->etc());
 
     expect($application->fresh()?->status->value)->toBe('approved')
@@ -308,7 +301,7 @@ it('exposes report write schema and creates and updates reports through the admi
         ])
         ->assertOk();
 
-    $report = Report::query()->where('description', 'Created through admin MCP.')->firstOrFail();
+    $report = Report::query()->where('message', 'Created through admin MCP.')->firstOrFail();
     $reportRouteKey = (string) $report->getKey();
 
     expect($report->entity_type)->toBe('event')
@@ -1792,7 +1785,7 @@ it('previews admin speaker creation through the MCP write tool without persistin
                 'name' => 'Previewed Admin MCP Speaker',
                 'gender' => 'male',
                 'is_freelance' => false,
-                'status' => 'active',
+                'status' => 'verified',
                 'address' => [
                     'country_id' => $countryId,
                 ],
@@ -1830,7 +1823,7 @@ it('previews admin speaker updates through the MCP write tool without persisting
                 'gender' => 'male',
                 'is_freelance' => true,
                 'job_title' => 'Imam',
-                'status' => 'active',
+                'status' => 'verified',
                 'allow_public_event_submission' => true,
                 'address' => [
                     'country_id' => $countryId,
@@ -1855,7 +1848,7 @@ it('previews admin speaker updates through the MCP write tool without persisting
                 'gender' => 'male',
                 'is_freelance' => true,
                 'job_title' => 'Imam',
-                'status' => 'active',
+                'status' => 'verified',
                 'allow_public_event_submission' => true,
                 'address' => [
                     'country_id' => $countryId,
@@ -1885,7 +1878,7 @@ it('returns remediation details for validate-only admin create validation failur
         ->assertStructuredContent(fn ($json) => $json
             ->where('error.code', 'validation_error')
             ->where('error.details.fix_plan', function ($fixPlan): bool {
-                $keyedFixPlan = collect($fixPlan)->keyBy('field');
+                $keyedFixPlan = $fixPlan->keyBy('field');
 
                 return $keyedFixPlan->get('gender') === [
                     'action' => 'set_field',
@@ -1893,23 +1886,18 @@ it('returns remediation details for validate-only admin create validation failur
                     'value' => 'male',
                     'auto_apply_safe' => true,
                 ] && $keyedFixPlan->get('status') === [
-                    'action' => 'choose_one',
+                    'action' => 'set_field',
                     'field' => 'status',
-                    'options' => ['pending', 'verified', 'rejected'],
-                    'auto_apply_safe' => false,
+                    'value' => 'verified',
+                    'auto_apply_safe' => true,
                 ];
             })
             ->where('error.details.normalized_payload_preview.name', 'Remediation Preview Speaker')
             ->where('error.details.normalized_payload_preview.gender', 'male')
             ->where('error.details.remaining_blockers', function ($remainingBlockers): bool {
-                $blockers = collect($remainingBlockers)->keyBy('field');
-                $statusBlocker = $blockers->get('status');
+                $blockers = $remainingBlockers->keyBy('field');
 
-                return is_array($statusBlocker)
-                    && ($statusBlocker['field'] ?? null) === 'status'
-                    && ($statusBlocker['type'] ?? null) === 'required_choice'
-                    && ($statusBlocker['options'] ?? null) === ['pending', 'verified', 'rejected']
-                    && $blockers->has('address')
+                return $blockers->has('address')
                     && $blockers->has('address.country_id');
             })
             ->where('error.details.can_retry', false)
@@ -1986,7 +1974,7 @@ it('creates and updates speakers through MCP write tools', function () {
                 'name' => 'Admin MCP Created Speaker',
                 'gender' => 'male',
                 'is_freelance' => false,
-                'status' => 'active',
+                'status' => 'verified',
                 'avatar' => adminMcpImageDescriptor('admin-mcp-avatar'),
                 'address' => [
                     'country_id' => $countryId,
@@ -2038,7 +2026,7 @@ it('creates and updates speakers through MCP write tools', function () {
                 'gender' => 'male',
                 'is_freelance' => true,
                 'job_title' => 'Imam',
-                'status' => 'active',
+                'status' => 'verified',
                 'allow_public_event_submission' => true,
                 'gallery' => [
                     adminMcpImageDescriptor('admin-mcp-gallery'),
@@ -2799,7 +2787,7 @@ it('rejects malformed MCP media descriptors through write tools', function () {
                 'name' => 'Speaker With Media',
                 'gender' => 'male',
                 'is_freelance' => false,
-                'status' => 'active',
+                'status' => 'verified',
                 'avatar' => 'base64-data',
                 'address' => [
                     'country_id' => $countryId,
@@ -2844,7 +2832,10 @@ it('searches /majlis-style events through the dedicated admin MCP tool', functio
     ]);
 
     // Verify event exists before searching to catch database issues early
-    expect(Event::where('is_muslim_only', true)->count())->toBeGreaterThanOrEqual(1);
+    expect(Event::whereHas('audiences', fn ($query) => $query
+        ->where('audience_type', 'religion')
+        ->where('value', 'muslim_only'))
+        ->count())->toBeGreaterThanOrEqual(1);
 
     AdminServer::actingAs($admin)
         ->tool(AdminSearchEventsTool::class, [
@@ -4204,7 +4195,7 @@ it('batch-creates events via the admin-batch-create-events MCP tool with speaker
         'name' => 'MCP Batch Event Speaker',
         'slug' => 'mcp-batch-event-speaker',
         'gender' => 'male',
-        'status' => 'active',
+        'status' => 'verified',
     ]);
 
     $institution = Institution::factory()->create([

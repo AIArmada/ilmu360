@@ -9,7 +9,6 @@ use App\Models\Institution;
 use App\Models\Speaker;
 use BackedEnum;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -78,15 +77,26 @@ final readonly class EnsureUniqueContributionCreateAction
             : [];
 
         $countryId = $this->normalizeNullableUuid($address['country_id'] ?? null);
+        $stateId = $this->normalizeNullableUuid($address['state_id'] ?? null);
+        $cityId = $this->normalizeNullableUuid($address['city_id'] ?? null);
         $adminArea1Id = $this->normalizeNullableUuid($address['admin_area_1_id'] ?? null);
         $adminArea2Id = $this->normalizeNullableUuid($address['admin_area_2_id'] ?? null);
 
         return Institution::query()
             ->whereIn('status', ['verified', 'pending'])
-            ->whereHas('addresses', function (Builder $query) use ($countryId, $adminArea1Id, $adminArea2Id): void {
-                $this->applyNullableUuidMatch($query, 'country_id', $countryId);
-                $this->applyNullableUuidMatch($query, 'admin_area_1_id', $adminArea1Id);
-                $this->applyNullableUuidMatch($query, 'admin_area_2_id', $adminArea2Id);
+            ->whereHas('addresses', function (Builder $query) use ($countryId, $stateId, $cityId, $adminArea1Id, $adminArea2Id): void {
+                $query->where('country_id', $countryId);
+
+                foreach ([
+                    'state_id' => $stateId,
+                    'city_id' => $cityId,
+                    'admin_area_1_id' => $adminArea1Id,
+                    'admin_area_2_id' => $adminArea2Id,
+                ] as $column => $value) {
+                    if ($value !== null) {
+                        $query->where($column, $value);
+                    }
+                }
             })
             ->get(['id', 'name'])
             ->contains(fn (Institution $institution): bool => $this->normalizeComparableString($institution->name) === $name);
@@ -167,20 +177,6 @@ final readonly class EnsureUniqueContributionCreateAction
         }
 
         return $this->normalizeStringSet($state['post_nominal'] ?? []);
-    }
-
-    /**
-     * @param  Builder<Model>  $query
-     */
-    private function applyNullableUuidMatch(Builder $query, string $column, ?string $value): void
-    {
-        if ($value === null) {
-            $query->whereNull($column);
-
-            return;
-        }
-
-        $query->where($column, $value);
     }
 
     /**

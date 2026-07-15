@@ -578,7 +578,7 @@ class AdminResourceMutationService
             SpeakerResource::class => [
                 'gender' => Gender::Male->value,
                 'is_freelance' => false,
-                'status' => 'active',
+                'status' => 'verified',
                 'clear_avatar' => false,
                 'clear_cover' => false,
                 'clear_gallery' => false,
