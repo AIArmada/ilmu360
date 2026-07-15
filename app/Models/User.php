@@ -124,7 +124,10 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
                 ->all();
             $goingEventIds = $user->snapshotEventIds($user->deletedRelationsSnapshot, 'event_attendees');
 
-            $user->socialAccounts()->each(fn ($account) => $account->delete());
+            // Social accounts have no model-level deletion workflow; delete the
+            // relationship rows directly so the restore snapshot cannot collide
+            // with a child row left behind by a relation iteration.
+            $user->socialAccounts()->delete();
             $user->deleteAuthenticationState();
             $user->institutions()->detach();
             $user->speakers()->detach();
