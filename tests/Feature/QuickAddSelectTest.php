@@ -14,7 +14,7 @@ it('prepends a quick-add option when a relationship search has no exact match', 
     $component = makeQuickAddSelect()
         ->useTestRelationship(Event::factory()->create()->references(), 'title')
         ->getSearchResultsUsing(fn (?string $search): array => Reference::query()
-            ->where('title', 'like', '%'.$search.'%')
+            ->whereRaw('LOWER(title) LIKE LOWER(?)', ['%'.$search.'%'])
             ->pluck('title', 'id')
             ->all())
         ->quickAdd();
@@ -35,7 +35,7 @@ it('does not prepend a quick-add option when the relationship search already mat
     $component = makeQuickAddSelect()
         ->useTestRelationship(Event::factory()->create()->references(), 'title')
         ->getSearchResultsUsing(fn (?string $search): array => Reference::query()
-            ->where('title', 'like', '%'.$search.'%')
+            ->whereRaw('LOWER(title) LIKE LOWER(?)', ['%'.$search.'%'])
             ->pluck('title', 'id')
             ->all())
         ->quickAdd();

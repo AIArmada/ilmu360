@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Institutions\RelationManagers;
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Membership\Actions\AddMemberAction;
 use AIArmada\Membership\Actions\ChangeMemberRoleAction;
 use AIArmada\Membership\Actions\RemoveMemberAction;
@@ -51,11 +52,13 @@ class MembersRelationManager extends RelationManager
                         $this->makeRoleSelect(),
                     ])
                     ->action(function (array $data): void {
-                        app(AddMemberAction::class)->handle(
-                            $this->getInstitutionOwner(),
-                            User::findOrFail($data['user_id']),
-                            MemberRole::tryFrom((string) ($data['role_id'] ?? '')) ?? MemberRole::Owner,
-                        );
+                        OwnerContext::withOwner($this->getInstitutionOwner(), function () use ($data): void {
+                            app(AddMemberAction::class)->handle(
+                                $this->getInstitutionOwner(),
+                                User::findOrFail($data['user_id']),
+                                MemberRole::tryFrom((string) ($data['role_id'] ?? '')) ?? MemberRole::Owner,
+                            );
+                        });
 
                         $this->notifyOwnerEditPage();
                     }),
