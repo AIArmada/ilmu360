@@ -46,7 +46,9 @@ class Index extends Component
         /** @var User $user */
         $user = auth()->user();
 
-        $claim = $user->membershipApplications()->whereKey($claimId)->first();
+        $claim = OwnerContext::withOwner(null, fn (): ?MembershipApplication => $user->membershipApplications()
+            ->whereKey($claimId)
+            ->first());
         abort_unless($claim instanceof MembershipApplication, 404);
 
         try {
