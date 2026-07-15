@@ -256,7 +256,7 @@ class SubmitFrontendEventAction
             'status' => 'pending',
             'submitted_at' => now(),
             'submission_data' => $submissionData,
-            'submitter_type' => $submitter instanceof \App\Models\User ? User::class : null,
+            'submitter_type' => $submitter instanceof User ? User::class : null,
             'submitter_id' => $submitter?->getKey(),
         ]);
 

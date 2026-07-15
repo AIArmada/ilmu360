@@ -16,7 +16,7 @@ final class SocialiteProviderConfiguration
 
         // Google OAuth does not accept arbitrary `.test` callback domains, so do not
         // expose a broken social login CTA on local Herd-style environments.
-        return !app()->environment('local') || !self::usesUnsupportedLocalRedirect($config['redirect'] ?? null);
+        return ! app()->environment('local') || ! self::usesUnsupportedLocalRedirect($config['redirect'] ?? null);
     }
 
     public static function supportsTokenExchange(string $provider): bool

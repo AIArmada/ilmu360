@@ -1073,7 +1073,7 @@ class Event extends PackageEvent implements AuditableContract
 
     private function syncSingleAudience(string $type, mixed $value): void
     {
-        if (!in_array($value, [null, '', false], true)) {
+        if (! in_array($value, [null, '', false], true)) {
             EventAudience::updateOrCreate(
                 ['event_id' => $this->id, 'audience_type' => $type],
                 ['value' => (string) $value],

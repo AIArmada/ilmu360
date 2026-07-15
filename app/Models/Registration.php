@@ -8,6 +8,7 @@ use AIArmada\Events\Models\EventRegistration as PackageEventRegistration;
 use AIArmada\Events\Models\EventRegistrationParticipant;
 use App\Models\Concerns\AuditsModelChanges;
 use Database\Factories\RegistrationFactory;
+use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -103,7 +104,7 @@ class Registration extends PackageEventRegistration implements AuditableContract
      * @param  Builder<self>  $query
      * @return Builder<self>
      */
-    #[\Illuminate\Database\Eloquent\Attributes\Scope]
+    #[Scope]
     protected function active(Builder $query): Builder
     {
         return $query->where('status', '!=', 'cancelled');
@@ -113,7 +114,7 @@ class Registration extends PackageEventRegistration implements AuditableContract
      * @param  Builder<self>  $query
      * @return Builder<self>
      */
-    #[\Illuminate\Database\Eloquent\Attributes\Scope]
+    #[Scope]
     protected function forRegistrant(Builder $query, Model $registrant): Builder
     {
         return $query
@@ -125,7 +126,7 @@ class Registration extends PackageEventRegistration implements AuditableContract
      * @param  Builder<self>  $query
      * @return Builder<self>
      */
-    #[\Illuminate\Database\Eloquent\Attributes\Scope]
+    #[Scope]
     protected function forUser(Builder $query, User $user): Builder
     {
         return $query
@@ -137,7 +138,7 @@ class Registration extends PackageEventRegistration implements AuditableContract
      * @param  Builder<self>  $query
      * @return Builder<self>
      */
-    #[\Illuminate\Database\Eloquent\Attributes\Scope]
+    #[Scope]
     protected function forPrimaryContact(Builder $query, ?string $email = null, ?string $phone = null): Builder
     {
         if ($email === null && $phone === null) {
@@ -291,7 +292,7 @@ class Registration extends PackageEventRegistration implements AuditableContract
         // after creating the registration. Do not synthesize a second primary
         // participant during the initial model event; still allow user/profile
         // synchronization when an app participant already exists.
-        if (!$existingParticipant instanceof \AIArmada\Events\Models\EventRegistrationParticipant && $draftName === null) {
+        if (! $existingParticipant instanceof EventRegistrationParticipant && $draftName === null) {
             return;
         }
 

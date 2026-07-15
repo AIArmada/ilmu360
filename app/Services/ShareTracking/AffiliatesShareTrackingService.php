@@ -6,6 +6,7 @@ namespace App\Services\ShareTracking;
 
 use AIArmada\Affiliates\Actions\Affiliates\CreateTrackingLink;
 use AIArmada\Affiliates\Actions\Conversions\RecordAffiliateOutcome;
+use AIArmada\Affiliates\Data\AffiliateConversionData;
 use AIArmada\Affiliates\Enums\CommissionType;
 use AIArmada\Affiliates\Models\Affiliate;
 use AIArmada\Affiliates\Models\AffiliateAttribution;
@@ -342,7 +343,7 @@ final readonly class AffiliatesShareTrackingService
                 ],
             );
 
-            if (!$conversionData instanceof \AIArmada\Affiliates\Data\AffiliateConversionData) {
+            if (! $conversionData instanceof AffiliateConversionData) {
                 return $this->mapOutcome(AffiliateConversion::query()
                     ->where('external_reference', $outcomeKey)
                     ->firstOrFail());
