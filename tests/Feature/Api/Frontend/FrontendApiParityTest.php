@@ -3097,7 +3097,7 @@ it('allows online frontend event submissions without a live url', function () {
         ->assertCreated()
         ->assertJsonPath('data.event.title', 'Online Frontend API Event');
 
-    expect(withGlobalOwnerContext(fn () => Event::query()->where('title', 'Online Frontend API Event')->value('live_url')))->toBeNull();
+    expect(withGlobalOwnerContext(fn () => Event::query()->where('title', 'Online Frontend API Event')->firstOrFail()->live_url))->toBeNull();
 });
 
 it('requires a physical location for speaker-organized physical event submissions', function () {

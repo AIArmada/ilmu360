@@ -625,10 +625,10 @@ class EventSearchService
         $ageGroups = $this->normalizeArrayFilter($filters['age_group'] ?? null);
 
         if ($ageGroups !== []) {
-            $queryBuilder->where(function (Builder $ageGroupQuery) use ($ageGroups) {
-                foreach ($ageGroups as $ageGroup) {
-                    $ageGroupQuery->orWhereJsonContains('age_group', $ageGroup);
-                }
+            $queryBuilder->whereHas('audiences', function (Builder $ageGroupQuery) use ($ageGroups): void {
+                $ageGroupQuery
+                    ->where('audience_type', 'age_group')
+                    ->whereIn('value', $ageGroups);
             });
         }
 

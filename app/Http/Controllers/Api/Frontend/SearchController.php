@@ -1922,7 +1922,8 @@ class SearchController extends FrontendController
     {
         return (int) DB::table('event_involvements')
             ->where('role_code', EventKeyPersonRole::Speaker->value)
-            ->whereNotNull('speaker_id')
+            ->where('involveable_type', 'speaker')
+            ->whereNotNull('involveable_id')
             ->whereIn('event_id', function ($sub) use ($institution): void {
                 $sub->select('id')
                     ->from('events')
@@ -1930,7 +1931,7 @@ class SearchController extends FrontendController
                     ->whereIn('status', ['verified', 'pending'])
                     ->where('starts_at', '>=', now());
             })
-            ->distinct('speaker_id')
+            ->distinct('involveable_id')
             ->count();
     }
 }

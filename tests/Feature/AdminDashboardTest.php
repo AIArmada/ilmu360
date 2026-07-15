@@ -90,7 +90,7 @@ it('renders the admin event edit page without missing dashboard navigation route
 
 it('computes approval and event overview dashboard stats from the intended datasets', function () {
     Event::factory()->count(2)->create([
-        'status' => 'inactive',
+        'status' => 'pending',
         'visibility' => EventVisibility::Private,
     ]);
 

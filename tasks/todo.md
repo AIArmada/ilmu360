@@ -292,3 +292,16 @@
 - Removed the package occurrence/session relationship assertion from `Unit/EventTest`; retained app-owned scopes, searchable payload transforms, language serialization, and discoverability behavior.
 - Retained application event tests for policies, visibility, submissions, calendar rendering, search, notifications, APIs, MCP tools, registration routes, and app-specific package adapters.
 - Verification passed: retained event unit tests 5 / 30 assertions, event check-in Livewire tests 5 / 12, event-going API tests 5 / 12, event-save API tests 30 / 30, and event policy tests 10 / 55. `git diff --check` passed.
+
+## CI failure repair follow-up
+
+- [x] Inspect linked Actions shard and separate stale legacy-contract failures from current production failures.
+- [x] Replace direct queries against package-owned event fields with canonical child-table queries and UUID-safe metadata selectors.
+- [x] Update stale test assumptions from removed event status/column contracts to the current model and relation accessors.
+- [x] Run focused Pest, Pint, PHPStan, and diff checks.
+
+### Review
+
+- Repaired featured-event aggregation through `event_attributes`, age-group filtering through `event_audiences`, and speaker counting through polymorphic involvement columns.
+- Added PostgreSQL UUID casting to the current metadata-backed event query projection; no legacy aliases or fallback storage were introduced.
+- Focused dashboard test passed: 1 test / 2 assertions. Pint and scoped PHPStan passed; `git diff --check` passed.

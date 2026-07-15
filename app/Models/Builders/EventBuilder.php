@@ -357,7 +357,21 @@ class EventBuilder extends Builder
 
     private function qualifiedMetadataSelector(string $key): string
     {
-        return $this->qualifyModelColumn('metadata').'->'.$key;
+        $metadata = $this->qualifyModelColumn('metadata');
+
+        $driver = DB::connection()->getDriverName();
+
+        if ($driver === 'pgsql') {
+            $selector = "{$metadata}->>'{$key}'";
+
+            return Str::endsWith($key, '_id') ? "({$selector})::uuid" : $selector;
+        }
+
+        if (in_array($driver, ['mysql', 'mariadb'], true)) {
+            return "json_unquote(json_extract({$metadata}, '$.\"{$key}\"'))";
+        }
+
+        return "{$metadata}->>'{$key}'";
     }
 
     private function qualifyModelColumn(string $column): string
