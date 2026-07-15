@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Pages\MembershipApplications;
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Membership\Actions\CancelMembershipApplicationAction;
 use App\Livewire\Concerns\InteractsWithToasts;
 use App\Models\MembershipApplication;
@@ -34,10 +35,10 @@ class Index extends Component
         /** @var User $user */
         $user = auth()->user();
 
-        return $user->membershipApplications()
+        return OwnerContext::withOwner(null, fn (): Collection => $user->membershipApplications()
             ->with(['reviewer'])
             ->latest('created_at')
-            ->get();
+            ->get());
     }
 
     public function cancel(string $claimId, CancelMembershipApplicationAction $cancelMembershipApplicationAction): void
