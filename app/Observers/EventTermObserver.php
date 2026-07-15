@@ -8,10 +8,10 @@ use AIArmada\Events\Models\EventTerm;
 use App\Support\Cache\PublicListingsCache;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
-final class EventTermObserver implements ShouldHandleEventsAfterCommit
+final readonly class EventTermObserver implements ShouldHandleEventsAfterCommit
 {
     public function __construct(
-        private readonly PublicListingsCache $publicListingsCache,
+        private PublicListingsCache $publicListingsCache,
     ) {}
 
     public function saved(EventTerm $term): void
