@@ -155,7 +155,7 @@ class Create extends Component implements HasForms
 
     private function canonicalSubjectId(): string
     {
-        return $this->subject->slug;
+        return (string) $this->subject->getKey();
     }
 
     private function resolveSubject(string $subjectType, string $subjectId): Institution|Speaker

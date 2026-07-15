@@ -757,13 +757,14 @@ it('hides duplicated state for kuala lumpur putrajaya and labuan in institution 
     $venue = Venue::factory()->create(['name' => 'Dewan Utama KL']);
 
     $malaysia = ensureTestMalaysiaCountry();
-    $state = createTestAddressArea('Kuala Lumpur', 1, country: $malaysia);
-    $subdistrict = createTestAddressArea('Setiawangsa', 3, parent: $state, country: $malaysia);
+    $geography = createTestPackageGeography('Kuala Lumpur', 'Kuala Lumpur', 'Setiawangsa', country: $malaysia);
 
     syncPrimaryAddressForTest($venue, [
-        'state_id' => (string) $state->getKey(),
+        'state_id' => (string) $geography['state']->getKey(),
         'admin_area_1_id' => null,
-        'admin_area_2_id' => (string) $subdistrict->getKey(),
+        'admin_area_2_id' => (string) $geography['subdistrict']->getKey(),
+        'city' => 'Setiawangsa',
+        'state' => 'Kuala Lumpur',
     ]);
 
     Event::factory()

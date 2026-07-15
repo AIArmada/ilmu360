@@ -20,9 +20,7 @@ class MemberInvitationNotification extends Notification implements ShouldQueue
         public readonly string $invitedEmail,
         public readonly string $acceptUrl,
         public readonly ?CarbonInterface $expiresAt = null,
-    ) {
-        $this->afterCommit();
-    }
+    ) {}
 
     /**
      * @return array<int, string>

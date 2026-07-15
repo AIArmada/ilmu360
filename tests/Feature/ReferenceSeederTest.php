@@ -45,5 +45,5 @@ it('attaches seeded references to approved events via event_reference pivot', fu
     $event->refresh()->load('references');
 
     expect($event->references->isNotEmpty())->toBeTrue()
-        ->and($event->references->pluck('pivot.order_column')->filter()->isNotEmpty())->toBeTrue();
+        ->and($event->references->pluck('pivot.sort_order')->filter(fn (mixed $order): bool => $order !== null)->isNotEmpty())->toBeTrue();
 });

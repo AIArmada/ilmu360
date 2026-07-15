@@ -1332,7 +1332,7 @@ it('exposes series write schema and creates and updates series through the admin
             ->where('data.record.attributes.title', 'Admin MCP Series Updated '.$suffix)
             ->where('data.record.attributes.slug', 'admin-mcp-series-updated-'.$suffix)
             ->where('data.record.attributes.visibility', 'private')
-            ->where('data.record.attributes.status', false)
+            ->where('data.record.attributes.status', 'inactive')
             ->etc());
 
     $series->refresh();
@@ -1400,7 +1400,7 @@ it('exposes space write schema and creates and updates spaces through the admin 
             ->where('data.record.attributes.name', 'Admin MCP Space Updated '.$suffix)
             ->where('data.record.attributes.slug', 'admin-mcp-space-updated-'.$suffix)
             ->where('data.record.attributes.capacity', 65)
-            ->where('data.record.attributes.status', false)
+            ->where('data.record.attributes.status', 'inactive')
             ->etc());
 
     $space->refresh();
@@ -1567,7 +1567,7 @@ it('exposes inspiration write schema and creates and updates inspirations throug
             ->where('data.record.attributes.category', 'hadith_quote')
             ->where('data.record.attributes.locale', 'en')
             ->where('data.record.attributes.title', 'Admin MCP Inspiration Updated')
-            ->where('data.record.attributes.status', false)
+            ->where('data.record.attributes.status', 'inactive')
             ->etc());
 
     $inspiration->refresh();

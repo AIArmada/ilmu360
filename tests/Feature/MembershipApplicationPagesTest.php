@@ -23,7 +23,7 @@ it('redirects guests to login for membership application routes', function () {
 
     $this->get(route('membership-applications.create', [
         'subjectType' => MemberSubjectType::Institution->publicRouteSegment(),
-        'subjectId' => $institution->slug,
+        'subjectId' => $institution->getKey(),
     ]))->assertRedirect(route('login'));
 
     $this->get(route('membership-applications.index'))
@@ -37,7 +37,7 @@ it('lets authenticated users submit an institution claim with evidence', functio
     Livewire::actingAs($user)
         ->test(CreateMembershipApplicationPage::class, [
             'subjectType' => MemberSubjectType::Institution->publicRouteSegment(),
-            'subjectId' => $institution->slug,
+            'subjectId' => $institution->getKey(),
         ])
         ->fillForm([
             'justification' => 'I am part of the institution admin team.',
@@ -62,7 +62,7 @@ it('requires justification and evidence on the public claim form', function () {
     Livewire::actingAs($user)
         ->test(CreateMembershipApplicationPage::class, [
             'subjectType' => MemberSubjectType::Speaker->publicRouteSegment(),
-            'subjectId' => $speaker->slug,
+            'subjectId' => $speaker->getKey(),
         ])
         ->call('submit')
         ->assertHasErrors([
@@ -83,7 +83,7 @@ it('renders the public membership claim page in Malay without a side-by-side lay
 
     $this->get(route('membership-applications.create', [
         'subjectType' => MemberSubjectType::Speaker->publicRouteSegment(),
-        'subjectId' => $speaker->slug,
+        'subjectId' => $speaker->getKey(),
     ]))
         ->assertOk()
         ->assertSee('Pengurusan')
@@ -132,12 +132,12 @@ it('starts a membership claim from the contributions page search form', function
         ->test(ContributionsIndex::class)
         ->fillForm([
             'subject_type' => MemberSubjectType::Speaker->value,
-            'subject_slug' => $speaker->slug,
+            'subject_slug' => $speaker->getKey(),
         ])
-        ->call('startMembershipClaim')
+        ->call('startMembershipApplication')
         ->assertRedirect(route('membership-applications.create', [
             'subjectType' => MemberSubjectType::Speaker->publicRouteSegment(),
-            'subjectId' => $speaker->slug,
+            'subjectId' => $speaker->getKey(),
         ]));
 });
 
@@ -152,11 +152,11 @@ it('does not show membership claim call to action on public institution and spea
 
     $institutionClaimUrl = route('membership-applications.create', [
         'subjectType' => MemberSubjectType::Institution->publicRouteSegment(),
-        'subjectId' => $institution->slug,
+        'subjectId' => $institution->getKey(),
     ]);
     $speakerClaimUrl = route('membership-applications.create', [
         'subjectType' => MemberSubjectType::Speaker->publicRouteSegment(),
-        'subjectId' => $speaker->slug,
+        'subjectId' => $speaker->getKey(),
     ]);
 
     $this->actingAs($user)

@@ -2263,8 +2263,8 @@ it('preserves institution address line1 when sparse map fields are updated throu
     ])->assertOk()
         ->assertJsonPath('data.record.attributes.address.line1', 'Alamat Asal Institusi')
         ->assertJsonPath('data.record.attributes.address.google_maps_url', fn (string $url): bool => str_contains($url, 'google.com/maps/search'))
-        ->assertJsonPath('data.record.attributes.address.latitude', '3.1234560')
-        ->assertJsonPath('data.record.attributes.address.longitude', '101.6543210');
+        ->assertJsonPath('data.record.attributes.address.latitude', 3.123456)
+        ->assertJsonPath('data.record.attributes.address.longitude', 101.654321);
 
     $institution = Institution::query()->findOrFail($institutionRouteKey);
 
@@ -2598,8 +2598,8 @@ it('exposes admin venue write schema and can create and update venues through th
         ->and($venue->status)->toBe('verified')
         ->and((string) $venue->status)->toBeIn(['verified', 'pending'])
         ->and($venue->facilities)->toBe([
-            'oku' => true,
             'parking' => true,
+            'oku' => true,
         ])
         ->and($venue->primaryAddress()?->country_id)->toBe(ensureAdminApiMalaysiaCountryExists())
         ->and($venue->contactMethods)->toHaveCount(1)

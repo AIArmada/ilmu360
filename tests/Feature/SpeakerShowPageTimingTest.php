@@ -7,12 +7,25 @@ use App\Enums\PrayerReference;
 use App\Enums\ReferenceType;
 use App\Enums\TimingMode;
 use App\Models\Event;
+use App\Models\EventKeyPerson;
 use App\Models\Institution;
 use App\Models\Reference;
 use App\Models\Speaker;
 use App\Models\Venue;
 use App\Support\Location\AddressHierarchyFormatter;
 use Illuminate\Support\Carbon;
+
+function linkSpeakerEvent(Speaker $speaker, Event $event): void
+{
+    EventKeyPerson::query()->create([
+        'event_id' => $event->getKey(),
+        'involveable_type' => 'speaker',
+        'involveable_id' => $speaker->getKey(),
+        'role_code' => EventKeyPersonRole::Speaker->value,
+        'sort_order' => 1,
+        'visibility' => 'public',
+    ]);
+}
 
 it('shows prayer-relative timing text on speaker page instead of absolute time', function () {
     $speaker = Speaker::factory()->create([
@@ -28,7 +41,7 @@ it('shows prayer-relative timing text on speaker page instead of absolute time',
         'prayer_display_text' => 'Selepas Asar',
     ]);
 
-    $speaker->speakerEvents()->attach($event->id);
+    linkSpeakerEvent($speaker, $event);
 
     $expectedEndTime = $event->ends_at?->copy()->timezone('Asia/Kuala_Lumpur')->format('h:i A');
 
@@ -60,7 +73,7 @@ it('uses the localized tarawih label instead of the generic isha offset text', f
             'prayer_display_text' => 'Selepas Tarawih',
         ]);
 
-        $speaker->speakerEvents()->attach($event->id);
+        linkSpeakerEvent($speaker, $event);
 
         $this->withUnencryptedCookie('user_timezone', 'Asia/Kuala_Lumpur')
             ->get(route('speakers.show', $speaker))
@@ -84,7 +97,7 @@ it('shows cancelled public events with cancelled badge on speaker page', functio
         'ends_at' => now()->addDay()->setTime(19, 15),
     ]);
 
-    $speaker->speakerEvents()->attach($event->id);
+    linkSpeakerEvent($speaker, $event);
 
     $this->get(route('speakers.show', $speaker))
         ->assertSuccessful()
@@ -103,7 +116,7 @@ it('shows a moderation note when speaker page lists pending public events', func
         'starts_at' => now()->addDay()->setTime(17, 45),
     ]);
 
-    $speaker->speakerEvents()->attach($event->id);
+    linkSpeakerEvent($speaker, $event);
 
     $this->get(route('speakers.show', $speaker))
         ->assertSuccessful()
@@ -124,7 +137,7 @@ it('uses stronger calendar event colors on speaker page', function () {
         'title' => 'Kuliah Kalender Penceramah',
     ]);
 
-    $speaker->speakerEvents()->attach($event->id);
+    linkSpeakerEvent($speaker, $event);
 
     $this->get(route('speakers.show', $speaker))
         ->assertSuccessful()
@@ -147,7 +160,7 @@ it('renders event end time in event timezone on speaker page', function () {
         'prayer_display_text' => 'Selepas Asar',
     ]);
 
-    $speaker->speakerEvents()->attach($event->id);
+    linkSpeakerEvent($speaker, $event);
 
     $expectedEndTime = $event->ends_at?->copy()->timezone('Asia/Kuala_Lumpur')->format('h:i A');
 
@@ -184,7 +197,7 @@ it('shows dedicated venue name for event location on speaker page when available
         'prayer_display_text' => 'Selepas Asar',
     ]);
 
-    $speaker->speakerEvents()->attach($event->id);
+    linkSpeakerEvent($speaker, $event);
 
     $this->withUnencryptedCookie('user_timezone', 'Asia/Kuala_Lumpur')
         ->get(route('speakers.show', $speaker))
@@ -213,7 +226,7 @@ it('falls back to institution name for event location on speaker page when venue
         'prayer_display_text' => 'Selepas Asar',
     ]);
 
-    $speaker->speakerEvents()->attach($event->id);
+    linkSpeakerEvent($speaker, $event);
 
     $this->withUnencryptedCookie('user_timezone', 'Asia/Kuala_Lumpur')
         ->get(route('speakers.show', $speaker))
@@ -283,7 +296,7 @@ it('renders speaker page when linked event has online format and no location add
         'timing_mode' => TimingMode::Absolute,
     ]);
 
-    $speaker->speakerEvents()->attach($event->id);
+    linkSpeakerEvent($speaker, $event);
 
     $this->withUnencryptedCookie('user_timezone', 'Asia/Kuala_Lumpur')
         ->get(route('speakers.show', $speaker))
@@ -369,7 +382,8 @@ it('renders the book title on speaker event cards without parentheses', function
     $bookEvent->references()->attach($bookReference->id);
     $articleEvent->references()->attach($articleReference->id);
 
-    $speaker->speakerEvents()->attach([$bookEvent->id, $articleEvent->id]);
+    linkSpeakerEvent($speaker, $bookEvent);
+    linkSpeakerEvent($speaker, $articleEvent);
 
     $response = $this->get(route('speakers.show', $speaker));
     $response->assertSuccessful();

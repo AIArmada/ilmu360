@@ -16,7 +16,6 @@ use App\Models\Institution;
 use App\Models\Reference;
 use App\Models\Series;
 use App\Models\Speaker;
-use App\Models\Tag;
 use App\Models\User;
 use App\Models\Venue;
 use Illuminate\Http\UploadedFile;
@@ -322,8 +321,8 @@ it('shows comma-separated location hierarchy text on public events index cards',
 
     syncPrimaryAddressForTest($institution, [
         ...$geo['address'],
-        'city' => null,
-        'state' => null,
+        'city' => 'Shah Alam',
+        'state' => 'Selangor',
     ]);
 
     Event::factory()->create([
@@ -738,8 +737,8 @@ it('records guest submissions without a submitter id', function () {
     $title = 'Guest Submission '.uniqid();
     $email = 'guest@example.com';
 
-    $domainTag = Tag::factory()->domain()->create();
-    $disciplineTag = Tag::factory()->discipline()->create();
+    $domainTag = submitEventTerm('domain');
+    $disciplineTag = submitEventTerm('discipline');
     $speaker = Speaker::factory()->create(['status' => 'verified']);
     $institution = Institution::factory()->create(['status' => 'verified']);
     Livewire::test('pages.submit-event.create')
@@ -772,6 +771,6 @@ it('records guest submissions without a submitter id', function () {
     $submission = withGlobalOwnerContext(fn () => EventSubmission::query()->where('event_id', $event->id)->first());
 
     expect($submission)->not->toBeNull();
-    expect($submission->submitted_by)->toBeNull();
+    expect($submission->submitter_id)->toBeNull();
     expect(withGlobalOwnerContext(fn () => $submission->contactMethods()->where('type', ContactMethodType::Email->value)->where('value', $email)->exists()))->toBeTrue();
 });

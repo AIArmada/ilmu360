@@ -1,30 +1,29 @@
 <?php
 
+use AIArmada\Events\Models\EventTerm;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventPrayerTime;
 use App\Enums\EventType;
 use App\Enums\EventVisibility;
-use App\Enums\TagType;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Speaker;
-use App\Models\Tag;
 use App\Models\User;
 use Livewire\Livewire;
 
 beforeEach(function () {
     fakePrayerTimesApi();
 
-    $this->domainTag = Tag::factory()->create(['type' => TagType::Domain->value]);
-    $this->disciplineTag = Tag::factory()->create(['type' => TagType::Discipline->value]);
+    $this->domainTag = submitEventTerm('domain');
+    $this->disciplineTag = submitEventTerm('discipline');
 });
 
 /**
  * @return array<string, mixed>
  */
-function submitEventEntityAccessPayload(Tag $domainTag, Tag $disciplineTag, array $overrides = []): array
+function submitEventEntityAccessPayload(EventTerm $domainTag, EventTerm $disciplineTag, array $overrides = []): array
 {
     return array_merge([
         'title' => 'Entity Access Submission',

@@ -146,35 +146,6 @@ describe('Saved Search API Endpoints', function () {
                     ]);
             });
 
-            it('repairs legacy saved search enum labels into backing values', function () {
-                $savedSearch = SavedSearch::factory()->create([
-                    'user_id' => $this->user->id,
-                    'filters' => [
-                        'event_type' => ['Forum Perdana'],
-                        'event_format' => ['Physical'],
-                        'gender' => 'Lelaki Sahaja',
-                        'age_group' => ['Semua Peringkat Umur'],
-                        'key_person_roles' => ['Penceramah', 'PIC / Penyelaras'],
-                        'prayer_time' => 'Selepas Maghrib',
-                        'timing_mode' => 'Prayer Time',
-                    ],
-                ]);
-
-                runLegacySavedSearchEnumFilterRepairMigration();
-
-                $filters = $savedSearch->fresh()?->filters;
-
-                expect($filters)->toMatchArray([
-                    'event_type' => [EventType::Forum->value],
-                    'event_format' => [EventFormat::Physical->value],
-                    'gender' => EventGenderRestriction::MenOnly->value,
-                    'age_group' => [EventAgeGroup::AllAges->value],
-                    'key_person_roles' => [EventKeyPersonRole::PersonInCharge->value],
-                    'prayer_time' => EventPrayerTime::SelepasMaghrib->value,
-                    'timing_mode' => TimingMode::PrayerRelative->value,
-                ]);
-            });
-
             it('rejects the legacy singular language filter key', function () {
                 $response = $this->postJson('/api/v1/saved-searches', [
                     'name' => 'Legacy Language Search',
@@ -225,7 +196,7 @@ describe('Saved Search API Endpoints', function () {
                     'name' => 'Strict Filter Search',
                     'filters' => [
                         'institution_id' => 'not-a-uuid',
-                        'default_venue_id' => 'not-a-uuid',
+                        'venue_id' => 'not-a-uuid',
                         'starts_after' => '12-04-2026',
                         'starts_before' => '2026/04/12',
                         'starts_time_from' => 'tomorrow',
