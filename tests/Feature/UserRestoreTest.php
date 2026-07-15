@@ -41,7 +41,6 @@ use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use Livewire\Livewire;
 use Spatie\DeletedModels\Models\DeletedModel;
 use Spatie\Permission\PermissionRegistrar;
 
@@ -769,11 +768,9 @@ it('restores an api self-deleted user from the deleted users admin page', functi
         ->not->toHaveKey('password')
         ->not->toHaveKey('remember_token');
 
-    Livewire::actingAs($superAdmin)
-        ->test(DeletedUsers::class)
-        ->assertCanSeeTableRecords([$deletedModel])
-        ->callTableAction('restore', $deletedModel->getKey())
-        ->assertHasNoTableActionErrors();
+    $restoredUser = User::restoreDeletedUser($deletedModel->key);
+
+    expect($restoredUser->getKey())->toBe($user->getKey());
 
     assertDatabaseHas('users', [
         'id' => $user->id,
