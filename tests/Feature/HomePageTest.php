@@ -158,7 +158,7 @@ it('groups homepage date filter counts by the viewer local date', function () {
         'status' => 'approved',
         'visibility' => 'public',
         'published_at' => now(),
-        'starts_at' => Carbon::parse('2026-04-16 16:30:00', 'UTC'),
+        'starts_at' => Carbon::parse('2026-04-17 00:30:00', $userTimezone),
     ]);
 
     Event::factory()->create([
@@ -166,7 +166,7 @@ it('groups homepage date filter counts by the viewer local date', function () {
         'status' => 'approved',
         'visibility' => 'public',
         'published_at' => now(),
-        'starts_at' => Carbon::parse('2026-04-16 15:30:00', 'UTC'),
+        'starts_at' => Carbon::parse('2026-04-16 23:30:00', $userTimezone),
     ]);
 
     Event::factory()->create([
@@ -174,7 +174,7 @@ it('groups homepage date filter counts by the viewer local date', function () {
         'status' => 'approved',
         'visibility' => 'public',
         'published_at' => now(),
-        'starts_at' => Carbon::parse('2026-04-17 16:30:00', 'UTC'),
+        'starts_at' => Carbon::parse('2026-04-18 00:30:00', $userTimezone),
     ]);
 
     $dates = Livewire::withCookie('user_timezone', $userTimezone)
