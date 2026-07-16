@@ -366,3 +366,15 @@
 - Focused Pest passed: 6 tests, 20 assertions, in parallel.
 - The existing notification keys and recipient groups remain intact while the
   persisted decision types use the canonical enum values.
+
+# Architecture product roadmap execution — B3
+
+- [ ] Resolve the documented conflict between the B3 absence check and the
+  roadmap’s public-contract preservation rule.
+
+### Review
+
+- Blocked by the current app/API/MCP/Filament use of `is_priority` and
+  `escalated_at`, plus the absence of corresponding `events.*` columns in the
+  current schema. Evidence is recorded in
+  `tasks/architecture-product-roadmap-blockers.md`.
