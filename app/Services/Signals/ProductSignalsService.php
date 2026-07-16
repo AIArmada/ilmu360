@@ -21,6 +21,7 @@ final readonly class ProductSignalsService
         private SignalEventIngestor $ingestSignalEvent,
         private SignalsTracker $signalsTracker,
         private ProductSignalsClientContext $clientContext,
+        private ProductSignalSchemaRegistry $schemaRegistry,
     ) {}
 
     public function recordLogin(User $user, Request $request, string $method, bool $createdAccount = false): ?SignalEvent
@@ -252,7 +253,7 @@ final readonly class ProductSignalsService
                 'campaign' => $request?->query('utm_campaign'),
                 'content' => $request?->query('utm_content'),
                 'term' => $request?->query('utm_term'),
-                'properties' => $this->normalizeProperties($request, $properties),
+                'properties' => $this->normalizeProperties($eventName, $request, $properties),
             ];
 
             return $this->ingestSignalEvent->handle($trackedProperty, $payload, trusted: true);
@@ -331,14 +332,13 @@ final readonly class ProductSignalsService
      * @param  array<string, mixed>  $properties
      * @return array<string, mixed>
      */
-    private function normalizeProperties(?Request $request, array $properties): array
+    private function normalizeProperties(string $eventName, ?Request $request, array $properties): array
     {
         $routeName = $request?->route()?->getName();
 
-        return array_filter([
+        $context = array_filter([
             'route_name' => is_string($routeName) && $routeName !== '' ? $routeName : null,
             'request_method' => $request?->getMethod(),
-            ...$properties,
             ...$this->clientContext->properties($request),
         ], function (mixed $value): bool {
             if ($value === null || $value === '') {
@@ -351,6 +351,11 @@ final readonly class ProductSignalsService
 
             return true;
         });
+
+        return [
+            ...$this->schemaRegistry->normalize($eventName, $properties),
+            ...$context,
+        ];
     }
 
     private function enumValue(mixed $value): ?string

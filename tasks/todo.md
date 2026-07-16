@@ -493,3 +493,21 @@
 - Notification coverage passed: 2 tests, 12 assertions.
 - The workflow is constructor-injected and the coordinator no longer owns the
   duplicated contact/registration side-effect helpers.
+
+# Architecture product roadmap execution — E1
+
+- [x] Add a product signal schema registry with explicit event/property allowlists
+  for authentication, discovery/search, moderation, notifications, submissions,
+  and AI-adjacent admin events.
+- [x] Drop unknown properties and redact sensitive-looking search queries by
+  default.
+- [x] Preserve non-blocking ingestion failure behavior.
+- [x] Verify schema redaction and Signals telemetry coverage, PHPStan, Pint, and
+  whitespace.
+
+### Review
+
+- Signals telemetry passed: 16 tests, 81 assertions.
+- The registry is constructor-injected into `ProductSignalsService`; client context
+  remains separately normalized and safe to attach.
+- Existing ingestion failures remain logged and non-blocking.

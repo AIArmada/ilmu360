@@ -14,10 +14,25 @@ use App\Livewire\Pages\Dashboard\NotificationsIndex;
 use App\Models\Event;
 use App\Models\SavedSearch;
 use App\Models\User;
+use App\Services\Signals\ProductSignalSchemaRegistry;
 use Illuminate\Auth\Events\Verified;
 use Laravel\Sanctum\Sanctum;
 use Livewire\Livewire;
 use Mockery\MockInterface;
+
+it('allowlists product signal properties and drops sensitive search input', function () {
+    $properties = app(ProductSignalSchemaRegistry::class)->normalize('search.executed', [
+        'surface' => 'public.events',
+        'query' => 'member@example.com',
+        'result_count' => 3,
+        'secret_internal_flag' => true,
+    ]);
+
+    expect($properties)
+        ->toBe(['surface' => 'public.events', 'result_count' => 3])
+        ->not->toHaveKey('query')
+        ->not->toHaveKey('secret_internal_flag');
+});
 
 it('records a signals event for successful password login', function () {
     $user = User::factory()->create();
