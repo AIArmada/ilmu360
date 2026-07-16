@@ -7,7 +7,7 @@ require __DIR__.'/PestDurationBudget.php';
 $input = $argv[1] ?? 'artifacts/pest-timing/report.csv';
 $baselineMinutes = isset($argv[2]) ? (float) $argv[2] : 0.0;
 
-if ($baselineMinutes <= 0 || ! is_file($input)) {
+if ($baselineMinutes <= 0 || (! is_file($input) && ! is_dir($input))) {
     fwrite(STDERR, "Pest duration budget cannot evaluate without a baseline and timing artifact.\n");
     exit(2);
 }
@@ -28,9 +28,9 @@ foreach ($paths as $path) {
         continue;
     }
 
-    fgetcsv($handle);
+    fgetcsv($handle, 0, ',', '"', '');
 
-    while (($row = fgetcsv($handle)) !== false) {
+    while (($row = fgetcsv($handle, 0, ',', '"', '')) !== false) {
         if (isset($row[0], $row[1]) && is_numeric($row[1])) {
             $rows[] = ['file' => $row[0], 'elapsed_seconds' => (float) $row[1]];
         }

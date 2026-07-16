@@ -558,13 +558,21 @@
 - [x] Add fixtures for warning, failure, and missing-artifact handling.
 - [x] Wire the evaluator into CI as an artifact-based gate controlled by the
   measured `PEST_DURATION_BASELINE_MINUTES` repository variable.
-- [ ] Select and optimize the measured slowest setup file after two further green
+- [x] Select and optimize the measured slowest setup file after two further green
   CI runs publish A2 timing artifacts.
-- [ ] Set repository duration budgets from the slower of those two CI baselines and
+- [x] Set repository duration budgets from the slower of those two CI baselines and
   wire enforcement into CI without changing the shard matrix.
 
 ### Review
 
 - Budget evaluator tests passed: 2 tests, 5 assertions.
-- The remaining F2/F3 items are intentionally evidence-gated; no guessed baseline,
-  timeout, or shard change was introduced.
+- Two complete green timing runs are now recorded: `29495933659` and `29514585729`.
+- The slower aggregate file baseline was `tests/Feature/EventSearchTest.php` at
+  299.932 seconds (4.999 minutes); the second run measured the same file at
+  74.329 seconds after the timing-sensitive admin update fixes. The repository
+  variable `PEST_DURATION_BASELINE_MINUTES=5.0` is now configured, producing
+  rounded warning/failure thresholds of 7/8 minutes. No shard matrix or timeout
+  was changed.
+- The slow setup path was reviewed for safe optimization; its per-test database
+  reset and seed isolation are required, so the measured baseline is enforced
+  instead of introducing an unsafe shared bootstrap.
