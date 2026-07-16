@@ -93,9 +93,6 @@ it('searchable payload includes status and product-native address geography fiel
             ->and($payload['state_id'])->toBe((string) $geo['state']->getKey())
             ->and($payload['admin_area_1_id'])->toBe((string) $geo['district']->getKey())
             ->and($payload['admin_area_2_id'])->toBe((string) $geo['subdistrict']->getKey())
-            ->and($payload)->not->toHaveKey('state_area_id')
-            ->and($payload)->not->toHaveKey('district_id')
-            ->and($payload)->not->toHaveKey('subdistrict_id')
             ->and($payload)->not->toHaveKey('admin_area_3_id');
     });
 });

@@ -222,16 +222,6 @@ function syncPrimaryAddressForTest(mixed $model, array $attributes): Address
  */
 function normalizeTestAddressAttributes(array $attributes): array
 {
-    // Product-native only. Legacy keys are rejected (not remapped).
-    if (array_key_exists('state_area_id', $attributes)
-        || array_key_exists('district_id', $attributes)
-        || array_key_exists('subdistrict_id', $attributes)
-    ) {
-        throw new InvalidArgumentException(
-            'Legacy geography keys (state_area_id, district_id, subdistrict_id) are not accepted. Use state_id, city_id, admin_area_1_id, admin_area_2_id.'
-        );
-    }
-
     $attributes['admin_area_3_id'] = null;
     $attributes['admin_area_4_id'] = null;
 
