@@ -36,7 +36,17 @@ class AiUsageLedger
             $payload = $this->payloadFromAudioGenerated($event);
         }
 
-        AiUsageLog::query()->create($payload);
+        AiUsageLog::query()->firstOrCreate(
+            ['invocation_id' => $payload['invocation_id']],
+            $payload,
+        );
+    }
+
+    public function currentPeriodCostUsd(): float
+    {
+        return (float) AiUsageLog::query()
+            ->where('created_at', '>=', now()->startOfMonth())
+            ->sum('cost_usd');
     }
 
     /**

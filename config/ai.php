@@ -176,4 +176,13 @@ return [
         ],
     ],
 
+    'budget' => [
+        'monthly_limit_usd' => (float) env('AI_MONTHLY_BUDGET_USD', 100.0),
+        'privileged_approval_threshold_usd' => (float) env('AI_PRIVILEGED_APPROVAL_THRESHOLD_USD', 10.0),
+        'estimates' => [
+            'event_media_extraction' => 0.05,
+            'image_generation' => 0.05,
+        ],
+    ],
+
 ];

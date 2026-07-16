@@ -6,6 +6,7 @@ namespace App\Actions\Events;
 
 use App\Models\Event;
 use App\Models\User;
+use App\Services\Ai\AiBudgetPolicy;
 use App\Services\Signals\ProductSignalsService;
 use App\Support\Mcp\EventImageGenerationService;
 use Illuminate\Http\Request;
@@ -15,6 +16,7 @@ class GenerateEventCoverImageAction
     public function __construct(
         private readonly EventImageGenerationService $eventImageGenerationService,
         private readonly ProductSignalsService $productSignalsService,
+        private readonly AiBudgetPolicy $budgetPolicy,
     ) {}
 
     /**
@@ -33,6 +35,18 @@ class GenerateEventCoverImageAction
         ?Request $request = null,
     ): array {
         $maxReferenceMedia ??= $this->defaultMaxReferenceMedia();
+
+        $budgetDecision = $this->budgetPolicy->decide(
+            operation: 'image_generation',
+            provider: config('ai.features.event_cover_generation.provider'),
+            model: config('ai.features.event_cover_generation.model'),
+            estimatedCostUsd: (float) config('ai.budget.estimates.image_generation', 0.05),
+            actor: $user,
+        );
+
+        if ($budgetDecision->decision !== 'allow') {
+            throw new \RuntimeException('AI cover generation is unavailable: '.$budgetDecision->reasonCode.'.');
+        }
 
         $result = $this->eventImageGenerationService->generate($event, 'cover', [
             'creative_direction' => $creativeDirection,

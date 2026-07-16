@@ -25,6 +25,8 @@ use Throwable;
 
 class EventMediaExtractionService
 {
+    public function __construct(private readonly AiBudgetPolicy $budgetPolicy) {}
+
     /**
      * @return array<string, mixed>
      */
@@ -35,6 +37,17 @@ class EventMediaExtractionService
 
         $resolvedProvider = is_string($provider) && filled($provider) ? $provider : null;
         $resolvedModel = is_string($model) && filled($model) ? $model : null;
+
+        $budgetDecision = $this->budgetPolicy->decide(
+            operation: 'event_media_extraction',
+            provider: $resolvedProvider,
+            model: $resolvedModel,
+            estimatedCostUsd: (float) config('ai.budget.estimates.event_media_extraction', 0.05),
+        );
+
+        if ($budgetDecision->decision !== 'allow') {
+            throw new RuntimeException('AI media extraction is unavailable: '.$budgetDecision->reasonCode.'.');
+        }
 
         if ($resolvedProvider && $resolvedProvider !== 'ollama') {
             $providerKey = config("ai.providers.{$resolvedProvider}.key");

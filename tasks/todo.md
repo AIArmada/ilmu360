@@ -531,3 +531,22 @@
   route or authorization mechanism was added.
 - The existing telemetry view remains intact while the scorecard exposes aggregate
   operator metrics only.
+
+# Architecture product roadmap execution — F1
+
+- [x] Add centralized AI budget decisions with exactly `allow`,
+  `privileged_approval`, `defer`, and `deny` outcomes.
+- [x] Enforce monthly usage limits and privileged approval thresholds with
+  non-sensitive reason codes.
+- [x] Make ledger writes idempotent by invocation ID and expose current-period
+  spend to the policy.
+- [x] Gate event media extraction and cover generation before dispatch.
+- [x] Verify budget, ledger, extraction, and cover-related AI tests, PHPStan, Pint,
+  and whitespace.
+
+### Review
+
+- Budget policy passed: 3 tests, 6 assertions.
+- AI usage logging passed: 4 tests, 48 assertions.
+- Event media extraction passed: 2 tests, 23 assertions.
+- All policy and gated entry-point files pass PHPStan and Pint.
