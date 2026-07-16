@@ -28,6 +28,7 @@ class AdminEventTimeMapper
 
         if (! empty($data['ends_at'])) {
             $endsAt = Carbon::parse((string) $data['ends_at'], 'UTC')->setTimezone($timezone);
+            $data['end_date'] = $endsAt->toDateString();
             $data['end_time'] = $endsAt->format('H:i');
         }
 
@@ -48,7 +49,12 @@ class AdminEventTimeMapper
         $prayerTime = EventPrayerTime::tryFrom((string) ($data['prayer_time'] ?? '')) ?? EventPrayerTime::LainWaktu;
 
         $startsAt = self::resolveStartsAt($eventDate, $prayerTime, (string) ($data['custom_time'] ?? null));
-        $endsAt = self::resolveEndsAt($startsAt, (string) ($data['end_time'] ?? null), $timezone);
+        $endsAt = self::resolveEndsAt(
+            $startsAt,
+            (string) ($data['end_time'] ?? null),
+            $timezone,
+            isset($data['end_date']) ? (string) $data['end_date'] : null,
+        );
 
         if ($endsAt instanceof Carbon && $endsAt->lessThanOrEqualTo($startsAt)) {
             throw ValidationException::withMessages([
@@ -64,6 +70,7 @@ class AdminEventTimeMapper
         $data['prayer_display_text'] = $prayerTime->isCustomTime() ? null : $prayerTime->getLabel();
 
         unset($data['event_date'], $data['prayer_time'], $data['custom_time'], $data['end_time']);
+        unset($data['end_date']);
 
         return $data;
     }
@@ -99,17 +106,29 @@ class AdminEventTimeMapper
         return $eventDate->copy()->setTime($time->hour, $time->minute)->utc();
     }
 
-    protected static function resolveEndsAt(Carbon $startsAt, ?string $endTime, string $timezone): ?Carbon
-    {
+    protected static function resolveEndsAt(
+        Carbon $startsAt,
+        ?string $endTime,
+        string $timezone,
+        ?string $endDate = null,
+    ): ?Carbon {
         if (! is_string($endTime) || $endTime === '') {
             return null;
         }
 
         $startInUserTimezone = $startsAt->copy()->setTimezone($timezone);
         $parts = self::parseClockTimeParts($endTime);
-        $candidate = $startInUserTimezone->copy()->setTime($parts['hour'], $parts['minute']);
+        $candidate = $startInUserTimezone->copy();
+
+        if ($endDate !== null && $endDate !== $startInUserTimezone->toDateString()) {
+            $candidate = self::parseEventDate($endDate, $timezone);
+        }
+
+        $candidate->setTime($parts['hour'], $parts['minute']);
 
         if (
+            $endDate === null
+            &&
             $candidate->lessThanOrEqualTo($startInUserTimezone)
             && $parts['meridiem'] === null
             && $parts['hour'] < 12

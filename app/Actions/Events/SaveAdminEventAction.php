@@ -80,8 +80,8 @@ final readonly class SaveAdminEventAction
         $event->loadMissing(['references:id,title', 'series:id,title', 'classifications', 'keyPeople', 'languages:id,event_id', 'accessPolicy']);
 
         $timeFields = AdminEventTimeMapper::injectFormTimeFields([
-            'starts_at' => $event->starts_at?->toDateTimeString(),
-            'ends_at' => $event->ends_at?->toDateTimeString(),
+            'starts_at' => $event->starts_at?->toISOString(),
+            'ends_at' => $event->ends_at?->toISOString(),
             'timezone' => $event->timezone,
             'timing_mode' => $event->timing_mode instanceof BackedEnum ? $event->timing_mode->value : $event->timing_mode,
             'prayer_reference' => $event->prayer_reference instanceof BackedEnum ? $event->prayer_reference->value : $event->prayer_reference,
@@ -98,6 +98,7 @@ final readonly class SaveAdminEventAction
             'prayer_time' => $timeFields['prayer_time'] ?? EventPrayerTime::LainWaktu->value,
             'custom_time' => $timeFields['custom_time'] ?? null,
             'end_time' => $timeFields['end_time'] ?? null,
+            'end_date' => $timeFields['end_date'] ?? null,
             'timezone' => $event->timezone,
             'event_type' => $this->normalizeEnumValues($event->event_type, EventType::class),
             'gender' => $this->normalizeEnumValue($event->gender, EventGenderRestriction::class, EventGenderRestriction::All->value),

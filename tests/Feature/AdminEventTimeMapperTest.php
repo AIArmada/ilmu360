@@ -55,6 +55,24 @@ it('hydrates helper fields from stored event timing fields', function () {
         ->and($result['prayer_time'])->toBe(EventPrayerTime::SelepasMaghrib->value);
 });
 
+it('preserves an overnight end date when hydrating an event for editing', function () {
+    $fields = AdminEventTimeMapper::injectFormTimeFields([
+        'starts_at' => '2026-03-28T15:00:00+00:00',
+        'ends_at' => '2026-03-28T17:00:00+00:00',
+        'timezone' => 'Asia/Kuala_Lumpur',
+        'timing_mode' => TimingMode::Absolute->value,
+    ]);
+
+    $result = AdminEventTimeMapper::normalizeForPersistence($fields + [
+        'event_date' => $fields['event_date'],
+        'prayer_time' => EventPrayerTime::LainWaktu->value,
+        'custom_time' => $fields['custom_time'],
+    ]);
+
+    expect($fields['end_date'])->toBe('2026-03-29')
+        ->and($result['ends_at']->toISOString())->toContain('2026-03-28T17:00:00');
+});
+
 it('throws validation exception when end time is before start time', function () {
     AdminEventTimeMapper::normalizeForPersistence([
         'event_date' => '2026-04-10',
