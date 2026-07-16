@@ -556,6 +556,8 @@
 - [x] Add a reusable evaluator for warning (125%) and failure (150%) duration
   thresholds, rounded up to whole minutes.
 - [x] Add fixtures for warning, failure, and missing-artifact handling.
+- [x] Wire the evaluator into CI as an artifact-based gate controlled by the
+  measured `PEST_DURATION_BASELINE_MINUTES` repository variable.
 - [ ] Select and optimize the measured slowest setup file after two further green
   CI runs publish A2 timing artifacts.
 - [ ] Set repository duration budgets from the slower of those two CI baselines and

@@ -336,6 +336,38 @@ jobs:
           path: artifacts/pest-timing/report.csv
           if-no-files-found: warn
 
+  pest-budget:
+    name: Pest duration budget
+    needs: [changes, tests]
+    if: needs.changes.outputs.tests == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: dom
+          coverage: none
+
+      - name: Download Pest timing artifacts
+        uses: actions/download-artifact@v5
+        with:
+          pattern: pest-timing-shard-*
+          path: artifacts/pest-timing
+
+      - name: Evaluate measured duration budget
+        env:
+          PEST_DURATION_BASELINE_MINUTES: ${{ vars.PEST_DURATION_BASELINE_MINUTES }}
+        run: |
+          if [[ -z "$PEST_DURATION_BASELINE_MINUTES" ]]; then
+            echo "PEST_DURATION_BASELINE_MINUTES is not configured; waiting for two green timing runs."
+            exit 0
+          fi
+          php scripts/enforce_pest_duration_budget.php artifacts/pest-timing "$PEST_DURATION_BASELINE_MINUTES"
+
   quality:
     name: Quality
     needs: [changes, rector, pint, phpstan, tests]

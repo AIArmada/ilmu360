@@ -12,10 +12,22 @@ if ($baselineMinutes <= 0 || ! is_file($input)) {
     exit(2);
 }
 
-$handle = fopen($input, 'rb');
 $rows = [];
 
-if ($handle !== false) {
+$paths = is_dir($input)
+    ? array_merge(
+        glob(rtrim($input, '/').'/*.csv') ?: [],
+        glob(rtrim($input, '/').'/*/*.csv') ?: [],
+    )
+    : [$input];
+
+foreach ($paths as $path) {
+    $handle = fopen($path, 'rb');
+
+    if ($handle === false) {
+        continue;
+    }
+
     fgetcsv($handle);
 
     while (($row = fgetcsv($handle)) !== false) {
