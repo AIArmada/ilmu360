@@ -1964,6 +1964,14 @@ class Event extends PackageEvent implements AuditableContract
     }
 
     /**
+     * @return HasMany<EventEscalation, $this>
+     */
+    public function escalations(): HasMany
+    {
+        return $this->hasMany(EventEscalation::class);
+    }
+
+    /**
      * @return HasOne<ModerationReview, $this>
      */
     public function latestModerationReview(): HasOne

@@ -1,9 +1,13 @@
 <?php
 
+use App\Enums\EventEscalationType;
 use App\Jobs\EscalatePendingEvents;
 use App\Models\Event;
+use App\Models\EventEscalation;
 use App\Models\User;
 use App\Notifications\EventEscalationNotification;
+use Carbon\CarbonImmutable;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Notification;
 use Spatie\Permission\PermissionRegistrar;
 
@@ -140,4 +144,64 @@ it('marks events starting within 6 hours as priority and notifies everyone', fun
         EventEscalationNotification::class,
         fn ($notification) => $notification->escalationType === 'priority'
     );
+});
+
+it('persists canonical escalation records with immutable timestamps', function () {
+    $event = Event::factory()->create();
+    $dispatchedAt = now()->subMinute();
+    $resolvedAt = now();
+
+    $escalation = EventEscalation::create([
+        'event_id' => $event->id,
+        'type' => EventEscalationType::ModeratorSla,
+        'decision_key' => $event->id.':moderator_sla',
+        'reason' => 'Pending moderation exceeded the SLA.',
+        'dispatched_at' => $dispatchedAt,
+        'resolved_at' => $resolvedAt,
+    ]);
+
+    expect($escalation->id)->toBeString()
+        ->and($escalation->type)->toBe(EventEscalationType::ModeratorSla)
+        ->and($escalation->dispatched_at)->toBeInstanceOf(CarbonImmutable::class)
+        ->and($escalation->resolved_at)->toBeInstanceOf(CarbonImmutable::class)
+        ->and($event->fresh()->escalations)->toHaveCount(1);
+});
+
+it('enforces one decision key without collapsing event or escalation type isolation', function () {
+    $firstEvent = Event::factory()->create();
+    $secondEvent = Event::factory()->create();
+
+    EventEscalation::create([
+        'event_id' => $firstEvent->id,
+        'type' => EventEscalationType::ModeratorSla,
+        'decision_key' => $firstEvent->id.':moderator_sla',
+    ]);
+
+    EventEscalation::create([
+        'event_id' => $firstEvent->id,
+        'type' => EventEscalationType::Priority,
+        'decision_key' => $firstEvent->id.':priority',
+    ]);
+
+    EventEscalation::create([
+        'event_id' => $secondEvent->id,
+        'type' => EventEscalationType::ModeratorSla,
+        'decision_key' => $secondEvent->id.':moderator_sla',
+    ]);
+
+    expect(fn () => EventEscalation::create([
+        'event_id' => $firstEvent->id,
+        'type' => EventEscalationType::ModeratorSla,
+        'decision_key' => $firstEvent->id.':moderator_sla',
+    ]))->toThrow(QueryException::class);
+
+    expect(EventEscalation::query()->count())->toBe(3)
+        ->and($firstEvent->fresh()->escalations)->toHaveCount(2)
+        ->and($secondEvent->fresh()->escalations)->toHaveCount(1);
+});
+
+it('does not expose legacy escalation state on the canonical model', function () {
+    expect((new EventEscalation)->getFillable())
+        ->not->toContain('escalated_at')
+        ->not->toContain('is_priority');
 });

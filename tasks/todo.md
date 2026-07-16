@@ -336,3 +336,18 @@
 - A2 is CI-only; no tests were changed.
 - The dry-run sample proves the required `file`, `elapsed_seconds`, `shard`,
   `php_version`, `driver`, and `worker_count` columns.
+
+# Architecture product roadmap execution — B1
+
+- [x] Add the canonical `EventEscalationType` enum with the four approved values.
+- [x] Add append-only UUID-backed escalation persistence and the Event relation.
+- [x] Add focused uniqueness, isolation, casting, and legacy-field absence tests.
+- [x] Verify focused Pest, PHPStan, Pint, and whitespace checks.
+
+### Review
+
+- Focused Pest passed: 7 tests, 26 assertions, in parallel.
+- PHPStan passed for the changed enum/model/Event files; Pint passed after applying
+  mechanical formatting to the existing escalation test file.
+- The migration has no foreign-key constraints, cascades, soft deletes, or legacy
+  escalation columns.
