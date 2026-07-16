@@ -322,3 +322,17 @@
 - A1 is documentation-only; no application source or tests were changed.
 - ADR-014 records the owner, date, decisions, consequences, non-negotiables, and
   non-goals required by the roadmap.
+
+# Architecture product roadmap execution — A2
+
+- [x] Preserve the existing ten-shard matrix and sequential/parallel split.
+- [x] Capture JUnit timing without changing Pest test selection or console output.
+- [x] Publish per-file timing columns to the job summary and shard artifact with
+  `always()` handling for failed or cancelled test jobs.
+- [x] Verify the reporter dry run, PHP syntax, YAML syntax, and whitespace.
+
+### Review
+
+- A2 is CI-only; no tests were changed.
+- The dry-run sample proves the required `file`, `elapsed_seconds`, `shard`,
+  `php_version`, `driver`, and `worker_count` columns.
