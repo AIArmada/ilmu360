@@ -42,7 +42,7 @@ final class BackfillEventEscalationsCommand extends Command
                     );
                 }
 
-                if ($legacyTimestamp instanceof \Illuminate\Support\Carbon) {
+                if ($legacyTimestamp instanceof Carbon) {
                     $created += $this->createIfMissing(
                         $event,
                         EventEscalationType::ModeratorSla,
