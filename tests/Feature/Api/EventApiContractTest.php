@@ -827,8 +827,8 @@ it('serializes included institution address display fields on event detail paylo
         ->assertJsonMissingPath('data.institution.locality_address_line')
         ->assertJsonMissingPath('data.institution.regional_address_line')
         ->assertJsonPath('data.institution.map_url', 'https://maps.google.com/?q=3.1390,101.6869')
-        ->assertJsonPath('data.institution.map_lat', '3.1390000')
-        ->assertJsonPath('data.institution.map_lng', '101.6869000')
+        ->assertJsonPath('data.institution.map_lat', 3.139)
+        ->assertJsonPath('data.institution.map_lng', 101.6869)
         ->assertJsonPath('data.institution.waze_url', 'https://waze.com/ul?ll=3.1390,101.6869');
 });
 

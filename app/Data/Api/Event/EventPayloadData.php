@@ -209,8 +209,8 @@ class EventPayloadData extends Data
             ...Arr::except($payload, ['media']),
             'address_line' => $addressLine !== '' ? $addressLine : null,
             'map_url' => $address?->google_maps_url,
-            'map_lat' => $address?->latitude,
-            'map_lng' => $address?->longitude,
+            'map_lat' => $address?->latitude !== null ? (float) $address->latitude : null,
+            'map_lng' => $address?->longitude !== null ? (float) $address->longitude : null,
             'waze_url' => $address?->waze_url,
         ];
     }
