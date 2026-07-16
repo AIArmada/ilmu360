@@ -12,10 +12,10 @@ use App\Notifications\EventEscalationNotification;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class EscalatePendingEvents implements ShouldQueue
 {
@@ -124,20 +124,21 @@ class EscalatePendingEvents implements ShouldQueue
     ): void {
         $decisionKey = $event->id.':'.$type->value;
 
-        try {
-            $escalation = EventEscalation::create([
-                'event_id' => $event->id,
-                'type' => $type,
-                'decision_key' => $decisionKey,
-                'reason' => $reason,
-            ]);
-        } catch (QueryException $exception) {
-            if (! EventEscalation::query()->where('decision_key', $decisionKey)->exists()) {
-                throw $exception;
-            }
+        $created = EventEscalation::query()->insertOrIgnore([
+            'id' => (string) Str::uuid(),
+            'event_id' => $event->id,
+            'type' => $type->value,
+            'decision_key' => $decisionKey,
+            'reason' => $reason,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
 
+        if ($created === 0) {
             return;
         }
+
+        $escalation = EventEscalation::query()->where('decision_key', $decisionKey)->firstOrFail();
 
         Log::info('Event escalation recorded.', [
             'event_id' => $event->id,

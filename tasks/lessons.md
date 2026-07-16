@@ -331,6 +331,7 @@
 - For stale-while-revalidate documentation, return the previous artifact immediately when a newer cache key is locked, and only promote the latest-key pointer after the new artifact is actually cached.
 - For growing OpenAPI contracts, expose a small discovery index and derive focused specs from the canonical cached document; keep the complete spec available because many clients require a single OpenAPI source.
 - After a package cutover, remove tests that only exercise package services/models directly; retain tests at the application seam where the app adds routing, authorization, UI state, serialization, orchestration, or side effects.
+- For idempotent writes under PostgreSQL, do not catch a unique-constraint exception and query the same connection: the transaction is aborted. Use an atomic `insertOrIgnore`/`ON CONFLICT DO NOTHING` path and continue only when the insert succeeds.
 # Subagent model preference
 
 - Use Luna high only for audit subagents. Do not assign Luna xhigh unless the user explicitly changes this preference.
