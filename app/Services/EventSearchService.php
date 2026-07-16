@@ -30,6 +30,7 @@ use Illuminate\Pagination\LengthAwarePaginator as Paginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Throwable;
 
 class EventSearchService
 {
@@ -137,19 +138,29 @@ class EventSearchService
      */
     private function cachedDefaultSearch(int $perPage): LengthAwarePaginator
     {
-        /** @var array{ids: list<string>, total: int} $payload */
-        $payload = app(SafeModelCache::class)->rememberPayload(
-            key: 'default_events_search_v2',
-            ttl: 60,
-            resolver: function () use ($perPage): array {
-                $paginator = $this->performSearch($this->criteriaFactory->fromSearch(null, [], $perPage, 'time'));
+        $criteria = $this->criteriaFactory->fromSearch(null, [], $perPage, 'time');
 
-                return [
-                    'ids' => array_values(array_map(static fn (Event $event): string => (string) $event->getKey(), $paginator->items())),
-                    'total' => $paginator->total(),
-                ];
-            },
-        );
+        try {
+            /** @var array{ids: list<string>, total: int} $payload */
+            $payload = app(SafeModelCache::class)->rememberPayload(
+                key: 'default_events_search_v2',
+                ttl: 60,
+                resolver: function () use ($criteria): array {
+                    $paginator = $this->performSearch($criteria);
+
+                    return [
+                        'ids' => array_values(array_map(static fn (Event $event): string => (string) $event->getKey(), $paginator->items())),
+                        'total' => $paginator->total(),
+                    ];
+                },
+            );
+        } catch (Throwable $exception) {
+            Log::warning('Default event search cache failed, using uncached results', [
+                'error' => $exception->getMessage(),
+            ]);
+
+            return $this->performSearch($criteria);
+        }
 
         if ($payload['ids'] === []) {
             return new Paginator(
@@ -1418,7 +1429,7 @@ class EventSearchService
             return now(UserDateTimeFormatter::resolveTimezone())
                 ->setTimeFromTimeString($normalized)
                 ->format('H:i');
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return null;
         }
     }

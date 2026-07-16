@@ -238,6 +238,27 @@ describe('Event Search Filters', function () {
             ->toBeNull();
     });
 
+    it('returns uncached default results when the cache store fails', function () {
+        config()->set('scout.driver', 'database');
+
+        $event = Event::factory()->create([
+            'title' => 'Cache Failure Fallback Event',
+            'status' => 'approved',
+            'visibility' => 'public',
+            'published_at' => now(),
+            'starts_at' => now()->addDay(),
+        ]);
+
+        Cache::shouldReceive('remember')
+            ->once()
+            ->andThrow(new RuntimeException('cache unavailable'));
+
+        $results = app(EventSearchService::class)->search(null, [], 12, 'time');
+
+        expect(collect($results->items())->pluck('id')->all())
+            ->toContain($event->id);
+    });
+
     it('shows search placeholder on events index', function () {
         $this->get(eventsIndexUrl())
             ->assertOk()

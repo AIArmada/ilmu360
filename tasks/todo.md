@@ -420,3 +420,22 @@
 - Focused Typesense criteria tests passed: 9 tests, 19 assertions.
 - EventSearch regression suite passed: 82 tests, 281 assertions.
 - PHPStan passed for all three changed services and Pint reported a clean tree.
+
+# Architecture product roadmap execution — C3
+
+- [x] Keep the default search cache at the facade payload boundary and preserve
+  ordered IDs and totals during hydration.
+- [x] Return correct uncached results when the cache store fails.
+- [x] Verify event observer invalidation for public listing changes and safe cache
+  rehydration from the database store.
+- [x] Verify cache fallback, EventSearch regression behavior, PHPStan, Pint, and
+  whitespace.
+
+### Review
+
+- Added a cache-failure regression test: the facade logs the cache error and
+  executes the same PostgreSQL/Typesense-selected criteria uncached.
+- Public listing invalidation passed: 5 tests, 955 assertions.
+- Safe cache serialization passed: 4 tests, 20 assertions.
+- The full EventSearch regression suite passed: 82 tests, 281 assertions.
+- No database indexes were added; EXPLAIN output remains a later delivery artifact.
