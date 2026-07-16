@@ -310,3 +310,15 @@
 
 - Fixed all three PHPStan errors from the linked run, corrected PostgreSQL JSON selector quoting, and aligned stale tests with the current event, saved-search, ticketing, signals, and tag contracts.
 - Verification passed: PHPStan, Pint, and the affected Pest set (67 tests / 357 assertions).
+
+# Architecture product roadmap execution — A1
+
+- [x] Record the canonical execution decisions and boundaries in ADR-014.
+- [x] Link ADR-014 from the implementation roadmap.
+- [x] Verify documentation formatting and whitespace.
+
+### Review
+
+- A1 is documentation-only; no application source or tests were changed.
+- ADR-014 records the owner, date, decisions, consequences, non-negotiables, and
+  non-goals required by the roadmap.
