@@ -1,11 +1,13 @@
 <?php
 
+use AIArmada\Events\Models\EventAttribute;
 use App\Enums\EventEscalationType;
 use App\Jobs\EscalatePendingEvents;
 use App\Models\Event;
 use App\Models\EventEscalation;
 use App\Models\User;
 use App\Notifications\EventEscalationNotification;
+use App\States\EventStatus\Transitions\ApproveEvent;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Notification;
@@ -175,4 +177,44 @@ it('excludes non-pending, started, and resolved matching escalations', function 
         ->and($resolved->fresh()->escalations)->toHaveCount(1)
         ->and(EventEscalation::query()->count())->toBe(1);
     Notification::assertNothingSent();
+});
+
+it('backfills historical escalation metadata idempotently', function (): void {
+    $event = pendingEventAt(now()->subDays(3));
+
+    EventAttribute::create([
+        'event_id' => $event->id,
+        'attribute_key' => 'is_priority',
+        'attribute_value' => '1',
+    ]);
+    EventAttribute::create([
+        'event_id' => $event->id,
+        'attribute_key' => 'escalated_at',
+        'attribute_value' => now()->subDays(2)->toIso8601String(),
+    ]);
+
+    $this->artisan('events:backfill-escalations')->assertSuccessful();
+    $this->artisan('events:backfill-escalations')->assertSuccessful();
+
+    expect($event->fresh()->escalations)->toHaveCount(2)
+        ->and($event->fresh()->escalations->pluck('type')->map(fn ($type) => $type->value)->all())
+        ->toEqualCanonicalizing([
+            EventEscalationType::Priority->value,
+            EventEscalationType::ModeratorSla->value,
+        ]);
+});
+
+it('resolves unresolved escalations when a pending event is approved', function (): void {
+    $moderator = User::factory()->create();
+    $event = pendingEventAt(now()->subDays(3));
+
+    $escalation = EventEscalation::create([
+        'event_id' => $event->id,
+        'type' => EventEscalationType::ModeratorSla,
+        'decision_key' => $event->id.':moderator_sla',
+    ]);
+
+    (new ApproveEvent($event, $moderator))->handle();
+
+    expect($escalation->fresh()->resolved_at)->not->toBeNull();
 });

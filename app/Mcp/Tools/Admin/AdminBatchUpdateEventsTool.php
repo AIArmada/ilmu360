@@ -337,7 +337,6 @@ class AdminBatchUpdateEventsTool extends AbstractAdminWriteTool
             'status' => $schema->string()->enum(['draft', 'pending', 'approved']),
             'registration_required' => $schema->boolean(),
             'registration_mode' => $schema->string()->enum($this->enumValues(RegistrationScope::class)),
-            'is_priority' => $schema->boolean(),
             'is_featured' => $schema->boolean(),
         ]);
 

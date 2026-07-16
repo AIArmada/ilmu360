@@ -1,8 +1,10 @@
 <?php
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use App\Enums\EventEscalationType;
 use App\Filament\Pages\ModerationQueue;
 use App\Models\Event;
+use App\Models\EventEscalation;
 use App\Models\Institution;
 use App\Models\Reference;
 use App\Models\Speaker;
@@ -55,7 +57,7 @@ it('does not expose a redundant event status column in moderation queue', functi
     Livewire::actingAs($moderator)
         ->test(ModerationQueue::class)
         ->assertTableColumnDoesNotExist('status')
-        ->assertTableColumnExists('is_priority')
+        ->assertTableColumnExists('priority')
         ->assertTableColumnExists('venue.name');
 });
 
@@ -66,16 +68,20 @@ it('shows priority events first in moderation queue', function () {
     $priorityEvent = Event::factory()->create([
         'title' => 'Priority Queue Event',
         'status' => 'pending',
-        'is_priority' => true,
         'starts_at' => now()->addHours(5),
         'created_at' => now()->subDays(2),
         'updated_at' => now()->subDays(2),
     ]);
 
+    EventEscalation::create([
+        'event_id' => $priorityEvent->id,
+        'type' => EventEscalationType::Priority,
+        'decision_key' => $priorityEvent->id.':priority',
+    ]);
+
     $normalEvent = Event::factory()->create([
         'title' => 'Normal Queue Event',
         'status' => 'pending',
-        'is_priority' => false,
         'starts_at' => now()->addHour(),
         'created_at' => now(),
         'updated_at' => now(),

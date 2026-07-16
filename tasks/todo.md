@@ -369,12 +369,16 @@
 
 # Architecture product roadmap execution — B3
 
-- [ ] Resolve the documented conflict between the B3 absence check and the
-  roadmap’s public-contract preservation rule.
+- [x] Remove legacy escalation fields from active app, API, MCP, Filament, and test
+  contracts with no compatibility aliases or fallback reads.
+- [x] Add the idempotent historical backfill command and conditional column-removal
+  migration.
+- [x] Resolve unresolved escalation records on every pending-exit transition.
+- [x] Move moderation priority presentation and ordering to canonical escalations.
+- [x] Verify focused Pest suites, PHPStan, Pint, whitespace, command registration,
+  and the forbidden-state absence search.
 
 ### Review
 
-- Blocked by the current app/API/MCP/Filament use of `is_priority` and
-  `escalated_at`, plus the absence of corresponding `events.*` columns in the
-  current schema. Evidence is recorded in
-  `tasks/architecture-product-roadmap-blockers.md`.
+- The user authorized the hard cut; the former blocker is resolved and the evidence
+  and decision are retained in `tasks/architecture-product-roadmap-blockers.md`.

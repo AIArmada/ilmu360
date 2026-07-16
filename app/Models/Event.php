@@ -49,7 +49,6 @@ use App\States\EventStatus\EventStatus;
 use App\States\EventStatus\Pending;
 use App\Support\Authz\MemberPermissionGate;
 use App\Support\Timezone\UserDateTimeFormatter;
-use Carbon\CarbonInterface;
 use Database\Factories\EventFactory;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
@@ -116,8 +115,6 @@ use Spatie\ModelStates\HasStates;
  * @property int|null $going_count
  * @property Carbon|null $published_at
  * @property array<string, mixed>|null $metadata
- * @property Carbon|null $escalated_at
- * @property bool|null $is_priority
  * @property bool|null $is_featured
  * @property bool|null $is_muslim_only
  * @property-read Institution|null $institution
@@ -283,7 +280,6 @@ class Event extends PackageEvent implements AuditableContract
         'title',
         'slug',
         'description',
-        'escalated_at',
         'starts_at',
         'ends_at',
         'schedule_kind',
@@ -321,7 +317,6 @@ class Event extends PackageEvent implements AuditableContract
         'metadata',
         'is_featured',
         'is_muslim_only',
-        'is_priority',
     ];
 
     #[\Override]
@@ -909,7 +904,7 @@ class Event extends PackageEvent implements AuditableContract
         $this->pendingAudienceProfileWrites = [];
     }
 
-    // ─── EventAttribute (is_featured, is_priority, escalated_at) ────────────
+    // ─── EventAttribute (is_featured) ──────────────────────────────────────
 
     public function getIsFeaturedAttribute(mixed $value): ?bool
     {
@@ -924,65 +919,10 @@ class Event extends PackageEvent implements AuditableContract
         return $attr === null ? null : $attr !== '0';
     }
 
-    public function getIsPriorityAttribute(mixed $value): ?bool
-    {
-        if (array_key_exists('is_priority', $this->pendingAttributeWrites)) {
-            return $this->pendingAttributeWrites['is_priority'];
-        }
-
-        $val = $this->relationLoaded('attributes')
-            ? $this->getRelation('attributes')->firstWhere('attribute_key', 'is_priority')?->attribute_value
-            : EventAttribute::where('event_id', $this->id)->where('attribute_key', 'is_priority')->value('attribute_value');
-
-        return $val === null ? null : $val !== '0';
-    }
-
-    public function getEscalatedAtAttribute(mixed $value): mixed
-    {
-        if (array_key_exists('escalated_at', $this->pendingAttributeWrites)) {
-            $pending = $this->pendingAttributeWrites['escalated_at'];
-
-            if ($pending instanceof CarbonInterface) {
-                return Carbon::parse($pending->toIso8601String());
-            }
-
-            if (is_string($pending) && $pending !== '') {
-                return Carbon::parse($pending);
-            }
-
-            return $pending;
-        }
-
-        $raw = EventAttribute::query()
-            ->where('event_id', $this->id)
-            ->where('attribute_key', 'escalated_at')
-            ->value('attribute_value');
-
-        if ($raw instanceof CarbonInterface) {
-            return Carbon::parse($raw->toIso8601String());
-        }
-
-        if (is_string($raw) && $raw !== '') {
-            return Carbon::parse($raw);
-        }
-
-        return null;
-    }
-
     public function setIsFeaturedAttribute(mixed $value): void
     {
         // Single source: EventAttribute rows (synced on save).
         $this->pendingAttributeWrites['is_featured'] = $value === null ? null : (bool) $value;
-    }
-
-    public function setIsPriorityAttribute(mixed $value): void
-    {
-        $this->pendingAttributeWrites['is_priority'] = $value === null ? null : (bool) $value;
-    }
-
-    public function setEscalatedAtAttribute(mixed $value): void
-    {
-        $this->pendingAttributeWrites['escalated_at'] = $value;
     }
 
     /**
@@ -998,7 +938,7 @@ class Event extends PackageEvent implements AuditableContract
 
         foreach ($writes as $key => $value) {
             match ($key) {
-                'is_featured', 'is_priority' => $value === null
+                'is_featured' => $value === null
                     ? EventAttribute::query()
                         ->where('event_id', $this->id)
                         ->where('attribute_key', $key)
@@ -1006,15 +946,6 @@ class Event extends PackageEvent implements AuditableContract
                     : EventAttribute::updateOrCreate(
                         ['event_id' => $this->id, 'attribute_key' => $key],
                         ['attribute_value' => $value ? '1' : '0'],
-                    ),
-                'escalated_at' => $value === null
-                    ? EventAttribute::query()
-                        ->where('event_id', $this->id)
-                        ->where('attribute_key', $key)
-                        ->delete()
-                    : EventAttribute::updateOrCreate(
-                        ['event_id' => $this->id, 'attribute_key' => $key],
-                        ['attribute_value' => $value instanceof CarbonInterface ? $value->toIso8601String() : (string) $value],
                     ),
                 default => null,
             };
@@ -1969,6 +1900,13 @@ class Event extends PackageEvent implements AuditableContract
     public function escalations(): HasMany
     {
         return $this->hasMany(EventEscalation::class);
+    }
+
+    public function resolveEscalations(): void
+    {
+        $this->escalations()
+            ->whereNull('resolved_at')
+            ->update(['resolved_at' => now()]);
     }
 
     /**

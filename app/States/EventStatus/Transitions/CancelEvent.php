@@ -53,6 +53,7 @@ class CancelEvent extends Transition implements HasColor, HasIcon, HasLabel
             $this->event->cancelled_at = now();
             $this->event->last_state_change_at = now();
             $this->event->save();
+            $this->event->resolveEscalations();
 
             // Cancelled events remain searchable so users can still discover status updates.
             $this->event->searchable();

@@ -22,7 +22,6 @@ use App\Support\Events\AdminEventTimeMapper;
 use App\Support\Media\ModelMediaSyncService;
 use BackedEnum;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -66,7 +65,6 @@ final readonly class SaveAdminEventAction
             'other_key_people' => [],
             'registration_required' => false,
             'registration_mode' => RegistrationMode::None->value,
-            'is_priority' => false,
             'is_featured' => false,
             'clear_cover' => false,
             'clear_poster' => false,
@@ -141,11 +139,7 @@ final readonly class SaveAdminEventAction
                 ->all(),
             'registration_required' => (bool) $event->accessPolicy?->registration_required,
             'registration_mode' => $event->resolvedRegistrationMode()->value,
-            'is_priority' => (bool) $event->is_priority,
             'is_featured' => (bool) $event->is_featured,
-            'escalated_at' => $event->escalated_at instanceof Carbon
-                ? $event->escalated_at->toDateTimeString()
-                : null,
             'clear_cover' => false,
             'clear_poster' => false,
             'clear_gallery' => false,
@@ -220,11 +214,9 @@ final readonly class SaveAdminEventAction
             'institution_id' => $institutionId,
             'venue_id' => $venueId,
             'space_id' => $spaceId,
-            'is_priority' => array_key_exists('is_priority', $state) ? (bool) $state['is_priority'] : (bool) $event->is_priority,
             'is_featured' => array_key_exists('is_featured', $state) ? (bool) $state['is_featured'] : (bool) $event->is_featured,
             'status' => $creating ? 'draft' : (string) $event->status,
             'published_at' => $creating ? null : $event->published_at,
-            'escalated_at' => $this->normalizeOptionalDateTime($state['escalated_at'] ?? $event->escalated_at),
         ];
 
         $attributes['slug'] = $this->generateSlug($attributes, $state, $event, $creating);
@@ -584,19 +576,6 @@ final readonly class SaveAdminEventAction
             ->unique()
             ->values()
             ->all();
-    }
-
-    private function normalizeOptionalDateTime(mixed $value): ?Carbon
-    {
-        if ($value instanceof Carbon) {
-            return $value->utc();
-        }
-
-        if (! is_scalar($value) || trim((string) $value) === '') {
-            return null;
-        }
-
-        return Carbon::parse((string) $value)->utc();
     }
 
     private function normalizeEventStatus(mixed $value, string $fallback): string

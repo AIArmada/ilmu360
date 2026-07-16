@@ -1755,9 +1755,7 @@ class AdminResourceMutationService
             $this->field('clear_cover', 'boolean', required: false, default: false),
             $this->field('clear_poster', 'boolean', required: false, default: false),
             $this->field('clear_gallery', 'boolean', required: false, default: false),
-            $this->field('is_priority', 'boolean', required: false, default: false),
             $this->field('is_featured', 'boolean', required: false, default: false),
-            $this->field('escalated_at', 'datetime', required: false),
             $this->field('registration_required', 'boolean', required: false, default: false),
             $this->field('registration_mode', 'string', required: false, default: RegistrationScope::Event->value, allowedValues: $this->enumValues(RegistrationScope::class), meta: [
                 'mutation_semantics' => 'replace_setting_with_runtime_lock',
@@ -2299,9 +2297,7 @@ class AdminResourceMutationService
             'clear_cover' => ['sometimes', 'boolean'],
             'clear_poster' => ['sometimes', 'boolean'],
             'clear_gallery' => ['sometimes', 'boolean'],
-            'is_priority' => ['sometimes', 'boolean'],
             'is_featured' => ['sometimes', 'boolean'],
-            'escalated_at' => ['nullable', 'date'],
             'registration_required' => ['sometimes', 'boolean'],
             'registration_mode' => ['sometimes', Rule::enum(RegistrationScope::class)],
         ];

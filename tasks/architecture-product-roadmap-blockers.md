@@ -2,7 +2,7 @@
 
 ## B3 — Legacy escalation state cutover
 
-**Status:** blocked pending a product-contract decision
+**Status:** resolved on 2026-07-16
 
 ### Conflict
 
@@ -32,13 +32,12 @@ fields or their UI behavior.
 - No migration currently declares `events.is_priority` or `events.escalated_at`;
   the active legacy values are stored in `event_attributes`.
 
-### Required decision
+### Resolution
 
-Choose one explicitly before B3 implementation continues:
-
-1. Authorize a public/admin/MCP contract change and a coordinated removal of these
-   fields from all listed surfaces; or
-2. Narrow B3 to remove only lifecycle reads from the job and preserve the existing
-   priority/admin presentation contract, updating the absence check accordingly.
-
-No alias, dual write, fallback read, or substitute cutover was added.
+The user authorized a coordinated public/admin/MCP/Filament removal and explicitly
+confirmed that no backward compatibility or legacy support is required. B3 therefore
+removed the fields from active contracts, moved moderation priority ordering to
+canonical `EventEscalation` records, added the idempotent backfill command and
+pending-exit resolution hooks, and added the conditional column-removal migration.
+The only remaining references are the isolated backfill command, its migration, and
+the historical metadata fixture in the focused backfill test.

@@ -56,6 +56,7 @@ class RejectEvent extends Transition implements HasColor, HasIcon, HasLabel
             $this->event->status = Rejected::class;
             $this->event->last_state_change_at = now();
             $this->event->save();
+            $this->event->resolveEscalations();
 
             // Remove from search
             $this->event->unsearchable();

@@ -48,6 +48,7 @@ class ApproveEvent extends Transition implements HasColor, HasIcon, HasLabel
             $this->event->published_at = now();
             $this->event->last_state_change_at = now();
             $this->event->save();
+            $this->event->resolveEscalations();
 
             // Auto-verify pending related records (by approving the event, moderator implicitly verifies these entities)
             $this->verifyPendingRelatedRecords($this->event);

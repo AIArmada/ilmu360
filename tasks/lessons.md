@@ -334,3 +334,9 @@
 # Subagent model preference
 
 - Use Luna high only for audit subagents. Do not assign Luna xhigh unless the user explicitly changes this preference.
+# Architecture roadmap lesson — hard-cut legacy removal
+
+- When the roadmap explicitly authorizes a hard cut and the user confirms there is
+  no backward-compatibility requirement, remove legacy fields and callers across
+  app, API, MCP, Filament, tests, and schema in the same slice; do not retain
+  aliases, fallback reads, or dual writes.

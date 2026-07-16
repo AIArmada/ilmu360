@@ -4,6 +4,7 @@ namespace App\Filament\Pages;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\FilamentEvents\Resources\EventResource;
+use App\Enums\EventEscalationType;
 use App\Models\Event;
 use App\Services\ModerationService;
 use App\States\EventStatus\Approved;
@@ -120,9 +121,13 @@ class ModerationQueue extends Page implements HasTable
         return $table
             ->query(fn (): Builder => $this->getTableQuery())
             ->columns([
-                IconColumn::make('is_priority')
+                IconColumn::make('priority')
                     ->label('Priority')
                     ->boolean()
+                    ->state(fn (Event $record): bool => $record->escalations->contains(
+                        fn ($escalation): bool => $escalation->type === EventEscalationType::Priority
+                            && $escalation->resolved_at === null,
+                    ))
                     ->trueIcon('heroicon-o-exclamation-triangle')
                     ->falseIcon('heroicon-o-minus')
                     ->trueColor('danger')
@@ -415,7 +420,7 @@ class ModerationQueue extends Page implements HasTable
     protected function getTableQuery(): Builder
     {
         $query = Event::query()
-            ->with(['institution', 'venue', 'speakers', 'references', 'addresses.country', 'latestModerationReview'])
+            ->with(['institution', 'venue', 'speakers', 'references', 'addresses.country', 'latestModerationReview', 'escalations'])
             ->withCount([
                 'reports as open_reports_count' => fn (Builder $reportQuery) => $reportQuery->where('status', 'open'),
             ]);
@@ -429,7 +434,10 @@ class ModerationQueue extends Page implements HasTable
         };
 
         return $query
-            ->orderByRaw("(select attribute_value from event_attributes where event_attributes.event_id = events.id and event_attributes.attribute_key = 'is_priority' limit 1) desc")
+            ->orderByRaw(
+                'case when exists (select 1 from event_escalations where event_escalations.event_id = events.id and event_escalations.type = ? and event_escalations.resolved_at is null) then 1 else 0 end desc',
+                [EventEscalationType::Priority->value],
+            )
             ->orderBy('starts_at')
             ->orderByDesc('events.created_at');
     }

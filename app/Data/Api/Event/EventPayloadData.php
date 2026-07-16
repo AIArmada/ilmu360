@@ -65,7 +65,6 @@ class EventPayloadData extends Data
             'saves_count' => $event->saves_count,
             'registrations_count' => $event->registrations_count,
             'going_count' => $event->going_count,
-            'is_priority' => $event->is_priority,
             'is_featured' => $event->is_featured,
             'published_at' => self::utcDateTimeString($event->published_at),
             'is_muslim_only' => $event->is_muslim_only,
