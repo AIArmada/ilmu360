@@ -3,13 +3,9 @@
 namespace App\Actions\Events;
 
 use AIArmada\Addressing\Support\AddressCountryResolver;
-use AIArmada\Contacting\Enums\ContactMethodType;
-use AIArmada\Contacting\Enums\ContactPurpose;
-use AIArmada\Events\Enums\RegistrationMode;
 use AIArmada\Events\Models\EventSession;
 use App\Contracts\CaptchaVerifier;
 use App\Data\Events\ValidatedEventSubmission;
-use App\Enums\DawahShareOutcomeType;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
@@ -21,14 +17,12 @@ use App\Models\EventSubmission;
 use App\Models\Institution;
 use App\Models\Speaker;
 use App\Models\User;
-use App\Services\ModerationService;
-use App\Services\ShareTrackingService;
-use App\States\EventStatus\Pending;
 use App\Support\Submission\EntitySubmissionAccess;
 use BackedEnum;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
 
@@ -38,10 +32,9 @@ class SubmitFrontendEventAction
 
     public function __construct(
         private readonly EntitySubmissionAccess $entitySubmissionAccess,
-        private readonly ModerationService $moderationService,
-        private readonly ShareTrackingService $shareTrackingService,
         private readonly CaptchaVerifier $turnstileVerifier,
         private readonly PersistValidatedEventSubmissionAction $persistValidatedSubmission,
+        private readonly CompleteFrontendEventSubmissionAction $completeSubmission,
     ) {}
 
     /**
@@ -169,36 +162,22 @@ class SubmitFrontendEventAction
             eventContainer: $eventContainer,
             speakerSlugSegments: $speakerSlugSegments,
         );
-        $persisted = $this->persistValidatedSubmission->handle($validatedSubmission, $persistRelationships);
+        $persisted = DB::transaction(fn (): array => $this->persistValidatedSubmission->handle($validatedSubmission, $persistRelationships));
         $event = $persisted['event'];
         $session = $persisted['session'];
         $submission = $persisted['submission'];
 
-        $this->shareTrackingService->recordOutcome(
-            type: DawahShareOutcomeType::EventSubmission,
-            outcomeKey: 'event_submission:submission:'.$submission->getKey(),
-            subject: $event,
-            actor: $submitter,
-            request: $request,
-            metadata: [
-                'submission_id' => $submission->getKey(),
-                'submitted_by' => $submission->submitter_id,
-            ],
-        );
-
-        if (! $submitter instanceof User) {
-            $this->storeSubmitterContacts($submission, $validated);
-        }
-
-        if (! $isSessionSubmission) {
-            $this->persistRegistrationSettings($event);
-        }
-
-        if ($autoApproved) {
-            $this->moderationService->approve($event, null, 'Auto-approved from institution dashboard submission.');
-        } elseif ((string) $event->status === 'draft') {
-            $event->status->transitionTo(Pending::class);
-        }
+        DB::afterCommit(function () use ($event, $submission, $validated, $request, $submitter, $isSessionSubmission, $autoApproved): void {
+            $this->completeSubmission->handle(
+                event: $event,
+                submission: $submission,
+                state: $validated,
+                request: $request,
+                submitter: $submitter,
+                sessionSubmission: $isSessionSubmission,
+                autoApproved: $autoApproved,
+            );
+        });
 
         $visibility = $event->visibility;
 
@@ -538,36 +517,6 @@ class SubmitFrontendEventAction
         return null;
     }
 
-    /**
-     * @param  array{submitter_email?: string|null, submitter_phone?: string|null}  $validated
-     */
-    private function storeSubmitterContacts(EventSubmission $submission, array $validated): void
-    {
-        $email = $validated['submitter_email'] ?? null;
-        $phone = $validated['submitter_phone'] ?? null;
-        $order = 1;
-
-        if (filled($email)) {
-            $submission->contactMethods()->create([
-                'type' => ContactMethodType::Email->value,
-                'purpose' => ContactPurpose::General->value,
-                'value' => $email,
-                'is_public' => false,
-                'sort_order' => $order++,
-            ]);
-        }
-
-        if (filled($phone)) {
-            $submission->contactMethods()->create([
-                'type' => ContactMethodType::Phone->value,
-                'purpose' => ContactPurpose::General->value,
-                'value' => $phone,
-                'is_public' => false,
-                'sort_order' => $order++,
-            ]);
-        }
-    }
-
     private function assertCaptchaIsValid(Request $request, ?string $captchaToken, string $validationKeyPrefix = ''): void
     {
         if (! $this->turnstileVerifier->verify($captchaToken, $request->ip())) {
@@ -575,21 +524,6 @@ class SubmitFrontendEventAction
                 $this->validationKey('captcha_token', $validationKeyPrefix) => __('Sila lengkapkan pengesahan keselamatan sebelum menghantar.'),
             ]);
         }
-    }
-
-    private function persistRegistrationSettings(Event $event): void
-    {
-        $event->forceFill([
-            'registration_mode' => RegistrationMode::None->value,
-        ])->save();
-
-        $event->accessPolicy()->updateOrCreate(
-            ['event_id' => $event->getKey()],
-            [
-                'registration_required' => false,
-                'walk_in_allowed' => true,
-            ],
-        );
     }
 
     /**

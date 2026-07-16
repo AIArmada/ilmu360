@@ -476,3 +476,20 @@
 - Location coverage passed: 7 tests, 23 assertions.
 - End-time coverage passed: 13 tests, 68 assertions.
 - PHPStan passed for the extracted action, command, and coordinator.
+
+# Architecture product roadmap execution — D3
+
+- [x] Add a named after-commit submission workflow for sharing, contacts,
+  registration defaults, moderation, and lifecycle handoff.
+- [x] Wrap validated event/session/submission persistence in a transaction.
+- [x] Schedule side effects only after the transaction commits while preserving
+  existing return payloads and user-visible behavior.
+- [x] Verify submission notification and all SubmitEvent-named feature coverage,
+  PHPStan, Pint, and whitespace.
+
+### Review
+
+- The submission regression pass passed: 65 tests, 310 assertions.
+- Notification coverage passed: 2 tests, 12 assertions.
+- The workflow is constructor-injected and the coordinator no longer owns the
+  duplicated contact/registration side-effect helpers.
