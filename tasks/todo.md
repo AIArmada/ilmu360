@@ -351,3 +351,18 @@
   mechanical formatting to the existing escalation test file.
 - The migration has no foreign-key constraints, cascades, soft deletes, or legacy
   escalation columns.
+
+# Architecture product roadmap execution — B2
+
+- [x] Capture one job timestamp and process pending events in chunks.
+- [x] Persist each canonical decision before queuing notifications and ignore
+  duplicate decision keys on rerun.
+- [x] Implement the four exact threshold windows, recipient groups, and exclusions.
+- [x] Remove all legacy escalation-state reads/writes from the job.
+- [x] Verify focused Pest, PHPStan, Pint, and whitespace checks.
+
+### Review
+
+- Focused Pest passed: 6 tests, 20 assertions, in parallel.
+- The existing notification keys and recipient groups remain intact while the
+  persisted decision types use the canonical enum values.

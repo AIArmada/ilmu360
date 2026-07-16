@@ -1,215 +1,155 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Jobs;
 
+use App\Enums\EventEscalationType;
 use App\Models\Event;
+use App\Models\EventEscalation;
 use App\Models\User;
 use App\Notifications\EventEscalationNotification;
+use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 
 class EscalatePendingEvents implements ShouldQueue
 {
     use Queueable;
 
-    /**
-     * Execute the job.
-     *
-     * Two escalation dimensions:
-     *
-     * 1. TIME FROM SUBMISSION (SLA-based):
-     *    - Pending > 48 hours: notify moderators
-     *    - Pending > 72 hours: notify super admin
-     *
-     * 2. TIME TO EVENT START (Urgency-based):
-     *    - Starts within 24 hours and still pending: notify moderators
-     *    - Starts within 6 hours and still pending: mark as priority + urgent notification
-     */
     public function handle(): void
     {
-        // SLA-based escalations (time from submission)
-        $this->escalateToModerators();
-        $this->escalateToSuperAdmin();
+        $now = now()->toImmutable();
+        $moderators = null;
+        $superAdmins = null;
 
-        // Urgency-based escalations (time to event start)
-        $this->notifyUrgentEvents();
-        $this->markPriorityEvents();
-    }
-
-    /**
-     * SLA: Notify moderators for events pending > 48 hours since submission.
-     */
-    private function escalateToModerators(): void
-    {
-        $events = Event::query()
+        Event::query()
             ->where('status', 'pending')
-            ->where('created_at', '<=', now()->subHours(48))
-            ->where(fn ($query) => $this->whereNotEscalated($query))
-            ->get();
-
-        if ($events->isEmpty()) {
-            return;
-        }
-
-        $moderators = User::role('moderator')->get();
-
-        foreach ($events as $event) {
-            Log::info("SLA Escalation: Event {$event->id} pending > 48 hours - notifying moderators");
-
-            $event->update(['escalated_at' => now()]);
-
-            foreach ($moderators as $moderator) {
-                $moderator->notify(new EventEscalationNotification($event, '48_hours'));
-            }
-        }
-    }
-
-    /**
-     * SLA: Notify super admin for events pending > 72 hours since submission.
-     * Only escalates events that were already escalated to moderators 24+ hours ago.
-     */
-    private function escalateToSuperAdmin(): void
-    {
-        $cutoff = now()->subHours(24)->toIso8601String();
-
-        $events = Event::query()
-            ->where('status', 'pending')
-            ->where('created_at', '<=', now()->subHours(72))
-            ->whereExists(function ($attributeQuery) use ($cutoff): void {
-                $attributeQuery
-                    ->selectRaw('1')
-                    ->from('event_attributes')
-                    ->whereColumn('event_attributes.event_id', 'events.id')
-                    ->where('event_attributes.attribute_key', 'escalated_at')
-                    ->whereNotNull('event_attributes.attribute_value')
-                    ->where('event_attributes.attribute_value', '!=', '')
-                    ->where('event_attributes.attribute_value', '<=', $cutoff);
+            ->where(function (Builder $query) use ($now): void {
+                $query->whereNull('starts_at')->orWhere('starts_at', '>', $now);
             })
-            ->get();
-
-        if ($events->isEmpty()) {
-            return;
-        }
-
-        $superAdmins = User::role('super_admin')->get();
-
-        foreach ($events as $event) {
-            Log::warning("SLA Escalation: Event {$event->id} pending > 72 hours - notifying super admin");
-
-            foreach ($superAdmins as $admin) {
-                $admin->notify(new EventEscalationNotification($event, '72_hours'));
-            }
-
-            // Update escalated_at to prevent repeated notifications
-            $event->update(['escalated_at' => now()]);
-        }
+            ->chunkById(100, function (Collection $events) use ($now, &$moderators, &$superAdmins): void {
+                foreach ($events as $event) {
+                    $this->processEvent($event, $now, $moderators, $superAdmins);
+                }
+            });
     }
 
     /**
-     * URGENCY: Notify moderators about events starting within 24 hours that are still pending.
-     * This catches events that haven't triggered SLA escalation yet but are time-sensitive.
+     * @param  Collection<int, User>|null  $moderators
+     * @param  Collection<int, User>|null  $superAdmins
      */
-    private function notifyUrgentEvents(): void
-    {
-        $events = Event::query()
-            ->where('status', 'pending')
-            ->where('starts_at', '<=', now()->addHours(24))
-            ->where('starts_at', '>', now()->addHours(6)) // Not yet priority
-            ->where('starts_at', '>', now()) // Not past
-            ->where(fn ($query) => $this->whereNotPriority($query))
-            ->where(fn ($query) => $this->whereNotEscalated($query))
-            ->get();
-
-        if ($events->isEmpty()) {
-            return;
+    private function processEvent(
+        Event $event,
+        CarbonImmutable $now,
+        ?Collection &$moderators,
+        ?Collection &$superAdmins,
+    ): void {
+        if ($event->created_at?->lte($now->subHours(48))) {
+            $moderators ??= User::role('moderator')->get();
+            $this->escalate(
+                $event,
+                EventEscalationType::ModeratorSla,
+                'Pending moderation reached the 48-hour SLA.',
+                '48_hours',
+                $moderators,
+                $now,
+            );
         }
 
-        $moderators = User::role('moderator')->get();
+        if (
+            $event->created_at?->lte($now->subHours(72))
+            && $this->moderatorEscalationReached($event, $now)
+        ) {
+            $superAdmins ??= User::role('super_admin')->get();
+            $this->escalate(
+                $event,
+                EventEscalationType::SuperAdminSla,
+                'Pending moderation reached the 72-hour SLA.',
+                '72_hours',
+                $superAdmins,
+                $now,
+            );
+        }
 
-        foreach ($events as $event) {
-            $hoursUntilStart = now()->diffInHours($event->starts_at);
-            Log::info("Urgency Alert: Event {$event->id} starts in {$hoursUntilStart} hours - notifying moderators");
+        if ($event->starts_at?->gt($now) && $event->starts_at->lte($now->addHours(24)) && $event->starts_at->gt($now->addHours(6))) {
+            $moderators ??= User::role('moderator')->get();
+            $this->escalate(
+                $event,
+                EventEscalationType::Imminent,
+                'Pending event starts within 24 hours.',
+                'urgent',
+                $moderators,
+                $now,
+            );
+        }
 
-            $event->update(['escalated_at' => now()]);
-
-            foreach ($moderators as $moderator) {
-                $moderator->notify(new EventEscalationNotification($event, 'urgent'));
-            }
+        if ($event->starts_at?->gt($now) && $event->starts_at->lte($now->addHours(6))) {
+            $moderators ??= User::role('moderator')->get();
+            $superAdmins ??= User::role('super_admin')->get();
+            $this->escalate(
+                $event,
+                EventEscalationType::Priority,
+                'Pending event starts within 6 hours.',
+                'priority',
+                $moderators->merge($superAdmins),
+                $now,
+            );
         }
     }
 
-    /**
-     * URGENCY: Mark events starting within 6 hours as priority.
-     * These need immediate attention - event is imminent.
-     */
-    private function markPriorityEvents(): void
+    private function moderatorEscalationReached(Event $event, CarbonImmutable $now): bool
     {
-        $events = Event::query()
-            ->where('status', 'pending')
-            ->where('starts_at', '<=', now()->addHours(6))
-            ->where('starts_at', '>', now()) // Not past
-            ->where(fn ($query) => $this->whereNotPriority($query))
-            ->get();
+        return $event->escalations()
+            ->where('type', EventEscalationType::ModeratorSla->value)
+            ->whereNull('resolved_at')
+            ->where('created_at', '<=', $now->subHours(24))
+            ->exists();
+    }
 
-        if ($events->isEmpty()) {
-            return;
-        }
+    /**
+     * @param  Collection<int, User>  $recipients
+     */
+    private function escalate(
+        Event $event,
+        EventEscalationType $type,
+        string $reason,
+        string $notificationType,
+        Collection $recipients,
+        CarbonImmutable $now,
+    ): void {
+        $decisionKey = $event->id.':'.$type->value;
 
-        $moderators = User::role('moderator')->get();
-        $superAdmins = User::role('super_admin')->get();
-
-        foreach ($events as $event) {
-            $hoursUntilStart = now()->diffInHours($event->starts_at);
-            Log::warning("PRIORITY: Event {$event->id} starts in {$hoursUntilStart} hours - marking as priority");
-
-            $event->update([
-                'is_priority' => true,
-                'escalated_at' => now(),
+        try {
+            $escalation = EventEscalation::create([
+                'event_id' => $event->id,
+                'type' => $type,
+                'decision_key' => $decisionKey,
+                'reason' => $reason,
             ]);
-
-            // Notify both moderators AND super admins for priority events
-            foreach ($moderators as $moderator) {
-                $moderator->notify(new EventEscalationNotification($event, 'priority'));
+        } catch (QueryException $exception) {
+            if (! EventEscalation::query()->where('decision_key', $decisionKey)->exists()) {
+                throw $exception;
             }
 
-            foreach ($superAdmins as $admin) {
-                $admin->notify(new EventEscalationNotification($event, 'priority'));
-            }
+            return;
         }
-    }
 
-    /**
-     * @param  Builder<Event>  $query
-     * @return Builder<Event>
-     */
-    private function whereNotEscalated($query)
-    {
-        return $query->whereNotExists(function ($attributeQuery): void {
-            $attributeQuery
-                ->selectRaw('1')
-                ->from('event_attributes')
-                ->whereColumn('event_attributes.event_id', 'events.id')
-                ->where('event_attributes.attribute_key', 'escalated_at')
-                ->whereNotNull('event_attributes.attribute_value')
-                ->where('event_attributes.attribute_value', '!=', '');
-        });
-    }
+        Log::info('Event escalation recorded.', [
+            'event_id' => $event->id,
+            'type' => $type->value,
+        ]);
 
-    /**
-     * @param  Builder<Event>  $query
-     * @return Builder<Event>
-     */
-    private function whereNotPriority($query)
-    {
-        return $query->whereNotExists(function ($attributeQuery): void {
-            $attributeQuery
-                ->selectRaw('1')
-                ->from('event_attributes')
-                ->whereColumn('event_attributes.event_id', 'events.id')
-                ->where('event_attributes.attribute_key', 'is_priority')
-                ->where('event_attributes.attribute_value', '1');
-        });
+        foreach ($recipients as $recipient) {
+            $recipient->notify(new EventEscalationNotification($event, $notificationType));
+        }
+
+        if ($recipients->isNotEmpty()) {
+            $escalation->update(['dispatched_at' => $now]);
+        }
     }
 }

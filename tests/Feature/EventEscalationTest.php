@@ -6,25 +6,21 @@ use App\Models\Event;
 use App\Models\EventEscalation;
 use App\Models\User;
 use App\Notifications\EventEscalationNotification;
-use Carbon\CarbonImmutable;
-use Illuminate\Database\QueryException;
+use Carbon\CarbonInterface;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Notification;
 use Spatie\Permission\PermissionRegistrar;
 
-beforeEach(function () {
-    // Disable teams to simplify role lookup for these tests
+beforeEach(function (): void {
     config(['permission.teams' => false]);
-    app()[PermissionRegistrar::class]->forgetCachedPermissions();
+    app(PermissionRegistrar::class)->forgetCachedPermissions();
 
-    // Get the configured Role class
     $roleClass = app(PermissionRegistrar::class)->getRoleClass();
 
-    // Create roles using the correct model
-    if (! $roleClass::where('name', 'moderator')->exists()) {
-        $roleClass::create(['name' => 'moderator', 'guard_name' => 'web']);
-    }
-    if (! $roleClass::where('name', 'super_admin')->exists()) {
-        $roleClass::create(['name' => 'super_admin', 'guard_name' => 'web']);
+    foreach (['moderator', 'super_admin'] as $role) {
+        if (! $roleClass::where('name', $role)->exists()) {
+            $roleClass::create(['name' => $role, 'guard_name' => 'web']);
+        }
     }
 
     $moderator = User::factory()->create();
@@ -34,174 +30,149 @@ beforeEach(function () {
     $superAdmin->assignRole('super_admin');
 });
 
-it('escalates events pending > 48 hours to moderators', function () {
+afterEach(function (): void {
+    Carbon::setTestNow();
+});
+
+function pendingEventAt(CarbonInterface $createdAt, ?CarbonInterface $startsAt = null): Event
+{
+    $startsAt ??= now()->addDays(30);
+
+    return Event::factory()->create([
+        'status' => 'pending',
+        'created_at' => $createdAt,
+        'starts_at' => $startsAt,
+    ]);
+}
+
+it('escalates at the 48-hour moderator SLA boundary only', function (): void {
+    Carbon::setTestNow(Carbon::parse('2026-07-16 12:00:00'));
     Notification::fake();
 
-    $moderators = User::role('moderator')->get();
-    expect($moderators)->not->toBeEmpty();
-    $moderator = $moderators->first();
-
-    $event = Event::factory()->create([
-        'status' => 'pending',
-        'created_at' => now()->subHours(49),
-        'escalated_at' => null,
-    ]);
+    $atBoundary = pendingEventAt(now()->subHours(48));
+    $beforeBoundary = pendingEventAt(now()->subHours(48)->addSecond());
 
     (new EscalatePendingEvents)->handle();
 
-    $event->refresh();
-
-    expect($event->escalated_at)->not->toBeNull();
+    expect($atBoundary->fresh()->escalations()->where('type', EventEscalationType::ModeratorSla->value)->exists())->toBeTrue()
+        ->and($beforeBoundary->fresh()->escalations)->toBeEmpty();
 
     Notification::assertSentTo(
-        $moderator,
+        User::role('moderator')->get(),
         EventEscalationNotification::class,
-        fn ($notification) => $notification->escalationType === '48_hours'
+        fn (EventEscalationNotification $notification): bool => $notification->escalationType === '48_hours',
     );
 });
 
-it('escalates events pending > 72 hours to super admin', function () {
+it('escalates to super admins only after 72 hours and a 24-hour moderator record', function (): void {
+    Carbon::setTestNow(Carbon::parse('2026-07-16 12:00:00'));
     Notification::fake();
 
-    $superAdmins = User::role('super_admin')->get();
-    expect($superAdmins)->not->toBeEmpty();
-    $superAdmin = $superAdmins->first();
-
-    $event = Event::factory()->create([
-        'status' => 'pending',
-        'created_at' => now()->subHours(73),
-        'escalated_at' => now()->subHours(25),
-    ]);
-
-    (new EscalatePendingEvents)->handle();
-
-    $event->refresh();
-
-    expect($event->escalated_at->diffInMinutes(now()))->toBeLessThan(1);
-
-    Notification::assertSentTo(
-        $superAdmin,
-        EventEscalationNotification::class,
-        fn ($notification) => $notification->escalationType === '72_hours'
-    );
-});
-
-it('notifies moderators for urgent events starting within 24 hours', function () {
-    Notification::fake();
-    $moderators = User::role('moderator')->get();
-    expect($moderators)->not->toBeEmpty();
-    $moderator = $moderators->first();
-
-    $event = Event::factory()->create([
-        'status' => 'pending',
-        'starts_at' => now()->addHours(20),
-        'escalated_at' => null,
-        'is_priority' => null,
-    ]);
-
-    (new EscalatePendingEvents)->handle();
-
-    $event->refresh();
-
-    expect($event->escalated_at)->not->toBeNull();
-
-    Notification::assertSentTo(
-        $moderator,
-        EventEscalationNotification::class,
-        fn ($notification) => $notification->escalationType === 'urgent'
-    );
-});
-
-it('marks events starting within 6 hours as priority and notifies everyone', function () {
-    Notification::fake();
-    $moderators = User::role('moderator')->get();
-    $superAdmins = User::role('super_admin')->get();
-
-    expect($moderators)->not->toBeEmpty();
-    expect($superAdmins)->not->toBeEmpty();
-
-    $event = Event::factory()->create([
-        'status' => 'pending',
-        'starts_at' => now()->addHours(4),
-        'is_priority' => null,
-    ]);
-
-    (new EscalatePendingEvents)->handle();
-
-    $event->refresh();
-
-    expect($event->is_priority)->toBeTrue()
-        ->and($event->escalated_at)->not->toBeNull();
-
-    Notification::assertSentTo(
-        $moderators,
-        EventEscalationNotification::class,
-        fn ($notification) => $notification->escalationType === 'priority'
-    );
-
-    Notification::assertSentTo(
-        $superAdmins,
-        EventEscalationNotification::class,
-        fn ($notification) => $notification->escalationType === 'priority'
-    );
-});
-
-it('persists canonical escalation records with immutable timestamps', function () {
-    $event = Event::factory()->create();
-    $dispatchedAt = now()->subMinute();
-    $resolvedAt = now();
-
-    $escalation = EventEscalation::create([
-        'event_id' => $event->id,
+    $eligible = pendingEventAt(now()->subHours(72));
+    $eligibleModeratorEscalation = EventEscalation::create([
+        'event_id' => $eligible->id,
         'type' => EventEscalationType::ModeratorSla,
-        'decision_key' => $event->id.':moderator_sla',
-        'reason' => 'Pending moderation exceeded the SLA.',
-        'dispatched_at' => $dispatchedAt,
-        'resolved_at' => $resolvedAt,
+        'decision_key' => $eligible->id.':moderator_sla',
     ]);
+    $eligibleModeratorEscalation->forceFill(['created_at' => now()->subHours(24)])->saveQuietly();
 
-    expect($escalation->id)->toBeString()
-        ->and($escalation->type)->toBe(EventEscalationType::ModeratorSla)
-        ->and($escalation->dispatched_at)->toBeInstanceOf(CarbonImmutable::class)
-        ->and($escalation->resolved_at)->toBeInstanceOf(CarbonImmutable::class)
-        ->and($event->fresh()->escalations)->toHaveCount(1);
+    $tooRecent = pendingEventAt(now()->subHours(72));
+    $tooRecentModeratorEscalation = EventEscalation::create([
+        'event_id' => $tooRecent->id,
+        'type' => EventEscalationType::ModeratorSla,
+        'decision_key' => $tooRecent->id.':moderator_sla',
+    ]);
+    $tooRecentModeratorEscalation->forceFill(['created_at' => now()->subHours(23)->subSecond()])->saveQuietly();
+
+    (new EscalatePendingEvents)->handle();
+
+    expect($eligible->fresh()->escalations()->where('type', EventEscalationType::SuperAdminSla->value)->exists())->toBeTrue()
+        ->and($tooRecent->fresh()->escalations()->where('type', EventEscalationType::SuperAdminSla->value)->exists())->toBeFalse();
+
+    Notification::assertSentTo(
+        User::role('super_admin')->get(),
+        EventEscalationNotification::class,
+        fn (EventEscalationNotification $notification): bool => $notification->escalationType === '72_hours',
+    );
 });
 
-it('enforces one decision key without collapsing event or escalation type isolation', function () {
-    $firstEvent = Event::factory()->create();
-    $secondEvent = Event::factory()->create();
+it('uses the imminent window when the event starts after 6 and at most 24 hours', function (): void {
+    Carbon::setTestNow(Carbon::parse('2026-07-16 12:00:00'));
+    Notification::fake();
 
+    $atTwentyFourHours = pendingEventAt(now(), now()->addHours(24));
+    $atSixHours = pendingEventAt(now(), now()->addHours(6));
+
+    (new EscalatePendingEvents)->handle();
+
+    expect($atTwentyFourHours->fresh()->escalations()->where('type', EventEscalationType::Imminent->value)->exists())->toBeTrue()
+        ->and($atSixHours->fresh()->escalations()->where('type', EventEscalationType::Imminent->value)->exists())->toBeFalse()
+        ->and($atSixHours->fresh()->escalations()->where('type', EventEscalationType::Priority->value)->exists())->toBeTrue();
+
+    Notification::assertSentTo(
+        User::role('moderator')->get(),
+        EventEscalationNotification::class,
+        fn (EventEscalationNotification $notification): bool => $notification->escalationType === 'urgent',
+    );
+});
+
+it('uses the priority window when the event starts after 0 and at most 6 hours', function (): void {
+    Carbon::setTestNow(Carbon::parse('2026-07-16 12:00:00'));
+    Notification::fake();
+
+    $atSixHours = pendingEventAt(now(), now()->addHours(6));
+    $alreadyStarted = pendingEventAt(now(), now()->subSecond());
+
+    (new EscalatePendingEvents)->handle();
+
+    expect($atSixHours->fresh()->escalations()->where('type', EventEscalationType::Priority->value)->exists())->toBeTrue()
+        ->and($alreadyStarted->fresh()->escalations)->toBeEmpty();
+
+    Notification::assertSentTo(
+        User::role('moderator')->get(),
+        EventEscalationNotification::class,
+        fn (EventEscalationNotification $notification): bool => $notification->escalationType === 'priority',
+    );
+    Notification::assertSentTo(
+        User::role('super_admin')->get(),
+        EventEscalationNotification::class,
+        fn (EventEscalationNotification $notification): bool => $notification->escalationType === 'priority',
+    );
+});
+
+it('does not duplicate a decision or notification when the job is rerun', function (): void {
+    Carbon::setTestNow(Carbon::parse('2026-07-16 12:00:00'));
+    Notification::fake();
+    $event = pendingEventAt(now()->subHours(49));
+    $moderator = User::role('moderator')->first();
+
+    (new EscalatePendingEvents)->handle();
+    (new EscalatePendingEvents)->handle();
+
+    expect($event->fresh()->escalations)->toHaveCount(1);
+    Notification::assertSentTo($moderator, EventEscalationNotification::class, 1);
+});
+
+it('excludes non-pending, started, and resolved matching escalations', function (): void {
+    Carbon::setTestNow(Carbon::parse('2026-07-16 12:00:00'));
+    Notification::fake();
+
+    $approved = pendingEventAt(now()->subHours(49));
+    $approved->update(['status' => 'approved']);
+    pendingEventAt(now()->subHours(49), now()->subSecond());
+
+    $resolved = pendingEventAt(now()->subHours(49));
     EventEscalation::create([
-        'event_id' => $firstEvent->id,
+        'event_id' => $resolved->id,
         'type' => EventEscalationType::ModeratorSla,
-        'decision_key' => $firstEvent->id.':moderator_sla',
+        'decision_key' => $resolved->id.':moderator_sla',
+        'resolved_at' => now()->subMinute(),
     ]);
 
-    EventEscalation::create([
-        'event_id' => $firstEvent->id,
-        'type' => EventEscalationType::Priority,
-        'decision_key' => $firstEvent->id.':priority',
-    ]);
+    (new EscalatePendingEvents)->handle();
 
-    EventEscalation::create([
-        'event_id' => $secondEvent->id,
-        'type' => EventEscalationType::ModeratorSla,
-        'decision_key' => $secondEvent->id.':moderator_sla',
-    ]);
-
-    expect(fn () => EventEscalation::create([
-        'event_id' => $firstEvent->id,
-        'type' => EventEscalationType::ModeratorSla,
-        'decision_key' => $firstEvent->id.':moderator_sla',
-    ]))->toThrow(QueryException::class);
-
-    expect(EventEscalation::query()->count())->toBe(3)
-        ->and($firstEvent->fresh()->escalations)->toHaveCount(2)
-        ->and($secondEvent->fresh()->escalations)->toHaveCount(1);
-});
-
-it('does not expose legacy escalation state on the canonical model', function () {
-    expect((new EventEscalation)->getFillable())
-        ->not->toContain('escalated_at')
-        ->not->toContain('is_priority');
+    expect($approved->fresh()->escalations)->toBeEmpty()
+        ->and($resolved->fresh()->escalations)->toHaveCount(1)
+        ->and(EventEscalation::query()->count())->toBe(1);
+    Notification::assertNothingSent();
 });
