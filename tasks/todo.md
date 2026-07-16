@@ -382,3 +382,21 @@
 
 - The user authorized the hard cut; the former blocker is resolved and the evidence
   and decision are retained in `tasks/architecture-product-roadmap-blockers.md`.
+
+# Architecture product roadmap execution — C1
+
+- [x] Add immutable `EventDiscoveryCriteria` with normalized search, dates, geography,
+  relation filters, nearby coordinates, pagination, and backend requirement state.
+- [x] Add a criteria factory that trims empty values, normalizes UUID inputs, and
+  resolves date-only boundaries through the user-timezone formatter.
+- [x] Build criteria at the existing search facade boundary without extracting or
+  changing query executors.
+- [x] Verify focused criteria tests, full EventSearch regression tests, PHPStan,
+  Pint, and whitespace.
+
+### Review
+
+- Criteria-focused Typesense suite passed: 9 tests, 19 assertions.
+- EventSearch regression suite passed: 82 tests, 281 assertions.
+- The existing direct `EventSearchService` subclass tests remain compatible because
+  the factory dependency is optional.

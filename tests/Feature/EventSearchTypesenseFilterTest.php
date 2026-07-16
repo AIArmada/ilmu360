@@ -1,11 +1,38 @@
 <?php
 
+use App\Data\EventDiscoveryCriteriaFactory;
 use App\Services\EventSearchService;
 use App\Support\Search\InstitutionSearchService;
 use App\Support\Search\ReferenceSearchService;
 use App\Support\Search\SpeakerSearchService;
 use App\Support\Search\TypesenseHealthCheckService;
 use Illuminate\Support\Str;
+
+test('discovery criteria are normalized deterministically before search execution', function () {
+    $factory = new EventDiscoveryCriteriaFactory;
+    $countryId = (string) Str::uuid();
+    $filters = [
+        'country_id' => $countryId,
+        'state_id' => 'not-a-uuid',
+        'speaker_ids' => [$countryId, 'invalid'],
+        'starts_after' => '2026-07-16',
+        'starts_before' => '2026-07-20',
+        'venue_id' => $countryId,
+        'empty' => '   ',
+    ];
+
+    $first = $factory->fromSearch('  tafsir  ', $filters, 20, 'time');
+    $second = $factory->fromSearch(' tafsir ', $filters, 20, 'time');
+
+    expect($first)->toEqual($second)
+        ->and($first->text)->toBe('tafsir')
+        ->and($first->countryId)->toBe($countryId)
+        ->and($first->stateId)->toBeNull()
+        ->and($first->relationFilters['speaker_ids'])->toBe([$countryId])
+        ->and($first->startsAfterUtc?->getTimezone()->getName())->toBe('UTC')
+        ->and($first->requiresDatabaseFiltering)->toBeTrue()
+        ->and($first->filters)->not->toHaveKey('empty');
+});
 
 /**
  * @return array{0: TypesenseHealthCheckService, 1: SpeakerSearchService, 2: InstitutionSearchService, 3: ReferenceSearchService}

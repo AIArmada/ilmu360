@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use AIArmada\Events\Models\EventLanguage;
+use App\Data\EventDiscoveryCriteria;
+use App\Data\EventDiscoveryCriteriaFactory;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventPrayerTime;
 use App\Enums\EventVisibility;
@@ -36,6 +38,7 @@ class EventSearchService
         private readonly SpeakerSearchService $speakerSearch,
         private readonly InstitutionSearchService $institutionSearch,
         private readonly ReferenceSearchService $referenceSearch,
+        private readonly EventDiscoveryCriteriaFactory $criteriaFactory = new EventDiscoveryCriteriaFactory,
     ) {}
 
     /**
@@ -73,11 +76,13 @@ class EventSearchService
         int $perPage = 20,
         string $sort = 'time'
     ): LengthAwarePaginator {
-        if ($this->usesDefaultSearchCache($query, $filters, $perPage, $sort)) {
+        $criteria = $this->criteriaFactory->fromSearch($query, $filters, $perPage, $sort);
+
+        if ($this->usesDefaultSearchCache($criteria)) {
             return $this->cachedDefaultSearch($perPage);
         }
 
-        return $this->performSearch($query, $filters, $perPage, $sort);
+        return $this->performSearch($criteria->text, $criteria->filters, $criteria->perPage, $criteria->sort);
     }
 
     /**
@@ -107,16 +112,13 @@ class EventSearchService
         return $this->searchWithDatabase($query, $filters, $perPage, $sort);
     }
 
-    /**
-     * @param  array<string, mixed>  $filters
-     */
-    private function usesDefaultSearchCache(?string $query, array $filters, int $perPage, string $sort): bool
+    private function usesDefaultSearchCache(EventDiscoveryCriteria $criteria): bool
     {
-        return in_array($query, [null, '', '0'], true)
-            && $filters === []
-            && $perPage === 12
-            && $sort === 'time'
-            && Paginator::resolveCurrentPage() === 1;
+        return $criteria->text === null
+            && $criteria->filters === []
+            && $criteria->perPage === 12
+            && $criteria->sort === 'time'
+            && $criteria->page === 1;
     }
 
     /**
@@ -266,8 +268,10 @@ class EventSearchService
         array $filters = [],
         int $perPage = 20
     ): LengthAwarePaginator {
-        if ($this->requiresDatabaseFiltering($filters)) {
-            return $this->searchNearbyWithDatabase($lat, $lng, $radiusKm, $filters, $perPage);
+        $criteria = $this->criteriaFactory->fromSearch(null, $filters, $perPage, 'distance', $lat, $lng, $radiusKm);
+
+        if ($criteria->requiresDatabaseFiltering) {
+            return $this->searchNearbyWithDatabase($criteria->latitude ?? $lat, $criteria->longitude ?? $lng, $criteria->radiusKm ?? $radiusKm, $criteria->filters, $criteria->perPage);
         }
 
         if (config('scout.driver') === 'typesense') {
@@ -278,7 +282,7 @@ class EventSearchService
 
                 $filterBy = implode(' && ', [
                     "location:({$lat}, {$lng}, {$radiusKm} km)",
-                    ...$this->buildTypesenseFilterParts($filters),
+                    ...$this->buildTypesenseFilterParts($criteria->filters),
                 ]);
 
                 $search->options([
@@ -286,13 +290,13 @@ class EventSearchService
                     'sort_by' => "location({$lat}, {$lng}):asc",
                 ]);
 
-                return $search->paginate($perPage);
+                return $search->paginate($criteria->perPage);
             } catch (\Exception $e) {
                 Log::warning('Typesense geo search failed', ['error' => $e->getMessage()]);
             }
         }
 
-        return $this->searchNearbyWithDatabase($lat, $lng, $radiusKm, $filters, $perPage);
+        return $this->searchNearbyWithDatabase($criteria->latitude ?? $lat, $criteria->longitude ?? $lng, $criteria->radiusKm ?? $radiusKm, $criteria->filters, $criteria->perPage);
     }
 
     /**
@@ -309,25 +313,26 @@ class EventSearchService
         array $filters = [],
         int $perPage = 20
     ): LengthAwarePaginator {
-        $normalizedQuery = $this->normalizeSearchQuery($query);
+        $criteria = $this->criteriaFactory->fromSearch($query, $filters, $perPage, 'distance', $lat, $lng, $radiusKm);
+        $normalizedQuery = $this->normalizeSearchQuery($criteria->text);
 
         if ($normalizedQuery === null) {
-            return $this->searchNearby($lat, $lng, $radiusKm, $filters, $perPage);
+            return $this->searchNearby($criteria->latitude ?? $lat, $criteria->longitude ?? $lng, $criteria->radiusKm ?? $radiusKm, $criteria->filters, $criteria->perPage);
         }
 
-        if ($this->requiresDatabaseFiltering($filters)) {
-            return $this->searchNearbyWithDatabaseQuery($normalizedQuery, $lat, $lng, $radiusKm, $filters, $perPage);
+        if ($criteria->requiresDatabaseFiltering) {
+            return $this->searchNearbyWithDatabaseQuery($normalizedQuery, $criteria->latitude ?? $lat, $criteria->longitude ?? $lng, $criteria->radiusKm ?? $radiusKm, $criteria->filters, $criteria->perPage);
         }
 
         if (config('scout.driver') === 'typesense' && $this->healthCheck->isAvailable()) {
             try {
-                return $this->searchNearbyWithTypesenseQuery($normalizedQuery, $lat, $lng, $radiusKm, $filters, $perPage);
+                return $this->searchNearbyWithTypesenseQuery($normalizedQuery, $criteria->latitude ?? $lat, $criteria->longitude ?? $lng, $criteria->radiusKm ?? $radiusKm, $criteria->filters, $criteria->perPage);
             } catch (\Exception $e) {
                 Log::warning('Typesense geo query search failed', ['error' => $e->getMessage()]);
             }
         }
 
-        return $this->searchNearbyWithDatabaseQuery($normalizedQuery, $lat, $lng, $radiusKm, $filters, $perPage);
+        return $this->searchNearbyWithDatabaseQuery($normalizedQuery, $criteria->latitude ?? $lat, $criteria->longitude ?? $lng, $criteria->radiusKm ?? $radiusKm, $criteria->filters, $criteria->perPage);
     }
 
     /**
