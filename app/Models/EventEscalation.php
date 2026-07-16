@@ -22,6 +22,7 @@ final class EventEscalation extends Model
         'resolved_at',
     ];
 
+    #[\Override]
     protected function casts(): array
     {
         return [

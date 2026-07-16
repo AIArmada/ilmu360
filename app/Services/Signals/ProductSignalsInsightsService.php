@@ -79,7 +79,7 @@ final readonly class ProductSignalsInsightsService
     {
         $discoveryEvents = $events->filter(fn (SignalEvent $event): bool => in_array($event->event_name, ['search.executed', 'listing.filtered'], true));
         $zeroResultEvents = $discoveryEvents->filter(fn (SignalEvent $event): bool => (int) data_get($event->properties, 'result_count', -1) === 0);
-        $keyFor = fn (SignalEvent $event): string => (string) data_get($event->properties, 'surface', 'unknown').' · '.implode(',', (array) data_get($event->properties, 'filter_keys', []));
+        $keyFor = fn (SignalEvent $event): string => data_get($event->properties, 'surface', 'unknown').' · '.implode(',', (array) data_get($event->properties, 'filter_keys', []));
         $zeroResultFilters = $zeroResultEvents->groupBy($keyFor)->map(fn (Collection $group, string $key): array => ['key' => $key, 'count' => $group->count()])->sortByDesc('count')->take(10)->values()->all();
 
         $searches = $discoveryEvents->count();

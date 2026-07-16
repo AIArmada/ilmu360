@@ -9,7 +9,7 @@ use App\Models\Event;
 use Closure;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
-final class TypesenseEventDiscovery
+final readonly class TypesenseEventDiscovery
 {
     /**
      * @param  Closure(EventDiscoveryCriteria): LengthAwarePaginator<int, Event>  $search
@@ -17,9 +17,9 @@ final class TypesenseEventDiscovery
      * @param  Closure(EventDiscoveryCriteria): LengthAwarePaginator<int, Event>  $nearbyWithQuery
      */
     public function __construct(
-        private readonly Closure $search,
-        private readonly Closure $nearby,
-        private readonly Closure $nearbyWithQuery,
+        private Closure $search,
+        private Closure $nearby,
+        private Closure $nearbyWithQuery,
     ) {}
 
     /** @return LengthAwarePaginator<int, Event> */

@@ -214,7 +214,7 @@ it('resolves unresolved escalations when a pending event is approved', function 
         'decision_key' => $event->id.':moderator_sla',
     ]);
 
-    (new ApproveEvent($event, $moderator))->handle();
+    new ApproveEvent($event, $moderator)->handle();
 
     expect($escalation->fresh()->resolved_at)->not->toBeNull();
 });

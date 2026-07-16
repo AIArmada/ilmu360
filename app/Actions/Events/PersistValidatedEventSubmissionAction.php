@@ -20,13 +20,13 @@ use App\Models\User;
 use App\Services\EventKeyPersonSyncService;
 use Illuminate\Validation\ValidationException;
 
-final class PersistValidatedEventSubmissionAction
+final readonly class PersistValidatedEventSubmissionAction
 {
     public function __construct(
-        private readonly CreateEventSessionAction $createEventSession,
-        private readonly GenerateEventSlugAction $generateEventSlug,
-        private readonly EventKeyPersonSyncService $eventKeyPersonSync,
-        private readonly SyncEventClassificationsAction $syncClassifications,
+        private CreateEventSessionAction $createEventSession,
+        private GenerateEventSlugAction $generateEventSlug,
+        private EventKeyPersonSyncService $eventKeyPersonSync,
+        private SyncEventClassificationsAction $syncClassifications,
     ) {}
 
     /**

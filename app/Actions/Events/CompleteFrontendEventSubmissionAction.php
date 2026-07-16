@@ -16,11 +16,11 @@ use App\Services\ShareTrackingService;
 use App\States\EventStatus\Pending;
 use Illuminate\Http\Request;
 
-final class CompleteFrontendEventSubmissionAction
+final readonly class CompleteFrontendEventSubmissionAction
 {
     public function __construct(
-        private readonly ShareTrackingService $shareTracking,
-        private readonly ModerationService $moderation,
+        private ShareTrackingService $shareTracking,
+        private ModerationService $moderation,
     ) {}
 
     /**

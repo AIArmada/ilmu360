@@ -8,11 +8,10 @@ declare(strict_types=1);
  * Dry run (also documents the report shape):
  *   php scripts/publish_pest_timing_report.php --dry-run
  */
-
 final class PestTimingReport
 {
     /**
-     * @param array<string, string> $options
+     * @param  array<string, string>  $options
      * @return list<array{file: string, elapsed_seconds: float, shard: string, php_version: string, driver: string, worker_count: int}>
      */
     public function rows(array $options): array
@@ -32,8 +31,8 @@ final class PestTimingReport
         $files = [];
         $inputDirectory = $options['input-dir'] ?? 'artifacts/pest-timing';
 
-        foreach (glob(rtrim($inputDirectory, '/') . '/*.xml') ?: [] as $path) {
-            $document = new DOMDocument();
+        foreach (glob(rtrim($inputDirectory, '/').'/*.xml') ?: [] as $path) {
+            $document = new DOMDocument;
             $document->preserveWhiteSpace = false;
 
             if (! @$document->load($path)) {
@@ -64,7 +63,7 @@ final class PestTimingReport
     }
 
     /**
-     * @param list<array{file: string, elapsed_seconds: float, shard: string, php_version: string, driver: string, worker_count: int}> $rows
+     * @param  list<array{file: string, elapsed_seconds: float, shard: string, php_version: string, driver: string, worker_count: int}>  $rows
      */
     public function writeCsv(array $rows, string $path): void
     {
@@ -94,7 +93,7 @@ final class PestTimingReport
     }
 
     /**
-     * @param list<array{file: string, elapsed_seconds: float, shard: string, php_version: string, driver: string, worker_count: int}> $rows
+     * @param  list<array{file: string, elapsed_seconds: float, shard: string, php_version: string, driver: string, worker_count: int}>  $rows
      */
     public function writeSummary(array $rows, string $path): void
     {
@@ -125,7 +124,7 @@ final class PestTimingReport
         if (! str_starts_with($path, 'php://')) {
             $this->ensureParentDirectory($path);
         }
-        file_put_contents($path, implode(PHP_EOL, $lines) . PHP_EOL);
+        file_put_contents($path, implode(PHP_EOL, $lines).PHP_EOL);
     }
 
     /**
@@ -157,7 +156,7 @@ final class PestTimingReport
     }
 }
 
-$report = new PestTimingReport();
+$report = new PestTimingReport;
 $options = $report->options(array_slice($argv, 1));
 $rows = $report->rows($options);
 

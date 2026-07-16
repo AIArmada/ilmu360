@@ -93,7 +93,7 @@ final class EventDiscoveryCriteriaFactory
     private function normalizeValue(mixed $value): mixed
     {
         if (is_array($value)) {
-            return array_values(array_filter(array_map(fn (mixed $item): mixed => $this->normalizeValue($item), $value), static fn (mixed $item): bool => $item !== null));
+            return array_values(array_filter(array_map($this->normalizeValue(...), $value), static fn (mixed $item): bool => $item !== null));
         }
 
         if (is_string($value)) {
