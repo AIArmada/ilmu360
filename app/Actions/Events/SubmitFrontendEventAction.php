@@ -5,9 +5,7 @@ namespace App\Actions\Events;
 use AIArmada\Addressing\Support\AddressCountryResolver;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
-use AIArmada\Events\Actions\CreateEventSessionAction;
 use AIArmada\Events\Enums\RegistrationMode;
-use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
 use App\Contracts\CaptchaVerifier;
 use App\Data\Events\ValidatedEventSubmission;
@@ -23,7 +21,6 @@ use App\Models\EventSubmission;
 use App\Models\Institution;
 use App\Models\Speaker;
 use App\Models\User;
-use App\Services\EventKeyPersonSyncService;
 use App\Services\ModerationService;
 use App\Services\ShareTrackingService;
 use App\States\EventStatus\Pending;
@@ -41,10 +38,10 @@ class SubmitFrontendEventAction
 
     public function __construct(
         private readonly EntitySubmissionAccess $entitySubmissionAccess,
-        private readonly EventKeyPersonSyncService $eventKeyPersonSyncService,
         private readonly ModerationService $moderationService,
         private readonly ShareTrackingService $shareTrackingService,
         private readonly CaptchaVerifier $turnstileVerifier,
+        private readonly PersistValidatedEventSubmissionAction $persistValidatedSubmission,
     ) {}
 
     /**
@@ -172,112 +169,10 @@ class SubmitFrontendEventAction
             eventContainer: $eventContainer,
             speakerSlugSegments: $speakerSlugSegments,
         );
-        $session = null;
-
-        $event = $validatedSubmission->eventContainer ?? Event::query()->create(array_merge([
-            'title' => $validatedSubmission->state['title'],
-            'slug' => app(GenerateEventSlugAction::class)->handle(
-                (string) $validatedSubmission->state['title'],
-                $validatedSubmission->state['event_date'] ?? null,
-                $validatedSubmission->timezone,
-                null,
-                $speakerSlugSegments,
-            ),
-            'description' => $validatedSubmission->state['description'] ?? null,
-            'timezone' => $validatedSubmission->timezone,
-            'starts_at' => $validatedSubmission->startsAt,
-            'ends_at' => $validatedSubmission->endsAt,
-            'institution_id' => $validatedSubmission->targetInstitutionId,
-            'venue_id' => $validatedSubmission->targetVenueId,
-            'space_id' => $validatedSubmission->state['space_id'] ?? null,
-            'event_type' => $validatedSubmission->state['event_type'] ?? [EventType::KuliahCeramah->value],
-            'gender' => $validatedSubmission->state['gender'] ?? EventGenderRestriction::All->value,
-            'age_group' => $validatedSubmission->state['age_group'] ?? [EventAgeGroup::AllAges->value],
-            'children_allowed' => $validatedSubmission->state['children_allowed'] ?? true,
-            'is_muslim_only' => $validatedSubmission->state['is_muslim_only'] ?? false,
-            'timing_mode' => $validatedSubmission->prayerTime?->isCustomTime() ? 'absolute' : 'prayer_relative',
-            'prayer_reference' => $validatedSubmission->prayerReference,
-            'prayer_offset' => $validatedSubmission->prayerOffset,
-            'prayer_display_text' => $validatedSubmission->prayerDisplayText,
-            'event_format' => $validatedSubmission->state['event_format'] ?? EventFormat::Physical->value,
-            'event_url' => $validatedSubmission->state['event_url'] ?? null,
-            'live_url' => $validatedSubmission->state['live_url'] ?? null,
-            'visibility' => $validatedSubmission->state['visibility'] ?? EventVisibility::Public->value,
-            'submitter_id' => $validatedSubmission->submitter?->getKey(),
-        ], $validatedSubmission->autoApproved ? ['status' => 'pending'] : []));
-
-        if ($isSessionSubmission) {
-            $occurrence = $event->primaryOccurrence;
-
-            if (! $occurrence instanceof EventOccurrence) {
-                throw ValidationException::withMessages([
-                    $this->validationKey('event_id', $validationKeyPrefix) => __('The selected event has no occurrence for this session.'),
-                ]);
-            }
-
-            $session = app(CreateEventSessionAction::class)->handle($occurrence, [
-                'title' => $validated['title'],
-                'slug' => app(GenerateEventSlugAction::class)->handle(
-                    (string) $validated['title'],
-                    $validated['event_date'] ?? null,
-                    $timezone,
-                    null,
-                    $speakerSlugSegments,
-                ),
-                'summary' => $validated['description'] ?? null,
-                'description' => $validated['description'] ?? null,
-                'starts_at' => $startsAt,
-                'ends_at' => $endsAt,
-                'timezone' => $timezone,
-                'visibility' => $validated['visibility'] ?? $event->visibility,
-                'delivery_mode' => $event->delivery_mode,
-            ]);
-        }
-
-        $event->setPrimaryOrganizer($primaryOrganizer);
-
-        if (! empty($validated['space_id']) && ! empty($event->institution_id)) {
-            $institution = Institution::query()->find($event->institution_id);
-
-            if (
-                $institution instanceof Institution
-                && ! $institution->spaces()->where('spaces.id', $validated['space_id'])->exists()
-            ) {
-                $institution->spaces()->attach($validated['space_id']);
-            }
-        }
-
-        $this->eventKeyPersonSyncService->sync(
-            $event,
-            $validated['speakers'] ?? [],
-            $validated['other_key_people'] ?? [],
-        );
-
-        if (! empty($validated['languages'])) {
-            $event->syncLanguages($validated['languages']);
-        }
-
-        app(SyncEventClassificationsAction::class)->handle($event, $validated);
-
-        if ($persistRelationships !== null) {
-            $persistRelationships($event);
-        }
-
-        $submissionData = [
-            'submitter_name' => $validated['submitter_name'] ?? $submitter?->name,
-        ];
-        if (isset($validated['notes'])) {
-            $submissionData['notes'] = $validated['notes'];
-        }
-
-        $submission = EventSubmission::query()->create([
-            'event_id' => $event->getKey(),
-            'status' => 'pending',
-            'submitted_at' => now(),
-            'submission_data' => $submissionData,
-            'submitter_type' => $submitter instanceof User ? User::class : null,
-            'submitter_id' => $submitter?->getKey(),
-        ]);
+        $persisted = $this->persistValidatedSubmission->handle($validatedSubmission, $persistRelationships);
+        $event = $persisted['event'];
+        $session = $persisted['session'];
+        $submission = $persisted['submission'];
 
         $this->shareTrackingService->recordOutcome(
             type: DawahShareOutcomeType::EventSubmission,

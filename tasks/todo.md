@@ -456,3 +456,23 @@
 - PHPStan passed for the command and action; Pint passed after mechanical
   formatting.
 - No public form, API, or validation error contract was changed.
+
+# Architecture product roadmap execution — D2
+
+- [x] Extract event/session and submission-record persistence into a dedicated
+  constructor-injected action.
+- [x] Keep organizer/location resolution, online location clearing, relation sync,
+  and classification persistence behavior unchanged.
+- [x] Keep external sharing, contacts, registration setup, moderation, and other
+  side effects outside the persistence action.
+- [x] Verify submission notification, location, and end-time suites, PHPStan, Pint,
+  and whitespace.
+
+### Review
+
+- Added `PersistValidatedEventSubmissionAction` with typed command input and typed
+  event/session/submission output.
+- Notification coverage passed: 2 tests, 12 assertions.
+- Location coverage passed: 7 tests, 23 assertions.
+- End-time coverage passed: 13 tests, 68 assertions.
+- PHPStan passed for the extracted action, command, and coordinator.
