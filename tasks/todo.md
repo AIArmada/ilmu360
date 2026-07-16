@@ -400,3 +400,23 @@
 - EventSearch regression suite passed: 82 tests, 281 assertions.
 - The existing direct `EventSearchService` subclass tests remain compatible because
   the factory dependency is optional.
+
+# Architecture product roadmap execution — C2
+
+- [x] Add explicit PostgreSQL and Typesense discovery executor seams.
+- [x] Route criteria requiring unsupported filters directly to PostgreSQL.
+- [x] Preserve Typesense health checks and database fallback behavior for supported
+  text and nearby searches.
+- [x] Keep cache policy, pagination envelopes, card hydration, and public visibility
+  rules at the application facade boundary.
+- [x] Verify focused Typesense filters, the full EventSearch suite, PHPStan, Pint,
+  and whitespace.
+
+### Review
+
+- The facade now selects `PostgresEventDiscovery` or `TypesenseEventDiscovery` from
+  one normalized criteria object; backend-specific query implementations remain
+  behind those explicit seams.
+- Focused Typesense criteria tests passed: 9 tests, 19 assertions.
+- EventSearch regression suite passed: 82 tests, 281 assertions.
+- PHPStan passed for all three changed services and Pint reported a clean tree.

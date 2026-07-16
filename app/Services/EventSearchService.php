@@ -82,26 +82,19 @@ class EventSearchService
             return $this->cachedDefaultSearch($perPage);
         }
 
-        return $this->performSearch($criteria->text, $criteria->filters, $criteria->perPage, $criteria->sort);
+        return $this->performSearch($criteria);
     }
 
-    /**
-     * @param  array<string, mixed>  $filters
-     * @return LengthAwarePaginator<int, Event>
-     */
-    protected function performSearch(
-        ?string $query = null,
-        array $filters = [],
-        int $perPage = 20,
-        string $sort = 'time'
-    ): LengthAwarePaginator {
-        if ($this->requiresDatabaseFiltering($filters)) {
-            return $this->searchWithDatabase($query, $filters, $perPage, $sort);
+    /** @return LengthAwarePaginator<int, Event> */
+    protected function performSearch(EventDiscoveryCriteria $criteria): LengthAwarePaginator
+    {
+        if ($criteria->requiresDatabaseFiltering) {
+            return $this->postgresDiscovery()->search($criteria);
         }
 
         if (config('scout.driver') === 'typesense' && $this->healthCheck->isAvailable()) {
             try {
-                return $this->searchWithTypesense($query, $filters, $perPage, $sort);
+                return $this->typesenseDiscovery()->search($criteria);
             } catch (\Exception $e) {
                 Log::warning('Typesense search failed, falling back to database', [
                     'error' => $e->getMessage(),
@@ -109,7 +102,25 @@ class EventSearchService
             }
         }
 
-        return $this->searchWithDatabase($query, $filters, $perPage, $sort);
+        return $this->postgresDiscovery()->search($criteria);
+    }
+
+    private function postgresDiscovery(): PostgresEventDiscovery
+    {
+        return new PostgresEventDiscovery(
+            search: fn (EventDiscoveryCriteria $criteria): LengthAwarePaginator => $this->searchWithDatabase($criteria->text, $criteria->filters, $criteria->perPage, $criteria->sort),
+            nearby: fn (EventDiscoveryCriteria $criteria): LengthAwarePaginator => $this->searchNearbyWithDatabase($criteria->latitude ?? 0.0, $criteria->longitude ?? 0.0, (int) ($criteria->radiusKm ?? 0.0), $criteria->filters, $criteria->perPage),
+            nearbyWithQuery: fn (EventDiscoveryCriteria $criteria): LengthAwarePaginator => $this->searchNearbyWithDatabaseQuery($criteria->text ?? '', $criteria->latitude ?? 0.0, $criteria->longitude ?? 0.0, (int) ($criteria->radiusKm ?? 0.0), $criteria->filters, $criteria->perPage),
+        );
+    }
+
+    private function typesenseDiscovery(): TypesenseEventDiscovery
+    {
+        return new TypesenseEventDiscovery(
+            search: fn (EventDiscoveryCriteria $criteria): LengthAwarePaginator => $this->searchWithTypesense($criteria->text, $criteria->filters, $criteria->perPage, $criteria->sort),
+            nearby: fn (EventDiscoveryCriteria $criteria): LengthAwarePaginator => $this->searchNearbyWithTypesense($criteria),
+            nearbyWithQuery: fn (EventDiscoveryCriteria $criteria): LengthAwarePaginator => $this->searchNearbyWithTypesenseQuery($criteria->text ?? '', $criteria->latitude ?? 0.0, $criteria->longitude ?? 0.0, (int) ($criteria->radiusKm ?? 0.0), $criteria->filters, $criteria->perPage),
+        );
     }
 
     private function usesDefaultSearchCache(EventDiscoveryCriteria $criteria): bool
@@ -131,7 +142,7 @@ class EventSearchService
             key: 'default_events_search_v2',
             ttl: 60,
             resolver: function () use ($perPage): array {
-                $paginator = $this->performSearch(null, [], $perPage, 'time');
+                $paginator = $this->performSearch($this->criteriaFactory->fromSearch(null, [], $perPage, 'time'));
 
                 return [
                     'ids' => array_values(array_map(static fn (Event $event): string => (string) $event->getKey(), $paginator->items())),
@@ -213,6 +224,28 @@ class EventSearchService
     }
 
     /**
+     * @return LengthAwarePaginator<int, Event>
+     */
+    protected function searchNearbyWithTypesense(EventDiscoveryCriteria $criteria): LengthAwarePaginator
+    {
+        $lat = $criteria->latitude ?? 0.0;
+        $lng = $criteria->longitude ?? 0.0;
+        $radiusKm = $criteria->radiusKm ?? 0.0;
+        $search = Event::search('');
+
+        $search->query(fn (Builder $builder) => $builder->with($this->cardRelationships()));
+        $search->options([
+            'filter_by' => implode(' && ', [
+                "location:({$lat}, {$lng}, {$radiusKm} km)",
+                ...$this->buildTypesenseFilterParts($criteria->filters),
+            ]),
+            'sort_by' => "location({$lat}, {$lng}):asc",
+        ]);
+
+        return $search->paginate($criteria->perPage);
+    }
+
+    /**
      * Search with database fallback.
      *
      * @param  array<string, mixed>  $filters
@@ -271,32 +304,18 @@ class EventSearchService
         $criteria = $this->criteriaFactory->fromSearch(null, $filters, $perPage, 'distance', $lat, $lng, $radiusKm);
 
         if ($criteria->requiresDatabaseFiltering) {
-            return $this->searchNearbyWithDatabase($criteria->latitude ?? $lat, $criteria->longitude ?? $lng, $criteria->radiusKm ?? $radiusKm, $criteria->filters, $criteria->perPage);
+            return $this->postgresDiscovery()->nearby($criteria);
         }
 
-        if (config('scout.driver') === 'typesense') {
+        if (config('scout.driver') === 'typesense' && $this->healthCheck->isAvailable()) {
             try {
-                $search = Event::search('');
-
-                $search->query(fn (Builder $builder) => $builder->with($this->cardRelationships()));
-
-                $filterBy = implode(' && ', [
-                    "location:({$lat}, {$lng}, {$radiusKm} km)",
-                    ...$this->buildTypesenseFilterParts($criteria->filters),
-                ]);
-
-                $search->options([
-                    'filter_by' => $filterBy,
-                    'sort_by' => "location({$lat}, {$lng}):asc",
-                ]);
-
-                return $search->paginate($criteria->perPage);
+                return $this->typesenseDiscovery()->nearby($criteria);
             } catch (\Exception $e) {
                 Log::warning('Typesense geo search failed', ['error' => $e->getMessage()]);
             }
         }
 
-        return $this->searchNearbyWithDatabase($criteria->latitude ?? $lat, $criteria->longitude ?? $lng, $criteria->radiusKm ?? $radiusKm, $criteria->filters, $criteria->perPage);
+        return $this->postgresDiscovery()->nearby($criteria);
     }
 
     /**
@@ -321,18 +340,18 @@ class EventSearchService
         }
 
         if ($criteria->requiresDatabaseFiltering) {
-            return $this->searchNearbyWithDatabaseQuery($normalizedQuery, $criteria->latitude ?? $lat, $criteria->longitude ?? $lng, $criteria->radiusKm ?? $radiusKm, $criteria->filters, $criteria->perPage);
+            return $this->postgresDiscovery()->nearbyWithQuery($criteria);
         }
 
         if (config('scout.driver') === 'typesense' && $this->healthCheck->isAvailable()) {
             try {
-                return $this->searchNearbyWithTypesenseQuery($normalizedQuery, $criteria->latitude ?? $lat, $criteria->longitude ?? $lng, $criteria->radiusKm ?? $radiusKm, $criteria->filters, $criteria->perPage);
+                return $this->typesenseDiscovery()->nearbyWithQuery($criteria);
             } catch (\Exception $e) {
                 Log::warning('Typesense geo query search failed', ['error' => $e->getMessage()]);
             }
         }
 
-        return $this->searchNearbyWithDatabaseQuery($normalizedQuery, $criteria->latitude ?? $lat, $criteria->longitude ?? $lng, $criteria->radiusKm ?? $radiusKm, $criteria->filters, $criteria->perPage);
+        return $this->postgresDiscovery()->nearbyWithQuery($criteria);
     }
 
     /**
