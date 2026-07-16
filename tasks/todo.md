@@ -550,3 +550,19 @@
 - AI usage logging passed: 4 tests, 48 assertions.
 - Event media extraction passed: 2 tests, 23 assertions.
 - All policy and gated entry-point files pass PHPStan and Pint.
+
+# Architecture product roadmap execution — F2/F3 evidence gate
+
+- [x] Add a reusable evaluator for warning (125%) and failure (150%) duration
+  thresholds, rounded up to whole minutes.
+- [x] Add fixtures for warning, failure, and missing-artifact handling.
+- [ ] Select and optimize the measured slowest setup file after two further green
+  CI runs publish A2 timing artifacts.
+- [ ] Set repository duration budgets from the slower of those two CI baselines and
+  wire enforcement into CI without changing the shard matrix.
+
+### Review
+
+- Budget evaluator tests passed: 2 tests, 5 assertions.
+- The remaining F2/F3 items are intentionally evidence-gated; no guessed baseline,
+  timeout, or shard change was introduced.
