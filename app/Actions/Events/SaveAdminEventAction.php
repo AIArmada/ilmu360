@@ -159,6 +159,10 @@ final readonly class SaveAdminEventAction
             ? array_replace($this->defaultsForCreate(), $data)
             : array_replace($this->formStateForRecord($event), $data);
 
+        if (! $creating && array_key_exists('event_date', $data) && ! array_key_exists('end_date', $data)) {
+            $state['end_date'] = null;
+        }
+
         $this->validateState($state);
 
         $persistence = AdminEventTimeMapper::normalizeForPersistence($state);

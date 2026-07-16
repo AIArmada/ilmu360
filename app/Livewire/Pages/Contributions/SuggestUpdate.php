@@ -569,6 +569,13 @@ class SuggestUpdate extends Component implements HasActions, HasForms
             return $state;
         }
 
+        if (
+            array_key_exists('event_date', $state)
+            && $state['event_date'] !== ($this->originalData['event_date'] ?? null)
+        ) {
+            $state['end_date'] = null;
+        }
+
         return EventContributionUpdateStateMapper::toPersistenceState($state);
     }
 

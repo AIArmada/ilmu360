@@ -399,9 +399,21 @@ class ContributionController extends FrontendController
         $validatedPayload = $this->normalizeSuggestionPayload($entity, $validatedPayload);
 
         $submissionState = $resolveContributionSubmissionStateAction->handle($validatedPayload);
-        $normalizedState = $entity instanceof Event && $submissionState['state'] !== []
-            ? EventContributionUpdateStateMapper::toPersistenceState(array_replace_recursive($publicInitialState, $submissionState['state']))
-            : $submissionState['state'];
+        $normalizedState = $submissionState['state'];
+
+        if ($entity instanceof Event && $normalizedState !== []) {
+            $mergedState = array_replace_recursive($publicInitialState, $normalizedState);
+
+            if (
+                array_key_exists('event_date', $normalizedState)
+                && ! array_key_exists('end_date', $normalizedState)
+                && $normalizedState['event_date'] !== ($publicInitialState['event_date'] ?? null)
+            ) {
+                $mergedState['end_date'] = null;
+            }
+
+            $normalizedState = EventContributionUpdateStateMapper::toPersistenceState($mergedState);
+        }
         $comparableSubmissionState = $entity instanceof Speaker
             ? $this->apiInitialState($entity, $normalizedState)
             : $normalizedState;
