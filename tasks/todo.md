@@ -511,3 +511,23 @@
 - The registry is constructor-injected into `ProductSignalsService`; client context
   remains separately normalized and safe to attach.
 - Existing ingestion failures remain logged and non-blocking.
+
+# Architecture product roadmap execution — E2
+
+- [x] Extend the existing restricted Product Signals admin page with a discovery
+  and moderation scorecard.
+- [x] Aggregate zero-result patterns, supply-gap indicators, search-to-result
+  conversion, median/p90 submission-to-publication timing, and imminent pending
+  events.
+- [x] Keep raw search text out of the scorecard and preserve existing admin-page
+  authorization.
+- [x] Verify scorecard rendering, unauthorized access, PHPStan, Pint, and
+  whitespace.
+
+### Review
+
+- Product Signals admin coverage passed: 10 tests, 42 assertions.
+- The scorecard is available only through the existing admin panel page; no public
+  route or authorization mechanism was added.
+- The existing telemetry view remains intact while the scorecard exposes aggregate
+  operator metrics only.

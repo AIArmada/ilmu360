@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Services\Signals;
 
 use AIArmada\Signals\Models\SignalEvent;
+use App\Models\Event;
+use App\Models\EventSubmission;
 use App\Support\Timezone\UserDateTimeFormatter;
 use Illuminate\Support\Collection;
 
@@ -32,7 +34,8 @@ use Illuminate\Support\Collection;
  *     origin_breakdown: list<ProductSignalsBreakdownRow>,
  *     platform_breakdown: list<ProductSignalsBreakdownRow>,
  *     transport_breakdown: list<ProductSignalsBreakdownRow>,
- *     recent_events: list<ProductSignalsRecentRow>
+ *     recent_events: list<ProductSignalsRecentRow>,
+ *     scorecard: array{zero_result_filters: list<array{key: string, count: int}>, supply_gaps: list<array{key: string, count: int}>, search_to_outcome: array{searches: int, with_results: int, conversion_rate: float}, moderation_minutes: array{median: float, p90: float}, imminent_pending: int}
  * }
  */
 final readonly class ProductSignalsInsightsService
@@ -64,7 +67,63 @@ final readonly class ProductSignalsInsightsService
                 ->map(fn (SignalEvent $event): array => $this->recentEventRow($event))
                 ->values()
                 ->all(),
+            'scorecard' => $this->scorecard($events),
         ];
+    }
+
+    /**
+     * @param  Collection<int, SignalEvent>  $events
+     * @return array{zero_result_filters: list<array{key: string, count: int}>, supply_gaps: list<array{key: string, count: int}>, search_to_outcome: array{searches: int, with_results: int, conversion_rate: float}, moderation_minutes: array{median: float, p90: float}, imminent_pending: int}
+     */
+    private function scorecard(Collection $events): array
+    {
+        $discoveryEvents = $events->filter(fn (SignalEvent $event): bool => in_array($event->event_name, ['search.executed', 'listing.filtered'], true));
+        $zeroResultEvents = $discoveryEvents->filter(fn (SignalEvent $event): bool => (int) data_get($event->properties, 'result_count', -1) === 0);
+        $keyFor = fn (SignalEvent $event): string => (string) data_get($event->properties, 'surface', 'unknown').' · '.implode(',', (array) data_get($event->properties, 'filter_keys', []));
+        $zeroResultFilters = $zeroResultEvents->groupBy($keyFor)->map(fn (Collection $group, string $key): array => ['key' => $key, 'count' => $group->count()])->sortByDesc('count')->take(10)->values()->all();
+
+        $searches = $discoveryEvents->count();
+        $withResults = $discoveryEvents->filter(fn (SignalEvent $event): bool => (int) data_get($event->properties, 'result_count', 0) > 0)->count();
+        $durations = EventSubmission::query()
+            ->whereNotNull('submitted_at')
+            ->whereHas('event', fn ($query) => $query->whereNotNull('published_at'))
+            ->with('event:id,published_at')
+            ->get()
+            ->map(fn (EventSubmission $submission): ?float => $submission->event?->published_at?->diffInMinutes($submission->submitted_at))
+            ->filter(fn (mixed $minutes): bool => is_float($minutes) || is_int($minutes))
+            ->map(fn (float|int $minutes): float => (float) $minutes)
+            ->sort()
+            ->values();
+
+        return [
+            'zero_result_filters' => $zeroResultFilters,
+            'supply_gaps' => $zeroResultFilters,
+            'search_to_outcome' => [
+                'searches' => $searches,
+                'with_results' => $withResults,
+                'conversion_rate' => $searches > 0 ? round(($withResults / $searches) * 100, 1) : 0.0,
+            ],
+            'moderation_minutes' => [
+                'median' => $this->percentile($durations, 0.5),
+                'p90' => $this->percentile($durations, 0.9),
+            ],
+            'imminent_pending' => Event::query()
+                ->where('status', 'pending')
+                ->whereBetween('starts_at', [now(), now()->addDay()])
+                ->count(),
+        ];
+    }
+
+    /** @param  Collection<int, float>  $values */
+    private function percentile(Collection $values, float $percentile): float
+    {
+        if ($values->isEmpty()) {
+            return 0.0;
+        }
+
+        $index = (int) ceil($values->count() * $percentile) - 1;
+
+        return round((float) $values->get(max(0, $index)), 1);
     }
 
     /**

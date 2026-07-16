@@ -116,6 +116,14 @@ it('renders product signals client origin and platform visibility in admin', fun
         ->assertSee('1.2.3');
 });
 
+it('does not expose the product scorecard to unauthorised users', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->get(ProductSignals::getUrl(panel: 'admin'))
+        ->assertForbidden();
+});
+
 it('shows copy link activity on the admin share analytics page', function () {
     $administrator = User::factory()->create();
     $administrator->assignRole('super_admin');

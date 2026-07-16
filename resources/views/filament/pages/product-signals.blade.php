@@ -5,6 +5,7 @@
         $platformBreakdown = $report['platform_breakdown'] ?? [];
         $transportBreakdown = $report['transport_breakdown'] ?? [];
         $recentEvents = $report['recent_events'] ?? [];
+        $scorecard = $report['scorecard'] ?? [];
     @endphp
 
     <div class="space-y-6">
@@ -109,6 +110,41 @@
                 </div>
             </section>
         </div>
+
+        <section class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+            <h2 class="text-base font-semibold text-gray-950">{{ __('Discovery & Moderation Scorecard') }}</h2>
+            <p class="mt-1 text-sm text-gray-500">{{ __('Aggregated operator signals; raw search text is intentionally excluded.') }}</p>
+
+            <div class="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <div class="rounded-xl bg-gray-50 p-4">
+                    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">{{ __('Search-to-result') }}</p>
+                    <p class="mt-2 text-2xl font-semibold text-gray-950">{{ number_format((float) data_get($scorecard, 'search_to_outcome.conversion_rate', 0), 1) }}%</p>
+                </div>
+                <div class="rounded-xl bg-gray-50 p-4">
+                    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">{{ __('Median moderation') }}</p>
+                    <p class="mt-2 text-2xl font-semibold text-gray-950">{{ number_format((float) data_get($scorecard, 'moderation_minutes.median', 0), 1) }}m</p>
+                </div>
+                <div class="rounded-xl bg-gray-50 p-4">
+                    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">{{ __('P90 moderation') }}</p>
+                    <p class="mt-2 text-2xl font-semibold text-gray-950">{{ number_format((float) data_get($scorecard, 'moderation_minutes.p90', 0), 1) }}m</p>
+                </div>
+                <div class="rounded-xl bg-gray-50 p-4">
+                    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">{{ __('Imminent pending') }}</p>
+                    <p class="mt-2 text-2xl font-semibold text-gray-950">{{ number_format((int) data_get($scorecard, 'imminent_pending', 0)) }}</p>
+                </div>
+            </div>
+
+            @if (filled($scorecard['zero_result_filters'] ?? []))
+                <div class="mt-5">
+                    <h3 class="text-sm font-semibold text-gray-950">{{ __('Zero-result filter patterns') }}</h3>
+                    <div class="mt-2 flex flex-wrap gap-2">
+                        @foreach ($scorecard['zero_result_filters'] as $gap)
+                            <span class="rounded-full bg-amber-50 px-3 py-1 text-xs text-amber-800">{{ $gap['key'] }} · {{ $gap['count'] }}</span>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+        </section>
 
         <section class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
             <h2 class="text-base font-semibold text-gray-950">{{ __('Recent Product Events') }}</h2>
