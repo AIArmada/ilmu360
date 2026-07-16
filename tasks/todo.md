@@ -439,3 +439,20 @@
 - Safe cache serialization passed: 4 tests, 20 assertions.
 - The full EventSearch regression suite passed: 82 tests, 281 assertions.
 - No database indexes were added; EXPLAIN output remains a later delivery artifact.
+
+# Architecture product roadmap execution — D1
+
+- [x] Add readonly `ValidatedEventSubmission` as the post-validation command
+  boundary.
+- [x] Carry normalized state, UTC timing, timezone, canonical organizer/location,
+  prayer metadata, session context, and submitter context in the command.
+- [x] Make `SubmitFrontendEventAction` consume the command for event persistence
+  without changing request keys or validation messages.
+- [x] Verify all SubmitEvent-named feature coverage, PHPStan, Pint, and whitespace.
+
+### Review
+
+- The affected submission coverage passed: 65 tests, 310 assertions, in parallel.
+- PHPStan passed for the command and action; Pint passed after mechanical
+  formatting.
+- No public form, API, or validation error contract was changed.

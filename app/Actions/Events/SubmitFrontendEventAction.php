@@ -10,6 +10,7 @@ use AIArmada\Events\Enums\RegistrationMode;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
 use App\Contracts\CaptchaVerifier;
+use App\Data\Events\ValidatedEventSubmission;
 use App\Enums\DawahShareOutcomeType;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
@@ -153,39 +154,57 @@ class SubmitFrontendEventAction
 
         $endsAt = $this->resolveEndsAt($validated, $startsAt, $timezone);
         $isSessionSubmission = $eventContainer instanceof Event;
+        $validatedSubmission = new ValidatedEventSubmission(
+            state: $validated,
+            startsAt: $startsAt,
+            endsAt: $endsAt,
+            timezone: $timezone,
+            primaryOrganizer: $primaryOrganizer,
+            targetInstitutionId: $targetInstitutionId,
+            targetVenueId: $targetVenueId,
+            prayerTime: $prayerTime,
+            prayerReference: $prayerReference?->value,
+            prayerOffset: $prayerOffset?->value,
+            prayerDisplayText: $prayerDisplayText,
+            autoApproved: $autoApproved,
+            sessionSubmission: $isSessionSubmission,
+            submitter: $submitter,
+            eventContainer: $eventContainer,
+            speakerSlugSegments: $speakerSlugSegments,
+        );
         $session = null;
 
-        $event = $eventContainer ?? Event::query()->create(array_merge([
-            'title' => $validated['title'],
+        $event = $validatedSubmission->eventContainer ?? Event::query()->create(array_merge([
+            'title' => $validatedSubmission->state['title'],
             'slug' => app(GenerateEventSlugAction::class)->handle(
-                (string) $validated['title'],
-                $validated['event_date'] ?? null,
-                $timezone,
+                (string) $validatedSubmission->state['title'],
+                $validatedSubmission->state['event_date'] ?? null,
+                $validatedSubmission->timezone,
                 null,
                 $speakerSlugSegments,
             ),
-            'description' => $validated['description'] ?? null,
-            'timezone' => $timezone,
-            'starts_at' => $startsAt,
-            'ends_at' => $endsAt,
-            'institution_id' => $targetInstitutionId,
-            'venue_id' => $targetVenueId,
-            'space_id' => $validated['space_id'] ?? null,
-            'event_type' => $validated['event_type'] ?? [EventType::KuliahCeramah->value],
-            'gender' => $validated['gender'] ?? EventGenderRestriction::All->value,
-            'age_group' => $validated['age_group'] ?? [EventAgeGroup::AllAges->value],
-            'children_allowed' => $validated['children_allowed'] ?? true,
-            'is_muslim_only' => $validated['is_muslim_only'] ?? false,
-            'timing_mode' => $prayerTime?->isCustomTime() ? 'absolute' : 'prayer_relative',
-            'prayer_reference' => $prayerReference?->value,
-            'prayer_offset' => $prayerOffset?->value,
-            'prayer_display_text' => $prayerDisplayText,
-            'event_format' => $validated['event_format'] ?? EventFormat::Physical->value,
-            'event_url' => $validated['event_url'] ?? null,
-            'live_url' => $validated['live_url'] ?? null,
-            'visibility' => $validated['visibility'] ?? EventVisibility::Public->value,
-            'submitter_id' => $submitter?->getKey(),
-        ], $autoApproved ? ['status' => 'pending'] : []));
+            'description' => $validatedSubmission->state['description'] ?? null,
+            'timezone' => $validatedSubmission->timezone,
+            'starts_at' => $validatedSubmission->startsAt,
+            'ends_at' => $validatedSubmission->endsAt,
+            'institution_id' => $validatedSubmission->targetInstitutionId,
+            'venue_id' => $validatedSubmission->targetVenueId,
+            'space_id' => $validatedSubmission->state['space_id'] ?? null,
+            'event_type' => $validatedSubmission->state['event_type'] ?? [EventType::KuliahCeramah->value],
+            'gender' => $validatedSubmission->state['gender'] ?? EventGenderRestriction::All->value,
+            'age_group' => $validatedSubmission->state['age_group'] ?? [EventAgeGroup::AllAges->value],
+            'children_allowed' => $validatedSubmission->state['children_allowed'] ?? true,
+            'is_muslim_only' => $validatedSubmission->state['is_muslim_only'] ?? false,
+            'timing_mode' => $validatedSubmission->prayerTime?->isCustomTime() ? 'absolute' : 'prayer_relative',
+            'prayer_reference' => $validatedSubmission->prayerReference,
+            'prayer_offset' => $validatedSubmission->prayerOffset,
+            'prayer_display_text' => $validatedSubmission->prayerDisplayText,
+            'event_format' => $validatedSubmission->state['event_format'] ?? EventFormat::Physical->value,
+            'event_url' => $validatedSubmission->state['event_url'] ?? null,
+            'live_url' => $validatedSubmission->state['live_url'] ?? null,
+            'visibility' => $validatedSubmission->state['visibility'] ?? EventVisibility::Public->value,
+            'submitter_id' => $validatedSubmission->submitter?->getKey(),
+        ], $validatedSubmission->autoApproved ? ['status' => 'pending'] : []));
 
         if ($isSessionSubmission) {
             $occurrence = $event->primaryOccurrence;
