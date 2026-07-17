@@ -19,25 +19,25 @@ interface EventCategoryCatalog
     public function options(): array;
 
     /**
-     * @param list<mixed> $termIds
+     * @param  list<mixed>  $termIds
      * @return array<int, string>
      */
     public function validateTermIds(array $termIds): array;
 
     /**
-     * @param list<mixed> $termIds
+     * @param  list<mixed>  $termIds
      * @return array<int, string>
      */
     public function validTermIds(array $termIds): array;
 
     /**
-     * @param list<string> $termIds
+     * @param  list<string>  $termIds
      * @return array<int, string>
      */
     public function descendantIds(array $termIds): array;
 
     /**
-     * @param list<string> $termIds
+     * @param  list<string>  $termIds
      * @return array<int, EventTerm>
      */
     public function terms(array $termIds): array;

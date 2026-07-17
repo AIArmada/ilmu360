@@ -1,16 +1,17 @@
 <?php
 
 use AIArmada\Contacting\Enums\SocialPlatform;
+use AIArmada\Events\Models\EventTerm;
 use App\Enums\EventFormat;
 use App\Enums\EventPrayerTime;
 use App\Enums\ReferenceType;
 use App\Enums\TagType;
-use AIArmada\Events\Models\EventTerm;
+use Database\Seeders\AIArmada\EventTaxonomySeeder;
 use Illuminate\Support\Facades\App;
 
 it('returns translated labels for submit-event enums', function () {
     App::setLocale('en');
-    app(Database\Seeders\AIArmada\EventTaxonomySeeder::class)->run();
+    app(EventTaxonomySeeder::class)->run();
 
     expect(EventFormat::Physical->label())->toBe('Physical')
         ->and(EventPrayerTime::SelepasSubuh->getLabel())->toBe('After Fajr')

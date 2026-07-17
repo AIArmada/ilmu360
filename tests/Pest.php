@@ -13,6 +13,7 @@ use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Signals\Models\TrackedProperty;
 use App\Support\Cache\PublicListingsCache;
 use App\Support\Signals\ProductSignalsSurfaceResolver;
+use Database\Seeders\AIArmada\EventTaxonomySeeder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -376,7 +377,7 @@ function eventCategoryId(string $code): string
         ->first();
 
     if (! $term instanceof EventTerm) {
-        app(Database\Seeders\AIArmada\EventTaxonomySeeder::class)->run();
+        app(EventTaxonomySeeder::class)->run();
         $term = EventTerm::query()
             ->where('event_taxonomy_id', $taxonomy->getKey())
             ->where('code', $code)

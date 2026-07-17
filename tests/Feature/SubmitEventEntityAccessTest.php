@@ -29,7 +29,7 @@ function submitEventEntityAccessPayload(EventTerm $domainTag, EventTerm $discipl
         'description' => 'Entity access enforcement test.',
         'event_date' => now()->addDays(5)->format('Y-m-d'),
         'prayer_time' => EventPrayerTime::SelepasMaghrib->value,
-        'event_category_ids' => [eventCategoryId("kuliah_ceramah")],
+        'event_category_ids' => [eventCategoryId('kuliah_ceramah')],
         'event_format' => EventFormat::Physical->value,
         'visibility' => EventVisibility::Public->value,
         'gender' => EventGenderRestriction::All->value,

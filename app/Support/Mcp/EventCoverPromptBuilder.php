@@ -23,6 +23,7 @@ use App\Models\Series;
 use App\Models\Space;
 use App\Models\Speaker;
 use App\Models\Venue;
+use App\Support\Events\EventCategoryPresenter;
 use App\Support\Location\AddressHierarchyFormatter;
 use BackedEnum;
 use Carbon\Carbon;
@@ -952,7 +953,7 @@ class EventCoverPromptBuilder
     {
         return array_values(array_filter(array_map(
             static fn (array $category): string => (string) ($category['path'] ?? $category['name'] ?? ''),
-            app(\App\Support\Events\EventCategoryPresenter::class)->forEvent($event),
+            app(EventCategoryPresenter::class)->forEvent($event),
         )));
     }
 

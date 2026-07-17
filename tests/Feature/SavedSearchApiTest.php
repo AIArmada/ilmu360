@@ -78,7 +78,7 @@ describe('Saved Search API Endpoints', function () {
                 $response = $this->postJson('/api/v1/saved-searches', [
                     'name' => 'Enum Filter Search',
                     'filters' => [
-                        'event_category_ids' => [eventCategoryId("kuliah_ceramah")],
+                        'event_category_ids' => [eventCategoryId('kuliah_ceramah')],
                         'event_format' => [EventFormat::Online->value],
                         'gender' => EventGenderRestriction::All->value,
                         'age_group' => [EventAgeGroup::AllAges->value],
@@ -89,7 +89,7 @@ describe('Saved Search API Endpoints', function () {
                 ]);
 
                 $response->assertCreated()
-                    ->assertJsonPath('data.filters.event_category_ids.0', eventCategoryId("kuliah_ceramah"))
+                    ->assertJsonPath('data.filters.event_category_ids.0', eventCategoryId('kuliah_ceramah'))
                     ->assertJsonPath('data.filters.event_format.0', EventFormat::Online->value)
                     ->assertJsonPath('data.filters.gender', EventGenderRestriction::All->value)
                     ->assertJsonPath('data.filters.age_group.0', EventAgeGroup::AllAges->value)

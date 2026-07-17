@@ -53,7 +53,7 @@ function submitEventEndTimeFormData(array $fixtures, array $overrides = []): arr
         'title' => 'Submit Event End Time',
         'domain_tags' => [$fixtures['domain_tag']->id],
         'discipline_tags' => [$fixtures['discipline_tag']->id],
-        'event_category_ids' => [eventCategoryId("kuliah_ceramah")],
+        'event_category_ids' => [eventCategoryId('kuliah_ceramah')],
         'event_date' => now()->addDays(5)->toDateString(),
         'prayer_time' => EventPrayerTime::SelepasMaghrib->value,
         'description' => 'Test description',
@@ -303,7 +303,7 @@ it('rejects non-physical format for community event types', function () {
         Livewire::test('pages.submit-event.create'),
         submitEventEndTimeFormData($fixtures, [
             'title' => 'Community Online Invalid',
-            'event_category_ids' => [eventCategoryId("iftar")],
+            'event_category_ids' => [eventCategoryId('iftar')],
             'event_format' => EventFormat::Online->value,
         ]),
     )

@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Mcp\Tools\Admin;
 
+use App\Contracts\EventCategoryCatalog;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventPrayerTime;
-use App\Contracts\EventCategoryCatalog;
 use App\Enums\EventVisibility;
 use App\Enums\RegistrationScope;
 use App\Models\Institution;

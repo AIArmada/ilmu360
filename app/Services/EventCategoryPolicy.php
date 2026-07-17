@@ -4,13 +4,12 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use AIArmada\Events\Models\EventTerm;
 use App\Contracts\EventCategoryCatalog;
 use App\Contracts\EventCategoryPolicyResolver;
 
-final class EventCategoryPolicy implements EventCategoryPolicyResolver
+final readonly class EventCategoryPolicy implements EventCategoryPolicyResolver
 {
-    public function __construct(private readonly EventCategoryCatalog $catalog) {}
+    public function __construct(private EventCategoryCatalog $catalog) {}
 
     public function requiresSpeaker(array $termIds): bool
     {

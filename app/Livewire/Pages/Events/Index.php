@@ -18,7 +18,6 @@ use App\Enums\EventGenderRestriction;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventPrayerTime;
 use App\Enums\TimingMode;
-use App\Contracts\EventCategoryCatalog;
 use App\Forms\SharedFormSchema;
 use App\Models\Event;
 use App\Models\Institution;

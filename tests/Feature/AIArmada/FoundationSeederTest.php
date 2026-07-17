@@ -3,8 +3,8 @@
 use AIArmada\Events\Models\EventRole;
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
-use App\Enums\EventKeyPersonRole;
 use App\Contracts\EventCategoryCatalog;
+use App\Enums\EventKeyPersonRole;
 use Database\Seeders\AIArmada\FoundationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 

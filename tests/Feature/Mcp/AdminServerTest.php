@@ -2547,7 +2547,7 @@ it('creates a tazkirah event with speaker_keys via admin-create-event', function
             'age_group' => [EventAgeGroup::AllAges->value],
             'children_allowed' => false,
             'is_muslim_only' => true,
-        'event_category_ids' => [eventCategoryId('tazkirah')],
+            'event_category_ids' => [eventCategoryId('tazkirah')],
             'primary_organizer_key' => (string) $institution->slug,
             'institution_key' => (string) $institution->slug,
             'speaker_keys' => [(string) $speaker->slug],

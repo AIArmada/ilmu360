@@ -18,6 +18,7 @@ use App\Models\Series;
 use App\Models\Speaker;
 use App\Models\User;
 use App\Models\Venue;
+use Database\Seeders\AIArmada\EventTaxonomySeeder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -700,7 +701,7 @@ it('renders optimized seo metadata on public detail pages', function () {
 });
 
 it('loads institution detail page with upcoming event category collection', function () {
-    app(Database\Seeders\AIArmada\EventTaxonomySeeder::class)->run();
+    app(EventTaxonomySeeder::class)->run();
 
     $institution = Institution::factory()->create(['status' => 'verified']);
     $eventCategory = EventTerm::query()->where('code', 'kuliah_ceramah')->firstOrFail();
@@ -748,7 +749,7 @@ it('records guest submissions without a submitter id', function () {
         ->set('data.description', 'Test event description')
         ->set('data.event_date', now()->addDay()->toDateString())
         ->set('data.prayer_time', EventPrayerTime::SelepasMaghrib->value)
-        ->set('data.event_category_ids', [eventCategoryId("kuliah_ceramah")])
+        ->set('data.event_category_ids', [eventCategoryId('kuliah_ceramah')])
         ->set('data.gender', EventGenderRestriction::All->value)
         ->set('data.age_group', [EventAgeGroup::AllAges->value])
         ->set('data.domain_tags', [$domainTag->id])

@@ -8,15 +8,16 @@ use AIArmada\Events\Contracts\EventTaxonomyHierarchy;
 use AIArmada\Events\Models\EventTerm;
 use App\Contracts\EventCategoryCatalog as EventCategoryCatalogContract;
 
-final class EventCategoryCatalog implements EventCategoryCatalogContract
+final readonly class EventCategoryCatalog implements EventCategoryCatalogContract
 {
     public const string TAXONOMY_CODE = 'event_category';
 
-    public function __construct(private readonly EventTaxonomyHierarchy $hierarchy) {}
+    public function __construct(private EventTaxonomyHierarchy $hierarchy) {}
 
     public function taxonomyId(): ?string
     {
         $taxonomy = $this->hierarchy->taxonomy(self::TAXONOMY_CODE);
+
         return $taxonomy?->is_active ? (string) $taxonomy->getKey() : null;
     }
 
@@ -32,7 +33,7 @@ final class EventCategoryCatalog implements EventCategoryCatalogContract
     }
 
     /**
-     * @param list<mixed> $termIds
+     * @param  list<mixed>  $termIds
      * @return array<int, string>
      */
     public function validateTermIds(array $termIds): array
@@ -41,7 +42,7 @@ final class EventCategoryCatalog implements EventCategoryCatalogContract
     }
 
     /**
-     * @param list<mixed> $termIds
+     * @param  list<mixed>  $termIds
      * @return array<int, string>
      */
     public function validTermIds(array $termIds): array
@@ -50,7 +51,7 @@ final class EventCategoryCatalog implements EventCategoryCatalogContract
     }
 
     /**
-     * @param list<string> $termIds
+     * @param  list<string>  $termIds
      * @return array<int, string>
      */
     public function descendantIds(array $termIds): array
@@ -59,13 +60,14 @@ final class EventCategoryCatalog implements EventCategoryCatalogContract
     }
 
     /**
-     * @param list<string> $termIds
+     * @param  list<string>  $termIds
      * @return array<int, EventTerm>
      */
     public function terms(array $termIds): array
     {
         $terms = $this->hierarchy->terms(self::TAXONOMY_CODE);
         $selected = array_fill_keys($this->validTermIds($termIds), true);
+
         return $terms->filter(fn (EventTerm $term): bool => isset($selected[(string) $term->getKey()]))->values()->all();
     }
 }

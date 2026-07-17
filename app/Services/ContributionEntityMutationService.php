@@ -18,6 +18,7 @@ use AIArmada\Membership\Enums\MemberRole;
 use App\Actions\Events\SyncEventClassificationsAction;
 use App\Actions\Institutions\GenerateInstitutionSlugAction;
 use App\Actions\Speakers\GenerateSpeakerSlugAction;
+use App\Contracts\EventCategoryCatalog;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
@@ -146,7 +147,7 @@ class ContributionEntityMutationService
                     $this->field('custom_time', 'time'),
                     $this->field('end_time', 'time'),
                     $this->field('timezone', 'timezone'),
-                    $this->field('event_category_ids', 'array<uuid>', allowedValues: array_keys(app(\App\Contracts\EventCategoryCatalog::class)->options())),
+                    $this->field('event_category_ids', 'array<uuid>', allowedValues: array_keys(app(EventCategoryCatalog::class)->options())),
                     $this->field('gender', 'string', allowedValues: $this->enumValues(EventGenderRestriction::class)),
                     $this->field('age_group', 'array<string>', allowedValues: $this->enumValues(EventAgeGroup::class)),
                     $this->field('children_allowed', 'boolean'),
@@ -285,7 +286,7 @@ class ContributionEntityMutationService
                 'end_time' => ['nullable', 'date_format:H:i'],
                 'timezone' => ['sometimes', 'timezone'],
                 'event_category_ids' => ['sometimes', 'array'],
-                'event_category_ids.*' => ['uuid', Rule::in(array_keys(app(\App\Contracts\EventCategoryCatalog::class)->options()))],
+                'event_category_ids.*' => ['uuid', Rule::in(array_keys(app(EventCategoryCatalog::class)->options()))],
                 'gender' => ['sometimes', Rule::in($this->enumValues(EventGenderRestriction::class))],
                 'age_group' => ['sometimes', 'array'],
                 'age_group.*' => ['string', Rule::in($this->enumValues(EventAgeGroup::class))],
@@ -715,7 +716,7 @@ class ContributionEntityMutationService
                 ? $event->prayer_offset->value
                 : (is_string($event->prayer_offset) && $event->prayer_offset !== '' ? $event->prayer_offset : null),
             'prayer_display_text' => $event->prayer_display_text,
-            'event_category_ids' => $event->classifications->where('taxonomy_code', \App\Contracts\EventCategoryCatalog::TAXONOMY_CODE)->pluck('event_term_id')->values()->all(),
+            'event_category_ids' => $event->classifications->where('taxonomy_code', EventCategoryCatalog::TAXONOMY_CODE)->pluck('event_term_id')->values()->all(),
             'gender' => $event->gender instanceof BackedEnum ? $event->gender->value : (string) $event->gender,
             'age_group' => $this->enumCollectionValues($event->age_group),
             'children_allowed' => (bool) $event->children_allowed,

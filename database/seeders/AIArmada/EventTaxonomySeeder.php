@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Database\Seeders\AIArmada;
 
-use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventClassification;
+use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
 use App\Services\EventCategoryCatalog;
 use Illuminate\Database\Seeder;

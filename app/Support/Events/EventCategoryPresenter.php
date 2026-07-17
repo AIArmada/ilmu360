@@ -7,9 +7,9 @@ namespace App\Support\Events;
 use App\Contracts\EventCategoryCatalog;
 use App\Models\Event;
 
-final class EventCategoryPresenter
+final readonly class EventCategoryPresenter
 {
-    public function __construct(private readonly EventCategoryCatalog $catalog) {}
+    public function __construct(private EventCategoryCatalog $catalog) {}
 
     /** @return list<array{id: string, code: string, name: string, path: string, is_primary: bool}> */
     public function forEvent(Event $event): array
@@ -41,7 +41,7 @@ final class EventCategoryPresenter
     }
 
     /**
-     * @param list<array<string, mixed>> $nodes
+     * @param  list<array<string, mixed>>  $nodes
      * @return array<string, string>
      */
     private function paths(array $nodes): array

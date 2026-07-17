@@ -3,11 +3,13 @@
 use AIArmada\Events\Contracts\EventTaxonomyHierarchy;
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
+use App\Contracts\EventCategoryCatalog;
 use App\Contracts\EventCategoryPolicyResolver;
 use Database\Seeders\AIArmada\EventTaxonomySeeder;
 use Database\Seeders\AIArmada\FoundationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 use function Pest\Laravel\seed;
 
@@ -44,7 +46,7 @@ it('minimizes a parent and selected descendant to the parent', function (): void
 it('applies child policy metadata when a parent category is selected', function (): void {
     seed(FoundationSeeder::class);
 
-    $catalog = app(\App\Contracts\EventCategoryCatalog::class);
+    $catalog = app(EventCategoryCatalog::class);
     $root = EventTerm::query()
         ->where('event_taxonomy_id', $catalog->taxonomyId())
         ->where('code', 'ilmu')
@@ -63,7 +65,7 @@ it('applies child policy metadata when a parent category is selected', function 
 it('validates parent and child IDs before minimizing them', function (): void {
     seed(FoundationSeeder::class);
 
-    $catalog = app(\App\Contracts\EventCategoryCatalog::class);
+    $catalog = app(EventCategoryCatalog::class);
     $root = EventTerm::query()
         ->where('event_taxonomy_id', $catalog->taxonomyId())
         ->where('code', 'ilmu')
@@ -76,7 +78,7 @@ it('validates parent and child IDs before minimizing them', function (): void {
 
     expect(Validator::make(
         ['event_category_ids' => $ids],
-        ['event_category_ids.*' => ['uuid', \Illuminate\Validation\Rule::in($catalog->validTermIds($ids))]],
+        ['event_category_ids.*' => ['uuid', Rule::in($catalog->validTermIds($ids))]],
     )->passes())->toBeTrue();
     expect($catalog->validateTermIds($ids))->toBe([(string) $root->getKey()]);
 });

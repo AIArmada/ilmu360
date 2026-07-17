@@ -4,9 +4,9 @@ namespace App\Actions\Events;
 
 use AIArmada\Events\Enums\RegistrationMode;
 use AIArmada\Seating\Models\SeatMap;
-use App\Enums\EventAgeGroup;
 use App\Contracts\EventCategoryCatalog;
 use App\Contracts\EventCategoryPolicyResolver;
+use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventKeyPersonRole;

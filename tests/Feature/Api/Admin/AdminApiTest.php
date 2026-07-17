@@ -336,7 +336,7 @@ it('filters admin event records by explicit query parameters', function () {
         'status' => 'draft',
         'delivery_mode' => EventFormat::Online,
         'visibility' => EventVisibility::Public,
-        'event_category_ids' => [eventCategoryId("kuliah_ceramah")],
+        'event_category_ids' => [eventCategoryId('kuliah_ceramah')],
     ]);
 
     $approvedPhysicalEvent = Event::factory()->create([
@@ -344,7 +344,7 @@ it('filters admin event records by explicit query parameters', function () {
         'status' => 'approved',
         'delivery_mode' => EventFormat::Physical,
         'visibility' => EventVisibility::Private,
-        'event_category_ids' => [eventCategoryId("forum")],
+        'event_category_ids' => [eventCategoryId('forum')],
     ]);
 
     $cancelledHybridEvent = Event::factory()->create([
@@ -352,7 +352,7 @@ it('filters admin event records by explicit query parameters', function () {
         'status' => 'cancelled',
         'delivery_mode' => EventFormat::Hybrid,
         'visibility' => EventVisibility::Unlisted,
-        'event_category_ids' => [eventCategoryId("kenduri")],
+        'event_category_ids' => [eventCategoryId('kenduri')],
     ]);
 
     Sanctum::actingAs($admin);
@@ -433,7 +433,7 @@ it('allows admin api event create payload to control initial workflow status', f
         'age_group' => [EventAgeGroup::AllAges->value],
         'children_allowed' => true,
         'is_muslim_only' => false,
-        'event_category_ids' => [eventCategoryId("bacaan_yasin")],
+        'event_category_ids' => [eventCategoryId('bacaan_yasin')],
         'primary_organizer_id' => (string) $institution->getKey(),
         'institution_id' => (string) $institution->getKey(),
         'registration_required' => false,
@@ -3452,7 +3452,7 @@ it('rejects admin event writes that omit required speakers for speaker-led event
         'domain_tag' => $domainTag,
         'discipline_tag' => $disciplineTag,
     ], [
-        'event_category_ids' => [eventCategoryId("kuliah_ceramah")],
+        'event_category_ids' => [eventCategoryId('kuliah_ceramah')],
         'speakers' => [],
     ]))->assertUnprocessable()
         ->assertJsonValidationErrors(['speakers']);
@@ -3643,7 +3643,7 @@ function adminApiEventPayload(array $fixtures, array $overrides = []): array
         'age_group' => [EventAgeGroup::AllAges->value],
         'children_allowed' => true,
         'is_muslim_only' => true,
-        'event_category_ids' => [eventCategoryId("other")],
+        'event_category_ids' => [eventCategoryId('other')],
         'domain_tags' => [(string) $fixtures['domain_tag']->getKey()],
         'discipline_tags' => [(string) $fixtures['discipline_tag']->getKey()],
         'source_tags' => [],

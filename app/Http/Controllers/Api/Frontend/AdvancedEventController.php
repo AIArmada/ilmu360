@@ -4,8 +4,8 @@ namespace App\Http\Controllers\Api\Frontend;
 
 use App\Actions\Events\CreateAdvancedEventAction;
 use App\Actions\Events\PrepareAdvancedParentProgramSubmissionAction;
-use App\Enums\EventFormat;
 use App\Contracts\EventCategoryCatalog;
+use App\Enums\EventFormat;
 use App\Enums\EventVisibility;
 use App\Enums\RegistrationScope;
 use Dedoc\Scramble\Attributes\Endpoint;

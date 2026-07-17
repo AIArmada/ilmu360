@@ -2,8 +2,8 @@
 
 namespace App\Actions\Events;
 
-use App\Enums\EventFormat;
 use App\Contracts\EventCategoryCatalog;
+use App\Enums\EventFormat;
 use App\Enums\EventVisibility;
 use App\Enums\RegistrationScope;
 use App\Models\User;

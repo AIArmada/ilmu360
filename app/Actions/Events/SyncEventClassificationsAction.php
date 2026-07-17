@@ -8,6 +8,7 @@ use AIArmada\Events\Actions\SyncEventClassificationsAction as PackageSyncEventCl
 use App\Contracts\EventCategoryCatalog;
 use App\Enums\TagType;
 use App\Models\Event;
+use Illuminate\Support\Collection;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
@@ -84,7 +85,7 @@ class SyncEventClassificationsAction
     }
 
     /**
-     * @param array<string, mixed> $validated
+     * @param  array<string, mixed>  $validated
      * @return array<int, mixed>
      */
     private function valuesFor(array $validated, string $taxonomyCode, mixed $existingByTaxonomy): array
@@ -100,7 +101,7 @@ class SyncEventClassificationsAction
             return is_array($validated[$key]) ? $validated[$key] : [];
         }
 
-        return $existingByTaxonomy instanceof \Illuminate\Support\Collection
+        return $existingByTaxonomy instanceof Collection
             ? $existingByTaxonomy->get($taxonomyCode, collect())->pluck('event_term_id')->all()
             : [];
     }

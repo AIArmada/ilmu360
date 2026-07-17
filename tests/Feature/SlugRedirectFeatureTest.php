@@ -595,7 +595,7 @@ function createSlugRedirectEvent(string $id, string $title, string $slug, Carbon
         'slug' => $slug,
         'starts_at' => $startsAt,
         'timezone' => 'Asia/Kuala_Lumpur',
-        'event_category_ids' => [eventCategoryId("other")],
+        'event_category_ids' => [eventCategoryId('other')],
         'gender' => 'all',
         'age_group' => ['all_ages'],
         'children_allowed' => true,

@@ -39,7 +39,7 @@ function submitEventOrganizerFormData(array $fixtures, array $overrides = []): a
         'title' => 'Auto Select Speaker Event',
         'event_date' => now()->addDay()->toDateString(),
         'prayer_time' => EventPrayerTime::SelepasMaghrib->value,
-        'event_category_ids' => [eventCategoryId("kuliah_ceramah")],
+        'event_category_ids' => [eventCategoryId('kuliah_ceramah')],
         'gender' => EventGenderRestriction::All->value,
         'age_group' => [EventAgeGroup::AllAges->value],
         'languages' => [101],
@@ -96,7 +96,7 @@ it('uses the organizer speaker slug when no explicit speakers are selected', fun
         submitEventOrganizerFormData($fixtures, [
             'title' => 'Organizer Fallback Submit Event',
             'event_date' => $eventDate,
-            'event_category_ids' => [eventCategoryId("other")],
+            'event_category_ids' => [eventCategoryId('other')],
             'speakers' => [],
         ]),
     )
