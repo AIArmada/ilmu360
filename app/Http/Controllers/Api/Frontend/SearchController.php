@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Api\Frontend;
 
+use AIArmada\Addressing\Data\AddressLocationData;
+use AIArmada\Addressing\Support\AddressLocationScope;
 use App\Data\Api\Frontend\Search\EventListData;
 use App\Data\Api\Frontend\Search\InstitutionDetailData;
 use App\Data\Api\Frontend\Search\InstitutionDonationChannelData;
@@ -40,6 +42,7 @@ use App\Support\ApiDocumentation\Schemas\SpeakerDetailResponse;
 use App\Support\ApiDocumentation\Schemas\SpeakerDirectoryResponse;
 use App\Support\Cache\PublicDirectoryCacheVersion;
 use App\Support\Models\SlugOrUuidResolver;
+use App\Support\PublicDiscovery\PublicDiscovery;
 use App\Support\Search\InstitutionSearchService;
 use App\Support\Search\ReferenceSearchService;
 use App\Support\Search\SpeakerSearchService;
@@ -123,6 +126,8 @@ class SearchController extends FrontendController
         private readonly SearchRequestNormalizer $searchRequestNormalizer,
         private readonly SearchPayloadTransformer $searchPayloadTransformer,
         private readonly SlugOrUuidResolver $slugOrUuidResolver,
+        private readonly AddressLocationScope $addressLocationScope,
+        private readonly PublicDiscovery $publicDiscovery,
     ) {}
 
     #[Group('Search', 'Public aggregate search endpoints across events, speakers, and institutions.')]
@@ -1025,37 +1030,15 @@ class SearchController extends FrontendController
         ?string $adminArea3Id,
         ?string $adminArea4Id,
     ): void {
-        if ($countryId === null && $stateId === null && $cityId === null && $adminArea1Id === null && $adminArea2Id === null && $adminArea3Id === null && $adminArea4Id === null) {
-            return;
-        }
-
-        $query->whereHas('addresses', function (Builder $addressQuery) use ($countryId, $stateId, $cityId, $adminArea1Id, $adminArea2Id, $adminArea3Id, $adminArea4Id): void {
-            if ($countryId !== null) {
-                $addressQuery->where('country_id', $countryId);
-            }
-
-            if ($stateId !== null) {
-                $addressQuery->where('state_id', $stateId);
-            }
-
-            if ($cityId !== null) {
-                $addressQuery->where('city_id', $cityId);
-            }
-
-            if ($adminArea1Id !== null) {
-                $addressQuery->where('admin_area_1_id', $adminArea1Id);
-            }
-
-            if ($adminArea2Id !== null) {
-                $addressQuery->where('admin_area_2_id', $adminArea2Id);
-            }
-
-            foreach (['admin_area_3_id' => $adminArea3Id, 'admin_area_4_id' => $adminArea4Id] as $column => $value) {
-                if ($value !== null) {
-                    $addressQuery->where($column, $value);
-                }
-            }
-        });
+        $this->addressLocationScope->apply($query, new AddressLocationData(
+            countryId: $countryId,
+            stateId: $stateId,
+            cityId: $cityId,
+            adminArea1Id: $adminArea1Id,
+            adminArea2Id: $adminArea2Id,
+            adminArea3Id: $adminArea3Id,
+            adminArea4Id: $adminArea4Id,
+        ));
     }
 
     /**
@@ -1144,84 +1127,15 @@ class SearchController extends FrontendController
      */
     private function institutionDirectorySearchPaginator(Request $request, string $search, int $perPage, Builder $base): LengthAwarePaginator
     {
-        $matchingIds = $this->institutionSearchService->publicSearchIds($search);
-
-        if ($matchingIds !== []) {
-            $directMatches = (clone $base)
-                ->whereIn('institutions.id', $matchingIds)
-                ->publicDirectoryOrder()
-                ->paginate($perPage);
-
-            if ($directMatches->total() > 0 || mb_strlen($search) < 3) {
-                return $directMatches;
-            }
-        } elseif (mb_strlen($search) < 3) {
-            return $this->emptyInstitutionPaginator($request, $perPage);
-        }
-
-        $orderedIds = $this->filterInstitutionSearchIds($base, $this->institutionSearchService->publicFuzzySearchIds($search));
-
-        if ($orderedIds === []) {
-            return $this->emptyInstitutionPaginator($request, $perPage);
-        }
-
-        $currentPage = max(1, $request->integer('page', 1));
-        $paginatedIds = array_slice($orderedIds, ($currentPage - 1) * $perPage, $perPage);
-
-        if ($paginatedIds === []) {
-            return new LengthAwarePaginator(
-                collect(),
-                count($orderedIds),
-                $perPage,
-                $currentPage,
-                $this->institutionPaginatorOptions($request),
-            );
-        }
-
-        $institutions = (clone $base)
-            ->whereIn('institutions.id', $paginatedIds)
-            ->get()
-            ->sortBy(static function (Institution $institution) use ($paginatedIds): int {
-                $position = array_search($institution->id, $paginatedIds, true);
-
-                return is_int($position) ? $position : PHP_INT_MAX;
-            })
-            ->values();
-
-        return new LengthAwarePaginator(
-            $institutions,
-            count($orderedIds),
-            $perPage,
-            $currentPage,
-            $this->institutionPaginatorOptions($request),
+        return $this->publicDiscovery->paginate(
+            request: $request,
+            search: $search,
+            perPage: $perPage,
+            base: $base,
+            directBase: (clone $base)->publicDirectoryOrder(),
+            adapter: $this->institutionSearchService,
+            idColumn: 'institutions.id',
         );
-    }
-
-    /**
-     * @param  Builder<Institution>  $base
-     * @param  list<string>  $orderedIds
-     * @return list<string>
-     */
-    private function filterInstitutionSearchIds(Builder $base, array $orderedIds): array
-    {
-        if ($orderedIds === []) {
-            return [];
-        }
-
-        $scopedIds = (clone $base)
-            ->whereIn('institutions.id', $orderedIds)
-            ->pluck('institutions.id')
-            ->map(static fn (mixed $id): string => (string) $id)
-            ->all();
-
-        return collect($scopedIds)
-            ->sortBy(static function (string $id) use ($orderedIds): int {
-                $position = array_search($id, $orderedIds, true);
-
-                return is_int($position) ? $position : PHP_INT_MAX;
-            })
-            ->values()
-            ->all();
     }
 
     /**
@@ -1257,31 +1171,6 @@ class SearchController extends FrontendController
                 ->where('engagement_follows.follower_type', (new User)->getMorphClass())
                 ->where('engagement_follows.status', 'active');
         });
-    }
-
-    /**
-     * @return LengthAwarePaginator<int, Institution>
-     */
-    private function emptyInstitutionPaginator(Request $request, int $perPage): LengthAwarePaginator
-    {
-        return new LengthAwarePaginator(
-            collect(),
-            0,
-            $perPage,
-            max(1, $request->integer('page', 1)),
-            $this->institutionPaginatorOptions($request),
-        );
-    }
-
-    /**
-     * @return array{path: string, query: array<string, mixed>}
-     */
-    private function institutionPaginatorOptions(Request $request): array
-    {
-        return [
-            'path' => $request->url(),
-            'query' => $request->query(),
-        ];
     }
 
     /**
@@ -1333,71 +1222,14 @@ class SearchController extends FrontendController
      */
     private function speakerDirectorySearchPaginatorWithBase(Request $request, string $search, int $perPage, Builder $base, ?string $sort): LengthAwarePaginator
     {
-        $matchingIds = $this->speakerSearchService->publicSearchIds($search);
-
-        if ($matchingIds !== []) {
-            $query = (clone $base)->whereIn('speakers.id', $matchingIds);
-
-            if ($sort !== 'upcoming') {
-                $query->publicDirectoryOrder();
-            }
-
-            return $query->paginate($perPage);
-        }
-
-        if (mb_strlen($search) < 3) {
-            return $this->emptySpeakerPaginator($request, $perPage);
-        }
-
-        $orderedIds = $this->filterSpeakerSearchIds($base, $this->speakerSearchService->publicFuzzySearchIds($search));
-
-        if ($orderedIds === []) {
-            return $this->emptySpeakerPaginator($request, $perPage);
-        }
-
-        $currentPage = max(1, $request->integer('page', 1));
-        $paginatedIds = array_slice($orderedIds, ($currentPage - 1) * $perPage, $perPage);
-
-        if ($paginatedIds === []) {
-            return new LengthAwarePaginator(
-                collect(),
-                count($orderedIds),
-                $perPage,
-                $currentPage,
-                $this->speakerPaginatorOptions($request),
-            );
-        }
-
-        $speakers = (clone $base)
-            ->whereIn('speakers.id', $paginatedIds)
-            ->get()
-            ->sortBy(static function (Speaker $speaker) use ($paginatedIds): int {
-                $position = array_search($speaker->id, $paginatedIds, true);
-
-                return is_int($position) ? $position : PHP_INT_MAX;
-            })
-            ->values();
-
-        return new LengthAwarePaginator(
-            $speakers,
-            count($orderedIds),
-            $perPage,
-            $currentPage,
-            $this->speakerPaginatorOptions($request),
-        );
-    }
-
-    /**
-     * @return LengthAwarePaginator<int, Speaker>
-     */
-    private function emptySpeakerPaginator(Request $request, int $perPage): LengthAwarePaginator
-    {
-        return new LengthAwarePaginator(
-            collect(),
-            0,
-            $perPage,
-            max(1, $request->integer('page', 1)),
-            $this->speakerPaginatorOptions($request),
+        return $this->publicDiscovery->paginate(
+            request: $request,
+            search: $search,
+            perPage: $perPage,
+            base: $base,
+            directBase: $sort === 'upcoming' ? clone $base : (clone $base)->publicDirectoryOrder(),
+            adapter: $this->speakerSearchService,
+            idColumn: 'speakers.id',
         );
     }
 
@@ -1414,65 +1246,15 @@ class SearchController extends FrontendController
         ?string $adminArea3Id,
         ?string $adminArea4Id,
     ): void {
-        if ($countryId === null && $stateId === null && $cityId === null && $adminArea1Id === null && $adminArea2Id === null && $adminArea3Id === null && $adminArea4Id === null) {
-            return;
-        }
-
-        $query->whereHas('addresses', function (Builder $addressQuery) use ($countryId, $stateId, $cityId, $adminArea1Id, $adminArea2Id, $adminArea3Id, $adminArea4Id): void {
-            if ($countryId !== null) {
-                $addressQuery->where('country_id', $countryId);
-            }
-
-            if ($stateId !== null) {
-                $addressQuery->where('state_id', $stateId);
-            }
-
-            if ($cityId !== null) {
-                $addressQuery->where('city_id', $cityId);
-            }
-
-            if ($adminArea1Id !== null) {
-                $addressQuery->where('admin_area_1_id', $adminArea1Id);
-            }
-
-            if ($adminArea2Id !== null) {
-                $addressQuery->where('admin_area_2_id', $adminArea2Id);
-            }
-
-            foreach (['admin_area_3_id' => $adminArea3Id, 'admin_area_4_id' => $adminArea4Id] as $column => $value) {
-                if ($value !== null) {
-                    $addressQuery->where($column, $value);
-                }
-            }
-
-        });
-    }
-
-    /**
-     * @param  Builder<Speaker>  $base
-     * @param  list<string>  $orderedIds
-     * @return list<string>
-     */
-    private function filterSpeakerSearchIds(Builder $base, array $orderedIds): array
-    {
-        if ($orderedIds === []) {
-            return [];
-        }
-
-        $scopedIds = (clone $base)
-            ->whereIn('speakers.id', $orderedIds)
-            ->pluck('speakers.id')
-            ->map(static fn (mixed $id): string => (string) $id)
-            ->all();
-
-        return collect($scopedIds)
-            ->sortBy(static function (string $id) use ($orderedIds): int {
-                $position = array_search($id, $orderedIds, true);
-
-                return is_int($position) ? $position : PHP_INT_MAX;
-            })
-            ->values()
-            ->all();
+        $this->addressLocationScope->apply($query, new AddressLocationData(
+            countryId: $countryId,
+            stateId: $stateId,
+            cityId: $cityId,
+            adminArea1Id: $adminArea1Id,
+            adminArea2Id: $adminArea2Id,
+            adminArea3Id: $adminArea3Id,
+            adminArea4Id: $adminArea4Id,
+        ));
     }
 
     /**
@@ -1508,17 +1290,6 @@ class SearchController extends FrontendController
                 ->where('engagement_follows.follower_type', (new User)->getMorphClass())
                 ->where('engagement_follows.status', 'active');
         });
-    }
-
-    /**
-     * @return array{path: string, query: array<string, mixed>}
-     */
-    private function speakerPaginatorOptions(Request $request): array
-    {
-        return [
-            'path' => $request->url(),
-            'query' => $request->query(),
-        ];
     }
 
     /**
@@ -1587,98 +1358,16 @@ class SearchController extends FrontendController
      */
     private function referenceDirectorySearchPaginator(Request $request, string $search, int $perPage, Builder $base): LengthAwarePaginator
     {
-        $matchingIds = $this->referenceSearchService->publicSearchIds($search);
-
-        if ($matchingIds !== []) {
-            $directMatches = (clone $base)
-                ->whereIn('references.id', $matchingIds)
-                ->get()
-                ->sortBy(static function (Reference $reference) use ($matchingIds): int {
-                    $position = array_search((string) $reference->id, $matchingIds, true);
-
-                    return is_int($position) ? $position : PHP_INT_MAX;
-                })
-                ->values();
-
-            $currentPage = max(1, $request->integer('page', 1));
-            $items = $directMatches->slice(($currentPage - 1) * $perPage, $perPage)->values();
-
-            if ($directMatches->count() > 0 || mb_strlen($search) < 3) {
-                return new LengthAwarePaginator(
-                    $items,
-                    $directMatches->count(),
-                    $perPage,
-                    $currentPage,
-                    $this->referencePaginatorOptions($request),
-                );
-            }
-        } elseif (mb_strlen($search) < 3) {
-            return $this->emptyReferencePaginator($request, $perPage);
-        }
-
-        $orderedIds = $this->filterReferenceSearchIds($base, $this->referenceSearchService->publicFuzzySearchIds($search));
-
-        if ($orderedIds === []) {
-            return $this->emptyReferencePaginator($request, $perPage);
-        }
-
-        $currentPage = max(1, $request->integer('page', 1));
-        $paginatedIds = array_slice($orderedIds, ($currentPage - 1) * $perPage, $perPage);
-
-        if ($paginatedIds === []) {
-            return new LengthAwarePaginator(
-                collect(),
-                count($orderedIds),
-                $perPage,
-                $currentPage,
-                $this->referencePaginatorOptions($request),
-            );
-        }
-
-        $references = (clone $base)
-            ->whereIn('references.id', $paginatedIds)
-            ->get()
-            ->sortBy(static function (Reference $reference) use ($paginatedIds): int {
-                $position = array_search((string) $reference->id, $paginatedIds, true);
-
-                return is_int($position) ? $position : PHP_INT_MAX;
-            })
-            ->values();
-
-        return new LengthAwarePaginator(
-            $references,
-            count($orderedIds),
-            $perPage,
-            $currentPage,
-            $this->referencePaginatorOptions($request),
+        return $this->publicDiscovery->paginate(
+            request: $request,
+            search: $search,
+            perPage: $perPage,
+            base: $base,
+            directBase: clone $base,
+            adapter: $this->referenceSearchService,
+            idColumn: 'references.id',
+            preserveDirectEngineOrder: true,
         );
-    }
-
-    /**
-     * @param  Builder<Reference>  $base
-     * @param  list<string>  $orderedIds
-     * @return list<string>
-     */
-    private function filterReferenceSearchIds(Builder $base, array $orderedIds): array
-    {
-        if ($orderedIds === []) {
-            return [];
-        }
-
-        $scopedIds = (clone $base)
-            ->whereIn('references.id', $orderedIds)
-            ->pluck('references.id')
-            ->map(static fn (mixed $id): string => (string) $id)
-            ->all();
-
-        return collect($scopedIds)
-            ->sortBy(static function (string $id) use ($orderedIds): int {
-                $position = array_search($id, $orderedIds, true);
-
-                return is_int($position) ? $position : PHP_INT_MAX;
-            })
-            ->values()
-            ->all();
     }
 
     /**
@@ -1691,31 +1380,6 @@ class SearchController extends FrontendController
         }
 
         return $this->referenceDirectorySearchPaginator($request, $search, 1, $base)->total();
-    }
-
-    /**
-     * @return LengthAwarePaginator<int, Reference>
-     */
-    private function emptyReferencePaginator(Request $request, int $perPage): LengthAwarePaginator
-    {
-        return new LengthAwarePaginator(
-            collect(),
-            0,
-            $perPage,
-            max(1, $request->integer('page', 1)),
-            $this->referencePaginatorOptions($request),
-        );
-    }
-
-    /**
-     * @return array{path: string, query: array<string, mixed>}
-     */
-    private function referencePaginatorOptions(Request $request): array
-    {
-        return [
-            'path' => $request->url(),
-            'query' => $request->query(),
-        ];
     }
 
     /**

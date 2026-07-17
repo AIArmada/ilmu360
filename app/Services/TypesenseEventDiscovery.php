@@ -4,39 +4,30 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Contracts\EventDiscoveryAdapter;
 use App\Data\EventDiscoveryCriteria;
 use App\Models\Event;
-use Closure;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
-final readonly class TypesenseEventDiscovery
+final readonly class TypesenseEventDiscovery implements EventDiscoveryAdapter
 {
-    /**
-     * @param  Closure(EventDiscoveryCriteria): LengthAwarePaginator<int, Event>  $search
-     * @param  Closure(EventDiscoveryCriteria): LengthAwarePaginator<int, Event>  $nearby
-     * @param  Closure(EventDiscoveryCriteria): LengthAwarePaginator<int, Event>  $nearbyWithQuery
-     */
-    public function __construct(
-        private Closure $search,
-        private Closure $nearby,
-        private Closure $nearbyWithQuery,
-    ) {}
+    public function __construct(private EventSearchService $searchService) {}
 
     /** @return LengthAwarePaginator<int, Event> */
     public function search(EventDiscoveryCriteria $criteria): LengthAwarePaginator
     {
-        return ($this->search)($criteria);
+        return $this->searchService->searchWithTypesenseCriteria($criteria);
     }
 
     /** @return LengthAwarePaginator<int, Event> */
     public function nearby(EventDiscoveryCriteria $criteria): LengthAwarePaginator
     {
-        return ($this->nearby)($criteria);
+        return $this->searchService->searchNearbyWithTypesenseCriteria($criteria);
     }
 
     /** @return LengthAwarePaginator<int, Event> */
     public function nearbyWithQuery(EventDiscoveryCriteria $criteria): LengthAwarePaginator
     {
-        return ($this->nearbyWithQuery)($criteria);
+        return $this->searchService->searchNearbyWithTypesenseQueryCriteria($criteria);
     }
 }

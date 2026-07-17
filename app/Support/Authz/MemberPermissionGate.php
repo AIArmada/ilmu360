@@ -8,6 +8,8 @@ use App\Models\Reference;
 use App\Models\Speaker;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Support\Collection;
 
 final readonly class MemberPermissionGate
@@ -26,6 +28,8 @@ final readonly class MemberPermissionGate
         'manage-members' => 80,
         'approve' => 80,
         'manage-donation-channels' => 80,
+        'view-registrations' => 10,
+        'export-registrations' => 80,
     ];
 
     public function canInstitution(User $user, string $permission, Institution $institution): bool
@@ -50,38 +54,22 @@ final readonly class MemberPermissionGate
 
     public function hasAnyInstitutionPermission(User $user, string $permission): bool
     {
-        $shortName = $this->shortPermissionName($permission);
-
-        return $user->institutions()->get()->contains(
-            fn (Institution $i): bool => $this->memberCan($i, $user, $shortName),
-        );
+        return $this->hasAnyMembershipWithPermission($user->institutions(), $permission);
     }
 
     public function hasAnyEventPermission(User $user, string $permission): bool
     {
-        $shortName = $this->shortPermissionName($permission);
-
-        return $user->memberEvents()->get()->contains(
-            fn (Event $e): bool => $this->memberCan($e, $user, $shortName),
-        );
+        return $this->hasAnyMembershipWithPermission($user->memberEvents(), $permission);
     }
 
     public function hasAnySpeakerPermission(User $user, string $permission): bool
     {
-        $shortName = $this->shortPermissionName($permission);
-
-        return $user->speakers()->get()->contains(
-            fn (Speaker $s): bool => $this->memberCan($s, $user, $shortName),
-        );
+        return $this->hasAnyMembershipWithPermission($user->speakers(), $permission);
     }
 
     public function hasAnyReferencePermission(User $user, string $permission): bool
     {
-        $shortName = $this->shortPermissionName($permission);
-
-        return $user->references()->get()->contains(
-            fn (Reference $r): bool => $this->memberCan($r, $user, $shortName),
-        );
+        return $this->hasAnyMembershipWithPermission($user->references(), $permission);
     }
 
     /**
@@ -114,17 +102,10 @@ final readonly class MemberPermissionGate
             return false;
         }
 
-        $shortName = $this->shortPermissionName($permission);
-        $threshold = self::PERMISSION_THRESHOLD[$shortName] ?? null;
+        $roles = $this->eligibleRoles($permission);
 
-        if ($threshold === null) {
-            return false;
-        }
-
-        $role = $subject->members()->whereKey($user->getKey())->value('role');
-        $weight = self::ROLE_WEIGHT[$role] ?? 0;
-
-        return $weight >= $threshold;
+        return $roles !== []
+            && $subject->members()->whereKey($user->getKey())->wherePivotIn('role', $roles)->exists();
     }
 
     /**
@@ -132,23 +113,55 @@ final readonly class MemberPermissionGate
      */
     private function membersWithPermission(Model $subject, string $permission): Collection
     {
-        $shortName = $this->shortPermissionName($permission);
-        $threshold = self::PERMISSION_THRESHOLD[$shortName] ?? null;
-
-        if ($threshold === null) {
-            return collect();
-        }
-
         if (! method_exists($subject, 'members')) {
             return collect();
         }
 
-        /** @var Collection<int, User> $members */
-        $members = $subject->members()->get();
+        $roles = $this->eligibleRoles($permission);
 
-        return $members->filter(
-            fn (User $member): bool => (self::ROLE_WEIGHT[$member->pivot->role ?? ''] ?? 0) >= $threshold,
-        )->values();
+        if ($roles === []) {
+            return collect();
+        }
+
+        /** @var Collection<int, User> $members */
+        $members = $subject->members()->wherePivotIn('role', $roles)->get();
+
+        return $members;
+    }
+
+    /**
+     * @template TRelatedModel of Model
+     * @template TPivot of Pivot
+     *
+     * @param  BelongsToMany<TRelatedModel, User, TPivot, 'pivot'>  $memberships
+     */
+    private function hasAnyMembershipWithPermission(BelongsToMany $memberships, string $permission): bool
+    {
+        $roles = $this->eligibleRoles($permission);
+
+        return $roles !== [] && $memberships->wherePivotIn('role', $roles)->exists();
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function eligibleRoles(string $permission): array
+    {
+        $threshold = $this->permissionThreshold($permission);
+
+        if ($threshold === null) {
+            return [];
+        }
+
+        return array_keys(array_filter(
+            self::ROLE_WEIGHT,
+            static fn (int $weight): bool => $weight >= $threshold,
+        ));
+    }
+
+    private function permissionThreshold(string $permission): ?int
+    {
+        return self::PERMISSION_THRESHOLD[$this->shortPermissionName($permission)] ?? null;
     }
 
     private function shortPermissionName(string $permission): string

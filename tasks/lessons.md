@@ -238,6 +238,7 @@
 - When adding MCP prompt or resource completions, also advertise `CAPABILITY_COMPLETIONS` from the server boot method; implementing `Completable` alone is not enough or the completion endpoint will reject the call as unsupported.
 - When an Ahli workflow needs to move submitted events out of `draft`, do not reuse the pending-only `approve` policy helper for visibility; add a dedicated draft-review eligibility check that still requires the submission record and scoped `event.approve` permission.
 - On self-service settings pages, avoid redundant “Back to Dashboard” hero buttons unless the user explicitly asks for them; keep the header actions focused on adjacent account tasks instead of generic navigation.
+- When auditing geography, treat the Malaysia-specific address profile as a country-scoped policy, not a global limitation: `admin_area_3_id` and `admin_area_4_id` are valid for countries whose address profiles define those levels.
 - On dense dashboard calendars, avoid extra per-day count badges when the cell already shows the event cards themselves; remove duplicate signals before adding more summary UI.
 - For self-service settings headers, keep the top section minimal by default; avoid stacking explanatory hero copy and sibling-setting buttons unless the user explicitly wants a more guided layout.
 - When a `belongsToMany` pivot table uses a UUID primary key, do not leave the relation on the default pivot behavior; add a custom pivot model with `HasUuids` so attach/sync flows can generate the pivot `id` instead of failing on insert.

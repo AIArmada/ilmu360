@@ -702,6 +702,23 @@ describe('Event Search Filters', function () {
         expect(collect($results->items())->pluck('title')->all())
             ->toContain('Kuliah Abduh Match')
             ->not->toContain('Kuliah Ibn Kathir No Match');
+
+        $scalarResults = app(EventSearchService::class)->search(
+            filters: ['reference_author_search' => 'Muhammad Abduh'],
+            perPage: 20,
+            sort: 'time',
+        );
+
+        $noResults = app(EventSearchService::class)->search(
+            filters: ['reference_author_search' => ['Author Not Present']],
+            perPage: 20,
+            sort: 'time',
+        );
+
+        expect(collect($scalarResults->items())->pluck('title')->all())
+            ->toContain('Kuliah Abduh Match')
+            ->not->toContain('Kuliah Ibn Kathir No Match')
+            ->and($noResults->total())->toBe(0);
     });
 
     it('excludes institution name from search expansion when search_include_institutions is false', function () {

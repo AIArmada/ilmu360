@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use AIArmada\Addressing\Data\AddressLocationData;
 use AIArmada\Events\Models\EventLanguage;
 use App\Data\EventDiscoveryCriteria;
 use App\Data\EventDiscoveryCriteriaFactory;
@@ -16,6 +17,7 @@ use App\Models\Institution;
 use App\Models\Reference;
 use App\Models\Venue;
 use App\Support\Cache\SafeModelCache;
+use App\Support\EventDiscovery\EventDiscoveryFilterSet;
 use App\Support\Events\PrimaryOccurrenceSql;
 use App\Support\Search\InstitutionSearchService;
 use App\Support\Search\ReferenceSearchService;
@@ -40,6 +42,7 @@ class EventSearchService
         private readonly InstitutionSearchService $institutionSearch,
         private readonly ReferenceSearchService $referenceSearch,
         private readonly EventDiscoveryCriteriaFactory $criteriaFactory = new EventDiscoveryCriteriaFactory,
+        private readonly EventDiscoveryFilterSet $filterSet = new EventDiscoveryFilterSet,
     ) {}
 
     /**
@@ -108,20 +111,72 @@ class EventSearchService
 
     private function postgresDiscovery(): PostgresEventDiscovery
     {
-        return new PostgresEventDiscovery(
-            search: fn (EventDiscoveryCriteria $criteria): LengthAwarePaginator => $this->searchWithDatabase($criteria->text, $criteria->filters, $criteria->perPage, $criteria->sort),
-            nearby: fn (EventDiscoveryCriteria $criteria): LengthAwarePaginator => $this->searchNearbyWithDatabase($criteria->latitude ?? 0.0, $criteria->longitude ?? 0.0, (int) ($criteria->radiusKm ?? 0.0), $criteria->filters, $criteria->perPage),
-            nearbyWithQuery: fn (EventDiscoveryCriteria $criteria): LengthAwarePaginator => $this->searchNearbyWithDatabaseQuery($criteria->text ?? '', $criteria->latitude ?? 0.0, $criteria->longitude ?? 0.0, (int) ($criteria->radiusKm ?? 0.0), $criteria->filters, $criteria->perPage),
-        );
+        return new PostgresEventDiscovery($this);
     }
 
     private function typesenseDiscovery(): TypesenseEventDiscovery
     {
-        return new TypesenseEventDiscovery(
-            search: fn (EventDiscoveryCriteria $criteria): LengthAwarePaginator => $this->searchWithTypesense($criteria->text, $criteria->filters, $criteria->perPage, $criteria->sort),
-            nearby: fn (EventDiscoveryCriteria $criteria): LengthAwarePaginator => $this->searchNearbyWithTypesense($criteria),
-            nearbyWithQuery: fn (EventDiscoveryCriteria $criteria): LengthAwarePaginator => $this->searchNearbyWithTypesenseQuery($criteria->text ?? '', $criteria->latitude ?? 0.0, $criteria->longitude ?? 0.0, (int) ($criteria->radiusKm ?? 0.0), $criteria->filters, $criteria->perPage),
-        );
+        return new TypesenseEventDiscovery($this);
+    }
+
+    /**
+     * @internal
+     *
+     * @return LengthAwarePaginator<int, Event>
+     */
+    public function searchWithDatabaseCriteria(EventDiscoveryCriteria $criteria): LengthAwarePaginator
+    {
+        return $this->searchWithDatabase($criteria->text, $criteria->filters, $criteria->perPage, $criteria->sort);
+    }
+
+    /**
+     * @internal
+     *
+     * @return LengthAwarePaginator<int, Event>
+     */
+    public function searchNearbyWithDatabaseCriteria(EventDiscoveryCriteria $criteria): LengthAwarePaginator
+    {
+        return $this->searchNearbyWithDatabase($criteria->latitude ?? 0.0, $criteria->longitude ?? 0.0, (int) ($criteria->radiusKm ?? 0.0), $criteria->filters, $criteria->perPage);
+    }
+
+    /**
+     * @internal
+     *
+     * @return LengthAwarePaginator<int, Event>
+     */
+    public function searchNearbyWithDatabaseQueryCriteria(EventDiscoveryCriteria $criteria): LengthAwarePaginator
+    {
+        return $this->searchNearbyWithDatabaseQuery($criteria->text ?? '', $criteria->latitude ?? 0.0, $criteria->longitude ?? 0.0, (int) ($criteria->radiusKm ?? 0.0), $criteria->filters, $criteria->perPage);
+    }
+
+    /**
+     * @internal
+     *
+     * @return LengthAwarePaginator<int, Event>
+     */
+    public function searchWithTypesenseCriteria(EventDiscoveryCriteria $criteria): LengthAwarePaginator
+    {
+        return $this->searchWithTypesense($criteria->text, $criteria->filters, $criteria->perPage, $criteria->sort);
+    }
+
+    /**
+     * @internal
+     *
+     * @return LengthAwarePaginator<int, Event>
+     */
+    public function searchNearbyWithTypesenseCriteria(EventDiscoveryCriteria $criteria): LengthAwarePaginator
+    {
+        return $this->searchNearbyWithTypesense($criteria);
+    }
+
+    /**
+     * @internal
+     *
+     * @return LengthAwarePaginator<int, Event>
+     */
+    public function searchNearbyWithTypesenseQueryCriteria(EventDiscoveryCriteria $criteria): LengthAwarePaginator
+    {
+        return $this->searchNearbyWithTypesenseQuery($criteria->text ?? '', $criteria->latitude ?? 0.0, $criteria->longitude ?? 0.0, (int) ($criteria->radiusKm ?? 0.0), $criteria->filters, $criteria->perPage);
     }
 
     private function usesDefaultSearchCache(EventDiscoveryCriteria $criteria): bool
@@ -399,32 +454,10 @@ class EventSearchService
             $filterParts[] = 'starts_at:<='.$startsBeforeTimestamp;
         }
 
-        if (! empty($filters['country_id'])) {
-            $filterParts[] = 'country_id:='.$filters['country_id'];
-        }
-
-        // Package addressing columns on addresses (not legacy aliases).
-        if (! empty($filters['state_id'])) {
-            $filterParts[] = 'state_id:='.$filters['state_id'];
-        }
-
-        if (! empty($filters['city_id'])) {
-            $filterParts[] = 'city_id:='.$filters['city_id'];
-        }
-
-        if (! empty($filters['admin_area_1_id'])) {
-            $filterParts[] = 'admin_area_1_id:='.$filters['admin_area_1_id'];
-        }
-
-        if (! empty($filters['admin_area_2_id'])) {
-            $filterParts[] = 'admin_area_2_id:='.$filters['admin_area_2_id'];
-        }
-
-        foreach (['admin_area_3_id', 'admin_area_4_id'] as $areaColumn) {
-            if (! empty($filters[$areaColumn])) {
-                $filterParts[] = $areaColumn.':='.$filters[$areaColumn];
-            }
-        }
+        $filterParts = [
+            ...$filterParts,
+            ...$this->filterSet->typesenseLocationFilterParts($this->filterSet->location($filters)),
+        ];
 
         $languageCodes = $this->normalizeArrayFilter($filters['language_codes'] ?? null);
 
@@ -596,31 +629,7 @@ class EventSearchService
             );
         }
 
-        if (! empty($filters['country_id'])) {
-            $this->applyLocationAddressFilter($queryBuilder, 'country_id', $filters['country_id']);
-        }
-
-        if (! empty($filters['state_id'])) {
-            $this->applyLocationAddressFilter($queryBuilder, 'state_id', $filters['state_id']);
-        }
-
-        if (! empty($filters['city_id'])) {
-            $this->applyLocationAddressFilter($queryBuilder, 'city_id', $filters['city_id']);
-        }
-
-        if (! empty($filters['admin_area_1_id'])) {
-            $this->applyLocationAddressFilter($queryBuilder, 'admin_area_1_id', $filters['admin_area_1_id']);
-        }
-
-        if (! empty($filters['admin_area_2_id'])) {
-            $this->applyLocationAddressFilter($queryBuilder, 'admin_area_2_id', $filters['admin_area_2_id']);
-        }
-
-        foreach (['admin_area_3_id', 'admin_area_4_id'] as $areaColumn) {
-            if (! empty($filters[$areaColumn])) {
-                $this->applyLocationAddressFilter($queryBuilder, $areaColumn, $filters[$areaColumn]);
-            }
-        }
+        $this->applyLocationAddressFilter($queryBuilder, $this->filterSet->location($filters));
 
         $languageCodes = $this->normalizeArrayFilter($filters['language_codes'] ?? null);
 
@@ -789,27 +798,14 @@ class EventSearchService
             });
         }
 
-        $referenceIds = $this->expandedReferenceIdsForFiltering($filters['reference_ids'] ?? null);
+        $referenceFilter = $this->resolvedReferenceFilter($filters);
 
-        $referenceAuthorSearches = $this->normalizeArrayFilter($filters['reference_author_search'] ?? null);
-
-        if ($referenceAuthorSearches === [] && filled($filters['reference_author_search'] ?? null)) {
-            $referenceAuthorSearches = [trim((string) $filters['reference_author_search'])];
-        }
-
-        foreach ($referenceAuthorSearches as $authorSearch) {
-            if ($authorSearch === '') {
-                continue;
-            }
-
-            $authorReferenceIds = $this->referenceSearch->publicSearchIds($authorSearch);
-            $referenceIds = array_values(array_unique(array_merge($referenceIds, $authorReferenceIds)));
-        }
-
-        if ($referenceIds !== []) {
-            $queryBuilder->whereHas('references', function (Builder $referenceQuery) use ($referenceIds): void {
-                $referenceQuery->whereIn('references.id', $referenceIds);
+        if ($referenceFilter['ids'] !== []) {
+            $queryBuilder->whereHas('references', function (Builder $referenceQuery) use ($referenceFilter): void {
+                $referenceQuery->whereIn('references.id', $referenceFilter['ids']);
             });
+        } elseif ($referenceFilter['has_author_filter']) {
+            $queryBuilder->whereRaw('1 = 0');
         }
 
         $timingMode = $this->normalizeTimingModeFilter($filters['timing_mode'] ?? null);
@@ -1194,7 +1190,14 @@ class EventSearchService
         return null;
     }
 
-    protected function applyLocationAddressFilter(EventBuilder $queryBuilder, string $column, mixed $value): void
+    protected function applyLocationAddressFilter(EventBuilder $queryBuilder, AddressLocationData $location): void
+    {
+        foreach ($location->criteria() as $column => $value) {
+            $this->applyLocationAddressCriterion($queryBuilder, $column, $value);
+        }
+    }
+
+    protected function applyLocationAddressCriterion(EventBuilder $queryBuilder, string $column, string $value): void
     {
         $addressColumn = $column;
         $addressesTable = config('addressing.tables.addresses', 'addresses');
@@ -1335,6 +1338,39 @@ class EventSearchService
         $referenceIds = $this->uuidFilterValues($value);
 
         return Reference::expandRootReferenceIdsForFiltering($referenceIds);
+    }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     * @return array{ids: list<string>, has_author_filter: bool}
+     */
+    protected function resolvedReferenceFilter(array $filters): array
+    {
+        $referenceIds = $this->expandedReferenceIdsForFiltering($filters['reference_ids'] ?? null);
+        $hasAuthorFilter = false;
+
+        foreach ($this->normalizeArrayFilter($filters['reference_author_search'] ?? null) as $authorSearch) {
+            if (! is_string($authorSearch) && ! is_numeric($authorSearch)) {
+                continue;
+            }
+
+            $authorSearch = trim((string) $authorSearch);
+
+            if ($authorSearch === '') {
+                continue;
+            }
+
+            $hasAuthorFilter = true;
+            $referenceIds = array_values(array_unique([
+                ...$referenceIds,
+                ...$this->referenceSearch->publicSearchIds($authorSearch),
+            ]));
+        }
+
+        return [
+            'ids' => $referenceIds,
+            'has_author_filter' => $hasAuthorFilter,
+        ];
     }
 
     /**
@@ -1479,6 +1515,7 @@ class EventSearchService
     {
         return $this->normalizePrayerTimeFilter($filters['prayer_time'] ?? null) !== null
             || $this->normalizeArrayFilter($filters['language_codes'] ?? null) !== []
+            || $this->normalizeArrayFilter($filters['reference_author_search'] ?? null) !== []
             || $this->normalizeTextFilter($filters['person_in_charge_search'] ?? null) !== null
             || $this->normalizeTimingModeFilter($filters['timing_mode'] ?? null) !== null
             || $this->normalizeTimeFilter($filters['starts_time_from'] ?? null) !== null

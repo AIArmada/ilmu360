@@ -151,6 +151,7 @@ final class EventDiscoveryCriteriaFactory
     {
         return $this->normalizeText($filters['prayer_time'] ?? null) !== null
             || $this->arrayValue($filters['language_codes'] ?? null) !== []
+            || $this->arrayValue($filters['reference_author_search'] ?? null) !== []
             || $this->normalizeText($filters['person_in_charge_search'] ?? null) !== null
             || in_array($filters['timing_mode'] ?? null, [TimingMode::Absolute->value, TimingMode::PrayerRelative->value], true)
             || $this->normalizeText($filters['starts_time_from'] ?? null) !== null

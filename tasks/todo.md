@@ -576,3 +576,20 @@
 - The slow setup path was reviewed for safe optimization; its per-test database
   reset and seed isolation are required, so the measured baseline is enforced
   instead of introducing an unsafe shared bootstrap.
+
+# Authorization and reference search correction — 2026-07-18
+
+- [x] Restore registration permission thresholds and query permissions through pivot-constrained existence checks.
+- [x] Make reference-author searches constrain database discovery when no references match.
+- [x] Route scalar and array reference-author criteria away from Typesense.
+- [x] Add gate, policy, search, and Typesense-fallback regression coverage.
+- [x] Run focused Pest, Pint, PHPStan, and whitespace verification.
+
+### Review
+
+- Registration viewers can now view registrations in their membership scope; exports and updates remain admin/owner-only.
+- Permission checks execute one pivot-filtered existence query per membership scope instead of hydrating related subjects.
+- A supplied author term that resolves to no public references now returns no events; empty author input keeps the existing no-filter behavior.
+- The MemberPermissionGate and Registration parallel checks pass. The focused reference-author and Typesense-fallback tests pass.
+- The broad EventSearch filter is currently blocked by unrelated in-progress discovery-adapter code that references the absent AIArmada\\Addressing\\Data\\AddressLocationData class.
+- vendor/bin/pint --dirty, vendor/bin/phpstan analyse --ansi, and git diff --check passed for this change before the unrelated discovery-adapter work appeared in the shared worktree.

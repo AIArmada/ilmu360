@@ -2,10 +2,12 @@
 
 namespace App\Livewire\Pages\Events;
 
+use AIArmada\Addressing\Data\AddressLocationData;
 use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Addressing\Models\City;
 use AIArmada\Addressing\Models\State;
+use AIArmada\Addressing\Support\AddressLocationScope;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Engagement\Contracts\EngagementManager;
 use AIArmada\Engagement\Models\Bookmark;
@@ -1250,31 +1252,13 @@ class Index extends Component implements HasForms
         ?string $stateId = null,
         ?string $cityId = null,
     ): void {
-        if (! filled($countryId) && ! filled($adminArea1Id) && ! filled($adminArea2Id) && ! filled($stateId) && ! filled($cityId)) {
-            return;
-        }
-
-        $query->whereHas('addresses', function (Builder $addressQuery) use ($countryId, $adminArea1Id, $adminArea2Id, $stateId, $cityId): void {
-            if (filled($countryId)) {
-                $addressQuery->where('country_id', $countryId);
-            }
-
-            if (filled($stateId)) {
-                $addressQuery->where('state_id', $stateId);
-            }
-
-            if (filled($cityId)) {
-                $addressQuery->where('city_id', $cityId);
-            }
-
-            if (filled($adminArea1Id)) {
-                $addressQuery->where('admin_area_1_id', $adminArea1Id);
-            }
-
-            if (filled($adminArea2Id)) {
-                $addressQuery->where('admin_area_2_id', $adminArea2Id);
-            }
-        });
+        app(AddressLocationScope::class)->apply($query, new AddressLocationData(
+            countryId: filled($countryId) ? $countryId : null,
+            stateId: filled($stateId) ? $stateId : null,
+            cityId: filled($cityId) ? $cityId : null,
+            adminArea1Id: filled($adminArea1Id) ? $adminArea1Id : null,
+            adminArea2Id: filled($adminArea2Id) ? $adminArea2Id : null,
+        ));
     }
 
     /**

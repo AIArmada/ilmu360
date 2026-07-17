@@ -142,6 +142,34 @@ test('country filter alone does not force database fallback', function () {
     ]))->toBeFalse();
 });
 
+test('reference author searches force database fallback', function () {
+    $factory = new EventDiscoveryCriteriaFactory;
+    $service = new class extends EventSearchService
+    {
+        public function __construct()
+        {
+            parent::__construct(...eventSearchTypesenseFilterDependencies());
+        }
+
+        /**
+         * @param  array<string, mixed>  $filters
+         */
+        public function exposedRequiresDatabaseFiltering(array $filters): bool
+        {
+            return $this->requiresDatabaseFiltering($filters);
+        }
+    };
+
+    expect($factory->fromSearch(null, ['reference_author_search' => 'Muhammad Abduh'], 20, 'time')->requiresDatabaseFiltering)
+        ->toBeTrue()
+        ->and($factory->fromSearch(null, ['reference_author_search' => ['Muhammad Abduh']], 20, 'time')->requiresDatabaseFiltering)
+        ->toBeTrue()
+        ->and($service->exposedRequiresDatabaseFiltering(['reference_author_search' => 'Muhammad Abduh']))
+        ->toBeTrue()
+        ->and($service->exposedRequiresDatabaseFiltering(['reference_author_search' => ['Muhammad Abduh']]))
+        ->toBeTrue();
+});
+
 test('typesense filters include domain tag ids constraint when provided', function () {
     $service = new class extends EventSearchService
     {

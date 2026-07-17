@@ -2,6 +2,7 @@
 
 namespace App\Support\Search;
 
+use App\Contracts\PublicDiscoveryAdapter;
 use App\Models\Institution;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
@@ -9,7 +10,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
-class InstitutionSearchService
+class InstitutionSearchService implements PublicDiscoveryAdapter
 {
     private const int PUBLIC_SEARCH_CACHE_TTL = 600;
 

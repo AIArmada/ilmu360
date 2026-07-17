@@ -2,13 +2,14 @@
 
 namespace App\Support\Search;
 
+use App\Contracts\PublicDiscoveryAdapter;
 use App\Models\Reference;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
-class ReferenceSearchService
+class ReferenceSearchService implements PublicDiscoveryAdapter
 {
     /**
      * @param  Builder<Reference>  $query
