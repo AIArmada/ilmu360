@@ -357,7 +357,7 @@ final class AdminWriteValidationFeedback
     /**
      * Recursively merge nested object-like payload fragments while treating list values as atomic.
      * Associative arrays such as `address => ['country_id' => 132]` merge with defaults, while sequential
-     * arrays such as `event_type => ['kuliah_ceramah']` replace defaults instead of merging item-by-item.
+     * arrays such as `event_category_ids => ['term-uuid']` replace defaults instead of merging item-by-item.
      */
     private function shouldMergeRecursively(mixed $defaultValue, mixed $payloadValue): bool
     {

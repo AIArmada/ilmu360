@@ -5,7 +5,6 @@ use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventKeyPersonRole;
-use App\Enums\EventType;
 use App\Enums\EventVisibility;
 use App\Enums\ReferenceType;
 use App\Mcp\Prompts\Concerns\BuildsEventImagePrompt;
@@ -591,7 +590,7 @@ function eventImageGenerationEventFixture(?Institution $institution = null): arr
         'starts_at' => Carbon::parse('2026-05-09 20:30:00', 'Asia/Kuala_Lumpur')->utc(),
         'ends_at' => Carbon::parse('2026-05-09 22:00:00', 'Asia/Kuala_Lumpur')->utc(),
         'timezone' => 'Asia/Kuala_Lumpur',
-        'event_type' => [EventType::Tazkirah->value],
+        'event_category_ids' => [eventCategoryId('tazkirah')],
         'gender' => EventGenderRestriction::All->value,
         'age_group' => [EventAgeGroup::AllAges->value],
         'children_allowed' => true,

@@ -11,7 +11,6 @@ use App\Enums\ContributionSubjectType;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
-use App\Enums\EventType;
 use App\Enums\EventVisibility;
 use App\Filament\Resources\Speakers\Pages\CreateSpeaker;
 use App\Filament\Resources\Speakers\Pages\EditSpeaker;
@@ -514,7 +513,7 @@ it('backfills existing speaker slugs through the queued job logic', function () 
         'slug' => 'legacy-event-slug',
         'starts_at' => $startsAt,
         'timezone' => 'Asia/Kuala_Lumpur',
-        'event_type' => [EventType::Other->value],
+        'event_category_ids' => [eventCategoryId("other")],
         'gender' => EventGenderRestriction::All->value,
         'age_group' => [EventAgeGroup::AllAges->value],
         'children_allowed' => true,
@@ -562,7 +561,7 @@ it('updates related event slugs when a speaker address change changes the speake
         'slug' => 'legacy-event-slug-address',
         'starts_at' => $startsAt,
         'timezone' => 'Asia/Kuala_Lumpur',
-        'event_type' => [EventType::Other->value],
+        'event_category_ids' => [eventCategoryId("other")],
         'gender' => EventGenderRestriction::All->value,
         'age_group' => [EventAgeGroup::AllAges->value],
         'children_allowed' => true,

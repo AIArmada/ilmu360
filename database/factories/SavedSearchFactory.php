@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Enums\EventType;
+use App\Contracts\EventCategoryCatalog;
 use App\Models\SavedSearch;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -30,7 +30,7 @@ class SavedSearchFactory extends Factory
             'query' => fake()->optional()->words(2, true),
             'filters' => fake()->boolean(50)
                 ? [
-                    'event_type' => [fake()->randomElement(array_column(EventType::cases(), 'value'))],
+                    'event_category_ids' => [array_key_first(app(EventCategoryCatalog::class)->options())],
                     'language_codes' => [fake()->randomElement(['ms', 'en', 'ar'])],
                 ]
                 : null,

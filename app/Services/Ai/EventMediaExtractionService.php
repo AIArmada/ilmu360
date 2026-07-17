@@ -9,7 +9,7 @@ use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventPrayerTime;
-use App\Enums\EventType;
+use App\Contracts\EventCategoryCatalog;
 use App\Enums\EventVisibility;
 use App\Enums\TagType;
 use ArrayAccess;
@@ -91,7 +91,7 @@ class EventMediaExtractionService
             'prayer_time',
             'custom_time',
             'end_time',
-            'event_type',
+            'event_category_ids',
             'event_format',
             'visibility',
             'event_url',
@@ -126,10 +126,7 @@ class EventMediaExtractionService
     protected function buildContext(): array
     {
         return [
-            'event_type_values' => array_column(EventType::cases(), 'value'),
-            'event_type_labels' => collect(EventType::cases())->mapWithKeys(
-                fn (EventType $case): array => [$case->value => $case->getLabel()]
-            )->all(),
+            'event_category_options' => app(EventCategoryCatalog::class)->options(),
             'prayer_time_values' => array_column(EventPrayerTime::cases(), 'value'),
             'prayer_time_labels' => collect(EventPrayerTime::cases())->mapWithKeys(
                 fn (EventPrayerTime $case): array => [$case->value => $case->getLabel()]
@@ -163,7 +160,7 @@ class EventMediaExtractionService
      */
     protected function normalizePayload(array $payload): array
     {
-        $eventTypeValues = $this->normalizeEnumArray($payload['event_type'] ?? [], EventType::class, limit: 3);
+        $eventCategoryIds = app(EventCategoryCatalog::class)->validateTermIds((array) ($payload['event_category_ids'] ?? []));
         $prayerTime = $this->normalizeEnumValue($payload['prayer_time'] ?? null, EventPrayerTime::class);
         $customTime = $this->normalizeTime($payload['custom_time'] ?? null);
 
@@ -178,7 +175,7 @@ class EventMediaExtractionService
             'prayer_time' => $prayerTime,
             'custom_time' => $customTime,
             'end_time' => $this->normalizeTime($payload['end_time'] ?? null),
-            'event_type' => $eventTypeValues,
+            'event_category_ids' => array_slice($eventCategoryIds, 0, 5),
             'event_format' => $this->normalizeEnumValue($payload['event_format'] ?? null, EventFormat::class),
             'visibility' => $this->normalizeEnumValue($payload['visibility'] ?? null, EventVisibility::class),
             'event_url' => $this->normalizeUrl($payload['event_url'] ?? null),

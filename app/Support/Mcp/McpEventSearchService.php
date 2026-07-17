@@ -21,7 +21,7 @@ class McpEventSearchService
      */
     private const array ARRAY_FILTER_KEYS = [
         'language_codes',
-        'event_type',
+        'event_category_ids',
         'age_group',
         'event_format',
         'speaker_ids',
@@ -51,7 +51,7 @@ class McpEventSearchService
         'admin_area_3_id',
         'admin_area_4_id',
         'language_codes',
-        'event_type',
+        'event_category_ids',
         'gender',
         'age_group',
         'children_allowed',
@@ -199,8 +199,8 @@ class McpEventSearchService
             'admin_area_4_id' => ['sometimes', 'nullable'],
             'language_codes' => ['sometimes', 'nullable', 'array'],
             'language_codes.*' => ['string'],
-            'event_type' => ['sometimes', 'nullable', 'array'],
-            'event_type.*' => ['string'],
+            'event_category_ids' => ['sometimes', 'nullable', 'array'],
+            'event_category_ids.*' => ['uuid'],
             'gender' => ['sometimes', 'nullable', 'string'],
             'age_group' => ['sometimes', 'nullable', 'array'],
             'age_group.*' => ['string'],
@@ -302,8 +302,8 @@ class McpEventSearchService
             'language_codes' => $stringArray->description(
                 'Array of BCP-47 language codes. Example: ["ms", "en", "ar"]. Events that are conducted in any of the given languages will be returned.'
             ),
-            'event_type' => $stringArray->description(
-                'Array of event type values to filter by. Valid values: kuliah_ceramah, kelas_daurah, talim, forum, seminar_konvensyen, tazkirah, khutbah_jumaat, qiamullail, tahlil, solat_hajat, zikir, selawat, doa_selamat, bacaan_yasin, khatam_quran, tilawah, hafazan_quran, gotong_royong, kenduri, iftar, sahur, korban, aqiqah, other.'
+            'event_category_ids' => $stringArray->description(
+                'Array of event category term UUIDs. Selecting a parent term includes all descendants.'
             ),
             'gender' => $schema->string()->nullable()->description(
                 'Audience gender restriction. Valid values: "male", "female". Omit to include all genders.'

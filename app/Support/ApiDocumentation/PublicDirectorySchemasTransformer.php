@@ -322,8 +322,7 @@ final class PublicDirectorySchemasTransformer implements DocumentTransformer
             ->addProperty('visibility', new StringType)
             ->addProperty('status', new StringType)
             ->addProperty('status_label', new StringType)
-            ->addProperty('event_type', (new ArrayType)->setItems(new StringType))
-            ->addProperty('event_type_label', (new StringType)->nullable(true))
+            ->addProperty('event_categories', (new ArrayType)->setItems(new ObjectType))
             ->addProperty('event_format', new StringType)
             ->addProperty('event_format_label', (new StringType)->nullable(true))
             ->addProperty('reference_study_subtitle', (new StringType)->nullable(true))
@@ -354,8 +353,7 @@ final class PublicDirectorySchemasTransformer implements DocumentTransformer
                 'visibility',
                 'status',
                 'status_label',
-                'event_type',
-                'event_type_label',
+                'event_categories',
                 'event_format',
                 'event_format_label',
                 'reference_study_subtitle',

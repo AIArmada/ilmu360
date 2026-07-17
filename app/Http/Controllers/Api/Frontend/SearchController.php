@@ -1084,10 +1084,9 @@ class SearchController extends FrontendController
      */
     private function institutionPublicEventCountSubquery(bool $upcomingOnly = false): Builder
     {
-        $institutionIdExpression = $this->eventUuidMetadataSqlSelector('institution_id');
         $query = Event::query()
             ->selectRaw('count(*)')
-            ->whereRaw("{$institutionIdExpression} = institutions.id")
+            ->whereColumn('events.institution_id', 'institutions.id')
             ->whereNotNull('events.published_at')
             ->whereIn('events.status', Event::PUBLIC_STATUSES)
             ->where('events.visibility', EventVisibility::Public);
@@ -1097,28 +1096,6 @@ class SearchController extends FrontendController
         }
 
         return $query;
-    }
-
-    private function eventUuidMetadataSqlSelector(string $key): string
-    {
-        return match ($this->databaseDriver()) {
-            'pgsql' => "(events.metadata->>'{$key}')::uuid",
-            default => $this->eventMetadataSqlSelector($key),
-        };
-    }
-
-    private function eventMetadataSqlSelector(string $key): string
-    {
-        return match ($this->databaseDriver()) {
-            'pgsql' => "events.metadata->>'{$key}'",
-            'mysql', 'mariadb' => "json_unquote(json_extract(events.metadata, '$.\"{$key}\"'))",
-            default => "json_extract(events.metadata, '$.\"{$key}\"')",
-        };
-    }
-
-    private function databaseDriver(): string
-    {
-        return DB::connection()->getDriverName();
     }
 
     /**

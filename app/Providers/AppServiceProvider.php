@@ -22,6 +22,8 @@ use AIArmada\Signals\Models\TrackedProperty;
 use App\Actions\Slugs\ResolvePublicSlugAction;
 use App\Ai\Listeners\RecordAiUsage;
 use App\Contracts\CaptchaVerifier;
+use App\Contracts\EventCategoryCatalog;
+use App\Contracts\EventCategoryPolicyResolver;
 use App\Contracts\GitHubIssueReporterContract;
 use App\Contracts\NullCaptchaVerifier;
 use App\Contracts\NullGitHubIssueReporter;
@@ -66,6 +68,8 @@ use App\Policies\AddressCountryPolicy;
 use App\Policies\EventPolicy;
 use App\Policies\FilamentAuditPolicy;
 use App\Services\Captcha\TurnstileVerifier;
+use App\Services\EventCategoryCatalog as DefaultEventCategoryCatalog;
+use App\Services\EventCategoryPolicy;
 use App\Services\GitHub\GitHubIssueReporter;
 use App\Services\ShareTrackingService;
 use App\Support\Communications\AppConsentResolver;
@@ -116,6 +120,9 @@ class AppServiceProvider extends ServiceProvider
     #[\Override]
     public function register(): void
     {
+        $this->app->singleton(EventCategoryCatalog::class, DefaultEventCategoryCatalog::class);
+        $this->app->singleton(EventCategoryPolicyResolver::class, EventCategoryPolicy::class);
+
         $this->app->singleton(PrettyPrinter::class, PrettyPrinter\Standard::class);
         $this->app->bind(McpOAuthRegisterController::class, OAuthRegisterController::class);
 

@@ -162,9 +162,9 @@
                 class="sticky top-0 z-50 w-full border-b border-white/10 bg-white/70 backdrop-blur-md transition-all"
                 x-data="{ mobileMenuOpen: false }">
                 <nav class="container mx-auto flex h-20 items-center justify-between px-6 lg:px-12">
-                    <a href="{{ route('home') }}" wire:navigate class="flex items-center group">
+                    <a href="{{ route('home') }}" wire:navigate class="flex items-center">
                         <img src="{{ asset('images/logo.png') }}" alt="{{ config('app.name') }}"
-                            class="h-12 w-auto transition-transform group-hover:scale-105">
+                            class="h-12 w-auto">
                     </a>
 
                     <!-- Desktop Menu -->

@@ -76,7 +76,7 @@ class AdminGetWriteSchemaTool extends AbstractAdminWriteTool
                 'title' => 'string',
                 'event_date' => 'YYYY-MM-DD',
                 'prayer_time' => 'string',
-                'event_type' => 'array<string>',
+                'event_category_ids' => 'array<uuid>',
                 'primary_organizer_key' => 'route_key',
                 'institution_key' => 'route_key',
                 'validate_only' => false,

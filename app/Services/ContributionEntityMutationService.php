@@ -23,7 +23,6 @@ use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventPrayerTime;
-use App\Enums\EventType;
 use App\Enums\EventVisibility;
 use App\Enums\Gender;
 use App\Enums\Honorific;
@@ -147,7 +146,7 @@ class ContributionEntityMutationService
                     $this->field('custom_time', 'time'),
                     $this->field('end_time', 'time'),
                     $this->field('timezone', 'timezone'),
-                    $this->field('event_type', 'array<string>', allowedValues: $this->enumValues(EventType::class)),
+                    $this->field('event_category_ids', 'array<uuid>', allowedValues: array_keys(app(\App\Contracts\EventCategoryCatalog::class)->options())),
                     $this->field('gender', 'string', allowedValues: $this->enumValues(EventGenderRestriction::class)),
                     $this->field('age_group', 'array<string>', allowedValues: $this->enumValues(EventAgeGroup::class)),
                     $this->field('children_allowed', 'boolean'),
@@ -285,8 +284,8 @@ class ContributionEntityMutationService
                 'custom_time' => ['nullable', 'date_format:H:i'],
                 'end_time' => ['nullable', 'date_format:H:i'],
                 'timezone' => ['sometimes', 'timezone'],
-                'event_type' => ['sometimes', 'array'],
-                'event_type.*' => ['string', Rule::in($this->enumValues(EventType::class))],
+                'event_category_ids' => ['sometimes', 'array'],
+                'event_category_ids.*' => ['uuid', Rule::in(array_keys(app(\App\Contracts\EventCategoryCatalog::class)->options()))],
                 'gender' => ['sometimes', Rule::in($this->enumValues(EventGenderRestriction::class))],
                 'age_group' => ['sometimes', 'array'],
                 'age_group.*' => ['string', Rule::in($this->enumValues(EventAgeGroup::class))],
@@ -551,7 +550,6 @@ class ContributionEntityMutationService
             'prayer_display_text' => array_key_exists('prayer_display_text', $payload)
                 ? $this->normalizeOptionalString($payload['prayer_display_text'])
                 : $event->prayer_display_text,
-            'event_type' => array_key_exists('event_type', $payload) ? $this->normalizeStringArray($payload['event_type']) : $event->event_type,
             'gender' => array_key_exists('gender', $payload) ? $payload['gender'] : $event->gender,
             'age_group' => array_key_exists('age_group', $payload) ? $this->normalizeStringArray($payload['age_group']) : $event->age_group,
             'children_allowed' => array_key_exists('children_allowed', $payload) ? (bool) $payload['children_allowed'] : $event->children_allowed,
@@ -606,12 +604,14 @@ class ContributionEntityMutationService
         }
 
         if (
-            array_key_exists('domain_tags', $payload)
+            array_key_exists('event_category_ids', $payload)
+            || array_key_exists('domain_tags', $payload)
             || array_key_exists('discipline_tags', $payload)
             || array_key_exists('source_tags', $payload)
             || array_key_exists('issue_tags', $payload)
         ) {
             app(SyncEventClassificationsAction::class)->handle($event, [
+                'event_category_ids' => $payload['event_category_ids'] ?? $event->event_category_ids,
                 'domain_tags' => $payload['domain_tags'] ?? [],
                 'discipline_tags' => $payload['discipline_tags'] ?? [],
                 'source_tags' => $payload['source_tags'] ?? [],
@@ -715,7 +715,7 @@ class ContributionEntityMutationService
                 ? $event->prayer_offset->value
                 : (is_string($event->prayer_offset) && $event->prayer_offset !== '' ? $event->prayer_offset : null),
             'prayer_display_text' => $event->prayer_display_text,
-            'event_type' => $this->enumCollectionValues($event->event_type),
+            'event_category_ids' => $event->classifications->where('taxonomy_code', \App\Contracts\EventCategoryCatalog::TAXONOMY_CODE)->pluck('event_term_id')->values()->all(),
             'gender' => $event->gender instanceof BackedEnum ? $event->gender->value : (string) $event->gender,
             'age_group' => $this->enumCollectionValues($event->age_group),
             'children_allowed' => (bool) $event->children_allowed,

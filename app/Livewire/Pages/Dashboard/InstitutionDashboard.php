@@ -30,7 +30,6 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\HtmlString;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
@@ -714,7 +713,7 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
     {
         $query = Event::query()
             ->selectRaw('count(*)')
-            ->whereRaw("{$this->eventInstitutionIdSelector()} = institutions.id");
+            ->whereColumn('events.institution_id', 'institutions.id');
 
         if ($callback !== null) {
             $callback($query);
@@ -801,16 +800,6 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
         return array_key_exists($value, $this->eventVisibilityOptions())
             ? $value
             : 'all';
-    }
-
-    protected function eventInstitutionIdSelector(): string
-    {
-        // Package-native: institution_id lives in events.metadata only.
-        return match (DB::connection()->getDriverName()) {
-            'pgsql' => "(events.metadata->>'institution_id')::uuid",
-            'mysql', 'mariadb' => "json_unquote(json_extract(events.metadata, '$.\"institution_id\"'))",
-            default => "json_extract(events.metadata, '$.\"institution_id\"')",
-        };
     }
 
     protected function normalizeEventSort(string $value): string

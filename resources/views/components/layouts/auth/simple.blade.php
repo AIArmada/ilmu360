@@ -187,12 +187,9 @@
 
                     {{-- Header --}}
                     <div class="text-center mb-8 entry-2">
-                        <a href="{{ route('home') }}" wire:navigate class="inline-block group relative">
-                            <div
-                                class="absolute -inset-4 bg-emerald-500/10 rounded-full blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                            </div>
+                        <a href="{{ route('home') }}" wire:navigate class="inline-block">
                             <img src="{{ asset('images/logo.png') }}" alt="{{ config('app.name') }}"
-                                class="relative h-16 w-auto mx-auto transform transition-transform duration-500 group-hover:scale-105">
+                                class="h-16 w-auto mx-auto">
                         </a>
 
                         <div class="mt-6 space-y-2">

@@ -3,11 +3,11 @@
 namespace App\Http\Controllers\Api\Frontend;
 
 use App\Actions\Events\SubmitFrontendEventAction;
+use App\Contracts\EventCategoryCatalog;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventPrayerTime;
-use App\Enums\EventType;
 use App\Enums\EventVisibility;
 use App\Models\Event;
 use App\Models\Institution;
@@ -50,8 +50,8 @@ class EventSubmissionController extends FrontendController
             'scoped_institution_id' => ['nullable', 'uuid'],
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable'],
-            'event_type' => ['required', 'array', 'min:1'],
-            'event_type.*' => ['string', Rule::in(array_column(EventType::cases(), 'value'))],
+            'event_category_ids' => ['required', 'array', 'min:1'],
+            'event_category_ids.*' => ['uuid', Rule::in(app(EventCategoryCatalog::class)->validTermIds((array) $request->input('event_category_ids', [])))],
             'event_date' => ['required', 'date'],
             'prayer_time' => ['required', 'string', Rule::in(array_column(EventPrayerTime::cases(), 'value'))],
             'custom_time' => ['nullable', 'date_format:H:i'],

@@ -7,7 +7,6 @@ use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventPrayerTime;
-use App\Enums\EventType;
 use App\Enums\TimingMode;
 use BackedEnum;
 use Carbon\CarbonImmutable;
@@ -48,7 +47,7 @@ final class SavedSearchFilterNormalizer
         }
 
         $this->normalizeLanguageCodes($normalizedFilters);
-        $this->normalizeEnumArrayFilter($normalizedFilters, 'event_type', EventType::class);
+        $this->normalizeUuidArrayFilter($normalizedFilters, 'event_category_ids');
         $this->normalizeEnumArrayFilter($normalizedFilters, 'event_format', EventFormat::class);
         $this->normalizeEnumArrayFilter($normalizedFilters, 'age_group', EventAgeGroup::class);
         $this->normalizeKeyPersonRoles($normalizedFilters);
@@ -98,7 +97,7 @@ final class SavedSearchFilterNormalizer
             'issue_tag_ids',
             'reference_ids',
             'language_codes',
-            'event_type',
+            'event_category_ids',
             'event_format',
             'gender',
             'starts_after',

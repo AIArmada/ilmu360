@@ -5,12 +5,12 @@ namespace App\Http\Controllers\Api;
 use App\Actions\SavedSearches\CreateSavedSearchAction;
 use App\Actions\SavedSearches\ExecuteSavedSearchAction;
 use App\Actions\SavedSearches\UpdateSavedSearchAction;
+use App\Contracts\EventCategoryCatalog;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventPrayerTime;
-use App\Enums\EventType;
 use App\Enums\TimingMode;
 use App\Exceptions\SavedSearchLimitReachedException;
 use App\Http\Controllers\Controller;
@@ -54,7 +54,7 @@ class SavedSearchController extends Controller
     #[BodyParameter('query', 'Free-text event discovery query.', required: false, type: 'string', infer: false, example: 'muamalat')]
     #[BodyParameter('filters', 'Canonical saved-search filters keyed by event discovery fields.', required: false, type: 'object', infer: false, example: [
         'language_codes' => ['ms'],
-        'event_type' => ['kuliah_ceramah'],
+        'event_category_ids' => [],
         'age_group' => ['all_ages'],
         'starts_on_local_date' => '2026-02-01',
     ])]
@@ -117,7 +117,7 @@ class SavedSearchController extends Controller
     #[BodyParameter('query', 'Updated free-text event discovery query.', required: false, type: 'string', infer: false, example: 'forum')]
     #[BodyParameter('filters', 'Updated canonical saved-search filters keyed by event discovery fields.', required: false, type: 'object', infer: false, example: [
         'language_codes' => ['ms', 'en'],
-        'event_type' => ['forum'],
+        'event_category_ids' => [],
         'age_group' => ['youth'],
         'starts_on_local_date' => '2026-02-01',
     ])]
@@ -201,8 +201,8 @@ class SavedSearchController extends Controller
             'filters.venue_id' => 'nullable|uuid|exists:venues,id',
             'filters.language_codes' => 'nullable|array',
             'filters.language_codes.*' => 'string|max:12',
-            'filters.event_type' => 'nullable|array',
-            'filters.event_type.*' => ['string', Rule::in(array_column(EventType::cases(), 'value'))],
+            'filters.event_category_ids' => 'nullable|array',
+            'filters.event_category_ids.*' => ['uuid', Rule::in(app(EventCategoryCatalog::class)->validTermIds((array) request()->input('filters.event_category_ids', [])))],
             'filters.event_format' => 'nullable|array',
             'filters.event_format.*' => ['string', Rule::in(array_column(EventFormat::cases(), 'value'))],
             'filters.gender' => ['nullable', 'string', Rule::in(array_column(EventGenderRestriction::cases(), 'value'))],
@@ -313,7 +313,7 @@ class SavedSearchController extends Controller
             'reference_ids',
             'starts_on_local_date',
             'language_codes',
-            'event_type',
+            'event_category_ids',
             'event_format',
             'gender',
             'starts_after',

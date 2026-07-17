@@ -4,7 +4,6 @@ use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventPrayerTime;
-use App\Enums\EventType;
 use App\Enums\EventVisibility;
 use App\Enums\PrayerReference;
 use App\Enums\TimingMode;
@@ -40,7 +39,7 @@ function submitEventTimingFormData(array $fixtures, array $overrides = []): arra
         'title' => 'Submit Event Timing',
         'domain_tags' => [$fixtures['domain_tag']->id],
         'discipline_tags' => [$fixtures['discipline_tag']->id],
-        'event_type' => [EventType::KuliahCeramah->value],
+        'event_category_ids' => [eventCategoryId("kuliah_ceramah")],
         'event_date' => now()->addDays(5)->toDateString(),
         'prayer_time' => EventPrayerTime::SelepasMaghrib->value,
         'description' => 'Test description',

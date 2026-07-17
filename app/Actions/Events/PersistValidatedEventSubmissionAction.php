@@ -11,7 +11,6 @@ use App\Data\Events\ValidatedEventSubmission;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
-use App\Enums\EventType;
 use App\Enums\EventVisibility;
 use App\Models\Event;
 use App\Models\EventSubmission;
@@ -52,7 +51,6 @@ final readonly class PersistValidatedEventSubmissionAction
             'institution_id' => $submission->targetInstitutionId,
             'venue_id' => $submission->targetVenueId,
             'space_id' => $state['space_id'] ?? null,
-            'event_type' => $state['event_type'] ?? [EventType::KuliahCeramah->value],
             'gender' => $state['gender'] ?? EventGenderRestriction::All->value,
             'age_group' => $state['age_group'] ?? [EventAgeGroup::AllAges->value],
             'children_allowed' => $state['children_allowed'] ?? true,

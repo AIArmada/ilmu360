@@ -9,7 +9,6 @@ use AIArmada\Membership\Enums\MemberRole;
 use App\Actions\Location\NormalizeGoogleMapsInputAction;
 use App\Enums\EventFormat;
 use App\Enums\EventKeyPersonRole;
-use App\Enums\EventType;
 use App\Enums\EventVisibility;
 use App\Enums\InspirationCategory;
 use App\Enums\InstitutionType;
@@ -462,7 +461,7 @@ it('normalizes event update context to public organizer values and exposes looku
         'slug' => 'api-contract-event',
         'status' => 'approved',
         'institution_id' => $institution->getKey(),
-        'event_type' => ['kuliah_ceramah'],
+        'event_category_ids' => [eventCategoryId('kuliah_ceramah')],
         'gender' => 'all',
         'age_group' => ['all_ages'],
         'event_format' => 'physical',
@@ -937,7 +936,7 @@ it('maps public event organizer values back to persistence classes during direct
         'ends_at' => now()->setTimezone('Asia/Kuala_Lumpur')->startOfDay()->addHours(12)->utc(),
         'timezone' => 'Asia/Kuala_Lumpur',
         'live_url' => 'https://live.example.test/watch',
-        'event_type' => ['kuliah_ceramah'],
+        'event_category_ids' => [eventCategoryId('kuliah_ceramah')],
         'gender' => 'all',
         'age_group' => ['all_ages'],
         'delivery_mode' => 'physical',
@@ -2904,7 +2903,7 @@ it('submits events with media through the frontend api', function () {
     $response = $this->post(route('api.client.submit-event.store'), [
         'title' => 'Frontend API Event',
         'description' => 'API description',
-        'event_type' => ['kuliah_ceramah'],
+        'event_category_ids' => [eventCategoryId('kuliah_ceramah')],
         'event_date' => now()->addDay()->toDateString(),
         'prayer_time' => 'selepas_maghrib',
         'event_format' => 'physical',
@@ -2945,7 +2944,7 @@ it('rejects frontend event submission cover and poster uploads with invalid aspe
 
     $this->post(route('api.client.submit-event.store'), [
         'title' => 'Invalid Ratio API Event',
-        'event_type' => ['kuliah_ceramah'],
+        'event_category_ids' => [eventCategoryId('kuliah_ceramah')],
         'event_date' => now()->addDay()->toDateString(),
         'prayer_time' => 'selepas_maghrib',
         'event_format' => 'physical',
@@ -2983,7 +2982,7 @@ it('requires explicit country input for frontend event submissions and accepts a
     $payload = [
         'title' => 'Frontend API Legacy Timezone Event',
         'description' => 'API description',
-        'event_type' => ['kuliah_ceramah'],
+        'event_category_ids' => [eventCategoryId('kuliah_ceramah')],
         'event_date' => now()->addDay()->toDateString(),
         'prayer_time' => 'lain_waktu',
         'custom_time' => '20:15',
@@ -3029,7 +3028,7 @@ it('accepts any valid submission country uuid for frontend event submissions', f
     $payload = [
         'title' => 'Frontend API Invalid Country Event',
         'description' => 'API description',
-        'event_type' => ['kuliah_ceramah'],
+        'event_category_ids' => [eventCategoryId('kuliah_ceramah')],
         'event_date' => now()->addDay()->toDateString(),
         'prayer_time' => 'selepas_maghrib',
         'event_format' => 'physical',
@@ -3071,7 +3070,7 @@ it('requires guest event submissions to include email or phone', function () {
     $this->postJson(route('api.client.submit-event.store'), [
         'title' => 'Guest Frontend API Event',
         'description' => 'API description',
-        'event_type' => ['kuliah_ceramah'],
+        'event_category_ids' => [eventCategoryId('kuliah_ceramah')],
         'event_date' => now()->addDay()->toDateString(),
         'prayer_time' => 'selepas_maghrib',
         'event_format' => 'physical',
@@ -3099,7 +3098,7 @@ it('allows online frontend event submissions without a live url', function () {
     $this->postJson(route('api.client.submit-event.store'), [
         'title' => 'Online Frontend API Event',
         'description' => 'API description',
-        'event_type' => ['kuliah_ceramah'],
+        'event_category_ids' => [eventCategoryId('kuliah_ceramah')],
         'event_date' => now()->addDay()->toDateString(),
         'prayer_time' => 'selepas_maghrib',
         'event_format' => 'online',
@@ -3129,7 +3128,7 @@ it('requires a physical location for speaker-organized physical event submission
     $this->postJson(route('api.client.submit-event.store'), [
         'title' => 'Speaker Physical Event',
         'description' => 'API description',
-        'event_type' => ['kuliah_ceramah'],
+        'event_category_ids' => [eventCategoryId('kuliah_ceramah')],
         'event_date' => now()->addDay()->toDateString(),
         'prayer_time' => 'selepas_maghrib',
         'event_format' => 'physical',
@@ -3391,7 +3390,7 @@ it('mirrors the public speaker page payload for app clients', function () {
         'default_venue_id' => $venue->id,
         'starts_at' => now()->addDays(3)->setTime(19, 30),
         'ends_at' => now()->addDays(3)->setTime(21, 0),
-        'event_type' => ['kuliah_ceramah'],
+        'event_category_ids' => [eventCategoryId('kuliah_ceramah')],
     ]);
     $upcomingEvent->eventReferences()->create([
         'referenceable_type' => 'reference',
@@ -3415,7 +3414,7 @@ it('mirrors the public speaker page payload for app clients', function () {
         'default_venue_id' => $venue->id,
         'starts_at' => now()->subDays(2)->setTime(20, 0),
         'ends_at' => now()->subDays(2)->setTime(22, 0),
-        'event_type' => ['forum'],
+        'event_category_ids' => [eventCategoryId('forum')],
     ]);
     EventKeyPersonFactory::new()->create([
         'event_id' => $pastEvent->id,
@@ -3432,7 +3431,7 @@ it('mirrors the public speaker page payload for app clients', function () {
         'default_venue_id' => $venue->id,
         'starts_at' => now()->addWeek()->setTime(20, 0),
         'ends_at' => now()->addWeek()->setTime(22, 0),
-        'event_type' => ['forum'],
+        'event_category_ids' => [eventCategoryId('forum')],
     ]);
 
     EventKeyPerson::factory()->create([
@@ -3467,7 +3466,7 @@ it('mirrors the public speaker page payload for app clients', function () {
         ->and($response->json('data.speaker.institutions.0.public_image_url'))->not->toBeEmpty()
         ->and(array_key_exists('chip_image_url', is_array($speakerInstitution) ? $speakerInstitution : []))->toBeFalse()
         ->and($response->json('data.upcoming_events.0.reference_study_subtitle'))->toBe('Kitab API')
-        ->and($response->json('data.upcoming_events.0.event_type_label'))->toBe(EventType::KuliahCeramah->getLabel())
+        ->and($response->json('data.upcoming_events.0.event_categories.0.name'))->toBe('Kuliah / Ceramah')
         ->and($response->json('data.upcoming_events.0.event_format'))->toBe('hybrid')
         ->and($response->json('data.upcoming_events.0.event_format_label'))->toBe(EventFormat::Hybrid->getLabel())
         ->and($response->json('data.upcoming_events.0.timing_display'))->not->toBeEmpty()

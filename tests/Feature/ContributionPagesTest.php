@@ -9,7 +9,6 @@ use App\Enums\ContributionRequestType;
 use App\Enums\ContributionSubjectType;
 use App\Enums\EventFormat;
 use App\Enums\EventPrayerTime;
-use App\Enums\EventType;
 use App\Enums\MemberSubjectType;
 use App\Livewire\Pages\Contributions\Index as ContributionsIndex;
 use App\Livewire\Pages\Contributions\SubmitInstitution;
@@ -310,7 +309,7 @@ it('renders the action modal stack on event update pages for create-option field
         'status' => 'approved',
         'visibility' => 'public',
         'published_at' => now()->subMinute(),
-        'event_type' => [EventType::Iftar->value],
+        'event_category_ids' => [eventCategoryId("iftar")],
         'institution_id' => $institution->id,
         'starts_at' => now()->addDays(3)->setTime(20, 0),
     ]);
@@ -337,7 +336,7 @@ it('renders the suggest update page with translated event form copy when the loc
         'status' => 'approved',
         'visibility' => 'public',
         'published_at' => now()->subMinute(),
-        'event_type' => [EventType::Iftar->value],
+        'event_category_ids' => [eventCategoryId("iftar")],
         'institution_id' => $institution->id,
         'starts_at' => now()->addDays(3)->setTime(20, 0),
     ]);
@@ -712,7 +711,7 @@ it('keeps approved events approved when maintainers apply sensitive ordinary edi
     $event = Event::factory()->for($institution)->create([
         'title' => 'Majlis Sensitif',
         'status' => 'approved',
-        'event_type' => [EventType::Iftar->value],
+        'event_category_ids' => [eventCategoryId("iftar")],
         'starts_at' => now()->addDays(4)->setTime(20, 0),
         'ends_at' => now()->addDays(4)->setTime(21, 0),
     ]);
@@ -744,7 +743,7 @@ it('shows the richer event update controls for maintainers', function () {
     $event = Event::factory()->for($institution)->create([
         'title' => 'Majlis Dengan Media',
         'status' => 'approved',
-        'event_type' => [EventType::Iftar->value],
+        'event_category_ids' => [eventCategoryId("iftar")],
         'institution_id' => $institution->id,
         'starts_at' => now()->addDays(4)->setTime(20, 0),
     ]);
@@ -774,7 +773,7 @@ it('shows visible aspect ratio options for direct event media edits on the kemas
     $event = Event::factory()->for($institution)->create([
         'title' => 'Majlis Dengan Nisbah Media',
         'status' => 'approved',
-        'event_type' => [EventType::Iftar->value],
+        'event_category_ids' => [eventCategoryId("iftar")],
         'institution_id' => $institution->id,
         'starts_at' => now()->addDays(4)->setTime(20, 0),
     ]);
@@ -820,7 +819,7 @@ it('renders the submit-style waktu field on the event update page', function () 
     $event = Event::factory()->for($institution)->create([
         'title' => 'Majlis Ada Waktu',
         'status' => 'approved',
-        'event_type' => [EventType::Iftar->value],
+        'event_category_ids' => [eventCategoryId("iftar")],
         'institution_id' => $institution->id,
         'starts_at' => now()->addDays(3)->setTime(20, 0),
     ]);
@@ -887,7 +886,7 @@ it('normalizes submit-style organizer and location changes on the event update p
     $event = Event::factory()->for($institution)->create([
         'title' => 'Majlis Tukar Penganjur',
         'status' => 'approved',
-        'event_type' => [EventType::Iftar->value],
+        'event_category_ids' => [eventCategoryId("iftar")],
         'delivery_mode' => EventFormat::Physical,
         'institution_id' => $institution->id,
         'default_venue_id' => null,

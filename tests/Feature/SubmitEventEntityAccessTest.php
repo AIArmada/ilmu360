@@ -5,7 +5,6 @@ use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventPrayerTime;
-use App\Enums\EventType;
 use App\Enums\EventVisibility;
 use App\Models\Event;
 use App\Models\Institution;
@@ -30,7 +29,7 @@ function submitEventEntityAccessPayload(EventTerm $domainTag, EventTerm $discipl
         'description' => 'Entity access enforcement test.',
         'event_date' => now()->addDays(5)->format('Y-m-d'),
         'prayer_time' => EventPrayerTime::SelepasMaghrib->value,
-        'event_type' => [EventType::KuliahCeramah->value],
+        'event_category_ids' => [eventCategoryId("kuliah_ceramah")],
         'event_format' => EventFormat::Physical->value,
         'visibility' => EventVisibility::Public->value,
         'gender' => EventGenderRestriction::All->value,

@@ -74,8 +74,7 @@ class EventController extends Controller
         'visibility',
         'status',
         'status_label',
-        'event_type',
-        'event_type_label',
+        'event_categories',
         'event_format',
         'event_format_label',
         'reference_study_subtitle',
@@ -104,7 +103,7 @@ class EventController extends Controller
      * /api/v1/events?sort=-starts_at
      * /api/v1/events?filter[search]=kuliah
      */
-    #[QueryParameter('fields', 'Optional comma-separated top-level list fields to return. Supported fields: id, slug, title, starts_at, starts_at_local, starts_on_local_date, ends_at, ends_at_local, timing_display, prayer_display_text, end_time_display, visibility, status, status_label, event_type, event_type_label, event_format, event_format_label, reference_study_subtitle, location, is_remote, is_pending, is_cancelled, has_poster, poster_url, card_image_url, institution, venue, speakers.', required: false, type: 'string', infer: false, example: 'id,title,starts_at,starts_at_local,location,card_image_url')]
+    #[QueryParameter('fields', 'Optional comma-separated top-level list fields to return. Supported fields include event_categories.', required: false, type: 'string', infer: false, example: 'id,title,starts_at,starts_at_local,location,card_image_url')]
     public function index(Request $request): JsonResponse
     {
         $requestedFields = $this->requestedFields($request, self::EVENT_LIST_FIELDS);
@@ -124,7 +123,7 @@ class EventController extends Controller
             }),
             AllowedFilter::exact('visibility'),
             AllowedFilter::exact('delivery_mode'),
-            AllowedFilter::exact('metadata->institution_id'),
+            AllowedFilter::exact('institution_id'),
             AllowedFilter::exact('default_venue_id'),
             AllowedFilter::exact('type'),
             AllowedFilter::callback('starts_after', function (Builder $query, mixed $value): void {

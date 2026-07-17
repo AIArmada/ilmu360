@@ -6,7 +6,6 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Data\Api\Frontend\Search\ReferenceDetailMediaData;
 use App\Enums\EventChangeSeverity;
 use App\Enums\EventChangeType;
-use App\Enums\EventType;
 use App\Models\Event;
 use App\Models\EventChangeAnnouncement;
 use App\Models\EventKeyPerson;
@@ -14,6 +13,7 @@ use App\Models\Institution;
 use App\Models\Reference;
 use App\Models\Speaker;
 use App\Support\Location\AddressHierarchyFormatter;
+use App\Support\Events\EventCategoryPresenter;
 use App\Support\Timezone\UserDateTimeFormatter;
 use BackedEnum;
 use Carbon\CarbonInterface;
@@ -53,7 +53,7 @@ class EventPayloadData extends Data
             'prayer_reference' => self::enumValue($event->prayer_reference),
             'prayer_offset' => self::enumValue($event->prayer_offset),
             'prayer_display_text' => $event->prayer_display_text,
-            'event_type' => self::enumListValues($event->event_type),
+            'event_categories' => app(EventCategoryPresenter::class)->forEvent($event),
             'gender' => self::enumValue($event->gender),
             'age_group' => self::enumListValues($event->age_group),
             'children_allowed' => $event->children_allowed,
@@ -79,7 +79,6 @@ class EventPayloadData extends Data
             'end_time_display' => $event->ends_at instanceof DateTimeInterface
                 ? UserDateTimeFormatter::format($event->ends_at, 'h:i A')
                 : null,
-            'event_type_label' => self::resolveEventTypeLabel($event),
         ], [
             'latest_published_change_announcement',
             'latest_published_replacement_announcement',
@@ -146,25 +145,6 @@ class EventPayloadData extends Data
         null|TransformationContextFactory|TransformationContext $transformationContext = null,
     ): array {
         return $this->payload;
-    }
-
-    private static function resolveEventTypeLabel(Event $event): ?string
-    {
-        $eventType = $event->event_type;
-
-        $first = $eventType instanceof Collection
-            ? $eventType->first()
-            : (is_array($eventType) ? ($eventType[0] ?? null) : null);
-
-        if ($first instanceof EventType) {
-            return $first->getLabel();
-        }
-
-        if (is_string($first) && $first !== '') {
-            return EventType::tryFrom($first)?->getLabel();
-        }
-
-        return null;
     }
 
     private static function enumValue(mixed $value): mixed

@@ -14,7 +14,7 @@ use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventPrayerTime;
-use App\Enums\EventType;
+use App\Contracts\EventCategoryCatalog;
 use App\Enums\NotificationFrequency;
 use App\Enums\TimingMode;
 use App\Exceptions\SavedSearchLimitReachedException;
@@ -338,7 +338,7 @@ class Index extends Component
             'city_id',
             'admin_area_1_id',
             'admin_area_2_id',
-            'event_type',
+            'event_category_ids',
             'event_format',
             'gender',
             'institution_id',
@@ -427,10 +427,10 @@ class Index extends Component
             }
         }
 
-        $eventType = array_values(array_filter((array) request()->input('event_type', [])));
+        $eventType = array_values(array_filter((array) request()->input('event_category_ids', [])));
 
         if ($eventType !== []) {
-            $filters['event_type'] = $eventType;
+            $filters['event_category_ids'] = $eventType;
         }
 
         $eventFormat = array_values(array_filter((array) request()->input('event_format', [])));
@@ -454,13 +454,9 @@ class Index extends Component
             return __('Search: :query', ['query' => Str::limit($this->query, 40)]);
         }
 
-        if (! empty($this->filters['event_type'])) {
-            $eventType = is_array($this->filters['event_type'])
-                ? $this->filters['event_type'][0]
-                : $this->filters['event_type'];
-
-            $eventTypeLabel = EventType::tryFrom((string) $eventType)?->getLabel()
-                ?? Str::of((string) $eventType)->replace('_', ' ')->headline()->toString();
+        if (! empty($this->filters['event_category_ids'])) {
+            $eventType = is_array($this->filters['event_category_ids']) ? $this->filters['event_category_ids'][0] : $this->filters['event_category_ids'];
+            $eventTypeLabel = app(EventCategoryCatalog::class)->options()[(string) $eventType] ?? (string) $eventType;
 
             return __('Event type: :type', ['type' => $eventTypeLabel]);
         }
@@ -496,7 +492,7 @@ class Index extends Component
             'issue_tag_ids' => __('Themes / Issues'),
             'reference_ids' => __('References'),
             'language_codes' => __('Languages'),
-            'event_type' => __('Event Type'),
+            'event_category_ids' => __('Event Category'),
             'event_format' => __('Event Format'),
             'gender' => __('Gender'),
             'starts_after' => __('Starts After'),
@@ -547,7 +543,7 @@ class Index extends Component
             'domain_tag_ids', 'topic_ids', 'source_tag_ids', 'issue_tag_ids' => $this->tagName($value) ?? $value,
             'reference_ids' => $this->referenceTitle($value) ?? $value,
             'language_codes' => $this->languageLabel($value) ?? $value,
-            'event_type' => EventType::tryFrom($value)?->getLabel() ?? $value,
+            'event_category_ids' => app(EventCategoryCatalog::class)->options()[$value] ?? $value,
             'event_format' => EventFormat::tryFrom($value)?->getLabel() ?? $value,
             'gender' => EventGenderRestriction::tryFrom($value)?->getLabel() ?? $value,
             'age_group' => EventAgeGroup::tryFrom($value)?->getLabel() ?? $value,

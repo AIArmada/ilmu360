@@ -2,11 +2,9 @@
 
 namespace App\Filament\Widgets;
 
-use AIArmada\Events\Models\EventAttribute;
 use App\Models\Event;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
-use Illuminate\Database\Query\Builder;
 
 class EventInventoryOverview extends StatsOverviewWidget
 {
@@ -35,14 +33,7 @@ class EventInventoryOverview extends StatsOverviewWidget
 
         $featuredEvents = Event::query()
             ->active()
-            ->whereExists(function (Builder $query): void {
-                $query
-                    ->selectRaw('1')
-                    ->from((new EventAttribute)->getTable())
-                    ->whereColumn('event_attributes.event_id', 'events.id')
-                    ->where('attribute_key', 'is_featured')
-                    ->where('attribute_value', '1');
-            })
+            ->featured()
             ->count();
 
         return [

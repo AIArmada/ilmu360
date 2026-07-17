@@ -249,7 +249,7 @@ class Institution extends Model implements AuditableContract, HasMedia
     }
 
     /**
-     * Metadata-backed event query for this institution.
+     * Event query for events held at this institution.
      */
     public function events(): EventBuilder
     {

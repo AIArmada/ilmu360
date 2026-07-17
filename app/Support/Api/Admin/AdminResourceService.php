@@ -7,7 +7,7 @@ namespace App\Support\Api\Admin;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\FilamentEvents\Resources\EventResource;
 use App\Enums\EventFormat;
-use App\Enums\EventType;
+use App\Contracts\EventCategoryCatalog;
 use App\Enums\EventVisibility;
 use App\Enums\PrayerReference;
 use App\Enums\TimingMode;
@@ -1042,22 +1042,19 @@ class AdminResourceService
             $query->whereIn($model->qualifyColumn('delivery_mode'), $formats);
         }
 
-        if (array_key_exists('event_type', $filters)) {
-            $eventTypes = array_values(array_filter(
-                array_map(static fn (string $value): ?string => EventType::tryFrom($value)?->value, $this->normalizeArrayFilter($filters['event_type'])),
-            ));
+        if (array_key_exists('event_category_ids', $filters)) {
+            $categoryIds = app(EventCategoryCatalog::class)->descendantIds($this->normalizeArrayFilter($filters['event_category_ids']));
 
-            if ($eventTypes === []) {
+            if ($categoryIds === []) {
                 $query->whereRaw('1 = 0');
 
                 return;
             }
 
-            $query->where(function (Builder $eventTypeQuery) use ($eventTypes, $model): void {
-                foreach ($eventTypes as $index => $eventType) {
-                    $method = $index === 0 ? 'whereJsonContains' : 'orWhereJsonContains';
-                    $eventTypeQuery->{$method}($model->qualifyColumn('metadata->event_type'), $eventType);
-                }
+            $query->whereHas('classifications', function (Builder $classificationQuery) use ($categoryIds): void {
+                $classificationQuery
+                    ->whereIn('event_term_id', $categoryIds)
+                    ->where('taxonomy_code', EventCategoryCatalog::TAXONOMY_CODE);
             });
         }
 

@@ -53,13 +53,18 @@ class CreateAdvancedEventAction
                 'description' => (string) ($form['description'] ?? ''),
                 'timezone' => $timezone,
                 'institution_id' => $locationInstitutionId,
-                'event_type' => [(string) $form['default_event_type']],
                 'event_format' => (string) $form['default_event_format'],
                 'visibility' => (string) $form['visibility'],
                 'registration_mode' => empty($form['registration_required'])
                     ? RegistrationMode::None->value
                     : RegistrationMode::Required->value,
                 'status' => 'draft',
+            ]);
+
+            app(SyncEventClassificationsAction::class)->handle($event, [
+                'event_category_ids' => is_array($form['default_event_category_ids'] ?? null)
+                    ? $form['default_event_category_ids']
+                    : [(string) ($form['default_event_category_id'] ?? '')],
             ]);
 
             app(CreateEventOccurrenceAction::class)->handle($event, [

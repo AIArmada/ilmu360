@@ -8,7 +8,7 @@ use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventPrayerTime;
-use App\Enums\EventType;
+use App\Contracts\EventCategoryCatalog;
 use App\Enums\EventVisibility;
 use App\Enums\RegistrationScope;
 use App\Models\Institution;
@@ -299,7 +299,7 @@ class AdminBatchCreateEventsTool extends AbstractAdminWriteTool
             'age_group' => $schema->array()->items($schema->string()->enum($this->enumValues(EventAgeGroup::class)))->default([EventAgeGroup::AllAges->value]),
             'children_allowed' => $schema->boolean()->default(false),
             'is_muslim_only' => $schema->boolean()->default(false),
-            'event_type' => $schema->array()->required()->items($schema->string()->enum($this->enumValues(EventType::class))),
+            'event_category_ids' => $schema->array()->required()->items($schema->string()->enum(array_keys(app(EventCategoryCatalog::class)->options()))),
             'primary_organizer_key' => $schema->string()->required()->description('Primary organizer route key (institution or speaker slug preferred, UUID allowed).'),
             'institution_key' => $schema->string()->nullable()->description('Institution route key (slug preferred, UUID allowed).'),
             'venue_key' => $schema->string()->nullable()->description('Venue route key (slug preferred, UUID allowed).'),
@@ -328,7 +328,7 @@ class AdminBatchCreateEventsTool extends AbstractAdminWriteTool
         ]);
 
         return [
-            'items' => $schema->array()->required()->min(1)->max(50)->items($eventItemSchema)->description('Array of event items to create. Each item must include title, event_date, prayer_time, and event_type. Maximum 50 events per batch.'),
+            'items' => $schema->array()->required()->min(1)->max(50)->items($eventItemSchema)->description('Array of event items to create. Each item must include title, event_date, prayer_time, and event_category_ids. Maximum 50 events per batch.'),
             'validate_only' => $schema->boolean()->default(false)->description('When true, validates all items without persisting. Returns per-row preview or validation error details.'),
             'apply_defaults' => $schema->boolean()->default(false)->description('Preview-only helper. Honored only when validate_only=true to merge schema defaults into preview validation. Ignored for persisted creates; include the actual field values you want saved.'),
         ];

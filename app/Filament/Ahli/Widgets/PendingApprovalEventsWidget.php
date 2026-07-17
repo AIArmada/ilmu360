@@ -115,7 +115,7 @@ class PendingApprovalEventsWidget extends TableWidget
             });
 
             $eventQuery->orWhere(function (Builder $institutionLinkedQuery) use ($user): void {
-                // Product key institution_id → EventBuilder maps to events.metadata->institution_id
+                // Event location institution is stored on the events table.
                 $institutionLinkedQuery
                     ->whereIn(
                         'institution_id',

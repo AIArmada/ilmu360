@@ -31,7 +31,6 @@ class EventBuilder extends Builder
      */
     private const array MetadataBackedColumns = [
         'user_id',
-        'institution_id',
         'submitter_id',
         'schedule_kind',
         'schedule_state',
@@ -227,14 +226,6 @@ class EventBuilder extends Builder
 
     public function whereJsonContains(string $column, mixed $value, string $boolean = 'and', bool $not = false): static
     {
-        if ($this->columnName($column) === 'event_type' && ! $this->isJsonSelector($column)) {
-            $metadataColumn = $this->qualifyModelColumn('metadata').'->event_type';
-
-            parent::whereJsonContains($metadataColumn, $value, $boolean, $not);
-
-            return $this;
-        }
-
         if ($this->isJsonSelector($column) || ! $this->shouldMapColumn($column)) {
             parent::whereJsonContains($column, $value, $boolean, $not);
 

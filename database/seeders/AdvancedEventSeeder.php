@@ -9,7 +9,8 @@ use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventKeyPersonRole;
-use App\Enums\EventType;
+use App\Actions\Events\SyncEventClassificationsAction;
+use App\Contracts\EventCategoryCatalog;
 use App\Enums\EventVisibility;
 use App\Enums\ScheduleKind;
 use App\Enums\ScheduleState;
@@ -221,7 +222,6 @@ class AdvancedEventSeeder extends Seeder
             'starts_at' => $startsAt,
             'ends_at' => $endsAt,
             'timezone' => $tz,
-            'event_type' => [EventType::KuliahCeramah],
             'delivery_mode' => EventFormat::Physical,
             'visibility' => EventVisibility::Public,
             'gender' => EventGenderRestriction::All,
@@ -237,6 +237,10 @@ class AdvancedEventSeeder extends Seeder
             'prayer_offset' => null,
             'prayer_display_text' => null,
         ]);
+
+        if ($categoryId = array_key_first(app(EventCategoryCatalog::class)->options())) {
+            app(SyncEventClassificationsAction::class)->handle($event, ['event_category_ids' => [$categoryId]]);
+        }
 
         EventOccurrence::query()->create([
             'id' => (string) Str::uuid(),

@@ -11,7 +11,7 @@ use AIArmada\FilamentEvents\Resources\VenueResource;
 use AIArmada\Signals\Models\TrackedProperty;
 use App\Data\Api\Event\EventPayloadData;
 use App\Enums\EventFormat;
-use App\Enums\EventType;
+use App\Contracts\EventCategoryCatalog;
 use App\Enums\EventVisibility;
 use App\Enums\PrayerReference;
 use App\Enums\TimingMode;
@@ -352,12 +352,10 @@ class AdminResourceRegistry
                     )->all(),
                 ],
                 [
-                    'key' => 'event_type',
-                    'label' => 'Event Type',
+                    'key' => 'event_category_ids',
+                    'label' => 'Event Categories',
                     'type' => 'select',
-                    'options' => collect(EventType::cases())->mapWithKeys(
-                        static fn (EventType $eventType): array => [$eventType->value => $eventType->getLabel()]
-                    )->all(),
+                    'options' => app(EventCategoryCatalog::class)->options(),
                 ],
                 [
                     'key' => 'timing_mode',

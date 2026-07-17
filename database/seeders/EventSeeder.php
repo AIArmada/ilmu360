@@ -14,7 +14,8 @@ use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventKeyPersonRole;
-use App\Enums\EventType;
+use App\Contracts\EventCategoryCatalog;
+use App\Contracts\EventCategoryPolicyResolver;
 use App\Enums\EventVisibility;
 use App\Enums\PrayerOffset;
 use App\Enums\PrayerReference;
@@ -415,8 +416,7 @@ class EventSeeder extends Seeder
                 'schedule_kind' => ScheduleKind::CustomChain->value,
                 'schedule_state' => ScheduleState::Active->value,
                 'timezone' => 'Asia/Kuala_Lumpur',
-                // 'language' has been removed; genre/audience are now event_type/age_group etc
-                'event_type' => EventType::KuliahCeramah,
+                // 'language' has been removed; genre/audience use event categories and age groups.
                 'gender' => EventGenderRestriction::All,
                 'age_group' => [EventAgeGroup::AllAges->value],
                 'children_allowed' => true,
@@ -451,6 +451,11 @@ class EventSeeder extends Seeder
                 $event->save();
             } else {
                 $event = Event::query()->create($eventAttributes);
+            }
+
+            $categoryId = array_key_first(app(EventCategoryCatalog::class)->options());
+            if ($categoryId !== null) {
+                app(SyncEventClassificationsAction::class)->handle($event, ['event_category_ids' => [$categoryId]]);
             }
 
             OwnerContext::withOwner(null, fn () => $event->setPrimaryOrganizer($speaker ?? $institution));
@@ -780,16 +785,9 @@ class EventSeeder extends Seeder
      */
     private function seedKeyPeopleForEvent(Event $event, array $speakerIds): void
     {
-        $eventTypes = $event->event_type instanceof Collection
-            ? $event->event_type->all()
-            : (is_array($event->event_type) ? $event->event_type : []);
-
-        $normalizedTypes = collect($eventTypes)
-            ->map(fn (mixed $type): ?EventType => $type instanceof EventType ? $type : EventType::tryFrom($type))
-            ->filter()
-            ->values();
-
-        $speakerRoleRequired = $normalizedTypes->contains(fn (EventType $type): bool => $type->requiresSpeakerByDefault());
+        $categoryCatalog = app(EventCategoryCatalog::class);
+        $categoryTerms = collect($categoryCatalog->terms($categoryCatalog->descendantIds($event->event_category_ids)));
+        $speakerRoleRequired = app(EventCategoryPolicyResolver::class)->requiresSpeaker($event->event_category_ids);
         $selectedSpeakerIds = [];
 
         if ($speakerRoleRequired && $speakerIds !== []) {
@@ -799,7 +797,7 @@ class EventSeeder extends Seeder
 
         $otherKeyPeople = [];
 
-        if ($normalizedTypes->contains(EventType::Forum)) {
+        if ($categoryTerms->contains('code', 'forum')) {
             $moderatorSpeakerId = $selectedSpeakerIds[0] ?? ($speakerIds[0] ?? null);
 
             if (is_string($moderatorSpeakerId)) {
@@ -811,7 +809,7 @@ class EventSeeder extends Seeder
             }
         }
 
-        if ($normalizedTypes->contains(fn (EventType $type): bool => in_array($type, [EventType::Tahlil, EventType::SolatHajat, EventType::Qiamullail], true))) {
+        if ($categoryTerms->whereIn('code', ['tahlil', 'solat_hajat', 'qiamullail'])->isNotEmpty()) {
             $imamSpeakerId = $speakerIds[0] ?? null;
 
             $otherKeyPeople[] = [
@@ -822,7 +820,7 @@ class EventSeeder extends Seeder
             ];
         }
 
-        if ($normalizedTypes->contains(EventType::KhutbahJumaat)) {
+        if ($categoryTerms->contains('code', 'khutbah_jumaat')) {
             $khatibSpeakerId = $speakerIds[0] ?? null;
             $imamSpeakerId = $speakerIds[1] ?? $khatibSpeakerId;
 
@@ -845,7 +843,7 @@ class EventSeeder extends Seeder
             ];
         }
 
-        if ($normalizedTypes->contains(fn (EventType $type): bool => $type->isCommunity())) {
+        if (app(EventCategoryPolicyResolver::class)->requiresPhysicalDelivery($event->event_category_ids)) {
             $otherKeyPeople[] = [
                 'role' => EventKeyPersonRole::PersonInCharge->value,
                 'name' => fake()->name(),

@@ -47,7 +47,7 @@
         "laravel/fortify": "^1.37",
         "laravel/framework": "^13.15",
         "laravel/horizon": "^5.47",
-        "laravel/mcp": "^0.8",
+        "laravel/mcp": "^0.9",
         "laravel/octane": "^2.17",
         "laravel/passport": "^13.7",
         "laravel/sanctum": "^4.3",

@@ -2,6 +2,7 @@
 
 use App\Enums\EventKeyPersonRole;
 use App\Models\Event;
+use App\Models\Institution;
 use App\Models\Speaker;
 use App\Models\Venue;
 use App\States\EventStatus\Approved;
@@ -95,6 +96,28 @@ it('searchable payload includes status and product-native address geography fiel
             ->and($payload['admin_area_2_id'])->toBe((string) $geo['subdistrict']->getKey())
             ->and($payload)->not->toHaveKey('admin_area_3_id');
     });
+});
+
+it('searchable payload includes the institution location ID for filtering', function () {
+    withGlobalOwnerContext(function (): void {
+        $institution = Institution::factory()->create();
+        $event = Event::factory()->create(['institution_id' => $institution->getKey()]);
+
+        expect($event->fresh()->toSearchableArray())
+            ->toHaveKey('institution_id', (string) $institution->getKey());
+    });
+});
+
+it('typesense facets the institution location ID', function () {
+    $fields = config('scout.typesense.model-settings.'.Event::class.'.collection-schema.fields');
+
+    expect(collect($fields)->firstWhere('name', 'institution_id'))
+        ->toBe([
+            'name' => 'institution_id',
+            'type' => 'string',
+            'optional' => true,
+            'facet' => true,
+        ]);
 });
 
 it('searchable payload uses canonical language_codes', function () {

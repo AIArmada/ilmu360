@@ -5,7 +5,6 @@ use App\Enums\EventChangeStatus;
 use App\Enums\EventChangeType;
 use App\Enums\EventFormat;
 use App\Enums\EventKeyPersonRole;
-use App\Enums\EventType;
 use App\Enums\EventVisibility;
 use App\Enums\PrayerReference;
 use App\Enums\ReferenceType;
@@ -78,14 +77,14 @@ it('filters events by canonical type values', function () {
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
         'published_at' => now(),
-        'type' => EventType::KuliahCeramah->value,
+        'type' => eventCategoryId('kuliah_ceramah'),
     ]);
 
     $forum = Event::factory()->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
         'published_at' => now(),
-        'type' => EventType::Forum->value,
+        'type' => eventCategoryId('forum'),
     ]);
 
     $response = $this->getJson('/api/v1/events?filter[type]=kuliah_ceramah');
@@ -112,7 +111,7 @@ it('filters events through canonical package query parameters', function () {
         'delivery_mode' => EventFormat::Online,
         'institution_id' => $institution->id,
         'default_venue_id' => $venue->id,
-        'type' => EventType::KuliahCeramah->value,
+        'type' => eventCategoryId('kuliah_ceramah'),
     ]);
 
     $otherEvent = Event::factory()->create([
@@ -122,14 +121,14 @@ it('filters events through canonical package query parameters', function () {
         'delivery_mode' => EventFormat::Physical,
         'institution_id' => $otherInstitution->id,
         'default_venue_id' => $otherVenue->id,
-        'type' => EventType::Forum->value,
+        'type' => eventCategoryId('forum'),
     ]);
 
     foreach ([
         'delivery_mode' => EventFormat::Online->value,
-        'metadata->institution_id' => $institution->id,
+        'institution_id' => $institution->id,
         'default_venue_id' => $venue->id,
-        'type' => EventType::KuliahCeramah->value,
+        'type' => eventCategoryId('kuliah_ceramah'),
     ] as $filter => $value) {
         $response = $this->getJson('/api/v1/events?'.http_build_query([
             'filter' => [$filter => $value],
@@ -687,7 +686,7 @@ it('includes reference study subtitle in the generic paginated events payload', 
 
     $event->references()->attach($bookReference->id);
 
-    $response = $this->getJson('/api/v1/events?filter[metadata->institution_id]='.$event->institution_id.'&filter[status]=approved&include=speakers&page=1&per_page=15&sort=starts_at');
+    $response = $this->getJson('/api/v1/events?filter[institution_id]='.$event->institution_id.'&filter[status]=approved&include=speakers&page=1&per_page=15&sort=starts_at');
 
     $response->assertOk()
         ->assertJsonPath('data.0.id', $event->id)

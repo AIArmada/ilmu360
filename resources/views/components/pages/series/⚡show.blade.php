@@ -174,22 +174,9 @@ new
     $backCover = null;
 
     // ── Helpers identical to speaker page ────────────────────────────────────
-    $resolveEventTypeLabel = static function (mixed $eventType): string {
-        if ($eventType instanceof \Illuminate\Support\Collection) {
-            $eventType = $eventType->first();
-        } elseif (is_array($eventType)) {
-            $eventType = $eventType[0] ?? null;
-        }
-        if ($eventType instanceof \App\Enums\EventType) {
-            return $eventType->getLabel();
-        }
-        if (is_string($eventType) && $eventType !== '') {
-            return \App\Enums\EventType::tryFrom($eventType)?->getLabel() ?? __('Umum');
-        }
-        return __('Umum');
-    };
+    $resolveEventCategoryLabel = static fn (\App\Models\Event $event): string => app(\App\Support\Events\EventCategoryPresenter::class)->forEvent($event)[0]['path'] ?? __('Umum');
 
-    $resolveVenueLocation = static function (\App\Models\Event $event) use ($resolveEventTypeLabel): string {
+    $resolveVenueLocation = static function (\App\Models\Event $event) use ($resolveEventCategoryLabel): string {
         $venueName = $event->venue?->name;
         $institutionName = $event->institution?->name;
         $primaryLocationName = $venueName ?: $institutionName;
@@ -597,7 +584,7 @@ new
                                                 <div class="flex items-center gap-2">
                                                     <span
                                                         class="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700 ring-1 ring-emerald-200/60">
-                                                        {{ $resolveEventTypeLabel($event->event_type) }}
+                                                        {{ $resolveEventCategoryLabel($event) }}
                                                     </span>
                                                     @if($isPendingEvent)
                                                         <span
@@ -722,7 +709,7 @@ new
                                             <div class="flex flex-1 flex-col justify-center gap-2 p-4 sm:p-5">
                                                 <div class="flex items-center gap-2">
                                                     <span
-                                                        class="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-semibold text-slate-600 ring-1 ring-slate-200/60">{{ $resolveEventTypeLabel($event->event_type) }}</span>
+                                                        class="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-semibold text-slate-600 ring-1 ring-slate-200/60">{{ $resolveEventCategoryLabel($event) }}</span>
                                                     @if($isPendingEvent)
                                                         <span
                                                             class="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-0.5 text-[11px] font-semibold text-amber-700 ring-1 ring-amber-200/60">{{ __('Menunggu Kelulusan') }}</span>

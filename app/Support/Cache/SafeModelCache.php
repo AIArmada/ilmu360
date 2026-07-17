@@ -49,15 +49,4 @@ class SafeModelCache
 
         return $values;
     }
-
-    /**
-     * @template TPayload
-     *
-     * @param  Closure(): TPayload  $resolver
-     * @return TPayload
-     */
-    public function rememberPayload(string $key, int $ttl, Closure $resolver): mixed
-    {
-        return Cache::remember($key, $ttl, $resolver);
-    }
 }

@@ -201,6 +201,7 @@ return [
                         ['name' => 'description', 'type' => 'string', 'optional' => true],
                         ['name' => 'slug', 'type' => 'string'],
                         ['name' => 'speaker_names', 'type' => 'string', 'optional' => true],
+                        ['name' => 'institution_id', 'type' => 'string', 'optional' => true, 'facet' => true],
                         ['name' => 'institution_name', 'type' => 'string', 'optional' => true],
                         ['name' => 'venue_name', 'type' => 'string', 'optional' => true],
                         ['name' => 'state_name', 'type' => 'string', 'optional' => true],

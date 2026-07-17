@@ -3,7 +3,7 @@
 namespace App\Actions\Events;
 
 use App\Enums\EventFormat;
-use App\Enums\EventType;
+use App\Contracts\EventCategoryCatalog;
 use App\Enums\EventVisibility;
 use App\Enums\RegistrationScope;
 use App\Models\User;
@@ -15,6 +15,7 @@ class ResolveAdvancedBuilderContextAction
 
     public function __construct(
         protected ResolveAdvancedBuilderMembershipOptionsAction $resolveAdvancedBuilderMembershipOptionsAction,
+        protected EventCategoryCatalog $categoryCatalog,
     ) {}
 
     /**
@@ -55,7 +56,7 @@ class ResolveAdvancedBuilderContextAction
                 'location_institution_id' => $defaultPrimaryOrganizerIsInstitution
                     ? $defaultPrimaryOrganizerId
                     : ($preferredInstitutionId ?: array_key_first($institutionOptions)),
-                'default_event_type' => EventType::KuliahCeramah->value,
+                'default_event_category_ids' => array_slice(array_keys($this->categoryCatalog->options()), 0, 1),
                 'default_event_format' => EventFormat::Physical->value,
                 'visibility' => EventVisibility::Public->value,
                 'registration_required' => false,

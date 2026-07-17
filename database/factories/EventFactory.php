@@ -8,13 +8,14 @@ use AIArmada\Events\Models\EventLink;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
-use App\Enums\EventType;
 use App\Enums\EventVisibility;
 use App\Enums\PrayerOffset;
 use App\Enums\PrayerReference;
 use App\Enums\TimingMode;
 use App\Models\Event;
 use App\Models\Institution;
+use App\Actions\Events\SyncEventClassificationsAction;
+use App\Contracts\EventCategoryCatalog;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
@@ -136,7 +137,6 @@ class EventFactory extends PackageEventFactory
             'prayer_reference' => null,
             'prayer_offset' => null,
             'prayer_display_text' => null,
-            'event_type' => [fake()->randomElement(EventType::cases())],
             'gender' => fake()->randomElement(EventGenderRestriction::cases()),
             'age_group' => [fake()->randomElement(EventAgeGroup::cases())],
             'children_allowed' => fake()->boolean(80), // 80% allow children
@@ -174,6 +174,16 @@ class EventFactory extends PackageEventFactory
         })->afterCreating(function ($event): void {
             if (! $event instanceof Event) {
                 return;
+            }
+
+            $categoryIds = $event->event_category_ids;
+            if ($categoryIds === []) {
+                $categoryId = array_key_first(app(EventCategoryCatalog::class)->options());
+                $categoryIds = $categoryId !== null ? [$categoryId] : [];
+            }
+
+            if ($categoryIds !== []) {
+                app(SyncEventClassificationsAction::class)->handle($event, ['event_category_ids' => $categoryIds]);
             }
 
             // Create EventLink rows for streaming/recording URLs

@@ -18,6 +18,7 @@ use App\Enums\EventGenderRestriction;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventPrayerTime;
 use App\Enums\TimingMode;
+use App\Contracts\EventCategoryCatalog;
 use App\Forms\SharedFormSchema;
 use App\Models\Event;
 use App\Models\Institution;
@@ -87,7 +88,7 @@ class Index extends Component implements HasForms
      * @var list<string>|string|null
      */
     #[Url]
-    public array|string|null $event_type = [];
+    public array|string|null $event_category_ids = [];
 
     #[Url]
     public ?string $gender = null;
@@ -1294,7 +1295,7 @@ class Index extends Component implements HasForms
             'admin_area_1_id' => $filters['admin_area_1_id'],
             'admin_area_2_id' => $filters['admin_area_2_id'],
             'language_codes' => $filters['language_codes'],
-            'event_type' => $filters['event_type'],
+            'event_category_ids' => $filters['event_category_ids'],
             'gender' => $filters['gender'],
             'age_group' => $filters['age_group'],
             'children_allowed' => $filters['children_allowed'],
@@ -1424,7 +1425,7 @@ class Index extends Component implements HasForms
             'admin_area_1_id' => null,
             'admin_area_2_id' => null,
             'language_codes' => [],
-            'event_type' => [],
+            'event_category_ids' => [],
             'gender' => null,
             'age_group' => [],
             'children_allowed' => null,
@@ -1489,7 +1490,7 @@ class Index extends Component implements HasForms
             'admin_area_1_id' => filled($this->admin_area_1_id) ? $this->admin_area_1_id : null,
             'admin_area_2_id' => filled($this->admin_area_2_id) ? $this->admin_area_2_id : null,
             'language_codes' => $languageCodes,
-            'event_type' => $this->normalizeStringArray($this->event_type),
+            'event_category_ids' => $this->normalizeStringArray($this->event_category_ids),
             'gender' => filled($this->gender) ? $this->gender : null,
             'age_group' => $this->normalizeStringArray($this->age_group),
             'children_allowed' => $this->normalizeNullableBoolean($this->children_allowed),
@@ -1545,7 +1546,7 @@ class Index extends Component implements HasForms
         $this->admin_area_1_id = $filters['admin_area_1_id'];
         $this->admin_area_2_id = $filters['admin_area_2_id'];
         $this->language_codes = $filters['language_codes'];
-        $this->event_type = $filters['event_type'];
+        $this->event_category_ids = $filters['event_category_ids'];
         $this->gender = $filters['gender'];
         $this->age_group = $filters['age_group'];
         $this->children_allowed = $filters['children_allowed'];
@@ -1637,7 +1638,7 @@ class Index extends Component implements HasForms
             'admin_area_1_id' => filled($normalized['admin_area_1_id']) ? (string) $normalized['admin_area_1_id'] : null,
             'admin_area_2_id' => filled($normalized['admin_area_2_id']) ? (string) $normalized['admin_area_2_id'] : null,
             'language_codes' => $languageCodes,
-            'event_type' => $this->normalizeStringArray($normalized['event_type'] ?? []),
+            'event_category_ids' => $this->normalizeStringArray($normalized['event_category_ids'] ?? []),
             'gender' => filled($normalized['gender']) ? (string) $normalized['gender'] : null,
             'age_group' => $this->normalizeStringArray($normalized['age_group'] ?? []),
             'children_allowed' => $this->normalizeNullableBoolean($normalized['children_allowed'] ?? null),

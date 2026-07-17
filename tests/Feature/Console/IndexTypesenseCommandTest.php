@@ -28,3 +28,13 @@ it('rejects unsupported scout drivers in the wrapper commands', function (string
     'institutions' => 'search:index-institutions',
     'references' => 'search:index-references',
 ]);
+
+it('forwards fresh and chunk options to the Scout import command', function () {
+    config()->set('scout.driver', 'database');
+    config()->set('scout.queue', false);
+
+    $this->artisan('search:index-events', [
+        '--fresh' => true,
+        '--chunk' => 17,
+    ])->assertSuccessful();
+});

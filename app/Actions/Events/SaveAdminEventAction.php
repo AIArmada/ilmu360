@@ -5,11 +5,12 @@ namespace App\Actions\Events;
 use AIArmada\Events\Enums\RegistrationMode;
 use AIArmada\Seating\Models\SeatMap;
 use App\Enums\EventAgeGroup;
+use App\Contracts\EventCategoryCatalog;
+use App\Contracts\EventCategoryPolicyResolver;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventPrayerTime;
-use App\Enums\EventType;
 use App\Enums\EventVisibility;
 use App\Models\Event;
 use App\Models\Institution;
@@ -50,7 +51,7 @@ final readonly class SaveAdminEventAction
             'visibility' => EventVisibility::Public->value,
             'gender' => EventGenderRestriction::All->value,
             'age_group' => [EventAgeGroup::AllAges->value],
-            'event_type' => [EventType::Other->value],
+            'event_category_ids' => array_slice(array_keys(app(EventCategoryCatalog::class)->options()), 0, 1),
             'children_allowed' => false,
             'is_muslim_only' => false,
             'references' => [],
@@ -100,7 +101,9 @@ final readonly class SaveAdminEventAction
             'end_time' => $timeFields['end_time'] ?? null,
             'end_date' => $timeFields['end_date'] ?? null,
             'timezone' => $event->timezone,
-            'event_type' => $this->normalizeEnumValues($event->event_type, EventType::class),
+            'event_category_ids' => $event->classifications
+                ->where('taxonomy_code', EventCategoryCatalog::TAXONOMY_CODE)
+                ->pluck('event_term_id')->filter()->values()->all(),
             'gender' => $this->normalizeEnumValue($event->gender, EventGenderRestriction::class, EventGenderRestriction::All->value),
             'age_group' => $this->normalizeEnumValues($event->age_group, EventAgeGroup::class),
             'children_allowed' => (bool) $event->children_allowed,
@@ -182,11 +185,6 @@ final readonly class SaveAdminEventAction
             'prayer_reference' => $persistence['prayer_reference'] ?? $event->prayer_reference,
             'prayer_offset' => $persistence['prayer_offset'] ?? $event->prayer_offset,
             'prayer_display_text' => $persistence['prayer_display_text'] ?? $event->prayer_display_text,
-            'event_type' => $this->normalizeEnumValues(
-                $state['event_type'] ?? $event->event_type,
-                EventType::class,
-                [EventType::Other->value],
-            ),
             'gender' => $this->normalizeEnumValue(
                 $state['gender'] ?? $event->gender,
                 EventGenderRestriction::class,
@@ -344,7 +342,7 @@ final readonly class SaveAdminEventAction
             }
         }
 
-        if ($this->requiresSpeakers($state['event_type'] ?? []) && $speakerIds === []) {
+        if ($this->requiresSpeakers($state['event_category_ids'] ?? []) && $speakerIds === []) {
             $errors['speakers'][] = __('Sekurang-kurangnya seorang penceramah diperlukan untuk jenis majlis ini.');
         }
 
@@ -482,17 +480,11 @@ final readonly class SaveAdminEventAction
         return filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) === true;
     }
 
-    private function requiresSpeakers(mixed $eventTypes): bool
+    private function requiresSpeakers(mixed $categoryIds): bool
     {
-        foreach ($this->normalizeEnumValues($eventTypes, EventType::class) as $eventTypeValue) {
-            $eventType = EventType::tryFrom($eventTypeValue);
-
-            if ($eventType?->requiresSpeakerByDefault()) {
-                return true;
-            }
-        }
-
-        return false;
+        return app(EventCategoryPolicyResolver::class)->requiresSpeaker(
+            app(EventCategoryCatalog::class)->validateTermIds(is_array($categoryIds) ? $categoryIds : [$categoryIds]),
+        );
     }
 
     private function normalizeOptionalString(mixed $value): ?string

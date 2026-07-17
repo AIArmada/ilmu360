@@ -5,7 +5,6 @@ use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventPrayerTime;
-use App\Enums\EventType;
 use App\Enums\EventVisibility;
 use App\Models\Event;
 use App\Models\EventKeyPerson;
@@ -112,7 +111,7 @@ it('clears majlis listing cache when event is submitted from public submit form'
             'description' => 'Cache invalidation check',
             'event_date' => now()->addDays(6)->toDateString(),
             'prayer_time' => EventPrayerTime::SelepasMaghrib->value,
-            'event_type' => [EventType::KuliahCeramah->value],
+            'event_category_ids' => [eventCategoryId('kuliah_ceramah')],
             'event_format' => EventFormat::Physical->value,
             'visibility' => EventVisibility::Public->value,
             'gender' => EventGenderRestriction::All->value,

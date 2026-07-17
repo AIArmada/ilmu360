@@ -11,7 +11,6 @@ use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventPrayerTime;
-use App\Enums\EventType;
 use App\Enums\EventVisibility;
 use App\Livewire\Pages\Dashboard\DawahImpactIndex;
 use App\Models\Event;
@@ -118,7 +117,7 @@ function dawahShareSubmitEventFormData(array $fixtures, array $overrides = []): 
         'submission_country_id' => (string) ensureTestMalaysiaCountry()->getKey(),
         'domain_tags' => [],
         'discipline_tags' => [],
-        'event_type' => [EventType::KuliahCeramah->value],
+        'event_category_ids' => [eventCategoryId("kuliah_ceramah")],
         'event_date' => now()->addDays(5)->toDateString(),
         'prayer_time' => EventPrayerTime::SelepasMaghrib->value,
         'description' => 'Attributed event submission description',
@@ -1050,7 +1049,7 @@ test('impact dashboard top subjects use canonical affiliate subject fields', fun
         'subject_instance' => 'share_tracking_link',
         'subject_title_snapshot' => $event->title,
         'metadata' => [
-            'event_type' => 'visit',
+            'event_category_ids' => 'visit',
             'link_id' => $eventLink->id,
             'visited_url' => $eventLink->destination_url,
             'visitor_key' => 'event-top-subject-visitor',
@@ -1069,7 +1068,7 @@ test('impact dashboard top subjects use canonical affiliate subject fields', fun
         'subject_instance' => 'share_tracking_link',
         'subject_title_snapshot' => $event->title,
         'metadata' => [
-            'event_type' => 'visit',
+            'event_category_ids' => 'visit',
             'link_id' => $eventLink->id,
             'visited_url' => $eventLink->destination_url,
             'visitor_key' => 'event-top-subject-visitor-2',
@@ -1130,7 +1129,7 @@ test('impact dashboard top subjects use canonical affiliate subject fields', fun
         'subject_instance' => 'share_tracking_link',
         'subject_title_snapshot' => $speaker->formatted_name,
         'metadata' => [
-            'event_type' => 'visit',
+            'event_category_ids' => 'visit',
             'link_id' => $speakerLink->id,
             'visited_url' => $speakerLink->destination_url,
             'visitor_key' => 'speaker-top-subject-visitor',
@@ -1325,7 +1324,7 @@ test('provider visitor counts fall back to visit metadata when attribution provi
         'affiliate_id' => $affiliate->id,
         'affiliate_code' => $affiliate->code,
         'metadata' => [
-            'event_type' => 'visit',
+            'event_category_ids' => 'visit',
             'link_id' => $link->id,
             'visited_url' => route('events.index', ['search' => 'telegram-provider-fallback']),
             'visitor_key' => 'visitor-fallback-key',

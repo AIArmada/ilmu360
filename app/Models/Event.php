@@ -25,6 +25,7 @@ use AIArmada\Events\Models\EventRole;
 use AIArmada\Events\Models\EventSeriesItemPivot;
 use AIArmada\Events\Models\EventTimeExpression;
 use AIArmada\Membership\Traits\HasMembers;
+use App\Contracts\EventCategoryCatalog;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventChangeStatus;
 use App\Enums\EventChangeType;
@@ -32,7 +33,6 @@ use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventPrayerTime;
-use App\Enums\EventType;
 use App\Enums\EventVisibility;
 use App\Enums\MemberSubjectType;
 use App\Enums\PrayerOffset;
@@ -78,8 +78,7 @@ use Spatie\ModelStates\HasStates;
  *
  * Package-backed schedule/links/audience/flags/location are projected as flat
  * form attributes and synced on save into package child tables only (no dual
- * metadata+child write). Product-only keys (institution and counters) live in
- * events.metadata via productMetadataValue().
+ * metadata+child write). Product-only counters remain in events.metadata.
  *
  * @property string $id
  * @property string|null $user_id
@@ -104,7 +103,7 @@ use Spatie\ModelStates\HasStates;
  * @property string|null $prayer_display_text
  * @property EventGenderRestriction|string|null $gender
  * @property Collection<int, EventAgeGroup>|array<int, string>|null $age_group
- * @property Collection<int, EventType>|array<int, string>|null $event_type
+ * @property list<string> $event_category_ids
  * @property bool|null $children_allowed
  * @property string|null $live_url
  * @property string|null $event_url
@@ -196,7 +195,6 @@ class Event extends PackageEvent implements AuditableContract
      */
     private const array MetadataBackedAttributes = [
         'user_id',
-        'institution_id',
         'submitter_id',
         'schedule_kind',
         'schedule_state',
@@ -231,6 +229,9 @@ class Event extends PackageEvent implements AuditableContract
      * @var array<string, mixed>
      */
     private array $pendingAttributeWrites = [];
+
+    /** @var list<string> */
+    private array $pendingCategoryIds = [];
 
     /**
      * @var array<string, mixed>
@@ -306,7 +307,6 @@ class Event extends PackageEvent implements AuditableContract
         'live_url',
         'event_url',
         'recording_url',
-        'event_type',
         'gender',
         'age_group',
         'children_allowed',
@@ -381,12 +381,12 @@ class Event extends PackageEvent implements AuditableContract
             return parent::setAttribute('default_venue_id', $value);
         }
 
-        if ($key === 'event_type') {
-            $this->setMetadataValue($key, $value);
+        if ($key === 'event_category_ids') {
+            $this->pendingCategoryIds = is_array($value)
+                ? array_values(array_map(strval(...), $value))
+                : [];
 
-            $type = $this->firstEnumValue($value);
-
-            return parent::setAttribute('type', $type);
+            return $this;
         }
 
         if (in_array($key, self::MetadataBackedAttributes, true)) {
@@ -428,8 +428,16 @@ class Event extends PackageEvent implements AuditableContract
             return parent::getAttribute('default_venue_id');
         }
 
-        if ($key === 'event_type') {
-            return $this->productMetadataValue($key) ?? array_filter([(string) parent::getAttribute('type')]);
+        if ($key === 'event_category_ids') {
+            if ($this->pendingCategoryIds !== []) {
+                return $this->pendingCategoryIds;
+            }
+
+            return $this->categoryClassifications()
+                ->pluck('event_term_id')
+                ->map(fn (mixed $id): string => (string) $id)
+                ->values()
+                ->all();
         }
 
         if (in_array($key, self::MetadataBackedAttributes, true)) {
@@ -1198,7 +1206,7 @@ class Event extends PackageEvent implements AuditableContract
     }
 
     /**
-     * Product-owned fields stored on events.metadata (institution, structure, counters, etc.).
+     * Product-owned fields stored on events.metadata (structure, counters, etc.).
      * Package-backed projections (occurrence/links/audience/attributes) must not dual-write here.
      */
     private function productMetadataValue(string $key): mixed
@@ -1253,27 +1261,6 @@ class Event extends PackageEvent implements AuditableContract
         return null;
     }
 
-    private function firstEnumValue(mixed $value): ?string
-    {
-        if ($value instanceof Collection) {
-            return $this->firstEnumValue($value->all());
-        }
-
-        if (is_array($value)) {
-            foreach ($value as $entry) {
-                $resolved = $this->enumValue($entry);
-
-                if ($resolved !== null) {
-                    return $resolved;
-                }
-            }
-
-            return null;
-        }
-
-        return $this->enumValue($value);
-    }
-
     /**
      * Scope a query to only include active public events.
      *
@@ -1287,6 +1274,27 @@ class Event extends PackageEvent implements AuditableContract
         $query->whereIn("{$table}.status", self::PUBLIC_STATUSES)
             ->where("{$table}.visibility", EventVisibility::Public)
             ->whereNotNull("{$table}.published_at");
+    }
+
+    /**
+     * Scope a query to events highlighted by the product team.
+     *
+     * @param  Builder<self>  $query
+     */
+    #[Scope]
+    protected function featured(Builder $query): void
+    {
+        $eventTable = $query->getModel()->getTable();
+        $attributeTable = (new EventAttribute)->getTable();
+
+        $query->whereExists(function (QueryBuilder $subquery) use ($attributeTable, $eventTable): void {
+            $subquery
+                ->selectRaw('1')
+                ->from($attributeTable)
+                ->whereColumn("{$attributeTable}.event_id", "{$eventTable}.id")
+                ->where("{$attributeTable}.attribute_key", 'is_featured')
+                ->where("{$attributeTable}.attribute_value", '1');
+        });
     }
 
     /**
@@ -1413,7 +1421,6 @@ class Event extends PackageEvent implements AuditableContract
             'starts_at',
             'ends_at',
             'language',
-            'event_type',
             'gender',
             'age_group',
             'children_allowed',
@@ -1633,6 +1640,7 @@ class Event extends PackageEvent implements AuditableContract
                 ->map(fn (EventKeyPerson $keyPerson): string => $keyPerson->speaker !== null ? $keyPerson->speaker->name : (string) ($keyPerson->name ?? ''))
                 ->filter(fn (string $name): bool => $name !== '')
                 ->implode(', '),
+            'institution_id' => $this->institution_id,
             'institution_name' => $institution instanceof Institution ? $institution->name : '',
             'venue_name' => $venue instanceof Venue ? $venue->name : '',
             'country_code' => $venueAddress->country_code ?? $institutionAddress?->country_code,
@@ -1645,7 +1653,6 @@ class Event extends PackageEvent implements AuditableContract
             'state' => $venueAddress->state ?? $institutionAddress?->state,
             'postcode' => $venueAddress->postcode ?? $institutionAddress?->postcode,
             'language_codes' => $languageCodes,
-            'event_type' => $this->normalizedEventTypeValues(),
             'gender' => $gender instanceof EventGenderRestriction ? $gender->value : ((is_string($gender) && $gender !== '') ? $gender : 'all'),
             'age_group' => $ageGroupValues,
             'event_format' => $eventFormat instanceof EventFormat ? $eventFormat->value : ((is_string($eventFormat) && $eventFormat !== '') ? $eventFormat : 'physical'),
@@ -1774,7 +1781,13 @@ class Event extends PackageEvent implements AuditableContract
             ->orderByPivot('sort_order');
     }
 
-    // EventType relationship removed in favor of Enum
+    /** @return HasMany<EventClassification, $this> */
+    public function categoryClassifications(): HasMany
+    {
+        return $this->classifications()
+            ->where('taxonomy_code', EventCategoryCatalog::TAXONOMY_CODE)
+            ->orderBy('sort_order');
+    }
 
     /**
      * @return HasOne<EventAccessPolicy, $this>
@@ -2458,36 +2471,6 @@ class Event extends PackageEvent implements AuditableContract
     public function getDescriptionTextAttribute(): string
     {
         return $this->normalizeDescriptionText($this->description);
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function normalizedEventTypeValues(): array
-    {
-        $eventType = $this->event_type;
-
-        if ($eventType instanceof Collection) {
-            return $eventType
-                ->map(fn (EventType $value): string => $value->value)
-                ->filter(fn (string $value): bool => $value !== '')
-                ->values()
-                ->all();
-        }
-
-        if (is_array($eventType)) {
-            return array_values(array_filter(array_map(strval(...), $eventType), static fn (string $value): bool => $value !== ''));
-        }
-
-        if ($eventType instanceof EventType) {
-            return [$eventType->value];
-        }
-
-        if (is_string($eventType) && $eventType !== '') {
-            return [$eventType];
-        }
-
-        return [];
     }
 
     private function normalizeDescriptionText(mixed $description): string

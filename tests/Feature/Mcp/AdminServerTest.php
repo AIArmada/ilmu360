@@ -15,7 +15,6 @@ use App\Enums\EventChangeType;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventPrayerTime;
-use App\Enums\EventType;
 use App\Enums\EventVisibility;
 use App\Enums\PrayerOffset;
 use App\Enums\PrayerReference;
@@ -531,7 +530,7 @@ it('filters admin event records by structured filters through the MCP server', f
         'status' => 'draft',
         'event_format' => EventFormat::Online,
         'visibility' => EventVisibility::Public,
-        'event_type' => [EventType::KuliahCeramah->value],
+        'event_category_ids' => [eventCategoryId('kuliah_ceramah')],
     ]);
 
     Event::factory()->create([
@@ -539,7 +538,7 @@ it('filters admin event records by structured filters through the MCP server', f
         'status' => 'approved',
         'event_format' => EventFormat::Physical,
         'visibility' => EventVisibility::Private,
-        'event_type' => [EventType::Forum->value],
+        'event_category_ids' => [eventCategoryId('forum')],
     ]);
 
     AdminServer::actingAs($admin)
@@ -973,7 +972,7 @@ it('lists admin event records with prayer-relative metadata through the MCP serv
     $event = Event::factory()->create([
         'title' => 'Admin MCP Prayer Relative Event',
         'starts_at' => Carbon::parse('2026-04-23 02:00:00', 'UTC'),
-        'event_type' => [EventType::KuliahCeramah->value],
+        'event_category_ids' => [eventCategoryId('kuliah_ceramah')],
         'age_group' => [EventAgeGroup::AllAges->value],
         'timing_mode' => 'prayer_relative',
         'prayer_reference' => PrayerReference::Maghrib->value,
@@ -995,7 +994,6 @@ it('lists admin event records with prayer-relative metadata through the MCP serv
             ->has('data', 1)
             ->where('data.0.id', $event->getKey())
             ->where('data.0.title', 'Admin MCP Prayer Relative Event')
-            ->where('data.0.attributes.event_type.0', EventType::KuliahCeramah->value)
             ->where('data.0.attributes.age_group.0', EventAgeGroup::AllAges->value)
             ->where('data.0.attributes.prayer_reference', PrayerReference::Maghrib->value)
             ->where('data.0.attributes.prayer_offset', PrayerOffset::Immediately->value)
@@ -1003,6 +1001,9 @@ it('lists admin event records with prayer-relative metadata through the MCP serv
             ->where('data.0.attributes.timing_display', EventPrayerTime::SelepasMaghrib->getLabel())
             ->where('meta.resource.key', 'events')
             ->etc());
+
+    expect($event->fresh()->categoryClassifications()->pluck('event_term_id')->all())
+        ->toContain(eventCategoryId('kuliah_ceramah'));
 });
 
 it('exposes tag write schema and creates and updates tags through the admin MCP server', function () {
@@ -2461,7 +2462,7 @@ it('emulates production yasin create flow with validate-only then actual create'
         'age_group' => [EventAgeGroup::AllAges->value],
         'children_allowed' => true,
         'is_muslim_only' => false,
-        'event_type' => [EventType::BacaanYasin->value],
+        'event_category_ids' => [eventCategoryId('bacaan_yasin')],
         'primary_organizer_key' => (string) $institution->slug,
         'institution_key' => (string) $institution->slug,
         'registration_required' => false,
@@ -2546,7 +2547,7 @@ it('creates a tazkirah event with speaker_keys via admin-create-event', function
             'age_group' => [EventAgeGroup::AllAges->value],
             'children_allowed' => false,
             'is_muslim_only' => true,
-            'event_type' => [EventType::Tazkirah->value],
+        'event_category_ids' => [eventCategoryId('tazkirah')],
             'primary_organizer_key' => (string) $institution->slug,
             'institution_key' => (string) $institution->slug,
             'speaker_keys' => [(string) $speaker->slug],
@@ -2592,7 +2593,7 @@ it('allows admin event create payload to control workflow-ready status', functio
         'age_group' => [EventAgeGroup::AllAges->value],
         'children_allowed' => true,
         'is_muslim_only' => false,
-        'event_type' => [EventType::BacaanYasin->value],
+        'event_category_ids' => [eventCategoryId('bacaan_yasin')],
         'primary_organizer_id' => (string) $institution->getKey(),
         'institution_id' => (string) $institution->getKey(),
         'registration_required' => false,
@@ -2677,7 +2678,7 @@ it('surfaces admin event validation failures through MCP write tools', function 
                 'domain_tag' => $domainTag,
                 'discipline_tag' => $disciplineTag,
             ], [
-                'event_type' => [EventType::KuliahCeramah->value],
+                'event_category_ids' => [eventCategoryId('kuliah_ceramah')],
                 'speakers' => [],
             ]),
         ])
@@ -3293,7 +3294,7 @@ it('initializes and lists admin MCP tools over the HTTP endpoint for Passport-au
     expect(collect((array) data_get($tools->get('admin-create-event'), 'inputSchema.required'))->contains('title'))->toBeTrue();
     expect(collect((array) data_get($tools->get('admin-create-event'), 'inputSchema.required'))->contains('event_date'))->toBeTrue();
     expect(collect((array) data_get($tools->get('admin-create-event'), 'inputSchema.required'))->contains('prayer_time'))->toBeTrue();
-    expect(collect((array) data_get($tools->get('admin-create-event'), 'inputSchema.required'))->contains('event_type'))->toBeTrue();
+    expect(collect((array) data_get($tools->get('admin-create-event'), 'inputSchema.required'))->contains('event_category_ids'))->toBeTrue();
     expect(collect((array) data_get($tools->get('admin-create-event'), 'inputSchema.properties.primary_organizer_key.type'))->contains('string'))->toBeTrue();
     expect(collect((array) data_get($tools->get('admin-create-event'), 'inputSchema.properties.institution_key.type'))->contains('string'))->toBeTrue();
     expect(data_get($tools->get('admin-create-event'), 'inputSchema.properties.organizer_key'))->toBeNull();
@@ -4014,7 +4015,7 @@ function adminMcpEventPayload(array $fixtures, array $overrides = []): array
         'age_group' => [EventAgeGroup::AllAges->value],
         'children_allowed' => true,
         'is_muslim_only' => true,
-        'event_type' => [EventType::Other->value],
+        'event_category_ids' => [eventCategoryId('other')],
         'domain_tags' => [(string) $fixtures['domain_tag']->getKey()],
         'discipline_tags' => [(string) $fixtures['discipline_tag']->getKey()],
         'source_tags' => [],
@@ -4051,7 +4052,7 @@ function adminMcpStableEvent(array $overrides = []): Event
         'starts_at' => $startsAt,
         'ends_at' => $startsAt->copy()->addHours(2),
         'timezone' => 'Asia/Kuala_Lumpur',
-        'event_type' => [EventType::Other->value],
+        'event_category_ids' => [eventCategoryId('other')],
         'gender' => EventGenderRestriction::All->value,
         'age_group' => [EventAgeGroup::AllAges->value],
         'children_allowed' => true,
@@ -4217,7 +4218,7 @@ it('batch-creates events via the admin-batch-create-events MCP tool with speaker
                     'visibility' => EventVisibility::Public->value,
                     'gender' => EventGenderRestriction::All->value,
                     'age_group' => [EventAgeGroup::AllAges->value],
-                    'event_type' => [EventType::Other->value],
+                    'event_category_ids' => [eventCategoryId('other')],
                     'primary_organizer_key' => $institution->slug,
                     'institution_key' => $institution->slug,
                     'speaker_keys' => [$speaker->slug],
@@ -4234,7 +4235,7 @@ it('batch-creates events via the admin-batch-create-events MCP tool with speaker
                     'visibility' => EventVisibility::Public->value,
                     'gender' => EventGenderRestriction::All->value,
                     'age_group' => [EventAgeGroup::AllAges->value],
-                    'event_type' => [EventType::Other->value],
+                    'event_category_ids' => [eventCategoryId('other')],
                     'primary_organizer_key' => $institution->slug,
                     'status' => 'draft',
                 ],
@@ -4271,7 +4272,7 @@ it('does not apply schema defaults during persisted admin-batch-create-events wr
                     'title' => 'MCP Batch Event Missing Persisted Defaults',
                     'event_date' => '2026-07-17',
                     'prayer_time' => EventPrayerTime::SelepasMaghrib->value,
-                    'event_type' => [EventType::Other->value],
+                    'event_category_ids' => [eventCategoryId('other')],
                     'primary_organizer_key' => $institution->slug,
                 ],
             ],
@@ -4306,7 +4307,7 @@ it('batch-creates events with validate_only via admin-batch-create-events withou
                     'event_date' => '2026-08-01',
                     'prayer_time' => EventPrayerTime::LainWaktu->value,
                     'custom_time' => '20:00',
-                    'event_type' => [EventType::Other->value],
+                    'event_category_ids' => [eventCategoryId('other')],
                     'primary_organizer_key' => $institution->slug,
                     'registration_mode' => RegistrationScope::Event->value,
                     'status' => 'draft',

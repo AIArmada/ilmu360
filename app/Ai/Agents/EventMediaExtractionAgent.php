@@ -41,7 +41,7 @@ Follow these rules strictly:
 - Use YYYY-MM-DD for event_date.
 - Use 24-hour HH:MM format for custom_time and end_time.
 - Keep description concise and factual (no markdown, no bullet symbols).
-- For event_type, prayer_time, event_format, visibility, gender, and age_group, return only allowed enum values.
+- For event_category_ids, return only IDs from the context map. For prayer_time, event_format, visibility, gender, and age_group, return only allowed enum values.
 - For language_codes, return only supported codes from the context.
 - For domain_tag_ids and source_tag_ids, return only IDs from the context.
 - For discipline_tags and issue_tags, return short labels or keywords in Malay when possible.
@@ -135,10 +135,7 @@ TXT;
             'prayer_time' => $enumString('prayer_time_values')->nullable(),
             'custom_time' => $schema->string()->pattern('^([01]\d|2[0-3]):[0-5]\d$')->nullable(),
             'end_time' => $schema->string()->pattern('^([01]\d|2[0-3]):[0-5]\d$')->nullable(),
-            'event_type' => $schema->array()
-                ->items($enumString('event_type_values'))
-                ->max(3)
-                ->nullable(),
+            'event_category_ids' => $schema->array()->items($schema->string())->max(5)->nullable(),
             'event_format' => $enumString('event_format_values')->nullable(),
             'visibility' => $enumString('visibility_values')->nullable(),
             'event_url' => $schema->string()->format('url')->nullable(),

@@ -5,12 +5,13 @@ namespace App\Actions\Events;
 use AIArmada\Addressing\Support\AddressCountryResolver;
 use AIArmada\Events\Models\EventSession;
 use App\Contracts\CaptchaVerifier;
+use App\Contracts\EventCategoryCatalog;
+use App\Contracts\EventCategoryPolicyResolver;
 use App\Data\Events\ValidatedEventSubmission;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventPrayerTime;
-use App\Enums\EventType;
 use App\Enums\EventVisibility;
 use App\Models\Event;
 use App\Models\EventSubmission;
@@ -74,7 +75,7 @@ class SubmitFrontendEventAction
         $timezone = $this->resolveSubmissionTimezone($validated, $submissionCountryId);
 
         if (
-            $this->hasCommunityEventTypeSelection($validated['event_type'] ?? [])
+            $this->hasCommunityCategorySelection($validated['event_category_ids'] ?? [])
             && (($validated['event_format'] ?? EventFormat::Physical->value) !== EventFormat::Physical->value)
         ) {
             throw ValidationException::withMessages([
@@ -329,27 +330,19 @@ class SubmitFrontendEventAction
         }
     }
 
-    private function hasCommunityEventTypeSelection(mixed $eventTypes): bool
+    private function hasCommunityCategorySelection(mixed $categoryIds): bool
     {
-        if ($eventTypes instanceof Collection) {
-            $eventTypes = $eventTypes->all();
+        if ($categoryIds instanceof Collection) {
+            $categoryIds = $categoryIds->all();
         }
 
-        if (! is_array($eventTypes)) {
-            $eventTypes = [$eventTypes];
+        if (! is_array($categoryIds)) {
+            $categoryIds = [$categoryIds];
         }
 
-        foreach ($eventTypes as $eventTypeValue) {
-            $eventType = $eventTypeValue instanceof EventType
-                ? $eventTypeValue
-                : EventType::tryFrom((string) $eventTypeValue);
-
-            if ($eventType?->isCommunity()) {
-                return true;
-            }
-        }
-
-        return false;
+        return app(EventCategoryPolicyResolver::class)->requiresPhysicalDelivery(
+            app(EventCategoryCatalog::class)->validateTermIds($categoryIds),
+        );
     }
 
     /**
@@ -602,7 +595,9 @@ class SubmitFrontendEventAction
         $validated['visibility'] = $this->normalizeEnumValue($validated['visibility'] ?? null, EventVisibility::Public->value);
         $validated['gender'] = $this->normalizeEnumValue($validated['gender'] ?? null, EventGenderRestriction::All->value);
         $validated['prayer_time'] = $this->normalizeEnumValue($validated['prayer_time'] ?? null, '');
-        $validated['event_type'] = $this->normalizeEnumList($validated['event_type'] ?? []);
+        $validated['event_category_ids'] = app(EventCategoryCatalog::class)->validateTermIds(
+            $this->normalizeEnumList($validated['event_category_ids'] ?? []),
+        );
         $validated['age_group'] = $this->normalizeEnumList($validated['age_group'] ?? []);
 
         return $validated;

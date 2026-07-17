@@ -2,12 +2,12 @@
 
 use AIArmada\CommerceSupport\Models\Role;
 use AIArmada\Contacting\Enums\ContactMethodType;
+use AIArmada\Events\Models\EventTerm;
 use App\Enums\ContributionSubjectType;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventPrayerTime;
-use App\Enums\EventType;
 use App\Enums\EventVisibility;
 use App\Enums\ReferenceType;
 use App\Models\Event;
@@ -699,16 +699,18 @@ it('renders optimized seo metadata on public detail pages', function () {
         ->assertSee('Rujukan hadis dan adab yang sering digunakan dalam kuliah pengajian umum serta sesi pembelajaran mingguan.', false);
 });
 
-it('loads institution detail page with upcoming event type enum collection', function () {
+it('loads institution detail page with upcoming event category collection', function () {
+    app(Database\Seeders\AIArmada\EventTaxonomySeeder::class)->run();
+
     $institution = Institution::factory()->create(['status' => 'verified']);
-    $eventType = EventType::KuliahCeramah;
+    $eventCategory = EventTerm::query()->where('code', 'kuliah_ceramah')->firstOrFail();
     $event = Event::factory()
         ->for($institution)
         ->create([
             'status' => 'approved',
             'visibility' => EventVisibility::Public,
             'starts_at' => now()->addDay(),
-            'event_type' => [$eventType],
+            'event_category_ids' => [$eventCategory->getKey()],
             'title' => 'Institution Upcoming Event',
         ]);
 
@@ -716,7 +718,7 @@ it('loads institution detail page with upcoming event type enum collection', fun
         ->assertSuccessful()
         ->assertSee($institution->name)
         ->assertSee($event->title)
-        ->assertSee($eventType->getLabel());
+        ->assertSee($eventCategory->name);
 });
 
 it('hides unverified speakers and institutions from public pages', function () {
@@ -746,7 +748,7 @@ it('records guest submissions without a submitter id', function () {
         ->set('data.description', 'Test event description')
         ->set('data.event_date', now()->addDay()->toDateString())
         ->set('data.prayer_time', EventPrayerTime::SelepasMaghrib->value)
-        ->set('data.event_type', [EventType::KuliahCeramah->value])
+        ->set('data.event_category_ids', [eventCategoryId("kuliah_ceramah")])
         ->set('data.gender', EventGenderRestriction::All->value)
         ->set('data.age_group', [EventAgeGroup::AllAges->value])
         ->set('data.domain_tags', [$domainTag->id])

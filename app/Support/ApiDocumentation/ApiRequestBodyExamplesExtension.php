@@ -103,7 +103,7 @@ final class ApiRequestBodyExamplesExtension extends OperationExtension
             'query' => 'muamalat',
             'filters' => [
                 'language_codes' => ['ms'],
-                'event_type' => ['kuliah_ceramah'],
+                'event_category_ids' => ['00000000-0000-0000-0000-000000000000'],
                 'event_format' => ['physical'],
                 'gender' => 'all',
                 'age_group' => ['all_ages'],
@@ -119,7 +119,7 @@ final class ApiRequestBodyExamplesExtension extends OperationExtension
             'name' => 'Kuliah Maghrib KL',
             'filters' => [
                 'language_codes' => ['ms', 'en'],
-                'event_type' => ['forum'],
+                'event_category_ids' => ['00000000-0000-0000-0000-000000000000'],
                 'event_format' => ['online'],
                 'gender' => 'all',
                 'age_group' => ['youth'],

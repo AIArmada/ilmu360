@@ -170,12 +170,9 @@
 
                     {{-- Header --}}
                     <div class="text-center mb-8 entry-2">
-                        <a href="{{ route('home') }}" class="inline-block group relative">
-                            <div
-                                class="absolute -inset-4 bg-emerald-500/10 rounded-full blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                            </div>
+                        <a href="{{ route('home') }}" class="inline-block">
                             <img src="{{ asset('images/milogo.webp') }}" alt="{{ config('app.name') }}"
-                                class="relative h-16 w-16 mx-auto rounded-2xl shadow-lg ring-2 ring-white transform transition-transform duration-500 group-hover:scale-105 group-hover:rotate-3">
+                                class="h-16 w-16 mx-auto rounded-2xl shadow-lg ring-2 ring-white">
                         </a>
 
                         <div class="mt-6 space-y-2">

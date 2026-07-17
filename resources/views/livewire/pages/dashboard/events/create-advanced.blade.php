@@ -188,9 +188,9 @@
                                 </div>
 
                                 <div>
-                                    <label class="mb-2 block text-sm font-semibold text-slate-800">{{ __('Default Event Type') }}</label>
-                                    <select wire:model.defer="form.default_event_type" class="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-4 focus:ring-emerald-100">
-                                        @foreach($eventTypeOptions as $value => $label)
+                                    <label class="mb-2 block text-sm font-semibold text-slate-800">{{ __('Default Event Categories') }}</label>
+                                    <select multiple wire:model.defer="form.default_event_category_ids" class="h-28 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-4 focus:ring-emerald-100">
+                                        @foreach($eventCategoryOptions as $value => $label)
                                             <option value="{{ $value }}">{{ $label }}</option>
                                         @endforeach
                                     </select>
@@ -256,7 +256,7 @@
                                 </div>
                                 <div class="rounded-3xl border border-slate-200 bg-slate-50 p-5">
                                     <p class="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">{{ __('Defaults') }}</p>
-                                    <p class="mt-3 text-sm font-semibold text-slate-900">{{ $eventTypeOptions[$form['default_event_type'] ?? ''] ?? __('Event Type') }}</p>
+                                    <p class="mt-3 text-sm font-semibold text-slate-900">{{ collect($form['default_event_category_ids'] ?? [])->map(fn ($id) => $eventCategoryOptions[$id] ?? $id)->implode(', ') ?: __('Event Categories') }}</p>
                                     <p class="mt-1 text-sm text-slate-500">{{ $eventFormatOptions[$form['default_event_format'] ?? ''] ?? __('Format') }}</p>
                                     <p class="mt-4 text-xs uppercase tracking-[0.18em] text-slate-400">{{ __('Registration') }}</p>
                                     <p class="mt-1 text-sm text-slate-600">{{ ! empty($form['registration_required']) ? __('Required') : __('Optional') }} · {{ __('Whole Event') }}</p>

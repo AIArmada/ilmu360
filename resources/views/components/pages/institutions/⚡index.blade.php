@@ -8,7 +8,6 @@ use App\Support\Search\InstitutionSearchService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator as LengthAwarePaginatorContract;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
@@ -78,33 +77,10 @@ class extends Component
     {
         return Event::query()
             ->selectRaw('count(*)')
-            // Package-native: institution_id lives in events.metadata only.
-            ->whereRaw("{$this->eventInstitutionIdSelector()} = institutions.id")
+            ->whereColumn('events.institution_id', 'institutions.id')
             ->whereNotNull('events.published_at')
             ->whereIn('events.status', Event::PUBLIC_STATUSES)
             ->where('events.visibility', EventVisibility::Public->value);
-    }
-
-    private function eventInstitutionIdSelector(): string
-    {
-        return match ($this->databaseDriver()) {
-            'pgsql' => "(events.metadata->>'institution_id')::uuid",
-            default => $this->eventMetadataSqlSelector('institution_id'),
-        };
-    }
-
-    private function eventMetadataSqlSelector(string $key): string
-    {
-        return match ($this->databaseDriver()) {
-            'pgsql' => "events.metadata->>'{$key}'",
-            'mysql', 'mariadb' => "json_unquote(json_extract(events.metadata, '$.\"{$key}\"'))",
-            default => "json_extract(events.metadata, '$.\"{$key}\"')",
-        };
-    }
-
-    private function databaseDriver(): string
-    {
-        return DB::connection()->getDriverName();
     }
 
     private function directSearch(string $search): LengthAwarePaginatorContract
@@ -330,7 +306,6 @@ class extends Component
 
         return $normalized;
     }
-
 };
 ?>
 

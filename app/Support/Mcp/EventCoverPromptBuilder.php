@@ -10,7 +10,6 @@ use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventKeyPersonRole;
-use App\Enums\EventType;
 use App\Enums\EventVisibility;
 use App\Enums\ReferenceType;
 use App\Enums\TagType;
@@ -532,7 +531,7 @@ class EventCoverPromptBuilder
                 'card_image_url' => $event->card_image_url,
                 'poster_display_aspect_ratio' => $event->poster_display_aspect_ratio,
                 'poster_orientation' => $event->poster_orientation,
-                'event_type_labels' => $this->eventTypeLabels($event->event_type),
+                'event_category_labels' => $this->eventCategoryLabels($event),
                 'age_group_labels' => $this->ageGroupLabels($event->age_group),
                 'gender_label' => $this->genderLabel($event->gender),
                 'event_format_label' => $this->formatLabel($event->delivery_mode),
@@ -935,7 +934,7 @@ class EventCoverPromptBuilder
     private function taxonomyLine(Event $event): ?string
     {
         $labels = array_merge(
-            $this->eventTypeLabels($event->event_type),
+            $this->eventCategoryLabels($event),
             $event->classifications
                 ->map(fn ($c): string => (string) ($c->term_code ?? $c->taxonomy_code ?? ''))
                 ->filter()
@@ -949,9 +948,12 @@ class EventCoverPromptBuilder
     /**
      * @return list<string>
      */
-    private function eventTypeLabels(mixed $values): array
+    private function eventCategoryLabels(Event $event): array
     {
-        return $this->enumLabels($values, EventType::class);
+        return array_values(array_filter(array_map(
+            static fn (array $category): string => (string) ($category['path'] ?? $category['name'] ?? ''),
+            app(\App\Support\Events\EventCategoryPresenter::class)->forEvent($event),
+        )));
     }
 
     /**
@@ -974,7 +976,7 @@ class EventCoverPromptBuilder
         foreach ($items as $item) {
             $enum = $item instanceof $enumClass ? $item : (is_string($item) ? $enumClass::tryFrom($item) : null);
 
-            if ($enum instanceof EventType || $enum instanceof EventAgeGroup) {
+            if ($enum instanceof EventAgeGroup) {
                 $labels[] = $enum->getLabel();
             } elseif ($enum instanceof BackedEnum) {
                 $labels[] = (string) $enum->value;

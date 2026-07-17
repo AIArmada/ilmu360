@@ -8,7 +8,7 @@ use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventPrayerTime;
-use App\Enums\EventType;
+use App\Contracts\EventCategoryCatalog;
 use App\Enums\EventVisibility;
 use App\Enums\RegistrationScope;
 use App\Models\Institution;
@@ -74,8 +74,8 @@ class AdminUpdateEventTool extends AbstractAdminWriteTool
                 'age_group.*' => ['string'],
                 'children_allowed' => ['sometimes', 'boolean'],
                 'is_muslim_only' => ['sometimes', 'boolean'],
-                'event_type' => ['sometimes', 'array', 'min:1'],
-                'event_type.*' => ['string'],
+                'event_category_ids' => ['sometimes', 'array', 'min:1'],
+                'event_category_ids.*' => ['uuid'],
                 'primary_organizer_key' => ['nullable', 'string'],
                 'institution_key' => ['nullable', 'string'],
                 'venue_key' => ['nullable', 'string'],
@@ -290,7 +290,7 @@ class AdminUpdateEventTool extends AbstractAdminWriteTool
             'age_group' => $schema->array()->items($schema->string()->enum($this->enumValues(EventAgeGroup::class))),
             'children_allowed' => $schema->boolean(),
             'is_muslim_only' => $schema->boolean(),
-            'event_type' => $schema->array()->items($schema->string()->enum($this->enumValues(EventType::class))),
+            'event_category_ids' => $schema->array()->items($schema->string()->enum(array_keys(app(EventCategoryCatalog::class)->options()))),
             'primary_organizer_key' => $schema->string()->nullable()->description('Primary organizer route key (institution or speaker slug preferred, UUID allowed). Omit to preserve the current organizer.'),
             'institution_key' => $schema->string()->nullable()->description('Institution route key (slug preferred, UUID allowed).'),
             'venue_key' => $schema->string()->nullable()->description('Venue route key (slug preferred, UUID allowed).'),

@@ -6,8 +6,8 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Actions\Events\CreateAdvancedEventAction;
 use App\Actions\Events\PrepareAdvancedParentProgramSubmissionAction;
 use App\Actions\Events\ResolveAdvancedBuilderContextAction;
+use App\Contracts\EventCategoryCatalog;
 use App\Enums\EventFormat;
-use App\Enums\EventType;
 use App\Enums\EventVisibility;
 use App\Enums\RegistrationScope;
 use App\Models\Event;
@@ -178,7 +178,8 @@ class CreateAdvanced extends Component
             'form.program_ends_at' => ['required', 'date'],
             'form.primary_organizer_id' => ['required', 'string'],
             'form.location_institution_id' => ['nullable', 'string'],
-            'form.default_event_type' => ['required', Rule::in(array_column(EventType::cases(), 'value'))],
+            'form.default_event_category_ids' => ['required', 'array', 'min:1'],
+            'form.default_event_category_ids.*' => ['uuid', Rule::in(app(EventCategoryCatalog::class)->validTermIds((array) ($this->form['default_event_category_ids'] ?? [])))],
             'form.default_event_format' => ['required', Rule::in(array_column(EventFormat::cases(), 'value'))],
             'form.visibility' => ['required', Rule::in(array_column(EventVisibility::cases(), 'value'))],
             'form.registration_required' => ['required', 'boolean'],
@@ -247,7 +248,7 @@ class CreateAdvanced extends Component
             'institutionOptions' => $this->institutionOptions,
             'speakerOptions' => $this->speakerOptions,
             'selectedOrganizerType' => $this->selectedOrganizerType(),
-            'eventTypeOptions' => collect(EventType::cases())->mapWithKeys(fn (EventType $type): array => [$type->value => $type->getLabel()])->all(),
+            'eventCategoryOptions' => app(EventCategoryCatalog::class)->options(),
             'eventFormatOptions' => collect(EventFormat::cases())->mapWithKeys(fn (EventFormat $format): array => [$format->value => $format->label()])->all(),
             'visibilityOptions' => collect(EventVisibility::cases())->mapWithKeys(fn (EventVisibility $visibility): array => [$visibility->value => $visibility->getLabel()])->all(),
             'stepOptions' => $this->stepOptions(),

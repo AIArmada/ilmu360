@@ -40,15 +40,12 @@
             </span>
         @endif
 
-        @php
-            $eventTypeValues = $event->event_type;
-            $firstEventType = $eventTypeValues instanceof \Illuminate\Support\Collection ? $eventTypeValues->first() : null;
-        @endphp
+        @php($firstEventCategory = app(\App\Support\Events\EventCategoryPresenter::class)->forEvent($event)[0] ?? null)
 
-        @if($firstEventType)
+        @if($firstEventCategory)
             <span
                 class="inline-flex items-center rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1 text-xs font-semibold tracking-wide text-emerald-300 backdrop-blur-md">
-                {{ $firstEventType->getLabel() }}
+                {{ $firstEventCategory['path'] }}
             </span>
         @endif
 

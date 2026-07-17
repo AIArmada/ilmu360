@@ -4,6 +4,7 @@ namespace App\Services;
 
 use AIArmada\Addressing\Data\AddressLocationData;
 use AIArmada\Events\Models\EventLanguage;
+use App\Contracts\EventCategoryCatalog;
 use App\Data\EventDiscoveryCriteria;
 use App\Data\EventDiscoveryCriteriaFactory;
 use App\Enums\EventKeyPersonRole;
@@ -16,7 +17,6 @@ use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Reference;
 use App\Models\Venue;
-use App\Support\Cache\SafeModelCache;
 use App\Support\EventDiscovery\EventDiscoveryFilterSet;
 use App\Support\Events\PrimaryOccurrenceSql;
 use App\Support\Search\InstitutionSearchService;
@@ -29,6 +29,7 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Connection;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator as Paginator;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -41,6 +42,7 @@ class EventSearchService
         private readonly SpeakerSearchService $speakerSearch,
         private readonly InstitutionSearchService $institutionSearch,
         private readonly ReferenceSearchService $referenceSearch,
+        private readonly EventCategoryCatalog $categoryCatalog,
         private readonly EventDiscoveryCriteriaFactory $criteriaFactory = new EventDiscoveryCriteriaFactory,
         private readonly EventDiscoveryFilterSet $filterSet = new EventDiscoveryFilterSet,
     ) {}
@@ -197,10 +199,10 @@ class EventSearchService
 
         try {
             /** @var array{ids: list<string>, total: int} $payload */
-            $payload = app(SafeModelCache::class)->rememberPayload(
-                key: 'default_events_search_v2',
-                ttl: 60,
-                resolver: function () use ($criteria): array {
+            $payload = Cache::remember(
+                'default_events_search_v2',
+                60,
+                function () use ($criteria): array {
                     $paginator = $this->performSearch($criteria);
 
                     return [
@@ -465,11 +467,11 @@ class EventSearchService
             $filterParts[] = 'language_codes:['.implode(',', $languageCodes).']';
         }
 
-        if (! empty($filters['event_type'])) {
-            $eventTypes = $this->normalizeArrayFilter($filters['event_type']);
+        if (! empty($filters['event_category_ids'])) {
+            $categoryIds = $this->categoryCatalog->descendantIds($this->normalizeArrayFilter($filters['event_category_ids']));
 
-            if ($eventTypes !== []) {
-                $filterParts[] = 'event_type:['.implode(',', $eventTypes).']';
+            if ($categoryIds !== []) {
+                $filterParts[] = 'taxonomy_term_ids:['.implode(',', $categoryIds).']';
             }
         }
 
@@ -646,13 +648,13 @@ class EventSearchService
             });
         }
 
-        $eventTypes = $this->normalizeArrayFilter($filters['event_type'] ?? null);
+        $categoryIds = $this->categoryCatalog->descendantIds($this->normalizeArrayFilter($filters['event_category_ids'] ?? null));
 
-        if ($eventTypes !== []) {
-            $queryBuilder->where(function (Builder $eventTypeQuery) use ($eventTypes) {
-                foreach ($eventTypes as $eventType) {
-                    $eventTypeQuery->orWhereJsonContains('event_type', $eventType);
-                }
+        if ($categoryIds !== []) {
+            $queryBuilder->whereHas('classifications', function (Builder $classificationQuery) use ($categoryIds): void {
+                $classificationQuery
+                    ->whereIn('event_term_id', $categoryIds)
+                    ->where('taxonomy_code', EventCategoryCatalog::TAXONOMY_CODE);
             });
         }
 
@@ -914,7 +916,7 @@ class EventSearchService
 
             // Institution name match.
             if ($institutionIds !== []) {
-                $institutionIdExpression = $this->eventUuidMetadataSqlSelector('institution_id');
+                $institutionIdExpression = 'events.institution_id';
 
                 $nestedQuery->orWhere(function (Builder $institutionQuery) use ($institutionIdExpression, $institutionIds): void {
                     foreach ($institutionIds as $index => $institutionId) {
@@ -1056,7 +1058,7 @@ class EventSearchService
     ): LengthAwarePaginator {
         $addressablesTable = config('addressing.tables.addressables', 'addressables');
         $addressesTable = config('addressing.tables.addresses', 'addresses');
-        $institutionIdExpression = $this->eventUuidMetadataSqlSelector('institution_id');
+        $institutionIdExpression = 'events.institution_id';
         $latitudeExpression = 'coalesce(venue_addresses.latitude, institution_addresses.latitude)';
         $longitudeExpression = 'coalesce(venue_addresses.longitude, institution_addresses.longitude)';
         $distanceSql = "(6371 * acos(cos(radians(?)) * cos(radians({$latitudeExpression})) * cos(radians({$longitudeExpression}) - radians(?)) + sin(radians(?)) * sin(radians({$latitudeExpression}))))";
@@ -1133,7 +1135,7 @@ class EventSearchService
     ): LengthAwarePaginator {
         $addressablesTable = config('addressing.tables.addressables', 'addressables');
         $addressesTable = config('addressing.tables.addresses', 'addresses');
-        $institutionIdExpression = $this->eventUuidMetadataSqlSelector('institution_id');
+        $institutionIdExpression = 'events.institution_id';
         $latitudeExpression = 'coalesce(venue_addresses.latitude, institution_addresses.latitude)';
         $longitudeExpression = 'coalesce(venue_addresses.longitude, institution_addresses.longitude)';
         $distanceSql = "(6371 * acos(cos(radians(?)) * cos(radians({$latitudeExpression})) * cos(radians({$longitudeExpression}) - radians(?)) + sin(radians(?)) * sin(radians({$latitudeExpression}))))";
@@ -1202,7 +1204,7 @@ class EventSearchService
         $addressColumn = $column;
         $addressesTable = config('addressing.tables.addresses', 'addresses');
         $addressablesTable = config('addressing.tables.addressables', 'addressables');
-        $institutionIdExpression = $this->eventUuidMetadataSqlSelector('institution_id');
+        $institutionIdExpression = 'events.institution_id';
         $venueMorphType = (new Venue)->getMorphClass();
         $institutionMorphType = (new Institution)->getMorphClass();
 
@@ -1572,23 +1574,6 @@ class EventSearchService
     private function startsAtUserTimeSqlExpression(int $offsetMinutes): string
     {
         return PrimaryOccurrenceSql::startsAtUserTimeExpression($offsetMinutes);
-    }
-
-    private function eventMetadataSqlSelector(string $key): string
-    {
-        return match ($this->databaseDriver()) {
-            'pgsql' => "events.metadata->>'{$key}'",
-            'mysql', 'mariadb' => "json_unquote(json_extract(events.metadata, '$.\"{$key}\"'))",
-            default => "json_extract(events.metadata, '$.\"{$key}\"')",
-        };
-    }
-
-    private function eventUuidMetadataSqlSelector(string $key): string
-    {
-        return match ($this->databaseDriver()) {
-            'pgsql' => "(events.metadata->>'{$key}')::uuid",
-            default => $this->eventMetadataSqlSelector($key),
-        };
     }
 
     private function userUtcOffsetMinutes(): int

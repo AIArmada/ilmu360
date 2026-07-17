@@ -10,7 +10,7 @@ use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventPrayerTime;
-use App\Enums\EventType;
+use App\Contracts\EventCategoryCatalog;
 use App\Enums\TimingMode;
 use App\Forms\SharedFormSchema;
 use App\Models\Institution;
@@ -412,15 +412,12 @@ class AdvancedFiltersPanel extends Component implements HasForms
                             ->description(__('Filter by event type, format, age group, gender, and language.'))
                             ->columns(['default' => 1, 'md' => 2, 'xl' => 3])
                             ->schema([
-                                Select::make('event_type')
-                                    ->label(__('Event Type'))
-                                    ->placeholder(__('Any Type'))
+                                Select::make('event_category_ids')
+                                    ->label(__('Event Category'))
+                                    ->placeholder(__('Any Category'))
                                     ->searchable()
                                     ->multiple()
-                                    ->options(fn (): array => collect(EventType::cases())
-                                        ->mapToGroups(fn (EventType $type): array => [$type->getGroup() => [$type->value => $type->getLabel()]])
-                                        ->map(fn (Collection $group): array => $group->collapse()->all())
-                                        ->toArray())
+                                    ->options(fn (): array => app(EventCategoryCatalog::class)->options())
                                     ->live(),
 
                                 Select::make('event_format')
@@ -661,7 +658,7 @@ class AdvancedFiltersPanel extends Component implements HasForms
             'admin_area_1_id' => null,
             'admin_area_2_id' => null,
             'language_codes' => [],
-            'event_type' => [],
+            'event_category_ids' => [],
             'gender' => null,
             'age_group' => [],
             'children_allowed' => null,
@@ -746,7 +743,7 @@ class AdvancedFiltersPanel extends Component implements HasForms
             'admin_area_1_id' => filled($normalized['admin_area_1_id']) ? (string) $normalized['admin_area_1_id'] : null,
             'admin_area_2_id' => filled($normalized['admin_area_2_id']) ? (string) $normalized['admin_area_2_id'] : null,
             'language_codes' => $languageCodes,
-            'event_type' => $this->normalizeStringArray($normalized['event_type'] ?? []),
+            'event_category_ids' => $this->normalizeStringArray($normalized['event_category_ids'] ?? []),
             'gender' => filled($normalized['gender']) ? (string) $normalized['gender'] : null,
             'age_group' => $this->normalizeStringArray($normalized['age_group'] ?? []),
             'children_allowed' => $this->normalizeNullableBoolean($normalized['children_allowed'] ?? null),

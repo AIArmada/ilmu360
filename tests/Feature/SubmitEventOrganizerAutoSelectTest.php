@@ -3,7 +3,6 @@
 use App\Enums\EventAgeGroup;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventPrayerTime;
-use App\Enums\EventType;
 use App\Enums\EventVisibility;
 use App\Models\Event;
 use App\Models\Speaker;
@@ -40,7 +39,7 @@ function submitEventOrganizerFormData(array $fixtures, array $overrides = []): a
         'title' => 'Auto Select Speaker Event',
         'event_date' => now()->addDay()->toDateString(),
         'prayer_time' => EventPrayerTime::SelepasMaghrib->value,
-        'event_type' => [EventType::KuliahCeramah->value],
+        'event_category_ids' => [eventCategoryId("kuliah_ceramah")],
         'gender' => EventGenderRestriction::All->value,
         'age_group' => [EventAgeGroup::AllAges->value],
         'languages' => [101],
@@ -97,7 +96,7 @@ it('uses the organizer speaker slug when no explicit speakers are selected', fun
         submitEventOrganizerFormData($fixtures, [
             'title' => 'Organizer Fallback Submit Event',
             'event_date' => $eventDate,
-            'event_type' => [EventType::Other->value],
+            'event_category_ids' => [eventCategoryId("other")],
             'speakers' => [],
         ]),
     )

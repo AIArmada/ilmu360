@@ -114,6 +114,7 @@
 - When the user says "fix them, not review again," stop expanding analysis and execute the enumerated defects directly; use the prior review only as the implementation checklist.
 - If a notification setting is user-visible and persisted, verify the runtime path consumes it before calling the feature done; `urgent_override` and `fallback_channels` are not complete until the delivery engine actually obeys them.
 - When the user explicitly says the app is still in development and backward compatibility does not matter, do not preserve a legacy-only schema or API shape by default; implement the cleaner target architecture directly and only keep old paths if they reduce risk without warping the new design.
+- When a user asks to fix specific review findings, do not expand that into a broader schema redesign merely because compatibility constraints are relaxed; confirm the intended scope before replacing an established persistence model.
 - In card grids on public pages, check the one-item state explicitly; a fixed multi-column layout often looks broken when a single record is left occupying only half the row.
 - When two authenticated pages are just adjacent user settings, do not keep them as separate menu destinations by default; fold the smaller preference form into the main account settings surface and leave old URLs as redirects.
 - On localized utility pages like saved searches, do not stop at wrapping Blade copy in `__()`; audit the Livewire class for flash messages, suggested names, filter labels, enum values, and badge text so the whole page reads naturally in the active locale.
@@ -339,7 +340,20 @@
 - Use Luna high only for audit subagents. Do not assign Luna xhigh unless the user explicitly changes this preference.
 # Architecture roadmap lesson — hard-cut legacy removal
 
+- When the user confirms a hard cut, do not restore removed enums, aliases, fallback reads, or compatibility wrappers even when unrelated tests still reference them; report those tests as stale and update them only within the canonical migration scope.
+
 - When the roadmap explicitly authorizes a hard cut and the user confirms there is
   no backward-compatibility requirement, remove legacy fields and callers across
   app, API, MCP, Filament, tests, and schema in the same slice; do not retain
   aliases, fallback reads, or dual writes.
+
+- For hierarchical taxonomy migrations, persist UUID term classifications and keep
+  category policy in term metadata; parent filters should expand to descendants at
+  the search boundary rather than duplicating denormalized category columns.
+
+- When upgrading an installed AIArmada package, edit the canonical package source
+  under `~/Herd/commerce/packages`; vendor files are generated artifacts and must
+  not be treated as the package implementation.
+- When a hierarchical selection is normalized for persistence, keep validation on the full valid ID set; minimizing parent/child IDs before `Rule::in()` rejects valid redundant selections.
+- Parent-category policy checks must expand descendants before reading term metadata; otherwise selectable roots silently bypass child requirements.
+- Deleting a taxonomy without foreign-key cascades requires explicit classification and term cleanup, including orphaned terms left by earlier seeders.

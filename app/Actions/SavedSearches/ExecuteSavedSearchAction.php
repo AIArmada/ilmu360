@@ -119,7 +119,7 @@ final readonly class ExecuteSavedSearchAction
             'issue_tag_ids',
             'reference_ids',
             'language_codes',
-            'event_type',
+            'event_category_ids',
             'event_format',
             'gender',
             'starts_after',

@@ -5,7 +5,6 @@ use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventPrayerTime;
-use App\Enums\EventType;
 use App\Enums\TimingMode;
 use App\Models\Event;
 use App\Models\SavedSearch;
@@ -79,7 +78,7 @@ describe('Saved Search API Endpoints', function () {
                 $response = $this->postJson('/api/v1/saved-searches', [
                     'name' => 'Enum Filter Search',
                     'filters' => [
-                        'event_type' => [EventType::KuliahCeramah->value],
+                        'event_category_ids' => [eventCategoryId("kuliah_ceramah")],
                         'event_format' => [EventFormat::Online->value],
                         'gender' => EventGenderRestriction::All->value,
                         'age_group' => [EventAgeGroup::AllAges->value],
@@ -90,7 +89,7 @@ describe('Saved Search API Endpoints', function () {
                 ]);
 
                 $response->assertCreated()
-                    ->assertJsonPath('data.filters.event_type.0', EventType::KuliahCeramah->value)
+                    ->assertJsonPath('data.filters.event_category_ids.0', eventCategoryId("kuliah_ceramah"))
                     ->assertJsonPath('data.filters.event_format.0', EventFormat::Online->value)
                     ->assertJsonPath('data.filters.gender', EventGenderRestriction::All->value)
                     ->assertJsonPath('data.filters.age_group.0', EventAgeGroup::AllAges->value)
@@ -125,7 +124,7 @@ describe('Saved Search API Endpoints', function () {
                 $response = $this->postJson('/api/v1/saved-searches', [
                     'name' => 'Label Filter Search',
                     'filters' => [
-                        'event_type' => ['Kuliah / Ceramah'],
+                        'event_category_ids' => ['Kuliah / Ceramah'],
                         'event_format' => ['Physical'],
                         'gender' => 'Lelaki Sahaja',
                         'age_group' => ['Semua Peringkat Umur'],
@@ -137,7 +136,7 @@ describe('Saved Search API Endpoints', function () {
 
                 $response->assertUnprocessable()
                     ->assertJsonValidationErrors([
-                        'filters.event_type.0',
+                        'filters.event_category_ids.0',
                         'filters.event_format.0',
                         'filters.gender',
                         'filters.age_group.0',

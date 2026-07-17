@@ -45,7 +45,7 @@ class EventEngagementListItemData extends Data
                 'venue_id' => $event->default_venue_id,
                 'event_url' => $event->event_url,
                 'live_url' => $event->live_url,
-                'event_type' => $event->event_type,
+                'event_categories' => app(\App\Support\Events\EventCategoryPresenter::class)->forEvent($event),
                 'event_format' => self::enumValue($event->delivery_mode),
                 'language' => $event->language,
                 'registrations_count' => $event->registrations_count,

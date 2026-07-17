@@ -1,4 +1,22 @@
-# Friendliness + Lifecycle Hard Cut
+# Event institution native location hard cut
+
+- [x] Add indexed `institution_id` to `events` and migrate the existing metadata values.
+- [x] Remove event-location reads/writes/queries from `metadata["institution_id"]` and update search/index payloads.
+- [x] Remove the obsolete JSON index migration/test and verify focused event/location/search tests.
+
+### Review
+
+- Pint, syntax checks, and `git diff --check` passed.
+- Targeted PHPStan analysis passed with no errors.
+- The focused event-search document test passed: 1 test, 2 assertions.
+- The native indexed institution column is covered by the current migration sequence; the obsolete JSON-index migration/test is removed.
+- The native event institution-column test passed sequentially: 1 test, 2 assertions.
+- The focused searchable-payload and Typesense-facet tests passed: 2 tests, 3 assertions.
+- The focused Event API contract test was blocked by the repository's existing SQLite migration race (`migrations` table already exists), before assertions ran.
+- The full EventTest file had two unrelated SQLite parallel-write lock failures; the new focused assertion passed in parallel.
+- The full PHPStan invocation began but the local runner returned no completion result, so its status is inconclusive.
+
+## Friendliness + Lifecycle Hard Cut
 
 ## Comprehensive aiarmada package-first refactor (current pass)
 
@@ -593,3 +611,103 @@
 - The MemberPermissionGate and Registration parallel checks pass. The focused reference-author and Typesense-fallback tests pass.
 - The broad EventSearch filter is currently blocked by unrelated in-progress discovery-adapter code that references the absent AIArmada\\Addressing\\Data\\AddressLocationData class.
 - vendor/bin/pint --dirty, vendor/bin/phpstan analyse --ansi, and git diff --check passed for this change before the unrelated discovery-adapter work appeared in the shared worktree.
+
+## Ghost-in-the-codebase maintenance (2026-07-18)
+
+- [x] Verify the documented findings and remove only the redundant payload-cache delegate.
+- [x] Add the canonical featured scope and align institution filtering with the native indexed column migration.
+- [x] Consolidate Scout indexing wrappers without changing their command names.
+- [x] Upgrade `laravel/mcp` to `^0.9` and add focused regression coverage.
+- [x] Run focused tests, PHPStan, Composer validation, and whitespace checks.
+
+### Review
+
+- Cache serialization: 4 tests passed (20 assertions).
+- Featured scope: 1 test passed (3 assertions).
+- API payload boundary: 1 test passed (9 assertions).
+- Scout wrappers: 8 tests passed.
+- Institution filtering follows the native indexed `events.institution_id` migration; no obsolete metadata expression index remains.
+- PHPStan level 6, Composer validation, and `git diff --check` passed.
+- MCP suite remains blocked by unrelated in-progress removal of `App\\Enums\\EventType`; no legacy enum or compatibility shim was restored.
+
+## Canonical taxonomy test cutover (2026-07-18)
+
+- [x] Replace stale `EventType` fixtures with seeded event-taxonomy UUIDs.
+- [x] Update MCP, submission, search, saved-search, API, and page assertions to `event_category_ids` / `event_categories`.
+- [x] Move factory classification synchronization after event persistence so package ownership checks have an event ID.
+- [x] Remove all remaining `App\\Enums\\EventType` references without restoring compatibility.
+
+### Review
+
+- MCP admin server reached 88 passing tests with the remaining response assertion corrected; image generation: 14 passed.
+- Public listing cache: 5 passed; event-category search and taxonomy translation passed.
+- PHPStan level 6, syntax checks, and `git diff --check` passed.
+- The full parallel suite was started but interrupted after broad progress; focused affected suites are green.
+
+## First-class metadata hard-cut planning (2026-07-18)
+
+- [x] Audit application metadata used as operational state.
+- [x] Separate real columns from package relations, lifecycle state, counters, analytics, and dead fields.
+- [x] Assign generic changes to canonical source under /Users/Saiffil/Herd/commerce/packages.
+- [x] Persist the lower-capability implementation plan in tasks/first-class-metadata-hard-cut-plan.md.
+- [ ] Implement the plan as explicit package and application change sets.
+
+### Review
+
+- The plan requires a destructive migrate:fresh cutover with no JSON backfill, fallback reads, dual writes, compatibility aliases, or legacy cleanup migrations.
+- The canonical location design is events.institution_id plus an optional primary EventLocation.venue_space_id; organizer, owner, creator, and submitter remain independent.
+- Event schedule state moves to EventOccurrence lifecycle; timing mode moves to EventTimeExpression; engagement and registration counts remain outside Event storage.
+
+## Implementation review follow-up (2026-07-18)
+
+- [x] Reconcile the ghost-document recommendations with the current native `events.institution_id` migration.
+- [x] Remove the stale JSON-index implementation and update the admin category filter test to send a taxonomy UUID.
+- [x] Remove unused database-driver helpers surfaced by PHPStan.
+- [x] Re-run focused tests, PHPStan, Pint, Composer validation, and whitespace checks.
+
+### Review
+
+- Native institution migration is now the source of truth; no metadata expression index remains.
+- Admin category filtering passes sequentially (2 tests, 42 assertions).
+- Taxonomy hierarchy, featured scope, payload contract, MCP/image, cache, and category-search tests pass.
+- Targeted PHPStan and Pint pass; Composer validation and `git diff --check` pass.
+- Parallel full-suite failures observed in this SQLite environment are database-lock contention during shared setup, not assertion or contract failures.
+## Event taxonomy migration (2026-07-18)
+
+- [x] Add hierarchical event-category catalog, policy resolver, and taxonomy seeder.
+- [x] Replace classification synchronization with direct taxonomy persistence.
+- [x] Migrate model, forms, actions, APIs, search, AI, and MCP surfaces.
+- [x] Update factories, seeders, views, documentation, and focused tests.
+- [x] Remove `App\\Enums\\EventType` and verify PHPStan.
+
+### Review
+
+Focused taxonomy/seeder tests: 4 passed, 20 assertions. PHPStan level 6: clean. The application has no runtime reads, writes, aliases, or fallback paths for the removed flat event-type contract.
+
+## Events package hierarchy upgrade (2026-07-18)
+
+- [x] Add package `EventTaxonomyHierarchy` contract/service and model relationships.
+- [x] Add hierarchy index migration and package usage documentation.
+- [x] Delegate the app category catalog to the package hierarchy service.
+- [x] Add application integration coverage for paths, descendant expansion, and parent minimization.
+
+### Review
+
+Canonical package source is under `/Users/Saiffil/Herd/commerce/packages/events`; the installed vendor copy was refreshed only for local verification.
+## Event taxonomy migration defect fixes
+
+- [x] Validate raw taxonomy IDs before minimizing parent/child selections.
+- [x] Expand descendants when applying category metadata policies and seeded role rules.
+- [x] Hide inactive taxonomies from active hierarchy reads and harden non-scalar ID input.
+- [x] Isolate EventTerm parent/children relationships by taxonomy.
+- [x] Remove legacy event-type classifications, terms, and taxonomy rows through seeder cleanup and migration.
+- [x] Add regression coverage and run focused Pest/PHPStan checks.
+
+### Review
+
+- Taxonomy regression suite: 7 tests, 16 assertions.
+- AIArmada taxonomy/Foundation suite: 10 tests, 32 assertions.
+- Classification sync: 1 test, 4 assertions.
+- Event search: 83 tests, 286 assertions.
+- Saved-search API: 26 tests, 104 assertions. Frontend API parity passed in sequential focused subsets; its full parallel run hit existing SQLite schema/lock races.
+- App and package PHPStan checks passed; migration syntax and diff checks passed.

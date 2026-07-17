@@ -27,7 +27,6 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -346,12 +345,7 @@ class Index extends Component implements HasForms
 
     private function eventInstitutionIdSelector(): string
     {
-        // Package-native: institution_id lives in events.metadata only.
-        return match (DB::connection()->getDriverName()) {
-            'pgsql' => "(events.metadata->>'institution_id')::uuid",
-            'mysql', 'mariadb' => "json_unquote(json_extract(events.metadata, '$.\"institution_id\"'))",
-            default => "json_extract(events.metadata, '$.\"institution_id\"')",
-        };
+        return 'events.institution_id';
     }
 
     private function institutionMembershipApplicationLabel(Institution $institution): string

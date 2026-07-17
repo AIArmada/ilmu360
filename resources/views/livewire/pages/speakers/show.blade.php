@@ -54,23 +54,7 @@
     );
     $speakerRouteSegment = \App\Enums\ContributionSubjectType::Speaker->publicRouteSegment();
 
-    $resolveEventTypeLabel = static function (mixed $eventType): string {
-        if ($eventType instanceof \Illuminate\Support\Collection) {
-            $eventType = $eventType->first();
-        } elseif (is_array($eventType)) {
-            $eventType = $eventType[0] ?? null;
-        }
-
-        if ($eventType instanceof \App\Enums\EventType) {
-            return $eventType->getLabel();
-        }
-
-        if (is_string($eventType) && $eventType !== '') {
-            return \App\Enums\EventType::tryFrom($eventType)?->getLabel() ?? __('Umum');
-        }
-
-        return __('Umum');
-    };
+    $resolveEventCategoryLabel = static fn (\App\Models\Event $event): string => app(\App\Support\Events\EventCategoryPresenter::class)->forEvent($event)[0]['path'] ?? __('Umum');
 
     $resolveEventLocation = static function (\App\Models\Event $event): string {
         $primaryLocationName = $event->venue?->name ?: $event->institution?->name;
@@ -231,7 +215,7 @@
                     <div class="space-y-4">
                         @foreach($upcomingEvents as $event)
                             @php
-                                $eventTypeLabel = $resolveEventTypeLabel($event->event_type);
+                                $eventTypeLabel = $resolveEventCategoryLabel($event);
                                 $eventLocation = $resolveEventLocation($event);
                                 $eventFormatValue = $event->event_format?->value ?? $event->event_format;
                                 $isRemoteEvent = in_array($eventFormatValue, ['online', 'hybrid'], true);

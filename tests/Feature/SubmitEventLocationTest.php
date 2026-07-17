@@ -3,7 +3,6 @@
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
-use App\Enums\EventType;
 use App\Enums\EventVisibility;
 use App\Livewire\Pages\Events\Index;
 use App\Models\Event;
@@ -31,7 +30,7 @@ function submitEventLocationFormData(array $overrides = []): array
         'description' => 'Test description.',
         'event_date' => now()->addDays(7)->format('Y-m-d'),
         'prayer_time' => 'selepas_maghrib',
-        'event_type' => [EventType::KuliahCeramah->value],
+        'event_category_ids' => [eventCategoryId("kuliah_ceramah")],
         'event_format' => EventFormat::Physical->value,
         'visibility' => EventVisibility::Public->value,
         'gender' => EventGenderRestriction::All->value,

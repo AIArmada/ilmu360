@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Api\Frontend;
 use App\Actions\Events\CreateAdvancedEventAction;
 use App\Actions\Events\PrepareAdvancedParentProgramSubmissionAction;
 use App\Enums\EventFormat;
-use App\Enums\EventType;
+use App\Contracts\EventCategoryCatalog;
 use App\Enums\EventVisibility;
 use App\Enums\RegistrationScope;
 use Dedoc\Scramble\Attributes\Endpoint;
@@ -42,7 +42,8 @@ class AdvancedEventController extends FrontendController
             'program_ends_at' => ['required', 'date'],
             'primary_organizer_id' => ['required', 'uuid'],
             'location_institution_id' => ['nullable', 'uuid'],
-            'default_event_type' => ['required', Rule::in(array_column(EventType::cases(), 'value'))],
+            'default_event_category_ids' => ['required', 'array', 'min:1'],
+            'default_event_category_ids.*' => ['uuid', Rule::in(app(EventCategoryCatalog::class)->validTermIds((array) $request->input('default_event_category_ids', [])))],
             'default_event_format' => ['required', Rule::in(array_column(EventFormat::cases(), 'value'))],
             'visibility' => ['required', Rule::in(array_column(EventVisibility::cases(), 'value'))],
             'registration_required' => ['required', 'boolean'],

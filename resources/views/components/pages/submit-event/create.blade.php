@@ -15,7 +15,8 @@ use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventPrayerTime;
-use App\Enums\EventType;
+use App\Contracts\EventCategoryCatalog;
+use App\Contracts\EventCategoryPolicyResolver;
 use App\Enums\EventVisibility;
 use App\Enums\ReferenceType;
 use App\Enums\TagType;
@@ -459,24 +460,19 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
             Step::make(__('Maklumat Majlis'))
                 ->icon('heroicon-o-document-text')
                 ->schema([
-                    Select::make('event_type')
+                    Select::make('event_category_ids')
                         ->label(__('Jenis Majlis'))
                         ->required()
                         ->multiple()
                         ->closeOnSelect()
                         ->live()
                         ->afterStateUpdated(function (mixed $state, Set $set): void {
-                            if ($this->hasCommunityEventTypeSelection($state)) {
+                            if ($this->hasCommunityCategorySelection($state)) {
                                 $set('event_format', EventFormat::Physical->value);
                             }
                         })
                         ->options(function (): array {
-                            return collect(EventType::cases())
-                                ->mapToGroups(fn (EventType $type) => [
-                                    $type->getGroup() => [$type->value => $type->getLabel()],
-                                ])
-                                ->map(fn ($group) => $group->collapse())
-                                ->toArray();
+                            return app(EventCategoryCatalog::class)->options();
                         })
                         ->searchable(),
 
@@ -538,13 +534,10 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
                                 return;
                             }
 
-                            // Populate event type
-                            if ($existingEvent->event_type) {
-                                $set('event_type', $existingEvent->event_type->map(fn ($e) => $e->value)->toArray());
-                            }
-
                             // Package-native classifications (ADR-011): group EventTerm ids by taxonomy_code.
                             $termsByTaxonomy = $existingEvent->classifications->groupBy('taxonomy_code');
+
+                            $set('event_category_ids', $termsByTaxonomy->get('event_category', collect())->pluck('event_term_id')->filter()->values()->all());
 
                             if ($termsByTaxonomy->has(TagType::Domain->value)) {
                                 $set('domain_tags', $termsByTaxonomy->get(TagType::Domain->value)->pluck('event_term_id')->filter()->values()->all());
@@ -795,7 +788,7 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
                                 ->options(EventFormat::class)
                                 ->default(EventFormat::Physical)
                                 ->disableOptionWhen(
-                                    fn (string $value, Get $get): bool => $this->hasCommunityEventTypeSelection($get('event_type'))
+                                    fn (string $value, Get $get): bool => $this->hasCommunityCategorySelection($get('event_category_ids'))
                                     && $value !== EventFormat::Physical->value
                                 )
                                 ->inline(),
@@ -1362,13 +1355,13 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
                         ->schema([
                             Select::make('speakers')
                                 ->label(__('Pilih Penceramah'))
-                                ->required(fn (Get $get): bool => $this->eventTypesRequireSpeakers($get('event_type')))
+                                ->required(fn (Get $get): bool => $this->categoriesRequireSpeakers($get('event_category_ids')))
                                 ->multiple()
                                 ->closeOnSelect()
                                 ->searchable()
                                 ->preload()
                                 ->options(fn (): array => $this->availableSpeakerOptions())
-                                ->helperText(fn (Get $get): string => $this->eventTypesRequireSpeakers($get('event_type'))
+                                ->helperText(fn (Get $get): string => $this->categoriesRequireSpeakers($get('event_category_ids'))
                                     ? __('Sekurang-kurangnya seorang penceramah diperlukan untuk jenis majlis ini.')
                                     : __('Kosongkan jika majlis ini tidak mempunyai penceramah khusus.'))
                                 ->getOptionLabelUsing(fn (mixed $value): ?string => Speaker::query()->find($value)?->formatted_name)
@@ -1800,7 +1793,12 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
         $defaults = [
             'title' => $duplicateEvent->title,
             'description' => $this->duplicateEventDescription($duplicateEvent),
-            'event_type' => $this->normalizeEventTypeState($duplicateEvent->event_type),
+            'event_category_ids' => $duplicateEvent->classifications
+                ->where('taxonomy_code', 'event_category')
+                ->pluck('event_term_id')
+                ->filter()
+                ->values()
+                ->all(),
             'event_format' => $eventFormat,
             'visibility' => $visibility,
             'gender' => $gender,
@@ -1867,26 +1865,22 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
     /**
      * @return list<string>
      */
-    protected function normalizeEventTypeState(mixed $state): array
+    protected function normalizeEventCategoryState(mixed $state): array
     {
         if ($state instanceof Collection) {
             return $state
-                ->map(fn (EventType|string $eventType): string => $eventType instanceof EventType ? $eventType->value : (string) $eventType)
-                ->filter(fn (string $eventType): bool => $eventType !== '')
+                ->map(strval(...))
+                ->filter(fn (string $termId): bool => $termId !== '')
                 ->values()
                 ->all();
         }
 
         if (is_array($state)) {
             return collect($state)
-                ->map(fn (mixed $eventType): string => $eventType instanceof EventType ? $eventType->value : (string) $eventType)
-                ->filter(fn (string $eventType): bool => $eventType !== '')
+                ->map(strval(...))
+                ->filter(fn (string $termId): bool => $termId !== '')
                 ->values()
                 ->all();
-        }
-
-        if ($state instanceof EventType) {
-            return [$state->value];
         }
 
         if (is_string($state) && $state !== '') {
@@ -2233,50 +2227,34 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
         }
     }
 
-    protected function hasCommunityEventTypeSelection(mixed $eventTypes): bool
+    protected function hasCommunityCategorySelection(mixed $categoryIds): bool
     {
-        if ($eventTypes instanceof Collection) {
-            $eventTypes = $eventTypes->all();
+        if ($categoryIds instanceof Collection) {
+            $categoryIds = $categoryIds->all();
         }
 
-        if (! is_array($eventTypes)) {
-            $eventTypes = [$eventTypes];
+        if (! is_array($categoryIds)) {
+            $categoryIds = [$categoryIds];
         }
 
-        foreach ($eventTypes as $eventTypeValue) {
-            $eventType = $eventTypeValue instanceof EventType
-                ? $eventTypeValue
-                : EventType::tryFrom((string) $eventTypeValue);
-
-            if ($eventType?->isCommunity()) {
-                return true;
-            }
-        }
-
-        return false;
+        return app(EventCategoryPolicyResolver::class)->requiresPhysicalDelivery(
+            app(EventCategoryCatalog::class)->validateTermIds($categoryIds),
+        );
     }
 
-    protected function eventTypesRequireSpeakers(mixed $eventTypes): bool
+    protected function categoriesRequireSpeakers(mixed $categoryIds): bool
     {
-        if ($eventTypes instanceof Collection) {
-            $eventTypes = $eventTypes->all();
+        if ($categoryIds instanceof Collection) {
+            $categoryIds = $categoryIds->all();
         }
 
-        if (! is_array($eventTypes)) {
-            $eventTypes = [$eventTypes];
+        if (! is_array($categoryIds)) {
+            $categoryIds = [$categoryIds];
         }
 
-        foreach ($eventTypes as $eventTypeValue) {
-            $eventType = $eventTypeValue instanceof EventType
-                ? $eventTypeValue
-                : EventType::tryFrom((string) $eventTypeValue);
-
-            if ($eventType?->requiresSpeakerByDefault()) {
-                return true;
-            }
-        }
-
-        return false;
+        return app(EventCategoryPolicyResolver::class)->requiresSpeaker(
+            app(EventCategoryCatalog::class)->validateTermIds($categoryIds),
+        );
     }
 
     /**

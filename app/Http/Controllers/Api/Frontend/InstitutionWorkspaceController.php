@@ -17,7 +17,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use RuntimeException;
@@ -414,10 +413,9 @@ class InstitutionWorkspaceController extends FrontendController
      */
     private function institutionEventCountSubquery(bool $publicOnly = false): Builder
     {
-        $institutionIdExpression = $this->eventUuidMetadataSqlSelector('institution_id');
         $query = Event::query()
             ->selectRaw('count(*)')
-            ->whereRaw("{$institutionIdExpression} = institutions.id");
+            ->whereColumn('events.institution_id', 'institutions.id');
 
         if (! $publicOnly) {
             return $query;
@@ -495,28 +493,6 @@ class InstitutionWorkspaceController extends FrontendController
     private function countValue(Institution $institution, string $key): int
     {
         return (int) data_get($institution, $key, 0);
-    }
-
-    private function eventUuidMetadataSqlSelector(string $key): string
-    {
-        return match ($this->databaseDriver()) {
-            'pgsql' => "(events.metadata->>'{$key}')::uuid",
-            default => $this->eventMetadataSqlSelector($key),
-        };
-    }
-
-    private function eventMetadataSqlSelector(string $key): string
-    {
-        return match ($this->databaseDriver()) {
-            'pgsql' => "events.metadata->>'{$key}'",
-            'mysql', 'mariadb' => "json_unquote(json_extract(events.metadata, '$.\"{$key}\"'))",
-            default => "json_extract(events.metadata, '$.\"{$key}\"')",
-        };
-    }
-
-    private function databaseDriver(): string
-    {
-        return DB::connection()->getDriverName();
     }
 
     /**

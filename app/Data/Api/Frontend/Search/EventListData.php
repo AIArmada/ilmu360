@@ -4,18 +4,17 @@ namespace App\Data\Api\Frontend\Search;
 
 use AIArmada\Addressing\Models\Address;
 use App\Enums\EventFormat;
-use App\Enums\EventType;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Speaker;
 use App\Models\Venue;
 use App\Support\Location\AddressHierarchyFormatter;
+use App\Support\Events\EventCategoryPresenter;
 use App\Support\Timezone\UserDateTimeFormatter;
 use BackedEnum;
 use Carbon\CarbonInterface;
 use DateTimeInterface;
 use Filament\Support\Contracts\HasLabel;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Spatie\LaravelData\Data;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
@@ -23,7 +22,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 class EventListData extends Data
 {
     /**
-     * @param  list<string>  $event_type
+     * @param  list<array<string, mixed>>  $event_categories
      * @param  array<string, mixed>|null  $institution
      * @param  array<string, mixed>|null  $venue
      * @param  list<array<string, mixed>>  $speakers
@@ -43,8 +42,7 @@ class EventListData extends Data
         public string $visibility,
         public string $status,
         public string $status_label,
-        public array $event_type,
-        public string $event_type_label,
+        public array $event_categories,
         public string $event_format,
         public string $event_format_label,
         public ?string $reference_study_subtitle,
@@ -62,7 +60,7 @@ class EventListData extends Data
 
     public static function fromModel(Event $event): self
     {
-        $eventTypeValues = self::eventTypeValues($event);
+        $eventCategories = app(EventCategoryPresenter::class)->forEvent($event);
         $eventFormat = $event->delivery_mode;
         $eventFormatValue = self::enumValue($eventFormat);
         $status = $event->status;
@@ -85,8 +83,7 @@ class EventListData extends Data
             visibility: self::enumValue($event->visibility),
             status: $statusValue,
             status_label: $status instanceof HasLabel ? $status->getLabel() : Str::headline($statusValue),
-            event_type: $eventTypeValues,
-            event_type_label: self::eventTypeLabel($eventTypeValues),
+            event_categories: $eventCategories,
             event_format: $eventFormatValue,
             event_format_label: self::eventFormatLabel($eventFormatValue),
             reference_study_subtitle: $event->reference_study_subtitle,
@@ -108,44 +105,6 @@ class EventListData extends Data
                 ->values()
                 ->all(),
         );
-    }
-
-    /**
-     * @return list<string>
-     */
-    private static function eventTypeValues(Event $event): array
-    {
-        $eventType = $event->event_type;
-
-        if ($eventType instanceof Collection) {
-            return $eventType
-                ->map(fn (EventType $value): string => $value->value)
-                ->filter(fn (string $value): bool => $value !== '')
-                ->values()
-                ->all();
-        }
-
-        if (is_array($eventType)) {
-            return array_values(array_filter(array_map(strval(...), $eventType), static fn (string $value): bool => $value !== ''));
-        }
-
-        $value = self::enumValue($eventType);
-
-        return $value !== '' ? [$value] : [];
-    }
-
-    /**
-     * @param  list<string>  $eventTypeValues
-     */
-    private static function eventTypeLabel(array $eventTypeValues): string
-    {
-        $value = $eventTypeValues[0] ?? null;
-
-        if (! is_string($value) || $value === '') {
-            return __('Umum');
-        }
-
-        return EventType::tryFrom($value)?->getLabel() ?? __('Umum');
     }
 
     private static function eventFormatLabel(string $eventFormatValue): string

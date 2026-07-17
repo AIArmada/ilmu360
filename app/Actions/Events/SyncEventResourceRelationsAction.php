@@ -71,13 +71,17 @@ class SyncEventResourceRelationsAction
 
         $event->syncLanguages($languageIds);
 
-        app(SyncEventClassificationsAction::class)->handle($event, [
+        $classificationState = [
             'domain_tags' => is_array($state['domain_tags'] ?? null) ? $state['domain_tags'] : [],
             'discipline_tags' => is_array($state['discipline_tags'] ?? null) ? $state['discipline_tags'] : [],
             'source_tags' => is_array($state['source_tags'] ?? null) ? $state['source_tags'] : [],
             'issue_tags' => is_array($state['issue_tags'] ?? null) ? $state['issue_tags'] : [],
             'taxonomy_term_ids' => is_array($state['taxonomy_term_ids'] ?? null) ? $state['taxonomy_term_ids'] : [],
-        ]);
+        ];
+        if (array_key_exists('event_category_ids', $state)) {
+            $classificationState['event_category_ids'] = is_array($state['event_category_ids']) ? $state['event_category_ids'] : [];
+        }
+        app(SyncEventClassificationsAction::class)->handle($event, $classificationState);
 
         if ($syncKeyPeople) {
             $this->eventKeyPersonSyncService->sync(

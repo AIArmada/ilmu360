@@ -10,7 +10,8 @@ use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventPrayerTime;
-use App\Enums\EventType;
+use App\Contracts\EventCategoryCatalog;
+use App\Contracts\EventCategoryPolicyResolver;
 use App\Enums\EventVisibility;
 use App\Enums\ReferenceType;
 use App\Enums\TagType;
@@ -55,9 +56,9 @@ class EventContributionFormSchema
                         ->label(__('Tajuk Majlis'))
                         ->required()
                         ->maxLength(255),
-                    Select::make('event_type')
+                    Select::make('event_category_ids')
                         ->label(__('Jenis Majlis'))
-                        ->options(self::eventTypeOptions())
+                        ->options(self::eventCategoryOptions())
                         ->multiple()
                         ->closeOnSelect()
                         ->searchable()
@@ -542,14 +543,14 @@ class EventContributionFormSchema
                             ->get()
                             ->mapWithKeys(fn (Speaker $speaker): array => [(string) $speaker->id => $speaker->formatted_name])
                             ->all())
-                        ->required(fn (Get $get): bool => self::requiresSpeakersForEventTypes($get('event_type')))
+                        ->required(fn (Get $get): bool => self::requiresSpeakersForCategories($get('event_category_ids')))
                         ->multiple()
                         ->closeOnSelect()
                         ->searchable()
                         ->preload()
                         ->createOptionForm(SpeakerFormSchema::createOptionForm())
                         ->createOptionUsing(fn (array $data, ?Schema $schema = null): string => SpeakerFormSchema::createOptionUsing($data, $schema))
-                        ->helperText(fn (Get $get): string => self::requiresSpeakersForEventTypes($get('event_type'))
+                        ->helperText(fn (Get $get): string => self::requiresSpeakersForCategories($get('event_category_ids'))
                             ? __('Sekurang-kurangnya seorang penceramah diperlukan untuk jenis majlis ini.')
                             : __('Kosongkan jika majlis ini tidak mempunyai penceramah khusus.')),
                     Repeater::make('other_key_people')
@@ -653,16 +654,11 @@ class EventContributionFormSchema
     }
 
     /**
-     * @return array<string, array<string, string>>
+     * @return array<string, string>
      */
-    private static function eventTypeOptions(): array
+    private static function eventCategoryOptions(): array
     {
-        return collect(EventType::cases())
-            ->mapToGroups(fn (EventType $type): array => [
-                $type->getGroup() => [$type->value => $type->getLabel()],
-            ])
-            ->map(fn ($group): array => $group->collapse()->toArray())
-            ->toArray();
+        return app(EventCategoryCatalog::class)->options();
     }
 
     /**
@@ -741,27 +737,19 @@ class EventContributionFormSchema
             ->all();
     }
 
-    private static function requiresSpeakersForEventTypes(mixed $eventTypes): bool
+    private static function requiresSpeakersForCategories(mixed $categoryIds): bool
     {
-        if ($eventTypes instanceof Collection) {
-            $eventTypes = $eventTypes->all();
+        if ($categoryIds instanceof Collection) {
+            $categoryIds = $categoryIds->all();
         }
 
-        if (! is_array($eventTypes)) {
-            $eventTypes = [$eventTypes];
+        if (! is_array($categoryIds)) {
+            $categoryIds = [$categoryIds];
         }
 
-        foreach ($eventTypes as $eventTypeValue) {
-            $eventType = $eventTypeValue instanceof EventType
-                ? $eventTypeValue
-                : EventType::tryFrom((string) $eventTypeValue);
-
-            if ($eventType?->requiresSpeakerByDefault()) {
-                return true;
-            }
-        }
-
-        return false;
+        return app(EventCategoryPolicyResolver::class)->requiresSpeaker(
+            app(EventCategoryCatalog::class)->validateTermIds($categoryIds),
+        );
     }
 
     /**

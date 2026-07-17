@@ -7,7 +7,7 @@ use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventPrayerTime;
-use App\Enums\EventType;
+use App\Contracts\EventCategoryCatalog;
 use App\Enums\EventVisibility;
 use App\Enums\Gender;
 use App\Enums\Honorific;
@@ -358,7 +358,7 @@ class FrontendFormContractService
                 $this->field('description', 'rich_text', required: false),
                 $this->field('event_id', 'uuid', required: false),
                 $this->field('scoped_institution_id', 'uuid', required: false),
-                $this->field('event_type', 'array<string>', required: true, allowedValues: $this->enumValues(EventType::class)),
+                $this->field('event_category_ids', 'array<uuid>', required: true, allowedValues: array_keys(app(EventCategoryCatalog::class)->options())),
                 $this->field('event_date', 'date', required: true),
                 $this->field('prayer_time', 'string', required: true, allowedValues: $this->enumValues(EventPrayerTime::class)),
                 $this->field('custom_time', 'time', required: false),
@@ -716,7 +716,7 @@ class FrontendFormContractService
                 $this->field('program_ends_at', 'datetime', required: true),
                 $this->field('primary_organizer_id', 'uuid', required: true),
                 $this->field('location_institution_id', 'uuid', required: false),
-                $this->field('default_event_type', 'string', required: true, allowedValues: $this->enumValues(EventType::class)),
+                $this->field('default_event_category_ids', 'array<uuid>', required: true, allowedValues: array_keys(app(EventCategoryCatalog::class)->options())),
                 $this->field('default_event_format', 'string', required: true, allowedValues: $this->enumValues(EventFormat::class)),
                 $this->field('visibility', 'string', required: true, allowedValues: $this->enumValues(EventVisibility::class)),
                 $this->field('registration_required', 'boolean', required: true),

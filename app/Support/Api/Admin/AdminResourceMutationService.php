@@ -31,7 +31,7 @@ use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventPrayerTime;
-use App\Enums\EventType;
+use App\Contracts\EventCategoryCatalog;
 use App\Enums\EventVisibility;
 use App\Enums\Gender;
 use App\Enums\Honorific;
@@ -1624,13 +1624,13 @@ class AdminResourceMutationService
                 safeClientStrategy: 'omit_field_to_preserve_or_send_full_relation_ids',
                 omitted: 'preserve_existing_collection_via_server_state_merge',
             )),
-            $this->field('event_type', 'array<string>', required: ! $updating, allowedValues: $this->enumValues(EventType::class), meta: [
+            $this->field('event_category_ids', 'array<uuid>', required: ! $updating, allowedValues: array_keys(app(EventCategoryCatalog::class)->options()), meta: [
                 'collection_semantics' => $this->replaceCollectionSemantics(
                     explicitNull: 'invalid_type',
                     emptyArray: 'invalid_minimum_size',
                     itemIdsPreserved: null,
                     ordering: null,
-                    safeClientStrategy: 'omit_field_to_preserve_or_send_full_event_type_array',
+                    safeClientStrategy: 'omit_field_to_preserve_or_send_full_event_category_ids_array',
                     omitted: 'preserve_existing_collection_via_server_state_merge',
                 ),
             ]),
@@ -2247,8 +2247,8 @@ class AdminResourceMutationService
             'is_muslim_only' => ['sometimes', 'boolean'],
             'languages' => ['nullable', 'array'],
             'languages.*' => ['integer', 'exists:languages,id'],
-            'event_type' => [$required, 'array', 'min:1'],
-            'event_type.*' => [Rule::enum(EventType::class)],
+            'event_category_ids' => [$required, 'array', 'min:1'],
+            'event_category_ids.*' => ['uuid', Rule::in(array_keys(app(EventCategoryCatalog::class)->options()))],
             'domain_tags' => ['nullable', 'array'],
             'domain_tags.*' => $this->eventTermRules(TagType::Domain),
             'discipline_tags' => ['nullable', 'array'],

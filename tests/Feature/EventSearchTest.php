@@ -10,7 +10,6 @@ use AIArmada\Events\Models\EventTerm;
 use App\Enums\EventFormat;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventPrayerTime;
-use App\Enums\EventType;
 use App\Enums\PrayerReference;
 use App\Enums\TimingMode;
 use App\Livewire\Pages\Events\AdvancedFiltersPanel;
@@ -1623,10 +1622,10 @@ describe('Event Search Filters', function () {
             ->assertDontSee('Federal Territory Subdistrict Non Match');
     });
 
-    it('filters events by event type', function () {
+    it('filters events by event category', function () {
         createVisibleEventForSearch([
             'title' => 'Kuliah Event',
-            'event_type' => [EventType::KuliahCeramah],
+            'event_category_ids' => [eventCategoryId('kuliah_ceramah')],
             'status' => 'approved',
             'visibility' => 'public',
             'published_at' => now(),
@@ -1635,14 +1634,14 @@ describe('Event Search Filters', function () {
 
         createVisibleEventForSearch([
             'title' => 'Forum Event',
-            'event_type' => [EventType::Forum],
+            'event_category_ids' => [eventCategoryId('forum')],
             'status' => 'approved',
             'visibility' => 'public',
             'published_at' => now(),
             'starts_at' => now()->addDays(2),
         ]);
 
-        $response = $this->get(eventsIndexUrl('event_type=forum'));
+        $response = $this->get(eventsIndexUrl('event_category_ids[]='.eventCategoryId('forum')));
 
         $response->assertOk()
             ->assertSee('Forum Event')
@@ -1975,7 +1974,7 @@ describe('Event Search Filters', function () {
                 'visibility' => 'public',
                 'published_at' => now(),
                 'starts_at' => now()->addDays(1),
-                'event_type' => [EventType::KuliahCeramah],
+                'event_category_ids' => [eventCategoryId('kuliah_ceramah')],
             ]);
 
         $events = app(EventSearchService::class)->search(

@@ -14,7 +14,7 @@ class SearchAdminEventsRequest extends FormRequest
      */
     private const array ARRAY_FILTER_KEYS = [
         'language_codes',
-        'event_type',
+        'event_category_ids',
         'age_group',
         'event_format',
         'speaker_ids',

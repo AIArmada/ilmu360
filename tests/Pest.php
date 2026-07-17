@@ -363,6 +363,29 @@ function submitEventTerm(string $taxonomyCode): EventTerm
     ]);
 }
 
+function eventCategoryId(string $code): string
+{
+    $taxonomy = EventTaxonomy::query()->firstOrCreate(
+        ['code' => 'event_category'],
+        ['name' => 'Event Category', 'is_hierarchical' => true, 'is_active' => true],
+    );
+
+    $term = EventTerm::query()
+        ->where('event_taxonomy_id', $taxonomy->getKey())
+        ->where('code', $code)
+        ->first();
+
+    if (! $term instanceof EventTerm) {
+        app(Database\Seeders\AIArmada\EventTaxonomySeeder::class)->run();
+        $term = EventTerm::query()
+            ->where('event_taxonomy_id', $taxonomy->getKey())
+            ->where('code', $code)
+            ->firstOrFail();
+    }
+
+    return (string) $term->getKey();
+}
+
 function ensureTestAddressCountry(
     string $iso2,
     string $name,

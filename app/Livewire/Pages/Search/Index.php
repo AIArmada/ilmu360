@@ -14,7 +14,6 @@ use App\Support\Search\SpeakerSearchService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -239,33 +238,11 @@ class Index extends Component
     {
         return Event::query()
             ->selectRaw('count(*)')
-            ->whereRaw("{$this->eventInstitutionIdSelector()} = institutions.id")
+            ->whereColumn('events.institution_id', 'institutions.id')
             ->whereNotNull('events.published_at')
             ->whereIn('events.status', Event::PUBLIC_STATUSES)
             ->where('events.visibility', EventVisibility::Public)
             ->where('events.starts_at', '>=', now());
-    }
-
-    private function eventInstitutionIdSelector(): string
-    {
-        return match ($this->databaseDriver()) {
-            'pgsql' => "(events.metadata->>'institution_id')::uuid",
-            default => $this->eventMetadataSqlSelector('institution_id'),
-        };
-    }
-
-    private function eventMetadataSqlSelector(string $key): string
-    {
-        return match ($this->databaseDriver()) {
-            'pgsql' => "events.metadata->>'{$key}'",
-            'mysql', 'mariadb' => "json_unquote(json_extract(events.metadata, '$.\"{$key}\"'))",
-            default => "json_extract(events.metadata, '$.\"{$key}\"')",
-        };
-    }
-
-    private function databaseDriver(): string
-    {
-        return DB::connection()->getDriverName();
     }
 
     /**

@@ -4,7 +4,6 @@
     use App\Enums\EventGenderRestriction;
     use App\Enums\EventKeyPersonRole;
     use App\Enums\EventPrayerTime;
-    use App\Enums\EventType;
     use App\Enums\EventVisibility;
     use App\Models\Institution;
     use App\Models\Reference;
@@ -103,13 +102,8 @@
         }
     };
 
-    $eventTypeValues = $asList($get('event_type'));
-    $eventTypeLabels = collect($eventTypeValues)
-        ->map(function (mixed $value): string {
-            $enum = EventType::tryFrom((string) $value);
-
-            return $enum?->getLabel() ?? (string) $value;
-        })
+    $eventTypeLabels = collect($asList($get('event_category_ids')))
+        ->map(fn (string $id): string => app(\App\Contracts\EventCategoryCatalog::class)->options()[$id] ?? $id)
         ->all();
 
     $prayerTimeState = $get('prayer_time');

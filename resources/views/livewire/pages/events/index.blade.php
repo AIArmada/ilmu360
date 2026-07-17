@@ -84,7 +84,7 @@
     $selectedImamIds = array_values(array_filter((array) $this->imam_ids));
     $selectedKhatibIds = array_values(array_filter((array) $this->khatib_ids));
     $selectedBilalIds = array_values(array_filter((array) $this->bilal_ids));
-    $selectedEventTypes = array_values(array_filter((array) $this->event_type));
+    $selectedEventCategories = array_values(array_filter((array) $this->event_category_ids));
     $selectedEventFormats = array_values(array_filter((array) $this->event_format));
     $selectedLanguageCodes = array_values(array_filter((array) $this->language_codes));
     $selectedPersonInChargeOptions = $this->speakerOptionLabels($selectedPersonInChargeIds);
@@ -92,9 +92,7 @@
         ->map(fn (string $speakerId): ?string => $selectedPersonInChargeOptions[$speakerId] ?? null)
         ->filter()
         ->values();
-    $eventTypeLabels = collect(\App\Enums\EventType::cases())
-        ->mapWithKeys(fn (\App\Enums\EventType $type): array => [$type->value => $type->getLabel()])
-        ->all();
+    $eventCategoryLabels = app(\App\Contracts\EventCategoryCatalog::class)->options();
     $eventFormatLabels = collect(\App\Enums\EventFormat::cases())
         ->mapWithKeys(fn (\App\Enums\EventFormat $format): array => [$format->value => $format->getLabel()])
         ->all();
@@ -125,7 +123,7 @@
         filled($institutionId),
         filled($venueId),
         count($selectedLanguageCodes) > 0,
-        count($selectedEventTypes) > 0,
+        count($selectedEventCategories) > 0,
         count($selectedEventFormats) > 0,
         filled($gender),
         count($selectedAgeGroups) > 0,
@@ -173,7 +171,7 @@
         'khatib_ids' => $selectedKhatibIds,
         'bilal_ids' => $selectedBilalIds,
         'language_codes' => $selectedLanguageCodes,
-        'event_type' => $selectedEventTypes,
+        'event_category_ids' => $selectedEventCategories,
         'event_format' => $selectedEventFormats,
         'gender' => $gender,
         'age_group' => $selectedAgeGroups,
@@ -622,10 +620,10 @@
                     <section class="py-4">
                         <h2 class="font-heading text-base font-bold text-emerald-950">{{ __('Jenis majlis') }}</h2>
                         <div class="mt-3 grid grid-cols-2 gap-2">
-                            @foreach(\App\Enums\EventType::cases() as $quickEventType)
-                                <label class="inline-flex min-h-10 cursor-pointer items-center justify-center rounded-xl border px-2 text-center text-xs font-semibold transition {{ in_array($quickEventType->value, $selectedEventTypes, true) ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-slate-200 bg-white text-slate-600 hover:border-emerald-200' }}">
-                                    <input type="checkbox" wire:model.live="filterData.event_type" value="{{ $quickEventType->value }}" class="sr-only">
-                                    {{ $quickEventType->getLabel() }}
+                            @foreach($eventCategoryLabels as $categoryId => $categoryLabel)
+                                <label class="inline-flex min-h-10 cursor-pointer items-center justify-center rounded-xl border px-2 text-center text-xs font-semibold transition {{ in_array($categoryId, $selectedEventCategories, true) ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-slate-200 bg-white text-slate-600 hover:border-emerald-200' }}">
+                                    <input type="checkbox" wire:model.live="filterData.event_category_ids" value="{{ $categoryId }}" class="sr-only">
+                                    {{ $categoryLabel }}
                                 </label>
                             @endforeach
                         </div>
@@ -749,8 +747,8 @@
                             @if($adminArea1Id)
                                 <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ $districts->firstWhere('id', $adminArea1Id)?->name ?? __('District') }}</span>
                             @endif
-                            @foreach($selectedEventTypes as $eventType)
-                                <span class="inline-flex items-center rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800">{{ $eventTypeLabels[$eventType] ?? str((string) $eventType)->replace('_', ' ')->headline() }}</span>
+                            @foreach($selectedEventCategories as $categoryId)
+                                <span class="inline-flex items-center rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800">{{ $eventCategoryLabels[$categoryId] ?? $categoryId }}</span>
                             @endforeach
                             @foreach($selectedEventFormats as $eventFormat)
                                 <span class="inline-flex items-center rounded-full border border-sky-100 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-800">{{ $eventFormatLabels[$eventFormat] ?? str((string) $eventFormat)->headline() }}</span>
@@ -897,13 +895,11 @@
                                         $coverMedia = $event->getFirstMedia('cover');
                                         $eventCardImageUrl = $coverMedia?->getAvailableUrl(['card', 'preview', 'thumb']) ?: $event->card_image_url;
                                         $eventChangeBadgeLabel = $event->public_change_badge_label;
-                                        $eventTypeValues = $event->event_type;
-                                        $firstEventType = $eventTypeValues instanceof \Illuminate\Support\Collection
-                                            ? $eventTypeValues->first()
-                                            : (is_array($eventTypeValues) ? ($eventTypeValues[0] ?? null) : $eventTypeValues);
-                                        $eventTypeLabel = $firstEventType instanceof \App\Enums\EventType
-                                            ? $firstEventType->getLabel()
-                                            : (\App\Enums\EventType::tryFrom((string) $firstEventType)?->getLabel() ?? __('Kuliah'));
+                                        $eventCategory = $event->classifications
+                                            ->where('taxonomy_code', 'event_category')
+                                            ->sortBy('sort_order')
+                                            ->first();
+                                        $eventCategoryLabel = $eventCategory?->term?->name ?? __('Event');
                                         $eventFormat = $event->event_format instanceof \App\Enums\EventFormat
                                             ? $event->event_format
                                             : \App\Enums\EventFormat::tryFrom((string) $event->event_format);
@@ -991,7 +987,7 @@
                                             <div class="min-w-0">
                                                 <div class="mb-2.5 flex flex-wrap items-center gap-2" data-testid="event-card-badge-row">
                                                     <span class="inline-flex items-center rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-800" data-testid="event-card-type-badge">
-                                                        {{ $eventTypeLabel }}
+                                                        {{ $eventCategoryLabel }}
                                                     </span>
                                                     <span class="inline-flex items-center rounded-full border border-amber-100 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-800" data-testid="event-card-date-badge">
                                                         {{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($event->starts_at, 'j M') }}

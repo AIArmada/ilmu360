@@ -18,7 +18,6 @@ use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventPrayerTime;
-use App\Enums\EventType;
 use App\Enums\EventVisibility;
 use App\Enums\RegistrationScope;
 use App\Models\ContributionRequest;
@@ -337,7 +336,7 @@ it('filters admin event records by explicit query parameters', function () {
         'status' => 'draft',
         'delivery_mode' => EventFormat::Online,
         'visibility' => EventVisibility::Public,
-        'event_type' => [EventType::KuliahCeramah->value],
+        'event_category_ids' => [eventCategoryId("kuliah_ceramah")],
     ]);
 
     $approvedPhysicalEvent = Event::factory()->create([
@@ -345,7 +344,7 @@ it('filters admin event records by explicit query parameters', function () {
         'status' => 'approved',
         'delivery_mode' => EventFormat::Physical,
         'visibility' => EventVisibility::Private,
-        'event_type' => [EventType::Forum->value],
+        'event_category_ids' => [eventCategoryId("forum")],
     ]);
 
     $cancelledHybridEvent = Event::factory()->create([
@@ -353,7 +352,7 @@ it('filters admin event records by explicit query parameters', function () {
         'status' => 'cancelled',
         'delivery_mode' => EventFormat::Hybrid,
         'visibility' => EventVisibility::Unlisted,
-        'event_type' => [EventType::Kenduri->value],
+        'event_category_ids' => [eventCategoryId("kenduri")],
     ]);
 
     Sanctum::actingAs($admin);
@@ -362,7 +361,7 @@ it('filters admin event records by explicit query parameters', function () {
         ->assertOk();
 
     expect(collect($metaResponse->json('data.resource.filters'))->pluck('key')->all())
-        ->toContain('status', 'visibility', 'event_format', 'event_type', 'timing_mode', 'prayer_reference');
+        ->toContain('status', 'visibility', 'event_format', 'event_category_ids', 'timing_mode', 'prayer_reference');
 
     $draftResponse = $this->getJson('/api/v1/admin/events?filter[status]=draft')
         ->assertOk();
@@ -396,7 +395,7 @@ it('filters admin event records by explicit query parameters', function () {
         ->and(collect($approvedResponse->json('data'))->pluck('route_key')->all())->not->toContain($draftOnlineEvent->getRouteKey())
         ->and(collect($approvedResponse->json('data'))->pluck('route_key')->all())->not->toContain($cancelledHybridEvent->getRouteKey());
 
-    $eventTypeResponse = $this->getJson('/api/v1/admin/events?filter[event_type]=kuliah_ceramah')
+    $eventTypeResponse = $this->getJson('/api/v1/admin/events?filter[event_category_ids]='.eventCategoryId('kuliah_ceramah'))
         ->assertOk();
 
     expect($eventTypeResponse->json('meta.pagination.total'))->toBe(1)
@@ -434,7 +433,7 @@ it('allows admin api event create payload to control initial workflow status', f
         'age_group' => [EventAgeGroup::AllAges->value],
         'children_allowed' => true,
         'is_muslim_only' => false,
-        'event_type' => [EventType::BacaanYasin->value],
+        'event_category_ids' => [eventCategoryId("bacaan_yasin")],
         'primary_organizer_id' => (string) $institution->getKey(),
         'institution_id' => (string) $institution->getKey(),
         'registration_required' => false,
@@ -3292,7 +3291,7 @@ it('surfaces event update semantics and sparse relation rules through the admin 
 
     expect(data_get($fields->get('title'), 'required'))->toBeFalse()
         ->and(data_get($fields->get('event_date'), 'required'))->toBeFalse()
-        ->and(data_get($fields->get('event_type'), 'collection_semantics.empty_array'))->toBe('invalid_minimum_size')
+        ->and(data_get($fields->get('event_category_ids'), 'collection_semantics.empty_array'))->toBe('invalid_minimum_size')
         ->and(data_get($fields->get('languages'), 'collection_semantics.submitted_array'))->toBe('replace_relation_sync')
         ->and(data_get($fields->get('references'), 'collection_semantics.explicit_null'))->toBe('clear_collection')
         ->and(data_get($fields->get('domain_tags'), 'taxonomy_code'))->toBe('domain')
@@ -3453,7 +3452,7 @@ it('rejects admin event writes that omit required speakers for speaker-led event
         'domain_tag' => $domainTag,
         'discipline_tag' => $disciplineTag,
     ], [
-        'event_type' => [EventType::KuliahCeramah->value],
+        'event_category_ids' => [eventCategoryId("kuliah_ceramah")],
         'speakers' => [],
     ]))->assertUnprocessable()
         ->assertJsonValidationErrors(['speakers']);
@@ -3644,7 +3643,7 @@ function adminApiEventPayload(array $fixtures, array $overrides = []): array
         'age_group' => [EventAgeGroup::AllAges->value],
         'children_allowed' => true,
         'is_muslim_only' => true,
-        'event_type' => [EventType::Other->value],
+        'event_category_ids' => [eventCategoryId("other")],
         'domain_tags' => [(string) $fixtures['domain_tag']->getKey()],
         'discipline_tags' => [(string) $fixtures['discipline_tag']->getKey()],
         'source_tags' => [],
