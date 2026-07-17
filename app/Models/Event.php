@@ -158,6 +158,20 @@ class Event extends PackageEvent implements AuditableContract
      */
     public const array ENGAGEABLE_STATUSES = ['approved', 'pending'];
 
+    public function isRegistrationAvailable(): bool
+    {
+        if (! in_array((string) $this->status, self::ENGAGEABLE_STATUSES, true)) {
+            return false;
+        }
+
+        if ($this->visibility === EventVisibility::Unlisted) {
+            return true;
+        }
+
+        return $this->visibility === EventVisibility::Public
+            && $this->published_at !== null;
+    }
+
     public $incrementing = false;
 
     protected $keyType = 'string';

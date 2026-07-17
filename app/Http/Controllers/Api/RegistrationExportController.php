@@ -93,14 +93,14 @@ class RegistrationExportController extends Controller
                     $registrantEmail = $registrant instanceof User ? $registrant->email : null;
 
                     fputcsv($handle, [
-                        $registration->id,
-                        $registration->resolvedName() ?? $registrantName,
-                        $registration->resolvedEmail() ?? $registrantEmail,
-                        $registration->resolvedPhone(),
-                        $registration->statusValue(),
-                        $registration->registered_at?->toIso8601String()
+                        $this->safeCsvCell($registration->id),
+                        $this->safeCsvCell($registration->resolvedName() ?? $registrantName),
+                        $this->safeCsvCell($registration->resolvedEmail() ?? $registrantEmail),
+                        $this->safeCsvCell($registration->resolvedPhone()),
+                        $this->safeCsvCell($registration->statusValue()),
+                        $this->safeCsvCell($registration->registered_at?->toIso8601String()
                             ?? $registration->created_at?->toIso8601String()
-                            ?? '',
+                            ?? ''),
                     ],
                         escape: '\\');
                 }
@@ -110,5 +110,14 @@ class RegistrationExportController extends Controller
         }, $filename, [
             'Content-Type' => 'text/csv',
         ]);
+    }
+
+    private function safeCsvCell(?string $value): string
+    {
+        $value ??= '';
+
+        return preg_match('/^\s*[=+\-@]/', $value) === 1
+            ? "'{$value}"
+            : $value;
     }
 }

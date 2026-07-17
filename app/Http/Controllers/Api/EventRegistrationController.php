@@ -22,6 +22,8 @@ class EventRegistrationController extends Controller
     )]
     public function store(RegisterEventRequest $request, Event $event, RegisterForFreeAction $registerForFree): JsonResponse
     {
+        abort_unless($event->isRegistrationAvailable(), 404);
+
         $validated = $request->validated();
 
         $user = $request->user();

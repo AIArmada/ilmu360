@@ -101,6 +101,20 @@ it('allows registration for unlisted events when registration is enabled', funct
         ->assertJsonPath('data.event_id', $event->id);
 });
 
+it('rejects registration for private and draft events', function () {
+    foreach ([
+        ['visibility' => EventVisibility::Private, 'status' => 'approved', 'published_at' => now()],
+        ['visibility' => EventVisibility::Public, 'status' => 'draft', 'published_at' => null],
+    ] as $attributes) {
+        $event = Event::factory()->create($attributes);
+
+        $this->postJson(route('api.events.registrations.store', $event), [
+            'name' => 'Blocked Registrant',
+            'email' => 'blocked@example.test',
+        ])->assertNotFound();
+    }
+});
+
 it('returns current user event state for approved unlisted events', function () {
     $user = User::factory()->create();
     $event = registrationReadyEvent([

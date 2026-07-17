@@ -18,6 +18,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use RuntimeException;
 
@@ -152,7 +153,7 @@ class InstitutionWorkspaceController extends FrontendController
 
         $validated = $request->validate([
             'email' => ['required', 'email'],
-            'role_id' => ['required', 'string'],
+            'role_id' => $this->institutionMemberRoleRules(),
         ]);
 
         $member = User::query()
@@ -165,7 +166,7 @@ class InstitutionWorkspaceController extends FrontendController
             ]);
         }
 
-        $addMemberAction->handle($institution, $member, MemberRole::tryFrom((string) $validated['role_id']) ?? MemberRole::Editor);
+        $addMemberAction->handle($institution, $member, MemberRole::from((string) $validated['role_id']));
 
         return response()->json([
             'data' => [
@@ -206,10 +207,10 @@ class InstitutionWorkspaceController extends FrontendController
         }
 
         $validated = $request->validate([
-            'role_id' => ['required', 'string'],
+            'role_id' => $this->institutionMemberRoleRules(),
         ]);
 
-        $changeMemberRoleAction->handle($institution, $member, MemberRole::tryFrom((string) $validated['role_id']) ?? MemberRole::Editor);
+        $changeMemberRoleAction->handle($institution, $member, MemberRole::from((string) $validated['role_id']));
 
         return response()->json([
             'data' => [
@@ -456,8 +457,25 @@ class InstitutionWorkspaceController extends FrontendController
     private function institutionRoleOptions(): array
     {
         return collect(MemberRole::cases())
+            ->reject(fn (MemberRole $role): bool => $role === MemberRole::Owner)
             ->mapWithKeys(fn (MemberRole $r): array => [$r->value => $r->label()])
             ->all();
+    }
+
+    /**
+     * @return list<string|Rule>
+     */
+    private function institutionMemberRoleRules(): array
+    {
+        return [
+            'required',
+            'string',
+            Rule::in([
+                MemberRole::Admin->value,
+                MemberRole::Editor->value,
+                MemberRole::Viewer->value,
+            ]),
+        ];
     }
 
     /**

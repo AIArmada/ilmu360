@@ -2711,6 +2711,27 @@ it('enforces institution workspace member management permissions', function () {
     expect($institution->members()->whereKey($newMember->getKey())->exists())->toBeTrue();
 });
 
+it('rejects invalid and protected institution member roles', function () {
+    $institution = Institution::factory()->create();
+    $admin = User::factory()->create();
+    $newMember = User::factory()->create();
+
+    addTestMember($institution, $admin, 'admin');
+    Sanctum::actingAs($admin);
+
+    $route = route('api.client.institution-workspace.members.store', ['institutionId' => $institution->getKey()]);
+
+    $this->postJson($route, [
+        'email' => $newMember->email,
+        'role_id' => 'not-a-role',
+    ])->assertUnprocessable()->assertJsonValidationErrors(['role_id']);
+
+    $this->postJson($route, [
+        'email' => $newMember->email,
+        'role_id' => 'owner',
+    ])->assertUnprocessable()->assertJsonValidationErrors(['role_id']);
+});
+
 it('forbids institution member management over bearer tokens for viewers even with token abilities', function () {
     $institution = Institution::factory()->create();
     $viewer = User::factory()->create();

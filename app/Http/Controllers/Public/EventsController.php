@@ -50,6 +50,8 @@ class EventsController extends Controller
         Event $event,
         RegisterForFreeAction $registerForFree,
     ): RedirectResponse {
+        abort_unless($event->isRegistrationAvailable(), 404);
+
         $validated = $request->validated();
 
         /** @var User|null $user */

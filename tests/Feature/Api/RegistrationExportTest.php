@@ -66,3 +66,30 @@ test('registration export streams csv and writes audit metadata', function () {
         ->and($audit->auditable_id)->toBe($event->id)
         ->and((int) data_get($audit->new_values, 'count'))->toBe(2);
 });
+
+test('registration export neutralizes spreadsheet formulas in attendee values', function () {
+    $user = User::factory()->create();
+    $event = Event::factory()->create([
+        'status' => 'approved',
+        'visibility' => 'public',
+        'starts_at' => now()->addDays(7),
+    ]);
+
+    Registration::factory()
+        ->withPrimaryParticipant('=HYPERLINK("https://example.test")', 'attendee@example.com', '+60123456789')
+        ->create([
+            'event_id' => $event->id,
+            'status' => 'confirmed',
+        ]);
+
+    Sanctum::actingAs($user);
+
+    Gate::shouldReceive('denies')
+        ->once()
+        ->with('exportRegistrations', Mockery::type(Event::class))
+        ->andReturnFalse();
+
+    $csv = $this->get(route('api.registrations.export', $event))->streamedContent();
+
+    expect($csv)->toContain("\"'=HYPERLINK(\"\"https://example.test\"\")\"");
+});
