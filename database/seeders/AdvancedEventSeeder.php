@@ -39,18 +39,11 @@ class AdvancedEventSeeder extends Seeder
             ->pluck('id')
             ->all();
 
-        // Suppress moderation side-effects during seeding
-        Event::unsetEventDispatcher();
-
-        try {
-            $this->seedWeeklySeries($institution, $speakerIds);
-            $this->seedRamadanProgram($institution, $speakerIds);
-            $this->seedWeekendIntensive($institution, $speakerIds);
-            $this->seedMultiDayStandalone($institution, $speakerIds);
-            $this->seedStandaloneSpecialLecture($institution, $speakerIds);
-        } finally {
-            Event::setEventDispatcher(app('events'));
-        }
+        $this->seedWeeklySeries($institution, $speakerIds);
+        $this->seedRamadanProgram($institution, $speakerIds);
+        $this->seedWeekendIntensive($institution, $speakerIds);
+        $this->seedMultiDayStandalone($institution, $speakerIds);
+        $this->seedStandaloneSpecialLecture($institution, $speakerIds);
 
         $this->command->info('  [AdvancedEventSeeder] Seeded 5 event examples with package occurrences and sessions.');
     }
