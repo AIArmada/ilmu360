@@ -5,7 +5,6 @@ namespace App\View\Components;
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Events\Models\EventAccessPolicy;
 use App\Enums\EventChangeType;
-use App\Enums\ScheduleState;
 use App\Models\Event;
 use App\Models\EventChangeAnnouncement;
 use App\Models\Institution;
@@ -150,7 +149,7 @@ class EventJsonLd extends Component
             return 'https://schema.org/EventCancelled';
         }
 
-        if ($this->event->schedule_state === ScheduleState::Postponed) {
+        if ($this->event->primaryOccurrence && in_array((string) $this->event->primaryOccurrence->status, ['postponed', 'rescheduled'], true)) {
             return 'https://schema.org/EventPostponed';
         }
 
@@ -192,14 +191,14 @@ class EventJsonLd extends Component
             return 'https://schema.org/Discontinued';
         }
 
-        if ($event->schedule_state === ScheduleState::Postponed) {
+        if ($event->primaryOccurrence && in_array((string) $event->primaryOccurrence->status, ['postponed', 'rescheduled'], true)) {
             return 'https://schema.org/Discontinued';
         }
 
         if ($accessPolicy instanceof EventAccessPolicy
             && $accessPolicy->registration_required
             && $accessPolicy->capacity !== null
-            && $event->registrations_count >= $accessPolicy->capacity) {
+                && $event->registrations()->where('status', '!=', 'cancelled')->count() >= $accessPolicy->capacity) {
             return 'https://schema.org/SoldOut';
         }
 

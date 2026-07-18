@@ -14,9 +14,6 @@ new class extends Component
 
         return Event::active()
             ->whereBetween('starts_at', [$now, $now->copy()->addDays(7)])
-            ->orderByDesc('going_count')
-            ->orderByDesc('saves_count')
-            ->orderByDesc('views_count')
             ->orderBy('starts_at')
             ->with([
                 'references',

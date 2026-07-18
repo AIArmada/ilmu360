@@ -368,8 +368,8 @@ final readonly class AffiliatesShareTrackingAnalyticsService
             id: (string) $link->id,
             backend: 'affiliates',
             subjectType: (string) ($link->subject_type ?: 'page'),
-            subjectId: data_get($link->subject_metadata, 'subject_id'),
-            subjectKey: (string) ($link->subject_identifier ?: 'page:unknown'),
+            subjectId: $this->nullableString($link->subject_id),
+            subjectKey: (string) ($link->subject_key ?: 'page:unknown'),
             destinationUrl: (string) $link->destination_url,
             canonicalUrl: (string) $link->tracking_url,
             titleSnapshot: (string) ($link->subject_title_snapshot ?: config('app.name')),
@@ -447,10 +447,10 @@ final readonly class AffiliatesShareTrackingAnalyticsService
     {
         return $this->providersForBreakdown($outboundShares, $visits, $conversions, $attributions)
             ->map(function (string $provider) use ($outboundShares, $visits, $conversions, $attributions): array {
-                $providerOutbound = $outboundShares->filter(fn (AffiliateTouchpoint $touchpoint): bool => data_get($touchpoint->metadata, 'provider') === $provider);
-                $providerVisits = $visits->filter(fn (AffiliateTouchpoint $touchpoint): bool => data_get($touchpoint->metadata, 'share_provider') === $provider);
-                $providerConversions = $conversions->filter(fn (AffiliateConversion $conversion): bool => data_get($conversion->metadata, 'share_provider') === $provider);
-                $providerAttributions = $attributions->filter(fn (AffiliateAttribution $attribution): bool => data_get($attribution->metadata, 'share_provider') === $provider);
+                $providerOutbound = $outboundShares->filter(fn (AffiliateTouchpoint $touchpoint): bool => $touchpoint->channel === $provider);
+                $providerVisits = $visits->filter(fn (AffiliateTouchpoint $touchpoint): bool => $touchpoint->channel === $provider);
+                $providerConversions = $conversions->filter(fn (AffiliateConversion $conversion): bool => $conversion->channel === $provider);
+                $providerAttributions = $attributions->filter(fn (AffiliateAttribution $attribution): bool => $attribution->channel === $provider);
 
                 return [
                     'provider' => $provider,
@@ -488,10 +488,10 @@ final readonly class AffiliatesShareTrackingAnalyticsService
     private function providersForBreakdown(Collection $outboundShares, Collection $visits, Collection $conversions, Collection $attributions): Collection
     {
         return collect($this->shareTrackingService->supportedProviders())
-            ->merge($outboundShares->pluck('metadata.provider'))
-            ->merge($visits->pluck('metadata.share_provider'))
-            ->merge($conversions->pluck('metadata.share_provider'))
-            ->merge($attributions->pluck('metadata.share_provider'))
+            ->merge($outboundShares->pluck('channel'))
+            ->merge($visits->pluck('channel'))
+            ->merge($conversions->pluck('channel'))
+            ->merge($attributions->pluck('channel'))
             ->filter(fn (mixed $provider): bool => is_string($provider) && $provider !== '')
             ->unique()
             ->values();
@@ -504,7 +504,7 @@ final readonly class AffiliatesShareTrackingAnalyticsService
     private function uniqueVisitorsForProvider(Collection $visits, Collection $attributions): int
     {
         $visitVisitorKeys = $visits
-            ->pluck('metadata.visitor_key')
+            ->pluck('visitor_key')
             ->filter(fn (mixed $value): bool => is_string($value) && $value !== '')
             ->unique();
 
@@ -534,7 +534,7 @@ final readonly class AffiliatesShareTrackingAnalyticsService
     {
         return AffiliateTouchpoint::query()
             ->where('affiliate_id', $affiliate->id)
-            ->where('metadata->event_type', 'outbound_share');
+            ->where('touchpoint_type', 'outbound_share');
     }
 
     /**
@@ -544,7 +544,7 @@ final readonly class AffiliatesShareTrackingAnalyticsService
     {
         return AffiliateTouchpoint::query()
             ->where('affiliate_id', $affiliate->id)
-            ->where('metadata->event_type', 'visit');
+            ->where('touchpoint_type', 'visit');
     }
 
     /**
@@ -562,7 +562,7 @@ final readonly class AffiliatesShareTrackingAnalyticsService
     {
         return AffiliateAttribution::query()
             ->where('affiliate_id', $affiliate->id)
-            ->where('metadata->tracking_mode', 'landing');
+            ->where('attribution_type', 'landing');
     }
 
     /**
@@ -571,8 +571,8 @@ final readonly class AffiliatesShareTrackingAnalyticsService
     private function outboundSharesQueryForLink(string $linkId): Builder
     {
         return AffiliateTouchpoint::query()
-            ->where('metadata->event_type', 'outbound_share')
-            ->where('metadata->link_id', $linkId);
+            ->where('touchpoint_type', 'outbound_share')
+            ->where('affiliate_link_id', $linkId);
     }
 
     /**
@@ -581,8 +581,8 @@ final readonly class AffiliatesShareTrackingAnalyticsService
     private function visitTouchpointsQueryForLink(string $linkId): Builder
     {
         return AffiliateTouchpoint::query()
-            ->where('metadata->event_type', 'visit')
-            ->where('metadata->link_id', $linkId);
+            ->where('touchpoint_type', 'visit')
+            ->where('affiliate_link_id', $linkId);
     }
 
     /**
@@ -590,7 +590,7 @@ final readonly class AffiliatesShareTrackingAnalyticsService
      */
     private function conversionsQueryForLink(string $linkId): Builder
     {
-        return AffiliateConversion::query()->where('metadata->link_id', $linkId);
+        return AffiliateConversion::query()->where('affiliate_link_id', $linkId);
     }
 
     /**
@@ -599,8 +599,8 @@ final readonly class AffiliatesShareTrackingAnalyticsService
     private function landingAttributionsQueryForLink(string $linkId): Builder
     {
         return AffiliateAttribution::query()
-            ->where('metadata->tracking_mode', 'landing')
-            ->where('metadata->link_id', $linkId);
+            ->where('attribution_type', 'landing')
+            ->where('affiliate_link_id', $linkId);
     }
 
     private function mapOutcome(AffiliateConversion $conversion): ShareTrackingOutcomeData
@@ -608,16 +608,16 @@ final readonly class AffiliatesShareTrackingAnalyticsService
         return new ShareTrackingOutcomeData(
             id: (string) $conversion->id,
             backend: 'affiliates',
-            linkId: (string) data_get($conversion->metadata, 'link_id', ''),
+            linkId: $this->nullableString($conversion->affiliate_link_id) ?? '',
             attributionId: $conversion->affiliate_attribution_id,
-            sharerUserId: data_get($conversion->metadata, 'sharer_user_id'),
-            actorUserId: data_get($conversion->metadata, 'actor_user_id'),
+            sharerUserId: $conversion->sharer_user_id,
+            actorUserId: $conversion->actor_user_id,
             outcomeType: (string) ($conversion->conversion_type ?: 'unknown'),
-            subjectType: $this->nullableString($conversion->subject_type) ?? $this->nullableString(data_get($conversion->metadata, 'subject_type')),
-            subjectId: $this->nullableString(data_get($conversion->metadata, 'subject_id')) ?? $this->nullableString($conversion->subject_identifier),
-            subjectKey: $this->nullableString($conversion->subject_identifier) ?? $this->nullableString(data_get($conversion->metadata, 'subject_key')),
-            outcomeKey: (string) data_get($conversion->metadata, 'outcome_key', $conversion->external_reference),
-            linkTitleSnapshot: $this->nullableString(data_get($conversion->metadata, 'link_title_snapshot')) ?? $this->nullableString($conversion->subject_title_snapshot),
+            subjectType: $conversion->subject_type,
+            subjectId: $this->nullableString($conversion->subject_id) ?? $this->nullableString($conversion->subject_key),
+            subjectKey: $conversion->subject_key,
+            outcomeKey: $this->nullableString($conversion->external_reference) ?? '',
+            linkTitleSnapshot: $this->nullableString($conversion->subject_title_snapshot),
             occurredAt: $conversion->occurred_at,
             metadata: $conversion->metadata ?? [],
         );
@@ -628,14 +628,14 @@ final readonly class AffiliatesShareTrackingAnalyticsService
         return new ShareTrackingVisitData(
             id: (string) $touchpoint->id,
             backend: 'affiliates',
-            linkId: (string) data_get($touchpoint->metadata, 'link_id', ''),
+            linkId: $this->nullableString($touchpoint->affiliate_link_id) ?? '',
             attributionId: $touchpoint->affiliate_attribution_id,
-            visitorKey: data_get($touchpoint->metadata, 'visitor_key'),
-            visitedUrl: (string) data_get($touchpoint->metadata, 'visited_url', ''),
-            subjectType: $this->nullableString($touchpoint->subject_type) ?? $this->nullableString(data_get($touchpoint->metadata, 'subject_type')),
-            subjectId: $this->nullableString(data_get($touchpoint->metadata, 'subject_id')) ?? $this->nullableString($touchpoint->subject_identifier),
-            subjectKey: $this->nullableString($touchpoint->subject_identifier) ?? $this->nullableString(data_get($touchpoint->metadata, 'subject_key')),
-            visitKind: (string) data_get($touchpoint->metadata, 'visit_kind', 'navigated'),
+            visitorKey: $touchpoint->visitor_key,
+            visitedUrl: (string) ($touchpoint->url ?? ''),
+            subjectType: $touchpoint->subject_type,
+            subjectId: $this->nullableString($touchpoint->subject_id) ?? $this->nullableString($touchpoint->subject_key),
+            subjectKey: $touchpoint->subject_key,
+            visitKind: (string) ($touchpoint->interaction_type ?? 'navigated'),
             occurredAt: $touchpoint->touched_at,
             metadata: $touchpoint->metadata ?? [],
         );

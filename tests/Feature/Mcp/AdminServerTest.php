@@ -10,7 +10,6 @@ use App\Enums\ContributionRequestType;
 use App\Enums\ContributionSubjectType;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventChangeSeverity;
-use App\Enums\EventChangeStatus;
 use App\Enums\EventChangeType;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
@@ -665,7 +664,7 @@ it('surfaces public event change projections on admin event record detail throug
             'severity' => EventChangeSeverity::High,
             'message' => 'Sila rujuk majlis pengganti pertama.',
             'metadata' => [
-                'status' => EventChangeStatus::Published->value,
+                'status' => 'published',
                 'changed_fields' => [],
             ],
 
@@ -683,7 +682,7 @@ it('surfaces public event change projections on admin event record detail throug
             'severity' => EventChangeSeverity::High,
             'message' => 'Majlis pengganti pertama diganti pula.',
             'metadata' => [
-                'status' => EventChangeStatus::Published->value,
+                'status' => 'published',
                 'changed_fields' => [],
             ],
 
@@ -700,7 +699,7 @@ it('surfaces public event change projections on admin event record detail throug
             'severity' => EventChangeSeverity::Info,
             'message' => 'Nota terkini untuk pautan lama.',
             'metadata' => [
-                'status' => EventChangeStatus::Published->value,
+                'status' => 'published',
                 'changed_fields' => ['title'],
             ],
 
@@ -2569,7 +2568,7 @@ it('creates a tazkirah event with speaker_keys via admin-create-event', function
     $created->load(['keyPeople', 'references']);
 
     expect($created->keyPeople)->toHaveCount(1)
-        ->and((string) $created->keyPeople->first()?->speaker_id)->toBe((string) $speaker->getKey())
+        ->and((string) $created->keyPeople->first()?->involveable_id)->toBe((string) $speaker->getKey())
         ->and($created->references)->toHaveCount(1)
         ->and((string) $created->references->first()?->getKey())->toBe((string) $reference->getKey());
 });

@@ -114,6 +114,8 @@ class Reference extends PackageReference implements AuditableContract
     {
         return [
             'year' => 'integer',
+            'part_number' => 'integer',
+            'is_canonical' => 'boolean',
             'reference_parts' => 'array',
             'metadata' => 'array',
         ];
@@ -127,12 +129,6 @@ class Reference extends PackageReference implements AuditableContract
             return parent::setAttribute('year', $value === null || $value === '' ? null : (int) $value);
         }
 
-        if (in_array($key, ['part_type', 'part_number', 'part_label', 'is_canonical'], true)) {
-            $this->setMetadataValue($key, $value);
-
-            return $this;
-        }
-
         return parent::setAttribute($key, $value);
     }
 
@@ -142,10 +138,6 @@ class Reference extends PackageReference implements AuditableContract
         // Product field name → package column (single store).
         if ($key === 'publication_year') {
             return parent::getAttribute('year');
-        }
-
-        if (in_array($key, ['part_type', 'part_number', 'part_label', 'is_canonical'], true)) {
-            return $this->metadataValue($key);
         }
 
         return parent::getAttribute($key);
@@ -561,10 +553,6 @@ class Reference extends PackageReference implements AuditableContract
             return $this->normalizeStringValue($this->getAttribute('year'));
         }
 
-        if (in_array($key, ['part_type', 'part_number', 'part_label'], true)) {
-            return $this->normalizeStringValue($this->metadataValue($key));
-        }
-
         $attributes = $this->getAttributes();
 
         if (! array_key_exists($key, $attributes)) {
@@ -572,37 +560,6 @@ class Reference extends PackageReference implements AuditableContract
         }
 
         return $this->normalizeStringValue($attributes[$key]);
-    }
-
-    private function setMetadataValue(string $key, mixed $value): void
-    {
-        $metadata = array_key_exists('metadata', $this->attributes)
-            ? $this->metadata
-            : null;
-        $metadata = is_array($metadata) ? $metadata : [];
-        $metadata[$key] = $this->metadataSerializableValue($value);
-
-        parent::setAttribute('metadata', $metadata);
-    }
-
-    private function metadataValue(string $key): mixed
-    {
-        $metadata = $this->metadata;
-
-        if (! is_array($metadata) || ! array_key_exists($key, $metadata)) {
-            return null;
-        }
-
-        return $metadata[$key];
-    }
-
-    private function metadataSerializableValue(mixed $value): mixed
-    {
-        if ($value instanceof BackedEnum) {
-            return $value->value;
-        }
-
-        return $value;
     }
 
     private function normalizeStringValue(mixed $value): ?string

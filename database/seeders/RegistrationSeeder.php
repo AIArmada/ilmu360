@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use AIArmada\Contacting\Data\ContactMethodData;
 use App\Models\Event;
 use App\Models\Registration;
 use App\Models\User;
@@ -76,25 +77,41 @@ class RegistrationSeeder extends Seeder
                             'total_participants' => 1,
                         ]);
                         $registration->id = (string) Str::uuid();
-                        $registration
-                            ->stagePrimaryParticipant(
-                                $user['name'] ?? fake()->name(),
-                                $email,
-                                $user['phone'] ?? fake()->optional()->phoneNumber(),
-                            )
-                            ->save();
+                        $registration->save();
+
+                        $participant = $registration->participants()->create([
+                            'event_id' => $registration->event_id,
+                            'event_occurrence_id' => $registration->event_occurrence_id,
+                            'event_session_id' => $registration->event_session_id,
+                            'participant_type' => $registration->registrant_type,
+                            'participant_id' => $registration->registrant_id,
+                            'name' => $user['name'] ?? fake()->name(),
+                            'is_primary' => true,
+                            'is_purchaser' => true,
+                            'status' => 'active',
+                        ]);
+
+                        $participant->addContactMethod(new ContactMethodData(
+                            type: 'email',
+                            purpose: 'general',
+                            value: $email,
+                            isPrimary: true,
+                        ));
+
+                        $phone = $user['phone'] ?? null;
+
+                        if (is_string($phone) && $phone !== '') {
+                            $participant->addContactMethod(new ContactMethodData(
+                                type: 'phone',
+                                purpose: 'general',
+                                value: $phone,
+                                countryCode: config('contacting.defaults.country_code', 'MY'),
+                                isPrimary: true,
+                            ));
+                        }
                     }
                 }
 
-                // Bulk update registration counts
-                foreach ($eventCounts as $eventId => $count) {
-                    $event = Event::query()->find($eventId);
-
-                    if ($event instanceof Event) {
-                        $event->registrations_count = $count;
-                        $event->saveQuietly();
-                    }
-                }
             });
         } finally {
             Event::setEventDispatcher(app('events'));

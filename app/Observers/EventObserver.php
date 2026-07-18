@@ -2,24 +2,15 @@
 
 namespace App\Observers;
 
-use AIArmada\Addressing\Models\Address;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Actions\Events\GenerateEventSlugAction;
 use App\Actions\Slugs\SyncCanonicalSlugAction;
 use App\Actions\Slugs\SyncSlugRedirectAction;
-use App\Enums\EventPrayerTime;
-use App\Enums\PrayerOffset;
-use App\Enums\PrayerReference;
-use App\Enums\TimingMode;
 use App\Models\Event;
 use App\Observers\Concerns\SyncsCurrentAndPreviousValues;
-use App\Services\PrayerTimeService;
 use App\Support\Cache\PublicDirectoryCacheVersion;
 use App\Support\Cache\PublicListingsCache;
-use Carbon\Carbon;
-use Carbon\CarbonInterface;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
-use Illuminate\Support\Facades\Log;
 
 class EventObserver implements ShouldHandleEventsAfterCommit
 {
@@ -29,15 +20,12 @@ class EventObserver implements ShouldHandleEventsAfterCommit
         protected GenerateEventSlugAction $generateEventSlugAction,
         protected SyncCanonicalSlugAction $syncCanonicalSlugAction,
         protected SyncSlugRedirectAction $syncSlugRedirectAction,
-        protected PrayerTimeService $prayerTimeService,
         protected PublicDirectoryCacheVersion $publicDirectoryCacheVersion,
         protected PublicListingsCache $publicListingsCache
     ) {}
 
     public function creating(Event $event): void
     {
-        $this->calculatePrayerRelativeTime($event);
-
         if (blank($event->slug)) {
             $event->slug = $this->generateEventSlugAction->handle(
                 $event->title,
@@ -52,14 +40,7 @@ class EventObserver implements ShouldHandleEventsAfterCommit
     /**
      * Handle the Event "updating" event.
      */
-    public function updating(Event $event): void
-    {
-        // Only recalculate if timing-related fields changed
-        if ($event->isDirty('default_venue_id')
-            || ($event->isPrayerRelative() && $event->isDirty('metadata'))) {
-            $this->calculatePrayerRelativeTime($event);
-        }
-    }
+    public function updating(Event $event): void {}
 
     public function created(Event $event): void
     {
@@ -86,13 +67,7 @@ class EventObserver implements ShouldHandleEventsAfterCommit
             );
         }
 
-        $needsSlugSync = $event->wasChanged(['title', 'starts_at', 'timezone']);
-
-        if (! $needsSlugSync && $event->wasChanged('metadata')) {
-            $previousMeta = $this->normalizedMetadataPayload($event->getPrevious()['metadata'] ?? null);
-            $currentMeta = $this->normalizedMetadataPayload($event->metadata);
-            $needsSlugSync = ($previousMeta['starts_at'] ?? null) !== ($currentMeta['starts_at'] ?? null);
-        }
+        $needsSlugSync = $event->wasChanged(['title', 'timezone']);
 
         if ($needsSlugSync) {
             OwnerContext::withOwner(null, function () use ($event): void {
@@ -108,8 +83,7 @@ class EventObserver implements ShouldHandleEventsAfterCommit
 
     /**
      * Scout's model observer covers the app-owned fields. These package-backed
-     * fields are intentionally synced here because the app model exposes them
-     * through aliases or metadata instead of dirtying the product field name.
+     * fields are intentionally synced here when their canonical event columns change.
      */
     public function saved(Event $event): void
     {
@@ -140,133 +114,5 @@ class EventObserver implements ShouldHandleEventsAfterCommit
         $this->publicListingsCache->bustHomepageStats();
         $this->publicListingsCache->bustMajlisListing();
         $this->publicDirectoryCacheVersion->bumpForEvent($event);
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function normalizedMetadataPayload(mixed $metadata): array
-    {
-        $metadata = is_string($metadata) ? json_decode($metadata, true) : $metadata;
-
-        return is_array($metadata) ? $metadata : [];
-    }
-
-    /**
-     * Calculate and set the starts_at time for prayer-relative events.
-     */
-    protected function calculatePrayerRelativeTime(Event $event): void
-    {
-        $timingMode = $event->timing_mode instanceof TimingMode
-            ? $event->timing_mode
-            : TimingMode::tryFrom((string) $event->timing_mode);
-
-        if ($timingMode !== TimingMode::PrayerRelative) {
-            return;
-        }
-
-        $prayerReference = $event->prayer_reference instanceof PrayerReference
-            ? $event->prayer_reference
-            : PrayerReference::tryFrom((string) $event->prayer_reference);
-        $prayerOffset = $event->prayer_offset instanceof PrayerOffset
-            ? $event->prayer_offset
-            : PrayerOffset::tryFrom((string) $event->prayer_offset);
-
-        if (! $prayerReference instanceof PrayerReference || ! $prayerOffset instanceof PrayerOffset) {
-            Log::warning('Prayer-relative event missing prayer_reference or prayer_offset', [
-                'event_id' => $event->id,
-            ]);
-
-            return;
-        }
-
-        // Get coordinates for prayer time calculation
-        $coords = $this->getCoordinates($event);
-
-        if ($coords === null) {
-            Log::warning('Cannot calculate prayer time: no coordinates available', [
-                'event_id' => $event->id,
-            ]);
-
-            return;
-        }
-
-        // Determine the event date in event timezone from the current starts_at payload first, then fallback to now.
-        $eventTimezone = $event->timezone ?? 'Asia/Kuala_Lumpur';
-        $startsAt = $event->starts_at;
-        $rawStartsAt = $event->getAttributes()['starts_at'] ?? null;
-
-        if ($startsAt instanceof \DateTimeInterface) {
-            $eventDate = Carbon::instance($startsAt)->setTimezone($eventTimezone);
-        } elseif (is_string($startsAt) && trim($startsAt) !== '') {
-            $eventDate = Carbon::parse($startsAt, $eventTimezone);
-        } elseif (is_string($rawStartsAt) && trim($rawStartsAt) !== '') {
-            $eventDate = Carbon::parse($rawStartsAt, $eventTimezone);
-        } else {
-            $eventDate = Carbon::now($eventTimezone);
-        }
-
-        // Calculate the actual start time
-        $calculatedTime = $this->prayerTimeService->calculateStartTime(
-            $eventDate,
-            $prayerReference,
-            $prayerOffset,
-            $coords['lat'],
-            $coords['lng'],
-            $eventTimezone
-        );
-
-        if ($calculatedTime instanceof CarbonInterface) {
-            // Persist starts_at in UTC for storage consistency.
-            $event->starts_at = \Illuminate\Support\Carbon::instance($calculatedTime)->utc();
-
-            // Update display text if not already set
-            if (empty($event->prayer_display_text)) {
-                $event->prayer_display_text = EventPrayerTime::fromPrayerTiming($prayerReference, $prayerOffset)?->getLabel()
-                    ?? $prayerOffset->displayText($prayerReference);
-            }
-
-            Log::info('Calculated prayer-relative start time', [
-                'event_id' => $event->id,
-                'prayer' => $prayerReference->value,
-                'offset' => $prayerOffset->value,
-                'calculated_time' => $calculatedTime->toIso8601String(),
-            ]);
-        } else {
-            Log::warning('Failed to calculate prayer-relative start time', [
-                'event_id' => $event->id,
-                'prayer' => $prayerReference->value,
-            ]);
-        }
-    }
-
-    /**
-     * Get coordinates for prayer time calculation.
-     *
-     * @return array{lat: float, lng: float}|null
-     */
-    protected function getCoordinates(Event $event): ?array
-    {
-        // Load venue if not loaded (with package addresses)
-        if ($event->default_venue_id && ! $event->relationLoaded('venue')) {
-            $event->load('venue.addresses');
-        }
-
-        $venueAddress = $event->venue?->primaryAddress();
-
-        if ($venueAddress instanceof Address
-            && $venueAddress->latitude !== null
-            && $venueAddress->longitude !== null) {
-            return [
-                'lat' => (float) $venueAddress->latitude,
-                'lng' => (float) $venueAddress->longitude,
-            ];
-        }
-
-        // Default to Kuala Lumpur coordinates if nothing else available
-        return [
-            'lat' => 3.1390,
-            'lng' => 101.6869,
-        ];
     }
 }

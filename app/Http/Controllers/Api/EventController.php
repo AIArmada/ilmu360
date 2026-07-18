@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use AIArmada\Engagement\Models\Bookmark;
+use AIArmada\Engagement\Models\Response;
 use App\Actions\Events\ResolveEventCheckInStateAction;
 use App\Data\Api\Event\EventMeData;
 use App\Data\Api\Event\EventPayloadData;
@@ -285,7 +286,7 @@ class EventController extends Controller
                         ->where('role_code', EventKeyPersonRole::PersonInCharge->value)
                         ->where(function (Builder $personInChargeQuery) use ($operator, $searchTerm): void {
                             $personInChargeQuery
-                                ->where('metadata->name', $operator, "%{$searchTerm}%")
+                                ->where('event_involvements.display_name', $operator, "%{$searchTerm}%")
                                 ->orWhereHas('speaker', function (Builder $speakerQuery) use ($operator, $searchTerm): void {
                                     $speakerQuery
                                         ->where('speakers.name', $operator, "%{$searchTerm}%")
@@ -401,8 +402,8 @@ class EventController extends Controller
                 $operator = $this->databaseLikeOperator();
 
                 $query
-                    ->where('timing_mode', 'prayer_relative')
                     ->whereHas('timeExpressions', function (Builder $prayerQuery) use ($normalized, $operator): void {
+                        $prayerQuery->where('time_mode', 'prayer_relative');
                         $prayerQuery->where('anchor_type', 'prayer');
 
                         $prayerQuery->where(function (Builder $inner) use ($normalized, $operator): void {
@@ -442,7 +443,6 @@ class EventController extends Controller
             'ends_at',
             'created_at',
             'updated_at',
-            'views_count',
         ];
 
         $events = QueryBuilder::for(Event::query()->with([
@@ -562,14 +562,19 @@ class EventController extends Controller
             ->where('attendee_id', $user->getKey())
             ->exists();
 
-        $savesCount = (int) ($event->saves_count ?? 0);
+        $savesCount = Bookmark::forBookmarkable($event)->active()->count();
 
         $isSaved = Bookmark::forBookmarker($user)
             ->forBookmarkable($event)
             ->active()
             ->exists();
 
-        $goingCount = (int) ($event->going_count ?? 0);
+        $goingCount = Response::query()
+            ->where('respondable_type', $event->getMorphClass())
+            ->where('respondable_id', $event->getKey())
+            ->where('response_type', 'going')
+            ->active()
+            ->count();
 
         $isGoing = $user->goingEvents()
             ->whereKey($event->getKey())
@@ -823,8 +828,8 @@ class EventController extends Controller
             $dhuhaQuery
                 ->where(function (Builder $relativeQuery) use ($operator): void {
                     $relativeQuery
-                        ->where('timing_mode', TimingMode::PrayerRelative->value)
                         ->whereHas('timeExpressions', function (Builder $labelQuery) use ($operator): void {
+                            $labelQuery->where('time_mode', TimingMode::PrayerRelative->value);
                             $labelQuery->where('anchor_type', 'prayer');
 
                             $labelQuery->where(function (Builder $inner) use ($operator): void {
@@ -852,7 +857,7 @@ class EventController extends Controller
                 })
                 ->orWhere(function (Builder $absoluteQuery) use ($startsAtUserTimeSql): void {
                     $absoluteQuery
-                        ->where('timing_mode', TimingMode::Absolute->value)
+                        ->whereDoesntHave('timeExpressions', fn (Builder $timeQuery) => $timeQuery->where('time_mode', TimingMode::PrayerRelative->value))
                         ->whereRaw("{$startsAtUserTimeSql} >= ?", ['07:30'])
                         ->whereRaw("{$startsAtUserTimeSql} < ?", ['11:30']);
                 });

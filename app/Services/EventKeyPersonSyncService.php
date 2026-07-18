@@ -16,7 +16,7 @@ class EventKeyPersonSyncService
 
     /**
      * @param  list<string>  $speakerIds
-     * @param  list<array<string, mixed>>  $otherKeyPeople
+     * @param  list<array<string, mixed>>  $otherKeyPeople  Canonical key-person rows.
      */
     public function sync(Event $event, array $speakerIds = [], array $otherKeyPeople = []): void
     {
@@ -41,13 +41,13 @@ class EventKeyPersonSyncService
             EventKeyPerson::query()->forceCreate($base + [
                 'id' => (string) Str::uuid(),
                 'event_id' => $event->id,
-                'involveable_type' => $keyPerson['speaker_id'] !== null ? 'speaker' : null,
-                'involveable_id' => $keyPerson['speaker_id'],
-                'role_code' => $keyPerson['role'],
+                'involveable_type' => $keyPerson['involveable_type'],
+                'involveable_id' => $keyPerson['involveable_id'],
+                'role_code' => $keyPerson['role_code'],
                 'sort_order' => $order++,
                 'visibility' => $keyPerson['visibility'],
                 'notes' => $keyPerson['notes'],
-                'metadata' => $keyPerson['name'] !== null ? ['name' => $keyPerson['name']] : null,
+                'display_name' => $keyPerson['display_name'],
             ]);
         }
 
@@ -69,39 +69,40 @@ class EventKeyPersonSyncService
 
     /**
      * @param  list<array<string, mixed>>  $keyPeople
-     * @return list<array{role: string, speaker_id: ?string, name: ?string, visibility: string, notes: ?string}>
+     * @return list<array{role_code: string, involveable_type: ?string, involveable_id: ?string, display_name: ?string, visibility: string, notes: ?string}>
      */
     protected function normalizeKeyPeople(array $keyPeople): array
     {
         return collect($keyPeople)
             ->map(function (mixed $keyPerson): ?array {
-                $role = $keyPerson['role'] ?? null;
+                $role = $keyPerson['role_code'] ?? null;
 
                 if (! is_string($role) || EventKeyPersonRole::tryFrom($role) === null || $role === EventKeyPersonRole::Speaker->value) {
                     return null;
                 }
 
-                $speakerId = is_string($keyPerson['speaker_id'] ?? null) && $keyPerson['speaker_id'] !== ''
-                    ? $keyPerson['speaker_id']
+                $involveableId = is_string($keyPerson['involveable_id'] ?? null) && $keyPerson['involveable_id'] !== ''
+                    ? $keyPerson['involveable_id']
                     : null;
-                $name = is_string($keyPerson['name'] ?? null) && trim($keyPerson['name']) !== ''
-                    ? trim($keyPerson['name'])
+                $displayName = is_string($keyPerson['display_name'] ?? null) && trim($keyPerson['display_name']) !== ''
+                    ? trim($keyPerson['display_name'])
                     : null;
 
-                if ($speakerId === null && $name === null) {
+                if ($involveableId === null && $displayName === null) {
                     return null;
                 }
 
                 $visibility = $keyPerson['visibility'] ?? null;
-                $isPublic = array_key_exists('is_public', $keyPerson)
-                    ? filter_var($keyPerson['is_public'], FILTER_VALIDATE_BOOLEAN)
-                    : $visibility !== 'private';
+                $visibility = is_string($visibility) && in_array($visibility, ['public', 'private'], true)
+                    ? $visibility
+                    : 'public';
 
                 return [
-                    'role' => $role,
-                    'speaker_id' => $speakerId,
-                    'name' => $name,
-                    'visibility' => $isPublic ? 'public' : 'private',
+                    'role_code' => $role,
+                    'involveable_type' => $involveableId === null ? null : 'speaker',
+                    'involveable_id' => $involveableId,
+                    'display_name' => $displayName,
+                    'visibility' => $visibility,
                     'notes' => is_string($keyPerson['notes'] ?? null) && trim($keyPerson['notes']) !== ''
                         ? trim($keyPerson['notes'])
                         : null,

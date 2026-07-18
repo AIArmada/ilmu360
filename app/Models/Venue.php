@@ -47,14 +47,6 @@ class Venue extends PackageVenue implements AuditableContract
     /**
      * @var list<string>
      */
-    private const array MetadataBackedAttributes = [
-        'description',
-        'facilities',
-    ];
-
-    /**
-     * @var list<string>
-     */
     protected $fillable = [
         'id',
         'parent_venue_id',
@@ -63,7 +55,6 @@ class Venue extends PackageVenue implements AuditableContract
         'description',
         'type',
         'venue_type',
-        'facilities',
         'line1',
         'line2',
         'city',
@@ -82,7 +73,6 @@ class Venue extends PackageVenue implements AuditableContract
         'geocoding_source',
         'status',
         'visibility',
-        'metadata',
     ];
 
     #[\Override]
@@ -90,7 +80,6 @@ class Venue extends PackageVenue implements AuditableContract
     {
         return [
             'venue_type' => VenueType::class,
-            'metadata' => 'array',
         ];
     }
 
@@ -116,12 +105,6 @@ class Venue extends PackageVenue implements AuditableContract
             return parent::setAttribute('venue_type', $normalized);
         }
 
-        if (in_array($key, self::MetadataBackedAttributes, true)) {
-            $this->setMetadataValue($key, $value);
-
-            return $this;
-        }
-
         return parent::setAttribute($key, $value);
     }
 
@@ -141,10 +124,6 @@ class Venue extends PackageVenue implements AuditableContract
             }
 
             return $value;
-        }
-
-        if (in_array($key, self::MetadataBackedAttributes, true)) {
-            return $this->metadataValue($key);
         }
 
         return parent::getAttribute($key);
@@ -202,25 +181,5 @@ class Venue extends PackageVenue implements AuditableContract
             ->performOnCollections('cover')
             ->fit(Fit::Crop, 1200, 675)
             ->format('webp');
-    }
-
-    private function setMetadataValue(string $key, mixed $value): void
-    {
-        $metadata = parent::getAttribute('metadata');
-        $metadata = is_array($metadata) ? $metadata : [];
-        $metadata[$key] = $value;
-
-        parent::setAttribute('metadata', $metadata);
-    }
-
-    private function metadataValue(string $key): mixed
-    {
-        $metadata = parent::getAttribute('metadata');
-
-        if (! is_array($metadata) || ! array_key_exists($key, $metadata)) {
-            return null;
-        }
-
-        return $metadata[$key];
     }
 }

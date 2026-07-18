@@ -81,7 +81,7 @@
 
         return $start.' - '.\App\Support\Timezone\UserDateTimeFormatter::format($event->ends_at, 'h:i A');
     };
-    $eventLocationLabel = static fn (\App\Models\Event $event): string => $event->space?->name
+    $eventLocationLabel = static fn (\App\Models\Event $event): string => $event->primaryLocation?->venueSpace?->name
         ?? $event->venue?->name
         ?? $event->institution?->display_name
         ?? __('Location to be confirmed');

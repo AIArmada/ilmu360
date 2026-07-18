@@ -12,16 +12,6 @@ use Illuminate\Support\Str;
  */
 class ReferenceBuilder extends Builder
 {
-    /**
-     * @var list<string>
-     */
-    private const array MetadataBackedColumns = [
-        'part_type',
-        'part_number',
-        'part_label',
-        'is_canonical',
-    ];
-
     #[\Override]
     public function where($column, $operator = null, $value = null, $boolean = 'and'): static
     {
@@ -182,10 +172,6 @@ class ReferenceBuilder extends Builder
             return $this->qualifyModelColumn(self::PackageColumnAliases[$column]);
         }
 
-        if (in_array($column, self::MetadataBackedColumns, true)) {
-            return $this->qualifiedMetadataSelector($column);
-        }
-
         return null;
     }
 
@@ -197,11 +183,6 @@ class ReferenceBuilder extends Builder
     private function isJsonSelector(string $column): bool
     {
         return str_contains($column, '->');
-    }
-
-    private function qualifiedMetadataSelector(string $key): string
-    {
-        return $this->qualifyModelColumn('metadata').'->'.$key;
     }
 
     private function qualifyModelColumn(string $column): string

@@ -1,6 +1,7 @@
 <?php
 
 use AIArmada\Engagement\Contracts\EngagementManager;
+use AIArmada\Engagement\Models\EngagementCounter;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Speaker;
@@ -13,8 +14,6 @@ beforeEach(function () {
     $this->event = Event::factory()->create([
         'status' => 'approved',
         'visibility' => 'public',
-        'saves_count' => 0,
-        'going_count' => 0,
     ]);
 });
 
@@ -138,15 +137,24 @@ test('event me shows whether the event is saved', function () {
 test('saving an event recalculates stale saves_count from source rows', function () {
     Sanctum::actingAs($this->user);
 
-    $this->event->update(['saves_count' => 99]);
+    EngagementCounter::updateOrCreate([
+        'subject_type' => $this->event->getMorphClass(),
+        'subject_id' => $this->event->getKey(),
+        'counter_type' => 'bookmarks',
+        'counter_key' => '',
+    ], ['count_value' => 99]);
 
     $response = $this->putJson(route('api.events.saved.update', $this->event));
 
     $response->assertStatus(201);
 
-    $this->event->refresh();
-
-    expect($this->event->saves_count)->toBe(1);
+    expect(
+        EngagementCounter::where('subject_type', $this->event->getMorphClass())
+            ->where('subject_id', $this->event->getKey())
+            ->where('counter_type', 'bookmarks')
+            ->where('counter_key', '')
+            ->value('count_value') ?? 0
+    )->toBe(1);
 });
 
 test('saved events index still includes cancelled events', function () {

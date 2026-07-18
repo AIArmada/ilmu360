@@ -7,8 +7,10 @@ use AIArmada\Addressing\Models\State;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
+use AIArmada\Events\Enums\ScheduleKind;
 use App\Actions\Events\GenerateEventSlugAction;
 use App\Actions\Events\SyncEventClassificationsAction;
+use App\Actions\Events\SyncEventScheduleAction;
 use App\Actions\Speakers\GenerateSpeakerSlugAction;
 use App\Contracts\EventCategoryCatalog;
 use App\Contracts\EventCategoryPolicyResolver;
@@ -19,8 +21,6 @@ use App\Enums\EventKeyPersonRole;
 use App\Enums\EventVisibility;
 use App\Enums\PrayerOffset;
 use App\Enums\PrayerReference;
-use App\Enums\ScheduleKind;
-use App\Enums\ScheduleState;
 use App\Enums\TagType;
 use App\Enums\TimingMode;
 use App\Models\Event;
@@ -414,7 +414,6 @@ class EventSeeder extends Seeder
                 'starts_at' => $startsAt,
                 'ends_at' => $endsAt,
                 'schedule_kind' => ScheduleKind::CustomChain->value,
-                'schedule_state' => ScheduleState::Active->value,
                 'timezone' => 'Asia/Kuala_Lumpur',
                 // 'language' has been removed; genre/audience use event categories and age groups.
                 'gender' => EventGenderRestriction::All,
@@ -452,6 +451,23 @@ class EventSeeder extends Seeder
             } else {
                 $event = Event::query()->create($eventAttributes);
             }
+
+            app(SyncEventScheduleAction::class)->execute(
+                event: $event,
+                scheduleKind: ScheduleKind::tryFrom($eventAttributes['schedule_kind']) ?? ScheduleKind::Single,
+                startsAt: $event->starts_at,
+                endsAt: $event->ends_at,
+                timezone: $event->timezone,
+                timingMode: TimingMode::tryFrom((string) $eventAttributes['timing_mode']),
+                prayerReference: $eventAttributes['prayer_reference'],
+                prayerOffset: PrayerOffset::tryFrom((string) ($eventAttributes['prayer_offset'] ?? ''))?->minutes(),
+                prayerDisplayText: $eventAttributes['prayer_display_text'],
+            );
+
+            $event->primaryOccurrence?->forceFill([
+                'status' => 'published',
+                'published_at' => $event->published_at,
+            ])->save();
 
             $categoryId = array_key_first(app(EventCategoryCatalog::class)->options());
             if ($categoryId !== null) {
@@ -559,16 +575,15 @@ class EventSeeder extends Seeder
             })
             ->orderBy('id')
             ->get()
-            ->filter(fn (Event $event): bool => $event->schedule_kind === $eventAttributes['schedule_kind']
-                && $event->schedule_state === $eventAttributes['schedule_state']);
+            ->filter(fn (Event $event): bool => $event->schedule_kind === $eventAttributes['schedule_kind']);
 
         if (is_string($speakerName) && $speakerName !== '') {
             $matchedEvent = $matchingEvents->first(fn (Event $event): bool => $event->keyPeople
-                ->where('role', EventKeyPersonRole::Speaker->value)
+                ->where('role_code', EventKeyPersonRole::Speaker->value)
                 ->contains(function (mixed $keyPerson) use ($speakerName): bool {
                     $speaker = $keyPerson->speaker;
 
-                    return (is_string($keyPerson->name) && $keyPerson->name === $speakerName)
+                    return (is_string($keyPerson->display_name) && $keyPerson->display_name === $speakerName)
                         || ($speaker instanceof Speaker && $speaker->name === $speakerName);
                 }));
 
@@ -589,7 +604,7 @@ class EventSeeder extends Seeder
 
         if (! is_string($speakerName) || $speakerName === '') {
             $noSpeakerEvent = $matchingEvents->first(fn (Event $event): bool => $event->keyPeople
-                ->where('role', EventKeyPersonRole::Speaker->value)
+                ->where('role_code', EventKeyPersonRole::Speaker->value)
                 ->isEmpty());
 
             if ($noSpeakerEvent instanceof Event) {
@@ -713,7 +728,8 @@ class EventSeeder extends Seeder
 
                     $hasInstitutionLocation = is_string($event->institution_id) && $event->institution_id !== '';
                     $hasVenueLocation = is_string($event->default_venue_id) && $event->default_venue_id !== '';
-                    $hasSpace = is_string($event->space_id) && $event->space_id !== '';
+                    $hasSpace = is_string($event->primaryLocation?->venue_space_id) && $event->primaryLocation->venue_space_id !== '';
+                    $spaceId = $hasSpace ? $event->primaryLocation->venue_space_id : null;
                     $eventFormat = $event->delivery_mode;
                     $isOnlineEvent = $eventFormat === EventFormat::Online
                         || (is_string($eventFormat) && $eventFormat === EventFormat::Online->value);
@@ -725,7 +741,7 @@ class EventSeeder extends Seeder
                         if ($hasInstitutionLocation || $hasVenueLocation || $hasSpace) {
                             $updates['institution_id'] = null;
                             $updates['default_venue_id'] = null;
-                            $updates['space_id'] = null;
+                            $spaceId = null;
                         }
                     } elseif ($hasInstitutionLocation && $hasVenueLocation) {
                         if ($hasSpace) {
@@ -737,7 +753,7 @@ class EventSeeder extends Seeder
                         }
                     } elseif ($hasVenueLocation && $hasSpace) {
                         // Space is only valid for institution-based locations.
-                        $updates['space_id'] = null;
+                        $spaceId = null;
                     }
 
                     if ($event->primaryOrganizerInvolvement === null) {
@@ -757,6 +773,8 @@ class EventSeeder extends Seeder
                     if ($updates !== []) {
                         $event->fill($updates)->save();
                     }
+
+                    $event->syncLocation($event->default_venue_id, $spaceId);
 
                     $taxonomyCodes = $event->classifications
                         ->pluck('taxonomy_code')
@@ -802,9 +820,11 @@ class EventSeeder extends Seeder
 
             if (is_string($moderatorSpeakerId)) {
                 $otherKeyPeople[] = [
-                    'role' => EventKeyPersonRole::Moderator->value,
-                    'speaker_id' => $moderatorSpeakerId,
-                    'is_public' => true,
+                    'role_code' => EventKeyPersonRole::Moderator->value,
+                    'involveable_type' => 'speaker',
+                    'involveable_id' => $moderatorSpeakerId,
+                    'display_name' => null,
+                    'visibility' => 'public',
                 ];
             }
         }
@@ -813,10 +833,11 @@ class EventSeeder extends Seeder
             $imamSpeakerId = $speakerIds[0] ?? null;
 
             $otherKeyPeople[] = [
-                'role' => EventKeyPersonRole::Imam->value,
-                'speaker_id' => is_string($imamSpeakerId) ? $imamSpeakerId : null,
-                'name' => is_string($imamSpeakerId) ? null : fake()->name(),
-                'is_public' => true,
+                'role_code' => EventKeyPersonRole::Imam->value,
+                'involveable_type' => is_string($imamSpeakerId) ? 'speaker' : null,
+                'involveable_id' => is_string($imamSpeakerId) ? $imamSpeakerId : null,
+                'display_name' => is_string($imamSpeakerId) ? null : fake()->name(),
+                'visibility' => 'public',
             ];
         }
 
@@ -825,29 +846,35 @@ class EventSeeder extends Seeder
             $imamSpeakerId = $speakerIds[1] ?? $khatibSpeakerId;
 
             $otherKeyPeople[] = [
-                'role' => EventKeyPersonRole::Khatib->value,
-                'speaker_id' => is_string($khatibSpeakerId) ? $khatibSpeakerId : null,
-                'name' => is_string($khatibSpeakerId) ? null : fake()->name(),
-                'is_public' => true,
+                'role_code' => EventKeyPersonRole::Khatib->value,
+                'involveable_type' => is_string($khatibSpeakerId) ? 'speaker' : null,
+                'involveable_id' => is_string($khatibSpeakerId) ? $khatibSpeakerId : null,
+                'display_name' => is_string($khatibSpeakerId) ? null : fake()->name(),
+                'visibility' => 'public',
             ];
             $otherKeyPeople[] = [
-                'role' => EventKeyPersonRole::Imam->value,
-                'speaker_id' => is_string($imamSpeakerId) ? $imamSpeakerId : null,
-                'name' => is_string($imamSpeakerId) ? null : fake()->name(),
-                'is_public' => true,
+                'role_code' => EventKeyPersonRole::Imam->value,
+                'involveable_type' => is_string($imamSpeakerId) ? 'speaker' : null,
+                'involveable_id' => is_string($imamSpeakerId) ? $imamSpeakerId : null,
+                'display_name' => is_string($imamSpeakerId) ? null : fake()->name(),
+                'visibility' => 'public',
             ];
             $otherKeyPeople[] = [
-                'role' => EventKeyPersonRole::Bilal->value,
-                'name' => fake()->name(),
-                'is_public' => true,
+                'role_code' => EventKeyPersonRole::Bilal->value,
+                'involveable_type' => null,
+                'involveable_id' => null,
+                'display_name' => fake()->name(),
+                'visibility' => 'public',
             ];
         }
 
         if (app(EventCategoryPolicyResolver::class)->requiresPhysicalDelivery($event->event_category_ids)) {
             $otherKeyPeople[] = [
-                'role' => EventKeyPersonRole::PersonInCharge->value,
-                'name' => fake()->name(),
-                'is_public' => true,
+                'role_code' => EventKeyPersonRole::PersonInCharge->value,
+                'involveable_type' => null,
+                'involveable_id' => null,
+                'display_name' => fake()->name(),
+                'visibility' => 'public',
             ];
         }
 

@@ -238,10 +238,6 @@ it('only marks search indexes dirty when searchable fields change', function () 
             'status' => 'approved',
             'visibility' => 'public',
         ])->fresh();
-        $event->update(['views_count' => 99]);
-
-        expect($event->searchIndexShouldBeUpdated())->toBeFalse();
-
         $event->update(['title' => 'Majlis Ilmu Perdana']);
 
         expect($event->searchIndexShouldBeUpdated())->toBeTrue();

@@ -138,7 +138,7 @@
 
         $roleSummary = $event->keyPeople
             ->filter(function (\App\Models\EventKeyPerson $keyPerson): bool {
-                $role = $keyPerson->role;
+                $role = $keyPerson->role_code;
                 $role = $role instanceof \App\Enums\EventKeyPersonRole
                     ? $role
                     : \App\Enums\EventKeyPersonRole::tryFrom((string) $role);
@@ -146,7 +146,7 @@
                 return $keyPerson->visibility === 'public' && $role !== \App\Enums\EventKeyPersonRole::Speaker;
             })
             ->groupBy(function (\App\Models\EventKeyPerson $keyPerson): string {
-                $role = $keyPerson->role;
+                $role = $keyPerson->role_code;
 
                 return $role instanceof \App\Enums\EventKeyPersonRole
                     ? $role->value

@@ -27,7 +27,6 @@ use AIArmada\Events\Models\EventTimeExpression;
 use AIArmada\Membership\Traits\HasMembers;
 use App\Contracts\EventCategoryCatalog;
 use App\Enums\EventAgeGroup;
-use App\Enums\EventChangeStatus;
 use App\Enums\EventChangeType;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
@@ -38,17 +37,16 @@ use App\Enums\MemberSubjectType;
 use App\Enums\PrayerOffset;
 use App\Enums\PrayerReference;
 use App\Enums\ReferenceType;
-use App\Enums\ScheduleState;
 use App\Enums\TagType;
 use App\Enums\TimingMode;
 use App\Models\Builders\EventBuilder;
 use App\Models\Concerns\AuditsModelChanges;
 use App\Models\Concerns\HasDonationChannels;
-use App\Services\PrayerTimeExpressionResolver;
 use App\States\EventStatus\EventStatus;
 use App\States\EventStatus\Pending;
 use App\Support\Authz\MemberPermissionGate;
 use App\Support\Timezone\UserDateTimeFormatter;
+use BackedEnum;
 use Database\Factories\EventFactory;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
@@ -77,15 +75,11 @@ use Spatie\ModelStates\HasStates;
  * App Event subclass: package Event + intentional product projections.
  *
  * Package-backed schedule/links/audience/flags/location are projected as flat
- * form attributes and synced on save into package child tables only (no dual
- * metadata+child write). Product-only counters remain in events.metadata.
+ * form attributes and written to their canonical package relations.
  *
  * @property string $id
- * @property string|null $user_id
  * @property string|null $institution_id
- * @property string|null $submitter_id
  * @property string|null $default_venue_id
- * @property string|null $space_id
  * @property string $title
  * @property string $slug
  * @property array<string, mixed>|string|null $description
@@ -94,7 +88,6 @@ use Spatie\ModelStates\HasStates;
  * @property string|null $timezone
  * @property EventStatus|string $status
  * @property string|null $schedule_kind
- * @property ScheduleState|string|null $schedule_state
  * @property EventVisibility|string|null $visibility
  * @property EventFormat|string|null $event_format
  * @property TimingMode|string|null $timing_mode
@@ -108,10 +101,6 @@ use Spatie\ModelStates\HasStates;
  * @property string|null $live_url
  * @property string|null $event_url
  * @property string|null $recording_url
- * @property int|null $views_count
- * @property int|null $saves_count
- * @property int|null $registrations_count
- * @property int|null $going_count
  * @property Carbon|null $published_at
  * @property array<string, mixed>|null $metadata
  * @property bool|null $is_featured
@@ -183,27 +172,12 @@ class Event extends PackageEvent implements AuditableContract
     /**
      * @var array<string, mixed>
      */
-    private array $pendingPrimaryOccurrence = [];
+    private array $pendingScheduleValues = [];
 
     /**
      * @var Collection<int, Language>|null
      */
     private ?Collection $resolvedLanguageCache = null;
-
-    /**
-     * @var list<string>
-     */
-    private const array MetadataBackedAttributes = [
-        'user_id',
-        'submitter_id',
-        'schedule_kind',
-        'schedule_state',
-        'timing_mode',
-        'views_count',
-        'registrations_count',
-        'saves_count',
-        'going_count',
-    ];
 
     /**
      * @var array<string, string|null>
@@ -233,21 +207,13 @@ class Event extends PackageEvent implements AuditableContract
     /** @var list<string> */
     private array $pendingCategoryIds = [];
 
-    /**
-     * @var array<string, mixed>
-     */
-    private array $pendingLocationWrites = [];
-
     #[\Override]
     protected static function booted(): void
     {
         static::saved(function (Event $event): void {
-            $event->syncPrimaryOccurrenceFromPendingState();
             $event->syncUrlLinks();
-            $event->syncTimeExpressions();
             $event->syncAudiences();
             $event->syncAttributes();
-            $event->syncLocation();
         });
 
         static::deleting(function (Event $event) {
@@ -287,10 +253,7 @@ class Event extends PackageEvent implements AuditableContract
      * @var list<string>
      */
     protected $fillable = [
-        'user_id',
         'institution_id',
-        'submitter_id',
-        'space_id',
 
         'title',
         'slug',
@@ -298,12 +261,8 @@ class Event extends PackageEvent implements AuditableContract
         'starts_at',
         'ends_at',
         'schedule_kind',
-        'schedule_state',
         'timezone',
         'timing_mode',
-        'prayer_reference',
-        'prayer_offset',
-        'prayer_display_text',
         'live_url',
         'event_url',
         'recording_url',
@@ -312,10 +271,6 @@ class Event extends PackageEvent implements AuditableContract
         'children_allowed',
         'visibility',
         'status',
-        'views_count',
-        'saves_count',
-        'registrations_count',
-        'going_count',
         'published_at',
         'cancelled_at',
         'last_state_change_at',
@@ -336,7 +291,7 @@ class Event extends PackageEvent implements AuditableContract
     #[\Override]
     protected function casts(): array
     {
-        return [
+        return array_merge(parent::casts(), [
             'status' => EventStatus::class,
             'visibility' => EventVisibility::class,
             'published_at' => 'immutable_datetime',
@@ -345,7 +300,7 @@ class Event extends PackageEvent implements AuditableContract
             'description' => 'array',
             'metadata' => 'array',
             'issue_passes_for_free' => 'boolean',
-        ];
+        ]);
     }
 
     #[\Override]
@@ -364,8 +319,9 @@ class Event extends PackageEvent implements AuditableContract
     public function setAttribute($key, $value): mixed
     {
         if ($key === 'starts_at' || $key === 'ends_at') {
-            // Single source: primary EventOccurrence (synced on save). No metadata mirror.
-            $this->pendingPrimaryOccurrence[$key] = $value;
+            // Schedule values are transient form state; SyncEventScheduleAction
+            // is the only path that persists them to the primary occurrence.
+            $this->pendingScheduleValues[$key] = $value;
 
             return $this;
         }
@@ -389,12 +345,6 @@ class Event extends PackageEvent implements AuditableContract
             return $this;
         }
 
-        if (in_array($key, self::MetadataBackedAttributes, true)) {
-            $this->setMetadataValue($key, $value);
-
-            return $this;
-        }
-
         return parent::setAttribute($key, $value);
     }
 
@@ -402,8 +352,8 @@ class Event extends PackageEvent implements AuditableContract
     public function getAttribute($key): mixed
     {
         if (in_array($key, ['starts_at', 'ends_at'], true)) {
-            if (array_key_exists($key, $this->pendingPrimaryOccurrence)) {
-                return $this->pendingPrimaryOccurrence[$key];
+            if (array_key_exists($key, $this->pendingScheduleValues)) {
+                return $this->pendingScheduleValues[$key];
             }
 
             return $this->primaryOccurrenceDate($key);
@@ -438,10 +388,6 @@ class Event extends PackageEvent implements AuditableContract
                 ->map(fn (mixed $id): string => (string) $id)
                 ->values()
                 ->all();
-        }
-
-        if (in_array($key, self::MetadataBackedAttributes, true)) {
-            return $this->productMetadataValue($key);
         }
 
         if ($key === 'languages') {
@@ -684,12 +630,28 @@ class Event extends PackageEvent implements AuditableContract
 
     // ─── Prayer Time Expression (EventTimeExpression) ───────────────────────
 
+    public function getTimingModeAttribute(mixed $value): string
+    {
+        if (array_key_exists('timing_mode', $this->pendingTimeExpressionWrites)) {
+            return (string) $this->pendingTimeExpressionWrites['timing_mode'];
+        }
+
+        return $this->prayerExpression() instanceof EventTimeExpression
+            ? TimingMode::PrayerRelative->value
+            : TimingMode::Absolute->value;
+    }
+
+    public function setTimingModeAttribute(mixed $value): void
+    {
+        $this->pendingTimeExpressionWrites['timing_mode'] = $value instanceof BackedEnum ? $value->value : $value;
+    }
+
     public function getPrayerReferenceAttribute(mixed $value): ?string
     {
         if (array_key_exists('prayer_reference', $this->pendingTimeExpressionWrites)) {
             $val = $this->pendingTimeExpressionWrites['prayer_reference'];
 
-            return $val instanceof \BackedEnum ? $val->value : $val;
+            return $val instanceof BackedEnum ? $val->value : $val;
         }
 
         return $this->prayerExpression()?->anchor_code;
@@ -734,7 +696,7 @@ class Event extends PackageEvent implements AuditableContract
 
     public function setPrayerOffsetAttribute(mixed $value): void
     {
-        $this->pendingTimeExpressionWrites['prayer_offset'] = $value instanceof \BackedEnum ? $value->value : $value;
+        $this->pendingTimeExpressionWrites['prayer_offset'] = $value instanceof BackedEnum ? $value->value : $value;
     }
 
     public function setPrayerDisplayTextAttribute(?string $value): void
@@ -749,62 +711,6 @@ class Event extends PackageEvent implements AuditableContract
         }
 
         return $this->timeExpressions()->where('anchor_type', 'prayer')->first();
-    }
-
-    public function syncTimeExpressions(): void
-    {
-        if ($this->pendingTimeExpressionWrites === []) {
-            return;
-        }
-
-        $timingMode = $this->productMetadataValue('timing_mode');
-
-        if ($timingMode !== TimingMode::PrayerRelative->value) {
-            $this->timeExpressions()->where('anchor_type', 'prayer')->delete();
-            $this->pendingTimeExpressionWrites = [];
-
-            return;
-        }
-
-        $prayerRef = $this->pendingTimeExpressionWrites['prayer_reference'] ?? $this->prayerExpression()?->anchor_code;
-
-        if ($prayerRef instanceof \BackedEnum) {
-            $prayerRef = $prayerRef->value;
-        }
-
-        $prayerOffset = $this->pendingTimeExpressionWrites['prayer_offset'] ?? null;
-        $offsetMinutes = 5;
-        $relation = 'after';
-
-        if ($prayerOffset !== null) {
-            $offset = PrayerOffset::tryFrom($prayerOffset);
-
-            if ($offset !== null) {
-                $minutes = $offset->minutes();
-                $relation = $minutes >= 0 ? 'after' : 'before';
-                $offsetMinutes = abs($minutes);
-            }
-        }
-
-        $displayLabel = $this->pendingTimeExpressionWrites['prayer_display_text']
-            ?? $this->prayerExpression()?->display_label;
-
-        if ($prayerRef !== null || $displayLabel !== null) {
-            EventTimeExpression::updateOrCreate(
-                ['event_id' => $this->id, 'anchor_type' => 'prayer'],
-                [
-                    'time_mode' => 'prayer_relative',
-                    'anchor_type' => 'prayer',
-                    'anchor_code' => $prayerRef,
-                    'relation' => $relation,
-                    'offset_minutes' => $offsetMinutes,
-                    'display_label' => $displayLabel,
-                    'resolver_class' => PrayerTimeExpressionResolver::class,
-                ],
-            );
-        }
-
-        $this->pendingTimeExpressionWrites = [];
     }
 
     // ─── Audience (EventAudience + EventAudienceProfile) ────────────────────
@@ -976,50 +882,46 @@ class Event extends PackageEvent implements AuditableContract
         $this->pendingAttributeWrites = [];
     }
 
-    // ─── EventLocation (space_id) ───────────────────────────────────────────
+    // ─── EventLocation (primary venue space) ───────────────────────────────
 
-    public function getSpaceIdAttribute(mixed $value): ?string
+    #[\Override]
+    public function primaryLocation(): HasOne
     {
-        if (array_key_exists('space_id', $this->pendingLocationWrites)) {
-            return $this->pendingLocationWrites['space_id'];
-        }
-
-        if ($this->relationLoaded('locations')) {
-            return $this->locations->first()?->venue_space_id;
-        }
-
-        return $this->locations()->value('venue_space_id');
+        return $this->hasOne(EventLocation::class)
+            ->whereNull('event_occurrence_id')
+            ->whereNull('event_session_id')
+            ->where('location_role', 'primary')
+            ->orderBy('sort_order')
+            ->orderBy('created_at');
     }
 
-    public function setSpaceIdAttribute(?string $value): void
+    public function syncLocation(?string $venueId = null, ?string $spaceId = null): void
     {
-        $this->pendingLocationWrites['space_id'] = $value;
-    }
+        $location = EventLocation::query()
+            ->where('event_id', $this->id)
+            ->whereNull('event_occurrence_id')
+            ->whereNull('event_session_id')
+            ->where('location_role', 'primary');
 
-    public function syncLocation(): void
-    {
-        if ($this->pendingLocationWrites === []) {
-            return;
-        }
-
-        $spaceId = $this->pendingLocationWrites['space_id'] ?? null;
-
-        if ($spaceId !== null && $spaceId !== '') {
+        if (($venueId !== null && $venueId !== '') || ($spaceId !== null && $spaceId !== '')) {
             EventLocation::updateOrCreate(
-                ['event_id' => $this->id],
                 [
+                    'event_id' => $this->id,
+                    'event_occurrence_id' => null,
+                    'event_session_id' => null,
+                    'location_role' => 'primary',
+                ],
+                [
+                    'venue_id' => $venueId,
                     'venue_space_id' => $spaceId,
-                    'location_role' => 'main',
                     'visibility' => 'public',
                     'status' => 'active',
                     'sort_order' => 0,
                 ],
             );
         } else {
-            EventLocation::where('event_id', $this->id)->delete();
+            $location->delete();
         }
-
-        $this->pendingLocationWrites = [];
     }
 
     private function syncSingleAudience(string $type, mixed $value): void
@@ -1060,57 +962,6 @@ class Event extends PackageEvent implements AuditableContract
                 ]);
             }
         });
-    }
-
-    private function syncPrimaryOccurrenceFromPendingState(): void
-    {
-        $startsAt = $this->pendingPrimaryOccurrence['starts_at'] ?? $this->productMetadataValue('starts_at');
-        $endsAt = $this->pendingPrimaryOccurrence['ends_at'] ?? $this->productMetadataValue('ends_at');
-
-        if ($startsAt === null && $endsAt === null) {
-            return;
-        }
-
-        $occurrence = $this->occurrences()->withoutGlobalScopes()->first() ?? new EventOccurrence([
-            'event_id' => $this->getKey(),
-        ]);
-
-        $occurrence->fill([
-            'event_id' => $this->getKey(),
-            'title' => $this->title,
-            'slug' => $this->slug,
-            'starts_at' => $startsAt,
-            'ends_at' => $endsAt,
-            'timezone' => $this->timezone,
-            'status' => $this->occurrenceStatusValue(),
-            'visibility' => $this->enumValue($this->visibility) ?? 'public',
-            'delivery_mode' => $this->enumValue($this->delivery_mode) ?? $this->delivery_mode,
-            'published_at' => $this->published_at,
-            'pricing_mode' => $this->pricing_mode ?? 'free',
-            'registration_mode' => $this->registration_mode ?? 'none',
-            'issue_passes_for_free' => $this->issue_passes_for_free ?? true,
-            'metadata' => array_filter([
-                'source' => 'app_event_primary_occurrence',
-                'schedule_kind' => $this->productMetadataValue('schedule_kind'),
-                'schedule_state' => $this->productMetadataValue('schedule_state'),
-                'timing_mode' => $this->productMetadataValue('timing_mode'),
-                'prayer_reference' => $this->prayer_reference,
-                'prayer_offset' => $this->prayer_offset,
-                'prayer_display_text' => $this->prayer_display_text,
-            ], static fn (mixed $value): bool => $value !== null && $value !== ''),
-        ]);
-
-        $occurrence->save();
-        $this->pendingPrimaryOccurrence = [];
-    }
-
-    private function occurrenceStatusValue(): string
-    {
-        return match ((string) $this->status) {
-            'approved' => EventOccurrence::PUBLISHED,
-            'cancelled' => EventOccurrence::CANCELLED,
-            default => EventOccurrence::SCHEDULED,
-        };
     }
 
     private function primaryOccurrenceDate(string $key): mixed
@@ -1193,72 +1044,6 @@ class Event extends PackageEvent implements AuditableContract
         $this->resolvedLanguageCache = $resolved;
 
         return $resolved;
-    }
-
-    private function setMetadataValue(string $key, mixed $value): void
-    {
-        $metadata = $this->attributes['metadata'] ?? null;
-        $metadata = is_string($metadata) ? json_decode($metadata, true) : $metadata;
-        $metadata = is_array($metadata) ? $metadata : [];
-        $metadata[$key] = $this->metadataSerializableValue($value);
-
-        parent::setAttribute('metadata', $metadata);
-    }
-
-    /**
-     * Product-owned fields stored on events.metadata (structure, counters, etc.).
-     * Package-backed projections (occurrence/links/audience/attributes) must not dual-write here.
-     */
-    private function productMetadataValue(string $key): mixed
-    {
-        $metadata = $this->attributes['metadata'] ?? null;
-        $metadata = is_string($metadata) ? json_decode($metadata, true) : $metadata;
-
-        if (! is_array($metadata) || ! array_key_exists($key, $metadata)) {
-            return null;
-        }
-
-        return $metadata[$key];
-    }
-
-    private function metadataSerializableValue(mixed $value): mixed
-    {
-        if ($value instanceof \BackedEnum) {
-            return $value->value;
-        }
-
-        if ($value instanceof Carbon) {
-            return $value->toIso8601String();
-        }
-
-        if ($value instanceof Collection) {
-            return $value
-                ->map(fn (mixed $entry): mixed => $this->metadataSerializableValue($entry))
-                ->values()
-                ->all();
-        }
-
-        if (is_array($value)) {
-            return collect($value)
-                ->map(fn (mixed $entry): mixed => $this->metadataSerializableValue($entry))
-                ->values()
-                ->all();
-        }
-
-        return $value;
-    }
-
-    private function enumValue(mixed $value): ?string
-    {
-        if ($value instanceof \BackedEnum && is_string($value->value)) {
-            return $value->value;
-        }
-
-        if (is_string($value) && $value !== '') {
-            return $value;
-        }
-
-        return null;
     }
 
     /**
@@ -1427,8 +1212,6 @@ class Event extends PackageEvent implements AuditableContract
             'status',
             'visibility',
             'institution_id',
-            'saves_count',
-            'registrations_count',
             'published_at',
         ]);
     }
@@ -1439,7 +1222,7 @@ class Event extends PackageEvent implements AuditableContract
             return EventChangeType::Cancelled->publicBadgeLabel();
         }
 
-        if ($this->schedule_state === ScheduleState::Postponed) {
+        if ($this->primaryOccurrence && $this->primaryOccurrence->status === 'postponed') {
             return EventChangeType::Postponed->publicBadgeLabel();
         }
 
@@ -1544,7 +1327,7 @@ class Event extends PackageEvent implements AuditableContract
         $keyPersonRoles = [];
 
         foreach ($keyPeople as $keyPerson) {
-            $role = $keyPerson->role;
+            $role = EventKeyPersonRole::tryFrom((string) $keyPerson->role_code);
 
             if ($role instanceof EventKeyPersonRole && ! in_array($role->value, $keyPersonRoles, true)) {
                 $keyPersonRoles[] = $role->value;
@@ -1552,21 +1335,21 @@ class Event extends PackageEvent implements AuditableContract
         }
 
         $keyPersonSpeakerIds = $keyPeople
-            ->pluck('speaker_id')
+            ->pluck('involveable_id')
             ->filter(fn (mixed $speakerId): bool => is_string($speakerId) && $speakerId !== '')
             ->unique()
             ->values()
             ->all();
 
         $personInChargeIds = $keyPeople
-            ->where('role', EventKeyPersonRole::PersonInCharge)
-            ->pluck('speaker_id')
+            ->where('role_code', EventKeyPersonRole::PersonInCharge->value)
+            ->pluck('involveable_id')
             ->filter(fn (mixed $speakerId): bool => is_string($speakerId) && $speakerId !== '')
             ->values()
             ->all();
 
         $personInChargeNames = $keyPeople
-            ->where('role', EventKeyPersonRole::PersonInCharge)
+            ->where('role_code', EventKeyPersonRole::PersonInCharge->value)
             ->map(function (EventKeyPerson $keyPerson): string {
                 if ($keyPerson->speaker instanceof Speaker) {
                     $searchableName = trim((string) $keyPerson->speaker->searchable_name);
@@ -1574,7 +1357,7 @@ class Event extends PackageEvent implements AuditableContract
                     return $searchableName !== '' ? $searchableName : (string) $keyPerson->speaker->name;
                 }
 
-                return (string) ($keyPerson->name ?? '');
+                return (string) ($keyPerson->display_name ?? '');
             })
             ->filter(fn (string $name): bool => trim($name) !== '')
             ->unique()
@@ -1582,29 +1365,29 @@ class Event extends PackageEvent implements AuditableContract
             ->implode(', ');
 
         $moderatorIds = $keyPeople
-            ->where('role', EventKeyPersonRole::Moderator)
-            ->pluck('speaker_id')
+            ->where('role_code', EventKeyPersonRole::Moderator->value)
+            ->pluck('involveable_id')
             ->filter(fn (mixed $speakerId): bool => is_string($speakerId) && $speakerId !== '')
             ->values()
             ->all();
 
         $imamIds = $keyPeople
-            ->where('role', EventKeyPersonRole::Imam)
-            ->pluck('speaker_id')
+            ->where('role_code', EventKeyPersonRole::Imam->value)
+            ->pluck('involveable_id')
             ->filter(fn (mixed $speakerId): bool => is_string($speakerId) && $speakerId !== '')
             ->values()
             ->all();
 
         $khatibIds = $keyPeople
-            ->where('role', EventKeyPersonRole::Khatib)
-            ->pluck('speaker_id')
+            ->where('role_code', EventKeyPersonRole::Khatib->value)
+            ->pluck('involveable_id')
             ->filter(fn (mixed $speakerId): bool => is_string($speakerId) && $speakerId !== '')
             ->values()
             ->all();
 
         $bilalIds = $keyPeople
-            ->where('role', EventKeyPersonRole::Bilal)
-            ->pluck('speaker_id')
+            ->where('role_code', EventKeyPersonRole::Bilal->value)
+            ->pluck('involveable_id')
             ->filter(fn (mixed $speakerId): bool => is_string($speakerId) && $speakerId !== '')
             ->values()
             ->all();
@@ -1637,7 +1420,7 @@ class Event extends PackageEvent implements AuditableContract
             'description' => $this->description_text,
             'slug' => $this->slug,
             'speaker_names' => $this->speakerKeyPeople
-                ->map(fn (EventKeyPerson $keyPerson): string => $keyPerson->speaker !== null ? $keyPerson->speaker->name : (string) ($keyPerson->name ?? ''))
+                ->map(fn (EventKeyPerson $keyPerson): string => $keyPerson->speaker !== null ? $keyPerson->speaker->name : (string) ($keyPerson->display_name ?? ''))
                 ->filter(fn (string $name): bool => $name !== '')
                 ->implode(', '),
             'institution_id' => $this->institution_id,
@@ -1667,7 +1450,7 @@ class Event extends PackageEvent implements AuditableContract
             'taxonomy_codes' => $taxonomyCodes,
             'reference_ids' => $this->references->pluck('id')->values()->all(),
             'speaker_ids' => $this->speakerKeyPeople
-                ->pluck('speaker_id')
+                ->pluck('involveable_id')
                 ->filter(fn (mixed $speakerId): bool => is_string($speakerId) && $speakerId !== '')
                 ->values()
                 ->all(),
@@ -1714,22 +1497,6 @@ class Event extends PackageEvent implements AuditableContract
     }
 
     /**
-     * @return BelongsTo<User, $this>
-     */
-    public function submitter(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'submitter_id');
-    }
-
-    /**
-     * @return BelongsTo<User, $this>
-     */
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
-    }
-
-    /**
      * @return HasMany<MemberInvitation, $this>
      */
     public function memberInvitations(): HasMany
@@ -1752,14 +1519,6 @@ class Event extends PackageEvent implements AuditableContract
     public function venue(): BelongsTo
     {
         return $this->belongsTo(Venue::class, 'default_venue_id');
-    }
-
-    /**
-     * @return BelongsTo<Space, $this>
-     */
-    public function space(): BelongsTo
-    {
-        return $this->belongsTo(Space::class);
     }
 
     /**
@@ -1907,6 +1666,7 @@ class Event extends PackageEvent implements AuditableContract
     /**
      * @return HasMany<EventSubmission, $this>
      */
+    #[\Override]
     public function submissions(): HasMany
     {
         return $this->hasMany(EventSubmission::class);
@@ -2055,7 +1815,7 @@ class Event extends PackageEvent implements AuditableContract
         ?\Closure $extraConstraint = null,
     ): void {
         $query
-            ->where("{$table}.metadata->status", EventChangeStatus::Published->value)
+            ->whereNotNull("{$table}.published_at")
             ->whereNull("{$table}.archived_at");
 
         $extraConstraint?->__invoke($query, $table);
@@ -2186,13 +1946,9 @@ class Event extends PackageEvent implements AuditableContract
      */
     public function isPrayerRelative(): bool
     {
-        $timingMode = $this->timing_mode;
-
-        if ($timingMode instanceof TimingMode) {
-            return $timingMode === TimingMode::PrayerRelative;
-        }
-
-        return (string) $timingMode === TimingMode::PrayerRelative->value;
+        return $this->timeExpressions()
+            ->where('time_mode', 'prayer_relative')
+            ->exists();
     }
 
     /**

@@ -3,8 +3,10 @@
 namespace App\Livewire\Pages\Events;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Engagement\Contracts\EngagementCounterService;
 use AIArmada\Engagement\Contracts\EngagementManager;
 use AIArmada\Engagement\Models\Bookmark;
+use AIArmada\Engagement\Models\Response;
 use AIArmada\Events\Enums\RegistrationMode;
 use App\Actions\Events\MarkEventGoingAction;
 use App\Actions\Events\RecordEventCheckInAction;
@@ -13,7 +15,6 @@ use App\Actions\Events\ResolveEventCheckInStateAction;
 use App\Enums\DawahShareOutcomeType;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventVisibility;
-use App\Enums\ScheduleState;
 use App\Models\Event;
 use App\Models\EventChangeAnnouncement;
 use App\Models\EventCheckin;
@@ -62,6 +63,8 @@ class Show extends Component
 
     public int $goingCount = 0;
 
+    public int $registrationsCount = 0;
+
     public function mount(Event $event): void
     {
         $isViewable = $event->isPubliclyReachable();
@@ -85,6 +88,8 @@ class Show extends Component
         }
 
         OwnerContext::withOwner(null, function () use ($event): void {
+            $event->loadCount('registrations');
+            $this->registrationsCount = $event->registrations_count;
             $event->load([
                 'media',
                 'primaryOrganizerInvolvement.involveable',
@@ -186,7 +191,7 @@ class Show extends Component
     #[Computed]
     public function isPostponedWithoutConfirmedTime(): bool
     {
-        return $this->event->schedule_state === ScheduleState::Postponed;
+        return $this->event->primaryOccurrence && in_array((string) $this->event->primaryOccurrence->status, ['postponed', 'rescheduled'], true);
     }
 
     #[Computed]
@@ -207,12 +212,8 @@ class Show extends Component
     public function keyPeopleByRole(): Collection
     {
         return collect($this->event->keyPeople
-            ->filter(fn (EventKeyPerson $keyPerson): bool => $keyPerson->role !== EventKeyPersonRole::Speaker && $keyPerson->visibility === 'public')
-            ->groupBy(function (EventKeyPerson $keyPerson): string {
-                $role = $keyPerson->role;
-
-                return $role instanceof EventKeyPersonRole ? $role->value : (string) $role;
-            })
+            ->filter(fn (EventKeyPerson $keyPerson): bool => $keyPerson->role_code !== EventKeyPersonRole::Speaker->value && $keyPerson->visibility === 'public')
+            ->groupBy(fn (EventKeyPerson $keyPerson): string => (string) $keyPerson->role_code)
             ->sortKeys()
             ->all());
     }
@@ -441,14 +442,13 @@ class Show extends Component
                 'savedEvents' => (function () use ($user): array {
                     app(EngagementManager::class)->removeBookmark($user, $this->event);
 
-                    return ['saves_count' => app(Bookmark::class)::forBookmarkable($this->event)->active()->count()];
+                    return ['saves_count' => app(EngagementCounterService::class)->value($this->event, 'bookmarks')];
                 })(),
                 'goingEvents' => app(RemoveEventGoingAction::class)->handle((string) $this->event->getKey(), $user),
                 default => ['deleted' => false, $countColumn => max(0, (int) ($this->event->{$countColumn} ?? 0))],
             };
 
             $updatedCount = max(0, (int) ($result[$countColumn] ?? 0));
-            $this->event->forceFill([$countColumn => $updatedCount]);
 
             if ($countProperty) {
                 $this->{$countProperty} = $updatedCount;
@@ -460,14 +460,13 @@ class Show extends Component
                 'savedEvents' => (function () use ($user): array {
                     app(EngagementManager::class)->bookmark($user, $this->event);
 
-                    return ['saves_count' => app(Bookmark::class)::forBookmarkable($this->event)->active()->count()];
+                    return ['saves_count' => app(EngagementCounterService::class)->value($this->event, 'bookmarks')];
                 })(),
                 'goingEvents' => app(MarkEventGoingAction::class)->handle($this->event, $user),
                 default => ['status' => 'conflict', $countColumn => (int) ($this->event->{$countColumn} ?? 0)],
             };
 
             $updatedCount = max(0, (int) ($result[$countColumn] ?? 0));
-            $this->event->forceFill([$countColumn => $updatedCount]);
 
             if ($countProperty) {
                 $this->{$countProperty} = $updatedCount;
@@ -503,7 +502,12 @@ class Show extends Component
 
     protected function syncEngagementStates(): void
     {
-        $this->goingCount = max(0, (int) ($this->event->going_count ?? 0));
+        $this->goingCount = Response::query()
+            ->where('respondable_type', $this->event->getMorphClass())
+            ->where('respondable_id', $this->event->getKey())
+            ->where('response_type', 'going')
+            ->active()
+            ->count();
 
         $user = auth()->user();
 
@@ -599,8 +603,8 @@ class Show extends Component
     }
 
     /**
-     * Determine if the currently authenticated user is the owner of the event.
-     * Checks both user_id (owner) and submitter_id (submitter).
+     * Determine whether the currently authenticated user submitted the event.
+     * Event ownership itself is resolved by the package owner policy.
      */
     protected function isEventOwner(Event $event): bool
     {
@@ -608,10 +612,6 @@ class Show extends Component
 
         if (! $user instanceof User) {
             return false;
-        }
-
-        if ($event->user_id === $user->id || $event->submitter_id === $user->id) {
-            return true;
         }
 
         return EventSubmission::where('event_id', $event->id)

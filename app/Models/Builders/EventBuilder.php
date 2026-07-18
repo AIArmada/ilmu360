@@ -5,11 +5,9 @@ namespace App\Models\Builders;
 use App\Models\Event;
 use Illuminate\Contracts\Database\Query\Expression;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Database\Query\Builder as BaseQueryBuilder;
 use Illuminate\Database\Query\SortDirection;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Enumerable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -27,21 +25,6 @@ class EventBuilder extends Builder
     ];
 
     /**
-     * @var list<string>
-     */
-    private const array MetadataBackedColumns = [
-        'user_id',
-        'submitter_id',
-        'schedule_kind',
-        'schedule_state',
-        'timing_mode',
-        'views_count',
-        'saves_count',
-        'registrations_count',
-        'going_count',
-    ];
-
-    /**
      * Product query field names → package columns (single store).
      *
      * @var array<string, string>
@@ -54,7 +37,7 @@ class EventBuilder extends Builder
     #[\Override]
     public function where($column, $operator = null, $value = null, $boolean = 'and'): static
     {
-        if (! is_string($column) || $this->isJsonSelector($column) || ! $this->shouldMapColumn($column)) {
+        if (! is_string($column) || ! $this->shouldMapColumn($column)) {
             return parent::where($column, $operator, $value, $boolean);
         }
 
@@ -67,32 +50,6 @@ class EventBuilder extends Builder
         $mappedColumn = $this->mapColumn($columnName);
 
         if ($mappedColumn !== null) {
-            if ($mappedColumn instanceof Expression) {
-                $sql = $mappedColumn->getValue($this->getQuery()->getGrammar());
-
-                if (func_num_args() === 2) {
-                    if ($operator === null) {
-                        $this->whereRaw($sql.' is null', [], $boolean);
-
-                        return $this;
-                    }
-
-                    $this->whereRaw($sql.' = ?', [$operator], $boolean);
-
-                    return $this;
-                }
-
-                if ($value === null) {
-                    $this->whereRaw($sql.' is '.(in_array(strtolower((string) $operator), ['!=', '<>', 'is not'], true) ? 'not ' : '').'null', [], $boolean);
-
-                    return $this;
-                }
-
-                $this->whereRaw($sql.' '.$operator.' ?', [$value], $boolean);
-
-                return $this;
-            }
-
             return parent::where($mappedColumn, $operator, $value, $boolean);
         }
 
@@ -107,7 +64,7 @@ class EventBuilder extends Builder
      */
     public function whereIn($column, $values, $boolean = 'and', $not = false): static
     {
-        if (! is_string($column) || $this->isJsonSelector($column) || ! $this->shouldMapColumn($column)) {
+        if (! is_string($column) || ! $this->shouldMapColumn($column)) {
             parent::whereIn($column, $values, $boolean, $not);
 
             return $this;
@@ -118,39 +75,6 @@ class EventBuilder extends Builder
         $mappedColumn = $this->mapColumn($columnName);
 
         if ($mappedColumn !== null) {
-            if ($mappedColumn instanceof Expression) {
-                $sql = $mappedColumn->getValue($this->getQuery()->getGrammar());
-
-                if ($values instanceof Relation) {
-                    $subquery = $values->getQuery()->toBase();
-                    $this->whereRaw(
-                        $sql.' '.($not ? 'not ' : '').'in ('.$subquery->toSql().')',
-                        $subquery->getBindings(),
-                        $boolean,
-                    );
-
-                    return $this;
-                }
-
-                $values = array_values(
-                    is_array($values)
-                        ? $values
-                        : ($values instanceof Enumerable
-                            ? $values->all()
-                            : ($values instanceof \Traversable ? iterator_to_array($values) : [$values])),
-                );
-
-                if ($values === []) {
-                    $this->whereRaw($not ? '1 = 1' : '0 = 1', [], $boolean);
-
-                    return $this;
-                }
-
-                $this->whereRaw($sql.' '.($not ? 'not ' : '').'in ('.implode(', ', array_fill(0, count($values), '?')).')', $values, $boolean);
-
-                return $this;
-            }
-
             parent::whereIn($mappedColumn, $values, $boolean, $not);
 
             return $this;
@@ -187,7 +111,7 @@ class EventBuilder extends Builder
      */
     public function whereBetween($column, iterable $values, $boolean = 'and', $not = false): static
     {
-        if (! is_string($column) || $this->isJsonSelector($column) || ! $this->shouldMapColumn($column)) {
+        if (! is_string($column) || ! $this->shouldMapColumn($column)) {
             parent::whereBetween($column, $values, $boolean, $not);
 
             return $this;
@@ -224,26 +148,6 @@ class EventBuilder extends Builder
         }, null, null, $boolean);
     }
 
-    public function whereJsonContains(string $column, mixed $value, string $boolean = 'and', bool $not = false): static
-    {
-        if ($this->isJsonSelector($column) || ! $this->shouldMapColumn($column)) {
-            parent::whereJsonContains($column, $value, $boolean, $not);
-
-            return $this;
-        }
-
-        $this->columnName($column);
-
-        parent::whereJsonContains($column, $value, $boolean, $not);
-
-        return $this;
-    }
-
-    public function orWhereJsonContains(string $column, mixed $value): static
-    {
-        return $this->whereJsonContains($column, $value, 'or');
-    }
-
     /**
      * @param  string|array|Expression  $columns
      * @param  string  $boolean
@@ -256,7 +160,7 @@ class EventBuilder extends Builder
      */
     public function whereNull($columns, $boolean = 'and', $not = false): static
     {
-        if (! is_string($columns) || $this->isJsonSelector($columns) || ! $this->shouldMapColumn($columns)) {
+        if (! is_string($columns) || ! $this->shouldMapColumn($columns)) {
             parent::whereNull($columns, $boolean, $not);
 
             return $this;
@@ -271,12 +175,6 @@ class EventBuilder extends Builder
         $mappedColumn = $this->mapColumn($columnName);
 
         if ($mappedColumn !== null) {
-            if ($mappedColumn instanceof Expression) {
-                $this->whereRaw($mappedColumn->getValue($this->getQuery()->getGrammar()).' is '.($not ? 'not ' : '').'null', [], $boolean);
-
-                return $this;
-            }
-
             parent::whereNull($mappedColumn, $boolean, $not);
 
             return $this;
@@ -297,7 +195,7 @@ class EventBuilder extends Builder
      */
     public function whereNotNull($columns, $boolean = 'and'): static
     {
-        if (! is_string($columns) || $this->isJsonSelector($columns) || ! $this->shouldMapColumn($columns)) {
+        if (! is_string($columns) || ! $this->shouldMapColumn($columns)) {
             parent::whereNotNull($columns, $boolean);
 
             return $this;
@@ -312,12 +210,6 @@ class EventBuilder extends Builder
         $mappedColumn = $this->mapColumn($columnName);
 
         if ($mappedColumn !== null) {
-            if ($mappedColumn instanceof Expression) {
-                $this->whereRaw($mappedColumn->getValue($this->getQuery()->getGrammar()).' is not null', [], $boolean);
-
-                return $this;
-            }
-
             parent::whereNotNull($mappedColumn, $boolean);
 
             return $this;
@@ -338,7 +230,7 @@ class EventBuilder extends Builder
      */
     public function orderBy($column, $direction = 'asc'): static
     {
-        if (! is_string($column) || $this->isJsonSelector($column) || ! $this->shouldMapColumn($column)) {
+        if (! is_string($column) || ! $this->shouldMapColumn($column)) {
             parent::orderBy($column, $direction);
 
             return $this;
@@ -355,12 +247,6 @@ class EventBuilder extends Builder
         $mappedColumn = $this->mapColumn($columnName);
 
         if ($mappedColumn !== null) {
-            if ($mappedColumn instanceof Expression) {
-                parent::orderBy($mappedColumn, $direction);
-
-                return $this;
-            }
-
             parent::orderBy($mappedColumn, $direction);
 
             return $this;
@@ -401,14 +287,10 @@ class EventBuilder extends Builder
         return $this;
     }
 
-    private function mapColumn(string $column): string|Expression|null
+    private function mapColumn(string $column): ?string
     {
         if (isset(self::PackageColumnAliases[$column])) {
             return $this->qualifyModelColumn(self::PackageColumnAliases[$column]);
-        }
-
-        if (in_array($column, self::MetadataBackedColumns, true)) {
-            return $this->qualifiedMetadataSelector($column);
         }
 
         return null;
@@ -419,11 +301,6 @@ class EventBuilder extends Builder
         return Str::afterLast($column, '.');
     }
 
-    private function isJsonSelector(string $column): bool
-    {
-        return str_contains($column, '->');
-    }
-
     private function shouldMapColumn(string $column): bool
     {
         if (! str_contains($column, '.')) {
@@ -431,25 +308,6 @@ class EventBuilder extends Builder
         }
 
         return Str::beforeLast($column, '.') === $this->getModel()->getTable();
-    }
-
-    private function qualifiedMetadataSelector(string $key): Expression
-    {
-        $metadata = $this->qualifyModelColumn('metadata');
-
-        $driver = DB::connection()->getDriverName();
-
-        if ($driver === 'pgsql') {
-            $selector = "{$metadata}->>'{$key}'";
-
-            return DB::raw(Str::endsWith($key, '_id') ? "({$selector})::uuid" : $selector);
-        }
-
-        if (in_array($driver, ['mysql', 'mariadb'], true)) {
-            return DB::raw("json_unquote(json_extract({$metadata}, '$.\"{$key}\"'))");
-        }
-
-        return DB::raw("{$metadata}->>'{$key}'");
     }
 
     private function qualifyModelColumn(string $column): string

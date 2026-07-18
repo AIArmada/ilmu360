@@ -3,13 +3,13 @@
 namespace App\Services\Notifications;
 
 use AIArmada\Communications\Contracts\CommunicationManager;
+use AIArmada\Events\Models\EventSubmission;
 use App\Enums\EventChangeSeverity;
 use App\Enums\EventChangeType;
 use App\Enums\EventVisibility;
 use App\Enums\NotificationCadence;
 use App\Enums\NotificationPriority;
 use App\Enums\NotificationTrigger;
-use App\Enums\ScheduleState;
 use App\Models\Event;
 use App\Models\EventChangeAnnouncement;
 use App\Models\EventCheckin;
@@ -420,8 +420,10 @@ class EventNotificationService
     {
         $recipients = collect();
 
-        if ($event->submitter_id) {
-            $submitter = User::query()->find($event->submitter_id);
+        $submission = EventSubmission::where('event_id', $event->id)->latest('created_at')->first();
+
+        if ($submission?->submitter_id) {
+            $submitter = User::query()->find($submission->submitter_id);
 
             if ($submitter instanceof User) {
                 $recipients->push($submitter);
@@ -838,9 +840,8 @@ class EventNotificationService
             ->whereNotNull('published_at')
             ->whereIn('status', Event::ENGAGEABLE_STATUSES)
             ->where('visibility', EventVisibility::Public)
-            ->where(fn ($query) => $query
-                ->whereNull('schedule_state')
-                ->orWhere('schedule_state', '!=', ScheduleState::Postponed->value))
+            ->whereHas('primaryOccurrence', fn ($query) => $query
+                ->whereNotIn('status', ['postponed', 'rescheduled']))
             ->whereBetween('starts_at', [
                 $windowStart->utc()->toDateTimeString(),
                 $windowEnd->utc()->toDateTimeString(),

@@ -5,7 +5,6 @@ use App\Enums\ContributionRequestStatus;
 use App\Enums\ContributionRequestType;
 use App\Enums\ContributionSubjectType;
 use App\Enums\EventChangeSeverity;
-use App\Enums\EventChangeStatus;
 use App\Enums\EventChangeType;
 use App\Enums\MemberSubjectType;
 use App\Mcp\Prompts\MemberDocumentationToolRoutingPrompt;
@@ -389,7 +388,7 @@ it('surfaces public event change projections on member event record detail throu
             'severity' => EventChangeSeverity::High,
             'message' => 'Sila rujuk majlis pengganti pertama.',
             'metadata' => [
-                'status' => EventChangeStatus::Published->value,
+                'status' => 'published',
                 'changed_fields' => [],
             ],
 
@@ -407,7 +406,7 @@ it('surfaces public event change projections on member event record detail throu
             'severity' => EventChangeSeverity::High,
             'message' => 'Majlis pengganti pertama diganti pula.',
             'metadata' => [
-                'status' => EventChangeStatus::Published->value,
+                'status' => 'published',
                 'changed_fields' => [],
             ],
 
@@ -424,7 +423,7 @@ it('surfaces public event change projections on member event record detail throu
             'severity' => EventChangeSeverity::Info,
             'message' => 'Nota terkini untuk pautan lama.',
             'metadata' => [
-                'status' => EventChangeStatus::Published->value,
+                'status' => 'published',
                 'changed_fields' => ['title'],
             ],
 

@@ -53,6 +53,10 @@ The app's `AffiliatesShareTrackingService` no longer directly creates
 `AffiliateLink` or `AffiliateConversion` records. It delegates to:
 
 - `AIArmada\\Affiliates\\Actions\\Affiliates\\CreateTrackingLink`
+> This historical audit is superseded by `tasks/first-class-metadata-hard-cut-plan.md`.
+> Canonical affiliate fields use `subject_key`/`subject_id`; legacy aliases and
+> metadata dual-writes described in this document are forbidden.
+
 - `AIArmada\\Affiliates\\Actions\\Conversions\\RecordAffiliateOutcome`
 
 The package gained two generic seams:
@@ -68,7 +72,7 @@ existing Signals bridge emits the app-specific signal payload. This is an
 explicit adapter boundary, not a second conversion persistence path.
 
 Conversion records now use only the real package columns:
-`subject_type`, `subject_identifier`, `subject_instance`,
+`subject_type`, `subject_key`, `subject_id`, `subject_instance`,
 `subject_title_snapshot`, `external_reference`, `value_minor`, and the
 canonical lifecycle fields. Invalid conversion aliases such as
 `cart_identifier`, `cart_instance`, `order_reference`, and `total_minor` were

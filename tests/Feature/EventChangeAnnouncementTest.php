@@ -4,11 +4,7 @@ use AIArmada\Communications\Models\NotificationInbox;
 use AIArmada\Engagement\Contracts\EngagementManager;
 use App\Actions\Events\PublishEventChangeAnnouncement;
 use App\Enums\EventChangeSeverity;
-use App\Enums\EventChangeStatus;
 use App\Enums\EventChangeType;
-use App\Enums\NotificationPriority;
-use App\Enums\NotificationTrigger;
-use App\Enums\ScheduleState;
 use App\Models\Event;
 use App\Models\EventChangeAnnouncement;
 use App\Models\Institution;
@@ -57,10 +53,10 @@ it('publishes cancellation announcements and notifies committed users only once'
     $event->refresh();
 
     expect((string) $event->status)->toBe('cancelled')
-        ->and($event->schedule_state)->toBe(ScheduleState::Cancelled->value)
-        ->and(data_get($announcement->metadata, 'status'))->toBe(EventChangeStatus::Published->value)
+        ->and($announcement->published_at)->not->toBeNull()
+        ->and(data_get($announcement->metadata, 'status'))->toBeNull()
         ->and($announcement->severity)->toBe(EventChangeSeverity::Urgent)
-        ->and(data_get($announcement->metadata, 'changed_fields'))->toContain('status', 'schedule_state');
+        ->and(data_get($announcement->metadata, 'changed_fields'))->toContain('status', 'occurrence_status');
 
     $notification = NotificationInbox::query()
         ->where('recipient_id', $committedUser->id)
@@ -121,7 +117,7 @@ it('blocks registration calendar and check-in surfaces for unknown postponements
 
     $event->refresh();
 
-    expect($event->schedule_state)->toBe(ScheduleState::Postponed->value);
+    expect((string) $event->primaryOccurrence?->status)->toBe('postponed');
 
     $this->get(route('events.show', $event))
         ->assertOk()
@@ -432,7 +428,7 @@ it('prefers the newest replacement announcement when published timestamps tie', 
             'severity' => EventChangeSeverity::High,
             'message' => 'Pengganti pertama.',
             'metadata' => [
-                'status' => EventChangeStatus::Published->value,
+                'status' => 'published',
             ],
 
             'published_at' => $publishedAt,
@@ -450,7 +446,7 @@ it('prefers the newest replacement announcement when published timestamps tie', 
             'severity' => EventChangeSeverity::High,
             'message' => 'Pengganti kedua.',
             'metadata' => [
-                'status' => EventChangeStatus::Published->value,
+                'status' => 'published',
             ],
 
             'published_at' => $publishedAt,
@@ -489,7 +485,7 @@ it('eager loads latest published announcement relations without aggregating uuid
             'severity' => EventChangeSeverity::High,
             'message' => 'Versi awal.',
             'metadata' => [
-                'status' => EventChangeStatus::Published->value,
+                'status' => 'published',
             ],
 
             'published_at' => $publishedAt,
@@ -507,7 +503,7 @@ it('eager loads latest published announcement relations without aggregating uuid
             'severity' => EventChangeSeverity::High,
             'message' => 'Versi pengganti terkini.',
             'metadata' => [
-                'status' => EventChangeStatus::Published->value,
+                'status' => 'published',
             ],
 
             'published_at' => $publishedAt,
@@ -525,7 +521,7 @@ it('eager loads latest published announcement relations without aggregating uuid
             'severity' => EventChangeSeverity::High,
             'message' => 'Incoming awal.',
             'metadata' => [
-                'status' => EventChangeStatus::Published->value,
+                'status' => 'published',
             ],
 
             'published_at' => $publishedAt,
@@ -543,7 +539,7 @@ it('eager loads latest published announcement relations without aggregating uuid
             'severity' => EventChangeSeverity::High,
             'message' => 'Incoming terkini.',
             'metadata' => [
-                'status' => EventChangeStatus::Published->value,
+                'status' => 'published',
             ],
 
             'published_at' => $publishedAt,
@@ -589,7 +585,7 @@ it('loads the public events index when listed events have published change annou
             'severity' => EventChangeSeverity::High,
             'message' => 'Masa majlis dikemas kini.',
             'metadata' => [
-                'status' => EventChangeStatus::Published->value,
+                'status' => 'published',
             ],
 
             'published_at' => $publishedAt,
@@ -643,7 +639,6 @@ it('does not send reminders for unknown postponed events using their last known 
     $goingUser = User::factory()->create();
     $event = eventChangeApprovedEvent([
         'title' => 'Kuliah Ditangguh Hampir',
-        'schedule_state' => ScheduleState::Postponed,
         'starts_at' => $now->addHours(2),
         'ends_at' => $now->addHours(4),
     ]);
@@ -695,7 +690,6 @@ function eventChangeApprovedEvent(array $attributes = []): Event
     return Event::factory()->create(array_replace([
         'status' => 'approved',
         'visibility' => 'public',
-        'schedule_state' => ScheduleState::Active,
         'starts_at' => now()->addDays(7),
         'ends_at' => now()->addDays(7)->addHours(2),
         'timezone' => 'Asia/Kuala_Lumpur',

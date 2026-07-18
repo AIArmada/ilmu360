@@ -1,5 +1,6 @@
 <?php
 
+use AIArmada\Engagement\Contracts\EngagementCounterService;
 use App\Models\Event;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -14,7 +15,6 @@ it('toggles event saves via livewire actions', function () {
         'visibility' => 'public',
         'published_at' => now(),
         'starts_at' => now()->addDays(7),
-        'saves_count' => 0,
     ]);
 
     $component = Livewire::actingAs($user)
@@ -43,8 +43,7 @@ it('toggles event saves via livewire actions', function () {
         'status' => 'active',
     ]);
 
-    $event->refresh();
-    expect($event->saves_count)->toBe(0);
+    expect(app(EngagementCounterService::class)->countBookmarks($event))->toBe(0);
 });
 
 it('toggles event saves from the events index cards', function () {
@@ -54,7 +53,6 @@ it('toggles event saves from the events index cards', function () {
         'visibility' => 'public',
         'published_at' => now(),
         'starts_at' => now()->addDays(7),
-        'saves_count' => 0,
     ]);
 
     $component = Livewire::actingAs($user)
@@ -80,6 +78,5 @@ it('toggles event saves from the events index cards', function () {
         'status' => 'active',
     ]);
 
-    $event->refresh();
-    expect($event->saves_count)->toBe(0);
+    expect(app(EngagementCounterService::class)->countBookmarks($event))->toBe(0);
 });

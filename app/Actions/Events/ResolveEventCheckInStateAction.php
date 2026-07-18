@@ -3,7 +3,6 @@
 namespace App\Actions\Events;
 
 use App\Enums\EventVisibility;
-use App\Enums\ScheduleState;
 use App\Models\Event;
 use App\Models\Registration;
 use App\Models\User;
@@ -33,7 +32,7 @@ final class ResolveEventCheckInStateAction
             ];
         }
 
-        if ($event->schedule_state === ScheduleState::Postponed) {
+        if ($event->primaryOccurrence && in_array((string) $event->primaryOccurrence->status, ['postponed', 'rescheduled'], true)) {
             return [
                 'available' => false,
                 'reason' => __('Tarikh majlis belum disahkan untuk check-in.'),

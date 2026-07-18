@@ -5,13 +5,16 @@ declare(strict_types=1);
 namespace App\Actions\Events;
 
 use AIArmada\Events\Actions\CreateEventSessionAction;
+use AIArmada\Events\Enums\ScheduleKind;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
 use App\Data\Events\ValidatedEventSubmission;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
+use App\Enums\EventPrayerTime;
 use App\Enums\EventVisibility;
+use App\Enums\TimingMode;
 use App\Models\Event;
 use App\Models\EventSubmission;
 use App\Models\Institution;
@@ -26,6 +29,7 @@ final readonly class PersistValidatedEventSubmissionAction
         private GenerateEventSlugAction $generateEventSlug,
         private EventKeyPersonSyncService $eventKeyPersonSync,
         private SyncEventClassificationsAction $syncClassifications,
+        private SyncEventScheduleAction $syncSchedule,
     ) {}
 
     /**
@@ -46,25 +50,41 @@ final readonly class PersistValidatedEventSubmissionAction
             ),
             'description' => $state['description'] ?? null,
             'timezone' => $submission->timezone,
-            'starts_at' => $submission->startsAt,
-            'ends_at' => $submission->endsAt,
             'institution_id' => $submission->targetInstitutionId,
             'venue_id' => $submission->targetVenueId,
-            'space_id' => $state['space_id'] ?? null,
             'gender' => $state['gender'] ?? EventGenderRestriction::All->value,
             'age_group' => $state['age_group'] ?? [EventAgeGroup::AllAges->value],
             'children_allowed' => $state['children_allowed'] ?? true,
             'is_muslim_only' => $state['is_muslim_only'] ?? false,
-            'timing_mode' => $submission->prayerTime?->isCustomTime() ? 'absolute' : 'prayer_relative',
-            'prayer_reference' => $submission->prayerReference,
-            'prayer_offset' => $submission->prayerOffset,
-            'prayer_display_text' => $submission->prayerDisplayText,
             'event_format' => $state['event_format'] ?? EventFormat::Physical->value,
             'event_url' => $state['event_url'] ?? null,
             'live_url' => $state['live_url'] ?? null,
             'visibility' => $state['visibility'] ?? EventVisibility::Public->value,
-            'submitter_id' => $submission->submitter?->getKey(),
         ], $submission->autoApproved ? ['status' => 'pending'] : []));
+
+        if (! $submission->eventContainer instanceof Event) {
+            $event->syncLocation(
+                $submission->targetVenueId,
+                is_string($state['space_id'] ?? null) ? $state['space_id'] : null,
+            );
+
+            $this->syncSchedule->execute(
+                event: $event,
+                scheduleKind: ScheduleKind::Single,
+                startsAt: $submission->startsAt,
+                endsAt: $submission->endsAt,
+                timezone: $submission->timezone,
+                timingMode: $submission->prayerTime instanceof EventPrayerTime
+                    && ! $submission->prayerTime->isCustomTime()
+                    ? TimingMode::PrayerRelative
+                    : TimingMode::Absolute,
+                prayerReference: $submission->prayerReference,
+                prayerOffset: $submission->prayerOffset !== null
+                    ? (int) $submission->prayerOffset
+                    : null,
+                prayerDisplayText: $submission->prayerDisplayText,
+            );
+        }
 
         $session = null;
 
@@ -102,11 +122,13 @@ final readonly class PersistValidatedEventSubmissionAction
             $institution = Institution::query()->find($event->institution_id);
 
             if ($institution instanceof Institution && ! $institution->spaces()->where('spaces.id', $state['space_id'])->exists()) {
-                $institution->spaces()->attach($state['space_id']);
+                throw ValidationException::withMessages([
+                    'space_id' => __('Ruang yang dipilih tidak tersedia untuk institusi ini.'),
+                ]);
             }
         }
 
-        $this->eventKeyPersonSync->sync($event, $state['speakers'] ?? [], $state['other_key_people'] ?? []);
+        $this->eventKeyPersonSync->sync($event, $state['speakers'] ?? [], $this->canonicalKeyPeople($state['other_key_people'] ?? []));
 
         if (! empty($state['languages'])) {
             $event->syncLanguages($state['languages']);
@@ -133,5 +155,22 @@ final readonly class PersistValidatedEventSubmissionAction
         ]);
 
         return ['event' => $event, 'session' => $session, 'submission' => $eventSubmission];
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function canonicalKeyPeople(mixed $rows): array
+    {
+        if (! is_array($rows)) {
+            return [];
+        }
+
+        return collect($rows)->filter('is_array')->map(static fn (array $row): array => [
+            'role_code' => $row['role_code'] ?? $row['role'] ?? null,
+            'involveable_type' => $row['involveable_type'] ?? (isset($row['speaker_id']) ? 'speaker' : null),
+            'involveable_id' => $row['involveable_id'] ?? $row['speaker_id'] ?? null,
+            'display_name' => $row['display_name'] ?? $row['name'] ?? null,
+            'visibility' => $row['visibility'] ?? ((bool) ($row['is_public'] ?? true) ? 'public' : 'private'),
+            'notes' => $row['notes'] ?? null,
+        ])->values()->all();
     }
 }

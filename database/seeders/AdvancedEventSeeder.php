@@ -3,17 +3,16 @@
 namespace Database\Seeders;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\Events\Models\EventOccurrence;
+use AIArmada\Events\Enums\ScheduleKind;
 use AIArmada\Events\Models\EventSession;
 use App\Actions\Events\SyncEventClassificationsAction;
+use App\Actions\Events\SyncEventScheduleAction;
 use App\Contracts\EventCategoryCatalog;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventVisibility;
-use App\Enums\ScheduleKind;
-use App\Enums\ScheduleState;
 use App\Enums\TimingMode;
 use App\Models\Event;
 use App\Models\Institution;
@@ -212,8 +211,6 @@ class AdvancedEventSeeder extends Seeder
 
         $event = Event::query()->create([
             'id' => (string) Str::uuid(),
-            'user_id' => null,
-            'submitter_id' => null,
             'institution_id' => $institution?->id,
             'default_venue_id' => null,
             'title' => $title,
@@ -231,7 +228,6 @@ class AdvancedEventSeeder extends Seeder
             'status' => 'approved',
             'published_at' => now()->subDay(),
             'schedule_kind' => $scheduleKind->value,
-            'schedule_state' => ScheduleState::Active->value,
             'timing_mode' => TimingMode::Absolute->value,
             'prayer_reference' => null,
             'prayer_offset' => null,
@@ -242,19 +238,19 @@ class AdvancedEventSeeder extends Seeder
             app(SyncEventClassificationsAction::class)->handle($event, ['event_category_ids' => [$categoryId]]);
         }
 
-        EventOccurrence::query()->create([
-            'id' => (string) Str::uuid(),
-            'event_id' => $event->id,
-            'title' => $event->title,
-            'slug' => $event->slug,
-            'starts_at' => $event->starts_at,
-            'ends_at' => $event->ends_at,
-            'timezone' => $event->timezone,
+        app(SyncEventScheduleAction::class)->execute(
+            event: $event,
+            scheduleKind: $scheduleKind,
+            startsAt: $startsAt,
+            endsAt: $endsAt,
+            timezone: $tz,
+            timingMode: TimingMode::Absolute,
+        );
+
+        $event->primaryOccurrence?->forceFill([
             'status' => 'published',
-            'visibility' => EventVisibility::Public->value,
-            'delivery_mode' => EventFormat::Physical->value,
             'published_at' => $event->published_at,
-        ]);
+        ])->save();
 
         $event->unsetRelation('primaryOccurrence');
 
@@ -269,9 +265,11 @@ class AdvancedEventSeeder extends Seeder
 
                 if (count($selected) > 1) {
                     $otherKeyPeople[] = [
-                        'role' => EventKeyPersonRole::Moderator->value,
-                        'speaker_id' => $selected[0],
-                        'is_public' => true,
+                        'role_code' => EventKeyPersonRole::Moderator->value,
+                        'involveable_type' => 'speaker',
+                        'involveable_id' => $selected[0],
+                        'display_name' => null,
+                        'visibility' => 'public',
                     ];
                 }
 

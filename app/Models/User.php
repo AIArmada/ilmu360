@@ -47,6 +47,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\Relations\MorphPivot;
@@ -136,11 +137,7 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
             $user->eventBookmarks()->delete();
             $user->responses()->where('response_type', 'going')->get()->each->delete();
 
-            $user->syncBookmarkCounts($savedEventIds);
-            $user->syncEventEngagementCounts($goingEventIds, 'responses', 'going_count');
-
-            $user->clearEventOwnership('user_id');
-            $user->clearEventOwnership('submitter_id');
+            $user->clearEventOwnership();
             $user->eventSubmissions()->update(['submitter_id' => null]);
             $user->contributionRequests()->update(['proposer_id' => null]);
             $user->reviewedContributionRequests()->update(['reviewer_id' => null]);
@@ -402,13 +399,13 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
      */
     protected function restoreManyToManyRelations(array $snapshot): void
     {
-        $savedEventIds = collect((array) ($snapshot['event_saves'] ?? []))
+        collect((array) ($snapshot['event_saves'] ?? []))
             ->pluck('bookmarkable_id')
             ->filter(fn (mixed $id): bool => is_string($id) || is_int($id))
             ->map(static fn (mixed $id): string => (string) $id)
             ->values()
             ->all();
-        $goingEventIds = $this->snapshotEventIds($snapshot, 'event_attendees');
+        $this->snapshotEventIds($snapshot, 'event_attendees');
 
         DB::table('institution_members')->insertOrIgnore($this->snapshotRows($snapshot, 'institution_members'));
         DB::table('speaker_members')->insertOrIgnore($this->snapshotRows($snapshot, 'speaker_members'));
@@ -481,10 +478,7 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
             });
         }
 
-        OwnerContext::withOwner(null, function () use ($savedEventIds, $goingEventIds): void {
-            $this->syncBookmarkCounts($savedEventIds);
-            $this->syncEventEngagementCounts($goingEventIds, 'responses', 'going_count');
-        });
+        OwnerContext::withOwner(null, function (): void {});
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
@@ -505,33 +499,11 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
     }
 
     /**
-     * @param  list<string>  $eventIds
-     */
-    private function syncEventEngagementCounts(array $eventIds, string $source, string $column): void
-    {
-        foreach ($eventIds as $eventId) {
-            $count = $source === 'responses'
-                ? Response::query()->where('respondable_id', $eventId)->where('response_type', 'going')->active()->count()
-                : (int) DB::table($source)->where('event_id', $eventId)->count();
-
-            $event = Event::query()->find($eventId);
-
-            if (! $event instanceof Event) {
-                continue;
-            }
-
-            $event->{$column} = $count;
-            $event->saveQuietly();
-        }
-    }
-
-    /**
      * @param  array<string, mixed>  $snapshot
      */
     protected function restoreReassignedRelations(array $snapshot): void
     {
-        $this->restoreEventOwnership('user_id', $this->snapshotIds($snapshot, 'owned_event_ids'));
-        $this->restoreEventOwnership('submitter_id', $this->snapshotIds($snapshot, 'submitted_event_ids'));
+        $this->restoreEventOwnership($this->snapshotIds($snapshot, 'owned_event_ids'));
         $this->restoreForeignKeyRelation('eventSubmissions', 'submitter_id', $this->snapshotIds($snapshot, 'event_submission_ids'));
         $this->restoreForeignKeyRelation('contributionRequests', 'proposer_id', $this->snapshotIds($snapshot, 'contribution_request_proposer_ids'));
         $this->restoreForeignKeyRelation('reviewedContributionRequests', 'reviewer_id', $this->snapshotIds($snapshot, 'contribution_request_reviewer_ids'));
@@ -631,9 +603,6 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
 
             $model->saveQuietly();
 
-            if ($relationName === 'registrations' && $model instanceof Registration) {
-                $model->syncPrimaryParticipantRecord();
-            }
         }
     }
 
@@ -669,35 +638,42 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
             ->update([$foreignKey => $this->id]);
     }
 
-    private function clearEventOwnership(string $foreignKey): void
+    private function clearEventOwnership(): void
     {
-        Event::query()
-            ->where($foreignKey, $this->id)
-            ->get()
-            ->each(function (Event $event) use ($foreignKey): void {
-                $event->{$foreignKey} = null;
-                $event->saveQuietly();
-            });
+        OwnerContext::withOwner($this, function (): void {
+            Event::query()
+                ->where('owner_type', $this->getMorphClass())
+                ->where('owner_id', $this->id)
+                ->get()
+                ->each(function (Event $event): void {
+                    $event->owner_type = null;
+                    $event->owner_id = null;
+                    $event->saveQuietly();
+                });
+        });
     }
 
     /** @param array<int, string> $ids */
-    private function restoreEventOwnership(string $foreignKey, array $ids): void
+    private function restoreEventOwnership(array $ids): void
     {
         if ($ids === []) {
             return;
         }
 
-        Event::query()
-            ->whereKey($ids)
-            ->get()
-            ->each(function (Event $event) use ($foreignKey): void {
-                if ($event->{$foreignKey} !== null) {
-                    return;
-                }
+        OwnerContext::withOwner($this, function () use ($ids): void {
+            Event::query()
+                ->whereKey($ids)
+                ->get()
+                ->each(function (Event $event): void {
+                    if ($event->owner_id !== null) {
+                        return;
+                    }
 
-                $event->{$foreignKey} = $this->id;
-                $event->saveQuietly();
-            });
+                    $event->owner_type = $this->getMorphClass();
+                    $event->owner_id = $this->id;
+                    $event->saveQuietly();
+                });
+        });
     }
 
     private function pivotTimestamp(Model $model, string $attribute): ?string
@@ -971,11 +947,12 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
     }
 
     /**
-     * @return HasMany<Event, $this>
+     * @return HasManyThrough<Event, EventSubmission, $this>
      */
-    public function submittedEvents(): HasMany
+    public function submittedEvents(): HasManyThrough
     {
-        return $this->hasMany(Event::class, 'submitter_id');
+        return $this->hasManyThrough(Event::class, EventSubmission::class, 'submitter_id', 'id', 'id', 'event_id')
+            ->select((new Event)->getTable().'.*');
     }
 
     /**
@@ -1128,28 +1105,6 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
     /**
      * @param  list<string>  $eventIds
      */
-    public function syncBookmarkCounts(array $eventIds): void
-    {
-        $morphClass = (new Event)->getMorphClass();
-
-        foreach ($eventIds as $eventId) {
-            $count = Bookmark::query()
-                ->where('bookmarkable_type', $morphClass)
-                ->where('bookmarkable_id', $eventId)
-                ->active()
-                ->count();
-
-            $event = Event::query()->find($eventId);
-
-            if (! $event instanceof Event) {
-                continue;
-            }
-
-            $event->saves_count = $count;
-            $event->saveQuietly();
-        }
-    }
-
     /**
      * @return MorphToMany<Speaker, $this>
      */
@@ -1238,7 +1193,7 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
      */
     public function ownedEvents(): HasMany
     {
-        return $this->hasMany(Event::class);
+        return $this->hasMany(Event::class, 'owner_id')->where('owner_type', $this->getMorphClass());
     }
 
     /**

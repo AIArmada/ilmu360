@@ -4,7 +4,6 @@ namespace App\Models;
 
 use AIArmada\Events\Models\EventUpdate;
 use App\Enums\EventChangeSeverity;
-use App\Enums\EventChangeStatus;
 use App\Enums\EventChangeType;
 use Database\Factories\EventChangeAnnouncementFactory;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -91,7 +90,7 @@ class EventChangeAnnouncement extends EventUpdate
     protected function published(Builder $query): void
     {
         $query
-            ->where('metadata->status', EventChangeStatus::Published->value)
+            ->whereNotNull('published_at')
             ->whereNull('archived_at');
     }
 }

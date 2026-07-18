@@ -107,7 +107,7 @@ class InstitutionWorkspaceController extends FrontendController
                     'status' => (string) $event->status,
                     'visibility' => $this->enumValue($event->visibility),
                     'starts_at' => $this->optionalDateTimeString($event->starts_at),
-                    'registrations_count' => (int) ($event->registrations_count ?? 0),
+                    'registrations_count' => (int) ($event->workspace_registrations_count ?? 0),
                     'venue' => $event->venue?->only(['id', 'name']),
                 ])->all(),
                 'event_filters' => [

@@ -1,5 +1,9 @@
 # Lessons
 
+- Cross-repository Commerce audits must read and follow `/Users/Saiffil/Herd/commerce/AGENTS.md` in full before package discovery or edits; the package monorepo has stricter per-package context, ownership, PHP, testing, and verification rules than the application.
+
+- When auditing an app-to-package hard cut, answer the package-boundary question separately from implementation completeness: generic caller-provided extension points are safe, while app literals, app namespaces, product-specific relations, and app policy inside packages are the actual coupling risks.
+
 - Package model relations must be overridden in app subclasses when package polymorphic relations hydrate the base package model; otherwise app-only relations disappear from views.
 - Do not resurrect removed scoped-role, Spatie tag, notification-destination, or event-submission fields to satisfy stale tests; migrate assertions to current package contracts or remove legacy-only coverage.
 - Owner-protected public Livewire components need explicit global owner context across deferred form/media hydration, not only during mount callbacks.

@@ -2,6 +2,7 @@
 
 namespace App\Actions\Events;
 
+use AIArmada\Engagement\Contracts\EngagementCounterService;
 use App\Models\Event;
 use App\Models\User;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -11,7 +12,7 @@ final readonly class RemoveEventGoingAction
     use AsAction;
 
     public function __construct(
-        private SyncEventGoingCountAction $syncEventGoingCount,
+        private EngagementCounterService $engagementCounter,
     ) {}
 
     /**
@@ -37,9 +38,11 @@ final readonly class RemoveEventGoingAction
             $user->cancelResponse($event);
         }
 
+        $this->engagementCounter->recalculateResponses($event, 'going');
+
         return [
             'deleted' => $deleted,
-            'going_count' => $this->syncEventGoingCount->handle($event),
+            'going_count' => $this->engagementCounter->value($event, 'responses', 'going'),
         ];
     }
 }

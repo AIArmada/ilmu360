@@ -24,7 +24,6 @@ trait AuditsModelChanges
     protected array $attributeModifiers = [
         'password' => FixedValueRedactor::class,
         'remember_token' => FixedValueRedactor::class,
-        'checkin_token' => FixedValueRedactor::class,
         'token' => FixedValueRedactor::class,
     ];
 

@@ -70,7 +70,7 @@
     };
 
     $resolveKeyPersonRoleLabel = static function (\App\Models\EventKeyPerson $keyPerson): string {
-        $role = $keyPerson->role;
+        $role = $keyPerson->role_code;
 
         if ($role instanceof \App\Enums\EventKeyPersonRole) {
             return $role->getLabel();

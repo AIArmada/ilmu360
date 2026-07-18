@@ -43,7 +43,6 @@ final readonly class CompleteFrontendEventSubmissionAction
             request: $request,
             metadata: [
                 'submission_id' => $submission->getKey(),
-                'submitted_by' => $submission->submitter_id,
             ],
         );
 

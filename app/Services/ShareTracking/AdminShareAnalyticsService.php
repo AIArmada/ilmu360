@@ -106,17 +106,17 @@ final readonly class AdminShareAnalyticsService
         $links = AffiliateLink::query()->withoutGlobalScope(OwnerScope::class)->latest('updated_at')->get();
         $landingAttributions = AffiliateAttribution::query()
             ->withoutGlobalScope(OwnerScope::class)
-            ->where('metadata->tracking_mode', 'landing')
+            ->where('attribution_type', 'landing')
             ->latest('last_seen_at')
             ->get();
         $outboundShares = AffiliateTouchpoint::query()
             ->withoutGlobalScope(OwnerScope::class)
-            ->where('metadata->event_type', 'outbound_share')
+            ->where('touchpoint_type', 'outbound_share')
             ->latest('touched_at')
             ->get();
         $visits = AffiliateTouchpoint::query()
             ->withoutGlobalScope(OwnerScope::class)
-            ->where('metadata->event_type', 'visit')
+            ->where('touchpoint_type', 'visit')
             ->latest('touched_at')
             ->get();
         $conversions = AffiliateConversion::query()
@@ -204,10 +204,10 @@ final readonly class AdminShareAnalyticsService
     ): array {
         return $this->providersForBreakdown($outboundShares, $visits, $landingAttributions, $conversions)
             ->map(function (string $provider) use ($outboundShares, $visits, $landingAttributions, $conversions): array {
-                $providerOutbound = $outboundShares->filter(fn (AffiliateTouchpoint $touchpoint): bool => data_get($touchpoint->metadata, 'provider') === $provider);
-                $providerVisits = $visits->filter(fn (AffiliateTouchpoint $touchpoint): bool => data_get($touchpoint->metadata, 'share_provider') === $provider);
-                $providerAttributions = $landingAttributions->filter(fn (AffiliateAttribution $attribution): bool => data_get($attribution->metadata, 'share_provider') === $provider);
-                $providerConversions = $conversions->filter(fn (AffiliateConversion $conversion): bool => data_get($conversion->metadata, 'share_provider') === $provider);
+                $providerOutbound = $outboundShares->filter(fn (AffiliateTouchpoint $touchpoint): bool => $touchpoint->channel === $provider);
+                $providerVisits = $visits->filter(fn (AffiliateTouchpoint $touchpoint): bool => $touchpoint->channel === $provider);
+                $providerAttributions = $landingAttributions->filter(fn (AffiliateAttribution $attribution): bool => $attribution->channel === $provider);
+                $providerConversions = $conversions->filter(fn (AffiliateConversion $conversion): bool => $conversion->channel === $provider);
 
                 return [
                     'provider' => $provider,
@@ -247,10 +247,10 @@ final readonly class AdminShareAnalyticsService
         Collection $conversions,
     ): Collection {
         return collect($this->shareTrackingService->supportedProviders())
-            ->merge($outboundShares->pluck('metadata.provider'))
-            ->merge($visits->pluck('metadata.share_provider'))
-            ->merge($landingAttributions->pluck('metadata.share_provider'))
-            ->merge($conversions->pluck('metadata.share_provider'))
+            ->merge($outboundShares->pluck('channel'))
+            ->merge($visits->pluck('channel'))
+            ->merge($landingAttributions->pluck('channel'))
+            ->merge($conversions->pluck('channel'))
             ->filter(fn (mixed $provider): bool => is_string($provider) && $provider !== '')
             ->unique()
             ->values();
@@ -341,12 +341,12 @@ final readonly class AdminShareAnalyticsService
         int $limit,
     ): array {
         $affiliatesById = $affiliates->keyBy('id');
-        $visitCountsByLink = $visits->groupBy(fn (AffiliateTouchpoint $touchpoint): string => (string) data_get($touchpoint->metadata, 'link_id'))->map->count();
-        $outboundCountsByLink = $outboundShares->groupBy(fn (AffiliateTouchpoint $touchpoint): string => (string) data_get($touchpoint->metadata, 'link_id'))->map->count();
-        $uniqueVisitorsByLink = $landingAttributions->groupBy(fn (AffiliateAttribution $attribution): string => (string) data_get($attribution->metadata, 'link_id'))->map(
+        $visitCountsByLink = $visits->groupBy(fn (AffiliateTouchpoint $touchpoint): string => (string) $touchpoint->affiliate_link_id)->map->count();
+        $outboundCountsByLink = $outboundShares->groupBy(fn (AffiliateTouchpoint $touchpoint): string => (string) $touchpoint->affiliate_link_id)->map->count();
+        $uniqueVisitorsByLink = $landingAttributions->groupBy(fn (AffiliateAttribution $attribution): string => (string) $attribution->affiliate_link_id)->map(
             fn (Collection $linkAttributions): int => $linkAttributions->pluck('cookie_value')->filter()->unique()->count(),
         );
-        $conversionsByLink = $conversions->groupBy(fn (AffiliateConversion $conversion): string => (string) data_get($conversion->metadata, 'link_id'));
+        $conversionsByLink = $conversions->groupBy(fn (AffiliateConversion $conversion): string => (string) $conversion->affiliate_link_id);
 
         return $links
             ->map(function (AffiliateLink $link) use ($affiliatesById, $users, $visitCountsByLink, $outboundCountsByLink, $uniqueVisitorsByLink, $conversionsByLink): array {
@@ -399,10 +399,10 @@ final readonly class AdminShareAnalyticsService
                 $user = $affiliate instanceof Affiliate ? $users->get($this->userIdForAffiliate($affiliate)) : null;
 
                 return [
-                    'visited_url' => (string) data_get($visit->metadata, 'visited_url', ''),
-                    'provider' => $this->providerLabel((string) data_get($visit->metadata, 'share_provider', 'direct')),
-                    'visit_kind' => str((string) data_get($visit->metadata, 'visit_kind', 'visit'))->replace('_', ' ')->headline()->toString(),
-                    'visitor_key' => data_get($visit->metadata, 'visitor_key'),
+                    'visited_url' => (string) ($visit->url ?? ''),
+                    'provider' => $this->providerLabel((string) ($visit->channel ?? 'direct')),
+                    'visit_kind' => str((string) ($visit->interaction_type ?? 'visit'))->replace('_', ' ')->headline()->toString(),
+                    'visitor_key' => $visit->visitor_key,
                     'sharer_name' => $user instanceof User ? $user->name : $affiliate?->name,
                     'occurred_at' => $visit->touched_at?->toDateTimeString(),
                 ];
@@ -429,8 +429,8 @@ final readonly class AdminShareAnalyticsService
 
                 return [
                     'conversion_type' => str((string) $conversion->conversion_type)->replace('_', ' ')->headline()->toString(),
-                    'subject_type' => str((string) ($conversion->subject_type ?: data_get($conversion->metadata, 'subject_type', 'page')))->headline()->toString(),
-                    'title_snapshot' => (string) (data_get($conversion->metadata, 'link_title_snapshot') ?: $conversion->subject_title_snapshot ?: config('app.name')),
+                    'subject_type' => str((string) ($conversion->subject_type ?? 'page'))->headline()->toString(),
+                    'title_snapshot' => (string) ($conversion->subject_title_snapshot ?: config('app.name')),
                     'sharer_name' => $user instanceof User ? $user->name : $affiliate?->name,
                     'occurred_at' => $conversion->occurred_at?->toDateTimeString(),
                 ];

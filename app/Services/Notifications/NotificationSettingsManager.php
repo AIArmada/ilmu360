@@ -12,6 +12,7 @@ use App\Enums\NotificationTrigger;
 use App\Models\User;
 use App\Support\Notifications\NotificationCatalog;
 use App\Support\Notifications\ResolvedNotificationPolicy;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
@@ -571,7 +572,7 @@ class NotificationSettingsManager
             ->where('channel', $channel->value)
             ->where('status', 'active')
             ->orderByDesc('is_primary')
-            ->orderByDesc('verified_at')
+            ->orderByDesc('last_seen_at')
             ->get();
     }
 
@@ -602,20 +603,14 @@ class NotificationSettingsManager
             'push' => $destinations
                 ->where('channel', NotificationChannel::Push->value)
                 ->values()
-                ->map(function (CommunicationDestination $destination): array {
-                    $meta = is_array($destination->metadata) ? $destination->metadata : [];
-
-                    return [
-                        'id' => $destination->id,
-                        'installation_id' => $destination->address,
-                        'device_label' => (string) Arr::get($meta, 'device_label', __('notifications.destinations.unknown_device')),
-                        'platform' => (string) Arr::get($meta, 'platform', 'unknown'),
-                        'last_seen_at' => Arr::get($meta, 'last_seen_at'),
-                        'verified_at' => $destination->verified_at instanceof \DateTimeInterface
-                            ? $destination->verified_at->toIso8601String()
-                            : null,
-                    ];
-                })
+                ->map(fn (CommunicationDestination $destination): array => [
+                    'id' => $destination->id,
+                    'installation_id' => $destination->address,
+                    'device_label' => (string) ($destination->device_label ?? __('notifications.destinations.unknown_device')),
+                    'platform' => (string) ($destination->platform ?? 'unknown'),
+                    'last_seen_at' => $this->dateTimeToIso($destination->last_seen_at),
+                    'verified_at' => $this->dateTimeToIso($destination->verified_at),
+                ])
                 ->all(),
         ];
     }
@@ -726,6 +721,19 @@ class NotificationSettingsManager
             ->where('recipient_type', $user->getMorphClass())
             ->where('recipient_id', $user->getKey())
             ->whereNotNull('scope_type');
+    }
+
+    private function dateTimeToIso(mixed $value): ?string
+    {
+        if ($value instanceof \DateTimeInterface) {
+            return $value->toIso8601String();
+        }
+
+        if (is_string($value) && $value !== '') {
+            return CarbonImmutable::parse($value)->toIso8601String();
+        }
+
+        return null;
     }
 
     /**

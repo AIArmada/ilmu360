@@ -201,20 +201,8 @@ class GenerateEventSlugAction
         return $matchingEvents->count() + 1;
     }
 
-    private function slugDateForEvent(Event $event): CarbonInterface|string|null
+    private function slugDateForEvent(Event $event): ?CarbonInterface
     {
-        $metadataStartsAt = is_array($event->metadata)
-            ? ($event->metadata['starts_at'] ?? null)
-            : null;
-
-        if ($metadataStartsAt instanceof CarbonInterface) {
-            return $metadataStartsAt;
-        }
-
-        if (is_string($metadataStartsAt) && trim($metadataStartsAt) !== '') {
-            return $metadataStartsAt;
-        }
-
         return $event->starts_at;
     }
 

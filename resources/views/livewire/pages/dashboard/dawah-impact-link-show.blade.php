@@ -307,8 +307,8 @@
                                             <p class="text-sm font-semibold text-slate-900 break-all">{{ $visit->visited_url }}</p>
                                             <p class="mt-1 text-xs text-slate-500">
                                                 {{ __('Visitor key') }}: {{ $visit->visitor_key }}
-                                                @if(filled(data_get($visit->metadata, 'share_provider')))
-                                                    <span class="ml-2">{{ __('Channel') }}: {{ str((string) data_get($visit->metadata, 'share_provider'))->headline()->toString() }}</span>
+                                                @if(filled($visit->channel))
+                                                    <span class="ml-2">{{ __('Channel') }}: {{ str((string) $visit->channel)->headline()->toString() }}</span>
                                                 @endif
                                             </p>
                                         </div>

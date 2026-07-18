@@ -96,7 +96,6 @@ it('loads the featured events component with upcoming events', function () {
         'status' => 'approved',
         'visibility' => 'public',
         'starts_at' => now()->addDays(3),
-        'views_count' => 100,
     ]);
 
     Livewire::test('home.featured-events')
@@ -109,7 +108,6 @@ it('uses a 16:9 placeholder aspect ratio on featured home cards without posters'
         'status' => 'approved',
         'visibility' => 'public',
         'starts_at' => now()->addDays(3),
-        'views_count' => 100,
     ]);
 
     Livewire::test('home.featured-events')
@@ -123,7 +121,6 @@ it('renders the featured homepage card date badge below the poster image', funct
         'status' => 'approved',
         'visibility' => 'public',
         'starts_at' => now()->addDays(3),
-        'views_count' => 120,
     ]);
 
     Livewire::test('home.featured-events')
@@ -241,7 +238,6 @@ it('renders the attached book title across homepage event components without par
         'status' => 'approved',
         'visibility' => 'public',
         'starts_at' => now()->addDay(),
-        'views_count' => 150,
     ]);
 
     $tonightEvent = Event::factory()->create([

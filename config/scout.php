@@ -234,8 +234,6 @@ return [
                         ['name' => 'bilal_ids', 'type' => 'string[]', 'optional' => true, 'facet' => true],
                         ['name' => 'starts_at', 'type' => 'int64'],
                         ['name' => 'ends_at', 'type' => 'int64', 'optional' => true],
-                        ['name' => 'saves_count', 'type' => 'int32', 'optional' => true],
-                        ['name' => 'registrations_count', 'type' => 'int32', 'optional' => true],
                         ['name' => 'location', 'type' => 'geopoint', 'optional' => true],
                     ],
                     'default_sorting_field' => 'starts_at',

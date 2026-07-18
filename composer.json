@@ -93,7 +93,12 @@
         "psr-4": {
             "App\\": "app/",
             "Database\\Factories\\": "database/factories/",
-            "Database\\Seeders\\": "database/seeders/"
+            "Database\\Seeders\\": "database/seeders/",
+            "AIArmada\\Events\\Database\\Factories\\": "vendor/aiarmada/events/database/factories/",
+            "AIArmada\\Engagement\\Database\\Factories\\": "vendor/aiarmada/engagement/database/factories/",
+            "AIArmada\\Communications\\Database\\Factories\\": "vendor/aiarmada/communications/database/factories/",
+            "AIArmada\\References\\Database\\Factories\\": "vendor/aiarmada/references/database/factories/",
+            "AIArmada\\Affiliates\\Database\\Factories\\": "vendor/aiarmada/affiliates/database/factories/"
         }
     },
     "autoload-dev": {

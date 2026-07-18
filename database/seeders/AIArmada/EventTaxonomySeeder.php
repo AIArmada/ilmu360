@@ -7,20 +7,21 @@ namespace Database\Seeders\AIArmada;
 use AIArmada\Events\Models\EventClassification;
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
+use App\Models\EventTermPolicy;
 use App\Services\EventCategoryCatalog;
 use Illuminate\Database\Seeder;
 
 final class EventTaxonomySeeder extends Seeder
 {
-    /** @var array<string, array{label: string, terms: array<string, array{label: string, metadata?: array<string, bool>}>}> */
+    /** @var array<string, array{label: string, terms: array<string, array{label: string, policies?: list<string>}>}> */
     private const array CATEGORIES = [
         'ilmu' => ['label' => 'Ilmu', 'terms' => [
-            'kuliah_ceramah' => ['label' => 'Kuliah / Ceramah', 'metadata' => ['requires_speaker' => true]],
-            'kelas_daurah' => ['label' => 'Kelas / Daurah', 'metadata' => ['requires_speaker' => true]],
-            'talim' => ['label' => "Ta'lim", 'metadata' => ['requires_speaker' => true]],
-            'forum' => ['label' => 'Forum', 'metadata' => ['requires_speaker' => true]],
-            'seminar_konvensyen' => ['label' => 'Seminar / Konvensyen', 'metadata' => ['requires_speaker' => true]],
-            'tazkirah' => ['label' => 'Tazkirah', 'metadata' => ['requires_speaker' => true]],
+            'kuliah_ceramah' => ['label' => 'Kuliah / Ceramah', 'policies' => ['requires_speaker']],
+            'kelas_daurah' => ['label' => 'Kelas / Daurah', 'policies' => ['requires_speaker']],
+            'talim' => ['label' => "Ta'lim", 'policies' => ['requires_speaker']],
+            'forum' => ['label' => 'Forum', 'policies' => ['requires_speaker']],
+            'seminar_konvensyen' => ['label' => 'Seminar / Konvensyen', 'policies' => ['requires_speaker']],
+            'tazkirah' => ['label' => 'Tazkirah', 'policies' => ['requires_speaker']],
             'khutbah_jumaat' => ['label' => 'Khutbah Jumaat'],
         ]],
         'ibadah' => ['label' => 'Ibadah', 'terms' => [
@@ -40,12 +41,12 @@ final class EventTaxonomySeeder extends Seeder
             'hafazan_quran' => ['label' => 'Hafazan Al-Quran'],
         ]],
         'komuniti' => ['label' => 'Komuniti', 'terms' => [
-            'gotong_royong' => ['label' => 'Gotong Royong', 'metadata' => ['requires_physical_delivery' => true]],
-            'kenduri' => ['label' => 'Kenduri', 'metadata' => ['requires_physical_delivery' => true]],
-            'iftar' => ['label' => 'Iftar / Berbuka Puasa', 'metadata' => ['requires_physical_delivery' => true]],
-            'sahur' => ['label' => 'Sahur', 'metadata' => ['requires_physical_delivery' => true]],
-            'korban' => ['label' => 'Korban', 'metadata' => ['requires_physical_delivery' => true]],
-            'aqiqah' => ['label' => 'Aqiqah', 'metadata' => ['requires_physical_delivery' => true]],
+            'gotong_royong' => ['label' => 'Gotong Royong', 'policies' => ['requires_physical_delivery']],
+            'kenduri' => ['label' => 'Kenduri', 'policies' => ['requires_physical_delivery']],
+            'iftar' => ['label' => 'Iftar / Berbuka Puasa', 'policies' => ['requires_physical_delivery']],
+            'sahur' => ['label' => 'Sahur', 'policies' => ['requires_physical_delivery']],
+            'korban' => ['label' => 'Korban', 'policies' => ['requires_physical_delivery']],
+            'aqiqah' => ['label' => 'Aqiqah', 'policies' => ['requires_physical_delivery']],
         ]],
         'lain_lain' => ['label' => 'Lain-lain', 'terms' => [
             'other' => ['label' => 'Lain-lain'],
@@ -64,6 +65,8 @@ final class EventTaxonomySeeder extends Seeder
             ],
         );
 
+        $policies = [];
+
         $rootOrder = 0;
 
         foreach (self::CATEGORIES as $rootCode => $rootDefinition) {
@@ -74,24 +77,32 @@ final class EventTaxonomySeeder extends Seeder
                     'name' => $rootDefinition['label'],
                     'sort_order' => $rootOrder++,
                     'is_active' => true,
-                    'metadata' => ['selectable' => true],
                 ],
             );
 
             $termOrder = 0;
             foreach ($rootDefinition['terms'] as $code => $definition) {
-                EventTerm::query()->updateOrCreate(
+                $term = EventTerm::query()->updateOrCreate(
                     ['event_taxonomy_id' => $taxonomy->id, 'code' => $code],
                     [
                         'parent_id' => $root->id,
                         'name' => $definition['label'],
                         'sort_order' => $termOrder++,
                         'is_active' => true,
-                        'metadata' => ['selectable' => true, ...($definition['metadata'] ?? [])],
                     ],
                 );
+
+                foreach ($definition['policies'] ?? [] as $policyCode) {
+                    $policies[] = [
+                        'event_term_id' => (string) $term->getKey(),
+                        'policy_code' => $policyCode,
+                        'is_enabled' => true,
+                    ];
+                }
             }
         }
+
+        EventTermPolicy::query()->upsert($policies, ['event_term_id', 'policy_code'], ['is_enabled']);
 
         $legacyTaxonomyIds = EventTaxonomy::query()
             ->where('code', 'event_type')
@@ -111,20 +122,5 @@ final class EventTaxonomySeeder extends Seeder
                 ->delete();
         }
 
-        // Old EventType terms can outlive their taxonomy because the package
-        // intentionally does not add database foreign-key cascades.
-        $legacyTermIds = EventTerm::query()
-            ->whereNotNull('metadata->group')
-            ->pluck('id');
-
-        if ($legacyTermIds->isNotEmpty()) {
-            EventClassification::query()
-                ->whereIn('event_term_id', $legacyTermIds)
-                ->delete();
-
-            EventTerm::query()
-                ->whereIn('id', $legacyTermIds)
-                ->delete();
-        }
     }
 }

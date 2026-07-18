@@ -951,7 +951,7 @@
                                             : ($eventChangeBadgeLabel ?? __('Confirmed'));
                                         $statusBadgeClass = $event->status instanceof \App\States\EventStatus\Pending
                                             ? 'border-amber-100 bg-amber-50 text-amber-700'
-                                            : ($event->schedule_state === \App\Enums\ScheduleState::Postponed || $event->status instanceof \App\States\EventStatus\Cancelled
+                                            : (($event->primaryOccurrence && in_array((string) $event->primaryOccurrence->status, ['postponed', 'rescheduled'], true)) || $event->status instanceof \App\States\EventStatus\Cancelled
                                                 ? 'border-rose-100 bg-rose-50 text-rose-700'
                                                 : ($eventChangeBadgeLabel ? 'border-sky-100 bg-sky-50 text-sky-700' : 'border-emerald-100 bg-emerald-50 text-emerald-700'));
                                         $statusTimeLabel = $eventChangeBadgeLabel

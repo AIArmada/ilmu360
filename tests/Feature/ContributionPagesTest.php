@@ -912,11 +912,13 @@ it('normalizes submit-style organizer and location changes on the event update p
         ->assertHasNoErrors();
 
     $involvement = $event->fresh()->primaryOrganizerInvolvement;
+    $updatedEvent = $event->fresh();
+
     expect($involvement?->involveable_type)->toBe(Speaker::class)
         ->and($involvement?->involveable_id)->toBe((string) $speaker->getKey())
-        ->and($event->fresh()->institution_id)->toBeNull()
-        ->and($event->fresh()->venue_id)->toBe($venue->id)
-        ->and($event->fresh()->space_id)->toBeNull()
+        ->and($updatedEvent?->institution_id)->toBeNull()
+        ->and($updatedEvent?->venue_id)->toBe($venue->id)
+        ->and($updatedEvent?->primaryLocation?->venue_id)->toBe($venue->id)
         ->and(ContributionRequest::query()->count())->toBe(0);
 });
 

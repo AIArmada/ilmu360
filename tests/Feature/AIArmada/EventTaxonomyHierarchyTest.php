@@ -5,6 +5,7 @@ use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
 use App\Contracts\EventCategoryCatalog;
 use App\Contracts\EventCategoryPolicyResolver;
+use App\Models\EventTermPolicy;
 use Database\Seeders\AIArmada\EventTaxonomySeeder;
 use Database\Seeders\AIArmada\FoundationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -43,7 +44,7 @@ it('minimizes a parent and selected descendant to the parent', function (): void
     ]))->toBe([(string) $root->getKey()]);
 });
 
-it('applies child policy metadata when a parent category is selected', function (): void {
+it('applies child policy rows when a parent category is selected', function (): void {
     seed(FoundationSeeder::class);
 
     $catalog = app(EventCategoryCatalog::class);
@@ -91,19 +92,40 @@ it('hides an inactive taxonomy from active hierarchy reads', function (): void {
     expect(app(EventTaxonomyHierarchy::class)->options('event_category'))->toBe([]);
 });
 
-it('removes legacy event type terms when reseeding taxonomy data', function (): void {
+it('seeds policy rows for terms with requires_speaker', function (): void {
+    seed(FoundationSeeder::class);
+
+    $term = EventTerm::query()->where('code', 'kuliah_ceramah')->firstOrFail();
+
+    expect(EventTermPolicy::query()
+        ->where('event_term_id', (string) $term->getKey())
+        ->where('policy_code', 'requires_speaker')
+        ->where('is_enabled', true)
+        ->exists()
+    )->toBeTrue();
+});
+
+it('seeds policy rows for terms with requires_physical_delivery', function (): void {
+    seed(FoundationSeeder::class);
+
+    $term = EventTerm::query()->where('code', 'gotong_royong')->firstOrFail();
+
+    expect(EventTermPolicy::query()
+        ->where('event_term_id', (string) $term->getKey())
+        ->where('policy_code', 'requires_physical_delivery')
+        ->where('is_enabled', true)
+        ->exists()
+    )->toBeTrue();
+});
+
+it('removes legacy event type taxonomy when reseeding', function (): void {
     seed(FoundationSeeder::class);
 
     $legacyTaxonomy = EventTaxonomy::factory()->create(['code' => 'event_type']);
-    $legacyTerm = EventTerm::factory()->create([
-        'event_taxonomy_id' => $legacyTaxonomy->getKey(),
-        'metadata' => ['group' => 'Ilmu'],
-    ]);
 
     app(EventTaxonomySeeder::class)->run();
 
-    expect(EventTaxonomy::query()->whereKey($legacyTaxonomy->getKey())->exists())->toBeFalse()
-        ->and(EventTerm::query()->whereKey($legacyTerm->getKey())->exists())->toBeFalse();
+    expect(EventTaxonomy::query()->whereKey($legacyTaxonomy->getKey())->exists())->toBeFalse();
 });
 
 it('does not cross taxonomy boundaries through term relationships', function (): void {

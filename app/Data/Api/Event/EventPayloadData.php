@@ -3,6 +3,7 @@
 namespace App\Data\Api\Event;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Events\Models\VenueSpace;
 use App\Data\Api\Frontend\Search\ReferenceDetailMediaData;
 use App\Enums\EventChangeSeverity;
 use App\Enums\EventChangeType;
@@ -40,6 +41,8 @@ class EventPayloadData extends Data
             'latestPublishedChangeAnnouncement.replacementEvent',
             'latestPublishedReplacementAnnouncement.replacementEvent',
             'publishedChangeAnnouncements.replacementEvent',
+            'primaryLocation.venueSpace',
+            'keyPeople.speaker',
         ]);
 
         /** @var array<string, mixed> $payload */
@@ -48,8 +51,7 @@ class EventPayloadData extends Data
             'institution_id' => $event->institution_id,
             'venue_id' => $event->default_venue_id,
             'schedule_kind' => $event->schedule_kind,
-            'schedule_state' => self::enumValue($event->schedule_state),
-            'timing_mode' => self::enumValue($event->timing_mode),
+            'timing_mode' => $event->isPrayerRelative() ? 'prayer_relative' : 'absolute',
             'prayer_reference' => self::enumValue($event->prayer_reference),
             'prayer_offset' => self::enumValue($event->prayer_offset),
             'prayer_display_text' => $event->prayer_display_text,
@@ -61,10 +63,6 @@ class EventPayloadData extends Data
             'event_url' => $event->event_url,
             'live_url' => $event->live_url,
             'recording_url' => $event->recording_url,
-            'views_count' => $event->views_count,
-            'saves_count' => $event->saves_count,
-            'registrations_count' => $event->registrations_count,
-            'going_count' => $event->going_count,
             'is_featured' => $event->is_featured,
             'published_at' => self::utcDateTimeString($event->published_at),
             'is_muslim_only' => $event->is_muslim_only,
@@ -102,6 +100,18 @@ class EventPayloadData extends Data
                 $event->institution,
                 is_array($payload['institution'] ?? null) ? $payload['institution'] : [],
             );
+
+            $space = $event->primaryLocation?->venueSpace;
+
+            if ($space instanceof VenueSpace) {
+                $payload['institution_space'] = [
+                    'id' => (string) $space->getKey(),
+                    'name' => $space->name,
+                    'capacity' => $space->capacity,
+                ];
+            } else {
+                $payload['institution_space'] = null;
+            }
         }
 
         if ($event->relationLoaded('speakers')) {
@@ -111,6 +121,17 @@ class EventPayloadData extends Data
                 ->map(fn (Speaker $speaker): array => EventSpeakerData::fromModel($speaker)->toArray())
                 ->values()
                 ->all();
+        }
+
+        if ($event->default_venue_id !== null && $event->primaryLocation?->venueSpace !== null) {
+            $space = $event->primaryLocation->venueSpace;
+            $payload['venue_space'] = [
+                'id' => (string) $space->getKey(),
+                'name' => $space->name,
+                'capacity' => $space->capacity,
+            ];
+        } else {
+            $payload['venue_space'] = null;
         }
 
         if ($event->relationLoaded('keyPeople')) {
@@ -222,8 +243,8 @@ class EventPayloadData extends Data
     {
         return [
             'id' => (string) $keyPerson->getKey(),
-            'role' => self::enumValue($keyPerson->role),
-            'name' => $keyPerson->name,
+            'role' => $keyPerson->role_code,
+            'name' => $keyPerson->display_name,
             'visibility' => $keyPerson->visibility,
             'sort_order' => $keyPerson->sort_order,
             'speaker' => $keyPerson->speaker instanceof Speaker

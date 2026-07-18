@@ -302,7 +302,7 @@
                                             </div>
 
                                             @if($eventChangeBadgeLabel)
-                                                <div class="absolute bottom-4 left-4 rounded-full {{ $event->schedule_state === \App\Enums\ScheduleState::Postponed ? 'bg-amber-600/92' : ($event->status instanceof \App\States\EventStatus\Cancelled ? 'bg-rose-600/92' : 'bg-sky-600/92') }} px-3 py-1 text-xs font-bold text-white shadow-lg">
+                                                <div class="absolute bottom-4 left-4 rounded-full {{ ($event->primaryOccurrence && in_array((string) $event->primaryOccurrence->status, ['postponed', 'rescheduled'], true)) ? 'bg-amber-600/92' : ($event->status instanceof \App\States\EventStatus\Cancelled ? 'bg-rose-600/92' : 'bg-sky-600/92') }} px-3 py-1 text-xs font-bold text-white shadow-lg">
                                                     {{ $eventChangeBadgeLabel }}
                                                 </div>
                                             @endif

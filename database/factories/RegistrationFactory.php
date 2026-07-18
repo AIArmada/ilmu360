@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
+use AIArmada\Contacting\Data\ContactMethodData;
 use AIArmada\Events\Database\Factories\EventRegistrationFactory as PackageEventRegistrationFactory;
 use App\Models\Event;
 use App\Models\Registration;
 use App\Models\User;
-use Illuminate\Support\Str;
 
 class RegistrationFactory extends PackageEventRegistrationFactory
 {
@@ -28,16 +28,6 @@ class RegistrationFactory extends PackageEventRegistrationFactory
             'status' => fake()->randomElement(['confirmed', 'cancelled', 'completed', 'no_show']),
             'source' => 'website',
             'total_participants' => 1,
-            'metadata' => array_filter([
-                'primary_participant' => array_filter([
-                    'name' => fake()->name(),
-                    'contact' => array_filter([
-                        'email' => fake()->optional()->safeEmail(),
-                        'phone' => fake()->optional()->phoneNumber(),
-                    ], static fn (mixed $value): bool => is_string($value) && $value !== ''),
-                ], static fn (mixed $value): bool => $value !== null && $value !== []),
-                'checkin_token' => fake()->boolean(10) ? Str::random(40) : null,
-            ], static fn (mixed $value): bool => $value !== null && $value !== []),
         ];
     }
 
@@ -48,34 +38,57 @@ class RegistrationFactory extends PackageEventRegistrationFactory
                 'registrant_type' => $user->getMorphClass(),
                 'registrant_id' => $user->getKey(),
             ])
-            ->afterMaking(function ($registration) use ($user): void {
+            ->afterCreating(function ($registration) use ($user): void {
                 if (! $registration instanceof Registration) {
                     return;
                 }
 
-                $registration->stagePrimaryParticipant($user->name, $user->email, $user->phone);
+                $this->persistPrimaryParticipant($registration, $user->name, $user->email, $user->phone);
             });
     }
 
     public function withPrimaryParticipant(string $name, ?string $email = null, ?string $phone = null): static
     {
-        return $this->afterMaking(function ($registration) use ($email, $name, $phone): void {
+        return $this->afterCreating(function ($registration) use ($email, $name, $phone): void {
             if (! $registration instanceof Registration) {
                 return;
             }
 
-            $registration->stagePrimaryParticipant($name, $email, $phone);
+            $this->persistPrimaryParticipant($registration, $name, $email, $phone);
         });
     }
 
-    public function withCheckinToken(?string $checkinToken = null): static
+    private function persistPrimaryParticipant(Registration $registration, string $name, ?string $email, ?string $phone): void
     {
-        return $this->afterMaking(function ($registration) use ($checkinToken): void {
-            if (! $registration instanceof Registration) {
-                return;
-            }
+        $participant = $registration->participants()->create([
+            'event_id' => $registration->event_id,
+            'event_occurrence_id' => $registration->event_occurrence_id,
+            'event_session_id' => $registration->event_session_id,
+            'participant_type' => $registration->registrant_type,
+            'participant_id' => $registration->registrant_id,
+            'name' => $name,
+            'is_primary' => true,
+            'is_purchaser' => true,
+            'status' => 'active',
+        ]);
 
-            $registration->setCheckinToken($checkinToken ?? Str::random(40));
-        });
+        if ($email !== null && $email !== '') {
+            $participant->addContactMethod(new ContactMethodData(
+                type: 'email',
+                purpose: 'general',
+                value: $email,
+                isPrimary: true,
+            ));
+        }
+
+        if ($phone !== null && $phone !== '') {
+            $participant->addContactMethod(new ContactMethodData(
+                type: 'phone',
+                purpose: 'general',
+                value: $phone,
+                countryCode: config('contacting.defaults.country_code', 'MY'),
+                isPrimary: true,
+            ));
+        }
     }
 }

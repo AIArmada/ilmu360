@@ -749,7 +749,7 @@ class EventSearchService
                     ->where('role_code', EventKeyPersonRole::PersonInCharge->value)
                     ->where(function (Builder $personInChargeQuery) use ($operator, $personInChargeSearch): void {
                         $personInChargeQuery
-                            ->where('metadata->name', $operator, "%{$personInChargeSearch}%")
+                            ->where('event_involvements.display_name', $operator, "%{$personInChargeSearch}%")
                             ->orWhereHas('speaker', function (Builder $speakerQuery) use ($operator, $personInChargeSearch): void {
                                 $speakerQuery
                                     ->where('speakers.name', $operator, "%{$personInChargeSearch}%")
@@ -815,8 +815,8 @@ class EventSearchService
 
         if ($prayerTime !== null && $timingMode !== TimingMode::Absolute->value) {
             $queryBuilder
-                ->where('timing_mode', TimingMode::PrayerRelative->value)
                 ->whereHas('timeExpressions', function (Builder $prayerQuery) use ($prayerTime): void {
+                    $prayerQuery->where('time_mode', TimingMode::PrayerRelative->value);
                     $prayerQuery->where('anchor_type', 'prayer');
 
                     $prayerQuery->where(function (Builder $inner) use ($prayerTime): void {
@@ -830,7 +830,11 @@ class EventSearchService
         }
 
         if ($timingMode !== null) {
-            $queryBuilder->where('timing_mode', $timingMode);
+            if ($timingMode === TimingMode::PrayerRelative->value) {
+                $queryBuilder->whereHas('timeExpressions', fn (Builder $timeQuery) => $timeQuery->where('time_mode', TimingMode::PrayerRelative->value));
+            } else {
+                $queryBuilder->whereDoesntHave('timeExpressions', fn (Builder $timeQuery) => $timeQuery->where('time_mode', TimingMode::PrayerRelative->value));
+            }
         }
 
         $startsTimeFrom = $this->normalizeTimeFilter($filters['starts_time_from'] ?? null);
@@ -936,7 +940,7 @@ class EventSearchService
                 $nestedQuery->orWhereHas('keyPeople', function (Builder $keyPeopleQuery) use ($speakerIds, $normalizedSearch, $operator): void {
                     $keyPeopleQuery->where(function (Builder $inner) use ($speakerIds, $normalizedSearch, $operator): void {
                         $inner
-                            ->where('metadata->name', $operator, "%{$normalizedSearch}%")
+                            ->where('event_involvements.display_name', $operator, "%{$normalizedSearch}%")
                             ->orWhereHas('speaker', fn (Builder $speakerQuery) => $speakerQuery
                                 ->where('name', $operator, "%{$normalizedSearch}%")
                                 ->orWhere('searchable_name', $operator, "%{$normalizedSearch}%")

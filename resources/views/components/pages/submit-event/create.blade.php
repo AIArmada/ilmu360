@@ -1952,21 +1952,21 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
         $submitter = $this->submitterUser();
 
         return $duplicateEvent->keyPeople
-            ->filter(fn (EventKeyPerson $keyPerson): bool => $keyPerson->role !== EventKeyPersonRole::Speaker)
+            ->filter(fn (EventKeyPerson $keyPerson): bool => $keyPerson->role_code !== EventKeyPersonRole::Speaker->value)
             ->map(function (EventKeyPerson $keyPerson) use ($access, $submitter): array {
-                $speakerId = is_string($keyPerson->speaker_id) && $access->canUseSpeaker($submitter, $keyPerson->speaker_id)
-                    ? $keyPerson->speaker_id
+                $speakerId = is_string($keyPerson->involveable_id) && $access->canUseSpeaker($submitter, $keyPerson->involveable_id)
+                    ? $keyPerson->involveable_id
                     : null;
 
                 $fallbackName = $speakerId === null
-                    ? (filled($keyPerson->name) ? (string) $keyPerson->name : $keyPerson->display_name)
+                    ? $keyPerson->display_name
                     : null;
 
                 return [
-                    'role' => $keyPerson->role instanceof EventKeyPersonRole ? $keyPerson->role->value : (string) $keyPerson->role,
+                    'role' => (string) $keyPerson->role_code,
                     'speaker_id' => $speakerId,
                     'name' => filled($fallbackName) ? (string) $fallbackName : null,
-                    'is_public' => (bool) $keyPerson->is_public,
+                    'is_public' => $keyPerson->visibility === 'public',
                     'notes' => filled($keyPerson->notes) ? (string) $keyPerson->notes : null,
                 ];
             })

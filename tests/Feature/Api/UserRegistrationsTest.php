@@ -41,7 +41,6 @@ test('authenticated user can list own registrations', function () {
         ->for($event)
         ->forRegistrant($user)
         ->withPrimaryParticipant('Ahmad Registrant', 'ahmad@example.test', '+60123456789')
-        ->withCheckinToken('checkin-token-123')
         ->create([
             'status' => 'confirmed',
         ]);
@@ -68,7 +67,6 @@ test('authenticated user can list own registrations', function () {
         ->assertJsonPath('data.0.email', 'ahmad@example.test')
         ->assertJsonPath('data.0.phone', '+60123456789')
         ->assertJsonPath('data.0.status', 'confirmed')
-        ->assertJsonPath('data.0.checkin_token', 'checkin-token-123')
         ->assertJsonPath('data.0.created_at', $registration->created_at?->toIso8601String())
         ->assertJsonPath('data.0.updated_at', $registration->updated_at?->toIso8601String())
         ->assertJsonPath('data.0.event.id', $event->id)

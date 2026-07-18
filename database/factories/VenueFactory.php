@@ -38,6 +38,7 @@ class VenueFactory extends PackageVenueFactory
         return [
             'name' => $name,
             'slug' => $slug,
+            'description' => fake()->optional()->paragraph(),
             'venue_type' => fake()->randomElement([
                 'dewan',
                 'auditorium',

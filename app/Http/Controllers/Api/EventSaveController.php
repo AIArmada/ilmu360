@@ -83,7 +83,6 @@ class EventSaveController extends Controller
 
         $created = $bookmark->wasRecentlyCreated;
         $savesCount = Bookmark::forBookmarkable($event)->active()->count();
-        $event->update(['saves_count' => $savesCount]);
 
         if ($created) {
             app(ShareTrackingService::class)->recordOutcome(
@@ -118,7 +117,6 @@ class EventSaveController extends Controller
         $wasSaved = Bookmark::forBookmarker($user)->forBookmarkable($event)->active()->exists();
         app(EngagementManager::class)->removeBookmark($user, $event);
         $savesCount = Bookmark::forBookmarkable($event)->active()->count();
-        $event->update(['saves_count' => $savesCount]);
 
         return response()->json([
             'message' => $wasSaved ? 'Event save removed successfully.' : 'Event was not saved.',

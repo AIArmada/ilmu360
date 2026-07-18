@@ -1,7 +1,6 @@
 <?php
 
 use App\Enums\EventChangeSeverity;
-use App\Enums\EventChangeStatus;
 use App\Enums\EventChangeType;
 use App\Enums\EventFormat;
 use App\Enums\EventKeyPersonRole;
@@ -875,7 +874,7 @@ it('serializes event change notices and latest reachable replacement targets on 
             'severity' => EventChangeSeverity::High,
             'message' => 'Sila rujuk majlis pengganti pertama.',
             'metadata' => [
-                'status' => EventChangeStatus::Published->value,
+                'status' => 'published',
                 'changed_fields' => [],
             ],
 
@@ -893,7 +892,7 @@ it('serializes event change notices and latest reachable replacement targets on 
             'severity' => EventChangeSeverity::High,
             'message' => 'Majlis pengganti pertama diganti pula.',
             'metadata' => [
-                'status' => EventChangeStatus::Published->value,
+                'status' => 'published',
                 'changed_fields' => [],
             ],
 
@@ -910,7 +909,7 @@ it('serializes event change notices and latest reachable replacement targets on 
             'severity' => EventChangeSeverity::Info,
             'message' => 'Nota terkini untuk pautan lama.',
             'metadata' => [
-                'status' => EventChangeStatus::Published->value,
+                'status' => 'published',
                 'changed_fields' => ['title'],
             ],
 

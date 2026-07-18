@@ -1179,7 +1179,6 @@ Supported sorts:
 - `ends_at`
 - `created_at`
 - `updated_at`
-- `views_count`
 
 Examples:
 

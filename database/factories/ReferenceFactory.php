@@ -38,6 +38,15 @@ class ReferenceFactory extends Factory
         ];
     }
 
+    public function part(?string $type = null): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'part_type' => $type ?? 'jilid',
+            'part_number' => fake()->randomDigitNotNull(),
+            'part_label' => null,
+        ]);
+    }
+
     /**
      * Create a pending (unverified) reference.
      */

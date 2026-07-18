@@ -3,6 +3,7 @@
 namespace App\Actions\Events;
 
 use AIArmada\Events\Enums\RegistrationMode;
+use AIArmada\Events\Enums\ScheduleKind;
 use AIArmada\Seating\Models\SeatMap;
 use App\Contracts\EventCategoryCatalog;
 use App\Contracts\EventCategoryPolicyResolver;
@@ -12,6 +13,7 @@ use App\Enums\EventGenderRestriction;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventPrayerTime;
 use App\Enums\EventVisibility;
+use App\Enums\TimingMode;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Series;
@@ -46,6 +48,7 @@ final readonly class SaveAdminEventAction
         return [
             'status' => 'draft',
             'timezone' => 'Asia/Kuala_Lumpur',
+            'schedule_kind' => ScheduleKind::Single->value,
             'prayer_time' => EventPrayerTime::LainWaktu->value,
             'event_format' => EventFormat::Physical->value,
             'visibility' => EventVisibility::Public->value,
@@ -78,12 +81,13 @@ final readonly class SaveAdminEventAction
      */
     public function formStateForRecord(Event $event): array
     {
-        $event->loadMissing(['references:id,title', 'series:id,title', 'classifications', 'keyPeople', 'languages:id,event_id', 'accessPolicy']);
+        $event->loadMissing(['references:id,title', 'series:id,title', 'classifications', 'keyPeople.speaker', 'languages:id,event_id', 'accessPolicy', 'primaryLocation.venueSpace']);
 
         $timeFields = AdminEventTimeMapper::injectFormTimeFields([
             'starts_at' => $event->starts_at?->toISOString(),
             'ends_at' => $event->ends_at?->toISOString(),
             'timezone' => $event->timezone,
+            'schedule_kind' => $event->schedule_kind instanceof ScheduleKind ? $event->schedule_kind->value : $event->schedule_kind,
             'timing_mode' => $event->timing_mode instanceof BackedEnum ? $event->timing_mode->value : $event->timing_mode,
             'prayer_reference' => $event->prayer_reference instanceof BackedEnum ? $event->prayer_reference->value : $event->prayer_reference,
             'prayer_offset' => $event->prayer_offset instanceof BackedEnum ? $event->prayer_offset->value : $event->prayer_offset,
@@ -116,7 +120,7 @@ final readonly class SaveAdminEventAction
             'primary_organizer_id' => $event->primaryOrganizerInvolvement?->involveable_id,
             'institution_id' => $event->institution_id,
             'venue_id' => $event->default_venue_id,
-            'space_id' => $event->space_id,
+            'space_id' => $event->primaryLocation?->venue_space_id,
             'languages' => $event->languages->pluck('id')->map(fn (mixed $id): int => (int) $id)->values()->all(),
             'domain_tags' => $groupedTerms->get('domain', collect())->pluck('event_term_id')->map(fn (mixed $id): string => (string) $id)->values()->all(),
             'discipline_tags' => $groupedTerms->get('discipline', collect())->pluck('event_term_id')->map(fn (mixed $id): string => (string) $id)->values()->all(),
@@ -125,17 +129,18 @@ final readonly class SaveAdminEventAction
             'references' => $event->references->pluck('id')->map(fn (mixed $id): string => (string) $id)->values()->all(),
             'series' => $event->series->pluck('id')->map(fn (mixed $id): string => (string) $id)->values()->all(),
             'speakers' => $event->keyPeople
-                ->where('role', EventKeyPersonRole::Speaker)
-                ->pluck('speaker_id')
+                ->where('role_code', EventKeyPersonRole::Speaker->value)
+                ->pluck('involveable_id')
                 ->filter(fn (mixed $speakerId): bool => is_string($speakerId) && $speakerId !== '')
                 ->values()
                 ->all(),
             'other_key_people' => $event->keyPeople
-                ->where('role', '!=', EventKeyPersonRole::Speaker)
+                ->where('role_code', '!=', EventKeyPersonRole::Speaker->value)
                 ->map(fn ($keyPerson): array => [
-                    'role' => $keyPerson->role instanceof BackedEnum ? $keyPerson->role->value : (string) $keyPerson->role,
-                    'speaker_id' => $keyPerson->speaker_id,
-                    'name' => $keyPerson->name,
+                    'role_code' => (string) $keyPerson->role_code,
+                    'involveable_type' => $keyPerson->involveable_type,
+                    'involveable_id' => $keyPerson->involveable_id,
+                    'display_name' => $keyPerson->display_name,
                     'visibility' => $keyPerson->visibility ?? 'public',
                     'notes' => $keyPerson->notes,
                 ])
@@ -175,16 +180,21 @@ final readonly class SaveAdminEventAction
             $creating ? 'draft' : (string) $event->status,
         );
 
+        $schedule = [
+            'starts_at' => $persistence['starts_at'] ?? null,
+            'ends_at' => $persistence['ends_at'] ?? null,
+            'timezone' => $this->normalizeRequiredString($state['timezone'] ?? $event->timezone, 'Asia/Kuala_Lumpur'),
+            'timing_mode' => $persistence['timing_mode'] ?? null,
+            'prayer_reference' => $persistence['prayer_reference'] ?? null,
+            'prayer_offset' => $persistence['prayer_offset'] ?? null,
+            'prayer_display_text' => $persistence['prayer_display_text'] ?? null,
+        ];
+        $scheduleKind = ScheduleKind::tryFrom((string) ($state['schedule_kind'] ?? $event->schedule_kind)) ?? ScheduleKind::Single;
+
         $attributes = [
             'title' => $this->normalizeRequiredString($state['title'] ?? $event->title, 'Event'),
             'description' => array_key_exists('description', $state) ? $state['description'] : $event->description,
-            'starts_at' => $persistence['starts_at'] ?? $event->starts_at,
-            'ends_at' => $persistence['ends_at'] ?? $event->ends_at,
-            'timezone' => $this->normalizeRequiredString($state['timezone'] ?? $event->timezone, 'Asia/Kuala_Lumpur'),
-            'timing_mode' => $persistence['timing_mode'] ?? $event->timing_mode,
-            'prayer_reference' => $persistence['prayer_reference'] ?? $event->prayer_reference,
-            'prayer_offset' => $persistence['prayer_offset'] ?? $event->prayer_offset,
-            'prayer_display_text' => $persistence['prayer_display_text'] ?? $event->prayer_display_text,
+            'timezone' => $schedule['timezone'],
             'gender' => $this->normalizeEnumValue(
                 $state['gender'] ?? $event->gender,
                 EventGenderRestriction::class,
@@ -216,7 +226,6 @@ final readonly class SaveAdminEventAction
             'recording_url' => $this->normalizeOptionalString($state['recording_url'] ?? $event->recording_url),
             'institution_id' => $institutionId,
             'venue_id' => $venueId,
-            'space_id' => $spaceId,
             'is_featured' => array_key_exists('is_featured', $state) ? (bool) $state['is_featured'] : (bool) $event->is_featured,
             'status' => $creating ? 'draft' : (string) $event->status,
             'published_at' => $creating ? null : $event->published_at,
@@ -230,6 +239,18 @@ final readonly class SaveAdminEventAction
             $event->fill($attributes);
             $event->save();
         }
+
+        $event->syncLocation($venueId, $spaceId);
+
+        app(SyncEventScheduleAction::class)->execute($event, $scheduleKind,
+            startsAt: $schedule['starts_at'],
+            endsAt: $schedule['ends_at'],
+            timezone: $schedule['timezone'],
+            timingMode: isset($schedule['timing_mode']) ? TimingMode::tryFrom($schedule['timing_mode']) : null,
+            prayerReference: $schedule['prayer_reference'],
+            prayerOffset: $schedule['prayer_offset'] !== null ? (int) $schedule['prayer_offset'] : null,
+            prayerDisplayText: $schedule['prayer_display_text'],
+        );
 
         $organizerId = $this->normalizeOptionalString($state['primary_organizer_id'] ?? $event->primaryOrganizerInvolvement?->involveable_id);
         if ($organizerId) {
@@ -271,7 +292,7 @@ final readonly class SaveAdminEventAction
             'media',
             'institution',
             'venue',
-            'space',
+            'primaryLocation.venueSpace',
         ]) ?? $event;
     }
 
@@ -286,7 +307,7 @@ final readonly class SaveAdminEventAction
         $spaceId = $this->normalizeOptionalString($state['space_id'] ?? null);
 
         if ($venueId !== null) {
-            return [null, $venueId, null];
+            return [null, $venueId, $spaceId];
         }
 
         if ($institutionId === null) {
@@ -323,8 +344,8 @@ final readonly class SaveAdminEventAction
             $errors['venue_id'][] = $message;
         }
 
-        if ($spaceId !== null && ($institutionId === null || $venueId !== null)) {
-            $errors['space_id'][] = __('Ruang hanya boleh dipilih apabila institusi dipilih tanpa venue.');
+        if ($spaceId !== null && $institutionId === null && $venueId === null) {
+            $errors['space_id'][] = __('Ruang memerlukan institusi atau venue.');
         }
 
         if ($spaceId !== null && $institutionId !== null) {
@@ -340,6 +361,10 @@ final readonly class SaveAdminEventAction
                     $errors['space_id'][] = __('Ruang yang dipilih tidak tersedia untuk institusi ini.');
                 }
             }
+        }
+
+        if ($spaceId !== null && $venueId !== null && ! Space::query()->whereKey($spaceId)->where('venue_id', $venueId)->exists()) {
+            $errors['space_id'][] = __('Ruang yang dipilih tidak tersedia untuk venue ini.');
         }
 
         if ($this->requiresSpeakers($state['event_category_ids'] ?? []) && $speakerIds === []) {
@@ -373,7 +398,7 @@ final readonly class SaveAdminEventAction
 
         return $this->generateEventSlugAction->handle(
             (string) $attributes['title'],
-            $state['event_date'] ?? $attributes['starts_at'] ?? null,
+            $state['event_date'] ?? $schedule['starts_at'] ?? null,
             is_string($attributes['timezone']) ? $attributes['timezone'] : null,
             $creating ? null : (string) $event->getKey(),
             $speakerSlugSegments,

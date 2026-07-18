@@ -1069,7 +1069,21 @@ class AdminResourceService
                 return;
             }
 
-            $query->whereIn($model->qualifyColumn('timing_mode'), $timingModes);
+            $query->where(function (Builder $timingQuery) use ($timingModes): void {
+                if (in_array(TimingMode::PrayerRelative->value, $timingModes, true)) {
+                    $timingQuery->whereHas('timeExpressions', fn (Builder $expressionQuery) => $expressionQuery->where('time_mode', TimingMode::PrayerRelative->value));
+                }
+
+                if (in_array(TimingMode::Absolute->value, $timingModes, true)) {
+                    $callback = fn (Builder $expressionQuery): Builder => $expressionQuery->where('time_mode', TimingMode::PrayerRelative->value);
+
+                    if (in_array(TimingMode::PrayerRelative->value, $timingModes, true)) {
+                        $timingQuery->orWhereDoesntHave('timeExpressions', $callback);
+                    } else {
+                        $timingQuery->whereDoesntHave('timeExpressions', $callback);
+                    }
+                }
+            });
         }
 
         if (array_key_exists('prayer_reference', $filters)) {
@@ -1083,7 +1097,12 @@ class AdminResourceService
                 return;
             }
 
-            $query->whereIn($model->qualifyColumn('prayer_reference'), $prayerReferences);
+            $query->whereHas('timeExpressions', function (Builder $expressionQuery) use ($prayerReferences): void {
+                $expressionQuery
+                    ->where('time_mode', TimingMode::PrayerRelative->value)
+                    ->where('anchor_type', 'prayer')
+                    ->whereIn('anchor_code', $prayerReferences);
+            });
         }
 
         if (array_key_exists('published', $filters)) {

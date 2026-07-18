@@ -1,6 +1,7 @@
 <?php
 
-use App\Enums\ScheduleState;
+use AIArmada\Engagement\Models\EngagementCounter;
+use AIArmada\Events\Models\EventOccurrence;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Speaker;
@@ -17,7 +18,6 @@ beforeEach(function () {
         'status' => 'approved',
         'visibility' => 'public',
         'starts_at' => now()->addDays(3),
-        'going_count' => 0,
     ]);
 });
 
@@ -146,13 +146,24 @@ it('allows an authenticated user to remove a going record', function () {
 it('recalculates stale going_count from source rows when marking going', function () {
     Sanctum::actingAs($this->user);
 
-    $this->event->update(['going_count' => 17]);
+    EngagementCounter::updateOrCreate([
+        'subject_type' => $this->event->getMorphClass(),
+        'subject_id' => $this->event->getKey(),
+        'counter_type' => 'responses',
+        'counter_key' => 'going',
+    ], ['count_value' => 17]);
 
     $this->putJson(route('api.events.going.update', $this->event))
         ->assertCreated()
         ->assertJsonPath('data.going_count', 1);
 
-    expect($this->event->fresh()->going_count)->toBe(1);
+    expect(
+        EngagementCounter::where('subject_type', $this->event->getMorphClass())
+            ->where('subject_id', $this->event->getKey())
+            ->where('counter_type', 'responses')
+            ->where('counter_key', 'going')
+            ->value('count_value') ?? 0
+    )->toBe(1);
 });
 
 it('rejects marking going for past events', function () {
@@ -190,8 +201,15 @@ it('rejects marking going for unknown postponed events', function () {
     $postponedEvent = Event::factory()->create([
         'status' => 'approved',
         'visibility' => 'public',
-        'schedule_state' => ScheduleState::Postponed,
+    ]);
+
+    $postponedEvent->occurrences()->delete();
+
+    EventOccurrence::factory()->create([
+        'event_id' => $postponedEvent->id,
         'starts_at' => now()->addDay(),
+        'ends_at' => now()->addDay()->addHours(2),
+        'status' => 'postponed',
     ]);
 
     $this->putJson(route('api.events.going.update', $postponedEvent))

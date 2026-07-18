@@ -2,10 +2,9 @@
 
 namespace App\Actions\Events;
 
+use AIArmada\Events\Contracts\EventLifecycleWorkflow;
 use App\Enums\EventChangeSeverity;
-use App\Enums\EventChangeStatus;
 use App\Enums\EventChangeType;
-use App\Enums\ScheduleState;
 use App\Models\Event;
 use App\Models\EventChangeAnnouncement;
 use App\Models\EventKeyPerson;
@@ -84,7 +83,6 @@ class PublishEventChangeAnnouncement
                 'title' => $message,
                 'notes' => $internalNote,
                 'metadata' => [
-                    'status' => EventChangeStatus::Published->value,
                     'changed_fields' => $changedFields,
                     'before_snapshot' => $beforeSnapshot,
                     'after_snapshot' => $afterSnapshot,
@@ -192,16 +190,20 @@ class PublishEventChangeAnnouncement
             $changedFields[] = $field;
         }
 
+        $occurrence = $event->primaryOccurrence;
+
         if ($type === EventChangeType::Cancelled) {
             $event->status = Cancelled::class;
-            $event->schedule_state = ScheduleState::Cancelled;
             $changedFields[] = 'status';
-            $changedFields[] = 'schedule_state';
+            if ($occurrence) {
+                $occurrence->cancel();
+                $changedFields[] = 'occurrence_status';
+            }
         }
 
-        if ($type === EventChangeType::Postponed) {
-            $event->schedule_state = ScheduleState::Postponed;
-            $changedFields[] = 'schedule_state';
+        if ($type === EventChangeType::Postponed && $occurrence) {
+            $occurrence->postpone();
+            $changedFields[] = 'occurrence_status';
         }
 
         if (in_array($type, [
@@ -209,8 +211,14 @@ class PublishEventChangeAnnouncement
             EventChangeType::RescheduledLater,
             EventChangeType::ScheduleChanged,
         ], true)) {
-            $event->schedule_state = ScheduleState::Active;
-            $changedFields[] = 'schedule_state';
+            $startsAt = $changes['starts_at'] ?? null;
+            $endsAt = $changes['ends_at'] ?? null;
+            if ($occurrence && $startsAt && $endsAt) {
+                app(EventLifecycleWorkflow::class)->reschedule(
+                    $occurrence, $startsAt, $endsAt
+                );
+                $changedFields[] = 'occurrence_status';
+            }
         }
 
         return $changedFields;
@@ -366,7 +374,6 @@ class PublishEventChangeAnnouncement
             'title' => $event->title,
             'slug' => $event->slug,
             'status' => (string) $event->status,
-            'schedule_state' => $this->scheduleStateValue($event),
             'starts_at' => $event->starts_at?->toIso8601String(),
             'ends_at' => $event->ends_at?->toIso8601String(),
             'timezone' => $event->timezone,
@@ -380,15 +387,14 @@ class PublishEventChangeAnnouncement
                 'name' => $event->venue->name,
                 'slug' => $event->venue->slug,
             ],
-            'space' => $event->space === null ? null : [
-                'id' => (string) $event->space->getKey(),
-                'name' => $event->space->name,
-                'slug' => $event->space->slug,
+            'space' => $event->primaryLocation?->venueSpace === null ? null : [
+                'id' => (string) $event->primaryLocation->venueSpace->getKey(),
+                'name' => $event->primaryLocation->venueSpace->name,
             ],
             'speakers' => $event->speakerKeyPeople
                 ->map(fn (EventKeyPerson $keyPerson): array => [
                     'id' => $keyPerson->speaker instanceof Speaker ? (string) $keyPerson->speaker->getKey() : null,
-                    'name' => $keyPerson->speaker instanceof Speaker ? $keyPerson->speaker->name : $keyPerson->name,
+                    'name' => $keyPerson->speaker instanceof Speaker ? $keyPerson->speaker->name : $keyPerson->display_name,
                     'slug' => $keyPerson->speaker instanceof Speaker ? $keyPerson->speaker->slug : null,
                 ])
                 ->values()
@@ -407,16 +413,5 @@ class PublishEventChangeAnnouncement
                 'recording_url' => $event->recording_url,
             ],
         ];
-    }
-
-    private function scheduleStateValue(Event $event): ?string
-    {
-        $scheduleState = $event->schedule_state;
-
-        if ($scheduleState instanceof ScheduleState) {
-            return $scheduleState->value;
-        }
-
-        return is_string($scheduleState) && $scheduleState !== '' ? $scheduleState : null;
     }
 }

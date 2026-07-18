@@ -6,7 +6,6 @@ namespace Database\Factories;
 
 use AIArmada\Events\Database\Factories\EventUpdateFactory;
 use App\Enums\EventChangeSeverity;
-use App\Enums\EventChangeStatus;
 use App\Enums\EventChangeType;
 use App\Models\Event;
 use App\Models\EventChangeAnnouncement;
@@ -36,7 +35,7 @@ class EventChangeAnnouncementFactory extends EventUpdateFactory
             'severity' => EventChangeSeverity::High,
             'visibility' => 'public',
             'metadata' => [
-                'status' => EventChangeStatus::Published->value,
+                'status' => 'published',
                 'changed_fields' => ['starts_at'],
                 'before_snapshot' => [],
                 'after_snapshot' => [],

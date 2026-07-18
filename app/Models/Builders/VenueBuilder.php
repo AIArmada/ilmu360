@@ -12,14 +12,6 @@ use Illuminate\Support\Str;
 class VenueBuilder extends Builder
 {
     /**
-     * @var list<string>
-     */
-    private const array MetadataBackedColumns = [
-        'description',
-        'facilities',
-    ];
-
-    /**
      * Product query field names → package columns (single store).
      *
      * @var array<string, string>
@@ -156,16 +148,7 @@ class VenueBuilder extends Builder
             return $this->qualifyModelColumn(self::PackageColumnAliases[$column]);
         }
 
-        if (in_array($column, self::MetadataBackedColumns, true)) {
-            return $this->qualifiedMetadataSelector($column);
-        }
-
         return null;
-    }
-
-    private function qualifiedMetadataSelector(string $key): string
-    {
-        return $this->qualifyModelColumn('metadata').'->'.$key;
     }
 
     private function qualifyModelColumn(string $column): string

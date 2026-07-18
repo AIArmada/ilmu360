@@ -13,9 +13,11 @@ use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\Contacting\Enums\SocialPlatform;
 use AIArmada\Contacting\Models\ContactMethod;
 use AIArmada\Contacting\Models\SocialProfile;
+use AIArmada\Events\Enums\ScheduleKind;
 use AIArmada\Membership\Actions\AddMemberAction;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Actions\Events\SyncEventClassificationsAction;
+use App\Actions\Events\SyncEventScheduleAction;
 use App\Actions\Institutions\GenerateInstitutionSlugAction;
 use App\Actions\Speakers\GenerateSpeakerSlugAction;
 use App\Contracts\EventCategoryCatalog;
@@ -29,10 +31,12 @@ use App\Enums\Gender;
 use App\Enums\Honorific;
 use App\Enums\InstitutionType;
 use App\Enums\PostNominal;
+use App\Enums\PrayerOffset;
 use App\Enums\PreNominal;
 use App\Enums\ReferencePartType;
 use App\Enums\ReferenceType;
 use App\Enums\TagType;
+use App\Enums\TimingMode;
 use App\Forms\SharedFormSchema;
 use App\Models\Event;
 use App\Models\Institution;
@@ -42,6 +46,8 @@ use App\Models\Speaker;
 use App\Models\User;
 use App\Models\Venue;
 use BackedEnum;
+use Carbon\Carbon;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
@@ -59,9 +65,7 @@ class ContributionEntityMutationService
         private readonly AddressCountryResolver $addressingCountryResolver,
     ) {}
 
-    /**
-     * @return array<string, mixed>
-     */
+    /** @return array<string, mixed> */
     public function stateFor(Model $entity): array
     {
         return match (true) {
@@ -539,7 +543,7 @@ class ContributionEntityMutationService
      */
     private function applyEvent(Event $event, array $payload): array
     {
-        $event->fill([
+        $event->forceFill([
             'title' => $payload['title'] ?? $event->title,
             'description' => array_key_exists('description', $payload) ? $payload['description'] : $event->description,
             'starts_at' => array_key_exists('starts_at', $payload) ? $payload['starts_at'] : $event->starts_at,
@@ -562,11 +566,54 @@ class ContributionEntityMutationService
             'recording_url' => array_key_exists('recording_url', $payload) ? $this->normalizeOptionalString($payload['recording_url']) : $event->recording_url,
             'institution_id' => array_key_exists('institution_id', $payload) ? $this->normalizeOptionalString($payload['institution_id']) : $event->institution_id,
             'venue_id' => array_key_exists('venue_id', $payload) ? $this->normalizeOptionalString($payload['venue_id']) : $event->default_venue_id,
-            'space_id' => array_key_exists('space_id', $payload) ? $this->normalizeOptionalString($payload['space_id']) : $event->space_id,
         ]);
+
+        $spaceId = array_key_exists('space_id', $payload)
+            ? $this->normalizeOptionalString($payload['space_id'])
+            : $event->primaryLocation?->venue_space_id;
+
+        $event->syncLocation($event->default_venue_id, $spaceId);
 
         $dirty = $event->getDirty();
         $event->save();
+        $event->syncLocation($event->default_venue_id, $spaceId);
+
+        $scheduleKind = $payload['schedule_kind'] ?? $event->schedule_kind;
+        $scheduleKind = $scheduleKind instanceof ScheduleKind
+            ? $scheduleKind
+            : (ScheduleKind::tryFrom((string) $scheduleKind) ?? ScheduleKind::Single);
+        $timingMode = $payload['timing_mode'] ?? $event->timing_mode;
+        $timingMode = $timingMode instanceof TimingMode
+            ? $timingMode
+            : TimingMode::tryFrom((string) $timingMode);
+        $prayerOffset = $payload['prayer_offset'] ?? $event->prayer_offset;
+        $prayerOffset = $prayerOffset instanceof PrayerOffset
+            ? $prayerOffset->minutes()
+            : PrayerOffset::tryFrom((string) $prayerOffset)?->minutes();
+
+        $scheduleTimezone = is_string($event->timezone) && $event->timezone !== ''
+            ? $event->timezone
+            : 'UTC';
+        $startsAt = $event->starts_at;
+        $startsAt = $startsAt instanceof CarbonInterface
+            ? $startsAt
+            : (is_string($startsAt) && $startsAt !== '' ? Carbon::parse($startsAt, $scheduleTimezone) : null);
+        $endsAt = $event->ends_at;
+        $endsAt = $endsAt instanceof CarbonInterface
+            ? $endsAt
+            : (is_string($endsAt) && $endsAt !== '' ? Carbon::parse($endsAt, $scheduleTimezone) : null);
+
+        app(SyncEventScheduleAction::class)->execute(
+            event: $event,
+            scheduleKind: $scheduleKind,
+            startsAt: $startsAt,
+            endsAt: $endsAt,
+            timezone: $scheduleTimezone,
+            timingMode: $timingMode,
+            prayerReference: $payload['prayer_reference'] ?? $event->prayer_reference,
+            prayerOffset: $prayerOffset,
+            prayerDisplayText: $payload['prayer_display_text'] ?? $event->prayer_display_text,
+        );
 
         if (array_key_exists('primary_organizer_id', $payload)) {
             $organizerId = $this->normalizeOptionalString($payload['primary_organizer_id']);
@@ -696,7 +743,7 @@ class ContributionEntityMutationService
      */
     private function eventState(Event $event): array
     {
-        $event->loadMissing(['references', 'series', 'classifications', 'keyPeople', 'languages:id,event_id']);
+        $event->loadMissing(['references', 'series', 'classifications', 'keyPeople.speaker', 'languages:id,event_id']);
 
         $tags = $event->classifications->groupBy('taxonomy_code');
 
@@ -729,7 +776,7 @@ class ContributionEntityMutationService
             'primary_organizer_id' => $event->primaryOrganizerInvolvement?->involveable_id,
             'institution_id' => $event->institution_id,
             'venue_id' => $event->default_venue_id,
-            'space_id' => $event->space_id,
+            'space_id' => $event->primaryLocation?->venue_space_id,
             'language_ids' => $event->languages->pluck('id')->map(fn (mixed $id): int => (int) $id)->values()->all(),
             'domain_tags' => $tags->get(TagType::Domain->value, collect())->pluck('event_term_id')->values()->all(),
             'discipline_tags' => $tags->get(TagType::Discipline->value, collect())->pluck('event_term_id')->values()->all(),
@@ -738,17 +785,17 @@ class ContributionEntityMutationService
             'reference_ids' => $event->references->pluck('id')->values()->all(),
             'series_ids' => $event->series->pluck('id')->values()->all(),
             'speaker_ids' => $event->keyPeople
-                ->where('role', EventKeyPersonRole::Speaker)
+                ->where('role_code', EventKeyPersonRole::Speaker->value)
                 ->pluck('involveable_id')
                 ->filter(fn (mixed $speakerId): bool => is_string($speakerId) && $speakerId !== '')
                 ->values()
                 ->all(),
             'other_key_people' => $event->keyPeople
-                ->reject(fn ($keyPerson): bool => $keyPerson->role === EventKeyPersonRole::Speaker)
+                ->reject(fn ($keyPerson): bool => $keyPerson->role_code === EventKeyPersonRole::Speaker->value)
                 ->map(fn ($keyPerson): array => [
-                    'role' => $keyPerson->role instanceof BackedEnum ? $keyPerson->role->value : (string) $keyPerson->role,
-                    'speaker_id' => $keyPerson->speaker_id,
-                    'name' => $keyPerson->name,
+                    'role' => (string) $keyPerson->role_code,
+                    'speaker_id' => $keyPerson->involveable_id,
+                    'name' => $keyPerson->display_name,
                     'visibility' => $keyPerson->visibility ?? 'public',
                     'notes' => $keyPerson->notes,
                 ])
@@ -1494,7 +1541,7 @@ class ContributionEntityMutationService
 
     /**
      * @param  iterable<int, mixed>  $entries
-     * @return list<array{role: string, speaker_id: ?string, name: ?string, is_public: bool, notes: ?string}>
+     * @return list<array{role_code: string, involveable_type: string|null, involveable_id: string|null, display_name: string|null, visibility: string, notes: string|null}>
      */
     private function normalizeKeyPeople(iterable $entries): array
     {
@@ -1514,10 +1561,11 @@ class ContributionEntityMutationService
                 }
 
                 return [
-                    'role' => $role,
-                    'speaker_id' => $speakerId,
-                    'name' => $name !== '' ? $name : null,
-                    'is_public' => (bool) ($entry['is_public'] ?? true),
+                    'role_code' => $role,
+                    'involveable_type' => $speakerId === null ? null : 'speaker',
+                    'involveable_id' => $speakerId,
+                    'display_name' => $name !== '' ? $name : null,
+                    'visibility' => (bool) ($entry['is_public'] ?? true) ? 'public' : 'private',
                     'notes' => $notes !== '' ? $notes : null,
                 ];
             })

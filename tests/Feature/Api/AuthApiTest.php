@@ -1,6 +1,7 @@
 <?php
 
 use AIArmada\CommerceSupport\Models\Role;
+use AIArmada\Engagement\Contracts\EngagementCounterService;
 use AIArmada\Engagement\Contracts\EngagementManager;
 use App\Models\Event;
 use App\Models\User;
@@ -149,10 +150,7 @@ it('deletes the authenticated user account, revokes tokens, and keeps a sanitize
         'remember_token' => 'remember-me-token',
     ]);
 
-    $engagementEvent = Event::factory()->create([
-        'saves_count' => 27,
-        'going_count' => 31,
-    ]);
+    $engagementEvent = Event::factory()->create();
 
     app(EngagementManager::class)->bookmark($user, $engagementEvent);
     $user->respond($engagementEvent, 'going');
@@ -246,9 +244,10 @@ it('deletes the authenticated user account, revokes tokens, and keeps a sanitize
         'response_type' => 'going',
     ]);
     expect($engagementEvent->fresh())
-        ->not->toBeNull()
-        ->and($engagementEvent->fresh()?->saves_count)->toBe(0)
-        ->and($engagementEvent->fresh()?->going_count)->toBe(0);
+        ->not->toBeNull();
+
+    expect(app(EngagementCounterService::class)->countBookmarks($engagementEvent))->toBe(0);
+    expect(app(EngagementCounterService::class)->countResponses($engagementEvent, 'going'))->toBe(0);
 
     $deletedModel = DeletedModel::query()
         ->where('key', $user->id)

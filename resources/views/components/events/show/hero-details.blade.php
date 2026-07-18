@@ -92,7 +92,7 @@
             {{ $formatLabel }}
         </span>
 
-        @if($scheduleKindLabel && $event->schedule_kind !== \App\Enums\ScheduleKind::Single)
+        @if($scheduleKindLabel && $event->schedule_kind !== \AIArmada\Events\Enums\ScheduleKind::Single)
             <span
                 class="inline-flex items-center gap-1.5 rounded-full border border-violet-400/30 bg-violet-400/10 px-3 py-1 text-xs font-medium tracking-wide text-violet-300 backdrop-blur-md">
                 <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">

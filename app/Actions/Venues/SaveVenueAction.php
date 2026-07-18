@@ -2,6 +2,8 @@
 
 namespace App\Actions\Venues;
 
+use AIArmada\Events\Models\FacilityType;
+use AIArmada\Events\Models\VenueFacility;
 use App\Enums\VenueType;
 use App\Models\Venue;
 use App\Services\ContributionEntityMutationService;
@@ -40,9 +42,6 @@ final readonly class SaveVenueAction
             'description' => array_key_exists('description', $data) ? $data['description'] : $venue->description,
             'status' => array_key_exists('status', $data) ? (string) $data['status'] : ($creating ? 'verified' : (string) $venue->status),
             'visibility' => array_key_exists('visibility', $data) ? (string) $data['visibility'] : ($creating ? 'public' : (string) ($venue->visibility ?? 'public')),
-            'facilities' => array_key_exists('facilities', $data)
-                ? $this->normalizeFacilities($data['facilities'])
-                : $this->normalizeFacilities($venue->facilities ?? []),
         ]);
 
         if ($creating) {
@@ -67,6 +66,7 @@ final readonly class SaveVenueAction
         }
 
         $this->contributionEntityMutationService->syncVenueRelations($venue, $relationPayload);
+        $this->syncVenueFacilities($venue, $data);
         $this->syncMedia($venue, $data);
 
         // ponytail: slug was calculated before address was linked; re-sync now that address exists.
@@ -114,35 +114,54 @@ final readonly class SaveVenueAction
     }
 
     /**
-     * @return array<string, bool>
+     * @param  array<string, mixed>  $data
      */
-    private function normalizeFacilities(mixed $value): array
+    private function syncVenueFacilities(Venue $venue, array $data): void
     {
-        if (! is_array($value)) {
-            return [];
+        $codes = $data['facilities'] ?? null;
+
+        if (! is_array($codes)) {
+            return;
         }
 
-        $normalized = [];
+        $venue->facilities()->delete();
 
-        foreach ($value as $key => $entry) {
-            if (is_int($key)) {
-                if (is_string($entry) && trim($entry) !== '') {
-                    $normalized[trim($entry)] = true;
-                }
+        $codes = array_values(array_unique(array_filter(
+            $codes,
+            static fn (mixed $code): bool => is_string($code) && trim($code) !== '',
+        )));
 
+        if ($codes === []) {
+            return;
+        }
+
+        $typeIds = FacilityType::query()
+            ->whereIn('code', $codes)
+            ->where('is_active', true)
+            ->pluck('id', 'code');
+
+        $rows = [];
+        foreach ($codes as $code) {
+            $typeId = $typeIds->get($code);
+
+            if ($typeId === null) {
                 continue;
             }
 
-            $facilityKey = trim($key);
-
-            if ($facilityKey === '' || $entry === null || $entry === '') {
-                continue;
-            }
-
-            $normalized[$facilityKey] = is_bool($entry) ? $entry : true;
+            $rows[] = [
+                'id' => (string) Str::uuid(),
+                'venue_id' => (string) $venue->getKey(),
+                'facility_type_id' => (string) $typeId,
+                'availability' => 'available',
+                'visibility' => 'public',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
         }
 
-        return $normalized;
+        if ($rows !== []) {
+            VenueFacility::query()->insert($rows);
+        }
     }
 
     private function normalizeOptionalString(mixed $value): ?string

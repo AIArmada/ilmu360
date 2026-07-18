@@ -128,23 +128,16 @@ Full commerce stack (cart, checkout, orders, pricing, products, promotions, vouc
 | AIA-COMMS-002c | `IMPLEMENTED` | Backfill migration, `notifications` table dropped, `NotificationMessage` model+factory deleted. |
 | AIA-COMMS-003 | `IMPLEMENTED_AND_VERIFIED` | Pipeline cutover complete. All 22 notification triggers migrated to skip local `PendingNotification` staging. `notification_messages` table dropped. `auto_capture` records all dispatches into communications tables. 4 package resolvers implemented (`QuietHoursResolver`, `PreferenceResolver`, `ConsentResolver`, `SuppressionResolver`). Digest job deleted. 55 tests pass. |
 | AIA-COMMS-002 | `IMPLEMENTED_AND_VERIFIED` | Inbox + pipeline cutover: inbox channel, consumer reads, backfill, all triggers migrated, `notification_messages` dropped. See AIA-COMMS-002a/b/c and AIA-COMMS-003 for details. |
-| AIA-MODEL-013 | `IMPLEMENTED_AND_VERIFIED` | `space_id` → `EventLocation` activated. Removed from `MetadataBackedAttributes` and `EventBuilder::MetadataBackedColumns`. Existing `getSpaceIdAttribute`/`setSpaceIdAttribute` accessor/mutator and `syncLocation()` now fire instead of metadata routing. Hard cutover — no backward compatibility. Zero existing events had `space_id` in metadata (confirmed via DB query). 27/27 EventApiContractTest, 84/89 EventSearchTest pass (same 5 pre-existing `Event::settings()` failures). |
+| AIA-MODEL-013 | `SUPERSEDED` | Historical `space_id` migration note. The first-class metadata hard-cut plan supersedes the former accessor/mutator and metadata-routing guidance; current code must use `EventLocation.venue_space_id` through explicit actions. |
 | AIA-FILAMENT-002 | `IMPLEMENTED_AND_VERIFIED` | `filament-events` plugin registered in both Admin and Ahli panels. Local `app/Filament/Resources/Events/` and `app/Filament/Resources/Venues/` deleted (backed up to `backup-*`). All 16+ external references updated to use `AIArmada\FilamentEvents\Resources\EventResource`/`VenueResource`. Package routes verified: admin events index/create/view/edit at `admin.ilmu360.test/events/*`, venues at `admin.ilmu360.test/venues/*`. Ahli panel also uses package resources. 27/27 EventApiContractTest pass, 84/89 EventSearchTest pass. |
 
 ## Next exact action for continuation
 
 All items complete. Only one item warrants future attention:
 
-- **Phase 3 metadata**: 12 columns remain in `MetadataBackedColumns`. Builder intercept active, working correctly. `space_id` (→ `EventLocation`) and `is_active` (→ `published_at`) are activated. None of the remaining 12 have ready package columns.
+- **Phase 3 metadata**: superseded by the first-class metadata hard-cut. The old `MetadataBackedColumns` inventory and builder-intercept status are historical only; current code must use the canonical package relations, columns, lifecycle state, and analytics projections.
 
-Everything previously listed as "remaining" has been re-verified and removed — they were never actual gaps.
-See `docs/aiarmada-adoption/status.md` for full details.
-
-### Phase 3 metadata cutover status
-
-Activated: `space_id` → `EventLocation`, `is_active` → `published_at`.
-
-Remaining metadata fields (12): `user_id`, `institution_id`, `submitter_id`, `parent_event_id`, `event_structure`, `schedule_kind`, `schedule_state`, `timing_mode`, `views_count`, `registrations_count`, `saves_count`, `going_count`.
+Everything previously listed as "remaining" has been re-audited against the hard-cut plan and removed from runtime code. See `docs/aiarmada-adoption/status.md` for the current implementation status.
 
 ### is_active → published_at cutover (2026-07-08)
 

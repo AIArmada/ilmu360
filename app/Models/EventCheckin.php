@@ -32,42 +32,6 @@ class EventCheckin extends EventAttendance
         ]);
     }
 
-    public function getLatAttribute(): ?float
-    {
-        return $this->metadata['lat'] ?? null;
-    }
-
-    public function setLatAttribute(?float $value): void
-    {
-        $metadata = $this->metadata ?? [];
-        $metadata['lat'] = $value;
-        $this->metadata = $metadata;
-    }
-
-    public function getLngAttribute(): ?float
-    {
-        return $this->metadata['lng'] ?? null;
-    }
-
-    public function setLngAttribute(?float $value): void
-    {
-        $metadata = $this->metadata ?? [];
-        $metadata['lng'] = $value;
-        $this->metadata = $metadata;
-    }
-
-    public function getAccuracyMAttribute(): ?float
-    {
-        return $this->metadata['accuracy_m'] ?? null;
-    }
-
-    public function setAccuracyMAttribute(?float $value): void
-    {
-        $metadata = $this->metadata ?? [];
-        $metadata['accuracy_m'] = $value;
-        $this->metadata = $metadata;
-    }
-
     #[\Override]
     public function registration(): BelongsTo
     {

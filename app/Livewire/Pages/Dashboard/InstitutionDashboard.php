@@ -383,7 +383,7 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
             ->where('institution_id', $institution->id)
             ->withCount('registrations')
             ->get()
-            ->sum(fn (Event $event): int => (int) $event->getRawOriginal('registrations_count'));
+            ->sum(fn (Event $event): int => (int) ($event->registrations_count ?? 0));
 
         return [
             'events_count' => $totalEvents,
@@ -572,7 +572,7 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
                 return Event::query()
                     ->where('institution_id', $institution->id)
                     ->with([
-                        'space:id,name',
+                        'primaryLocation.venueSpace:id,name',
                         'speakers:id,name',
                         'references:id,title',
                     ])

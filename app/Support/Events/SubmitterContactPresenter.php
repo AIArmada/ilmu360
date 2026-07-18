@@ -31,7 +31,6 @@ final class SubmitterContactPresenter
     {
         return OwnerContext::withOwner(null, function () use ($event): array {
             $event->loadMissing([
-                'submitter',
                 'submissions.contactMethods',
                 'submissions.submitter',
             ]);
@@ -40,10 +39,6 @@ final class SubmitterContactPresenter
 
             if ($submission instanceof EventSubmission) {
                 return self::contactPartsForSubmission($submission);
-            }
-
-            if ($event->submitter instanceof User) {
-                return self::contactPartsForUser($event->submitter);
             }
 
             return [

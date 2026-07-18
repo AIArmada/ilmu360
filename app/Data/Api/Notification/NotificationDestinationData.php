@@ -3,6 +3,7 @@
 namespace App\Data\Api\Notification;
 
 use AIArmada\Communications\Models\CommunicationDestination;
+use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Spatie\LaravelData\Data;
 
@@ -20,20 +21,31 @@ class NotificationDestinationData extends Data
         public ?string $verified_at,
     ) {}
 
+    private static function timestampToIso(mixed $value): ?string
+    {
+        if ($value instanceof CarbonInterface) {
+            return $value->toIso8601String();
+        }
+
+        if (is_string($value) && $value !== '') {
+            return CarbonImmutable::parse($value)->toIso8601String();
+        }
+
+        return null;
+    }
+
     public static function fromModel(CommunicationDestination $destination): self
     {
-        $verifiedAt = $destination->verified_at;
-
         return new self(
             id: (string) $destination->id,
             installation_id: (string) $destination->address,
-            platform: (string) data_get($destination->metadata, 'platform', ''),
-            device_label: (string) data_get($destination->metadata, 'device_label', ''),
-            app_version: (string) data_get($destination->metadata, 'app_version', ''),
-            locale: (string) data_get($destination->metadata, 'locale', ''),
-            timezone: (string) data_get($destination->metadata, 'timezone', ''),
-            last_seen_at: (string) data_get($destination->metadata, 'last_seen_at', ''),
-            verified_at: $verifiedAt instanceof CarbonInterface ? $verifiedAt->toIso8601String() : null,
+            platform: (string) ($destination->platform ?? ''),
+            device_label: (string) ($destination->device_label ?? ''),
+            app_version: (string) ($destination->app_version ?? ''),
+            locale: (string) ($destination->locale ?? ''),
+            timezone: (string) ($destination->timezone ?? ''),
+            last_seen_at: self::timestampToIso($destination->last_seen_at) ?? '',
+            verified_at: self::timestampToIso($destination->verified_at),
         );
     }
 }

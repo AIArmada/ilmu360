@@ -1,5 +1,7 @@
 <?php
 
+use AIArmada\Engagement\Models\Bookmark;
+use AIArmada\Engagement\Models\Response;
 use App\Enums\EventVisibility;
 use App\Models\Event;
 use App\Models\Registration;
@@ -140,10 +142,30 @@ it('returns current user event state for approved unlisted events', function () 
 
 it('returns stored engagement counts for the current user event state', function () {
     $user = User::factory()->create();
-    $event = registrationReadyEvent([
-        'saves_count' => 12,
-        'going_count' => 34,
-    ]);
+    $event = registrationReadyEvent();
+
+    // Create 12 bookmarks (saves) by different users
+    $bookmarkerIds = User::factory(12)->create()->pluck('id');
+    foreach ($bookmarkerIds as $bid) {
+        Bookmark::factory()->create([
+            'bookmarker_type' => (new User)->getMorphClass(),
+            'bookmarker_id' => $bid,
+            'bookmarkable_type' => $event->getMorphClass(),
+            'bookmarkable_id' => $event->getKey(),
+        ]);
+    }
+
+    // Create 34 going responses by different users
+    $responderIds = User::factory(34)->create()->pluck('id');
+    foreach ($responderIds as $rid) {
+        Response::factory()->create([
+            'responder_type' => (new User)->getMorphClass(),
+            'responder_id' => $rid,
+            'respondable_type' => $event->getMorphClass(),
+            'respondable_id' => $event->getKey(),
+            'response_type' => 'going',
+        ]);
+    }
 
     Sanctum::actingAs($user);
 

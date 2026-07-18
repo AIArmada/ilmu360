@@ -314,25 +314,6 @@ class UserDashboard extends Component
             ]);
         }
 
-        $directEvents = Event::query()
-            ->where('submitter_id', $this->user()->id)
-            ->with($this->plannerEventRelations())
-            ->whereDoesntHave('submissions', fn ($query) => $query->where('submitter_id', $this->user()->id))
-            ->latest('created_at')
-            ->get();
-
-        foreach ($directEvents as $event) {
-            if (! $event instanceof Event) {
-                continue;
-            }
-
-            $entries->push([
-                'event' => $event,
-                'created_at' => $event->created_at,
-                'notes' => null,
-            ]);
-        }
-
         /** @var Collection<int, array<string, mixed>> $sortedEntries */
         $sortedEntries = $entries
             ->sortByDesc(fn (array $entry): int => $entry['created_at']?->getTimestamp() ?? 0)
@@ -581,7 +562,7 @@ class UserDashboard extends Component
     {
         $user = $this->user();
 
-        return $event->userCanManage($user) || $event->submitter_id === $user->id;
+        return $event->userCanManage($user) || EventSubmission::where('event_id', $event->id)->where('submitter_id', $user->id)->exists();
     }
 
     /**

@@ -1,4 +1,8 @@
-# AIA-MODEL-001/002/003 — Revised Architecture Plan
+# AIA-MODEL-001/002/003 — Revised Architecture Plan (superseded)
+
+> Historical architecture note. The first-class metadata hard-cut plan is now
+> canonical; metadata projection, alias accessors, and compatibility shims
+> described below must not be reintroduced.
 
 ## Root cause
 
@@ -12,8 +16,9 @@ directly, bypassing all normalized models. The only exception is `EventInvolveme
 ## The principle
 
 Every virtual column maps to a **first-class package model** that already exists.
-The right architecture is: write through the normalized model → let the sync service
-project into metadata → reads keep working. No new columns on the events table needed.
+The historical projection design below is superseded. The current architecture
+writes canonical package relations/columns directly and does not project legacy
+values back into JSON metadata.
 
 ---
 
@@ -109,7 +114,7 @@ The `EventMetadataSyncService` projects audiences into `metadata._audiences` as
 **Migration**: Seed an `EventTaxonomy` with code `event_type`, seed terms from
 `App\Enums\EventType` cases. Write classifications instead of metadata.
 
-The sync service projects into search facets.
+Search facets are built from canonical package relations and attributes.
 
 **Builder impact**: Remove `event_type` from metadata + JSON-array handling.
 **Consumers**: `EventSearchService` type filter becomes `whereHas('classifications', ...)`.
@@ -154,8 +159,10 @@ as `EventSeriesItem` rows. `event_structure` becomes a computed accessor:
 | `submitter_id` | `EventSubmission.submitter` morph |
 
 **Migration**: `institution_id` is already partially migrated — the organizer flows through
-`EventInvolvement`. The metadata `institution_id` is redundant. For `submitter_id`, the
-package's `EventSubmission` model tracks this properly.
+`EventInvolvement`. The former metadata `institution_id` note is superseded: the application
+uses its indexed event location institution column, while organizer identity remains an
+`EventInvolvement`. For `submitter_id`, the package's `EventSubmission` model tracks this
+properly.
 
 **Builder impact**: Remove `institution_id`, `submitter_id`.
 

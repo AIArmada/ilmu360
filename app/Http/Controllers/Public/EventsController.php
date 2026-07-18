@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Public;
 use AIArmada\Events\Actions\RegisterForFreeAction;
 use App\Enums\DawahShareOutcomeType;
 use App\Enums\EventVisibility;
-use App\Enums\ScheduleState;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\RegisterEventRequest;
 use App\Models\Event;
@@ -33,7 +32,7 @@ class EventsController extends Controller
     {
         if ((! in_array((string) $event->status, Event::ENGAGEABLE_STATUSES, true))
             || $event->visibility !== EventVisibility::Public
-            || $event->schedule_state === ScheduleState::Postponed) {
+            || ($event->primaryOccurrence && in_array((string) $event->primaryOccurrence->status, ['postponed', 'rescheduled'], true))) {
             abort(404);
         }
 

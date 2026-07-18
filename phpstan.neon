@@ -10,6 +10,7 @@ parameters:
         - config
         - database
         - routes
+        - vendor/aiarmada/affiliates/src
 
     tmpDir: storage/phpstan
     reportUnmatchedIgnoredErrors: true

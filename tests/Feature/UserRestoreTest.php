@@ -16,6 +16,7 @@ use AIArmada\Communications\Enums\NotificationTrigger;
 use AIArmada\Communications\Models\CommunicationDestination;
 use AIArmada\Communications\Models\CommunicationPreference;
 use AIArmada\Communications\Models\NotificationInbox;
+use AIArmada\Engagement\Contracts\EngagementCounterService;
 use AIArmada\Engagement\Contracts\EngagementManager;
 use AIArmada\Engagement\Models\Follow;
 use AIArmada\FilamentAuthz\Facades\Authz;
@@ -69,16 +70,14 @@ it('restores a deleted user together with key relationships and child records', 
     $followedSpeaker = Speaker::factory()->create();
     $followedReference = Reference::factory()->create();
     $ownedEvent = Event::factory()->create([
-        'user_id' => $user->id,
+        'owner_type' => $user->getMorphClass(),
+        'owner_id' => $user->id,
     ]);
     $submittedEvent = Event::factory()->create([
-        'submitter_id' => $user->id,
+        'owner_type' => $user->getMorphClass(),
+        'owner_id' => $user->id,
     ]);
     $sharedEvent = Event::factory()->create();
-    $sharedEvent->update([
-        'saves_count' => 99,
-        'going_count' => 88,
-    ]);
     $otherUser = User::factory()->create();
 
     Authz::withScope(null, function () use ($user): void {
@@ -231,7 +230,7 @@ it('restores a deleted user together with key relationships and child records', 
         'custom_slug' => 'restore-me',
         'campaign' => 'restore-user',
         'subject_type' => 'event',
-        'subject_identifier' => 'restore-me-event',
+        'subject_key' => 'restore-me-event',
         'subject_instance' => 'web',
         'subject_title_snapshot' => 'Restore Me Event',
         'subject_metadata' => [
@@ -243,7 +242,7 @@ it('restores a deleted user together with key relationships and child records', 
         'affiliate_id' => $affiliate->id,
         'affiliate_code' => $affiliate->code,
         'subject_type' => 'event',
-        'subject_identifier' => 'restore-me-event',
+        'subject_key' => 'restore-me-event',
         'subject_instance' => 'web',
         'subject_title_snapshot' => 'Restore Me Event',
         'cart_identifier' => 'cart-restore-me',
@@ -270,7 +269,7 @@ it('restores a deleted user together with key relationships and child records', 
         'affiliate_id' => $affiliate->id,
         'affiliate_code' => $affiliate->code,
         'subject_type' => 'event',
-        'subject_identifier' => 'restore-me-event',
+        'subject_key' => 'restore-me-event',
         'subject_instance' => 'web',
         'subject_title_snapshot' => 'Restore Me Event',
         'source' => 'web',
@@ -289,7 +288,7 @@ it('restores a deleted user together with key relationships and child records', 
         'affiliate_attribution_id' => $affiliateAttribution->id,
         'affiliate_code' => $affiliate->code,
         'subject_type' => 'event',
-        'subject_identifier' => 'restore-me-event',
+        'subject_key' => 'restore-me-event',
         'subject_instance' => 'web',
         'subject_title_snapshot' => 'Restore Me Event',
         'voucher_code' => 'RESTORE-ME',
@@ -373,8 +372,8 @@ it('restores a deleted user together with key relationships and child records', 
     assertDatabaseHas('speakers', ['id' => $speaker->id]);
     assertDatabaseHas('references', ['id' => $reference->id]);
     assertDatabaseHas('venues', ['id' => $venue->id]);
-    expect($ownedEvent->fresh()->user_id)->toBeNull()
-        ->and($submittedEvent->fresh()->submitter_id)->toBeNull();
+    expect($ownedEvent->fresh()->owner_id)->toBeNull()
+        ->and($submittedEvent->fresh()->owner_id)->toBeNull();
     assertDatabaseHas('donation_channels', [
         'id' => $donationChannel->id,
         'verified_by' => null,
@@ -513,8 +512,8 @@ it('restores a deleted user together with key relationships and child records', 
         'response_type' => 'going',
     ]);
 
-    expect($sharedEvent->fresh()->saves_count)->toBe(1)
-        ->and($sharedEvent->fresh()->going_count)->toBe(1);
+    expect(app(EngagementCounterService::class)->countBookmarks($sharedEvent))->toBe(1)
+        ->and(app(EngagementCounterService::class)->countResponses($sharedEvent, 'going'))->toBe(1);
 
     assertDatabaseHas('event_members', [
         'event_id' => $sharedEvent->id,
@@ -522,8 +521,8 @@ it('restores a deleted user together with key relationships and child records', 
         'joined_at' => $memberJoinedAt->toDateTimeString(),
     ]);
 
-    expect($ownedEvent->fresh()->user_id)->toBe($user->id)
-        ->and($submittedEvent->fresh()->submitter_id)->toBe($user->id);
+    expect($ownedEvent->fresh()->owner_id)->toBe($user->id)
+        ->and($submittedEvent->fresh()->owner_id)->toBe($user->id);
 
     expect($eventSubmission->fresh()->submitter_id)->toBe($user->id);
     assertDatabaseHas('contribution_requests', [
@@ -661,10 +660,12 @@ it('restores an api self-deleted user from the deleted users admin page', functi
     $reference = Reference::factory()->create();
     $venue = Venue::factory()->create();
     $ownedEvent = Event::factory()->create([
-        'user_id' => $user->id,
+        'owner_type' => $user->getMorphClass(),
+        'owner_id' => $user->id,
     ]);
     $submittedEvent = Event::factory()->create([
-        'submitter_id' => $user->id,
+        'owner_type' => $user->getMorphClass(),
+        'owner_id' => $user->id,
     ]);
     $sharedEvent = Event::factory()->create();
     $otherUser = User::factory()->create();
@@ -744,8 +745,8 @@ it('restores an api self-deleted user from the deleted users admin page', functi
         'tokenable_type' => User::class,
         'tokenable_id' => $user->id,
     ]);
-    expect($ownedEvent->fresh()->user_id)->toBeNull()
-        ->and($submittedEvent->fresh()->submitter_id)->toBeNull();
+    expect($ownedEvent->fresh()->owner_id)->toBeNull()
+        ->and($submittedEvent->fresh()->owner_id)->toBeNull();
     expect(Registration::query()->whereKey($registration->id)->exists())->toBeFalse();
     assertDatabaseHas((new EventCheckin)->getTable(), ['id' => $ownCheckin->id]);
     assertDatabaseMissing('saved_searches', ['id' => $savedSearch->id]);
@@ -777,8 +778,8 @@ it('restores an api self-deleted user from the deleted users admin page', functi
         'name' => 'API Restore Target',
         'email' => 'api-restore-target@example.test',
     ]);
-    expect($ownedEvent->fresh()->user_id)->toBe($user->id)
-        ->and($submittedEvent->fresh()->submitter_id)->toBe($user->id);
+    expect($ownedEvent->fresh()->owner_id)->toBe($user->id)
+        ->and($submittedEvent->fresh()->owner_id)->toBe($user->id);
     assertDatabaseHas($institution->members()->getTable(), [
         'institution_id' => $institution->id,
         'user_id' => $user->id,
@@ -858,18 +859,22 @@ it('does not overwrite records reassigned after the user was deleted', function 
     $deletedUser = User::factory()->create();
     $newOwner = User::factory()->create();
     $event = Event::factory()->create([
-        'user_id' => $deletedUser->id,
+        'owner_type' => $deletedUser->getMorphClass(),
+        'owner_id' => $deletedUser->id,
     ]);
 
     $deletedUser->delete();
 
+    $event = $event->fresh();
     $event->forceFill([
-        'user_id' => $newOwner->id,
-    ])->save();
+        'owner_type' => $newOwner->getMorphClass(),
+        'owner_id' => $newOwner->id,
+    ])->saveQuietly();
 
     User::restoreDeletedUser($deletedUser->id);
 
-    expect($event->fresh()->user_id)->toBe($newOwner->id);
+    expect($event->fresh()->owner_id)->toBe($newOwner->id)
+        ->and($event->fresh()->owner_type)->toBe($newOwner->getMorphClass());
 });
 
 it('rolls back the user restore when restoring a related snapshot fails', function (): void {

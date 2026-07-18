@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use AIArmada\Contacting\Data\ContactMethodData;
 use AIArmada\Events\Models\EventRegistration as PackageEventRegistration;
 use AIArmada\Events\Models\EventRegistrationParticipant;
 use App\Models\Concerns\AuditsModelChanges;
@@ -13,7 +12,6 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 
@@ -67,10 +65,6 @@ class Registration extends PackageEventRegistration implements AuditableContract
     protected static function booted(): void
     {
         parent::booted();
-
-        static::saved(function (Registration $registration): void {
-            $registration->syncPrimaryParticipantRecord();
-        });
 
         static::deleting(function (Registration $registration): void {
             $registration->attendances()->each(fn ($attendance): bool => (bool) $attendance->delete());
@@ -155,33 +149,30 @@ class Registration extends PackageEventRegistration implements AuditableContract
                 ->whereColumn('primary_participants.event_registration_id', "{$registrationTable}.id")
                 ->where('primary_participants.is_primary', true)
                 ->where(function ($contactQuery) use ($email, $phone): void {
-                    if ($email !== null) {
-                        $contactQuery->where('primary_participants.metadata->contact->email', $email);
-                    }
+                    $contactQuery->whereExists(function ($cmQuery) use ($email, $phone): void {
+                        $cmQuery
+                            ->select(DB::raw('1'))
+                            ->from('contact_methods')
+                            ->whereColumn('contact_methods.contactable_id', 'primary_participants.id')
+                            ->where('contact_methods.contactable_type', 'event_registration_participant')
+                            ->where(function ($typeQuery) use ($email, $phone): void {
+                                if ($email !== null) {
+                                    $typeQuery->where('contact_methods.type', 'email')
+                                        ->where('contact_methods.value', $email);
+                                }
 
-                    if ($phone !== null) {
-                        $method = $email !== null ? 'orWhere' : 'where';
+                                if ($phone !== null) {
+                                    $method = $email !== null ? 'orWhere' : 'where';
 
-                        $contactQuery->{$method}('primary_participants.metadata->contact->phone', $phone);
-                    }
+                                    $typeQuery->{$method}(function ($q) use ($phone): void {
+                                        $q->where('contact_methods.type', 'phone')
+                                            ->where('contact_methods.value', $phone);
+                                    });
+                                }
+                            });
+                    });
                 });
         });
-    }
-
-    public function stagePrimaryParticipant(string $name, ?string $email = null, ?string $phone = null): self
-    {
-        $this->setMetadataValue('primary_participant.name', $this->normalizedString($name));
-        $this->setMetadataValue('primary_participant.contact.email', $this->normalizedString($email));
-        $this->setMetadataValue('primary_participant.contact.phone', $this->normalizedString($phone));
-
-        return $this;
-    }
-
-    public function setCheckinToken(?string $checkinToken): self
-    {
-        $this->setMetadataValue('checkin_token', $this->normalizedString($checkinToken));
-
-        return $this;
     }
 
     public function isForUser(User $user): bool
@@ -205,12 +196,6 @@ class Registration extends PackageEventRegistration implements AuditableContract
             return $name;
         }
 
-        $draftName = $this->participantDraftValue('name');
-
-        if ($draftName !== null) {
-            return $draftName;
-        }
-
         $registrant = $this->registrant;
 
         return $registrant instanceof User ? $this->normalizedString($registrant->name) : null;
@@ -222,12 +207,6 @@ class Registration extends PackageEventRegistration implements AuditableContract
 
         if ($email !== null) {
             return $email;
-        }
-
-        $draftEmail = $this->participantDraftValue('contact.email');
-
-        if ($draftEmail !== null) {
-            return $draftEmail;
         }
 
         $registrant = $this->registrant;
@@ -243,27 +222,9 @@ class Registration extends PackageEventRegistration implements AuditableContract
             return $phone;
         }
 
-        $draftPhone = $this->participantDraftValue('contact.phone');
-
-        if ($draftPhone !== null) {
-            return $draftPhone;
-        }
-
         $registrant = $this->registrant;
 
         return $registrant instanceof User ? $this->normalizedString($registrant->phone) : null;
-    }
-
-    public function resolvedCheckinToken(): ?string
-    {
-        $checkinToken = $this->metadataValue('checkin_token');
-
-        return is_string($checkinToken) && $checkinToken !== '' ? $checkinToken : null;
-    }
-
-    public function syncPrimaryParticipantRecord(): void
-    {
-        $this->syncPrimaryParticipant();
     }
 
     public function statusValue(): string
@@ -283,89 +244,6 @@ class Registration extends PackageEventRegistration implements AuditableContract
         return (string) $status;
     }
 
-    private function syncPrimaryParticipant(): void
-    {
-        $existingParticipant = $this->resolvePrimaryParticipant();
-        $draftName = $this->participantDraftValue('name');
-
-        // Package registration workflows persist their supplied participants
-        // after creating the registration. Do not synthesize a second primary
-        // participant during the initial model event; still allow user/profile
-        // synchronization when an app participant already exists.
-        if (! $existingParticipant instanceof EventRegistrationParticipant && $draftName === null) {
-            return;
-        }
-
-        $registrant = $this->registrant;
-
-        $name = $this->normalizedString(
-            $draftName
-                ?? ($registrant instanceof User ? $registrant->name : null),
-        );
-
-        $email = $this->normalizedString(
-            $this->participantDraftValue('contact.email')
-                ?? ($registrant instanceof User ? $registrant->email : null),
-        );
-
-        $phone = $this->normalizedString(
-            $this->participantDraftValue('contact.phone')
-                ?? ($registrant instanceof User ? $registrant->phone : null),
-        );
-
-        if ($name === null) {
-            return;
-        }
-
-        OwnerContext::withOwner(null, function () use ($email, $name, $phone): void {
-            $participant = $this->resolvePrimaryParticipant() ?? $this->participants()->make([
-                'event_registration_id' => $this->getKey(),
-            ]);
-
-            if (! $participant instanceof EventRegistrationParticipant) {
-                return;
-            }
-
-            $participant->fill([
-                'event_id' => $this->event_id,
-                'event_occurrence_id' => $this->event_occurrence_id,
-                'event_session_id' => $this->event_session_id,
-                'participant_type' => parent::getAttribute('registrant_type'),
-                'participant_id' => parent::getAttribute('registrant_id'),
-                'name' => $name,
-                'is_primary' => true,
-                'status' => 'active',
-                'metadata' => array_filter([
-                    'contact' => array_filter([
-                        'email' => $email,
-                        'phone' => $phone,
-                    ], static fn (mixed $value): bool => is_string($value) && $value !== ''),
-                ], static fn (mixed $value): bool => $value !== []),
-            ]);
-
-            $participant->save();
-
-            $this->syncParticipantContactMethods($participant, $email, $phone);
-        });
-    }
-
-    private function setMetadataValue(string $path, mixed $value): void
-    {
-        $metadata = parent::getAttribute('metadata');
-        $metadata = is_array($metadata) ? $metadata : [];
-
-        Arr::set($metadata, $path, $value);
-
-        parent::setAttribute('metadata', $metadata);
-    }
-
-    private function metadataValue(string $path): mixed
-    {
-        $metadata = parent::getAttribute('metadata');
-
-        return is_array($metadata) ? data_get($metadata, $path) : null;
-    }
-
     private function normalizedString(mixed $value): ?string
     {
         if (! is_scalar($value)) {
@@ -377,48 +255,17 @@ class Registration extends PackageEventRegistration implements AuditableContract
         return $normalized === '' ? null : $normalized;
     }
 
-    private function participantDraftValue(string $path): ?string
-    {
-        $value = $this->metadataValue("primary_participant.{$path}");
-
-        return is_string($value) && $value !== '' ? $value : null;
-    }
-
-    private function syncParticipantContactMethods(EventRegistrationParticipant $participant, ?string $email, ?string $phone): void
-    {
-        $participant->contactMethodsOfType('email')->delete();
-        $participant->contactMethodsOfType('phone')->delete();
-
-        if ($email !== null) {
-            $participant->addContactMethod(new ContactMethodData(
-                type: 'email',
-                purpose: 'general',
-                value: $email,
-                isPrimary: true,
-            ));
-        }
-
-        if ($phone !== null) {
-            $participant->addContactMethod(new ContactMethodData(
-                type: 'phone',
-                purpose: 'general',
-                value: $phone,
-                countryCode: config('contacting.defaults.country_code', 'MY'),
-                isPrimary: true,
-            ));
-        }
-    }
-
     private function primaryParticipantContactValue(string $key): ?string
     {
         /** @var EventRegistrationParticipant|null $participant */
         $participant = OwnerContext::withOwner(null, fn (): ?EventRegistrationParticipant => $this->resolvePrimaryParticipant());
 
         if (! $participant instanceof EventRegistrationParticipant) {
-            return $this->participantDraftValue("contact.{$key}");
+            return null;
         }
 
-        $value = data_get($participant->getAttribute('metadata'), "contact.{$key}");
+        $value = $participant->contactMethodsOfType($key)->where('is_primary', true)->value('value')
+            ?? $participant->contactMethodsOfType($key)->value('value');
 
         return is_string($value) && $value !== '' ? $value : null;
     }

@@ -4,8 +4,10 @@ namespace Database\Factories;
 
 use AIArmada\Events\Database\Factories\EventFactory as PackageEventFactory;
 use AIArmada\Events\Enums\RegistrationMode as PackageRegistrationMode;
+use AIArmada\Events\Enums\ScheduleKind;
 use AIArmada\Events\Models\EventLink;
 use App\Actions\Events\SyncEventClassificationsAction;
+use App\Actions\Events\SyncEventScheduleAction;
 use App\Contracts\EventCategoryCatalog;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
@@ -133,10 +135,7 @@ class EventFactory extends PackageEventFactory
             'starts_at' => $startsAt,
             'ends_at' => $endsAt,
             'timezone' => $eventTimezone,
-            'timing_mode' => TimingMode::Absolute->value,
-            'prayer_reference' => null,
-            'prayer_offset' => null,
-            'prayer_display_text' => null,
+
             'gender' => fake()->randomElement(EventGenderRestriction::cases()),
             'age_group' => [fake()->randomElement(EventAgeGroup::cases())],
             'children_allowed' => fake()->boolean(80), // 80% allow children
@@ -149,9 +148,6 @@ class EventFactory extends PackageEventFactory
                 EventVisibility::Unlisted,
             ]),
             'status' => $status,
-            'views_count' => fake()->numberBetween(0, 2000),
-            'saves_count' => fake()->numberBetween(0, 500),
-            'registrations_count' => fake()->numberBetween(0, 200),
             'published_at' => $publishedAt,
             'is_muslim_only' => fake()->boolean(90), // 90% are muslim only
         ];
@@ -175,6 +171,14 @@ class EventFactory extends PackageEventFactory
             if (! $event instanceof Event) {
                 return;
             }
+
+            app(SyncEventScheduleAction::class)->execute(
+                event: $event,
+                scheduleKind: ScheduleKind::Single,
+                startsAt: $event->starts_at,
+                endsAt: $event->ends_at,
+                timezone: $event->timezone,
+            );
 
             $categoryIds = $event->event_category_ids;
             if ($categoryIds === []) {
@@ -223,12 +227,19 @@ class EventFactory extends PackageEventFactory
             PrayerOffset::After30,
         ]);
 
-        return $this->state(fn (array $attributes) => [
-            'timing_mode' => TimingMode::PrayerRelative->value,
-            'prayer_reference' => $prayer->value,
-            'prayer_offset' => $offset->value,
-            'prayer_display_text' => $offset->displayText($prayer),
-        ]);
+        return $this->afterCreating(function (Event $event) use ($prayer, $offset): void {
+            app(SyncEventScheduleAction::class)->execute(
+                event: $event,
+                scheduleKind: ScheduleKind::Single,
+                startsAt: $event->starts_at,
+                endsAt: $event->ends_at,
+                timezone: $event->timezone,
+                timingMode: TimingMode::PrayerRelative,
+                prayerReference: $prayer->value,
+                prayerOffset: $offset->minutes(),
+                prayerDisplayText: $offset->displayText($prayer),
+            );
+        });
     }
 
     /**

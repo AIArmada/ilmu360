@@ -3,7 +3,7 @@
 ## Current Dawah Share Analytics Baseline
 
 - Dawah Share now tracks provider outbound clicks in `dawah_share_share_events` with `event_type=outbound_click`.
-- Recipient landings store the originating share provider in attribution metadata under `share_provider`.
+- Recipient landings store the originating share provider in the canonical attribution `channel` field.
 - Dashboard provider breakdowns should use both sources together:
   - outbound clicks answer which provider button a sharer used
   - attributed visits and outcomes answer which provider actually produced downstream impact

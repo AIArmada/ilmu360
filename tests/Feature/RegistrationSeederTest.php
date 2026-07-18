@@ -23,6 +23,5 @@ it('seeds registrations whether or not the users table has a phone column', func
     (new RegistrationSeeder)->run();
 
     expect(Registration::query()->where('event_id', $event->id)->count())->toBeGreaterThan(0)
-        ->and($event->fresh()?->registrations_count)->toBeGreaterThan(0)
         ->and($hasPhoneColumn)->toBeBool();
 });

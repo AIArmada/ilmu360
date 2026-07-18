@@ -125,7 +125,7 @@ Verified:
 
 Decisions:
 
-- Event discovery/search must query package addresses and metadata directly instead of relying on legacy relation-existence SQL against removed `events.institution_id` and `events.venue_id` columns.
+- Historical decision superseded by the first-class metadata hard-cut: event discovery/search now queries canonical package address/location relations and indexed event columns; removed event columns and metadata fallbacks are not supported.
 - Venue runtime compatibility belongs in the app wrapper: `type` maps to `venue_type`, `description` / `facilities` / `is_active` live in venue metadata, and `Venue::events()` points at `events.default_venue_id`.
 - Public event discovery continues to exclude parent programs at query level, not only in view logic.
 

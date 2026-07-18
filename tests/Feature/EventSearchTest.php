@@ -2758,7 +2758,6 @@ describe('Event Registration', function () {
                 'status' => 'approved',
                 'visibility' => 'public',
                 'published_at' => now(),
-                'registrations_count' => 0,
             ]);
 
         $response = $this->post(eventRegistrationUrl($event), [
@@ -2817,7 +2816,6 @@ describe('Event Registration', function () {
                 'status' => 'approved',
                 'visibility' => 'public',
                 'published_at' => now(),
-                'registrations_count' => 1,
             ]);
 
         Registration::factory()

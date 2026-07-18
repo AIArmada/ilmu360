@@ -2,8 +2,9 @@
 
 namespace App\Actions\Events;
 
-use AIArmada\Events\Actions\CreateEventOccurrenceAction;
 use AIArmada\Events\Enums\RegistrationMode;
+use AIArmada\Events\Enums\ScheduleKind;
+use App\Enums\TimingMode;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Speaker;
@@ -40,8 +41,8 @@ class CreateAdvancedEventAction
                 : [];
 
             $event = Event::query()->create([
-                'user_id' => $user->id,
-                'submitter_id' => $user->id,
+                'owner_type' => $user->getMorphClass(),
+                'owner_id' => $user->id,
                 'title' => (string) $form['title'],
                 'slug' => app(GenerateEventSlugAction::class)->handle(
                     (string) $form['title'],
@@ -67,15 +68,14 @@ class CreateAdvancedEventAction
                     : [(string) ($form['default_event_category_id'] ?? '')],
             ]);
 
-            app(CreateEventOccurrenceAction::class)->handle($event, [
-                'title' => $event->title,
-                'slug' => $event->slug,
-                'starts_at' => $startsAt,
-                'ends_at' => $endsAt,
-                'timezone' => $timezone,
-                'visibility' => $event->visibility,
-                'delivery_mode' => $event->delivery_mode,
-            ]);
+            app(SyncEventScheduleAction::class)->execute(
+                event: $event,
+                scheduleKind: ScheduleKind::Single,
+                startsAt: $startsAt,
+                endsAt: $endsAt,
+                timezone: $timezone,
+                timingMode: TimingMode::Absolute,
+            );
 
             $event->accessPolicy()->create([
                 'registration_required' => (bool) $form['registration_required'],

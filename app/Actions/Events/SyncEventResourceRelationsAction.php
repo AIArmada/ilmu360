@@ -87,7 +87,7 @@ class SyncEventResourceRelationsAction
             $this->eventKeyPersonSyncService->sync(
                 $event,
                 is_array($state['speakers'] ?? null) ? $state['speakers'] : [],
-                is_array($state['other_key_people'] ?? null) ? $state['other_key_people'] : [],
+                $this->canonicalKeyPeople($state['other_key_people'] ?? []),
             );
         }
 
@@ -111,5 +111,22 @@ class SyncEventResourceRelationsAction
         }
 
         return (bool) $accessPolicy->registration_required;
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function canonicalKeyPeople(mixed $rows): array
+    {
+        if (! is_array($rows)) {
+            return [];
+        }
+
+        return collect($rows)->filter('is_array')->map(static fn (array $row): array => [
+            'role_code' => $row['role_code'] ?? $row['role'] ?? null,
+            'involveable_type' => $row['involveable_type'] ?? (isset($row['speaker_id']) ? 'speaker' : null),
+            'involveable_id' => $row['involveable_id'] ?? $row['speaker_id'] ?? null,
+            'display_name' => $row['display_name'] ?? $row['name'] ?? null,
+            'visibility' => $row['visibility'] ?? ((bool) ($row['is_public'] ?? true) ? 'public' : 'private'),
+            'notes' => $row['notes'] ?? null,
+        ])->values()->all();
     }
 }

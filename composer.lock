@@ -74,12 +74,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/AIArmada/affiliates.git",
-                "reference": "54764f620f7759a48ae57f4ae713e86019d6c9f1"
+                "reference": "35e4bf7893ed9b0c915e1b74281c64edd889638b"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/AIArmada/affiliates/zipball/54764f620f7759a48ae57f4ae713e86019d6c9f1",
-                "reference": "54764f620f7759a48ae57f4ae713e86019d6c9f1",
+                "url": "https://api.github.com/repos/AIArmada/affiliates/zipball/35e4bf7893ed9b0c915e1b74281c64edd889638b",
+                "reference": "35e4bf7893ed9b0c915e1b74281c64edd889638b",
                 "shasum": ""
             },
             "require": {
@@ -119,7 +119,7 @@
                 "issues": "https://github.com/aiarmada/commerce/issues",
                 "source": "https://github.com/aiarmada/commerce"
             },
-            "time": "2026-07-14T09:09:33+00:00"
+            "time": "2026-07-18T11:57:28+00:00"
         },
         {
             "name": "aiarmada/authz",
@@ -246,12 +246,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/AIArmada/communications.git",
-                "reference": "9563321e59510c42a88132903ac5883180e03825"
+                "reference": "b9e27c350fc627ad424b59bdd0e97574d5ca638e"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/AIArmada/communications/zipball/9563321e59510c42a88132903ac5883180e03825",
-                "reference": "9563321e59510c42a88132903ac5883180e03825",
+                "url": "https://api.github.com/repos/AIArmada/communications/zipball/b9e27c350fc627ad424b59bdd0e97574d5ca638e",
+                "reference": "b9e27c350fc627ad424b59bdd0e97574d5ca638e",
                 "shasum": ""
             },
             "require": {
@@ -307,7 +307,7 @@
                 "issues": "https://github.com/AIArmada/communications/issues",
                 "source": "https://github.com/AIArmada/communications/tree/main"
             },
-            "time": "2026-07-13T17:43:06+00:00"
+            "time": "2026-07-18T10:23:08+00:00"
         },
         {
             "name": "aiarmada/contacting",
@@ -379,12 +379,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/AIArmada/engagement.git",
-                "reference": "fb4d52f824e44a52117ac81264bdd07c9c7327e8"
+                "reference": "49d6e7173032a08fefc21ab08902e89b5fff571c"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/AIArmada/engagement/zipball/fb4d52f824e44a52117ac81264bdd07c9c7327e8",
-                "reference": "fb4d52f824e44a52117ac81264bdd07c9c7327e8",
+                "url": "https://api.github.com/repos/AIArmada/engagement/zipball/49d6e7173032a08fefc21ab08902e89b5fff571c",
+                "reference": "49d6e7173032a08fefc21ab08902e89b5fff571c",
                 "shasum": ""
             },
             "require": {
@@ -438,7 +438,7 @@
                 "issues": "https://github.com/AIArmada/engagement/issues",
                 "source": "https://github.com/AIArmada/engagement/tree/main"
             },
-            "time": "2026-07-12T09:34:39+00:00"
+            "time": "2026-07-18T10:43:49+00:00"
         },
         {
             "name": "aiarmada/events",
@@ -446,12 +446,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/AIArmada/events.git",
-                "reference": "5ebd95c4d40c7683f889e04b9543615cfe56c933"
+                "reference": "1c31e52b06b5196d7d160fca4525f5d6385bd55b"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/AIArmada/events/zipball/5ebd95c4d40c7683f889e04b9543615cfe56c933",
-                "reference": "5ebd95c4d40c7683f889e04b9543615cfe56c933",
+                "url": "https://api.github.com/repos/AIArmada/events/zipball/1c31e52b06b5196d7d160fca4525f5d6385bd55b",
+                "reference": "1c31e52b06b5196d7d160fca4525f5d6385bd55b",
                 "shasum": ""
             },
             "require": {
@@ -521,7 +521,7 @@
                 "issues": "https://github.com/AIArmada/events/issues",
                 "source": "https://github.com/AIArmada/events/tree/main"
             },
-            "time": "2026-07-17T15:36:49+00:00"
+            "time": "2026-07-18T10:23:42+00:00"
         },
         {
             "name": "aiarmada/filament-addressing",
@@ -1204,12 +1204,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/AIArmada/references.git",
-                "reference": "38d59eb75c8b9c184fb0c5575d0e305ea01dc5a1"
+                "reference": "a71e2a7b27d505c029e2f9f97c29bb39ff071f50"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/AIArmada/references/zipball/38d59eb75c8b9c184fb0c5575d0e305ea01dc5a1",
-                "reference": "38d59eb75c8b9c184fb0c5575d0e305ea01dc5a1",
+                "url": "https://api.github.com/repos/AIArmada/references/zipball/a71e2a7b27d505c029e2f9f97c29bb39ff071f50",
+                "reference": "a71e2a7b27d505c029e2f9f97c29bb39ff071f50",
                 "shasum": ""
             },
             "require": {
@@ -1244,7 +1244,7 @@
                 "issues": "https://github.com/AIArmada/references/issues",
                 "source": "https://github.com/AIArmada/references/tree/main"
             },
-            "time": "2026-07-13T17:42:55+00:00"
+            "time": "2026-07-18T10:23:31+00:00"
         },
         {
             "name": "aiarmada/seating",
@@ -1316,12 +1316,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/AIArmada/signals.git",
-                "reference": "2696e8cd466a56af96ed920fc3ef21e804926eb5"
+                "reference": "7a694ac5d131905a95c409ade31fe2dcef0e8950"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/AIArmada/signals/zipball/2696e8cd466a56af96ed920fc3ef21e804926eb5",
-                "reference": "2696e8cd466a56af96ed920fc3ef21e804926eb5",
+                "url": "https://api.github.com/repos/AIArmada/signals/zipball/7a694ac5d131905a95c409ade31fe2dcef0e8950",
+                "reference": "7a694ac5d131905a95c409ade31fe2dcef0e8950",
                 "shasum": ""
             },
             "require": {
@@ -1368,7 +1368,7 @@
                 "issues": "https://github.com/AIArmada/signals/issues",
                 "source": "https://github.com/AIArmada/signals/tree/main"
             },
-            "time": "2026-07-14T09:09:18+00:00"
+            "time": "2026-07-18T11:57:36+00:00"
         },
         {
             "name": "aiarmada/ticketing",

@@ -20,7 +20,6 @@ class UserRegistrationItemData extends Data
         public ?string $email,
         public ?string $phone,
         public string $status,
-        public ?string $checkin_token,
         public ?string $created_at,
         public ?string $updated_at,
         public ?array $event,
@@ -38,7 +37,6 @@ class UserRegistrationItemData extends Data
             email: $registration->resolvedEmail(),
             phone: $registration->resolvedPhone(),
             status: $registration->statusValue(),
-            checkin_token: $registration->resolvedCheckinToken(),
             created_at: $registration->created_at?->toIso8601String(),
             updated_at: $registration->updated_at?->toIso8601String(),
             event: $registration->event instanceof Event

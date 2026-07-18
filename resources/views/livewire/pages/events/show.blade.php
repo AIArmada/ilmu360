@@ -33,7 +33,7 @@
             . ', '
             . \App\Support\Timezone\UserDateTimeFormatter::format($event->starts_at, 'h:i A');
 
-        if ($event->ends_at && $event->timing_mode === \App\Enums\TimingMode::Absolute) {
+        if ($event->ends_at && ! $event->isPrayerRelative()) {
             $sharePreviewDateTime .= ' — ' . \App\Support\Timezone\UserDateTimeFormatter::format($event->ends_at, 'h:i A');
         }
     }
@@ -136,7 +136,7 @@
     $classificationsByTaxonomy = $classifications->groupBy('taxonomy_code');
 
     // Schedule state
-    $scheduleState = $event->schedule_state;
+    $scheduleState = (string) $event->primaryOccurrence?->status;
     $latestChangeNotice = $this->activeChangeNotice;
     $replacementEvent = $this->replacementEvent;
     $isPostponedWithoutConfirmedTime = $this->isPostponedWithoutConfirmedTime;
@@ -982,17 +982,17 @@
                     <p class="text-sm font-bold text-amber-700">{{ __('Tarikh baharu belum disahkan. Pendaftaran, check-in dan kalendar ditutup buat masa ini.') }}</p>
                 </div>
             </div>
-        @elseif($scheduleState === \App\Enums\ScheduleState::Paused)
+        @elseif($scheduleState === 'postponed' || $scheduleState === 'delayed')
             <div class="mb-4">
                 <div class="flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">
                     <svg class="size-5 shrink-0 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 018 0z" />
                     </svg>
                     <p class="text-sm font-medium text-amber-700">{{ __('Jadual ditangguhkan buat sementara waktu.') }}</p>
                 </div>
             </div>
-        @elseif($scheduleState === \App\Enums\ScheduleState::Cancelled)
+        @elseif($scheduleState === 'cancelled')
             <div class="mb-4">
                 <div class="flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-4">
                     <svg class="size-5 shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1825,8 +1825,8 @@
                                 {{ __('Online') }}
                             @endif
                         </p>
-                        @if($event->space)
-                            <p class="mt-0.5 text-sm font-medium text-slate-600">{{ $event->space->name }}</p>
+                        @if($event->primaryLocation?->venueSpace)
+                            <p class="mt-0.5 text-sm font-medium text-slate-600">{{ $event->primaryLocation->venueSpace->name }}</p>
                         @endif
                         @if($event->venue && $event->institution)
                             <div class="mt-2 flex items-center gap-2">
@@ -2011,7 +2011,7 @@
                 $regOpensAt = $event->accessPolicy?->opens_at;
                 $regClosesAt = $event->accessPolicy?->closes_at;
                 $regCapacity = $event->accessPolicy?->capacity;
-                $spotsTaken = (int) $event->registrations_count;
+                $spotsTaken = (int) $this->registrationsCount;
                 $capacityRatio = $regCapacity
                     ? min(100, (int) round(($spotsTaken / max(1, (int) $regCapacity)) * 100))
                     : null;
@@ -2080,7 +2080,7 @@
                     @php
                         $regOpen = !$event->accessPolicy?->opens_at || $event->accessPolicy->opens_at <= now();
                         $regClosed = $event->accessPolicy?->closes_at && $event->accessPolicy->closes_at < now();
-                        $atCapacity = $registrationMode === \AIArmada\Events\Enums\RegistrationMode::Required && $event->accessPolicy?->capacity && $event->registrations_count >= $event->accessPolicy->capacity;
+                        $atCapacity = $registrationMode === \AIArmada\Events\Enums\RegistrationMode::Required && $event->accessPolicy?->capacity && $this->registrationsCount >= $event->accessPolicy->capacity;
                     @endphp
 
                     @if($eventActionsDisabled)
@@ -2126,7 +2126,7 @@
                             </span>
                             @if($registrationMode === \AIArmada\Events\Enums\RegistrationMode::Required && $event->accessPolicy?->capacity)
                                 <span
-                                    class="relative ml-2 text-xs opacity-80">({{ $event->accessPolicy->capacity - $event->registrations_count }}
+                                    class="relative ml-2 text-xs opacity-80">({{ $event->accessPolicy->capacity - $this->registrationsCount }}
                                     {{ __('spots left') }})</span>
                             @endif
                         </a>

@@ -200,12 +200,12 @@ test('explicit copy-link and native-share actions record outbound share touchpoi
 
     expect(Affiliate::count())->toBe(1)
         ->and(AffiliateLink::count())->toBe(1)
-        ->and(AffiliateTouchpoint::query()->where('metadata->event_type', 'outbound_share')->count())->toBe(2);
+        ->and(AffiliateTouchpoint::query()->where('touchpoint_type', 'outbound_share')->count())->toBe(2);
 
     $providers = AffiliateTouchpoint::query()
-        ->where('metadata->event_type', 'outbound_share')
+        ->where('touchpoint_type', 'outbound_share')
         ->get()
-        ->map(fn (AffiliateTouchpoint $touchpoint): ?string => data_get($touchpoint->metadata, 'provider'))
+        ->map(fn (AffiliateTouchpoint $touchpoint): ?string => $touchpoint->channel)
         ->filter()
         ->values()
         ->all();
@@ -292,7 +292,7 @@ test('share redirect resolves non uuid reference slugs without server errors', f
     $link = AffiliateLink::query()->firstOrFail();
 
     expect($link->subject_type)->toBe('reference')
-        ->and($link->subject_identifier)->toBe('reference:'.$reference->id)
+        ->and($link->subject_key)->toBe('reference:'.$reference->id)
         ->and($link->destination_url)->toBe(route('references.show', $reference));
 });
 
@@ -379,7 +379,7 @@ test('share origin is stored on links outbound shares and landing attributions',
     $trackingToken = (string) data_get($payload, 'tracking_token');
     $link = AffiliateLink::query()->where('custom_slug', $trackingToken)->firstOrFail();
 
-    expect(data_get($link->subject_metadata, 'share_origin'))->toBe('android');
+    expect($link->origin)->toBe('android');
 
     Sanctum::actingAs($this->sharer);
 
@@ -389,22 +389,22 @@ test('share origin is stored on links outbound shares and landing attributions',
     ])->assertNoContent();
 
     $outboundTouchpoint = AffiliateTouchpoint::query()
-        ->where('metadata->event_type', 'outbound_share')
+        ->where('touchpoint_type', 'outbound_share')
         ->latest('touched_at')
         ->firstOrFail();
 
-    expect(data_get($outboundTouchpoint->metadata, 'share_origin'))->toBe('android');
+    expect($outboundTouchpoint->origin)->toBe('android');
 
     $this->get((string) data_get($payload, 'channel_urls.copy_link'))->assertOk();
 
     $attribution = AffiliateAttribution::query()->latest('first_seen_at')->firstOrFail();
     $visit = AffiliateTouchpoint::query()
-        ->where('metadata->event_type', 'visit')
+        ->where('touchpoint_type', 'visit')
         ->latest('touched_at')
         ->firstOrFail();
 
-    expect(data_get($attribution->metadata, 'share_origin'))->toBe('android')
-        ->and(data_get($visit->metadata, 'share_origin'))->toBe('android');
+    expect($attribution->origin)->toBe('android')
+        ->and($visit->origin)->toBe('android');
 });
 
 test('landing attributions preserve copy and native share channels', function (string $provider) {
@@ -430,12 +430,12 @@ test('landing attributions preserve copy and native share channels', function (s
 
     $attribution = AffiliateAttribution::query()->latest('first_seen_at')->firstOrFail();
     $visit = AffiliateTouchpoint::query()
-        ->where('metadata->event_type', 'visit')
+        ->where('touchpoint_type', 'visit')
         ->latest('touched_at')
         ->firstOrFail();
 
-    expect(data_get($attribution->metadata, 'share_provider'))->toBe($provider)
-        ->and(data_get($visit->metadata, 'share_provider'))->toBe($provider)
+    expect($attribution->channel)->toBe($provider)
+        ->and($visit->channel)->toBe($provider)
         ->and($attribution->landing_url)->not->toContain('origin=web')
         ->and($attribution->landing_url)->toContain(route('events.show', $event));
 })->with([
@@ -457,7 +457,7 @@ test('share tracking rejects invalid tokens', function () {
         ->assertUnprocessable()
         ->assertJsonValidationErrors('tracking_token');
 
-    expect(AffiliateTouchpoint::query()->where('metadata->event_type', 'outbound_share')->count())->toBe(0);
+    expect(AffiliateTouchpoint::query()->where('touchpoint_type', 'outbound_share')->count())->toBe(0);
 });
 
 test('share redirects record outbound shares for guest callers', function () {
@@ -480,7 +480,7 @@ test('share redirects record outbound shares for guest callers', function () {
     expect($location)->toContain('whatsapp')
         ->and($location)->toContain((string) config('dawah-share.query_parameter', 'share'));
 
-    expect(AffiliateTouchpoint::query()->where('metadata->event_type', 'outbound_share')->count())->toBe(1);
+    expect(AffiliateTouchpoint::query()->where('touchpoint_type', 'outbound_share')->count())->toBe(1);
 });
 
 test('share tracking records outbound shares for guest callers', function () {
@@ -504,7 +504,7 @@ test('share tracking records outbound shares for guest callers', function () {
         'tracking_token' => $trackingToken,
     ])->assertNoContent();
 
-    expect(AffiliateTouchpoint::query()->where('metadata->event_type', 'outbound_share')->count())->toBe(1);
+    expect(AffiliateTouchpoint::query()->where('touchpoint_type', 'outbound_share')->count())->toBe(1);
 });
 
 test('threads redirect records an outbound share touchpoint for authenticated users', function () {
@@ -525,14 +525,14 @@ test('threads redirect records an outbound share touchpoint for authenticated us
 
     expect(Affiliate::count())->toBe(1)
         ->and(AffiliateLink::count())->toBe(1)
-        ->and(AffiliateTouchpoint::query()->where('metadata->event_type', 'outbound_share')->count())->toBe(1);
+        ->and(AffiliateTouchpoint::query()->where('touchpoint_type', 'outbound_share')->count())->toBe(1);
 
     $touchpoint = AffiliateTouchpoint::query()
-        ->where('metadata->event_type', 'outbound_share')
+        ->where('touchpoint_type', 'outbound_share')
         ->first();
 
     expect($touchpoint)->not->toBeNull()
-        ->and(data_get($touchpoint?->metadata, 'provider'))->toBe('threads');
+        ->and($touchpoint?->channel)->toBe('threads');
 });
 
 test('equivalent filtered search urls reuse the same canonical share link', function () {
@@ -561,7 +561,7 @@ test('equivalent filtered search urls reuse the same canonical share link', func
 
     expect($link)->not->toBeNull()
         ->and($link?->subject_type)->toBe('search')
-        ->and($link?->subject_identifier)->toContain('search:');
+        ->and($link?->subject_key)->toContain('search:');
 });
 
 test('opening a shared link creates an attribution and landing visit', function () {
@@ -584,13 +584,13 @@ test('opening a shared link creates an attribution and landing visit', function 
     $response->assertOk();
     expect($response->getCookie(config('dawah-share.cookie.name')))->not->toBeNull();
     expect(AffiliateAttribution::count())->toBe(1);
-    expect(AffiliateTouchpoint::query()->where('metadata->event_type', 'visit')->count())->toBe(1);
+    expect(AffiliateTouchpoint::query()->where('touchpoint_type', 'visit')->count())->toBe(1);
 
-    $visit = AffiliateTouchpoint::query()->where('metadata->event_type', 'visit')->first();
+    $visit = AffiliateTouchpoint::query()->where('touchpoint_type', 'visit')->first();
 
     expect($visit)->not->toBeNull()
-        ->and(data_get($visit?->metadata, 'visit_kind'))->toBe('landing')
-        ->and(data_get($visit?->metadata, 'subject_type'))->toBe('event');
+        ->and($visit?->interaction_type)->toBe('landing')
+        ->and($visit?->subject_type)->toBe('event');
 });
 
 test('new signups are attributed after a shared landing', function () {
@@ -619,19 +619,14 @@ test('new signups are attributed after a shared landing', function () {
 
     AffiliateAttribution::query()->latest('first_seen_at')->firstOrFail()->forceFill([
         'subject_type' => 'event',
-        'subject_identifier' => 'event:canonical-signup-subject',
+        'subject_key' => 'event:canonical-signup-subject',
         'subject_title_snapshot' => $event->title,
-        'metadata' => [
-            'tracking_mode' => 'landing',
-            'link_id' => AffiliateLink::query()->value('id'),
-            'share_provider' => 'direct',
-            'sharer_user_id' => $this->sharer->id,
-            'visitor_key' => 'signup-subject-visitor',
-            'subject_type' => 'event',
-            'subject_id' => $event->id,
-            'subject_key' => 'event:canonical-signup-subject',
-            'title_snapshot' => $event->title,
-        ],
+        'subject_id' => $event->id,
+        'affiliate_link_id' => AffiliateLink::query()->value('id'),
+        'attribution_type' => 'landing',
+        'channel' => 'direct',
+        'sharer_user_id' => $this->sharer->id,
+        'visitor_key' => 'signup-subject-visitor',
     ])->save();
 
     $newUser = app(CreateNewUser::class)->create([
@@ -645,15 +640,13 @@ test('new signups are attributed after a shared landing', function () {
 
     $this->assertDatabaseHas('affiliate_conversions', [
         'conversion_type' => 'signup',
-        'subject_type' => 'event',
-        'subject_identifier' => 'event:canonical-signup-subject',
         'subject_title_snapshot' => $event->title,
         'external_reference' => 'signup:user:'.$newUser->id,
-        'metadata->actor_user_id' => $newUser->id,
-        'metadata->sharer_user_id' => $this->sharer->id,
-        'metadata->subject_type' => 'event',
-        'metadata->subject_id' => $event->id,
-        'metadata->subject_key' => 'event:canonical-signup-subject',
+        'actor_user_id' => $newUser->id,
+        'sharer_user_id' => $this->sharer->id,
+        'subject_type' => 'event',
+        'subject_id' => $event->id,
+        'subject_key' => 'event:canonical-signup-subject',
     ]);
 });
 
@@ -709,8 +702,8 @@ test('event registrations are attributed after a shared landing', function () {
 
     $this->assertDatabaseHas('affiliate_conversions', [
         'conversion_type' => 'event_registration',
-        'metadata->sharer_user_id' => $this->sharer->id,
-        'metadata->subject_id' => $event->id,
+        'sharer_user_id' => $this->sharer->id,
+        'subject_id' => $event->id,
     ]);
 });
 
@@ -753,9 +746,9 @@ test('event saves and going actions are attributed through authenticated api act
 
     $this->assertDatabaseHas('affiliate_conversions', [
         'conversion_type' => $outcomeType,
-        'metadata->sharer_user_id' => $this->sharer->id,
-        'metadata->actor_user_id' => $visitor->id,
-        'metadata->subject_id' => $event->id,
+        'sharer_user_id' => $this->sharer->id,
+        'actor_user_id' => $visitor->id,
+        'subject_id' => $event->id,
     ]);
 })->with([
     'event save' => ['api.events.saved.update', 'event_save', 'put'],
@@ -791,9 +784,9 @@ test('saved-search creation is attributed after a shared search landing', functi
 
     $this->assertDatabaseHas('affiliate_conversions', [
         'conversion_type' => 'saved_search_created',
-        'metadata->sharer_user_id' => $this->sharer->id,
-        'metadata->actor_user_id' => $visitor->id,
-        'metadata->subject_type' => 'search',
+        'sharer_user_id' => $this->sharer->id,
+        'actor_user_id' => $visitor->id,
+        'subject_type' => 'search',
     ]);
 });
 
@@ -828,9 +821,9 @@ test('event check-ins are attributed after a shared landing', function () {
     $this->assertDatabaseHas('affiliate_conversions', [
         'conversion_type' => 'event_checkin',
         'external_reference' => 'event_checkin:checkin:'.$checkin->id,
-        'metadata->sharer_user_id' => $this->sharer->id,
-        'metadata->actor_user_id' => $visitor->id,
-        'metadata->subject_id' => $event->id,
+        'sharer_user_id' => $this->sharer->id,
+        'actor_user_id' => $visitor->id,
+        'subject_id' => $event->id,
     ]);
 });
 
@@ -859,8 +852,8 @@ test('event submissions are attributed after a shared landing', function () {
     $this->assertDatabaseHas('affiliate_conversions', [
         'conversion_type' => 'event_submission',
         'external_reference' => 'event_submission:submission:'.$submission->id,
-        'metadata->sharer_user_id' => $this->sharer->id,
-        'metadata->subject_id' => $event->id,
+        'sharer_user_id' => $this->sharer->id,
+        'subject_id' => $event->id,
     ]);
 });
 
@@ -880,9 +873,9 @@ test('follow actions are attributed across supported public followable pages', f
     $this->assertDatabaseHas('affiliate_conversions', [
         'conversion_type' => $outcomeType,
         'external_reference' => $outcomeType.':user:'.$visitor->id.':'.$subjectKey.':'.$record->id,
-        'metadata->sharer_user_id' => $this->sharer->id,
-        'metadata->actor_user_id' => $visitor->id,
-        'metadata->subject_id' => $record->id,
+        'sharer_user_id' => $this->sharer->id,
+        'actor_user_id' => $visitor->id,
+        'subject_id' => $record->id,
     ]);
 })->with(fn (): array => [
     'institution follow' => ['pages.institutions.show', 'institutions.show', 'institution', fn () => Institution::factory()->create([
@@ -1026,16 +1019,14 @@ test('impact dashboard top subjects use canonical affiliate subject fields', fun
         'affiliate_id' => $affiliate->id,
         'affiliate_code' => $affiliate->code,
         'subject_type' => 'event',
-        'subject_identifier' => $eventLink->subject_identifier,
+        'subject_key' => $eventLink->subject_key,
         'subject_instance' => 'share_tracking_link',
         'subject_title_snapshot' => $event->title,
         'cookie_value' => 'event-top-subject-cookie',
         'landing_url' => $eventLink->destination_url,
-        'metadata' => [
-            'tracking_mode' => 'landing',
-            'link_id' => $eventLink->id,
-            'sharer_user_id' => $this->sharer->id,
-        ],
+        'affiliate_link_id' => $eventLink->id,
+        'attribution_type' => 'landing',
+        'sharer_user_id' => $this->sharer->id,
         'first_seen_at' => now()->subHour(),
         'last_seen_at' => now()->subHour(),
     ]);
@@ -1045,17 +1036,14 @@ test('impact dashboard top subjects use canonical affiliate subject fields', fun
         'affiliate_id' => $affiliate->id,
         'affiliate_code' => $affiliate->code,
         'subject_type' => 'event',
-        'subject_identifier' => $eventLink->subject_identifier,
+        'subject_key' => $eventLink->subject_key,
         'subject_instance' => 'share_tracking_link',
         'subject_title_snapshot' => $event->title,
-        'metadata' => [
-            'event_category_ids' => 'visit',
-            'link_id' => $eventLink->id,
-            'visited_url' => $eventLink->destination_url,
-            'visitor_key' => 'event-top-subject-visitor',
-            'visit_kind' => 'landing',
-            'subject_id' => 'legacy-event-visit-id',
-        ],
+        'affiliate_link_id' => $eventLink->id,
+        'visitor_key' => 'event-top-subject-visitor',
+        'touchpoint_type' => 'visit',
+        'interaction_type' => 'landing',
+        'url' => $eventLink->destination_url,
         'touched_at' => now()->subMinutes(50),
     ]);
 
@@ -1064,17 +1052,14 @@ test('impact dashboard top subjects use canonical affiliate subject fields', fun
         'affiliate_id' => $affiliate->id,
         'affiliate_code' => $affiliate->code,
         'subject_type' => 'event',
-        'subject_identifier' => $eventLink->subject_identifier,
+        'subject_key' => $eventLink->subject_key,
         'subject_instance' => 'share_tracking_link',
         'subject_title_snapshot' => $event->title,
-        'metadata' => [
-            'event_category_ids' => 'visit',
-            'link_id' => $eventLink->id,
-            'visited_url' => $eventLink->destination_url,
-            'visitor_key' => 'event-top-subject-visitor-2',
-            'visit_kind' => 'landing',
-            'subject_id' => 'legacy-event-visit-id-2',
-        ],
+        'affiliate_link_id' => $eventLink->id,
+        'visitor_key' => 'event-top-subject-visitor-2',
+        'touchpoint_type' => 'visit',
+        'interaction_type' => 'landing',
+        'url' => $eventLink->destination_url,
         'touched_at' => now()->subMinutes(45),
     ]);
 
@@ -1083,7 +1068,7 @@ test('impact dashboard top subjects use canonical affiliate subject fields', fun
         'affiliate_code' => $affiliate->code,
         'affiliate_attribution_id' => $eventAttribution->id,
         'subject_type' => 'event',
-        'subject_identifier' => $eventLink->subject_identifier,
+        'subject_key' => $eventLink->subject_key,
         'subject_instance' => 'share_tracking_link',
         'subject_title_snapshot' => $event->title,
         'conversion_type' => 'event_registration',
@@ -1093,29 +1078,23 @@ test('impact dashboard top subjects use canonical affiliate subject fields', fun
         'commission_minor' => 0,
         'commission_currency' => 'MYR',
         'status' => ApprovedConversion::class,
+        'affiliate_link_id' => $eventLink->id,
+        'sharer_user_id' => $this->sharer->id,
+        'subject_id' => $event->id,
         'occurred_at' => now()->subMinutes(40),
-        'metadata' => [
-            'link_id' => $eventLink->id,
-            'link_title_snapshot' => $event->title,
-            'sharer_user_id' => $this->sharer->id,
-            'subject_id' => $event->id,
-        ],
     ]);
 
     $speakerAttribution = AffiliateAttribution::query()->create([
         'affiliate_id' => $affiliate->id,
         'affiliate_code' => $affiliate->code,
         'subject_type' => 'speaker',
-        'subject_identifier' => $speakerLink->subject_identifier,
+        'subject_key' => $speakerLink->subject_key,
         'subject_instance' => 'share_tracking_link',
         'subject_title_snapshot' => $speaker->formatted_name,
         'cookie_value' => 'speaker-top-subject-cookie',
         'landing_url' => $speakerLink->destination_url,
-        'metadata' => [
-            'tracking_mode' => 'landing',
-            'link_id' => $speakerLink->id,
-            'sharer_user_id' => $this->sharer->id,
-        ],
+        'affiliate_link_id' => $speakerLink->id,
+        'attribution_type' => 'landing',
         'first_seen_at' => now()->subMinutes(30),
         'last_seen_at' => now()->subMinutes(30),
     ]);
@@ -1125,16 +1104,13 @@ test('impact dashboard top subjects use canonical affiliate subject fields', fun
         'affiliate_id' => $affiliate->id,
         'affiliate_code' => $affiliate->code,
         'subject_type' => 'speaker',
-        'subject_identifier' => $speakerLink->subject_identifier,
+        'subject_key' => $speakerLink->subject_key,
         'subject_instance' => 'share_tracking_link',
         'subject_title_snapshot' => $speaker->formatted_name,
-        'metadata' => [
-            'event_category_ids' => 'visit',
-            'link_id' => $speakerLink->id,
-            'visited_url' => $speakerLink->destination_url,
-            'visitor_key' => 'speaker-top-subject-visitor',
-            'visit_kind' => 'landing',
-        ],
+        'affiliate_link_id' => $speakerLink->id,
+        'visitor_key' => 'speaker-top-subject-visitor',
+        'touchpoint_type' => 'visit',
+        'url' => $speakerLink->destination_url,
         'touched_at' => now()->subMinutes(25),
     ]);
 
@@ -1147,12 +1123,12 @@ test('impact dashboard top subjects use canonical affiliate subject fields', fun
 
     expect($recentVisits->first())->not->toBeNull()
         ->and($recentVisits->first()?->subjectType)->toBe('event')
-        ->and($recentVisits->first()?->subjectKey)->toBe($eventLink->subject_identifier);
+        ->and($recentVisits->first()?->subjectKey)->toBe($eventLink->subject_key);
 
     expect($recentResponses->first())->not->toBeNull()
         ->and($recentResponses->first()?->subjectType)->toBe('event')
         ->and($recentResponses->first()?->subjectId)->toBe((string) $event->id)
-        ->and($recentResponses->first()?->subjectKey)->toBe($eventLink->subject_identifier);
+        ->and($recentResponses->first()?->subjectKey)->toBe($eventLink->subject_key);
 
     $component = Livewire::actingAs($this->sharer)
         ->test(DawahImpactIndex::class);
@@ -1162,7 +1138,7 @@ test('impact dashboard top subjects use canonical affiliate subject fields', fun
 
     expect($instance->topSubjects->first())->toMatchArray([
         'subject_type' => 'event',
-        'subject_key' => $eventLink->subject_identifier,
+        'subject_key' => $eventLink->subject_key,
         'title_snapshot' => $event->title,
         'links' => 1,
         'visits' => 2,
@@ -1180,7 +1156,7 @@ test('impact dashboard top subjects use canonical affiliate subject fields', fun
         ->get(route('dashboard.dawah-impact.links.show', ['link' => $eventLink->id]))
         ->assertOk()
         ->assertSee('Subject')
-        ->assertSee($eventLink->subject_identifier);
+        ->assertSee($eventLink->subject_key);
 });
 
 test('resolved active attribution prefers canonical affiliate subject fields', function () {
@@ -1194,20 +1170,15 @@ test('resolved active attribution prefers canonical affiliate subject fields', f
     $cookie = dawahShareLandingCookie($this, $this->sharer, route('events.show', $event), $event->title);
 
     $attribution = AffiliateAttribution::query()
-        ->where('metadata->tracking_mode', 'landing')
+        ->where('attribution_type', 'landing')
         ->latest('first_seen_at')
         ->firstOrFail();
 
     $attribution->forceFill([
         'subject_type' => 'event',
-        'subject_identifier' => 'event:canonical-subject',
+        'subject_key' => 'event:canonical-subject',
         'subject_title_snapshot' => $event->title,
-        'metadata' => array_merge($attribution->metadata ?? [], [
-            'subject_type' => 'event',
-            'subject_id' => $event->id,
-            'subject_key' => 'event:canonical-subject',
-            'title_snapshot' => $event->title,
-        ]),
+        'subject_id' => $event->id,
     ])->save();
 
     $request = Request::create(route('events.show', $event));
@@ -1261,7 +1232,7 @@ test('impact dashboard exposes provider channel performance', function () {
             ->where('owner_id', $this->sharer->getKey()))
         ->firstOrFail();
 
-    expect(AffiliateTouchpoint::query()->where('metadata->provider', 'whatsapp')->exists())->toBeTrue();
+    expect(AffiliateTouchpoint::query()->where('channel', 'whatsapp')->exists())->toBeTrue();
 
     $providerBreakdown = app(ShareTrackingAnalyticsService::class)
         ->providerBreakdownForUser($this->sharer);
@@ -1284,12 +1255,12 @@ test('impact dashboard exposes provider channel performance', function () {
         ->assertSee('Share Channels');
 });
 
-test('provider visitor counts fall back to visit metadata when attribution provider is missing', function () {
+test('provider visitor counts read native channel fields', function () {
     $payload = $this->actingAs($this->sharer)
         ->getJson(route('dawah-share.payload', [
             'url' => route('events.index', ['search' => 'telegram-provider-fallback']),
-            'text' => 'Telegram provider fallback',
-            'title' => 'Telegram provider fallback',
+            'text' => 'Telegram provider',
+            'title' => 'Telegram provider',
         ]))
         ->assertOk()
         ->json();
@@ -1303,18 +1274,13 @@ test('provider visitor counts fall back to visit metadata when attribution provi
     $attribution = AffiliateAttribution::query()->create([
         'affiliate_id' => $affiliate->id,
         'affiliate_code' => $affiliate->code,
-        'subject_identifier' => $link->id,
+        'subject_key' => $link->id,
         'subject_instance' => 'share_tracking_link',
         'cookie_value' => 'provider-fallback-cookie',
         'landing_url' => $payload['url'],
-        'metadata' => [
-            'tracking_mode' => 'landing',
-            'link_id' => $link->id,
-            'subject_type' => 'search',
-            'subject_key' => 'search:telegram-provider-fallback',
-            'visitor_key' => 'visitor-fallback-key',
-            'share_provider' => null,
-        ],
+        'attribution_type' => 'landing',
+        'affiliate_link_id' => $link->id,
+        'visitor_key' => 'visitor-fallback-key',
         'first_seen_at' => now()->subMinute(),
         'last_seen_at' => now()->subMinute(),
     ]);
@@ -1323,16 +1289,13 @@ test('provider visitor counts fall back to visit metadata when attribution provi
         'affiliate_attribution_id' => $attribution->id,
         'affiliate_id' => $affiliate->id,
         'affiliate_code' => $affiliate->code,
-        'metadata' => [
-            'event_category_ids' => 'visit',
-            'link_id' => $link->id,
-            'visited_url' => route('events.index', ['search' => 'telegram-provider-fallback']),
-            'visitor_key' => 'visitor-fallback-key',
-            'visit_kind' => 'landing',
-            'subject_type' => 'search',
-            'subject_key' => 'search:telegram-provider-fallback',
-            'share_provider' => 'telegram',
-        ],
+        'affiliate_link_id' => $link->id,
+        'touchpoint_type' => 'visit',
+        'visitor_key' => 'visitor-fallback-key',
+        'channel' => 'telegram',
+        'url' => route('events.index', ['search' => 'telegram-provider-fallback']),
+        'subject_type' => 'search',
+        'subject_key' => 'search:telegram-provider-fallback',
         'touched_at' => now(),
     ]);
 
@@ -1364,15 +1327,12 @@ test('link outcome breakdown returns integer counts ordered by volume', function
     $attribution = AffiliateAttribution::query()->create([
         'affiliate_id' => $affiliate->id,
         'affiliate_code' => $affiliate->code,
-        'subject_identifier' => $link->id,
+        'subject_key' => $link->id,
         'subject_instance' => 'share_tracking_link',
         'cookie_value' => 'outcome-breakdown-cookie',
         'landing_url' => $payload['url'],
-        'metadata' => [
-            'link_id' => $link->id,
-            'subject_type' => 'search',
-            'subject_key' => 'search:outcome-breakdown',
-        ],
+        'affiliate_link_id' => $link->id,
+        'attribution_type' => 'landing',
         'first_seen_at' => now()->subMinutes(10),
         'last_seen_at' => now()->subMinutes(10),
     ]);
@@ -1381,6 +1341,7 @@ test('link outcome breakdown returns integer counts ordered by volume', function
         'affiliate_id' => $affiliate->id,
         'affiliate_code' => $affiliate->code,
         'affiliate_attribution_id' => $attribution->id,
+        'affiliate_link_id' => $link->id,
         'conversion_type' => 'event_checkin',
         'external_reference' => 'event_checkin:outcome-breakdown:1',
         'value_minor' => 0,
@@ -1389,19 +1350,13 @@ test('link outcome breakdown returns integer counts ordered by volume', function
         'commission_currency' => 'MYR',
         'status' => ApprovedConversion::class,
         'occurred_at' => now()->subMinutes(9),
-        'metadata' => [
-            'link_id' => $link->id,
-            'link_title_snapshot' => 'Outcome Breakdown Link',
-            'sharer_user_id' => $this->sharer->id,
-            'subject_type' => 'search',
-            'subject_key' => 'search:outcome-breakdown',
-        ],
     ]);
 
     AffiliateConversion::query()->create([
         'affiliate_id' => $affiliate->id,
         'affiliate_code' => $affiliate->code,
         'affiliate_attribution_id' => $attribution->id,
+        'affiliate_link_id' => $link->id,
         'conversion_type' => 'event_checkin',
         'external_reference' => 'event_checkin:outcome-breakdown:2',
         'value_minor' => 0,
@@ -1410,19 +1365,13 @@ test('link outcome breakdown returns integer counts ordered by volume', function
         'commission_currency' => 'MYR',
         'status' => ApprovedConversion::class,
         'occurred_at' => now()->subMinutes(8),
-        'metadata' => [
-            'link_id' => $link->id,
-            'link_title_snapshot' => 'Outcome Breakdown Link',
-            'sharer_user_id' => $this->sharer->id,
-            'subject_type' => 'search',
-            'subject_key' => 'search:outcome-breakdown',
-        ],
     ]);
 
     AffiliateConversion::query()->create([
         'affiliate_id' => $affiliate->id,
         'affiliate_code' => $affiliate->code,
         'affiliate_attribution_id' => $attribution->id,
+        'affiliate_link_id' => $link->id,
         'conversion_type' => 'event_submission',
         'external_reference' => 'event_submission:outcome-breakdown:1',
         'value_minor' => 0,
@@ -1431,13 +1380,6 @@ test('link outcome breakdown returns integer counts ordered by volume', function
         'commission_currency' => 'MYR',
         'status' => ApprovedConversion::class,
         'occurred_at' => now()->subMinutes(7),
-        'metadata' => [
-            'link_id' => $link->id,
-            'link_title_snapshot' => 'Outcome Breakdown Link',
-            'sharer_user_id' => $this->sharer->id,
-            'subject_type' => 'search',
-            'subject_key' => 'search:outcome-breakdown',
-        ],
     ]);
 
     $linkData = app(ShareTrackingAnalyticsService::class)->findLinkForUser($this->sharer, $link->id);
@@ -1478,16 +1420,13 @@ test('impact dashboard can sort by check-ins and filter by response type', funct
     $sharedAttribution = AffiliateAttribution::query()->create([
         'affiliate_id' => $affiliate->id,
         'affiliate_code' => $affiliate->code,
-        'subject_identifier' => $checkinLink->id,
+        'subject_key' => $checkinLink->id,
         'subject_instance' => 'share_tracking_link',
         'cookie_value' => 'checkin-cookie',
         'landing_url' => $checkinLink->destination_url,
         'user_id' => User::factory()->create()->id,
-        'metadata' => [
-            'link_id' => $checkinLink->id,
-            'subject_type' => 'search',
-            'subject_key' => 'search:checkin-heavy',
-        ],
+        'affiliate_link_id' => $checkinLink->id,
+        'attribution_type' => 'landing',
         'first_seen_at' => now()->subDay(),
         'last_seen_at' => now()->subDay(),
     ]);
@@ -1496,6 +1435,7 @@ test('impact dashboard can sort by check-ins and filter by response type', funct
         'affiliate_id' => $affiliate->id,
         'affiliate_code' => $affiliate->code,
         'affiliate_attribution_id' => $sharedAttribution->id,
+        'affiliate_link_id' => $checkinLink->id,
         'conversion_type' => 'event_checkin',
         'external_reference' => 'event_checkin:seed:1',
         'value_minor' => 0,
@@ -1504,20 +1444,13 @@ test('impact dashboard can sort by check-ins and filter by response type', funct
         'commission_currency' => 'MYR',
         'status' => ApprovedConversion::class,
         'occurred_at' => now()->subHours(6),
-        'metadata' => [
-            'link_id' => $checkinLink->id,
-            'link_title_snapshot' => 'Check-in Heavy Link',
-            'sharer_user_id' => $this->sharer->id,
-            'actor_user_id' => User::factory()->create()->id,
-            'subject_type' => 'search',
-            'subject_key' => 'search:checkin-heavy',
-        ],
     ]);
 
     AffiliateConversion::query()->create([
         'affiliate_id' => $affiliate->id,
         'affiliate_code' => $affiliate->code,
         'affiliate_attribution_id' => $sharedAttribution->id,
+        'affiliate_link_id' => $checkinLink->id,
         'conversion_type' => 'event_checkin',
         'external_reference' => 'event_checkin:seed:2',
         'value_minor' => 0,
@@ -1526,28 +1459,17 @@ test('impact dashboard can sort by check-ins and filter by response type', funct
         'commission_currency' => 'MYR',
         'status' => ApprovedConversion::class,
         'occurred_at' => now()->subHours(5),
-        'metadata' => [
-            'link_id' => $checkinLink->id,
-            'link_title_snapshot' => 'Check-in Heavy Link',
-            'sharer_user_id' => $this->sharer->id,
-            'actor_user_id' => User::factory()->create()->id,
-            'subject_type' => 'search',
-            'subject_key' => 'search:checkin-heavy',
-        ],
     ]);
 
     $submissionAttribution = AffiliateAttribution::query()->create([
         'affiliate_id' => $affiliate->id,
         'affiliate_code' => $affiliate->code,
-        'subject_identifier' => $submissionLink->id,
+        'subject_key' => $submissionLink->id,
         'subject_instance' => 'share_tracking_link',
         'cookie_value' => 'submission-cookie',
         'landing_url' => $submissionLink->destination_url,
-        'metadata' => [
-            'link_id' => $submissionLink->id,
-            'subject_type' => 'page',
-            'subject_key' => 'page:submit-event',
-        ],
+        'affiliate_link_id' => $submissionLink->id,
+        'attribution_type' => 'landing',
         'first_seen_at' => now()->subHours(4),
         'last_seen_at' => now()->subHours(4),
     ]);
@@ -1556,6 +1478,7 @@ test('impact dashboard can sort by check-ins and filter by response type', funct
         'affiliate_id' => $affiliate->id,
         'affiliate_code' => $affiliate->code,
         'affiliate_attribution_id' => $submissionAttribution->id,
+        'affiliate_link_id' => $submissionLink->id,
         'conversion_type' => 'event_submission',
         'external_reference' => 'event_submission:seed:1',
         'value_minor' => 0,
@@ -1564,13 +1487,6 @@ test('impact dashboard can sort by check-ins and filter by response type', funct
         'commission_currency' => 'MYR',
         'status' => ApprovedConversion::class,
         'occurred_at' => now()->subHours(3),
-        'metadata' => [
-            'link_id' => $submissionLink->id,
-            'link_title_snapshot' => 'Submission Link',
-            'sharer_user_id' => $this->sharer->id,
-            'subject_type' => 'page',
-            'subject_key' => 'page:submit-event',
-        ],
     ]);
 
     $component = Livewire::actingAs($this->sharer)
@@ -1696,13 +1612,13 @@ test('share redirect route records outbound provider clicks without visitor visi
     $link = AffiliateLink::query()->firstOrFail();
 
     expect(AffiliateLink::count())->toBe(1);
-    expect(AffiliateTouchpoint::query()->where('metadata->event_type', 'visit')->count())->toBe(0);
+    expect(AffiliateTouchpoint::query()->where('touchpoint_type', 'visit')->count())->toBe(0);
     expect(rawurldecode((string) $response->headers->get('Location')))->toContain('channel=whatsapp');
 
     $this->assertDatabaseHas('affiliate_touchpoints', [
         'affiliate_id' => $link->affiliate_id,
-        'metadata->link_id' => $link->id,
-        'metadata->provider' => 'whatsapp',
-        'metadata->event_type' => 'outbound_share',
+        'affiliate_link_id' => $link->id,
+        'channel' => 'whatsapp',
+        'touchpoint_type' => 'outbound_share',
     ]);
 });

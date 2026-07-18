@@ -20,7 +20,6 @@ use App\Models\Institution;
 use App\Models\MediaLink;
 use App\Models\Reference;
 use App\Models\Series;
-use App\Models\Space;
 use App\Models\Speaker;
 use App\Models\Venue;
 use App\Support\Events\EventCategoryPresenter;
@@ -292,7 +291,7 @@ class EventCoverPromptBuilder
                 continue;
             }
 
-            $role = $keyPerson->role instanceof EventKeyPersonRole ? $keyPerson->role->value : (string) $keyPerson->role;
+            $role = (string) $keyPerson->role_code;
             $this->pushMediaCandidates(
                 $selected,
                 $seen,
@@ -300,7 +299,7 @@ class EventCoverPromptBuilder
                 'cover',
                 ['banner', 'thumb'],
                 "speaker_cover:{$role}",
-                "Use as the primary likeness/context reference for {$keyPerson->display_name} ({$this->roleLabel($keyPerson->role)}).",
+                "Use as the primary likeness/context reference for {$keyPerson->display_name} ({$this->roleLabel($keyPerson->role_code)}).",
                 1,
             );
 
@@ -311,7 +310,7 @@ class EventCoverPromptBuilder
                 'avatar',
                 ['profile', 'thumb'],
                 "speaker_avatar:{$role}",
-                "Use as fallback likeness reference for {$keyPerson->display_name} ({$this->roleLabel($keyPerson->role)}) when speaker cover is unavailable.",
+                "Use as fallback likeness reference for {$keyPerson->display_name} ({$this->roleLabel($keyPerson->role_code)}) when speaker cover is unavailable.",
                 1,
             );
         }
@@ -542,7 +541,7 @@ class EventCoverPromptBuilder
                 'address' => $this->addressPayload($event->primaryAddress()),
                 'institution' => $event->institution instanceof Institution ? $this->modelPayload($event->institution) : null,
                 'venue' => $event->venue instanceof Venue ? $this->modelPayload($event->venue) : null,
-                'space' => $event->space instanceof Space ? $this->modelPayload($event->space) : null,
+                'space' => $event->primaryLocation?->venueSpace instanceof Model ? $this->modelPayload($event->primaryLocation->venueSpace) : null,
                 'organizer' => $event->organizer instanceof Model ? $this->modelPayload($event->organizer) : null,
                 'key_people' => $event->keyPeople->map(fn (EventKeyPerson $keyPerson): array => $this->keyPersonPayload($keyPerson))->values()->all(),
                 'speakers' => $event->speakers->map(fn (Speaker $speaker): array => $this->modelPayload($speaker))->values()->all(),
@@ -568,7 +567,7 @@ class EventCoverPromptBuilder
         return [
             ...$this->modelPayload($keyPerson),
             'display_name' => $keyPerson->display_name,
-            'role_label' => $this->roleLabel($keyPerson->role),
+            'role_label' => $this->roleLabel($keyPerson->role_code),
             'speaker' => $keyPerson->speaker instanceof Speaker ? $this->modelPayload($keyPerson->speaker) : null,
         ];
     }
@@ -865,8 +864,8 @@ class EventCoverPromptBuilder
             $parts[] = (string) $event->venue->name;
         }
 
-        if ($event->space instanceof Space) {
-            $parts[] = (string) $event->space->name;
+        if ($event->primaryLocation?->venueSpace !== null) {
+            $parts[] = (string) $event->primaryLocation->venueSpace->name;
         }
 
         $address = null;
@@ -900,7 +899,7 @@ class EventCoverPromptBuilder
     private function speakerNames(Event $event): array
     {
         return $event->keyPeople
-            ->filter(fn (EventKeyPerson $keyPerson): bool => $this->roleValue($keyPerson->role) === EventKeyPersonRole::Speaker->value)
+            ->filter(fn (EventKeyPerson $keyPerson): bool => $this->roleValue($keyPerson->role_code) === EventKeyPersonRole::Speaker->value)
             ->map(fn (EventKeyPerson $keyPerson): string => $keyPerson->display_name)
             ->filter(fn (string $name): bool => trim($name) !== '')
             ->unique()
@@ -911,8 +910,8 @@ class EventCoverPromptBuilder
     private function nonSpeakerKeyPeopleLine(Event $event): ?string
     {
         $people = $event->keyPeople
-            ->reject(fn (EventKeyPerson $keyPerson): bool => $this->roleValue($keyPerson->role) === EventKeyPersonRole::Speaker->value)
-            ->map(fn (EventKeyPerson $keyPerson): string => trim($this->roleLabel($keyPerson->role).': '.$keyPerson->display_name))
+            ->reject(fn (EventKeyPerson $keyPerson): bool => $this->roleValue($keyPerson->role_code) === EventKeyPersonRole::Speaker->value)
+            ->map(fn (EventKeyPerson $keyPerson): string => trim($this->roleLabel($keyPerson->role_code).': '.$keyPerson->display_name))
             ->filter(fn (string $value): bool => $value !== '')
             ->values()
             ->all();

@@ -8,7 +8,6 @@ use App\Data\Api\EventEngagement\EventEngagementListItemData;
 use App\Data\Api\EventGoing\EventGoingStateData;
 use App\Enums\DawahShareOutcomeType;
 use App\Enums\EventVisibility;
-use App\Enums\ScheduleState;
 use App\Http\Controllers\Controller;
 use App\Models\Event;
 use App\Models\User;
@@ -67,14 +66,12 @@ class EventGoingController extends Controller
     )]
     public function store(Request $request, Event $event, MarkEventGoingAction $markEventGoingAction): JsonResponse
     {
-        $scheduleState = $event->schedule_state instanceof ScheduleState
-            ? $event->schedule_state
-            : ScheduleState::tryFrom((string) $event->schedule_state);
+        $isPostponed = $event->primaryOccurrence && in_array((string) $event->primaryOccurrence->status, ['postponed', 'rescheduled'], true);
 
         if ($event->published_at === null
             || ! in_array((string) $event->status, Event::ENGAGEABLE_STATUSES, true)
             || $event->visibility !== EventVisibility::Public
-            || $scheduleState === ScheduleState::Postponed) {
+            || $isPostponed) {
             return response()->json([
                 'error' => [
                     'code' => 'forbidden',

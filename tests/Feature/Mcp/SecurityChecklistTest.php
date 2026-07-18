@@ -1,6 +1,7 @@
 <?php
 
 use AIArmada\CommerceSupport\Models\Role;
+use AIArmada\Events\Models\FacilityType;
 use App\Actions\Venues\SaveVenueAction;
 use App\Forms\SharedFormSchema;
 use App\Mcp\Servers\AdminServer;
@@ -101,30 +102,29 @@ it('ignores hidden institution slug injections and preserves coordinates across 
         ->and(abs(((float) ($memberInstitution->fresh()?->primaryAddress()?->lng ?? 0.0)) - $memberLng))->toBeLessThan(0.000001);
 });
 
-it('preserves explicit false venue facilities when saving a venue', function (): void {
+it('syncs venue facility codes as VenueFacility records', function (): void {
+    FacilityType::factory()->create(['code' => 'parking', 'name' => 'Parking', 'is_active' => true]);
+    FacilityType::factory()->create(['code' => 'women_section', 'name' => 'Women Section', 'is_active' => true]);
+    FacilityType::factory()->create(['code' => 'oku', 'name' => 'OKU', 'is_active' => true]);
+
     $venue = Venue::factory()->create([
         'name' => 'Security Checklist Venue',
         'type' => 'dewan',
         'status' => 'verified',
-        'facilities' => [
-            'parking' => true,
-        ],
     ]);
 
     app(SaveVenueAction::class)->handle([
         'name' => 'Security Checklist Venue',
         'type' => 'dewan',
         'status' => 'verified',
-        'facilities' => [
-            'parking' => true,
-            'women_section' => false,
-        ],
+        'facilities' => ['parking', 'women_section'],
     ], $venue);
 
-    expect($venue->fresh()?->facilities)->toBe([
-        'parking' => true,
-        'women_section' => false,
-    ]);
+    $fresh = $venue->fresh();
+    $fresh->load('facilities.facilityType');
+
+    expect($fresh->facilities)->toHaveCount(2);
+    expect($fresh->facilities->pluck('facilityType.code')->sort()->values()->all())->toBe(['parking', 'women_section']);
 });
 
 function securityChecklistAdminUser(): User

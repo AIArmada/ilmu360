@@ -1455,8 +1455,8 @@ class SearchController extends FrontendController
     {
         return [
             'id' => $keyPerson->id,
-            'role' => $this->enumValue($keyPerson->role),
-            'role_label' => $this->searchPayloadTransformer->keyPersonRoleLabel($keyPerson->role),
+            'role' => (string) $keyPerson->role_code,
+            'role_label' => $this->searchPayloadTransformer->keyPersonRoleLabel($keyPerson->role_code),
             'display_name' => $keyPerson->display_name,
             'event' => $keyPerson->event instanceof Event ? $this->eventListData($keyPerson->event) : null,
         ];

@@ -1,12 +1,16 @@
 <?php
 
 use AIArmada\Events\Enums\RegistrationMode as PackageRegistrationMode;
+use AIArmada\Events\Enums\ScheduleKind;
 use AIArmada\Events\Models\EventAccessPolicy;
+use AIArmada\Events\Models\EventTimeExpression;
 use App\Actions\Contributions\ApplyDirectContributionUpdateAction;
 use App\Actions\Events\PrepareAdvancedParentProgramSubmissionAction;
 use App\Actions\Events\ResolveAdvancedBuilderContextAction;
 use App\Actions\Events\ResolveAdvancedBuilderMembershipOptionsAction;
 use App\Actions\Events\SyncEventResourceRelationsAction;
+use App\Actions\Events\SyncEventScheduleAction;
+use App\Enums\TimingMode;
 use App\Models\Event;
 use App\Models\EventChangeAnnouncement;
 use App\Models\Institution;
@@ -14,6 +18,7 @@ use App\Models\Speaker;
 use App\Models\User;
 use App\Support\Api\Frontend\FrontendFormContractService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 
 uses(RefreshDatabase::class);
 
@@ -119,6 +124,30 @@ it('syncs event resource relations and persists the requested registration mode'
         ->and($event->accessPolicy?->registration_required)->toBeFalse()
         ->and($event->resolvedRegistrationMode())->toBe(PackageRegistrationMode::None)
         ->and($event->speakers->pluck('id')->all())->toBe([$speaker->id]);
+});
+
+it('persists the direction of prayer-relative offsets', function (): void {
+    $event = Event::factory()->create();
+
+    app(SyncEventScheduleAction::class)->execute(
+        event: $event,
+        scheduleKind: ScheduleKind::Single,
+        startsAt: Carbon::parse('2026-05-01 18:45:00'),
+        endsAt: Carbon::parse('2026-05-01 20:00:00'),
+        timezone: 'Asia/Kuala_Lumpur',
+        timingMode: TimingMode::PrayerRelative,
+        prayerReference: 'maghrib',
+        prayerOffset: -15,
+    );
+
+    $expression = EventTimeExpression::query()
+        ->where('event_id', $event->id)
+        ->where('anchor_type', 'prayer')
+        ->first();
+
+    expect($expression?->relation)->toBe('before')
+        ->and($expression?->offset_minutes)->toBe(15)
+        ->and($event->fresh()?->prayer_offset)->toBe('before_15');
 });
 
 it('uses a safe database default when creating event settings without an explicit registration flag', function () {

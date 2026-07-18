@@ -2,6 +2,7 @@
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Contacting\Enums\ContactMethodType;
+use AIArmada\Engagement\Contracts\EngagementCounterService;
 use App\Livewire\Pages\Events\Show;
 use App\Models\Event;
 use App\Models\Institution;
@@ -166,7 +167,6 @@ describe('Event Show Page Going Feature', function () {
             'visibility' => 'public',
             'published_at' => now()->subDay(),
             'starts_at' => now()->addDay(),
-            'going_count' => 0,
         ]);
 
         $this->actingAs($user);
@@ -176,7 +176,7 @@ describe('Event Show Page Going Feature', function () {
             ->call('toggleGoing')
             ->assertSet('isGoing', true);
 
-        expect($event->fresh()->going_count)->toBe(1);
+        expect(app(EngagementCounterService::class)->countResponses($event, 'going'))->toBe(1);
         expect($event->goingBy()->forResponder($user)->active()->exists())->toBeTrue();
     });
 
@@ -187,7 +187,6 @@ describe('Event Show Page Going Feature', function () {
             'visibility' => 'public',
             'published_at' => now()->subDay(),
             'starts_at' => now()->addDay(),
-            'going_count' => 1,
         ]);
 
         // Pre-attach the user
@@ -200,7 +199,7 @@ describe('Event Show Page Going Feature', function () {
             ->call('toggleGoing')
             ->assertSet('isGoing', false);
 
-        expect($event->fresh()->going_count)->toBe(0);
+        expect(app(EngagementCounterService::class)->countResponses($event, 'going'))->toBe(0);
         expect($event->goingBy()->forResponder($user)->active()->exists())->toBeFalse();
     });
 
@@ -264,7 +263,6 @@ describe('Event Show Page Going Feature', function () {
             'visibility' => 'public',
             'published_at' => now()->subDay(),
             'starts_at' => now()->addDay(),
-            'going_count' => 5,
         ]);
 
         foreach ($users as $user) {
@@ -275,8 +273,8 @@ describe('Event Show Page Going Feature', function () {
             ->assertOk()
             ->assertSee(__('Akan Hadir')); // Button always visible regardless of auth
 
-        // Verify the going count is persisted correctly on the model
-        expect($event->fresh()->going_count)->toBe(5);
+        // Verify the going count is persisted correctly
+        expect(app(EngagementCounterService::class)->countResponses($event, 'going'))->toBe(5);
     });
 });
 

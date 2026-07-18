@@ -7,6 +7,7 @@ use App\Data\Api\Notification\NotificationDestinationData as NotificationDestina
 use App\Enums\NotificationChannel;
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Dedoc\Scramble\Attributes\BodyParameter;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
@@ -28,29 +29,33 @@ class NotificationDestinationController extends Controller
     #[BodyParameter('timezone', 'Device timezone identifier.', required: false, type: 'string', infer: false, example: 'Asia/Kuala_Lumpur')]
     #[BodyParameter('last_seen_at', 'Last activity timestamp reported by the client.', required: false, type: 'string', infer: false, example: '2026-04-16T09:30:00Z')]
     #[Endpoint(
-        title: 'Register or replace a push installation',
-        description: 'Registers a new push destination or replaces the current device installation metadata for the authenticated user.',
+        title: 'Register a push installation',
+        description: 'Registers a new push destination for the authenticated user.',
     )]
     public function storePush(Request $request): JsonResponse
     {
         $validated = $this->validatePushPayload($request);
         $user = $this->currentUser($request);
 
-        $destination = CommunicationDestination::query()->updateOrCreate(
-            [
-                'recipient_type' => $user->getMorphClass(),
-                'recipient_id' => $user->id,
-                'channel' => NotificationChannel::Push->value,
-                'address' => $validated['installation_id'],
-            ],
-            [
-                'external_id' => $validated['fcm_token'],
-                'status' => 'active',
-                'is_primary' => false,
-                'verified_at' => now(),
-                'metadata' => $this->pushMeta($validated),
-            ],
-        );
+        $destination = CommunicationDestination::firstOrNew([
+            'recipient_type' => $user->getMorphClass(),
+            'recipient_id' => $user->id,
+            'channel' => NotificationChannel::Push->value,
+            'address' => $validated['installation_id'],
+        ]);
+
+        $destination->forceFill([
+            'external_id' => $validated['fcm_token'],
+            'status' => 'active',
+            'is_primary' => false,
+            'verified_at' => now(),
+            'platform' => (string) $validated['platform'],
+            'app_version' => (string) ($validated['app_version'] ?? ''),
+            'device_label' => (string) ($validated['device_label'] ?? ''),
+            'locale' => (string) ($validated['locale'] ?? ''),
+            'timezone' => (string) ($validated['timezone'] ?? ''),
+            'last_seen_at' => isset($validated['last_seen_at']) ? $this->parseLastSeen($validated['last_seen_at']) : now(),
+        ])->save();
 
         return response()->json([
             'message' => __('notifications.api.push_registered'),
@@ -68,7 +73,7 @@ class NotificationDestinationController extends Controller
     #[BodyParameter('last_seen_at', 'Last activity timestamp reported by the client.', required: false, type: 'string', infer: false, example: '2026-04-16T10:45:00Z')]
     #[Endpoint(
         title: 'Update a push installation',
-        description: 'Updates the metadata or token for an existing push installation owned by the authenticated user.',
+        description: 'Updates the token or device details for an existing push installation owned by the authenticated user.',
     )]
     public function updatePush(Request $request, string $installation): JsonResponse
     {
@@ -84,7 +89,12 @@ class NotificationDestinationController extends Controller
             'external_id' => $validated['fcm_token'],
             'status' => 'active',
             'verified_at' => now(),
-            'metadata' => $this->pushMeta($validated),
+            'platform' => (string) $validated['platform'],
+            'app_version' => (string) ($validated['app_version'] ?? ''),
+            'device_label' => (string) ($validated['device_label'] ?? ''),
+            'locale' => (string) ($validated['locale'] ?? ''),
+            'timezone' => (string) ($validated['timezone'] ?? ''),
+            'last_seen_at' => isset($validated['last_seen_at']) ? $this->parseLastSeen($validated['last_seen_at']) : now(),
         ])->save();
 
         return response()->json([
@@ -96,7 +106,7 @@ class NotificationDestinationController extends Controller
     #[PathParameter('installation', 'Existing device installation identifier returned by the client application.', example: 'ios-installation-123')]
     #[Endpoint(
         title: 'Delete a push installation',
-        description: 'Removes one push installation registration owned by the authenticated user.',
+        description: 'Removes one registered device installation owned by the authenticated user.',
     )]
     public function destroyPush(Request $request, string $installation): Response
     {
@@ -130,20 +140,15 @@ class NotificationDestinationController extends Controller
         ]);
     }
 
-    /**
-     * @param  array<string, mixed>  $validated
-     * @return array<string, mixed>
-     */
-    protected function pushMeta(array $validated): array
+    protected function parseLastSeen(mixed $value): CarbonImmutable
     {
-        return [
-            'platform' => (string) $validated['platform'],
-            'app_version' => (string) ($validated['app_version'] ?? ''),
-            'device_label' => (string) ($validated['device_label'] ?? ''),
-            'locale' => (string) ($validated['locale'] ?? ''),
-            'timezone' => (string) ($validated['timezone'] ?? ''),
-            'last_seen_at' => isset($validated['last_seen_at']) ? (string) $validated['last_seen_at'] : now()->toIso8601String(),
-        ];
+        $date = is_string($value) ? $value : null;
+
+        if ($date === null || $date === '') {
+            return now()->toImmutable();
+        }
+
+        return CarbonImmutable::parse($date);
     }
 
     protected function currentUser(Request $request): User

@@ -49,9 +49,6 @@ class EventEngagementListItemData extends Data
                 'event_categories' => app(EventCategoryPresenter::class)->forEvent($event),
                 'event_format' => self::enumValue($event->delivery_mode),
                 'language' => $event->language,
-                'registrations_count' => $event->registrations_count,
-                'going_count' => $event->going_count,
-                'saves_count' => $event->saves_count,
             ],
             institution: $event->relationLoaded('institution') && $event->institution instanceof Institution
                 ? Arr::only($event->institution->toArray(), ['id', 'name', 'slug'])

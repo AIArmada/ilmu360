@@ -25,16 +25,16 @@ class AffiliateSignalsBridge
             return;
         }
 
-        $subjectIdentifier = $this->stringValue($attribution->subject_identifier)
+        $subjectKey = $this->stringValue($attribution->subject_key)
             ?? $this->stringValue($attribution->cookie_value);
         $subjectInstance = $this->stringValue($attribution->subject_instance) ?? 'default';
-        $subjectId = $this->stringValue(data_get($attribution->metadata, 'subject_id')) ?? $subjectIdentifier;
+        $subjectId = $this->stringValue($attribution->subject_id) ?? $subjectKey;
         $landingUrl = $this->stringValue($attribution->landing_url);
 
         OwnerContext::withOwner(null, fn () => $this->ingestSignalEvent->handle($trackedProperty, [
             'event_name' => (string) config('signals.integrations.affiliates.attributed_event_name', 'affiliate.attributed'),
             'event_category' => (string) config('signals.integrations.affiliates.attributed_event_category', 'acquisition'),
-            'external_id' => $this->stringValue($attribution->user_id),
+            'external_id' => $this->stringValue($attribution->sharer_user_id),
             'anonymous_id' => $subjectId,
             'session_identifier' => $this->affiliateSessionIdentifier($subjectId, $subjectInstance),
             'occurred_at' => $attribution->last_seen_at?->toIso8601String() ?? $attribution->created_at?->toIso8601String(),
@@ -49,7 +49,7 @@ class AffiliateSignalsBridge
                 'affiliate_id' => $this->stringValue($attribution->affiliate_id),
                 'affiliate_code' => $this->stringValue($attribution->affiliate_code),
                 'subject_type' => $this->stringValue($attribution->subject_type),
-                'subject_identifier' => $this->stringValue($attribution->subject_identifier),
+                'subject_key' => $this->stringValue($attribution->subject_key),
                 'subject_title_snapshot' => $this->stringValue($attribution->subject_title_snapshot),
                 'subject_id' => $subjectId,
                 'subject_instance' => $subjectInstance,
@@ -68,16 +68,15 @@ class AffiliateSignalsBridge
             return;
         }
 
-        $subjectIdentifier = $this->stringValue($conversion->subject_identifier)
-            ?? $this->stringValue(data_get($conversion->metadata, 'cookie_value'));
+        $subjectKey = $this->stringValue($conversion->subject_key) ?? '';
         $subjectInstance = $this->stringValue($conversion->subject_instance) ?? 'default';
-        $subjectId = $this->stringValue(data_get($conversion->metadata, 'subject_id')) ?? $subjectIdentifier;
-        $destinationUrl = $this->stringValue(data_get($conversion->metadata, 'destination_url'));
+        $subjectId = $this->stringValue($conversion->subject_id) ?? $subjectKey;
+        $destinationUrl = $this->stringValue($conversion->subject_key);
 
         OwnerContext::withOwner(null, fn () => $this->ingestSignalEvent->handle($trackedProperty, [
             'event_name' => (string) config('signals.integrations.affiliates.conversion_event_name', 'affiliate.conversion.recorded'),
             'event_category' => (string) config('signals.integrations.affiliates.conversion_event_category', 'conversion'),
-            'external_id' => $this->stringValue(data_get($conversion->metadata, 'user_id')),
+            'external_id' => $this->stringValue($conversion->actor_user_id ?? $conversion->sharer_user_id),
             'anonymous_id' => $subjectId,
             'session_identifier' => $this->affiliateSessionIdentifier($subjectId, $subjectInstance),
             'occurred_at' => $conversion->occurred_at?->toIso8601String() ?? $conversion->created_at?->toIso8601String(),
@@ -92,7 +91,7 @@ class AffiliateSignalsBridge
                 'affiliate_attribution_id' => $this->stringValue($conversion->affiliate_attribution_id),
                 'conversion_type' => $this->stringValue($conversion->conversion_type),
                 'subject_type' => $this->stringValue($conversion->subject_type),
-                'subject_identifier' => $this->stringValue($conversion->subject_identifier),
+                'subject_key' => $this->stringValue($conversion->subject_key),
                 'subject_instance' => $this->stringValue($conversion->subject_instance),
                 'subject_title_snapshot' => $this->stringValue($conversion->subject_title_snapshot),
                 'subject_id' => $subjectId,

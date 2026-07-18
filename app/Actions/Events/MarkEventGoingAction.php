@@ -2,6 +2,7 @@
 
 namespace App\Actions\Events;
 
+use AIArmada\Engagement\Contracts\EngagementCounterService;
 use AIArmada\Events\Actions\RegisterForFreeAction;
 use AIArmada\Events\Enums\PricingMode;
 use App\Models\Event;
@@ -14,7 +15,7 @@ final readonly class MarkEventGoingAction
     use AsAction;
 
     public function __construct(
-        private SyncEventGoingCountAction $syncEventGoingCount,
+        private EngagementCounterService $engagementCounter,
     ) {}
 
     /**
@@ -51,9 +52,11 @@ final readonly class MarkEventGoingAction
             }
         }
 
+        $this->engagementCounter->recalculateResponses($event, 'going');
+
         return [
             'status' => $alreadyGoing ? 'existing' : 'created',
-            'going_count' => $this->syncEventGoingCount->handle($event),
+            'going_count' => $this->engagementCounter->value($event, 'responses', 'going'),
         ];
     }
 }

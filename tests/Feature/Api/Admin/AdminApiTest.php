@@ -12,7 +12,6 @@ use App\Enums\ContributionRequestType;
 use App\Enums\ContributionSubjectType;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventChangeSeverity;
-use App\Enums\EventChangeStatus;
 use App\Enums\EventChangeType;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
@@ -569,7 +568,7 @@ it('surfaces public event change projections on admin event detail payloads', fu
             'severity' => EventChangeSeverity::High,
             'message' => 'Sila rujuk majlis pengganti pertama.',
             'metadata' => [
-                'status' => EventChangeStatus::Published->value,
+                'status' => 'published',
                 'changed_fields' => [],
             ],
 
@@ -587,7 +586,7 @@ it('surfaces public event change projections on admin event detail payloads', fu
             'severity' => EventChangeSeverity::High,
             'message' => 'Majlis pengganti pertama diganti pula.',
             'metadata' => [
-                'status' => EventChangeStatus::Published->value,
+                'status' => 'published',
                 'changed_fields' => [],
             ],
 
@@ -604,7 +603,7 @@ it('surfaces public event change projections on admin event detail payloads', fu
             'severity' => EventChangeSeverity::Info,
             'message' => 'Nota terkini untuk pautan lama.',
             'metadata' => [
-                'status' => EventChangeStatus::Published->value,
+                'status' => 'published',
                 'changed_fields' => ['title'],
             ],
 
@@ -3370,11 +3369,11 @@ it('supports sparse event updates while replacing submitted relation collections
         ->and($event->classifications->pluck('event_term_id')->all())->toContain($disciplineTag->getKey(), $sourceTag->getKey())
         ->and($event->classifications->pluck('event_term_id')->all())->not->toContain($domainTag->getKey())
         ->and($event->keyPeople)->toHaveCount(3)
-        ->and($event->keyPeople->where('role', EventKeyPersonRole::Speaker)->pluck('speaker_id')->all())->toEqualCanonicalizing([
+        ->and($event->keyPeople->where('role_code', EventKeyPersonRole::Speaker->value)->pluck('involveable_id')->all())->toEqualCanonicalizing([
             (string) $speaker->getKey(),
             (string) $secondSpeaker->getKey(),
         ])
-        ->and($event->keyPeople->where('role', EventKeyPersonRole::Moderator)->count())->toBe(1)
+        ->and($event->keyPeople->where('role_code', EventKeyPersonRole::Moderator->value)->count())->toBe(1)
         ->and(collect($event->keyPeople->modelKeys())->intersect($originalKeyPeopleIds)->all())->toBe([]);
 });
 
