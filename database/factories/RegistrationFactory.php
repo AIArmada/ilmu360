@@ -60,17 +60,24 @@ class RegistrationFactory extends PackageEventRegistrationFactory
 
     private function persistPrimaryParticipant(Registration $registration, string $name, ?string $email, ?string $phone): void
     {
-        $participant = $registration->participants()->create([
-            'event_id' => $registration->event_id,
-            'event_occurrence_id' => $registration->event_occurrence_id,
-            'event_session_id' => $registration->event_session_id,
-            'participant_type' => $registration->registrant_type,
-            'participant_id' => $registration->registrant_id,
-            'name' => $name,
-            'is_primary' => true,
-            'is_purchaser' => true,
-            'status' => 'active',
-        ]);
+        // ponytail: chained forRegistrant() + withPrimaryParticipant() must replace, not duplicate.
+        $participant = $registration->participants()->where('is_primary', true)->first();
+
+        if ($participant === null) {
+            $participant = $registration->participants()->create([
+                'event_id' => $registration->event_id,
+                'event_occurrence_id' => $registration->event_occurrence_id,
+                'event_session_id' => $registration->event_session_id,
+                'participant_type' => $registration->registrant_type,
+                'participant_id' => $registration->registrant_id,
+                'is_primary' => true,
+                'is_purchaser' => true,
+                'status' => 'active',
+            ]);
+        }
+
+        $participant->fill(['name' => $name])->save();
+        $participant->contactMethods()->delete();
 
         if ($email !== null && $email !== '') {
             $participant->addContactMethod(new ContactMethodData(

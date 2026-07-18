@@ -11,11 +11,7 @@ use Laravel\Sanctum\Sanctum;
 uses(RefreshDatabase::class);
 
 test('authenticated user can list own registrations', function () {
-    $user = User::factory()->create([
-        'name' => 'Ahmad Registrant',
-        'email' => 'ahmad@example.test',
-        'phone' => '+60123456789',
-    ]);
+    $user = User::factory()->create();
     $otherUser = User::factory()->create();
     $institution = Institution::factory()->create([
         'name' => 'Masjid API',
