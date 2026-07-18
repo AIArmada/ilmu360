@@ -120,6 +120,14 @@ it('typesense facets the institution location ID', function () {
         ]);
 });
 
+it('does not expose removed Event attribute aliases', function () {
+    $event = new Event;
+
+    expect($event->isFillable('event_format'))->toBeFalse()
+        ->and($event->isFillable('venue_id'))->toBeFalse()
+        ->and($event->isFillable('type'))->toBeFalse();
+});
+
 it('keeps the Typesense event schema aligned with searchable filters', function () {
     $fields = collect(config('scout.typesense.model-settings.'.Event::class.'.collection-schema.fields'))
         ->keyBy('name');

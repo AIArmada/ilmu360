@@ -24,16 +24,6 @@ class EventBuilder extends Builder
         'ends_at',
     ];
 
-    /**
-     * Product query field names → package columns (single store).
-     *
-     * @var array<string, string>
-     */
-    private const array PackageColumnAliases = [
-        'event_format' => 'delivery_mode',
-        'venue_id' => 'default_venue_id',
-    ];
-
     #[\Override]
     public function where($column, $operator = null, $value = null, $boolean = 'and'): static
     {
@@ -45,12 +35,6 @@ class EventBuilder extends Builder
 
         if (in_array($columnName, self::OccurrenceBackedColumns, true)) {
             return $this->whereOccurrenceColumn($columnName, $operator, $value, $boolean, func_num_args());
-        }
-
-        $mappedColumn = $this->mapColumn($columnName);
-
-        if ($mappedColumn !== null) {
-            return parent::where($mappedColumn, $operator, $value, $boolean);
         }
 
         return parent::where($column, $operator, $value, $boolean);
@@ -74,14 +58,6 @@ class EventBuilder extends Builder
 
         if (in_array($columnName, self::OccurrenceBackedColumns, true)) {
             return $this->whereOccurrenceIn($columnName, $values, $boolean, $not);
-        }
-
-        $mappedColumn = $this->mapColumn($columnName);
-
-        if ($mappedColumn !== null) {
-            parent::whereIn($mappedColumn, $values, $boolean, $not);
-
-            return $this;
         }
 
         parent::whereIn($column, $values, $boolean, $not);
@@ -176,14 +152,6 @@ class EventBuilder extends Builder
             return $this->whereOccurrenceNull($columnName, $boolean, $not);
         }
 
-        $mappedColumn = $this->mapColumn($columnName);
-
-        if ($mappedColumn !== null) {
-            parent::whereNull($mappedColumn, $boolean, $not);
-
-            return $this;
-        }
-
         parent::whereNull($columns, $boolean, $not);
 
         return $this;
@@ -211,14 +179,6 @@ class EventBuilder extends Builder
             return $this->whereOccurrenceNull($columnName, $boolean, true);
         }
 
-        $mappedColumn = $this->mapColumn($columnName);
-
-        if ($mappedColumn !== null) {
-            parent::whereNotNull($mappedColumn, $boolean);
-
-            return $this;
-        }
-
         parent::whereNotNull($columns, $boolean);
 
         return $this;
@@ -244,14 +204,6 @@ class EventBuilder extends Builder
 
         if (in_array($columnName, self::OccurrenceBackedColumns, true)) {
             parent::orderBy($this->occurrenceSubquery($columnName), $direction);
-
-            return $this;
-        }
-
-        $mappedColumn = $this->mapColumn($columnName);
-
-        if ($mappedColumn !== null) {
-            parent::orderBy($mappedColumn, $direction);
 
             return $this;
         }
@@ -314,15 +266,6 @@ class EventBuilder extends Builder
         return $this;
     }
 
-    private function mapColumn(string $column): ?string
-    {
-        if (isset(self::PackageColumnAliases[$column])) {
-            return $this->qualifyModelColumn(self::PackageColumnAliases[$column]);
-        }
-
-        return null;
-    }
-
     private function columnName(string $column): string
     {
         return Str::afterLast($column, '.');
@@ -335,11 +278,6 @@ class EventBuilder extends Builder
         }
 
         return Str::beforeLast($column, '.') === $this->getModel()->getTable();
-    }
-
-    private function qualifyModelColumn(string $column): string
-    {
-        return $this->getModel()->qualifyColumn($column);
     }
 
     private function occurrenceSubquery(string $column): BaseQueryBuilder

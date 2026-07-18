@@ -41,7 +41,7 @@ function createVisibleEventForSearch(array $attributes = []): Event
     return Event::factory()->create(array_merge([
         'institution_id' => Institution::factory(),
         'default_venue_id' => null,
-        'event_format' => EventFormat::Physical,
+        'delivery_mode' => EventFormat::Physical,
     ], $attributes));
 }
 
@@ -1204,7 +1204,7 @@ describe('Event Search Filters', function () {
             'title' => 'Online Format Event',
             'status' => 'approved',
             'visibility' => 'public',
-            'event_format' => EventFormat::Online,
+            'delivery_mode' => EventFormat::Online,
             'published_at' => now(),
             'starts_at' => now()->addDays(1),
         ]);
@@ -1213,7 +1213,7 @@ describe('Event Search Filters', function () {
             'title' => 'Physical Format Event',
             'status' => 'approved',
             'visibility' => 'public',
-            'event_format' => EventFormat::Physical,
+            'delivery_mode' => EventFormat::Physical,
             'published_at' => now(),
             'starts_at' => now()->addDays(1),
         ]);

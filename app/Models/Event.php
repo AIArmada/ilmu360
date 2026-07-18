@@ -89,7 +89,7 @@ use Spatie\ModelStates\HasStates;
  * @property EventStatus|string $status
  * @property string|null $schedule_kind
  * @property EventVisibility|string|null $visibility
- * @property EventFormat|string|null $event_format
+ * @property string|null $delivery_mode
  * @property TimingMode|string|null $timing_mode
  * @property PrayerReference|string|null $prayer_reference
  * @property PrayerOffset|string|null $prayer_offset
@@ -116,7 +116,6 @@ use Spatie\ModelStates\HasStates;
  * @property-read \Illuminate\Database\Eloquent\Collection<int, EventOccurrence> $occurrences
  * @property-read \Illuminate\Database\Eloquent\Collection<int, Reference> $references
  * @property-read \Illuminate\Database\Eloquent\Collection<int, Speaker> $speakers
- * @property string|null $delivery_mode
  * @property Carbon|null $updated_at
  * @property Carbon|null $created_at
  */
@@ -262,11 +261,8 @@ class Event extends PackageEvent implements AuditableContract
         'cancelled_at',
         'last_state_change_at',
         'summary',
-        'type',
         'delivery_mode',
-        'event_format',
         'default_venue_id',
-        'venue_id',
         'pricing_mode',
         'registration_mode',
         'issue_passes_for_free',
@@ -305,17 +301,6 @@ class Event extends PackageEvent implements AuditableContract
     #[\Override]
     public function setAttribute($key, $value): mixed
     {
-        // Product field names → package columns (single store, no dual write).
-        if ($key === 'event_format') {
-            $normalized = $value instanceof EventFormat ? $value->value : $value;
-
-            return parent::setAttribute('delivery_mode', $normalized);
-        }
-
-        if ($key === 'venue_id') {
-            return parent::setAttribute('default_venue_id', $value);
-        }
-
         if ($key === 'event_category_ids') {
             $this->pendingCategoryIds = is_array($value)
                 ? array_values(array_map(strval(...), $value))
@@ -332,25 +317,6 @@ class Event extends PackageEvent implements AuditableContract
     {
         if (in_array($key, ['starts_at', 'ends_at'], true)) {
             return $this->primaryOccurrenceDate($key);
-        }
-
-        // Product field names → package columns (single store).
-        if ($key === 'event_format') {
-            $value = parent::getAttribute('delivery_mode');
-
-            if ($value instanceof EventFormat) {
-                return $value;
-            }
-
-            if (is_string($value) && $value !== '') {
-                return EventFormat::tryFrom($value) ?? $value;
-            }
-
-            return $value;
-        }
-
-        if ($key === 'venue_id') {
-            return parent::getAttribute('default_venue_id');
         }
 
         if ($key === 'event_category_ids') {

@@ -150,7 +150,7 @@ class EventFactory extends PackageEventFactory
                     return null;
                 }
 
-                if (filled($attributes['default_venue_id'] ?? $attributes['venue_id'] ?? null)) {
+                if (filled($attributes['default_venue_id'] ?? null)) {
                     return null;
                 }
 
@@ -361,7 +361,7 @@ class EventFactory extends PackageEventFactory
      */
     private function eventFormatFromAttributes(array $attributes): EventFormat
     {
-        $eventFormat = $attributes['delivery_mode'] ?? $attributes['event_format'] ?? null;
+        $eventFormat = $attributes['delivery_mode'] ?? null;
 
         if ($eventFormat instanceof EventFormat) {
             return $eventFormat;

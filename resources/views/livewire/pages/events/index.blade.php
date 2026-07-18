@@ -900,9 +900,9 @@
                                             ->sortBy('sort_order')
                                             ->first();
                                         $eventCategoryLabel = $eventCategory?->term?->name ?? __('Event');
-                                        $eventFormat = $event->event_format instanceof \App\Enums\EventFormat
-                                            ? $event->event_format
-                                            : \App\Enums\EventFormat::tryFrom((string) $event->event_format);
+                                        $eventFormat = $event->delivery_mode instanceof \App\Enums\EventFormat
+                                            ? $event->delivery_mode
+                                            : \App\Enums\EventFormat::tryFrom((string) $event->delivery_mode);
                                         $formatValue = $eventFormat?->value ?? \App\Enums\EventFormat::Physical->value;
                                         $formatLabel = $eventFormat?->getLabel() ?? __('Physical');
                                         $formatBadgeClass = match ($formatValue) {

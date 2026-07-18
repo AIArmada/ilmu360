@@ -599,7 +599,7 @@ function createSlugRedirectEvent(string $id, string $title, string $slug, Carbon
         'gender' => 'all',
         'age_group' => ['all_ages'],
         'children_allowed' => true,
-        'event_format' => 'physical',
+        'delivery_mode' => 'physical',
         'visibility' => 'public',
         'status' => 'approved',
     ]);

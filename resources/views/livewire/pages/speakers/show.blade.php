@@ -217,7 +217,7 @@
                             @php
                                 $eventTypeLabel = $resolveEventCategoryLabel($event);
                                 $eventLocation = $resolveEventLocation($event);
-                                $eventFormatValue = $event->event_format?->value ?? $event->event_format;
+                                $eventFormatValue = $event->delivery_mode?->value ?? $event->delivery_mode;
                                 $isRemoteEvent = in_array($eventFormatValue, ['online', 'hybrid'], true);
                                 $isPendingEvent = (string) $event->status === 'pending';
                                 $isCancelledEvent = (string) $event->status === 'cancelled';
@@ -307,7 +307,7 @@
                             @foreach($pastEvents as $event)
                                 @php
                                     $eventLocation = $resolveEventLocation($event);
-                                    $eventFormatValue = $event->event_format?->value ?? $event->event_format;
+                                    $eventFormatValue = $event->delivery_mode?->value ?? $event->delivery_mode;
                                     $isRemoteEvent = in_array($eventFormatValue, ['online', 'hybrid'], true);
                                 @endphp
 

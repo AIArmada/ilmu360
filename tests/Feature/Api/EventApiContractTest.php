@@ -142,6 +142,19 @@ it('filters events through canonical package query parameters', function () {
     }
 });
 
+it('rejects removed event filter aliases', function () {
+    Event::factory()->create([
+        'status' => 'approved',
+        'visibility' => EventVisibility::Public,
+    ]);
+
+    foreach (['event_format', 'venue_id', 'type'] as $removedFilter) {
+        $this->getJson('/api/v1/events?'.http_build_query([
+            'filter' => [$removedFilter => 'online'],
+        ]))->assertBadRequest();
+    }
+});
+
 it('filters events by linked reference ids', function () {
     $reference = Reference::factory()->create([
         'status' => 'verified',

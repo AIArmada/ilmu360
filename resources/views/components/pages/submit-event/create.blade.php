@@ -1696,12 +1696,12 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
             $defaults['primary_organizer_id'] = $organizer->involveable_id;
             $defaults['primary_organizer_institution_id'] = null;
             $defaults['primary_organizer_speaker_id'] = $organizer->involveable_id;
-            $defaults['location_type'] = $event->venue_id ? 'venue' : 'institution';
+            $defaults['location_type'] = $event->default_venue_id ? 'venue' : 'institution';
             $defaults['location_institution_id'] = $event->institution_id;
 
-            if ($event->venue_id) {
+            if ($event->default_venue_id) {
                 $defaults['location_same_as_institution'] = false;
-                $defaults['location_venue_id'] = $event->venue_id;
+                $defaults['location_venue_id'] = $event->default_venue_id;
             }
         }
 
@@ -1784,9 +1784,9 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
     protected function duplicateEventDefaults(Event $duplicateEvent): array
     {
         $timezone = $this->resolveSubmissionTimezone($this->data['submission_country_id'] ?? null);
-        $eventFormat = $duplicateEvent->event_format instanceof EventFormat
-            ? $duplicateEvent->event_format->value
-            : (is_string($duplicateEvent->event_format) ? $duplicateEvent->event_format : EventFormat::Physical->value);
+        $eventFormat = $duplicateEvent->delivery_mode instanceof EventFormat
+            ? $duplicateEvent->delivery_mode->value
+            : (is_string($duplicateEvent->delivery_mode) ? $duplicateEvent->delivery_mode : EventFormat::Physical->value);
         $visibility = $duplicateEvent->visibility instanceof EventVisibility
             ? $duplicateEvent->visibility->value
             : (is_string($duplicateEvent->visibility) ? $duplicateEvent->visibility : EventVisibility::Public->value);
@@ -1986,9 +1986,9 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
         $access = app(EntitySubmissionAccess::class);
         $submitter = $this->submitterUser();
         $defaults = [];
-        $eventFormat = $duplicateEvent->event_format instanceof EventFormat
-            ? $duplicateEvent->event_format->value
-            : (is_string($duplicateEvent->event_format) ? $duplicateEvent->event_format : EventFormat::Physical->value);
+        $eventFormat = $duplicateEvent->delivery_mode instanceof EventFormat
+            ? $duplicateEvent->delivery_mode->value
+            : (is_string($duplicateEvent->delivery_mode) ? $duplicateEvent->delivery_mode : EventFormat::Physical->value);
         $organizer = $duplicateEvent->primaryOrganizerInvolvement;
         $organizerId = $organizer !== null ? $organizer->involveable_id : null;
         $institutionId = is_string($duplicateEvent->institution_id) ? $duplicateEvent->institution_id : null;
@@ -2011,10 +2011,10 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
             return $defaults;
         }
 
-        if (filled($duplicateEvent->venue_id)) {
+        if (filled($duplicateEvent->default_venue_id)) {
             $defaults['location_same_as_institution'] = false;
             $defaults['location_type'] = 'venue';
-            $defaults['location_venue_id'] = $duplicateEvent->venue_id;
+            $defaults['location_venue_id'] = $duplicateEvent->default_venue_id;
             $defaults['location_institution_id'] = null;
 
             return $defaults;

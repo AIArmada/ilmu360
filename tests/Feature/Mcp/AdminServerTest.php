@@ -527,7 +527,7 @@ it('filters admin event records by structured filters through the MCP server', f
     $draftOnlineEvent = Event::factory()->create([
         'title' => 'Admin MCP Filtered Draft Online Event',
         'status' => 'draft',
-        'event_format' => EventFormat::Online,
+        'delivery_mode' => EventFormat::Online,
         'visibility' => EventVisibility::Public,
         'event_category_ids' => [eventCategoryId('kuliah_ceramah')],
     ]);
@@ -535,7 +535,7 @@ it('filters admin event records by structured filters through the MCP server', f
     Event::factory()->create([
         'title' => 'Admin MCP Approved Physical Event',
         'status' => 'approved',
-        'event_format' => EventFormat::Physical,
+        'delivery_mode' => EventFormat::Physical,
         'visibility' => EventVisibility::Private,
         'event_category_ids' => [eventCategoryId('forum')],
     ]);
@@ -4056,7 +4056,7 @@ function adminMcpStableEvent(array $overrides = []): Event
         'gender' => EventGenderRestriction::All->value,
         'age_group' => [EventAgeGroup::AllAges->value],
         'children_allowed' => true,
-        'event_format' => EventFormat::Physical->value,
+        'delivery_mode' => EventFormat::Physical->value,
         'visibility' => EventVisibility::Public->value,
         'status' => 'draft',
         'live_url' => null,

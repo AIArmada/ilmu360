@@ -45,7 +45,7 @@ it('shows grouped event speaker reference and institution matches on the unified
             'visibility' => 'public',
             'published_at' => now(),
             'starts_at' => now()->addDay(),
-            'event_format' => EventFormat::Physical,
+            'delivery_mode' => EventFormat::Physical,
         ]);
 
     $reference = Reference::factory()->create([
@@ -139,7 +139,7 @@ it('shows nearby event matches on the unified search page when location is prese
             'visibility' => 'public',
             'published_at' => now(),
             'starts_at' => now()->addDay(),
-            'event_format' => EventFormat::Physical,
+            'delivery_mode' => EventFormat::Physical,
         ]);
 
     $this->get(route('search.index', [
@@ -165,7 +165,7 @@ it('uses a 16:9 placeholder aspect ratio on unified search event cards without p
             'visibility' => 'public',
             'published_at' => now(),
             'starts_at' => now()->addDay(),
-            'event_format' => EventFormat::Physical,
+            'delivery_mode' => EventFormat::Physical,
         ]);
 
     $this->get(route('search.index', ['search' => 'Carian Tanpa Poster']))
@@ -188,7 +188,7 @@ it('renders the book title only on book-backed search result cards without paren
             'visibility' => 'public',
             'published_at' => now(),
             'starts_at' => now()->addDay(),
-            'event_format' => EventFormat::Physical,
+            'delivery_mode' => EventFormat::Physical,
         ]);
 
     $articleEvent = Event::factory()
@@ -199,7 +199,7 @@ it('renders the book title only on book-backed search result cards without paren
             'visibility' => 'public',
             'published_at' => now(),
             'starts_at' => now()->addDays(2),
-            'event_format' => EventFormat::Physical,
+            'delivery_mode' => EventFormat::Physical,
         ]);
 
     $bookReference = Reference::factory()->create([

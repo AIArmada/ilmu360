@@ -91,7 +91,7 @@
         $heroImage = $event->organizer->getFirstMedia('cover')?->getAvailableUrl(['banner']) ?? '';
     }
 
-    $eventFormat = $event->event_format;
+    $eventFormat = $event->delivery_mode;
     $eventFormatValue = $eventFormat instanceof \App\Enums\EventFormat
         ? $eventFormat->value
         : (is_string($eventFormat) ? $eventFormat : null);

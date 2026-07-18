@@ -212,7 +212,7 @@ final readonly class SaveAdminEventAction
             'is_muslim_only' => array_key_exists('is_muslim_only', $state)
                 ? (bool) $state['is_muslim_only']
                 : (bool) $event->is_muslim_only,
-            'event_format' => $this->normalizeEnumValue(
+            'delivery_mode' => $this->normalizeEnumValue(
                 $state['event_format'] ?? $event->delivery_mode,
                 EventFormat::class,
                 EventFormat::Physical->value,
@@ -226,7 +226,7 @@ final readonly class SaveAdminEventAction
             'live_url' => $this->normalizeOptionalString($state['live_url'] ?? $event->live_url),
             'recording_url' => $this->normalizeOptionalString($state['recording_url'] ?? $event->recording_url),
             'institution_id' => $institutionId,
-            'venue_id' => $venueId,
+            'default_venue_id' => $venueId,
             'is_featured' => array_key_exists('is_featured', $state) ? (bool) $state['is_featured'] : (bool) $event->is_featured,
             'status' => $creating ? 'draft' : (string) $event->status,
             'published_at' => $creating ? null : $event->published_at,

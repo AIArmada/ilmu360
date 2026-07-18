@@ -54,7 +54,7 @@ class CreateAdvancedEventAction
                 'description' => (string) ($form['description'] ?? ''),
                 'timezone' => $timezone,
                 'institution_id' => $locationInstitutionId,
-                'event_format' => (string) $form['default_event_format'],
+                'delivery_mode' => (string) $form['default_event_format'],
                 'visibility' => (string) $form['visibility'],
                 'registration_mode' => empty($form['registration_required'])
                     ? RegistrationMode::None->value

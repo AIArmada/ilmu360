@@ -464,7 +464,7 @@ it('normalizes event update context to public organizer values and exposes looku
         'event_category_ids' => [eventCategoryId('kuliah_ceramah')],
         'gender' => 'all',
         'age_group' => ['all_ages'],
-        'event_format' => 'physical',
+        'delivery_mode' => 'physical',
         'visibility' => 'public',
         'starts_at' => $startsAt,
         'ends_at' => $endsAt,

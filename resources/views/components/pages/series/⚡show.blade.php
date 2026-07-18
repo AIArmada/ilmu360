@@ -562,7 +562,7 @@ new
                                     @foreach($upcomingEvents as $event)
                                         @php
                                             $venueLocation = $resolveVenueLocation($event);
-                                            $eventFormatValue = $event->event_format?->value ?? $event->event_format;
+                                            $eventFormatValue = $event->delivery_mode?->value ?? $event->delivery_mode;
                                             $isRemoteEvent = in_array($eventFormatValue, ['online', 'hybrid'], true);
                                             $isPendingEvent = $event->status instanceof \App\States\EventStatus\Pending;
                                         @endphp
@@ -690,7 +690,7 @@ new
                                     @foreach($pastEvents as $event)
                                         @php
                                             $pastVenueLocation = $resolveVenueLocation($event);
-                                            $eventFormatValue = $event->event_format?->value ?? $event->event_format;
+                                            $eventFormatValue = $event->delivery_mode?->value ?? $event->delivery_mode;
                                             $isRemoteEvent = in_array($eventFormatValue, ['online', 'hybrid'], true);
                                             $isPendingEvent = $event->status instanceof \App\States\EventStatus\Pending;
                                         @endphp

@@ -51,7 +51,6 @@ class EventPayloadData extends Data
         $payload = Arr::except([
             ...OwnerContext::withOwner(null, fn (): array => $event->toArray()),
             'institution_id' => $event->institution_id,
-            'venue_id' => $event->default_venue_id,
             'schedule_kind' => $event->schedule_kind,
             'timing_mode' => $event->isPrayerRelative() ? 'prayer_relative' : 'absolute',
             'prayer_reference' => self::enumValue($event->prayer_reference),
@@ -61,7 +60,6 @@ class EventPayloadData extends Data
             'gender' => self::enumValue($event->gender),
             'age_group' => self::enumListValues($event->age_group),
             'children_allowed' => $event->children_allowed,
-            'event_format' => self::enumValue($event->delivery_mode),
             'event_url' => $event->event_url,
             'live_url' => $event->live_url,
             'recording_url' => $event->recording_url,
@@ -80,6 +78,9 @@ class EventPayloadData extends Data
                 ? UserDateTimeFormatter::format($event->ends_at, 'h:i A')
                 : null,
         ], [
+            'type',
+            'event_format',
+            'venue_id',
             'latest_published_change_announcement',
             'latest_published_replacement_announcement',
             'published_change_announcements',

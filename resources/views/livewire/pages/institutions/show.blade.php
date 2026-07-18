@@ -285,7 +285,7 @@
                                 $speakerAvatarStack = $resolveEventSpeakerAvatarStack($event);
                                 $eventTypeLabel = $resolveEventCategoryLabel($event);
                                 $bookReferenceTitle = $event->reference_study_subtitle;
-                                $eventFormatValue = $event->event_format?->value ?? $event->event_format;
+                                $eventFormatValue = $event->delivery_mode?->value ?? $event->delivery_mode;
                                 $isRemoteEvent = in_array($eventFormatValue, ['online', 'hybrid'], true);
                                 $isPendingEvent = (string) $event->status === 'pending';
                                 $isCancelledEvent = (string) $event->status === 'cancelled';
@@ -443,7 +443,7 @@
                                     $venueLocation = $resolveVenueLocation($event);
                                     $eventPeople = $resolveEventPeople($event);
                                     $bookReferenceTitle = $event->reference_study_subtitle;
-                                    $eventFormatValue = $event->event_format?->value ?? $event->event_format;
+                                $eventFormatValue = $event->delivery_mode?->value ?? $event->delivery_mode;
                                     $isRemoteEvent = in_array($eventFormatValue, ['online', 'hybrid'], true);
                                 @endphp
 
