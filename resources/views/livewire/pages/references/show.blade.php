@@ -41,7 +41,7 @@
         $referenceTypeLabel !== '' ? $referenceTypeLabel : null,
         $reference->authorValue(),
         $reference->publisherValue(),
-        filled($reference->publication_year) ? (string) $reference->publication_year : null,
+        filled($reference->year) ? (string) $reference->year : null,
     ]);
 @endphp
 

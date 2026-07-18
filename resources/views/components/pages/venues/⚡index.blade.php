@@ -391,7 +391,7 @@ new
                             $coverUrl = $venue->getFirstMediaUrl('cover', 'thumb') ?: asset('images/placeholders/venue.png');
                             $address = $venue->primaryAddress();
                             $locationDisplay = $formatVenueLocation($address);
-                            $venueType = $venue->type;
+                            $venueType = $venue->venue_type;
                             $typeLabel = $venueType instanceof \App\Enums\VenueType
                                 ? $venueType->getLabel()
                                 : (filled($venueType) ? \Illuminate\Support\Str::headline((string) $venueType) : __('Venue'));

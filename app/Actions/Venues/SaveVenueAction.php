@@ -2,8 +2,7 @@
 
 namespace App\Actions\Venues;
 
-use AIArmada\Events\Models\FacilityType;
-use AIArmada\Events\Models\VenueFacility;
+use AIArmada\Events\Actions\SyncVenueFacilitiesAction;
 use App\Enums\VenueType;
 use App\Models\Venue;
 use App\Services\ContributionEntityMutationService;
@@ -22,6 +21,7 @@ final readonly class SaveVenueAction
         private ContributionEntityMutationService $contributionEntityMutationService,
         private GenerateVenueSlugAction $generateVenueSlugAction,
         private ModelMediaSyncService $mediaSyncService,
+        private SyncVenueFacilitiesAction $syncVenueFacilitiesAction,
     ) {}
 
     /**
@@ -125,72 +125,22 @@ final readonly class SaveVenueAction
         $codes = $data['facilities'];
 
         if ($codes === null) {
-            $venue->facilities()->delete();
-
-            return;
+            $codes = [];
         }
 
         if (! is_array($codes)) {
             return;
         }
 
-        $venue->facilities()->delete();
-
         $codes = array_values(array_unique(array_filter(
-            $codes,
+            array_map(static fn (mixed $code): mixed => is_string($code) ? trim($code) : $code, $codes),
             static fn (mixed $code): bool => is_string($code) && trim($code) !== '',
         )));
 
-        if ($codes === []) {
-            return;
-        }
-
-        $typeIds = FacilityType::query()
-            ->whereIn('code', $codes)
-            ->where('is_active', true)
-            ->pluck('id', 'code');
-
-        foreach ($codes as $code) {
-            if ($typeIds->has($code)) {
-                continue;
-            }
-
-            $type = FacilityType::query()->firstOrCreate(
-                ['code' => $code],
-                [
-                    'name' => Str::headline($code),
-                    'category' => 'venue',
-                    'is_active' => true,
-                ],
-            );
-
-            if ($type->is_active) {
-                $typeIds->put($code, $type->getKey());
-            }
-        }
-
-        $rows = [];
-        foreach ($codes as $code) {
-            $typeId = $typeIds->get($code);
-
-            if ($typeId === null) {
-                continue;
-            }
-
-            $rows[] = [
-                'id' => (string) Str::uuid(),
-                'venue_id' => (string) $venue->getKey(),
-                'facility_type_id' => (string) $typeId,
-                'availability' => 'available',
-                'visibility' => 'public',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ];
-        }
-
-        if ($rows !== []) {
-            VenueFacility::query()->insert($rows);
-        }
+        $this->syncVenueFacilitiesAction->handle(
+            $venue,
+            array_map(static fn (string $code): array => ['code' => $code], $codes),
+        );
     }
 
     private function normalizeOptionalString(mixed $value): ?string

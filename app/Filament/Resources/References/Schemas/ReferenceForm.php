@@ -34,12 +34,12 @@ class ReferenceForm
                             ->default(ReferenceType::Book->value)
                             ->required()
                             ->live(),
-                        Select::make('parent_reference_id')
+                        Select::make('parent_id')
                             ->label('Parent Book')
                             ->helperText('Select a root book when this reference represents a specific jilid, bahagian, or volume.')
                             ->options(fn (?Reference $record): array => Reference::query()
                                 ->where('type', ReferenceType::Book->value)
-                                ->whereNull('parent_reference_id')
+                                ->whereNull('parent_id')
                                 ->when($record instanceof Reference && $record->exists, fn ($query) => $query->whereKeyNot($record->getKey()))
                                 ->orderBy('title')
                                 ->pluck('title', 'id')
@@ -53,21 +53,21 @@ class ReferenceForm
                             ->label('Part Type')
                             ->options(ReferencePartType::class)
                             ->default(ReferencePartType::Jilid->value)
-                            ->visible(fn (Get $get): bool => filled($get('parent_reference_id')))
-                            ->dehydrated(fn (Get $get): bool => filled($get('parent_reference_id'))),
+                            ->visible(fn (Get $get): bool => filled($get('parent_id')))
+                            ->dehydrated(fn (Get $get): bool => filled($get('parent_id'))),
                         TextInput::make('part_number')
                             ->label('Part Number')
                             ->placeholder('2')
                             ->maxLength(255)
-                            ->visible(fn (Get $get): bool => filled($get('parent_reference_id')))
-                            ->dehydrated(fn (Get $get): bool => filled($get('parent_reference_id'))),
+                            ->visible(fn (Get $get): bool => filled($get('parent_id')))
+                            ->dehydrated(fn (Get $get): bool => filled($get('parent_id'))),
                         TextInput::make('part_label')
                             ->label('Part Label')
                             ->helperText('Optional display label, e.g. Jilid 2 or Bahagian Akhir.')
                             ->maxLength(255)
-                            ->visible(fn (Get $get): bool => filled($get('parent_reference_id')))
-                            ->dehydrated(fn (Get $get): bool => filled($get('parent_reference_id'))),
-                        TextInput::make('publication_year')
+                            ->visible(fn (Get $get): bool => filled($get('parent_id')))
+                            ->dehydrated(fn (Get $get): bool => filled($get('parent_id'))),
+                        TextInput::make('year')
                             ->maxLength(255),
                         TextInput::make('publisher')
                             ->maxLength(255),

@@ -1177,7 +1177,7 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
                                 'slug' => app(GenerateReferenceSlugAction::class)->handle((string) ($data['title'] ?? '')),
                                 'author' => $data['author'] ?? null,
                                 'type' => $data['type'] ?? ReferenceType::Book->value,
-                                'publication_year' => filled($data['publication_year'] ?? null) ? (string) $data['publication_year'] : null,
+                                'year' => filled($data['publication_year'] ?? null) ? (string) $data['publication_year'] : null,
                                 'publisher' => $data['publisher'] ?? null,
                                 'description' => $data['description'] ?? null,
                                 'is_canonical' => false,

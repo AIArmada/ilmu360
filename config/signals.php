@@ -67,7 +67,6 @@ $propertyAllowlist = [
     'shipping_method',
     'source_event_id',
     'status',
-    'subject_identifier',
     'subject_instance',
     'subtotal_minor',
     'surface',

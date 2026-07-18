@@ -158,10 +158,11 @@ new class extends Component
         })
         ->filter()
         ->values();
-    $facilityLabels = collect((array) $venue->facilities)
-        ->filter(fn (mixed $enabled): bool => (bool) $enabled)
-        ->keys()
-        ->map(fn (string $key): string => Str::headline(str_replace('_', ' ', $key)))
+    $venue->loadMissing('facilities.facilityType');
+    $facilityLabels = $venue->facilities
+        ->map(fn (\AIArmada\Events\Models\VenueFacility $facility): ?string => $facility->facilityType?->name)
+        ->filter(fn (?string $label): bool => filled($label))
+        ->map(fn (string $label): string => trim($label))
         ->values();
 @endphp
 
@@ -172,7 +173,7 @@ new class extends Component
                 <p class="text-xs font-semibold uppercase tracking-[0.32em] text-emerald-600">{{ __('Lokasi') }}</p>
                 <h1 class="mt-4 text-4xl font-black tracking-tight text-slate-900 sm:text-5xl">{{ $venue->name }}</h1>
                 <div class="mt-4 flex flex-wrap gap-3 text-sm text-slate-600">
-                    <span class="rounded-full bg-emerald-100 px-3 py-1 font-medium text-emerald-800">{{ $venue->type?->getLabel() ?? Str::headline((string) $venue->type) }}</span>
+                    <span class="rounded-full bg-emerald-100 px-3 py-1 font-medium text-emerald-800">{{ $venue->venue_type?->getLabel() ?? Str::headline((string) $venue->venue_type) }}</span>
                     <span class="rounded-full bg-slate-100 px-3 py-1">{{ __(':count majlis', ['count' => $venue->events()->count()]) }}</span>
                 </div>
                 <p class="mt-6 max-w-3xl text-base leading-8 text-slate-700">{{ trim(strip_tags((string) $venue->description)) ?: __('Ruang ini digunakan untuk pelbagai majlis ilmu dan program komuniti. Semak alamat, kemudahan, dan senarai majlis yang pernah atau akan berlangsung di sini.') }}</p>
@@ -265,7 +266,7 @@ new class extends Component
                     </div>
                     <div>
                         <p class="font-medium text-slate-900">{{ __('Jenis') }}</p>
-                        <p class="mt-1">{{ $venue->type?->getLabel() ?? Str::headline((string) $venue->type) }}</p>
+                        <p class="mt-1">{{ $venue->venue_type?->getLabel() ?? Str::headline((string) $venue->venue_type) }}</p>
                     </div>
                     <div>
                         <p class="font-medium text-slate-900">{{ __('Alamat Penuh') }}</p>

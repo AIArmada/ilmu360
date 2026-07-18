@@ -277,7 +277,7 @@ new
                             $metaParts = array_values(array_filter([
                                 $reference->author,
                                 $reference->publisher,
-                                $reference->publication_year,
+                                $reference->year,
                             ], fn (mixed $value): bool => filled($value)));
                         @endphp
 

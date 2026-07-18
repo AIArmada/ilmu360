@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Database\Seeders\AIArmada;
 
-use AIArmada\Events\Models\EventClassification;
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
 use App\Models\EventTermPolicy;
@@ -103,24 +102,6 @@ final class EventTaxonomySeeder extends Seeder
         }
 
         EventTermPolicy::query()->upsert($policies, ['event_term_id', 'policy_code'], ['is_enabled']);
-
-        $legacyTaxonomyIds = EventTaxonomy::query()
-            ->where('code', 'event_type')
-            ->pluck('id');
-
-        if ($legacyTaxonomyIds->isNotEmpty()) {
-            EventClassification::query()
-                ->whereIn('event_taxonomy_id', $legacyTaxonomyIds)
-                ->delete();
-
-            EventTerm::query()
-                ->whereIn('event_taxonomy_id', $legacyTaxonomyIds)
-                ->delete();
-
-            EventTaxonomy::query()
-                ->whereIn('id', $legacyTaxonomyIds)
-                ->delete();
-        }
 
     }
 }

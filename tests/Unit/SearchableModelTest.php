@@ -135,7 +135,7 @@ it('builds the reference searchable payload and only indexes active verified or 
         'author' => 'Dr. Ahmad',
         'publisher' => 'Pustaka Hikmah',
         'description' => '<p>Rujukan utama kuliah.</p>',
-        'publication_year' => '2020',
+        'year' => '2020',
         'status' => 'pending',
     ]);
 

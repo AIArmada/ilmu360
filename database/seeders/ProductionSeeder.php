@@ -23,6 +23,7 @@ class ProductionSeeder extends Seeder
             ScopedMemberRolesSeeder::class,
             TagSeeder::class,
             UserSeeder::class,
+            FacilityTypeSeeder::class,
             SpaceSeeder::class,
             InspirationSeeder::class,
         ]);

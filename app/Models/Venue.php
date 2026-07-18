@@ -8,7 +8,6 @@ use AIArmada\Contacting\Concerns\HasSocialProfiles;
 use AIArmada\Events\Models\Venue as PackageVenue;
 use AIArmada\Events\Models\VenueFacility;
 use App\Enums\VenueType;
-use App\Models\Builders\VenueBuilder;
 use App\Models\Concerns\AuditsModelChanges;
 use Database\Factories\VenueFactory;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -26,7 +25,6 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  * @property string $name
  * @property string $slug
  * @property string|null $description
- * @property VenueType|string|null $type
  * @property VenueType|string|null $venue_type
  * @property-read Collection<int, VenueFacility> $facilities
  * @property string|null $status
@@ -55,7 +53,6 @@ class Venue extends PackageVenue implements AuditableContract
         'name',
         'slug',
         'description',
-        'type',
         'venue_type',
         'line1',
         'line2',
@@ -86,49 +83,9 @@ class Venue extends PackageVenue implements AuditableContract
     }
 
     #[\Override]
-    public function newEloquentBuilder($query): VenueBuilder
-    {
-        return new VenueBuilder($query);
-    }
-
-    #[\Override]
     protected static function newFactory(): VenueFactory
     {
         return VenueFactory::new();
-    }
-
-    #[\Override]
-    public function setAttribute($key, $value): mixed
-    {
-        // Product field name → package column (single store).
-        if ($key === 'type') {
-            $normalized = $value instanceof VenueType ? $value->value : $value;
-
-            return parent::setAttribute('venue_type', $normalized);
-        }
-
-        return parent::setAttribute($key, $value);
-    }
-
-    #[\Override]
-    public function getAttribute($key): mixed
-    {
-        // Product field name → package column (single store).
-        if ($key === 'type') {
-            $value = parent::getAttribute('venue_type');
-
-            if ($value instanceof VenueType) {
-                return $value;
-            }
-
-            if (is_string($value) && $value !== '') {
-                return VenueType::tryFrom($value) ?? $value;
-            }
-
-            return $value;
-        }
-
-        return parent::getAttribute($key);
     }
 
     /**

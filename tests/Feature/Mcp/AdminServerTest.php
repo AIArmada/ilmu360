@@ -2224,7 +2224,7 @@ it('surfaces venue and reference update semantics through admin MCP write schema
                 return data_get($fieldMap->get('name'), 'required') === false
                     && data_get($fieldMap->get('address'), 'required') === false
                     && data_get($fieldMap->get('address'), 'clear_semantics.empty_object') === 'delete_existing_address'
-                    && data_get($fieldMap->get('facilities'), 'input_normalization.kind') === 'facility_list_to_boolean_map'
+                    && data_get($fieldMap->get('facilities'), 'input_normalization.kind') === 'facility_codes_to_relation'
                     && data_get($fieldMap->get('contactMethods'), 'collection_semantics.explicit_null') === 'clear_collection'
                     && data_get($fieldMap->get('social_media'), 'input_normalization.platform_aliases.x.normalizes_to') === 'x'
                     && data_get($fieldMap->get('social_media'), 'input_normalization.platform_aliases.x.accepted_by_write_validation') === false;

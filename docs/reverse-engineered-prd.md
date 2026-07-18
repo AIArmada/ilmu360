@@ -518,7 +518,6 @@ No webhook signature/retry/delivery-log contract was established for external in
 | `media-library:regenerate` | Weekly Sunday 03:00 Malaysia time | Missing responsive media conversions |
 | `horizon:snapshot` | Every 5 minutes UTC | Queue throughput/wait-time dashboard data |
 | `communications:send-digests` | Every minute UTC | Scheduled digest batches |
-| `communications:verify-parity --days=1` | Daily UTC | Legacy/package communications cutover parity |
 | Slug backfill jobs | Triggered by commands/actions | Backfill event/institution/speaker/reference/venue slugs |
 | Responsive image job | Media event/queue | Generate conversions |
 

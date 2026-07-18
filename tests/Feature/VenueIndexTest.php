@@ -3,6 +3,8 @@
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressCountry;
+use AIArmada\Events\Models\FacilityType;
+use AIArmada\Events\Models\VenueFacility;
 use App\Models\Venue;
 use Illuminate\Support\Str;
 
@@ -66,6 +68,27 @@ it('renders the public venue index hero and search copy', function () {
         ->assertSee(__('Places for'))
         ->assertSee(__('Knowledge & Community'))
         ->assertSee(__('Search venues...'));
+});
+
+it('renders venue facilities from canonical relation rows', function () {
+    $venue = Venue::factory()->create([
+        'name' => 'Dewan Kemudahan Ujian',
+        'status' => 'verified',
+    ]);
+    $facilityType = FacilityType::factory()->create([
+        'code' => 'parking',
+        'name' => 'Parking',
+        'is_active' => true,
+    ]);
+    VenueFacility::factory()->create([
+        'venue_id' => $venue->getKey(),
+        'facility_type_id' => $facilityType->getKey(),
+        'venue_space_id' => null,
+    ]);
+
+    get(route('venues.show', $venue))
+        ->assertSuccessful()
+        ->assertSee('Parking');
 });
 
 it('searches public verified venues by name', function () {

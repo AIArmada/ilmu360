@@ -6,7 +6,6 @@ use AIArmada\Events\Models\EventTerm;
 use App\Contracts\EventCategoryCatalog;
 use App\Contracts\EventCategoryPolicyResolver;
 use App\Models\EventTermPolicy;
-use Database\Seeders\AIArmada\EventTaxonomySeeder;
 use Database\Seeders\AIArmada\FoundationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Validator;
@@ -116,16 +115,6 @@ it('seeds policy rows for terms with requires_physical_delivery', function (): v
         ->where('is_enabled', true)
         ->exists()
     )->toBeTrue();
-});
-
-it('removes legacy event type taxonomy when reseeding', function (): void {
-    seed(FoundationSeeder::class);
-
-    $legacyTaxonomy = EventTaxonomy::factory()->create(['code' => 'event_type']);
-
-    app(EventTaxonomySeeder::class)->run();
-
-    expect(EventTaxonomy::query()->whereKey($legacyTaxonomy->getKey())->exists())->toBeFalse();
 });
 
 it('does not cross taxonomy boundaries through term relationships', function (): void {

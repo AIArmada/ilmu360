@@ -10,7 +10,6 @@ use App\Actions\References\GenerateReferenceSlugAction;
 use App\Enums\MemberSubjectType;
 use App\Enums\ReferencePartType;
 use App\Enums\ReferenceType;
-use App\Models\Builders\ReferenceBuilder;
 use App\Models\Concerns\AuditsModelChanges;
 use BackedEnum;
 use Database\Factories\ReferenceFactory;
@@ -40,7 +39,6 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  * @property string|null $part_type
  * @property int|null $part_number
  * @property string|null $part_label
- * @property int|null $publication_year
  * @property int|null $year
  * @property string|null $publisher
  * @property string|null $description
@@ -71,12 +69,6 @@ class Reference extends PackageReference implements AuditableContract
     protected static function bootHasSlug(): void {}
 
     #[\Override]
-    public function newEloquentBuilder($query): ReferenceBuilder
-    {
-        return new ReferenceBuilder($query);
-    }
-
-    #[\Override]
     protected static function booted(): void
     {
         static::saving(function (self $reference): void {
@@ -98,7 +90,6 @@ class Reference extends PackageReference implements AuditableContract
         'part_number',
         'part_label',
         'year',
-        'publication_year',
         'publisher',
         'description',
         'is_canonical',
@@ -119,28 +110,6 @@ class Reference extends PackageReference implements AuditableContract
             'reference_parts' => 'array',
             'metadata' => 'array',
         ];
-    }
-
-    #[\Override]
-    public function setAttribute($key, $value): mixed
-    {
-        // Product field name → package column (single store).
-        if ($key === 'publication_year') {
-            return parent::setAttribute('year', $value === null || $value === '' ? null : (int) $value);
-        }
-
-        return parent::setAttribute($key, $value);
-    }
-
-    #[\Override]
-    public function getAttribute($key): mixed
-    {
-        // Product field name → package column (single store).
-        if ($key === 'publication_year') {
-            return parent::getAttribute('year');
-        }
-
-        return parent::getAttribute($key);
     }
 
     /**
@@ -549,10 +518,6 @@ class Reference extends PackageReference implements AuditableContract
 
     private function optionalStringAttribute(string $key): ?string
     {
-        if ($key === 'year' || $key === 'publication_year') {
-            return $this->normalizeStringValue($this->getAttribute('year'));
-        }
-
         $attributes = $this->getAttributes();
 
         if (! array_key_exists($key, $attributes)) {

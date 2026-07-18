@@ -11,8 +11,6 @@ use Laravel\Sanctum\PersonalAccessToken;
 
 class McpTokenManager
 {
-    private const string LEGACY_WILDCARD_ABILITY = '*';
-
     public const string ADMIN_SERVER = 'admin';
 
     public const string MEMBER_SERVER = 'member';
@@ -69,10 +67,6 @@ class McpTokenManager
         }
 
         $abilities = $this->tokenAbilities($token);
-
-        if (in_array(self::LEGACY_WILDCARD_ABILITY, $abilities, true)) {
-            return $server === self::ADMIN_SERVER;
-        }
 
         return in_array($availableServers[$server]['ability'], $abilities, true);
     }
@@ -138,7 +132,6 @@ class McpTokenManager
 
         return match (true) {
             in_array(self::MEMBER_ABILITY, $abilities, true) => self::MEMBER_SERVER,
-            in_array(self::LEGACY_WILDCARD_ABILITY, $abilities, true) => self::ADMIN_SERVER,
             in_array(self::ADMIN_ABILITY, $abilities, true) => self::ADMIN_SERVER,
             default => null,
         };

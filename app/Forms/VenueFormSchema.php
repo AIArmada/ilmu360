@@ -81,7 +81,7 @@ class VenueFormSchema
             'id' => (string) Str::uuid(),
             'name' => $data['name'],
             'slug' => app(GenerateVenueSlugAction::class)->handle((string) $data['name'], $addressData),
-            'type' => $data['type'],
+            'venue_type' => $data['type'],
             'status' => 'pending',
             'visibility' => 'public',
         ]));

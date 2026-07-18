@@ -962,7 +962,7 @@ Nested collection item contracts for institutions:
 - `address` is optional on update. If you send a non-empty address object, omitted nested keys preserve the existing stored address values.
 - `address.country_id` is required on create, but on update it may be omitted when the venue already has a stored country.
 - `address = {}` is destructive for venues: it deletes the existing stored address. Omit `address` entirely when you intend no address change.
-- `facilities` is a replacement set, not a patchable map: omit to preserve, send `null` or `[]` to clear, and send the full enabled facility list when updating. The save layer normalizes list input into the stored boolean map.
+- `facilities` is a replacement set of canonical facility codes, not a patch: omit to preserve, send `null` or `[]` to clear general venue facilities, and send the full enabled facility list when updating. The save layer syncs active codes into `venue_facilities` rows without touching space-scoped facilities.
 - `contacts` and `social_media` use destructive replacement semantics exactly like institutions.
 - For social media platform values, use `twitter` as the raw HTTP write value for Twitter / X.
 

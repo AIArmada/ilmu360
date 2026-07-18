@@ -240,7 +240,7 @@ it('forbids MCP token management for authenticated users without MCP access', fu
     ])->assertForbidden();
 });
 
-it('lists legacy wildcard MCP tokens as admin tokens for admin-capable users', function () {
+it('does not expose unscoped MCP tokens as server tokens', function () {
     if (! Role::query()->where('name', 'super_admin')->where('guard_name', 'web')->exists()) {
         $role = new Role;
         $role->forceFill([
@@ -258,7 +258,5 @@ it('lists legacy wildcard MCP tokens as admin tokens for admin-capable users', f
 
     $this->getJson(route('api.client.account-settings.mcp-tokens.index'))
         ->assertOk()
-        ->assertJsonPath('data.tokens.0.name', 'legacy-admin-mcp')
-        ->assertJsonPath('data.tokens.0.server', 'admin')
-        ->assertJsonPath('data.tokens.0.endpoint', url('/mcp/admin'));
+        ->assertJsonPath('data.tokens', []);
 });

@@ -19,21 +19,21 @@ class ReferenceFactory extends Factory
      */
     public function definition(): array
     {
-        $title = $this->faker->sentence();
+        $title = fake()->sentence();
 
         return [
             'title' => $title,
             'slug' => Str::slug($title).'-'.Str::lower(Str::random(7)),
-            'author' => $this->faker->name(),
-            'type' => $this->faker->randomElement([
+            'author' => fake()->name(),
+            'type' => fake()->randomElement([
                 ReferenceType::Book->value,
                 ReferenceType::Article->value,
                 ReferenceType::Video->value,
             ]),
-            'publication_year' => $this->faker->year(),
-            'publisher' => $this->faker->company(),
-            'description' => $this->faker->paragraph(),
-            'is_canonical' => $this->faker->boolean(),
+            'year' => fake()->year(),
+            'publisher' => fake()->company(),
+            'description' => fake()->paragraph(),
+            'is_canonical' => fake()->boolean(),
             'status' => 'verified',
         ];
     }

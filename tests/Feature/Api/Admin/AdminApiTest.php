@@ -6,6 +6,7 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Enums\RegistrationMode as PackageRegistrationMode;
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
+use AIArmada\Events\Models\FacilityType;
 use AIArmada\Moderation\Enums\ModerationActionType;
 use App\Enums\ContributionRequestStatus;
 use App\Enums\ContributionRequestType;
@@ -43,6 +44,12 @@ use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
 use Nnjeim\World\Models\Language;
 use Spatie\Permission\PermissionRegistrar;
+
+beforeEach(function (): void {
+    foreach (['parking', 'oku', 'women_section', 'ablution_area'] as $code) {
+        FacilityType::factory()->create(['code' => $code, 'name' => Str::headline($code), 'is_active' => true]);
+    }
+});
 
 it('rejects users without admin panel access from the admin api manifest', function () {
     $user = User::factory()->create();
@@ -2695,7 +2702,7 @@ it('surfaces venue update semantics and destructive empty-address behavior throu
         ->and(data_get($fields->get('address'), 'clear_semantics.empty_object'))->toBe('delete_existing_address')
         ->and(data_get($fields->get('address.country_id'), 'required_on_update'))->toBeFalse()
         ->and(data_get($fields->get('facilities'), 'collection_semantics.explicit_null'))->toBe('clear_collection')
-        ->and(data_get($fields->get('facilities'), 'input_normalization.kind'))->toBe('facility_list_to_boolean_map')
+        ->and(data_get($fields->get('facilities'), 'input_normalization.kind'))->toBe('facility_codes_to_relation')
         ->and(data_get($fields->get('contactMethods'), 'collection_semantics.submitted_array'))->toBe('replace_collection')
         ->and(data_get($fields->get('social_media'), 'input_normalization.platform_aliases.x.normalizes_to'))->toBe('x')
         ->and(data_get($fields->get('social_media'), 'input_normalization.platform_aliases.x.accepted_by_write_validation'))->toBeFalse();
@@ -2935,7 +2942,7 @@ it('exposes admin reference write schema and can create and update references th
     expect($reference->title)->toBe('Admin API Reference Updated')
         ->and($reference->slug)->toBe('admin-api-reference-updated')
         ->and($reference->type)->toBe('article')
-        ->and($reference->publication_year)->toBeNull()
+        ->and($reference->year)->toBeNull()
         ->and($reference->publisher)->toBe('Admin API Review')
         ->and($reference->is_canonical)->toBeFalse()
         ->and((string) $reference->status)->toBe('inactive')
@@ -3027,7 +3034,7 @@ it('clears normalized reference scalars and replaces canonicalized social media 
     $updatedReferenceRouteKey = (string) $reference->getRouteKey();
 
     expect($reference->author)->toBeNull()
-        ->and($reference->publication_year)->toBeNull()
+        ->and($reference->year)->toBeNull()
         ->and($reference->publisher)->toBeNull()
         ->and($reference->socialProfiles)->toHaveCount(1)
         ->and($reference->socialProfiles->first()?->getRawOriginal('platform'))->toBe('youtube')

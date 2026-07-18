@@ -2,6 +2,8 @@
 
 use AIArmada\CommerceSupport\Models\Role;
 use AIArmada\Events\Models\FacilityType;
+use AIArmada\Events\Models\VenueFacility;
+use AIArmada\Events\Models\VenueSpace;
 use App\Actions\Venues\SaveVenueAction;
 use App\Forms\SharedFormSchema;
 use App\Mcp\Servers\AdminServer;
@@ -109,7 +111,7 @@ it('syncs venue facility codes as VenueFacility records', function (): void {
 
     $venue = Venue::factory()->create([
         'name' => 'Security Checklist Venue',
-        'type' => 'dewan',
+        'venue_type' => 'dewan',
         'status' => 'verified',
     ]);
 
@@ -125,6 +127,53 @@ it('syncs venue facility codes as VenueFacility records', function (): void {
 
     expect($fresh->facilities)->toHaveCount(2);
     expect($fresh->facilities->pluck('facilityType.code')->sort()->values()->all())->toBe(['parking', 'women_section']);
+});
+
+it('replaces only general venue facilities and preserves space-scoped rows', function (): void {
+    $parking = FacilityType::factory()->create(['code' => 'parking', 'name' => 'Parking', 'is_active' => true]);
+    $oku = FacilityType::factory()->create(['code' => 'oku', 'name' => 'OKU', 'is_active' => true]);
+    $venue = Venue::factory()->create(['venue_type' => 'dewan', 'status' => 'verified']);
+    $space = VenueSpace::factory()->create([
+        'venue_id' => $venue->getKey(),
+        'slug' => 'security-space-'.Str::lower(Str::random(6)),
+    ]);
+
+    VenueFacility::factory()->create([
+        'venue_id' => $venue->getKey(),
+        'venue_space_id' => null,
+        'facility_type_id' => $oku->getKey(),
+    ]);
+    VenueFacility::factory()->create([
+        'venue_id' => $venue->getKey(),
+        'venue_space_id' => $space->getKey(),
+        'facility_type_id' => $oku->getKey(),
+    ]);
+
+    app(SaveVenueAction::class)->handle([
+        'name' => $venue->name,
+        'type' => 'dewan',
+        'status' => 'verified',
+        'facilities' => ['parking'],
+    ], $venue);
+
+    expect(VenueFacility::query()
+        ->where('venue_id', $venue->getKey())
+        ->whereNull('venue_space_id')
+        ->with('facilityType')
+        ->get()
+        ->pluck('facilityType.code')
+        ->all())->toBe(['parking'])
+        ->and(VenueFacility::query()->where('venue_space_id', $space->getKey())->exists())->toBeTrue();
+
+    app(SaveVenueAction::class)->handle([
+        'name' => $venue->name,
+        'type' => 'dewan',
+        'status' => 'verified',
+        'facilities' => null,
+    ], $venue);
+
+    expect(VenueFacility::query()->where('venue_id', $venue->getKey())->whereNull('venue_space_id')->exists())->toBeFalse()
+        ->and(VenueFacility::query()->where('venue_space_id', $space->getKey())->exists())->toBeTrue();
 });
 
 function securityChecklistAdminUser(): User

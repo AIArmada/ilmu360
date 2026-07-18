@@ -1910,10 +1910,10 @@ class AdminResourceMutationService
                 ordering: 'not_applicable_set_semantics',
             ),
             'input_normalization' => [
-                'kind' => 'facility_list_to_boolean_map',
-                'storage_shape' => 'object<boolean>',
-                'list_entries_become_true' => true,
-                'explicit_false_values_preserved_when_keyed' => true,
+                'kind' => 'facility_codes_to_relation',
+                'storage_shape' => 'venue_facilities.facility_type_id',
+                'replacement_scope' => 'general_venue_facilities_only',
+                'unknown_codes' => 'rejected',
             ],
         ];
     }
@@ -2341,7 +2341,7 @@ class AdminResourceMutationService
             'title' => [$required, 'string', 'max:255'],
             'author' => ['nullable', 'string', 'max:255'],
             'type' => [$required, Rule::enum(ReferenceType::class)],
-            'parent_reference_id' => ['nullable', 'uuid', Rule::exists('references', 'id')->whereNull('parent_reference_id')->where('type', ReferenceType::Book->value)],
+            'parent_reference_id' => ['nullable', 'uuid', Rule::exists('references', 'id')->whereNull('parent_id')->where('type', ReferenceType::Book->value)],
             'part_type' => ['nullable', Rule::enum(ReferencePartType::class)],
             'part_number' => ['nullable', 'string', 'max:255'],
             'part_label' => ['nullable', 'string', 'max:255'],

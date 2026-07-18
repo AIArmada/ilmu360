@@ -41,7 +41,7 @@ class ReferenceContributionFormSchema
                         ->helperText(__('Use this when the reference is a specific jilid, bahagian, or volume of another book.'))
                         ->options(fn (): array => Reference::query()
                             ->where('type', ReferenceType::Book->value)
-                            ->whereNull('parent_reference_id')
+                            ->whereNull('parent_id')
                             ->orderBy('title')
                             ->pluck('title', 'id')
                             ->all())

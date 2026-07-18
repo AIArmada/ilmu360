@@ -14,6 +14,7 @@ use AIArmada\Contacting\Enums\SocialPlatform;
 use AIArmada\Contacting\Models\ContactMethod;
 use AIArmada\Contacting\Models\SocialProfile;
 use AIArmada\Events\Enums\ScheduleKind;
+use AIArmada\Events\Models\FacilityType;
 use AIArmada\Events\Models\VenueFacility;
 use AIArmada\Membership\Actions\AddMemberAction;
 use AIArmada\Membership\Enums\MemberRole;
@@ -270,7 +271,7 @@ class ContributionEntityMutationService
                 'title' => ['sometimes', 'string', 'max:255'],
                 'author' => ['nullable', 'string', 'max:255'],
                 'type' => ['sometimes', Rule::in($this->enumValues(ReferenceType::class))],
-                'parent_reference_id' => ['nullable', 'uuid', Rule::exists('references', 'id')->whereNull('parent_reference_id')->where('type', ReferenceType::Book->value)],
+                'parent_reference_id' => ['nullable', 'uuid', Rule::exists('references', 'id')->whereNull('parent_id')->where('type', ReferenceType::Book->value)],
                 'part_type' => ['nullable', Rule::in($this->enumValues(ReferencePartType::class))],
                 'part_number' => ['nullable', 'string', 'max:255'],
                 'part_label' => ['nullable', 'string', 'max:255'],
@@ -524,7 +525,7 @@ class ContributionEntityMutationService
             'part_type' => array_key_exists('part_type', $payload) ? $this->normalizeOptionalString($payload['part_type']) : $reference->part_type,
             'part_number' => array_key_exists('part_number', $payload) ? $this->normalizeOptionalString($payload['part_number']) : $reference->part_number,
             'part_label' => array_key_exists('part_label', $payload) ? $this->normalizeOptionalString($payload['part_label']) : $reference->part_label,
-            'publication_year' => array_key_exists('publication_year', $payload) ? $this->normalizeOptionalString($payload['publication_year']) : $reference->year,
+            'year' => array_key_exists('publication_year', $payload) ? $this->normalizeOptionalString($payload['publication_year']) : $reference->year,
             'publisher' => array_key_exists('publisher', $payload) ? $this->normalizeOptionalString($payload['publisher']) : $reference->publisher,
             'description' => array_key_exists('description', $payload) ? $payload['description'] : $reference->description,
         ]);
@@ -822,7 +823,11 @@ class ContributionEntityMutationService
             'name' => $venue->name,
             'venue_type' => $venue->venue_type instanceof BackedEnum ? $venue->venue_type->value : (string) $venue->venue_type,
             'facilities' => $venue->facilities
-                ->map(static fn (VenueFacility $facility): string => $facility->facilityType->code)
+                ->map(static function (VenueFacility $facility): string {
+                    $facilityType = $facility->getRelation('facilityType');
+
+                    return $facilityType instanceof FacilityType ? $facilityType->code : '';
+                })
                 ->filter(static fn (string $code): bool => $code !== '')
                 ->values()
                 ->all(),
