@@ -23,7 +23,7 @@ class DocumentationController extends Controller
 
     #[Endpoint(
         title: 'List curated documentation pages',
-        description: 'Returns the curated rebranded documentation library exposed by the application. Use this when an API client needs the stable ids, summaries, and fetch endpoints for restored documentation pages.',
+        description: 'Returns the curated documentation library exposed by the application. Use this when an API client needs the stable ids, summaries, and fetch endpoints for restored documentation pages.',
     )]
     public function index(): JsonResponse
     {
@@ -36,7 +36,7 @@ class DocumentationController extends Controller
 
     #[Endpoint(
         title: 'Fetch curated documentation page',
-        description: 'Returns the full text of a curated rebranded documentation page by stable id. Use the list endpoint first to discover valid ids and summaries.',
+        description: 'Returns the full text of a curated documentation page by stable id. Use the list endpoint first to discover valid ids and summaries.',
     )]
     public function show(string $documentId): JsonResponse
     {

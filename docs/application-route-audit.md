@@ -2,7 +2,7 @@
 
 ## 1. Executive Summary
 
-This document is a comprehensive technical audit of the **ilmu360°** application (formerly MajlisIlmu), a Laravel-based Islamic event discovery and management platform targeting the Malaysian market. The audit traces every registered route through its complete lifecycle: HTTP entrypoint → middleware → controller/component → validation → service/action → model → database → events → listeners → jobs → notifications → response/UI.
+This document is a comprehensive technical audit of the **ilmu360°** application, a Laravel-based Islamic event discovery and management platform targeting the Malaysian market. The audit traces every registered route through its complete lifecycle: HTTP entrypoint → middleware → controller/component → validation → service/action → model → database → events → listeners → jobs → notifications → response/UI.
 
 ### Application at a Glance
 
