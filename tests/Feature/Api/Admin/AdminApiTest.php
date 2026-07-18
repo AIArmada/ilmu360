@@ -971,10 +971,8 @@ it('normalizes tag translation fallback and clears sort order through the admin 
 
 it('exposes event moderation schema and can request changes through the admin workflow endpoints', function () {
     $admin = adminApiUser('super_admin');
-    $submitter = User::factory()->create();
     $event = Event::factory()->create([
         'status' => 'pending',
-        'submitter_id' => $submitter->getKey(),
     ]);
 
     Sanctum::actingAs($admin);
@@ -3298,7 +3296,7 @@ it('surfaces event update semantics and sparse relation rules through the admin 
         ->and(data_get($fields->get('speakers'), 'collection_semantics.submitted_array'))->toBe('replace_speaker_subset_and_rebuild_key_people')
         ->and(data_get($fields->get('speakers'), 'collection_semantics.item_ids_preserved'))->toBeFalse()
         ->and(data_get($fields->get('other_key_people'), 'collection_semantics.ordering'))->toBe('payload_order_sets_order_column_after_speakers')
-        ->and($otherKeyPeopleFields->keys()->all())->toContain('role', 'speaker_id', 'name', 'is_public', 'notes')
+        ->and($otherKeyPeopleFields->keys()->all())->toContain('role_code', 'involveable_type', 'involveable_id', 'display_name', 'visibility', 'notes')
         ->and(data_get($fields->get('registration_mode'), 'lock_behavior.when_event_has_registrations'))->toBe('retain_current_value');
 });
 
@@ -3654,9 +3652,9 @@ function adminApiEventPayload(array $fixtures, array $overrides = []): array
         'speakers' => [(string) $fixtures['speaker']->getKey()],
         'other_key_people' => [
             [
-                'role' => 'moderator',
-                'name' => 'Admin API Moderator',
-                'is_public' => true,
+                'role_code' => 'moderator',
+                'display_name' => 'Admin API Moderator',
+                'visibility' => 'public',
                 'notes' => 'Will host the session.',
             ],
         ],

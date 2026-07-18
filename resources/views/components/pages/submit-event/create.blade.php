@@ -1377,31 +1377,37 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
                                 ->label(__('Peranan Lain'))
                                 ->helperText(__('Tambahkan moderator, imam, khatib, bilal, atau PIC jika berkenaan.'))
                                 ->schema([
-                                    Select::make('role')
+                                    Select::make('role_code')
                                         ->label(__('Peranan'))
                                         ->required()
                                         ->options(EventKeyPersonRole::nonSpeakerOptions())
                                         ->native(false),
-                                    Select::make('speaker_id')
+                                    Select::make('involveable_id')
                                         ->label(__('Pautkan Profil Penceramah'))
                                         ->options(fn (): array => $this->availableSpeakerOptions())
                                         ->searchable()
                                         ->preload()
                                         ->live()
-                                        ->afterStateUpdated(fn (Set $set, mixed $state): mixed => filled($state) ? $set('name', null) : null)
+                                        ->afterStateUpdated(function (Set $set, mixed $state): void {
+                                            $set('display_name', null);
+                                            $set('involveable_type', filled($state) ? 'speaker' : null);
+                                        })
                                         ->getOptionLabelUsing(fn (mixed $value): ?string => Speaker::query()->find($value)?->formatted_name)
                                         ->createOptionForm(SpeakerFormSchema::createOptionForm())
                                         ->createOptionUsing(fn (array $data, Schema $schema): string => SpeakerFormSchema::createOptionUsing($data, $schema)),
-                                    TextInput::make('name')
+                                    Hidden::make('involveable_type'),
+                                    TextInput::make('display_name')
                                         ->label(__('Nama Paparan'))
                                         ->maxLength(255)
-                                        ->required(fn (Get $get): bool => blank($get('speaker_id')))
-                                        ->disabled(fn (Get $get): bool => filled($get('speaker_id')))
-                                        ->dehydrated(fn (Get $get): bool => blank($get('speaker_id')))
+                                        ->required(fn (Get $get): bool => blank($get('involveable_id')))
+                                        ->disabled(fn (Get $get): bool => filled($get('involveable_id')))
+                                        ->dehydrated(fn (Get $get): bool => blank($get('involveable_id')))
                                         ->helperText(__('Isi nama jika tiada profil penceramah dipautkan.')),
-                                    Toggle::make('is_public')
-                                        ->label(__('Papar Secara Awam'))
-                                        ->default(true),
+                                    Select::make('visibility')
+                                        ->label(__('Keterlihatan'))
+                                        ->options(['public' => __('Awam'), 'private' => __('Peribadi')])
+                                        ->default('public')
+                                        ->required(),
                                     Textarea::make('notes')
                                         ->label(__('Nota Peranan'))
                                         ->rows(2)
@@ -1941,7 +1947,7 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
     }
 
     /**
-     * @return list<array{role: string, speaker_id: ?string, name: ?string, is_public: bool, notes: ?string}>
+     * @return list<array{role_code: string, involveable_type: ?string, involveable_id: ?string, display_name: ?string, visibility: string, notes: ?string}>
      */
     protected function duplicateOtherKeyPeopleState(Event $duplicateEvent): array
     {
@@ -1960,10 +1966,11 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
                     : null;
 
                 return [
-                    'role' => (string) $keyPerson->role_code,
-                    'speaker_id' => $speakerId,
-                    'name' => filled($fallbackName) ? (string) $fallbackName : null,
-                    'is_public' => $keyPerson->visibility === 'public',
+                    'role_code' => (string) $keyPerson->role_code,
+                    'involveable_type' => $speakerId === null ? null : 'speaker',
+                    'involveable_id' => $speakerId,
+                    'display_name' => filled($fallbackName) ? (string) $fallbackName : null,
+                    'visibility' => $keyPerson->visibility ?? 'public',
                     'notes' => filled($keyPerson->notes) ? (string) $keyPerson->notes : null,
                 ];
             })
@@ -2206,7 +2213,7 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
         $speakerIds = collect(array_merge(
             (array) ($validated['speakers'] ?? []),
             collect((array) ($validated['other_key_people'] ?? []))
-                ->pluck('speaker_id')
+                ->pluck('involveable_id')
                 ->all(),
             (array) ($this->data['speakers'] ?? []),
         ))

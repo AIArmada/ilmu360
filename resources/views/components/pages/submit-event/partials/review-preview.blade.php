@@ -222,9 +222,9 @@
                 return null;
             }
 
-            $role = EventKeyPersonRole::tryFrom((string) ($keyPerson['role'] ?? ''));
-            $speakerId = (string) ($keyPerson['speaker_id'] ?? '');
-            $name = is_string($keyPerson['name'] ?? null) ? trim((string) $keyPerson['name']) : '';
+            $role = EventKeyPersonRole::tryFrom((string) ($keyPerson['role_code'] ?? ''));
+            $speakerId = (string) ($keyPerson['involveable_id'] ?? '');
+            $name = is_string($keyPerson['display_name'] ?? null) ? trim((string) $keyPerson['display_name']) : '';
             $displayName = $speakerMap[$speakerId] ?? $name;
 
             if (! $role instanceof EventKeyPersonRole || $displayName === '') {

@@ -558,11 +558,11 @@ class EventContributionFormSchema
                         ->helperText(__('Tambahkan moderator, imam, khatib, bilal, atau PIC jika berkenaan.'))
                         ->default([])
                         ->schema([
-                            Select::make('role')
+                            Select::make('role_code')
                                 ->label(__('Peranan'))
                                 ->options(EventKeyPersonRole::nonSpeakerOptions())
                                 ->required(),
-                            Select::make('speaker_id')
+                            Select::make('involveable_id')
                                 ->label(__('Pautkan Profil Penceramah'))
                                 ->options(fn (): array => Speaker::query()
                                     ->whereIn('status', ['verified', 'pending'])
@@ -573,19 +573,25 @@ class EventContributionFormSchema
                                 ->searchable()
                                 ->preload()
                                 ->live()
-                                ->afterStateUpdated(fn (Set $set, mixed $state): mixed => filled($state) ? $set('name', null) : null)
+                                ->afterStateUpdated(function (Set $set, mixed $state): void {
+                                    $set('display_name', null);
+                                    $set('involveable_type', filled($state) ? 'speaker' : null);
+                                })
                                 ->createOptionForm(SpeakerFormSchema::createOptionForm())
                                 ->createOptionUsing(fn (array $data, ?Schema $schema = null): string => SpeakerFormSchema::createOptionUsing($data, $schema)),
-                            TextInput::make('name')
+                            Hidden::make('involveable_type'),
+                            TextInput::make('display_name')
                                 ->label(__('Nama Paparan'))
-                                ->required(fn (Get $get): bool => blank($get('speaker_id')))
-                                ->disabled(fn (Get $get): bool => filled($get('speaker_id')))
-                                ->dehydrated(fn (Get $get): bool => blank($get('speaker_id')))
+                                ->required(fn (Get $get): bool => blank($get('involveable_id')))
+                                ->disabled(fn (Get $get): bool => filled($get('involveable_id')))
+                                ->dehydrated(fn (Get $get): bool => blank($get('involveable_id')))
                                 ->helperText(__('Isi nama jika tiada profil penceramah dipautkan.'))
                                 ->maxLength(255),
-                            Toggle::make('is_public')
-                                ->label(__('Papar Secara Awam'))
-                                ->default(true),
+                            Select::make('visibility')
+                                ->label(__('Keterlihatan'))
+                                ->options(['public' => __('Awam'), 'private' => __('Peribadi')])
+                                ->default('public')
+                                ->required(),
                             Textarea::make('notes')
                                 ->label(__('Nota Peranan'))
                                 ->rows(2)

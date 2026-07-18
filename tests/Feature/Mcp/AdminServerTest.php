@@ -2289,8 +2289,8 @@ it('surfaces event series and donation channel update semantics through admin MC
                     && data_get($fieldMap->get('speakers'), 'collection_semantics.submitted_array') === 'replace_speaker_subset_and_rebuild_key_people'
                     && data_get($fieldMap->get('primary_organizer_id'), 'accepted_models') === [Institution::class, Speaker::class]
                     && data_get($fieldMap->get('registration_mode'), 'lock_behavior.when_event_has_registrations') === 'retain_current_value'
-                    && $otherKeyPeopleFields->has('role')
-                    && $otherKeyPeopleFields->has('name');
+                    && $otherKeyPeopleFields->has('role_code')
+                    && $otherKeyPeopleFields->has('display_name');
             })
             ->etc());
 
@@ -4027,9 +4027,9 @@ function adminMcpEventPayload(array $fixtures, array $overrides = []): array
         'speakers' => [(string) $fixtures['speaker']->getKey()],
         'other_key_people' => [
             [
-                'role' => 'moderator',
-                'name' => 'Admin MCP Moderator',
-                'is_public' => true,
+                'role_code' => 'moderator',
+                'display_name' => 'Admin MCP Moderator',
+                'visibility' => 'public',
                 'notes' => 'Will host the session.',
             ],
         ],

@@ -329,6 +329,7 @@ it('shows authz user activity memberships follows submissions and saved searches
 
     EventSubmission::factory()->create([
         'event_id' => $submittedEvent->id,
+        'submitter_type' => $targetUser->getMorphClass(),
         'submitter_id' => $targetUser->id,
         'submission_data' => [
             'submitter_name' => $targetUser->name,

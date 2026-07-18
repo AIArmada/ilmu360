@@ -42,6 +42,8 @@ class EventPayloadData extends Data
             'latestPublishedReplacementAnnouncement.replacementEvent',
             'publishedChangeAnnouncements.replacementEvent',
             'primaryLocation.venueSpace',
+            'primaryOccurrence',
+            'timeExpressions',
             'keyPeople.speaker',
         ]);
 

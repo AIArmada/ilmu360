@@ -20,6 +20,7 @@ use App\Support\Api\Admin\AdminResourceService;
 use Generator;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\Types\Type;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
@@ -95,10 +96,11 @@ class AdminUpdateEventTool extends AbstractAdminWriteTool
                 'issue_tags' => ['sometimes', 'nullable', 'array'],
                 'issue_tags.*' => ['string'],
                 'other_key_people' => ['sometimes', 'nullable', 'array'],
-                'other_key_people.*.role' => ['required_with:other_key_people.*.name,other_key_people.*.speaker_id', 'string'],
-                'other_key_people.*.speaker_id' => ['nullable', 'string'],
-                'other_key_people.*.name' => ['nullable', 'string', 'max:255'],
-                'other_key_people.*.is_public' => ['sometimes', 'boolean'],
+                'other_key_people.*.role_code' => ['required_with:other_key_people.*.display_name,other_key_people.*.involveable_id', 'string'],
+                'other_key_people.*.involveable_type' => ['nullable', 'string'],
+                'other_key_people.*.involveable_id' => ['nullable', 'string'],
+                'other_key_people.*.display_name' => ['nullable', 'string', 'max:255'],
+                'other_key_people.*.visibility' => ['sometimes', 'string', Rule::in(['public', 'private'])],
                 'other_key_people.*.notes' => ['nullable', 'string', 'max:500'],
                 'series' => ['sometimes', 'nullable', 'array'],
                 'series.*' => ['string'],
@@ -304,10 +306,11 @@ class AdminUpdateEventTool extends AbstractAdminWriteTool
             'issue_tags' => $schema->array()->items($schema->string())->nullable()->description('Array of issue/theme tag UUIDs.'),
             'other_key_people' => $schema->array()->items(
                 $schema->object([
-                    'role' => $schema->string()->required()->description('One of the non-speaker EventKeyPersonRole values: moderator, khatib, imam, bilal, pic, other.'),
-                    'speaker_id' => $schema->string()->nullable()->description('UUID of an existing speaker profile. Required when name is omitted.'),
-                    'name' => $schema->string()->nullable()->description('Display name. Required when speaker_id is omitted.'),
-                    'is_public' => $schema->boolean()->default(true),
+                    'role_code' => $schema->string()->required()->description('One of the non-speaker EventKeyPersonRole values.'),
+                    'involveable_type' => $schema->string()->nullable()->description('Morph type for the linked profile, such as speaker.'),
+                    'involveable_id' => $schema->string()->nullable()->description('UUID of the linked profile. Required when display_name is omitted.'),
+                    'display_name' => $schema->string()->nullable()->description('Display name. Required when involveable_id is omitted.'),
+                    'visibility' => $schema->string()->enum(['public', 'private'])->default('public'),
                     'notes' => $schema->string()->nullable(),
                 ])
             )->nullable()->description('Optional non-speaker key people (moderators, khatib, imam, bilal, PIC, etc.).'),

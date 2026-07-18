@@ -152,8 +152,10 @@ it('deletes the authenticated user account, revokes tokens, and keeps a sanitize
 
     $engagementEvent = Event::factory()->create();
 
-    app(EngagementManager::class)->bookmark($user, $engagementEvent);
-    $user->respond($engagementEvent, 'going');
+    withGlobalOwnerContext(function () use ($user, $engagementEvent): void {
+        app(EngagementManager::class)->bookmark($user, $engagementEvent);
+        $user->respond($engagementEvent, 'going');
+    });
 
     $plainTextToken = $user->createToken('iPhone 17')->plainTextToken;
     $passportAccessTokenId = Str::random(80);

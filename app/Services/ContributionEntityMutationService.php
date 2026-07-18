@@ -323,10 +323,11 @@ class ContributionEntityMutationService
                 'speaker_ids' => ['sometimes', 'array'],
                 'speaker_ids.*' => ['uuid', 'exists:speakers,id'],
                 'other_key_people' => ['sometimes', 'array'],
-                'other_key_people.*.role' => ['required_with:other_key_people.*.name,other_key_people.*.speaker_id', Rule::in($this->enumValues(EventKeyPersonRole::class))],
-                'other_key_people.*.speaker_id' => ['nullable', 'uuid', 'exists:speakers,id', 'required_without:other_key_people.*.name'],
-                'other_key_people.*.name' => ['nullable', 'string', 'max:255', 'required_without:other_key_people.*.speaker_id'],
-                'other_key_people.*.is_public' => ['nullable', 'boolean'],
+                'other_key_people.*.role_code' => ['required_with:other_key_people.*.display_name,other_key_people.*.involveable_id', Rule::in($this->enumValues(EventKeyPersonRole::class))],
+                'other_key_people.*.involveable_type' => ['nullable', 'string', 'max:255'],
+                'other_key_people.*.involveable_id' => ['nullable', 'uuid', 'exists:speakers,id', 'required_without:other_key_people.*.display_name'],
+                'other_key_people.*.display_name' => ['nullable', 'string', 'max:255', 'required_without:other_key_people.*.involveable_id'],
+                'other_key_people.*.visibility' => ['nullable', Rule::in(['public', 'private'])],
                 'other_key_people.*.notes' => ['nullable', 'string', 'max:1000'],
             ],
             default => throw new RuntimeException('Unsupported contribution entity type.'),
@@ -797,9 +798,10 @@ class ContributionEntityMutationService
             'other_key_people' => $event->keyPeople
                 ->reject(fn ($keyPerson): bool => $keyPerson->role_code === EventKeyPersonRole::Speaker->value)
                 ->map(fn ($keyPerson): array => [
-                    'role' => (string) $keyPerson->role_code,
-                    'speaker_id' => $keyPerson->involveable_id,
-                    'name' => $keyPerson->display_name,
+                    'role_code' => (string) $keyPerson->role_code,
+                    'involveable_type' => $keyPerson->involveable_type,
+                    'involveable_id' => $keyPerson->involveable_id,
+                    'display_name' => $keyPerson->display_name,
                     'visibility' => $keyPerson->visibility ?? 'public',
                     'notes' => $keyPerson->notes,
                 ])
@@ -1555,21 +1557,22 @@ class ContributionEntityMutationService
                     return null;
                 }
 
-                $role = is_string($entry['role'] ?? null) ? trim($entry['role']) : null;
-                $speakerId = is_string($entry['speaker_id'] ?? null) && $entry['speaker_id'] !== '' ? $entry['speaker_id'] : null;
-                $name = is_string($entry['name'] ?? null) ? trim($entry['name']) : null;
+                $role = is_string($entry['role_code'] ?? null) ? trim($entry['role_code']) : null;
+                $involveableType = is_string($entry['involveable_type'] ?? null) && $entry['involveable_type'] !== '' ? $entry['involveable_type'] : null;
+                $involveableId = is_string($entry['involveable_id'] ?? null) && $entry['involveable_id'] !== '' ? $entry['involveable_id'] : null;
+                $name = is_string($entry['display_name'] ?? null) ? trim($entry['display_name']) : null;
                 $notes = is_string($entry['notes'] ?? null) ? trim($entry['notes']) : null;
 
-                if ($role === null || $role === '' || ($speakerId === null && ($name === null || $name === ''))) {
+                if ($role === null || $role === '' || ($involveableId === null && ($name === null || $name === ''))) {
                     return null;
                 }
 
                 return [
                     'role_code' => $role,
-                    'involveable_type' => $speakerId === null ? null : 'speaker',
-                    'involveable_id' => $speakerId,
+                    'involveable_type' => $involveableType,
+                    'involveable_id' => $involveableId,
                     'display_name' => $name !== '' ? $name : null,
-                    'visibility' => (bool) ($entry['is_public'] ?? true) ? 'public' : 'private',
+                    'visibility' => in_array($entry['visibility'] ?? 'public', ['public', 'private'], true) ? $entry['visibility'] : 'public',
                     'notes' => $notes !== '' ? $notes : null,
                 ];
             })

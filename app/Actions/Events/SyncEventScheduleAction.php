@@ -35,12 +35,13 @@ final readonly class SyncEventScheduleAction
 
         $timezone ??= $event->timezone ?? config('app.timezone', 'UTC');
 
+        $event->unsetRelation('primaryOccurrence');
         $occurrence = $event->primaryOccurrence;
 
-        if ($occurrence && $startsAt && $endsAt) {
+        if ($occurrence && $startsAt) {
             $currentStatus = (string) $occurrence->status;
 
-            if (in_array($currentStatus, ['published', 'postponed'], true)) {
+            if ($endsAt && in_array($currentStatus, ['published', 'postponed'], true)) {
                 $this->lifecycleWorkflow->reschedule($occurrence, $startsAt, $endsAt, [
                     'timezone' => $timezone,
                 ]);
@@ -58,7 +59,7 @@ final readonly class SyncEventScheduleAction
                 ]);
                 $occurrence->save();
             }
-        } elseif ($startsAt && $endsAt) {
+        } elseif ($startsAt instanceof CarbonInterface) {
             $occurrence = EventOccurrence::query()->create([
                 'event_id' => $event->id,
                 'title' => $event->title,
@@ -77,7 +78,12 @@ final readonly class SyncEventScheduleAction
             $offsetMinutes = $prayerOffset ?? 5;
 
             EventTimeExpression::updateOrCreate(
-                ['event_id' => $event->id, 'anchor_type' => 'prayer'],
+                [
+                    'event_id' => $event->id,
+                    'event_occurrence_id' => null,
+                    'event_session_id' => null,
+                    'anchor_type' => 'prayer',
+                ],
                 [
                     'time_mode' => 'prayer_relative',
                     'anchor_type' => 'prayer',

@@ -2017,21 +2017,24 @@ class AdminResourceMutationService
     {
         return [
             'type' => 'object',
-            'required_fields' => ['role'],
-            'at_least_one_of' => ['speaker_id', 'name'],
+            'required_fields' => ['role_code'],
+            'at_least_one_of' => ['involveable_id', 'display_name'],
             'empty_or_invalid_entries_discarded' => true,
             'fields' => [
-                $this->field('role', 'string', required: false, allowedValues: $this->enumValues(EventKeyPersonRole::class), meta: [
-                    'required_with' => ['speaker_id', 'name'],
+                $this->field('role_code', 'string', required: false, allowedValues: $this->enumValues(EventKeyPersonRole::class), meta: [
+                    'required_with' => ['involveable_id', 'display_name'],
                     'disallowed_values' => [EventKeyPersonRole::Speaker->value],
                 ]),
-                $this->field('speaker_id', 'string', required: false, meta: [
-                    'required_without' => ['name'],
+                $this->field('involveable_type', 'string', required: false, allowedValues: ['speaker'], meta: [
+                    'required_with' => ['involveable_id'],
                 ]),
-                $this->field('name', 'string', required: false, maxLength: 255, meta: [
-                    'required_without' => ['speaker_id'],
+                $this->field('involveable_id', 'string', required: false, meta: [
+                    'required_without' => ['display_name'],
                 ]),
-                $this->field('is_public', 'boolean', required: false, default: true),
+                $this->field('display_name', 'string', required: false, maxLength: 255, meta: [
+                    'required_without' => ['involveable_id'],
+                ]),
+                $this->field('visibility', 'string', required: false, default: 'public', allowedValues: ['public', 'private']),
                 $this->field('notes', 'string', required: false, maxLength: 500),
             ],
         ];
@@ -2285,10 +2288,11 @@ class AdminResourceMutationService
             'speakers' => ['nullable', 'array'],
             'speakers.*' => ['uuid', 'exists:speakers,id'],
             'other_key_people' => ['nullable', 'array'],
-            'other_key_people.*.role' => ['required_with:other_key_people.*.name,other_key_people.*.speaker_id', Rule::enum(EventKeyPersonRole::class)],
-            'other_key_people.*.speaker_id' => ['nullable', 'uuid', 'exists:speakers,id', 'required_without:other_key_people.*.name'],
-            'other_key_people.*.name' => ['nullable', 'string', 'max:255', 'required_without:other_key_people.*.speaker_id'],
-            'other_key_people.*.is_public' => ['sometimes', 'boolean'],
+            'other_key_people.*.role_code' => ['required_with:other_key_people.*.display_name,other_key_people.*.involveable_id', Rule::enum(EventKeyPersonRole::class)],
+            'other_key_people.*.involveable_type' => ['nullable', Rule::in(['speaker']), 'required_with:other_key_people.*.involveable_id'],
+            'other_key_people.*.involveable_id' => ['nullable', 'uuid', 'exists:speakers,id', 'required_without:other_key_people.*.display_name'],
+            'other_key_people.*.display_name' => ['nullable', 'string', 'max:255', 'required_without:other_key_people.*.involveable_id'],
+            'other_key_people.*.visibility' => ['sometimes', Rule::in(['public', 'private'])],
             'other_key_people.*.notes' => ['nullable', 'string', 'max:500'],
             'cover' => ['nullable', 'file', 'mimetypes:image/jpeg,image/png,image/webp', 'dimensions:ratio=16/9', $maxUploadSize],
             'poster' => ['nullable', 'file', 'mimetypes:image/jpeg,image/png,image/webp', 'dimensions:ratio=4/5', $maxUploadSize],

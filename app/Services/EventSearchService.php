@@ -67,6 +67,8 @@ class EventSearchService
             'institution.addresses.country',
             'venue.addresses.country',
             'latestPublishedChangeAnnouncement',
+            'primaryOccurrence',
+            'timeExpressions',
         ];
     }
 

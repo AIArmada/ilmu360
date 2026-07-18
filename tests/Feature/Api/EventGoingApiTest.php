@@ -146,24 +146,22 @@ it('allows an authenticated user to remove a going record', function () {
 it('recalculates stale going_count from source rows when marking going', function () {
     Sanctum::actingAs($this->user);
 
-    EngagementCounter::updateOrCreate([
+    withGlobalOwnerContext(fn () => EngagementCounter::updateOrCreate([
         'subject_type' => $this->event->getMorphClass(),
         'subject_id' => $this->event->getKey(),
         'counter_type' => 'responses',
         'counter_key' => 'going',
-    ], ['count_value' => 17]);
+    ], ['count_value' => 17]));
 
     $this->putJson(route('api.events.going.update', $this->event))
         ->assertCreated()
         ->assertJsonPath('data.going_count', 1);
 
-    expect(
-        EngagementCounter::where('subject_type', $this->event->getMorphClass())
-            ->where('subject_id', $this->event->getKey())
-            ->where('counter_type', 'responses')
-            ->where('counter_key', 'going')
-            ->value('count_value') ?? 0
-    )->toBe(1);
+    expect(withGlobalOwnerContext(fn () => EngagementCounter::where('subject_type', $this->event->getMorphClass())
+        ->where('subject_id', $this->event->getKey())
+        ->where('counter_type', 'responses')
+        ->where('counter_key', 'going')
+        ->value('count_value') ?? 0))->toBe(1);
 });
 
 it('rejects marking going for past events', function () {

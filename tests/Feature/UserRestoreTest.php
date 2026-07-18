@@ -180,6 +180,7 @@ it('restores a deleted user together with key relationships and child records', 
 
     $eventSubmission = EventSubmission::factory()->create([
         'event_id' => $sharedEvent->id,
+        'submitter_type' => $user->getMorphClass(),
         'submitter_id' => $user->id,
     ]);
     $contributionRequest = ContributionRequest::factory()->create([

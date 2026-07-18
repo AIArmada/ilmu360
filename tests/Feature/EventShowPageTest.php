@@ -3,6 +3,9 @@
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Engagement\Contracts\EngagementCounterService;
+use AIArmada\Events\Enums\ScheduleKind;
+use App\Actions\Events\SyncEventScheduleAction;
+use App\Enums\TimingMode;
 use App\Livewire\Pages\Events\Show;
 use App\Models\Event;
 use App\Models\Institution;
@@ -135,10 +138,16 @@ describe('Event Show Page Going Feature', function () {
     it('treats events without ends_at as past once the fallback window has elapsed', function () {
         Carbon::setTestNow(Carbon::parse('2026-04-02 21:30:00', 'Asia/Kuala_Lumpur'));
 
-        $event = new Event;
-        $event->timezone = 'Asia/Kuala_Lumpur';
-        $event->starts_at = Carbon::parse('2026-04-02 18:30:00', 'Asia/Kuala_Lumpur');
-        $event->ends_at = null;
+        $event = Event::factory()->create(['timezone' => 'Asia/Kuala_Lumpur']);
+        app(SyncEventScheduleAction::class)->execute(
+            $event,
+            ScheduleKind::Single,
+            Carbon::parse('2026-04-02 18:30:00', 'Asia/Kuala_Lumpur')->utc(),
+            null,
+            'Asia/Kuala_Lumpur',
+            TimingMode::Absolute,
+        );
+        $event->refresh();
 
         $component = new Show;
         $component->event = $event;
@@ -149,10 +158,16 @@ describe('Event Show Page Going Feature', function () {
     it('treats events without ends_at as happening now within the fallback window', function () {
         Carbon::setTestNow(Carbon::parse('2026-04-02 20:30:00', 'Asia/Kuala_Lumpur'));
 
-        $event = new Event;
-        $event->timezone = 'Asia/Kuala_Lumpur';
-        $event->starts_at = Carbon::parse('2026-04-02 19:45:00', 'Asia/Kuala_Lumpur');
-        $event->ends_at = null;
+        $event = Event::factory()->create(['timezone' => 'Asia/Kuala_Lumpur']);
+        app(SyncEventScheduleAction::class)->execute(
+            $event,
+            ScheduleKind::Single,
+            Carbon::parse('2026-04-02 19:45:00', 'Asia/Kuala_Lumpur')->utc(),
+            null,
+            'Asia/Kuala_Lumpur',
+            TimingMode::Absolute,
+        );
+        $event->refresh();
 
         $component = new Show;
         $component->event = $event;

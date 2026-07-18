@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use AIArmada\Engagement\Models\Bookmark;
 use AIArmada\Engagement\Models\Response;
 use App\Actions\Events\ResolveEventCheckInStateAction;
+use App\Contracts\EventCategoryCatalog;
 use App\Data\Api\Event\EventMeData;
 use App\Data\Api\Event\EventPayloadData;
 use App\Data\Api\EventCheckIn\EventCheckInStateData;
@@ -126,7 +127,19 @@ class EventController extends Controller
             AllowedFilter::exact('delivery_mode'),
             AllowedFilter::exact('institution_id'),
             AllowedFilter::exact('default_venue_id'),
-            AllowedFilter::exact('type'),
+            AllowedFilter::callback('event_category_ids', function (Builder $query, mixed $value): void {
+                $categoryIds = app(EventCategoryCatalog::class)->descendantIds($this->normalizeArrayFilter($value));
+
+                if ($categoryIds === []) {
+                    $query->whereRaw('1 = 0');
+
+                    return;
+                }
+
+                $query->whereHas('categoryClassifications', function (Builder $classificationQuery) use ($categoryIds): void {
+                    $classificationQuery->whereIn('event_term_id', $categoryIds);
+                });
+            }),
             AllowedFilter::callback('starts_after', function (Builder $query, mixed $value): void {
                 $startsAfter = $this->parseDate($value, false);
                 if ($startsAfter instanceof Carbon) {

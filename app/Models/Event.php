@@ -46,6 +46,7 @@ use App\States\EventStatus\EventStatus;
 use App\States\EventStatus\Pending;
 use App\Support\Authz\MemberPermissionGate;
 use App\Support\Timezone\UserDateTimeFormatter;
+use BackedEnum;
 use Database\Factories\EventFactory;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
@@ -381,7 +382,36 @@ class Event extends PackageEvent implements AuditableContract
     #[\Override]
     public function occurrences(): HasMany
     {
-        return $this->hasMany(EventOccurrence::class)->orderBy('starts_at')->orderBy('created_at');
+        return $this->hasMany(EventOccurrence::class)
+            ->orderBy('starts_at')
+            ->orderBy('created_at')
+            ->orderBy('id');
+    }
+
+    /**
+     * @return HasOne<EventOccurrence, $this>
+     */
+    #[\Override]
+    public function primaryOccurrence(): HasOne
+    {
+        return $this->hasOne(EventOccurrence::class)
+            ->orderBy('starts_at')
+            ->orderBy('created_at')
+            ->orderBy('id');
+    }
+
+    /**
+     * Event-level expressions are distinct from occurrence/session expressions.
+     * The latter must never be addressed through this relation.
+     *
+     * @return HasMany<EventTimeExpression, $this>
+     */
+    #[\Override]
+    public function timeExpressions(): HasMany
+    {
+        return $this->hasMany(EventTimeExpression::class)
+            ->whereNull('event_occurrence_id')
+            ->whereNull('event_session_id');
     }
 
     /**
@@ -828,7 +858,8 @@ class Event extends PackageEvent implements AuditableContract
             ->whereNull('event_session_id')
             ->where('location_role', 'primary')
             ->orderBy('sort_order')
-            ->orderBy('created_at');
+            ->orderBy('created_at')
+            ->orderBy('id');
     }
 
     public function syncLocation(?string $venueId = null, ?string $spaceId = null): void
@@ -902,6 +933,12 @@ class Event extends PackageEvent implements AuditableContract
 
     private function primaryOccurrenceDate(string $key): mixed
     {
+        if ($this->relationLoaded('primaryOccurrence')) {
+            $occurrence = $this->getRelationValue('primaryOccurrence');
+
+            return $occurrence instanceof EventOccurrence ? $occurrence->{$key} : null;
+        }
+
         if ($this->relationLoaded('occurrences')) {
             $occurrence = $this->occurrences->first();
 
@@ -1139,8 +1176,6 @@ class Event extends PackageEvent implements AuditableContract
             'title',
             'description',
             'slug',
-            'starts_at',
-            'ends_at',
             'language',
             'gender',
             'age_group',
@@ -1180,7 +1215,7 @@ class Event extends PackageEvent implements AuditableContract
     protected function makeAllSearchableUsing(Builder $query): Builder
     {
         return $query
-            ->with(['institution', 'institution.addresses', 'venue', 'venue.addresses', 'speakers', 'keyPeople.speaker', 'references', 'classifications'])
+            ->with(['institution', 'institution.addresses', 'venue', 'venue.addresses', 'speakers', 'keyPeople.speaker', 'references', 'classifications', 'primaryOccurrence', 'timeExpressions'])
             ->whereNotNull('events.published_at')
             ->whereIn('events.status', self::PUBLIC_STATUSES)
             ->where('events.visibility', EventVisibility::Public);
@@ -1198,7 +1233,7 @@ class Event extends PackageEvent implements AuditableContract
             return $this->toScoutDatabaseSearchableArray();
         }
 
-        $this->loadMissing(['institution', 'institution.addresses', 'venue', 'venue.addresses', 'speakers', 'keyPeople.speaker', 'references', 'classifications']);
+        $this->loadMissing(['institution', 'institution.addresses', 'venue', 'venue.addresses', 'speakers', 'keyPeople.speaker', 'references', 'classifications', 'primaryOccurrence', 'timeExpressions']);
         $venueAddress = $this->venue?->primaryAddress();
         $institutionAddress = $this->institution?->primaryAddress();
         $institution = $this->institution;
@@ -1206,6 +1241,12 @@ class Event extends PackageEvent implements AuditableContract
         $gender = $this->gender;
         $eventFormat = $this->delivery_mode;
         $visibility = $this->visibility;
+        $primaryOccurrence = $this->primaryOccurrence;
+        $prayerExpression = $this->timeExpressions->first(fn (EventTimeExpression $expression): bool => $expression->anchor_type === 'prayer');
+        $occurrenceStatus = $primaryOccurrence?->status;
+        $timingMode = $prayerExpression instanceof EventTimeExpression
+            ? TimingMode::PrayerRelative->value
+            : TimingMode::Absolute->value;
 
         $languageCodes = $this->resolvedLanguages()
             ->pluck('code')
@@ -1378,6 +1419,8 @@ class Event extends PackageEvent implements AuditableContract
             'children_allowed' => $this->children_allowed ?? true,
             'status' => (string) $this->status,
             'visibility' => $visibility instanceof EventVisibility ? $visibility->value : ((is_string($visibility) && $visibility !== '') ? $visibility : 'public'),
+            'occurrence_status' => $occurrenceStatus instanceof BackedEnum ? $occurrenceStatus->value : ((is_string($occurrenceStatus) && $occurrenceStatus !== '') ? $occurrenceStatus : null),
+            'timing_mode' => $timingMode,
             'topic_ids' => $topicIds,
             'domain_tag_ids' => $domainTagIds,
             'source_tag_ids' => $sourceTagIds,
@@ -1648,7 +1691,11 @@ class Event extends PackageEvent implements AuditableContract
      */
     public function changeAnnouncements(): HasMany
     {
-        return $this->hasMany(EventChangeAnnouncement::class);
+        return $this->hasMany(EventChangeAnnouncement::class)
+            ->whereIn('update_type', array_map(
+                static fn (EventChangeType $type): string => $type->value,
+                EventChangeType::cases(),
+            ));
     }
 
     /**
@@ -1686,7 +1733,11 @@ class Event extends PackageEvent implements AuditableContract
      */
     public function incomingReplacementAnnouncements(): HasMany
     {
-        return $this->hasMany(EventChangeAnnouncement::class, 'replacement_event_id');
+        return $this->hasMany(EventChangeAnnouncement::class, 'replacement_event_id')
+            ->whereIn('update_type', array_map(
+                static fn (EventChangeType $type): string => $type->value,
+                EventChangeType::cases(),
+            ));
     }
 
     /**
@@ -1752,7 +1803,11 @@ class Event extends PackageEvent implements AuditableContract
     ): void {
         $query
             ->whereNotNull("{$table}.published_at")
-            ->whereNull("{$table}.archived_at");
+            ->whereNull("{$table}.archived_at")
+            ->whereIn("{$table}.update_type", array_map(
+                static fn (EventChangeType $type): string => $type->value,
+                EventChangeType::cases(),
+            ));
 
         $extraConstraint?->__invoke($query, $table);
     }

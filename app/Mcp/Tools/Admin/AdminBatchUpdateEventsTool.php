@@ -326,10 +326,11 @@ class AdminBatchUpdateEventsTool extends AbstractAdminWriteTool
             'issue_tags' => $schema->array()->items($schema->string())->nullable(),
             'other_key_people' => $schema->array()->items(
                 $schema->object([
-                    'role' => $schema->string()->required(),
-                    'speaker_id' => $schema->string()->nullable(),
-                    'name' => $schema->string()->nullable(),
-                    'is_public' => $schema->boolean()->default(true),
+                    'role_code' => $schema->string()->required(),
+                    'involveable_type' => $schema->string()->nullable(),
+                    'involveable_id' => $schema->string()->nullable(),
+                    'display_name' => $schema->string()->nullable(),
+                    'visibility' => $schema->string()->enum(['public', 'private'])->default('public'),
                     'notes' => $schema->string()->nullable(),
                 ])
             )->nullable(),

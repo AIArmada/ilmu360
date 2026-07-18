@@ -276,9 +276,9 @@ it('applies structured event participant and reference updates through approval'
             'reference_ids' => [$reference->id],
             'speaker_ids' => [$speaker->id],
             'other_key_people' => [[
-                'role' => 'moderator',
-                'name' => 'Moderator Test',
-                'is_public' => true,
+                'role_code' => 'moderator',
+                'display_name' => 'Moderator Test',
+                'visibility' => 'public',
             ]],
         ],
     );

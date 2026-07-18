@@ -589,7 +589,7 @@ function recordVisitedPath(string $path): void
 
 function createSlugRedirectEvent(string $id, string $title, string $slug, Carbon $startsAt): Event
 {
-    return Event::unguarded(fn () => Event::query()->create([
+    return Event::factory()->create([
         'id' => $id,
         'title' => $title,
         'slug' => $slug,
@@ -602,5 +602,5 @@ function createSlugRedirectEvent(string $id, string $title, string $slug, Carbon
         'event_format' => 'physical',
         'visibility' => 'public',
         'status' => 'approved',
-    ]));
+    ]);
 }

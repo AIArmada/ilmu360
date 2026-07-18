@@ -314,7 +314,7 @@ class SubmitFrontendEventAction
 
         $speakerIds = collect(array_merge(
             (array) ($validated['speakers'] ?? []),
-            collect((array) ($validated['other_key_people'] ?? []))->pluck('speaker_id')->all(),
+            collect((array) ($validated['other_key_people'] ?? []))->pluck('involveable_id')->all(),
         ))
             ->map(fn (mixed $value): ?string => filled($value) ? (string) $value : null)
             ->filter()

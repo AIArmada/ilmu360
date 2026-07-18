@@ -231,8 +231,6 @@ class PublishEventChangeAnnouncement
     {
         return [
             'title',
-            'starts_at',
-            'ends_at',
             'timezone',
             'institution_id',
             'venue_id',

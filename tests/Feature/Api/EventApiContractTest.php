@@ -71,22 +71,22 @@ it('lists only publicly reachable statuses (approved, pending, cancelled)', func
         ->not()->toContain($inactiveApproved->id);
 });
 
-it('filters events by canonical type values', function () {
+it('filters events by canonical event category ids', function () {
     $kuliah = Event::factory()->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
         'published_at' => now(),
-        'type' => eventCategoryId('kuliah_ceramah'),
+        'event_category_ids' => [eventCategoryId('kuliah_ceramah')],
     ]);
 
     $forum = Event::factory()->create([
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
         'published_at' => now(),
-        'type' => eventCategoryId('forum'),
+        'event_category_ids' => [eventCategoryId('forum')],
     ]);
 
-    $response = $this->getJson('/api/v1/events?filter[type]=kuliah_ceramah');
+    $response = $this->getJson('/api/v1/events?filter[event_category_ids]='.eventCategoryId('kuliah_ceramah'));
 
     $response->assertOk();
 
@@ -110,7 +110,7 @@ it('filters events through canonical package query parameters', function () {
         'delivery_mode' => EventFormat::Online,
         'institution_id' => $institution->id,
         'default_venue_id' => $venue->id,
-        'type' => eventCategoryId('kuliah_ceramah'),
+        'event_category_ids' => [eventCategoryId('kuliah_ceramah')],
     ]);
 
     $otherEvent = Event::factory()->create([
@@ -120,14 +120,14 @@ it('filters events through canonical package query parameters', function () {
         'delivery_mode' => EventFormat::Physical,
         'institution_id' => $otherInstitution->id,
         'default_venue_id' => $otherVenue->id,
-        'type' => eventCategoryId('forum'),
+        'event_category_ids' => [eventCategoryId('forum')],
     ]);
 
     foreach ([
         'delivery_mode' => EventFormat::Online->value,
         'institution_id' => $institution->id,
         'default_venue_id' => $venue->id,
-        'type' => eventCategoryId('kuliah_ceramah'),
+        'event_category_ids' => eventCategoryId('kuliah_ceramah'),
     ] as $filter => $value) {
         $response = $this->getJson('/api/v1/events?'.http_build_query([
             'filter' => [$filter => $value],

@@ -72,6 +72,10 @@ class EventBuilder extends Builder
 
         $columnName = $this->columnName($column);
 
+        if (in_array($columnName, self::OccurrenceBackedColumns, true)) {
+            return $this->whereOccurrenceIn($columnName, $values, $boolean, $not);
+        }
+
         $mappedColumn = $this->mapColumn($columnName);
 
         if ($mappedColumn !== null) {
@@ -287,6 +291,29 @@ class EventBuilder extends Builder
         return $this;
     }
 
+    /**
+     * @param  iterable<mixed>  $values
+     */
+    private function whereOccurrenceIn(string $column, iterable $values, string $boolean, bool $not): static
+    {
+        $normalizedValues = array_values($this->normalizeValues($values));
+
+        if ($normalizedValues === []) {
+            $this->whereRaw($not ? '1 = 1' : '1 = 0', [], $boolean);
+
+            return $this;
+        }
+
+        $subquery = $this->occurrenceSubquery($column);
+        $sql = '('.$subquery->toSql().')';
+        $operator = $not ? 'not in' : 'in';
+        $placeholders = implode(', ', array_fill(0, count($normalizedValues), '?'));
+
+        $this->whereRaw("{$sql} {$operator} ({$placeholders})", [...$subquery->getBindings(), ...$normalizedValues], $boolean);
+
+        return $this;
+    }
+
     private function mapColumn(string $column): ?string
     {
         if (isset(self::PackageColumnAliases[$column])) {
@@ -325,6 +352,7 @@ class EventBuilder extends Builder
             ->whereColumn("{$occurrencesTable}.event_id", "{$eventsTable}.id")
             ->orderBy("{$occurrencesTable}.starts_at")
             ->orderBy("{$occurrencesTable}.created_at")
+            ->orderBy("{$occurrencesTable}.id")
             ->limit(1);
     }
 

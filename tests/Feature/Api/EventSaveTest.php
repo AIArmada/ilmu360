@@ -148,13 +148,11 @@ test('saving an event recalculates stale saves_count from source rows', function
 
     $response->assertStatus(201);
 
-    expect(
-        EngagementCounter::where('subject_type', $this->event->getMorphClass())
-            ->where('subject_id', $this->event->getKey())
-            ->where('counter_type', 'bookmarks')
-            ->where('counter_key', '')
-            ->value('count_value') ?? 0
-    )->toBe(1);
+    expect(withGlobalOwnerContext(fn () => EngagementCounter::where('subject_type', $this->event->getMorphClass())
+        ->where('subject_id', $this->event->getKey())
+        ->where('counter_type', 'bookmarks')
+        ->where('counter_key', '')
+        ->value('count_value') ?? 0))->toBe(1);
 });
 
 test('saved events index still includes cancelled events', function () {

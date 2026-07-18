@@ -5,6 +5,8 @@ use AIArmada\Engagement\Contracts\EngagementManager;
 use App\Actions\Events\PublishEventChangeAnnouncement;
 use App\Enums\EventChangeSeverity;
 use App\Enums\EventChangeType;
+use App\Enums\NotificationPriority;
+use App\Enums\NotificationTrigger;
 use App\Models\Event;
 use App\Models\EventChangeAnnouncement;
 use App\Models\Institution;

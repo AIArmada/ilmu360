@@ -120,12 +120,12 @@ class SyncEventResourceRelationsAction
             return [];
         }
 
-        return collect($rows)->filter('is_array')->map(static fn (array $row): array => [
-            'role_code' => $row['role_code'] ?? $row['role'] ?? null,
-            'involveable_type' => $row['involveable_type'] ?? (isset($row['speaker_id']) ? 'speaker' : null),
-            'involveable_id' => $row['involveable_id'] ?? $row['speaker_id'] ?? null,
-            'display_name' => $row['display_name'] ?? $row['name'] ?? null,
-            'visibility' => $row['visibility'] ?? ((bool) ($row['is_public'] ?? true) ? 'public' : 'private'),
+        return collect($rows)->filter(static fn (mixed $row): bool => is_array($row))->map(static fn (array $row): array => [
+            'role_code' => $row['role_code'] ?? null,
+            'involveable_type' => $row['involveable_type'] ?? null,
+            'involveable_id' => $row['involveable_id'] ?? null,
+            'display_name' => $row['display_name'] ?? null,
+            'visibility' => $row['visibility'] ?? 'public',
             'notes' => $row['notes'] ?? null,
         ])->values()->all();
     }

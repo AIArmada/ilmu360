@@ -446,12 +446,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/AIArmada/events.git",
-                "reference": "1c31e52b06b5196d7d160fca4525f5d6385bd55b"
+                "reference": "f10ce8de7b9180b2f529cf4d8560f10577165dc5"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/AIArmada/events/zipball/1c31e52b06b5196d7d160fca4525f5d6385bd55b",
-                "reference": "1c31e52b06b5196d7d160fca4525f5d6385bd55b",
+                "url": "https://api.github.com/repos/AIArmada/events/zipball/f10ce8de7b9180b2f529cf4d8560f10577165dc5",
+                "reference": "f10ce8de7b9180b2f529cf4d8560f10577165dc5",
                 "shasum": ""
             },
             "require": {
@@ -521,7 +521,7 @@
                 "issues": "https://github.com/AIArmada/events/issues",
                 "source": "https://github.com/AIArmada/events/tree/main"
             },
-            "time": "2026-07-18T10:23:42+00:00"
+            "time": "2026-07-18T13:22:31+00:00"
         },
         {
             "name": "aiarmada/filament-addressing",
