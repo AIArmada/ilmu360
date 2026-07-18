@@ -192,7 +192,7 @@ class EventFactory extends PackageEventFactory
                 return;
             }
 
-            $schedule = self::$scheduleStates instanceof \WeakMap && isset(self::$scheduleStates[$event])
+            $schedule = self::$scheduleStates instanceof WeakMap && isset(self::$scheduleStates[$event])
                 ? self::$scheduleStates[$event]
                 : [];
 
@@ -207,7 +207,7 @@ class EventFactory extends PackageEventFactory
                 return;
             }
 
-            $schedule = self::$scheduleStates instanceof \WeakMap && isset(self::$scheduleStates[$event])
+            $schedule = self::$scheduleStates instanceof WeakMap && isset(self::$scheduleStates[$event])
                 ? self::$scheduleStates[$event]
                 : [];
             $timingMode = $schedule['timing_mode'] ?? null;
@@ -270,7 +270,7 @@ class EventFactory extends PackageEventFactory
                 ]);
             }
 
-            if (self::$scheduleStates instanceof \WeakMap && isset(self::$scheduleStates[$event])) {
+            if (self::$scheduleStates instanceof WeakMap && isset(self::$scheduleStates[$event])) {
                 unset(self::$scheduleStates[$event]);
             }
         });
