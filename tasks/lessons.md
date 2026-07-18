@@ -361,3 +361,7 @@
 - When a hierarchical selection is normalized for persistence, keep validation on the full valid ID set; minimizing parent/child IDs before `Rule::in()` rejects valid redundant selections.
 - Parent-category policy checks must expand descendants before reading term metadata; otherwise selectable roots silently bypass child requirements.
 - Deleting a taxonomy without foreign-key cascades requires explicit classification and term cleanup, including orphaned terms left by earlier seeders.
+- For package hard cuts, update Commerce first, push it, refresh the consuming app's Composer lock/vendor tree to the exact split SHA, and only then trust app CI results; otherwise app tests can exercise stale package code.
+- When a CI style job can push a follow-up commit, monitor the workflow head SHA and fetch/rebase before pushing app fixes so the final Quality run contains both the formatter output and functional changes.
+- When model events are intentionally disabled during seeders, UUID-generating `creating` hooks do not run; assign the UUID explicitly on the model instance before saving instead of relying on mass-assignment of a guarded `id` field.
+- Package relation migrations can change a serialized collection from a legacy boolean map to related rows; update app state serializers and persistence semantics together, including explicit `null` collection clearing.

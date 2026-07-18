@@ -45,13 +45,11 @@ function flattenEventContributionComponents(array $components): array
             continue;
         }
 
-        $defaultChildComponents = $childComponents['default'] ?? null;
-
-        if (! is_array($defaultChildComponents)) {
-            continue;
+        foreach ($childComponents as $nestedComponents) {
+            if (is_array($nestedComponents)) {
+                array_push($flattened, ...flattenEventContributionComponents($nestedComponents));
+            }
         }
-
-        array_push($flattened, ...flattenEventContributionComponents($defaultChildComponents));
     }
 
     return $flattened;
@@ -77,7 +75,6 @@ it('exposes quick-add actions for every update-form event select that supports c
         'location_institution_id',
         'location_venue_id',
         'speaker_ids',
-        'speaker_id',
     ];
 
     foreach ($quickAddFieldNames as $fieldName) {

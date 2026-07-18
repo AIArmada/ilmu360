@@ -53,7 +53,7 @@ Each source row must map into a clean event object with at least:
 - `title`
 - `event_date`
 - timing mode (`prayer_time` or `custom_time`)
-- `event_type`
+- `event_category_ids`
 - speaker
 - optional reference
 - institution
@@ -70,7 +70,7 @@ Example normalized payload:
   "title": "Kuliah Maghrib",
   "event_date": "2026-05-10",
   "prayer_time": "selepas_maghrib",
-  "event_type": ["kuliah_ceramah"],
+  "event_category_ids": ["kuliah_ceramah"],
   "speaker": "Mohd Khafiz Tohfah Al-Yamani",
   "reference": "Al-Misbah Al-Munir",
   "institution": "Masjid Sultan Salahudin Abdul Aziz Shah",

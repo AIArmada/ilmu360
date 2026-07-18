@@ -2593,9 +2593,9 @@ it('exposes admin venue write schema and can create and update venues through th
         ->and($venue->slug)->toBe('admin-api-venue-my')
         ->and($venue->status)->toBe('verified')
         ->and((string) $venue->status)->toBeIn(['verified', 'pending'])
-        ->and($venue->facilities)->toEqualCanonicalizing([
-            'oku' => true,
-            'parking' => true,
+        ->and($venue->facilities->load('facilityType')->pluck('facilityType.code')->all())->toEqualCanonicalizing([
+            'oku',
+            'parking',
         ])
         ->and($venue->primaryAddress()?->country_id)->toBe(ensureAdminApiMalaysiaCountryExists())
         ->and($venue->contactMethods)->toHaveCount(1)
@@ -2640,9 +2640,9 @@ it('exposes admin venue write schema and can create and update venues through th
         ->and($venue->slug)->toBe('admin-api-venue-updated-my')
         ->and($venue->getRawOriginal('venue_type'))->toBe('auditorium')
         ->and((string) $venue->status)->toBe('inactive')
-        ->and($venue->facilities)->toEqualCanonicalizing([
-            'women_section' => true,
-            'ablution_area' => true,
+        ->and($venue->facilities->load('facilityType')->pluck('facilityType.code')->all())->toEqualCanonicalizing([
+            'women_section',
+            'ablution_area',
         ])
         ->and($venue->primaryAddress()?->line1)->toBe('Auditorium API Baharu')
         ->and($venue->contactMethods)->toHaveCount(1)
@@ -2760,8 +2760,8 @@ it('replaces venue collections and deletes the address on an empty object throug
         fn (): Venue => $venue->refresh()->load(['contactMethods', 'socialProfiles']),
     );
 
-    expect($venue->facilities)->toBe([
-        'women_section' => true,
+    expect($venue->facilities->load('facilityType')->pluck('facilityType.code')->all())->toBe([
+        'women_section',
     ])
         ->and($venue->contactMethods)->toHaveCount(1)
         ->and($venue->contactMethods->first()?->getRawOriginal('type'))->toBe('whatsapp')
@@ -2784,7 +2784,7 @@ it('replaces venue collections and deletes the address on an empty object throug
     );
 
     expect($venue->primaryAddress())->toBeNull()
-        ->and($venue->facilities)->toBe([])
+        ->and($venue->facilities->load('facilityType')->pluck('facilityType.code')->all())->toBe([])
         ->and($venue->contactMethods)->toHaveCount(0)
         ->and($venue->socialProfiles)->toHaveCount(0);
 });

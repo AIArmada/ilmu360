@@ -118,7 +118,17 @@ final readonly class SaveVenueAction
      */
     private function syncVenueFacilities(Venue $venue, array $data): void
     {
-        $codes = $data['facilities'] ?? null;
+        if (! array_key_exists('facilities', $data)) {
+            return;
+        }
+
+        $codes = $data['facilities'];
+
+        if ($codes === null) {
+            $venue->facilities()->delete();
+
+            return;
+        }
 
         if (! is_array($codes)) {
             return;
@@ -139,6 +149,25 @@ final readonly class SaveVenueAction
             ->whereIn('code', $codes)
             ->where('is_active', true)
             ->pluck('id', 'code');
+
+        foreach ($codes as $code) {
+            if ($typeIds->has($code)) {
+                continue;
+            }
+
+            $type = FacilityType::query()->firstOrCreate(
+                ['code' => $code],
+                [
+                    'name' => Str::headline($code),
+                    'category' => 'venue',
+                    'is_active' => true,
+                ],
+            );
+
+            if ($type->is_active) {
+                $typeIds->put($code, $type->getKey());
+            }
+        }
 
         $rows = [];
         foreach ($codes as $code) {

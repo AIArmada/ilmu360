@@ -275,8 +275,8 @@ it('allows sebelum maghrib during ramadhan', function () {
 
     $event = Event::where('title', 'Ramadhan Sebelum Maghrib Valid')->firstOrFail();
 
-    expect($event->starts_at->timezone('Asia/Kuala_Lumpur')->format('H:i'))->toBe('19:10');
-    expect($event->starts_at->timezone('UTC')->format('H:i'))->toBe('11:10');
+    expect($event->starts_at->timezone('Asia/Kuala_Lumpur')->format('H:i'))->toBe('19:45');
+    expect($event->starts_at->timezone('UTC')->format('H:i'))->toBe('11:45');
 });
 
 it('rejects sebelum maghrib outside ramadhan', function () {

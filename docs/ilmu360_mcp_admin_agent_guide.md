@@ -105,7 +105,7 @@ Event payloads are large. For user-facing summaries, prefer these fields:
 - `attributes.starts_on_local_date`
 - `attributes.timing_display` ← best for user-facing time, includes prayer-relative labels
 - `attributes.end_time_display`
-- `attributes.event_type_label`
+- `attributes.event_categories`
 - `attributes.institution.name`
 - `attributes.institution.address_line`
 - `attributes.reference_study_subtitle`
@@ -469,7 +469,7 @@ The admin server is the model-visible API-like surface for admin workflows. The 
 | `admin-get-report-triage-schema` | Read the explicit triage schema for one report | `GET /api/v1/admin/reports/{recordKey}/triage-schema` |
 | `admin-get-contribution-request-review-schema` | Read the explicit review schema for one contribution request | `GET /api/v1/admin/contribution-requests/{recordKey}/review-schema` |
 | `admin-get-membership-application-review-schema` | Read the explicit review schema for one membership application | `GET /api/v1/admin/membership-applications/{recordKey}/review-schema` |
-| `admin-create-event` | MCP-only event wrapper for create/preview with event-first fields and relation route keys. Accepts scalar event fields (`title`, `event_date`, `prayer_time`, `event_type`, `description`, `custom_time`, `end_time`, `timezone`, `event_format`, `visibility`, `event_url`, `live_url`, `recording_url`, `gender`, `age_group`, `children_allowed`, `is_muslim_only`, `status`, `registration_required`, `registration_mode`, `is_priority`, `is_featured`, `is_active`), relation route keys (`organizer_type`, `organizer_key`, `institution_key`, `venue_key`, `space_key`), speaker/reference route-key arrays (`speaker_keys`, `reference_keys`), language IDs (`languages`), tag arrays (`domain_tags`, `discipline_tags`, `source_tags`, `issue_tags`), `other_key_people`, optional `series`, media descriptors (`cover`, `poster`, `gallery`), and control flags (`validate_only`, `apply_defaults`). `apply_defaults` is preview-only. | `POST /api/v1/admin/{resourceKey}` with `resourceKey=events` (MCP event-first wrapper) |
+| `admin-create-event` | MCP-only event wrapper for create/preview with event-first fields and relation route keys. Accepts scalar event fields (`title`, `event_date`, `prayer_time`, `event_category_ids`, `description`, `custom_time`, `end_time`, `timezone`, `event_format`, `visibility`, `event_url`, `live_url`, `recording_url`, `gender`, `age_group`, `children_allowed`, `is_muslim_only`, `status`, `registration_required`, `registration_mode`, `is_priority`, `is_featured`, `is_active`), relation route keys (`organizer_type`, `organizer_key`, `institution_key`, `venue_key`, `space_key`), speaker/reference route-key arrays (`speaker_keys`, `reference_keys`), language IDs (`languages`), tag arrays (`domain_tags`, `discipline_tags`, `source_tags`, `issue_tags`), `other_key_people`, optional `series`, media descriptors (`cover`, `poster`, `gallery`), and control flags (`validate_only`, `apply_defaults`). `apply_defaults` is preview-only. | `POST /api/v1/admin/{resourceKey}` with `resourceKey=events` (MCP event-first wrapper) |
 | `admin-get-record-media` | List media attachments for one admin record to verify uploads or prefill image generation forms | MCP-only media inspection tool |
 | `admin-read-debug-log` | Read recent filtered lines from the application debug log | MCP-only debug log reader |
 | `admin-create-github-issue` | Create a GitHub issue in the configured repository and auto-assign Copilot | `POST /api/v1/github-issues` (admin caller path) |
@@ -492,7 +492,7 @@ Admin tool behavior notes:
 - If attaching reference media fails, retry the prompt call with `include_existing_media=false` and `max_reference_media=0`, then re-generate and re-upload.
 - For `speakers`, `institutions`, and `references`, `admin-list-records` search reuses the same specialized search services as the public directory endpoints; the main difference is record scope, not text-matching behavior.
 - For date-aware resources, `starts_after`, `starts_before`, and `starts_on_local_date` are date-only `YYYY-MM-DD` strings interpreted in the resolved request timezone. Do not send ISO 8601 timestamps to those MCP arguments. `starts_after` is inclusive (on or after the given local date) and `starts_before` is inclusive (on or before the given local date) across both `admin-search-events` and `admin-list-records`. For a single local date, use `starts_on_local_date` instead.
-- Event enum filters and payload values must be backing values, for example `filter[event_type]=kuliah_ceramah` and `filter[timing_mode]=prayer_relative`.
+- Event enum filters and payload values must be backing values, for example `filter[event_category_ids]=kuliah_ceramah` and `filter[timing_mode]=prayer_relative`.
 - `admin-get-record-actions` is read-only and returns record-specific next-step MCP tools, including explicit workflow-schema tool hints when a moderation, triage, or review flow is currently available on that record.
 - The dedicated admin workflow-schema tools are read-only and expose defaults, available actions, fields, and conditional rules for their matching moderation/review workflow.
 - Media/file upload fields accept JSON descriptors when the matching write schema advertises them (`content_base64`, `content_url`, and `download_url` are supported by descriptor parsing).
@@ -511,7 +511,7 @@ Admin tool behavior notes:
 2. If an operational call returns `documentation_preflight_injected`, **repeat the exact same call** — the guide is now loaded and the call will succeed.
 3. For event lists by date range, use `resource_key: "events"` with `starts_after` and `starts_before` (inclusive date-only boundaries).
 4. For a single local date, prefer `starts_on_local_date` over a same-day range.
-5. For user-facing event summaries, prefer `timing_display`, `starts_on_local_date`, `end_time_display`, and `event_type_label` over raw UTC fields.
+5. For user-facing event summaries, prefer `timing_display`, `starts_on_local_date`, `end_time_display`, and `event_categories` over raw UTC fields.
 6. For any write, call `admin-get-write-schema` first and trust the live schema.
 7. Never guess relation names — use `admin-get-resource-meta` to discover them.
 8. Use `search` when the topic is fuzzy, `fetch` when the guide id is already known.

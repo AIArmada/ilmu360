@@ -62,7 +62,7 @@ it('can submit an event as a speaker with an institution location', function () 
     $event = Event::query()->where('title', 'Speaker at Institution')->sole();
 
     expect($event->institution_id)->toBe($institution->id)
-        ->and($event->venue_id)->toBeNull();
+        ->and($event->default_venue_id)->toBeNull();
 });
 
 it('can submit an event as a speaker with a venue location', function () {
@@ -88,7 +88,7 @@ it('can submit an event as a speaker with a venue location', function () {
     $event = Event::query()->where('title', 'Speaker at Venue')->sole();
 
     expect($event->institution_id)->toBeNull()
-        ->and($event->venue_id)->toBe($venue->id);
+        ->and($event->default_venue_id)->toBe($venue->id);
 });
 
 it('automatically sets location to institution when organizer is an institution', function () {
@@ -112,7 +112,7 @@ it('automatically sets location to institution when organizer is an institution'
     $event = Event::query()->where('title', 'Institution Event')->sole();
 
     expect($event->institution_id)->toBe($institution->id)
-        ->and($event->venue_id)->toBeNull();
+        ->and($event->default_venue_id)->toBeNull();
 });
 
 it('requires location type when organizer is speaker', function () {
@@ -156,7 +156,7 @@ it('allows institution organizer to choose a different location', function () {
     $event = Event::query()->where('title', 'Institution at Other Venue')->sole();
 
     expect($event->institution_id)->toBeNull()
-        ->and($event->venue_id)->toBe($otherVenue->id);
+        ->and($event->default_venue_id)->toBe($otherVenue->id);
 });
 
 it('includes institution nicknames in submit-event option labels', function () {

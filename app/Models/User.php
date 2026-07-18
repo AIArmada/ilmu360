@@ -112,55 +112,57 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
             app(PublicSubmissionLockService::class)->syncForUser($user);
         });
 
-        static::deleting(function (User $user) {
-            if ($user->deletedRelationsSnapshot === []) {
-                $user->captureDeletedRelationsSnapshot();
-            }
+        static::deleting(function (User $user): void {
+            OwnerContext::withOwner(null, function () use ($user): void {
+                if ($user->deletedRelationsSnapshot === []) {
+                    $user->captureDeletedRelationsSnapshot();
+                }
 
-            $savedEventIds = collect((array) ($user->deletedRelationsSnapshot['event_saves'] ?? []))
-                ->pluck('bookmarkable_id')
-                ->filter(fn (mixed $id): bool => is_string($id) || is_int($id))
-                ->map(static fn (mixed $id): string => (string) $id)
-                ->values()
-                ->all();
-            $goingEventIds = $user->snapshotEventIds($user->deletedRelationsSnapshot, 'event_attendees');
+                $savedEventIds = collect((array) ($user->deletedRelationsSnapshot['event_saves'] ?? []))
+                    ->pluck('bookmarkable_id')
+                    ->filter(fn (mixed $id): bool => is_string($id) || is_int($id))
+                    ->map(static fn (mixed $id): string => (string) $id)
+                    ->values()
+                    ->all();
+                $goingEventIds = $user->snapshotEventIds($user->deletedRelationsSnapshot, 'event_attendees');
 
-            DB::table((new SocialAccount)->getTable())
-                ->where('user_id', $user->getKey())
-                ->delete();
-            $user->deleteAuthenticationState();
-            $user->institutions()->detach();
-            $user->speakers()->detach();
-            $user->references()->detach();
-            $user->venues()->each(fn (Follow $f): ?bool => $f->delete());
-            $user->memberEvents()->detach();
-            $user->eventBookmarks()->delete();
-            $user->responses()->where('response_type', 'going')->get()->each->delete();
+                DB::table((new SocialAccount)->getTable())
+                    ->where('user_id', $user->getKey())
+                    ->delete();
+                $user->deleteAuthenticationState();
+                $user->institutions()->detach();
+                $user->speakers()->detach();
+                $user->references()->detach();
+                $user->venues()->each(fn (Follow $f): ?bool => $f->delete());
+                $user->memberEvents()->detach();
+                $user->eventBookmarks()->delete();
+                $user->responses()->where('response_type', 'going')->get()->each->delete();
 
-            $user->clearEventOwnership();
-            $user->eventSubmissions()->update(['submitter_id' => null]);
-            $user->contributionRequests()->update(['proposer_id' => null]);
-            $user->reviewedContributionRequests()->update(['reviewer_id' => null]);
-            $user->membershipApplications()->update(['applicant_id' => null]);
-            $user->reviewedMembershipApplications()->update(['reviewer_id' => null]);
-            // Keep actioned_by_type so restore can re-link the user id.
-            $user->moderationReviews()->update([
-                'actioned_by_id' => null,
-            ]);
-            $user->reports()->update(['reporter_id' => null]);
-            $user->handledReports()->update(['handled_by' => null]);
-            $user->verifiedDonationChannels()->update(['verified_by' => null]);
-            $user->verifiedEventCheckins()->update(['verified_by_user_id' => null]);
-            $user->registrations()->each(fn ($reg) => $reg->delete());
-            $user->eventCheckins()->each(fn ($checkin) => $checkin->delete());
-            $user->savedSearches()->each(fn ($search) => $search->delete());
-            $user->aiUsageLogs()->each(fn ($log) => $log->delete());
-            app(ShareTrackingService::class)->deleteUserTracking($user);
-            $user->notificationSetting()->delete();
-            $user->notificationDestinations()->each(fn ($destination) => $destination->delete());
-            $user->notificationInboxes()->each(fn ($inbox) => $inbox->delete());
+                $user->clearEventOwnership();
+                $user->eventSubmissions()->update(['submitter_id' => null]);
+                $user->contributionRequests()->update(['proposer_id' => null]);
+                $user->reviewedContributionRequests()->update(['reviewer_id' => null]);
+                $user->membershipApplications()->update(['applicant_id' => null]);
+                $user->reviewedMembershipApplications()->update(['reviewer_id' => null]);
+                // Keep actioned_by_type so restore can re-link the user id.
+                $user->moderationReviews()->update([
+                    'actioned_by_id' => null,
+                ]);
+                $user->reports()->update(['reporter_id' => null]);
+                $user->handledReports()->update(['handled_by' => null]);
+                $user->verifiedDonationChannels()->update(['verified_by' => null]);
+                $user->verifiedEventCheckins()->update(['verified_by_user_id' => null]);
+                $user->registrations()->each(fn ($reg) => $reg->delete());
+                $user->eventCheckins()->each(fn ($checkin) => $checkin->delete());
+                $user->savedSearches()->each(fn ($search) => $search->delete());
+                $user->aiUsageLogs()->each(fn ($log) => $log->delete());
+                app(ShareTrackingService::class)->deleteUserTracking($user);
+                $user->notificationSetting()->delete();
+                $user->notificationDestinations()->each(fn ($destination) => $destination->delete());
+                $user->notificationInboxes()->each(fn ($inbox) => $inbox->delete());
 
-            Follow::forFollower($user)->delete();
+                Follow::forFollower($user)->delete();
+            });
         });
     }
 

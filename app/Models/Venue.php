@@ -6,12 +6,14 @@ use AIArmada\Addressing\Traits\HasAddresses;
 use AIArmada\Contacting\Concerns\HasContactMethods;
 use AIArmada\Contacting\Concerns\HasSocialProfiles;
 use AIArmada\Events\Models\Venue as PackageVenue;
+use AIArmada\Events\Models\VenueFacility;
 use App\Enums\VenueType;
 use App\Models\Builders\VenueBuilder;
 use App\Models\Concerns\AuditsModelChanges;
 use Database\Factories\VenueFactory;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
@@ -26,7 +28,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  * @property string|null $description
  * @property VenueType|string|null $type
  * @property VenueType|string|null $venue_type
- * @property array<int, mixed>|string|null $facilities
+ * @property-read Collection<int, VenueFacility> $facilities
  * @property string|null $status
  * @property string|null $visibility
  * @property float|int|string|null $latitude

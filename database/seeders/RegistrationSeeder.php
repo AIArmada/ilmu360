@@ -79,8 +79,7 @@ class RegistrationSeeder extends Seeder
                         $registration->id = (string) Str::uuid();
                         $registration->save();
 
-                        $participant = $registration->participants()->create([
-                            'id' => (string) Str::uuid(),
+                        $participant = $registration->participants()->make([
                             'event_id' => $registration->event_id,
                             'event_occurrence_id' => $registration->event_occurrence_id,
                             'event_session_id' => $registration->event_session_id,
@@ -91,6 +90,8 @@ class RegistrationSeeder extends Seeder
                             'is_purchaser' => true,
                             'status' => 'active',
                         ]);
+                        $participant->id = (string) Str::uuid();
+                        $participant->save();
 
                         $participant->addContactMethod(new ContactMethodData(
                             type: 'email',

@@ -1027,7 +1027,7 @@ final readonly class AffiliatesShareTrackingService
             actorUserId: $conversion->actor_user_id,
             outcomeType: (string) ($conversion->conversion_type ?: 'unknown'),
             subjectType: $conversion->subject_type,
-            subjectId: $this->nullableString($conversion->subject_id) ?? $this->nullableString($conversion->subject_key),
+            subjectId: $this->nullableString($conversion->subject_id),
             subjectKey: $conversion->subject_key,
             outcomeKey: $this->nullableString($conversion->external_reference) ?? '',
             linkTitleSnapshot: $this->nullableString($conversion->subject_title_snapshot),
@@ -1057,7 +1057,7 @@ final readonly class AffiliatesShareTrackingService
 
         return [
             'subject_type' => $this->nullableString($attribution->subject_type) ?? 'page',
-            'subject_id' => $this->nullableString($attribution->subject_id) ?? $this->nullableString($attribution->subject_key),
+            'subject_id' => $this->nullableString($attribution->subject_id),
             'subject_key' => $this->nullableString($attribution->subject_key) ?? 'page:unknown',
             'title_snapshot' => $this->nullableString($attribution->subject_title_snapshot)
                 ?? $this->nullableString($link?->subject_title_snapshot)

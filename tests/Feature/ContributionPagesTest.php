@@ -917,7 +917,7 @@ it('normalizes submit-style organizer and location changes on the event update p
     expect($involvement?->involveable_type)->toBe(Speaker::class)
         ->and($involvement?->involveable_id)->toBe((string) $speaker->getKey())
         ->and($updatedEvent?->institution_id)->toBeNull()
-        ->and($updatedEvent?->venue_id)->toBe($venue->id)
+        ->and($updatedEvent?->default_venue_id)->toBe($venue->id)
         ->and($updatedEvent?->primaryLocation?->venue_id)->toBe($venue->id)
         ->and(ContributionRequest::query()->count())->toBe(0);
 });

@@ -14,6 +14,7 @@ use AIArmada\Contacting\Enums\SocialPlatform;
 use AIArmada\Contacting\Models\ContactMethod;
 use AIArmada\Contacting\Models\SocialProfile;
 use AIArmada\Events\Enums\ScheduleKind;
+use AIArmada\Events\Models\VenueFacility;
 use AIArmada\Membership\Actions\AddMemberAction;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Actions\Events\SyncEventClassificationsAction;
@@ -815,15 +816,14 @@ class ContributionEntityMutationService
      */
     private function venueState(Venue $venue): array
     {
-        $venue->loadMissing(['addresses', 'contactMethods', 'socialProfiles']);
+        $venue->loadMissing(['addresses', 'contactMethods', 'socialProfiles', 'facilities.facilityType']);
 
         return [
             'name' => $venue->name,
             'venue_type' => $venue->venue_type instanceof BackedEnum ? $venue->venue_type->value : (string) $venue->venue_type,
-            'facilities' => collect((array) $venue->facilities)
-                ->filter(static fn (mixed $enabled): bool => (bool) $enabled)
-                ->keys()
-                ->map(static fn (mixed $key): string => (string) $key)
+            'facilities' => $venue->facilities
+                ->map(static fn (VenueFacility $facility): string => $facility->facilityType->code)
+                ->filter(static fn (string $code): bool => $code !== '')
                 ->values()
                 ->all(),
             'address' => $this->addressState($venue->primaryAddress()),

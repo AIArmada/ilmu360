@@ -154,7 +154,10 @@
             })
             ->map(function (\Illuminate\Support\Collection $keyPeople, string $role) use ($joinEventPeopleNames): ?string {
                 $names = $keyPeople
-                    ->map(fn (\App\Models\EventKeyPerson $keyPerson): string => trim((string) $keyPerson->display_name))
+                    ->map(fn (\App\Models\EventKeyPerson $keyPerson): string => trim((string) ($keyPerson->display_name
+                        ?: $keyPerson->speaker?->formatted_name
+                        ?: $keyPerson->speaker?->name
+                        ?: '')))
                     ->filter(fn (string $name): bool => $name !== '')
                     ->unique()
                     ->values();

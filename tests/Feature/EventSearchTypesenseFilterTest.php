@@ -1,5 +1,6 @@
 <?php
 
+use App\Contracts\EventCategoryCatalog;
 use App\Data\EventDiscoveryCriteriaFactory;
 use App\Services\EventSearchService;
 use App\Support\Search\InstitutionSearchService;
@@ -35,7 +36,7 @@ test('discovery criteria are normalized deterministically before search executio
 });
 
 /**
- * @return array{0: TypesenseHealthCheckService, 1: SpeakerSearchService, 2: InstitutionSearchService, 3: ReferenceSearchService}
+ * @return array{0: TypesenseHealthCheckService, 1: SpeakerSearchService, 2: InstitutionSearchService, 3: ReferenceSearchService, 4: EventCategoryCatalog}
  */
 function eventSearchTypesenseFilterDependencies(): array
 {
@@ -44,6 +45,7 @@ function eventSearchTypesenseFilterDependencies(): array
         new SpeakerSearchService,
         new InstitutionSearchService,
         new ReferenceSearchService,
+        app(EventCategoryCatalog::class),
     ];
 }
 

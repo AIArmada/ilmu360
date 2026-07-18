@@ -289,7 +289,7 @@ describe('Event Show Page Going Feature', function () {
             ->assertSee(__('Akan Hadir')); // Button always visible regardless of auth
 
         // Verify the going count is persisted correctly
-        expect(app(EngagementCounterService::class)->countResponses($event, 'going'))->toBe(5);
+        expect(withGlobalOwnerContext(fn (): int => app(EngagementCounterService::class)->countResponses($event, 'going')))->toBe(5);
     });
 });
 

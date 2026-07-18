@@ -27,15 +27,27 @@ canonical package relations and columns described in
 # Metadata hard-cut cross-repository audit
 
 ## Plan
-- [ ] Refresh codebase-memory indexes for `commerce` and `ilmu360`.
-- [ ] Audit `commerce` package contracts, migrations, models, tests, docs, and CI for removed metadata/legacy paths.
-- [ ] Audit `ilmu360` callers, migrations, serializers, tests, docs, and CI for removed metadata/legacy paths.
-- [ ] Delegate an independent Terra Extra High review and reconcile findings.
-- [ ] Implement fixes without compatibility aliases, shims, dual keys, or legacy fallbacks.
+- [x] Refresh codebase-memory indexes for `commerce` and `ilmu360`.
+- [x] Audit `commerce` package contracts, migrations, models, tests, docs, and CI for removed metadata/legacy paths.
+- [x] Audit `ilmu360` callers, migrations, serializers, tests, docs, and CI for removed metadata/legacy paths.
+- [x] Delegate an independent Terra Extra High review and reconcile findings.
+- [x] Implement fixes without compatibility aliases, shims, dual keys, or legacy fallbacks.
 - [ ] Run focused tests, PHPStan/Pint, full quality workflows, and monitor GitHub Actions with `gh`.
 - [ ] Repeat audit until both repositories are clean.
 
 ## Review
 
-The cross-repository audit is in progress; findings are being fixed and rechecked
-against both repositories and their CI workflows.
+The cross-repository audit is in progress; local focused gates are clean after
+the final regression batch. Commerce is green at commit `81da2f3f1c137f4442b0425c8d603a04843dd93b`
+with Monorepo Split `29645941528`, CI `29645941526`, and style `29645941523`.
+The app Composer lock/vendor tree is refreshed to events split SHA
+`f10ce8de7b9180b2f529cf4d8560f10577165dc5`; the app refactor branch still needs
+the final commit and Quality workflow confirmation.
+
+### Final local regression batch
+
+- [x] Refresh vendor packages before app verification.
+- [x] Fix all failures from Quality workflow `29647038093` in one batch.
+- [x] Re-run the affected app tests: Admin API (85 passed / 1,160 assertions) plus the remaining CI-failure files (293 passed / 2,337 assertions before the final five; the final five now pass).
+- [x] Run Pint, Rector dry-run, PHPStan level 6, and `git diff --check`.
+- [x] Confirm app production/test scans have no forbidden geography, metadata, or Event alias references.

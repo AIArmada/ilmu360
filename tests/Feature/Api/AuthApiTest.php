@@ -248,8 +248,8 @@ it('deletes the authenticated user account, revokes tokens, and keeps a sanitize
     expect($engagementEvent->fresh())
         ->not->toBeNull();
 
-    expect(app(EngagementCounterService::class)->countBookmarks($engagementEvent))->toBe(0);
-    expect(app(EngagementCounterService::class)->countResponses($engagementEvent, 'going'))->toBe(0);
+    expect(withGlobalOwnerContext(fn (): int => app(EngagementCounterService::class)->countBookmarks($engagementEvent)))->toBe(0);
+    expect(withGlobalOwnerContext(fn (): int => app(EngagementCounterService::class)->countResponses($engagementEvent, 'going')))->toBe(0);
 
     $deletedModel = DeletedModel::query()
         ->where('key', $user->id)

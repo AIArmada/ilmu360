@@ -264,8 +264,8 @@ class Registration extends PackageEventRegistration implements AuditableContract
             return null;
         }
 
-        $value = $participant->contactMethodsOfType($key)->where('is_primary', true)->value('value')
-            ?? $participant->contactMethodsOfType($key)->value('value');
+        $value = OwnerContext::withOwner(null, fn (): mixed => $participant->contactMethodsOfType($key)->where('is_primary', true)->value('value')
+            ?? $participant->contactMethodsOfType($key)->value('value'));
 
         return is_string($value) && $value !== '' ? $value : null;
     }

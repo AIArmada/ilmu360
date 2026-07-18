@@ -84,7 +84,7 @@ Event payloads are large. For user-facing summaries, prefer these fields:
 - `attributes.starts_on_local_date`
 - `attributes.timing_display` ← best for user-facing time, includes prayer-relative labels
 - `attributes.end_time_display`
-- `attributes.event_type_label`
+- `attributes.event_categories`
 - `attributes.institution.name`
 - `attributes.institution.address_line`
 - `attributes.reference_study_subtitle`
@@ -469,7 +469,7 @@ Member tool behavior notes:
 2. If an operational call returns `documentation_preflight_injected`, **repeat the exact same call** — the guide is now loaded and the call will succeed.
 3. For event lists by date range, use `resource_key: "events"` with `starts_after` and `starts_before` (inclusive date-only boundaries).
 4. For a single local date, prefer `starts_on_local_date` over a same-day range.
-5. For user-facing event summaries, prefer `timing_display`, `starts_on_local_date`, `end_time_display`, and `event_type_label` over raw UTC fields.
+5. For user-facing event summaries, prefer `timing_display`, `starts_on_local_date`, `end_time_display`, and `event_categories` over raw UTC fields.
 6. For any update, call `member-get-write-schema` first and re-send the full intended value for replacement-based fields.
 7. Never guess relation names — use `member-get-resource-meta` to discover them.
 8. Member scope is limited to linked resources — do not assume the full record set is visible.

@@ -185,7 +185,7 @@ Keyword `query` expands to related institution, speaker/key-person, and referenc
   "tool": "admin-search-events",
   "arguments": {
     "time_scope": "upcoming",
-    "event_type": ["khutbah_jumaat"],
+    "event_category_ids": ["khutbah_jumaat"],
     "timing_mode": "prayer_relative",
     "prayer_time": "friday_prayer",
     "state_id": 14,

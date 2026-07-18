@@ -51,7 +51,7 @@ class EventPayloadData extends Data
         $payload = Arr::except([
             ...OwnerContext::withOwner(null, fn (): array => $event->toArray()),
             'institution_id' => $event->institution_id,
-            'schedule_kind' => $event->schedule_kind,
+            'schedule_kind' => self::enumValue($event->schedule_kind),
             'timing_mode' => $event->isPrayerRelative() ? 'prayer_relative' : 'absolute',
             'prayer_reference' => self::enumValue($event->prayer_reference),
             'prayer_offset' => self::enumValue($event->prayer_offset),

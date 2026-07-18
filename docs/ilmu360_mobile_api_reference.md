@@ -89,7 +89,7 @@ Enum fields in API filters, form payloads, admin write payloads, and MCP argumen
 
 Examples:
 
-- Send `event_type = ["kuliah_ceramah"]`, not `["Kuliah / Ceramah"]`
+- Send `event_category_ids = ["kuliah_ceramah"]`, not `["Kuliah / Ceramah"]`
 - Send `age_group = ["all_ages"]`, not `["Semua Peringkat Umur"]`
 - Send `timing_mode = "prayer_relative"`, not `"Prayer Time"`
 - Send `prayer_reference = "maghrib"` and `prayer_offset = "immediately"`, not localized prayer labels
@@ -863,9 +863,9 @@ Safe defaults are surfaced as `set_field` actions, unresolved enums/catalog choi
 
 > **Record-key format:** `{recordKey}` in GET and PUT admin record routes should use the `route_key` field returned by the admin collection or detail endpoints.
 
-> **Record filtering:** event admin collections support `filter[status]`, `filter[visibility]`, `filter[event_format]`, `filter[event_type]`, `filter[timing_mode]`, and `filter[prayer_reference]`. Speaker admin collections support `filter[status]`, `filter[is_active]`, and `filter[has_events]`. Date-aware admin collections also support `starts_after`, `starts_before`, and `starts_on_local_date`.
+> **Record filtering:** event admin collections support `filter[status]`, `filter[visibility]`, `filter[event_format]`, `filter[event_category_ids]`, `filter[timing_mode]`, and `filter[prayer_reference]`. Speaker admin collections support `filter[status]`, `filter[is_active]`, and `filter[has_events]`. Date-aware admin collections also support `starts_after`, `starts_before`, and `starts_on_local_date`.
 
-> **Enum filters:** send enum backing values in filters. For example, use `filter[event_type]=kuliah_ceramah`, `filter[timing_mode]=prayer_relative`, and `filter[prayer_reference]=maghrib`; do not send display labels.
+> **Enum filters:** send enum backing values in filters. For example, use `filter[event_category_ids]=kuliah_ceramah`, `filter[timing_mode]=prayer_relative`, and `filter[prayer_reference]=maghrib`; do not send display labels.
 
 > **Admin date-filter shape:** on `/api/v1/admin/{resourceKey}`, the date arguments are top-level query params, for example `/api/v1/admin/events?starts_on_local_date=2026-04-24&filter[status]=approved` or `/api/v1/admin/events?starts_after=2026-04-24&starts_before=2026-04-30`. Do not nest admin date filters under `filter[...]`.
 
@@ -976,9 +976,9 @@ Nested collection item contracts for institutions:
 
 ### Event-specific update rules
 
-- Event `PUT` is sparse on the raw admin API. Core fields such as `title`, `event_date`, `prayer_time`, `timezone`, `event_format`, `visibility`, `gender`, `age_group`, and `event_type` are required on create, but they may be omitted on update.
+- Event `PUT` is sparse on the raw admin API. Core fields such as `title`, `event_date`, `prayer_time`, `timezone`, `event_format`, `visibility`, `gender`, `age_group`, and `event_category_ids` are required on create, but they may be omitted on update.
 - Admin event writes accept `status` values `draft`, `pending`, and `approved`. When omitted on create, the default is `draft`. `approved` sets `published_at`, while `draft` and `pending` clear it.
-- Event enum write values must use backing values from the schema. Do not submit display labels for `event_type`, `age_group`, `timing_mode`, `prayer_reference`, or `prayer_offset`.
+- Event enum write values must use backing values from the schema. Do not submit display labels for `event_category_ids`, `age_group`, `timing_mode`, `prayer_reference`, or `prayer_offset`.
 - Event `cover` uploads are validated as `16:9`, and event `poster` uploads are validated as `4:5` on admin write paths.
 - Event media clear flags (`clear_cover`, `clear_poster`, `clear_gallery`) remove existing media when truthy (`true`, `1`, `"1"`, `"true"`). Poster clears are reflected immediately in the update response (`has_poster=false`, `poster_url=null`) and in update schema `current_media.poster`.
 - Optional URL scalars like `event_url`, `live_url`, and `recording_url` preserve the current value when omitted and clear to `null` when you send `null` or `""`.
@@ -1123,7 +1123,7 @@ Supported filters:
 - `filter[event_format]`
 - `filter[institution_id]`
 - `filter[venue_id]`
-- `filter[event_type]`
+- `filter[event_category_ids]`
 - `filter[starts_after]`
 - `filter[starts_before]`
 - `filter[ends_after]`
@@ -1343,7 +1343,7 @@ Selected fields:
 - `lng`
 - `notify`
 
-Saved-search `filters` use the same enum backing-value contract as event discovery. Store values such as `event_type: ["kuliah_ceramah"]`, `event_format: ["online"]`, `gender: "all"`, `age_group: ["all_ages"]`, `prayer_time: "selepas_maghrib"`, and `timing_mode: "prayer_relative"`; do not store display labels.
+Saved-search `filters` use the same enum backing-value contract as event discovery. Store values such as `event_category_ids: ["kuliah_ceramah"]`, `event_format: ["online"]`, `gender: "all"`, `age_group: ["all_ages"]`, `prayer_time: "selepas_maghrib"`, and `timing_mode: "prayer_relative"`; do not store display labels.
 
 ---
 
@@ -1475,7 +1475,7 @@ This section summarizes the non-obvious rules that AI agents must internalize be
 | Institution | `name`, `type`, `status` | `allow_public_event_submission` |
 | Venue | `name`, `type`, `status` | — |
 | Reference | `title`, `type`, `status` | — |
-| Event | `title`, `event_date`, `prayer_time`, `timezone`, `event_format`, `visibility`, `gender`, `age_group`, `event_type` | — |
+| Event | `title`, `event_date`, `prayer_time`, `timezone`, `event_format`, `visibility`, `gender`, `age_group`, `event_category_ids` | — |
 
 > Admin PUT is a full-field replacement for required fields. Always send all `required: true` fields from the schema even when updating.
 

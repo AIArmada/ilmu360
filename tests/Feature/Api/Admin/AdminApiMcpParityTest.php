@@ -21,6 +21,7 @@ use App\Mcp\Tools\Admin\AdminTriageReportTool;
 use App\Mcp\Tools\Admin\AdminUpdateRecordTool;
 use App\Models\ContributionRequest;
 use App\Models\Event;
+use App\Models\EventSubmission;
 use App\Models\Institution;
 use App\Models\MembershipApplication;
 use App\Models\ModerationReview;
@@ -191,13 +192,13 @@ it('keeps admin api and admin mcp event moderation workflows aligned', function 
 
     $apiEvent = Event::factory()->create([
         'status' => 'pending',
-        'submitter_id' => $submitter->getKey(),
     ]);
+    EventSubmission::factory()->create(['event_id' => $apiEvent->getKey(), 'submitter_id' => $submitter->getKey()]);
 
     $mcpEvent = Event::factory()->create([
         'status' => 'pending',
-        'submitter_id' => $submitter->getKey(),
     ]);
+    EventSubmission::factory()->create(['event_id' => $mcpEvent->getKey(), 'submitter_id' => $submitter->getKey()]);
 
     Sanctum::actingAs($admin);
 
