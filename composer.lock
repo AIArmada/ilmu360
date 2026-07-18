@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "3a523e635f44904c1e13a9af9f43136e",
+    "content-hash": "dfc78571289f721e68a0e876be9f65d4",
     "packages": [
         {
             "name": "aiarmada/addressing",
