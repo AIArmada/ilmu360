@@ -1937,6 +1937,12 @@ class Event extends PackageEvent implements AuditableContract
      */
     public function isPrayerRelative(): bool
     {
+        if ($this->relationLoaded('timeExpressions')) {
+            return $this->timeExpressions->contains(
+                fn (EventTimeExpression $expression): bool => $expression->time_mode === 'prayer_relative',
+            );
+        }
+
         return $this->timeExpressions()
             ->where('time_mode', 'prayer_relative')
             ->exists();
