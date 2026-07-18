@@ -13,7 +13,7 @@ final readonly class EventCategoryPolicy implements EventCategoryPolicyResolver
     /** @var array<string, list<string>> */
     private array $enabledPoliciesByTermSet = [];
 
-    public function __construct(private readonly EventCategoryCatalog $catalog) {}
+    public function __construct(private EventCategoryCatalog $catalog) {}
 
     public function requiresSpeaker(array $termIds): bool
     {
