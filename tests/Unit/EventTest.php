@@ -120,6 +120,32 @@ it('typesense facets the institution location ID', function () {
         ]);
 });
 
+it('keeps the Typesense event schema aligned with searchable filters', function () {
+    $fields = collect(config('scout.typesense.model-settings.'.Event::class.'.collection-schema.fields'))
+        ->keyBy('name');
+
+    expect($fields->get('event_format'))->toMatchArray([
+        'name' => 'event_format',
+        'type' => 'string',
+        'facet' => true,
+    ])
+        ->and($fields->get('gender'))->toMatchArray([
+            'name' => 'gender',
+            'type' => 'string',
+            'facet' => true,
+        ])
+        ->and($fields->get('children_allowed'))->toMatchArray([
+            'name' => 'children_allowed',
+            'type' => 'bool',
+            'facet' => true,
+        ])
+        ->and($fields->get('venue_id'))->toMatchArray([
+            'name' => 'venue_id',
+            'type' => 'string',
+            'facet' => true,
+        ]);
+});
+
 it('searchable payload uses canonical language_codes', function () {
     withGlobalOwnerContext(function (): void {
         $malay = Language::query()->firstOrCreate(

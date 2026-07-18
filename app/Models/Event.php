@@ -1402,6 +1402,7 @@ class Event extends PackageEvent implements AuditableContract
                 ->implode(', '),
             'institution_id' => $this->institution_id,
             'institution_name' => $institution instanceof Institution ? $institution->name : '',
+            'venue_id' => $this->default_venue_id,
             'venue_name' => $venue instanceof Venue ? $venue->name : '',
             'country_code' => $venueAddress->country_code ?? $institutionAddress?->country_code,
             'country_id' => $venueAddress->country_id ?? $institutionAddress?->country_id,
