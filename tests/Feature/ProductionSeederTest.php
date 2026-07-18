@@ -3,6 +3,7 @@
 use App\Models\Space;
 use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\DistrictSeeder;
+use Database\Seeders\FacilityTypeSeeder;
 use Database\Seeders\InspirationSeeder;
 use Database\Seeders\MalaysiaCitySeeder;
 use Database\Seeders\PermissionSeeder;
@@ -78,6 +79,7 @@ it('production seeder only calls deterministic bootstrap seeders', function () {
         ScopedMemberRolesSeeder::class,
         TagSeeder::class,
         UserSeeder::class,
+        FacilityTypeSeeder::class,
         SpaceSeeder::class,
         InspirationSeeder::class,
     ]);

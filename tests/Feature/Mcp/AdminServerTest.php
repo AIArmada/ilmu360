@@ -3056,7 +3056,7 @@ it('denies non-admin users from admin MCP tools', function () {
 
 it('serves an authenticated event stream compatibility endpoint for /mcp/admin', function () {
     $admin = adminMcpUser('super_admin');
-    $token = $admin->createToken('mcp-http-test')->plainTextToken;
+    $token = $admin->createToken('mcp-http-test', [McpTokenManager::ADMIN_ABILITY])->plainTextToken;
 
     $response = $this->withToken($token)
         ->get('/mcp/admin');
@@ -3375,7 +3375,7 @@ it('initializes and lists admin MCP tools over the HTTP endpoint', function () {
     configureGithubIssueReportingForMcp();
 
     $admin = adminMcpUser('super_admin');
-    $token = $admin->createToken('mcp-http-test')->plainTextToken;
+    $token = $admin->createToken('mcp-http-test', [McpTokenManager::ADMIN_ABILITY])->plainTextToken;
 
     $initialize = $this->withToken($token)->postJson('/mcp/admin', [
         'jsonrpc' => '2.0',
@@ -3579,7 +3579,7 @@ it('searches and fetches verified documentation through admin MCP tools', functi
 
 it('auto-injects guide on first operational call and allows the retry in the same MCP session', function () {
     $admin = adminMcpUser('super_admin');
-    $token = $admin->createToken('mcp-admin-preflight-test')->plainTextToken;
+    $token = $admin->createToken('mcp-admin-preflight-test', [McpTokenManager::ADMIN_ABILITY])->plainTextToken;
 
     $initialize = $this->withToken($token)->postJson('/mcp/admin', [
         'jsonrpc' => '2.0',
@@ -3635,7 +3635,7 @@ it('auto-injects guide on first operational call and allows the retry in the sam
 
 it('auto-injects guide via meta-session identity and allows the retry', function () {
     $admin = adminMcpUser('super_admin');
-    $token = $admin->createToken('mcp-admin-preflight-meta-session-test')->plainTextToken;
+    $token = $admin->createToken('mcp-admin-preflight-meta-session-test', [McpTokenManager::ADMIN_ABILITY])->plainTextToken;
     $metaSessionId = 'meta-session-'.Str::lower((string) Str::uuid());
 
     $initialize = $this->withToken($token)->postJson('/mcp/admin', [
@@ -3694,7 +3694,7 @@ it('auto-injects guide via meta-session identity and allows the retry', function
 
 it('auto-injects guide when no session identity is forwarded and allows the retry', function () {
     $admin = adminMcpUser('super_admin');
-    $token = $admin->createToken('mcp-admin-preflight-user-fallback-test')->plainTextToken;
+    $token = $admin->createToken('mcp-admin-preflight-user-fallback-test', [McpTokenManager::ADMIN_ABILITY])->plainTextToken;
 
     $this->withToken($token)->postJson('/mcp/admin', [
         'jsonrpc' => '2.0',
@@ -3757,7 +3757,7 @@ it('lists and reads the documentation routing prompt through the admin MCP serve
             'Fetch `docs-admin-mcp-guide` and focus on the MCP capability matrix, writable resource matrix, and preview sections.',
         ]);
 
-    $token = $admin->createToken('mcp-admin-prompt-list-test')->plainTextToken;
+    $token = $admin->createToken('mcp-admin-prompt-list-test', [McpTokenManager::ADMIN_ABILITY])->plainTextToken;
 
     $initialize = $this->withToken($token)->postJson('/mcp/admin', [
         'jsonrpc' => '2.0',
@@ -3848,7 +3848,7 @@ it('lists and reads verified documentation resources through the admin MCP serve
             '- `venues`',
         ]);
 
-    $token = $admin->createToken('mcp-admin-resource-list-test')->plainTextToken;
+    $token = $admin->createToken('mcp-admin-resource-list-test', [McpTokenManager::ADMIN_ABILITY])->plainTextToken;
 
     $initialize = $this->withToken($token)->postJson('/mcp/admin', [
         'jsonrpc' => '2.0',

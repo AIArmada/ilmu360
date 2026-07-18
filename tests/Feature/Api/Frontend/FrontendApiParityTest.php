@@ -2176,7 +2176,7 @@ it('falls back to the original front cover url in reference directory serializat
                 'author' => null,
                 'type' => null,
                 'publisher' => null,
-                'publication_year' => null,
+                'year' => null,
                 'status' => 'verified',
                 'metadata' => [],
             ]);
@@ -3243,7 +3243,7 @@ it('serializes venue and reference detail payloads with core metadata for mobile
         'author' => 'Penulis API',
         'type' => 'book',
         'publisher' => 'Penerbit API',
-        'publication_year' => 2024,
+        'year' => 2024,
         'description' => 'Reference detail serializer coverage',
         'status' => 'verified',
     ]);

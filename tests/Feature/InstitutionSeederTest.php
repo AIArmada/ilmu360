@@ -8,6 +8,7 @@ use Database\Seeders\DistrictSeeder;
 use Database\Seeders\DonationChannelSeeder;
 use Database\Seeders\EventSeeder;
 use Database\Seeders\EventSubmissionSeeder;
+use Database\Seeders\FacilityTypeSeeder;
 use Database\Seeders\InspirationSeeder;
 use Database\Seeders\InstitutionSeeder;
 use Database\Seeders\LanguageSeeder;
@@ -65,7 +66,7 @@ it('runs the full demo seeding pipeline in the expected order', function () {
         UserSeeder::class,
     ]);
 
-    expect($calledSeederBatches)->toContain([SpaceSeeder::class]);
+    expect($calledSeederBatches)->toContain([FacilityTypeSeeder::class, SpaceSeeder::class]);
     expect($calledSeederBatches)->toContain([InstitutionSeeder::class]);
     expect($calledSeederBatches)->toContain([VenueSeeder::class]);
     expect($calledSeederBatches)->toContain([SpeakerSeeder::class]);
