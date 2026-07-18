@@ -584,8 +584,9 @@ it('filters events by key person roles and role-specific linked speakers', funct
     ]);
 
     $imamEvent->keyPeople()->create([
-        'role' => EventKeyPersonRole::Imam,
-        'speaker_id' => $imamSpeaker->id,
+        'involveable_type' => 'speaker',
+        'involveable_id' => $imamSpeaker->id,
+        'role_code' => EventKeyPersonRole::Imam->value,
         'sort_order' => 1,
         'visibility' => 'public',
     ]);
@@ -596,8 +597,9 @@ it('filters events by key person roles and role-specific linked speakers', funct
     ]);
 
     $moderatedEvent->keyPeople()->create([
-        'role' => EventKeyPersonRole::Moderator,
-        'speaker_id' => $moderatorSpeaker->id,
+        'involveable_type' => 'speaker',
+        'involveable_id' => $moderatorSpeaker->id,
+        'role_code' => EventKeyPersonRole::Moderator->value,
         'sort_order' => 1,
         'visibility' => 'public',
     ]);
@@ -609,8 +611,9 @@ it('filters events by key person roles and role-specific linked speakers', funct
     ]);
 
     $personInChargeEvent->keyPeople()->create([
-        'role' => EventKeyPersonRole::PersonInCharge,
-        'speaker_id' => $personInChargeSpeaker->id,
+        'involveable_type' => 'speaker',
+        'involveable_id' => $personInChargeSpeaker->id,
+        'role_code' => EventKeyPersonRole::PersonInCharge->value,
         'sort_order' => 1,
         'visibility' => 'public',
     ]);
@@ -622,8 +625,8 @@ it('filters events by key person roles and role-specific linked speakers', funct
     ]);
 
     $freeTextPersonInChargeEvent->keyPeople()->create([
-        'role' => EventKeyPersonRole::PersonInCharge,
-        'name' => 'Encik API Free Text PIC',
+        'role_code' => EventKeyPersonRole::PersonInCharge->value,
+        'display_name' => 'Encik API Free Text PIC',
         'sort_order' => 1,
         'visibility' => 'public',
     ]);
@@ -701,8 +704,9 @@ it('includes key person data in the event api response', function () {
     ]);
 
     $event->keyPeople()->create([
-        'role' => EventKeyPersonRole::Imam,
-        'speaker_id' => $imamSpeaker->id,
+        'involveable_type' => 'speaker',
+        'involveable_id' => $imamSpeaker->id,
+        'role_code' => EventKeyPersonRole::Imam->value,
         'sort_order' => 1,
         'visibility' => 'public',
     ]);

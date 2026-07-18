@@ -18,7 +18,6 @@ use App\Enums\TimingMode;
 use App\Models\Event;
 use App\Models\EventSubmission;
 use App\Models\Institution;
-use App\Models\User;
 use App\Services\EventKeyPersonSyncService;
 use Illuminate\Validation\ValidationException;
 
@@ -79,9 +78,7 @@ final readonly class PersistValidatedEventSubmissionAction
                     ? TimingMode::PrayerRelative
                     : TimingMode::Absolute,
                 prayerReference: $submission->prayerReference,
-                prayerOffset: $submission->prayerOffset !== null
-                    ? (int) $submission->prayerOffset
-                    : null,
+                prayerOffset: $submission->prayerOffset,
                 prayerDisplayText: $submission->prayerDisplayText,
             );
         }
@@ -150,7 +147,7 @@ final readonly class PersistValidatedEventSubmissionAction
             'status' => 'pending',
             'submitted_at' => now(),
             'submission_data' => $submissionData,
-            'submitter_type' => $submission->submitter instanceof User ? User::class : null,
+            'submitter_type' => $submission->submitter?->getMorphClass(),
             'submitter_id' => $submission->submitter?->getKey(),
         ]);
 

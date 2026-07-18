@@ -543,18 +543,15 @@ class ContributionEntityMutationService
      */
     private function applyEvent(Event $event, array $payload): array
     {
+        $currentOccurrence = $event->primaryOccurrence;
+        $currentExpression = $event->timeExpressions()
+            ->where('anchor_type', 'prayer')
+            ->first();
+
         $event->forceFill([
             'title' => $payload['title'] ?? $event->title,
             'description' => array_key_exists('description', $payload) ? $payload['description'] : $event->description,
-            'starts_at' => array_key_exists('starts_at', $payload) ? $payload['starts_at'] : $event->starts_at,
-            'ends_at' => array_key_exists('ends_at', $payload) ? $payload['ends_at'] : $event->ends_at,
             'timezone' => array_key_exists('timezone', $payload) ? $payload['timezone'] : $event->timezone,
-            'timing_mode' => array_key_exists('timing_mode', $payload) ? $payload['timing_mode'] : $event->timing_mode,
-            'prayer_reference' => array_key_exists('prayer_reference', $payload) ? $payload['prayer_reference'] : $event->prayer_reference,
-            'prayer_offset' => array_key_exists('prayer_offset', $payload) ? $payload['prayer_offset'] : $event->prayer_offset,
-            'prayer_display_text' => array_key_exists('prayer_display_text', $payload)
-                ? $this->normalizeOptionalString($payload['prayer_display_text'])
-                : $event->prayer_display_text,
             'gender' => array_key_exists('gender', $payload) ? $payload['gender'] : $event->gender,
             'age_group' => array_key_exists('age_group', $payload) ? $this->normalizeStringArray($payload['age_group']) : $event->age_group,
             'children_allowed' => array_key_exists('children_allowed', $payload) ? (bool) $payload['children_allowed'] : $event->children_allowed,
@@ -582,23 +579,28 @@ class ContributionEntityMutationService
         $scheduleKind = $scheduleKind instanceof ScheduleKind
             ? $scheduleKind
             : (ScheduleKind::tryFrom((string) $scheduleKind) ?? ScheduleKind::Single);
-        $timingMode = $payload['timing_mode'] ?? $event->timing_mode;
+        $timingMode = $payload['timing_mode'] ?? ($currentExpression !== null ? TimingMode::PrayerRelative->value : TimingMode::Absolute->value);
         $timingMode = $timingMode instanceof TimingMode
             ? $timingMode
             : TimingMode::tryFrom((string) $timingMode);
-        $prayerOffset = $payload['prayer_offset'] ?? $event->prayer_offset;
+        $currentSignedOffset = $currentExpression?->offset_minutes === null
+            ? null
+            : ($currentExpression->relation === 'before' ? -$currentExpression->offset_minutes : $currentExpression->offset_minutes);
+        $prayerOffset = $payload['prayer_offset'] ?? $currentSignedOffset;
         $prayerOffset = $prayerOffset instanceof PrayerOffset
             ? $prayerOffset->minutes()
-            : PrayerOffset::tryFrom((string) $prayerOffset)?->minutes();
+            : (is_numeric($prayerOffset)
+                ? (int) $prayerOffset
+                : PrayerOffset::tryFrom((string) $prayerOffset)?->minutes());
 
         $scheduleTimezone = is_string($event->timezone) && $event->timezone !== ''
             ? $event->timezone
             : 'UTC';
-        $startsAt = $event->starts_at;
+        $startsAt = array_key_exists('starts_at', $payload) ? $payload['starts_at'] : $currentOccurrence?->starts_at;
         $startsAt = $startsAt instanceof CarbonInterface
             ? $startsAt
             : (is_string($startsAt) && $startsAt !== '' ? Carbon::parse($startsAt, $scheduleTimezone) : null);
-        $endsAt = $event->ends_at;
+        $endsAt = array_key_exists('ends_at', $payload) ? $payload['ends_at'] : $currentOccurrence?->ends_at;
         $endsAt = $endsAt instanceof CarbonInterface
             ? $endsAt
             : (is_string($endsAt) && $endsAt !== '' ? Carbon::parse($endsAt, $scheduleTimezone) : null);
@@ -610,9 +612,11 @@ class ContributionEntityMutationService
             endsAt: $endsAt,
             timezone: $scheduleTimezone,
             timingMode: $timingMode,
-            prayerReference: $payload['prayer_reference'] ?? $event->prayer_reference,
+            prayerReference: $payload['prayer_reference'] ?? $currentExpression?->anchor_code,
             prayerOffset: $prayerOffset,
-            prayerDisplayText: $payload['prayer_display_text'] ?? $event->prayer_display_text,
+            prayerDisplayText: array_key_exists('prayer_display_text', $payload)
+                ? $this->normalizeOptionalString($payload['prayer_display_text'])
+                : $currentExpression?->display_label,
         );
 
         if (array_key_exists('primary_organizer_id', $payload)) {

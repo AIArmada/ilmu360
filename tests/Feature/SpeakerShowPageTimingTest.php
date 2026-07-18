@@ -290,7 +290,6 @@ it('renders speaker page when linked event has online format and no location add
         'delivery_mode' => EventFormat::Online,
         'institution_id' => null,
         'default_venue_id' => null,
-        'space_id' => null,
         'starts_at' => now()->addDay()->setTime(17, 45),
         'ends_at' => now()->addDay()->setTime(19, 15),
         'timing_mode' => TimingMode::Absolute,

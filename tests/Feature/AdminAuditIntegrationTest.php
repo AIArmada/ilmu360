@@ -242,7 +242,7 @@ it('records event submission creation in audits', function () {
         'event_id' => $event->getKey(),
         'status' => 'pending',
         'submitted_at' => now(),
-        'submitter_type' => User::class,
+        'submitter_type' => $administrator->getMorphClass(),
         'submitter_id' => $administrator->getKey(),
         'submission_data' => [
             'submitter_name' => $administrator->name,

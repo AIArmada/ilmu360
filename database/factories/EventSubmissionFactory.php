@@ -18,7 +18,7 @@ class EventSubmissionFactory extends PackageEventSubmissionFactory
     {
         return array_merge(parent::definition(), [
             'event_id' => Event::factory(),
-            'submitter_type' => User::class,
+            'submitter_type' => (new User)->getMorphClass(),
             'submitter_id' => User::factory(),
             'submission_data' => [
                 'submitter_name' => fake()->name(),

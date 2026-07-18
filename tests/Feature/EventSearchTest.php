@@ -555,10 +555,9 @@ describe('Event Search Filters', function () {
             'starts_at' => now()->addDays(1),
         ]);
         $matchEvent->keyPeople()->create([
-            'name' => 'Ustaz Tarmizi Jamaluddin',
-            'role' => EventKeyPersonRole::Speaker,
-            'speaker_id' => null,
-            'order_column' => 1,
+            'display_name' => 'Ustaz Tarmizi Jamaluddin',
+            'role_code' => EventKeyPersonRole::Speaker->value,
+            'sort_order' => 1,
         ]);
 
         $otherEvent = createVisibleEventForSearch([
@@ -569,10 +568,9 @@ describe('Event Search Filters', function () {
             'starts_at' => now()->addDays(1),
         ]);
         $otherEvent->keyPeople()->create([
-            'name' => 'Ustaz Hafiz Rahim',
-            'role' => EventKeyPersonRole::Speaker,
-            'speaker_id' => null,
-            'order_column' => 1,
+            'display_name' => 'Ustaz Hafiz Rahim',
+            'role_code' => EventKeyPersonRole::Speaker->value,
+            'sort_order' => 1,
         ]);
 
         $response = $this->get(eventsIndexUrl('search=Tarmizi'));
@@ -772,9 +770,10 @@ describe('Event Search Filters', function () {
             'starts_at' => now()->addDays(1),
         ]);
         $speakerEvent->keyPeople()->create([
-            'speaker_id' => $speaker->id,
-            'name' => $speaker->name,
-            'role' => EventKeyPersonRole::Speaker,
+            'involveable_type' => 'speaker',
+            'involveable_id' => $speaker->id,
+            'display_name' => $speaker->name,
+            'role_code' => EventKeyPersonRole::Speaker->value,
         ]);
 
         // With speaker scope enabled (default), event surfaces via speaker name.
@@ -1696,9 +1695,10 @@ describe('Event Search Filters', function () {
             'starts_at' => now()->addDay(),
         ]);
         $linkedPicEvent->keyPeople()->create([
-            'role' => EventKeyPersonRole::PersonInCharge,
-            'speaker_id' => $linkedPic->id,
-            'order_column' => 1,
+            'role_code' => EventKeyPersonRole::PersonInCharge->value,
+            'involveable_type' => 'speaker',
+            'involveable_id' => $linkedPic->id,
+            'sort_order' => 1,
             'visibility' => 'public',
         ]);
 
@@ -1710,9 +1710,9 @@ describe('Event Search Filters', function () {
             'starts_at' => now()->addDays(2),
         ]);
         $freeTextPicEvent->keyPeople()->create([
-            'role' => EventKeyPersonRole::PersonInCharge,
-            'name' => 'Encik Free Text Penyelaras',
-            'order_column' => 1,
+            'role_code' => EventKeyPersonRole::PersonInCharge->value,
+            'display_name' => 'Encik Free Text Penyelaras',
+            'sort_order' => 1,
             'visibility' => 'public',
         ]);
 
@@ -1724,9 +1724,9 @@ describe('Event Search Filters', function () {
             'starts_at' => now()->addDays(3),
         ]);
         $otherEvent->keyPeople()->create([
-            'role' => EventKeyPersonRole::Moderator,
-            'name' => 'Encik Free Text Penyelaras',
-            'order_column' => 1,
+            'role_code' => EventKeyPersonRole::Moderator->value,
+            'display_name' => 'Encik Free Text Penyelaras',
+            'sort_order' => 1,
             'visibility' => 'public',
         ]);
 

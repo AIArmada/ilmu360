@@ -114,6 +114,7 @@ class Index extends Component implements HasForms
         $user = auth()->user();
 
         return OwnerContext::withOwner(null, fn (): LengthAwarePaginator => EventSubmission::query()
+            ->where('submitter_type', $user->getMorphClass())
             ->where('submitter_id', $user->id)
             ->whereHas('event', function (Builder $query) use ($user): void {
                 $institutionIdSelector = $this->eventInstitutionIdSelector();

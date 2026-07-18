@@ -1,6 +1,8 @@
 <?php
 
 use AIArmada\CommerceSupport\Models\Role;
+use AIArmada\Events\Enums\ScheduleKind;
+use App\Actions\Events\SyncEventScheduleAction;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
@@ -451,11 +453,14 @@ it('uses event timezone for poster prompt date and time context', function (): v
 
     [$event] = eventImageGenerationEventFixture();
 
-    $event->forceFill([
-        'starts_at' => Carbon::parse('2026-05-07 01:30:00', 'Asia/Kuala_Lumpur')->utc(),
-        'ends_at' => Carbon::parse('2026-05-07 02:30:00', 'Asia/Kuala_Lumpur')->utc(),
-        'timezone' => 'Asia/Kuala_Lumpur',
-    ])->save();
+    $event->forceFill(['timezone' => 'Asia/Kuala_Lumpur'])->save();
+    app(SyncEventScheduleAction::class)->execute(
+        event: $event,
+        scheduleKind: ScheduleKind::Single,
+        startsAt: Carbon::parse('2026-05-07 01:30:00', 'Asia/Kuala_Lumpur')->utc(),
+        endsAt: Carbon::parse('2026-05-07 02:30:00', 'Asia/Kuala_Lumpur')->utc(),
+        timezone: 'Asia/Kuala_Lumpur',
+    );
 
     $promptHarness = new class
     {

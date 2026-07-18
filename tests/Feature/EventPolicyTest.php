@@ -2,6 +2,7 @@
 
 use AIArmada\Membership\Enums\MemberRole;
 use App\Models\Event;
+use App\Models\EventSubmission;
 use App\Models\User;
 use App\States\EventStatus\Approved;
 use App\States\EventStatus\Draft;
@@ -99,8 +100,8 @@ describe('view', function () {
         $user = User::factory()->create();
         $event = Event::factory()->create([
             'visibility' => 'private',
-            'submitter_id' => $user->id,
         ]);
+        EventSubmission::factory()->for($event)->for($user, 'submitter')->create();
 
         expect($user->can('view', $event))->toBeTrue();
     });
@@ -138,9 +139,9 @@ describe('update', function () {
     it('allows submitter to update their draft submissions', function () {
         $user = User::factory()->create();
         $event = Event::factory()->create([
-            'submitter_id' => $user->id,
             'status' => Draft::class,
         ]);
+        EventSubmission::factory()->for($event)->for($user, 'submitter')->create();
 
         expect($user->can('update', $event))->toBeTrue();
     });
@@ -148,9 +149,9 @@ describe('update', function () {
     it('allows submitter to update their pending submissions', function () {
         $user = User::factory()->create();
         $event = Event::factory()->create([
-            'submitter_id' => $user->id,
             'status' => Pending::class,
         ]);
+        EventSubmission::factory()->for($event)->for($user, 'submitter')->create();
 
         expect($user->can('update', $event))->toBeTrue();
     });
@@ -158,9 +159,9 @@ describe('update', function () {
     it('denies submitter from updating approved events', function () {
         $user = User::factory()->create();
         $event = Event::factory()->create([
-            'submitter_id' => $user->id,
             'status' => Approved::class,
         ]);
+        EventSubmission::factory()->for($event)->for($user, 'submitter')->create();
 
         expect($user->can('update', $event))->toBeFalse();
     });

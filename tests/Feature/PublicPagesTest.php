@@ -769,8 +769,6 @@ it('records guest submissions without a submitter id', function () {
     $event = Event::query()->where('title', $title)->first();
 
     expect($event)->not->toBeNull();
-    expect($event?->submitter_id)->toBeNull();
-
     $submission = withGlobalOwnerContext(fn () => EventSubmission::query()->where('event_id', $event->id)->first());
 
     expect($submission)->not->toBeNull();

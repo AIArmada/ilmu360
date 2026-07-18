@@ -4,6 +4,7 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Moderation\Enums\ModerationActionType;
 use AIArmada\Signals\Models\SignalEvent;
 use App\Models\Event;
+use App\Models\EventSubmission;
 use App\Models\Institution;
 use App\Models\ModerationReview;
 use App\Models\Speaker;
@@ -93,8 +94,8 @@ describe('Event Approval', function () {
 
         $event = Event::factory()->create([
             'status' => 'pending',
-            'submitter_id' => $submitter->id,
         ]);
+        EventSubmission::factory()->for($event)->for($submitter, 'submitter')->create();
 
         $this->service->approve($event);
 
@@ -179,8 +180,8 @@ describe('Event Needs Changes', function () {
 
         $event = Event::factory()->create([
             'status' => 'pending',
-            'submitter_id' => $submitter->id,
         ]);
+        EventSubmission::factory()->for($event)->for($submitter, 'submitter')->create();
 
         $this->service->requestChanges(
             $event,
@@ -212,8 +213,8 @@ describe('Event Rejection', function () {
 
         $event = Event::factory()->create([
             'status' => 'pending',
-            'submitter_id' => $submitter->id,
         ]);
+        EventSubmission::factory()->for($event)->for($submitter, 'submitter')->create();
 
         $this->service->reject(
             $event,
@@ -248,8 +249,8 @@ describe('Event Cancellation', function () {
         $event = Event::factory()->create([
             'status' => 'approved',
             'published_at' => now(),
-            'submitter_id' => $submitter->id,
         ]);
+        EventSubmission::factory()->for($event)->for($submitter, 'submitter')->create();
 
         $goingUser->respond($event, 'going');
         $savedUser->bookmark($event);

@@ -157,7 +157,7 @@ class EventCoverPromptBuilder
             'institution.addresses.country',
             'venue.media',
             'venue.addresses.country',
-            'space',
+            'primaryLocation.venueSpace',
             'primaryOrganizerInvolvement.involveable',
             'speakers.media',
             'keyPeople.speaker.media',
@@ -900,7 +900,9 @@ class EventCoverPromptBuilder
     {
         return $event->keyPeople
             ->filter(fn (EventKeyPerson $keyPerson): bool => $this->roleValue($keyPerson->role_code) === EventKeyPersonRole::Speaker->value)
-            ->map(fn (EventKeyPerson $keyPerson): string => $keyPerson->display_name)
+            ->map(fn (EventKeyPerson $keyPerson): string => $keyPerson->speaker instanceof Speaker
+                ? (string) $keyPerson->speaker->name
+                : (string) ($keyPerson->display_name ?? ''))
             ->filter(fn (string $name): bool => trim($name) !== '')
             ->unique()
             ->values()

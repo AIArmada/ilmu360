@@ -294,6 +294,7 @@ class UserDashboard extends Component
         $entries = collect();
 
         $submissions = EventSubmission::query()
+            ->where('submitter_type', $this->user()->getMorphClass())
             ->where('submitter_id', $this->user()->id)
             ->with([
                 'event' => fn ($query) => $query->with($this->plannerEventRelations()),
@@ -562,7 +563,10 @@ class UserDashboard extends Component
     {
         $user = $this->user();
 
-        return $event->userCanManage($user) || EventSubmission::where('event_id', $event->id)->where('submitter_id', $user->id)->exists();
+        return $event->userCanManage($user) || EventSubmission::where('event_id', $event->id)
+            ->where('submitter_type', $user->getMorphClass())
+            ->where('submitter_id', $user->id)
+            ->exists();
     }
 
     /**

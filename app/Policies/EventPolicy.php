@@ -49,7 +49,7 @@ class EventPolicy
         }
 
         // Submitter can view their own submissions
-        if ($event->submissions()->where('submitter_type', $user::class)->where('submitter_id', $user->id)->exists()) {
+        if ($event->submissions()->where('submitter_type', $user->getMorphClass())->where('submitter_id', $user->id)->exists()) {
             return true;
         }
 
@@ -76,7 +76,7 @@ class EventPolicy
         }
 
         // Submitter can update their draft/pending submissions
-        if ($event->submissions()->where('submitter_type', $user::class)->where('submitter_id', $user->id)->exists() && in_array((string) $event->status, ['draft', 'pending', 'needs_changes'])) {
+        if ($event->submissions()->where('submitter_type', $user->getMorphClass())->where('submitter_id', $user->id)->exists() && in_array((string) $event->status, ['draft', 'pending', 'needs_changes'])) {
             return true;
         }
 

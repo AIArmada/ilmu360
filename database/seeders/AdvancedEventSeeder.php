@@ -216,8 +216,6 @@ class AdvancedEventSeeder extends Seeder
             'title' => $title,
             'slug' => Str::slug($title).'-'.Str::lower(Str::random(6)),
             'description' => $description,
-            'starts_at' => $startsAt,
-            'ends_at' => $endsAt,
             'timezone' => $tz,
             'delivery_mode' => EventFormat::Physical,
             'visibility' => EventVisibility::Public,
@@ -228,10 +226,6 @@ class AdvancedEventSeeder extends Seeder
             'status' => 'approved',
             'published_at' => now()->subDay(),
             'schedule_kind' => $scheduleKind->value,
-            'timing_mode' => TimingMode::Absolute->value,
-            'prayer_reference' => null,
-            'prayer_offset' => null,
-            'prayer_display_text' => null,
         ]);
 
         if ($categoryId = array_key_first(app(EventCategoryCatalog::class)->options())) {

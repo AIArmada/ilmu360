@@ -27,7 +27,7 @@ final readonly class ValidatedEventSubmission
         public ?string $targetVenueId,
         public ?EventPrayerTime $prayerTime,
         public ?string $prayerReference,
-        public ?string $prayerOffset,
+        public ?int $prayerOffset,
         public ?string $prayerDisplayText,
         public bool $autoApproved,
         public bool $sessionSubmission,

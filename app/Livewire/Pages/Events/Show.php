@@ -615,6 +615,7 @@ class Show extends Component
         }
 
         return EventSubmission::where('event_id', $event->id)
+            ->where('submitter_type', $user->getMorphClass())
             ->where('submitter_id', $user->id)
             ->exists();
     }

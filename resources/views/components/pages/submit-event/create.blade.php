@@ -1752,13 +1752,10 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
             return false;
         }
 
-        if ($event->user_id === $user->id || $event->submitter_id === $user->id) {
-            return true;
-        }
-
         return EventSubmission::query()
             ->where('event_id', $event->id)
-            ->where('submitted_by', $user->id)
+            ->where('submitter_type', $user->getMorphClass())
+            ->where('submitter_id', $user->id)
             ->exists();
     }
 

@@ -18,12 +18,40 @@ use App\Enums\PrayerReference;
 use App\Enums\TimingMode;
 use App\Models\Event;
 use App\Models\Institution;
+use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
+use WeakMap;
 
 class EventFactory extends PackageEventFactory
 {
     protected $model = Event::class;
+
+    /** @var WeakMap<Event, array<string, mixed>>|null */
+    private static ?WeakMap $scheduleStates = null;
+
+    #[\Override]
+    public function newModel(array $attributes = []): Model
+    {
+        $schedule = [];
+
+        foreach (['starts_at', 'ends_at', 'timing_mode', 'prayer_reference', 'prayer_offset', 'prayer_display_text'] as $key) {
+            if (array_key_exists($key, $attributes)) {
+                $schedule[$key] = $attributes[$key];
+                unset($attributes[$key]);
+            }
+        }
+
+        $event = parent::newModel($attributes);
+
+        if ($event instanceof Event) {
+            self::$scheduleStates ??= new WeakMap;
+            self::$scheduleStates[$event] = $schedule;
+        }
+
+        return $event;
+    }
 
     /**
      * Define the model's default state.
@@ -164,20 +192,51 @@ class EventFactory extends PackageEventFactory
                 return;
             }
 
+            $schedule = self::$scheduleStates !== null && isset(self::$scheduleStates[$event])
+                ? self::$scheduleStates[$event]
+                : [];
+
             if (in_array((string) $event->status, Event::PUBLIC_STATUSES, true) && $event->published_at === null) {
-                $event->published_at = $event->starts_at?->copy()->subDay() ?? now();
+                $startsAt = $schedule['starts_at'] ?? null;
+                $event->published_at = $startsAt instanceof CarbonInterface
+                    ? Carbon::instance($startsAt)->subDay()
+                    : now();
             }
         })->afterCreating(function ($event): void {
             if (! $event instanceof Event) {
                 return;
             }
 
+            $schedule = self::$scheduleStates !== null && isset(self::$scheduleStates[$event])
+                ? self::$scheduleStates[$event]
+                : [];
+            $timingMode = $schedule['timing_mode'] ?? null;
+            $timingMode = $timingMode instanceof TimingMode
+                ? $timingMode
+                : TimingMode::tryFrom((string) $timingMode);
+            $prayerOffset = $schedule['prayer_offset'] ?? null;
+            $prayerOffset = $prayerOffset instanceof PrayerOffset
+                ? $prayerOffset->minutes()
+                : PrayerOffset::tryFrom((string) $prayerOffset)?->minutes();
+            $startsAt = ($schedule['starts_at'] ?? null) instanceof CarbonInterface
+                ? $schedule['starts_at']
+                : null;
+            $endsAt = ($schedule['ends_at'] ?? null) instanceof CarbonInterface
+                ? $schedule['ends_at']
+                : null;
+
             app(SyncEventScheduleAction::class)->execute(
                 event: $event,
                 scheduleKind: ScheduleKind::Single,
-                startsAt: $event->starts_at,
-                endsAt: $event->ends_at,
+                startsAt: $startsAt,
+                endsAt: $endsAt,
                 timezone: $event->timezone,
+                timingMode: $timingMode,
+                prayerReference: ($schedule['prayer_reference'] ?? null) instanceof PrayerReference
+                    ? $schedule['prayer_reference']->value
+                    : ($schedule['prayer_reference'] ?? null),
+                prayerOffset: $prayerOffset,
+                prayerDisplayText: $schedule['prayer_display_text'] ?? null,
             );
 
             $categoryIds = $event->event_category_ids;
@@ -206,9 +265,13 @@ class EventFactory extends PackageEventFactory
                     'registration_required' => true,
                     'capacity' => fake()->numberBetween(30, 300),
                     'walk_in_allowed' => false,
-                    'opens_at' => $event->starts_at->copy()->subDays(7),
-                    'closes_at' => $event->starts_at->copy()->subDays(1),
+                    'opens_at' => $startsAt?->copy()->subDays(7),
+                    'closes_at' => $startsAt?->copy()->subDays(1),
                 ]);
+            }
+
+            if (self::$scheduleStates !== null && isset(self::$scheduleStates[$event])) {
+                unset(self::$scheduleStates[$event]);
             }
         });
     }

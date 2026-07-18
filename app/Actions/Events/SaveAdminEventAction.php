@@ -13,6 +13,7 @@ use App\Enums\EventGenderRestriction;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventPrayerTime;
 use App\Enums\EventVisibility;
+use App\Enums\PrayerOffset;
 use App\Enums\TimingMode;
 use App\Models\Event;
 use App\Models\Institution;
@@ -248,7 +249,9 @@ final readonly class SaveAdminEventAction
             timezone: $schedule['timezone'],
             timingMode: isset($schedule['timing_mode']) ? TimingMode::tryFrom($schedule['timing_mode']) : null,
             prayerReference: $schedule['prayer_reference'],
-            prayerOffset: $schedule['prayer_offset'] !== null ? (int) $schedule['prayer_offset'] : null,
+            prayerOffset: $schedule['prayer_offset'] !== null
+                ? PrayerOffset::tryFrom((string) $schedule['prayer_offset'])?->minutes()
+                : null,
             prayerDisplayText: $schedule['prayer_display_text'],
         );
 

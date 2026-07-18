@@ -125,10 +125,11 @@ describe('Event Search API', function () {
         ]);
 
         $speakerEvent->keyPeople()->create([
-            'speaker_id' => $speaker->id,
-            'name' => $speaker->name,
-            'role' => 'speaker',
-            'order_column' => 1,
+            'involveable_type' => 'speaker',
+            'involveable_id' => $speaker->id,
+            'display_name' => $speaker->name,
+            'role_code' => 'speaker',
+            'sort_order' => 1,
         ]);
 
         $reference = Reference::factory()->create([

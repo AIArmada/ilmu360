@@ -3,6 +3,7 @@
 use App\Enums\EventVisibility;
 use App\Livewire\Pages\Events\Show;
 use App\Models\Event;
+use App\Models\EventSubmission;
 use App\Models\User;
 use Livewire\Livewire;
 
@@ -27,7 +28,6 @@ describe('public events', function () {
 
     it('allows owner to view their public event', function () {
         $event = Event::factory()->create([
-            'user_id' => $this->owner->id,
             'visibility' => EventVisibility::Public,
             'status' => 'approved',
             'published_at' => now(),
@@ -88,7 +88,6 @@ describe('unlisted events', function () {
 
     it('allows owner to view their unlisted event', function () {
         $event = Event::factory()->create([
-            'submitter_id' => $this->owner->id,
             'visibility' => EventVisibility::Unlisted,
             'status' => 'approved',
             'published_at' => now(),
@@ -116,11 +115,11 @@ describe('unlisted events', function () {
 describe('private events', function () {
     it('allows owner to view their private event', function () {
         $event = Event::factory()->create([
-            'user_id' => $this->owner->id,
             'visibility' => EventVisibility::Private,
             'status' => 'approved',
             'published_at' => now(),
         ]);
+        EventSubmission::factory()->for($event)->for($this->owner, 'submitter')->create();
 
         Livewire::actingAs($this->owner)
             ->test(Show::class, ['event' => $event])
@@ -129,11 +128,11 @@ describe('private events', function () {
 
     it('allows submitter to view their private event', function () {
         $event = Event::factory()->create([
-            'submitter_id' => $this->owner->id,
             'visibility' => EventVisibility::Private,
             'status' => 'approved',
             'published_at' => now(),
         ]);
+        EventSubmission::factory()->for($event)->for($this->owner, 'submitter')->create();
 
         Livewire::actingAs($this->owner)
             ->test(Show::class, ['event' => $event])
@@ -142,11 +141,11 @@ describe('private events', function () {
 
     it('returns 404 for other users viewing private event', function () {
         $event = Event::factory()->create([
-            'user_id' => $this->owner->id,
             'visibility' => EventVisibility::Private,
             'status' => 'approved',
             'published_at' => now(),
         ]);
+        EventSubmission::factory()->for($event)->for($this->owner, 'submitter')->create();
 
         Livewire::actingAs($this->otherUser)
             ->test(Show::class, ['event' => $event])
@@ -166,11 +165,11 @@ describe('private events', function () {
 
     it('allows owners to view their private events even when inactive', function () {
         $event = Event::factory()->create([
-            'user_id' => $this->owner->id,
             'visibility' => EventVisibility::Private,
             'status' => 'approved',
             'published_at' => null,
         ]);
+        EventSubmission::factory()->for($event)->for($this->owner, 'submitter')->create();
         $event->updateQuietly(['published_at' => null]);
 
         Livewire::actingAs($this->owner)

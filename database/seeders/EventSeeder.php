@@ -99,7 +99,6 @@ class EventSeeder extends Seeder
                 $events = Event::factory()->count(10)->create([
                     'institution_id' => null,
                     'default_venue_id' => null,
-                    'space_id' => null,
                 ]);
 
                 // Ensure seeded events follow location invariant:
@@ -111,7 +110,6 @@ class EventSeeder extends Seeder
                         $event->update([
                             'institution_id' => null,
                             'default_venue_id' => null,
-                            'space_id' => null,
                         ]);
 
                         continue;
@@ -123,7 +121,6 @@ class EventSeeder extends Seeder
                         $event->update([
                             'institution_id' => null,
                             'default_venue_id' => $randomVenueId,
-                            'space_id' => null,
                         ]);
                     } else {
                         $event->update([
@@ -445,18 +442,23 @@ class EventSeeder extends Seeder
 
             $event = $existingScheduleEvent;
 
+            $persistedEventAttributes = $eventAttributes;
+            foreach (['starts_at', 'ends_at', 'timing_mode', 'prayer_reference', 'prayer_offset', 'prayer_display_text'] as $scheduleKey) {
+                unset($persistedEventAttributes[$scheduleKey]);
+            }
+
             if ($event instanceof Event) {
-                $event->fill($eventAttributes);
+                $event->fill($persistedEventAttributes);
                 $event->save();
             } else {
-                $event = Event::query()->create($eventAttributes);
+                $event = Event::query()->create($persistedEventAttributes);
             }
 
             app(SyncEventScheduleAction::class)->execute(
                 event: $event,
                 scheduleKind: ScheduleKind::tryFrom($eventAttributes['schedule_kind']) ?? ScheduleKind::Single,
-                startsAt: $event->starts_at,
-                endsAt: $event->ends_at,
+                startsAt: $startsAt,
+                endsAt: $endsAt,
                 timezone: $event->timezone,
                 timingMode: TimingMode::tryFrom((string) $eventAttributes['timing_mode']),
                 prayerReference: $eventAttributes['prayer_reference'],

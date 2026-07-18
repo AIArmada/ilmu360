@@ -2880,10 +2880,11 @@ it('searches events by institution, speaker, and reference through admin-search-
     ]);
 
     $speakerEvent->keyPeople()->create([
-        'speaker_id' => $speaker->id,
-        'name' => $speaker->name,
-        'role' => 'speaker',
-        'order_column' => 1,
+        'involveable_type' => 'speaker',
+        'involveable_id' => $speaker->id,
+        'display_name' => $speaker->name,
+        'role_code' => 'speaker',
+        'sort_order' => 1,
     ]);
 
     $reference = Reference::factory()->create([
@@ -4364,9 +4365,10 @@ it('detaches speakers and references when empty route-key arrays are provided vi
     $reference = Reference::factory()->create(['slug' => 'detach-update-reference']);
 
     $event->keyPeople()->create([
-        'speaker_id' => $speaker->id,
-        'role' => 'speaker',
-        'order_column' => 1,
+        'involveable_type' => 'speaker',
+        'involveable_id' => $speaker->id,
+        'role_code' => 'speaker',
+        'sort_order' => 1,
     ]);
     $event->references()->attach($reference->id);
 
@@ -4399,9 +4401,10 @@ it('preserves speakers and references when route-key arrays are omitted via admi
     $reference = Reference::factory()->create(['slug' => 'preserve-update-reference']);
 
     $event->keyPeople()->create([
-        'speaker_id' => $speaker->id,
-        'role' => 'speaker',
-        'order_column' => 1,
+        'involveable_type' => 'speaker',
+        'involveable_id' => $speaker->id,
+        'role_code' => 'speaker',
+        'sort_order' => 1,
     ]);
     $event->references()->attach($reference->id);
 
@@ -4498,14 +4501,16 @@ it('batch-updates events detach or preserve speakers and references based on rou
     $preserveReference = Reference::factory()->create(['slug' => 'batch-preserve-reference']);
 
     $eventToDetach->keyPeople()->create([
-        'speaker_id' => $detachSpeaker->id,
-        'role' => 'speaker',
-        'order_column' => 1,
+        'involveable_type' => 'speaker',
+        'involveable_id' => $detachSpeaker->id,
+        'role_code' => 'speaker',
+        'sort_order' => 1,
     ]);
     $eventToPreserve->keyPeople()->create([
-        'speaker_id' => $preserveSpeaker->id,
-        'role' => 'speaker',
-        'order_column' => 1,
+        'involveable_type' => 'speaker',
+        'involveable_id' => $preserveSpeaker->id,
+        'role_code' => 'speaker',
+        'sort_order' => 1,
     ]);
     $eventToDetach->references()->attach($detachReference->id);
     $eventToPreserve->references()->attach($preserveReference->id);

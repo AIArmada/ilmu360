@@ -46,7 +46,6 @@ use App\States\EventStatus\EventStatus;
 use App\States\EventStatus\Pending;
 use App\Support\Authz\MemberPermissionGate;
 use App\Support\Timezone\UserDateTimeFormatter;
-use BackedEnum;
 use Database\Factories\EventFactory;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
@@ -170,11 +169,6 @@ class Event extends PackageEvent implements AuditableContract
     private ?array $resolvedPosterDimensions = null;
 
     /**
-     * @var array<string, mixed>
-     */
-    private array $pendingScheduleValues = [];
-
-    /**
      * @var Collection<int, Language>|null
      */
     private ?Collection $resolvedLanguageCache = null;
@@ -183,11 +177,6 @@ class Event extends PackageEvent implements AuditableContract
      * @var array<string, string|null>
      */
     private array $pendingLinkWrites = [];
-
-    /**
-     * @var array<string, string|null>
-     */
-    private array $pendingTimeExpressionWrites = [];
 
     /**
      * @var array<string, mixed>
@@ -258,11 +247,8 @@ class Event extends PackageEvent implements AuditableContract
         'title',
         'slug',
         'description',
-        'starts_at',
-        'ends_at',
         'schedule_kind',
         'timezone',
-        'timing_mode',
         'live_url',
         'event_url',
         'recording_url',
@@ -318,14 +304,6 @@ class Event extends PackageEvent implements AuditableContract
     #[\Override]
     public function setAttribute($key, $value): mixed
     {
-        if ($key === 'starts_at' || $key === 'ends_at') {
-            // Schedule values are transient form state; SyncEventScheduleAction
-            // is the only path that persists them to the primary occurrence.
-            $this->pendingScheduleValues[$key] = $value;
-
-            return $this;
-        }
-
         // Product field names → package columns (single store, no dual write).
         if ($key === 'event_format') {
             $normalized = $value instanceof EventFormat ? $value->value : $value;
@@ -352,10 +330,6 @@ class Event extends PackageEvent implements AuditableContract
     public function getAttribute($key): mixed
     {
         if (in_array($key, ['starts_at', 'ends_at'], true)) {
-            if (array_key_exists($key, $this->pendingScheduleValues)) {
-                return $this->pendingScheduleValues[$key];
-            }
-
             return $this->primaryOccurrenceDate($key);
         }
 
@@ -632,37 +606,18 @@ class Event extends PackageEvent implements AuditableContract
 
     public function getTimingModeAttribute(mixed $value): string
     {
-        if (array_key_exists('timing_mode', $this->pendingTimeExpressionWrites)) {
-            return (string) $this->pendingTimeExpressionWrites['timing_mode'];
-        }
-
         return $this->prayerExpression() instanceof EventTimeExpression
             ? TimingMode::PrayerRelative->value
             : TimingMode::Absolute->value;
     }
 
-    public function setTimingModeAttribute(mixed $value): void
-    {
-        $this->pendingTimeExpressionWrites['timing_mode'] = $value instanceof BackedEnum ? $value->value : $value;
-    }
-
     public function getPrayerReferenceAttribute(mixed $value): ?string
     {
-        if (array_key_exists('prayer_reference', $this->pendingTimeExpressionWrites)) {
-            $val = $this->pendingTimeExpressionWrites['prayer_reference'];
-
-            return $val instanceof BackedEnum ? $val->value : $val;
-        }
-
         return $this->prayerExpression()?->anchor_code;
     }
 
     public function getPrayerOffsetAttribute(mixed $value): ?string
     {
-        if (array_key_exists('prayer_offset', $this->pendingTimeExpressionWrites)) {
-            return $this->pendingTimeExpressionWrites['prayer_offset'];
-        }
-
         $expr = $this->prayerExpression();
 
         if ($expr?->offset_minutes === null || $expr->relation === null) {
@@ -682,26 +637,7 @@ class Event extends PackageEvent implements AuditableContract
 
     public function getPrayerDisplayTextAttribute(?string $value): ?string
     {
-        if (array_key_exists('prayer_display_text', $this->pendingTimeExpressionWrites)) {
-            return $this->pendingTimeExpressionWrites['prayer_display_text'];
-        }
-
         return $this->prayerExpression()?->display_label;
-    }
-
-    public function setPrayerReferenceAttribute(mixed $value): void
-    {
-        $this->pendingTimeExpressionWrites['prayer_reference'] = $value;
-    }
-
-    public function setPrayerOffsetAttribute(mixed $value): void
-    {
-        $this->pendingTimeExpressionWrites['prayer_offset'] = $value instanceof BackedEnum ? $value->value : $value;
-    }
-
-    public function setPrayerDisplayTextAttribute(?string $value): void
-    {
-        $this->pendingTimeExpressionWrites['prayer_display_text'] = $value;
     }
 
     private function prayerExpression(): ?EventTimeExpression

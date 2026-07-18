@@ -155,7 +155,7 @@ class SubmitFrontendEventAction
             targetVenueId: $targetVenueId,
             prayerTime: $prayerTime,
             prayerReference: $prayerReference?->value,
-            prayerOffset: $prayerOffset?->value,
+            prayerOffset: $prayerOffset?->minutes(),
             prayerDisplayText: $prayerDisplayText,
             autoApproved: $autoApproved,
             sessionSubmission: $isSessionSubmission,

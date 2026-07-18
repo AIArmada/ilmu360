@@ -358,7 +358,7 @@ class PublishEventChangeAnnouncement
         return [
             'institution:id,name,slug',
             'venue:id,name,slug',
-            'space:id,name,slug',
+            'primaryLocation.venueSpace:id,name,slug',
             'speakerKeyPeople.speaker:id,name,slug',
             'references:id,title,slug',
         ];

@@ -43,7 +43,7 @@ class EventSubmissionSeeder extends Seeder
 
                     $submissionsToInsert[] = [
                         'id' => $submissionId,
-                        'submitter_type' => $submitterId ? User::class : null,
+                        'submitter_type' => $submitterId ? (new User)->getMorphClass() : null,
                         'submitter_id' => $submitterId,
                         'target_type' => Event::class,
                         'target_id' => $event->id,

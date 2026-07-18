@@ -163,32 +163,36 @@ it('deduplicates key person roles in the searchable payload', function () {
         ]);
 
         $event->keyPeople()->create([
-            'speaker_id' => $moderator->getKey(),
-            'role' => EventKeyPersonRole::Moderator,
-            'name' => $moderator->name,
+            'involveable_type' => 'speaker',
+            'involveable_id' => $moderator->getKey(),
+            'role_code' => EventKeyPersonRole::Moderator->value,
+            'display_name' => $moderator->name,
         ]);
 
         $event->keyPeople()->create([
-            'speaker_id' => $moderator->getKey(),
-            'role' => EventKeyPersonRole::Moderator,
-            'name' => $moderator->name,
+            'involveable_type' => 'speaker',
+            'involveable_id' => $moderator->getKey(),
+            'role_code' => EventKeyPersonRole::Moderator->value,
+            'display_name' => $moderator->name,
         ]);
 
         $event->keyPeople()->create([
-            'speaker_id' => $imam->getKey(),
-            'role' => EventKeyPersonRole::Imam,
-            'name' => $imam->name,
+            'involveable_type' => 'speaker',
+            'involveable_id' => $imam->getKey(),
+            'role_code' => EventKeyPersonRole::Imam->value,
+            'display_name' => $imam->name,
         ]);
 
         $event->keyPeople()->create([
-            'speaker_id' => $personInCharge->getKey(),
-            'role' => EventKeyPersonRole::PersonInCharge,
-            'name' => $personInCharge->name,
+            'involveable_type' => 'speaker',
+            'involveable_id' => $personInCharge->getKey(),
+            'role_code' => EventKeyPersonRole::PersonInCharge->value,
+            'display_name' => $personInCharge->name,
         ]);
 
         $event->keyPeople()->create([
-            'role' => EventKeyPersonRole::PersonInCharge,
-            'name' => 'Encik Free Text PIC',
+            'role_code' => EventKeyPersonRole::PersonInCharge->value,
+            'display_name' => 'Encik Free Text PIC',
         ]);
 
         $payload = $event->fresh()->toSearchableArray();

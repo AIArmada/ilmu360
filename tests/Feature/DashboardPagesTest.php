@@ -72,30 +72,29 @@ it('renders the reference-inspired user dashboard with real saved search and not
 
     $user->institutions()->attach($institution->id);
 
-    $savedEvent = Event::factory()->for($otherUser)->for($institution)->create([
+    $savedEvent = Event::factory()->for($otherUser, 'owner')->for($institution)->create([
         'title' => 'Saved Dashboard Event',
         'status' => 'approved',
         'visibility' => 'public',
         'starts_at' => now()->addDays(2),
     ]);
 
-    $goingEvent = Event::factory()->for($otherUser)->for($institution)->create([
+    $goingEvent = Event::factory()->for($otherUser, 'owner')->for($institution)->create([
         'title' => 'Going Dashboard Event',
         'status' => 'approved',
         'visibility' => 'public',
         'starts_at' => now()->addDays(4),
     ]);
 
-    $registeredEvent = Event::factory()->for($otherUser)->for($institution)->create([
+    $registeredEvent = Event::factory()->for($otherUser, 'owner')->for($institution)->create([
         'title' => 'Registered Dashboard Event',
         'status' => 'approved',
         'visibility' => 'public',
         'starts_at' => now()->addDays(5),
     ]);
 
-    $submittedEvent = Event::factory()->for($user)->for($institution)->create([
+    $submittedEvent = Event::factory()->for($user, 'owner')->for($institution)->create([
         'title' => 'Submitted Dashboard Event',
-        'submitter_id' => $user->id,
         'status' => 'pending',
         'visibility' => 'public',
         'starts_at' => now()->addDays(6),
@@ -103,21 +102,21 @@ it('renders the reference-inspired user dashboard with real saved search and not
 
     EventSubmission::factory()->for($submittedEvent)->for($user, 'submitter')->create();
 
-    $checkedInEvent = Event::factory()->for($otherUser)->for($institution)->create([
+    $checkedInEvent = Event::factory()->for($otherUser, 'owner')->for($institution)->create([
         'title' => 'Checked In Dashboard Event',
         'status' => 'approved',
         'visibility' => 'public',
         'starts_at' => now()->subDays(1),
     ]);
 
-    $managedOnlyEvent = Event::factory()->for($otherUser)->for($institution)->create([
+    $managedOnlyEvent = Event::factory()->for($otherUser, 'owner')->for($institution)->create([
         'title' => 'Institution Managed Event',
         'status' => 'approved',
         'visibility' => 'public',
         'starts_at' => now()->addDays(8),
     ]);
 
-    Event::factory()->for($otherUser)->for($otherInstitution)->create([
+    Event::factory()->for($otherUser, 'owner')->for($otherInstitution)->create([
         'title' => 'External Event',
         'status' => 'approved',
         'visibility' => 'public',
@@ -229,14 +228,14 @@ it('shows the redesigned followed-entity category cards on the dashboard', funct
     $institution = Institution::factory()->create(['name' => 'Masjid Al-Hidayah']);
     $followedInstitution = Institution::factory()->create(['name' => 'Masjid Al-Makmur']);
 
-    $savedEvent = Event::factory()->for($otherUser)->for($institution)->create([
+    $savedEvent = Event::factory()->for($otherUser, 'owner')->for($institution)->create([
         'title' => 'Sidebar Saved Event',
         'status' => 'approved',
         'visibility' => 'public',
         'starts_at' => now()->addDays(2),
     ]);
 
-    $goingEvent = Event::factory()->for($otherUser)->for($institution)->create([
+    $goingEvent = Event::factory()->for($otherUser, 'owner')->for($institution)->create([
         'title' => 'Sidebar Going Event',
         'status' => 'approved',
         'visibility' => 'public',
@@ -301,7 +300,7 @@ it('uses institution cover media only for the follow cards and renders reference
 
     $institution = Institution::factory()->create(['name' => 'Masjid Ikuti Utama']);
 
-    Event::factory()->for($otherUser)->for($institution)->create([
+    Event::factory()->for($otherUser, 'owner')->for($institution)->create([
         'title' => 'Follow Cards Event',
         'status' => 'approved',
         'visibility' => 'public',
@@ -347,8 +346,7 @@ it('uses institution cover media only for the follow cards and renders reference
 it('renders a valid event management link on the user dashboard for manageable events', function () {
     $user = User::factory()->create();
 
-    $event = Event::factory()->for($user)->create([
-        'submitter_id' => $user->id,
+    $event = Event::factory()->for($user, 'owner')->create([
         'status' => 'approved',
         'visibility' => 'public',
         'starts_at' => now()->addDays(3),
@@ -400,16 +398,15 @@ it('renders the redesigned dashboard in Malay with reference-inspired sections',
 
     $user->institutions()->attach($institution->id);
 
-    $goingEvent = Event::factory()->for($otherUser)->for($institution)->create([
+    $goingEvent = Event::factory()->for($otherUser, 'owner')->for($institution)->create([
         'title' => 'Majlis Akan Hadir',
         'status' => 'approved',
         'visibility' => 'public',
         'starts_at' => now()->addDays(2),
     ]);
 
-    $submittedEvent = Event::factory()->for($user)->for($institution)->create([
+    $submittedEvent = Event::factory()->for($user, 'owner')->for($institution)->create([
         'title' => 'Majlis Dihantar Sendiri',
-        'submitter_id' => $user->id,
         'status' => 'approved',
         'visibility' => 'public',
         'starts_at' => now()->addDays(3),
@@ -473,7 +470,7 @@ it('paginates redesigned majlis cards when counts exceed the dashboard page size
     $institution = Institution::factory()->create();
 
     foreach (range(1, 8) as $index) {
-        $event = Event::factory()->for($otherUser)->for($institution)->create([
+        $event = Event::factory()->for($otherUser, 'owner')->for($institution)->create([
             'title' => 'Going Page Event '.$index,
             'status' => 'approved',
             'visibility' => 'public',
@@ -720,7 +717,7 @@ it('shows institution profile and events for members without a separate registra
     ]);
 
     $institution->spaces()->syncWithoutDetaching([$space->id]);
-    $eventInInstitution->update(['space_id' => $space->id]);
+    $eventInInstitution->syncLocation(null, $space->id);
     $eventInInstitution->speakers()->attach($speaker->id);
     $eventInInstitution->references()->attach($reference->id);
 
@@ -1022,7 +1019,7 @@ it('filters and sorts institution events on the dedicated event list page', func
         ->assertTableColumnExists('status')
         ->assertTableColumnExists('speaker_names')
         ->assertTableColumnExists('reference_titles')
-        ->assertTableColumnExists('space.name')
+        ->assertTableColumnExists('primaryLocation.venueSpace.name')
         ->assertTableColumnExists('dashboard_registrations_count')
         ->assertTableColumnExists('visibility')
         ->assertTableColumnExists('status')
@@ -1355,9 +1352,7 @@ it('does not expose removed advanced schedule urls', function () {
     $owner = User::factory()->create();
     $otherUser = User::factory()->create();
 
-    $event = Event::factory()->create([
-        'user_id' => $owner->id,
-        'submitter_id' => $owner->id,
+    $event = Event::factory()->for($owner, 'owner')->create([
         'status' => 'draft',
     ]);
 

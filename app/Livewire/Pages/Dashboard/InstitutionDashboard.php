@@ -653,7 +653,7 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
                         ->filter(fn (mixed $title): bool => is_string($title) && trim($title) !== '')
                         ->map(fn (string $title): string => trim($title))
                         ->implode(', ') ?: null),
-                TextColumn::make('space.name')
+                TextColumn::make('primaryLocation.venueSpace.name')
                     ->label(__('Location'))
                     ->placeholder('-')
                     ->wrap(),
@@ -732,7 +732,7 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
             ->with([
                 'institution.media',
                 'media',
-                'space:id,name',
+                'primaryLocation.venueSpace:id,name',
                 'venue:id,name',
             ])
             ->withCount(['registrations as dashboard_registrations_count']);

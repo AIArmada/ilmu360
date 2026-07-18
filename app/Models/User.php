@@ -952,6 +952,7 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
     public function submittedEvents(): HasManyThrough
     {
         return $this->hasManyThrough(Event::class, EventSubmission::class, 'submitter_id', 'id', 'id', 'event_id')
+            ->where((new EventSubmission)->getTable().'.submitter_type', $this->getMorphClass())
             ->select((new Event)->getTable().'.*');
     }
 
@@ -960,7 +961,8 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
      */
     public function eventSubmissions(): HasMany
     {
-        return $this->hasMany(EventSubmission::class, 'submitter_id');
+        return $this->hasMany(EventSubmission::class, 'submitter_id')
+            ->where('submitter_type', $this->getMorphClass());
     }
 
     /**

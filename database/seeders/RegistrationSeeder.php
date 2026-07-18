@@ -80,6 +80,7 @@ class RegistrationSeeder extends Seeder
                         $registration->save();
 
                         $participant = $registration->participants()->create([
+                            'id' => (string) Str::uuid(),
                             'event_id' => $registration->event_id,
                             'event_occurrence_id' => $registration->event_occurrence_id,
                             'event_session_id' => $registration->event_session_id,
