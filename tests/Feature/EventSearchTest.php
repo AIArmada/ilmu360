@@ -939,9 +939,14 @@ describe('Event Search Filters', function () {
     it('keeps the best textual event title match inside the capped fuzzy candidate set', function () {
         config()->set('scout.driver', 'collection');
 
-        foreach (range(1, 260) as $index) {
+        // ponytail: fuzzyCandidateLimit() = 250, so 251 events is enough to test the cap.
+        // Ponytail: reuse one institution to avoid 251 extra factory creates.
+        $institution = Institution::factory()->create();
+
+        foreach (range(1, 251) as $index) {
             createVisibleEventForSearch([
                 'title' => "Samadx Alpha {$index}",
+                'institution_id' => $institution->id,
                 'status' => 'approved',
                 'visibility' => 'public',
                 'published_at' => now(),

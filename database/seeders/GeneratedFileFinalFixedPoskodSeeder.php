@@ -24,7 +24,14 @@ class GeneratedFileFinalFixedPoskodSeeder extends Seeder
 {
     use SeedsPackageAddresses;
 
-    private const string CSV_PATH = 'seeders/Generated_File_Final_Fixed_Poskod.csv';
+    private const string DEFAULT_CSV_PATH = 'seeders/Generated_File_Final_Fixed_Poskod.csv';
+
+    private string $csvPath;
+
+    public function __construct(?string $csvPath = null)
+    {
+        $this->csvPath = $csvPath ?? database_path(self::DEFAULT_CSV_PATH);
+    }
 
     /**
      * @var array<string, string>
@@ -104,7 +111,7 @@ class GeneratedFileFinalFixedPoskodSeeder extends Seeder
 
     public function run(): void
     {
-        $csvPath = database_path(self::CSV_PATH);
+        $csvPath = $this->csvPath;
 
         if (! File::exists($csvPath)) {
             throw new RuntimeException('CSV file not found: '.$csvPath);

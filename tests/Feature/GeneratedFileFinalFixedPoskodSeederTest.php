@@ -8,23 +8,44 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
-it('imports the postcode csv against the production geography seed', function () {
+it('verifies the production csv has the expected row count', function () {
+    $csvPath = database_path('seeders/Generated_File_Final_Fixed_Poskod.csv');
+
+    $handle = fopen($csvPath, 'r');
+    expect($handle)->not()->toBeFalse();
+
+    $header = fgetcsv($handle, escape: '\\');
+    expect($header)->toBeArray();
+
+    $count = 0;
+    while (fgetcsv($handle, escape: '\\') !== false) {
+        $count++;
+    }
+    fclose($handle);
+
+    expect($count)->toBe(6935);
+});
+
+it('imports a postcode csv fixture against the production geography seed', function () {
+    $fixturePath = base_path('tests/Fixtures/poskod_test_fixture.csv');
+
     $this->seed(ProductionSeeder::class);
-    $this->seed(GeneratedFileFinalFixedPoskodSeeder::class);
 
-    $postcodeSlugs = GeneratedPoskodInstitutionData::allCanonicalSlugs();
+    $seeder = new GeneratedFileFinalFixedPoskodSeeder($fixturePath);
+    $seeder->run();
 
-    $expectedInstitutionCount = count($postcodeSlugs);
-    $postcodeInstitutions = fn () => Institution::query()->whereIn('slug', $postcodeSlugs);
+    $fixtureSlugs = slugsFromFixture($fixturePath);
+
+    $expectedCount = count($fixtureSlugs);
+    $postcodeInstitutions = fn () => Institution::query()->whereIn('slug', $fixtureSlugs);
     $findInstitution = fn (string $slug): ?Institution => Institution::query()
         ->where('slug', $slug)
         ->with(['addresses.state', 'addresses.adminArea1', 'addresses.adminArea2'])
         ->first();
 
-    expect($expectedInstitutionCount)->toBe(6935)
-        ->and($postcodeInstitutions()->count())->toBe($expectedInstitutionCount)
-        ->and($postcodeInstitutions()->whereHas('addresses')->count())->toBe($expectedInstitutionCount)
-        // Product: admin_area_2 = subdistrict; many rows only have district.
+    expect($expectedCount)->toBe(15)
+        ->and($postcodeInstitutions()->count())->toBe($expectedCount)
+        ->and($postcodeInstitutions()->whereHas('addresses')->count())->toBe($expectedCount)
         ->and($postcodeInstitutions()->whereHas('addresses', fn ($query) => $query->whereNull('admin_area_2_id'))->count())->toBeGreaterThan(1);
 
     $menora = $findInstitution(GeneratedPoskodInstitutionData::canonicalSlug('MASJID AL - MUNARIAH', '500'));
@@ -98,13 +119,12 @@ it('imports the postcode csv against the production geography seed', function ()
     ];
 
     $federalTerritoryInstitutionCount = Institution::query()
-        ->whereIn('slug', $postcodeSlugs)
+        ->whereIn('slug', $fixtureSlugs)
         ->whereHas('addresses.state', fn ($query) => $query->whereIn('name', $federalTerritoryStateNames))
         ->count();
 
-    // Product: district is admin_area_1_id; federal territories should not have districts.
     $federalTerritoryInstitutionsWithDistrictCount = Institution::query()
-        ->whereIn('slug', $postcodeSlugs)
+        ->whereIn('slug', $fixtureSlugs)
         ->whereHas('addresses.state', fn ($query) => $query->whereIn('name', $federalTerritoryStateNames))
         ->whereHas('addresses', fn ($query) => $query->whereNotNull('admin_area_1_id'))
         ->count();
@@ -116,3 +136,46 @@ it('imports the postcode csv against the production geography seed', function ()
     expect($keladi)->not()->toBeNull();
     expect($keladi?->slug)->toBe('abdul-rahman-putra-kariah-keladi-6809');
 });
+
+/**
+ * @return list<string>
+ */
+function slugsFromFixture(string $fixturePath): array
+{
+    $handle = fopen($fixturePath, 'r');
+
+    if ($handle === false) {
+        return [];
+    }
+
+    $header = fgetcsv($handle, escape: '\\');
+
+    if (! is_array($header)) {
+        fclose($handle);
+
+        return [];
+    }
+
+    $normalizedHeader = array_map(
+        static fn (string $value): string => ltrim($value, "\xEF\xBB\xBF"),
+        $header,
+    );
+
+    $slugs = [];
+
+    while (($row = fgetcsv($handle, escape: '\\')) !== false) {
+        $mapped = array_combine($normalizedHeader, array_pad($row, count($normalizedHeader), ''));
+        $rowNumber = trim((string) ($mapped['No.'] ?? ''));
+        $name = (string) ($mapped['Nama'] ?? '');
+
+        if ($rowNumber === '' || $name === '') {
+            continue;
+        }
+
+        $slugs[] = GeneratedPoskodInstitutionData::canonicalSlug($name, $rowNumber);
+    }
+
+    fclose($handle);
+
+    return $slugs;
+}

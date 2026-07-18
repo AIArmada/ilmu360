@@ -573,12 +573,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/AIArmada/filament-authz.git",
-                "reference": "645061a864c8dba6f8e1fe4a3167506f589bf33e"
+                "reference": "1dd94435203e1934f41267459ad50d1cf520240c"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/AIArmada/filament-authz/zipball/645061a864c8dba6f8e1fe4a3167506f589bf33e",
-                "reference": "645061a864c8dba6f8e1fe4a3167506f589bf33e",
+                "url": "https://api.github.com/repos/AIArmada/filament-authz/zipball/1dd94435203e1934f41267459ad50d1cf520240c",
+                "reference": "1dd94435203e1934f41267459ad50d1cf520240c",
                 "shasum": ""
             },
             "require": {
@@ -587,6 +587,10 @@
                 "filament/filament": "^5.6.7",
                 "php": "^8.4",
                 "spatie/laravel-permission": "^8.0.0"
+            },
+            "suggest": {
+                "aiarmada/affiliates": "Optional integration",
+                "aiarmada/filament-affiliates": "Optional integration"
             },
             "default-branch": true,
             "type": "library",
@@ -611,7 +615,7 @@
                 "issues": "https://github.com/AIArmada/filament-authz/issues",
                 "source": "https://github.com/AIArmada/filament-authz/tree/main"
             },
-            "time": "2026-07-02T23:18:49+00:00"
+            "time": "2026-07-18T18:00:13+00:00"
         },
         {
             "name": "aiarmada/filament-commerce-support",
