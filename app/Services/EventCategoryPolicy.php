@@ -8,7 +8,7 @@ use App\Contracts\EventCategoryCatalog;
 use App\Contracts\EventCategoryPolicyResolver;
 use App\Models\EventTermPolicy;
 
-final readonly class EventCategoryPolicy implements EventCategoryPolicyResolver
+final class EventCategoryPolicy implements EventCategoryPolicyResolver
 {
     /** @var array<string, list<string>> */
     private array $enabledPoliciesByTermSet = [];
