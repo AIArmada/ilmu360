@@ -165,14 +165,6 @@
             "name": "filament",
             "type": "composer",
             "url": "https://packages.filamentphp.com/composer"
-        },
-        {
-            "type": "path",
-            "url": "/Users/Saiffil/Herd/commerce/packages/filament-events"
-        },
-        {
-            "type": "path",
-            "url": "/Users/Saiffil/Herd/commerce/packages/events"
         }
     ]
 }

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "703d3b6d3163b6c1dea2ed2b2fb26116",
+    "content-hash": "dfc78571289f721e68a0e876be9f65d4",
     "packages": [
         {
             "name": "aiarmada/addressing",
@@ -443,10 +443,16 @@
         {
             "name": "aiarmada/events",
             "version": "dev-main",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/AIArmada/events.git",
+                "reference": "d02f40ffee23f9059e3976b33709b4ff5c0725ef"
+            },
             "dist": {
-                "type": "path",
-                "url": "/Users/Saiffil/Herd/commerce/packages/events",
-                "reference": "2343ad22404cc66d60b5d5429a35ea00e4f3c666"
+                "type": "zip",
+                "url": "https://api.github.com/repos/AIArmada/events/zipball/d02f40ffee23f9059e3976b33709b4ff5c0725ef",
+                "reference": "d02f40ffee23f9059e3976b33709b4ff5c0725ef",
+                "shasum": ""
             },
             "require": {
                 "aiarmada/commerce-support": "self.version",
@@ -470,26 +476,28 @@
                 "aiarmada/orders": "Enables order-item fulfillment and event order completion sync.",
                 "aiarmada/products": "Enables product/variant relationships for tickets and merchandise."
             },
+            "default-branch": true,
             "type": "library",
             "extra": {
                 "laravel": {
-                    "providers": [
-                        "AIArmada\\Events\\EventsServiceProvider"
-                    ],
                     "aliases": {
                         "Events": "AIArmada\\Events\\Facades\\Events"
-                    }
+                    },
+                    "providers": [
+                        "AIArmada\\Events\\EventsServiceProvider"
+                    ]
                 }
             },
             "autoload": {
+                "files": [
+                    "src/helpers.php"
+                ],
                 "psr-4": {
                     "AIArmada\\Events\\": "src/",
                     "AIArmada\\Events\\Database\\Factories\\": "database/factories"
-                },
-                "files": [
-                    "src/helpers.php"
-                ]
+                }
             },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
@@ -509,9 +517,11 @@
                 "ticketing",
                 "venues"
             ],
-            "transport-options": {
-                "relative": false
-            }
+            "support": {
+                "issues": "https://github.com/AIArmada/events/issues",
+                "source": "https://github.com/AIArmada/events/tree/main"
+            },
+            "time": "2026-07-19T20:44:15+00:00"
         },
         {
             "name": "aiarmada/filament-addressing",
@@ -803,10 +813,16 @@
         {
             "name": "aiarmada/filament-events",
             "version": "dev-main",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/AIArmada/filament-events.git",
+                "reference": "abde540be194506db446319bcacc9caef5b238bc"
+            },
             "dist": {
-                "type": "path",
-                "url": "/Users/Saiffil/Herd/commerce/packages/filament-events",
-                "reference": "e6fad1333e9b9a5145743246504a335d2749694d"
+                "type": "zip",
+                "url": "https://api.github.com/repos/AIArmada/filament-events/zipball/abde540be194506db446319bcacc9caef5b238bc",
+                "reference": "abde540be194506db446319bcacc9caef5b238bc",
+                "shasum": ""
             },
             "require": {
                 "aiarmada/commerce-support": "self.version",
@@ -818,6 +834,7 @@
                 "aiarmada/customers": "Optional integration",
                 "aiarmada/ticketing": "Optional integration"
             },
+            "default-branch": true,
             "type": "library",
             "extra": {
                 "laravel": {
@@ -831,13 +848,16 @@
                     "AIArmada\\FilamentEvents\\": "src/"
                 }
             },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
             "description": "Filament admin for aiarmada/events: manage events, occurrences, registrations, attendance, venues.",
-            "transport-options": {
-                "relative": false
-            }
+            "support": {
+                "issues": "https://github.com/AIArmada/filament-events/issues",
+                "source": "https://github.com/AIArmada/filament-events/tree/main"
+            },
+            "time": "2026-07-19T20:44:06+00:00"
         },
         {
             "name": "aiarmada/filament-inventory",
