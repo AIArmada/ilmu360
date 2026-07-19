@@ -2178,6 +2178,7 @@ it('falls back to the original front cover url in reference directory serializat
                 'publisher' => null,
                 'year' => null,
                 'status' => 'verified',
+                'verified_by' => null,
                 'metadata' => [],
             ]);
             $this->exists = true;
