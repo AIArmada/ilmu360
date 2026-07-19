@@ -446,12 +446,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/AIArmada/events.git",
-                "reference": "f10ce8de7b9180b2f529cf4d8560f10577165dc5"
+                "reference": "7bcb04c701fe60c020fe10bec0a4c27f4bcccb20"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/AIArmada/events/zipball/f10ce8de7b9180b2f529cf4d8560f10577165dc5",
-                "reference": "f10ce8de7b9180b2f529cf4d8560f10577165dc5",
+                "url": "https://api.github.com/repos/AIArmada/events/zipball/7bcb04c701fe60c020fe10bec0a4c27f4bcccb20",
+                "reference": "7bcb04c701fe60c020fe10bec0a4c27f4bcccb20",
                 "shasum": ""
             },
             "require": {
@@ -521,7 +521,7 @@
                 "issues": "https://github.com/AIArmada/events/issues",
                 "source": "https://github.com/AIArmada/events/tree/main"
             },
-            "time": "2026-07-18T13:22:31+00:00"
+            "time": "2026-07-19T11:56:34+00:00"
         },
         {
             "name": "aiarmada/filament-addressing",
@@ -1208,12 +1208,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/AIArmada/references.git",
-                "reference": "a71e2a7b27d505c029e2f9f97c29bb39ff071f50"
+                "reference": "e20fefee418d29ef5cb2979ba72fb7cf320daff5"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/AIArmada/references/zipball/a71e2a7b27d505c029e2f9f97c29bb39ff071f50",
-                "reference": "a71e2a7b27d505c029e2f9f97c29bb39ff071f50",
+                "url": "https://api.github.com/repos/AIArmada/references/zipball/e20fefee418d29ef5cb2979ba72fb7cf320daff5",
+                "reference": "e20fefee418d29ef5cb2979ba72fb7cf320daff5",
                 "shasum": ""
             },
             "require": {
@@ -1248,7 +1248,7 @@
                 "issues": "https://github.com/AIArmada/references/issues",
                 "source": "https://github.com/AIArmada/references/tree/main"
             },
-            "time": "2026-07-18T10:23:31+00:00"
+            "time": "2026-07-19T11:40:19+00:00"
         },
         {
             "name": "aiarmada/seating",
