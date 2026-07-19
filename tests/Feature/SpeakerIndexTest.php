@@ -85,7 +85,7 @@ it('shows the total speaker count on the speaker index', function () {
     get('/penceramah?search='.urlencode($searchPrefix))
         ->assertSuccessful()
         ->assertSee('Direktori Penceramah')
-        ->assertSee('Jumlah penceramah: 2');
+        ->assertSee('2 penceramah ditemui');
 });
 
 it('uses a stable random speaker order instead of alphabetical sorting', function () {
@@ -136,7 +136,7 @@ it('renders translated search placeholder on speaker index', function () {
 
     get('/penceramah')
         ->assertSuccessful()
-        ->assertSee(__('Search speakers...'));
+        ->assertSee(__('Cari nama penceramah…'));
 });
 
 it('renders the search clear control as an icon button instead of text', function () {
@@ -147,16 +147,16 @@ it('renders the search clear control as an icon button instead of text', functio
 
     get('/penceramah?search=samad')
         ->assertSuccessful()
-        ->assertSee('aria-label="Clear search"', false)
-        ->assertDontSee('>Clear<', false);
+        ->assertSee('aria-label="'.__('Kosongkan carian').'"', false)
+        ->assertDontSee('aria-label="Clear"', false);
 });
 
 it('shows add-missing-speaker call to action on speaker index', function () {
     get('/penceramah')
         ->assertSuccessful()
-        ->assertSee('Tak jumpa penceramah yang anda cari? Cadangkan profil baharu.')
-        ->assertSee('Bantu kami tambah ustaz, ustazah, asatizah, dan pendakwah yang patut ditemui ramai. Hantaran anda akan disemak dahulu sebelum dipaparkan kepada umum.')
-        ->assertSee('Cadangkan penceramah baharu');
+        ->assertSee(__('Kenal penceramah yang belum tersenarai?'))
+        ->assertSee(__('Bantu masyarakat menemui lebih banyak guru dan pendakwah. Setiap cadangan akan melalui proses semakan sebelum diterbitkan.'))
+        ->assertSee(__('Cadangkan penceramah'));
 });
 
 it('supports fuzzy search with minor typos', function () {
@@ -200,9 +200,9 @@ it('shows the empty state when speaker search has no public matches', function (
 
     get('/penceramah?search=ammar')
         ->assertSuccessful()
-        ->assertSee(__('No speakers found'))
-        ->assertSee("We couldn't find any speakers matching your search.")
-        ->assertDontSee('Jumlah penceramah:');
+        ->assertSee(__('Penceramah tidak ditemui'))
+        ->assertSee(__('Tiada profil sepadan dengan carian anda. Cuba ejaan lain atau kosongkan carian untuk melihat seluruh direktori.'))
+        ->assertDontSee('penceramah ditemui');
 });
 
 it('updates search results live when query changes', function () {

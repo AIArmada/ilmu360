@@ -48,8 +48,8 @@ it('shows a reveal control for long speaker biodata', function () {
     $this->get(route('speakers.show', $speaker))
         ->assertSuccessful()
         ->assertSee('Biodata')
-        ->assertSee('Lihat biodata penuh')
-        ->assertSee('max-h-80 overflow-hidden', false);
+        ->assertSee(__('Baca biodata penuh'))
+        ->assertSee('max-h-[26rem] overflow-hidden', false);
 });
 
 it('does not show the biodata reveal control for short speaker biodata', function () {

@@ -67,6 +67,7 @@ it('serializes speaker detail and directory schemas to nested arrays', function 
                 gender: 'male',
                 formatted_name: 'Ustaz Adam Yusuf',
                 status: 'verified',
+                verified_by: null,
                 events_count: 4,
                 avatar_url: 'https://example.test/speaker-avatar.jpg',
                 country: sampleCountrySchema(),
@@ -176,6 +177,7 @@ function sampleInstitutionSchema(): Institution
         display_name: 'Masjid Sultan Salahuddin Abdul Aziz Shah (Masjid Biru)',
         description: 'Pusat komuniti dan kuliah.',
         status: 'verified',
+        verified_by: null,
         type: 'mosque',
         type_label: 'Masjid',
         address_line: 'Persiaran Masjid, Seksyen 14',
@@ -213,6 +215,7 @@ function sampleSpeakerSchema(): Speaker
         country: sampleCountrySchema(),
         location: 'Shah Alam, Selangor',
         status: 'verified',
+        verified_by: null,
         is_following: true,
         media: [
             'avatar_url' => 'https://example.test/speaker-avatar.jpg',

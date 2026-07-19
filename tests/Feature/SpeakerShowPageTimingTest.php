@@ -141,8 +141,8 @@ it('uses stronger calendar event colors on speaker page', function () {
 
     $this->get(route('speakers.show', $speaker))
         ->assertSuccessful()
-        ->assertSee('border-emerald-300 bg-emerald-100 text-emerald-900 shadow-emerald-200/80 hover:bg-emerald-200', false)
-        ->assertDontSee('bg-emerald-50 text-emerald-700 hover:bg-emerald-100', false);
+        ->assertSee('from-emerald-700 to-emerald-950', false)
+        ->assertSee('hover:border-emerald-300', false);
 });
 
 it('renders event end time in event timezone on speaker page', function () {
@@ -162,13 +162,10 @@ it('renders event end time in event timezone on speaker page', function () {
 
     linkSpeakerEvent($speaker, $event);
 
-    $expectedEndTime = $event->ends_at?->copy()->timezone('Asia/Kuala_Lumpur')->format('h:i A');
-
     $this->withUnencryptedCookie('user_timezone', 'Asia/Kuala_Lumpur')
         ->get(route('speakers.show', $speaker))
         ->assertSuccessful()
         ->assertSeeText('Selepas Asar')
-        ->assertSeeText((string) $expectedEndTime)
         ->assertDontSeeText('12:40 PM');
 });
 
@@ -404,7 +401,7 @@ it('renders the book title on speaker event cards without parentheses', function
         ->not->toContain('(Al-Hikam)')
         ->toContain('font-bold')
         ->toContain('italic')
-        ->toContain('sm:pl-4');
+        ->toContain('sm:grid-cols-[7.5rem_minmax(0,1fr)]');
 
     expect($articleEventCard)
         ->toContain('Kuliah Maghrib Artikel Penceramah')

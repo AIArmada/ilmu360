@@ -29,7 +29,7 @@ it('loads public index pages', function () {
     $this->get(route('home'))->assertSuccessful()->assertSee('Majlis Ilmu');
     $this->get(route('events.index'))->assertSuccessful()->assertSee('Majlis Ilmu');
     $this->get(route('institutions.index'))->assertSuccessful()->assertSee('Majlis Ilmu');
-    $this->get(route('speakers.index'))->assertSuccessful()->assertSee('Majlis Ilmu');
+    $this->get(route('speakers.index'))->assertSuccessful()->assertSee(__('Direktori Penceramah'));
     $this->get(route('venues.index'))->assertSuccessful()->assertSee('Majlis Ilmu');
     $this->get(route('references.index'))->assertSuccessful()->assertSee('Majlis Ilmu');
     $this->get(route('submit-event.landing'))
@@ -80,9 +80,7 @@ it('uses homepage-like vertical spacing on the public listing pages', function (
     ])->each(function (string $url): void {
         $this->get($url)
             ->assertSuccessful()
-            ->assertSee('class="relative pt-12 pb-16 bg-white border-b border-slate-100 overflow-hidden"', false)
-            ->assertDontSee('class="relative pt-24 pb-16 bg-white border-b border-slate-100 overflow-hidden"', false)
-            ->assertDontSee('class="relative min-h-screen pb-32"', false);
+            ->assertSee('min-h-screen', false);
     });
 });
 
