@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Spaces;
 
+use AIArmada\FilamentEvents\Resources\VenueSpaceResource;
 use App\Filament\RelationManagers\AuditsRelationManager;
 use App\Filament\Resources\Spaces\Pages\CreateSpace;
 use App\Filament\Resources\Spaces\Pages\EditSpace;
@@ -15,21 +16,16 @@ use App\Filament\Resources\Spaces\Schemas\SpaceForm;
 use App\Filament\Resources\Spaces\Schemas\SpaceInfolist;
 use App\Filament\Resources\Spaces\Tables\SpacesTable;
 use App\Models\Space;
-use BackedEnum;
-use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables\Table;
-use UnitEnum;
 
-class SpaceResource extends Resource
+class SpaceResource extends VenueSpaceResource
 {
     protected static ?string $model = Space::class;
 
-    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-squares-2x2';
-
     protected static ?string $recordTitleAttribute = 'name';
 
-    protected static string|UnitEnum|null $navigationGroup = 'Directory';
+    protected static string|\UnitEnum|null $navigationGroup = 'Directory';
 
     #[\Override]
     public static function form(Schema $schema): Schema

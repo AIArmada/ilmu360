@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "dfc78571289f721e68a0e876be9f65d4",
+    "content-hash": "de5092cbb5e24ff54ddbd86e6ce24406",
     "packages": [
         {
             "name": "aiarmada/addressing",
@@ -813,16 +813,10 @@
         {
             "name": "aiarmada/filament-events",
             "version": "dev-main",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/AIArmada/filament-events.git",
-                "reference": "56b4c9aa2b1285e49e27646ec72e13c19d203d1b"
-            },
             "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/AIArmada/filament-events/zipball/56b4c9aa2b1285e49e27646ec72e13c19d203d1b",
-                "reference": "56b4c9aa2b1285e49e27646ec72e13c19d203d1b",
-                "shasum": ""
+                "type": "path",
+                "url": "/Users/Saiffil/Herd/commerce/packages/filament-events",
+                "reference": "e6fad1333e9b9a5145743246504a335d2749694d"
             },
             "require": {
                 "aiarmada/commerce-support": "self.version",
@@ -834,7 +828,6 @@
                 "aiarmada/customers": "Optional integration",
                 "aiarmada/ticketing": "Optional integration"
             },
-            "default-branch": true,
             "type": "library",
             "extra": {
                 "laravel": {
@@ -848,16 +841,13 @@
                     "AIArmada\\FilamentEvents\\": "src/"
                 }
             },
-            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
             "description": "Filament admin for aiarmada/events: manage events, occurrences, registrations, attendance, venues.",
-            "support": {
-                "issues": "https://github.com/AIArmada/filament-events/issues",
-                "source": "https://github.com/AIArmada/filament-events/tree/main"
-            },
-            "time": "2026-07-19T15:50:52+00:00"
+            "transport-options": {
+                "relative": false
+            }
         },
         {
             "name": "aiarmada/filament-inventory",
