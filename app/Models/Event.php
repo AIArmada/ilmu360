@@ -1628,21 +1628,6 @@ class Event extends PackageEvent implements AuditableContract
     }
 
     /**
-     * @return HasMany<EventEscalation, $this>
-     */
-    public function escalations(): HasMany
-    {
-        return $this->hasMany(EventEscalation::class);
-    }
-
-    public function resolveEscalations(): void
-    {
-        $this->escalations()
-            ->whereNull('resolved_at')
-            ->update(['resolved_at' => now()]);
-    }
-
-    /**
      * @return HasOne<ModerationReview, $this>
      */
     public function latestModerationReview(): HasOne

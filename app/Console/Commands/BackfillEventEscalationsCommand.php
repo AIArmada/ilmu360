@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use AIArmada\Events\Enums\EventEscalationType;
 use AIArmada\Events\Models\EventAttribute;
-use App\Enums\EventEscalationType;
+use AIArmada\Events\Models\EventEscalation;
 use App\Models\Event;
-use App\Models\EventEscalation;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 

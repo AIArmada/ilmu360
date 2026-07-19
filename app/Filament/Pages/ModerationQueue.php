@@ -3,8 +3,8 @@
 namespace App\Filament\Pages;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Events\Enums\EventEscalationType;
 use AIArmada\FilamentEvents\Resources\EventResource;
-use App\Enums\EventEscalationType;
 use App\Models\Event;
 use App\Services\ModerationService;
 use App\States\EventStatus\Approved;

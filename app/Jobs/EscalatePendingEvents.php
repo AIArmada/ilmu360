@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
-use App\Enums\EventEscalationType;
+use AIArmada\Events\Enums\EventEscalationType;
+use AIArmada\Events\Models\EventEscalation;
 use App\Models\Event;
-use App\Models\EventEscalation;
 use App\Models\User;
 use App\Notifications\EventEscalationNotification;
 use Carbon\CarbonImmutable;

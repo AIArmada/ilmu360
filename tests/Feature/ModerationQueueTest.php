@@ -1,10 +1,10 @@
 <?php
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
-use App\Enums\EventEscalationType;
+use AIArmada\Events\Enums\EventEscalationType;
+use AIArmada\Events\Models\EventEscalation;
 use App\Filament\Pages\ModerationQueue;
 use App\Models\Event;
-use App\Models\EventEscalation;
 use App\Models\Institution;
 use App\Models\Reference;
 use App\Models\Speaker;

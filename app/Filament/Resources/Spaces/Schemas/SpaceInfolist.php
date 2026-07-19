@@ -56,10 +56,7 @@ class SpaceInfolist
                             ->label('Institutions')
                             ->state(fn ($record): int => $record->institutions()->count())
                             ->numeric(),
-                        TextEntry::make('events_count')
-                            ->label('Events')
-                            ->state(fn ($record): int => $record->events()->count())
-                            ->numeric(),
+
                     ])
                     ->columns(2),
             ]);

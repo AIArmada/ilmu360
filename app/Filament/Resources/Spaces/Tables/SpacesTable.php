@@ -39,10 +39,7 @@ class SpacesTable
                     ->label('Institutions')
                     ->counts('institutions')
                     ->sortable(),
-                TextColumn::make('events_count')
-                    ->label('Events')
-                    ->counts('events')
-                    ->sortable(),
+
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

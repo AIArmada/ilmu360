@@ -1,10 +1,10 @@
 <?php
 
+use AIArmada\Events\Enums\EventEscalationType;
 use AIArmada\Events\Models\EventAttribute;
-use App\Enums\EventEscalationType;
+use AIArmada\Events\Models\EventEscalation;
 use App\Jobs\EscalatePendingEvents;
 use App\Models\Event;
-use App\Models\EventEscalation;
 use App\Models\User;
 use App\Notifications\EventEscalationNotification;
 use App\States\EventStatus\Transitions\ApproveEvent;
