@@ -78,7 +78,7 @@ class InstitutionDetailData extends Data
             display_name: (string) $institution->display_name,
             description: $institution->description,
             status: (string) $institution->status,
-            verified_by: $institution->verified_by,
+            verified_by: $institution->getAttribute('verified_by'),
             type: $institutionType,
             type_label: $institution->type instanceof HasLabel ? $institution->type->getLabel() : null,
             address_line: $addressLine,

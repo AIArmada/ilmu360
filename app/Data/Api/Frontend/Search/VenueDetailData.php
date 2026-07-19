@@ -37,7 +37,7 @@ class VenueDetailData extends Data
             name: (string) $venue->name,
             description: $venue->description,
             status: (string) $venue->status,
-            verified_by: $venue->verified_by,
+            verified_by: $venue->getAttribute('verified_by'),
             visibility: (string) ($venue->visibility ?? 'public'),
             media: VenueDetailMediaData::fromModel($venue)->toArray(),
             contacts: $contacts,

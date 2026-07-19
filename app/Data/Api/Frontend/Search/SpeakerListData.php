@@ -39,7 +39,7 @@ class SpeakerListData extends Data
             gender: filled($speaker->gender) ? (string) $speaker->gender : null,
             formatted_name: (string) $speaker->formatted_name,
             status: (string) $speaker->status,
-            verified_by: $speaker->verified_by,
+            verified_by: $speaker->getAttribute('verified_by'),
             events_count: (int) ($speaker->events_count ?? 0),
             avatar_url: (string) $speaker->public_avatar_url,
             country: CountryData::fromAddress($speaker->primaryAddress())?->toArray(),

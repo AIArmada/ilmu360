@@ -55,7 +55,7 @@ class ReferenceDetailData extends Data
             publication_year: filled($reference->year) ? (string) $reference->year : null,
             description: $reference->descriptionValue(),
             status: (string) $reference->status,
-            verified_by: $reference->verified_by,
+            verified_by: $reference->getAttribute('verified_by'),
             is_following: $user?->isFollowing($reference) ?? false,
             media: ReferenceDetailMediaData::fromModel($reference)->toArray(),
             social_media: $socialMedia,

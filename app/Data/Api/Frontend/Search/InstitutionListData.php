@@ -67,7 +67,7 @@ class InstitutionListData extends Data
             location: $location !== '' ? $location : null,
             distance_km: $distanceKm,
             is_following: $isFollowing,
-            verified_by: $institution->verified_by,
+            verified_by: $institution->getAttribute('verified_by'),
         );
     }
 

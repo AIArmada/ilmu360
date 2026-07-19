@@ -51,7 +51,7 @@ class ReferenceListData extends Data
             publisher: $reference->publisherValue(),
             publication_year: filled($reference->year) ? (string) $reference->year : null,
             status: (string) $reference->status,
-            verified_by: $reference->verified_by,
+            verified_by: $reference->getAttribute('verified_by'),
             events_count: (int) ($reference->events_count ?? 0),
             front_cover_url: $reference->getFirstMediaUrl('front_cover', 'thumb') ?: ($reference->getFirstMediaUrl('front_cover') ?: null),
             is_following: $isFollowing,

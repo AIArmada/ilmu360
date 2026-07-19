@@ -78,7 +78,7 @@ class SpeakerDetailData extends Data
             country: $country,
             location: $location,
             status: (string) $speaker->status,
-            verified_by: $speaker->verified_by,
+            verified_by: $speaker->getAttribute('verified_by'),
             is_following: $user?->isFollowing($speaker) ?? false,
             followers_count: $speaker->followersCount(),
             media: $media,

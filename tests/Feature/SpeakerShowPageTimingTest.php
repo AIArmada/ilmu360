@@ -133,6 +133,7 @@ it('uses stronger calendar event colors on speaker page', function () {
     $event = Event::factory()->create([
         'status' => 'approved',
         'visibility' => 'public',
+        'delivery_mode' => EventFormat::Physical,
         'starts_at' => now()->addDays(3),
         'title' => 'Kuliah Kalender Penceramah',
     ]);
