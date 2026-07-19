@@ -2,7 +2,7 @@
 
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
-use App\Enums\TagType;
+use App\Enums\EventTaxonomyCode;
 use App\Forms\EventContributionFormSchema;
 use App\Models\Institution;
 use App\Models\Reference;
@@ -137,9 +137,9 @@ it('creates pending tags from event update quick-add actions', function () {
     $issueTag = EventTerm::query()->findOrFail($issueTagId);
 
     expect($disciplineTag->is_active)->toBeTrue()
-        ->and(EventTaxonomy::query()->findOrFail($disciplineTag->event_taxonomy_id)->code)->toBe(TagType::Discipline->value)
+        ->and(EventTaxonomy::query()->findOrFail($disciplineTag->event_taxonomy_id)->code)->toBe(EventTaxonomyCode::Discipline->value)
         ->and($disciplineTag->name)->toBe('Usul Fiqh Quick Add')
         ->and($issueTag->is_active)->toBeTrue()
-        ->and(EventTaxonomy::query()->findOrFail($issueTag->event_taxonomy_id)->code)->toBe(TagType::Issue->value)
+        ->and(EventTaxonomy::query()->findOrFail($issueTag->event_taxonomy_id)->code)->toBe(EventTaxonomyCode::Issue->value)
         ->and($issueTag->name)->toBe('Pemuda Quick Add');
 });

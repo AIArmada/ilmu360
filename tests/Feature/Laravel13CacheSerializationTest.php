@@ -3,7 +3,6 @@
 use App\Enums\EventAgeGroup;
 use App\Livewire\Pages\Events\Index;
 use App\Models\Event;
-use App\Models\Tag;
 use App\Services\EventSearchService;
 use App\Services\PrayerTimeService;
 use Carbon\Carbon;
@@ -38,10 +37,6 @@ it('hydrates the submit event safe option caches into the current payload format
     app('cache')->setDefaultDriver('database');
     Cache::flush();
     app()->setLocale('ms');
-
-    Tag::factory()->domain()->create([
-        'status' => 'verified',
-    ]);
 
     Livewire::test('pages.submit-event.create')
         ->set('data.age_group', [EventAgeGroup::Children->value])

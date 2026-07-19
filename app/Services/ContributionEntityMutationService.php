@@ -28,6 +28,7 @@ use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventPrayerTime;
+use App\Enums\EventTaxonomyCode;
 use App\Enums\EventVisibility;
 use App\Enums\Gender;
 use App\Enums\Honorific;
@@ -37,7 +38,6 @@ use App\Enums\PrayerOffset;
 use App\Enums\PreNominal;
 use App\Enums\ReferencePartType;
 use App\Enums\ReferenceType;
-use App\Enums\TagType;
 use App\Enums\TimingMode;
 use App\Forms\SharedFormSchema;
 use App\Models\Event;
@@ -170,10 +170,10 @@ class ContributionEntityMutationService
                     $this->field('location_venue_id', 'uuid', catalog: route('api.client.catalogs.venues')),
                     $this->field('space_id', 'uuid', catalog: route('api.client.catalogs.spaces')),
                     $this->field('language_ids', 'array<int>', catalog: route('api.client.catalogs.languages')),
-                    $this->field('domain_tags', 'array<string>', catalog: route('api.client.catalogs.taxonomy-terms', ['type' => TagType::Domain->value])),
-                    $this->field('discipline_tags', 'array<string>', catalog: route('api.client.catalogs.taxonomy-terms', ['type' => TagType::Discipline->value])),
-                    $this->field('source_tags', 'array<string>', catalog: route('api.client.catalogs.taxonomy-terms', ['type' => TagType::Source->value])),
-                    $this->field('issue_tags', 'array<string>', catalog: route('api.client.catalogs.taxonomy-terms', ['type' => TagType::Issue->value])),
+                    $this->field('domain_tags', 'array<string>', catalog: route('api.client.catalogs.taxonomy-terms', ['type' => EventTaxonomyCode::Domain->value])),
+                    $this->field('discipline_tags', 'array<string>', catalog: route('api.client.catalogs.taxonomy-terms', ['type' => EventTaxonomyCode::Discipline->value])),
+                    $this->field('source_tags', 'array<string>', catalog: route('api.client.catalogs.taxonomy-terms', ['type' => EventTaxonomyCode::Source->value])),
+                    $this->field('issue_tags', 'array<string>', catalog: route('api.client.catalogs.taxonomy-terms', ['type' => EventTaxonomyCode::Issue->value])),
                     $this->field('reference_ids', 'array<string>', catalog: route('api.client.catalogs.references')),
                     $this->field('series_ids', 'array<string>'),
                     $this->field('speaker_ids', 'array<string>', catalog: route('api.client.catalogs.submit-speakers')),
@@ -785,10 +785,10 @@ class ContributionEntityMutationService
             'venue_id' => $event->default_venue_id,
             'space_id' => $event->primaryLocation?->venue_space_id,
             'language_ids' => $event->languages->pluck('id')->map(fn (mixed $id): int => (int) $id)->values()->all(),
-            'domain_tags' => $tags->get(TagType::Domain->value, collect())->pluck('event_term_id')->values()->all(),
-            'discipline_tags' => $tags->get(TagType::Discipline->value, collect())->pluck('event_term_id')->values()->all(),
-            'source_tags' => $tags->get(TagType::Source->value, collect())->pluck('event_term_id')->values()->all(),
-            'issue_tags' => $tags->get(TagType::Issue->value, collect())->pluck('event_term_id')->values()->all(),
+            'domain_tags' => $tags->get(EventTaxonomyCode::Domain->value, collect())->pluck('event_term_id')->values()->all(),
+            'discipline_tags' => $tags->get(EventTaxonomyCode::Discipline->value, collect())->pluck('event_term_id')->values()->all(),
+            'source_tags' => $tags->get(EventTaxonomyCode::Source->value, collect())->pluck('event_term_id')->values()->all(),
+            'issue_tags' => $tags->get(EventTaxonomyCode::Issue->value, collect())->pluck('event_term_id')->values()->all(),
             'reference_ids' => $event->references->pluck('id')->values()->all(),
             'series_ids' => $event->series->pluck('id')->values()->all(),
             'speaker_ids' => $event->keyPeople

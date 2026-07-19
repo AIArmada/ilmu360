@@ -27,7 +27,6 @@ use Database\Seeders\SeriesSeeder;
 use Database\Seeders\SpaceSeeder;
 use Database\Seeders\SpeakerSeeder;
 use Database\Seeders\SubdistrictSeeder;
-use Database\Seeders\TagSeeder;
 use Database\Seeders\UserSeeder;
 use Database\Seeders\VenueSeeder;
 use Database\Seeders\WorldSeeder;
@@ -60,7 +59,6 @@ it('runs the full demo seeding pipeline in the expected order', function () {
         PermissionSeeder::class,
         RoleSeeder::class,
         ScopedMemberRolesSeeder::class,
-        TagSeeder::class,
         LanguageSeeder::class,
         FoundationSeeder::class,
         UserSeeder::class,

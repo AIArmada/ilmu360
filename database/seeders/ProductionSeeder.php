@@ -21,7 +21,6 @@ class ProductionSeeder extends Seeder
             PermissionSeeder::class,
             RoleSeeder::class,
             ScopedMemberRolesSeeder::class,
-            TagSeeder::class,
             UserSeeder::class,
             FacilityTypeSeeder::class,
             SpaceSeeder::class,

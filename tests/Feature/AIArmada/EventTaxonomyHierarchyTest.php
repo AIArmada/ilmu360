@@ -3,9 +3,9 @@
 use AIArmada\Events\Contracts\EventTaxonomyHierarchy;
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
+use AIArmada\Events\Models\EventTermPolicy;
 use App\Contracts\EventCategoryCatalog;
 use App\Contracts\EventCategoryPolicyResolver;
-use App\Models\EventTermPolicy;
 use Database\Seeders\AIArmada\FoundationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Validator;

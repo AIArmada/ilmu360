@@ -32,12 +32,12 @@ use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventPrayerTime;
+use App\Enums\EventTaxonomyCode;
 use App\Enums\EventVisibility;
 use App\Enums\MemberSubjectType;
 use App\Enums\PrayerOffset;
 use App\Enums\PrayerReference;
 use App\Enums\ReferenceType;
-use App\Enums\TagType;
 use App\Enums\TimingMode;
 use App\Models\Builders\EventBuilder;
 use App\Models\Concerns\AuditsModelChanges;
@@ -1238,8 +1238,8 @@ class Event extends PackageEvent implements AuditableContract
 
         $topicIds = $classifications
             ->filter(fn (EventClassification $classification): bool => in_array($classification->taxonomy_code, [
-                TagType::Discipline->value,
-                TagType::Issue->value,
+                EventTaxonomyCode::Discipline->value,
+                EventTaxonomyCode::Issue->value,
             ], true))
             ->pluck('event_term_id')
             ->filter(fn (mixed $id): bool => is_string($id) && $id !== '')
@@ -1248,7 +1248,7 @@ class Event extends PackageEvent implements AuditableContract
             ->all();
 
         $domainTagIds = $classifications
-            ->filter(fn (EventClassification $classification): bool => $classification->taxonomy_code === TagType::Domain->value)
+            ->filter(fn (EventClassification $classification): bool => $classification->taxonomy_code === EventTaxonomyCode::Domain->value)
             ->pluck('event_term_id')
             ->filter(fn (mixed $id): bool => is_string($id) && $id !== '')
             ->unique()
@@ -1256,7 +1256,7 @@ class Event extends PackageEvent implements AuditableContract
             ->all();
 
         $sourceTagIds = $classifications
-            ->filter(fn (EventClassification $classification): bool => $classification->taxonomy_code === TagType::Source->value)
+            ->filter(fn (EventClassification $classification): bool => $classification->taxonomy_code === EventTaxonomyCode::Source->value)
             ->pluck('event_term_id')
             ->filter(fn (mixed $id): bool => is_string($id) && $id !== '')
             ->unique()
@@ -1336,7 +1336,7 @@ class Event extends PackageEvent implements AuditableContract
             ->all();
 
         $issueTagIds = $classifications
-            ->filter(fn (EventClassification $classification): bool => $classification->taxonomy_code === TagType::Issue->value)
+            ->filter(fn (EventClassification $classification): bool => $classification->taxonomy_code === EventTaxonomyCode::Issue->value)
             ->pluck('event_term_id')
             ->filter(fn (mixed $id): bool => is_string($id) && $id !== '')
             ->unique()

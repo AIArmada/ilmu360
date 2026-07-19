@@ -10,9 +10,9 @@ use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventKeyPersonRole;
+use App\Enums\EventTaxonomyCode;
 use App\Enums\EventVisibility;
 use App\Enums\ReferenceType;
-use App\Enums\TagType;
 use App\Models\DonationChannel;
 use App\Models\Event;
 use App\Models\EventKeyPerson;
@@ -644,7 +644,7 @@ class EventCoverPromptBuilder
     {
         $grouped = [];
 
-        foreach (TagType::cases() as $type) {
+        foreach (EventTaxonomyCode::cases() as $type) {
             $grouped[$type->value] = [];
         }
 

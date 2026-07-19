@@ -12,9 +12,9 @@ use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventPrayerTime;
+use App\Enums\EventTaxonomyCode;
 use App\Enums\EventVisibility;
 use App\Enums\ReferenceType;
-use App\Enums\TagType;
 use App\Forms\Components\Select;
 use App\Models\Institution;
 use App\Models\Reference;
@@ -180,14 +180,14 @@ class EventContributionFormSchema
                 ->schema([
                     Select::make('domain_tags')
                         ->label(__('Kategori'))
-                        ->options(fn (): array => self::tagOptions(TagType::Domain))
+                        ->options(fn (): array => self::tagOptions(EventTaxonomyCode::Domain))
                         ->multiple()
                         ->searchable()
                         ->preload()
                         ->closeOnSelect(),
                     Select::make('discipline_tags')
                         ->label(__('Bidang Ilmu'))
-                        ->options(fn (): array => self::tagOptions(TagType::Discipline))
+                        ->options(fn (): array => self::tagOptions(EventTaxonomyCode::Discipline))
                         ->multiple()
                         ->searchable()
                         ->preload()
@@ -198,17 +198,17 @@ class EventContributionFormSchema
                                 ->required()
                                 ->maxLength(255),
                         ])
-                        ->createOptionUsing(fn (array $data): string => self::createPendingTag($data, TagType::Discipline)),
+                        ->createOptionUsing(fn (array $data): string => self::createPendingTag($data, EventTaxonomyCode::Discipline)),
                     Select::make('source_tags')
                         ->label(__('Sumber Utama'))
-                        ->options(fn (): array => self::tagOptions(TagType::Source))
+                        ->options(fn (): array => self::tagOptions(EventTaxonomyCode::Source))
                         ->multiple()
                         ->searchable()
                         ->preload()
                         ->closeOnSelect(),
                     Select::make('issue_tags')
                         ->label(__('Tema / Isu'))
-                        ->options(fn (): array => self::tagOptions(TagType::Issue))
+                        ->options(fn (): array => self::tagOptions(EventTaxonomyCode::Issue))
                         ->multiple()
                         ->searchable()
                         ->preload()
@@ -219,7 +219,7 @@ class EventContributionFormSchema
                                 ->required()
                                 ->maxLength(255),
                         ])
-                        ->createOptionUsing(fn (array $data): string => self::createPendingTag($data, TagType::Issue)),
+                        ->createOptionUsing(fn (array $data): string => self::createPendingTag($data, EventTaxonomyCode::Issue)),
                     Select::make('reference_ids')
                         ->label(__('Rujukan Kitab / Buku'))
                         ->options(fn (): array => Reference::query()
@@ -672,7 +672,7 @@ class EventContributionFormSchema
      *
      * @return array<string, string>
      */
-    private static function tagOptions(TagType $type): array
+    private static function tagOptions(EventTaxonomyCode $type): array
     {
         $taxonomy = EventTaxonomy::query()
             ->where('code', $type->value)
@@ -696,7 +696,7 @@ class EventContributionFormSchema
     /**
      * @param  array{name: string}  $data
      */
-    private static function createPendingTag(array $data, TagType $type): string
+    private static function createPendingTag(array $data, EventTaxonomyCode $type): string
     {
         $name = trim((string) ($data['name'] ?? ''));
         $code = Str::slug($name);

@@ -19,7 +19,7 @@ use App\Contracts\EventCategoryCatalog;
 use App\Contracts\EventCategoryPolicyResolver;
 use App\Enums\EventVisibility;
 use App\Enums\ReferenceType;
-use App\Enums\TagType;
+use App\Enums\EventTaxonomyCode;
 use AIArmada\FilamentEvents\Resources\EventResource;
 use App\Forms\Components\Select;
 use App\Forms\InstitutionFormSchema;
@@ -292,7 +292,7 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
      * @param  list<string>  $statuses
      * @return array<string, string>
      */
-    protected function cachedSubmitTagOptions(TagType $type, string $cachePrefix, array $statuses): array
+    protected function cachedSubmitTagOptions(EventTaxonomyCode $type, string $cachePrefix, array $statuses): array
     {
         return Cache::remember($this->submitCacheKey($cachePrefix.'_'.app()->getLocale()), 60, function () use ($statuses, $type): array {
             $taxonomyId = EventTaxonomy::query()->where('code', $type->value)->value('id');
@@ -539,17 +539,17 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
 
                             $set('event_category_ids', $termsByTaxonomy->get('event_category', collect())->pluck('event_term_id')->filter()->values()->all());
 
-                            if ($termsByTaxonomy->has(TagType::Domain->value)) {
-                                $set('domain_tags', $termsByTaxonomy->get(TagType::Domain->value)->pluck('event_term_id')->filter()->values()->all());
+                            if ($termsByTaxonomy->has(EventTaxonomyCode::Domain->value)) {
+                                $set('domain_tags', $termsByTaxonomy->get(EventTaxonomyCode::Domain->value)->pluck('event_term_id')->filter()->values()->all());
                             }
-                            if ($termsByTaxonomy->has(TagType::Discipline->value)) {
-                                $set('discipline_tags', $termsByTaxonomy->get(TagType::Discipline->value)->pluck('event_term_id')->filter()->values()->all());
+                            if ($termsByTaxonomy->has(EventTaxonomyCode::Discipline->value)) {
+                                $set('discipline_tags', $termsByTaxonomy->get(EventTaxonomyCode::Discipline->value)->pluck('event_term_id')->filter()->values()->all());
                             }
-                            if ($termsByTaxonomy->has(TagType::Source->value)) {
-                                $set('source_tags', $termsByTaxonomy->get(TagType::Source->value)->pluck('event_term_id')->filter()->values()->all());
+                            if ($termsByTaxonomy->has(EventTaxonomyCode::Source->value)) {
+                                $set('source_tags', $termsByTaxonomy->get(EventTaxonomyCode::Source->value)->pluck('event_term_id')->filter()->values()->all());
                             }
-                            if ($termsByTaxonomy->has(TagType::Issue->value)) {
-                                $set('issue_tags', $termsByTaxonomy->get(TagType::Issue->value)->pluck('event_term_id')->filter()->values()->all());
+                            if ($termsByTaxonomy->has(EventTaxonomyCode::Issue->value)) {
+                                $set('issue_tags', $termsByTaxonomy->get(EventTaxonomyCode::Issue->value)->pluck('event_term_id')->filter()->values()->all());
                             }
 
                             // Populate references
@@ -926,7 +926,7 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
                                     return $labels;
                                 })
                                 ->options(fn (): array => $this->cachedSubmitTagOptions(
-                                    type: TagType::Domain,
+                                    type: EventTaxonomyCode::Domain,
                                     cachePrefix: 'submit_tags_domain',
                                     statuses: ['verified', 'pending'],
                                 ))
@@ -944,7 +944,7 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
                                 ->preload()
                                 ->allowHtml()
                                 ->options(fn (): array => $this->cachedSubmitTagOptions(
-                                    type: TagType::Discipline,
+                                    type: EventTaxonomyCode::Discipline,
                                     cachePrefix: 'submit_tags_discipline_verified',
                                     statuses: ['verified'],
                                 ))
@@ -954,7 +954,7 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
                                         return [];
                                     }
 
-                                    $taxonomyId = EventTaxonomy::query()->where('code', TagType::Discipline->value)->value('id');
+                                    $taxonomyId = EventTaxonomy::query()->where('code', EventTaxonomyCode::Discipline->value)->value('id');
                                     $results = EventTerm::query()
                                         ->where('event_taxonomy_id', $taxonomyId)
                                         ->where('is_active', true)
@@ -1031,7 +1031,7 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
                                     return $labels;
                                 })
                                 ->options(fn (): array => $this->cachedSubmitTagOptions(
-                                    type: TagType::Source,
+                                    type: EventTaxonomyCode::Source,
                                     cachePrefix: 'submit_tags_source',
                                     statuses: ['verified', 'pending'],
                                 )),
@@ -1045,7 +1045,7 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
                                 ->preload()
                                 ->allowHtml()
                                 ->options(fn (): array => $this->cachedSubmitTagOptions(
-                                    type: TagType::Issue,
+                                    type: EventTaxonomyCode::Issue,
                                     cachePrefix: 'submit_tags_issue_verified',
                                     statuses: ['verified'],
                                 ))
@@ -1055,7 +1055,7 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
                                         return [];
                                     }
 
-                                    $taxonomyId = EventTaxonomy::query()->where('code', TagType::Issue->value)->value('id');
+                                    $taxonomyId = EventTaxonomy::query()->where('code', EventTaxonomyCode::Issue->value)->value('id');
                                     $results = EventTerm::query()
                                         ->where('event_taxonomy_id', $taxonomyId)
                                         ->where('is_active', true)
@@ -1810,10 +1810,10 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
             'is_muslim_only' => (bool) $duplicateEvent->is_muslim_only,
             'event_url' => $duplicateEvent->event_url,
             'live_url' => $duplicateEvent->live_url,
-            'domain_tags' => $duplicateClassifications->get(TagType::Domain->value, collect())->pluck('event_term_id')->values()->all(),
-            'discipline_tags' => $duplicateClassifications->get(TagType::Discipline->value, collect())->pluck('event_term_id')->values()->all(),
-            'source_tags' => $duplicateClassifications->get(TagType::Source->value, collect())->pluck('event_term_id')->values()->all(),
-            'issue_tags' => $duplicateClassifications->get(TagType::Issue->value, collect())->pluck('event_term_id')->values()->all(),
+            'domain_tags' => $duplicateClassifications->get(EventTaxonomyCode::Domain->value, collect())->pluck('event_term_id')->values()->all(),
+            'discipline_tags' => $duplicateClassifications->get(EventTaxonomyCode::Discipline->value, collect())->pluck('event_term_id')->values()->all(),
+            'source_tags' => $duplicateClassifications->get(EventTaxonomyCode::Source->value, collect())->pluck('event_term_id')->values()->all(),
+            'issue_tags' => $duplicateClassifications->get(EventTaxonomyCode::Issue->value, collect())->pluck('event_term_id')->values()->all(),
             'references' => $duplicateEvent->references->pluck('id')->values()->all(),
             'speakers' => $this->duplicateSpeakerState($duplicateEvent),
             'other_key_people' => $this->duplicateOtherKeyPeopleState($duplicateEvent),

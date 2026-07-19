@@ -18,10 +18,10 @@ use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventKeyPersonRole;
+use App\Enums\EventTaxonomyCode;
 use App\Enums\EventVisibility;
 use App\Enums\PrayerOffset;
 use App\Enums\PrayerReference;
-use App\Enums\TagType;
 use App\Enums\TimingMode;
 use App\Models\Event;
 use App\Models\Institution;
@@ -625,8 +625,8 @@ class EventSeeder extends Seeder
             ->unique()
             ->values();
 
-        $hasRequiredTypes = $existingTaxonomyCodes->contains(TagType::Domain->value)
-            && $existingTaxonomyCodes->contains(TagType::Discipline->value);
+        $hasRequiredTypes = $existingTaxonomyCodes->contains(EventTaxonomyCode::Domain->value)
+            && $existingTaxonomyCodes->contains(EventTaxonomyCode::Discipline->value);
 
         if ($hasRequiredTypes) {
             return;
@@ -784,8 +784,8 @@ class EventSeeder extends Seeder
                         ->unique()
                         ->values();
 
-                    $hasRequiredTaxonomies = $taxonomyCodes->contains(TagType::Domain->value)
-                        && $taxonomyCodes->contains(TagType::Discipline->value);
+                    $hasRequiredTaxonomies = $taxonomyCodes->contains(EventTaxonomyCode::Domain->value)
+                        && $taxonomyCodes->contains(EventTaxonomyCode::Discipline->value);
 
                     if ($hasRequiredTaxonomies) {
                         continue;

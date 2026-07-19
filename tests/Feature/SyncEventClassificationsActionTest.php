@@ -5,7 +5,7 @@ use AIArmada\Events\Models\EventClassification;
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
 use App\Actions\Events\SyncEventClassificationsAction;
-use App\Enums\TagType;
+use App\Enums\EventTaxonomyCode;
 use App\Models\Event;
 
 it('writes package classifications from domain and discipline fields', function () {
@@ -20,7 +20,7 @@ it('writes package classifications from domain and discipline fields', function 
         ]);
 
         expect($synced)->toBe(2)
-            ->and(EventTaxonomy::query()->where('code', TagType::Domain->value)->exists())->toBeTrue()
+            ->and(EventTaxonomy::query()->where('code', EventTaxonomyCode::Domain->value)->exists())->toBeTrue()
             ->and(EventTerm::query()->where('code', 'aqidah')->exists())->toBeTrue()
             ->and(EventClassification::query()->where('event_id', $event->getKey())->count())->toBe(2);
     });

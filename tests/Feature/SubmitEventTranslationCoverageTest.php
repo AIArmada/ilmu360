@@ -4,8 +4,8 @@ use AIArmada\Contacting\Enums\SocialPlatform;
 use AIArmada\Events\Models\EventTerm;
 use App\Enums\EventFormat;
 use App\Enums\EventPrayerTime;
+use App\Enums\EventTaxonomyCode;
 use App\Enums\ReferenceType;
-use App\Enums\TagType;
 use Database\Seeders\AIArmada\EventTaxonomySeeder;
 use Illuminate\Support\Facades\App;
 
@@ -20,7 +20,7 @@ it('returns translated labels for submit-event enums', function () {
         ->and(ReferenceType::Book->getLabel())->toBe('Book')
         ->and(SocialPlatform::X->label())->toBe('X / Twitter')
         ->and(SocialPlatform::Telegram->label())->toBe('Telegram')
-        ->and(TagType::Discipline->label())->toBe('Discipline');
+        ->and(EventTaxonomyCode::Discipline->label())->toBe('Discipline');
 });
 
 it('contains pakistan and bangladesh keys in all locale files', function () {

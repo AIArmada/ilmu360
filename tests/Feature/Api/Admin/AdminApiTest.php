@@ -33,7 +33,6 @@ use App\Models\Report;
 use App\Models\Series;
 use App\Models\Space;
 use App\Models\Speaker;
-use App\Models\Tag;
 use App\Models\User;
 use App\Models\Venue;
 use App\Services\Signals\SignalsTracker;
@@ -92,7 +91,7 @@ it('lists accessible admin resources for privileged users', function () {
 
     $resourceKeys = collect($response->json('data.resources'))->pluck('key')->all();
 
-    expect($resourceKeys)->toContain('speakers', 'events', 'inspirations', 'institutions', 'references', 'reports', 'series', 'spaces', 'venues', 'tags', 'donation-channels', 'address-countries', 'address-areas');
+    expect($resourceKeys)->toContain('speakers', 'events', 'inspirations', 'institutions', 'references', 'reports', 'series', 'spaces', 'venues', 'donation-channels', 'address-countries', 'address-areas');
 });
 
 it('allows viewer-role users who can access the admin panel to reach the admin api manifest', function () {
@@ -862,118 +861,6 @@ it('lists related records for admin resource relations', function () {
         ->assertJsonPath('meta.parent_record.route_key', $speakerRouteKey)
         ->assertJsonPath('meta.relation.name', 'events')
         ->assertJsonPath('meta.relation.related_resource.key', 'events');
-});
-
-it('exposes tag write schema and can create and update tags through the api', function () {
-    $admin = adminApiUser('super_admin');
-
-    Sanctum::actingAs($admin);
-
-    $schema = $this->getJson('/api/v1/admin/tags/schema?operation=create')
-        ->assertOk()
-        ->assertJsonPath('data.resource.key', 'tags')
-        ->assertJsonPath('data.schema.resource_key', 'tags')
-        ->assertJsonPath('data.schema.method', 'POST')
-        ->assertJsonPath('data.schema.content_type', 'application/json')
-        ->assertJsonPath('data.schema.endpoint', '/api/v1/admin/tags')
-        ->json('data.schema');
-
-    expect(collect($schema['fields'] ?? [])->pluck('name')->all())
-        ->toContain('name', 'name.ms', 'name.en', 'type', 'status', 'order_column');
-
-    $createResponse = $this->postJson('/api/v1/admin/tags', [
-        'name' => [
-            'ms' => 'Tadabbur',
-            'en' => 'Reflection',
-        ],
-        'type' => 'discipline',
-        'status' => 'verified',
-    ])->assertCreated();
-
-    $tagRouteKey = (string) $createResponse->json('data.record.route_key');
-    $tag = Tag::query()->findOrFail($tagRouteKey);
-
-    expect($tag->type)->toBe('discipline')
-        ->and($tag->status)->toBe('verified')
-        ->and($tag->getTranslation('name', 'ms'))->toBe('Tadabbur')
-        ->and($tag->getTranslation('slug', 'ms'))->toBe('tadabbur');
-
-    $this->putJson('/api/v1/admin/tags/'.$tagRouteKey, [
-        'name' => [
-            'ms' => 'Rasuah',
-            'en' => 'Corruption',
-        ],
-        'type' => 'issue',
-        'status' => 'pending',
-        'order_column' => 5,
-    ])->assertOk()
-        ->assertJsonPath('data.record.attributes.type', 'issue')
-        ->assertJsonPath('data.record.attributes.status', 'pending')
-        ->assertJsonPath('data.record.attributes.order_column', 5);
-
-    $tag->refresh();
-
-    expect($tag->type)->toBe('issue')
-        ->and($tag->status)->toBe('pending')
-        ->and($tag->order_column)->toBe(5)
-        ->and($tag->getTranslation('name', 'en'))->toBe('Corruption')
-        ->and($tag->getTranslation('slug', 'en'))->toBe('corruption');
-});
-
-it('surfaces tag update semantics through the admin api schema', function () {
-    $admin = adminApiUser('super_admin');
-    $tag = Tag::factory()->discipline()->verified()->create();
-
-    Sanctum::actingAs($admin);
-
-    $schema = $this->getJson('/api/v1/admin/tags/schema?operation=update&recordKey='.$tag->getKey())
-        ->assertOk()
-        ->json('data.schema');
-
-    $fields = collect($schema['fields'] ?? [])->keyBy('name');
-
-    expect(data_get($fields->get('name'), 'translation_fallback.en'))->toBe('name.ms')
-        ->and(data_get($fields->get('name.en'), 'clear_semantics.explicit_null'))->toBe('fallback_to_name.ms')
-        ->and(data_get($fields->get('name.en'), 'normalization.empty_string_at_mutation_layer'))->toBe('fallback_to_name.ms')
-        ->and(data_get($fields->get('order_column'), 'clear_semantics.explicit_null'))->toBe('recompute_with_sortable_scope')
-        ->and(data_get($fields->get('order_column'), 'normalization.empty_string_at_mutation_layer'))->toBe('recompute_with_sortable_scope');
-});
-
-it('normalizes tag translation fallback and clears sort order through the admin api', function () {
-    $admin = adminApiUser('super_admin');
-
-    Sanctum::actingAs($admin);
-
-    $createResponse = $this->postJson('/api/v1/admin/tags', [
-        'name' => [
-            'ms' => 'Tadabbur API Fallback',
-            'en' => '',
-        ],
-        'type' => 'discipline',
-        'status' => 'verified',
-        'order_column' => 3,
-    ])->assertCreated();
-
-    $tagRouteKey = (string) $createResponse->json('data.record.route_key');
-    $tag = Tag::query()->findOrFail($tagRouteKey);
-
-    expect($tag->getTranslation('name', 'en'))->toBe('Tadabbur API Fallback');
-
-    $this->putJson('/api/v1/admin/tags/'.$tagRouteKey, [
-        'name' => [
-            'ms' => 'Rasuah API Fallback',
-            'en' => '',
-        ],
-        'type' => 'issue',
-        'status' => 'pending',
-        'order_column' => '',
-    ])->assertOk()
-        ->assertJsonPath('data.record.attributes.order_column', 1);
-
-    $tag->refresh();
-
-    expect($tag->getTranslation('name', 'en'))->toBe('Rasuah API Fallback')
-        ->and($tag->order_column)->toBe(1);
 });
 
 it('exposes event moderation schema and can request changes through the admin workflow endpoints', function () {

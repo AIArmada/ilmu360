@@ -7,7 +7,6 @@ use App\Enums\ContributionSubjectType;
 use App\Enums\EventFormat;
 use App\Enums\EventVisibility;
 use App\Mcp\Servers\AdminServer;
-use App\Mcp\Tools\Admin\AdminCreateRecordTool;
 use App\Mcp\Tools\Admin\AdminGetContributionRequestReviewSchemaTool;
 use App\Mcp\Tools\Admin\AdminGetEventModerationSchemaTool;
 use App\Mcp\Tools\Admin\AdminGetMembershipApplicationReviewSchemaTool;
@@ -27,7 +26,6 @@ use App\Models\MembershipApplication;
 use App\Models\ModerationReview;
 use App\Models\Report;
 use App\Models\Speaker;
-use App\Models\Tag;
 use App\Models\User;
 use App\Support\Search\SpeakerSearchService;
 use Illuminate\Support\Str;
@@ -448,84 +446,6 @@ it('keeps admin api and admin mcp membership claim review workflows aligned', fu
         ->and($apiClaim->fresh()?->status?->value)->toBe('approved')
         ->and($apiInstitution->fresh()?->members()->whereKey($apiClaimant->getKey())->exists())->toBeTrue()
         ->and($mcpInstitution->fresh()?->members()->whereKey($mcpClaimant->getKey())->exists())->toBeTrue();
-});
-
-it('keeps admin api and admin mcp tag create-update workflows aligned', function () {
-    $admin = parityAdminUser('super_admin');
-
-    Sanctum::actingAs($admin);
-
-    $apiCreatePayload = [
-        'name' => [
-            'ms' => 'Parity Tag API '.Str::ulid(),
-            'en' => 'Parity Tag API '.Str::ulid(),
-        ],
-        'type' => 'discipline',
-        'status' => 'verified',
-    ];
-
-    $mcpCreatePayload = [
-        'name' => [
-            'ms' => 'Parity Tag MCP '.Str::ulid(),
-            'en' => 'Parity Tag MCP '.Str::ulid(),
-        ],
-        'type' => 'discipline',
-        'status' => 'verified',
-    ];
-
-    $apiCreateResponse = $this->postJson('/api/v1/admin/tags', $apiCreatePayload)
-        ->assertCreated();
-
-    $mcpCreateResponse = AdminServer::actingAs($admin)
-        ->tool(AdminCreateRecordTool::class, [
-            'resource_key' => 'tags',
-            'payload' => $mcpCreatePayload,
-        ])
-        ->assertOk();
-
-    expect(paritySelectedAttributes($apiCreateResponse->json('data.record.attributes') ?? [], ['type', 'status']))
-        ->toEqual(paritySelectedAttributes(adminMcpStructuredContent($mcpCreateResponse)['data']['record']['attributes'] ?? [], ['type', 'status']));
-
-    $apiRouteKey = (string) $apiCreateResponse->json('data.record.route_key');
-    $mcpRouteKey = (string) data_get(adminMcpStructuredContent($mcpCreateResponse), 'data.record.route_key');
-
-    expect($apiRouteKey)->not->toBe('')
-        ->and($mcpRouteKey)->not->toBe('');
-
-    $apiUpdateResponse = $this->putJson('/api/v1/admin/tags/'.$apiRouteKey, [
-        'name' => [
-            'ms' => 'Parity Tag API Updated',
-            'en' => 'Parity Tag API Updated',
-        ],
-        'type' => 'issue',
-        'status' => 'pending',
-        'order_column' => 9,
-    ])->assertOk();
-
-    $mcpUpdateResponse = AdminServer::actingAs($admin)
-        ->tool(AdminUpdateRecordTool::class, [
-            'resource_key' => 'tags',
-            'record_key' => $mcpRouteKey,
-            'payload' => [
-                'name' => [
-                    'ms' => 'Parity Tag MCP Updated',
-                    'en' => 'Parity Tag MCP Updated',
-                ],
-                'type' => 'issue',
-                'status' => 'pending',
-                'order_column' => 9,
-            ],
-        ])
-        ->assertOk();
-
-    expect(paritySelectedAttributes($apiUpdateResponse->json('data.record.attributes') ?? [], ['type', 'status', 'order_column']))
-        ->toEqual(paritySelectedAttributes(adminMcpStructuredContent($mcpUpdateResponse)['data']['record']['attributes'] ?? [], ['type', 'status', 'order_column']));
-
-    $apiTag = Tag::query()->findOrFail($apiRouteKey);
-    $mcpTag = Tag::query()->findOrFail($mcpRouteKey);
-
-    expect(paritySelectedAttributes($apiTag->toArray(), ['type', 'status', 'order_column']))
-        ->toEqual(paritySelectedAttributes($mcpTag->toArray(), ['type', 'status', 'order_column']));
 });
 
 function parityAdminUser(string $role): User

@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers\Api\Frontend;
 
+use App\Enums\EventTaxonomyCode;
 use App\Enums\MemberSubjectType;
-use App\Enums\TagType;
 use App\Support\Api\Frontend\FrontendCatalogService;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
@@ -110,8 +110,8 @@ class CatalogController extends FrontendController
     )]
     public function taxonomyTerms(string $type, Request $request): JsonResponse
     {
-        $tagType = TagType::tryFrom($type);
-        abort_unless($tagType instanceof TagType, 404);
+        $tagType = EventTaxonomyCode::tryFrom($type);
+        abort_unless($tagType instanceof EventTaxonomyCode, 404);
 
         return response()->json([
             'data' => $this->catalogs->taxonomyTerms($tagType->value, $request->string('q')->toString()),

@@ -1379,22 +1379,22 @@
                         @php
                             $tagCloudSections = [
                                 [
-                                    'key' => \App\Enums\TagType::Domain->value,
+                                    'key' => \App\Enums\EventTaxonomyCode::Domain->value,
                                     'label' => __('Kategori'),
                                     'color' => 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100',
                                 ],
                                 [
-                                    'key' => \App\Enums\TagType::Discipline->value,
+                                    'key' => \App\Enums\EventTaxonomyCode::Discipline->value,
                                     'label' => __('Bidang Ilmu'),
                                     'color' => 'border-cyan-200 bg-cyan-50 text-cyan-700 hover:bg-cyan-100',
                                 ],
                                 [
-                                    'key' => \App\Enums\TagType::Source->value,
+                                    'key' => \App\Enums\EventTaxonomyCode::Source->value,
                                     'label' => __('Sumber Utama'),
                                     'color' => 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100',
                                 ],
                                 [
-                                    'key' => \App\Enums\TagType::Issue->value,
+                                    'key' => \App\Enums\EventTaxonomyCode::Issue->value,
                                     'label' => __('Tema / Isu'),
                                     'color' => 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100',
                                 ],

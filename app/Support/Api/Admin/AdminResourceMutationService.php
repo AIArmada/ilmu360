@@ -24,7 +24,6 @@ use App\Actions\Reports\SaveReportAction;
 use App\Actions\Series\SaveSeriesAction;
 use App\Actions\Spaces\SaveSpaceAction;
 use App\Actions\Speakers\SaveSpeakerAction;
-use App\Actions\Tags\SaveTagAction;
 use App\Actions\Venues\SaveVenueAction;
 use App\Contracts\EventCategoryCatalog;
 use App\Enums\EventAgeGroup;
@@ -32,6 +31,7 @@ use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventPrayerTime;
+use App\Enums\EventTaxonomyCode;
 use App\Enums\EventVisibility;
 use App\Enums\Gender;
 use App\Enums\Honorific;
@@ -42,7 +42,6 @@ use App\Enums\PreNominal;
 use App\Enums\ReferencePartType;
 use App\Enums\ReferenceType;
 use App\Enums\RegistrationScope;
-use App\Enums\TagType;
 use App\Enums\VenueType;
 use App\Filament\Resources\DonationChannels\DonationChannelResource;
 use App\Filament\Resources\Inspirations\InspirationResource;
@@ -52,7 +51,6 @@ use App\Filament\Resources\Reports\ReportResource;
 use App\Filament\Resources\Series\SeriesResource;
 use App\Filament\Resources\Spaces\SpaceResource;
 use App\Filament\Resources\Speakers\SpeakerResource;
-use App\Filament\Resources\Tags\TagResource;
 use App\Forms\SharedFormSchema;
 use App\Models\DonationChannel;
 use App\Models\Event;
@@ -63,7 +61,6 @@ use App\Models\Report;
 use App\Models\Series;
 use App\Models\Space;
 use App\Models\Speaker;
-use App\Models\Tag;
 use App\Models\User;
 use App\Models\Venue;
 use App\Services\ContributionEntityMutationService;
@@ -90,7 +87,6 @@ class AdminResourceMutationService
         private readonly SaveSeriesAction $saveSeriesAction,
         private readonly SaveSpeakerAction $saveSpeakerAction,
         private readonly SaveSpaceAction $saveSpaceAction,
-        private readonly SaveTagAction $saveTagAction,
         private readonly SaveVenueAction $saveVenueAction,
     ) {}
 
@@ -110,7 +106,6 @@ class AdminResourceMutationService
             SeriesResource::class,
             SpeakerResource::class,
             SpaceResource::class,
-            TagResource::class,
             VenueResource::class,
         ], true);
     }
@@ -304,20 +299,6 @@ class AdminResourceMutationService
                 'catalogs' => $this->addressCatalogs('address'),
                 'conditional_rules' => [],
             ],
-            TagResource::class => [
-                'resource_key' => $resourceKey,
-                'operation' => $operation,
-                'method' => $updating ? 'PUT' : 'POST',
-                'endpoint' => $updating && $record instanceof Model
-                    ? route('api.admin.resources.update', ['resourceKey' => $resourceKey, 'recordKey' => $this->recordKey($record)], false)
-                    : route('api.admin.resources.store', ['resourceKey' => $resourceKey], false),
-                'content_type' => 'application/json',
-                'slug_behavior' => 'auto_managed',
-                'defaults' => $defaults,
-                'fields' => $this->tagFields(),
-                'catalogs' => [],
-                'conditional_rules' => [],
-            ],
             default => throw new \RuntimeException('Unsupported admin write resource.'),
         };
     }
@@ -339,7 +320,6 @@ class AdminResourceMutationService
             SeriesResource::class => $this->seriesRules($updating),
             SpeakerResource::class => $this->speakerRules($updating),
             SpaceResource::class => $this->spaceRules($updating),
-            TagResource::class => $this->tagRules($updating),
             VenueResource::class => $this->venueRules($updating),
             default => [],
         };
@@ -413,7 +393,6 @@ class AdminResourceMutationService
             SeriesResource::class => $this->saveSeriesAction->handle($validated),
             SpeakerResource::class => $this->saveSpeakerAction->handle($validated, $actor),
             SpaceResource::class => $this->saveSpaceAction->handle($validated),
-            TagResource::class => $this->saveTagAction->handle($validated),
             VenueResource::class => $this->saveVenueAction->handle($validated),
             default => throw new \RuntimeException('Unsupported admin write resource.'),
         };
@@ -456,9 +435,6 @@ class AdminResourceMutationService
             SpaceResource::class => $record instanceof Space
                 ? $this->saveSpaceAction->handle($validated, $record)
                 : throw new \RuntimeException('Expected space record.'),
-            TagResource::class => $record instanceof Tag
-                ? $this->saveTagAction->handle($validated, $record)
-                : throw new \RuntimeException('Expected tag record.'),
             VenueResource::class => $record instanceof Venue
                 ? $this->saveVenueAction->handle($validated, $record)
                 : throw new \RuntimeException('Expected venue record.'),
@@ -597,15 +573,6 @@ class AdminResourceMutationService
                 'status' => 'active',
                 'institutions' => [],
             ],
-            TagResource::class => [
-                'name' => [
-                    'ms' => '',
-                    'en' => '',
-                ],
-                'type' => TagType::Domain->value,
-                'status' => 'verified',
-                'order_column' => null,
-            ],
             default => [],
         };
     }
@@ -615,7 +582,7 @@ class AdminResourceMutationService
      */
     private function defaultsForRecord(Model $record): array
     {
-        $defaults = $record instanceof AddressArea || $record instanceof DonationChannel || $record instanceof Inspiration || $record instanceof Report || $record instanceof Tag || $record instanceof Series || $record instanceof Space
+        $defaults = $record instanceof AddressArea || $record instanceof DonationChannel || $record instanceof Inspiration || $record instanceof Report || $record instanceof Series || $record instanceof Space
             ? []
             : $this->contributionEntityMutationService->stateFor($record);
 
@@ -764,18 +731,6 @@ class AdminResourceMutationService
                 'status' => (string) $record->status,
                 'visibility' => (string) ($record->visibility ?? 'public'),
                 'institutions' => $record->institutions()->pluck('institutions.id')->map(fn (mixed $id): string => (string) $id)->values()->all(),
-            ];
-        }
-
-        if ($record instanceof Tag) {
-            $defaults = [
-                'name' => [
-                    'ms' => $record->getTranslation('name', 'ms', false) ?: $record->getTranslation('name', 'en', false) ?: '',
-                    'en' => $record->getTranslation('name', 'en', false) ?: $record->getTranslation('name', 'ms', false) ?: '',
-                ],
-                'type' => (string) $record->type,
-                'status' => (string) $record->status,
-                'order_column' => $record->order_column,
             ];
         }
 
@@ -1543,50 +1498,6 @@ class AdminResourceMutationService
     }
 
     /**
-     * @return array<int, array<string, mixed>>
-     */
-    private function tagFields(): array
-    {
-        return [
-            $this->field('name', 'object', required: true, meta: [
-                'mutation_semantics' => 'replace_translation_object',
-                'translation_fallback' => [
-                    'en' => 'name.ms',
-                ],
-            ]),
-            $this->field('name.ms', 'string', required: true, maxLength: 255, meta: [
-                'mutation_semantics' => 'replace_scalar',
-                'normalization' => ['trim' => true],
-            ]),
-            $this->field('name.en', 'string', required: false, maxLength: 255, meta: [
-                'mutation_semantics' => 'replace_scalar',
-                'clear_semantics' => [
-                    'omitted' => 'fallback_to_name.ms',
-                    'explicit_null' => 'fallback_to_name.ms',
-                ],
-                'normalization' => [
-                    'trim' => true,
-                    'empty_string_at_mutation_layer' => 'fallback_to_name.ms',
-                ],
-            ]),
-            $this->field('type', 'string', required: true, default: TagType::Domain->value, allowedValues: $this->enumValues(TagType::class), meta: [
-                'mutation_semantics' => 'replace_scalar',
-            ]),
-            $this->field('status', 'string', required: true, default: 'verified', allowedValues: ['pending', 'verified', 'inactive']),
-            $this->field('order_column', 'integer', required: false, meta: [
-                'mutation_semantics' => 'replace_scalar',
-                'clear_semantics' => [
-                    'omitted' => 'preserve_existing',
-                    'explicit_null' => 'recompute_with_sortable_scope',
-                ],
-                'normalization' => [
-                    'empty_string_at_mutation_layer' => 'recompute_with_sortable_scope',
-                    'integer_cast' => true,
-                ],
-            ]),
-        ];
-    }
-
     /**
      * @return array<int, array<string, mixed>>
      */
@@ -1641,7 +1552,7 @@ class AdminResourceMutationService
                     safeClientStrategy: 'omit_field_to_preserve_or_send_full_event_term_ids',
                     omitted: 'preserve_existing_collection_via_server_state_merge',
                 ),
-                ['taxonomy_code' => TagType::Domain->value],
+                ['taxonomy_code' => EventTaxonomyCode::Domain->value],
             )),
             $this->field('discipline_tags', 'array<string>', required: false, meta: array_merge(
                 $this->relationCollectionMeta(
@@ -1650,7 +1561,7 @@ class AdminResourceMutationService
                     safeClientStrategy: 'omit_field_to_preserve_or_send_full_event_term_ids',
                     omitted: 'preserve_existing_collection_via_server_state_merge',
                 ),
-                ['taxonomy_code' => TagType::Discipline->value],
+                ['taxonomy_code' => EventTaxonomyCode::Discipline->value],
             )),
             $this->field('source_tags', 'array<string>', required: false, meta: array_merge(
                 $this->relationCollectionMeta(
@@ -1659,7 +1570,7 @@ class AdminResourceMutationService
                     safeClientStrategy: 'omit_field_to_preserve_or_send_full_event_term_ids',
                     omitted: 'preserve_existing_collection_via_server_state_merge',
                 ),
-                ['taxonomy_code' => TagType::Source->value],
+                ['taxonomy_code' => EventTaxonomyCode::Source->value],
             )),
             $this->field('issue_tags', 'array<string>', required: false, meta: array_merge(
                 $this->relationCollectionMeta(
@@ -1668,7 +1579,7 @@ class AdminResourceMutationService
                     safeClientStrategy: 'omit_field_to_preserve_or_send_full_event_term_ids',
                     omitted: 'preserve_existing_collection_via_server_state_merge',
                 ),
-                ['taxonomy_code' => TagType::Issue->value],
+                ['taxonomy_code' => EventTaxonomyCode::Issue->value],
             )),
             $this->field('references', 'array<string>', required: false, meta: $this->relationCollectionMeta(
                 'references',
@@ -2253,13 +2164,13 @@ class AdminResourceMutationService
             'event_category_ids' => [$required, 'array', 'min:1'],
             'event_category_ids.*' => ['uuid', Rule::in(array_keys(app(EventCategoryCatalog::class)->options()))],
             'domain_tags' => ['nullable', 'array'],
-            'domain_tags.*' => $this->eventTermRules(TagType::Domain),
+            'domain_tags.*' => $this->eventTermRules(EventTaxonomyCode::Domain),
             'discipline_tags' => ['nullable', 'array'],
-            'discipline_tags.*' => $this->eventTermRules(TagType::Discipline),
+            'discipline_tags.*' => $this->eventTermRules(EventTaxonomyCode::Discipline),
             'source_tags' => ['nullable', 'array'],
-            'source_tags.*' => $this->eventTermRules(TagType::Source),
+            'source_tags.*' => $this->eventTermRules(EventTaxonomyCode::Source),
             'issue_tags' => ['nullable', 'array'],
-            'issue_tags.*' => $this->eventTermRules(TagType::Issue),
+            'issue_tags.*' => $this->eventTermRules(EventTaxonomyCode::Issue),
             'references' => ['nullable', 'array'],
             'references.*' => ['uuid', 'exists:references,id'],
             'series' => ['nullable', 'array'],
@@ -2316,7 +2227,7 @@ class AdminResourceMutationService
     /**
      * @return list<mixed>
      */
-    private function eventTermRules(TagType $taxonomy): array
+    private function eventTermRules(EventTaxonomyCode $taxonomy): array
     {
         $taxonomyId = EventTaxonomy::query()
             ->where('code', $taxonomy->value)
@@ -2485,23 +2396,6 @@ class AdminResourceMutationService
             'visibility' => ['sometimes', Rule::in(['public', 'unlisted', 'private'])],
             'institutions' => ['nullable', 'array'],
             'institutions.*' => ['uuid', 'exists:institutions,id'],
-        ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function tagRules(bool $updating): array
-    {
-        $required = $updating ? 'required' : 'required';
-
-        return [
-            'name' => [$required, 'array'],
-            'name.ms' => [$required, 'string', 'max:255'],
-            'name.en' => ['nullable', 'string', 'max:255'],
-            'type' => [$required, Rule::enum(TagType::class)],
-            'status' => [$required, Rule::in(['pending', 'verified', 'inactive'])],
-            'order_column' => ['nullable', 'integer', 'min:0'],
         ];
     }
 

@@ -1,31 +1,34 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
-use App\Enums\TagType;
-use App\Models\Concerns\AuditsModelChanges;
-use Database\Factories\TagFactory;
-use Illuminate\Database\Eloquent\Attributes\Scope;
-use Illuminate\Database\Eloquent\Builder;
+use App\Enums\EventTaxonomyCode;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
+use Illuminate\Support\Carbon;
 use Spatie\EloquentSortable\Sortable;
 use Spatie\EloquentSortable\SortableTrait;
 use Spatie\Tags\Tag as SpatieTag;
 
-class Tag extends SpatieTag implements AuditableContract, Sortable
+/**
+ * @property string $id
+ * @property EventTaxonomyCode|null $type_enum
+ * @property string $type
+ * @property array<string, string> $name
+ * @property array<string, string>|null $slug
+ * @property array<string, string>|null $description
+ * @property int|null $order_column
+ * @property string $status
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ */
+class Tag extends SpatieTag implements Sortable
 {
-    /** @use HasFactory<TagFactory> */
-    use AuditsModelChanges, HasFactory, HasUuids, SortableTrait;
+    use HasUuids;
+    use SortableTrait;
 
-    public $incrementing = false;
-
-    protected $keyType = 'string';
-
-    /**
-     * @var array<string, string|bool>
-     */
+    /** @var array<string, mixed> */
     public array $sortable = [
         'order_column_name' => 'order_column',
         'sort_when_creating' => true,
@@ -33,61 +36,15 @@ class Tag extends SpatieTag implements AuditableContract, Sortable
 
     protected $fillable = [
         'name',
-        'slug',
         'type',
-        'order_column',
         'status',
-        'verified_at',
-        'last_state_change_at',
+        'order_column',
     ];
 
-    #[\Override]
-    protected function casts(): array
+    public function getTypeEnumAttribute(): ?EventTaxonomyCode
     {
-        return [
-            'name' => 'array',
-            'slug' => 'array',
-            'order_column' => 'integer',
-            'verified_at' => 'immutable_datetime',
-            'last_state_change_at' => 'immutable_datetime',
-        ];
-    }
-
-    /**
-     * Get the type as an enum instance.
-     */
-    public function getTypeEnumAttribute(): ?TagType
-    {
-        return $this->type ? TagType::from($this->type) : null;
-    }
-
-    /**
-     * Build the sort query scoped by type.
-     *
-     * @return Builder<static>
-     */
-    #[\Override]
-    public function buildSortQuery(): Builder
-    {
-        $query = static::query();
-
-        if ($this->type) {
-            $query->where('type', $this->type);
-        }
-
-        return $query;
-    }
-
-    /**
-     * Scope to filter by tag type.
-     *
-     * @param  Builder<self>  $query
-     */
-    #[Scope]
-    protected function ofType(Builder $query, TagType|string $type): void
-    {
-        $value = $type instanceof TagType ? $type->value : $type;
-
-        $query->where('type', $value);
+        return $this->type !== null
+            ? EventTaxonomyCode::tryFrom($this->type)
+            : null;
     }
 }

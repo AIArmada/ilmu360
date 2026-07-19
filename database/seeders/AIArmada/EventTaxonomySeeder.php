@@ -6,9 +6,10 @@ namespace Database\Seeders\AIArmada;
 
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
-use App\Models\EventTermPolicy;
+use AIArmada\Events\Models\EventTermPolicy;
 use App\Services\EventCategoryCatalog;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 
 final class EventTaxonomySeeder extends Seeder
 {
@@ -93,6 +94,7 @@ final class EventTaxonomySeeder extends Seeder
 
                 foreach ($definition['policies'] ?? [] as $policyCode) {
                     $policies[] = [
+                        'id' => (string) Str::uuid(),
                         'event_term_id' => (string) $term->getKey(),
                         'policy_code' => $policyCode,
                         'is_enabled' => true,

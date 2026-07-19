@@ -50,7 +50,6 @@ class DatabaseSeeder extends Seeder
             PermissionSeeder::class,
             RoleSeeder::class,
             ScopedMemberRolesSeeder::class,
-            TagSeeder::class,
             LanguageSeeder::class,
 
             // AIArmada foundation data (EventRole, EventTaxonomy)

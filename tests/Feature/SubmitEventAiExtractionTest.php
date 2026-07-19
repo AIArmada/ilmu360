@@ -5,17 +5,16 @@ use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventPrayerTime;
 use App\Enums\EventVisibility;
-use App\Models\Tag;
 use App\Services\Ai\EventMediaExtractionService;
 use Illuminate\Http\UploadedFile;
 use Livewire\Livewire;
 use Mockery\MockInterface;
 
 it('extracts media data with AI and moves the wizard to review step', function () {
-    $domainTag = Tag::factory()->domain()->create(['name' => ['ms' => 'Akidah', 'en' => 'Creed']]);
-    $sourceTag = Tag::factory()->source()->create(['name' => ['ms' => 'Al-Quran', 'en' => 'Quran']]);
-    $disciplineTag = Tag::factory()->discipline()->create(['name' => ['ms' => 'Fiqh', 'en' => 'Fiqh']]);
-    $issueTag = Tag::factory()->issue()->create(['name' => ['ms' => 'Kepimpinan', 'en' => 'Leadership']]);
+    $domainTag = submitEventTerm('domain');
+    $sourceTag = submitEventTerm('source');
+    $disciplineTag = submitEventTerm('discipline');
+    $issueTag = submitEventTerm('issue');
 
     $this->mock(EventMediaExtractionService::class, function (MockInterface $mock) use ($domainTag, $sourceTag, $disciplineTag, $issueTag): void {
         $mock->shouldReceive('extract')

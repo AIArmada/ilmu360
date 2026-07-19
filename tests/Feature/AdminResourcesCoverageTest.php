@@ -26,7 +26,6 @@ use App\Filament\Resources\Speakers\RelationManagers\EventsRelationManager as Sp
 use App\Filament\Resources\Speakers\RelationManagers\FollowersRelationManager as SpeakerFollowersRelationManager;
 use App\Filament\Resources\Speakers\RelationManagers\MemberInvitationsRelationManager as SpeakerMemberInvitationsRelationManager;
 use App\Filament\Resources\Speakers\SpeakerResource;
-use App\Filament\Resources\Tags\TagResource;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
@@ -49,7 +48,6 @@ it('allows super admin to access all core admin resource index pages', function 
         SeriesResource::class,
         ReferenceResource::class,
         DonationChannelResource::class,
-        TagResource::class,
         ContributionRequestResource::class,
         MembershipApplicationResource::class,
         ReportResource::class,

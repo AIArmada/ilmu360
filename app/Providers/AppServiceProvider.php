@@ -50,7 +50,6 @@ use App\Models\Report;
 use App\Models\Series;
 use App\Models\Space;
 use App\Models\Speaker;
-use App\Models\Tag;
 use App\Models\User;
 use App\Models\Venue;
 use App\Observers\AddressableObserver;
@@ -65,7 +64,6 @@ use App\Observers\EventTimeExpressionObserver;
 use App\Observers\InstitutionObserver;
 use App\Observers\ReferenceObserver;
 use App\Observers\SpeakerObserver;
-use App\Observers\TagObserver;
 use App\Observers\VenueObserver;
 use App\Policies\AddressAreaPolicy;
 use App\Policies\AddressCountryPolicy;
@@ -278,7 +276,6 @@ class AppServiceProvider extends ServiceProvider
             'series' => Series::class,
             'social_media' => SocialProfile::class,
             'space' => Space::class,
-            'tag' => Tag::class,
             'venue' => Venue::class,
             'donation_channel' => DonationChannel::class,
             'reference' => Reference::class,
@@ -365,7 +362,6 @@ class AppServiceProvider extends ServiceProvider
         Reference::observe(ReferenceObserver::class);
         Speaker::observe(SpeakerObserver::class);
         Venue::observe(VenueObserver::class);
-        Tag::observe(TagObserver::class);
 
         app()->instance($registrationKey, true);
     }

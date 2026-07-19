@@ -6,7 +6,7 @@ namespace App\Actions\Events;
 
 use AIArmada\Events\Actions\SyncEventClassificationsAction as PackageSyncEventClassificationsAction;
 use App\Contracts\EventCategoryCatalog;
-use App\Enums\TagType;
+use App\Enums\EventTaxonomyCode;
 use App\Models\Event;
 use Illuminate\Support\Collection;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -35,7 +35,7 @@ class SyncEventClassificationsAction
      */
     public function handle(Event $event, array $validated): int
     {
-        $types = [TagType::Domain, TagType::Source, TagType::Discipline, TagType::Issue];
+        $types = [EventTaxonomyCode::Domain, EventTaxonomyCode::Source, EventTaxonomyCode::Discipline, EventTaxonomyCode::Issue];
         $existing = $event->classifications()
             ->whereNull('event_occurrence_id')
             ->whereNull('event_session_id')
@@ -49,12 +49,12 @@ class SyncEventClassificationsAction
             event: $event,
             taxonomyValues: [
                 EventCategoryCatalog::TAXONOMY_CODE => $categoryValues,
-                TagType::Domain->value => $this->valuesFor($validated, TagType::Domain->value, $existingByTaxonomy),
-                TagType::Source->value => $this->valuesFor($validated, TagType::Source->value, $existingByTaxonomy),
-                TagType::Discipline->value => $this->valuesFor($validated, TagType::Discipline->value, $existingByTaxonomy),
-                TagType::Issue->value => $this->valuesFor($validated, TagType::Issue->value, $existingByTaxonomy),
+                EventTaxonomyCode::Domain->value => $this->valuesFor($validated, EventTaxonomyCode::Domain->value, $existingByTaxonomy),
+                EventTaxonomyCode::Source->value => $this->valuesFor($validated, EventTaxonomyCode::Source->value, $existingByTaxonomy),
+                EventTaxonomyCode::Discipline->value => $this->valuesFor($validated, EventTaxonomyCode::Discipline->value, $existingByTaxonomy),
+                EventTaxonomyCode::Issue->value => $this->valuesFor($validated, EventTaxonomyCode::Issue->value, $existingByTaxonomy),
             ],
-            taxonomyDefinitions: collect($types)->mapWithKeys(fn (TagType $type): array => [
+            taxonomyDefinitions: collect($types)->mapWithKeys(fn (EventTaxonomyCode $type): array => [
                 $type->value => [
                     'name' => $type->label(),
                     'description' => $type->description(),
@@ -72,10 +72,10 @@ class SyncEventClassificationsAction
             explicitTermIds: collect($validated['taxonomy_term_ids'] ?? [])
                 ->merge($existing->filter(fn ($classification): bool => ! in_array($classification->taxonomy_code, [
                     EventCategoryCatalog::TAXONOMY_CODE,
-                    TagType::Domain->value,
-                    TagType::Source->value,
-                    TagType::Discipline->value,
-                    TagType::Issue->value,
+                    EventTaxonomyCode::Domain->value,
+                    EventTaxonomyCode::Source->value,
+                    EventTaxonomyCode::Discipline->value,
+                    EventTaxonomyCode::Issue->value,
                 ], true))->pluck('event_term_id'))
                 ->filter(fn (mixed $id): bool => is_string($id) && $id !== '')
                 ->unique()
@@ -91,9 +91,9 @@ class SyncEventClassificationsAction
     private function valuesFor(array $validated, string $taxonomyCode, mixed $existingByTaxonomy): array
     {
         $key = match ($taxonomyCode) {
-            TagType::Domain->value => 'domain_tags',
-            TagType::Source->value => 'source_tags',
-            TagType::Discipline->value => 'discipline_tags',
+            EventTaxonomyCode::Domain->value => 'domain_tags',
+            EventTaxonomyCode::Source->value => 'source_tags',
+            EventTaxonomyCode::Discipline->value => 'discipline_tags',
             default => 'issue_tags',
         };
 

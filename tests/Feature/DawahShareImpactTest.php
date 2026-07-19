@@ -6,6 +6,7 @@ use AIArmada\Affiliates\Models\AffiliateConversion;
 use AIArmada\Affiliates\Models\AffiliateLink;
 use AIArmada\Affiliates\Models\AffiliateTouchpoint;
 use AIArmada\Affiliates\States\ApprovedConversion;
+use AIArmada\Events\Models\EventTerm;
 use App\Actions\Fortify\CreateNewUser;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
@@ -21,7 +22,6 @@ use App\Models\Reference;
 use App\Models\Registration;
 use App\Models\Series;
 use App\Models\Speaker;
-use App\Models\Tag;
 use App\Models\User;
 use App\Services\ShareTrackingAnalyticsService;
 use App\Services\ShareTrackingService;
@@ -94,20 +94,20 @@ function dawahShareExtractSharedUrlFromWhatsAppRedirect(TestResponse $response):
 }
 
 /**
- * @return array{domain_tag: Tag, discipline_tag: Tag, institution: Institution, speaker: Speaker}
+ * @return array{domain_tag: EventTerm, discipline_tag: EventTerm, institution: Institution, speaker: Speaker}
  */
 function dawahShareSubmitEventFixtures(): array
 {
     return [
-        'domain_tag' => Tag::factory()->domain()->create(),
-        'discipline_tag' => Tag::factory()->discipline()->create(),
+        'domain_tag' => submitEventTerm('domain'),
+        'discipline_tag' => submitEventTerm('discipline'),
         'institution' => Institution::factory()->create(['status' => 'verified']),
         'speaker' => Speaker::factory()->create(['status' => 'verified']),
     ];
 }
 
 /**
- * @param  array{domain_tag: Tag, discipline_tag: Tag, institution: Institution, speaker: Speaker}  $fixtures
+ * @param  array{domain_tag: EventTerm, discipline_tag: EventTerm, institution: Institution, speaker: Speaker}  $fixtures
  * @return array<string, mixed>
  */
 function dawahShareSubmitEventFormData(array $fixtures, array $overrides = []): array

@@ -24,7 +24,6 @@ use App\Models\Reference;
 use App\Models\Series;
 use App\Models\Space;
 use App\Models\Speaker;
-use App\Models\Tag;
 use App\Models\User;
 use App\Models\Venue;
 use App\Support\Search\InstitutionSearchService;
@@ -2893,7 +2892,7 @@ it('submits events with media through the frontend api', function () {
         'status' => 'verified',
         'allow_public_event_submission' => true,
     ]);
-    $domainTag = Tag::factory()->domain()->create();
+    $domainTag = submitEventTerm('domain');
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
         'allow_public_event_submission' => true,
@@ -2972,7 +2971,7 @@ it('requires explicit country input for frontend event submissions and accepts a
         'status' => 'verified',
         'allow_public_event_submission' => true,
     ]);
-    $domainTag = Tag::factory()->domain()->create();
+    $domainTag = submitEventTerm('domain');
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
         'allow_public_event_submission' => true,
@@ -3018,7 +3017,7 @@ it('accepts any valid submission country uuid for frontend event submissions', f
         'status' => 'verified',
         'allow_public_event_submission' => true,
     ]);
-    $domainTag = Tag::factory()->domain()->create();
+    $domainTag = submitEventTerm('domain');
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
         'allow_public_event_submission' => true,
@@ -3062,7 +3061,7 @@ it('requires guest event submissions to include email or phone', function () {
         'status' => 'verified',
         'allow_public_event_submission' => true,
     ]);
-    $domainTag = Tag::factory()->domain()->create();
+    $domainTag = submitEventTerm('domain');
     $speaker = Speaker::factory()->create([
         'status' => 'verified',
         'allow_public_event_submission' => true,
@@ -3094,7 +3093,7 @@ it('allows online frontend event submissions without a live url', function () {
         'status' => 'verified',
         'allow_public_event_submission' => true,
     ]);
-    $domainTag = Tag::factory()->domain()->create();
+    $domainTag = submitEventTerm('domain');
 
     $this->postJson(route('api.client.submit-event.store'), [
         'title' => 'Online Frontend API Event',
@@ -3124,7 +3123,7 @@ it('requires a physical location for speaker-organized physical event submission
         'status' => 'verified',
         'allow_public_event_submission' => true,
     ]);
-    $domainTag = Tag::factory()->domain()->create();
+    $domainTag = submitEventTerm('domain');
 
     $this->postJson(route('api.client.submit-event.store'), [
         'title' => 'Speaker Physical Event',

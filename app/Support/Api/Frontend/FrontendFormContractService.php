@@ -8,6 +8,7 @@ use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventPrayerTime;
+use App\Enums\EventTaxonomyCode;
 use App\Enums\EventVisibility;
 use App\Enums\Gender;
 use App\Enums\Honorific;
@@ -16,7 +17,6 @@ use App\Enums\MemberSubjectType;
 use App\Enums\PostNominal;
 use App\Enums\PreNominal;
 use App\Enums\RegistrationScope;
-use App\Enums\TagType;
 use App\Models\User;
 use App\Services\GitHub\GitHubIssueReporter;
 use App\Services\ShareTrackingService;
@@ -372,10 +372,10 @@ class FrontendFormContractService
                 $this->field('children_allowed', 'boolean', required: false, default: true),
                 $this->field('is_muslim_only', 'boolean', required: false, default: false),
                 $this->field('languages', 'array<int>', required: true, default: [101], catalog: route('api.client.catalogs.languages')),
-                $this->field('domain_tags', 'array<string>', required: false, catalog: route('api.client.catalogs.tags', ['type' => TagType::Domain->value])),
-                $this->field('discipline_tags', 'array<string>', required: false, catalog: route('api.client.catalogs.tags', ['type' => TagType::Discipline->value])),
-                $this->field('source_tags', 'array<string>', required: false, catalog: route('api.client.catalogs.tags', ['type' => TagType::Source->value])),
-                $this->field('issue_tags', 'array<string>', required: false, catalog: route('api.client.catalogs.tags', ['type' => TagType::Issue->value])),
+                $this->field('domain_tags', 'array<string>', required: false, catalog: route('api.client.catalogs.tags', ['type' => EventTaxonomyCode::Domain->value])),
+                $this->field('discipline_tags', 'array<string>', required: false, catalog: route('api.client.catalogs.tags', ['type' => EventTaxonomyCode::Discipline->value])),
+                $this->field('source_tags', 'array<string>', required: false, catalog: route('api.client.catalogs.tags', ['type' => EventTaxonomyCode::Source->value])),
+                $this->field('issue_tags', 'array<string>', required: false, catalog: route('api.client.catalogs.tags', ['type' => EventTaxonomyCode::Issue->value])),
                 $this->field('references', 'array<string>', required: false, catalog: route('api.client.catalogs.references')),
                 $this->field('primary_organizer_id', 'uuid', required: true, meta: [
                     'catalogs' => [

@@ -10,8 +10,8 @@ use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventPrayerTime;
+use App\Enums\EventTaxonomyCode;
 use App\Enums\EventVisibility;
-use App\Enums\TagType;
 use ArrayAccess;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
@@ -136,10 +136,10 @@ class EventMediaExtractionService
             'gender_values' => array_column(EventGenderRestriction::cases(), 'value'),
             'age_group_values' => array_column(EventAgeGroup::cases(), 'value'),
             'language_codes' => $this->availableLanguageCodes(),
-            'domain_tag_options' => $this->tagOptions(TagType::Domain)->all(),
-            'source_tag_options' => $this->tagOptions(TagType::Source)->all(),
-            'discipline_tag_options' => $this->tagOptions(TagType::Discipline)->all(),
-            'issue_tag_options' => $this->tagOptions(TagType::Issue)->all(),
+            'domain_tag_options' => $this->tagOptions(EventTaxonomyCode::Domain)->all(),
+            'source_tag_options' => $this->tagOptions(EventTaxonomyCode::Source)->all(),
+            'discipline_tag_options' => $this->tagOptions(EventTaxonomyCode::Discipline)->all(),
+            'issue_tag_options' => $this->tagOptions(EventTaxonomyCode::Issue)->all(),
         ];
     }
 
@@ -185,10 +185,10 @@ class EventMediaExtractionService
             'children_allowed' => $this->normalizeBoolean($payload['children_allowed'] ?? null),
             'is_muslim_only' => $this->normalizeBoolean($payload['is_muslim_only'] ?? null),
             'languages' => $this->mapLanguageCodesToIds($payload['language_codes'] ?? []),
-            'domain_tags' => $this->resolveTagIds(TagType::Domain, $payload['domain_tag_ids'] ?? [], limit: 3),
-            'source_tags' => $this->resolveTagIds(TagType::Source, $payload['source_tag_ids'] ?? [], limit: 5),
-            'discipline_tags' => $this->resolveTagValues(TagType::Discipline, $payload['discipline_tags'] ?? [], limit: 5),
-            'issue_tags' => $this->resolveTagValues(TagType::Issue, $payload['issue_tags'] ?? [], limit: 5),
+            'domain_tags' => $this->resolveTagIds(EventTaxonomyCode::Domain, $payload['domain_tag_ids'] ?? [], limit: 3),
+            'source_tags' => $this->resolveTagIds(EventTaxonomyCode::Source, $payload['source_tag_ids'] ?? [], limit: 5),
+            'discipline_tags' => $this->resolveTagValues(EventTaxonomyCode::Discipline, $payload['discipline_tags'] ?? [], limit: 5),
+            'issue_tags' => $this->resolveTagValues(EventTaxonomyCode::Issue, $payload['issue_tags'] ?? [], limit: 5),
         ];
 
         return array_filter(
@@ -200,7 +200,7 @@ class EventMediaExtractionService
     /**
      * @return Collection<string, string>
      */
-    protected function tagOptions(TagType $tagType): Collection
+    protected function tagOptions(EventTaxonomyCode $tagType): Collection
     {
         $taxonomy = EventTaxonomy::query()
             ->where('code', $tagType->value)
@@ -398,7 +398,7 @@ class EventMediaExtractionService
     /**
      * @return array<int, string>
      */
-    protected function resolveTagIds(TagType $tagType, mixed $value, int $limit): array
+    protected function resolveTagIds(EventTaxonomyCode $tagType, mixed $value, int $limit): array
     {
         if ($value instanceof Collection) {
             $value = $value->all();
@@ -436,7 +436,7 @@ class EventMediaExtractionService
     /**
      * @return array<int, string>
      */
-    protected function resolveTagValues(TagType $tagType, mixed $value, int $limit): array
+    protected function resolveTagValues(EventTaxonomyCode $tagType, mixed $value, int $limit): array
     {
         if ($value instanceof Collection) {
             $value = $value->all();

@@ -62,7 +62,6 @@ use App\Models\Report;
 use App\Models\Series;
 use App\Models\Space;
 use App\Models\Speaker;
-use App\Models\Tag;
 use App\Models\User;
 use App\Models\Venue;
 use App\Services\Signals\SignalsTracker;
@@ -1005,73 +1004,6 @@ it('lists admin event records with prayer-relative metadata through the MCP serv
         ->toContain(eventCategoryId('kuliah_ceramah'));
 });
 
-it('exposes tag write schema and creates and updates tags through the admin MCP server', function () {
-    $admin = adminMcpUser('super_admin');
-
-    AdminServer::actingAs($admin)
-        ->tool(AdminGetWriteSchemaTool::class, [
-            'resource_key' => 'tags',
-            'operation' => 'create',
-        ])
-        ->assertOk()
-        ->assertStructuredContent(fn ($json) => $json
-            ->where('data.resource.key', 'tags')
-            ->where('data.schema.resource_key', 'tags')
-            ->where('data.schema.content_type', 'application/json')
-            ->where('data.schema.tool_arguments.resource_key', 'tags')
-            ->etc());
-
-    AdminServer::actingAs($admin)
-        ->tool(AdminCreateRecordTool::class, [
-            'resource_key' => 'tags',
-            'payload' => [
-                'name' => [
-                    'ms' => 'Tadabbur MCP',
-                    'en' => 'Reflection MCP',
-                ],
-                'type' => 'discipline',
-                'status' => 'verified',
-            ],
-        ])
-        ->assertOk();
-
-    $tagRouteKey = (string) Tag::query()
-        ->where('type', 'discipline')
-        ->where('name->ms', 'Tadabbur MCP')
-        ->value('id');
-
-    expect($tagRouteKey)->not->toBe('');
-
-    expect(Tag::query()->findOrFail($tagRouteKey)->type)->toBe('discipline');
-
-    AdminServer::actingAs($admin)
-        ->tool(AdminUpdateRecordTool::class, [
-            'resource_key' => 'tags',
-            'record_key' => $tagRouteKey,
-            'payload' => [
-                'name' => [
-                    'ms' => 'Rasuah MCP',
-                    'en' => 'Corruption MCP',
-                ],
-                'type' => 'issue',
-                'status' => 'pending',
-                'order_column' => 7,
-            ],
-        ])
-        ->assertOk()
-        ->assertStructuredContent(fn ($json) => $json
-            ->where('data.record.attributes.type', 'issue')
-            ->where('data.record.attributes.status', 'pending')
-            ->where('data.record.attributes.order_column', 7)
-            ->etc());
-
-    $tag = Tag::query()->findOrFail($tagRouteKey);
-
-    expect($tag->status)->toBe('pending')
-        ->and($tag->order_column)->toBe(7)
-        ->and($tag->getTranslation('slug', 'en'))->toBe('corruption-mcp');
-});
-
 it('moderates events through the admin MCP workflow tool', function () {
     $admin = adminMcpUser('super_admin');
     $event = Event::factory()->create([
@@ -1641,32 +1573,13 @@ it('surfaces space report and inspiration update semantics through admin MCP wri
             ->etc());
 });
 
-it('surfaces tag and address-area update semantics through admin MCP write schemas', function () {
+it('surfaces address-area update semantics through admin MCP write schemas', function () {
     $admin = adminMcpUser('super_admin');
-    $tag = Tag::factory()->discipline()->verified()->create();
 
     $countryId = ensureMcpMalaysiaCountryExists();
     $state = createTestAddressArea('Admin MCP Negeri '.Str::lower(Str::random(8)), 1, country: ensureTestMalaysiaCountry(), type: 'state');
     $district = createTestAddressArea('Admin MCP Daerah '.Str::lower(Str::random(8)), 2, parent: $state, country: ensureTestMalaysiaCountry(), type: 'district');
     $subdistrict = createTestAddressArea('Admin MCP Subdistrict '.Str::lower(Str::random(8)), 3, parent: $district, country: ensureTestMalaysiaCountry(), type: 'subdistrict');
-
-    AdminServer::actingAs($admin)
-        ->tool(AdminGetWriteSchemaTool::class, [
-            'resource_key' => 'tags',
-            'operation' => 'update',
-            'record_key' => (string) $tag->getKey(),
-        ])
-        ->assertOk()
-        ->assertStructuredContent(fn ($json) => $json
-            ->where('data.schema.resource_key', 'tags')
-            ->where('data.schema.fields', function ($fields): bool {
-                $fieldMap = collect($fields)->keyBy('name');
-
-                return data_get($fieldMap->get('name'), 'translation_fallback.en') === 'name.ms'
-                    && data_get($fieldMap->get('name.en'), 'clear_semantics.explicit_null') === 'fallback_to_name.ms'
-                    && data_get($fieldMap->get('order_column'), 'clear_semantics.explicit_null') === 'recompute_with_sortable_scope';
-            })
-            ->etc());
 
     AdminServer::actingAs($admin)
         ->tool(AdminGetWriteSchemaTool::class, [

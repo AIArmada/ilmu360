@@ -10,8 +10,8 @@ use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Actions\Events\ResolveAdvancedBuilderContextAction;
+use App\Enums\EventTaxonomyCode;
 use App\Enums\MemberSubjectType;
-use App\Enums\TagType;
 use App\Forms\SharedFormSchema;
 use App\Models\Institution;
 use App\Models\Reference;
@@ -269,7 +269,7 @@ class FrontendCatalogService
      *
      * @return list<array{id: string, label: string}>
      */
-    public function tags(TagType $type, ?string $search = null, int $limit = 50): array
+    public function tags(EventTaxonomyCode $type, ?string $search = null, int $limit = 50): array
     {
         return $this->taxonomyTerms($type->value, $search, $limit);
     }

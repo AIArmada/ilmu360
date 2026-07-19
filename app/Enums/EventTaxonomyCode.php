@@ -2,7 +2,7 @@
 
 namespace App\Enums;
 
-enum TagType: string
+enum EventTaxonomyCode: string
 {
     case Domain = 'domain';
     case Discipline = 'discipline';

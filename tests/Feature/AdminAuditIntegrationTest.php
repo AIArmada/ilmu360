@@ -4,7 +4,6 @@ use AIArmada\Addressing\Models\Address;
 use AIArmada\Contacting\Models\ContactMethod;
 use AIArmada\Contacting\Models\SocialProfile;
 use AIArmada\Events\Models\EventAccessPolicy;
-use App\Enums\TagType;
 use App\Filament\Ahli\Resources\Institutions\InstitutionResource as AhliInstitutionResource;
 use App\Filament\Ahli\Resources\References\ReferenceResource as AhliReferenceResource;
 use App\Filament\Ahli\Resources\Speakers\SpeakerResource as AhliSpeakerResource;
@@ -22,7 +21,6 @@ use App\Filament\Resources\Reports\ReportResource;
 use App\Filament\Resources\Series\SeriesResource;
 use App\Filament\Resources\Spaces\SpaceResource;
 use App\Filament\Resources\Speakers\SpeakerResource;
-use App\Filament\Resources\Tags\TagResource;
 use App\Models\AiModelPricing;
 use App\Models\Audit;
 use App\Models\ContributionRequest;
@@ -42,7 +40,6 @@ use App\Models\Report;
 use App\Models\Series;
 use App\Models\Space;
 use App\Models\Speaker;
-use App\Models\Tag;
 use App\Models\User;
 use App\Models\Venue;
 use Database\Seeders\PermissionSeeder;
@@ -58,7 +55,6 @@ beforeEach(function () {
     Institution::observe(AuditableObserver::class);
     ModerationReview::observe(AuditableObserver::class);
     Speaker::observe(AuditableObserver::class);
-    Tag::observe(AuditableObserver::class);
     Venue::observe(AuditableObserver::class);
 
     $this->seed(RoleSeeder::class);
@@ -72,7 +68,6 @@ it('registers the audits relation manager on audited admin and ahli resources', 
         SeriesResource::class,
         ReferenceResource::class,
         DonationChannelResource::class,
-        TagResource::class,
         ContributionRequestResource::class,
         MembershipApplicationResource::class,
         ReportResource::class,
@@ -155,7 +150,6 @@ it('registers morph aliases for audited models', function () {
         SocialProfile::class,
         Space::class,
         Speaker::class,
-        Tag::class,
         User::class,
         Venue::class,
     ];
@@ -163,38 +157,6 @@ it('registers morph aliases for audited models', function () {
     foreach ($models as $modelClass) {
         expect((new $modelClass)->getMorphClass())->toBeString();
     }
-});
-
-it('records array-backed tag edits in audits', function () {
-    $administrator = User::factory()->create();
-    $administrator->assignRole('super_admin');
-
-    $tag = Tag::factory()
-        ->ofType(TagType::Discipline)
-        ->create([
-            'name' => ['en' => 'Fiqh', 'ms' => 'Fiqh'],
-            'slug' => ['en' => 'fiqh', 'ms' => 'fiqh'],
-        ]);
-
-    $this->actingAs($administrator);
-
-    $tag->update([
-        'name' => ['en' => 'Usul Fiqh', 'ms' => 'Usul Fiqh'],
-    ]);
-
-    $audit = $tag->audits()
-        ->where('event', 'updated')
-        ->latest('created_at')
-        ->first();
-
-    expect($audit)->not->toBeNull()
-        ->and($audit?->event)->toBe('updated')
-        ->and($audit?->user_id)->toBe($administrator->id)
-        ->and($audit?->new_values)->toHaveKey('name')
-        ->and(json_decode((string) ($audit?->new_values['name'] ?? ''), true, flags: JSON_THROW_ON_ERROR))->toBe([
-            'en' => 'Usul Fiqh',
-            'ms' => 'Usul Fiqh',
-        ]);
 });
 
 it('records moderation review creation in audits', function () {
