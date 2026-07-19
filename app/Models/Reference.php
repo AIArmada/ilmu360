@@ -44,6 +44,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  * @property string|null $description
  * @property bool|null $is_canonical
  * @property string|null $status
+ * @property string|null $verified_by
  * @property string|null $url
  * @property string|null $language
  * @property array<int, mixed>|null $reference_parts
@@ -77,6 +78,10 @@ class Reference extends PackageReference implements AuditableContract
             }
 
             $reference->normalizeReferencePartFields();
+
+            if ($reference->isDirty('status') && (string) $reference->status === 'verified') {
+                $reference->verified_by ??= auth()->id();
+            }
         });
     }
 
@@ -94,6 +99,7 @@ class Reference extends PackageReference implements AuditableContract
         'description',
         'is_canonical',
         'status',
+        'verified_by',
         'url',
         'language',
         'reference_parts',
@@ -561,6 +567,14 @@ class Reference extends PackageReference implements AuditableContract
         $trimmed = trim((string) $value);
 
         return $trimmed !== '' ? $trimmed : null;
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function verifier(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'verified_by');
     }
 
     /**

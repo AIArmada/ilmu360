@@ -22,6 +22,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
@@ -69,6 +70,7 @@ class Speaker extends Model implements AuditableContract, HasMedia
         'bio',
         'status',
         'verified_at',
+        'verified_by',
         'rejected_at',
         'inactive_at',
         'last_state_change_at',
@@ -189,6 +191,10 @@ class Speaker extends Model implements AuditableContract, HasMedia
                     'inactive' => $speaker->inactive_at ??= $now,
                     default => null,
                 };
+
+                if ((string) $speaker->status === 'verified') {
+                    $speaker->verified_by ??= auth()->id();
+                }
             }
 
             if ($speaker->isDirty('qualifications')) {
@@ -628,6 +634,14 @@ class Speaker extends Model implements AuditableContract, HasMedia
             ->using(InstitutionSpeakerPivot::class)
             ->withPivot(['position', 'is_primary', 'joined_at'])
             ->withTimestamps();
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function verifier(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'verified_by');
     }
 
     /**

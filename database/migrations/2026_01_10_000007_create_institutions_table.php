@@ -20,6 +20,7 @@ return new class extends Migration
 
             $table->string('status')->nullable();
             $table->timestampTz('verified_at')->nullable();
+            $table->foreignUuid('verified_by')->nullable()->index();
             $table->timestampTz('rejected_at')->nullable();
             $table->timestampTz('inactive_at')->nullable();
             $table->timestampTz('last_state_change_at')->nullable();

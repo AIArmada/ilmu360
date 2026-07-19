@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 use Spatie\DeletedModels\Models\Concerns\KeepsDeletedModels;
@@ -28,6 +29,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  * @property VenueType|string|null $venue_type
  * @property-read Collection<int, VenueFacility> $facilities
  * @property string|null $status
+ * @property string|null $verified_by
  * @property string|null $visibility
  * @property float|int|string|null $latitude
  * @property float|int|string|null $longitude
@@ -71,6 +73,7 @@ class Venue extends PackageVenue implements AuditableContract
         'geocoded_at',
         'geocoding_source',
         'status',
+        'verified_by',
         'visibility',
     ];
 
@@ -86,6 +89,16 @@ class Venue extends PackageVenue implements AuditableContract
     protected static function newFactory(): VenueFactory
     {
         return VenueFactory::new();
+    }
+
+    #[\Override]
+    protected static function booted(): void
+    {
+        static::saving(function (self $venue): void {
+            if ($venue->isDirty('status') && (string) $venue->status === 'verified') {
+                $venue->verified_by ??= auth()->id();
+            }
+        });
     }
 
     /**
@@ -140,5 +153,13 @@ class Venue extends PackageVenue implements AuditableContract
             ->performOnCollections('cover')
             ->fit(Fit::Crop, 1200, 675)
             ->format('webp');
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function verifier(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'verified_by');
     }
 }

@@ -12,7 +12,7 @@ use Illuminate\Contracts\Support\Arrayable;
  * @phpstan-import-type CountryArray from Country
  *
  * @phpstan-type SpeakerMediaArray array{avatar_url: string, cover_url: ?string, share_image_url: ?string}
- * @phpstan-type SpeakerArray array{id: string, slug: string, name: string, gender: string|null, formatted_name: string, job_title: ?string, is_freelance: bool, bio: ?string, qualifications: list<string>, address: AddressSelectionArray|null, country: CountryArray|null, location: ?string, status: string, is_following: bool, media: SpeakerMediaArray, gallery: list<array<string, mixed>>, institutions: list<array<string, mixed>>, contacts: list<array<string, mixed>>, social_media: list<array<string, mixed>>}
+ * @phpstan-type SpeakerArray array{id: string, slug: string, name: string, gender: string|null, formatted_name: string, job_title: ?string, is_freelance: bool, bio: ?string, qualifications: list<string>, address: AddressSelectionArray|null, country: CountryArray|null, location: ?string, status: string, verified_by: ?string, is_following: bool, media: SpeakerMediaArray, gallery: list<array<string, mixed>>, institutions: list<array<string, mixed>>, contacts: list<array<string, mixed>>, social_media: list<array<string, mixed>>}
  *
  * @implements Arrayable<string, mixed>
  */
@@ -41,6 +41,7 @@ final readonly class Speaker implements Arrayable
         public ?Country $country,
         public ?string $location,
         public string $status,
+        public ?string $verified_by,
         public bool $is_following,
         public array $media,
         public array $gallery,
@@ -66,6 +67,7 @@ final readonly class Speaker implements Arrayable
             'country' => $this->country?->toArray(),
             'location' => $this->location,
             'status' => $this->status,
+            'verified_by' => $this->verified_by,
             'is_following' => $this->is_following,
             'media' => $this->media,
             'gallery' => $this->gallery,

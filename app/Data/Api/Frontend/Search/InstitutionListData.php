@@ -28,6 +28,7 @@ class InstitutionListData extends Data
         public ?string $location,
         public ?float $distance_km,
         public bool $is_following,
+        public ?string $verified_by = null,
     ) {}
 
     public static function fromModel(Institution $institution, ?User $user = null): self
@@ -66,6 +67,7 @@ class InstitutionListData extends Data
             location: $location !== '' ? $location : null,
             distance_km: $distanceKm,
             is_following: $isFollowing,
+            verified_by: $institution->verified_by,
         );
     }
 

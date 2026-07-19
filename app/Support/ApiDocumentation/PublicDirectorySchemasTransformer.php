@@ -112,7 +112,8 @@ final class PublicDirectorySchemasTransformer implements DocumentTransformer
             ->addProperty('country', $this->nullableReference($components, 'Country'))
             ->addProperty('location', (new StringType)->nullable(true))
             ->addProperty('distance_km', (new NumberType)->nullable(true))
-            ->addProperty('is_following', new BooleanType);
+            ->addProperty('is_following', new BooleanType)
+            ->addProperty('verified_by', (new StringType)->nullable(true));
 
         if (! $sparse) {
             $type->setRequired([
@@ -148,7 +149,8 @@ final class PublicDirectorySchemasTransformer implements DocumentTransformer
             ->addProperty('events_count', new IntegerType)
             ->addProperty('avatar_url', new StringType)
             ->addProperty('country', $this->nullableReference($components, 'Country'))
-            ->addProperty('is_following', new BooleanType);
+            ->addProperty('is_following', new BooleanType)
+            ->addProperty('verified_by', (new StringType)->nullable(true));
 
         if (! $sparse) {
             $type->setRequired(['id', 'slug', 'name', 'gender', 'formatted_name', 'status', 'events_count', 'avatar_url', 'country', 'is_following']);
@@ -176,7 +178,8 @@ final class PublicDirectorySchemasTransformer implements DocumentTransformer
             ->addProperty('status', new StringType)
             ->addProperty('events_count', new IntegerType)
             ->addProperty('front_cover_url', (new StringType)->nullable(true))
-            ->addProperty('is_following', new BooleanType);
+            ->addProperty('is_following', new BooleanType)
+            ->addProperty('verified_by', (new StringType)->nullable(true));
 
         if (! $sparse) {
             $type->setRequired([

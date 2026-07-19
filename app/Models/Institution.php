@@ -20,6 +20,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
@@ -60,6 +61,7 @@ class Institution extends Model implements AuditableContract, HasMedia
 
         'status',
         'verified_at',
+        'verified_by',
         'rejected_at',
         'inactive_at',
         'last_state_change_at',
@@ -80,6 +82,28 @@ class Institution extends Model implements AuditableContract, HasMedia
             'allow_public_event_submission' => 'boolean',
             'public_submission_locked_at' => 'datetime',
         ];
+    }
+
+    #[\Override]
+    protected static function booted(): void
+    {
+        static::saving(function (self $institution): void {
+            if ($institution->isDirty('status')) {
+                $now = now();
+                $institution->last_state_change_at = $now;
+
+                match ((string) $institution->status) {
+                    'verified' => $institution->verified_at ??= $now,
+                    'rejected' => $institution->rejected_at ??= $now,
+                    'inactive' => $institution->inactive_at ??= $now,
+                    default => null,
+                };
+
+                if ((string) $institution->status === 'verified') {
+                    $institution->verified_by ??= auth()->id();
+                }
+            }
+        });
     }
 
     public function shouldBeSearchable(): bool
@@ -265,6 +289,14 @@ class Institution extends Model implements AuditableContract, HasMedia
             ->using(InstitutionSpeakerPivot::class)
             ->withPivot(['position', 'is_primary', 'joined_at'])
             ->withTimestamps();
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function verifier(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'verified_by');
     }
 
     /**

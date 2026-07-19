@@ -10,7 +10,7 @@ use Illuminate\Contracts\Support\Arrayable;
 /**
  * @phpstan-import-type CountryArray from Country
  *
- * @phpstan-type InstitutionListItemArray array{id: string, slug: string, name: string, type: string|null, nickname: ?string, display_name: string, events_count: int, public_image_url: string, logo_url: string, cover_url: ?string, country: CountryArray|null, location: ?string, distance_km: ?float, is_following: bool}
+ * @phpstan-type InstitutionListItemArray array{id: string, slug: string, name: string, type: string|null, nickname: ?string, display_name: string, events_count: int, public_image_url: string, logo_url: string, cover_url: ?string, country: CountryArray|null, location: ?string, distance_km: ?float, is_following: bool, verified_by: ?string}
  *
  * @implements Arrayable<string, mixed>
  */
@@ -32,6 +32,7 @@ final readonly class InstitutionListItem implements Arrayable
         public ?string $location,
         public ?float $distance_km,
         public bool $is_following,
+        public ?string $verified_by,
     ) {}
 
     /** @return InstitutionListItemArray */
@@ -52,6 +53,7 @@ final readonly class InstitutionListItem implements Arrayable
             'location' => $this->location,
             'distance_km' => $this->distance_km,
             'is_following' => $this->is_following,
+            'verified_by' => $this->verified_by,
         ];
     }
 }

@@ -152,6 +152,10 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
                 $user->handledReports()->update(['handled_by' => null]);
                 $user->verifiedDonationChannels()->update(['verified_by' => null]);
                 $user->verifiedEventCheckins()->update(['verified_by_user_id' => null]);
+                $user->verifiedSpeakers()->update(['verified_by' => null]);
+                $user->verifiedInstitutions()->update(['verified_by' => null]);
+                $user->verifiedReferences()->update(['verified_by' => null]);
+                $user->verifiedVenues()->update(['verified_by' => null]);
                 $user->registrations()->each(fn ($reg) => $reg->delete());
                 $user->eventCheckins()->each(fn ($checkin) => $checkin->delete());
                 $user->savedSearches()->each(fn ($search) => $search->delete());
@@ -307,6 +311,10 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
             'handled_report_ids' => $this->handledReports()->pluck('id')->all(),
             'verified_donation_channel_ids' => $this->verifiedDonationChannels()->pluck('id')->all(),
             'verified_event_checkin_ids' => $this->verifiedEventCheckins()->pluck('id')->all(),
+            'verified_speaker_ids' => $this->verifiedSpeakers()->pluck('id')->all(),
+            'verified_institution_ids' => $this->verifiedInstitutions()->pluck('id')->all(),
+            'verified_reference_ids' => $this->verifiedReferences()->pluck('id')->all(),
+            'verified_venue_ids' => $this->verifiedVenues()->pluck('id')->all(),
             'social_accounts' => $this->socialAccounts()->get()->map->attributesToArray()->all(),
             'registrations' => $this->registrations()->get()->map->attributesToArray()->all(),
             'event_checkins' => $this->eventCheckins()->get()->map->attributesToArray()->all(),
@@ -516,6 +524,10 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
         $this->restoreForeignKeyRelation('handledReports', 'handled_by', $this->snapshotIds($snapshot, 'handled_report_ids'));
         $this->restoreForeignKeyRelation('verifiedDonationChannels', 'verified_by', $this->snapshotIds($snapshot, 'verified_donation_channel_ids'));
         $this->restoreForeignKeyRelation('verifiedEventCheckins', 'verified_by_user_id', $this->snapshotIds($snapshot, 'verified_event_checkin_ids'));
+        $this->restoreForeignKeyRelation('verifiedSpeakers', 'verified_by', $this->snapshotIds($snapshot, 'verified_speaker_ids'));
+        $this->restoreForeignKeyRelation('verifiedInstitutions', 'verified_by', $this->snapshotIds($snapshot, 'verified_institution_ids'));
+        $this->restoreForeignKeyRelation('verifiedReferences', 'verified_by', $this->snapshotIds($snapshot, 'verified_reference_ids'));
+        $this->restoreForeignKeyRelation('verifiedVenues', 'verified_by', $this->snapshotIds($snapshot, 'verified_venue_ids'));
     }
 
     protected function restoreDeletedAffiliateTrackingSnapshot(mixed $record): void
@@ -1206,6 +1218,38 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
     public function verifiedDonationChannels(): HasMany
     {
         return $this->hasMany(DonationChannel::class, 'verified_by');
+    }
+
+    /**
+     * @return HasMany<Speaker, $this>
+     */
+    public function verifiedSpeakers(): HasMany
+    {
+        return $this->hasMany(Speaker::class, 'verified_by');
+    }
+
+    /**
+     * @return HasMany<Institution, $this>
+     */
+    public function verifiedInstitutions(): HasMany
+    {
+        return $this->hasMany(Institution::class, 'verified_by');
+    }
+
+    /**
+     * @return HasMany<Reference, $this>
+     */
+    public function verifiedReferences(): HasMany
+    {
+        return $this->hasMany(Reference::class, 'verified_by');
+    }
+
+    /**
+     * @return HasMany<Venue, $this>
+     */
+    public function verifiedVenues(): HasMany
+    {
+        return $this->hasMany(Venue::class, 'verified_by');
     }
 
     /**

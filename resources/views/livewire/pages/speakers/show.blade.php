@@ -84,135 +84,232 @@
     };
 @endphp
 
-<div class="min-h-screen bg-slate-50/90">
-    <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
-            <div class="space-y-8">
-                <section class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-                    <div class="space-y-6 p-6 sm:p-8">
-                        <div class="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
-                            <div class="flex items-start gap-4">
-                                <img
-                                    src="{{ $speaker->public_avatar_url }}"
-                                    alt="{{ $speaker->formatted_name }}"
-                                    class="h-24 w-24 rounded-3xl object-cover"
-                                    loading="lazy"
-                                >
+<div class="min-h-screen bg-[#f7f6f1] text-slate-900">
+    {{-- Individual speaker profile hero --}}
+    <section class="relative isolate overflow-hidden border-b border-emerald-950/10 bg-[#f4efe4]">
+        <div class="absolute inset-0 -z-20 bg-[radial-gradient(circle_at_12%_15%,rgba(201,154,55,0.18),transparent_28%),radial-gradient(circle_at_88%_8%,rgba(5,98,76,0.18),transparent_34%),linear-gradient(135deg,#fffdf8_0%,#f3eee2_55%,#e6eee8_100%)]"></div>
+        <div class="absolute inset-0 -z-10 opacity-[0.24]" style="background-image: radial-gradient(circle at 1px 1px, rgba(6,78,59,.22) 1px, transparent 0); background-size: 26px 26px;"></div>
+        <div class="absolute -right-24 -top-28 -z-10 h-96 w-96 rounded-full border border-emerald-900/10"></div>
+        <div class="absolute -right-8 -top-12 -z-10 h-72 w-72 rounded-full border border-amber-700/10"></div>
 
-                                <div class="space-y-2">
-                                    <h1 class="font-heading text-3xl font-bold text-slate-950 sm:text-4xl">{{ $speaker->formatted_name }}</h1>
+        <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
+            <a
+                href="{{ route('speakers.index') }}"
+                wire:navigate
+                class="inline-flex items-center gap-2 text-sm font-semibold text-emerald-800 transition hover:text-emerald-600"
+            >
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m15 18-6-6 6-6" />
+                </svg>
+                {{ __('Kembali ke Direktori Penceramah') }}
+            </a>
 
-                                    @if($locationString !== '')
-                                        <p class="text-sm text-slate-500">{{ $locationString }}</p>
-                                    @endif
+            <div class="mt-6 overflow-hidden rounded-[2rem] border border-white/80 bg-white/82 shadow-[0_30px_90px_-42px_rgba(6,78,59,0.42)] backdrop-blur-xl">
+                <div class="grid lg:grid-cols-[20rem_minmax(0,1fr)]">
+                    <div class="relative min-h-[22rem] overflow-hidden bg-gradient-to-br from-emerald-100 via-[#f4efe4] to-amber-100 lg:min-h-[30rem]">
+                        <div class="absolute inset-0 opacity-40" style="background-image: radial-gradient(circle at 1px 1px, rgba(7,91,72,.2) 1px, transparent 0); background-size: 20px 20px;"></div>
+                        <img
+                            src="{{ $speaker->public_avatar_url }}"
+                            alt="{{ $speaker->formatted_name }}"
+                            class="relative h-full w-full object-cover object-top"
+                            loading="eager"
+                        >
+                        <div class="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-emerald-950/80 via-emerald-950/25 to-transparent"></div>
+
+                        <div class="absolute inset-x-5 bottom-5 flex items-center justify-between gap-3">
+                            @if($speaker->status === 'verified')
+                                <span class="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/92 px-3 py-1.5 text-xs font-bold text-emerald-800 shadow-lg backdrop-blur">
+                                    <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.051l-7.5 9.75a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.897 3.896 6.976-9.07a.75.75 0 0 1 1.051-.142Z" clip-rule="evenodd" />
+                                    </svg>
+                                    {{ __('Profil Disahkan') }}
+                                </span>
+                            @else
+                                <span class="inline-flex items-center rounded-full border border-white/20 bg-slate-950/45 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur">
+                                    {{ __('Profil Penceramah') }}
+                                </span>
+                            @endif
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col p-6 sm:p-8 lg:p-10">
+                        <div class="flex flex-1 flex-col">
+                            <div>
+                                <p class="text-[11px] font-black uppercase tracking-[0.24em] text-amber-700">
+                                    {{ __('Penceramah ilmu360°') }}
+                                </p>
+
+                                <h1 class="mt-3 max-w-3xl font-heading text-4xl font-bold leading-[1.05] tracking-[-0.035em] text-emerald-950 sm:text-5xl lg:text-6xl">
+                                    {{ $speaker->formatted_name }}
+                                </h1>
+
+                                @if($locationString !== '')
+                                    <p class="mt-4 flex items-start gap-2 text-sm leading-6 text-slate-600 sm:text-base">
+                                        <svg class="mt-0.5 h-5 w-5 shrink-0 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
+                                        </svg>
+                                        <span>{{ $locationString }}</span>
+                                    </p>
+                                @endif
+
+                                @if($bioText !== '')
+                                    <p class="mt-5 max-w-3xl text-base leading-7 text-slate-600">
+                                        {{ \Illuminate\Support\Str::limit($bioText, 220) }}
+                                    </p>
+                                @else
+                                    <p class="mt-5 max-w-3xl text-base leading-7 text-slate-500">
+                                        {{ __('Temui jadual majlis, rekod penglibatan dan saluran rasmi penceramah ini.') }}
+                                    </p>
+                                @endif
+                            </div>
+
+                            <div class="mt-8 grid grid-cols-3 gap-2 sm:gap-3">
+                                <div class="rounded-2xl border border-emerald-100 bg-emerald-50/80 px-3 py-4 text-center sm:px-5">
+                                    <p class="font-heading text-2xl font-bold text-emerald-950">{{ number_format($upcomingTotal) }}</p>
+                                    <p class="mt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-emerald-700 sm:text-xs">{{ __('Akan Datang') }}</p>
+                                </div>
+                                <div class="rounded-2xl border border-amber-100 bg-amber-50/80 px-3 py-4 text-center sm:px-5">
+                                    <p class="font-heading text-2xl font-bold text-amber-950">{{ number_format($pastTotal) }}</p>
+                                    <p class="mt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-amber-700 sm:text-xs">{{ __('Majlis Lepas') }}</p>
+                                </div>
+                                <div class="rounded-2xl border border-sky-100 bg-sky-50/80 px-3 py-4 text-center sm:px-5">
+                                    <p class="font-heading text-2xl font-bold text-sky-950">{{ number_format($socialLinks->count()) }}</p>
+                                    <p class="mt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-sky-700 sm:text-xs">{{ __('Saluran Rasmi') }}</p>
                                 </div>
                             </div>
 
-                            <div class="flex flex-wrap items-center gap-3">
+                            <div class="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                                 <button
                                     type="button"
                                     wire:click="toggleFollow"
                                     wire:loading.attr="disabled"
-                                    class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-700"
+                                    class="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-emerald-800 px-6 text-sm font-bold text-white shadow-lg shadow-emerald-900/15 transition hover:-translate-y-0.5 hover:bg-emerald-700 disabled:cursor-wait disabled:opacity-70"
                                 >
-                                    @if($this->isFollowing)
-                                        {{ __('Mengikuti') }}
-                                    @else
-                                        {{ __('Ikuti') }}
-                                    @endif
+                                    <svg class="h-5 w-5" fill="{{ $this->isFollowing ? 'currentColor' : 'none' }}" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185v15.065L12 16.197l-7.5 4.375V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z" />
+                                    </svg>
+                                    <span wire:loading.remove wire:target="toggleFollow">
+                                        @if($this->isFollowing)
+                                            {{ __('Mengikuti Penceramah') }}
+                                        @else
+                                            {{ __('Ikuti Penceramah') }}
+                                        @endif
+                                    </span>
+                                    <span wire:loading wire:target="toggleFollow">{{ __('Memproses...') }}</span>
                                 </button>
 
                                 <a
                                     href="#speaker-share-panel"
-                                    class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-700"
+                                    class="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-emerald-200 bg-white px-6 text-sm font-bold text-emerald-800 transition hover:-translate-y-0.5 hover:border-emerald-300 hover:bg-emerald-50"
                                 >
-                                    {{ __('Kongsi') }}
+                                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 1 0 0-4.5 2.25 2.25 0 0 0 0 4.5Zm9.566-3.75a2.25 2.25 0 1 0 0-4.5 2.25 2.25 0 0 0 0 4.5Zm0 14.25a2.25 2.25 0 1 0 0-4.5 2.25 2.25 0 0 0 0 4.5ZM9.164 8.197l5.672-3.144m-5.672 5.75 5.672 3.144" />
+                                    </svg>
+                                    {{ __('Kongsi Profil') }}
                                 </a>
                             </div>
-                        </div>
 
-                        @guest
-                            <div class="flex flex-wrap gap-3">
-                                <a
-                                    href="{{ \App\Support\Auth\IntendedRedirect::registerUrl($speakerRedirectUrl) }}"
-                                    class="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
+                            @guest
+                                <div class="mt-5 rounded-2xl border border-amber-200/70 bg-amber-50/70 p-4">
+                                    <p class="text-sm leading-6 text-amber-950">
+                                        {{ __('Daftar atau log masuk untuk mengikuti penceramah dan menerima kemas kini majlis mereka.') }}
+                                    </p>
+                                    <div class="mt-3 flex flex-wrap gap-2">
+                                        <a
+                                            href="{{ \App\Support\Auth\IntendedRedirect::registerUrl($speakerRedirectUrl) }}"
+                                            class="inline-flex h-10 items-center rounded-xl bg-amber-700 px-4 text-xs font-bold text-white transition hover:bg-amber-600"
+                                        >
+                                            {{ __('Daftar') }}
+                                        </a>
+                                        <a
+                                            href="{{ \App\Support\Auth\IntendedRedirect::loginUrl($speakerRedirectUrl) }}"
+                                            class="inline-flex h-10 items-center rounded-xl border border-amber-300 bg-white px-4 text-xs font-bold text-amber-900 transition hover:bg-amber-100"
+                                        >
+                                            {{ __('Log Masuk') }}
+                                        </a>
+                                    </div>
+                                </div>
+                            @endguest
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    {{-- Speaker-specific profile content --}}
+    <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
+        <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
+            <main class="min-w-0 space-y-8">
+                <section class="scroll-reveal reveal-up revealed overflow-hidden rounded-[1.75rem] border border-slate-200/90 bg-white shadow-sm">
+                    <div class="border-b border-slate-100 px-6 py-5 sm:px-8">
+                        <p class="text-[10px] font-black uppercase tracking-[0.22em] text-amber-700">{{ __('Tentang Penceramah') }}</p>
+                        <h2 class="mt-1 font-heading text-2xl font-bold text-emerald-950 sm:text-3xl">{{ __('Biodata') }}</h2>
+                    </div>
+
+                    <div class="p-6 sm:p-8">
+                        @if($bioText !== '')
+                            <div x-data="{ expanded: false }">
+                                <div
+                                    class="{{ $shouldCollapseBio ? 'max-h-[26rem] overflow-hidden' : '' }} prose prose-slate max-w-none leading-8 prose-headings:font-heading prose-headings:text-emerald-950 prose-a:text-emerald-700 prose-strong:text-slate-900"
+                                    :class="{ 'max-h-[26rem] overflow-hidden': {{ $shouldCollapseBio ? 'true' : 'false' }} && ! expanded }"
                                 >
-                                    {{ __('Daftar') }}
-                                </a>
-                                <a
-                                    href="{{ \App\Support\Auth\IntendedRedirect::loginUrl($speakerRedirectUrl) }}"
-                                    class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-700"
-                                >
-                                    {{ __('Log Masuk') }}
-                                </a>
+                                    {!! $bioHtml !!}
+                                </div>
+
+                                @if($shouldCollapseBio)
+                                    <div class="relative mt-5">
+                                        <div x-show="! expanded" class="pointer-events-none absolute -top-24 inset-x-0 h-24 bg-gradient-to-t from-white to-transparent"></div>
+                                        <button
+                                            type="button"
+                                            x-on:click="expanded = ! expanded"
+                                            class="inline-flex h-11 items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 text-sm font-bold text-emerald-800 transition hover:border-emerald-300 hover:bg-emerald-100"
+                                        >
+                                            <span x-show="! expanded">{{ __('Baca biodata penuh') }}</span>
+                                            <span x-show="expanded">{{ __('Ringkaskan biodata') }}</span>
+                                            <svg class="h-4 w-4 transition" :class="{ 'rotate-180': expanded }" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                @endif
                             </div>
-                        @endguest
+                        @else
+                            <div class="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center">
+                                <p class="text-sm text-slate-500">{{ __('Biodata penceramah ini belum tersedia buat masa ini.') }}</p>
+                            </div>
+                        @endif
                     </div>
                 </section>
 
-                <section class="scroll-reveal reveal-up revealed rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                    <h2 class="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">{{ __('Biodata') }}</h2>
-
-                    @if($bioText !== '')
-                        <div x-data="{ expanded: false }" class="mt-4">
-                            <div class="{{ $shouldCollapseBio ? 'max-h-80 overflow-hidden' : '' }} prose max-w-none text-slate-700 prose-headings:text-slate-950" :class="{ 'max-h-80 overflow-hidden': {{ $shouldCollapseBio ? 'true' : 'false' }} && ! expanded }">
-                                {!! $bioHtml !!}
-                            </div>
-
-                            @if($shouldCollapseBio)
-                                <button
-                                    type="button"
-                                    x-on:click="expanded = ! expanded"
-                                    class="mt-4 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-700"
-                                >
-                                    <span x-show="! expanded">{{ __('Lihat biodata penuh') }}</span>
-                                    <span x-show="expanded">{{ __('Sembunyikan biodata') }}</span>
-                                </button>
-                            @endif
-                        </div>
-                    @else
-                        <p class="mt-4 text-sm text-slate-500">{{ __('Tiada biodata tersedia buat masa ini.') }}</p>
-                    @endif
-                </section>
-
-                @if($socialLinks->isNotEmpty())
-                    <section class="scroll-reveal reveal-up revealed rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                        <h2 class="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">{{ __('Media Sosial') }}</h2>
-                        <div class="mt-4 grid gap-3 sm:grid-cols-2">
-                            @foreach($socialLinks as $social)
-                                <a
-                                    href="{{ $social->resolved_url ?? $social->url }}"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    class="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:border-emerald-300 hover:text-emerald-700"
-                                >
-                                    {{ \Illuminate\Support\Str::headline((string) $social->platform) }}
-                                </a>
-                            @endforeach
-                        </div>
-                    </section>
-                @endif
-
-                <section class="scroll-reveal reveal-up revealed space-y-6">
-                    <div class="flex items-center justify-between gap-4">
+                <section class="scroll-reveal reveal-up revealed">
+                    <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                         <div>
-                            <h2 class="font-heading text-2xl font-bold text-slate-950">{{ __('Majlis') }}</h2>
-                            <p class="mt-1 text-sm text-slate-500">{{ __('Majlis yang menampilkan penceramah ini.') }}</p>
+                            <p class="text-[10px] font-black uppercase tracking-[0.22em] text-amber-700">{{ __('Jadual Penceramah') }}</p>
+                            <h2 class="mt-1 font-heading text-3xl font-bold text-emerald-950">{{ __('Majlis Akan Datang') }}</h2>
+                            <p class="mt-2 text-sm leading-6 text-slate-500">{{ __('Majlis yang dijadualkan menampilkan penceramah ini.') }}</p>
                         </div>
 
                         @if($upcomingEvents->isNotEmpty())
-                            <span class="inline-flex items-center rounded-xl border border-emerald-300 bg-emerald-100 text-emerald-900 shadow-emerald-200/80 hover:bg-emerald-200 px-3 py-2 text-sm font-semibold shadow-sm">
-                                {{ __('Tarikh Aktif') }}
+                            <span class="inline-flex w-fit items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-800">
+                                <span class="relative flex h-2 w-2">
+                                    <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+                                    <span class="relative inline-flex h-2 w-2 rounded-full bg-emerald-600"></span>
+                                </span>
+                                {{ trans_choice(':count majlis aktif', $upcomingTotal, ['count' => number_format($upcomingTotal)]) }}
                             </span>
                         @endif
                     </div>
 
-                    <x-public.moderation-status-note
-                        :show-pending="$showPendingEventStatusNotice"
-                        :show-cancelled="$showCancelledEventStatusNotice"
-                    />
+                    <div class="mt-5">
+                        <x-public.moderation-status-note
+                            :show-pending="$showPendingEventStatusNotice"
+                            :show-cancelled="$showCancelledEventStatusNotice"
+                        />
+                    </div>
 
-                    <div class="space-y-4">
+                    <div class="mt-5 space-y-4">
                         @foreach($upcomingEvents as $event)
                             @php
                                 $eventTypeLabel = $resolveEventCategoryLabel($event);
@@ -227,83 +324,123 @@
                                 href="{{ route('events.show', $event) }}"
                                 wire:key="upcoming-{{ $event->id }}"
                                 wire:navigate
-                                class="group relative flex overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md"
+                                class="group block overflow-hidden rounded-[1.4rem] border border-slate-200 bg-white shadow-sm transition duration-300 hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-[0_20px_45px_-30px_rgba(6,78,59,0.45)]"
                             >
-                                <div class="flex w-[4.5rem] shrink-0 flex-col items-center justify-center bg-gradient-to-b {{ $isCancelledEvent ? 'from-rose-600 to-rose-800' : ($isPendingEvent ? 'from-amber-600 to-amber-800' : ($isRemoteEvent ? 'from-sky-600 to-sky-800' : 'from-emerald-600 to-emerald-800')) }} p-3 text-white sm:w-24">
-                                    <span class="text-[10px] font-bold uppercase tracking-widest text-white/80">{{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($event->starts_at, 'l') }}</span>
-                                    <span class="font-heading text-3xl font-black leading-none sm:text-4xl">{{ \App\Support\Timezone\UserDateTimeFormatter::format($event->starts_at, 'd') }}</span>
-                                    <span class="mt-1 text-[11px] font-bold tracking-wide text-white/80">{{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($event->starts_at, 'F') }}</span>
-                                </div>
-
-                                <div class="flex flex-1 flex-col gap-3 p-4 sm:p-5">
-                                    <div class="flex flex-wrap items-center gap-2">
-                                        <span class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-900">
-                                            {{ $eventTypeLabel }}
+                                <div class="grid sm:grid-cols-[7.5rem_minmax(0,1fr)]">
+                                    <div class="flex items-center gap-4 bg-gradient-to-br {{ $isCancelledEvent ? 'from-rose-700 to-rose-950' : ($isPendingEvent ? 'from-amber-600 to-amber-900' : ($isRemoteEvent ? 'from-sky-700 to-sky-950' : 'from-emerald-700 to-emerald-950')) }} px-5 py-4 text-white sm:flex-col sm:justify-center sm:gap-0 sm:px-3 sm:py-6 sm:text-center">
+                                        <span class="text-[10px] font-bold uppercase tracking-[0.18em] text-white/70">
+                                            {{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($event->starts_at, 'l') }}
                                         </span>
-
-                                        @if($isPendingEvent)
-                                            <span class="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-[11px] font-semibold text-amber-800">
-                                                {{ __('Menunggu Kelulusan') }}
-                                            </span>
-                                        @endif
-
-                                        @if($isCancelledEvent)
-                                            <span class="inline-flex items-center rounded-full bg-rose-100 px-2.5 py-0.5 text-[11px] font-semibold text-rose-800">
-                                                {{ __('Dibatalkan') }}
-                                            </span>
-                                        @endif
+                                        <span class="font-heading text-4xl font-black leading-none sm:mt-1">
+                                            {{ \App\Support\Timezone\UserDateTimeFormatter::format($event->starts_at, 'd') }}
+                                        </span>
+                                        <span class="text-xs font-bold uppercase tracking-[0.12em] text-white/80 sm:mt-1">
+                                            {{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($event->starts_at, 'F') }}
+                                        </span>
                                     </div>
 
-                                    <div class="space-y-2">
-                                        <h3 class="font-heading text-lg font-bold text-slate-950 transition group-hover:text-emerald-700">
+                                    <div class="p-5 sm:p-6">
+                                        <div class="flex flex-wrap items-center gap-2">
+                                            <span class="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-emerald-800 ring-1 ring-emerald-100">
+                                                {{ $eventTypeLabel }}
+                                            </span>
+
+                                            @if($isRemoteEvent)
+                                                <span class="inline-flex items-center rounded-full bg-sky-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-sky-800 ring-1 ring-sky-100">
+                                                    {{ __('Dalam Talian') }}
+                                                </span>
+                                            @endif
+
+                                            @if($isPendingEvent)
+                                                <span class="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-amber-800 ring-1 ring-amber-100">
+                                                    {{ __('Menunggu Kelulusan') }}
+                                                </span>
+                                            @endif
+
+                                            @if($isCancelledEvent)
+                                                <span class="inline-flex items-center rounded-full bg-rose-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-rose-800 ring-1 ring-rose-100">
+                                                    {{ __('Dibatalkan') }}
+                                                </span>
+                                            @endif
+                                        </div>
+
+                                        <h3 class="mt-3 font-heading text-xl font-bold leading-tight text-emerald-950 transition group-hover:text-emerald-700 sm:text-2xl">
                                             {{ $event->title }}
                                         </h3>
 
                                         @if($event->reference_study_subtitle)
-                                            <p class="pl-3 text-sm font-bold italic text-slate-500 sm:pl-4">
+                                            <p class="mt-2 text-sm font-semibold italic text-slate-500">
                                                 {{ $event->reference_study_subtitle }}
                                             </p>
                                         @endif
-                                    </div>
 
-                                    <div class="space-y-1.5 text-sm text-slate-500">
-                                        <div class="flex items-center gap-2">
-                                            <svg class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                            </svg>
-                                            <span>{{ $event->timing_display !== '' ? $event->timing_display : \App\Support\Timezone\UserDateTimeFormatter::format($event->starts_at, 'h:i A') }}</span>
+                                        <div class="mt-4 grid gap-2 text-sm text-slate-500">
+                                            <p class="flex items-center gap-2">
+                                                <svg class="h-4 w-4 shrink-0 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                                                </svg>
+                                                <span>
+                                                    {{ $event->timing_display !== '' ? $event->timing_display : \App\Support\Timezone\UserDateTimeFormatter::format($event->starts_at, 'h:i A') }}
+                                                    @if($event->ends_at)
+                                                        <span class="mx-1 text-slate-300">—</span>
+                                                        {{ \App\Support\Timezone\UserDateTimeFormatter::format($event->ends_at, 'h:i A') }}
+                                                    @endif
+                                                </span>
+                                            </p>
 
-                                            @if($event->ends_at)
-                                                <span class="text-slate-300">-</span>
-                                                <span>{{ \App\Support\Timezone\UserDateTimeFormatter::format($event->ends_at, 'h:i A') }}</span>
+                                            @if($eventLocation !== '' && ! $isRemoteEvent)
+                                                <p class="flex items-start gap-2">
+                                                    <svg class="mt-0.5 h-4 w-4 shrink-0 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
+                                                    </svg>
+                                                    <span class="line-clamp-2">{{ $eventLocation }}</span>
+                                                </p>
                                             @endif
                                         </div>
 
-                                        @if($eventLocation !== '' && ! $isRemoteEvent)
-                                            <div class="flex items-center gap-2">
-                                                <svg class="h-4 w-4 shrink-0 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                                        <div class="mt-5 flex items-center justify-between border-t border-slate-100 pt-4">
+                                            <span class="text-xs font-semibold text-slate-400">{{ __('Lihat maklumat penuh majlis') }}</span>
+                                            <span class="grid h-9 w-9 place-items-center rounded-full bg-emerald-50 text-emerald-700 transition group-hover:translate-x-1 group-hover:bg-emerald-700 group-hover:text-white">
+                                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-5-5 5 5-5 5" />
                                                 </svg>
-                                                <span class="line-clamp-1">{{ $eventLocation }}</span>
-                                            </div>
-                                        @endif
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
                             </a>
                         @endforeach
 
                         @if($upcomingEvents->isEmpty())
-                            <div class="rounded-2xl border border-dashed border-slate-200 bg-white p-10 text-center text-sm text-slate-500">
-                                {{ __('Tiada majlis dijadualkan buat masa ini.') }}
+                            <div class="rounded-[1.5rem] border border-dashed border-emerald-200 bg-gradient-to-br from-white to-emerald-50/70 p-8 text-center sm:p-10">
+                                <span class="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-emerald-100 text-emerald-700">
+                                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3.75 8.25h16.5m-16.5 0V19.5A1.5 1.5 0 0 0 5.25 21h13.5a1.5 1.5 0 0 0 1.5-1.5V8.25m-16.5 0V6.75a1.5 1.5 0 0 1 1.5-1.5h13.5a1.5 1.5 0 0 1 1.5 1.5v1.5" />
+                                    </svg>
+                                </span>
+                                <h3 class="mt-4 font-heading text-xl font-bold text-emerald-950">{{ __('Belum ada majlis akan datang') }}</h3>
+                                <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
+                                    {{ __('Ikuti penceramah ini untuk mengetahui apabila jadual majlis baharu diterbitkan.') }}
+                                </p>
                             </div>
                         @endif
                     </div>
+                </section>
 
-                    @if($pastEvents->isNotEmpty())
-                        <div class="space-y-4 pt-4">
-                            <h3 class="text-lg font-semibold text-slate-900">{{ __('Lepas') }}</h3>
+                @if($pastEvents->isNotEmpty())
+                    <section class="scroll-reveal reveal-up revealed overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-sm">
+                        <div class="flex items-center justify-between gap-4 border-b border-slate-100 px-6 py-5 sm:px-8">
+                            <div>
+                                <p class="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">{{ __('Arkib Penglibatan') }}</p>
+                                <h2 class="mt-1 font-heading text-2xl font-bold text-emerald-950">{{ __('Majlis Lepas') }}</h2>
+                            </div>
+                            <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
+                                {{ number_format($pastTotal) }}
+                            </span>
+                        </div>
 
+                        <div class="divide-y divide-slate-100">
                             @foreach($pastEvents as $event)
                                 @php
                                     $eventLocation = $resolveEventLocation($event);
@@ -315,60 +452,48 @@
                                     href="{{ route('events.show', $event) }}"
                                     wire:key="past-{{ $event->id }}"
                                     wire:navigate
-                                    class="group relative flex overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md"
+                                    class="group grid gap-4 px-6 py-5 transition hover:bg-emerald-50/40 sm:grid-cols-[5rem_minmax(0,1fr)_auto] sm:items-center sm:px-8"
                                 >
-                                    <div class="flex w-[4.5rem] shrink-0 flex-col items-center justify-center bg-gradient-to-b from-slate-700 to-slate-900 p-3 text-white sm:w-24">
-                                        <span class="text-[10px] font-bold uppercase tracking-widest text-white/80">{{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($event->starts_at, 'l') }}</span>
-                                        <span class="font-heading text-3xl font-black leading-none sm:text-4xl">{{ \App\Support\Timezone\UserDateTimeFormatter::format($event->starts_at, 'd') }}</span>
-                                        <span class="mt-1 text-[11px] font-bold tracking-wide text-white/80">{{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($event->starts_at, 'F') }}</span>
+                                    <div class="flex w-fit items-center gap-2 sm:block sm:text-center">
+                                        <span class="font-heading text-2xl font-bold text-slate-700">
+                                            {{ \App\Support\Timezone\UserDateTimeFormatter::format($event->starts_at, 'd') }}
+                                        </span>
+                                        <span class="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400 sm:block">
+                                            {{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($event->starts_at, 'M Y') }}
+                                        </span>
                                     </div>
 
-                                    <div class="flex flex-1 flex-col gap-3 p-4 sm:p-5">
-                                        <h3 class="font-heading text-lg font-bold text-slate-950 transition group-hover:text-emerald-700">
+                                    <div class="min-w-0">
+                                        <h3 class="font-heading text-lg font-bold text-slate-800 transition group-hover:text-emerald-700">
                                             {{ $event->title }}
                                         </h3>
-
-                                        @if($event->reference_study_subtitle)
-                                            <p class="pl-3 text-sm font-bold italic text-slate-500 sm:pl-4">
-                                                {{ $event->reference_study_subtitle }}
-                                            </p>
-                                        @endif
-
-                                        <div class="space-y-1.5 text-sm text-slate-500">
-                                            <div class="flex items-center gap-2">
-                                                <svg class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                </svg>
-                                                <span>{{ $event->timing_display !== '' ? $event->timing_display : \App\Support\Timezone\UserDateTimeFormatter::format($event->starts_at, 'h:i A') }}</span>
-
-                                                @if($event->ends_at)
-                                                    <span class="text-slate-300">-</span>
-                                                    <span>{{ \App\Support\Timezone\UserDateTimeFormatter::format($event->ends_at, 'h:i A') }}</span>
-                                                @endif
-                                            </div>
-
+                                        <p class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
+                                            <span>{{ $event->timing_display !== '' ? $event->timing_display : \App\Support\Timezone\UserDateTimeFormatter::format($event->starts_at, 'h:i A') }}</span>
                                             @if($eventLocation !== '' && ! $isRemoteEvent)
-                                                <div class="flex items-center gap-2">
-                                                    <svg class="h-4 w-4 shrink-0 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-                                                    </svg>
-                                                    <span class="line-clamp-1">{{ $eventLocation }}</span>
-                                                </div>
+                                                <span class="line-clamp-1">{{ $eventLocation }}</span>
+                                            @elseif($isRemoteEvent)
+                                                <span>{{ __('Dalam talian') }}</span>
                                             @endif
-                                        </div>
+                                        </p>
                                     </div>
+
+                                    <span class="hidden h-9 w-9 place-items-center rounded-full border border-slate-200 text-slate-400 transition group-hover:border-emerald-300 group-hover:bg-emerald-700 group-hover:text-white sm:grid">
+                                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-5-5 5 5-5 5" />
+                                        </svg>
+                                    </span>
                                 </a>
                             @endforeach
                         </div>
-                    @endif
-                </section>
+                    </section>
+                @endif
 
                 @if($otherRoleParticipations->isNotEmpty())
-                    <section class="scroll-reveal reveal-up revealed rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                        <h2 class="font-heading text-2xl font-bold text-slate-950">{{ __('Peranan Lain Dalam Majlis') }}</h2>
+                    <section class="scroll-reveal reveal-up revealed rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+                        <p class="text-[10px] font-black uppercase tracking-[0.22em] text-amber-700">{{ __('Penglibatan Penceramah') }}</p>
+                        <h2 class="mt-1 font-heading text-2xl font-bold text-emerald-950">{{ __('Peranan Lain Dalam Majlis') }}</h2>
 
-                        <div class="mt-4 space-y-4">
+                        <div class="mt-5 grid gap-3 sm:grid-cols-2">
                             @foreach($otherRoleParticipations as $keyPerson)
                                 @php
                                     $event = $keyPerson->event;
@@ -376,45 +501,96 @@
                                 @endphp
 
                                 @if($event)
-                                    <div class="rounded-2xl border border-slate-200 p-4">
-                                        <p class="text-sm font-semibold text-emerald-700">{{ $roleLabel }}</p>
-                                        <p class="mt-1 font-semibold text-slate-900">{{ $event->title }}</p>
-                                    </div>
+                                    <a
+                                        href="{{ route('events.show', $event) }}"
+                                        wire:key="role-participation-{{ $keyPerson->id }}"
+                                        wire:navigate
+                                        class="group rounded-2xl border border-slate-200 bg-slate-50/70 p-4 transition hover:border-emerald-300 hover:bg-emerald-50"
+                                    >
+                                        <span class="inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-amber-800">
+                                            {{ $roleLabel }}
+                                        </span>
+                                        <p class="mt-3 font-heading text-base font-bold text-slate-800 transition group-hover:text-emerald-700">
+                                            {{ $event->title }}
+                                        </p>
+                                    </a>
                                 @endif
                             @endforeach
                         </div>
                     </section>
                 @endif
-            </div>
+            </main>
 
-            <aside class="space-y-6">
-                <section class="scroll-reveal reveal-right revealed rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-                    <div class="flex flex-col gap-4">
-                        <div>
-                            <p class="text-[11px] font-bold uppercase tracking-[0.22em] text-slate-400">{{ __('Bantu Semak Penceramah') }}</p>
-                            <p class="mt-2 text-sm leading-6 text-slate-600">
-                                {{ __('Jumpa maklumat yang perlu diperbetulkan atau profil yang meragukan?') }}
-                            </p>
-                        </div>
+            <aside class="space-y-6 lg:sticky lg:top-24 lg:self-start">
+                <section class="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
+                    <p class="text-[10px] font-black uppercase tracking-[0.22em] text-amber-700">{{ __('Ringkasan Profil') }}</p>
+                    <h2 class="mt-1 font-heading text-xl font-bold text-emerald-950">{{ $speaker->formatted_name }}</h2>
 
-                        <div class="flex flex-wrap gap-2">
-                            <a
-                                href="{{ route('contributions.suggest-update', ['subjectType' => $speakerRouteSegment, 'subjectId' => $speaker->slug]) }}"
-                                wire:navigate
-                                class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-700"
-                            >
-                                {{ __('Cadang Kemaskini') }}
-                            </a>
-                            <a
-                                href="{{ route('reports.create', ['subjectType' => $speakerRouteSegment, 'subjectId' => $speaker->slug]) }}"
-                                wire:navigate
-                                class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
-                            >
-                                {{ __('Lapor') }}
-                            </a>
+                    <div class="mt-5 space-y-3">
+                        @if($speaker->status === 'verified')
+                            <div class="flex items-center gap-3 rounded-xl bg-emerald-50 p-3">
+                                <span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-emerald-700 text-white">
+                                    <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.051l-7.5 9.75a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.897 3.896 6.976-9.07a.75.75 0 0 1 1.051-.142Z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <div>
+                                    <p class="text-xs font-bold text-emerald-900">{{ __('Profil Disahkan') }}</p>
+                                    <p class="mt-0.5 text-[11px] text-emerald-700">{{ __('Maklumat telah melalui semakan.') }}</p>
+                                </div>
+                            </div>
+                        @endif
+
+                        @if($locationString !== '')
+                            <div class="flex items-start gap-3 rounded-xl bg-slate-50 p-3">
+                                <span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white text-amber-700 shadow-sm">
+                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
+                                    </svg>
+                                </span>
+                                <div class="min-w-0">
+                                    <p class="text-[10px] font-bold uppercase tracking-wide text-slate-400">{{ __('Lokasi') }}</p>
+                                    <p class="mt-1 text-xs font-semibold leading-5 text-slate-700">{{ $locationString }}</p>
+                                </div>
+                            </div>
+                        @endif
+
+                        <div class="grid grid-cols-2 gap-2">
+                            <div class="rounded-xl border border-slate-100 bg-slate-50 p-3 text-center">
+                                <p class="font-heading text-xl font-bold text-emerald-950">{{ number_format($upcomingTotal) }}</p>
+                                <p class="mt-1 text-[10px] font-semibold text-slate-400">{{ __('Akan datang') }}</p>
+                            </div>
+                            <div class="rounded-xl border border-slate-100 bg-slate-50 p-3 text-center">
+                                <p class="font-heading text-xl font-bold text-emerald-950">{{ number_format($pastTotal) }}</p>
+                                <p class="mt-1 text-[10px] font-semibold text-slate-400">{{ __('Majlis lepas') }}</p>
+                            </div>
                         </div>
                     </div>
                 </section>
+
+                @if($socialLinks->isNotEmpty())
+                    <section class="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
+                        <p class="text-[10px] font-black uppercase tracking-[0.22em] text-amber-700">{{ __('Pautan Penceramah') }}</p>
+                        <h2 class="mt-1 font-heading text-xl font-bold text-emerald-950">{{ __('Media Sosial Rasmi') }}</h2>
+
+                        <div class="mt-4 space-y-2">
+                            @foreach($socialLinks as $social)
+                                <a
+                                    href="{{ $social->resolved_url ?? $social->url }}"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="group flex items-center justify-between gap-3 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800"
+                                >
+                                    <span>{{ \Illuminate\Support\Str::headline((string) $social->platform) }}</span>
+                                    <svg class="h-4 w-4 text-slate-300 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H18m0 0v4.5M18 6l-7.5 7.5M9 7.5H6.75A1.5 1.5 0 0 0 5.25 9v8.25a1.5 1.5 0 0 0 1.5 1.5H15a1.5 1.5 0 0 0 1.5-1.5V15" />
+                                    </svg>
+                                </a>
+                            @endforeach
+                        </div>
+                    </section>
+                @endif
 
                 <section id="speaker-share-panel" class="scroll-reveal reveal-right revealed">
                     <x-dawah-share-panel
@@ -423,6 +599,31 @@
                         :share-data="$shareData"
                         :share-links="$shareLinks"
                     />
+                </section>
+
+                <section class="scroll-reveal reveal-right revealed rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
+                    <p class="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">{{ __('Ketepatan Maklumat') }}</p>
+                    <h2 class="mt-1 font-heading text-lg font-bold text-emerald-950">{{ __('Bantu Semak Profil Ini') }}</h2>
+                    <p class="mt-2 text-sm leading-6 text-slate-500">
+                        {{ __('Nampak maklumat yang tidak tepat atau profil yang meragukan? Bantu komuniti dengan memaklumkan kepada kami.') }}
+                    </p>
+
+                    <div class="mt-4 grid gap-2">
+                        <a
+                            href="{{ route('contributions.suggest-update', ['subjectType' => $speakerRouteSegment, 'subjectId' => $speaker->slug]) }}"
+                            wire:navigate
+                            class="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-sky-200 bg-sky-50 px-4 text-xs font-bold text-sky-800 transition hover:border-sky-300 hover:bg-sky-100"
+                        >
+                            {{ __('Cadangkan Kemaskini') }}
+                        </a>
+                        <a
+                            href="{{ route('reports.create', ['subjectType' => $speakerRouteSegment, 'subjectId' => $speaker->slug]) }}"
+                            wire:navigate
+                            class="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 text-xs font-bold text-rose-800 transition hover:border-rose-300 hover:bg-rose-100"
+                        >
+                            {{ __('Laporkan Profil') }}
+                        </a>
+                    </div>
                 </section>
 
                 <x-sidebar-inspiration />
