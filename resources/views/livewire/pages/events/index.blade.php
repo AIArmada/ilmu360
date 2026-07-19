@@ -619,13 +619,18 @@
 
                     <section class="py-4">
                         <h2 class="font-heading text-base font-bold text-emerald-950">{{ __('Jenis majlis') }}</h2>
-                        <div class="mt-3 grid grid-cols-2 gap-2">
-                            @foreach($eventCategoryLabels as $categoryId => $categoryLabel)
-                                <label class="inline-flex min-h-10 cursor-pointer items-center justify-center rounded-xl border px-2 text-center text-xs font-semibold transition {{ in_array($categoryId, $selectedEventCategories, true) ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-slate-200 bg-white text-slate-600 hover:border-emerald-200' }}">
-                                    <input type="checkbox" wire:model.live="filterData.event_category_ids" value="{{ $categoryId }}" class="sr-only">
-                                    {{ $categoryLabel }}
-                                </label>
-                            @endforeach
+                        <div class="mt-3">
+                            @php $eventCategoryTree = app(\App\Contracts\EventCategoryCatalog::class)->tree(); @endphp
+                            <select multiple wire:model.live="filterData.event_category_ids" size="8" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10">
+                                @foreach($eventCategoryTree as $root)
+                                    <optgroup label="{{ $root['name'] }}">
+                                        <option value="{{ $root['id'] }}">{{ $root['name'] }}</option>
+                                        @foreach($root['children'] as $child)
+                                            <option value="{{ $child['id'] }}">{{ $child['name'] }}</option>
+                                        @endforeach
+                                    </optgroup>
+                                @endforeach
+                            </select>
                         </div>
                     </section>
 
