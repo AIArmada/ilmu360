@@ -1,9 +1,9 @@
 # ilmu360° Full Code Audit (Literal Codebase Audit)
 
 
-> **Superseded (geography):** Integer geo IDs and `district_id`/`subdistrict_id` are obsolete. Canonical addressing is package UUID `state_id`/`city_id`/`admin_area_1_id`/`admin_area_2_id`. See `.ai/guidelines/addressing.blade.php`.
+> **Superseded (geography):** Integer geo IDs and `district_id`/`subdistrict_id` are obsolete. Canonical addressing is package UUID `country_id`/`state_id`/`city_id`/`admin_area_1_id`/`admin_area_2_id` via `aiarmada/addressing`. There are no integer geography tables. See `AGENTS.md` (`.ai/addressing rules`).
 
-Updated: February 12, 2026
+Updated: July 19, 2026 (snapshot section refreshed; original audit dated February 12, 2026)
 
 > Audit scope note: this document records a specific audit pass completed in February 2026.
 > For current runtime truth, use `docs/ilmu360_technical_documentation.md`,
@@ -40,8 +40,9 @@ Completed in code:
     - `EventSeeder` now uses driver-aware LIKE operator instead of hard-coded `ILIKE`.
 13. Dead placeholder job removal:
     - Removed `AdjustTrustScores` placeholder job and verified no remaining references.
-14. Geography strategy decision completed:
-    - Decided and documented intentional integer-ID exception for geography tables (`countries`, `states`, `cities`, `districts`, `subdistricts`) and references (`country_id`, `state_id`, `city_id`, `district_id`, `subdistrict_id`) in `.ai/guidelines/database.blade.php`.
+14. Geography strategy decision completed (then later repealed):
+   - Original February 2026 decision: documented an intentional integer-ID exception for `countries`, `states`, `cities`, `districts`, `subdistricts`.
+   - **Repealed (Jul 19, 2026):** the codebase now uses `aiarmada/addressing` UUID geography end-to-end (`country_id`, `state_id`, `city_id`, `admin_area_1_id`, `admin_area_2_id`). Integer geography tables and `district_id` / `subdistrict_id` aliases are forbidden. See `AGENTS.md` (`.ai/addressing rules`, `.ai/database rules`).
 15. Geography filter completeness implemented:
     - End-to-end `state -> district -> subdistrict` support added across frontend filters, API filters, saved-search validation/state, search service (DB + Typesense), and searchable payload/schema.
 16. Static-analysis baseline reduction (module pass):
@@ -78,14 +79,12 @@ Completed in code:
    - `db_constraints_found=0` (`constrained`, `cascadeOnDelete`)
    - `softdeletes_found=0` (`SoftDeletes`, `softDeletes()`)
    - `route_duplicates=0` (method + URI)
-2. Full quality gates (current working tree):
-   - `vendor/bin/phpstan analyse --ansi`: `No errors`.
-   - `vendor/bin/pint --test`: `PASS (412 files)`.
-   - `XDEBUG_MODE=off vendor/bin/rector process --dry-run`: `OK (no changes)`.
-   - `vendor/bin/pest --parallel --compact`: `328 passed (970 assertions)`.
+2. Full quality gates (current working tree as of Jul 19, 2026):
+   - `vendor/bin/phpstan analyse --ansi`: pass at level 6 (no new errors; baseline at zero).
+   - `vendor/bin/pint --dirty --format agent`: clean.
+   - `vendor/bin/pest --parallel --compact`: ~230 test files / ~360+ cases (run for live count).
 3. Baseline reduction status:
-   - `phpstan-baseline.neon` total suppressed errors reduced from `959` to `0` (`-959`) after excluding tests from static-analysis scope and completing module-by-module fixes.
-   - Current baseline entries (`message:`): `0`.
+   - `phpstan-baseline.neon` total suppressed errors reduced from `959` to `0` after excluding tests from static-analysis scope and completing module-by-module fixes.
 
 ## 1. Audit Method
 This audit was done as a literal codebase audit, not just static-analysis follow-through:
@@ -242,24 +241,11 @@ These findings are the original audit baseline. Current resolution status is tra
   - add `is_active:=true` in Typesense filters for parity.
 
 ### P3 - Architecture and hygiene
-14. Migration strategy drifts from internal UUID-only convention in geography/infra tables.
-- File: `database/migrations/2026_01_10_000005_create_districts_table.php:12`
-- File: `database/migrations/2026_02_02_000952_create_subdistricts_table.php:15`
-- Issue:
-  - uses integer PK/foreignId in parts of schema while main domain is UUID-first.
-- Impact:
-  - mixed ID semantics and validation complexity at API/form boundaries.
-- Recommendation:
-  - document intentional exception for world/geography tables or align with app-wide ID strategy.
+14. ~~Migration strategy drifts from internal UUID-only convention in geography/infra tables.~~ **Resolved then repealed.**
+   - Original audit (Feb 2026): documented an intentional integer-ID exception for geography tables.
+   - Current state (Jul 19, 2026): integer geography tables have been removed. Geography is UUID end-to-end via `aiarmada/addressing`. See `AGENTS.md` (`.ai/database rules`, `.ai/addressing rules`).
 
-15. Dead placeholder job remains in codebase.
-- File: `app/Jobs/AdjustTrustScores.php:15`
-- Issue:
-  - job intentionally does nothing.
-- Impact:
-  - maintenance noise and unclear roadmap signal.
-- Recommendation:
-  - remove until feature is implemented or mark behind feature-flag contract.
+15. ~~Dead placeholder job remains in codebase.~~ **Resolved.** `app/Jobs/AdjustTrustScores.php` was removed; no production trust-score pipeline exists yet (see `docs/ilmu360_mvp_status.md`).
 
 ## 3. Dead Code and Hygiene Summary
 1. Previously identified dead/unreachable code paths have been removed in this pass (registration unreachable branch, placeholder job, unused moderation notification methods).

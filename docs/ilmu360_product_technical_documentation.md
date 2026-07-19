@@ -1,7 +1,9 @@
-# ilmu360° Platform — Product + Technical Documentation (Laravel 12, Postgres, Filament, Typesense, UUIDv7)
+# ilmu360° Platform — Product + Technical Documentation (Laravel 13, Postgres, Filament v5, Typesense, UUID)
 
 **Document purpose:** Handover document for developers.  
 It explains **what the application is**, **why it exists**, **what success looks like**, and then provides the **technical spec** to build it.
+
+> **Status note (Jul 19, 2026):** This document is the original product spec. Some sections (e.g. the Filament resources list in B7) describe the MVP plan rather than the current runtime surface. For the authoritative runtime inventory, see `docs/ilmu360_api_mcp_filament_crud_comparison.md` (currently 61 admin + 19 Ahli runtime resources from app + `aiarmada/*` plugins).
 
 ---
 
@@ -123,13 +125,16 @@ This platform becomes the **source of truth**: fast discovery, accurate details,
 # Part B — Technical Specification (Build guide)
 
 ## B1) Tech stack
-- **Backend:** Laravel 12
+- **Backend:** Laravel 13 (PHP 8.4+)
 - **Database:** Postgres
-- **Admin:** Filament
+- **Admin:** Filament v5
 - **Search:** Typesense via Laravel Scout
 - **Queue:** Redis + Horizon
 - **Storage:** S3/R2 (QR, posters)
-- **IDs:** UUIDv7 (Laravel 12)
+- **IDs:** UUID primary keys end-to-end (domain entities + geography via `aiarmada/addressing`); no integer geography tables
+- **AI / MCP:** `laravel/ai`, `laravel/mcp` (Admin + Member MCP servers)
+- **Auth:** Fortify + Sanctum + Socialite (Google) + Passport (MCP OAuth)
+- **Runtime:** Laravel Octane (long-lived workers)
 - **Monitoring:** Sentry
 
 ## B2) Architecture
@@ -150,8 +155,8 @@ Supporting:
 - states/districts, media_assets
 
 **Reference migrations**
-- Core schema: `database.md` (UUIDv7 migration)
-- Typesense outbox add-on (optional): `ilmu360_schema_uuidv7_typesense.md`
+- Core schema lives under `database/migrations/` (UUID primary keys, no DB-level FK constraints/cascades — integrity enforced in app logic).
+- Typesense outbox proposal (never adopted): `ilmu360_schema_uuidv7_typesense.md`.
 
 ## B3a) Domain invariants and enums (baseline)
 - Event visibility:
@@ -455,17 +460,20 @@ Reports (`POST /reports`):
 - Event starts within 6 hours and is still `pending`:
   - Mark as priority and notify moderators.
 
-## B7) Filament admin panel plan
-Filament Resources:
+## B7) Filament admin panel plan (original MVP plan)
+The original MVP plan listed these resources:
 - InstitutionResource
 - VenueResource
 - SpeakerResource
 - EventResource
-- DonationAccountResource
-- TopicResource
+- DonationAccountResource (now `donation-channels`)
+- TopicResource (now unified under `tags` with `TagType` enum)
 - ReportResource
+
 Custom Pages:
 - ModerationQueuePage (pending events + actions)
+
+**Current runtime inventory (Jul 19, 2026):** 61 admin-panel resources + 19 Ahli-panel resources are registered at runtime, combining app-owned resources with `aiarmada/filament-*` plugin resources (events, engagement, communications, inventory, seating, signals, ticketing, authz, addressing, contacting, references). See `docs/ilmu360_api_mcp_filament_crud_comparison.md` for the canonical inventory and the parity test at `tests/Unit/CrudComparisonDocsTest.php`.
 
 ## B7a) Moderation UI requirements (MVP)
 - Queue views:

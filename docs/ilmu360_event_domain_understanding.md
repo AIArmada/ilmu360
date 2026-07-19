@@ -1,7 +1,9 @@
 # ilmu360° Event Domain Understanding
 
-Updated: March 10, 2026  
+Updated: July 19, 2026  
 Audience: Product, design, engineering, and AI agents working on event modeling and event-submission architecture.
+
+> **Implementation status (Jul 19, 2026):** The parent-child event model described here is partially realized through the `aiarmada/events` and `aiarmada/filament-events` packages, which register `events`, `event-sessions`, `event-occurrences`, `event-attendances`, `event-registrations`, `event-registration-participants`, and `event-change-logs` as runtime Filament resources. See `docs/ilmu360_api_mcp_filament_crud_comparison.md` for the canonical surface inventory. The conceptual parent-event / child-event identity rules below remain the domain anchor for any future advanced-event work.
 
 ---
 

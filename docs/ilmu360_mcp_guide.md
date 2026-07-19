@@ -1,6 +1,6 @@
 # ilmu360° MCP Guide
 
-Updated: May 4, 2026
+Updated: July 19, 2026
 Audience: developers and AI-client integrators.
 
 This is the human setup and broader integration guide.

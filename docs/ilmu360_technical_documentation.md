@@ -1,6 +1,6 @@
 # ilmu360° Developer Technical Documentation
 
-Updated: April 28, 2026
+Updated: July 19, 2026
 Audience: Engineers onboarding to build, maintain, and extend ilmu360°.
 
 ---
@@ -25,14 +25,15 @@ Core architecture style is modular monolith:
 ## 2. Tech Stack and Major Packages
 
 ### 2.1 Runtime
-- PHP 8.4
-- Laravel 13.6
+- PHP 8.4+ (runtime: PHP 8.5)
+- Laravel 13.20
 - Postgres (primary relational store)
 - Laravel Scout + Typesense (search)
 - Livewire (via app stack)
 - Filament v5 (admin + form/table system)
 - Laravel AI SDK (`laravel/ai`)
 - Laravel MCP (`laravel/mcp`)
+- Laravel Octane (long-lived worker runtime)
 
 ### 2.2 Security/Auth/Access
 - Laravel Fortify (auth flows)
@@ -46,7 +47,8 @@ Core architecture style is modular monolith:
 - Spatie Eloquent Sortable
 - Spatie Deleted Models (instead of SoftDeletes)
 - Owen-it Laravel Auditing
-- Nnjeim World (geography metadata)
+- `aiarmada/addressing` (UUID geography: country / state / city / admin_area_1 (district) / admin_area_2 (subdistrict))
+- `aiarmada/contacting`, `aiarmada/engagement`, `aiarmada/events`, `aiarmada/membership`, `aiarmada/moderation`, `aiarmada/references`, `aiarmada/signals`, `aiarmada/ticketing`, `aiarmada/inventory`, `aiarmada/seating`, `aiarmada/authz`, `aiarmada/commerce-support`, `aiarmada/affiliates`, `aiarmada/communications`
 
 ### 2.4 Developer Tooling
 - Pest v4
@@ -172,8 +174,8 @@ Current verified inventory is documented in:
 - `docs/ilmu360_api_mcp_filament_crud_comparison.json`
 
 At the time of this update:
-- Admin panel runtime resources: `30`
-- Ahli panel runtime resources: `4`
+- Admin panel runtime resources: `61` (16 local app + 45 vendor/plugin via `aiarmada/filament-*`)
+- Ahli panel runtime resources: `19` (3 local app + 16 vendor/plugin)
 
 Use the parity docs test (`tests/Unit/CrudComparisonDocsTest.php`) as the canonical guardrail for these counts.
 
@@ -197,7 +199,7 @@ Use the parity docs test (`tests/Unit/CrudComparisonDocsTest.php`) as the canoni
 
 ## 8.2 Typesense schema and settings
 - `config/scout.php`
-- Event collection schema includes filtering facets (state/district/subdistrict/language/status/visibility/topic/speaker) and geopoint.
+- Event collection schema includes filtering facets (`state_id`, `city_id`, `admin_area_1_id`, `admin_area_2_id`, language, status, visibility, topic/speaker) and geopoint.
 
 ## 8.3 Geo and filter support
 Search supports:
@@ -338,13 +340,11 @@ With Laravel Herd, app URL convention is:
 ## 14. Database Rules and Conventions
 
 Project-level conventions used in this codebase:
-- Primary keys are UUID for core domain entities.
+- Primary keys are UUID for all tables (domain entities and geography).
 - Foreign keys use UUID columns without DB-level FK constraints/cascades.
 - SoftDeletes are not used; deleted-model tracking uses Spatie deleted models.
 - Integrity and cascade behavior are handled in application logic.
-
-Important exception:
-- Geography datasets (`states`, `districts`, `subdistricts` and related IDs) use integer IDs.
+- Geography is UUID end-to-end via `aiarmada/addressing`: `country_id`, `state_id`, `city_id`, `admin_area_1_id` (district), `admin_area_2_id` (subdistrict). There are no integer geography tables and no `district_id` / `subdistrict_id` aliases.
 
 Recent schema change to note:
 - `speakers.bio` now uses `jsonb` and is edited via rich editor JSON content.
@@ -373,9 +373,9 @@ vendor/bin/phpstan analyse --ansi
 ```
 
 ## 15.3 Current suite scale
-- Feature tests: ~58 files
-- Unit tests: ~4 files
-- Total discovered tests: ~336
+- Feature test files: ~215
+- Unit test files: ~16
+- Total test files: ~230 (individual `test()`/`it()` cases higher; run `vendor/bin/pest --parallel --compact` for the live count)
 
 ---
 

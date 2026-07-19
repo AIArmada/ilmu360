@@ -1,4 +1,11 @@
-# ilmu360° — DB Schema update for Typesense (Postgres + Laravel 12 + UUIDv7)
+# ilmu360° — DB Schema add-on proposal for Typesense (Postgres + Laravel + UUID)
+
+> **Status (Jul 19, 2026): PROPOSAL — NOT ADOPTED.**
+> The migration below (`2026_01_10_000050_add_typesense_outbox.php`) was never added to `database/migrations/`. ilmu360° currently runs Scout + Typesense on the standard model-event indexing path (Option A below). The `search:index-events` Artisan command remains the canonical reindex path.
+>
+> This document is retained as a design reference in case reliable outbox-based indexing becomes a requirement.
+
+---
 
 You **do not need** to update your DB schema just to use **Typesense**.
 

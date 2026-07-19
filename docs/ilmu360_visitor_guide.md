@@ -1,7 +1,9 @@
 # ilmu360°: Visitor Guide
 
+Updated: July 19, 2026
+
 ## What Is ilmu360°?
-ilmu360° is a community platform that helps people discover, verify, and join Islamic learning events.
+ilmu360° is a community platform that helps people discover, verify, and join Islamic learning events (majlis ilmu — kuliah, ceramah, tazkirah, forum, kelas, daurah, etc.).
 
 It brings together information that is usually scattered across posters, chat groups, social media, and word of mouth into one searchable place.
 
@@ -37,13 +39,15 @@ ilmu360° addresses this with structured event listings, moderation workflows, a
 - Keep community trust high.
 
 ## What Makes It Interesting?
-- Prayer-time-aware scheduling support.
+- Prayer-time-aware scheduling support (e.g. "Selepas Maghrib", "Selepas Subuh").
 - Public and admin workflows in one coherent system.
-- Rich media support (poster, gallery, profile images, etc.).
+- Rich media support (16:9 cover for web/app, 4:5 poster for social distribution, gallery, profile images).
 - Speaker profiles support rich biography content and featured profile images.
-- Search with geolocation and filtering capabilities.
-- Built-in moderation lifecycle (pending, approved, needs changes, rejected).
+- Search with geolocation and filtering capabilities (state, district, subdistrict, language, format, audience, topic).
+- Built-in moderation lifecycle (pending, approved, needs changes, rejected) with change-notice and replacement-event chains.
 - Saved-search digest notifications for recurring discovery.
+- Native mobile API + MCP servers (Admin + Member) for AI-agent integration.
+- OpenAPI contract at `/docs.json` (Scramble).
 
 ## Typical Visitor Journeys
 

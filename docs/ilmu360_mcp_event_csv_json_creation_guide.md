@@ -1,6 +1,6 @@
 # ilmu360° MCP CSV / JSON Event Creation Playbook
 
-Updated: May 5, 2026  
+Updated: July 19, 2026  
 Audience: MCP consumers creating events from spreadsheet-style sources.
 
 This guide explains the **human-safe workflow** for creating events from CSV/JSON payloads through MCP tools.

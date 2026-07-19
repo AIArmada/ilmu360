@@ -1,7 +1,7 @@
 # ilmu360° MVP Status (Fresh)
 
-Updated: April 28, 2026  
-Source references: `MVP_CHECKLIST.md`, current routes/resources/tests in codebase.
+Updated: July 19, 2026  
+Source references: `MVP_CHECKLIST.md`, current routes/resources/tests in codebase, `docs/ilmu360_api_mcp_filament_crud_comparison.md`.
 
 ## 1. Scope and Interpretation
 This document is the fresh MVP status reference for current implementation state.
@@ -28,13 +28,15 @@ It intentionally corrects drift from older checklist entries when product decisi
 | Saved Searches + Digests | DONE | Saved search CRUD API + UI and daily/weekly digest jobs are implemented. |
 | Event Save/Interest | DONE | Save/unsave and interest endpoints exist with API + dashboard integration. |
 | Registration Flow | DONE | Register endpoint, validations, user registrations API, export endpoint are implemented. |
-| Admin Core Resources (Filament) | DONE | Event/Institution/Speaker/Venue/Series/Reference/DonationChannel/Report/Tag resources available. |
+| Admin Core Resources (Filament) | DONE | 61 admin-panel resources at runtime (16 local app + 45 plugin) — Event/Institution/Speaker/Venue/Series/Reference/DonationChannel/Report/Tag + engagement/communications/events/inventory/seating/signals/ticketing/authz resources. |
 | Moderation Core Actions | DONE | Moderation queue and approve/reject/needs-changes actions available. |
 | Moderation Advanced UX | PARTIAL | Core moderation works; side-by-side diff and richer SLA UX still pending. |
 | Search and Filtering | DONE | DB fallback + Typesense with geo and multi-filter support is in place. |
 | SEO and Sitemaps | PARTIAL | Sitemap endpoints and canonical/noindex behavior exist; meta optimization pass still open. |
 | Queue + Scheduler Ops | DONE | Digest/escalation/pruning/media maintenance schedules are configured. |
+| OpenAPI Documentation | DONE | Scramble installed (`config/scramble.php`, `app/Providers/ApiDocumentationServiceProvider.php`); `/docs.json` exposed for AI/mobile clients. |
 | Trust Scoring Automation | PENDING | Trust-score model and auto-approval pipeline are not implemented. |
+| MCP Admin + Member Servers | DONE | Admin MCP (`/mcp/admin`) + Member MCP (`/mcp/member`) plus local handles; 59 MCP tool classes across both servers. |
 
 ## 4. Fresh Corrections vs Older Checklist
 
@@ -101,7 +103,7 @@ It intentionally corrects drift from older checklist entries when product decisi
 - Scheduled trust score recalibration.
 
 ### 6.4 Platform Quality/Operations
-- OpenAPI documentation.
+- ~~OpenAPI documentation.~~ DONE (Scramble; see pillar table).
 - Broader performance and cache optimization pass.
 - Error page polish and comprehensive loading/skeleton patterns.
 
