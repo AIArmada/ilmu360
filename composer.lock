@@ -446,12 +446,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/AIArmada/events.git",
-                "reference": "3f23d05b9dc522275b277050a7c629d3d5345690"
+                "reference": "5641ef7f022c3c44d74ecbb63be5512904a76d3d"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/AIArmada/events/zipball/3f23d05b9dc522275b277050a7c629d3d5345690",
-                "reference": "3f23d05b9dc522275b277050a7c629d3d5345690",
+                "url": "https://api.github.com/repos/AIArmada/events/zipball/5641ef7f022c3c44d74ecbb63be5512904a76d3d",
+                "reference": "5641ef7f022c3c44d74ecbb63be5512904a76d3d",
                 "shasum": ""
             },
             "require": {
@@ -521,7 +521,7 @@
                 "issues": "https://github.com/AIArmada/events/issues",
                 "source": "https://github.com/AIArmada/events/tree/main"
             },
-            "time": "2026-07-19T15:20:53+00:00"
+            "time": "2026-07-19T15:39:31+00:00"
         },
         {
             "name": "aiarmada/filament-addressing",
@@ -816,12 +816,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/AIArmada/filament-events.git",
-                "reference": "6d72a9f8db2fb4fc756cf077a23def74892c3158"
+                "reference": "56b4c9aa2b1285e49e27646ec72e13c19d203d1b"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/AIArmada/filament-events/zipball/6d72a9f8db2fb4fc756cf077a23def74892c3158",
-                "reference": "6d72a9f8db2fb4fc756cf077a23def74892c3158",
+                "url": "https://api.github.com/repos/AIArmada/filament-events/zipball/56b4c9aa2b1285e49e27646ec72e13c19d203d1b",
+                "reference": "56b4c9aa2b1285e49e27646ec72e13c19d203d1b",
                 "shasum": ""
             },
             "require": {
@@ -857,7 +857,7 @@
                 "issues": "https://github.com/AIArmada/filament-events/issues",
                 "source": "https://github.com/AIArmada/filament-events/tree/main"
             },
-            "time": "2026-07-18T11:57:38+00:00"
+            "time": "2026-07-19T15:50:52+00:00"
         },
         {
             "name": "aiarmada/filament-inventory",
