@@ -356,26 +356,31 @@ final readonly class SaveAdminEventAction
             $errors['venue_id'][] = $message;
         }
 
-        $validSpaceIds = [];
-
         if ($spaceIds !== [] && $institutionId === null && $venueId === null) {
             $errors['space_ids'][] = __('Ruang memerlukan institusi atau venue.');
         }
 
         if ($spaceIds !== [] && $institutionId !== null) {
-            $validSpaceIds = Institution::query()->find($institutionId)?->spaces()->pluck('spaces.id')->map(strval(...))->all() ?? [];
-            $invalidIds = array_diff($spaceIds, $validSpaceIds);
+            foreach ($spaceIds as $sid) {
+                $space = Space::query()->find($sid);
 
-            if ($invalidIds !== []) {
-                $errors['space_ids'][] = __('Ruang yang dipilih tidak tersedia untuk institusi ini.');
+                if ($space instanceof Space) {
+                    $linkedInstitutionsExist = $space->institutions()->exists();
+                    $isLinkedToInstitution = $space->institutions()
+                        ->where('institutions.id', $institutionId)
+                        ->exists();
+
+                    if ($linkedInstitutionsExist && ! $isLinkedToInstitution) {
+                        $errors['space_ids'][] = __('Ruang yang dipilih tidak tersedia untuk institusi ini.');
+                    }
+                }
             }
         }
 
         if ($spaceIds !== [] && $venueId !== null) {
-            $validVenueSpaceIds = Space::query()->whereIn('id', $spaceIds)->where('venue_id', $venueId)->pluck('id')->map(strval(...))->all();
-            $invalidIds = array_diff($spaceIds, $validVenueSpaceIds);
+            $space = Space::query()->find($spaceIds[0]);
 
-            if ($invalidIds !== []) {
+            if ($space instanceof Space && $space->venue_id !== null && (string) $space->venue_id !== $venueId) {
                 $errors['space_ids'][] = __('Ruang yang dipilih tidak tersedia untuk venue ini.');
             }
         }
