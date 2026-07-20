@@ -338,7 +338,7 @@ final readonly class SaveAdminEventAction
         $primaryOrganizerId = $this->normalizeOptionalString($state['primary_organizer_id'] ?? null);
         $institutionId = $this->normalizeOptionalString($state['institution_id'] ?? null);
         $venueId = $this->normalizeOptionalString($state['venue_id'] ?? null);
-        $spaceId = $this->normalizeOptionalString($state['space_id'] ?? null);
+        $this->normalizeOptionalString($state['space_id'] ?? null);
         $spaceIds = $this->normalizeStringArray($state['space_ids'] ?? []);
         $speakerIds = $this->normalizeStringArray($state['speakers'] ?? []);
 
