@@ -121,7 +121,16 @@ final readonly class SaveAdminEventAction
             'primary_organizer_id' => $event->primaryOrganizerInvolvement?->involveable_id,
             'institution_id' => $event->institution_id,
             'venue_id' => $event->default_venue_id,
-            'space_id' => $event->primaryLocation?->venue_space_id,
+            'space_ids' => $event->locations()
+                ->whereNull('event_occurrence_id')
+                ->whereNull('event_session_id')
+                ->orderBy('sort_order')
+                ->get()
+                ->pluck('venue_space_id')
+                ->filter()
+                ->map(strval(...))
+                ->values()
+                ->all(),
             'languages' => $event->languages->pluck('id')->map(fn (mixed $id): int => (int) $id)->values()->all(),
             'domain_tags' => $groupedTerms->get('domain', collect())->pluck('event_term_id')->map(fn (mixed $id): string => (string) $id)->values()->all(),
             'discipline_tags' => $groupedTerms->get('discipline', collect())->pluck('event_term_id')->map(fn (mixed $id): string => (string) $id)->values()->all(),
@@ -175,7 +184,7 @@ final readonly class SaveAdminEventAction
         $this->validateState($state);
 
         $persistence = AdminEventTimeMapper::normalizeForPersistence($state);
-        [$institutionId, $venueId, $spaceId] = $this->resolveLocationState($state);
+        [$institutionId, $venueId, $spaceIds] = $this->resolveLocationState($state);
         $requestedStatus = $this->normalizeEventStatus(
             $state['status'] ?? ($creating ? null : (string) $event->status),
             $creating ? 'draft' : (string) $event->status,
@@ -241,7 +250,7 @@ final readonly class SaveAdminEventAction
             $event->save();
         }
 
-        $event->syncLocation($venueId, $spaceId);
+        $event->syncLocation($venueId, $spaceIds);
 
         app(SyncEventScheduleAction::class)->execute($event, $scheduleKind,
             startsAt: $schedule['starts_at'],
@@ -301,23 +310,23 @@ final readonly class SaveAdminEventAction
 
     /**
      * @param  array<string, mixed>  $state
-     * @return array{0: ?string, 1: ?string, 2: ?string}
+     * @return array{0: ?string, 1: ?string, 2: list<string>}
      */
     private function resolveLocationState(array $state): array
     {
         $institutionId = $this->normalizeOptionalString($state['institution_id'] ?? null);
         $venueId = $this->normalizeOptionalString($state['venue_id'] ?? null);
-        $spaceId = $this->normalizeOptionalString($state['space_id'] ?? null);
+        $spaceIds = $this->normalizeStringArray($state['space_ids'] ?? []);
 
         if ($venueId !== null) {
-            return [null, $venueId, $spaceId];
+            return [null, $venueId, $spaceIds];
         }
 
         if ($institutionId === null) {
-            return [null, null, null];
+            return [null, null, []];
         }
 
-        return [$institutionId, null, $spaceId];
+        return [$institutionId, null, $spaceIds];
     }
 
     /**
@@ -330,6 +339,7 @@ final readonly class SaveAdminEventAction
         $institutionId = $this->normalizeOptionalString($state['institution_id'] ?? null);
         $venueId = $this->normalizeOptionalString($state['venue_id'] ?? null);
         $spaceId = $this->normalizeOptionalString($state['space_id'] ?? null);
+        $spaceIds = $this->normalizeStringArray($state['space_ids'] ?? []);
         $speakerIds = $this->normalizeStringArray($state['speakers'] ?? []);
 
         if ($primaryOrganizerId === null) {
@@ -347,27 +357,28 @@ final readonly class SaveAdminEventAction
             $errors['venue_id'][] = $message;
         }
 
-        if ($spaceId !== null && $institutionId === null && $venueId === null) {
-            $errors['space_id'][] = __('Ruang memerlukan institusi atau venue.');
+        $validSpaceIds = [];
+
+        if ($spaceIds !== [] && $institutionId === null && $venueId === null) {
+            $errors['space_ids'][] = __('Ruang memerlukan institusi atau venue.');
         }
 
-        if ($spaceId !== null && $institutionId !== null) {
-            $space = Space::query()->find($spaceId);
+        if ($spaceIds !== [] && $institutionId !== null) {
+            $validSpaceIds = Institution::query()->find($institutionId)?->spaces()->pluck('spaces.id')->map(strval(...))->all() ?? [];
+            $invalidIds = array_diff($spaceIds, $validSpaceIds);
 
-            if ($space instanceof Space) {
-                $linkedInstitutionsExist = $space->institutions()->exists();
-                $isLinkedToInstitution = $space->institutions()
-                    ->where('institutions.id', $institutionId)
-                    ->exists();
-
-                if ($linkedInstitutionsExist && ! $isLinkedToInstitution) {
-                    $errors['space_id'][] = __('Ruang yang dipilih tidak tersedia untuk institusi ini.');
-                }
+            if ($invalidIds !== []) {
+                $errors['space_ids'][] = __('Ruang yang dipilih tidak tersedia untuk institusi ini.');
             }
         }
 
-        if ($spaceId !== null && $venueId !== null && ! Space::query()->whereKey($spaceId)->where('venue_id', $venueId)->exists()) {
-            $errors['space_id'][] = __('Ruang yang dipilih tidak tersedia untuk venue ini.');
+        if ($spaceIds !== [] && $venueId !== null) {
+            $validVenueSpaceIds = Space::query()->whereIn('id', $spaceIds)->where('venue_id', $venueId)->pluck('id')->map(strval(...))->all();
+            $invalidIds = array_diff($spaceIds, $validVenueSpaceIds);
+
+            if ($invalidIds !== []) {
+                $errors['space_ids'][] = __('Ruang yang dipilih tidak tersedia untuk venue ini.');
+            }
         }
 
         if ($this->requiresSpeakers($state['event_category_ids'] ?? []) && $speakerIds === []) {

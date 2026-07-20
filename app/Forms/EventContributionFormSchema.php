@@ -453,7 +453,7 @@ class EventContributionFormSchema
                                 ->afterStateUpdated(function (Set $set, mixed $state): void {
                                     if ($state === 'venue') {
                                         $set('location_institution_id', null);
-                                        $set('space_id', null);
+                                        $set('space_ids', []);
 
                                         return;
                                     }
@@ -509,9 +509,10 @@ class EventContributionFormSchema
                                 ) === 'venue')
                                 ->createOptionForm(VenueFormSchema::createOptionForm(includeLocationPicker: true))
                                 ->createOptionUsing(fn (array $data, ?Schema $schema = null): string => VenueFormSchema::createOptionUsing($data, $schema)),
-                            Select::make('space_id')
+                            Select::make('space_ids')
                                 ->label(__('Ruang'))
-                                ->helperText(__('Pilihan: Pilih ruang tertentu di dalam institusi (cth: Dewan Utama, Ruang Solat).'))
+                                ->helperText(__('Pilih satu atau lebih ruang (cth: Dewan Utama, Ruang Solat).'))
+                                ->multiple()
                                 ->searchable()
                                 ->preload()
                                 ->options(fn (Get $get): array => self::spaceOptionsForInstitution(self::resolvedLocationInstitutionId(

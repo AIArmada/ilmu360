@@ -1331,12 +1331,13 @@ new #[Layout('layouts.app')] class extends Component implements HasActions, HasF
                                 ->createOptionForm(VenueFormSchema::createOptionForm(includeLocationPicker: true))
                                 ->createOptionUsing(fn (array $data, Schema $schema): string => VenueFormSchema::createOptionUsing($data, $schema)),
 
-                            Select::make('space_id')
+                            Select::make('space_ids')
                                 ->label(__('Ruang'))
-                                ->helperText(__('Pilihan: Pilih ruang tertentu di dalam institusi (cth: Dewan Utama, Ruang Solat).'))
+                                ->helperText(__('Pilih satu atau lebih ruang (cth: Dewan Utama, Ruang Solat).'))
                                 ->placeholder(__('Pilih ruang…'))
                                 ->searchable()
                                 ->preload()
+                                ->multiple()
                                 ->visibleJs("({$hasScopedInstitutionJs} && (\$get('location_same_as_institution') !== false)) || (\$get('primary_organizer_kind') === 'institution' && (\$get('location_same_as_institution') !== false)) || ((\$get('primary_organizer_kind') === 'speaker' || !\$get('location_same_as_institution')) && \$get('location_type') === 'institution')")
                                 ->options(
                                     fn (): array => Space::query()

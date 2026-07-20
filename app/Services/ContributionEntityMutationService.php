@@ -568,15 +568,23 @@ class ContributionEntityMutationService
             'default_venue_id' => array_key_exists('venue_id', $payload) ? $this->normalizeOptionalString($payload['venue_id']) : $event->default_venue_id,
         ]);
 
-        $spaceId = array_key_exists('space_id', $payload)
-            ? $this->normalizeOptionalString($payload['space_id'])
-            : $event->primaryLocation?->venue_space_id;
+        $spaceIds = [];
+        if (array_key_exists('space_ids', $payload)) {
+            $spaceIds = is_array($payload['space_ids']) ? array_values(array_filter($payload['space_ids'], is_string(...))) : [];
+        } else {
+            $existing = $event->locations()
+                ->whereNull('event_occurrence_id')
+                ->whereNull('event_session_id')
+                ->orderBy('sort_order')
+                ->get();
+            $spaceIds = $existing->pluck('venue_space_id')->filter()->map(strval(...))->values()->all();
+        }
 
-        $event->syncLocation($event->default_venue_id, $spaceId);
+        $event->syncLocation($event->default_venue_id, $spaceIds);
 
         $dirty = $event->getDirty();
         $event->save();
-        $event->syncLocation($event->default_venue_id, $spaceId);
+        $event->syncLocation($event->default_venue_id, $spaceIds);
 
         $scheduleKind = $payload['schedule_kind'] ?? $event->schedule_kind;
         $scheduleKind = $scheduleKind instanceof ScheduleKind

@@ -64,7 +64,7 @@ final readonly class PersistValidatedEventSubmissionAction
         if (! $submission->eventContainer instanceof Event) {
             $event->syncLocation(
                 $submission->targetVenueId,
-                is_string($state['space_id'] ?? null) ? $state['space_id'] : null,
+                is_array($state['space_ids'] ?? null) ? array_values(array_filter($state['space_ids'], is_string(...))) : [],
             );
 
             $this->syncSchedule->execute(
@@ -115,13 +115,20 @@ final readonly class PersistValidatedEventSubmissionAction
 
         $event->setPrimaryOrganizer($submission->primaryOrganizer);
 
-        if (! empty($state['space_id']) && ! empty($event->institution_id)) {
+        $spaceIds = is_array($state['space_ids'] ?? null) ? array_values(array_filter($state['space_ids'], is_string(...))) : [];
+
+        if ($spaceIds !== [] && ! empty($event->institution_id)) {
             $institution = Institution::query()->find($event->institution_id);
 
-            if ($institution instanceof Institution && ! $institution->spaces()->where('spaces.id', $state['space_id'])->exists()) {
-                throw ValidationException::withMessages([
-                    'space_id' => __('Ruang yang dipilih tidak tersedia untuk institusi ini.'),
-                ]);
+            if ($institution instanceof Institution) {
+                $validIds = $institution->spaces()->pluck('spaces.id')->map(strval(...))->all();
+                $invalidIds = array_diff($spaceIds, $validIds);
+
+                if ($invalidIds !== []) {
+                    throw ValidationException::withMessages([
+                        'space_ids' => __('Ruang yang dipilih tidak tersedia untuk institusi ini.'),
+                    ]);
+                }
             }
         }
 

@@ -776,7 +776,7 @@ class EventSeeder extends Seeder
                         $event->fill($updates)->save();
                     }
 
-                    $event->syncLocation($event->default_venue_id, $spaceId);
+                    $event->syncLocation($event->default_venue_id, $spaceId !== null ? [$spaceId] : []);
 
                     $taxonomyCodes = $event->classifications
                         ->pluck('taxonomy_code')

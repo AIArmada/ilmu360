@@ -828,32 +828,53 @@ class Event extends PackageEvent implements AuditableContract
             ->orderBy('id');
     }
 
-    public function syncLocation(?string $venueId = null, ?string $spaceId = null): void
+    /**
+     * @param  list<string>  $spaceIds
+     */
+    public function syncLocation(?string $venueId = null, array $spaceIds = []): void
     {
-        $location = EventLocation::query()
+        EventLocation::query()
             ->where('event_id', $this->id)
             ->whereNull('event_occurrence_id')
             ->whereNull('event_session_id')
-            ->where('location_role', 'primary');
+            ->delete();
 
-        if (($venueId !== null && $venueId !== '') || ($spaceId !== null && $spaceId !== '')) {
-            EventLocation::updateOrCreate(
-                [
+        if (($venueId !== null && $venueId !== '') || $spaceIds !== []) {
+            $first = true;
+
+            foreach ($spaceIds as $i => $spaceId) {
+                if (! is_string($spaceId) || $spaceId === '') {
+                    continue;
+                }
+
+                EventLocation::create([
+                    'event_id' => $this->id,
+                    'event_occurrence_id' => null,
+                    'event_session_id' => null,
+                    'location_role' => $first ? 'primary' : 'additional',
+                    'venue_id' => $first ? $venueId : null,
+                    'venue_space_id' => $spaceId,
+                    'visibility' => 'public',
+                    'status' => 'active',
+                    'sort_order' => $i,
+                ]);
+
+                $first = false;
+            }
+
+            if ($first && $venueId !== null && $venueId !== '') {
+                EventLocation::create([
                     'event_id' => $this->id,
                     'event_occurrence_id' => null,
                     'event_session_id' => null,
                     'location_role' => 'primary',
-                ],
-                [
                     'venue_id' => $venueId,
-                    'venue_space_id' => $spaceId,
+                    'venue_space_id' => null,
                     'visibility' => 'public',
                     'status' => 'active',
                     'sort_order' => 0,
-                ],
-            );
-        } else {
-            $location->delete();
+                ]);
+            }
         }
     }
 
