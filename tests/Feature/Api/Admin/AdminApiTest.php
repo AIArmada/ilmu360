@@ -3414,9 +3414,9 @@ it('rejects admin event writes with conflicting location selections', function (
         'discipline_tag' => $disciplineTag,
     ], [
         'venue_id' => (string) $venue->getKey(),
-        'space_id' => (string) $space->getKey(),
+        'space_ids' => [(string) $space->getKey()],
     ]))->assertUnprocessable()
-        ->assertJsonValidationErrors(['institution_id', 'venue_id', 'space_id']);
+        ->assertJsonValidationErrors(['institution_id', 'venue_id', 'space_ids']);
 });
 
 function adminApiEventTerm(string $taxonomyCode, string $name): EventTerm

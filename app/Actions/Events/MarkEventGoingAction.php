@@ -4,7 +4,7 @@ namespace App\Actions\Events;
 
 use AIArmada\Engagement\Contracts\EngagementCounterService;
 use AIArmada\Events\Actions\RegisterForFreeAction;
-use AIArmada\Events\Enums\PricingMode;
+use AIArmada\Ticketing\Enums\PricingMode;
 use App\Models\Event;
 use App\Models\Registration;
 use App\Models\User;

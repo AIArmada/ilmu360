@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Support\Commerce;
 
-use AIArmada\Events\Enums\PricingMode;
 use AIArmada\Events\Enums\RegistrationMode;
+use AIArmada\Ticketing\Enums\PricingMode;
 
 /**
  * Product catalog of package-native event commerce modes (ADR-013).

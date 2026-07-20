@@ -717,7 +717,7 @@ it('shows institution profile and events for members without a separate registra
     ]);
 
     $institution->spaces()->syncWithoutDetaching([$space->id]);
-    $eventInInstitution->syncLocation(null, $space->id);
+    $eventInInstitution->syncLocation(null, [(string) $space->id]);
     $eventInInstitution->speakers()->attach($speaker->id);
     $eventInInstitution->references()->attach($reference->id);
 

@@ -1,6 +1,6 @@
 <?php
 
-use AIArmada\Events\Enums\PricingMode;
+use AIArmada\Ticketing\Enums\PricingMode;
 use App\Support\Commerce\EventCommerceModes;
 
 it('exposes package-native commerce modes including paid and mixed', function () {
