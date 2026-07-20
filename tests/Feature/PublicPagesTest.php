@@ -29,7 +29,7 @@ it('loads public index pages', function () {
     $this->get(route('home'))->assertSuccessful()->assertSee('Majlis Ilmu');
     $this->get(route('events.index'))->assertSuccessful()->assertSee('Majlis Ilmu');
     $this->get(route('institutions.index'))->assertSuccessful()->assertSee('Majlis Ilmu');
-    $this->get(route('speakers.index'))->assertSuccessful()->assertSee(__('Direktori Penceramah'));
+    $this->get(route('speakers.index'))->assertSuccessful()->assertSee(__('Cari ustaz, ustazah'));
     $this->get(route('venues.index'))->assertSuccessful()->assertSee('Majlis Ilmu');
     $this->get(route('references.index'))->assertSuccessful()->assertSee('Majlis Ilmu');
     $this->get(route('submit-event.landing'))

@@ -84,7 +84,7 @@ it('shows the total speaker count on the speaker index', function () {
 
     get('/penceramah?search='.urlencode($searchPrefix))
         ->assertSuccessful()
-        ->assertSee('Direktori Penceramah')
+        ->assertSee('Temui penceramah')
         ->assertSee('2 penceramah ditemui');
 });
 

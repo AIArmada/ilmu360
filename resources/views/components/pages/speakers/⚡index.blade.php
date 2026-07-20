@@ -171,10 +171,7 @@ new
         <div class="relative mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
             <div class="grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_22rem]">
                 <div class="max-w-3xl">
-                    <div class="inline-flex items-center gap-2 rounded-full border border-amber-700/15 bg-white/75 px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.22em] text-amber-800 shadow-sm backdrop-blur">
-                        <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>
-                        {{ __('Direktori Penceramah') }}
-                    </div>
+
 
                     <h1 class="mt-5 max-w-3xl font-heading text-4xl font-bold leading-[1.04] tracking-[-0.035em] text-emerald-950 sm:text-5xl lg:text-6xl">
                         {{ __('Temui penceramah yang') }}
@@ -228,13 +225,7 @@ new
                             </div>
                         </div>
 
-                        <div class="mt-4 flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                            <span class="font-semibold text-slate-600">{{ __('Cari mengikut nama:') }}</span>
-                            <span class="rounded-full border border-amber-700/10 bg-white/65 px-3 py-1.5">{{ __('Ustaz') }}</span>
-                            <span class="rounded-full border border-amber-700/10 bg-white/65 px-3 py-1.5">{{ __('Ustazah') }}</span>
-                            <span class="rounded-full border border-amber-700/10 bg-white/65 px-3 py-1.5">{{ __('Dr.') }}</span>
-                            <span class="rounded-full border border-amber-700/10 bg-white/65 px-3 py-1.5">{{ __('Pendakwah') }}</span>
-                        </div>
+
                     </div>
                 </div>
 
@@ -317,8 +308,7 @@ new
             @else
                 <div class="mb-6 flex flex-col gap-4 border-b border-slate-200/80 pb-5 sm:flex-row sm:items-end sm:justify-between">
                     <div>
-                        <p class="text-[11px] font-black uppercase tracking-[0.2em] text-amber-700">{{ __('Direktori Penceramah') }}</p>
-                        <h2 class="mt-1 font-heading text-2xl font-bold tracking-tight text-emerald-950 sm:text-3xl">
+                        <h2 class="font-heading text-2xl font-bold tracking-tight text-emerald-950 sm:text-3xl">
                             @if(filled($search))
                                 {{ __('Hasil carian untuk “:search”', ['search' => $search]) }}
                             @else
