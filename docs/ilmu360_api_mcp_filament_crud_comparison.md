@@ -169,7 +169,7 @@ Use **curated parity**, not full symmetry at any cost.
 	- Does the public or authenticated workflow API surface change?
 	- If a surface does not change, is the gap intentional and documented?
 
-## Runtime admin resource inventory (61 registered resources)
+## Runtime admin resource inventory (63 registered resources)
 
 This is the runtime admin panel inventory, not just the local `app/Filament/Resources` directory. It includes resources registered by application code and enabled plugins. The generic admin HTTP API and Admin MCP may additionally append explicit fallback resources when they are enabled outside the cached panel registration.
 
@@ -266,7 +266,7 @@ These are registered at runtime and therefore part of the admin registry surface
 
 It does **not** mean every admin-facing actor can write it. Actual create/update access is still policy-driven per request.
 
-## Runtime Ahli resource inventory (19 registered resources)
+## Runtime Ahli resource inventory (22 registered resources)
 
 | Resource key | Pages | Generic member write | Scope |
 | --- | --- | --- | --- |

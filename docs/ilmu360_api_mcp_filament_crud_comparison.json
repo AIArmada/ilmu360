@@ -1,6 +1,6 @@
 {
     "schema_version": "2.6.0",
-    "verified_at": "2026-07-01",
+    "verified_at": "2026-07-20",
     "title": "API / MCP / Filament Capability Matrix",
     "markdown_companion": "docs/ilmu360_api_mcp_filament_crud_comparison.md",
     "purpose": "Canonical parity map for public workflow API, generic admin HTTP API, admin/member MCP, and the Filament admin/Ahli panels.",
@@ -400,7 +400,7 @@
     "runtime_inventory": {
         "admin_panel": {
             "source_of_truth": "Filament::getPanel('admin')->getResources()",
-            "resource_count": 61,
+            "resource_count": 63,
             "resources": [
                 {
                     "resource_key": "address-areas",
@@ -583,9 +583,9 @@
                     "generic_admin_write": true
                 },
                 {
-                    "resource_key": "event-attendances",
-                    "resource_class": "AIArmada\\FilamentEvents\\Resources\\EventAttendanceResource",
-                    "model_class": "AIArmada\\Events\\Models\\EventAttendance",
+                    "resource_key": "event-change-logs",
+                    "resource_class": "AIArmada\\FilamentEvents\\Resources\\EventChangeLogResource",
+                    "model_class": "AIArmada\\Events\\Models\\EventChangeLog",
                     "source": "vendor",
                     "page_keys": [
                         "index",
@@ -594,9 +594,9 @@
                     "generic_admin_write": false
                 },
                 {
-                    "resource_key": "event-change-logs",
-                    "resource_class": "AIArmada\\FilamentEvents\\Resources\\EventChangeLogResource",
-                    "model_class": "AIArmada\\Events\\Models\\EventChangeLog",
+                    "resource_key": "event-checkins",
+                    "resource_class": "AIArmada\\FilamentEvents\\Resources\\EventAttendanceResource",
+                    "model_class": "App\\Models\\EventCheckin",
                     "source": "vendor",
                     "page_keys": [
                         "index",
@@ -629,20 +629,22 @@
                     "generic_admin_write": false
                 },
                 {
-                    "resource_key": "event-registrations",
-                    "resource_class": "AIArmada\\FilamentEvents\\Resources\\EventRegistrationResource",
-                    "model_class": "AIArmada\\Events\\Models\\EventRegistration",
+                    "resource_key": "event-sessions",
+                    "resource_class": "AIArmada\\FilamentEvents\\Resources\\EventSessionResource",
+                    "model_class": "AIArmada\\Events\\Models\\EventSession",
                     "source": "vendor",
                     "page_keys": [
                         "index",
-                        "view"
+                        "create",
+                        "view",
+                        "edit"
                     ],
                     "generic_admin_write": false
                 },
                 {
-                    "resource_key": "event-sessions",
-                    "resource_class": "AIArmada\\FilamentEvents\\Resources\\EventSessionResource",
-                    "model_class": "AIArmada\\Events\\Models\\EventSession",
+                    "resource_key": "event-taxonomies",
+                    "resource_class": "AIArmada\\FilamentEvents\\Resources\\EventTaxonomyResource",
+                    "model_class": "AIArmada\\Events\\Models\\EventTaxonomy",
                     "source": "vendor",
                     "page_keys": [
                         "index",
@@ -666,9 +668,22 @@
                     "generic_admin_write": false
                 },
                 {
+                    "resource_key": "event-terms",
+                    "resource_class": "AIArmada\\FilamentEvents\\Resources\\EventTermResource",
+                    "model_class": "AIArmada\\Events\\Models\\EventTerm",
+                    "source": "vendor",
+                    "page_keys": [
+                        "index",
+                        "create",
+                        "view",
+                        "edit"
+                    ],
+                    "generic_admin_write": false
+                },
+                {
                     "resource_key": "events",
                     "resource_class": "AIArmada\\FilamentEvents\\Resources\\EventResource",
-                    "model_class": "AIArmada\\Events\\Models\\Event",
+                    "model_class": "App\\Models\\Event",
                     "source": "vendor",
                     "page_keys": [
                         "index",
@@ -864,6 +879,17 @@
                     "generic_admin_write": true
                 },
                 {
+                    "resource_key": "registrations",
+                    "resource_class": "AIArmada\\FilamentEvents\\Resources\\EventRegistrationResource",
+                    "model_class": "App\\Models\\Registration",
+                    "source": "vendor",
+                    "page_keys": [
+                        "index",
+                        "view"
+                    ],
+                    "generic_admin_write": false
+                },
+                {
                     "resource_key": "reminders",
                     "resource_class": "AIArmada\\FilamentEngagement\\Resources\\ReminderResource",
                     "model_class": "AIArmada\\Engagement\\Models\\Reminder",
@@ -1055,18 +1081,6 @@
                     "generic_admin_write": false
                 },
                 {
-                    "resource_key": "tags",
-                    "resource_class": "App\\Filament\\Resources\\Tags\\TagResource",
-                    "model_class": "App\\Models\\Tag",
-                    "source": "app",
-                    "page_keys": [
-                        "index",
-                        "create",
-                        "edit"
-                    ],
-                    "generic_admin_write": true
-                },
-                {
                     "resource_key": "ticket-types",
                     "resource_class": "AIArmada\\FilamentTicketing\\Resources\\TicketTypeResource",
                     "model_class": "AIArmada\\Ticketing\\Models\\TicketType",
@@ -1105,6 +1119,19 @@
                     "generic_admin_write": false
                 },
                 {
+                    "resource_key": "venue-spaces",
+                    "resource_class": "AIArmada\\FilamentEvents\\Resources\\VenueSpaceResource",
+                    "model_class": "AIArmada\\Events\\Models\\VenueSpace",
+                    "source": "vendor",
+                    "page_keys": [
+                        "index",
+                        "create",
+                        "view",
+                        "edit"
+                    ],
+                    "generic_admin_write": false
+                },
+                {
                     "resource_key": "venues",
                     "resource_class": "AIArmada\\FilamentEvents\\Resources\\VenueResource",
                     "model_class": "AIArmada\\Events\\Models\\Venue",
@@ -1119,7 +1146,7 @@
         },
         "ahli_panel": {
             "source_of_truth": "Filament::getPanel('ahli')->getResources()",
-            "resource_count": 19,
+            "resource_count": 22,
             "resources": [
                 {
                     "resource_key": "bookmark-collections",
@@ -1143,9 +1170,9 @@
                     "generic_member_write": false
                 },
                 {
-                    "resource_key": "event-attendances",
-                    "resource_class": "AIArmada\\FilamentEvents\\Resources\\EventAttendanceResource",
-                    "model_class": "AIArmada\\Events\\Models\\EventAttendance",
+                    "resource_key": "event-change-logs",
+                    "resource_class": "AIArmada\\FilamentEvents\\Resources\\EventChangeLogResource",
+                    "model_class": "AIArmada\\Events\\Models\\EventChangeLog",
                     "page_keys": [
                         "index",
                         "view"
@@ -1153,9 +1180,9 @@
                     "generic_member_write": false
                 },
                 {
-                    "resource_key": "event-change-logs",
-                    "resource_class": "AIArmada\\FilamentEvents\\Resources\\EventChangeLogResource",
-                    "model_class": "AIArmada\\Events\\Models\\EventChangeLog",
+                    "resource_key": "event-checkins",
+                    "resource_class": "AIArmada\\FilamentEvents\\Resources\\EventAttendanceResource",
+                    "model_class": "App\\Models\\EventCheckin",
                     "page_keys": [
                         "index",
                         "view"
@@ -1185,19 +1212,21 @@
                     "generic_member_write": false
                 },
                 {
-                    "resource_key": "event-registrations",
-                    "resource_class": "AIArmada\\FilamentEvents\\Resources\\EventRegistrationResource",
-                    "model_class": "AIArmada\\Events\\Models\\EventRegistration",
+                    "resource_key": "event-sessions",
+                    "resource_class": "AIArmada\\FilamentEvents\\Resources\\EventSessionResource",
+                    "model_class": "AIArmada\\Events\\Models\\EventSession",
                     "page_keys": [
                         "index",
-                        "view"
+                        "create",
+                        "view",
+                        "edit"
                     ],
                     "generic_member_write": false
                 },
                 {
-                    "resource_key": "event-sessions",
-                    "resource_class": "AIArmada\\FilamentEvents\\Resources\\EventSessionResource",
-                    "model_class": "AIArmada\\Events\\Models\\EventSession",
+                    "resource_key": "event-taxonomies",
+                    "resource_class": "AIArmada\\FilamentEvents\\Resources\\EventTaxonomyResource",
+                    "model_class": "AIArmada\\Events\\Models\\EventTaxonomy",
                     "page_keys": [
                         "index",
                         "create",
@@ -1219,9 +1248,21 @@
                     "generic_member_write": false
                 },
                 {
+                    "resource_key": "event-terms",
+                    "resource_class": "AIArmada\\FilamentEvents\\Resources\\EventTermResource",
+                    "model_class": "AIArmada\\Events\\Models\\EventTerm",
+                    "page_keys": [
+                        "index",
+                        "create",
+                        "view",
+                        "edit"
+                    ],
+                    "generic_member_write": false
+                },
+                {
                     "resource_key": "events",
                     "resource_class": "AIArmada\\FilamentEvents\\Resources\\EventResource",
-                    "model_class": "AIArmada\\Events\\Models\\Event",
+                    "model_class": "App\\Models\\Event",
                     "page_keys": [
                         "index",
                         "create",
@@ -1269,6 +1310,16 @@
                     "generic_member_write": true
                 },
                 {
+                    "resource_key": "registrations",
+                    "resource_class": "AIArmada\\FilamentEvents\\Resources\\EventRegistrationResource",
+                    "model_class": "App\\Models\\Registration",
+                    "page_keys": [
+                        "index",
+                        "view"
+                    ],
+                    "generic_member_write": false
+                },
+                {
                     "resource_key": "reminders",
                     "resource_class": "AIArmada\\FilamentEngagement\\Resources\\ReminderResource",
                     "model_class": "AIArmada\\Engagement\\Models\\Reminder",
@@ -1310,6 +1361,18 @@
                     "generic_member_write": false
                 },
                 {
+                    "resource_key": "venue-spaces",
+                    "resource_class": "AIArmada\\FilamentEvents\\Resources\\VenueSpaceResource",
+                    "model_class": "AIArmada\\Events\\Models\\VenueSpace",
+                    "page_keys": [
+                        "index",
+                        "create",
+                        "view",
+                        "edit"
+                    ],
+                    "generic_member_write": false
+                },
+                {
                     "resource_key": "venues",
                     "resource_class": "AIArmada\\FilamentEvents\\Resources\\VenueResource",
                     "model_class": "AIArmada\\Events\\Models\\Venue",
@@ -1335,7 +1398,6 @@
             "series",
             "spaces",
             "speakers",
-            "tags",
             "venues"
         ],
         "resource_details": {
