@@ -153,6 +153,14 @@ class SpeakerForm
                             ->avatar()
                             ->conversion('thumb')
                             ->helperText(__('Speaker photo (recommended: 400x400)')),
+                        SpatieMediaLibraryFileUpload::make('main')
+                            ->label(__('Main Photo'))
+                            ->collection('main')
+                            ->image()
+                            ->imageEditor()
+                            ->responsiveImages()
+                            ->conversion('display')
+                            ->helperText(__('Primary speaker portrait — shown prominently on the speaker profile page.')),
                         SpatieMediaLibraryFileUpload::make('cover')
                             ->collection('cover')
                             ->label(__('Cover Image'))
