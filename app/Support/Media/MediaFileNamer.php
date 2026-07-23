@@ -121,6 +121,7 @@ class MediaFileNamer extends FileNamer
             'cover' => 'Cover Image',
             'logo' => 'Logo',
             'avatar' => 'Avatar',
+            'main' => 'Main Image',
             'front_cover' => 'Front Cover',
             'back_cover' => 'Back Cover',
             'gallery' => 'Gallery Image',

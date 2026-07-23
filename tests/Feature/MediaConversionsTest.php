@@ -338,6 +338,28 @@ it('returns public_avatar_url using the higher-resolution profile conversion whe
         ->and($publicAvatarUrl)->toContain('profile');
 });
 
+it('registers main media collection for Speaker model', function () {
+    $speaker = Speaker::factory()->create();
+
+    $speaker->addMedia(fakeGeneratedImageUpload('main.png', 600, 800))
+        ->toMediaCollection('main');
+
+    $media = $speaker->getFirstMedia('main');
+
+    expect($media)->not->toBeNull();
+    expect($speaker->hasMedia('main'))->toBeTrue();
+    expect($media->getMediaConversionNames())->toContain('main_thumb');
+    expect($media->getMediaConversionNames())->toContain('display');
+});
+
+it('returns public_main_url fallback when Speaker has no main photo', function () {
+    $speaker = Speaker::factory()->create();
+
+    $mainUrl = $speaker->public_main_url;
+
+    expect($mainUrl)->not->toBeEmpty();
+});
+
 // ---------------------------------------------------------------
 // Venue model
 // ---------------------------------------------------------------
@@ -361,6 +383,32 @@ it('returns fallback URL when Venue has no cover image', function () {
     $fallbackUrl = $venue->getFirstMediaUrl('cover');
 
     expect($fallbackUrl)->toContain('images/placeholders/venue.png');
+});
+
+it('registers main media collection for Venue model', function () {
+    $venue = Venue::factory()->create();
+
+    $venue->addMedia(fakeGeneratedImageUpload('main.png', 1200, 800))
+        ->toMediaCollection('main');
+
+    $media = $venue->getFirstMedia('main');
+
+    expect($media)->not->toBeNull();
+    expect($venue->hasMedia('main'))->toBeTrue();
+    expect($media->getMediaConversionNames())->toContain('thumb');
+    expect($media->getMediaConversionNames())->toContain('banner');
+});
+
+it('returns public_main_url preferring main over cover for Venue', function () {
+    $venue = Venue::factory()->create();
+
+    $venue->addMedia(fakeGeneratedImageUpload('main.png', 1200, 800))
+        ->toMediaCollection('main');
+
+    $mainUrl = $venue->public_main_url;
+
+    expect($mainUrl)->not->toBeNull()
+        ->and($mainUrl)->toContain('main');
 });
 
 // ---------------------------------------------------------------
