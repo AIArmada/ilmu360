@@ -14,15 +14,16 @@ use App\Models\Event;
 use App\Models\MembershipApplication;
 use App\Models\Report;
 use App\Models\User;
+use App\Support\Api\Admin\Concerns\ResolvesAccessibleResource;
 use Filament\Resources\Resource;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
-use App\Support\Api\Admin\Concerns\ResolvesAccessibleResource;
 
 final readonly class AdminRecordActionService
 {
     use ResolvesAccessibleResource;
+
     public function __construct(
         private AdminResourceRegistry $registry,
         private AdminEventModerationService $eventModerationService,
@@ -562,5 +563,4 @@ final readonly class AdminRecordActionService
 
         return is_array($schema) ? $schema : null;
     }
-
 }

@@ -18,6 +18,7 @@ use Illuminate\Validation\Rule;
 final readonly class AdminContributionRequestReviewService
 {
     use ProvidesWorkflowResponse;
+
     public function __construct(
         private AdminResourceRegistry $registry,
         private ResolveReviewableContributionRequestAction $resolveReviewableContributionRequestAction,

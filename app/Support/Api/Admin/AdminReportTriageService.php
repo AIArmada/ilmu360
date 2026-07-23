@@ -17,6 +17,7 @@ use Illuminate\Validation\Rule;
 final readonly class AdminReportTriageService
 {
     use ProvidesWorkflowResponse;
+
     public function __construct(
         private AdminResourceRegistry $registry,
     ) {}

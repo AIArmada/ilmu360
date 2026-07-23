@@ -16,6 +16,7 @@ use Illuminate\Validation\Rule;
 final readonly class AdminEventModerationService
 {
     use ProvidesWorkflowResponse;
+
     public function __construct(
         private AdminResourceRegistry $registry,
         private ModerationService $moderationService,

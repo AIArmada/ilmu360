@@ -14,6 +14,7 @@ use App\Enums\TimingMode;
 use App\Filament\Resources\Speakers\SpeakerResource;
 use App\Models\Event;
 use App\Models\User;
+use App\Support\Api\Admin\Concerns\ResolvesAccessibleResource;
 use App\Support\Api\ApiPagination;
 use App\Support\Api\ResourceSearchDispatcher;
 use App\Support\Api\SurfaceSyncPolicy;
@@ -34,11 +35,11 @@ use Illuminate\Validation\ValidationException;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
-use App\Support\Api\Admin\Concerns\ResolvesAccessibleResource;
 
 class AdminResourceService
 {
     use ResolvesAccessibleResource;
+
     public function __construct(
         private readonly AdminResourceRegistry $registry,
         private readonly AdminResourceMutationService $mutationService,

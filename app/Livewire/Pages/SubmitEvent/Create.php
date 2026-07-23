@@ -98,7 +98,7 @@ class Create extends Component implements HasActions, HasForms
     use InteractsWithForms;
     use WithFileUploads;
 
-    private const REVIEW_STEP_ID = 'form.semak-sebelum-hantar::data::wizard-step';
+    private const string REVIEW_STEP_ID = 'form.semak-sebelum-hantar::data::wizard-step';
 
     public function render(): View
     {
@@ -159,11 +159,11 @@ class Create extends Component implements HasActions, HasForms
             'submission_country_id' => $this->defaultSubmissionCountryId(),
         ];
 
-        if ($eventContainer = $this->selectedEventContainer()) {
+        if (($eventContainer = $this->selectedEventContainer()) instanceof \App\Models\Event) {
             $state = array_replace($state, $this->eventContainerDefaults($eventContainer));
         }
 
-        if ($duplicateEvent = $this->selectedDuplicateEvent()) {
+        if (($duplicateEvent = $this->selectedDuplicateEvent()) instanceof \App\Models\Event) {
             $state = array_replace($state, $this->duplicateEventDefaults($duplicateEvent));
         }
 
@@ -283,20 +283,18 @@ class Create extends Component implements HasActions, HasForms
             'jv' => 'Bahasa Jawa',
         ];
 
-        return Cache::remember($this->submitCacheKey('submit_languages'), 3600, function () use ($preferredLabels, $preferredOrder): array {
-            return Language::query()
-                ->whereIn('code', $preferredOrder)
-                ->get()
-                ->sortBy(fn (Language $language): int|false => array_search((string) $language->code, $preferredOrder, true))
-                ->mapWithKeys(function (Language $language) use ($preferredLabels): array {
-                    $code = (string) $language->code;
-                    $label = $preferredLabels[$code]
-                        ?? (string) ($language->name ?? Str::upper($code));
+        return Cache::remember($this->submitCacheKey('submit_languages'), 3600, fn(): array => Language::query()
+            ->whereIn('code', $preferredOrder)
+            ->get()
+            ->sortBy(fn (Language $language): int|false => array_search((string) $language->code, $preferredOrder, true))
+            ->mapWithKeys(function (Language $language) use ($preferredLabels): array {
+                $code = (string) $language->code;
+                $label = $preferredLabels[$code]
+                    ?? (string) ($language->name ?? Str::upper($code));
 
-                    return [$language->id => $label];
-                })
-                ->all();
-        });
+                return [$language->id => $label];
+            })
+            ->all());
     }
 
     /**
@@ -438,7 +436,7 @@ class Create extends Component implements HasActions, HasForms
     {
         $path = $file->getRealPath();
 
-        if (! is_string($path) || $path === '') {
+        if ($path === '') {
             return null;
         }
 
@@ -448,8 +446,8 @@ class Create extends Component implements HasActions, HasForms
             return null;
         }
 
-        $width = (int) $dimensions[0];
-        $height = (int) $dimensions[1];
+        $width = $dimensions[0];
+        $height = $dimensions[1];
 
         return match (true) {
             $width > 0 && $height > 0 && abs(($width / $height) - (16 / 9)) < 0.01 => '16:9',
@@ -484,11 +482,11 @@ class Create extends Component implements HasActions, HasForms
         string $submitButtonLabel,
     ): Wizard {
         return Wizard::make([
-            $this->buildEventInfoStep($hasScopedInstitutionJs),
+            $this->buildEventInfoStep(),
             $this->buildCategoriesStep(),
             $this->buildOrganizerLocationStep($hasScopedInstitution, $hasScopedInstitutionJs),
             $this->buildSpeakersMediaStep(),
-            $this->buildReviewStep($hasScopedInstitution, $isReviewStep, $submitButtonLabel),
+            $this->buildReviewStep($hasScopedInstitution),
         ])
             ->skippable()
             ->persistStepInQueryString()
@@ -509,14 +507,14 @@ class Create extends Component implements HasActions, HasForms
                                     BLADE, ['label' => $submitButtonLabel])));
     }
 
-    private function buildEventInfoStep(string $hasScopedInstitutionJs): Step
+    private function buildEventInfoStep(): Step
     {
         return Step::make(__('Maklumat Majlis'))
             ->icon('heroicon-o-document-text')
-            ->schema($this->getEventInfoFields($hasScopedInstitutionJs));
+            ->schema($this->getEventInfoFields());
     }
 
-    private function getEventInfoFields(string $hasScopedInstitutionJs): array
+    private function getEventInfoFields(): array
     {
         return [
             Select::make('event_category_ids')
@@ -530,9 +528,7 @@ class Create extends Component implements HasActions, HasForms
                         $set('event_format', EventFormat::Physical->value);
                     }
                 })
-                ->options(function (): array {
-                    return app(EventCategoryCatalog::class)->options();
-                })
+                ->options(fn(): array => app(EventCategoryCatalog::class)->options())
                 ->searchable(),
 
             Select::make('title')
@@ -542,7 +538,7 @@ class Create extends Component implements HasActions, HasForms
                 ->allowHtml()
                 ->live()
                 ->getSearchResultsUsing(function (string $search): array {
-                    if (empty($search)) {
+                    if ($search === '' || $search === '0') {
                         return [];
                     }
 
@@ -733,29 +729,27 @@ class Create extends Component implements HasActions, HasForms
                         ->requiredIf('prayer_time', EventPrayerTime::LainWaktu)
                         ->markAsRequired()
                         ->columnSpan(['default' => 1, 'md' => 2])
-                        ->rule(function (Get $get): Closure {
-                            return function (string $attribute, $value, Closure $fail) use ($get) {
-                                $eventDate = $get('event_date');
-                                $timezone = $this->resolveSubmissionTimezone($get('submission_country_id'));
-                                $now = Carbon::now($timezone);
+                        ->rule(fn(Get $get): Closure => function (string $attribute, $value, Closure $fail) use ($get) {
+                            $eventDate = $get('event_date');
+                            $timezone = $this->resolveSubmissionTimezone($get('submission_country_id'));
+                            $now = Carbon::now($timezone);
 
-                                if (! $eventDate || ! $value) {
-                                    return;
+                            if (! $eventDate || ! $value) {
+                                return;
+                            }
+
+                            $eventDay = Carbon::parse($eventDate, $timezone)->startOfDay();
+
+                            if ($eventDay->isSameDay($now)) {
+                                $timeParts = explode(':', $value);
+                                $selectedTime = $eventDay->copy()
+                                    ->setHour((int) $timeParts[0])
+                                    ->setMinute((int) $timeParts[1]);
+
+                                if ($selectedTime->lessThan($now)) {
+                                    $fail(__('Masa yang dipilih tidak boleh pada masa lalu untuk majlis hari ini.'));
                                 }
-
-                                $eventDay = Carbon::parse($eventDate, $timezone)->startOfDay();
-
-                                if ($eventDay->isSameDay($now)) {
-                                    $timeParts = explode(':', $value);
-                                    $selectedTime = $eventDay->copy()
-                                        ->setHour((int) $timeParts[0])
-                                        ->setMinute((int) $timeParts[1]);
-
-                                    if ($selectedTime->lessThan($now)) {
-                                        $fail(__('Masa yang dipilih tidak boleh pada masa lalu untuk majlis hari ini.'));
-                                    }
-                                }
-                            };
+                            }
                         }),
 
                     TimePicker::make('end_time')
@@ -802,32 +796,30 @@ class Create extends Component implements HasActions, HasForms
                                     }
                                 JS)
                         ->columnSpan(['default' => 1, 'md' => 2])
-                        ->rule(function (Get $get): Closure {
-                            return function (string $attribute, $value, Closure $fail) use ($get) {
-                                if (! $value) {
-                                    return;
-                                }
+                        ->rule(fn(Get $get): Closure => function (string $attribute, $value, Closure $fail) use ($get) {
+                            if (! $value) {
+                                return;
+                            }
 
-                                $prayerTimeRaw = $get('prayer_time');
-                                $startTime = $this->resolveStartTimeForComparison(
-                                    $prayerTimeRaw,
-                                    $get('custom_time')
-                                );
+                            $prayerTimeRaw = $get('prayer_time');
+                            $startTime = $this->resolveStartTimeForComparison(
+                                $prayerTimeRaw,
+                                $get('custom_time')
+                            );
 
-                                if ($startTime === null) {
-                                    return;
-                                }
+                            if ($startTime === null) {
+                                return;
+                            }
 
-                                $startParts = explode(':', $startTime);
-                                $endParts = explode(':', (string) $value);
+                            $startParts = explode(':', $startTime);
+                            $endParts = explode(':', (string) $value);
 
-                                $startMinutes = ((int) $startParts[0]) * 60 + ((int) ($startParts[1] ?? 0));
-                                $endMinutes = ((int) $endParts[0]) * 60 + ((int) ($endParts[1] ?? 0));
+                            $startMinutes = ((int) $startParts[0]) * 60 + ((int) ($startParts[1] ?? 0));
+                            $endMinutes = ((int) $endParts[0]) * 60 + ((int) ($endParts[1] ?? 0));
 
-                                if ($endMinutes <= $startMinutes) {
-                                    $fail(__('Masa akhir mestilah selepas masa mula.'));
-                                }
-                            };
+                            if ($endMinutes <= $startMinutes) {
+                                $fail(__('Masa akhir mestilah selepas masa mula.'));
+                            }
                         }),
                 ]),
 
@@ -978,7 +970,7 @@ class Create extends Component implements HasActions, HasForms
                                 }
                             }
 
-                            if (! empty($uuids)) {
+                            if ($uuids !== []) {
                                 $labels = array_merge($labels, EventTerm::whereIn('id', $uuids)->pluck('name', 'id')->all());
                             }
 
@@ -1036,7 +1028,7 @@ class Create extends Component implements HasActions, HasForms
                                 }
                             }
 
-                            if (! empty($uuids)) {
+                            if ($uuids !== []) {
                                 $labels = array_merge($labels, EventTerm::whereIn('id', $uuids)->pluck('name', 'id')->all());
                             }
 
@@ -1082,7 +1074,7 @@ class Create extends Component implements HasActions, HasForms
                                 }
                             }
 
-                            if (! empty($uuids)) {
+                            if ($uuids !== []) {
                                 $labels = array_merge($labels, EventTerm::whereIn('id', $uuids)->pluck('name', 'id')->all());
                             }
 
@@ -1136,7 +1128,7 @@ class Create extends Component implements HasActions, HasForms
                                 }
                             }
 
-                            if (! empty($uuids)) {
+                            if ($uuids !== []) {
                                 $labels = array_merge($labels, EventTerm::whereIn('id', $uuids)->pluck('name', 'id')->all());
                             }
 
@@ -1332,9 +1324,7 @@ class Create extends Component implements HasActions, HasForms
                                                     }
                                                     JS)
                         ->createOptionForm(SpeakerFormSchema::createOptionForm())
-                        ->createOptionUsing(function (array $data, Schema $schema, Set $set, Get $get): string {
-                            return SpeakerFormSchema::createOptionUsing($data, $schema);
-                        }),
+                        ->createOptionUsing(fn(array $data, Schema $schema, Set $set, Get $get): string => SpeakerFormSchema::createOptionUsing($data, $schema)),
                 ]),
 
             Section::make(__('Lokasi'))
@@ -1534,7 +1524,7 @@ class Create extends Component implements HasActions, HasForms
         ];
     }
 
-    private function buildReviewStep(bool $hasScopedInstitution, bool $isReviewStep, string $submitButtonLabel): Step
+    private function buildReviewStep(bool $hasScopedInstitution): Step
     {
         return Step::make(__('Semak & Hantar'))
             ->id(self::REVIEW_STEP_ID)
@@ -1613,7 +1603,6 @@ class Create extends Component implements HasActions, HasForms
         );
 
         $event = $result['event'];
-        $submission = $result['submission'];
 
         session()->flash('event_title', $event->title);
         session()->flash('event_slug', $event->slug);
@@ -1655,7 +1644,7 @@ class Create extends Component implements HasActions, HasForms
             return $validated;
         }
 
-        if ($validated['location_same_as_institution'] === true) {
+        if ($validated['location_same_as_institution']) {
             $validated['location_type'] = 'institution';
             $validated['location_institution_id'] = $institution->id;
             $validated['location_venue_id'] = null;
@@ -1784,10 +1773,8 @@ class Create extends Component implements HasActions, HasForms
     {
         $user = $this->submitterUser();
 
-        if ($user instanceof User) {
-            if ($user->can('update', $event) || $this->isDuplicateEventOwner($event)) {
-                return true;
-            }
+        if ($user instanceof User && ($user->can('update', $event) || $this->isDuplicateEventOwner($event))) {
+            return true;
         }
 
         $eventVisibility = $event->visibility instanceof EventVisibility
@@ -2245,20 +2232,16 @@ class Create extends Component implements HasActions, HasForms
         $primaryOrganizerId = (string) ($validated['primary_organizer_id'] ?? ($this->data['primary_organizer_id'] ?? ''));
         $locationInstitutionId = (string) ($validated['location_institution_id'] ?? ($this->data['location_institution_id'] ?? ''));
 
-        if ($organizerType === 'institution' && $primaryOrganizerId !== '') {
-            if (! $access->canUseInstitution($submitter, $primaryOrganizerId)) {
-                throw ValidationException::withMessages([
-                    'data.primary_organizer_id' => __('Anda tidak dibenarkan memilih institusi ini untuk penghantaran majlis.'),
-                ]);
-            }
+        if ($organizerType === 'institution' && $primaryOrganizerId !== '' && ! $access->canUseInstitution($submitter, $primaryOrganizerId)) {
+            throw ValidationException::withMessages([
+                'data.primary_organizer_id' => __('Anda tidak dibenarkan memilih institusi ini untuk penghantaran majlis.'),
+            ]);
         }
 
-        if ($organizerType === 'speaker' && $primaryOrganizerId !== '') {
-            if (! $access->canUseSpeaker($submitter, $primaryOrganizerId)) {
-                throw ValidationException::withMessages([
-                    'data.primary_organizer_id' => __('Anda tidak dibenarkan memilih penceramah ini untuk penghantaran majlis.'),
-                ]);
-            }
+        if ($organizerType === 'speaker' && $primaryOrganizerId !== '' && ! $access->canUseSpeaker($submitter, $primaryOrganizerId)) {
+            throw ValidationException::withMessages([
+                'data.primary_organizer_id' => __('Anda tidak dibenarkan memilih penceramah ini untuk penghantaran majlis.'),
+            ]);
         }
 
         $eventFormat = $validated['event_format'] ?? EventFormat::Physical->value;
@@ -2267,12 +2250,10 @@ class Create extends Component implements HasActions, HasForms
             && $requiresLocationChoice
             && (($validated['location_type'] ?? 'institution') === 'institution');
 
-        if ($usesLocationInstitution && $locationInstitutionId !== '') {
-            if (! $access->canUseInstitution($submitter, $locationInstitutionId)) {
-                throw ValidationException::withMessages([
-                    'data.location_institution_id' => __('Anda tidak dibenarkan memilih institusi lokasi ini.'),
-                ]);
-            }
+        if ($usesLocationInstitution && $locationInstitutionId !== '' && ! $access->canUseInstitution($submitter, $locationInstitutionId)) {
+            throw ValidationException::withMessages([
+                'data.location_institution_id' => __('Anda tidak dibenarkan memilih institusi lokasi ini.'),
+            ]);
         }
 
         $speakerIds = collect(array_merge(
