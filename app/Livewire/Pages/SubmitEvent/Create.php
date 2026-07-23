@@ -159,11 +159,11 @@ class Create extends Component implements HasActions, HasForms
             'submission_country_id' => $this->defaultSubmissionCountryId(),
         ];
 
-        if (($eventContainer = $this->selectedEventContainer()) instanceof \App\Models\Event) {
+        if (($eventContainer = $this->selectedEventContainer()) instanceof Event) {
             $state = array_replace($state, $this->eventContainerDefaults($eventContainer));
         }
 
-        if (($duplicateEvent = $this->selectedDuplicateEvent()) instanceof \App\Models\Event) {
+        if (($duplicateEvent = $this->selectedDuplicateEvent()) instanceof Event) {
             $state = array_replace($state, $this->duplicateEventDefaults($duplicateEvent));
         }
 
@@ -283,7 +283,7 @@ class Create extends Component implements HasActions, HasForms
             'jv' => 'Bahasa Jawa',
         ];
 
-        return Cache::remember($this->submitCacheKey('submit_languages'), 3600, fn(): array => Language::query()
+        return Cache::remember($this->submitCacheKey('submit_languages'), 3600, fn (): array => Language::query()
             ->whereIn('code', $preferredOrder)
             ->get()
             ->sortBy(fn (Language $language): int|false => array_search((string) $language->code, $preferredOrder, true))
@@ -442,7 +442,7 @@ class Create extends Component implements HasActions, HasForms
 
         $dimensions = @getimagesize($path);
 
-        if (! is_array($dimensions) || ! isset($dimensions[0], $dimensions[1])) {
+        if (! is_array($dimensions)) {
             return null;
         }
 
@@ -514,6 +514,9 @@ class Create extends Component implements HasActions, HasForms
             ->schema($this->getEventInfoFields());
     }
 
+    /**
+     * @return array<int, mixed>
+     */
     private function getEventInfoFields(): array
     {
         return [
@@ -528,7 +531,7 @@ class Create extends Component implements HasActions, HasForms
                         $set('event_format', EventFormat::Physical->value);
                     }
                 })
-                ->options(fn(): array => app(EventCategoryCatalog::class)->options())
+                ->options(fn (): array => app(EventCategoryCatalog::class)->options())
                 ->searchable(),
 
             Select::make('title')
@@ -729,7 +732,7 @@ class Create extends Component implements HasActions, HasForms
                         ->requiredIf('prayer_time', EventPrayerTime::LainWaktu)
                         ->markAsRequired()
                         ->columnSpan(['default' => 1, 'md' => 2])
-                        ->rule(fn(Get $get): Closure => function (string $attribute, $value, Closure $fail) use ($get) {
+                        ->rule(fn (Get $get): Closure => function (string $attribute, $value, Closure $fail) use ($get) {
                             $eventDate = $get('event_date');
                             $timezone = $this->resolveSubmissionTimezone($get('submission_country_id'));
                             $now = Carbon::now($timezone);
@@ -796,7 +799,7 @@ class Create extends Component implements HasActions, HasForms
                                     }
                                 JS)
                         ->columnSpan(['default' => 1, 'md' => 2])
-                        ->rule(fn(Get $get): Closure => function (string $attribute, $value, Closure $fail) use ($get) {
+                        ->rule(fn (Get $get): Closure => function (string $attribute, $value, Closure $fail) use ($get) {
                             if (! $value) {
                                 return;
                             }
@@ -944,6 +947,9 @@ class Create extends Component implements HasActions, HasForms
             ->schema($this->getCategoryFields());
     }
 
+    /**
+     * @return array<int, mixed>
+     */
     private function getCategoryFields(): array
     {
         return [
@@ -1254,6 +1260,9 @@ class Create extends Component implements HasActions, HasForms
             ->schema($this->getOrganizerLocationFields($hasScopedInstitution, $hasScopedInstitutionJs));
     }
 
+    /**
+     * @return array<int, mixed>
+     */
     private function getOrganizerLocationFields(bool $hasScopedInstitution, string $hasScopedInstitutionJs): array
     {
         return [
@@ -1324,7 +1333,7 @@ class Create extends Component implements HasActions, HasForms
                                                     }
                                                     JS)
                         ->createOptionForm(SpeakerFormSchema::createOptionForm())
-                        ->createOptionUsing(fn(array $data, Schema $schema, Set $set, Get $get): string => SpeakerFormSchema::createOptionUsing($data, $schema)),
+                        ->createOptionUsing(fn (array $data, Schema $schema, Set $set, Get $get): string => SpeakerFormSchema::createOptionUsing($data, $schema)),
                 ]),
 
             Section::make(__('Lokasi'))
@@ -1409,6 +1418,9 @@ class Create extends Component implements HasActions, HasForms
             ->schema($this->getSpeakersMediaFields());
     }
 
+    /**
+     * @return array<int, mixed>
+     */
     private function getSpeakersMediaFields(): array
     {
         return [
@@ -1700,8 +1712,11 @@ class Create extends Component implements HasActions, HasForms
             return true;
         }
 
-        return $event->primaryOrganizerInvolvement?->involveable_type === Institution::class
-            && $event->primaryOrganizerInvolvement?->involveable_id === $institution->id;
+        $involvement = $event->primaryOrganizerInvolvement;
+
+        return $involvement !== null
+            && $involvement->involveable_type === Institution::class
+            && $involvement->involveable_id === $institution->id;
     }
 
     /**
