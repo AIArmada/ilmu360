@@ -48,14 +48,4 @@ enum EventTaxonomyCode: string
             self::Issue => 'heroicon-o-exclamation-triangle',
         };
     }
-
-    public function order(): int
-    {
-        return match ($this) {
-            self::Domain => 10,
-            self::Discipline => 20,
-            self::Source => 30,
-            self::Issue => 40,
-        };
-    }
 }

@@ -43,31 +43,4 @@ enum PrayerReference: string
             self::Isha => 'Isha',
         };
     }
-
-    /**
-     * Get all prayers suitable for a given day of week.
-     *
-     * @return array<self>
-     */
-    public static function forDayOfWeek(int $dayOfWeek): array
-    {
-        // Friday (5 in Carbon) includes FridayPrayer
-        if ($dayOfWeek === 5) {
-            return [
-                self::Fajr,
-                self::FridayPrayer,
-                self::Asr,
-                self::Maghrib,
-                self::Isha,
-            ];
-        }
-
-        return [
-            self::Fajr,
-            self::Dhuhr,
-            self::Asr,
-            self::Maghrib,
-            self::Isha,
-        ];
-    }
 }

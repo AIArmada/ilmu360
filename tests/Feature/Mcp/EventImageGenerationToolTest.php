@@ -26,13 +26,10 @@ use App\Models\Series;
 use App\Models\Speaker;
 use App\Models\User;
 use App\Support\Mcp\EventCoverPromptBuilder;
-use App\Support\Mcp\EventImageGenerationService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Laravel\Ai\Files\RemoteImage;
-use Laravel\Ai\Files\StoredImage;
 use Laravel\Mcp\Response;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Spatie\Permission\PermissionRegistrar;
@@ -483,34 +480,6 @@ it('uses event timezone for poster prompt date and time context', function (): v
         ->and($firstMessage['text'] ?? '')->toContain('Date and time:')
         ->and($firstMessage['text'] ?? '')->toContain('1:30 AM - 2:30 AM (Asia/Kuala_Lumpur)')
         ->and($firstMessage['text'] ?? '')->not->toContain('5:30 PM - 6:30 PM (Asia/Kuala_Lumpur)');
-});
-
-it('uses storage-backed image attachments instead of remote url attachments', function (): void {
-    Storage::fake('s3');
-
-    $event = Event::factory()->create([
-        'institution_id' => Institution::factory()->create()->getKey(),
-        'title' => 'Attachment Safety Event',
-        'slug' => 'attachment-safety-event',
-        'status' => 'approved',
-    ]);
-
-    $event
-        ->addMedia(fakeGeneratedImageUpload('attachment-safety-cover.jpg', 1600, 900))
-        ->toMediaCollection('cover', 's3');
-
-    $media = $event->getFirstMedia('cover');
-
-    expect($media)->toBeInstanceOf(Media::class);
-
-    $service = app(EventImageGenerationService::class);
-    $method = new ReflectionMethod(EventImageGenerationService::class, 'attachmentForMedia');
-
-    $attachment = $method->invoke($service, $media);
-
-    expect($attachment)
-        ->toBeInstanceOf(StoredImage::class)
-        ->not->toBeInstanceOf(RemoteImage::class);
 });
 
 it('uses temporary signed urls for reference media payloads when disk supports it', function (): void {

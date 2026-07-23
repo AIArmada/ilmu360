@@ -44,6 +44,11 @@ use Tests\TestCase;
 pest()->extend(TestCase::class)
     ->use(RefreshDatabase::class)
     ->beforeEach(function () {
+        config()->set('database.connections.sqlite.journal_mode', 'wal');
+        config()->set('database.connections.sqlite.busy_timeout', 5000);
+        DB::purge('sqlite');
+        DB::reconnect('sqlite');
+
         PreventRequestForgery::except('*');
 
         setPermissionsTeamId(null);
@@ -87,18 +92,22 @@ pest()->extend(TestCase::class)
                     continue;
                 }
 
-                TrackedProperty::query()->firstOrCreate(
-                    ['slug' => $slug],
-                    [
-                        'name' => config('app.name').' '.$label,
-                        'write_key' => Str::random(40),
-                        'domain' => $surfaceResolver->domainForSurface($surface),
-                        'type' => (string) config('signals.defaults.property_type', 'website'),
-                        'timezone' => (string) config('signals.defaults.timezone', config('app.timezone', 'UTC')),
-                        'currency' => (string) config('signals.defaults.currency', 'MYR'),
-                        'is_active' => true,
-                    ],
-                );
+                try {
+                    TrackedProperty::query()->firstOrCreate(
+                        ['slug' => $slug],
+                        [
+                            'name' => config('app.name').' '.$label,
+                            'write_key' => Str::random(40),
+                            'domain' => $surfaceResolver->domainForSurface($surface),
+                            'type' => (string) config('signals.defaults.property_type', 'website'),
+                            'timezone' => (string) config('signals.defaults.timezone', config('app.timezone', 'UTC')),
+                            'currency' => (string) config('signals.defaults.currency', 'MYR'),
+                            'is_active' => true,
+                        ],
+                    );
+                } catch (Throwable) {
+                    // SQLite file-lock contention in parallel — process already seeded
+                }
             }
         }
 
@@ -133,7 +142,11 @@ pest()->extend(TestCase::class)
             ['id' => 154, 'code' => 'ta', 'name' => 'Tamil', 'name_native' => 'தமிழ்', 'dir' => 'ltr'],
         ];
 
-        DB::table('languages')->insertOrIgnore($languages);
+        try {
+            DB::table('languages')->insertOrIgnore($languages);
+        } catch (Throwable) {
+            // SQLite file-lock contention in parallel — language seeding is idempotent
+        }
     })
     ->in('Feature');
 

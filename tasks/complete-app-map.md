@@ -2,6 +2,7 @@
 
 > Generated: 2026-07-23
 > Coverage: Routes, Menus, Forms, Imports, Data Flow → Database
+> Status: Verified against codebase (all sections audited)
 
 ---
 
@@ -87,13 +88,13 @@
 
 ## 3. Complete Route Map
 
-### 3.1 Web Routes (`routes/web.php`) — ~53 named routes
+### 3.1 Web Routes (`routes/web.php`) — 52 named routes
 
 #### Public (no auth required)
 
 | # | Method | URI | Handler | Name | Purpose |
 |---|--------|-----|---------|------|---------|
-| 1 | GET | `/` | `Home` (Livewire) | `home` | Homepage |
+| 1 | GET | `/` | `pages.⚡home` (Livewire) | `home` | Homepage |
 | 2 | GET | `/tentang-kami` | `AboutPage` (Livewire) | `about` | About page |
 | 3 | GET | `/bahasa/{locale}` | `LocaleController` | `locale.switch` | Language switch |
 | 4 | GET | `/oauth/{provider}/redirect` | `SocialiteController@redirect` | `socialite.redirect` | OAuth social login |
@@ -102,59 +103,60 @@
 | 7 | POST | `/kongsi/track` | `DawahShareController@track` | `dawah-share.track` | Share tracking record |
 | 8 | GET | `/kongsi/{provider}` | `DawahShareController@redirect` | `dawah-share.redirect` | Social share redirect |
 | 9 | GET | `/carian` | `SearchIndex` (Livewire) | `search.index` | Global search |
-| 10 | GET | `/majlis` | `EventsIndex` (Livewire) | `events.index` | Event listing |
-| 11 | GET | `/majlis/{event:slug}` | `EventsShow` (Livewire) | `events.show` | Event detail |
+| 10 | GET | `/majlis` | `pages.events.index` (Livewire) | `events.index` | Event listing |
+| 11 | GET | `/majlis/{event:slug}` | `pages.events.show` (Livewire) | `events.show` | Event detail |
 | 12 | GET | `/majlis/{event:slug}/kalendar.ics` | `EventsController@calendar` | `events.calendar` | ICS download |
-| 13 | GET | `/tambah-majlis` | `SubmitEventLanding` (Livewire) | `submit-event.landing` | Submit event landing |
-| 14 | GET | `/hantar-majlis` | `SubmitEventCreate` (Livewire) | `submit-event.create` | Submit event form |
-| 15 | GET | `/hantar-majlis/berjaya` | `SubmitEventSuccess` (Livewire) | `submit-event.success` | Submit success page |
+| 13 | GET | `/tambah-majlis` | `pages.submit-event.landing` (Livewire) | `submit-event.landing` | Submit event landing |
+| 14 | GET | `/hantar-majlis` | `Create` (Livewire) | `submit-event.create` | Submit event form |
+| 15 | GET | `/hantar-majlis/berjaya` | `pages.submit-event.success` (Livewire) | `submit-event.success` | Submit success page |
 | 16 | POST | `/majlis/{event:slug}/daftar` | `EventsController@register` | `events.register` | Event registration |
 | 17 | GET | `/peta-laman.xml` | `SitemapController@index` | `sitemap.index` | Main sitemap |
 | 18 | GET | `/peta-laman-majlis.xml` | `SitemapController@events` | `sitemap.events` | Events sitemap |
 | 19 | GET | `/peta-laman-institusi.xml` | `SitemapController@institutions` | `sitemap.institutions` | Institutions sitemap |
 | 20 | GET | `/peta-laman-penceramah.xml` | `SitemapController@speakers` | `sitemap.speakers` | Speakers sitemap |
-| 21 | GET | `/institusi` | `InstitutionsIndex` (Livewire) | `institutions.index` | Institution listing |
-| 22 | GET | `/institusi/{institution:slug}` | `InstitutionsShow` (Livewire) | `institutions.show` | Institution detail |
-| 23 | GET | `/penceramah` | `SpeakersIndex` (Livewire) | `speakers.index` | Speaker listing |
-| 24 | GET | `/penceramah/{speaker:slug}` | `SpeakersShow` (Livewire) | `speakers.show` | Speaker detail |
-| 25 | GET | `/tempat` | `VenuesIndex` (Livewire) | `venues.index` | Venue listing |
-| 26 | GET | `/lokasi/{venue:slug}` | `VenuesShow` (Livewire) | `venues.show` | Venue detail |
-| 27 | GET | `/siri/{series:slug}` | `SeriesShow` (Livewire) | `series.show` | Series detail |
-| 28 | GET | `/rujukan` | `ReferencesIndex` (Livewire) | `references.index` | Reference listing |
-| 29 | GET | `/rujukan/{reference:slug}` | `ReferencesShow` (Livewire) | `references.show` | Reference detail |
+| 21 | GET | `/institusi` | `pages.institutions.index` (Livewire) | `institutions.index` | Institution listing |
+| 22 | GET | `/institusi/{institution:slug}` | `pages.institutions.show` (Livewire) | `institutions.show` | Institution detail |
+| 23 | GET | `/penceramah` | `pages.speakers.index` (Livewire) | `speakers.index` | Speaker listing |
+| 24 | GET | `/penceramah/{speaker:slug}` | `pages.speakers.show` (Livewire) | `speakers.show` | Speaker detail |
+| 25 | GET | `/tempat` | `pages.venues.index` (Livewire) | `venues.index` | Venue listing |
+| 26 | GET | `/lokasi/{venue:slug}` | `pages.venues.show` (Livewire) | `venues.show` | Venue detail |
+| 27 | GET | `/siri/{series:slug}` | `pages.series.show` (Livewire) | `series.show` | Series detail |
+| 28 | GET | `/rujukan` | `pages.references.index` (Livewire) | `references.index` | Reference listing |
+| 29 | GET | `/rujukan/{reference:slug}` | `pages.references.show` (Livewire) | `references.show` | Reference detail |
 | 30 | GET | `/ops/network-diagnostics` | `NetworkDiagnosticsController` | `network-diagnostics` | Diagnostics |
+| 31 | GET | `/welcome` | View: `welcome` | `welcome` | Welcome page (Fortify) |
 
 #### Authenticated Web Routes (`middleware('auth')`)
 
 | # | Method | URI | Handler | Name | Purpose |
-|---|--------|-----|---------|------|---------|
-| 31 | GET | `/dashboard` | `UserDashboard` (Livewire) | `dashboard` | User dashboard |
-| 32 | GET | `/dashboard/dawah-impact` | `DawahImpactIndex` (Livewire) | `dashboard.dawah-impact` | Share analytics |
-| 33 | GET | `/dashboard/dawah-impact/links` | `DawahImpactIndex` (Livewire) | `dashboard.dawah-impact.links` | Share links |
-| 34 | GET | `/dashboard/dawah-impact/links/{link}` | `DawahImpactLinkShow` (Livewire) | `dashboard.dawah-impact.links.show` | Link detail |
-| 35 | GET | `/dashboard/notifications` | `NotificationsIndex` (Livewire) | `dashboard.notifications` | Notifications |
-| 36 | GET | `/tetapan-akaun` | `AccountSettings` (Livewire) | `dashboard.account-settings` | Account settings |
-| 37 | GET | `/dashboard/institusi` | `InstitutionDashboard` (Livewire) | `dashboard.institutions` | Institution dashboard |
-| 38 | GET | `/dashboard/institusi/senarai-majlis` | `InstitutionDashboard` (Livewire) | `dashboard.institutions.events` | Institution events |
-| 39 | GET | `/dashboard/institusi/tambah-majlis` | `SubmitEventCreate` (Livewire) | `dashboard.institutions.submit-event` | Scoped event submit |
-| 40 | GET | `/dashboard/majlis/cipta-lanjutan` | `CreateAdvanced` (Livewire) | `dashboard.events.create-advanced` | Advanced event creation |
-| 41 | GET | `/carian-tersimpan` | `SavedSearchesIndex` (Livewire) | `saved-searches.index` | Saved searches |
-| 42 | GET | `/jemputan-ahli/{token}` | `ShowMemberInvitation` (Livewire) | `member-invitations.show` | Accept invitation |
-| 43 | GET | `/sumbangan` | `ContributionsIndex` (Livewire) | `contributions.index` | My contributions |
-| 44 | GET | `/sumbangan/institusi/baru` | `SubmitInstitution` (Livewire) | `contributions.submit-institution` | Submit institution |
-| 45 | GET | `/sumbangan/penceramah/baru` | `SubmitSpeaker` (Livewire) | `contributions.submit-speaker` | Submit speaker |
-| 46 | GET | `/sumbangan/{subjectType}/berjaya` | `SubmissionSuccess` (Livewire) | `contributions.submission-success` | Submission success |
-| 47 | GET | `/permohonan-keahlian` | `MembershipApplicationsIndex` (Livewire) | `membership-applications.index` | My claims |
-| 48 | GET | `/pohon-keahlian/{subjectType}/{subjectId}` | `CreateMembershipApplicationPage` (Livewire) | `membership-applications.create` | New claim |
-| 49 | GET | `/sumbangan/{subjectType}/{subjectId}/kemas-kini` | `SuggestContributionUpdate` (Livewire) | `contributions.suggest-update` | Suggest update |
-| 50 | GET | `/lapor/{subjectType}/{subjectId}` | `CreateReportPage` (Livewire) | `reports.create` | Create report |
-| 51 | GET | `/majlis/{event:slug}/pas/{pass}` | `EventPassController` | `events.pass` | Event pass |
+|-------|--------|-----|---------|------|---------|
+| 32 | GET | `/dashboard` | `UserDashboard` (Livewire) | `dashboard` | User dashboard |
+| 33 | GET | `/dashboard/dawah-impact` | `DawahImpactIndex` (Livewire) | `dashboard.dawah-impact` | Share analytics |
+| 34 | GET | `/dashboard/dawah-impact/links` | `DawahImpactIndex` (Livewire) | `dashboard.dawah-impact.links` | Share links |
+| 35 | GET | `/dashboard/dawah-impact/links/{link}` | `DawahImpactLinkShow` (Livewire) | `dashboard.dawah-impact.links.show` | Link detail |
+| 36 | GET | `/dashboard/notifications` | `NotificationsIndex` (Livewire) | `dashboard.notifications` | Notifications |
+| 37 | GET | `/tetapan-akaun` | `AccountSettings` (Livewire) | `dashboard.account-settings` | Account settings |
+| 38 | GET | `/dashboard/institusi` | `InstitutionDashboard` (Livewire) | `dashboard.institutions` | Institution dashboard |
+| 39 | GET | `/dashboard/institusi/senarai-majlis` | `InstitutionDashboard` (Livewire) | `dashboard.institutions.events` | Institution events |
+| 40 | GET | `/dashboard/institusi/tambah-majlis` | `Create` (Livewire) | `dashboard.institutions.submit-event` | Scoped event submit |
+| 41 | GET | `/dashboard/majlis/cipta-lanjutan` | `CreateAdvanced` (Livewire) | `dashboard.events.create-advanced` | Advanced event creation |
+| 42 | GET | `/carian-tersimpan` | `Index` (Livewire) | `saved-searches.index` | Saved searches |
+| 43 | GET | `/jemputan-ahli/{token}` | `ShowMemberInvitation` (Livewire) | `member-invitations.show` | Accept invitation |
+| 44 | GET | `/sumbangan` | `ContributionsIndex` (Livewire) | `contributions.index` | My contributions |
+| 45 | GET | `/sumbangan/institusi/baru` | `SubmitInstitution` (Livewire) | `contributions.submit-institution` | Submit institution |
+| 46 | GET | `/sumbangan/penceramah/baru` | `SubmitSpeaker` (Livewire) | `contributions.submit-speaker` | Submit speaker |
+| 47 | GET | `/sumbangan/{subjectType}/berjaya` | `pages.contributions.submission-success` (Livewire) | `contributions.submission-success` | Submission success |
+| 48 | GET | `/permohonan-keahlian` | `MembershipApplicationsIndex` (Livewire) | `membership-applications.index` | My claims |
+| 49 | GET | `/pohon-keahlian/{subjectType}/{subjectId}` | `CreateMembershipApplicationPage` (Livewire) | `membership-applications.create` | New claim |
+| 50 | GET | `/sumbangan/{subjectType}/{subjectId}/kemas-kini` | `SuggestContributionUpdate` (Livewire) | `contributions.suggest-update` | Suggest update |
+| 51 | GET | `/lapor/{subjectType}/{subjectId}` | `CreateReportPage` (Livewire) | `reports.create` | Create report |
+| 52 | GET | `/majlis/{event:slug}/pas/{pass}` | `EventPassController` | `events.pass` | Event pass |
 
-### 3.2 API Routes (`routes/api.php`) — ~115+ Endpoints
+### 3.2 API Routes (`routes/api.php`)
 
-All under prefix `/api/v1`.
+All under prefix `/api/v1`. Routes grouped by auth middleware as defined in `routes/api.php`.
 
-#### Public API
+#### Public API (no `auth:sanctum` — includes auth, catalog, search, entity listing)
 
 | # | Method | URI | Handler | Purpose |
 |---|--------|-----|---------|---------|
@@ -166,72 +168,145 @@ All under prefix `/api/v1`.
 | 6 | GET | `/v1/manifest` | `ManifestController@manifest` | App manifest |
 | 7 | GET | `/v1/documentation` | `DocumentationController@index` | App docs |
 | 8 | GET | `/v1/documentation/{documentId}` | `DocumentationController@show` | Doc detail |
-| 9-18 | GET | `/v1/forms/*` | `ManifestController@*` | Mobile form schemas |
-| 19-35 | GET | `/v1/catalogs/*` | `CatalogController@*` | Geography, tags, entities catalogs |
-| 36 | GET | `/v1/search` | `SearchController@search` | Global search |
-| 37-38 | GET/POST | `/v1/share/*` | `DawahShareController@*` | Share tracking |
-| 39 | POST | `/v1/mobile/telemetry/events` | `MobileTelemetryController@store` | Mobile telemetry |
-| 40-49 | GET | `/v1/institutions`, `/v1/speakers`, `/v1/venues`, `/v1/references`, `/v1/series` | `SearchController@*` | Entity listing & detail |
-| 50 | POST | `/v1/submit-event` | `EventSubmissionController@store` | **Submit event** |
-| 51 | GET | `/v1/events` | `EventController@index` | Event listing |
-| 52 | GET | `/v1/events/{event}` | `EventController@show` | Event detail |
-| 53 | POST | `/v1/events/{event}/registrations` | `EventRegistrationController@store` | Register for event |
+| 9 | GET | `/v1/forms/mobile-telemetry` | `ManifestController@mobileTelemetry` | Mobile telemetry form schema |
+| 10 | GET | `/v1/forms/submit-event` | `ManifestController@submitEvent` | Submit event form schema |
+| 11 | GET | `/v1/forms/contributions/institutions` | `ManifestController@submitInstitution` | Submit institution schema |
+| 12 | GET | `/v1/forms/contributions/speakers` | `ManifestController@submitSpeaker` | Submit speaker schema |
+| 13 | GET | `/v1/catalogs/countries` | `CatalogController@countries` | List countries |
+| 14 | GET | `/v1/catalogs/states` | `CatalogController@states` | List states |
+| 15 | GET | `/v1/catalogs/cities` | `CatalogController@cities` | List cities |
+| 16 | GET | `/v1/catalogs/admin-area-level-1` | `CatalogController@adminAreaLevel1` | List districts |
+| 17 | GET | `/v1/catalogs/admin-area-level-2` | `CatalogController@adminAreaLevel2` | List subdistricts |
+| 18 | GET | `/v1/catalogs/languages` | `CatalogController@languages` | List languages |
+| 19 | GET | `/v1/catalogs/taxonomy-terms/{type}` | `CatalogController@taxonomyTerms` | List taxonomy terms |
+| 20 | GET | `/v1/catalogs/tags/{type}` | `CatalogController@tags` | List tags by type |
+| 21 | GET | `/v1/catalogs/references` | `CatalogController@references` | List references |
+| 22 | GET | `/v1/catalogs/submit-institutions` | `CatalogController@submitInstitutions` | List institutions for forms |
+| 23 | GET | `/v1/catalogs/submit-speakers` | `CatalogController@submitSpeakers` | List speakers for forms |
+| 24 | GET | `/v1/catalogs/venues` | `CatalogController@venues` | List venues |
+| 25 | GET | `/v1/catalogs/spaces` | `CatalogController@spaces` | List spaces |
+| 26 | GET | `/v1/catalogs/prayer-institutions` | `CatalogController@prayerInstitutions` | List prayer institutions |
+| 27 | GET | `/v1/catalogs/membership-application-subjects/{subjectType}` | `CatalogController@membershipClaimSubjects` | List claimable subjects |
+| 28 | GET | `/v1/search` | `SearchController@search` | Global search |
+| 29 | GET | `/v1/share/payload` | `DawahShareController@payload` | Share tracking payload |
+| 30 | POST | `/v1/share/track` | `DawahShareController@track` | Share tracking record |
+| 31 | POST | `/v1/mobile/telemetry/events` | `MobileTelemetryController@store` | Mobile telemetry |
+| 32 | GET | `/v1/institutions` | `SearchController@institutions` | Institution listing |
+| 33 | GET | `/v1/institutions/near` | `SearchController@institutionsNear` | Nearby institutions |
+| 34 | GET | `/v1/institutions/{institutionKey}` | `SearchController@showInstitution` | Institution detail |
+| 35 | GET | `/v1/speakers` | `SearchController@speakers` | Speaker listing |
+| 36 | GET | `/v1/speakers/{speakerKey}` | `SearchController@showSpeaker` | Speaker detail |
+| 37 | GET | `/v1/inspirations/random` | `SearchController@randomInspiration` | Random inspiration |
+| 38 | GET | `/v1/venues/{venueKey}` | `SearchController@showVenue` | Venue detail |
+| 39 | GET | `/v1/references` | `SearchController@references` | Reference listing |
+| 40 | GET | `/v1/references/{referenceKey}` | `SearchController@showReference` | Reference detail |
+| 41 | GET | `/v1/series/{series}` | `SearchController@showSeries` | Series detail |
+| 42 | POST | `/v1/submit-event` | `EventSubmissionController@store` | **Submit event (API)** |
+| 43 | GET | `/v1/events` | `EventController@index` | Event listing |
+| 44 | GET | `/v1/events/{event}` | `EventController@show` | Event detail |
+| 45 | POST | `/v1/events/{event}/registrations` | `EventRegistrationController@store` | Register for event |
 
-#### Authenticated API
+#### Authenticated API (`auth:sanctum`)
 
-| # | Method | URI | Purpose |
-|---|--------|-----|---------|
-| 54 | POST | `/v1/auth/logout` | Logout |
-| 55 | POST | `/v1/auth/email/verification-notification` | Resend verification |
-| 56 | GET | `/v1/user` | Current user |
-| 57 | DELETE | `/v1/user` | Delete account |
-| 58 | GET | `/v1/user/registrations` | User registrations |
-| 59-60 | GET | `/v1/me/events/going`, `/v1/me/events/saved` | Planner events |
-| 61-83 | Mixed | `/v1/share/analytics*` | Share analytics |
-| 61-83 | Mixed | `/v1/forms/*` | Mobile form schemas (authenticated) |
-| 61-83 | Mixed | `/v1/account-settings*` | Account settings CRUD |
-| 61-83 | Mixed | `/v1/contributions/*` | Contributions CRUD |
-| 61-83 | Mixed | `/v1/membership-applications/*` | Membership applications |
-| 61-83 | Mixed | `/v1/advanced-events` | Advanced events |
-| 61-83 | Mixed | `/v1/follows/*` | Following/unfollowing |
-| 61-83 | Mixed | `/v1/institution-workspace/*` | Institution workspace |
-| 61-83 | Mixed | `/v1/reports` | Submit report |
-| 61-83 | Mixed | `/v1/events/*/going`, `/v1/events/*/saved` | Event planner |
-| 61-83 | Mixed | `/v1/events/*/registrations/export` | Registration export |
-| 61-83 | Mixed | `/v1/notifications/*` | Notifications CRUD |
-| 61-83 | Mixed | `/v1/notification-settings/*` | Notification settings |
-| 61-83 | Mixed | `/v1/notification-destinations/*` | Push notification devices |
-| 61-83 | Mixed | `/v1/saved-searches/*` | Saved searches CRUD |
+| # | Method | URI | Handler | Purpose |
+|---|--------|-----|---------|---------|
+| 46 | POST | `/v1/auth/logout` | `AuthController@logout` | Logout |
+| 47 | POST | `/v1/auth/email/verification-notification` | `AuthController@resendVerificationEmail` | Resend verification |
+| 48 | GET | `/v1/user` | `CurrentUserController@__invoke` | Current user |
+| 49 | DELETE | `/v1/user` | `CurrentUserController@destroy` | Delete account |
+| 50 | GET | `/v1/user/registrations` | `UserRegistrationController@index` | User registrations |
+| 51 | GET | `/v1/me/events/going` | `EventGoingController@index` | My going events |
+| 52 | GET | `/v1/me/events/saved` | `EventSaveController@index` | My saved events |
+| 53 | GET | `/v1/events/{event}/me` | `EventController@me` | User's relation to event |
+| 54 | POST | `/v1/events/{event}/check-ins` | `EventCheckInController@store` | Check in to event |
+| 55 | PUT | `/v1/events/{event}/going` | `EventGoingController@store` | Mark as going |
+| 56 | DELETE | `/v1/events/{event}/going` | `EventGoingController@destroy` | Remove going |
+| 57 | PUT | `/v1/events/{event}/saved` | `EventSaveController@store` | Save event |
+| 58 | DELETE | `/v1/events/{event}/saved` | `EventSaveController@destroy` | Unsave event |
+| 59 | GET | `/v1/events/{event}/registrations/export` | `RegistrationExportController@export` | Export registrations |
+| 60 | GET | `/v1/share/analytics` | `ShareAnalyticsController@index` | Share analytics |
+| 61 | GET | `/v1/share/analytics/links/{link}` | `ShareAnalyticsController@show` | Share link detail |
+| 62 | GET | `/v1/forms/report` | `ManifestController@report` | Report form schema |
+| 63 | GET | `/v1/forms/github-issue-report` | `ManifestController@githubIssueReport` | GitHub issue schema |
+| 64 | GET | `/v1/forms/account-settings` | `ManifestController@accountSettings` | Account settings schema |
+| 65 | GET | `/v1/forms/advanced-events` | `ManifestController@advancedEvent` | Advanced event schema |
+| 66 | GET | `/v1/forms/institution-workspace` | `ManifestController@institutionWorkspace` | Institution workspace schema |
+| 67 | GET | `/v1/forms/membership-applications/{subjectType}` | `ManifestController@membershipClaim` | Membership claim schema |
+| 68 | GET | `/v1/forms/contributions/{subjectType}/{subject}/suggest` | `ContributionController@suggestContext` | Suggest update schema |
+| 69 | GET | `/v1/catalogs/institution-roles` | `CatalogController@institutionRoles` | Institution roles |
+| 70 | GET | `/v1/account-settings` | `AccountSettingsController@show` | Get settings |
+| 71 | PUT | `/v1/account-settings` | `AccountSettingsController@update` | Update settings |
+| 72 | GET | `/v1/account-settings/mcp-tokens` | `AccountSettingsMcpTokenController@index` | List MCP tokens |
+| 73 | POST | `/v1/account-settings/mcp-tokens` | `AccountSettingsMcpTokenController@store` | Create MCP token |
+| 74 | DELETE | `/v1/account-settings/mcp-tokens/{tokenId}` | `AccountSettingsMcpTokenController@destroy` | Delete MCP token |
+| 75 | POST | `/v1/github-issues` | `GitHubIssueController@store` | Submit GitHub issue |
+| 76 | GET | `/v1/contributions` | `ContributionController@index` | List contributions |
+| 77 | POST | `/v1/contributions/institutions` | `ContributionController@storeInstitution` | Submit institution |
+| 78 | POST | `/v1/contributions/speakers` | `ContributionController@storeSpeaker` | Submit speaker |
+| 79 | POST | `/v1/contributions/{subjectType}/{subject}/suggest` | `ContributionController@suggestUpdate` | Suggest update |
+| 80 | POST | `/v1/contributions/{requestId}/approve` | `ContributionController@approve` | Approve contribution |
+| 81 | POST | `/v1/contributions/{requestId}/reject` | `ContributionController@reject` | Reject contribution |
+| 82 | POST | `/v1/contributions/{requestId}/cancel` | `ContributionController@cancel` | Cancel contribution |
+| 83 | GET | `/v1/membership-applications` | `MembershipApplicationController@index` | List applications |
+| 84 | POST | `/v1/membership-applications/{subjectType}/{subject}` | `MembershipApplicationController@store` | Submit application |
+| 85 | DELETE | `/v1/membership-applications/{applicationId}` | `MembershipApplicationController@cancel` | Cancel application |
+| 86 | POST | `/v1/advanced-events` | `AdvancedEventController@store` | Create advanced event |
+| 87 | GET | `/v1/follows/{type}/{subject}` | `FollowController@show` | Check follow status |
+| 88 | POST | `/v1/follows/{type}/{subject}` | `FollowController@store` | Follow |
+| 89 | DELETE | `/v1/follows/{type}/{subject}` | `FollowController@destroy` | Unfollow |
+| 90 | GET | `/v1/institution-workspace` | `InstitutionWorkspaceController@show` | Workspace info |
+| 91 | POST | `/v1/institution-workspace/{institutionId}/members` | `InstitutionWorkspaceController@addMember` | Add member |
+| 92 | PUT | `/v1/institution-workspace/{institutionId}/members/{memberId}` | `InstitutionWorkspaceController@updateMemberRole` | Update role |
+| 93 | DELETE | `/v1/institution-workspace/{institutionId}/members/{memberId}` | `InstitutionWorkspaceController@removeMember` | Remove member |
+| 94 | POST | `/v1/reports` | `ReportController@store` | Submit report |
+| 95 | GET | `/v1/notifications` | `NotificationMessageController@index` | List notifications |
+| 96 | POST | `/v1/notifications/{message}/read` | `NotificationMessageController@read` | Mark read |
+| 97 | POST | `/v1/notifications/read-all` | `NotificationMessageController@readAll` | Mark all read |
+| 98 | GET | `/v1/notification-settings/catalog` | `NotificationSettingsController@catalog` | Settings catalog |
+| 99 | GET | `/v1/notification-settings` | `NotificationSettingsController@show` | Get preferences |
+| 100 | PUT | `/v1/notification-settings` | `NotificationSettingsController@update` | Update preferences |
+| 101 | POST | `/v1/notification-destinations/push` | `NotificationDestinationController@storePush` | Register push device |
+| 102 | PUT | `/v1/notification-destinations/push/{installation}` | `NotificationDestinationController@updatePush` | Update push device |
+| 103 | DELETE | `/v1/notification-destinations/push/{installation}` | `NotificationDestinationController@destroyPush` | Unregister push device |
+| 104 | GET | `/v1/saved-searches` | `SavedSearchController@index` | List saved searches |
+| 105 | POST | `/v1/saved-searches` | `SavedSearchController@store` | Create saved search |
+| 106 | GET | `/v1/saved-searches/{savedSearch}` | `SavedSearchController@show` | Get saved search |
+| 107 | PUT | `/v1/saved-searches/{savedSearch}` | `SavedSearchController@update` | Update saved search |
+| 108 | DELETE | `/v1/saved-searches/{savedSearch}` | `SavedSearchController@destroy` | Delete saved search |
+| 109 | POST | `/v1/saved-searches/{savedSearch}/execute` | `SavedSearchController@execute` | Execute saved search |
 
-#### Admin API (`prefix('admin')` + admin middleware)
+#### Admin API (`auth:sanctum` + `EnsureAdminApiAccess`)
 
-| # | Method | URI | Purpose |
-|---|--------|-----|---------|
-| 84 | GET | `/v1/admin/manifest` | Admin manifest |
-| 85-91 | GET | `/v1/admin/catalogs/*` | Admin catalogs |
-| 92 | GET | `/v1/admin/events/search` | Admin event search |
-| 93 | GET/POST | `/v1/admin/{resourceKey}` | Resource index/store |
-| 94 | POST/PUT | `/v1/admin/{resourceKey}/batch` | Batch create/update |
-| 95 | GET | `/v1/admin/{resourceKey}/meta` | Resource metadata |
-| 96 | GET | `/v1/admin/{resourceKey}/schema` | Resource schema |
-| 97-98 | GET/POST | `/v1/admin/events/{recordKey}/moderation-schema` / `moderate` | Event moderation |
-| 99-100 | GET/POST | `/v1/admin/reports/{recordKey}/triage-schema` / `triage` | Report triage |
-| 101-102 | GET/POST | `/v1/admin/contribution-requests/{recordKey}/review-schema` / `review` | Contribution review |
-| 103-104 | GET/POST | `/v1/admin/membership-applications/{recordKey}/review-schema` / `review` | Membership review |
-| 105 | GET | `/v1/admin/{resourceKey}/{recordKey}/relations/{relation}` | Related records |
-| 106-107 | GET/PUT | `/v1/admin/{resourceKey}/{recordKey}` | Resource show/update |
+| # | Method | URI | Handler | Purpose |
+|---|--------|-----|---------|---------|
+| 110 | GET | `/v1/admin/manifest` | `AdminManifestController@__invoke` | Admin manifest |
+| 111-115 | GET | `/v1/admin/catalogs/*` | `AdminCatalogController@*` | Admin catalogs (countries, states, cities, districts, subdistricts) |
+| 116 | GET | `/v1/admin/events/search` | `EventSearchController@search` | Admin event search |
+| 117 | GET/POST | `/v1/admin/{resourceKey}` | `AdminResourceController` | Resource index/store |
+| 118 | POST/PUT | `/v1/admin/{resourceKey}/batch` | `AdminResourceController` | Batch create/update |
+| 119 | GET | `/v1/admin/{resourceKey}/meta` | `AdminResourceController` | Resource metadata |
+| 120 | GET | `/v1/admin/{resourceKey}/schema` | `AdminResourceController` | Resource schema |
+| 121 | GET/POST | `/v1/admin/events/{recordKey}/moderation-schema` / `moderate` | `EventModerationController` | Event moderation |
+| 122 | GET/POST | `/v1/admin/reports/{recordKey}/triage-schema` / `triage` | `ReportTriageController` | Report triage |
+| 123 | GET/POST | `/v1/admin/contribution-requests/{recordKey}/review-schema` / `review` | `ContributionRequestReviewController` | Contribution review |
+| 124 | GET/POST | `/v1/admin/membership-applications/{recordKey}/review-schema` / `review` | `MembershipApplicationReviewController` | Membership review |
+| 125 | GET | `/v1/admin/{resourceKey}/{recordKey}/relations/{relation}` | `AdminResourceController` | Related records |
+| 126-127 | GET/PUT | `/v1/admin/{resourceKey}/{recordKey}` | `AdminResourceController` | Resource show/update |
 
-### 3.3 MCP Routes (`routes/ai.php`) — 8 Endpoints
+### 3.3 MCP Routes (`routes/ai.php`)
 
-| # | Method | URI | Server | Purpose |
-|---|--------|-----|--------|---------|
-| 1 | * | `/mcp/admin` | `AdminServer` | Admin MCP server (SSE) |
-| 2 | * | `/mcp/member` | `MemberServer` | Member MCP server (SSE) |
-| 3 | * | `/ilmu360-admin-local` | `AdminServer` | Admin MCP (local) |
-| 4 | * | `/ilmu360-member-local` | `MemberServer` | Member MCP (local) |
-| 5-8 | GET/DELETE | `/mcp/admin`, `/mcp/member` | `Admin/MemberMcpController` | HTTP MCP stream/destroy |
+| # | Method | URI | Server | Middleware | Purpose |
+|---|--------|-----|--------|-----------|---------|
+| 1 | GET (SSE) | `/mcp/admin` | `AdminServer` | `NormalizeMcpAcceptHeader`, `auth:sanctum`, `EnsureAdminMcpAccess` | Admin MCP SSE stream |
+| 2 | GET (SSE) | `/mcp/member` | `MemberServer` | `NormalizeMcpAcceptHeader`, `auth:sanctum`, `EnsureMemberMcpAccess` | Member MCP SSE stream |
+| 3 | N/A | `/ilmu360-admin-local` | `AdminServer` | (local only) | Admin MCP local transport |
+| 4 | N/A | `/ilmu360-member-local` | `MemberServer` | (local only) | Member MCP local transport |
+| 5 | GET | `/mcp/admin` | `AdminMcpController@stream` | `NormalizeMcpAcceptHeader`, `auth:sanctum`, `AddWwwAuthenticateHeader`, `EnsureAdminMcpAccess` | HTTP stream |
+| 6 | DELETE | `/mcp/admin` | `AdminMcpController@destroy` | same as above | Destroy session |
+| 7 | GET | `/mcp/member` | `MemberMcpController@stream` | `NormalizeMcpAcceptHeader`, `auth:sanctum`, `AddWwwAuthenticateHeader`, `EnsureMemberMcpAccess` | HTTP stream |
+| 8 | DELETE | `/mcp/member` | `MemberMcpController@destroy` | same as above | Destroy session |
 
-Also: `oauth/mcp/*` — MCP OAuth routes (auto-registered)
+Also: `oauth/mcp` — MCP OAuth routes (auto-registered via `Mcp::oauthRoutes()`)
 
 ### 3.4 Console Routes (`routes/console.php`)
 
@@ -241,8 +316,8 @@ Also: `oauth/mcp/*` — MCP OAuth routes (auto-registered)
 | 2 | Hourly | `EscalatePendingEvents` | Escalate stuck events |
 | 3 | Daily | `app:prune-orphaned-entities` | Prune orphans |
 | 4 | Hourly | `app:sync-public-submission-locks` | Sync submission locks |
-| 5 | Daily 02:30 | `media-library:clean` | Clean orphaned media |
-| 6 | Weekly Sun 03:00 | `media-library:regenerate` | Regenerate missing conversions |
+| 5 | Daily 02:30 | `media-library:clean --delete-orphaned --force` | Clean orphaned media |
+| 6 | Weekly Sun 03:00 | `media-library:regenerate --only-missing --with-responsive-images --force` | Regenerate missing conversions |
 | 7 | Every 5 min | `horizon:snapshot` | Horizon metrics |
 | 8 | Every 1 min | `communications:send-digests` | Digest notifications |
 
@@ -616,10 +691,31 @@ Filament Form → Resource::mutateFormDataBeforeCreate()
 | `SpeakerSeeder` | Inline array | ~30 | `Speaker` | `seedWhenEmpty` |
 | `VenueSeeder` | Factory | 50 | `Venue` | `seedWhenEmpty` |
 | `ReferenceSeeder` | Inline array | 13 | `Reference` | `seedWhenEmpty` |
-| `EventTaxonomySeeder` | Inline tree | 29 terms | `EventTerm` | Always |
+| `EventTaxonomySeeder` | Inline tree (in `AIArmada/` subdir) | 29 terms | `EventTerm` | Always |
 | `LanguageSeeder` | Inline array | 7 | `Language` | Always |
 | `FacilityTypeSeeder` | Inline array | 4 | `FacilityType` | Always |
 | `AddressingSeeder` | Package internal | Full MY geography | `AddressCountry`, `State`, `City`, `AddressArea` | Always |
+| `AdvancedEventSeeder` | Inline array | ~5 | `Event` (advanced programs) | Seed |
+| `DistrictSeeder` | Inline array | ~16 | `AddressArea` (districts) | Seed |
+| `EventSeeder` | Factory | ~20 | `Event` | Seed |
+| `EventSubmissionSeeder` | Factory | ~10 | `EventSubmission` | Seed |
+| `DonationChannelSeeder` | Inline array | ~10 | `DonationChannel` | Seed |
+| `InspirationSeeder` | Inline array | ~20 | `Inspiration` | Seed |
+| `MalaysiaCitySeeder` | Inline array | ~150 | `City` | Seed |
+| `MediaLinkSeeder` | Factory | ~10 | `MediaLink` | Seed |
+| `ModerationReviewSeeder` | Factory | ~5 | `ModerationReview` | Seed |
+| `PermissionSeeder` | Inline array | ~30 | `Permission` (Authz) | Seed |
+| `ProductionSeeder` | Inline array | ~5 | Mixed production data | Seed |
+| `RegistrationSeeder` | Factory | ~10 | `Registration` | Seed |
+| `ReportSeeder` | Factory | ~5 | `Report` | Seed |
+| `RoleSeeder` | Inline array | ~5 | `Role` (Authz) | Seed |
+| `SavedSearchSeeder` | Factory | ~5 | `SavedSearch` | Seed |
+| `ScopedMemberRolesSeeder` | Inline array | ~3 | `Role` (scoped) | Seed |
+| `SeriesSeeder` | Factory | ~5 | `Series` | Seed |
+| `SpaceSeeder` | Factory | ~5 | `Space` | Seed |
+| `SubdistrictSeeder` | Inline array | ~180 | `AddressArea` (subdistricts) | Seed |
+| `UserSeeder` | Factory | ~5 | `User` | Seed |
+| `WorldSeeder` | CSV | ~200 | `AddressCountry` | Seed |
 
 **Key: MasjidSeeder** — reads CSV with `fgetcsv()`, resolves state via aliases, resolves district via `AddressArea`, limits to 300 rows, stores phone contacts.
 
@@ -693,14 +789,17 @@ Filament Form → Resource::mutateFormDataBeforeCreate()
 | 31 | `Space` | `spaces` (package) | UUID | Audits | `SpaceFactory` | `AIArmada\Events\Models\VenueSpace` |
 | 32 | `PassportUser` | `users` | UUID | HasApiTokens | — | `Authenticatable` |
 
-### 7.2 Concern Traits
+### 7.2 Concern Traits (in `app/Models/Concerns/`)
 
 | Trait | Used By | Purpose |
 |-------|---------|---------|
 | `AuditsModelChanges` | Most models | Wraps owen-it/auditing with custom tags, custom audit methods |
 | `HasDonationChannels` | Event, Institution, Speaker | Polymorphic donation channels |
 | `HasLanguages` | Institution, Speaker, Series | Polymorphic language links |
-| `KeepsDeletedModels` | Event, User, Institution, Venue, Speaker, Reference | Stores full copy in `deleted_models` table |
+| `HasUserRestoration` | User only | Full user-deletion cascade + restoration logic (social accounts, follows, bookmarks, memberships, registrations, etc.) |
+
+**Package traits (not local):**
+- `KeepsDeletedModels` (spatie/laravel-deleted-models) — Event, User, Institution, Venue, Speaker, Reference
 
 ### 7.3 Model Events (Booted)
 
@@ -729,7 +828,7 @@ Observers registered in `AppServiceProvider::registerModelObservers()` (13) + `A
 
 | Observer | Model | Events | Key Actions |
 |----------|-------|--------|-------------|
-| `EventObserver` | `Event` | creating, created, updated, saved, deleted | Slug generation, cache busting, Scout search, slug redirect sync |
+| `EventObserver` | `Event` | creating, created, updating, updated, saved, deleted | Slug generation, cache busting, Scout search, slug redirect sync |
 | `VenueObserver` | `Venue` | saved, deleted | Slug sync, cache busting |
 | `SpeakerObserver` | `Speaker` | saved, deleted | Slug sync (name/honorific changes), search record sync, cache busting |
 | `InstitutionObserver` | `Institution` | saved, deleted | Slug sync, cache busting (listings + directory + search) |
@@ -748,7 +847,7 @@ Observers registered in `AppServiceProvider::registerModelObservers()` (13) + `A
 
 ## 9. Action Inventory
 
-### 9.1 Auth (6)
+### 9.1 Auth (5)
 
 | Action | Purpose |
 |--------|---------|
@@ -793,7 +892,7 @@ Observers registered in `AppServiceProvider::registerModelObservers()` (13) + `A
 | `MarkEventGoingAction` | Mark user as going |
 | `PersistValidatedEventSubmissionAction` | **Write event to DB** (core persistence) |
 | `PrepareAdvancedParentProgramSubmissionAction` | Prepare parent program for session submission |
-| `PublishEventChangeAnnouncementAction` | Publish change announcement |
+| `PublishEventChangeAnnouncement` | Publish change announcement |
 | `RecordEventCheckInAction` | Record attendance check-in |
 | `RemoveEventGoingAction` | Remove going status |
 | `ResolveAdvancedBuilderContextAction` | Resolve builder context |
@@ -837,20 +936,19 @@ Observers registered in `AppServiceProvider::registerModelObservers()` (13) + `A
 | `SaveReportAction` | Save report (Filament) |
 | `SubmitReportAction` | Submit report with duplicate detection |
 
-### 9.8 Membership (5)
+### 9.8 Membership (3)
 
 | Action | Purpose |
 |--------|---------|
 | `AcceptSubjectMemberInvitation` | Accept member invite |
 | `InviteSubjectMember` | Invite new member |
-| `ResolveMemberInvitationByTokenAction` | Resolve invite by token |
-| `RevokeSubjectMemberInvitation` | Revoke invite |
 | `SubmitMembershipApplicationAction` | Submit membership claim |
 
 ### 9.9 Other Actions (16)
 
 | Domain | Actions |
 |--------|---------|
+| **AddressAreas** | *(empty directory — reserved)* |
 | **DonationChannels** | `SaveDonationChannelAction` |
 | **Fortify** | `CreateNewUser`, `PasswordValidationRules`, `RecordSuccessfulLogin`, `ResetUserPassword` |
 | **GitHub** | `SubmitGitHubIssueReportAction` |
@@ -860,7 +958,7 @@ Observers registered in `AppServiceProvider::registerModelObservers()` (13) + `A
 | **SavedSearches** | `CreateSavedSearchAction`, `ExecuteSavedSearchAction`, `UpdateSavedSearchAction` |
 | **Series** | `SaveSeriesAction` |
 | **Signals** | `RecordMobileTelemetryBatchAction` |
-| **Slugs** | `ResolvePublicSlugAction`, `SyncCanonicalSlugAction`, `SyncSlugRedirectAction` (2 concern traits) |
+| **Slugs** | `ResolvePublicSlugAction`, `SyncCanonicalSlugAction`, `SyncSlugRedirectAction` (4 concern traits) |
 | **Spaces** | `SaveSpaceAction` |
 | **Venues** | `GenerateVenueSlugAction`, `SaveVenueAction` |
 
@@ -870,45 +968,76 @@ Observers registered in `AppServiceProvider::registerModelObservers()` (13) + `A
 
 | Service | Domain | Purpose |
 |---------|--------|---------|
-| `AiBudgetDecision` | AI | Budget decision logic |
-| `AiBudgetPolicy` | AI | Budget policy rules |
-| `AiCostResolver` | AI | Resolve AI usage cost |
-| `AiUsageLedger` | AI | Record AI usage to `AiUsageLog` |
-| `EventMediaExtractionService` | AI | Extract event info from images |
 | `CalendarService` | Events | Generate iCal/ICS files |
-| `TurnstileVerifier` | Captcha | Cloudflare Turnstile captcha |
 | `ContributionEntityMutationService` | Contributions | Apply contribution changes to entities |
 | `EventCategoryCatalog` | Events | Category catalog with rules |
 | `EventCategoryPolicy` | Events | Category-based policies |
 | `EventKeyPersonSyncService` | Events | Sync key people relationships |
 | `EventSearchService` | Events | Advanced event search with filters |
-| `GitHubIssueReporter` | GitHub | Submit GitHub issues |
 | `ModerationService` | Moderation | State machine transitions for moderation |
-| `NotificationMessageRenderer` | Notifications | Render notification templates |
-| `NotificationSettingsManager` | Notifications | CRUD notification preferences |
 | `PostgresEventDiscovery` | Events | Postgres-based event discovery |
 | `PrayerTimeExpressionResolver` | Events | Resolve prayer time expressions |
 | `PrayerTimeService` | Events | Prayer time data |
-| `AdminShareAnalyticsService` | Sharing | Admin share analytics dashboard |
-| `AffiliateRuntimeDataPurger` | Sharing | Purge old affiliate data |
-| `AffiliatesShareTrackingAnalyticsService` | Sharing | Affiliate analytics |
-| `AffiliatesShareTrackingService` | Sharing | Affiliate share tracking |
-| `ShareTrackingUrlService` | Sharing | Build share URLs |
 | `ShareTrackingAnalyticsService` | Sharing | User-facing share analytics |
 | `ShareTrackingService` | Sharing | Core share tracking |
-| `AffiliateSignalsBridge` | Signals | Affiliate → Signals bridge |
-| `ProductSignalSchemaRegistry` | Signals | Schema management |
-| `ProductSignalsInsightsService` | Signals | Signal insights dashboard |
-| `ProductSignalsService` | Signals | Core signal recording |
-| `SignalsTracker` | Signals | Low-level signal tracking |
 | `TypesenseEventDiscovery` | Events | Typesense-based event discovery |
 
-Plus support services:
-- `NetworkDiagnosticsService` — diagnostics
-- `EventCategoryPolicy` — event category rules
-- `ChannelSendResult` — notification channel result DTO
-- `ContributionRequestNotificationService` — contribution notifications
-- `EventNotificationService` — event notifications
+### Services (subdirectories)
+
+**`Services/Ai/` (5):**
+| Service | Purpose |
+|---------|---------|
+| `AiBudgetDecision` | Budget decision logic |
+| `AiBudgetPolicy` | Budget policy rules |
+| `AiCostResolver` | Resolve AI usage cost |
+| `AiUsageLedger` | Record AI usage to `AiUsageLog` |
+| `EventMediaExtractionService` | Extract event info from images |
+
+**`Services/Captcha/` (1):**
+| Service | Purpose |
+|---------|---------|
+| `TurnstileVerifier` | Cloudflare Turnstile captcha |
+
+**`Services/Communications/` (empty dir):**
+| Service | Purpose |
+|---------|---------|
+
+**`Services/Diagnostics/` (1):**
+| Service | Purpose |
+|---------|---------|
+| `NetworkDiagnosticsService` | System diagnostics |
+
+**`Services/GitHub/` (1):**
+| Service | Purpose |
+|---------|---------|
+| `GitHubIssueReporter` | Submit GitHub issues |
+
+**`Services/Notifications/` (5):**
+| Service | Purpose |
+|---------|---------|
+| `ChannelSendResult` | Notification channel result DTO |
+| `ContributionRequestNotificationService` | Contribution notifications |
+| `EventNotificationService` | Event notifications |
+| `NotificationMessageRenderer` | Render notification templates |
+| `NotificationSettingsManager` | CRUD notification preferences |
+
+**`Services/ShareTracking/` (5):**
+| Service | Purpose |
+|---------|---------|
+| `AdminShareAnalyticsService` | Admin share analytics dashboard |
+| `AffiliateRuntimeDataPurger` | Purge old affiliate data |
+| `AffiliatesShareTrackingAnalyticsService` | Affiliate analytics |
+| `AffiliatesShareTrackingService` | Affiliate share tracking |
+| `ShareTrackingUrlService` | Build share URLs |
+
+**`Services/Signals/` (5):**
+| Service | Purpose |
+|---------|---------|
+| `AffiliateSignalsBridge` | Affiliate → Signals bridge |
+| `ProductSignalSchemaRegistry` | Schema management |
+| `ProductSignalsInsightsService` | Signal insights dashboard |
+| `ProductSignalsService` | Core signal recording |
+| `SignalsTracker` | Low-level signal tracking |
 
 ---
 
@@ -936,15 +1065,15 @@ Plus support services:
 | `IndexInstitutionsToTypesense` | `search:index-institutions {--fresh} {--chunk=500}` | Import institutions to Scout |
 | `IndexReferencesToTypesense` | `search:index-references {--fresh} {--chunk=500}` | Import references to Scout |
 | `IndexSpeakersToTypesense` | `search:index-speakers {--fresh} {--chunk=500}` | Import speakers to Scout |
-| `ReindexSpeakerSearch` | `speakers:reindex-search` | Rebuild speaker search index |
-| `IssueMcpToken` | `app:issue-mcp-token` | Issue MCP auth token |
+| `ReindexSpeakerSearch` | `speakers:reindex-search {--chunk=100}` | Rebuild speaker search index |
+| `IssueMcpToken` | `mcp:token {email} {name=opencode-mcp} {--server=admin}` | Issue MCP auth token |
 | `MigrateMediaToNewStructure` | `app:media:migrate-structure {--dry-run} {--force}` | Migrate media file structure |
-| `PruneOrphanedEntities` | `app:prune-orphaned-entities` | Remove orphaned records |
-| `QueueBackfillEventSlugs` | `app:backfill-event-slugs` | Queue slug backfill job |
-| `QueueBackfillInstitutionSlugs` | `app:backfill-institution-slugs` | Queue slug backfill |
-| `QueueBackfillReferenceSlugs` | `app:backfill-reference-slugs` | Queue slug backfill |
-| `QueueBackfillSpeakerSlugs` | `app:backfill-speaker-slugs` | Queue slug backfill |
-| `QueueBackfillVenueSlugs` | `app:backfill-venue-slugs` | Queue slug backfill |
+| `PruneOrphanedEntities` | `app:prune-orphaned-entities {--hours=48} {--dry-run}` | Remove orphaned records |
+| `QueueBackfillEventSlugs` | `events:queue-slug-backfill` | Queue slug backfill job |
+| `QueueBackfillInstitutionSlugs` | `institutions:queue-slug-backfill` | Queue slug backfill |
+| `QueueBackfillReferenceSlugs` | `references:queue-slug-backfill` | Queue slug backfill |
+| `QueueBackfillSpeakerSlugs` | `speakers:queue-slug-backfill` | Queue slug backfill |
+| `QueueBackfillVenueSlugs` | `venues:queue-slug-backfill` | Queue slug backfill |
 | `SendDigestNotificationsCommand` | `communications:send-digests` | Send digest emails |
 | `SyncPublicSubmissionLocks` | `app:sync-public-submission-locks` | Sync submission lock state |
 
@@ -1154,8 +1283,9 @@ media ──morphTo──→ model
 
 ```
 app/
-├── Actions/                 83 files (20 subdirs)
-│   ├── Auth/ (6)
+├── Actions/                 83 files (21 subdirs)
+│   ├── AddressAreas/ (0 — reserved)
+│   ├── Auth/ (5)
 │   ├── Contributions/ (19)
 │   ├── DonationChannels/ (1)
 │   ├── Events/ (18)
@@ -1164,30 +1294,31 @@ app/
 │   ├── Inspirations/ (1)
 │   ├── Institutions/ (2)
 │   ├── Location/ (2)
-│   ├── Membership/ (5)
+│   ├── Membership/ (3)
 │   ├── Notifications/ (2)
 │   ├── References/ (2)
 │   ├── Reports/ (6)
 │   ├── SavedSearches/ (3)
 │   ├── Series/ (1)
 │   ├── Signals/ (1)
-│   ├── Slugs/ (5)
+│   ├── Slugs/ (7 — 3 actions + 4 concerns)
 │   ├── Spaces/ (1)
 │   ├── Speakers/ (2)
 │   └── Venues/ (2)
 ├── Console/Commands/        16 files
-├── Data/                    1 Data DTO
+├── Data/                    56 files (18 subdirs incl. Api/, Events/, ShareTracking/, GitHub/)
 ├── Filament/
 │   ├── Ahli/Resources/      3 resources
-│   ├── Pages/               5 pages
-│   ├── Resources/           15 resources
+│   ├── Pages/               8 pages
+│   ├── Resources/           15 resources (grouped by entity)
 │   ├── Tables/Filters/      1 custom filter
 │   └── Widgets/             3 widgets
 ├── Http/Controllers/        Web + API controllers
-├── Jobs/                    8 files
-├── Livewire/Pages/          24 components
-│   ├── Contributors/ (4)
-│   ├── Dashboard/ (6)
+├── Jobs/                    8 files (7 root + 1 in Media/)
+├── Livewire/Pages/          25 components (13 groups)
+│   ├── About/ (1)
+│   ├── Contributions/ (4)
+│   ├── Dashboard/ (7 — incl. Events subdir)
 │   ├── Events/ (3)
 │   ├── Institutions/ (1)
 │   ├── Membership/ (1)
@@ -1197,12 +1328,12 @@ app/
 │   ├── SavedSearches/ (1)
 │   ├── Search/ (1)
 │   ├── Speakers/ (1)
-│   └── About/ (1)
-├── Mcp/                     MCP tools + servers
-├── Models/                  33 files (incl. pivots, traits, builders)
-├── Observers/               15 files
-├── Services/                36 files
-└── Support/                 Media, slugs, formatters
+│   └── SubmitEvent/ (1)
+├── Mcp/                     MCP servers (Admin, Member) + tools + prompts
+├── Models/                  37 files (32 top-level + 4 concerns + 1 builder)
+├── Observers/               15 files (14 observers + 1 concern)
+├── Services/                36 files (13 root + 23 in subdirs)
+└── Support/                 Media, slugs, formatters, timezone
 ```
 
 ---

@@ -17,9 +17,10 @@ use Spatie\Tags\Tag as SpatieTag;
  * @property string $type
  * @property array<string, string> $name
  * @property array<string, string>|null $slug
- * @property array<string, string>|null $description
  * @property int|null $order_column
  * @property string $status
+ * @property Carbon|null $verified_at
+ * @property Carbon|null $last_state_change_at
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
@@ -36,10 +37,21 @@ class Tag extends SpatieTag implements Sortable
 
     protected $fillable = [
         'name',
+        'slug',
         'type',
         'status',
+        'verified_at',
+        'last_state_change_at',
         'order_column',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'verified_at' => 'immutable_datetime',
+            'last_state_change_at' => 'immutable_datetime',
+        ];
+    }
 
     public function getTypeEnumAttribute(): ?EventTaxonomyCode
     {

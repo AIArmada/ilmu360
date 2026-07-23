@@ -242,6 +242,8 @@ class Event extends PackageEvent implements AuditableContract
      * @var list<string>
      */
     protected $fillable = [
+        'owner_type',
+        'owner_id',
         'institution_id',
 
         'title',
