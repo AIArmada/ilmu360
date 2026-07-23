@@ -1,6 +1,6 @@
 {
     "$schema": "https://opencode.ai/config.json",
-    "plugin": ["@warp-dot-dev/opencode-warp"],
+    "plugin": ["@warp-dot-dev/opencode-warp", "superpowers@git+https://github.com/obra/superpowers.git"],
     "mcp": {
         "laravel-boost": {
             "type": "local",

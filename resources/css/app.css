@@ -213,6 +213,30 @@
     transition-delay: var(--reveal-d, 0ms);
 }
 
+/* Reduced motion: reveal instantly, no transform/blur transitions */
+@media (prefers-reduced-motion: reduce) {
+    .scroll-reveal,
+    .scroll-reveal.reveal-up,
+    .scroll-reveal.reveal-scale,
+    .scroll-reveal.reveal-left,
+    .scroll-reveal.reveal-right,
+    .scroll-reveal.reveal-blur {
+        opacity: 1;
+        transform: none;
+        filter: none;
+        transition: none;
+    }
+
+    .animate-fade-in-up,
+    .animate-scale-in,
+    .animate-float-drift,
+    .animate-float-drift-alt,
+    .animate-float-drift-slow,
+    .animate-glow-breathe {
+        animation: none;
+    }
+}
+
 /* Speaker hero — ambient floating orbs */
 @keyframes float-drift {
     0%, 100% { transform: translate(0, 0) scale(1); }
