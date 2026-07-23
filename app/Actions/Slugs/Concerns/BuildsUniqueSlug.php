@@ -4,11 +4,10 @@ declare(strict_types=1);
 
 namespace App\Actions\Slugs\Concerns;
 
-use AIArmada\CommerceSupport\Support\SlugGenerator;
-
 trait BuildsUniqueSlug
 {
     /**
+     * @param  class-string<\Illuminate\Database\Eloquent\Model>  $modelClass
      * @param  list<string>  $middleSegments
      */
     protected function buildUniqueSlug(
@@ -18,6 +17,13 @@ trait BuildsUniqueSlug
         string $trailingSuffix = '',
         ?string $ignoreId = null,
     ): string {
+        $slugSet = array_flip($modelClass::query()
+            ->where('slug', $baseSlug)
+            ->orWhere('slug', 'like', $baseSlug . '-%')
+            ->when($ignoreId, fn ($q) => $q->where('id', '!=', $ignoreId))
+            ->pluck('slug')
+            ->toArray());
+
         $sequence = 1;
 
         do {
@@ -39,7 +45,7 @@ trait BuildsUniqueSlug
 
             $candidate = implode('-', $candidateParts);
             $sequence++;
-        } while (SlugGenerator::exists($modelClass, $candidate, $ignoreId));
+        } while (isset($slugSet[$candidate]));
 
         return $candidate;
     }
