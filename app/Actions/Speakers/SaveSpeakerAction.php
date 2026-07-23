@@ -158,11 +158,16 @@ final readonly class SaveSpeakerAction
             $this->mediaSyncService->clearCollection($speaker, 'cover');
         }
 
+        if (($data['clear_main'] ?? false) === true) {
+            $this->mediaSyncService->clearCollection($speaker, 'main');
+        }
+
         if (($data['clear_gallery'] ?? false) === true) {
             $this->mediaSyncService->clearCollection($speaker, 'gallery');
         }
 
         $avatar = $data['avatar'] ?? null;
+        $main = $data['main'] ?? null;
         $cover = $data['cover'] ?? null;
         $gallery = $data['gallery'] ?? null;
 
@@ -170,6 +175,11 @@ final readonly class SaveSpeakerAction
             $speaker,
             $avatar instanceof UploadedFile ? $avatar : null,
             'avatar',
+        );
+        $this->mediaSyncService->syncSingle(
+            $speaker,
+            $main instanceof UploadedFile ? $main : null,
+            'main',
         );
         $this->mediaSyncService->syncSingle(
             $speaker,
