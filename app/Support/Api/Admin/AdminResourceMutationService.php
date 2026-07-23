@@ -263,7 +263,7 @@ class AdminResourceMutationService
                 'content_type' => 'multipart/form-data',
                 'slug_behavior' => 'auto_managed',
                 'defaults' => $defaults,
-                'current_media' => $record instanceof Speaker ? $this->mediaState($record, ['avatar', 'cover', 'gallery']) : null,
+                'current_media' => $record instanceof Speaker ? $this->mediaState($record, ['avatar', 'main', 'cover', 'gallery']) : null,
                 'fields' => $this->speakerFields($updating),
                 'catalogs' => $this->addressCatalogs('address'),
                 'conditional_rules' => [
@@ -556,6 +556,7 @@ class AdminResourceMutationService
                 'is_freelance' => false,
                 'status' => 'verified',
                 'clear_avatar' => false,
+                'clear_main' => false,
                 'clear_cover' => false,
                 'clear_gallery' => false,
             ],
@@ -685,6 +686,7 @@ class AdminResourceMutationService
             $defaults['status'] = $record->status;
             $defaults['allow_public_event_submission'] = (bool) $record->allow_public_event_submission;
             $defaults['clear_avatar'] = false;
+            $defaults['clear_main'] = false;
             $defaults['clear_cover'] = false;
             $defaults['clear_gallery'] = false;
         }
@@ -1321,9 +1323,11 @@ class AdminResourceMutationService
             $this->field('contactMethods', 'array<object>', required: false, meta: $this->contactCollectionMeta()),
             $this->field('social_media', 'array<object>', required: false, meta: $this->socialMediaCollectionMeta()),
             $this->field('avatar', 'file', required: false, acceptedMimeTypes: $this->imageMimeTypes(), maxFileSizeKb: $this->maxUploadSizeKb()),
+            $this->field('main', 'file', required: false, acceptedMimeTypes: $this->imageMimeTypes(), maxFileSizeKb: $this->maxUploadSizeKb(), meta: $this->singleMediaFieldMutationMeta('clear_main')),
             $this->field('cover', 'file', required: false, acceptedMimeTypes: $this->imageMimeTypes(), maxFileSizeKb: $this->maxUploadSizeKb()),
             $this->field('gallery', 'array<file>', required: false, acceptedMimeTypes: $this->imageMimeTypes(), maxFileSizeKb: $this->maxUploadSizeKb()),
             $this->field('clear_avatar', 'boolean', required: false, default: false),
+            $this->field('clear_main', 'boolean', required: false, default: false),
             $this->field('clear_cover', 'boolean', required: false, default: false),
             $this->field('clear_gallery', 'boolean', required: false, default: false),
         ];
@@ -2373,10 +2377,12 @@ class AdminResourceMutationService
             'social_media.*.handle' => ['nullable', 'string', 'max:255', 'required_without:social_media.*.url'],
             'social_media.*.url' => ['nullable', 'url', 'max:255', 'required_without:social_media.*.handle'],
             'avatar' => ['nullable', 'file', 'mimetypes:image/jpeg,image/png,image/webp', $maxUploadSize],
+            'main' => ['nullable', 'file', 'mimetypes:image/jpeg,image/png,image/webp', $maxUploadSize],
             'cover' => ['nullable', 'file', 'mimetypes:image/jpeg,image/png,image/webp', $maxUploadSize],
             'gallery' => ['nullable', 'array'],
             'gallery.*' => ['file', 'mimetypes:image/jpeg,image/png,image/webp', $maxUploadSize],
             'clear_avatar' => ['sometimes', 'boolean'],
+            'clear_main' => ['sometimes', 'boolean'],
             'clear_cover' => ['sometimes', 'boolean'],
             'clear_gallery' => ['sometimes', 'boolean'],
         ];
