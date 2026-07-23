@@ -128,7 +128,7 @@ class Venue extends PackageVenue implements AuditableContract
             }
         }
 
-        return $this->getFirstMediaUrl('cover', 'banner') ?: asset('images/placeholders/venue.png');
+        return asset('images/placeholders/venue.png');
     }
 
     /**
