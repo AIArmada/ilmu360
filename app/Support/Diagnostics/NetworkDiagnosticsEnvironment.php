@@ -87,7 +87,7 @@ class NetworkDiagnosticsEnvironment
             return null;
         }
 
-        return (string) $value;
+        return $value;
     }
 
     /**
