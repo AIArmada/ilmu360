@@ -157,6 +157,14 @@ class SpeakerContributionFormSchema
                             ->avatar()
                             ->conversion('thumb')
                             ->helperText(__('Recommended: a clear square image, at least 400x400px.')),
+                        SpatieMediaLibraryFileUpload::make('main')
+                            ->label(__('Main Photo'))
+                            ->collection('main')
+                            ->image()
+                            ->imageEditor()
+                            ->responsiveImages()
+                            ->conversion('display')
+                            ->helperText(__('Primary speaker portrait or photo.')),
                         SpatieMediaLibraryFileUpload::make('cover')
                             ->label(__('Cover Image'))
                             ->collection('cover')
