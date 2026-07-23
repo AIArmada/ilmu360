@@ -37,6 +37,15 @@ class VenueFormSchema
                 ->options(VenueType::class)
                 ->placeholder(__('Select type...')),
 
+            SpatieMediaLibraryFileUpload::make('main')
+                ->label(__('Main Photo'))
+                ->collection('main')
+                ->image()
+                ->imageEditor()
+                ->responsiveImages()
+                ->conversion('banner')
+                ->helperText(__('Primary venue photo — shown prominently on the venue profile page.')),
+
             SpatieMediaLibraryFileUpload::make('cover')
                 ->label(__('Cover Image'))
                 ->collection('cover')

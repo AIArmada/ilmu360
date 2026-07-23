@@ -294,7 +294,7 @@ class AdminResourceMutationService
                 'content_type' => 'multipart/form-data',
                 'slug_behavior' => 'auto_managed',
                 'defaults' => $defaults,
-                'current_media' => $record instanceof Venue ? $this->mediaState($record, ['cover', 'gallery']) : null,
+                'current_media' => $record instanceof Venue ? $this->mediaState($record, ['main', 'cover', 'gallery']) : null,
                 'fields' => $this->venueFields($updating),
                 'catalogs' => $this->addressCatalogs('address'),
                 'conditional_rules' => [],
@@ -564,6 +564,7 @@ class AdminResourceMutationService
                 'type' => VenueType::Dewan->value,
                 'status' => 'verified',
                 'facilities' => [],
+                'clear_main' => false,
                 'clear_cover' => false,
                 'clear_gallery' => false,
             ],
@@ -719,6 +720,7 @@ class AdminResourceMutationService
         if ($record instanceof Venue) {
             $defaults['status'] = $record->status;
             $defaults['visibility'] = (string) ($record->visibility ?? 'public');
+            $defaults['clear_main'] = false;
             $defaults['clear_cover'] = false;
             $defaults['clear_gallery'] = false;
         }
@@ -1494,15 +1496,17 @@ class AdminResourceMutationService
             $this->field('address.admin_area_2_id', 'uuid', required: false),
             $this->field('contactMethods', 'array<object>', required: false, meta: $this->contactCollectionMeta()),
             $this->field('social_media', 'array<object>', required: false, meta: $this->socialMediaCollectionMeta()),
+            $this->field('main', 'file', required: false, acceptedMimeTypes: $this->imageMimeTypes(), maxFileSizeKb: $this->maxUploadSizeKb(), meta: $this->singleMediaFieldMutationMeta('clear_main')),
             $this->field('cover', 'file', required: false, acceptedMimeTypes: $this->imageMimeTypes(), maxFileSizeKb: $this->maxUploadSizeKb()),
             $this->field('gallery', 'array<file>', required: false, acceptedMimeTypes: $this->imageMimeTypes(), maxFileSizeKb: $this->maxUploadSizeKb()),
+            $this->field('clear_main', 'boolean', required: false, default: false),
             $this->field('clear_cover', 'boolean', required: false, default: false),
             $this->field('clear_gallery', 'boolean', required: false, default: false),
         ];
     }
 
     /**
-    /**
+     /**
      * @return array<int, array<string, mixed>>
      */
     private function eventFields(bool $updating): array
@@ -2450,6 +2454,8 @@ class AdminResourceMutationService
             'cover' => ['nullable', 'file', 'mimetypes:image/jpeg,image/png,image/webp', $maxUploadSize],
             'gallery' => ['nullable', 'array'],
             'gallery.*' => ['file', 'mimetypes:image/jpeg,image/png,image/webp', $maxUploadSize],
+            'main' => ['nullable', 'file', 'mimetypes:image/jpeg,image/png,image/webp', $maxUploadSize],
+            'clear_main' => ['sometimes', 'boolean'],
             'clear_cover' => ['sometimes', 'boolean'],
             'clear_gallery' => ['sometimes', 'boolean'],
         ];

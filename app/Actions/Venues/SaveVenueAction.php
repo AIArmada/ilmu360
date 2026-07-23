@@ -89,6 +89,10 @@ final readonly class SaveVenueAction
      */
     private function syncMedia(Venue $venue, array $data): void
     {
+        if (($data['clear_main'] ?? false) === true) {
+            $this->mediaSyncService->clearCollection($venue, 'main');
+        }
+
         if (($data['clear_cover'] ?? false) === true) {
             $this->mediaSyncService->clearCollection($venue, 'cover');
         }
@@ -97,9 +101,15 @@ final readonly class SaveVenueAction
             $this->mediaSyncService->clearCollection($venue, 'gallery');
         }
 
+        $main = $data['main'] ?? null;
         $cover = $data['cover'] ?? null;
         $gallery = $data['gallery'] ?? null;
 
+        $this->mediaSyncService->syncSingle(
+            $venue,
+            $main instanceof UploadedFile ? $main : null,
+            'main',
+        );
         $this->mediaSyncService->syncSingle(
             $venue,
             $cover instanceof UploadedFile ? $cover : null,
