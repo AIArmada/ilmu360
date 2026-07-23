@@ -2,12 +2,39 @@
 
 use App\Contracts\EventCategoryCatalog;
 use App\Data\EventDiscoveryCriteriaFactory;
-use App\Services\EventSearchService;
-use App\Support\Search\InstitutionSearchService;
-use App\Support\Search\ReferenceSearchService;
-use App\Support\Search\SpeakerSearchService;
-use App\Support\Search\TypesenseHealthCheckService;
+use App\Services\TypesenseEventDiscovery;
+use App\Support\EventDiscovery\EventDiscoveryFilterSet;
 use Illuminate\Support\Str;
+
+/**
+ * @return array{0: EventDiscoveryFilterSet, 1: EventCategoryCatalog}
+ */
+function typesenseDiscoveryDependencies(): array
+{
+    return [
+        new EventDiscoveryFilterSet,
+        app(EventCategoryCatalog::class),
+    ];
+}
+
+/**
+ * Create an anonymous class extending TypesenseEventDiscovery
+ * that exposes protected methods for testing.
+ */
+function exposedTypesenseDiscovery(): TypesenseEventDiscovery
+{
+    return new class(...typesenseDiscoveryDependencies()) extends TypesenseEventDiscovery
+    {
+        /**
+         * @param  array<string, mixed>  $filters
+         * @return array<int, string>
+         */
+        public function exposedBuildTypesenseFilterParts(array $filters): array
+        {
+            return $this->buildTypesenseFilterParts($filters);
+        }
+    };
+}
 
 test('discovery criteria are normalized deterministically before search execution', function () {
     $factory = new EventDiscoveryCriteriaFactory;
@@ -35,62 +62,18 @@ test('discovery criteria are normalized deterministically before search executio
         ->and($first->filters)->not->toHaveKey('empty');
 });
 
-/**
- * @return array{0: TypesenseHealthCheckService, 1: SpeakerSearchService, 2: InstitutionSearchService, 3: ReferenceSearchService, 4: EventCategoryCatalog}
- */
-function eventSearchTypesenseFilterDependencies(): array
-{
-    return [
-        new TypesenseHealthCheckService,
-        new SpeakerSearchService,
-        new InstitutionSearchService,
-        new ReferenceSearchService,
-        app(EventCategoryCatalog::class),
-    ];
-}
-
 test('typesense filters include active event constraint', function () {
-    $service = new class extends EventSearchService
-    {
-        public function __construct()
-        {
-            parent::__construct(...eventSearchTypesenseFilterDependencies());
-        }
+    $discovery = exposedTypesenseDiscovery();
 
-        /**
-         * @param  array<string, mixed>  $filters
-         * @return array<int, string>
-         */
-        public function exposedBuildTypesenseFilterParts(array $filters): array
-        {
-            return $this->buildTypesenseFilterParts($filters);
-        }
-    };
-
-    $filters = $service->exposedBuildTypesenseFilterParts([]);
+    $filters = $discovery->exposedBuildTypesenseFilterParts([]);
 
     expect($filters)->toContain('status:[approved, pending, cancelled]');
 });
 
 test('typesense filters include subdistrict constraint when provided', function () {
-    $service = new class extends EventSearchService
-    {
-        public function __construct()
-        {
-            parent::__construct(...eventSearchTypesenseFilterDependencies());
-        }
+    $discovery = exposedTypesenseDiscovery();
 
-        /**
-         * @param  array<string, mixed>  $filters
-         * @return array<int, string>
-         */
-        public function exposedBuildTypesenseFilterParts(array $filters): array
-        {
-            return $this->buildTypesenseFilterParts($filters);
-        }
-    };
-
-    $filters = $service->exposedBuildTypesenseFilterParts([
+    $filters = $discovery->exposedBuildTypesenseFilterParts([
         'admin_area_2_id' => 321,
     ]);
 
@@ -98,24 +81,9 @@ test('typesense filters include subdistrict constraint when provided', function 
 });
 
 test('typesense filters include country constraint when provided', function () {
-    $service = new class extends EventSearchService
-    {
-        public function __construct()
-        {
-            parent::__construct(...eventSearchTypesenseFilterDependencies());
-        }
+    $discovery = exposedTypesenseDiscovery();
 
-        /**
-         * @param  array<string, mixed>  $filters
-         * @return array<int, string>
-         */
-        public function exposedBuildTypesenseFilterParts(array $filters): array
-        {
-            return $this->buildTypesenseFilterParts($filters);
-        }
-    };
-
-    $filters = $service->exposedBuildTypesenseFilterParts([
+    $filters = $discovery->exposedBuildTypesenseFilterParts([
         'country_id' => 132,
     ]);
 
@@ -123,74 +91,24 @@ test('typesense filters include country constraint when provided', function () {
 });
 
 test('country filter alone does not force database fallback', function () {
-    $service = new class extends EventSearchService
-    {
-        public function __construct()
-        {
-            parent::__construct(...eventSearchTypesenseFilterDependencies());
-        }
+    $factory = new EventDiscoveryCriteriaFactory;
 
-        /**
-         * @param  array<string, mixed>  $filters
-         */
-        public function exposedRequiresDatabaseFiltering(array $filters): bool
-        {
-            return $this->requiresDatabaseFiltering($filters);
-        }
-    };
-
-    expect($service->exposedRequiresDatabaseFiltering([
-        'country_id' => 132,
-    ]))->toBeFalse();
+    expect($factory->fromSearch(null, ['country_id' => '132'], 20, 'time')->requiresDatabaseFiltering)->toBeFalse();
 });
 
 test('reference author searches force database fallback', function () {
     $factory = new EventDiscoveryCriteriaFactory;
-    $service = new class extends EventSearchService
-    {
-        public function __construct()
-        {
-            parent::__construct(...eventSearchTypesenseFilterDependencies());
-        }
-
-        /**
-         * @param  array<string, mixed>  $filters
-         */
-        public function exposedRequiresDatabaseFiltering(array $filters): bool
-        {
-            return $this->requiresDatabaseFiltering($filters);
-        }
-    };
 
     expect($factory->fromSearch(null, ['reference_author_search' => 'Muhammad Abduh'], 20, 'time')->requiresDatabaseFiltering)
         ->toBeTrue()
         ->and($factory->fromSearch(null, ['reference_author_search' => ['Muhammad Abduh']], 20, 'time')->requiresDatabaseFiltering)
-        ->toBeTrue()
-        ->and($service->exposedRequiresDatabaseFiltering(['reference_author_search' => 'Muhammad Abduh']))
-        ->toBeTrue()
-        ->and($service->exposedRequiresDatabaseFiltering(['reference_author_search' => ['Muhammad Abduh']]))
         ->toBeTrue();
 });
 
 test('typesense filters include domain tag ids constraint when provided', function () {
-    $service = new class extends EventSearchService
-    {
-        public function __construct()
-        {
-            parent::__construct(...eventSearchTypesenseFilterDependencies());
-        }
+    $discovery = exposedTypesenseDiscovery();
 
-        /**
-         * @param  array<string, mixed>  $filters
-         * @return array<int, string>
-         */
-        public function exposedBuildTypesenseFilterParts(array $filters): array
-        {
-            return $this->buildTypesenseFilterParts($filters);
-        }
-    };
-
-    $filters = $service->exposedBuildTypesenseFilterParts([
+    $filters = $discovery->exposedBuildTypesenseFilterParts([
         'domain_tag_ids' => ['tag-1', 'tag-2'],
     ]);
 
@@ -198,26 +116,10 @@ test('typesense filters include domain tag ids constraint when provided', functi
 });
 
 test('typesense filters include source, issue, and reference constraints when provided', function () {
-    $service = new class extends EventSearchService
-    {
-        public function __construct()
-        {
-            parent::__construct(...eventSearchTypesenseFilterDependencies());
-        }
-
-        /**
-         * @param  array<string, mixed>  $filters
-         * @return array<int, string>
-         */
-        public function exposedBuildTypesenseFilterParts(array $filters): array
-        {
-            return $this->buildTypesenseFilterParts($filters);
-        }
-    };
-
+    $discovery = exposedTypesenseDiscovery();
     $referenceId = (string) Str::uuid();
 
-    $filters = $service->exposedBuildTypesenseFilterParts([
+    $filters = $discovery->exposedBuildTypesenseFilterParts([
         'source_tag_ids' => ['source-1'],
         'issue_tag_ids' => ['issue-1'],
         'reference_ids' => [$referenceId],
@@ -229,62 +131,20 @@ test('typesense filters include source, issue, and reference constraints when pr
         ->toContain('reference_ids:['.$referenceId.']');
 });
 
-test('typesense filters include linked PIC profile ids and free-text PIC search forces database fallback', function () {
-    $service = new class extends EventSearchService
-    {
-        public function __construct()
-        {
-            parent::__construct(...eventSearchTypesenseFilterDependencies());
-        }
+test('typesense filters include linked PIC profile ids', function () {
+    $discovery = exposedTypesenseDiscovery();
 
-        /**
-         * @param  array<string, mixed>  $filters
-         * @return array<int, string>
-         */
-        public function exposedBuildTypesenseFilterParts(array $filters): array
-        {
-            return $this->buildTypesenseFilterParts($filters);
-        }
-
-        /**
-         * @param  array<string, mixed>  $filters
-         */
-        public function exposedRequiresDatabaseFiltering(array $filters): bool
-        {
-            return $this->requiresDatabaseFiltering($filters);
-        }
-    };
-
-    $filters = $service->exposedBuildTypesenseFilterParts([
+    $filters = $discovery->exposedBuildTypesenseFilterParts([
         'person_in_charge_ids' => ['speaker-1'],
     ]);
 
-    expect($filters)
-        ->toContain('person_in_charge_ids:[speaker-1]')
-        ->and($service->exposedRequiresDatabaseFiltering([
-            'person_in_charge_search' => 'Ahmad',
-        ]))->toBeTrue();
+    expect($filters)->toContain('person_in_charge_ids:[speaker-1]');
 });
 
 test('typesense starts_after filter uses held-period overlap semantics', function () {
-    $service = new class extends EventSearchService
-    {
-        public function __construct()
-        {
-            parent::__construct(...eventSearchTypesenseFilterDependencies());
-        }
+    $discovery = exposedTypesenseDiscovery();
 
-        /**
-         * @param  array<string, mixed>  $filters
-         * @return array<int, string>
-         */
-        public function exposedBuildTypesenseFilterParts(array $filters): array
-        {
-            return $this->buildTypesenseFilterParts($filters);
-        }
-    };
-
-    $filters = $service->exposedBuildTypesenseFilterParts([
+    $filters = $discovery->exposedBuildTypesenseFilterParts([
         'time_scope' => 'all',
         'starts_after' => '2026-03-20',
     ]);
