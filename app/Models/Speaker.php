@@ -255,6 +255,19 @@ class Speaker extends Model implements AuditableContract, HasMedia
         return $this->default_avatar_url;
     }
 
+    public function getPublicMainUrlAttribute(): string
+    {
+        if ($this->hasMedia('main')) {
+            $mainMedia = $this->getFirstMedia('main');
+
+            if ($mainMedia instanceof Media) {
+                return $mainMedia->getAvailableUrl(['display', 'main_thumb']) ?: $mainMedia->getUrl();
+            }
+        }
+
+        return $this->public_avatar_url;
+    }
+
     public function getDefaultAvatarUrlAttribute(): string
     {
         if ($this->avatar_url) {
@@ -672,6 +685,13 @@ class Speaker extends Model implements AuditableContract, HasMedia
             ->useFallbackUrl(asset('images/placeholders/speaker.png'))
             ->singleFile();
 
+        $this->addMediaCollection('main')
+            ->useDisk(config('media-library.disk_name'))
+            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp'])
+            ->useFallbackUrl(asset('images/placeholders/speaker.png'))
+            ->withResponsiveImages()
+            ->singleFile();
+
         $this->addMediaCollection('cover')
             ->useDisk(config('media-library.disk_name'))
             ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp'])
@@ -701,6 +721,18 @@ class Speaker extends Model implements AuditableContract, HasMedia
             ->performOnCollections('avatar')
             ->width(400)
             ->height(400)
+            ->format('webp');
+
+        $this->addMediaConversion('main_thumb')
+            ->performOnCollections('main')
+            ->width(100)
+            ->height(100)
+            ->sharpen(10)
+            ->format('webp');
+
+        $this->addMediaConversion('display')
+            ->performOnCollections('main')
+            ->width(600)
             ->format('webp');
 
         $this->addMediaConversion('banner')
