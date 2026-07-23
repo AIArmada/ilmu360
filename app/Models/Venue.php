@@ -164,14 +164,13 @@ class Venue extends PackageVenue implements AuditableContract
     {
         $this->addMediaConversion('thumb')
             ->performOnCollections('main', 'cover', 'gallery')
-            ->width(368)
-            ->height(232)
+            ->fit(Fit::Crop, 1920, 1080)
             ->sharpen(10)
             ->format('webp');
 
         $this->addMediaConversion('banner')
             ->performOnCollections('main', 'cover')
-            ->fit(Fit::Crop, 1200, 675)
+            ->fit(Fit::Crop, 1920, 1080)
             ->format('webp');
     }
 

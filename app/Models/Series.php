@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
+use Spatie\Image\Enums\Fit;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
@@ -122,8 +123,7 @@ class Series extends PackageEventSeries implements AuditableContract, HasMedia
     {
         $this->addMediaConversion('thumb')
             ->performOnCollections('cover', 'gallery')
-            ->width(368)
-            ->height(232)
+            ->fit(Fit::Crop, 1920, 1080)
             ->sharpen(10)
             ->format('webp');
     }

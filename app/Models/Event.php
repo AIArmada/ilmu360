@@ -1891,19 +1891,19 @@ class Event extends PackageEvent implements AuditableContract
     public function registerMediaConversions(?Media $media = null): void
     {
         $this->addMediaConversion('thumb')
-            ->performOnCollections('cover', 'poster', 'gallery')
-            ->fit(Fit::Crop, 600, 400)
+            ->performOnCollections('cover', 'gallery')
+            ->fit(Fit::Crop, 1920, 1080)
             ->sharpen(10)
             ->format('webp');
 
         $this->addMediaConversion('card')
             ->performOnCollections('cover', 'poster')
-            ->fit(Fit::Max, 960, 1200)
+            ->fit(Fit::Max, 1920, 1080)
             ->format('webp');
 
         $this->addMediaConversion('preview')
             ->performOnCollections('cover', 'poster')
-            ->fit(Fit::Max, 1400, 1800)
+            ->fit(Fit::Max, 1920, 1080)
             ->format('webp');
     }
 

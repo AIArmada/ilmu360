@@ -165,8 +165,8 @@ class DonationChannel extends Model implements AuditableContract, HasMedia
     {
         $this->addMediaConversion('thumb')
             ->performOnCollections('qr')
-            ->width(200)
-            ->height(200)
+            ->width(1080)
+            ->height(1080)
             ->format('webp');
     }
 }

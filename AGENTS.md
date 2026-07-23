@@ -869,12 +869,12 @@ Configured in `config/media-library.php`.
 ### Event (`app/Models/Event.php`)
 
 - `cover`: image/jpeg,image/png,image/webp, responsive, single file, fallback placeholder, required 16:9 website/mobile-app cover
-- `poster`: image/jpeg,image/png,image/webp, responsive, single file, fallback placeholder, required 4:5 portrait external-distribution poster
+- `poster`: image/jpeg,image/png,image/webp, responsive, single file, fallback placeholder, required 3:4 portrait external-distribution poster
 - `gallery`: image/jpeg,image/png,image/webp, responsive, multi file
 - Conversions:
-  - `thumb`: 600x400 cropped webp sharpen(10) on `cover`,`poster`,`gallery`
-  - `card`: max 960x1200 webp on `cover`,`poster`
-  - `preview`: max 1400x1800 webp on `cover`,`poster`
+  - `thumb`: 1920x1080 crop webp sharpen(10) on `cover`,`gallery`
+  - `card`: max 1920x1080 webp on `cover`,`poster`
+  - `preview`: max 1920x1080 webp on `cover`,`poster`
 
 ### Institution (`app/Models/Institution.php`)
 
@@ -882,9 +882,9 @@ Configured in `config/media-library.php`.
 - `cover`: jpeg,png,webp, responsive, single file, fallback placeholder
 - `gallery`: jpeg,png,webp, responsive, multi file
 - Conversions:
-  - `thumb`: 100x100 webp sharpen(10) on `logo`
-  - `banner`: width 1200 webp on `cover`
-  - `gallery_thumb`: 368x232 webp sharpen(10) on `gallery`
+  - `thumb`: 1080x1080 webp sharpen(10) on `logo`
+  - `banner`: 1920x1080 crop webp on `cover`
+  - `gallery_thumb`: 1920x1080 crop webp sharpen(10) on `gallery`
 
 ### Speaker (`app/Models/Speaker.php`)
 
@@ -893,12 +893,13 @@ Configured in `config/media-library.php`.
 - `cover`: jpeg,png,webp, responsive, single file, fallback placeholder
 - `gallery`: jpeg,png,webp, responsive, multi file
 - Conversions:
-  - `thumb`: 80x80 webp sharpen(10) on `avatar`
-  - `profile`: 400x400 webp on `avatar`
-  - `main_thumb`: 100x100 webp sharpen(10) on `main`
-  - `display`: width 600 webp on `main`
-  - `banner`: 1200x675 crop webp on `cover`
-  - `gallery_thumb`: 368x232 webp sharpen(10) on `gallery`
+  - `thumb`: 1080x1080 webp sharpen(10) on `avatar`
+  - `card`: 1080x1440 webp on `avatar`
+  - `profile`: 1080x1080 webp on `avatar`
+  - `main_thumb`: 1080x1080 webp sharpen(10) on `main`
+  - `display`: 1080x1440 crop webp on `main`
+  - `banner`: 1920x1080 crop webp on `cover`
+  - `gallery_thumb`: 1920x1080 crop webp sharpen(10) on `gallery`
 
 ### Venue (`app/Models/Venue.php`)
 
@@ -906,33 +907,36 @@ Configured in `config/media-library.php`.
 - `cover`: jpeg,png,webp, responsive, single file, fallback placeholder
 - `gallery`: jpeg,png,webp, responsive, multi file
 - Conversions:
-  - `thumb`: 368x232 webp sharpen(10) on `main`,`cover`,`gallery`
-  - `banner`: 1200x675 crop webp on `main`,`cover`
+  - `thumb`: 1920x1080 crop webp sharpen(10) on `main`,`cover`,`gallery`
+  - `banner`: 1920x1080 crop webp on `main`,`cover`
 
 ### Series (`app/Models/Series.php`)
 
 - `cover`: jpeg,png,webp, responsive, single file
 - `gallery`: jpeg,png,webp, responsive, multi file
 - Conversions:
-  - `thumb`: 368x232 webp sharpen(10) on `cover`,`gallery`
+  - `thumb`: 1920x1080 crop webp sharpen(10) on `cover`,`gallery`
 
 ### Reference (`app/Models/Reference.php`)
 
-- `cover`: jpeg,png,webp, responsive, single file
-- Conversion:
-  - `thumb`: 200x280 webp sharpen(10) on `cover`
+- `front_cover`: jpeg,png,webp, responsive, single file
+- `back_cover`: jpeg,png,webp, responsive, single file
+- `gallery`: jpeg,png,webp, responsive, multi file
+- Conversions:
+  - `thumb`: 1080x1440 crop webp sharpen(10) on `front_cover`,`back_cover`
+  - `gallery_thumb`: 1920x1080 crop webp sharpen(10) on `gallery`
 
 ### DonationChannel (`app/Models/DonationChannel.php`)
 
 - `qr`: jpeg,png,webp, single file
 - Conversion:
-  - `thumb`: 200x200 webp on `qr`
+  - `thumb`: 1080x1080 webp on `qr`
 
 ### Report (`app/Models/Report.php`)
 
 - `evidence`: jpeg,png,webp,pdf, multi file
 - Conversion:
-  - `thumb`: 200x200 webp on `evidence`
+  - `thumb`: 1080x1080 webp on `evidence`
 
 ## Filament Form Integration Pattern
 

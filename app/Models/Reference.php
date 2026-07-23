@@ -26,6 +26,7 @@ use Illuminate\Validation\ValidationException;
 use Laravel\Scout\Searchable;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 use Spatie\DeletedModels\Models\Concerns\KeepsDeletedModels;
+use Spatie\Image\Enums\Fit;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
@@ -619,15 +620,13 @@ class Reference extends PackageReference implements AuditableContract
     {
         $this->addMediaConversion('thumb')
             ->performOnCollections('front_cover', 'back_cover')
-            ->width(200)
-            ->height(280)
+            ->fit(Fit::Crop, 1080, 1440)
             ->sharpen(10)
             ->format('webp');
 
         $this->addMediaConversion('gallery_thumb')
             ->performOnCollections('gallery')
-            ->width(368)
-            ->height(232)
+            ->fit(Fit::Crop, 1920, 1080)
             ->sharpen(10)
             ->format('webp');
     }

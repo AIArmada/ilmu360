@@ -248,7 +248,7 @@ class Speaker extends Model implements AuditableContract, HasMedia
             $avatarMedia = $this->getFirstMedia('avatar');
 
             if ($avatarMedia instanceof Media) {
-                return $avatarMedia->getAvailableUrl(['profile', 'thumb']) ?: $avatarMedia->getUrl();
+                return $avatarMedia->getAvailableUrl(['card', 'profile', 'thumb']) ?: $avatarMedia->getUrl();
             }
         }
 
@@ -712,38 +712,43 @@ class Speaker extends Model implements AuditableContract, HasMedia
     {
         $this->addMediaConversion('thumb')
             ->performOnCollections('avatar')
-            ->width(80)
-            ->height(80)
+            ->width(1080)
+            ->height(1080)
             ->sharpen(10)
+            ->format('webp');
+
+        $this->addMediaConversion('card')
+            ->performOnCollections('avatar')
+            ->width(1080)
+            ->height(1440)
             ->format('webp');
 
         $this->addMediaConversion('profile')
             ->performOnCollections('avatar')
-            ->width(400)
-            ->height(400)
+            ->width(1080)
+            ->height(1080)
             ->format('webp');
 
         $this->addMediaConversion('main_thumb')
             ->performOnCollections('main')
-            ->width(100)
-            ->height(100)
+            ->width(1080)
+            ->height(1080)
             ->sharpen(10)
             ->format('webp');
 
         $this->addMediaConversion('display')
             ->performOnCollections('main')
-            ->width(600)
+            ->fit(Fit::Crop, 1080, 1440)
             ->format('webp');
 
         $this->addMediaConversion('banner')
             ->performOnCollections('cover')
-            ->fit(Fit::Crop, 1200, 675)
+            ->fit(Fit::Crop, 1920, 1080)
             ->format('webp');
 
         $this->addMediaConversion('gallery_thumb')
             ->performOnCollections('gallery')
-            ->width(368)
-            ->height(232)
+            ->fit(Fit::Crop, 1920, 1080)
             ->sharpen(10)
             ->format('webp');
     }

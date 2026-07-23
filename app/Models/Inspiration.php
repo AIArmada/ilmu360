@@ -164,7 +164,7 @@ class Inspiration extends Model implements AuditableContract, HasMedia
     {
         $this->addMediaConversion('thumb')
             ->performOnCollections('main')
-            ->fit(Fit::Crop, 640, 480)
+            ->fit(Fit::Crop, 1920, 1080)
             ->sharpen(10)
             ->format('webp');
     }

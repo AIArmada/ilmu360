@@ -123,8 +123,8 @@ class Report extends BaseReport implements AuditableContract, HasMedia
     {
         $this->addMediaConversion('thumb')
             ->performOnCollections('evidence')
-            ->width(200)
-            ->height(200)
+            ->width(1080)
+            ->height(1080)
             ->format('webp');
     }
 

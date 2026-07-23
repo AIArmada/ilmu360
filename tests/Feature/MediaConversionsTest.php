@@ -335,7 +335,7 @@ it('returns public_avatar_url using the higher-resolution profile conversion whe
 
     expect($publicAvatarUrl)->not->toBeNull()
         ->and($publicAvatarUrl)->toContain('conversions')
-        ->and($publicAvatarUrl)->toContain('profile');
+        ->and($publicAvatarUrl)->toContain('card');
 });
 
 it('registers main media collection for Speaker model', function () {

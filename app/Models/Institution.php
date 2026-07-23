@@ -347,20 +347,19 @@ class Institution extends Model implements AuditableContract, HasMedia
     {
         $this->addMediaConversion('thumb')
             ->performOnCollections('logo')
-            ->width(100)
-            ->height(100)
+            ->width(1080)
+            ->height(1080)
             ->sharpen(10)
             ->format('webp');
 
         $this->addMediaConversion('banner')
             ->performOnCollections('cover')
-            ->fit(Fit::Crop, 1200, 675)
+            ->fit(Fit::Crop, 1920, 1080)
             ->format('webp');
 
         $this->addMediaConversion('gallery_thumb')
             ->performOnCollections('gallery')
-            ->width(368)
-            ->height(232)
+            ->fit(Fit::Crop, 1920, 1080)
             ->sharpen(10)
             ->format('webp');
     }
