@@ -2,7 +2,7 @@
 
 namespace App\Actions\References;
 
-use AIArmada\CommerceSupport\Support\SlugGenerator;
+use App\Actions\Slugs\Concerns\BuildsUniqueSlug;
 use App\Actions\Slugs\Concerns\InteractsWithOrderedSlugModels;
 use App\Actions\Slugs\SyncCanonicalSlugAction;
 use App\Models\Reference;
@@ -12,6 +12,7 @@ use Lorisleiva\Actions\Concerns\AsAction;
 class GenerateReferenceSlugAction
 {
     use AsAction;
+    use BuildsUniqueSlug;
     use InteractsWithOrderedSlugModels;
 
     public function __construct(
@@ -49,46 +50,17 @@ class GenerateReferenceSlugAction
             $titleSlug = 'rujukan';
         }
 
-        $sequence = $this->nextSequenceForExactTitle($normalizedTitle, $ignoreReferenceId);
-
-        do {
-            $candidate = $titleSlug;
-
-            if ($sequence > 1) {
-                $candidate .= '-'.$sequence;
-            }
-
-            $sequence++;
-        } while (SlugGenerator::exists(Reference::class, $candidate, $ignoreReferenceId));
-
-        return $candidate;
+        return $this->buildUniqueSlug(
+            Reference::class,
+            $titleSlug,
+            [],
+            '',
+            $ignoreReferenceId,
+        );
     }
 
     public function forReference(Reference $reference): string
     {
         return $this->handle($reference->title, (string) $reference->getKey());
-    }
-
-    private function nextSequenceForExactTitle(string $title, ?string $ignoreReferenceId): int
-    {
-        $matchingReferences = Reference::query()
-            ->where('references.title', $title)
-            ->get();
-
-        if ($ignoreReferenceId !== null && $ignoreReferenceId !== '') {
-            $existingSequence = $this->existingModelSequence($matchingReferences, $ignoreReferenceId);
-
-            if ($existingSequence !== null) {
-                return $existingSequence;
-            }
-
-            $matchingReferences = $matchingReferences
-                ->reject(fn (Reference $reference): bool => (string) $reference->getKey() === $ignoreReferenceId)
-                ->values();
-        }
-
-        $matchingCount = $matchingReferences->count();
-
-        return $matchingCount > 0 ? $matchingCount + 1 : 1;
     }
 }

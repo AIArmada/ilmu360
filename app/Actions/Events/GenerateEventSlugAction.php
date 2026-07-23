@@ -2,7 +2,7 @@
 
 namespace App\Actions\Events;
 
-use AIArmada\CommerceSupport\Support\SlugGenerator;
+use App\Actions\Slugs\Concerns\BuildsUniqueSlug;
 use App\Actions\Slugs\Concerns\InteractsWithOrderedSlugModels;
 use App\Actions\Slugs\SyncCanonicalSlugAction;
 use App\Enums\EventKeyPersonRole;
@@ -18,6 +18,7 @@ use Lorisleiva\Actions\Concerns\AsAction;
 class GenerateEventSlugAction
 {
     use AsAction;
+    use BuildsUniqueSlug;
     use InteractsWithOrderedSlugModels;
 
     public function __construct(
@@ -139,26 +140,14 @@ class GenerateEventSlugAction
 
         $normalizedSpeakerSlugs = $this->normalizedSpeakerSlugs($speakerSlugs);
         $dateSuffix = $this->dateSuffix($date, $timezone);
-        $sequence = $ignoreEventId === null || $ignoreEventId === ''
-            ? $this->nextSequenceForCreate($normalizedTitle, $normalizedSpeakerSlugs, $dateSuffix)
-            : 1;
 
-        do {
-            $candidateParts = [$titleSlug, ...$normalizedSpeakerSlugs];
-
-            if ($sequence > 1) {
-                $candidateParts[] = (string) $sequence;
-            }
-
-            if ($dateSuffix !== '') {
-                $candidateParts[] = $dateSuffix;
-            }
-
-            $candidate = implode('-', $candidateParts);
-            $sequence++;
-        } while (SlugGenerator::exists(Event::class, $candidate, $ignoreEventId));
-
-        return $candidate;
+        return $this->buildUniqueSlug(
+            Event::class,
+            $titleSlug,
+            $normalizedSpeakerSlugs,
+            $dateSuffix,
+            $ignoreEventId,
+        );
     }
 
     public function forEvent(Event $event): string
@@ -201,21 +190,6 @@ class GenerateEventSlugAction
             ->filter()
             ->values()
             ->all();
-    }
-
-    /**
-     * @param  list<string>  $speakerSlugs
-     */
-    private function nextSequenceForCreate(string $title, array $speakerSlugs, string $dateSuffix): int
-    {
-        $matchingEvents = Event::query()
-            ->where('events.title', $title)
-            ->with(['speakers:id,slug'])
-            ->get()
-            ->filter(fn (Event $event): bool => $this->dateSuffixForEvent($event) === $dateSuffix
-                && $this->speakerSlugSegmentsForEvent($event) === $speakerSlugs);
-
-        return $matchingEvents->count() + 1;
     }
 
     private function slugDateForEvent(Event $event): ?CarbonInterface

@@ -2,9 +2,9 @@
 
 namespace App\Actions\Speakers;
 
-use AIArmada\Addressing\Models\AddressCountry;
-use AIArmada\CommerceSupport\Support\SlugGenerator;
+use App\Actions\Slugs\Concerns\BuildsUniqueSlug;
 use App\Actions\Slugs\Concerns\InteractsWithOrderedSlugModels;
+use App\Actions\Slugs\Concerns\ResolvesLocationSuffix;
 use App\Actions\Slugs\SyncCanonicalSlugAction;
 use App\Models\Speaker;
 use Illuminate\Support\Str;
@@ -13,7 +13,9 @@ use Lorisleiva\Actions\Concerns\AsAction;
 class GenerateSpeakerSlugAction
 {
     use AsAction;
+    use BuildsUniqueSlug;
     use InteractsWithOrderedSlugModels;
+    use ResolvesLocationSuffix;
 
     public function __construct(
         private readonly SyncCanonicalSlugAction $syncCanonicalSlugAction,
@@ -56,24 +58,14 @@ class GenerateSpeakerSlugAction
         }
 
         $locationSuffix = $this->locationSuffix($payload);
-        $sequence = $this->nextSequenceForExactIdentity($normalizedName, $displayName, $locationSuffix, $ignoreSpeakerId);
 
-        do {
-            $candidateParts = [$nameSlug];
-
-            if ($sequence > 1) {
-                $candidateParts[] = (string) $sequence;
-            }
-
-            if ($locationSuffix !== '') {
-                $candidateParts[] = $locationSuffix;
-            }
-
-            $candidate = implode('-', $candidateParts);
-            $sequence++;
-        } while (SlugGenerator::exists(Speaker::class, $candidate, $ignoreSpeakerId));
-
-        return $candidate;
+        return $this->buildUniqueSlug(
+            Speaker::class,
+            $nameSlug,
+            [],
+            $locationSuffix,
+            $ignoreSpeakerId,
+        );
     }
 
     public function forSpeaker(Speaker $speaker): string
@@ -95,32 +87,6 @@ class GenerateSpeakerSlugAction
             ],
             (string) $speaker->getKey(),
         );
-    }
-
-    private function nextSequenceForExactIdentity(string $name, string $displayName, string $locationSuffix, ?string $ignoreSpeakerId): int
-    {
-        $matchingSpeakers = Speaker::query()
-            ->where('speakers.name', $name)
-            ->with(['addresses'])
-            ->get()
-            ->filter(fn (Speaker $speaker): bool => $this->locationSuffixForSpeaker($speaker) === $locationSuffix
-                && $this->displayNameForSpeaker($speaker) === $displayName);
-
-        if ($ignoreSpeakerId !== null && $ignoreSpeakerId !== '') {
-            $existingSequence = $this->existingModelSequence($matchingSpeakers, $ignoreSpeakerId);
-
-            if ($existingSequence !== null) {
-                return $existingSequence;
-            }
-
-            $matchingSpeakers = $matchingSpeakers
-                ->reject(fn (Speaker $speaker): bool => (string) $speaker->getKey() === $ignoreSpeakerId)
-                ->values();
-        }
-
-        $matchingCount = $matchingSpeakers->count();
-
-        return $matchingCount > 0 ? $matchingCount + 1 : 1;
     }
 
     /**
@@ -150,20 +116,6 @@ class GenerateSpeakerSlugAction
         return implode('-', $segments);
     }
 
-    private function locationSuffixForSpeaker(Speaker $speaker): string
-    {
-        $speaker->loadMissing(['addresses']);
-
-        $address = $speaker->primaryAddress();
-
-        return $this->locationSuffix([
-            'city' => $address?->city,
-            'state' => $address?->state,
-            'country_id' => $address?->country_id,
-            'country_code' => $address?->country_code,
-        ]);
-    }
-
     /**
      * @param  array<string, mixed>  $payload
      */
@@ -175,66 +127,5 @@ class GenerateSpeakerSlugAction
             $payload['pre_nominal'] ?? null,
             $payload['post_nominal'] ?? null,
         );
-    }
-
-    private function displayNameForSpeaker(Speaker $speaker): string
-    {
-        return Speaker::formatDisplayedName(
-            $speaker->name,
-            $speaker->honorific,
-            $speaker->pre_nominal,
-            $speaker->post_nominal,
-        );
-    }
-
-    private function slugSegment(mixed $value): ?string
-    {
-        if (! is_string($value)) {
-            return null;
-        }
-
-        $segment = Str::slug($value);
-
-        return $segment !== '' ? $segment : null;
-    }
-
-    private function countryCodeSegment(mixed $value): ?string
-    {
-        if (! is_string($value)) {
-            return null;
-        }
-
-        $segment = Str::lower(trim($value));
-
-        return $segment !== '' ? $segment : null;
-    }
-
-    /**
-     * @param  array<string, mixed>  $payload
-     */
-    private function resolveCountryCode(array $payload): ?string
-    {
-        $countryId = $this->uuidValue($payload['country_id'] ?? null);
-
-        if ($countryId !== null) {
-            $resolved = AddressCountry::query()->whereKey($countryId)->value('iso2');
-
-            if (is_string($resolved) && trim($resolved) !== '') {
-                return trim($resolved);
-            }
-        }
-
-        $countryCode = $payload['country_code'] ?? null;
-
-        if (is_string($countryCode) && trim($countryCode) !== '') {
-            return trim($countryCode);
-        }
-
-        return null;
-    }
-
-    private function uuidValue(mixed $value): ?string
-    {
-        return is_string($value) && Str::isUuid($value) ? $value : null;
     }
 }
