@@ -19,8 +19,8 @@ use Illuminate\Support\Str;
 class TypesenseEventDiscovery implements EventDiscoveryAdapter
 {
     public function __construct(
-        private EventDiscoveryFilterSet $filterSet,
-        private EventCategoryCatalog $categoryCatalog,
+        private readonly EventDiscoveryFilterSet $filterSet,
+        private readonly EventCategoryCatalog $categoryCatalog,
     ) {}
 
     /** @return LengthAwarePaginator<int, Event> */

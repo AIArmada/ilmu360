@@ -205,8 +205,6 @@ class GenerateEventSlugAction
         return $resolvedDate?->format('j-n-y') ?? '';
     }
 
-    
-
     /**
      * @param  array<int, mixed>  $speakerSlugs
      * @return list<string>

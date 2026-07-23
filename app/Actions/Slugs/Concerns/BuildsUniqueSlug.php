@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Actions\Slugs\Concerns;
 
+use Illuminate\Database\Eloquent\Model;
+
 trait BuildsUniqueSlug
 {
     /**
-     * @param  class-string<\Illuminate\Database\Eloquent\Model>  $modelClass
+     * @param  class-string<Model>  $modelClass
      * @param  list<string>  $middleSegments
      */
     protected function buildUniqueSlug(
@@ -19,7 +21,7 @@ trait BuildsUniqueSlug
     ): string {
         $slugSet = array_flip($modelClass::query()
             ->where('slug', $baseSlug)
-            ->orWhere('slug', 'like', $baseSlug . '-%')
+            ->orWhere('slug', 'like', $baseSlug.'-%')
             ->when($ignoreId, fn ($q) => $q->where('id', '!=', $ignoreId))
             ->pluck('slug')
             ->toArray());
