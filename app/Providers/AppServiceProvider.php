@@ -49,7 +49,6 @@ use App\Models\Registration;
 use App\Models\Report;
 use App\Models\Series;
 use App\Models\Space;
-use App\Models\Speaker;
 use App\Models\User;
 use App\Models\Venue;
 use App\Observers\AddressableObserver;
@@ -63,7 +62,6 @@ use App\Observers\EventTermObserver;
 use App\Observers\EventTimeExpressionObserver;
 use App\Observers\InstitutionObserver;
 use App\Observers\ReferenceObserver;
-use App\Observers\SpeakerObserver;
 use App\Observers\VenueObserver;
 use App\Policies\AddressAreaPolicy;
 use App\Policies\AddressCountryPolicy;
@@ -360,7 +358,6 @@ class AppServiceProvider extends ServiceProvider
         EventTimeExpression::observe(EventTimeExpressionObserver::class);
         Institution::observe(InstitutionObserver::class);
         Reference::observe(ReferenceObserver::class);
-        Speaker::observe(SpeakerObserver::class);
         Venue::observe(VenueObserver::class);
 
         app()->instance($registrationKey, true);
