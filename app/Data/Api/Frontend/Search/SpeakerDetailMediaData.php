@@ -9,6 +9,7 @@ class SpeakerDetailMediaData extends Data
 {
     public function __construct(
         public string $avatar_url,
+        public string $main_url,
         public string $cover_url,
         public string $share_image_url,
     ) {}
@@ -17,6 +18,7 @@ class SpeakerDetailMediaData extends Data
     {
         return new self(
             avatar_url: (string) $speaker->public_avatar_url,
+            main_url: (string) $speaker->public_main_url,
             cover_url: $coverUrl,
             share_image_url: $speaker->hasMedia('avatar')
                 ? (string) $speaker->public_avatar_url
