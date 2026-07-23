@@ -162,9 +162,13 @@ class SpeakerContributionFormSchema
                             ->collection('main')
                             ->image()
                             ->imageEditor()
+                            ->imageAspectRatio('3:4')
+                            ->automaticallyOpenImageEditorForAspectRatio()
+                            ->imageEditorAspectRatioOptions(['3:4'])
+                            ->automaticallyCropImagesToAspectRatio()
                             ->responsiveImages()
-                            ->conversion('display')
-                            ->helperText(__('Primary speaker portrait or photo.')),
+                            ->conversion('card')
+                            ->helperText(__('Primary speaker portrait (3:4 ratio).')),
                         SpatieMediaLibraryFileUpload::make('cover')
                             ->label(__('Cover Image'))
                             ->collection('cover')

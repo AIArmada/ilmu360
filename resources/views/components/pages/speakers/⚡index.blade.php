@@ -174,12 +174,6 @@ new
     <div class="relative overflow-hidden border-b border-emerald-900/[0.06]">
         <!-- Background layers -->
         <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_18%_28%,rgba(5,101,82,0.10)_0%,transparent_42%),radial-gradient(ellipse_at_82%_18%,rgba(217,119,6,0.06)_0%,transparent_36%),linear-gradient(178deg,#fafaf7_0%,#f4f1e8_54%,#e7eee8_100%)]"></div>
-        <div class="absolute inset-0 opacity-[0.10]" style="background-image: url('{{ asset('images/pattern-bg.png') }}');"></div>
-        <div class="absolute -right-20 -top-20 h-64 w-64 rounded-full border border-emerald-800/[0.07]"></div>
-        <div class="absolute -right-4 -top-4 h-40 w-40 rounded-full border border-amber-400/[0.12]"></div>
-
-        <!-- Subtle dot grid accent -->
-        <div class="absolute inset-0 opacity-[0.04]" style="background-image: radial-gradient(circle at 1px 1px, rgb(5,101,82) 1px, transparent 0); background-size: 32px 32px;"></div>
 
         <div class="relative mx-auto max-w-7xl px-5 py-14 sm:px-6 sm:py-20 lg:px-8 lg:py-24">
             <div class="max-w-3xl scroll-reveal reveal-left revealed" x-intersect.once="$el.classList.add('revealed')" style="--reveal-d: 80ms">
@@ -308,7 +302,7 @@ new
                 </div>
             @else
                 <!-- Results Header -->
-                <div class="scroll-reveal reveal-up revealed mb-8 flex items-end justify-between gap-4 border-b border-slate-200/70 pb-6" x-intersect.once="$el.classList.add('revealed')" style="--reveal-d: 100ms">
+                <div class="mb-8 flex items-end justify-between gap-4 border-b border-slate-200/70 pb-6">
                     <div>
                         <h2 class="font-heading text-2xl font-bold tracking-tight text-emerald-950 sm:text-3xl">
                             @if(filled($search))
@@ -349,12 +343,10 @@ new
                             href="{{ route('speakers.show', $speaker) }}"
                             wire:key="speaker-directory-{{ $speaker->id }}"
                             wire:navigate
-                            class="scroll-reveal reveal-up revealed group relative flex min-h-[10rem] gap-0 overflow-hidden rounded-[1.5rem] border border-slate-200/80 bg-white transition-all duration-300 hover:-translate-y-1.5 hover:border-emerald-300/80 hover:shadow-[0_22px_50px_-28px_rgba(6,78,59,0.40)] sm:block sm:min-h-0"
-                            x-intersect.once="$el.classList.add('revealed')"
-                            style="--reveal-d: {{ ($loop->index % 4) * 60 + floor($loop->index / 4) * 40 }}ms"
+                            class="group relative flex min-h-[10rem] gap-0 overflow-hidden rounded-[1.5rem] border border-slate-200/80 bg-white transition-all duration-300 hover:-translate-y-1.5 hover:border-emerald-300/80 hover:shadow-[0_22px_50px_-28px_rgba(6,78,59,0.40)] sm:block sm:min-h-0"
                         >
                             <!-- Image area -->
-                            <div class="relative w-28 shrink-0 overflow-hidden bg-gradient-to-br from-[#faf5e8] via-[#eff5f1] to-[#dce9e2] sm:w-full sm:aspect-[4/5]">
+                            <div class="relative w-28 shrink-0 overflow-hidden bg-gradient-to-br from-[#faf5e8] via-[#eff5f1] to-[#dce9e2] sm:w-full sm:aspect-[3/4]">
                                 <!-- Dot pattern overlay -->
                                 <div class="absolute inset-0 opacity-[0.15]" style="background-image: radial-gradient(circle at 1.5px 1.5px, rgba(7,91,72,.14) 1px, transparent 0); background-size: 16px 16px;"></div>
                                 @php
@@ -365,13 +357,13 @@ new
                                         ->implode('');
                                 @endphp
 
-                                @if($speaker->hasMedia('avatar'))
+                                @if($speaker->hasMedia('main'))
                                     <img
-                                        src="{{ $speaker->public_avatar_url }}"
+                                        src="{{ $speaker->public_main_url }}"
                                         alt="{{ $speaker->formatted_name }}"
                                         class="relative h-full w-full object-cover object-top transition duration-500 ease-out group-hover:scale-[1.04]"
                                         width="320"
-                                        height="368"
+                                        height="427"
                                         loading="lazy"
                                     >
                                 @else
@@ -438,7 +430,7 @@ new
             @endif
 
             <!-- Community Contribution CTA -->
-            <section class="scroll-reveal reveal-up revealed mt-14 sm:mt-20" x-intersect.once="$el.classList.add('revealed')" style="--reveal-d: 200ms">
+            <section class="mt-14 sm:mt-20">
                 <div class="relative overflow-hidden rounded-[1.5rem] border border-emerald-800/15 bg-emerald-950 px-6 py-10 text-white shadow-[0_28px_80px_-38px_rgba(6,78,59,0.85)] sm:px-8 md:px-10 md:py-12">
                     <!-- Decorative elements -->
                     <div class="absolute inset-0 opacity-[0.12]" style="background-image: radial-gradient(circle at 1.5px 1.5px, rgba(255,255,255,.70) 1px, transparent 0); background-size: 22px 22px;"></div>

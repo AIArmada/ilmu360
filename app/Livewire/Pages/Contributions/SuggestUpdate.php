@@ -32,7 +32,10 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Tabs;
+use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -263,17 +266,45 @@ class SuggestUpdate extends Component implements HasActions, HasForms
      */
     private function speakerSubjectSchema(): array
     {
-        $components = SpeakerContributionFormSchema::components(
+        $sections = SpeakerContributionFormSchema::components(
             includeMedia: false,
             addressStatePath: 'address',
             regionOnlyAddress: true,
         );
 
-        if ($this->shouldShowDirectEditMediaSection()) {
-            array_splice($components, 3, 0, [$this->speakerDirectEditMediaSection()]);
-        }
+        // SpeakerContributionFormSchema::components(includeMedia: false) returns:
+        // 0: Profil Penceramah, 1: Address, 2: Affiliated Institution,
+        // 3: Education, 4: Contact, 5: Social Media
 
-        return $components;
+        $mediaSchema = $this->shouldShowDirectEditMediaSection()
+            ? [$this->speakerDirectEditMediaSection()]
+            : [];
+
+        return [
+            Tabs::make('SpeakerUpdateTabs')
+                ->id('speaker-update-tabs')
+                ->persistTab()
+                ->columnSpanFull()
+                ->tabs([
+                    Tab::make(__('Profil'))
+                        ->icon(Heroicon::User)
+                        ->schema([$sections[0], $sections[2]]),
+                    ...($mediaSchema !== [] ? [
+                        Tab::make(__('Media'))
+                            ->icon(Heroicon::Photo)
+                            ->schema($mediaSchema),
+                    ] : []),
+                    Tab::make(__('Lokasi'))
+                        ->icon(Heroicon::MapPin)
+                        ->schema([$sections[1]]),
+                    Tab::make(__('Pendidikan'))
+                        ->icon(Heroicon::AcademicCap)
+                        ->schema([$sections[3]]),
+                    Tab::make(__('Hubungan'))
+                        ->icon(Heroicon::ChatBubbleLeftRight)
+                        ->schema([$sections[4], $sections[5]]),
+                ]),
+        ];
     }
 
     private function fixedEventTimezone(): ?string

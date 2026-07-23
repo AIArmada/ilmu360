@@ -361,3 +361,10 @@ html.light [data-flux-button][data-variant="primary"]:hover {
 .fi-select-input .fi-select-input-ctn-clearable .fi-select-input-btn {
     padding-inline-end: 3.5rem !important;
 }
+
+/* Tabs: icon-only on mobile to prevent overflow cutoff */
+@media (max-width: 639px) {
+    .fi-tabs-item:has(svg) .fi-tabs-item-label {
+        display: none;
+    }
+}

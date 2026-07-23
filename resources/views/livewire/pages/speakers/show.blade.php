@@ -164,40 +164,37 @@
                                 @endif
                             </div>
 
-                            <div class="mt-8 grid grid-cols-3 gap-2 sm:gap-3">
-                                <div class="rounded-2xl border border-emerald-100 bg-emerald-50/80 px-3 py-4 text-center sm:px-5">
-                                    <p class="font-heading text-2xl font-bold text-emerald-950">{{ number_format($upcomingTotal) }}</p>
-                                    <p class="mt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-emerald-700 sm:text-xs">{{ __('Akan Datang') }}</p>
-                                </div>
-                                <div class="rounded-2xl border border-amber-100 bg-amber-50/80 px-3 py-4 text-center sm:px-5">
-                                    <p class="font-heading text-2xl font-bold text-amber-950">{{ number_format($pastTotal) }}</p>
-                                    <p class="mt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-amber-700 sm:text-xs">{{ __('Majlis Lepas') }}</p>
-                                </div>
-                                <div class="rounded-2xl border border-sky-100 bg-sky-50/80 px-3 py-4 text-center sm:px-5">
-                                    <p class="font-heading text-2xl font-bold text-sky-950">{{ number_format($socialLinks->count()) }}</p>
-                                    <p class="mt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-sky-700 sm:text-xs">{{ __('Saluran Rasmi') }}</p>
-                                </div>
-                            </div>
-
                             <div class="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-                                <button
-                                    type="button"
-                                    wire:click="toggleFollow"
-                                    wire:loading.attr="disabled"
-                                    class="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-emerald-800 px-6 text-sm font-bold text-white shadow-lg shadow-emerald-900/15 transition hover:-translate-y-0.5 hover:bg-emerald-700 disabled:cursor-wait disabled:opacity-70"
-                                >
-                                    <svg class="h-5 w-5" fill="{{ $this->isFollowing ? 'currentColor' : 'none' }}" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185v15.065L12 16.197l-7.5 4.375V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z" />
-                                    </svg>
-                                    <span wire:loading.remove wire:target="toggleFollow">
-                                        @if($this->isFollowing)
-                                            {{ __('Mengikuti Penceramah') }}
-                                        @else
-                                            {{ __('Ikuti Penceramah') }}
-                                        @endif
-                                    </span>
-                                    <span wire:loading wire:target="toggleFollow">{{ __('Memproses...') }}</span>
-                                </button>
+                                @auth
+                                    <button
+                                        type="button"
+                                        wire:click="toggleFollow"
+                                        wire:loading.attr="disabled"
+                                        class="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-emerald-800 px-6 text-sm font-bold text-white shadow-lg shadow-emerald-900/15 transition hover:-translate-y-0.5 hover:bg-emerald-700 disabled:cursor-wait disabled:opacity-70"
+                                    >
+                                        <svg class="h-5 w-5" fill="{{ $this->isFollowing ? 'currentColor' : 'none' }}" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185v15.065L12 16.197l-7.5 4.375V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z" />
+                                        </svg>
+                                        <span wire:loading.remove wire:target="toggleFollow">
+                                            @if($this->isFollowing)
+                                                {{ __('Mengikuti Penceramah') }}
+                                            @else
+                                                {{ __('Ikuti Penceramah') }}
+                                            @endif
+                                        </span>
+                                        <span wire:loading wire:target="toggleFollow">{{ __('Memproses...') }}</span>
+                                    </button>
+                                @else
+                                    <a
+                                        href="{{ \App\Support\Auth\IntendedRedirect::loginUrl($speakerRedirectUrl) }}"
+                                        class="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-emerald-800 px-6 text-sm font-bold text-white shadow-lg shadow-emerald-900/15 transition hover:-translate-y-0.5 hover:bg-emerald-700"
+                                    >
+                                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185v15.065L12 16.197l-7.5 4.375V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z" />
+                                        </svg>
+                                        {{ __('Log masuk untuk ikuti') }}
+                                    </a>
+                                @endauth
 
                                 <a
                                     href="#speaker-share-panel"
@@ -208,29 +205,20 @@
                                     </svg>
                                     {{ __('Kongsi Profil') }}
                                 </a>
-                            </div>
 
-                            @guest
-                                <div class="mt-5 rounded-2xl border border-amber-200/70 bg-amber-50/70 p-4">
-                                    <p class="text-sm leading-6 text-amber-950">
-                                        {{ __('Daftar atau log masuk untuk mengikuti penceramah dan menerima kemas kini majlis mereka.') }}
-                                    </p>
-                                    <div class="mt-3 flex flex-wrap gap-2">
-                                        <a
-                                            href="{{ \App\Support\Auth\IntendedRedirect::registerUrl($speakerRedirectUrl) }}"
-                                            class="inline-flex h-10 items-center rounded-xl bg-amber-700 px-4 text-xs font-bold text-white transition hover:bg-amber-600"
-                                        >
-                                            {{ __('Daftar') }}
-                                        </a>
-                                        <a
-                                            href="{{ \App\Support\Auth\IntendedRedirect::loginUrl($speakerRedirectUrl) }}"
-                                            class="inline-flex h-10 items-center rounded-xl border border-amber-300 bg-white px-4 text-xs font-bold text-amber-900 transition hover:bg-amber-100"
-                                        >
-                                            {{ __('Log Masuk') }}
-                                        </a>
-                                    </div>
-                                </div>
-                            @endguest
+                                @if(auth()->user()?->hasAnyRole(['super_admin', 'admin']))
+                                    <a
+                                        href="{{ \App\Filament\Resources\Speakers\SpeakerResource::getUrl('edit', ['record' => $speaker], panel: 'admin') }}"
+                                        target="_blank"
+                                        class="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-6 text-sm font-bold text-amber-800 transition hover:-translate-y-0.5 hover:border-amber-300 hover:bg-amber-100"
+                                    >
+                                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+                                        </svg>
+                                        {{ __('Edit') }}
+                                    </a>
+                                @endif
+                            </div>
                         </div>
                     </div>
                 </div>

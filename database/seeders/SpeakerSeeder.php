@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
+use App\Actions\Speakers\GenerateSpeakerSlugAction;
 use App\Models\Speaker;
 use App\Models\User;
 use Illuminate\Database\Seeder;
@@ -57,7 +58,7 @@ class SpeakerSeeder extends Seeder
             $speaker = Speaker::firstOrCreate(
                 ['name' => $name],
                 [
-                    'slug' => Str::slug($name),
+                    'slug' => app(GenerateSpeakerSlugAction::class)->handle($name),
                     'bio' => [
                         'type' => 'doc',
                         'content' => [[

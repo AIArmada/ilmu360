@@ -248,7 +248,7 @@ class Speaker extends Model implements AuditableContract, HasMedia
             $avatarMedia = $this->getFirstMedia('avatar');
 
             if ($avatarMedia instanceof Media) {
-                return $avatarMedia->getAvailableUrl(['card', 'profile', 'thumb']) ?: $avatarMedia->getUrl();
+                return $avatarMedia->getAvailableUrl(['profile', 'thumb']) ?: $avatarMedia->getUrl();
             }
         }
 
@@ -261,7 +261,7 @@ class Speaker extends Model implements AuditableContract, HasMedia
             $mainMedia = $this->getFirstMedia('main');
 
             if ($mainMedia instanceof Media) {
-                return $mainMedia->getAvailableUrl(['display', 'main_thumb']) ?: $mainMedia->getUrl();
+                return $mainMedia->getAvailableUrl(['card', 'main_thumb']) ?: $mainMedia->getUrl();
             }
         }
 
@@ -717,16 +717,16 @@ class Speaker extends Model implements AuditableContract, HasMedia
             ->sharpen(10)
             ->format('webp');
 
-        $this->addMediaConversion('card')
-            ->performOnCollections('avatar')
-            ->width(1080)
-            ->height(1440)
-            ->format('webp');
-
         $this->addMediaConversion('profile')
             ->performOnCollections('avatar')
             ->width(1080)
             ->height(1080)
+            ->format('webp');
+
+        $this->addMediaConversion('card')
+            ->performOnCollections('main')
+            ->width(640)
+            ->height(853)
             ->format('webp');
 
         $this->addMediaConversion('main_thumb')
@@ -734,11 +734,6 @@ class Speaker extends Model implements AuditableContract, HasMedia
             ->width(1080)
             ->height(1080)
             ->sharpen(10)
-            ->format('webp');
-
-        $this->addMediaConversion('display')
-            ->performOnCollections('main')
-            ->fit(Fit::Crop, 1080, 1440)
             ->format('webp');
 
         $this->addMediaConversion('banner')

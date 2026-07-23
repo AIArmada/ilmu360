@@ -7,6 +7,7 @@ use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
+use App\Actions\Speakers\GenerateSpeakerSlugAction;
 use App\Models\Institution;
 use App\Models\Speaker;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -228,7 +229,7 @@ class SpeakerFactory extends Factory
             'post_nominal' => $postNominal,
             'is_freelance' => fake()->boolean(20),
             'qualifications' => $qualifications,
-            'slug' => Str::slug($name).'-'.Str::lower(Str::random(7)),
+            'slug' => (string) Str::uuid(),
             'bio' => fake()->boolean(70)
                 ? [
                     'type' => 'doc',
@@ -262,6 +263,11 @@ class SpeakerFactory extends Factory
                     'state' => fake()->state(),
                 ]);
                 $speaker->attachAddress($address, 'primary', true);
+
+                $speaker->refresh();
+                $speaker->forceFill([
+                    'slug' => app(GenerateSpeakerSlugAction::class)->forSpeaker($speaker),
+                ])->saveQuietly();
 
                 $speaker->contactMethods()->create([
                     'type' => ContactMethodType::Email->value,
