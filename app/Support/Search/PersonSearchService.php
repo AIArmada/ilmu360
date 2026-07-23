@@ -3,7 +3,7 @@
 namespace App\Support\Search;
 
 use App\Contracts\PublicDiscoveryAdapter;
-use App\Models\Speaker;
+use App\Models\Person;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -11,11 +11,11 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
-class SpeakerSearchService implements PublicDiscoveryAdapter
+class PersonSearchService implements PublicDiscoveryAdapter
 {
     private const int PUBLIC_SEARCH_CACHE_TTL = 600;
 
-    private const string PUBLIC_SEARCH_CACHE_VERSION_KEY = 'speaker_search_public_version_v1';
+    private const string PUBLIC_SEARCH_CACHE_VERSION_KEY = 'person_search_public_version_v1';
 
     /**
      * @param  iterable<int, string|\BackedEnum>|string|null  $honorific
@@ -28,7 +28,7 @@ class SpeakerSearchService implements PublicDiscoveryAdapter
         iterable|string|null $preNominal = null,
         iterable|string|null $postNominal = null,
     ): string {
-        $formattedName = Speaker::formatDisplayedName($name, $honorific, $preNominal, $postNominal);
+        $formattedName = Person::formatDisplayedName($name, $honorific, $preNominal, $postNominal);
 
         $rawDecorations = collect([
             ...$this->normalizedStringValues($honorific),
@@ -75,8 +75,8 @@ class SpeakerSearchService implements PublicDiscoveryAdapter
     }
 
     /**
-     * @param  Builder<Speaker>  $query
-     * @return Builder<Speaker>
+     * @param  Builder<Person>  $query
+     * @return Builder<Person>
      */
     public function applyIndexedSearch(Builder $query, string $search): Builder
     {
@@ -94,7 +94,7 @@ class SpeakerSearchService implements PublicDiscoveryAdapter
             }
         }
 
-        if (! $this->hasSpeakerSearchTermsTable()) {
+        if (! $this->hasPersonSearchTermsTable()) {
             return $this->applyDatabaseNameSearch($query, $normalizedSearch);
         }
 
@@ -102,7 +102,7 @@ class SpeakerSearchService implements PublicDiscoveryAdapter
     }
 
     /**
-     * @param  Builder<Speaker>  $query
+     * @param  Builder<Person>  $query
      * @return list<string>
      */
     public function scopedSearchIds(Builder $query, string $search): array
@@ -133,8 +133,8 @@ class SpeakerSearchService implements PublicDiscoveryAdapter
     }
 
     /**
-     * @param  Builder<Speaker>  $query
-     * @return Builder<Speaker>
+     * @param  Builder<Person>  $query
+     * @return Builder<Person>
      */
     private function applyIndexedSearchWithLocalIndex(Builder $query, string $search): Builder
     {
@@ -150,17 +150,17 @@ class SpeakerSearchService implements PublicDiscoveryAdapter
             foreach ($searchTokens as $token) {
                 $speakerQuery->whereExists(function ($termQuery) use ($qualifiedSpeakerId, $token): void {
                     $termQuery->selectRaw('1')
-                        ->from('speaker_search_terms')
-                        ->whereColumn('speaker_search_terms.speaker_id', $qualifiedSpeakerId)
-                        ->where('speaker_search_terms.term', 'like', '%'.$token.'%');
+                        ->from('person_search_terms')
+                        ->whereColumn('person_search_terms.person_id', $qualifiedSpeakerId)
+                        ->where('person_search_terms.term', 'like', '%'.$token.'%');
                 });
             }
         });
     }
 
     /**
-     * @param  Builder<Speaker>  $query
-     * @return Builder<Speaker>
+     * @param  Builder<Person>  $query
+     * @return Builder<Person>
      */
     public function applyPublicCachedSearch(Builder $query, string $search): Builder
     {
@@ -185,7 +185,7 @@ class SpeakerSearchService implements PublicDiscoveryAdapter
         }
 
         $cacheKey = sprintf(
-            'speaker_search_public:%s:%s',
+            'person_search_public:%s:%s',
             $this->publicSearchCacheVersion(),
             md5($normalizedSearch),
         );
@@ -238,26 +238,26 @@ class SpeakerSearchService implements PublicDiscoveryAdapter
      */
     private function publicSearchIdsFromLocalSearch(string $normalizedSearch): array
     {
-        if (! $this->hasSpeakerSearchTermsTable()) {
-            return Speaker::query()
+        if (! $this->hasPersonSearchTermsTable()) {
+            return Person::query()
                 ->active()
                 ->where('status', 'verified')
-                ->select('speakers.id')
+                ->select('persons.id')
                 ->tap(fn (Builder $query): Builder => $this->applyDatabaseNameSearch($query, $normalizedSearch))
                 ->orderBy('name')
-                ->pluck('speakers.id')
+                ->pluck('persons.id')
                 ->map(static fn (mixed $id): string => (string) $id)
                 ->values()
                 ->all();
         }
 
-        return Speaker::query()
+        return Person::query()
             ->active()
             ->where('status', 'verified')
-            ->select('speakers.id')
+            ->select('persons.id')
             ->tap(fn (Builder $query): Builder => $this->applyIndexedSearchWithLocalIndex($query, $normalizedSearch))
             ->orderBy('name')
-            ->pluck('speakers.id')
+            ->pluck('persons.id')
             ->map(static fn (mixed $id): string => (string) $id)
             ->values()
             ->all();
@@ -275,7 +275,7 @@ class SpeakerSearchService implements PublicDiscoveryAdapter
         }
 
         $cacheKey = sprintf(
-            'speaker_search_public_fuzzy:%s:%s',
+            'person_search_public_fuzzy:%s:%s',
             $this->publicSearchCacheVersion(),
             md5($normalizedSearch),
         );
@@ -293,7 +293,7 @@ class SpeakerSearchService implements PublicDiscoveryAdapter
                 }
             }
 
-            $speakerQuery = Speaker::query()
+            $speakerQuery = Person::query()
                 ->active()
                 ->where('status', 'verified')
                 ->select(['id'])
@@ -309,7 +309,7 @@ class SpeakerSearchService implements PublicDiscoveryAdapter
 
             return $speakerQuery
                 ->get()
-                ->map(function (Speaker $speaker) use ($normalizedSearch): array {
+                ->map(function (Person $speaker) use ($normalizedSearch): array {
                     $candidate = $this->speakerCandidateSearchableName($speaker);
 
                     if ($candidate === '') {
@@ -349,7 +349,7 @@ class SpeakerSearchService implements PublicDiscoveryAdapter
     }
 
     /**
-     * @param  Builder<Speaker>  $query
+     * @param  Builder<Person>  $query
      * @return list<string>
      */
     private function scopedFuzzySearchIds(Builder $query, string $normalizedSearch): array
@@ -377,7 +377,7 @@ class SpeakerSearchService implements PublicDiscoveryAdapter
 
         return $speakerQuery
             ->get()
-            ->map(function (Speaker $speaker) use ($normalizedSearch): array {
+            ->map(function (Person $speaker) use ($normalizedSearch): array {
                 $candidate = $this->speakerCandidateSearchableName($speaker);
 
                 if ($candidate === '') {
@@ -414,8 +414,8 @@ class SpeakerSearchService implements PublicDiscoveryAdapter
     }
 
     /**
-     * @param  Builder<Speaker>  $query
-     * @return Builder<Speaker>
+     * @param  Builder<Person>  $query
+     * @return Builder<Person>
      */
     private function applyFuzzyCandidateFilter(Builder $query, string $normalizedSearch): Builder
     {
@@ -427,8 +427,8 @@ class SpeakerSearchService implements PublicDiscoveryAdapter
 
         $operator = DB::connection($query->getModel()->getConnectionName())->getDriverName() === 'pgsql' ? 'ILIKE' : 'LIKE';
         $columns = $this->hasSearchableNameColumn()
-            ? ['speakers.searchable_name']
-            : ['speakers.name'];
+            ? ['persons.searchable_name']
+            : ['persons.name'];
 
         return $query->where(function (Builder $candidateQuery) use ($columns, $operator, $patterns): void {
             foreach ($patterns as $pattern) {
@@ -440,14 +440,14 @@ class SpeakerSearchService implements PublicDiscoveryAdapter
     }
 
     /**
-     * @param  Builder<Speaker>  $query
-     * @return Builder<Speaker>
+     * @param  Builder<Person>  $query
+     * @return Builder<Person>
      */
     private function applyFuzzyCandidateOrdering(Builder $query, string $normalizedSearch): Builder
     {
         $primaryColumn = $this->hasSearchableNameColumn()
-            ? 'speakers.searchable_name'
-            : 'speakers.name';
+            ? 'persons.searchable_name'
+            : 'persons.name';
 
         return $query
             ->orderByRaw(
@@ -456,7 +456,7 @@ class SpeakerSearchService implements PublicDiscoveryAdapter
             )
             ->orderByRaw("length(coalesce({$primaryColumn}, ''))")
             ->orderBy($primaryColumn)
-            ->orderBy('speakers.id');
+            ->orderBy('persons.id');
     }
 
     protected function shouldUseScoutSearch(): bool
@@ -470,8 +470,8 @@ class SpeakerSearchService implements PublicDiscoveryAdapter
     }
 
     /**
-     * @param  Builder<Speaker>  $query
-     * @return Builder<Speaker>
+     * @param  Builder<Person>  $query
+     * @return Builder<Person>
      */
     protected function applyScoutSearch(Builder $query, string $search): Builder
     {
@@ -493,7 +493,7 @@ class SpeakerSearchService implements PublicDiscoveryAdapter
     protected function searchIdsWithScout(string $search, array $options = []): array
     {
         if ($this->scoutDriver() === 'database') {
-            return Speaker::search($search)
+            return Person::search($search)
                 ->query(fn (Builder $query): Builder => $query->limit($this->typesenseResultLimit()))
                 ->get()
                 ->pluck('id')
@@ -502,7 +502,7 @@ class SpeakerSearchService implements PublicDiscoveryAdapter
                 ->all();
         }
 
-        $rawResults = Speaker::search($search)
+        $rawResults = Person::search($search)
             ->options([
                 'query_by' => 'formatted_name,search_text,name,job_title',
                 'per_page' => $this->typesenseResultLimit(),
@@ -540,14 +540,14 @@ class SpeakerSearchService implements PublicDiscoveryAdapter
         return (string) config('scout.driver');
     }
 
-    public function syncIndex(Speaker $speaker): void
+    public function syncIndex(Person $speaker): void
     {
-        if (! $this->hasSpeakerSearchTermsTable()) {
+        if (! $this->hasPersonSearchTermsTable()) {
             return;
         }
 
-        DB::table('speaker_search_terms')
-            ->where('speaker_id', $speaker->getKey())
+        DB::table('person_search_terms')
+            ->where('person_id', $speaker->getKey())
             ->delete();
 
         $terms = $this->buildSearchTerms(
@@ -561,18 +561,18 @@ class SpeakerSearchService implements PublicDiscoveryAdapter
             return;
         }
 
-        DB::table('speaker_search_terms')->insert(
+        DB::table('person_search_terms')->insert(
             collect($terms)
                 ->map(fn (string $term): array => [
                     'id' => (string) Str::uuid(),
-                    'speaker_id' => (string) $speaker->getKey(),
+                    'person_id' => (string) $speaker->getKey(),
                     'term' => $term,
                 ])
                 ->all()
         );
     }
 
-    public function syncSpeakerRecord(Speaker $speaker): void
+    public function syncSpeakerRecord(Person $speaker): void
     {
         $this->syncSpeakerRecordWithOptions($speaker, true);
     }
@@ -581,7 +581,7 @@ class SpeakerSearchService implements PublicDiscoveryAdapter
     {
         $processed = 0;
 
-        Speaker::query()
+        Person::query()
             ->select(['id', 'name', 'honorific', 'pre_nominal', 'post_nominal'])
             ->orderBy('id')
             ->chunk(max(1, $chunkSize), function ($speakers) use (&$processed): void {
@@ -598,13 +598,13 @@ class SpeakerSearchService implements PublicDiscoveryAdapter
 
     public function searchIndexSchemaReady(): bool
     {
-        return $this->hasSearchableNameColumn() && $this->hasSpeakerSearchTermsTable();
+        return $this->hasSearchableNameColumn() && $this->hasPersonSearchTermsTable();
     }
 
-    private function syncSpeakerRecordWithOptions(Speaker $speaker, bool $bustCache): void
+    private function syncSpeakerRecordWithOptions(Person $speaker, bool $bustCache): void
     {
         if ($this->hasSearchableNameColumn()) {
-            DB::table('speakers')
+            DB::table('persons')
                 ->where('id', $speaker->getKey())
                 ->update([
                     'searchable_name' => $this->buildSearchableName(
@@ -623,18 +623,18 @@ class SpeakerSearchService implements PublicDiscoveryAdapter
         }
     }
 
-    public function purgeIndex(Speaker $speaker): void
+    public function purgeIndex(Person $speaker): void
     {
-        if (! $this->hasSpeakerSearchTermsTable()) {
+        if (! $this->hasPersonSearchTermsTable()) {
             return;
         }
 
-        DB::table('speaker_search_terms')
-            ->where('speaker_id', $speaker->getKey())
+        DB::table('person_search_terms')
+            ->where('person_id', $speaker->getKey())
             ->delete();
     }
 
-    public function purgeSpeakerRecord(Speaker $speaker): void
+    public function purgeSpeakerRecord(Person $speaker): void
     {
         $this->purgeIndex($speaker);
         $this->bustPublicSearchCache();
@@ -683,8 +683,8 @@ class SpeakerSearchService implements PublicDiscoveryAdapter
     }
 
     /**
-     * @param  Builder<Speaker>  $query
-     * @return Builder<Speaker>
+     * @param  Builder<Person>  $query
+     * @return Builder<Person>
      */
     private function applyDatabaseNameSearch(Builder $query, string $search): Builder
     {
@@ -713,7 +713,7 @@ class SpeakerSearchService implements PublicDiscoveryAdapter
         });
     }
 
-    private function speakerCandidateSearchableName(Speaker $speaker): string
+    private function speakerCandidateSearchableName(Person $speaker): string
     {
         $candidate = $speaker->searchable_name;
 
@@ -884,12 +884,12 @@ class SpeakerSearchService implements PublicDiscoveryAdapter
 
     private function hasSearchableNameColumn(): bool
     {
-        return Schema::hasColumn('speakers', 'searchable_name');
+        return Schema::hasColumn('persons', 'searchable_name');
     }
 
-    private function hasSpeakerSearchTermsTable(): bool
+    private function hasPersonSearchTermsTable(): bool
     {
-        return Schema::hasTable('speaker_search_terms');
+        return Schema::hasTable('person_search_terms');
     }
 
     /**

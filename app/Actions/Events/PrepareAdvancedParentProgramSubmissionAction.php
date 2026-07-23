@@ -3,7 +3,7 @@
 namespace App\Actions\Events;
 
 use App\Models\Institution;
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\ValidationException;
@@ -53,7 +53,7 @@ class PrepareAdvancedParentProgramSubmissionAction
         ];
     }
 
-    protected function resolvePrimaryOrganizer(User $user, string $primaryOrganizerId): Institution|Speaker
+    protected function resolvePrimaryOrganizer(User $user, string $primaryOrganizerId): Institution|Person
     {
         $membershipOptions = $this->resolveAdvancedBuilderMembershipOptionsAction->handle($user);
 
@@ -66,9 +66,9 @@ class PrepareAdvancedParentProgramSubmissionAction
         }
 
         if (array_key_exists($primaryOrganizerId, $membershipOptions['speaker_options'])) {
-            $speaker = Speaker::query()->find($primaryOrganizerId);
+            $speaker = Person::query()->find($primaryOrganizerId);
 
-            if ($speaker instanceof Speaker) {
+            if ($speaker instanceof Person) {
                 return $speaker;
             }
         }
@@ -76,7 +76,7 @@ class PrepareAdvancedParentProgramSubmissionAction
         abort(403);
     }
 
-    protected function resolveLocationInstitutionId(User $user, Institution|Speaker $primaryOrganizer, mixed $locationInstitutionId): ?string
+    protected function resolveLocationInstitutionId(User $user, Institution|Person $primaryOrganizer, mixed $locationInstitutionId): ?string
     {
         if ($primaryOrganizer instanceof Institution) {
             return (string) $primaryOrganizer->getKey();

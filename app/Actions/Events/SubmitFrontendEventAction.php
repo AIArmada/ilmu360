@@ -16,7 +16,7 @@ use App\Enums\EventVisibility;
 use App\Models\Event;
 use App\Models\EventSubmission;
 use App\Models\Institution;
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Models\User;
 use App\Support\Events\OrganizerResolver;
 use App\Support\Submission\EntitySubmissionAccess;
@@ -518,13 +518,13 @@ class SubmitFrontendEventAction
 
     /**
      * @param  array<string, mixed>  $validated
-     * @return array{0: Institution|Speaker, 1: string|null, 2: string|null}
+     * @return array{0: Institution|Person, 1: string|null, 2: string|null}
      */
     private function resolveOrganizerAndLocation(array $validated, string $validationKeyPrefix = ''): array
     {
         $primaryOrganizer = $this->resolvePrimaryOrganizer($validated['primary_organizer_id'] ?? null);
 
-        if (! $primaryOrganizer instanceof Institution && ! $primaryOrganizer instanceof Speaker) {
+        if (! $primaryOrganizer instanceof Institution && ! $primaryOrganizer instanceof Person) {
             throw ValidationException::withMessages([
                 $this->validationKey('primary_organizer_id', $validationKeyPrefix) => __('Sila pilih penganjur utama.'),
             ]);
@@ -559,7 +559,7 @@ class SubmitFrontendEventAction
         return [$primaryOrganizer, $targetInstitutionId, $targetVenueId];
     }
 
-    private function resolvePrimaryOrganizer(mixed $primaryOrganizerId): Institution|Speaker|null
+    private function resolvePrimaryOrganizer(mixed $primaryOrganizerId): Institution|Person|null
     {
         $organizerId = is_string($primaryOrganizerId) ? trim($primaryOrganizerId) : '';
 
@@ -576,7 +576,7 @@ class SubmitFrontendEventAction
 
         return match (true) {
             $organizer instanceof Institution => 'institution',
-            $organizer instanceof Speaker => 'speaker',
+            $organizer instanceof Person => 'speaker',
             default => null,
         };
     }

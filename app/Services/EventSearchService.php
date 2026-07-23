@@ -9,8 +9,8 @@ use App\Models\Event;
 use App\Support\EventDiscovery\EventDiscoveryFilterSet;
 use App\Support\EventDiscovery\FuzzyEventMatcher;
 use App\Support\Search\InstitutionSearchService;
+use App\Support\Search\PersonSearchService;
 use App\Support\Search\ReferenceSearchService;
-use App\Support\Search\SpeakerSearchService;
 use App\Support\Search\TypesenseHealthCheckService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Pagination\LengthAwarePaginator as Paginator;
@@ -22,7 +22,7 @@ class EventSearchService
 {
     public function __construct(
         private readonly TypesenseHealthCheckService $healthCheck,
-        private readonly SpeakerSearchService $speakerSearch,
+        private readonly PersonSearchService $personSearch,
         private readonly InstitutionSearchService $institutionSearch,
         private readonly ReferenceSearchService $referenceSearch,
         private readonly EventCategoryCatalog $categoryCatalog,
@@ -102,7 +102,7 @@ class EventSearchService
         return new PostgresEventDiscovery(
             fuzzyMatcher: $this->fuzzyMatcher,
             filterSet: $this->filterSet,
-            speakerSearch: $this->speakerSearch,
+            speakerSearch: $this->personSearch,
             institutionSearch: $this->institutionSearch,
             referenceSearch: $this->referenceSearch,
             categoryCatalog: $this->categoryCatalog,

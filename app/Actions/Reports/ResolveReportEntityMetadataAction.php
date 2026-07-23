@@ -5,8 +5,8 @@ namespace App\Actions\Reports;
 use App\Models\DonationChannel;
 use App\Models\Event;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
-use App\Models\Speaker;
 use InvalidArgumentException;
 use Lorisleiva\Actions\Concerns\AsAction;
 
@@ -30,7 +30,7 @@ class ResolveReportEntityMetadataAction
             ],
             'speaker' => [
                 'label' => __('Speaker'),
-                'model_class' => Speaker::class,
+                'model_class' => Person::class,
             ],
             'reference' => [
                 'label' => __('Reference'),

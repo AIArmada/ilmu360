@@ -8,7 +8,7 @@ use App\Actions\Slugs\SyncCanonicalSlugAction;
 use App\Enums\EventKeyPersonRole;
 use App\Models\Event;
 use App\Models\Institution;
-use App\Models\Speaker;
+use App\Models\Person;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -49,7 +49,7 @@ class GenerateEventSlugAction
             return false;
         }
 
-        $speakerIds = Speaker::query()
+        $speakerIds = Person::query()
             ->where('name', $normalizedSpeakerName)
             ->pluck('id');
 
@@ -59,7 +59,7 @@ class GenerateEventSlugAction
                     $speakerQuery->where('speakers.name', $normalizedSpeakerName);
                 })->orWhereHas('involvements', function ($involvementQuery) use ($speakerIds): void {
                     $involvementQuery
-                        ->where('involveable_type', Speaker::class)
+                        ->where('involveable_type', Person::class)
                         ->whereIn('involveable_id', $speakerIds)
                         ->where('role_code', 'organizer')
                         ->where('is_primary', true);
@@ -87,7 +87,7 @@ class GenerateEventSlugAction
                         ->where('role_code', EventKeyPersonRole::Speaker->value);
                 })->orWhereHas('involvements', function ($involvementQuery) use ($normalizedSpeakerId): void {
                     $involvementQuery
-                        ->where('involveable_type', Speaker::class)
+                        ->where('involveable_type', Person::class)
                         ->where('involveable_id', $normalizedSpeakerId)
                         ->where('role_code', 'organizer')
                         ->where('is_primary', true);
@@ -109,11 +109,11 @@ class GenerateEventSlugAction
      * @param  string[]  $speakerIds
      * @return string[]
      */
-    public function speakerSlugSegmentsForState(array $speakerIds, Institution|Speaker|null $primaryOrganizer): array
+    public function speakerSlugSegmentsForState(array $speakerIds, Institution|Person|null $primaryOrganizer): array
     {
         $segments = $this->speakerSlugSegmentsForSpeakerIds($speakerIds);
 
-        if ($segments === [] && $primaryOrganizer instanceof Speaker) {
+        if ($segments === [] && $primaryOrganizer instanceof Person) {
             $segments = $this->speakerSlugSegmentsForSpeakerIds([
                 (string) $primaryOrganizer->getKey(),
             ]);
@@ -174,11 +174,11 @@ class GenerateEventSlugAction
             return [];
         }
 
-        /** @var Collection<string, Speaker> $speakersById */
-        $speakersById = Speaker::query()
+        /** @var Collection<string, Person> $speakersById */
+        $speakersById = Person::query()
             ->whereIn('id', $normalizedSpeakerIds)
             ->get(['id', 'slug'])
-            ->keyBy(fn (Speaker $speaker): string => (string) $speaker->getKey());
+            ->keyBy(fn (Person $speaker): string => (string) $speaker->getKey());
 
         return collect($normalizedSpeakerIds)
             ->map(function (string $speakerId) use ($speakersById): ?string {
@@ -257,7 +257,7 @@ class GenerateEventSlugAction
         $event->loadMissing(['speakers:id,slug', 'primaryOrganizerInvolvement.involveable']);
 
         $speakerSlugSegments = $event->speakers
-            ->map(function (Speaker $speaker): ?string {
+            ->map(function (Person $speaker): ?string {
                 $speakerSlug = $speaker->slug;
 
                 return is_string($speakerSlug) && $speakerSlug !== ''
@@ -274,7 +274,7 @@ class GenerateEventSlugAction
 
         $organizer = $event->primaryOrganizerInvolvement?->involveable;
 
-        if ($organizer instanceof Speaker && is_string($organizer->slug) && $organizer->slug !== '') {
+        if ($organizer instanceof Person && is_string($organizer->slug) && $organizer->slug !== '') {
             return [$organizer->slug];
         }
 

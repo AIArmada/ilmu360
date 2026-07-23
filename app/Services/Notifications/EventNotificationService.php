@@ -14,9 +14,9 @@ use App\Models\Event;
 use App\Models\EventChangeAnnouncement;
 use App\Models\EventCheckin;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Registration;
 use App\Models\SavedSearch;
-use App\Models\Speaker;
 use App\Models\User;
 use App\Notifications\InAppNotification;
 use App\Services\EventSearchService;
@@ -467,7 +467,7 @@ class EventNotificationService
             );
         }
 
-        if ($event->organizer instanceof Speaker) {
+        if ($event->organizer instanceof Person) {
             $recipients = $recipients->merge(
                 $this->memberPermissionGate->speakerMembersWithPermission($event->organizer, 'event.update')
             );

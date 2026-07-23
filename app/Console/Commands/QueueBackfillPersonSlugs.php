@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
-use App\Jobs\BackfillSpeakerSlugs;
+use App\Jobs\BackfillPersonSlugs;
 use Illuminate\Console\Command;
 
-class QueueBackfillSpeakerSlugs extends Command
+class QueueBackfillPersonSlugs extends Command
 {
     protected $signature = 'speakers:queue-slug-backfill';
 
@@ -15,7 +15,7 @@ class QueueBackfillSpeakerSlugs extends Command
 
     public function handle(): int
     {
-        BackfillSpeakerSlugs::dispatch();
+        BackfillPersonSlugs::dispatch();
 
         $this->info('Queued speaker slug backfill job.');
 

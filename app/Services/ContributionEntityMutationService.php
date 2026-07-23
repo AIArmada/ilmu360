@@ -21,7 +21,7 @@ use AIArmada\Membership\Enums\MemberRole;
 use App\Actions\Events\SyncEventClassificationsAction;
 use App\Actions\Events\SyncEventScheduleAction;
 use App\Actions\Institutions\GenerateInstitutionSlugAction;
-use App\Actions\Speakers\GenerateSpeakerSlugAction;
+use App\Actions\Persons\GeneratePersonSlugAction;
 use App\Contracts\EventCategoryCatalog;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
@@ -42,9 +42,9 @@ use App\Enums\TimingMode;
 use App\Forms\SharedFormSchema;
 use App\Models\Event;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Series;
-use App\Models\Speaker;
 use App\Models\User;
 use App\Models\Venue;
 use BackedEnum;
@@ -63,7 +63,7 @@ class ContributionEntityMutationService
         private readonly EventKeyPersonSyncService $eventKeyPersonSyncService,
         private readonly AddMemberAction $addMemberAction,
         private readonly GenerateInstitutionSlugAction $generateInstitutionSlugAction,
-        private readonly GenerateSpeakerSlugAction $generateSpeakerSlugAction,
+        private readonly GeneratePersonSlugAction $generatePersonSlugAction,
         private readonly AddressCountryResolver $addressingCountryResolver,
     ) {}
 
@@ -72,7 +72,7 @@ class ContributionEntityMutationService
     {
         return match (true) {
             $entity instanceof Institution => $this->institutionState($entity),
-            $entity instanceof Speaker => $this->speakerState($entity),
+            $entity instanceof Person => $this->speakerState($entity),
             $entity instanceof Reference => $this->referenceState($entity),
             $entity instanceof Event => $this->eventState($entity),
             $entity instanceof Venue => $this->venueState($entity),
@@ -106,7 +106,7 @@ class ContributionEntityMutationService
                 'conditional_rules' => [],
                 'direct_edit_media_fields' => ['cover', 'gallery'],
             ],
-            $entity instanceof Speaker => [
+            $entity instanceof Person => [
                 'accepts_partial_updates' => true,
                 'fields' => [
                     $this->field('name', 'string', maxLength: 255),
@@ -224,7 +224,7 @@ class ContributionEntityMutationService
                 'social_media.*.handle' => ['nullable', 'string', 'max:255', 'required_without:social_media.*.url'],
                 'social_media.*.url' => ['nullable', 'url', 'max:255', 'required_without:social_media.*.handle'],
             ],
-            $entity instanceof Speaker => [
+            $entity instanceof Person => [
                 'name' => ['sometimes', 'string', 'max:255'],
                 'gender' => ['sometimes', Rule::in($this->enumValues(Gender::class))],
                 'is_freelance' => ['nullable', 'boolean'],
@@ -323,11 +323,11 @@ class ContributionEntityMutationService
                 'series_ids' => ['sometimes', 'array'],
                 'series_ids.*' => ['uuid', 'exists:series,id'],
                 'speaker_ids' => ['sometimes', 'array'],
-                'speaker_ids.*' => ['uuid', 'exists:speakers,id'],
+                'speaker_ids.*' => ['uuid', 'exists:persons,id'],
                 'other_key_people' => ['sometimes', 'array'],
                 'other_key_people.*.role_code' => ['required_with:other_key_people.*.display_name,other_key_people.*.involveable_id', Rule::in($this->enumValues(EventKeyPersonRole::class))],
                 'other_key_people.*.involveable_type' => ['nullable', 'string', 'max:255'],
-                'other_key_people.*.involveable_id' => ['nullable', 'uuid', 'exists:speakers,id', 'required_without:other_key_people.*.display_name'],
+                'other_key_people.*.involveable_id' => ['nullable', 'uuid', 'exists:persons,id', 'required_without:other_key_people.*.display_name'],
                 'other_key_people.*.display_name' => ['nullable', 'string', 'max:255', 'required_without:other_key_people.*.involveable_id'],
                 'other_key_people.*.visibility' => ['nullable', Rule::in(['public', 'private'])],
                 'other_key_people.*.notes' => ['nullable', 'string', 'max:1000'],
@@ -363,9 +363,9 @@ class ContributionEntityMutationService
     /**
      * @param  array<string, mixed>  $payload
      */
-    public function createSpeaker(array $payload, User $proposer): Speaker
+    public function createPerson(array $payload, User $proposer): Person
     {
-        $speaker = Speaker::create([
+        $speaker = Person::create([
             'name' => (string) ($payload['name'] ?? 'Speaker'),
             'gender' => $this->normalizeGender($payload['gender'] ?? null),
             'honorific' => $this->normalizeStringArray($payload['honorific'] ?? []),
@@ -375,7 +375,7 @@ class ContributionEntityMutationService
             'qualifications' => $this->normalizeQualificationEntries($payload['qualifications'] ?? []),
             'is_freelance' => (bool) ($payload['is_freelance'] ?? false),
             'job_title' => $payload['job_title'] ?? null,
-            'slug' => $this->generateSpeakerSlugAction->handle(
+            'slug' => $this->generatePersonSlugAction->handle(
                 (string) ($payload['name'] ?? 'Speaker'),
                 $payload,
             ),
@@ -385,8 +385,8 @@ class ContributionEntityMutationService
 
         $this->addMemberAction->handle($speaker, $proposer, MemberRole::Owner);
 
-        $this->syncSpeakerRelations($speaker, $payload);
-        $this->generateSpeakerSlugAction->syncSpeakerSlug($speaker);
+        $this->syncPersonRelations($speaker, $payload);
+        $this->generatePersonSlugAction->syncSpeakerSlug($speaker);
 
         return $speaker;
     }
@@ -399,7 +399,7 @@ class ContributionEntityMutationService
     {
         return match (true) {
             $entity instanceof Institution => $this->applyInstitution($entity, $payload),
-            $entity instanceof Speaker => $this->applySpeaker($entity, $payload),
+            $entity instanceof Person => $this->applySpeaker($entity, $payload),
             $entity instanceof Reference => $this->applyReference($entity, $payload),
             $entity instanceof Event => $this->applyEvent($entity, $payload),
             default => throw new RuntimeException('Unsupported contribution entity type.'),
@@ -436,7 +436,7 @@ class ContributionEntityMutationService
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed>
      */
-    private function applySpeaker(Speaker $speaker, array $payload): array
+    private function applySpeaker(Person $speaker, array $payload): array
     {
         $speaker->fill([
             'name' => $payload['name'] ?? $speaker->name,
@@ -455,8 +455,8 @@ class ContributionEntityMutationService
         $dirty = $speaker->getDirty();
         $speaker->save();
 
-        $this->syncSpeakerRelations($speaker, $payload);
-        $this->generateSpeakerSlugAction->syncSpeakerSlug($speaker);
+        $this->syncPersonRelations($speaker, $payload);
+        $this->generatePersonSlugAction->syncSpeakerSlug($speaker);
 
         return $dirty;
     }
@@ -634,7 +634,7 @@ class ContributionEntityMutationService
             $organizerId = $this->normalizeOptionalString($payload['primary_organizer_id']);
             $organizer = $organizerId === null
                 ? null
-                : (Institution::query()->find($organizerId) ?? Speaker::query()->find($organizerId));
+                : (Institution::query()->find($organizerId) ?? Person::query()->find($organizerId));
 
             $event->setPrimaryOrganizer($organizer);
         }
@@ -706,7 +706,7 @@ class ContributionEntityMutationService
     /**
      * @return array<string, mixed>
      */
-    private function speakerState(Speaker $speaker): array
+    private function speakerState(Person $speaker): array
     {
         $speaker->loadMissing(['addresses', 'contactMethods', 'socialProfiles', 'languages']);
 
@@ -866,7 +866,7 @@ class ContributionEntityMutationService
     /**
      * @param  array<string, mixed>  $payload
      */
-    public function syncSpeakerRelations(Speaker $speaker, array $payload): void
+    public function syncPersonRelations(Person $speaker, array $payload): void
     {
         $addressPayload = $this->speakerAddressPayload($payload);
 
@@ -895,7 +895,7 @@ class ContributionEntityMutationService
     /**
      * @param  array<string, mixed>  $payload
      */
-    private function syncSpeakerAffiliation(Speaker $speaker, array $payload): void
+    private function syncSpeakerAffiliation(Person $speaker, array $payload): void
     {
         if (! array_key_exists('institution_id', $payload) && ! array_key_exists('institution_position', $payload)) {
             return;
@@ -975,7 +975,7 @@ class ContributionEntityMutationService
         return (bool) data_get($institution->getRelations(), 'pivot.is_primary', false);
     }
 
-    private function currentSpeakerAffiliation(Speaker $speaker): ?Institution
+    private function currentSpeakerAffiliation(Person $speaker): ?Institution
     {
         /** @var Institution|null $institution */
         $institution = $speaker->institutions()
@@ -989,7 +989,7 @@ class ContributionEntityMutationService
     /**
      * @return list<array{id: string, name: string, position: ?string, is_primary: bool}>
      */
-    private function speakerAffiliationAuditState(Speaker $speaker): array
+    private function speakerAffiliationAuditState(Person $speaker): array
     {
         return $speaker->institutions()
             ->orderByPivot('is_primary', 'desc')
@@ -1008,7 +1008,7 @@ class ContributionEntityMutationService
     /**
      * @param  list<array{id: string, name: string, position: ?string, is_primary: bool}>  $beforeAffiliations
      */
-    private function recordSpeakerAffiliationAudit(Speaker $speaker, array $beforeAffiliations): void
+    private function recordSpeakerAffiliationAudit(Person $speaker, array $beforeAffiliations): void
     {
         $speaker->load('institutions');
         $afterAffiliations = $this->speakerAffiliationAuditState($speaker);
@@ -1286,7 +1286,7 @@ class ContributionEntityMutationService
      * @param  array<string, mixed>  $addressPayload
      * @return array<string, mixed>
      */
-    private function preserveHiddenSpeakerAddressFields(Speaker $speaker, array $addressPayload): array
+    private function preserveHiddenSpeakerAddressFields(Person $speaker, array $addressPayload): array
     {
         $speaker->loadMissing('addresses');
 

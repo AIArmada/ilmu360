@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Actions\Speakers;
+namespace App\Actions\Persons;
 
 use AIArmada\Membership\Actions\AddMemberAction;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Enums\Gender;
 use App\Forms\SharedFormSchema;
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Models\User;
 use App\Services\ContributionEntityMutationService;
 use App\Support\Media\ModelMediaSyncService;
@@ -18,14 +18,14 @@ use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
 
-final readonly class SaveSpeakerAction
+final readonly class SavePersonAction
 {
     use AsAction;
 
     public function __construct(
         private AddMemberAction $addMemberAction,
         private ContributionEntityMutationService $contributionEntityMutationService,
-        private GenerateSpeakerSlugAction $generateSpeakerSlugAction,
+        private GeneratePersonSlugAction $generatePersonSlugAction,
         private ModelMediaSyncService $mediaSyncService,
         private PublicSubmissionLockService $publicSubmissionLockService,
     ) {}
@@ -33,10 +33,10 @@ final readonly class SaveSpeakerAction
     /**
      * @param  array<string, mixed>  $data
      */
-    public function handle(array $data, User $actor, ?Speaker $speaker = null, string $validationErrorKey = 'allow_public_event_submission'): Speaker
+    public function handle(array $data, User $actor, ?Person $speaker = null, string $validationErrorKey = 'allow_public_event_submission'): Person
     {
-        $creating = ! $speaker instanceof Speaker;
-        $speaker ??= new Speaker;
+        $creating = ! $speaker instanceof Person;
+        $speaker ??= new Person;
 
         $address = is_array($data['address'] ?? null) ? $data['address'] : [];
         $addressProvided = array_key_exists('address', $data) && is_array($data['address'] ?? null);
@@ -84,12 +84,12 @@ final readonly class SaveSpeakerAction
         ];
 
         if ($creating) {
-            $attributes['slug'] = $this->generateSpeakerSlugAction->handle($attributes['name'], array_merge($data, [
+            $attributes['slug'] = $this->generatePersonSlugAction->handle($attributes['name'], array_merge($data, [
                 'address' => $address,
             ]));
             $attributes['allow_public_event_submission'] = true;
 
-            $speaker = Speaker::create($attributes);
+            $speaker = Person::create($attributes);
             $this->addMemberAction->handle($speaker, $actor, MemberRole::Owner);
         } else {
             $speaker->fill($attributes);
@@ -118,7 +118,7 @@ final readonly class SaveSpeakerAction
     }
 
     private function syncPublicSubmissionToggle(
-        Speaker $speaker,
+        Person $speaker,
         User $actor,
         bool $currentPublicSubmission,
         bool $requestedPublicSubmission,
@@ -148,7 +148,7 @@ final readonly class SaveSpeakerAction
     /**
      * @param  array<string, mixed>  $data
      */
-    private function syncMedia(Speaker $speaker, array $data): void
+    private function syncMedia(Person $speaker, array $data): void
     {
         if (($data['clear_avatar'] ?? false) === true) {
             $this->mediaSyncService->clearCollection($speaker, 'avatar');

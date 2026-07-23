@@ -17,9 +17,9 @@ use App\Enums\PrayerOffset;
 use App\Enums\TimingMode;
 use App\Models\Event;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Series;
 use App\Models\Space;
-use App\Models\Speaker;
 use App\Models\User;
 use App\Services\ModerationService;
 use App\Support\Events\AdminEventTimeMapper;
@@ -346,7 +346,7 @@ final readonly class SaveAdminEventAction
             $errors['primary_organizer_id'][] = __('Penganjur utama diperlukan.');
         } elseif (
             ! Institution::query()->whereKey($primaryOrganizerId)->exists()
-            && ! Speaker::query()->whereKey($primaryOrganizerId)->exists()
+            && ! Person::query()->whereKey($primaryOrganizerId)->exists()
         ) {
             $errors['primary_organizer_id'][] = __('Penganjur utama yang dipilih tidak sah.');
         }

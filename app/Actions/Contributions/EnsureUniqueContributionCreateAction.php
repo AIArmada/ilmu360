@@ -6,7 +6,7 @@ use App\Enums\ContributionSubjectType;
 use App\Enums\PostNominal;
 use App\Forms\SharedFormSchema;
 use App\Models\Institution;
-use App\Models\Speaker;
+use App\Models\Person;
 use BackedEnum;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Str;
@@ -127,12 +127,12 @@ final readonly class EnsureUniqueContributionCreateAction
         $preNominal = $this->normalizeStringSet($state['pre_nominal'] ?? []);
         $postNominal = $this->effectivePostNominalSet($state);
 
-        return Speaker::query()
+        return Person::query()
             ->whereIn('status', ['verified', 'pending'])
             ->where('gender', $gender)
             ->whereHas('addresses', fn (Builder $query): Builder => $query->where('country_id', $countryId))
             ->get(['name', 'gender', 'honorific', 'pre_nominal', 'post_nominal'])
-            ->contains(fn (Speaker $speaker): bool => $this->normalizeComparableString($speaker->name) === $name
+            ->contains(fn (Person $speaker): bool => $this->normalizeComparableString($speaker->name) === $name
                 && $this->normalizeComparableString($speaker->gender) === $gender
                 && $this->normalizeStringSet($speaker->honorific ?? []) === $honorific
                 && $this->normalizeStringSet($speaker->pre_nominal ?? []) === $preNominal

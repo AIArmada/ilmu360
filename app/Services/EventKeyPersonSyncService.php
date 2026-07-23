@@ -6,6 +6,7 @@ use App\Actions\Events\GenerateEventSlugAction;
 use App\Enums\EventKeyPersonRole;
 use App\Models\Event;
 use App\Models\EventKeyPerson;
+use App\Models\Person;
 use Illuminate\Support\Str;
 
 class EventKeyPersonSyncService

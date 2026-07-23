@@ -5,7 +5,7 @@ namespace App\Actions\Contributions;
 use AIArmada\Membership\Actions\AddMemberAction;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Actions\Institutions\GenerateInstitutionSlugAction;
-use App\Actions\Speakers\GenerateSpeakerSlugAction;
+use App\Actions\Persons\GeneratePersonSlugAction;
 use App\Enums\ContributionRequestStatus;
 use App\Enums\ContributionRequestType;
 use App\Enums\ContributionSubjectType;
@@ -13,7 +13,7 @@ use App\Forms\SharedFormSchema;
 use App\Models\ContributionRequest;
 use App\Models\Event;
 use App\Models\Institution;
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Models\User;
 use App\Services\ContributionEntityMutationService;
 use App\Services\ModerationService;
@@ -33,7 +33,7 @@ class ApproveContributionRequestAction
         private readonly ContributionRequestNotificationService $contributionRequestNotificationService,
         private readonly AddMemberAction $addMemberAction,
         private readonly GenerateInstitutionSlugAction $generateInstitutionSlugAction,
-        private readonly GenerateSpeakerSlugAction $generateSpeakerSlugAction,
+        private readonly GeneratePersonSlugAction $generatePersonSlugAction,
     ) {}
 
     public function handle(ContributionRequest $request, User $reviewer, ?string $reviewerNote = null): ContributionRequest
@@ -73,14 +73,14 @@ class ApproveContributionRequestAction
         return $freshRequest;
     }
 
-    private function approveCreateRequest(ContributionRequest $request): Institution|Speaker
+    private function approveCreateRequest(ContributionRequest $request): Institution|Person
     {
         /** @var array<string, mixed> $payload */
         $payload = $request->proposed_data ?? [];
 
         $entity = $request->entity;
 
-        if ($entity instanceof Institution || $entity instanceof Speaker) {
+        if ($entity instanceof Institution || $entity instanceof Person) {
             $entity->forceFill([
                 'status' => 'verified',
                 'verified_at' => now(),
@@ -149,11 +149,11 @@ class ApproveContributionRequestAction
     /**
      * @param  array<string, mixed>  $payload
      */
-    private function createSpeakerFromRequest(ContributionRequest $request, array $payload): Speaker
+    private function createSpeakerFromRequest(ContributionRequest $request, array $payload): Person
     {
         $address = $this->addressPayload($payload);
 
-        $speaker = Speaker::create([
+        $speaker = Person::create([
             'name' => (string) ($payload['name'] ?? 'Speaker'),
             'gender' => (string) ($payload['gender'] ?? 'male'),
             'honorific' => $payload['honorific'] ?? null,
@@ -162,7 +162,7 @@ class ApproveContributionRequestAction
             'job_title' => $payload['job_title'] ?? null,
             'bio' => $payload['bio'] ?? null,
             'is_freelance' => (bool) ($payload['is_freelance'] ?? false),
-            'slug' => $this->generateSpeakerSlugAction->handle((string) ($payload['name'] ?? 'Speaker'), $payload),
+            'slug' => $this->generatePersonSlugAction->handle((string) ($payload['name'] ?? 'Speaker'), $payload),
             'status' => 'verified',
             'verified_at' => now(),
             'last_state_change_at' => now(),
@@ -210,7 +210,7 @@ class ApproveContributionRequestAction
         return $address;
     }
 
-    private function attachAsOwnerIfSupported(?User $user, Institution|Speaker $entity): void
+    private function attachAsOwnerIfSupported(?User $user, Institution|Person $entity): void
     {
         if (! $user instanceof User || $entity instanceof Institution) {
             return;

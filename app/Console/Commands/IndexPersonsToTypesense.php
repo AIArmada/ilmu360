@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
-use App\Models\Speaker;
+use App\Models\Person;
 
-class IndexSpeakersToTypesense extends AbstractIndexToScout
+class IndexPersonsToTypesense extends AbstractIndexToScout
 {
     protected $signature = 'search:index-speakers
                             {--fresh : Flush the current Scout index before importing}
@@ -16,7 +16,7 @@ class IndexSpeakersToTypesense extends AbstractIndexToScout
 
     protected function searchableModel(): string
     {
-        return Speaker::class;
+        return Person::class;
     }
 
     protected function searchableLabel(): string

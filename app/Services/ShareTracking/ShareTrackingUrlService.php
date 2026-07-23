@@ -7,9 +7,9 @@ namespace App\Services\ShareTracking;
 use App\Enums\DawahShareSubjectType;
 use App\Models\Event;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Series;
-use App\Models\Speaker;
 use App\Support\Models\SlugOrUuidResolver;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
@@ -190,7 +190,7 @@ final readonly class ShareTrackingUrlService
                 'subject_id' => $subject->id,
                 'subject_key' => 'institution:'.$subject->id,
             ],
-            $subject instanceof Speaker => [
+            $subject instanceof Person => [
                 'subject_type' => DawahShareSubjectType::Speaker->value,
                 'subject_id' => $subject->id,
                 'subject_key' => 'speaker:'.$subject->id,
@@ -505,9 +505,9 @@ final readonly class ShareTrackingUrlService
      */
     private function speakerTarget(string $slug): array
     {
-        $speaker = Speaker::query()->where('slug', $slug)->first();
+        $speaker = Person::query()->where('slug', $slug)->first();
 
-        if (! $speaker instanceof Speaker) {
+        if (! $speaker instanceof Person) {
             return $this->subjectResult(
                 DawahShareSubjectType::Page,
                 null,

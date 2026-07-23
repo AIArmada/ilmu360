@@ -23,9 +23,9 @@ use App\Data\ShareTracking\ShareTrackingOutcomeData;
 use App\Enums\DawahShareOutcomeType;
 use App\Models\Event;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Series;
-use App\Models\Speaker;
 use App\Models\User;
 use App\Services\Signals\AffiliateSignalsBridge;
 use Carbon\CarbonInterface;
@@ -1070,7 +1070,7 @@ final readonly class AffiliatesShareTrackingService
         return match (true) {
             $subject instanceof Event => $this->nullableString($subject->title),
             $subject instanceof Institution => $this->nullableString($subject->name),
-            $subject instanceof Speaker => $this->nullableString($subject->formatted_name),
+            $subject instanceof Person => $this->nullableString($subject->formatted_name),
             $subject instanceof Series => $this->nullableString($subject->title),
             $subject instanceof Reference => $this->nullableString($subject->title),
             default => null,

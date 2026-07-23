@@ -3,14 +3,14 @@
 namespace App\Jobs;
 
 use App\Actions\Events\GenerateEventSlugAction;
-use App\Actions\Speakers\GenerateSpeakerSlugAction;
-use App\Models\Speaker;
+use App\Actions\Persons\GeneratePersonSlugAction;
+use App\Models\Person;
 use App\Support\Cache\PublicListingsCache;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
-class BackfillSpeakerSlugs implements ShouldBeUnique, ShouldQueue
+class BackfillPersonSlugs implements ShouldBeUnique, ShouldQueue
 {
     use Queueable;
 
@@ -20,26 +20,26 @@ class BackfillSpeakerSlugs implements ShouldBeUnique, ShouldQueue
 
     public function handle(
         GenerateEventSlugAction $generateEventSlugAction,
-        GenerateSpeakerSlugAction $generateSpeakerSlugAction,
+        GeneratePersonSlugAction $generatePersonSlugAction,
         PublicListingsCache $publicListingsCache,
     ): void {
         $updatedSpeakerIds = [];
 
-        Speaker::query()
+        Person::query()
             ->with([
                 'addresses.country',
             ])
             ->orderBy('name')
             ->orderBy('id')
-            ->chunk(100, function ($speakers) use ($generateSpeakerSlugAction, &$updatedSpeakerIds): void {
+            ->chunk(100, function ($speakers) use ($generatePersonSlugAction, &$updatedSpeakerIds): void {
                 foreach ($speakers as $speaker) {
-                    $slug = $generateSpeakerSlugAction->forSpeaker($speaker);
+                    $slug = $generatePersonSlugAction->forSpeaker($speaker);
 
                     if ($speaker->slug === $slug) {
                         continue;
                     }
 
-                    Speaker::withoutTimestamps(function () use ($speaker, $slug): void {
+                    Person::withoutTimestamps(function () use ($speaker, $slug): void {
                         $speaker->forceFill([
                             'slug' => $slug,
                         ])->saveQuietly();

@@ -8,8 +8,8 @@ use App\Enums\EventChangeType;
 use App\Models\Event;
 use App\Models\EventChangeAnnouncement;
 use App\Models\EventKeyPerson;
+use App\Models\Person;
 use App\Models\Reference;
-use App\Models\Speaker;
 use App\Models\User;
 use App\Services\Notifications\EventNotificationService;
 use App\States\EventStatus\Cancelled;
@@ -391,9 +391,9 @@ class PublishEventChangeAnnouncement
             ],
             'speakers' => $event->speakerKeyPeople
                 ->map(fn (EventKeyPerson $keyPerson): array => [
-                    'id' => $keyPerson->speaker instanceof Speaker ? (string) $keyPerson->speaker->getKey() : null,
-                    'name' => $keyPerson->speaker instanceof Speaker ? $keyPerson->speaker->name : $keyPerson->display_name,
-                    'slug' => $keyPerson->speaker instanceof Speaker ? $keyPerson->speaker->slug : null,
+                    'id' => $keyPerson->speaker instanceof Person ? (string) $keyPerson->speaker->getKey() : null,
+                    'name' => $keyPerson->speaker instanceof Person ? $keyPerson->speaker->name : $keyPerson->display_name,
+                    'slug' => $keyPerson->speaker instanceof Person ? $keyPerson->speaker->slug : null,
                 ])
                 ->values()
                 ->all(),

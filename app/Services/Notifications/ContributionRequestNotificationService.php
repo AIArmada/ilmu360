@@ -9,7 +9,7 @@ use App\Enums\NotificationPriority;
 use App\Enums\NotificationTrigger;
 use App\Models\ContributionRequest;
 use App\Models\Institution;
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Models\User;
 use App\Notifications\InAppNotification;
 use App\Support\Notifications\NotificationCatalog;
@@ -203,7 +203,7 @@ class ContributionRequestNotificationService
 
         return match (true) {
             $entity instanceof Institution => $entity->name,
-            $entity instanceof Speaker => $entity->name,
+            $entity instanceof Person => $entity->name,
             is_string(data_get($request->proposed_data, 'name')) && trim(data_get($request->proposed_data, 'name')) !== '' => trim(data_get($request->proposed_data, 'name')),
             default => $this->subjectLabel($request),
         };
@@ -215,7 +215,7 @@ class ContributionRequestNotificationService
 
         return match (true) {
             $entity instanceof Institution => route('institutions.show', $entity),
-            $entity instanceof Speaker => route('speakers.show', $entity),
+            $entity instanceof Person => route('speakers.show', $entity),
             default => route('contributions.index'),
         };
     }

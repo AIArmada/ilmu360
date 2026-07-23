@@ -23,8 +23,8 @@ use App\Support\EventDiscovery\EventDiscoveryFilterSet;
 use App\Support\EventDiscovery\FuzzyEventMatcher;
 use App\Support\Events\PrimaryOccurrenceSql;
 use App\Support\Search\InstitutionSearchService;
+use App\Support\Search\PersonSearchService;
 use App\Support\Search\ReferenceSearchService;
-use App\Support\Search\SpeakerSearchService;
 use App\Support\Timezone\UserDateTimeFormatter;
 use Carbon\CarbonInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -40,7 +40,7 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
     public function __construct(
         private FuzzyEventMatcher $fuzzyMatcher,
         private EventDiscoveryFilterSet $filterSet,
-        private SpeakerSearchService $speakerSearch,
+        private PersonSearchService $personSearch,
         private InstitutionSearchService $institutionSearch,
         private ReferenceSearchService $referenceSearch,
         private EventCategoryCatalog $categoryCatalog,
@@ -451,7 +451,7 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
             static fn (string $token): bool => $token !== ''
         ));
 
-        $speakerIds = $includeSpeakers ? $this->speakerSearch->publicSearchIds($normalizedSearch) : [];
+        $speakerIds = $includeSpeakers ? $this->personSearch->publicSearchIds($normalizedSearch) : [];
         $institutionIds = $includeInstitutions ? $this->institutionSearch->publicSearchIds($normalizedSearch) : [];
         $referenceIds = $includeReferences ? $this->referenceSearch->publicSearchIds($normalizedSearch) : [];
 

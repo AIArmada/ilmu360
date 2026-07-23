@@ -7,8 +7,8 @@ namespace App\Actions\Reports;
 use App\Actions\Contributions\ResolveContributionSubjectPresentationAction;
 use App\Models\Event;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
-use App\Models\Speaker;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 class ResolveReportFormContextAction
@@ -29,7 +29,7 @@ class ResolveReportFormContextAction
      *     default_category: string
      * }
      */
-    public function handle(string $subjectType, Event|Institution|Reference|Speaker $entity): array
+    public function handle(string $subjectType, Event|Institution|Reference|Person $entity): array
     {
         $presentation = $this->resolveContributionSubjectPresentationAction->handle($entity);
         $categoryOptions = $this->resolveReportCategoryOptionsAction->handle($subjectType);

@@ -1,16 +1,16 @@
 <?php
 
-namespace App\Actions\Speakers;
+namespace App\Actions\Persons;
 
 use App\Actions\Slugs\Concerns\BuildsUniqueSlug;
 use App\Actions\Slugs\Concerns\InteractsWithOrderedSlugModels;
 use App\Actions\Slugs\Concerns\ResolvesLocationSuffix;
 use App\Actions\Slugs\SyncCanonicalSlugAction;
-use App\Models\Speaker;
+use App\Models\Person;
 use Illuminate\Support\Str;
 use Lorisleiva\Actions\Concerns\AsAction;
 
-class GenerateSpeakerSlugAction
+class GeneratePersonSlugAction
 {
     use AsAction;
     use BuildsUniqueSlug;
@@ -29,15 +29,15 @@ class GenerateSpeakerSlugAction
             return false;
         }
 
-        $speakers = Speaker::query()
-            ->where('speakers.name', $normalizedName)
+        $speakers = Person::query()
+            ->where('persons.name', $normalizedName)
             ->with(['addresses'])
             ->get();
 
-        return $this->syncOrderedModels($speakers, fn (Speaker $speaker): bool => $this->syncSpeakerSlug($speaker));
+        return $this->syncOrderedModels($speakers, fn (Person $speaker): bool => $this->syncSpeakerSlug($speaker));
     }
 
-    public function syncSpeakerSlug(Speaker $speaker): bool
+    public function syncSpeakerSlug(Person $speaker): bool
     {
         $slug = $this->forSpeaker($speaker);
 
@@ -60,7 +60,7 @@ class GenerateSpeakerSlugAction
         $locationSuffix = $this->locationSuffix($payload);
 
         return $this->buildUniqueSlug(
-            Speaker::class,
+            Person::class,
             $nameSlug,
             [],
             $locationSuffix,
@@ -68,7 +68,7 @@ class GenerateSpeakerSlugAction
         );
     }
 
-    public function forSpeaker(Speaker $speaker): string
+    public function forSpeaker(Person $speaker): string
     {
         $speaker->loadMissing(['addresses']);
 
@@ -121,7 +121,7 @@ class GenerateSpeakerSlugAction
      */
     private function displayName(string $name, array $payload): string
     {
-        return Speaker::formatDisplayedName(
+        return Person::formatDisplayedName(
             $name,
             $payload['honorific'] ?? null,
             $payload['pre_nominal'] ?? null,
