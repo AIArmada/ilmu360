@@ -1,5 +1,6 @@
 <?php
 
+use App\Livewire\Pages\SubmitEvent\Create;
 use Livewire\Livewire;
 
 it('shows a submission preview section on submit event page', function () {
@@ -22,7 +23,7 @@ it('hides the next action when the review step rerenders', function () {
     $reviewStepId = 'form.semak-sebelum-hantar::data::wizard-step';
 
     Livewire::withQueryParams(['step' => $reviewStepId])
-        ->test('pages.submit-event.create')
+        ->test(Create::class)
         ->assertSet('wizardStep', $reviewStepId)
         ->call('$refresh')
         ->assertSee(__('Sebelum'))

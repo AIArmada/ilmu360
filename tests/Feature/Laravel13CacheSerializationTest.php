@@ -2,6 +2,7 @@
 
 use App\Enums\EventAgeGroup;
 use App\Livewire\Pages\Events\Index;
+use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Event;
 use App\Services\EventSearchService;
 use App\Services\PrayerTimeService;
@@ -38,7 +39,7 @@ it('hydrates the submit event safe option caches into the current payload format
     Cache::flush();
     app()->setLocale('ms');
 
-    Livewire::test('pages.submit-event.create')
+    Livewire::test(Create::class)
         ->set('data.age_group', [EventAgeGroup::Children->value])
         ->assertSet('data.age_group', [EventAgeGroup::Children->value]);
 

@@ -8,12 +8,14 @@ use AIArmada\FilamentEvents\Resources\EventResource;
 use App\Models\Event;
 use App\Models\User;
 use App\Services\ModerationService;
+use App\Support\Api\Admin\Concerns\ProvidesWorkflowResponse;
 use App\Support\Moderation\EventModerationWorkflow;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 
 final readonly class AdminEventModerationService
 {
+    use ProvidesWorkflowResponse;
     public function __construct(
         private AdminResourceRegistry $registry,
         private ModerationService $moderationService,
@@ -135,12 +137,7 @@ final readonly class AdminEventModerationService
 
         $event = $event->fresh() ?? $event;
 
-        return [
-            'data' => [
-                'resource' => $this->registry->metadata(EventResource::class),
-                'record' => $this->registry->serializeRecordDetail(EventResource::class, $event),
-            ],
-        ];
+        return $this->workflowResponse(EventResource::class, $event);
     }
 
     private function resolveEvent(string $recordKey): Event

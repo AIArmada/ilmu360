@@ -14,6 +14,7 @@ use App\Enums\EventGenderRestriction;
 use App\Enums\EventPrayerTime;
 use App\Enums\EventVisibility;
 use App\Livewire\Pages\Dashboard\DawahImpactIndex;
+use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Event;
 use App\Models\EventCheckin;
 use App\Models\EventSubmission;
@@ -836,7 +837,7 @@ test('event submissions are attributed after a shared landing', function () {
 
     setSubmitEventFormState(
         Livewire::withCookie(config('dawah-share.cookie.name'), $cookie)
-            ->test('pages.submit-event.create'),
+            ->test(Create::class),
         dawahShareSubmitEventFormData($fixtures, [
             'title' => $title,
             'submitter_email' => 'submitted-'.uniqid().'@example.com',
@@ -942,7 +943,7 @@ test('impact dashboard highlights event check-ins and submissions', function () 
 
     setSubmitEventFormState(
         Livewire::withCookie(config('dawah-share.cookie.name'), $submissionCookie)
-            ->test('pages.submit-event.create'),
+            ->test(Create::class),
         dawahShareSubmitEventFormData($submissionFixtures, [
             'title' => $submissionTitle,
             'submitter_email' => 'dashboard-submission-'.uniqid().'@example.com',

@@ -1,29 +1,30 @@
 <?php
 
 use App\Enums\EventFormat;
+use App\Livewire\Pages\SubmitEvent\Create;
 use Filament\Forms\Components\TextInput;
 use Livewire\Livewire;
 
 test('event format can be set to physical', function () {
-    Livewire::test('pages.submit-event.create')
+    Livewire::test(Create::class)
         ->set('data.event_format', EventFormat::Physical->value)
         ->assertSet('data.event_format', EventFormat::Physical->value);
 });
 
 test('event format can be set to online', function () {
-    Livewire::test('pages.submit-event.create')
+    Livewire::test(Create::class)
         ->set('data.event_format', EventFormat::Online->value)
         ->assertSet('data.event_format', EventFormat::Online->value);
 });
 
 test('event format can be set to hybrid', function () {
-    Livewire::test('pages.submit-event.create')
+    Livewire::test(Create::class)
         ->set('data.event_format', EventFormat::Hybrid->value)
         ->assertSet('data.event_format', EventFormat::Hybrid->value);
 });
 
 test('live url is not required on the public submit-event form', function () {
-    Livewire::test('pages.submit-event.create')
+    Livewire::test(Create::class)
         ->assertFormFieldExists('live_url', function (TextInput $input): bool {
             expect($input->isRequired())->toBeFalse();
 
@@ -32,14 +33,14 @@ test('live url is not required on the public submit-event form', function () {
 });
 
 test('community event type forces physical format', function () {
-    Livewire::test('pages.submit-event.create')
+    Livewire::test(Create::class)
         ->set('data.event_format', EventFormat::Online->value)
         ->set('data.event_category_ids', [eventCategoryId('iftar')])
         ->assertSet('data.event_format', EventFormat::Physical->value);
 });
 
 test('non-community event type does not force physical format', function () {
-    Livewire::test('pages.submit-event.create')
+    Livewire::test(Create::class)
         ->set('data.event_format', EventFormat::Online->value)
         ->set('data.event_category_ids', [eventCategoryId('kuliah_ceramah')])
         ->assertSet('data.event_format', EventFormat::Online->value);

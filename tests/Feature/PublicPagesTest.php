@@ -10,6 +10,7 @@ use App\Enums\EventGenderRestriction;
 use App\Enums\EventPrayerTime;
 use App\Enums\EventVisibility;
 use App\Enums\ReferenceType;
+use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Event;
 use App\Models\EventSubmission;
 use App\Models\Institution;
@@ -729,7 +730,7 @@ it('hides unverified speakers and institutions from public pages', function () {
 });
 
 it('updates submit event age group without error', function () {
-    Livewire::test('pages.submit-event.create')
+    Livewire::test(Create::class)
         ->set('data.age_group', [EventAgeGroup::Children->value])
         ->assertSet('data.age_group', [EventAgeGroup::Children->value]);
 });
@@ -742,7 +743,7 @@ it('records guest submissions without a submitter id', function () {
     $disciplineTag = submitEventTerm('discipline');
     $speaker = Speaker::factory()->create(['status' => 'verified']);
     $institution = Institution::factory()->create(['status' => 'verified']);
-    Livewire::test('pages.submit-event.create')
+    Livewire::test(Create::class)
         ->set('data.title', $title)
         ->set('data.description', 'Test event description')
         ->set('data.event_date', now()->addDay()->toDateString())

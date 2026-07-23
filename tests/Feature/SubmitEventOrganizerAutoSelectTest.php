@@ -4,6 +4,7 @@ use App\Enums\EventAgeGroup;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventPrayerTime;
 use App\Enums\EventVisibility;
+use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Event;
 use App\Models\Speaker;
 use App\Models\Venue;
@@ -58,7 +59,7 @@ it('assigns the speaker as event speaker when speaker is the organizer', functio
     $fixtures = submitEventOrganizerFixtures();
 
     setSubmitEventFormState(
-        Livewire::test('pages.submit-event.create'),
+        Livewire::test(Create::class),
         submitEventOrganizerFormData($fixtures),
     )
         ->call('submit')
@@ -82,7 +83,7 @@ it('shows formatted speaker names in submit event speaker selectors', function (
         'pre_nominal' => ['dr'],
     ]);
 
-    Livewire::test('pages.submit-event.create')
+    Livewire::test(Create::class)
         ->assertSee($speaker->formatted_name);
 });
 
@@ -92,7 +93,7 @@ it('uses the organizer speaker slug when no explicit speakers are selected', fun
     $expectedSuffix = Carbon::parse($eventDate, 'Asia/Kuala_Lumpur')->format('j-n-y');
 
     setSubmitEventFormState(
-        Livewire::test('pages.submit-event.create'),
+        Livewire::test(Create::class),
         submitEventOrganizerFormData($fixtures, [
             'title' => 'Organizer Fallback Submit Event',
             'event_date' => $eventDate,

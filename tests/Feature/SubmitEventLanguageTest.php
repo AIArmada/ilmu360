@@ -6,6 +6,7 @@ use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventPrayerTime;
 use App\Enums\EventVisibility;
+use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Speaker;
@@ -58,7 +59,7 @@ it('can submit event with single language', function () {
     $fixtures = submitEventLanguageFixtures();
 
     setSubmitEventFormState(
-        Livewire::test('pages.submit-event.create'),
+        Livewire::test(Create::class),
         submitEventLanguageFormData($fixtures, [
             'title' => 'Single Language Event',
             'languages' => [101],
@@ -77,7 +78,7 @@ it('can submit event with multiple languages', function () {
     $fixtures = submitEventLanguageFixtures();
 
     setSubmitEventFormState(
-        Livewire::test('pages.submit-event.create'),
+        Livewire::test(Create::class),
         submitEventLanguageFormData($fixtures, [
             'title' => 'Multi Language Event',
             'languages' => [101, 7, 40],
@@ -97,7 +98,7 @@ it('requires at least one language', function () {
     $fixtures = submitEventLanguageFixtures();
 
     setSubmitEventFormState(
-        Livewire::test('pages.submit-event.create'),
+        Livewire::test(Create::class),
         submitEventLanguageFormData($fixtures, [
             'title' => 'No Language Event',
             'languages' => [],

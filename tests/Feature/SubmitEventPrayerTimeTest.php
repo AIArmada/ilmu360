@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Livewire\Pages\SubmitEvent\Create;
 use Illuminate\Support\Carbon;
 use Livewire\Livewire;
 
@@ -14,7 +15,7 @@ afterEach(function () {
 });
 
 it('shows base prayer time options without selecting a date', function () {
-    $component = Livewire::test('pages.submit-event.create');
+    $component = Livewire::test(Create::class);
 
     // Base options should always be visible
     $component->assertSee('Selepas Subuh')
@@ -26,7 +27,7 @@ it('shows base prayer time options without selecting a date', function () {
 });
 
 it('hides conditional prayer time options without a date', function () {
-    $component = Livewire::test('pages.submit-event.create');
+    $component = Livewire::test(Create::class);
 
     // Jumaat and Tarawih require a qualifying date to appear
     $component->assertDontSee('Sebelum Jumaat')

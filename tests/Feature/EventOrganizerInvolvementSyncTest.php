@@ -4,6 +4,7 @@ use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventVisibility;
+use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Speaker;
@@ -114,7 +115,7 @@ it('creates organizer involvement via submit-event flow with a speaker organizer
     $disciplineTag = submitEventTerm('discipline');
 
     setSubmitEventFormState(
-        Livewire::actingAs($user)->test('pages.submit-event.create'),
+        Livewire::actingAs($user)->test(Create::class),
         ['title' => 'Submit Event Organizer Involvement', 'description' => 'Test description.', 'event_date' => now()->addDays(7)->format('Y-m-d'), 'prayer_time' => 'selepas_maghrib', 'event_category_ids' => [eventCategoryId('kuliah_ceramah')], 'event_format' => EventFormat::Physical->value, 'visibility' => EventVisibility::Public->value, 'gender' => EventGenderRestriction::All->value, 'age_group' => [EventAgeGroup::AllAges->value], 'languages' => [101], 'submission_country_id' => (string) ensureTestMalaysiaCountry()->getKey(), 'primary_organizer_id' => $speaker->getKey(), 'speakers' => [$speaker->getKey()], 'location_type' => 'venue', 'location_venue_id' => $venue->getKey(), 'domain_tags' => [$domainTag->getKey()], 'discipline_tags' => [$disciplineTag->getKey()]],
     )
         ->call('submit')

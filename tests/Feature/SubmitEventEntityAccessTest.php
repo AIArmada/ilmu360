@@ -6,6 +6,7 @@ use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventPrayerTime;
 use App\Enums\EventVisibility;
+use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Speaker;
@@ -54,7 +55,7 @@ it('rejects guest submission when organizer institution is locked to members', f
     ]);
 
     setSubmitEventFormState(
-        Livewire::test('pages.submit-event.create'),
+        Livewire::test(Create::class),
         submitEventEntityAccessPayload($this->domainTag, $this->disciplineTag, [
             'primary_organizer_id' => $lockedInstitution->id,
             'speakers' => [$publicSpeaker->id],
@@ -76,7 +77,7 @@ it('rejects guest submission when selected speakers include locked speaker', fun
     ]);
 
     setSubmitEventFormState(
-        Livewire::test('pages.submit-event.create'),
+        Livewire::test(Create::class),
         submitEventEntityAccessPayload($this->domainTag, $this->disciplineTag, [
             'primary_organizer_id' => $publicInstitution->id,
             'speakers' => [$lockedSpeaker->id],
@@ -103,7 +104,7 @@ it('allows authenticated members to submit locked institution and speaker entiti
     $lockedSpeaker->members()->syncWithoutDetaching([$user->id]);
 
     setSubmitEventFormState(
-        Livewire::actingAs($user)->test('pages.submit-event.create'),
+        Livewire::actingAs($user)->test(Create::class),
         submitEventEntityAccessPayload($this->domainTag, $this->disciplineTag, [
             'title' => 'Member Locked Access Event',
             'primary_organizer_id' => $lockedSpeaker->id,
@@ -176,7 +177,7 @@ it('auto-approves institution-scoped dashboard submissions and locks the organiz
     $institution->members()->syncWithoutDetaching([$user->id]);
 
     setSubmitEventFormState(
-        Livewire::withQueryParams(['institution' => $institution->id])->actingAs($user)->test('pages.submit-event.create'),
+        Livewire::withQueryParams(['institution' => $institution->id])->actingAs($user)->test(Create::class),
         submitEventEntityAccessPayload($this->domainTag, $this->disciplineTag, [
             'title' => 'Institution Dashboard Published Event',
             'location_same_as_institution' => true,

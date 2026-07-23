@@ -4,6 +4,7 @@ use App\Enums\EventAgeGroup;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventPrayerTime;
 use App\Enums\EventVisibility;
+use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Speaker;
@@ -70,7 +71,7 @@ it('stores cover, poster, and gallery uploads when submitting an event', functio
     $fixtures = submitEventMediaFixtures();
 
     $component = setSubmitEventFormState(
-        Livewire::test('pages.submit-event.create'),
+        Livewire::test(Create::class),
         submitEventMediaFormData($fixtures),
     );
 
@@ -105,7 +106,7 @@ it('stores cover, poster, and gallery uploads when submitting an event', functio
 });
 
 it('uses fixed cover and poster ratios on the public submit-event form', function () {
-    Livewire::test('pages.submit-event.create')
+    Livewire::test(Create::class)
         ->assertFormFieldExists('cover', function (FileUpload $upload): bool {
             $aspectRatioOptions = array_keys($upload->getImageEditorAspectRatioOptionsForJs());
 
@@ -136,7 +137,7 @@ it('does not require guest details for authenticated users', function () {
     $fixtures = submitEventMediaFixtures();
 
     setSubmitEventFormState(
-        Livewire::actingAs($user)->test('pages.submit-event.create'),
+        Livewire::actingAs($user)->test(Create::class),
         submitEventMediaFormData($fixtures, [
             'title' => 'Logged In Event',
             'submitter_name' => null,

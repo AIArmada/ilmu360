@@ -8,6 +8,7 @@ use App\Filament\Resources\Reports\ReportResource;
 use App\Models\Report;
 use App\Models\User;
 use App\Notifications\ReportResolvedNotification;
+use App\Support\Api\Admin\Concerns\ProvidesWorkflowResponse;
 use App\Support\Moderation\ReportTriageWorkflow;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -15,6 +16,7 @@ use Illuminate\Validation\Rule;
 
 final readonly class AdminReportTriageService
 {
+    use ProvidesWorkflowResponse;
     public function __construct(
         private AdminResourceRegistry $registry,
     ) {}
@@ -129,12 +131,7 @@ final readonly class AdminReportTriageService
             return $report->fresh(['entity', 'reporter', 'handler']) ?? $report;
         });
 
-        return [
-            'data' => [
-                'resource' => $this->registry->metadata(ReportResource::class),
-                'record' => $this->registry->serializeRecordDetail(ReportResource::class, $report),
-            ],
-        ];
+        return $this->workflowResponse(ReportResource::class, $report);
     }
 
     private function resolveReport(string $recordKey): Report

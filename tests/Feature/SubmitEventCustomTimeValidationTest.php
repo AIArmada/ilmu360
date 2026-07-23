@@ -7,6 +7,7 @@ use App\Enums\EventPrayerTime;
 use App\Enums\EventVisibility;
 use App\Enums\PrayerReference;
 use App\Enums\TimingMode;
+use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Speaker;
@@ -59,7 +60,7 @@ it('can submit event with custom prayer time (lain_waktu)', function () {
     $fixtures = submitEventTimingFixtures();
 
     setSubmitEventFormState(
-        Livewire::test('pages.submit-event.create'),
+        Livewire::test(Create::class),
         submitEventTimingFormData($fixtures, [
             'title' => 'Custom Time Event',
             'prayer_time' => EventPrayerTime::LainWaktu->value,
@@ -78,7 +79,7 @@ it('requires custom_time when prayer_time is lain_waktu', function () {
     $fixtures = submitEventTimingFixtures();
 
     setSubmitEventFormState(
-        Livewire::test('pages.submit-event.create'),
+        Livewire::test(Create::class),
         submitEventTimingFormData($fixtures, [
             'title' => 'Custom Time Required Event',
             'prayer_time' => EventPrayerTime::LainWaktu->value,
@@ -95,7 +96,7 @@ it('saves timing mode as prayer_relative when using prayer time', function () {
     $fixtures = submitEventTimingFixtures();
 
     setSubmitEventFormState(
-        Livewire::test('pages.submit-event.create'),
+        Livewire::test(Create::class),
         submitEventTimingFormData($fixtures, [
             'title' => 'Prayer Time Event',
         ]),
@@ -114,7 +115,7 @@ it('can submit event for future dates', function () {
     $futureDate = now()->addWeek()->toDateString();
 
     setSubmitEventFormState(
-        Livewire::test('pages.submit-event.create'),
+        Livewire::test(Create::class),
         submitEventTimingFormData($fixtures, [
             'title' => 'Future Event',
             'event_date' => $futureDate,

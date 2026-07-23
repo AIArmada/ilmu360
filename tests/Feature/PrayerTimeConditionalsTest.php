@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Livewire\Pages\SubmitEvent\Create;
 use Illuminate\Support\Carbon;
 use Livewire\Livewire;
 
@@ -14,7 +15,7 @@ afterEach(function () {
 });
 
 test('base prayer time options are visible without date selected', function () {
-    $component = Livewire::test('pages.submit-event.create');
+    $component = Livewire::test(Create::class);
 
     $component->assertSee('Selepas Subuh')
         ->assertSee('Selepas Zuhur')
@@ -30,7 +31,7 @@ test('base prayer time options are visible without date selected', function () {
 
 test('selepas jumaat appears on friday', function () {
     // Feb 6, 2026 is a Friday
-    Livewire::test('pages.submit-event.create')
+    Livewire::test(Create::class)
         ->set('data.event_date', '2026-02-06')
         ->assertSee('Sebelum Jumaat')
         ->assertSee('Selepas Jumaat');
@@ -38,7 +39,7 @@ test('selepas jumaat appears on friday', function () {
 
 test('selepas jumaat does not appear on non-friday', function () {
     // Feb 5, 2026 is a Thursday
-    Livewire::test('pages.submit-event.create')
+    Livewire::test(Create::class)
         ->set('data.event_date', '2026-02-05')
         ->assertDontSee('Sebelum Jumaat')
         ->assertDontSee('Selepas Jumaat');
@@ -46,7 +47,7 @@ test('selepas jumaat does not appear on non-friday', function () {
 
 test('selepas tarawih appears during ramadhan', function () {
     // Feb 25, 2026 is during Ramadhan (Feb 18 - Mar 19, 2026)
-    Livewire::test('pages.submit-event.create')
+    Livewire::test(Create::class)
         ->set('data.event_date', '2026-02-25')
         ->assertSee('Sebelum Maghrib')
         ->assertSee('Selepas Tarawih');
@@ -54,7 +55,7 @@ test('selepas tarawih appears during ramadhan', function () {
 
 test('selepas tarawih does not appear outside ramadhan', function () {
     // Apr 1, 2026 is after Ramadhan
-    Livewire::test('pages.submit-event.create')
+    Livewire::test(Create::class)
         ->set('data.event_date', '2026-04-01')
         ->assertDontSee('Sebelum Maghrib')
         ->assertDontSee('Selepas Tarawih');
@@ -62,14 +63,14 @@ test('selepas tarawih does not appear outside ramadhan', function () {
 
 test('both selepas jumaat and tarawih appear on friday during ramadhan', function () {
     // Feb 27, 2026 is a Friday during Ramadhan
-    Livewire::test('pages.submit-event.create')
+    Livewire::test(Create::class)
         ->set('data.event_date', '2026-02-27')
         ->assertSee('Selepas Jumaat')
         ->assertSee('Selepas Tarawih');
 });
 
 test('zohor is now spelled as zuhur', function () {
-    Livewire::test('pages.submit-event.create')
+    Livewire::test(Create::class)
         ->set('data.event_date', '2026-03-01')
         ->assertSee('Selepas Zuhur')
         ->assertDontSee('Selepas Zohor');

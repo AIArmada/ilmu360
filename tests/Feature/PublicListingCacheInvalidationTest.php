@@ -6,6 +6,7 @@ use App\Enums\EventGenderRestriction;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventPrayerTime;
 use App\Enums\EventVisibility;
+use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Event;
 use App\Models\EventKeyPerson;
 use App\Models\Institution;
@@ -105,7 +106,7 @@ it('clears majlis listing cache when event is submitted from public submit form'
     $homepageKeys = primeHomepageStatsCache();
 
     setSubmitEventFormState(
-        Livewire::test('pages.submit-event.create'),
+        Livewire::test(Create::class),
         [
             'title' => 'Cache Bust Submit '.Str::random(6),
             'description' => 'Cache invalidation check',

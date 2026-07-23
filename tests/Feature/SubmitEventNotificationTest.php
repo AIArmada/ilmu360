@@ -6,6 +6,7 @@ use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventPrayerTime;
 use App\Enums\EventVisibility;
+use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Speaker;
@@ -74,7 +75,7 @@ it('notifies moderators when a guest submits an event', function () {
     $fixtures = submitEventNotificationFixtures();
 
     setSubmitEventFormState(
-        Livewire::test('pages.submit-event.create'),
+        Livewire::test(Create::class),
         submitEventNotificationFormData($fixtures, [
             'submitter_name' => 'Ahmad bin Abdullah',
             'submitter_email' => 'ahmad@example.com',
@@ -100,7 +101,7 @@ it('transitions event from draft to pending on submission', function () {
     $fixtures = submitEventNotificationFixtures();
 
     setSubmitEventFormState(
-        Livewire::test('pages.submit-event.create'),
+        Livewire::test(Create::class),
         submitEventNotificationFormData($fixtures, [
             'title' => 'Draft to Pending Event',
             'description' => 'Testing state transition',

@@ -7,6 +7,7 @@ use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventPrayerTime;
 use App\Enums\EventVisibility;
+use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Speaker;
@@ -74,7 +75,7 @@ it('can submit event with optional end time', function () {
     $fixtures = submitEventEndTimeFixtures();
 
     setSubmitEventFormState(
-        Livewire::test('pages.submit-event.create'),
+        Livewire::test(Create::class),
         submitEventEndTimeFormData($fixtures, [
             'title' => 'Event With End Time',
             'end_time' => '21:30',
@@ -97,7 +98,7 @@ it('can submit event without end time (optional)', function () {
     $fixtures = submitEventEndTimeFixtures();
 
     setSubmitEventFormState(
-        Livewire::test('pages.submit-event.create'),
+        Livewire::test(Create::class),
         submitEventEndTimeFormData($fixtures, [
             'title' => 'Event Without End Time',
         ]),
@@ -114,7 +115,7 @@ it('can submit event with custom time and end time', function () {
     $fixtures = submitEventEndTimeFixtures();
 
     setSubmitEventFormState(
-        Livewire::test('pages.submit-event.create'),
+        Livewire::test(Create::class),
         submitEventEndTimeFormData($fixtures, [
             'title' => 'Custom Time With End Time',
             'prayer_time' => EventPrayerTime::LainWaktu->value,
@@ -140,7 +141,7 @@ it('uses the selected submission country timezone instead of the browser timezon
 
     setSubmitEventFormState(
         Livewire::withCookie('user_timezone', 'America/Los_Angeles')
-            ->test('pages.submit-event.create'),
+            ->test(Create::class),
         submitEventEndTimeFormData($fixtures, [
             'title' => 'Selected Country Timezone Wins',
             'prayer_time' => EventPrayerTime::LainWaktu->value,
@@ -164,7 +165,7 @@ it('rejects unsupported submission country ids in the public submit flow', funct
     $fixtures = submitEventEndTimeFixtures();
 
     setSubmitEventFormState(
-        Livewire::test('pages.submit-event.create'),
+        Livewire::test(Create::class),
         submitEventEndTimeFormData($fixtures, [
             'title' => 'Unsupported Submission Country Invalid',
             'prayer_time' => EventPrayerTime::LainWaktu->value,
@@ -182,7 +183,7 @@ it('rejects malformed submission country ids in the public submit flow', functio
     $fixtures = submitEventEndTimeFixtures();
 
     setSubmitEventFormState(
-        Livewire::test('pages.submit-event.create'),
+        Livewire::test(Create::class),
         submitEventEndTimeFormData($fixtures, [
             'title' => $title,
             'prayer_time' => EventPrayerTime::LainWaktu->value,
@@ -203,7 +204,7 @@ it('rejects end time that is earlier than estimated prayer start time', function
     $fixtures = submitEventEndTimeFixtures();
 
     setSubmitEventFormState(
-        Livewire::test('pages.submit-event.create'),
+        Livewire::test(Create::class),
         submitEventEndTimeFormData($fixtures, [
             'title' => 'Prayer Time Invalid End Time',
             'prayer_time' => EventPrayerTime::SelepasIsyak->value,
@@ -220,7 +221,7 @@ it('rejects end time that is equal to start time', function () {
     $fixtures = submitEventEndTimeFixtures();
 
     setSubmitEventFormState(
-        Livewire::test('pages.submit-event.create'),
+        Livewire::test(Create::class),
         submitEventEndTimeFormData($fixtures, [
             'title' => 'Equal End Time Invalid',
             'prayer_time' => EventPrayerTime::LainWaktu->value,
@@ -238,7 +239,7 @@ it('stores 08:00PM local as 12:00 UTC in database', function () {
     $fixtures = submitEventEndTimeFixtures();
 
     setSubmitEventFormState(
-        Livewire::test('pages.submit-event.create'),
+        Livewire::test(Create::class),
         submitEventEndTimeFormData($fixtures, [
             'title' => 'KL 8PM UTC 12 Test',
             'prayer_time' => EventPrayerTime::SelepasAsar->value,
@@ -261,7 +262,7 @@ it('allows sebelum maghrib during ramadhan', function () {
     $fixtures = submitEventEndTimeFixtures();
 
     setSubmitEventFormState(
-        Livewire::test('pages.submit-event.create'),
+        Livewire::test(Create::class),
         submitEventEndTimeFormData($fixtures, [
             'title' => 'Ramadhan Sebelum Maghrib Valid',
             'event_date' => '2027-02-10',
@@ -283,7 +284,7 @@ it('rejects sebelum maghrib outside ramadhan', function () {
     $fixtures = submitEventEndTimeFixtures();
 
     setSubmitEventFormState(
-        Livewire::test('pages.submit-event.create'),
+        Livewire::test(Create::class),
         submitEventEndTimeFormData($fixtures, [
             'title' => 'Non Ramadhan Sebelum Maghrib Invalid',
             'event_date' => '2027-03-20',
@@ -300,7 +301,7 @@ it('rejects non-physical format for community event types', function () {
     $fixtures = submitEventEndTimeFixtures();
 
     setSubmitEventFormState(
-        Livewire::test('pages.submit-event.create'),
+        Livewire::test(Create::class),
         submitEventEndTimeFormData($fixtures, [
             'title' => 'Community Online Invalid',
             'event_category_ids' => [eventCategoryId('iftar')],

@@ -5,6 +5,7 @@ use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventPrayerTime;
 use App\Enums\EventVisibility;
+use App\Livewire\Pages\SubmitEvent\Create;
 use App\Services\Ai\EventMediaExtractionService;
 use Illuminate\Http\UploadedFile;
 use Livewire\Livewire;
@@ -41,7 +42,7 @@ it('extracts media data with AI and moves the wizard to review step', function (
             ]);
     });
 
-    $component = Livewire::test('pages.submit-event.create')
+    $component = Livewire::test(Create::class)
         ->set('event_source_attachment', UploadedFile::fake()->image('poster.jpg', 1200, 1500))
         ->call('extractEventFromMedia')
         ->assertHasNoErrors(['event_source_attachment'])
@@ -71,7 +72,7 @@ it('rejects unsupported files before calling AI extraction', function () {
         $mock->shouldNotReceive('extract');
     });
 
-    Livewire::test('pages.submit-event.create')
+    Livewire::test(Create::class)
         ->set('event_source_attachment', UploadedFile::fake()->create('notes.txt', 10, 'text/plain'))
         ->call('extractEventFromMedia')
         ->assertHasErrors(['event_source_attachment']);

@@ -6,6 +6,7 @@ use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventPrayerTime;
 use App\Enums\EventVisibility;
+use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Event;
 use App\Models\EventSubmission;
 use App\Models\Institution;
@@ -60,7 +61,7 @@ it('saves notes to event submission when provided', function () {
     $notes = 'This event requires special audio equipment and accessibility ramps.';
 
     setSubmitEventFormState(
-        Livewire::test('pages.submit-event.create'),
+        Livewire::test(Create::class),
         submitEventNotesFormData($fixtures, [
             'title' => 'Event With Notes',
             'notes' => $notes,
@@ -80,7 +81,7 @@ it('allows submitting event without notes', function () {
     $fixtures = submitEventNotesFixtures();
 
     setSubmitEventFormState(
-        Livewire::test('pages.submit-event.create'),
+        Livewire::test(Create::class),
         submitEventNotesFormData($fixtures, [
             'title' => 'Event Without Notes',
         ]),

@@ -29,6 +29,7 @@ use App\Livewire\Pages\MembershipApplications\Index as MembershipApplicationsInd
 use App\Livewire\Pages\Reports\Create as CreateReportPage;
 use App\Livewire\Pages\SavedSearches\Index;
 use App\Livewire\Pages\Search\Index as SearchIndex;
+use App\Livewire\Pages\SubmitEvent\Create;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Route;
@@ -77,7 +78,7 @@ Route::get('/majlis/{event:slug}/kalendar.ics', [EventsController::class, 'calen
 // Event Submission (Public)
 Route::livewire('/tambah-majlis', 'pages.submit-event.landing')
     ->name('submit-event.landing');
-Route::livewire('/hantar-majlis', 'pages.submit-event.create')
+Route::livewire('/hantar-majlis', Create::class)
     ->name('submit-event.create');
 Route::livewire('/hantar-majlis/berjaya', 'pages.submit-event.success')->name('submit-event.success');
 
@@ -99,7 +100,7 @@ Route::middleware('auth')->group(function () {
     Route::livewire('/tetapan-akaun', AccountSettings::class)->name('dashboard.account-settings');
     Route::livewire('/dashboard/institusi', InstitutionDashboard::class)->name('dashboard.institutions');
     Route::livewire('/dashboard/institusi/senarai-majlis', InstitutionDashboard::class)->name('dashboard.institutions.events');
-    Route::livewire('/dashboard/institusi/tambah-majlis', 'pages.submit-event.create')->name('dashboard.institutions.submit-event');
+    Route::livewire('/dashboard/institusi/tambah-majlis', Create::class)->name('dashboard.institutions.submit-event');
     Route::livewire('/dashboard/majlis/cipta-lanjutan', CreateAdvanced::class)->name('dashboard.events.create-advanced');
     Route::livewire('/carian-tersimpan', Index::class)->name('saved-searches.index');
     Route::livewire('/jemputan-ahli/{token}', ShowMemberInvitation::class)->name('member-invitations.show');

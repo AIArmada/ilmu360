@@ -5,6 +5,7 @@ use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventVisibility;
 use App\Livewire\Pages\Events\Index;
+use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Speaker;
@@ -44,7 +45,7 @@ it('can submit an event as a speaker with an institution location', function () 
     $institution = Institution::factory()->create(['status' => 'verified']);
 
     setSubmitEventFormState(
-        Livewire::actingAs($this->user)->test('pages.submit-event.create'),
+        Livewire::actingAs($this->user)->test(Create::class),
         submitEventLocationFormData([
             'title' => 'Speaker at Institution',
             'primary_organizer_id' => $speaker->id,
@@ -70,7 +71,7 @@ it('can submit an event as a speaker with a venue location', function () {
     $venue = Venue::factory()->create(['status' => 'verified']);
 
     setSubmitEventFormState(
-        Livewire::actingAs($this->user)->test('pages.submit-event.create'),
+        Livewire::actingAs($this->user)->test(Create::class),
         submitEventLocationFormData([
             'title' => 'Speaker at Venue',
             'primary_organizer_id' => $speaker->id,
@@ -96,7 +97,7 @@ it('automatically sets location to institution when organizer is an institution'
     $speaker = Speaker::factory()->create(['status' => 'verified']);
 
     setSubmitEventFormState(
-        Livewire::actingAs($this->user)->test('pages.submit-event.create'),
+        Livewire::actingAs($this->user)->test(Create::class),
         submitEventLocationFormData([
             'title' => 'Institution Event',
             'primary_organizer_id' => $institution->id,
@@ -119,7 +120,7 @@ it('requires location type when organizer is speaker', function () {
     $speaker = Speaker::factory()->create(['status' => 'verified']);
 
     Livewire::actingAs($this->user)
-        ->test('pages.submit-event.create')
+        ->test(Create::class)
         ->set('data.primary_organizer_kind', 'speaker')
         ->set('data.primary_organizer_id', $speaker->id)
         ->set('data.primary_organizer_speaker_id', $speaker->id)
@@ -137,7 +138,7 @@ it('allows institution organizer to choose a different location', function () {
     $speaker = Speaker::factory()->create(['status' => 'verified']);
 
     setSubmitEventFormState(
-        Livewire::actingAs($this->user)->test('pages.submit-event.create'),
+        Livewire::actingAs($this->user)->test(Create::class),
         submitEventLocationFormData([
             'title' => 'Institution at Other Venue',
             'primary_organizer_id' => $organizerInstitution->id,
@@ -166,7 +167,7 @@ it('includes institution nicknames in submit-event option labels', function () {
         'status' => 'verified',
     ]);
 
-    $component = Livewire::test('pages.submit-event.create');
+    $component = Livewire::test(Create::class);
 
     /** @var array<string, string> $options */
     $options = (fn (): array => $this->availableInstitutionOptions())->call($component->instance());

@@ -7,6 +7,7 @@ use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventPrayerTime;
 use App\Enums\EventVisibility;
+use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Speaker;
@@ -86,7 +87,7 @@ it('rejects submission when turnstile verification fails', function () {
 
     $fixtures = submitEventCaptchaFixtures();
 
-    $component = Livewire::test('pages.submit-event.create');
+    $component = Livewire::test(Create::class);
     fillSubmitEventCaptchaForm($component, $fixtures, 'Event Captcha Failed');
 
     $component
@@ -123,7 +124,7 @@ it('accepts submission when turnstile verification succeeds', function () {
 
     $fixtures = submitEventCaptchaFixtures();
 
-    $component = Livewire::test('pages.submit-event.create');
+    $component = Livewire::test(Create::class);
     fillSubmitEventCaptchaForm($component, $fixtures, 'Event Captcha Passed');
 
     $component

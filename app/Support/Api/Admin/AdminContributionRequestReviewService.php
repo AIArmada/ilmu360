@@ -11,11 +11,13 @@ use App\Filament\Resources\ContributionRequests\ContributionRequestResource;
 use App\Filament\Resources\ContributionRequests\Support\ContributionRequestPresenter;
 use App\Models\ContributionRequest;
 use App\Models\User;
+use App\Support\Api\Admin\Concerns\ProvidesWorkflowResponse;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 
 final readonly class AdminContributionRequestReviewService
 {
+    use ProvidesWorkflowResponse;
     public function __construct(
         private AdminResourceRegistry $registry,
         private ResolveReviewableContributionRequestAction $resolveReviewableContributionRequestAction,
@@ -114,12 +116,7 @@ final readonly class AdminContributionRequestReviewService
             default => throw new \InvalidArgumentException('Unsupported contribution-request review action.'),
         };
 
-        return [
-            'data' => [
-                'resource' => $this->registry->metadata(ContributionRequestResource::class),
-                'record' => $this->registry->serializeRecordDetail(ContributionRequestResource::class, $request),
-            ],
-        ];
+        return $this->workflowResponse(ContributionRequestResource::class, $request);
     }
 
     private function resolveContributionRequest(string $recordKey, User $actor): ContributionRequest

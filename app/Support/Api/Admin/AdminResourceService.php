@@ -34,9 +34,11 @@ use Illuminate\Validation\ValidationException;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use App\Support\Api\Admin\Concerns\ResolvesAccessibleResource;
 
 class AdminResourceService
 {
+    use ResolvesAccessibleResource;
     public function __construct(
         private readonly AdminResourceRegistry $registry,
         private readonly AdminResourceMutationService $mutationService,
@@ -1253,22 +1255,6 @@ class AdminResourceService
             'timezone_sensitive' => $resource['timezone_sensitive'],
             'date_semantics' => $resource['date_semantics'],
         ];
-    }
-
-    /**
-     * @return class-string<\Filament\Resources\Resource>
-     */
-    protected function resolveAccessibleResource(string $resourceKey): string
-    {
-        $resourceClass = $this->registry->resolve($resourceKey);
-
-        if (! is_string($resourceClass)) {
-            throw new NotFoundHttpException;
-        }
-
-        abort_unless($this->registry->canAccessResource($resourceClass), 403);
-
-        return $resourceClass;
     }
 
     /**

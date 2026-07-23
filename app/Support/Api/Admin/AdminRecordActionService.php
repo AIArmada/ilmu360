@@ -18,10 +18,11 @@ use Filament\Resources\Resource;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use App\Support\Api\Admin\Concerns\ResolvesAccessibleResource;
 
 final readonly class AdminRecordActionService
 {
+    use ResolvesAccessibleResource;
     public function __construct(
         private AdminResourceRegistry $registry,
         private AdminEventModerationService $eventModerationService,
@@ -562,19 +563,4 @@ final readonly class AdminRecordActionService
         return is_array($schema) ? $schema : null;
     }
 
-    /**
-     * @return class-string<resource>
-     */
-    private function resolveAccessibleResource(string $resourceKey): string
-    {
-        $resourceClass = $this->registry->resolve($resourceKey);
-
-        if (! is_string($resourceClass)) {
-            throw new NotFoundHttpException;
-        }
-
-        abort_unless($this->registry->canAccessResource($resourceClass), 403);
-
-        return $resourceClass;
-    }
 }
