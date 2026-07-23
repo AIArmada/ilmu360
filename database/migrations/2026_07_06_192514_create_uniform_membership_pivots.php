@@ -19,14 +19,14 @@ return new class extends Migration
             $table->index('role');
         });
 
-        Schema::create('speaker_members', function (Blueprint $table) {
-            $table->foreignUuid('speaker_id')->index();
+        Schema::create('person_members', function (Blueprint $table) {
+            $table->foreignUuid('person_id')->index();
             $table->foreignUuid('user_id')->index();
             $table->string('role')->default('viewer');
             $table->timestamp('joined_at')->nullable();
             $table->timestamps();
 
-            $table->primary(['speaker_id', 'user_id']);
+            $table->primary(['person_id', 'user_id']);
             $table->index('role');
         });
 
@@ -56,7 +56,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('institution_members');
-        Schema::dropIfExists('speaker_members');
+        Schema::dropIfExists('person_members');
         Schema::dropIfExists('reference_members');
         Schema::dropIfExists('event_members');
     }
