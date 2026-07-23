@@ -128,7 +128,6 @@ it('throws validation exception for invalid credentials', function () {
 
 it('returns null for empty login string', function () {
     $reflection = new ReflectionMethod(AuthenticateApiUserAction::class, 'resolveUser');
-    $reflection->setAccessible(true);
     $action = app(AuthenticateApiUserAction::class);
 
     $result = $reflection->invoke($action, '');

@@ -31,7 +31,6 @@ it('resolves backed enum values to their scalar value', function () {
     $renderer = app(NotificationMessageRenderer::class);
 
     $reflection = new ReflectionMethod($renderer, 'resolveValue');
-    $reflection->setAccessible(true);
 
     $result = $reflection->invoke($renderer, EventVisibility::Public);
 
@@ -42,7 +41,6 @@ it('resolves plain values as-is', function () {
     $renderer = app(NotificationMessageRenderer::class);
 
     $reflection = new ReflectionMethod($renderer, 'resolveValue');
-    $reflection->setAccessible(true);
 
     $result = $reflection->invoke($renderer, 'plain string');
 
@@ -53,7 +51,6 @@ it('resolves nested arrays recursively', function () {
     $renderer = app(NotificationMessageRenderer::class);
 
     $reflection = new ReflectionMethod($renderer, 'resolveValue');
-    $reflection->setAccessible(true);
 
     $result = $reflection->invoke($renderer, [
         'name' => 'Test',
@@ -83,7 +80,6 @@ it('returns to_be_confirmed when timing token has no starts_at', function () {
     $renderer = app(NotificationMessageRenderer::class);
 
     $reflection = new ReflectionMethod($renderer, 'formatEventTiming');
-    $reflection->setAccessible(true);
 
     $result = $reflection->invoke($renderer, ['type' => 'event_timing', 'starts_at' => null, 'timezone' => null]);
 

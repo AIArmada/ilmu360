@@ -45,6 +45,7 @@ class Tag extends SpatieTag implements Sortable
         'order_column',
     ];
 
+    #[\Override]
     protected function casts(): array
     {
         return [
