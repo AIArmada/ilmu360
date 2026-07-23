@@ -109,7 +109,7 @@
                     <div class="relative min-h-[22rem] overflow-hidden bg-gradient-to-br from-emerald-100 via-[#f4efe4] to-amber-100 lg:min-h-[30rem]">
                         <div class="absolute inset-0 opacity-40" style="background-image: radial-gradient(circle at 1px 1px, rgba(7,91,72,.2) 1px, transparent 0); background-size: 20px 20px;"></div>
                         <img
-                            src="{{ $speaker->public_avatar_url }}"
+                            src="{{ $speaker->public_main_url }}"
                             alt="{{ $speaker->formatted_name }}"
                             class="relative h-full w-full object-cover object-top"
                             loading="eager"
