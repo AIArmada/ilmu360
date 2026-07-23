@@ -18,6 +18,7 @@ use App\Models\EventSubmission;
 use App\Models\Institution;
 use App\Models\Speaker;
 use App\Models\User;
+use App\Support\Events\OrganizerResolver;
 use App\Support\Submission\EntitySubmissionAccess;
 use BackedEnum;
 use Illuminate\Http\Request;
@@ -34,6 +35,7 @@ class SubmitFrontendEventAction
     public function __construct(
         private readonly EntitySubmissionAccess $entitySubmissionAccess,
         private readonly CaptchaVerifier $turnstileVerifier,
+        private readonly GenerateEventSlugAction $generateEventSlugAction,
         private readonly PersistValidatedEventSubmissionAction $persistValidatedSubmission,
         private readonly CompleteFrontendEventSubmissionAction $completeSubmission,
     ) {}
@@ -133,15 +135,10 @@ class SubmitFrontendEventAction
         }
 
         $autoApproved = $scopedInstitution instanceof Institution;
-        $speakerSlugSegments = app(GenerateEventSlugAction::class)->speakerSlugSegmentsForSpeakerIds(
+        $speakerSlugSegments = $this->generateEventSlugAction->speakerSlugSegmentsForState(
             is_array($validated['speakers'] ?? null) ? $validated['speakers'] : [],
+            $primaryOrganizer,
         );
-
-        if ($speakerSlugSegments === [] && $primaryOrganizer instanceof Speaker) {
-            $speakerSlugSegments = app(GenerateEventSlugAction::class)->speakerSlugSegmentsForSpeakerIds([
-                (string) $primaryOrganizer->getKey(),
-            ]);
-        }
 
         $endsAt = $this->resolveEndsAt($validated, $startsAt, $timezone);
         $isSessionSubmission = $eventContainer instanceof Event;
@@ -570,8 +567,7 @@ class SubmitFrontendEventAction
             return null;
         }
 
-        return Institution::query()->find($organizerId)
-            ?? Speaker::query()->find($organizerId);
+        return OrganizerResolver::find($organizerId);
     }
 
     private function resolvePrimaryOrganizerKind(mixed $primaryOrganizerId): ?string

@@ -23,6 +23,7 @@ use App\Models\Speaker;
 use App\Models\User;
 use App\Services\ModerationService;
 use App\Support\Events\AdminEventTimeMapper;
+use App\Support\Events\OrganizerResolver;
 use App\Support\Media\ModelMediaSyncService;
 use BackedEnum;
 use Illuminate\Http\UploadedFile;
@@ -266,7 +267,7 @@ final readonly class SaveAdminEventAction
 
         $organizerId = $this->normalizeOptionalString($state['primary_organizer_id'] ?? $event->primaryOrganizerInvolvement?->involveable_id);
         if ($organizerId) {
-            $organizer = Institution::query()->find($organizerId) ?? Speaker::query()->find($organizerId);
+            $organizer = OrganizerResolver::find($organizerId);
             $event->setPrimaryOrganizer($organizer);
         } else {
             $event->setPrimaryOrganizer(null);
@@ -400,19 +401,13 @@ final readonly class SaveAdminEventAction
      */
     private function generateSlug(array $attributes, array $state, Event $event, bool $creating): string
     {
-        $speakerSlugSegments = $this->generateEventSlugAction->speakerSlugSegmentsForSpeakerIds(
-            $this->normalizeStringArray($state['speakers'] ?? []),
-        );
+        $primaryOrganizerId = $this->normalizeOptionalString($state['primary_organizer_id'] ?? null);
+        $primaryOrganizer = OrganizerResolver::find($primaryOrganizerId);
 
-        if (
-            $speakerSlugSegments === []
-            && filled($state['primary_organizer_id'] ?? null)
-            && Speaker::query()->whereKey($state['primary_organizer_id'])->exists()
-        ) {
-            $speakerSlugSegments = $this->generateEventSlugAction->speakerSlugSegmentsForSpeakerIds([
-                (string) $state['primary_organizer_id'],
-            ]);
-        }
+        $speakerSlugSegments = $this->generateEventSlugAction->speakerSlugSegmentsForState(
+            $this->normalizeStringArray($state['speakers'] ?? []),
+            $primaryOrganizer,
+        );
 
         return $this->generateEventSlugAction->handle(
             (string) $attributes['title'],

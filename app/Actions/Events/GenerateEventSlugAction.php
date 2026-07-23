@@ -7,6 +7,7 @@ use App\Actions\Slugs\Concerns\InteractsWithOrderedSlugModels;
 use App\Actions\Slugs\SyncCanonicalSlugAction;
 use App\Enums\EventKeyPersonRole;
 use App\Models\Event;
+use App\Models\Institution;
 use App\Models\Speaker;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
@@ -101,6 +102,22 @@ class GenerateEventSlugAction
         $slug = $this->forEvent($event);
 
         return $this->syncCanonicalSlugAction->persist($event, $slug);
+    }
+
+    /**
+     * Resolve speaker slug segments, falling back to primary organizer if it's a speaker.
+     */
+    public function speakerSlugSegmentsForState(array $speakerIds, Institution|Speaker|null $primaryOrganizer): array
+    {
+        $segments = $this->speakerSlugSegmentsForSpeakerIds($speakerIds);
+
+        if ($segments === [] && $primaryOrganizer instanceof Speaker) {
+            $segments = $this->speakerSlugSegmentsForSpeakerIds([
+                (string) $primaryOrganizer->getKey(),
+            ]);
+        }
+
+        return $segments;
     }
 
     /**

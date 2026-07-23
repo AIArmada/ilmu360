@@ -201,7 +201,7 @@ it('shows the empty state when speaker search has no public matches', function (
     get('/penceramah?search=ammar')
         ->assertSuccessful()
         ->assertSee(__('Penceramah tidak ditemui'))
-        ->assertSee(__('Tiada profil sepadan dengan carian anda. Cuba ejaan lain atau kosongkan carian untuk melihat seluruh direktori.'))
+        ->assertSee(__('Tiada profil sepadan dengan “:search”. Cuba ejaan berbeza atau gunakan nama penuh.', ['search' => 'ammar']))
         ->assertDontSee('penceramah ditemui');
 });
 
