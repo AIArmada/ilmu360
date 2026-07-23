@@ -220,4 +220,19 @@ return [
 
     'max_execution_time' => 30,
 
+    /*
+    |--------------------------------------------------------------------------
+    | Worker Restart Threshold
+    |--------------------------------------------------------------------------
+    |
+    | Octane allows you to configure the maximum number of requests a worker
+    | may process before it is restarted. This is a useful safety valve
+    | against long-running workers that may develop memory leaks.
+    |
+    | Supported: an integer number of requests, or null to disable.
+    |
+    */
+
+    'max_requests' => env('OCTANE_MAX_REQUESTS', 500),
+
 ];

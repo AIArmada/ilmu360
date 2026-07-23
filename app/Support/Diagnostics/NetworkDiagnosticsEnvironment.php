@@ -80,7 +80,8 @@ class NetworkDiagnosticsEnvironment
 
     protected function runtimeValue(string $key): ?string
     {
-        $value = $_ENV[$key] ?? $_SERVER[$key] ?? getenv($key);
+        // getenv() is safe in Octane — workers inherit the parent process environment.
+        $value = getenv($key);
 
         if ($value === false || ! is_scalar($value)) {
             return null;

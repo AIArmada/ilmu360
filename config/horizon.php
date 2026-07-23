@@ -175,7 +175,7 @@ return [
     |
     */
 
-    'fast_termination' => false,
+    'fast_termination' => true,
 
     /*
     |--------------------------------------------------------------------------
@@ -242,7 +242,7 @@ return [
             'minProcesses' => 1,
             'maxProcesses' => 1,
             'maxTime' => 7200,
-            'maxJobs' => 0,
+            'maxJobs' => 10,
             'memory' => 512,
             'tries' => 2,
             'timeout' => 330,
