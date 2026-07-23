@@ -193,9 +193,9 @@ class InstitutionInfolist
                                             ->label('Jumlah Ahli')
                                             ->state(fn ($record) => $record->members()->count())
                                             ->numeric(),
-                                        TextEntry::make('speakers_count')
+                                        TextEntry::make('persons_count')
                                             ->label('Jumlah Penceramah')
-                                            ->state(fn ($record) => $record->speakers()->count())
+                                            ->state(fn ($record) => $record->persons()->count())
                                             ->numeric(),
                                         TextEntry::make('followers_count')
                                             ->label('Jumlah Pengikut')

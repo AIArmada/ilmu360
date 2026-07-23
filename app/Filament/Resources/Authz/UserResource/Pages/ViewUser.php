@@ -10,12 +10,12 @@ use AIArmada\FilamentAuthz\Facades\Authz;
 use AIArmada\FilamentEvents\Resources\EventResource;
 use App\Filament\Resources\Authz\UserResource;
 use App\Filament\Resources\Institutions\InstitutionResource;
+use App\Filament\Resources\Persons\PersonResource;
 use App\Filament\Resources\References\ReferenceResource;
-use App\Filament\Resources\Speakers\SpeakerResource;
 use App\Models\Event;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
-use App\Models\Speaker;
 use App\Models\User;
 use App\Support\ApiDocumentation\ApiDocumentationUrlResolver;
 use App\Support\Timezone\UserDateTimeFormatter;
@@ -138,13 +138,13 @@ class ViewUser extends ViewRecord
                     ->with('event')
                     ->latest(),
                 'followingInstitutions' => fn ($query) => $query->orderBy('name'),
-                'followingSpeakers' => fn ($query) => $query->orderBy('name'),
+                'followingPersons' => fn ($query) => $query->orderBy('name'),
                 'followingReferences' => fn ($query) => $query->orderBy('title'),
                 'eventSubmissions' => fn ($query) => $query
                     ->with('event')
                     ->latest(),
                 'institutions' => fn ($query) => $query->orderBy('name'),
-                'speakers' => fn ($query) => $query->orderBy('name'),
+                'persons' => fn ($query) => $query->orderBy('name'),
                 'memberEvents' => fn ($query) => $query
                     ->with(['institution:id,name', 'venue:id,name'])
                     ->orderByDesc('created_at'),
@@ -189,9 +189,9 @@ class ViewUser extends ViewRecord
         return $institution instanceof Institution ? InstitutionResource::getUrl('view', ['record' => $institution]) : null;
     }
 
-    public function speakerUrl(?Speaker $speaker): ?string
+    public function speakerUrl(?Person $speaker): ?string
     {
-        return $speaker instanceof Speaker ? SpeakerResource::getUrl('view', ['record' => $speaker]) : null;
+        return $speaker instanceof Person ? PersonResource::getUrl('view', ['record' => $speaker]) : null;
     }
 
     public function referenceUrl(?Reference $reference): ?string

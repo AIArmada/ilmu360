@@ -6,8 +6,8 @@ use App\Enums\MemberSubjectType;
 use App\Filament\RelationManagers\MemberInvitationsRelationManager as BaseMemberInvitationsRelationManager;
 use App\Models\Event;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
-use App\Models\Speaker;
 
 class MemberInvitationsRelationManager extends BaseMemberInvitationsRelationManager
 {
@@ -16,7 +16,7 @@ class MemberInvitationsRelationManager extends BaseMemberInvitationsRelationMana
         return MemberSubjectType::Institution;
     }
 
-    protected function getSubjectOwner(): Institution|Speaker|Event|Reference
+    protected function getSubjectOwner(): Institution|Person|Event|Reference
     {
         /** @var Institution $institution */
         $institution = $this->getOwnerRecord();

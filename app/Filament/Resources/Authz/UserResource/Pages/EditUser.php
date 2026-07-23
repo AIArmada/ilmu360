@@ -10,8 +10,8 @@ use App\Enums\MemberSubjectType;
 use App\Filament\Resources\Authz\UserResource;
 use App\Models\Event;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
-use App\Models\Speaker;
 use App\Models\User;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
@@ -154,7 +154,7 @@ class EditUser extends EditRecord
 
         return match ($subjectType) {
             MemberSubjectType::Institution => $user->institutions->map(fn (Institution $institution): string => $institution->name)->values()->all(),
-            MemberSubjectType::Speaker => $user->speakers->map(fn (Speaker $speaker): string => $speaker->name)->values()->all(),
+            MemberSubjectType::Person => $user->persons->map(fn (Person $person): string => $person->name)->values()->all(),
             MemberSubjectType::Event => $user->memberEvents->map(fn (Event $event): string => $event->title)->values()->all(),
             MemberSubjectType::Reference => $user->references->map(fn (Reference $reference): string => $reference->title)->values()->all(),
         };
@@ -168,7 +168,7 @@ class EditUser extends EditRecord
 
         $freshUser->load([
             'institutions' => fn ($query) => $query->orderBy('name'),
-            'speakers' => fn ($query) => $query->orderBy('name'),
+            'persons' => fn ($query) => $query->orderBy('name'),
             'memberEvents' => fn ($query) => $query->orderBy('title'),
             'references' => fn ($query) => $query->orderBy('title'),
         ]);
@@ -185,7 +185,7 @@ class EditUser extends EditRecord
     {
         $pivot = match ($subjectType) {
             MemberSubjectType::Institution => $user->institutions->first()?->getRelationValue('pivot'),
-            MemberSubjectType::Speaker => $user->speakers->first()?->getRelationValue('pivot'),
+            MemberSubjectType::Person => $user->persons->first()?->getRelationValue('pivot'),
             MemberSubjectType::Event => $user->memberEvents->first()?->getRelationValue('pivot'),
             MemberSubjectType::Reference => $user->references->first()?->getRelationValue('pivot'),
         };
@@ -195,11 +195,11 @@ class EditUser extends EditRecord
         return is_string($role) && $role !== '' ? $role : null;
     }
 
-    private function firstResolvedSubject(MemberSubjectType $subjectType, User $user): Institution|Speaker|Event|Reference|null
+    private function firstResolvedSubject(MemberSubjectType $subjectType, User $user): Institution|Person|Event|Reference|null
     {
         return match ($subjectType) {
             MemberSubjectType::Institution => $user->institutions->first(),
-            MemberSubjectType::Speaker => $user->speakers->first(),
+            MemberSubjectType::Person => $user->persons->first(),
             MemberSubjectType::Event => $user->memberEvents->first(),
             MemberSubjectType::Reference => $user->references->first(),
         };

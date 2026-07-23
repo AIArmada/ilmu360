@@ -4,9 +4,9 @@ namespace App\Filament\Resources\SlugRedirects\Tables;
 
 use App\Models\Event;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
 use App\Models\SlugRedirect;
-use App\Models\Speaker;
 use App\Models\Venue;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -72,7 +72,7 @@ class SlugRedirectsTable
         return match (true) {
             $model instanceof Event => $model->title,
             $model instanceof Institution => $model->name,
-            $model instanceof Speaker => $model->formatted_name,
+            $model instanceof Person => $model->formatted_name,
             $model instanceof Reference => $model->title,
             $model instanceof Venue => $model->name,
             default => 'Deleted record',

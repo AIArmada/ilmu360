@@ -110,7 +110,7 @@ Route::middleware('auth')->group(function () {
     Route::livewire('/sumbangan/{subjectType}/berjaya', 'pages.contributions.submission-success')
         ->whereIn('subjectType', [
             ContributionSubjectType::Institution->publicRouteSegment(),
-            ContributionSubjectType::Speaker->publicRouteSegment(),
+            ContributionSubjectType::Person->publicRouteSegment(),
         ])
         ->name('contributions.submission-success');
     Route::livewire('/permohonan-keahlian', MembershipApplicationsIndex::class)->name('membership-applications.index');

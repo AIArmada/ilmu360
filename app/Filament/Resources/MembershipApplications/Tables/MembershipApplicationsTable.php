@@ -84,7 +84,7 @@ class MembershipApplicationsTable
                 SelectFilter::make('subject_type')
                     ->options([
                         MemberSubjectType::Institution->value => MembershipApplicationPresenter::labelForSubject(MemberSubjectType::Institution),
-                        MemberSubjectType::Speaker->value => MembershipApplicationPresenter::labelForSubject(MemberSubjectType::Speaker),
+                        MemberSubjectType::Person->value => MembershipApplicationPresenter::labelForSubject(MemberSubjectType::Person),
                     ]),
             ])
             ->recordActions([

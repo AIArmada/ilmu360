@@ -5,12 +5,12 @@ namespace App\Filament\Widgets;
 use AIArmada\FilamentEvents\Resources\VenueResource;
 use App\Filament\Pages\ModerationQueue;
 use App\Filament\Resources\Institutions\InstitutionResource;
+use App\Filament\Resources\Persons\PersonResource;
 use App\Filament\Resources\References\ReferenceResource;
-use App\Filament\Resources\Speakers\SpeakerResource;
 use App\Models\Event;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
-use App\Models\Speaker;
 use App\Models\Venue;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
@@ -34,7 +34,7 @@ class StatsOverview extends StatsOverviewWidget
             ->where('status', 'pending')
             ->count();
 
-        $pendingSpeakers = Speaker::query()
+        $pendingSpeakers = Person::query()
             ->where('status', 'pending')
             ->count();
 
@@ -86,7 +86,7 @@ class StatsOverview extends StatsOverviewWidget
 
     protected function pendingSpeakersUrl(): string
     {
-        return SpeakerResource::getUrl('index', panel: 'admin').'?tableFilters[status][value]=pending';
+        return PersonResource::getUrl('index', panel: 'admin').'?tableFilters[status][value]=pending';
     }
 
     protected function pendingInstitutionsUrl(): string

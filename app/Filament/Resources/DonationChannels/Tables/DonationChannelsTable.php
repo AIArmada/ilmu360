@@ -3,9 +3,9 @@
 namespace App\Filament\Resources\DonationChannels\Tables;
 
 use App\Filament\Resources\Institutions\InstitutionResource;
-use App\Filament\Resources\Speakers\SpeakerResource;
+use App\Filament\Resources\Persons\PersonResource;
 use App\Models\Institution;
-use App\Models\Speaker;
+use App\Models\Person;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -40,7 +40,7 @@ class DonationChannelsTable
 
                     return match ($record->donatable::class) {
                         Institution::class => InstitutionResource::getUrl('edit', ['record' => $record->donatable->id]),
-                        Speaker::class => SpeakerResource::getUrl('edit', ['record' => $record->donatable->id]),
+                        Person::class => PersonResource::getUrl('edit', ['record' => $record->donatable->id]),
                         default => null,
                     };
                 });

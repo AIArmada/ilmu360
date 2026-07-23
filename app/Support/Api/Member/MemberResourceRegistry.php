@@ -8,11 +8,11 @@ use AIArmada\Addressing\Models\Address;
 use AIArmada\FilamentEvents\Resources\EventResource as AhliEventResource;
 use App\Data\Api\Event\EventPayloadData;
 use App\Filament\Ahli\Resources\Institutions\InstitutionResource as AhliInstitutionResource;
+use App\Filament\Ahli\Resources\Persons\PersonResource as AhliPersonResource;
 use App\Filament\Ahli\Resources\References\ReferenceResource as AhliReferenceResource;
-use App\Filament\Ahli\Resources\Speakers\SpeakerResource as AhliSpeakerResource;
 use App\Models\Event;
 use App\Models\Institution;
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Models\User;
 use Filament\Resources\Resource;
 use Illuminate\Contracts\Support\Htmlable;
@@ -64,7 +64,7 @@ class MemberResourceRegistry
     {
         return $this->resourcesCache ??= [
             AhliInstitutionResource::class,
-            AhliSpeakerResource::class,
+            AhliPersonResource::class,
             AhliReferenceResource::class,
             AhliEventResource::class,
         ];
@@ -120,7 +120,7 @@ class MemberResourceRegistry
 
         return match ($resourceClass) {
             AhliInstitutionResource::class => $user->institutions()->exists(),
-            AhliSpeakerResource::class => $user->speakers()->exists(),
+            AhliPersonResource::class => $user->speakers()->exists(),
             AhliReferenceResource::class => $user->references()->exists(),
             AhliEventResource::class => $user->institutions()->exists()
                 || $user->speakers()->exists()
@@ -418,7 +418,7 @@ class MemberResourceRegistry
                                 })
                                 ->orWhere(function (Builder $speakerQuery) use ($user): void {
                                     $speakerQuery
-                                        ->whereIn('involveable_type', [Speaker::class, 'speaker'])
+                                        ->whereIn('involveable_type', [Person::class, 'person'])
                                         ->whereIn('involveable_id', $user->speakers()->select('speakers.id'));
                                 });
                         });
@@ -611,7 +611,7 @@ class MemberResourceRegistry
                 ? $address->toArray()
                 : [];
 
-            if ($record instanceof Speaker && is_array($attributes['address'])) {
+            if ($record instanceof Person && is_array($attributes['address'])) {
                 $attributes['address'] = Arr::only($attributes['address'], [
                     'country_id',
                     'admin_area_1_id',

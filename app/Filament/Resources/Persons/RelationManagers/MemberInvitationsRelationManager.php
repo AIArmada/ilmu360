@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Resources\References\RelationManagers;
+namespace App\Filament\Resources\Persons\RelationManagers;
 
 use App\Enums\MemberSubjectType;
 use App\Filament\RelationManagers\MemberInvitationsRelationManager as BaseMemberInvitationsRelationManager;
@@ -13,14 +13,14 @@ class MemberInvitationsRelationManager extends BaseMemberInvitationsRelationMana
 {
     protected function getSubjectType(): MemberSubjectType
     {
-        return MemberSubjectType::Reference;
+        return MemberSubjectType::Person;
     }
 
     protected function getSubjectOwner(): Institution|Person|Event|Reference
     {
-        /** @var Reference $reference */
-        $reference = $this->getOwnerRecord();
+        /** @var Person $person */
+        $person = $this->getOwnerRecord();
 
-        return $reference;
+        return $person;
     }
 }

@@ -7,13 +7,13 @@ use App\Enums\ContributionRequestStatus;
 use App\Enums\ContributionRequestType;
 use App\Enums\ContributionSubjectType;
 use App\Filament\Resources\Institutions\InstitutionResource;
+use App\Filament\Resources\Persons\PersonResource;
 use App\Filament\Resources\References\ReferenceResource;
-use App\Filament\Resources\Speakers\SpeakerResource;
 use App\Models\ContributionRequest;
 use App\Models\Event;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
-use App\Models\Speaker;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
 
@@ -59,7 +59,7 @@ class ContributionRequestPresenter
 
         return match (true) {
             $entity instanceof Institution => $entity->name,
-            $entity instanceof Speaker => $entity->formatted_name,
+            $entity instanceof Person => $entity->formatted_name,
             $entity instanceof Event => $entity->title,
             $entity instanceof Reference => $entity->title,
             is_string(data_get($request->proposed_data, 'name')) && filled(data_get($request->proposed_data, 'name')) => data_get($request->proposed_data, 'name'),
@@ -74,7 +74,7 @@ class ContributionRequestPresenter
 
         return match (true) {
             $entity instanceof Institution => InstitutionResource::getUrl('view', ['record' => $entity]),
-            $entity instanceof Speaker => SpeakerResource::getUrl('view', ['record' => $entity]),
+            $entity instanceof Person => PersonResource::getUrl('view', ['record' => $entity]),
             $entity instanceof Event => EventResource::getUrl('view', ['record' => $entity]),
             $entity instanceof Reference => ReferenceResource::getUrl('edit', ['record' => $entity]),
             default => null,

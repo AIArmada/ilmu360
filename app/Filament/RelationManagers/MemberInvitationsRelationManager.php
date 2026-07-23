@@ -9,8 +9,8 @@ use App\Enums\MemberSubjectType;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\MemberInvitation;
+use App\Models\Person;
 use App\Models\Reference;
-use App\Models\Speaker;
 use App\Models\User;
 use App\Support\Authz\MemberInvitationGate;
 use Carbon\Carbon;
@@ -37,7 +37,7 @@ abstract class MemberInvitationsRelationManager extends RelationManager
         return parent::canViewForRecord($ownerRecord, $pageClass)
             && (
                 $ownerRecord instanceof Institution
-                || $ownerRecord instanceof Speaker
+                || $ownerRecord instanceof Person
                 || $ownerRecord instanceof Event
                 || $ownerRecord instanceof Reference
             )
@@ -120,7 +120,7 @@ abstract class MemberInvitationsRelationManager extends RelationManager
 
     abstract protected function getSubjectType(): MemberSubjectType;
 
-    abstract protected function getSubjectOwner(): Institution|Speaker|Event|Reference;
+    abstract protected function getSubjectOwner(): Institution|Person|Event|Reference;
 
     private function statusLabel(MemberInvitation $invitation): string
     {

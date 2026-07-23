@@ -7,14 +7,14 @@ namespace App\Support\Api\Member;
 use AIArmada\FilamentEvents\Resources\EventResource;
 use AIArmada\FilamentEvents\Resources\EventResource as AhliEventResource;
 use App\Filament\Ahli\Resources\Institutions\InstitutionResource as AhliInstitutionResource;
+use App\Filament\Ahli\Resources\Persons\PersonResource as AhliPersonResource;
 use App\Filament\Ahli\Resources\References\ReferenceResource as AhliReferenceResource;
-use App\Filament\Ahli\Resources\Speakers\SpeakerResource as AhliSpeakerResource;
 use App\Filament\Resources\Institutions\InstitutionResource;
+use App\Filament\Resources\Persons\PersonResource;
 use App\Filament\Resources\References\ReferenceResource;
-use App\Filament\Resources\Speakers\SpeakerResource;
 use App\Models\Event;
 use App\Models\Institution;
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Models\User;
 use App\Support\Api\Admin\AdminResourceMutationService;
 use App\Support\Authz\MemberPermissionGate;
@@ -38,7 +38,7 @@ class MemberResourceMutationService
     {
         return in_array($resourceClass, [
             AhliInstitutionResource::class,
-            AhliSpeakerResource::class,
+            AhliPersonResource::class,
             AhliReferenceResource::class,
             AhliEventResource::class,
         ], true);
@@ -55,7 +55,7 @@ class MemberResourceMutationService
 
         return match ($resourceClass) {
             AhliInstitutionResource::class => $this->memberPermissionGate->hasAnyInstitutionPermission($user, 'institution.update'),
-            AhliSpeakerResource::class => $this->memberPermissionGate->hasAnySpeakerPermission($user, 'speaker.update'),
+            AhliPersonResource::class => $this->memberPermissionGate->hasAnySpeakerPermission($user, 'speaker.update'),
             AhliReferenceResource::class => $this->memberPermissionGate->hasAnyReferencePermission($user, 'reference.update'),
             AhliEventResource::class => $this->memberPermissionGate->hasAnyEventPermission($user, 'event.update')
                 || $this->memberPermissionGate->hasAnyInstitutionPermission($user, 'event.update')
@@ -98,7 +98,7 @@ class MemberResourceMutationService
         $organizer = $record->organizer;
 
         return ($organizer instanceof Institution && $memberPermissionGate->canInstitution($user, 'event.update', $organizer))
-            || ($organizer instanceof Speaker && $memberPermissionGate->canSpeaker($user, 'event.update', $organizer));
+            || ($organizer instanceof Person && $memberPermissionGate->canSpeaker($user, 'event.update', $organizer));
     }
 
     /**
@@ -179,7 +179,7 @@ class MemberResourceMutationService
     {
         return match ($resourceClass) {
             AhliInstitutionResource::class => InstitutionResource::class,
-            AhliSpeakerResource::class => SpeakerResource::class,
+            AhliPersonResource::class => PersonResource::class,
             AhliReferenceResource::class => ReferenceResource::class,
             AhliEventResource::class => EventResource::class,
             default => throw new NotFoundHttpException,

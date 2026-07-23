@@ -5,7 +5,7 @@ namespace App\Filament\Resources\DonationChannels\Schemas;
 use App\Models\DonationChannel;
 use App\Models\Event;
 use App\Models\Institution;
-use App\Models\Speaker;
+use App\Models\Person;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\Textarea;
@@ -28,7 +28,7 @@ class DonationChannelForm
                     Select::make('donatable_type')
                         ->options([
                             Institution::class => 'Institution',
-                            Speaker::class => 'Speaker',
+                            Person::class => 'Person',
                             Event::class => 'Event',
                         ])
                         ->required()
