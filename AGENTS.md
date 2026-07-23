@@ -890,24 +890,20 @@ Configured in `config/media-library.php`.
 
 - `avatar`: jpeg,png,webp, single file, fallback placeholder
 - `main`: jpeg,png,webp, responsive, single file, fallback placeholder
-- `cover`: jpeg,png,webp, responsive, single file, fallback placeholder
 - `gallery`: jpeg,png,webp, responsive, multi file
 - Conversions:
   - `thumb`: 80x80 webp sharpen(10) on `avatar`
   - `profile`: 400x400 webp on `avatar`
-  - `main_thumb`: 100x100 webp sharpen(10) on `main`
-  - `display`: width 600 webp on `main`
-  - `banner`: 1200x675 crop webp on `cover`
+  - `banner`: width 1200 webp on `main`
   - `gallery_thumb`: 368x232 webp sharpen(10) on `gallery`
 
 ### Venue (`app/Models/Venue.php`)
 
 - `main`: jpeg,png,webp, responsive, single file, fallback placeholder
-- `cover`: jpeg,png,webp, responsive, single file, fallback placeholder
 - `gallery`: jpeg,png,webp, responsive, multi file
 - Conversions:
-  - `thumb`: 368x232 webp sharpen(10) on `main`,`cover`,`gallery`
-  - `banner`: 1200x675 crop webp on `main`,`cover`
+  - `thumb`: 368x232 webp sharpen(10) on `main`,`gallery`
+  - `banner`: width 1200 webp on `main`
 
 ### Series (`app/Models/Series.php`)
 
