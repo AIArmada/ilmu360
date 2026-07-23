@@ -118,12 +118,32 @@ class Venue extends PackageVenue implements AuditableContract
         $query->whereIn('status', ['verified', 'pending']);
     }
 
+    public function getPublicMainUrlAttribute(): string
+    {
+        if ($this->hasMedia('main')) {
+            $mainMedia = $this->getFirstMedia('main');
+
+            if ($mainMedia instanceof Media) {
+                return $mainMedia->getAvailableUrl(['banner', 'thumb']) ?: $mainMedia->getUrl();
+            }
+        }
+
+        return $this->getFirstMediaUrl('cover', 'banner') ?: asset('images/placeholders/venue.png');
+    }
+
     /**
      * Register media collections for Spatie Media Library.
      */
     #[\Override]
     public function registerMediaCollections(): void
     {
+        $this->addMediaCollection('main')
+            ->useDisk(config('media-library.disk_name'))
+            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp'])
+            ->useFallbackUrl(asset('images/placeholders/venue.png'))
+            ->withResponsiveImages()
+            ->singleFile();
+
         $this->addMediaCollection('cover')
             ->useDisk(config('media-library.disk_name'))
             ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp'])
@@ -143,14 +163,14 @@ class Venue extends PackageVenue implements AuditableContract
     public function registerMediaConversions(?Media $media = null): void
     {
         $this->addMediaConversion('thumb')
-            ->performOnCollections('cover', 'gallery')
+            ->performOnCollections('main', 'cover', 'gallery')
             ->width(368)
             ->height(232)
             ->sharpen(10)
             ->format('webp');
 
         $this->addMediaConversion('banner')
-            ->performOnCollections('cover')
+            ->performOnCollections('main', 'cover')
             ->fit(Fit::Crop, 1200, 675)
             ->format('webp');
     }
