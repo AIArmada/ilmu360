@@ -242,7 +242,7 @@ final readonly class SaveAdminEventAction
             'published_at' => $creating ? null : $event->published_at,
         ];
 
-        $attributes['slug'] = $this->generateSlug($attributes, $state, $event, $creating);
+        $attributes['slug'] = $this->generateSlug($attributes, $state, $event, $creating, $schedule['starts_at']);
 
         if ($creating) {
             $event = Event::query()->create($attributes);
@@ -399,7 +399,7 @@ final readonly class SaveAdminEventAction
      * @param  array<string, mixed>  $state
      * @param  array<string, mixed>  $attributes
      */
-    private function generateSlug(array $attributes, array $state, Event $event, bool $creating): string
+    private function generateSlug(array $attributes, array $state, Event $event, bool $creating, ?string $startsAt = null): string
     {
         $primaryOrganizerId = $this->normalizeOptionalString($state['primary_organizer_id'] ?? null);
         $primaryOrganizer = OrganizerResolver::find($primaryOrganizerId);
@@ -411,7 +411,7 @@ final readonly class SaveAdminEventAction
 
         return $this->generateEventSlugAction->handle(
             (string) $attributes['title'],
-            $state['event_date'] ?? $schedule['starts_at'] ?? null,
+            $state['event_date'] ?? $startsAt ?? null,
             is_string($attributes['timezone']) ? $attributes['timezone'] : null,
             $creating ? null : (string) $event->getKey(),
             $speakerSlugSegments,

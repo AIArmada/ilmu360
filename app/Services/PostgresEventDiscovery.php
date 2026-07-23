@@ -28,8 +28,8 @@ use App\Support\Search\SpeakerSearchService;
 use App\Support\Timezone\UserDateTimeFormatter;
 use Carbon\CarbonInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
-use Illuminate\Database\Builder;
 use Illuminate\Database\Connection;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator as Paginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -665,7 +665,11 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
         $institutionMorphType = (new Institution)->getMorphClass();
 
         $queryBuilder = $this->buildDatabaseQuery(null, $filters);
-        $this->applyDirectSearch($queryBuilder, $query);
+        $this->applyDirectSearch($queryBuilder, $query,
+            (bool) ($filters['search_include_institutions'] ?? true),
+            (bool) ($filters['search_include_speakers'] ?? true),
+            (bool) ($filters['search_include_references'] ?? true),
+        );
 
         $queryBuilder
             ->leftJoin("{$addressablesTable} as venue_addressables", function ($join) use ($venueMorphType) {
@@ -1030,25 +1034,6 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
         }
 
         $queryBuilder->whereRaw("{$expression} <= ?", [(string) $startsTimeUntil]);
-    }
-
-    /**
-     * @param  array<string, mixed>  $filters
-     */
-    protected function requiresDatabaseFiltering(array $filters): bool
-    {
-        return $this->normalizePrayerTimeFilter($filters['prayer_time'] ?? null) !== null
-            || $this->normalizeArrayFilter($filters['language_codes'] ?? null) !== []
-            || $this->normalizeArrayFilter($filters['reference_author_search'] ?? null) !== []
-            || $this->normalizeTextFilter($filters['person_in_charge_search'] ?? null) !== null
-            || $this->normalizeTimingModeFilter($filters['timing_mode'] ?? null) !== null
-            || $this->normalizeTimeFilter($filters['starts_time_from'] ?? null) !== null
-            || $this->normalizeTimeFilter($filters['starts_time_until'] ?? null) !== null
-            || filled($filters['venue_id'] ?? null)
-            || $this->normalizeBooleanFilter($filters['is_muslim_only'] ?? null) !== null
-            || $this->normalizeBooleanFilter($filters['has_event_url'] ?? null) !== null
-            || $this->normalizeBooleanFilter($filters['has_live_url'] ?? null) !== null
-            || $this->normalizeBooleanFilter($filters['has_end_time'] ?? null) !== null;
     }
 
     protected function resolvePrayerReferenceFromFilter(string $prayerTime): ?PrayerReference

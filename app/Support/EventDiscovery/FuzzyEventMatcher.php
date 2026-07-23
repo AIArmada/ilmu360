@@ -6,6 +6,7 @@ namespace App\Support\EventDiscovery;
 
 use App\Models\Event;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Query\Grammars\PostgresGrammar;
 use Illuminate\Support\Str;
 
 final class FuzzyEventMatcher
@@ -195,6 +196,6 @@ final class FuzzyEventMatcher
 
     private function databaseLikeOperator(): string
     {
-        return Event::query()->getConnection()->getDriverName() === 'pgsql' ? 'ILIKE' : 'LIKE';
+        return Event::query()->getGrammar() instanceof PostgresGrammar ? 'ILIKE' : 'LIKE';
     }
 }

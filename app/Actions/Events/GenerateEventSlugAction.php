@@ -106,7 +106,8 @@ class GenerateEventSlugAction
     }
 
     /**
-     * Resolve speaker slug segments, falling back to primary organizer if it's a speaker.
+     * @param  string[]  $speakerIds
+     * @return string[]
      */
     public function speakerSlugSegmentsForState(array $speakerIds, Institution|Speaker|null $primaryOrganizer): array
     {
@@ -204,18 +205,7 @@ class GenerateEventSlugAction
         return $resolvedDate?->format('j-n-y') ?? '';
     }
 
-    private function dateSuffixForEvent(Event $event): string
-    {
-        if (! $event->starts_at instanceof CarbonInterface) {
-            return '';
-        }
-
-        $timezone = is_string($event->timezone) && $event->timezone !== ''
-            ? $event->timezone
-            : (string) config('app.timezone', 'UTC');
-
-        return $event->starts_at->copy()->timezone($timezone)->format('j-n-y');
-    }
+    
 
     /**
      * @param  array<int, mixed>  $speakerSlugs

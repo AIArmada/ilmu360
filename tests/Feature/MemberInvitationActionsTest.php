@@ -1,8 +1,8 @@
 <?php
 
+use AIArmada\Membership\Actions\RevokeInvitationAction;
 use App\Actions\Membership\AcceptSubjectMemberInvitation;
 use App\Actions\Membership\InviteSubjectMember;
-
 use App\Enums\MemberSubjectType;
 use App\Models\Institution;
 use App\Models\MemberInvitation;
@@ -147,7 +147,7 @@ it('rejects revoked invitations', function () {
         now()->addWeek(),
     );
 
-    app(\AIArmada\Membership\Actions\RevokeInvitationAction::class)->handle($invitation, $inviter);
+    app(RevokeInvitationAction::class)->handle($invitation, $inviter);
 
     expect(fn () => app(AcceptSubjectMemberInvitation::class)->handle($invitation->fresh(), $invitee))
         ->toThrow(ValidationException::class);
