@@ -1,12 +1,6 @@
 parameters:
 	ignoreErrors:
 		-
-			message: '#^Variable \$schedule on left side of \?\? is never defined\.$#'
-			identifier: nullCoalesce.variable
-			count: 1
-			path: app/Actions/Events/SaveAdminEventAction.php
-
-		-
 			message: '#^Property App\\Models\\Event\:\:\$schedule_kind \(string\|null\) does not accept AIArmada\\Events\\Enums\\ScheduleKind\.$#'
 			identifier: assign.propertyType
 			count: 1
