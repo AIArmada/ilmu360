@@ -108,7 +108,7 @@ new class extends Component
 @section('meta_description', Str::limit(trim(strip_tags((string) $this->venue->description)) ?: __('Lihat profil lokasi, alamat, dan majlis yang diadakan di :name.', ['name' => $this->venue->name]), 160))
 @section('meta_robots', ($this->venue->status === 'verified' && (string) $this->venue->visibility === 'public') ? 'index, follow' : 'noindex, nofollow')
 @section('og_url', route('venues.show', $this->venue))
-@section('og_image', $this->venue->getFirstMediaUrl('cover', 'banner') ?: asset('images/placeholders/venue.png'))
+@section('og_image', $this->venue->public_main_url)
 @section('og_image_alt', __('Lokasi :name', ['name' => $this->venue->name]))
 
 @php
@@ -117,6 +117,7 @@ new class extends Component
     $pastEvents = $this->pastEvents;
     $upcomingTotal = $this->upcomingTotal;
     $pastTotal = $this->pastTotal;
+    $mainUrl = $venue->public_main_url;
     $coverUrl = $venue->getFirstMediaUrl('cover', 'banner') ?: asset('images/placeholders/venue.png');
     $thumbUrl = $venue->getFirstMediaUrl('cover', 'thumb') ?: asset('images/placeholders/venue.png');
     $address = $venue->primaryAddress();
@@ -185,7 +186,7 @@ new class extends Component
 
             <div class="w-full lg:ml-auto lg:max-w-md">
                 <div class="overflow-hidden rounded-[2rem] border border-white/70 bg-white shadow-[0_24px_80px_-40px_rgba(15,23,42,0.45)]">
-                    <img src="{{ $coverUrl }}" alt="{{ $venue->name }}" class="h-64 w-full object-cover sm:h-72">
+                    <img src="{{ $mainUrl }}" alt="{{ $venue->name }}" class="h-64 w-full object-cover sm:h-72">
                 </div>
             </div>
         </div>
