@@ -190,11 +190,11 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
     }
 
     /**
-     * @return BelongsToMany<Speaker, $this>
+     * @return BelongsToMany<Person, $this>
      */
-    public function speakers(): BelongsToMany
+    public function persons(): BelongsToMany
     {
-        return $this->belongsToMany(Speaker::class, 'speaker_members')
+        return $this->belongsToMany(Person::class, 'person_members')
             ->withPivot(['role', 'joined_at'])
             ->withTimestamps();
     }
@@ -410,13 +410,13 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
      * @param  list<string>  $eventIds
      */
     /**
-     * @return MorphToMany<Speaker, $this>
+     * @return MorphToMany<Person, $this>
      */
-    public function followingSpeakers(): MorphToMany
+    public function followingPersons(): MorphToMany
     {
         $table = (new Follow)->getTable();
 
-        return $this->morphedByMany(Speaker::class, 'followable', $table, 'follower_id', 'followable_id')
+        return $this->morphedByMany(Person::class, 'followable', $table, 'follower_id', 'followable_id')
             ->where("{$table}.status", 'active');
     }
 
@@ -509,11 +509,11 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
     }
 
     /**
-     * @return HasMany<Speaker, $this>
+     * @return HasMany<Person, $this>
      */
-    public function verifiedSpeakers(): HasMany
+    public function verifiedPersons(): HasMany
     {
-        return $this->hasMany(Speaker::class, 'verified_by');
+        return $this->hasMany(Person::class, 'verified_by');
     }
 
     /**
@@ -659,7 +659,7 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
     public function hasAhliPanelAccess(): bool
     {
         return $this->institutions()->exists()
-            || $this->speakers()->exists()
+            || $this->persons()->exists()
             || $this->references()->exists()
             || $this->memberEvents()->exists();
     }

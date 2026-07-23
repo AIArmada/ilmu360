@@ -19,9 +19,9 @@ use AIArmada\Engagement\Models\Follow;
 use AIArmada\Engagement\Models\Response;
 use App\Models\Event;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
 use App\Models\SocialAccount;
-use App\Models\Speaker;
 use App\Models\User;
 use App\Services\ShareTrackingService;
 use Carbon\CarbonImmutable;
@@ -65,7 +65,7 @@ trait HasUserRestoration
                     ->delete();
                 $user->deleteAuthenticationState();
                 $user->institutions()->detach();
-                $user->speakers()->detach();
+                $user->persons()->detach();
                 $user->references()->detach();
                 $user->venues()->each(fn (Follow $f): ?bool => $f->delete());
                 $user->memberEvents()->detach();
@@ -85,7 +85,7 @@ trait HasUserRestoration
                 $user->handledReports()->update(['handled_by' => null]);
                 $user->verifiedDonationChannels()->update(['verified_by' => null]);
                 $user->verifiedEventCheckins()->update(['verified_by_user_id' => null]);
-                $user->verifiedSpeakers()->update(['verified_by' => null]);
+                $user->verifiedPersons()->update(['verified_by' => null]);
                 $user->verifiedInstitutions()->update(['verified_by' => null]);
                 $user->verifiedReferences()->update(['verified_by' => null]);
                 $user->verifiedVenues()->update(['verified_by' => null]);
@@ -182,12 +182,12 @@ trait HasUserRestoration
                 'created_at' => $this->pivotTimestamp($institution, 'created_at'),
                 'updated_at' => $this->pivotTimestamp($institution, 'updated_at'),
             ])->all(),
-            'speaker_members' => $this->speakers()->get()->map(fn (Speaker $speaker): array => [
-                'speaker_id' => $speaker->getKey(),
+            'person_members' => $this->persons()->get()->map(fn (Person $person): array => [
+                'person_id' => $person->getKey(),
                 'user_id' => $this->getKey(),
-                'joined_at' => $this->pivotTimestamp($speaker, 'joined_at'),
-                'created_at' => $this->pivotTimestamp($speaker, 'created_at'),
-                'updated_at' => $this->pivotTimestamp($speaker, 'updated_at'),
+                'joined_at' => $this->pivotTimestamp($person, 'joined_at'),
+                'created_at' => $this->pivotTimestamp($person, 'created_at'),
+                'updated_at' => $this->pivotTimestamp($person, 'updated_at'),
             ])->all(),
             'reference_members' => $this->references()->get()->map(fn (Reference $reference): array => [
                 'reference_id' => $reference->getKey(),
@@ -241,7 +241,7 @@ trait HasUserRestoration
             'handled_report_ids' => $this->handledReports()->pluck('id')->all(),
             'verified_donation_channel_ids' => $this->verifiedDonationChannels()->pluck('id')->all(),
             'verified_event_checkin_ids' => $this->verifiedEventCheckins()->pluck('id')->all(),
-            'verified_speaker_ids' => $this->verifiedSpeakers()->pluck('id')->all(),
+            'verified_person_ids' => $this->verifiedPersons()->pluck('id')->all(),
             'verified_institution_ids' => $this->verifiedInstitutions()->pluck('id')->all(),
             'verified_reference_ids' => $this->verifiedReferences()->pluck('id')->all(),
             'verified_venue_ids' => $this->verifiedVenues()->pluck('id')->all(),
@@ -348,7 +348,7 @@ trait HasUserRestoration
         $this->snapshotEventIds($snapshot, 'event_attendees');
 
         DB::table('institution_members')->insertOrIgnore($this->snapshotRows($snapshot, 'institution_members'));
-        DB::table('speaker_members')->insertOrIgnore($this->snapshotRows($snapshot, 'speaker_members'));
+        DB::table('person_members')->insertOrIgnore($this->snapshotRows($snapshot, 'person_members'));
         DB::table('reference_members')->insertOrIgnore($this->snapshotRows($snapshot, 'reference_members'));
         foreach ($snapshot['user_venue'] ?? [] as $venueFollowData) {
             if (filled($venueFollowData['followable_id'] ?? null)) {
@@ -454,7 +454,7 @@ trait HasUserRestoration
         $this->restoreForeignKeyRelation('handledReports', 'handled_by', $this->snapshotIds($snapshot, 'handled_report_ids'));
         $this->restoreForeignKeyRelation('verifiedDonationChannels', 'verified_by', $this->snapshotIds($snapshot, 'verified_donation_channel_ids'));
         $this->restoreForeignKeyRelation('verifiedEventCheckins', 'verified_by_user_id', $this->snapshotIds($snapshot, 'verified_event_checkin_ids'));
-        $this->restoreForeignKeyRelation('verifiedSpeakers', 'verified_by', $this->snapshotIds($snapshot, 'verified_speaker_ids'));
+        $this->restoreForeignKeyRelation('verifiedPersons', 'verified_by', $this->snapshotIds($snapshot, 'verified_person_ids'));
         $this->restoreForeignKeyRelation('verifiedInstitutions', 'verified_by', $this->snapshotIds($snapshot, 'verified_institution_ids'));
         $this->restoreForeignKeyRelation('verifiedReferences', 'verified_by', $this->snapshotIds($snapshot, 'verified_reference_ids'));
         $this->restoreForeignKeyRelation('verifiedVenues', 'verified_by', $this->snapshotIds($snapshot, 'verified_venue_ids'));

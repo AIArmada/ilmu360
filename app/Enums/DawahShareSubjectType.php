@@ -8,7 +8,7 @@ enum DawahShareSubjectType: string
 {
     case Event = 'event';
     case Institution = 'institution';
-    case Speaker = 'speaker';
+    case Person = 'person';
     case Series = 'series';
     case Reference = 'reference';
     case Search = 'search';

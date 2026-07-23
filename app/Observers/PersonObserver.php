@@ -6,14 +6,14 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Actions\Events\GenerateEventSlugAction;
 use App\Actions\Slugs\SyncSlugRedirectAction;
 use App\Actions\Speakers\GenerateSpeakerSlugAction;
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Observers\Concerns\SyncsCurrentAndPreviousValues;
 use App\Support\Cache\PublicDirectoryCacheVersion;
 use App\Support\Cache\PublicListingsCache;
 use App\Support\Search\SpeakerSearchService;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
-class SpeakerObserver implements ShouldHandleEventsAfterCommit
+class PersonObserver implements ShouldHandleEventsAfterCommit
 {
     use SyncsCurrentAndPreviousValues;
 
@@ -26,26 +26,23 @@ class SpeakerObserver implements ShouldHandleEventsAfterCommit
         protected SpeakerSearchService $speakerSearchService,
     ) {}
 
-    public function saved(Speaker $speaker): void
+    public function saved(Person $person): void
     {
-        if (! $speaker->wasRecentlyCreated && ! $speaker->wasChanged()) {
+        if (! $person->wasRecentlyCreated && ! $person->wasChanged()) {
             return;
         }
 
-        $searchableNameChanged = $speaker->wasRecentlyCreated || $speaker->wasChanged([
+        $searchableNameChanged = $person->wasRecentlyCreated || $person->wasChanged([
             'name',
-            'honorific',
-            'pre_nominal',
-            'post_nominal',
         ]);
 
         if ($searchableNameChanged) {
-            $this->speakerSearchService->syncSpeakerRecord($speaker);
+            $this->speakerSearchService->syncSpeakerRecord($person);
 
-            OwnerContext::withOwner(null, function () use ($speaker): void {
+            OwnerContext::withOwner(null, function () use ($person): void {
                 $this->syncCurrentAndPreviousString(
-                    $speaker->name,
-                    $speaker->wasChanged('name') ? ($speaker->getPrevious()['name'] ?? null) : null,
+                    $person->name,
+                    $person->wasChanged('name') ? ($person->getPrevious()['name'] ?? null) : null,
                     fn (string $name): bool => $this->generateSpeakerSlugAction->syncSpeakerSlugsForName($name),
                     fn (string $name): bool => $this->generateEventSlugAction->syncEventSlugsForSpeakerName($name),
                 );
@@ -57,13 +54,13 @@ class SpeakerObserver implements ShouldHandleEventsAfterCommit
         $this->publicDirectoryCacheVersion->bumpSpeaker();
     }
 
-    public function deleted(Speaker $speaker): void
+    public function deleted(Person $person): void
     {
-        $this->syncSlugRedirectAction->purgeForModel($speaker);
-        $this->generateSpeakerSlugAction->syncSpeakerSlugsForName($speaker->name);
-        $this->generateEventSlugAction->syncEventSlugsForSpeakerId((string) $speaker->getKey());
-        $this->generateEventSlugAction->syncEventSlugsForSpeakerName($speaker->name);
-        $this->speakerSearchService->purgeSpeakerRecord($speaker);
+        $this->syncSlugRedirectAction->purgeForModel($person);
+        $this->generateSpeakerSlugAction->syncSpeakerSlugsForName($person->name);
+        $this->generateEventSlugAction->syncEventSlugsForSpeakerId((string) $person->getKey());
+        $this->generateEventSlugAction->syncEventSlugsForSpeakerName($person->name);
+        $this->speakerSearchService->purgeSpeakerRecord($person);
         $this->publicListingsCache->bustHomepageStats();
         $this->publicListingsCache->bustMajlisListing();
         $this->publicDirectoryCacheVersion->bumpSpeaker();

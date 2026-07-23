@@ -4,14 +4,14 @@ namespace App\Enums;
 
 use App\Models\Event;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
-use App\Models\Speaker;
 
 enum ContributionSubjectType: string
 {
     case Event = 'event';
     case Institution = 'institution';
-    case Speaker = 'speaker';
+    case Person = 'person';
     case Reference = 'reference';
 
     public function publicRouteSegment(): string
@@ -19,7 +19,7 @@ enum ContributionSubjectType: string
         return match ($this) {
             self::Event => 'majlis',
             self::Institution => 'institusi',
-            self::Speaker => 'penceramah',
+            self::Person => 'penceramah',
             self::Reference => 'rujukan',
         };
     }
@@ -29,7 +29,7 @@ enum ContributionSubjectType: string
         return match ($routeSegment) {
             'event', 'majlis' => self::Event,
             'institution', 'institusi' => self::Institution,
-            'speaker', 'penceramah' => self::Speaker,
+            'person', 'penceramah' => self::Person,
             'reference', 'rujukan' => self::Reference,
             default => null,
         };
@@ -47,14 +47,14 @@ enum ContributionSubjectType: string
     }
 
     /**
-     * @return class-string<Event|Institution|Speaker|Reference>
+     * @return class-string<Event|Institution|Person|Reference>
      */
     public function modelClass(): string
     {
         return match ($this) {
             self::Event => Event::class,
             self::Institution => Institution::class,
-            self::Speaker => Speaker::class,
+            self::Person => Person::class,
             self::Reference => Reference::class,
         };
     }

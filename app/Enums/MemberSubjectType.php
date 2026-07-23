@@ -4,14 +4,14 @@ namespace App\Enums;
 
 use App\Models\Event;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
-use App\Models\Speaker;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 enum MemberSubjectType: string
 {
     case Institution = 'institution';
-    case Speaker = 'speaker';
+    case Person = 'person';
     case Event = 'event';
     case Reference = 'reference';
 
@@ -19,7 +19,7 @@ enum MemberSubjectType: string
     {
         return match ($this) {
             self::Institution => __('Institution'),
-            self::Speaker => __('Speaker'),
+            self::Person => __('Person'),
             self::Event => __('Event'),
             self::Reference => __('Reference'),
         };
@@ -29,7 +29,7 @@ enum MemberSubjectType: string
     {
         return match ($this) {
             self::Institution => 'institusi',
-            self::Speaker => 'penceramah',
+            self::Person => 'penceramah',
             self::Event => 'majlis',
             self::Reference => 'rujukan',
         };
@@ -39,7 +39,7 @@ enum MemberSubjectType: string
     {
         return match ($routeSegment) {
             'institution', 'institusi' => self::Institution,
-            'speaker', 'penceramah' => self::Speaker,
+            'person', 'penceramah' => self::Person,
             'event', 'majlis' => self::Event,
             'reference', 'rujukan' => self::Reference,
             default => null,
@@ -58,7 +58,7 @@ enum MemberSubjectType: string
     {
         return [
             self::Institution,
-            self::Speaker,
+            self::Person,
         ];
     }
 
@@ -77,7 +77,7 @@ enum MemberSubjectType: string
     {
         return match ($this) {
             self::Institution => Institution::class,
-            self::Speaker => Speaker::class,
+            self::Person => Person::class,
             self::Event => Event::class,
             self::Reference => Reference::class,
         };
@@ -86,14 +86,14 @@ enum MemberSubjectType: string
     /**
      * @throws ModelNotFoundException
      */
-    public function resolveSubject(string $subjectId): Institution|Speaker|Event|Reference
+    public function resolveSubject(string $subjectId): Institution|Person|Event|Reference
     {
         $modelClass = $this->modelClass();
         $subject = $modelClass::query()->findOrFail($subjectId);
 
         if (
             ! $subject instanceof Institution &&
-            ! $subject instanceof Speaker &&
+            ! $subject instanceof Person &&
             ! $subject instanceof Event &&
             ! $subject instanceof Reference
         ) {

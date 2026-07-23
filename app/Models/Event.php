@@ -106,7 +106,7 @@ use Spatie\ModelStates\HasStates;
  * @property bool|null $is_featured
  * @property bool|null $is_muslim_only
  * @property-read Institution|null $institution
- * @property-read Institution|Speaker|null $organizer
+ * @property-read Institution|Person|null $organizer
  * @property-read Venue|null $venue
  * @property-read EventChangeAnnouncement|null $latestPublishedChangeAnnouncement
  * @property-read EventChangeAnnouncement|null $latestPublishedReplacementAnnouncement
@@ -115,7 +115,7 @@ use Spatie\ModelStates\HasStates;
  * @property-read \Illuminate\Database\Eloquent\Collection<int, EventInvolvement> $involvements
  * @property-read \Illuminate\Database\Eloquent\Collection<int, EventOccurrence> $occurrences
  * @property-read \Illuminate\Database\Eloquent\Collection<int, Reference> $references
- * @property-read \Illuminate\Database\Eloquent\Collection<int, Speaker> $speakers
+ * @property-read \Illuminate\Database\Eloquent\Collection<int, Person> $persons
  * @property Carbon|null $updated_at
  * @property Carbon|null $created_at
  */
@@ -461,7 +461,7 @@ class Event extends PackageEvent implements AuditableContract
             ->where('is_primary', true);
     }
 
-    public function setPrimaryOrganizer(Institution|Speaker|null $organizer): static
+    public function setPrimaryOrganizer(Institution|Person|null $organizer): static
     {
         $involvement = $this->primaryOrganizerInvolvement;
 
@@ -1204,7 +1204,7 @@ class Event extends PackageEvent implements AuditableContract
     protected function makeAllSearchableUsing(Builder $query): Builder
     {
         return $query
-            ->with(['institution', 'institution.addresses', 'venue', 'venue.addresses', 'speakers', 'keyPeople.speaker', 'references', 'classifications', 'primaryOccurrence', 'timeExpressions'])
+            ->with(['institution', 'institution.addresses', 'venue', 'venue.addresses', 'persons', 'keyPeople.person', 'references', 'classifications', 'primaryOccurrence', 'timeExpressions'])
             ->whereNotNull('events.published_at')
             ->whereIn('events.status', self::PUBLIC_STATUSES)
             ->where('events.visibility', EventVisibility::Public);
@@ -1222,7 +1222,7 @@ class Event extends PackageEvent implements AuditableContract
             return $this->toScoutDatabaseSearchableArray();
         }
 
-        $this->loadMissing(['institution', 'institution.addresses', 'venue', 'venue.addresses', 'speakers', 'keyPeople.speaker', 'references', 'classifications', 'primaryOccurrence', 'timeExpressions']);
+        $this->loadMissing(['institution', 'institution.addresses', 'venue', 'venue.addresses', 'persons', 'keyPeople.person', 'references', 'classifications', 'primaryOccurrence', 'timeExpressions']);
         $venueAddress = $this->venue?->primaryAddress();
         $institutionAddress = $this->institution?->primaryAddress();
         $institution = $this->institution;
@@ -1300,7 +1300,7 @@ class Event extends PackageEvent implements AuditableContract
             }
         }
 
-        $keyPersonSpeakerIds = $keyPeople
+        $keyPersonPersonIds = $keyPeople
             ->pluck('involveable_id')
             ->filter(fn (mixed $speakerId): bool => is_string($speakerId) && $speakerId !== '')
             ->unique()
@@ -1317,10 +1317,10 @@ class Event extends PackageEvent implements AuditableContract
         $personInChargeNames = $keyPeople
             ->where('role_code', EventKeyPersonRole::PersonInCharge->value)
             ->map(function (EventKeyPerson $keyPerson): string {
-                if ($keyPerson->speaker instanceof Speaker) {
-                    $searchableName = trim((string) $keyPerson->speaker->searchable_name);
+                if ($keyPerson->person instanceof Person) {
+                    $searchableName = trim((string) $keyPerson->person->searchable_name);
 
-                    return $searchableName !== '' ? $searchableName : (string) $keyPerson->speaker->name;
+                    return $searchableName !== '' ? $searchableName : (string) $keyPerson->person->name;
                 }
 
                 return (string) ($keyPerson->display_name ?? '');
@@ -1385,8 +1385,8 @@ class Event extends PackageEvent implements AuditableContract
             'title' => $this->title,
             'description' => $this->description_text,
             'slug' => $this->slug,
-            'speaker_names' => $this->speakerKeyPeople
-                ->map(fn (EventKeyPerson $keyPerson): string => $keyPerson->speaker !== null ? $keyPerson->speaker->name : (string) ($keyPerson->display_name ?? ''))
+            'person_names' => $this->personKeyPeople
+                ->map(fn (EventKeyPerson $keyPerson): string => $keyPerson->person !== null ? $keyPerson->person->name : (string) ($keyPerson->display_name ?? ''))
                 ->filter(fn (string $name): bool => $name !== '')
                 ->implode(', '),
             'institution_id' => $this->institution_id,
@@ -1418,13 +1418,13 @@ class Event extends PackageEvent implements AuditableContract
             'taxonomy_term_ids' => $taxonomyTermIds,
             'taxonomy_codes' => $taxonomyCodes,
             'reference_ids' => $this->references->pluck('id')->values()->all(),
-            'speaker_ids' => $this->speakerKeyPeople
+            'person_ids' => $this->personKeyPeople
                 ->pluck('involveable_id')
                 ->filter(fn (mixed $speakerId): bool => is_string($speakerId) && $speakerId !== '')
                 ->values()
                 ->all(),
             'key_person_roles' => $keyPersonRoles,
-            'key_person_speaker_ids' => $keyPersonSpeakerIds,
+            'key_person_person_ids' => $keyPersonPersonIds,
             'person_in_charge_ids' => $personInChargeIds,
             'person_in_charge_names' => $personInChargeNames,
             'moderator_ids' => $moderatorIds,
@@ -1541,7 +1541,7 @@ class Event extends PackageEvent implements AuditableContract
     /**
      * @return HasMany<EventKeyPerson, $this>
      */
-    public function speakerKeyPeople(): HasMany
+    public function personKeyPeople(): HasMany
     {
         return $this->keyPeople()->where('role_code', EventKeyPersonRole::Speaker->value);
     }
@@ -1576,15 +1576,15 @@ class Event extends PackageEvent implements AuditableContract
     }
 
     /**
-     * @return BelongsToMany<Speaker, $this, EventKeyPersonPivot, 'pivot'>
+     * @return BelongsToMany<Person, $this, EventKeyPersonPivot, 'pivot'>
      */
-    public function speakers(): BelongsToMany
+    public function persons(): BelongsToMany
     {
-        return $this->belongsToMany(Speaker::class, 'event_involvements', 'event_id', 'involveable_id')
+        return $this->belongsToMany(Person::class, 'event_involvements', 'event_id', 'involveable_id')
             ->using(EventKeyPersonPivot::class)
-            ->wherePivot('involveable_type', 'speaker')
+            ->wherePivot('involveable_type', 'person')
             ->wherePivot('role_code', EventKeyPersonRole::Speaker->value)
-            ->withPivotValue('involveable_type', 'speaker')
+            ->withPivotValue('involveable_type', 'person')
             ->withPivotValue('role_code', EventKeyPersonRole::Speaker->value)
             ->withPivot(['id', 'involveable_type', 'role_code', 'sort_order', 'notes'])
             ->withTimestamps()
@@ -2287,7 +2287,7 @@ class Event extends PackageEvent implements AuditableContract
             return true;
         }
 
-        if ($this->organizer instanceof Speaker && $memberPermissions->canSpeaker($user, $permission, $this->organizer)) {
+        if ($this->organizer instanceof Person && $memberPermissions->canSpeaker($user, $permission, $this->organizer)) {
             return true;
         }
 

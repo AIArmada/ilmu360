@@ -44,6 +44,7 @@ use App\Models\MediaLink;
 use App\Models\MemberInvitation;
 use App\Models\MembershipApplication;
 use App\Models\ModerationReview;
+use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Registration;
 use App\Models\Report;
@@ -270,7 +271,7 @@ class AppServiceProvider extends ServiceProvider
             'media_link' => MediaLink::class,
             'member_invitation' => MemberInvitation::class,
             'registration' => Registration::class,
-            'speaker' => Speaker::class,
+            'person' => Person::class,
             'series' => Series::class,
             'social_media' => SocialProfile::class,
             'space' => Space::class,
@@ -365,7 +366,7 @@ class AppServiceProvider extends ServiceProvider
 
     private function registerPublicSlugBindings(): void
     {
-        foreach (['event', 'institution', 'speaker', 'venue', 'reference'] as $publicSlugParameter) {
+        foreach (['event', 'institution', 'person', 'venue', 'reference'] as $publicSlugParameter) {
             Route::bind($publicSlugParameter, function (mixed $value) use ($publicSlugParameter) {
                 if (! is_string($value) || trim($value) === '') {
                     throw new ModelNotFoundException;
