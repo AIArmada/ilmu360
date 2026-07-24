@@ -16,7 +16,7 @@ it('accepts camelCase MCP media descriptor keys', function () {
     $normalized = $normalizer->normalize(
         payload: [
             'avatar' => [
-                'fileName' => 'speaker-avatar.png',
+                'fileName' => 'person-avatar.png',
                 'mimeType' => 'image/png',
                 'contentBase64' => base64_encode('fake-image-bytes'),
             ],
@@ -38,7 +38,7 @@ it('accepts camelCase MCP media descriptor keys', function () {
 
 it('accepts MCP media descriptors with content_url fallback', function () {
     Http::fake([
-        'https://example.com/uploads/speaker-avatar.png' => Http::response('png-bytes', 200, [
+        'https://example.com/uploads/person-avatar.png' => Http::response('png-bytes', 200, [
             'Content-Type' => 'image/png',
         ]),
     ]);
@@ -48,8 +48,8 @@ it('accepts MCP media descriptors with content_url fallback', function () {
     $normalized = $normalizer->normalize(
         payload: [
             'avatar' => [
-                'filename' => 'speaker-avatar.png',
-                'content_url' => 'https://example.com/uploads/speaker-avatar.png',
+                'filename' => 'person-avatar.png',
+                'content_url' => 'https://example.com/uploads/person-avatar.png',
             ],
         ],
         mediaFieldContracts: [
@@ -69,7 +69,7 @@ it('accepts MCP media descriptors with content_url fallback', function () {
 
 it('accepts content_url responses when content-type includes parameters', function () {
     Http::fake([
-        'https://example.com/uploads/speaker-avatar-charset.png' => Http::response('png-bytes', 200, [
+        'https://example.com/uploads/person-avatar-charset.png' => Http::response('png-bytes', 200, [
             'Content-Type' => 'image/png; charset=binary',
         ]),
     ]);
@@ -79,8 +79,8 @@ it('accepts content_url responses when content-type includes parameters', functi
     $normalized = $normalizer->normalize(
         payload: [
             'avatar' => [
-                'filename' => 'speaker-avatar-charset.png',
-                'content_url' => 'https://example.com/uploads/speaker-avatar-charset.png',
+                'filename' => 'person-avatar-charset.png',
+                'content_url' => 'https://example.com/uploads/person-avatar-charset.png',
             ],
         ],
         mediaFieldContracts: [
@@ -178,8 +178,8 @@ it('rejects localhost content_url values for MCP descriptors', function () {
         $normalizer->normalize(
             payload: [
                 'avatar' => [
-                    'filename' => 'speaker-avatar.png',
-                    'content_url' => 'http://localhost:8000/speaker-avatar.png',
+                    'filename' => 'person-avatar.png',
+                    'content_url' => 'http://localhost:8000/person-avatar.png',
                 ],
             ],
             mediaFieldContracts: [
@@ -208,8 +208,8 @@ it('rejects content_url values that include user credentials', function () {
         $normalizer->normalize(
             payload: [
                 'avatar' => [
-                    'filename' => 'speaker-avatar.png',
-                    'content_url' => 'https://user:secret@example.com/uploads/speaker-avatar.png',
+                    'filename' => 'person-avatar.png',
+                    'content_url' => 'https://user:secret@example.com/uploads/person-avatar.png',
                 ],
             ],
             mediaFieldContracts: [
@@ -231,8 +231,8 @@ it('rejects content_url values that include user credentials', function () {
 
 it('rejects content_url values that redirect', function () {
     Http::fake([
-        'https://example.com/uploads/speaker-avatar.png' => Http::response('', 302, [
-            'Location' => 'https://cdn.example.com/uploads/speaker-avatar.png',
+        'https://example.com/uploads/person-avatar.png' => Http::response('', 302, [
+            'Location' => 'https://cdn.example.com/uploads/person-avatar.png',
         ]),
     ]);
 
@@ -242,8 +242,8 @@ it('rejects content_url values that redirect', function () {
         $normalizer->normalize(
             payload: [
                 'avatar' => [
-                    'filename' => 'speaker-avatar.png',
-                    'content_url' => 'https://example.com/uploads/speaker-avatar.png',
+                    'filename' => 'person-avatar.png',
+                    'content_url' => 'https://example.com/uploads/person-avatar.png',
                 ],
             ],
             mediaFieldContracts: [
@@ -268,7 +268,7 @@ it('returns a clear MCP-specific error when descriptor has neither base64 nor UR
         $normalizer->normalize(
             payload: [
                 'avatar' => [
-                    'filename' => 'speaker-avatar.png',
+                    'filename' => 'person-avatar.png',
                 ],
             ],
             mediaFieldContracts: [

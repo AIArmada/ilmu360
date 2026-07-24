@@ -43,7 +43,7 @@ final class EventModerationWorkflow
             'spam' => 'Spam',
             'wrong_category' => 'Wrong Category',
             'inaccurate_details' => 'Inaccurate Details',
-            'missing_speaker' => 'Missing Speaker Information',
+            'missing_person' => 'Missing Person Information',
             'missing_venue' => 'Missing Venue Information',
             'other' => 'Other',
         ];

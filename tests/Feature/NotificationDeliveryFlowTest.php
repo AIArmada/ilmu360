@@ -54,7 +54,7 @@ it('writes package notification inboxes when a public approved future event is p
         ->get());
 
     expect($inboxes)->toHaveCount(1)
-        // App FollowedSpeakerEvent maps to package follow_activity via EnumMapper.
+        // App FollowedPersonEvent maps to package follow_activity via EnumMapper.
         ->and($inboxes->first()->trigger)->toBe(PackageNotificationTrigger::FollowActivity)
         ->and($inboxes->first()->title)->toContain('Majlis Tafsir Malam Jumaat');
 });

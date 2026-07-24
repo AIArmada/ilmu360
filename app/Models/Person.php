@@ -264,7 +264,7 @@ class Person extends Model implements AuditableContract, HasMedia
     /**
      * Generic key-person link across all event roles.
      *
-     * Prefer speakerEvents() for talk history and nonSpeakerEventKeyPeople()
+     * Prefer personEvents() for talk history and nonSpeakerEventKeyPeople()
      * when role-specific assignment matters.
      *
      * @return BelongsToMany<Event, $this, EventKeyPersonPivot, 'pivot'>
@@ -282,7 +282,7 @@ class Person extends Model implements AuditableContract, HasMedia
     /**
      * @return BelongsToMany<Event, $this, EventKeyPersonPivot, 'pivot'>
      */
-    public function speakerEvents(): BelongsToMany
+    public function personEvents(): BelongsToMany
     {
         return $this->events()
             ->wherePivot('role_code', EventKeyPersonRole::Speaker->value)

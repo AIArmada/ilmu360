@@ -23,7 +23,7 @@ class BackfillPersonSlugs implements ShouldBeUnique, ShouldQueue
         GeneratePersonSlugAction $generatePersonSlugAction,
         PublicListingsCache $publicListingsCache,
     ): void {
-        $updatedSpeakerIds = [];
+        $updatedPersonIds = [];
 
         Person::query()
             ->with([
@@ -31,26 +31,26 @@ class BackfillPersonSlugs implements ShouldBeUnique, ShouldQueue
             ])
             ->orderBy('name')
             ->orderBy('id')
-            ->chunk(100, function ($speakers) use ($generatePersonSlugAction, &$updatedSpeakerIds): void {
-                foreach ($speakers as $speaker) {
-                    $slug = $generatePersonSlugAction->forSpeaker($speaker);
+            ->chunk(100, function ($persons) use ($generatePersonSlugAction, &$updatedPersonIds): void {
+                foreach ($persons as $person) {
+                    $slug = $generatePersonSlugAction->forPerson($person);
 
-                    if ($speaker->slug === $slug) {
+                    if ($person->slug === $slug) {
                         continue;
                     }
 
-                    Person::withoutTimestamps(function () use ($speaker, $slug): void {
-                        $speaker->forceFill([
+                    Person::withoutTimestamps(function () use ($person, $slug): void {
+                        $person->forceFill([
                             'slug' => $slug,
                         ])->saveQuietly();
                     });
 
-                    $updatedSpeakerIds[] = (string) $speaker->getKey();
+                    $updatedPersonIds[] = (string) $person->getKey();
                 }
             });
 
-        foreach (array_values(array_unique($updatedSpeakerIds)) as $speakerId) {
-            $generateEventSlugAction->syncEventSlugsForSpeakerId($speakerId);
+        foreach (array_values(array_unique($updatedPersonIds)) as $personId) {
+            $generateEventSlugAction->syncEventSlugsForPersonId($personId);
         }
 
         $publicListingsCache->bustMajlisListing();
@@ -58,6 +58,6 @@ class BackfillPersonSlugs implements ShouldBeUnique, ShouldQueue
 
     public function uniqueId(): string
     {
-        return 'speaker-slug-backfill';
+        return 'person-slug-backfill';
     }
 }

@@ -1006,7 +1006,7 @@ class AdminResourceMutationService
 
         return match ($normalized) {
             'institution', 'institutions', Institution::class => (string) (new Institution)->getMorphClass(),
-            'speaker', 'speakers', Person::class => (string) (new Person)->getMorphClass(),
+            Person::class => (string) (new Person)->getMorphClass(),
             'event', 'events', Event::class => (string) (new Event)->getMorphClass(),
             default => throw ValidationException::withMessages([
                 'donatable_type' => __('The selected donation channel owner type is invalid.'),
@@ -1050,7 +1050,6 @@ class AdminResourceMutationService
             Person::class,
             Event::class,
             'institutions',
-            'speakers',
             'events',
         ]));
     }
@@ -1187,7 +1186,6 @@ class AdminResourceMutationService
                 'accepted_aliases' => [
                     'institutions' => (string) (new Institution)->getMorphClass(),
                     Institution::class => (string) (new Institution)->getMorphClass(),
-                    'speakers' => (string) (new Person)->getMorphClass(),
                     Person::class => (string) (new Person)->getMorphClass(),
                     'events' => (string) (new Event)->getMorphClass(),
                     Event::class => (string) (new Event)->getMorphClass(),
@@ -1618,14 +1616,14 @@ class AdminResourceMutationService
                 'requires' => ['institution_id'],
                 'prohibited_with' => ['venue_id'],
             ]),
-            $this->field('speakers', 'array<string>', required: false, meta: [
+            $this->field('persons', 'array<string>', required: false, meta: [
                 'relation' => 'key_people',
-                'subset_scope' => 'speakers',
+                'subset_scope' => 'persons',
                 'collection_semantics' => $this->replaceCollectionSemantics(
-                    submittedArray: 'replace_speaker_subset_and_rebuild_key_people',
+                    submittedArray: 'replace_person_subset_and_rebuild_key_people',
                     itemIdsPreserved: false,
                     ordering: 'payload_order_sets_order_column_before_other_key_people',
-                    safeClientStrategy: 'omit_field_to_preserve_or_send_full_speaker_list',
+                    safeClientStrategy: 'omit_field_to_preserve_or_send_full_person_list',
                     omitted: 'preserve_existing_collection_via_server_state_merge',
                 ),
             ]),
@@ -1635,7 +1633,7 @@ class AdminResourceMutationService
                 'collection_semantics' => $this->replaceCollectionSemantics(
                     submittedArray: 'replace_other_key_people_subset_and_rebuild_key_people',
                     itemIdsPreserved: false,
-                    ordering: 'payload_order_sets_order_column_after_speakers',
+                    ordering: 'payload_order_sets_order_column_after_persons',
                     safeClientStrategy: 'omit_field_to_preserve_or_send_full_other_key_people_array',
                     omitted: 'preserve_existing_collection_via_server_state_merge',
                 ),
@@ -1879,7 +1877,7 @@ class AdminResourceMutationService
                     'required_with' => ['involveable_id', 'display_name'],
                     'disallowed_values' => [EventKeyPersonRole::Speaker->value],
                 ]),
-                $this->field('involveable_type', 'string', required: false, allowedValues: ['speaker'], meta: [
+                $this->field('involveable_type', 'string', required: false, allowedValues: ['person'], meta: [
                     'required_with' => ['involveable_id'],
                 ]),
                 $this->field('involveable_id', 'string', required: false, meta: [
@@ -2140,7 +2138,7 @@ class AdminResourceMutationService
             'venue_id' => ['nullable', 'uuid', 'exists:venues,id'],
             'space_ids' => ['nullable', 'array'],
             'space_ids.*' => ['uuid', 'exists:venue_spaces,id'],
-            'speakers' => ['nullable', 'array'],
+            'persons' => ['nullable', 'array'],
             'persons.*' => ['uuid', 'exists:persons,id'],
             'other_key_people' => ['nullable', 'array'],
             'other_key_people.*.role_code' => ['required_with:other_key_people.*.display_name,other_key_people.*.involveable_id', Rule::enum(EventKeyPersonRole::class)],

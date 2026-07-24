@@ -78,7 +78,7 @@ it('allows authenticated users to create and delete saved searches', function ()
     expect(SavedSearch::where('id', $savedSearch->id)->exists())->toBeFalse();
 });
 
-it('drops unsupported speaker-only key person roles before saving searches from the page', function () {
+it('drops unsupported person-only key person roles before saving searches from the page', function () {
     $user = User::factory()->create();
 
     $this->actingAs($user);

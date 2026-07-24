@@ -1017,7 +1017,7 @@ it('filters and sorts institution events on the dedicated event list page', func
         ->assertTableColumnExists('title')
         ->assertTableColumnExists('starts_at')
         ->assertTableColumnExists('status')
-        ->assertTableColumnExists('speaker_names')
+        ->assertTableColumnExists('person_names')
         ->assertTableColumnExists('reference_titles')
         ->assertTableColumnExists('primaryLocation.venueSpace.name')
         ->assertTableColumnExists('dashboard_registrations_count')

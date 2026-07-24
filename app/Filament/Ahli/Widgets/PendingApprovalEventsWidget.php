@@ -50,7 +50,7 @@ class PendingApprovalEventsWidget extends TableWidget
                     ->sortable()
                     ->wrap(),
                 TextColumn::make('approval_scope')
-                    ->label('Institution / Speaker')
+                    ->label('Institution / Person')
                     ->getStateUsing(fn (Event $record): string => $this->getApprovalScopeLabel($record))
                     ->wrap(),
                 TextColumn::make('submission_submitter')
@@ -72,7 +72,7 @@ class PendingApprovalEventsWidget extends TableWidget
                     ->visible(fn (Event $record): bool => auth()->user()?->can('approve', $record) ?? false),
             ])
             ->emptyStateHeading('No events need approval right now')
-            ->emptyStateDescription('Pending public submissions for your institutions and speakers will appear here.');
+            ->emptyStateDescription('Pending public submissions for your institutions and persons will appear here.');
     }
 
     /**
@@ -132,7 +132,7 @@ class PendingApprovalEventsWidget extends TableWidget
         }
 
         if ($record->organizer instanceof Person) {
-            return 'Speaker: '.$record->organizer->formatted_name;
+            return 'Person: '.$record->organizer->formatted_name;
         }
 
         if ($record->institution instanceof Institution) {

@@ -113,7 +113,7 @@ class FrontendFormContractService
                 'admin_area_level_1' => route('api.client.catalogs.admin-area-level-1'),
                 'admin_area_level_2' => route('api.client.catalogs.admin-area-level-2'),
                 'languages' => route('api.client.catalogs.languages'),
-                'submit_speakers' => route('api.client.catalogs.submit-persons'),
+                'submit_persons' => route('api.client.catalogs.submit-persons'),
                 'submit_institutions' => route('api.client.catalogs.submit-institutions'),
                 'venues' => route('api.client.catalogs.venues'),
                 'references' => route('api.client.catalogs.references'),
@@ -175,7 +175,7 @@ class FrontendFormContractService
                     'link_endpoint_template' => route('api.client.share.analytics.links.show', ['link' => 'link'], false),
                     'auth_required' => true,
                     'filters' => [
-                        'type' => ['all', 'event', 'institution', 'speaker', 'series', 'reference', 'search', 'page'],
+                        'type' => ['all', 'event', 'institution', 'person', 'series', 'reference', 'search', 'page'],
                         'sort' => ['recent', 'visits', 'signups', 'registrations', 'checkins', 'submissions'],
                         'status' => ['all', 'active', 'inactive'],
                         'outcome' => ['all', 'signup', 'event_registration', 'event_checkin', 'event_submission', 'event_save', 'event_going', 'institution_follow', 'person_follow', 'series_follow', 'reference_follow', 'saved_search_created'],
@@ -377,7 +377,7 @@ class FrontendFormContractService
                 $this->field('primary_organizer_id', 'uuid', required: true, meta: [
                     'catalogs' => [
                         'institution' => route('api.client.catalogs.submit-institutions'),
-                        'speaker' => route('api.client.catalogs.submit-persons'),
+                        'person' => route('api.client.catalogs.submit-persons'),
                     ],
                 ]),
                 $this->field('location_same_as_institution', 'boolean', required: false, default: true),
@@ -385,7 +385,7 @@ class FrontendFormContractService
                 $this->field('location_institution_id', 'uuid', required: false, catalog: route('api.client.catalogs.submit-institutions')),
                 $this->field('location_venue_id', 'uuid', required: false, catalog: route('api.client.catalogs.venues')),
                 $this->field('space_id', 'uuid', required: false, catalog: route('api.client.catalogs.spaces')),
-                $this->field('speakers', 'array<string>', required: false, catalog: route('api.client.catalogs.submit-persons')),
+                $this->field('persons', 'array<string>', required: false, catalog: route('api.client.catalogs.submit-persons')),
                 $this->field('other_key_people', 'array<object>', required: false),
                 $this->field('submission_country_id', 'uuid', required: true, allowedValues: $submissionCountryIds),
                 $this->field('submitter_name', 'string', required: ! $user instanceof User, maxLength: 255),
@@ -713,7 +713,7 @@ class FrontendFormContractService
             'options' => [
                 'primary_organizer_options' => [
                     'institution' => $builderContext['institution_options'],
-                    'speaker' => $builderContext['person_options'],
+                    'person' => $builderContext['person_options'],
                 ],
                 'location_institution_options' => $builderContext['institution_options'],
             ],

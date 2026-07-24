@@ -25,7 +25,7 @@ class EventListData extends Data
      * @param  list<array<string, mixed>>  $event_categories
      * @param  array<string, mixed>|null  $institution
      * @param  array<string, mixed>|null  $venue
-     * @param  list<array<string, mixed>>  $speakers
+     * @param  list<array<string, mixed>>  $persons
      */
     public function __construct(
         public string $id,
@@ -55,7 +55,7 @@ class EventListData extends Data
         public string $card_image_url,
         public ?array $institution,
         public ?array $venue,
-        public array $speakers,
+        public array $persons,
     ) {}
 
     public static function fromModel(Event $event): self
@@ -100,8 +100,8 @@ class EventListData extends Data
             venue: $event->venue instanceof Venue
                 ? EventListVenueData::fromModel($event->venue)->toArray()
                 : null,
-            speakers: $event->persons
-                ->map(fn (Person $speaker): array => EventListPersonData::fromModel($speaker)->toArray())
+            persons: $event->persons
+                ->map(fn (Person $person): array => EventListPersonData::fromModel($person)->toArray())
                 ->values()
                 ->all(),
         );

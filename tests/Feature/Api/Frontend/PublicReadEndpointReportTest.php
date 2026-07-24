@@ -14,10 +14,10 @@ it('resolves public directory detail endpoints by uuid', function (string $resou
             'institution',
             Institution::factory()->create(['status' => 'verified']),
         ],
-        'speaker' => [
+        'person' => [
             'api.client.persons.show',
             'personKey',
-            'speaker',
+            'person',
             Person::factory()->create(['status' => 'verified']),
         ],
         'reference' => [
@@ -33,7 +33,7 @@ it('resolves public directory detail endpoints by uuid', function (string $resou
         ->assertJsonPath("data.{$payloadKey}.id", (string) $record->getKey());
 })->with([
     'institution',
-    'speaker',
+    'person',
     'reference',
 ]);
 
@@ -69,7 +69,7 @@ it('lists followed directory resources through the public listing following filt
     $institutionIds = collect($this->getJson('/api/v1/institutions?following=true')
         ->assertOk()
         ->json('data'))->pluck('id');
-    $speakerIds = collect($this->getJson('/api/v1/persons?following=true')
+    $personIds = collect($this->getJson('/api/v1/persons?following=true')
         ->assertOk()
         ->json('data'))->pluck('id');
     $referenceIds = collect($this->getJson('/api/v1/references?following=true')
@@ -78,7 +78,7 @@ it('lists followed directory resources through the public listing following filt
 
     expect($institutionIds->all())->toContain((string) $followedInstitution->id)
         ->not->toContain((string) $otherInstitution->id)
-        ->and($speakerIds->all())->toContain((string) $followedPerson->id)
+        ->and($personIds->all())->toContain((string) $followedPerson->id)
         ->not->toContain((string) $otherPerson->id)
         ->and($referenceIds->all())->toContain((string) $followedReference->id)
         ->not->toContain((string) $otherReference->id);

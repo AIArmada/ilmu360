@@ -135,10 +135,10 @@ test('typesense filters include linked PIC profile ids', function () {
     $discovery = exposedTypesenseDiscovery();
 
     $filters = $discovery->exposedBuildTypesenseFilterParts([
-        'person_in_charge_ids' => ['speaker-1'],
+        'person_in_charge_ids' => ['person-1'],
     ]);
 
-    expect($filters)->toContain('person_in_charge_ids:[speaker-1]');
+    expect($filters)->toContain('person_in_charge_ids:[person-1]');
 });
 
 test('typesense starts_after filter uses held-period overlap semantics', function () {

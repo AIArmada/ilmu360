@@ -37,7 +37,7 @@ it('sets last_state_change_at on institution when status changes', function () {
     expect($institution->fresh()->last_state_change_at)->not->toBeNull();
 });
 
-it('sets verified_by on speaker when status changes to verified', function () {
+it('sets verified_by on person when status changes to verified', function () {
     $user = User::factory()->create();
     $this->actingAs($user);
 
@@ -50,7 +50,7 @@ it('sets verified_by on speaker when status changes to verified', function () {
     expect($person->fresh()->verified_by)->toBe((string) $user->getKey());
 });
 
-it('sets last_state_change_at on speaker when status changes', function () {
+it('sets last_state_change_at on person when status changes', function () {
     $person = Person::factory()->create(['status' => 'pending']);
 
     $person->update(['status' => 'verified']);

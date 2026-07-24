@@ -34,7 +34,7 @@ class StatsOverview extends StatsOverviewWidget
             ->where('status', 'pending')
             ->count();
 
-        $pendingSpeakers = Person::query()
+        $pendingPersons = Person::query()
             ->where('status', 'pending')
             ->count();
 
@@ -56,11 +56,11 @@ class StatsOverview extends StatsOverviewWidget
                 ->descriptionIcon('heroicon-m-arrow-top-right-on-square')
                 ->color(fn (): string => $pendingEvents > 0 ? 'warning' : 'success')
                 ->url($this->moderationQueueUrl()),
-            Stat::make('Persons Needing Approval', $pendingSpeakers)
+            Stat::make('Persons Needing Approval', $pendingPersons)
                 ->description('Review pending persons')
                 ->descriptionIcon('heroicon-m-arrow-top-right-on-square')
-                ->color(fn (): string => $pendingSpeakers > 0 ? 'warning' : 'success')
-                ->url($this->pendingSpeakersUrl()),
+                ->color(fn (): string => $pendingPersons > 0 ? 'warning' : 'success')
+                ->url($this->pendingPersonsUrl()),
             Stat::make('Institutions Needing Approval', $pendingInstitutions)
                 ->description('Review pending institutions')
                 ->descriptionIcon('heroicon-m-arrow-top-right-on-square')
@@ -84,7 +84,7 @@ class StatsOverview extends StatsOverviewWidget
         return ModerationQueue::getUrl(panel: 'admin').'?tab=pending';
     }
 
-    protected function pendingSpeakersUrl(): string
+    protected function pendingPersonsUrl(): string
     {
         return PersonResource::getUrl('index', panel: 'admin').'?tableFilters[status][value]=pending';
     }

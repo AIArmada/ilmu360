@@ -1,6 +1,6 @@
 {{-- ════════════════════════════════════════════════════════════════
      SIDEBAR INSPIRATION — Random Islamic motivational content
-     Shared component for event, speaker, and institution sidebars
+     Shared component for event, person, and institution sidebars
      ════════════════════════════════════════════════════════════════ --}}
 @php
     $inspiration = \App\Models\Inspiration::query()->with('media')->active()->forLocale()->inRandomOrder()->first();

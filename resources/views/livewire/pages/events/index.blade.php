@@ -76,7 +76,7 @@
     $selectedSourceTagIds = array_values(array_filter((array) $this->source_tag_ids));
     $selectedIssueTagIds = array_values(array_filter((array) $this->issue_tag_ids));
     $selectedReferenceIds = array_values(array_filter((array) $this->reference_ids));
-    $selectedSpeakerIds = array_values(array_filter((array) $this->speaker_ids));
+    $selectedPersonIds = array_values(array_filter((array) $this->person_ids));
     $selectedKeyPersonRoles = array_values(array_filter((array) $this->key_person_roles));
     $selectedPersonInChargeIds = array_values(array_filter((array) $this->person_in_charge_ids));
     $personInChargeSearch = filled($this->person_in_charge_search) ? trim((string) $this->person_in_charge_search) : null;
@@ -87,7 +87,7 @@
     $selectedEventCategories = array_values(array_filter((array) $this->event_category_ids));
     $selectedEventFormats = array_values(array_filter((array) $this->event_format));
     $selectedLanguageCodes = array_values(array_filter((array) $this->language_codes));
-    $selectedPersonInChargeOptions = $this->speakerOptionLabels($selectedPersonInChargeIds);
+    $selectedPersonInChargeOptions = $this->personOptionLabels($selectedPersonInChargeIds);
     $selectedPersonInChargeLabels = collect($selectedPersonInChargeIds)
         ->map(fn (string $personId): ?string => $selectedPersonInChargeOptions[$personId] ?? null)
         ->filter()
@@ -129,7 +129,7 @@
         count($selectedAgeGroups) > 0,
         $childrenAllowed !== null,
         $isMuslimOnly !== null,
-        count($selectedSpeakerIds) > 0,
+        count($selectedPersonIds) > 0,
         count($selectedKeyPersonRoles) > 0,
         count($selectedPersonInChargeIds) > 0,
         filled($personInChargeSearch),
@@ -162,7 +162,7 @@
         'admin_area_2_id' => $adminArea2Id,
         'institution_id' => $institutionId,
         'venue_id' => $venueId,
-        'speaker_ids' => $selectedSpeakerIds,
+        'person_ids' => $selectedPersonIds,
         'key_person_roles' => $selectedKeyPersonRoles,
         'person_in_charge_ids' => $selectedPersonInChargeIds,
         'person_in_charge_search' => $personInChargeSearch,
@@ -481,7 +481,7 @@
                             {{ __('Institusi') }}
                         </label>
                         <label class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600">
-                            <input type="checkbox" wire:model.live="search_include_speakers" class="size-4 rounded border-slate-300 text-emerald-700 focus:ring-emerald-500">
+                            <input type="checkbox" wire:model.live="search_include_persons" class="size-4 rounded border-slate-300 text-emerald-700 focus:ring-emerald-500">
                             {{ __('Penceramah') }}
                         </label>
                         <label class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600">
@@ -934,7 +934,7 @@
                                             $locationPrimaryText = $formatValue === \App\Enums\EventFormat::Online->value ? __('Online') : __('Location pending');
                                         }
 
-                                        $personNames = $event->speakers
+                                        $personNames = $event->persons
                                             ->take(2)
                                             ->map(fn (\App\Models\Person $person): string => (string) ($person->formatted_name ?? $person->name))
                                             ->filter()

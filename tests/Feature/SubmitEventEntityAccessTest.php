@@ -65,7 +65,7 @@ it('rejects guest submission when organizer institution is locked to members', f
         ->assertHasErrors(['data.primary_organizer_id']);
 });
 
-it('rejects guest submission when selected speakers include locked speaker', function () {
+it('rejects guest submission when selected persons include locked person', function () {
     $publicInstitution = Institution::factory()->create([
         'allow_public_event_submission' => true,
         'status' => 'verified',
@@ -84,10 +84,10 @@ it('rejects guest submission when selected speakers include locked speaker', fun
         ]),
     )
         ->call('submit')
-        ->assertHasErrors(['data.speakers']);
+        ->assertHasErrors(['data.persons']);
 });
 
-it('allows authenticated members to submit locked institution and speaker entities', function () {
+it('allows authenticated members to submit locked institution and person entities', function () {
     $user = User::factory()->create();
 
     $lockedInstitution = Institution::factory()->create([

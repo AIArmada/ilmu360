@@ -281,8 +281,8 @@ class SuggestUpdate extends Component implements HasActions, HasForms
             : [];
 
         return [
-            Tabs::make('SpeakerUpdateTabs')
-                ->id('speaker-update-tabs')
+            Tabs::make('PersonUpdateTabs')
+                ->id('person-update-tabs')
                 ->persistTab()
                 ->columnSpanFull()
                 ->tabs([

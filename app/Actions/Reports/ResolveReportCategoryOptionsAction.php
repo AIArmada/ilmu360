@@ -37,7 +37,7 @@ class ResolveReportCategoryOptionsAction
     {
         $options = [];
 
-        foreach (['event', 'institution', 'speaker', 'reference', 'donation_channel'] as $subjectType) {
+        foreach (['event', 'institution', 'person', 'reference', 'donation_channel'] as $subjectType) {
             foreach ($this->optionsForSubjectType($subjectType) as $key => $label) {
                 if (! array_key_exists($key, $options)) {
                     $options[$key] = $label;
@@ -65,9 +65,9 @@ class ResolveReportCategoryOptionsAction
                 'fake_institution' => __('Fake institution'),
                 'other' => __('Other'),
             ],
-            'speaker' => [
+            'person' => [
                 'wrong_info' => __('Wrong information'),
-                'fake_speaker' => __('Fake speaker'),
+                'fake_person' => __('Fake person'),
                 'other' => __('Other'),
             ],
             'reference' => [

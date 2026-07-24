@@ -95,7 +95,7 @@ function dawahShareExtractSharedUrlFromWhatsAppRedirect(TestResponse $response):
 }
 
 /**
- * @return array{domain_tag: EventTerm, discipline_tag: EventTerm, institution: Institution, speaker: Person}
+ * @return array{domain_tag: EventTerm, discipline_tag: EventTerm, institution: Institution, person: Person}
  */
 function dawahShareSubmitEventFixtures(): array
 {
@@ -103,12 +103,12 @@ function dawahShareSubmitEventFixtures(): array
         'domain_tag' => submitEventTerm('domain'),
         'discipline_tag' => submitEventTerm('discipline'),
         'institution' => Institution::factory()->create(['status' => 'verified']),
-        'speaker' => Person::factory()->create(['status' => 'verified']),
+        'person' => Person::factory()->create(['status' => 'verified']),
     ];
 }
 
 /**
- * @param  array{domain_tag: EventTerm, discipline_tag: EventTerm, institution: Institution, speaker: Person}  $fixtures
+ * @param  array{domain_tag: EventTerm, discipline_tag: EventTerm, institution: Institution, person: Person}  $fixtures
  * @return array<string, mixed>
  */
 function dawahShareSubmitEventFormData(array $fixtures, array $overrides = []): array
@@ -128,7 +128,7 @@ function dawahShareSubmitEventFormData(array $fixtures, array $overrides = []): 
         'age_group' => [EventAgeGroup::AllAges->value],
         'languages' => [101],
         'primary_organizer_id' => $fixtures['institution']->id,
-        'speakers' => [$fixtures['speaker']->id],
+        'persons' => [$fixtures['person']->id],
         'submitter_name' => 'Guest Submitter',
         'submitter_email' => 'guest-submitter@example.com',
     ], $overrides);
@@ -882,9 +882,9 @@ test('follow actions are attributed across supported public followable pages', f
     'institution follow' => ['pages.institutions.show', 'institutions.show', 'institution', fn () => Institution::factory()->create([
         'status' => 'verified',
     ]), 'institution_follow', 'institution'],
-    'speaker follow' => ['pages.persons.show', 'persons.show', 'speaker', fn () => Person::factory()->create([
+    'person follow' => ['pages.persons.show', 'persons.show', 'person', fn () => Person::factory()->create([
         'status' => 'verified',
-    ]), 'speaker_follow', 'speaker'],
+    ]), 'person_follow', 'person'],
     'series follow' => ['pages.series.show', 'series.show', 'series', fn () => Series::factory()->create([
         'visibility' => 'public',
     ]), 'series_follow', 'series'],
@@ -903,7 +903,7 @@ test('guest follow actions redirect to login with the current page as intended d
     'institution guest follow redirect' => ['pages.institutions.show', 'institutions.show', 'institution', fn () => Institution::factory()->create([
         'status' => 'verified',
     ])],
-    'speaker guest follow redirect' => ['pages.persons.show', 'persons.show', 'speaker', fn () => Person::factory()->create([
+    'person guest follow redirect' => ['pages.persons.show', 'persons.show', 'person', fn () => Person::factory()->create([
         'status' => 'verified',
     ])],
     'series guest follow redirect' => ['pages.series.show', 'series.show', 'series', fn () => Series::factory()->create([
@@ -1007,13 +1007,13 @@ test('impact dashboard top subjects use canonical affiliate subject fields', fun
     $this->actingAs($this->sharer)
         ->getJson(route('dawah-share.payload', [
             'url' => route('persons.show', $person),
-            'text' => 'Share this speaker',
+            'text' => 'Share this person',
             'title' => $person->formatted_name,
         ]))
         ->assertOk();
 
     $eventLink = AffiliateLink::query()->where('destination_url', route('events.show', $event))->firstOrFail();
-    $speakerLink = AffiliateLink::query()->where('destination_url', route('persons.show', $person))->firstOrFail();
+    $personLink = AffiliateLink::query()->where('destination_url', route('persons.show', $person))->firstOrFail();
     $affiliate = Affiliate::query()->findOrFail($eventLink->affiliate_id);
 
     $eventAttribution = AffiliateAttribution::query()->create([
@@ -1085,33 +1085,33 @@ test('impact dashboard top subjects use canonical affiliate subject fields', fun
         'occurred_at' => now()->subMinutes(40),
     ]);
 
-    $speakerAttribution = AffiliateAttribution::query()->create([
+    $personAttribution = AffiliateAttribution::query()->create([
         'affiliate_id' => $affiliate->id,
         'affiliate_code' => $affiliate->code,
-        'subject_type' => 'speaker',
-        'subject_key' => $speakerLink->subject_key,
+        'subject_type' => 'person',
+        'subject_key' => $personLink->subject_key,
         'subject_instance' => 'share_tracking_link',
         'subject_title_snapshot' => $person->formatted_name,
-        'cookie_value' => 'speaker-top-subject-cookie',
-        'landing_url' => $speakerLink->destination_url,
-        'affiliate_link_id' => $speakerLink->id,
+        'cookie_value' => 'person-top-subject-cookie',
+        'landing_url' => $personLink->destination_url,
+        'affiliate_link_id' => $personLink->id,
         'attribution_type' => 'landing',
         'first_seen_at' => now()->subMinutes(30),
         'last_seen_at' => now()->subMinutes(30),
     ]);
 
     AffiliateTouchpoint::query()->create([
-        'affiliate_attribution_id' => $speakerAttribution->id,
+        'affiliate_attribution_id' => $personAttribution->id,
         'affiliate_id' => $affiliate->id,
         'affiliate_code' => $affiliate->code,
-        'subject_type' => 'speaker',
-        'subject_key' => $speakerLink->subject_key,
+        'subject_type' => 'person',
+        'subject_key' => $personLink->subject_key,
         'subject_instance' => 'share_tracking_link',
         'subject_title_snapshot' => $person->formatted_name,
-        'affiliate_link_id' => $speakerLink->id,
-        'visitor_key' => 'speaker-top-subject-visitor',
+        'affiliate_link_id' => $personLink->id,
+        'visitor_key' => 'person-top-subject-visitor',
         'touchpoint_type' => 'visit',
-        'url' => $speakerLink->destination_url,
+        'url' => $personLink->destination_url,
         'touched_at' => now()->subMinutes(25),
     ]);
 

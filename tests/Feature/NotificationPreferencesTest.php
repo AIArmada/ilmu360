@@ -25,7 +25,7 @@ it('returns the notification settings catalog and bootstrapped user state', func
 
     $catalogResponse->assertOk()
         ->assertJsonPath('data.families.0.key', 'followed_content')
-        ->assertJsonPath('data.triggers.0.key', 'followed_speaker_event')
+        ->assertJsonPath('data.triggers.0.key', 'followed_person_event')
         ->assertJsonPath('data.options.cadences.instant', __('notifications.options.cadence.instant'));
 
     $stateResponse->assertOk()

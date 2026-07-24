@@ -22,7 +22,7 @@ class AddressableObserver implements ShouldHandleEventsAfterCommit
     public function __construct(
         private readonly GenerateEventSlugAction $generateEventSlugAction,
         private readonly GenerateInstitutionSlugAction $generateInstitutionSlugAction,
-        private readonly GeneratePersonSlugAction $generateSpeakerSlugAction,
+        private readonly GeneratePersonSlugAction $generatePersonSlugAction,
         private readonly GenerateVenueSlugAction $generateVenueSlugAction,
         private readonly PublicDirectoryCacheVersion $publicDirectoryCacheVersion,
         private readonly PublicListingsCache $publicListingsCache,
@@ -70,8 +70,8 @@ class AddressableObserver implements ShouldHandleEventsAfterCommit
         }
 
         if ($subject instanceof Person) {
-            $this->generateSpeakerSlugAction->syncSpeakerSlugsForName($subject->name);
-            $this->generateEventSlugAction->syncEventSlugsForSpeakerName($subject->name);
+            $this->generatePersonSlugAction->syncPersonSlugsForName($subject->name);
+            $this->generateEventSlugAction->syncEventSlugsForPersonName($subject->name);
             $this->syncSearchableModel($subject);
             $this->publicListingsCache->bustMajlisListing();
 

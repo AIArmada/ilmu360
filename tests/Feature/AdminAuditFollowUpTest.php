@@ -199,7 +199,7 @@ it('records membership sync and role change audits on auditable subjects', funct
         ->and($roleAudit?->new_values['member_role']['role'] ?? null)->toBe('viewer');
 });
 
-it('records speaker affiliation sync audits on auditable subjects', function () {
+it('records person affiliation sync audits on auditable subjects', function () {
     $administrator = User::factory()->create();
     $administrator->assignRole('super_admin');
 
@@ -259,7 +259,7 @@ it('records speaker affiliation sync audits on auditable subjects', function () 
         ->and($presentedValues['Institutions'] ?? null)->toBe($newInstitution->name.', '.$secondaryInstitution->name);
 });
 
-it('records speaker affiliation pivot updates when the institution is already attached', function () {
+it('records person affiliation pivot updates when the institution is already attached', function () {
     $administrator = User::factory()->create();
     $administrator->assignRole('super_admin');
 

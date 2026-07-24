@@ -155,7 +155,7 @@ class Show extends Component
                 'contactMethods',
                 'socialProfiles',
                 'donationChannels.media',
-                'speakers',
+                'persons',
                 'persons.media',
                 'spaces' => fn ($query) => $query->where('status', 'active'),
                 'languages',

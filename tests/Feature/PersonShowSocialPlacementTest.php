@@ -23,7 +23,7 @@ it('renders social media section below biodata on person show page', function ()
         'handle' => 'example',
     ]);
 
-    $this->get(route('persons.show'))
+    $this->get(route('persons.show', $person))
         ->assertSuccessful()
         ->assertSee('Biodata')
         ->assertSee('Media Sosial')
@@ -45,7 +45,7 @@ it('shows a reveal control for long person biodata', function () {
         ],
     ]);
 
-    $this->get(route('persons.show'))
+    $this->get(route('persons.show', $person))
         ->assertSuccessful()
         ->assertSee('Biodata')
         ->assertSee(__('Baca biodata penuh'))
@@ -67,7 +67,7 @@ it('does not show the biodata reveal control for short person biodata', function
         ],
     ]);
 
-    $this->get(route('persons.show'))
+    $this->get(route('persons.show', $person))
         ->assertSuccessful()
         ->assertSee('Biodata')
         ->assertDontSee('Lihat biodata penuh');

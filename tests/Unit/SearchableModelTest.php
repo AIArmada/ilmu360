@@ -9,7 +9,7 @@ use Tests\TestCase;
 
 uses(TestCase::class, RefreshDatabase::class);
 
-it('builds the speaker searchable payload with title text and geography facets', function () {
+it('builds the person searchable payload with title text and geography facets', function () {
     withGlobalOwnerContext(function (): void {
         $country = ensureTestMalaysiaCountry();
 

@@ -21,7 +21,7 @@ final class EnumMapper
     ];
 
     private const array TRIGGER_MAP = [
-        'followed_speaker_event' => 'follow_activity',
+        'followed_person_event' => 'follow_activity',
         'followed_institution_event' => 'follow_activity',
         'followed_series_event' => 'follow_activity',
         'followed_reference_event' => 'follow_activity',
@@ -70,7 +70,7 @@ final class EnumMapper
     ];
 
     private const array REVERSE_TRIGGER_MAP = [
-        'follow_activity' => 'followed_speaker_event',
+        'follow_activity' => 'followed_person_event',
         'scheduled_dispatch' => 'saved_search_match',
         'event_published' => 'event_approved',
         'event_cancelled' => 'event_cancelled',

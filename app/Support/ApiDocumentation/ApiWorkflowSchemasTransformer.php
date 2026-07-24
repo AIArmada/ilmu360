@@ -55,7 +55,7 @@ final class ApiWorkflowSchemasTransformer implements DocumentTransformer
         $this->putSchema($components, 'MobileTelemetryFormResponse', $this->mobileTelemetryFormResponseSchema($components));
         $this->putSchema($components, 'SubmitEventFormResponse', $this->submitEventFormResponseSchema($components));
         $this->putSchema($components, 'InstitutionContributionFormResponse', $this->institutionContributionFormResponseSchema($components));
-        $this->putSchema($components, 'SpeakerContributionFormResponse', $this->speakerContributionFormResponseSchema($components));
+        $this->putSchema($components, 'PersonContributionFormResponse', $this->personContributionFormResponseSchema($components));
         $this->putSchema($components, 'ReportFormResponse', $this->reportFormResponseSchema($components));
         $this->putSchema($components, 'GitHubIssueReportFormResponse', $this->gitHubIssueReportFormResponseSchema($components));
         $this->putSchema($components, 'AccountSettingsFormResponse', $this->accountSettingsFormResponseSchema($components));
@@ -73,7 +73,7 @@ final class ApiWorkflowSchemasTransformer implements DocumentTransformer
         $this->replaceJsonResponseSchema($document, 'forms/mobile-telemetry', 'get', 200, $components, 'MobileTelemetryFormResponse', 'Mobile telemetry field contract response.');
         $this->replaceJsonResponseSchema($document, 'forms/submit-event', 'get', 200, $components, 'SubmitEventFormResponse', 'Submit-event field contract response.');
         $this->replaceJsonResponseSchema($document, 'forms/contributions/institutions', 'get', 200, $components, 'InstitutionContributionFormResponse', 'Institution contribution field contract response.');
-        $this->replaceJsonResponseSchema($document, 'forms/contributions/speakers', 'get', 200, $components, 'SpeakerContributionFormResponse', 'Speaker contribution field contract response.');
+        $this->replaceJsonResponseSchema($document, 'forms/contributions/persons', 'get', 200, $components, 'PersonContributionFormResponse', 'Person contribution field contract response.');
         $this->replaceJsonResponseSchema($document, 'forms/report', 'get', 200, $components, 'ReportFormResponse', 'Report field contract response.');
         $this->replaceJsonResponseSchema($document, 'forms/github-issue-report', 'get', 200, $components, 'GitHubIssueReportFormResponse', 'GitHub issue-report field contract response.');
         $this->replaceJsonResponseSchema($document, 'forms/account-settings', 'get', 200, $components, 'AccountSettingsFormResponse', 'Account-settings field contract response.');
@@ -102,7 +102,7 @@ final class ApiWorkflowSchemasTransformer implements DocumentTransformer
     {
         $tagDescriptions = [
             'Catalog' => 'Public lookup catalogs for geography, tags, languages, references, venues, and write-flow selectors.',
-            'Search' => 'Public aggregate search endpoints across events, speakers, and institutions.',
+            'Search' => 'Public aggregate search endpoints across events, persons, and institutions.',
             'Telemetry' => 'Native mobile telemetry endpoints for batching UI interaction events from real iOS, iPadOS, and Android app sessions. This surface is not for mobile web browsing.',
             'AccountSettings' => 'Authenticated account-settings read and update endpoints for client applications.',
             'GitHub Issue Reporting' => 'Authenticated feedback endpoints that create GitHub issues in the ilmu360 repository for maintainers to triage.',
@@ -194,9 +194,9 @@ final class ApiWorkflowSchemasTransformer implements DocumentTransformer
                     'data',
                     (new ObjectType)
                         ->addProperty('events', $this->searchBucketType($components->getSchemaReference('EventSummary')))
-                        ->addProperty('speakers', $this->searchBucketType($components->getSchemaReference('SpeakerListItem')))
+                        ->addProperty('persons', $this->searchBucketType($components->getSchemaReference('PersonListItem')))
                         ->addProperty('institutions', $this->searchBucketType($components->getSchemaReference('InstitutionListItem')))
-                        ->setRequired(['events', 'speakers', 'institutions']),
+                        ->setRequired(['events', 'persons', 'institutions']),
                 )
                 ->addProperty(
                     'meta',
@@ -267,7 +267,7 @@ final class ApiWorkflowSchemasTransformer implements DocumentTransformer
         );
     }
 
-    private function speakerContributionFormResponseSchema(Components $components): Schema
+    private function personContributionFormResponseSchema(Components $components): Schema
     {
         return $this->institutionContributionFormResponseSchema($components);
     }

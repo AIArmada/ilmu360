@@ -46,7 +46,7 @@ it('shows prayer-relative timing text on person page instead of absolute time', 
     $expectedEndTime = $event->ends_at?->copy()->timezone('Asia/Kuala_Lumpur')->format('h:i A');
 
     $this->withUnencryptedCookie('user_timezone', 'Asia/Kuala_Lumpur')
-        ->get(route('persons.show'))
+        ->get(route('persons.show', $person))
         ->assertSuccessful()
         ->assertSeeText('Selepas Asar')
         ->assertSeeText((string) $expectedEndTime)
@@ -76,7 +76,7 @@ it('uses the localized tarawih label instead of the generic isha offset text', f
         linkPersonEvent($person, $event);
 
         $this->withUnencryptedCookie('user_timezone', 'Asia/Kuala_Lumpur')
-            ->get(route('persons.show'))
+            ->get(route('persons.show', $person))
             ->assertSuccessful()
             ->assertSeeText('After Tarawih')
             ->assertDontSeeText('1 hour after Isha');
@@ -99,7 +99,7 @@ it('shows cancelled public events with cancelled badge on person page', function
 
     linkPersonEvent($person, $event);
 
-    $this->get(route('persons.show'))
+    $this->get(route('persons.show', $person))
         ->assertSuccessful()
         ->assertSee($event->title)
         ->assertSee('Dibatalkan');
@@ -118,7 +118,7 @@ it('shows a moderation note when person page lists pending public events', funct
 
     linkPersonEvent($person, $event);
 
-    $this->get(route('persons.show'))
+    $this->get(route('persons.show', $person))
         ->assertSuccessful()
         ->assertSee($event->title)
         ->assertSee('Menunggu Kelulusan')
@@ -140,7 +140,7 @@ it('uses stronger calendar event colors on person page', function () {
 
     linkPersonEvent($person, $event);
 
-    $this->get(route('persons.show'))
+    $this->get(route('persons.show', $person))
         ->assertSuccessful()
         ->assertSee('from-emerald-700 to-emerald-950', false)
         ->assertSee('hover:border-emerald-300', false);
@@ -164,7 +164,7 @@ it('renders event end time in event timezone on person page', function () {
     linkPersonEvent($person, $event);
 
     $this->withUnencryptedCookie('user_timezone', 'Asia/Kuala_Lumpur')
-        ->get(route('persons.show'))
+        ->get(route('persons.show', $person))
         ->assertSuccessful()
         ->assertSeeText('Selepas Asar')
         ->assertDontSeeText('12:40 PM');
@@ -198,7 +198,7 @@ it('shows dedicated venue name for event location on person page when available'
     linkPersonEvent($person, $event);
 
     $this->withUnencryptedCookie('user_timezone', 'Asia/Kuala_Lumpur')
-        ->get(route('persons.show'))
+        ->get(route('persons.show', $person))
         ->assertSuccessful()
         ->assertSee('Dewan Utama Test');
 });
@@ -227,7 +227,7 @@ it('falls back to institution name for event location on person page when venue 
     linkPersonEvent($person, $event);
 
     $this->withUnencryptedCookie('user_timezone', 'Asia/Kuala_Lumpur')
-        ->get(route('persons.show'))
+        ->get(route('persons.show', $person))
         ->assertSuccessful()
         ->assertSee('Masjid Al-Hidayah Test');
 });
@@ -271,7 +271,7 @@ it('deduplicates matching person subdistrict and district labels in the person l
     $geo = createTestPackageGeography('Pahang', 'Temerloh', 'Temerloh');
     syncPrimaryAddressForTest($person, $geo['address']);
 
-    $this->get(route('persons.show'))
+    $this->get(route('persons.show', $person))
         ->assertSuccessful()
         ->assertSee('Temerloh, Pahang')
         ->assertDontSee('Temerloh, Temerloh, Pahang');
@@ -296,7 +296,7 @@ it('renders person page when linked event has online format and no location addr
     linkPersonEvent($person, $event);
 
     $this->withUnencryptedCookie('user_timezone', 'Asia/Kuala_Lumpur')
-        ->get(route('persons.show'))
+        ->get(route('persons.show', $person))
         ->assertSuccessful()
         ->assertSee($event->title);
 });
@@ -336,7 +336,7 @@ it('shows linked non-person roles in a separate section on the person page', fun
         'visibility' => 'public',
     ]);
 
-    $response = $this->get(route('persons.show'));
+    $response = $this->get(route('persons.show', $person));
 
     $response->assertSuccessful()
         ->assertSee('Kuliah Utama Penceramah')
@@ -382,7 +382,7 @@ it('renders the book title on person event cards without parentheses', function 
     linkPersonEvent($person, $bookEvent);
     linkPersonEvent($person, $articleEvent);
 
-    $response = $this->get(route('persons.show'));
+    $response = $this->get(route('persons.show', $person));
     $response->assertSuccessful();
 
     $html = $response->getContent();

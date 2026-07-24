@@ -169,11 +169,11 @@ class CalendarService
             $parts[] = "Waktu: {$event->prayer_display_text}";
         }
 
-        // Add speakers
+        // Add persons
         if ($event->persons->isNotEmpty()) {
-            $speakerNames = $event->persons->pluck('name')->join(', ');
+            $personNames = $event->persons->pluck('name')->join(', ');
             $parts[] = '';
-            $parts[] = "Penceramah: {$speakerNames}";
+            $parts[] = "Penceramah: {$personNames}";
         }
 
         // Add link to event page

@@ -20,7 +20,7 @@ it('submits the homepage hero search to the unified search page', function () {
         ->assertSee('action="'.route('search.index').'"', false);
 });
 
-it('shows grouped event speaker reference and institution matches on the unified search page', function () {
+it('shows grouped event person reference and institution matches on the unified search page', function () {
     Storage::fake('public');
     config()->set('media-library.disk_name', 'public');
 
@@ -34,7 +34,7 @@ it('shows grouped event speaker reference and institution matches on the unified
         'status' => 'verified',
     ]);
 
-    $person->addMedia(UploadedFile::fake()->image('speaker.jpg', 1200, 1200))
+    $person->addMedia(UploadedFile::fake()->image('person.jpg', 1200, 1200))
         ->toMediaCollection('avatar');
 
     $event = Event::factory()
@@ -66,7 +66,7 @@ it('shows grouped event speaker reference and institution matches on the unified
         ->assertSee(route('institutions.show', $institution), false);
 });
 
-it('falls back to local speaker and institution search on the unified search page when typesense fails', function () {
+it('falls back to local person and institution search on the unified search page when typesense fails', function () {
     $institution = Institution::factory()->create([
         'name' => 'Masjid Nur Hikmah',
         'status' => 'verified',
@@ -77,7 +77,7 @@ it('falls back to local speaker and institution search on the unified search pag
         'status' => 'verified',
     ]);
 
-    app(PersonSearchService::class)->syncSpeakerRecord($person);
+    app(PersonSearchService::class)->syncPersonRecord($person);
     config()->set('scout.driver', 'typesense');
 
     $this->app->bind(PersonSearchService::class, fn (): PersonSearchService => new class extends PersonSearchService

@@ -27,7 +27,7 @@ use Illuminate\Support\Carbon;
 uses(RefreshDatabase::class);
 
 it('registers public slug route binders during app boot', function () {
-    foreach (['event', 'institution', 'speaker', 'venue', 'reference'] as $parameter) {
+    foreach (['event', 'institution', 'person', 'venue', 'reference'] as $parameter) {
         expect(app('router')->getBindingCallback($parameter))
             ->not->toBeNull();
     }
@@ -59,7 +59,7 @@ it('creates an institution slug redirect only after the old public path has been
         ->and($redirect->destination_path)->toBe(route('institutions.show', $institution->fresh(), false));
 });
 
-it('creates a speaker slug redirect when a visited slug changes', function () {
+it('creates a person slug redirect when a visited slug changes', function () {
     $proposer = User::factory()->create();
     $country = createSlugRedirectCountry();
 
@@ -180,7 +180,7 @@ it('creates an event slug redirect even when the old slug was never visited', fu
         ->assertRedirect(route('events.show', $event->fresh()));
 });
 
-it('redirects old event slugs when a related speaker slug changes', function () {
+it('redirects old event slugs when a related person slug changes', function () {
     $person = Person::factory()->create([
         'name' => 'Habib Umar',
         'slug' => 'habib-umar',
@@ -212,7 +212,7 @@ it('redirects old event slugs when a related speaker slug changes', function () 
         ->assertRedirect(route('events.show', $event->fresh()));
 });
 
-it('redirects old event slugs when only the organizer speaker changes', function () {
+it('redirects old event slugs when only the organizer person changes', function () {
     $expectedSuffix = Carbon::parse('2026-04-12', 'Asia/Kuala_Lumpur')->format('j-n-y');
 
     $person = Person::factory()->create([

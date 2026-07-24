@@ -263,7 +263,7 @@ describe('Event Search Filters', function () {
             ->assertOk()
             ->assertSee('Cari tajuk, ustaz, masjid, topik...')
             ->assertSee('search_include_institutions')
-            ->assertSee('search_include_speakers')
+            ->assertSee('search_include_persons')
             ->assertSee('search_include_references');
     });
 
@@ -510,7 +510,7 @@ describe('Event Search Filters', function () {
             ->assertDontSee('Kuliah Subuh Institusi B');
     });
 
-    it('searches events by speaker name when the speaker is attached', function () {
+    it('searches events by person name when the person is attached', function () {
         $matchPerson = Person::factory()->create([
             'name' => 'Ustaz Samad Al-Bakri',
             'status' => 'verified',
@@ -546,7 +546,7 @@ describe('Event Search Filters', function () {
             ->assertDontSee('Kuliah Person B');
     });
 
-    it('searches events by free-text key person name when no linked speaker entity exists', function () {
+    it('searches events by free-text key person name when no linked person entity exists', function () {
         $matchEvent = createVisibleEventForSearch([
             'title' => 'Kuliah Usul Fiqh',
             'status' => 'approved',
@@ -756,7 +756,7 @@ describe('Event Search Filters', function () {
             ->not->toContain('Kuliah Unique Xqrz');
     });
 
-    it('excludes speaker name from search expansion when search_include_speakers is false', function () {
+    it('excludes person name from search expansion when search_include_persons is false', function () {
         $person = Person::factory()->create([
             'name' => 'Ustaz Zakaria Najib',
             'status' => 'verified',
@@ -770,16 +770,16 @@ describe('Event Search Filters', function () {
             'starts_at' => now()->addDays(1),
         ]);
         $personEvent->keyPeople()->create([
-            'involveable_type' => 'speaker',
+            'involveable_type' => 'person',
             'involveable_id' => $person->id,
             'display_name' => $person->name,
             'role_code' => EventKeyPersonRole::Speaker->value,
         ]);
 
-        // With speaker scope enabled (default), event surfaces via speaker name.
+        // With person scope enabled (default), event surfaces via person name.
         $withScope = app(EventSearchService::class)->search(
             query: 'Zakaria Najib',
-            filters: ['search_include_speakers' => true],
+            filters: ['search_include_persons' => true],
             perPage: 20,
             sort: 'time',
         );
@@ -787,10 +787,10 @@ describe('Event Search Filters', function () {
         expect(collect($withScope->items())->pluck('title')->all())
             ->toContain('Kuliah Person Scope Xqrz');
 
-        // With speaker scope disabled, event must not appear.
+        // With person scope disabled, event must not appear.
         $withoutScope = app(EventSearchService::class)->search(
             query: 'Zakaria Najib',
-            filters: ['search_include_speakers' => false],
+            filters: ['search_include_persons' => false],
             perPage: 20,
             sort: 'time',
         );
@@ -1105,7 +1105,7 @@ describe('Event Search Filters', function () {
             ->assertDontSee('Venue Excluded Event');
     });
 
-    it('filters events by selected speaker ids in advanced filters', function () {
+    it('filters events by selected person ids in advanced filters', function () {
         $includedPerson = Person::factory()->create(['status' => 'verified']);
         $excludedPerson = Person::factory()->create(['status' => 'verified']);
 
@@ -1701,7 +1701,7 @@ describe('Event Search Filters', function () {
         ]);
         $linkedPicEvent->keyPeople()->create([
             'role_code' => EventKeyPersonRole::PersonInCharge->value,
-            'involveable_type' => 'speaker',
+            'involveable_type' => 'person',
             'involveable_id' => $linkedPic->id,
             'sort_order' => 1,
             'visibility' => 'public',
@@ -1973,7 +1973,7 @@ describe('Event Search Filters', function () {
         Event::factory()
             ->for($institution)
             ->for($venue)
-            ->hasSpeakers(1)
+            ->hasPersons(1)
             ->create([
                 'status' => 'approved',
                 'visibility' => 'public',
@@ -2000,8 +2000,8 @@ describe('Event Search Filters', function () {
             expect($event->institution->relationLoaded('media'))->toBeTrue();
         }
 
-        if ($event->speakers->isNotEmpty()) {
-            expect($event->speakers->first()->relationLoaded('media'))->toBeTrue();
+        if ($event->persons->isNotEmpty()) {
+            expect($event->persons->first()->relationLoaded('media'))->toBeTrue();
         }
     });
 
@@ -2588,25 +2588,25 @@ describe('Event Detail Page', function () {
             ->assertSee('og:title', false);
     });
 
-    it('displays speakers', function () {
+    it('displays persons', function () {
         $event = Event::factory()->create([
             'status' => 'approved',
             'visibility' => 'public',
             'published_at' => now(),
         ]);
 
-        $speakerOne = Person::factory()->create([
+        $personOne = Person::factory()->create([
             'name' => 'Ustaz Person One',
             'status' => 'verified',
         ]);
 
-        $speakerTwo = Person::factory()->create([
+        $personTwo = Person::factory()->create([
             'name' => 'Ustaz Person Two',
             'status' => 'verified',
         ]);
 
-        $event->persons()->attach($speakerOne->id);
-        $event->persons()->attach($speakerTwo->id);
+        $event->persons()->attach($personOne->id);
+        $event->persons()->attach($personTwo->id);
 
         $response = $this->get(eventShowUrl($event));
 

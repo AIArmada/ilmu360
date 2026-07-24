@@ -1,6 +1,6 @@
 {{-- ════════════════════════════════════════════════════════════════
     GUEST BENEFITS CTA — Join ilmu360°
-     Shared component for event, speaker, and institution views
+     Shared component for event, person, and institution views
      ════════════════════════════════════════════════════════════════ --}}
 @guest
     <div class="scroll-reveal reveal-right revealed" x-intersect.once="$el.classList.add('revealed')" style="--reveal-d: 240ms">

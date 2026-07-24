@@ -85,7 +85,7 @@
 @endphp
 
 <div class="min-h-screen bg-[#f7f6f1] text-slate-900">
-    {{-- Individual speaker profile hero --}}
+    {{-- Individual person profile hero --}}
     <section class="relative isolate overflow-hidden border-b border-emerald-950/10 bg-[#f4efe4]">
         <div class="absolute inset-0 -z-20 bg-[radial-gradient(circle_at_12%_15%,rgba(201,154,55,0.18),transparent_28%),radial-gradient(circle_at_88%_8%,rgba(5,98,76,0.18),transparent_34%),linear-gradient(135deg,#fffdf8_0%,#f3eee2_55%,#e6eee8_100%)]"></div>
         <div class="absolute inset-0 -z-10 opacity-[0.24]" style="background-image: radial-gradient(circle at 1px 1px, rgba(6,78,59,.22) 1px, transparent 0); background-size: 26px 26px;"></div>
@@ -197,7 +197,7 @@
                                 @endauth
 
                                 <a
-                                    href="#speaker-share-panel"
+                                    href="#person-share-panel"
                                     class="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-emerald-200 bg-white px-6 text-sm font-bold text-emerald-800 transition hover:-translate-y-0.5 hover:border-emerald-300 hover:bg-emerald-50"
                                 >
                                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
@@ -580,7 +580,7 @@
                     </section>
                 @endif
 
-                <section id="speaker-share-panel" class="scroll-reveal reveal-right revealed">
+                <section id="person-share-panel" class="scroll-reveal reveal-right revealed">
                     <x-dawah-share-panel
                         :preview-title="$person->formatted_name"
                         :preview-subtitle="$locationString !== '' ? $locationString : null"

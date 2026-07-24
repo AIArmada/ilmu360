@@ -28,7 +28,7 @@ class ResolveReportEntityMetadataAction
                 'label' => __('Institution'),
                 'model_class' => Institution::class,
             ],
-            'speaker' => [
+            'person' => [
                 'label' => __('Speaker'),
                 'model_class' => Person::class,
             ],
@@ -63,6 +63,6 @@ class ResolveReportEntityMetadataAction
      */
     public function validKeys(): array
     {
-        return ['event', 'institution', 'speaker', 'reference', 'donation_channel'];
+        return ['event', 'institution', 'person', 'reference', 'donation_channel'];
     }
 }

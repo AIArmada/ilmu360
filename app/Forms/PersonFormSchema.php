@@ -15,7 +15,7 @@ use Filament\Schemas\Schema;
 class PersonFormSchema
 {
     /**
-     * Shared createOptionForm for Speaker selects.
+     * Shared createOptionForm for Person selects.
      *
      * @return array<int, Component>
      */
@@ -29,32 +29,32 @@ class PersonFormSchema
     }
 
     /**
-     * Shared createOptionUsing callback for Speaker selects.
+     * Shared createOptionUsing callback for Person selects.
      *
      * @param  array<string, mixed>  $data
      */
     public static function createOptionUsing(array $data, ?Schema $schema = null): string
     {
-        $speaker = Person::create([
+        $person = Person::create([
             'name' => $data['name'],
             'gender' => $data['gender'] ?? Gender::Male->value,
             'bio' => $data['bio'] ?? null,
-            'slug' => app(GeneratePersonSlugAction::class)->handle((string) ($data['name'] ?? 'Speaker'), $data),
+            'slug' => app(GeneratePersonSlugAction::class)->handle((string) ($data['name'] ?? 'Person'), $data),
             'status' => 'pending',
         ]);
 
         $creator = auth()->user();
 
         if ($creator instanceof User) {
-            AddMemberAction::run($speaker, $creator, MemberRole::Owner);
+            AddMemberAction::run($person, $creator, MemberRole::Owner);
         }
 
         // Save media uploads (avatar/cover) via Filament's relationship-saving mechanism
-        $schema?->model($speaker)->saveRelationships();
+        $schema?->model($person)->saveRelationships();
 
-        app(ContributionEntityMutationService::class)->syncPersonRelations($speaker, $data);
-        app(GeneratePersonSlugAction::class)->syncSpeakerSlug($speaker);
+        app(ContributionEntityMutationService::class)->syncPersonRelations($person, $data);
+        app(GeneratePersonSlugAction::class)->syncPersonSlug($person);
 
-        return (string) $speaker->getKey();
+        return (string) $person->getKey();
     }
 }

@@ -226,7 +226,7 @@ final class PublicDirectorySchemasTransformer implements DocumentTransformer
                 ->addProperty('map_lat', (new NumberType)->nullable(true))
                 ->addProperty('map_lng', (new NumberType)->nullable(true))
                 ->addProperty('followers_count', new IntegerType)
-                ->addProperty('speaker_count', new IntegerType)
+                ->addProperty('person_count', new IntegerType)
                 ->addProperty('is_following', new BooleanType)
                 ->addProperty('media', $this->institutionMediaType())
                 ->addProperty('contacts', $this->contactListType())
@@ -250,7 +250,7 @@ final class PublicDirectorySchemasTransformer implements DocumentTransformer
                     'map_lat',
                     'map_lng',
                     'followers_count',
-                    'speaker_count',
+                    'person_count',
                     'is_following',
                     'media',
                     'contacts',
@@ -332,7 +332,7 @@ final class PublicDirectorySchemasTransformer implements DocumentTransformer
             ->addProperty('card_image_url', (new StringType)->nullable(true))
             ->addProperty('institution', $this->eventInstitutionType())
             ->addProperty('venue', $this->eventVenueType())
-            ->addProperty('speakers', (new ArrayType)->setItems($this->eventPersonType()));
+            ->addProperty('persons', (new ArrayType)->setItems($this->eventPersonType()));
 
         if (! $sparse) {
             $type->setRequired([
@@ -363,7 +363,7 @@ final class PublicDirectorySchemasTransformer implements DocumentTransformer
                 'card_image_url',
                 'institution',
                 'venue',
-                'speakers',
+                'persons',
             ]);
         }
 
@@ -463,7 +463,7 @@ final class PublicDirectorySchemasTransformer implements DocumentTransformer
                 ->addProperty(
                     'data',
                     (new ObjectType)
-                        ->addProperty('speaker', $components->getSchemaReference('Person'))
+                        ->addProperty('person', $components->getSchemaReference('Person'))
                         ->addProperty('upcoming_events', (new ArrayType)->setItems($components->getSchemaReference('EventSummary')))
                         ->addProperty('upcoming_total', new IntegerType)
                         ->addProperty('past_events', (new ArrayType)->setItems($components->getSchemaReference('EventSummary')))
@@ -473,7 +473,7 @@ final class PublicDirectorySchemasTransformer implements DocumentTransformer
                         ->addProperty('other_role_past_participations', (new ArrayType)->setItems($components->getSchemaReference('EventParticipation')))
                         ->addProperty('other_role_past_total', new IntegerType)
                         ->setRequired([
-                            'speaker',
+                            'person',
                             'upcoming_events',
                             'upcoming_total',
                             'past_events',
@@ -721,7 +721,7 @@ final class PublicDirectorySchemasTransformer implements DocumentTransformer
         $this->replaceOperationResponseSchema($document, 'institutions', 'get', $components->getSchemaReference('InstitutionDirectorySparseResponse'));
         $this->replaceOperationResponseSchema($document, 'institutions/near', 'get', $components->getSchemaReference('InstitutionDirectorySparseResponse'));
         $this->replaceOperationResponseSchema($document, 'references', 'get', $components->getSchemaReference('ReferenceDirectorySparseResponse'));
-        $this->replaceOperationResponseSchema($document, 'speakers', 'get', $components->getSchemaReference('PersonDirectorySparseResponse'));
+        $this->replaceOperationResponseSchema($document, 'persons', 'get', $components->getSchemaReference('PersonDirectorySparseResponse'));
         $this->replaceOperationResponseSchema($document, 'events', 'get', $components->getSchemaReference('EventIndexResponse'));
 
         $institutionsNearOperation = $this->findOperation($document, 'institutions/near', 'get');

@@ -309,13 +309,13 @@ it('restores a deleted user together with key relationships and child records', 
     ]);
 
     $institutionJoinedAt = now()->subDays(5)->startOfSecond();
-    $speakerJoinedAt = now()->subDays(4)->startOfSecond();
+    $personJoinedAt = now()->subDays(4)->startOfSecond();
     $referenceJoinedAt = now()->subDays(3)->startOfSecond();
     $venueJoinedAt = now()->subDays(3)->startOfSecond();
     $memberJoinedAt = now()->subDays(2)->startOfSecond();
 
     $user->institutions()->attach($institution->id, ['joined_at' => $institutionJoinedAt]);
-    $user->speakers()->attach($person->id, ['joined_at' => $speakerJoinedAt]);
+    $user->persons()->attach($person->id, ['joined_at' => $personJoinedAt]);
     $user->references()->attach($reference->id, ['joined_at' => $referenceJoinedAt]);
     $user->follow($venue, ['followed_at' => $venueJoinedAt]);
 
@@ -461,7 +461,7 @@ it('restores a deleted user together with key relationships and child records', 
     assertDatabaseHas($person->members()->getTable(), [
         'person_id' => $person->id,
         'user_id' => $user->id,
-        'joined_at' => $speakerJoinedAt->toDateTimeString(),
+        'joined_at' => $personJoinedAt->toDateTimeString(),
     ]);
 
     assertDatabaseHas($reference->members()->getTable(), [
@@ -683,13 +683,13 @@ it('restores an api self-deleted user from the deleted users admin page', functi
     $modelMorphKey = (string) config('permission.column_names.model_morph_key');
 
     $institutionJoinedAt = now()->subDays(3)->startOfSecond();
-    $speakerJoinedAt = now()->subDays(2)->startOfSecond();
+    $personJoinedAt = now()->subDays(2)->startOfSecond();
     $referenceJoinedAt = now()->subDay()->startOfSecond();
     $venueJoinedAt = now()->subHours(18)->startOfSecond();
     $eventJoinedAt = now()->subHours(12)->startOfSecond();
 
     $user->institutions()->attach($institution->id, ['joined_at' => $institutionJoinedAt]);
-    $user->speakers()->attach($person->id, ['joined_at' => $speakerJoinedAt]);
+    $user->persons()->attach($person->id, ['joined_at' => $personJoinedAt]);
     $user->references()->attach($reference->id, ['joined_at' => $referenceJoinedAt]);
     $user->follow($venue, ['followed_at' => $venueJoinedAt]);
     app(EngagementManager::class)->bookmark($user, $sharedEvent);
@@ -789,7 +789,7 @@ it('restores an api self-deleted user from the deleted users admin page', functi
     assertDatabaseHas($person->members()->getTable(), [
         'person_id' => $person->id,
         'user_id' => $user->id,
-        'joined_at' => $speakerJoinedAt->toDateTimeString(),
+        'joined_at' => $personJoinedAt->toDateTimeString(),
     ]);
     assertDatabaseHas($reference->members()->getTable(), [
         'reference_id' => $reference->id,

@@ -533,7 +533,7 @@ function eventImageGenerationEventFixture(?Institution $institution = null): arr
     ]);
 
     $person
-        ->addMedia(fakeGeneratedImageUpload('speaker-avatar.jpg', 800, 800))
+        ->addMedia(fakeGeneratedImageUpload('person-avatar.jpg', 800, 800))
         ->toMediaCollection('avatar');
 
     $reference = Reference::factory()->create([
@@ -582,7 +582,7 @@ function eventImageGenerationEventFixture(?Institution $institution = null): arr
 
     EventKeyPerson::factory()->create([
         'event_id' => $event->getKey(),
-        'involveable_type' => 'speaker',
+        'involveable_type' => 'person',
         'involveable_id' => $person->getKey(),
         'role_code' => EventKeyPersonRole::Speaker->value,
         'visibility' => 'public',

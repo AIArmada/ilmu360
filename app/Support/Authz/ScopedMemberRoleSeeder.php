@@ -32,9 +32,9 @@ final readonly class ScopedMemberRoleSeeder
         });
     }
 
-    public function ensureForSpeaker(): void
+    public function ensureForPerson(): void
     {
-        // ponytail: same role set as institution, add speaker-specific roles when needed
+        // ponytail: same role set as institution, add person-specific roles when needed
         $this->ensureForInstitution();
     }
 

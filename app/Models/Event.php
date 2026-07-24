@@ -1302,7 +1302,7 @@ class Event extends PackageEvent implements AuditableContract
 
         $keyPersonPersonIds = $keyPeople
             ->pluck('involveable_id')
-            ->filter(fn (mixed $speakerId): bool => is_string($speakerId) && $speakerId !== '')
+            ->filter(fn (mixed $personId): bool => is_string($personId) && $personId !== '')
             ->unique()
             ->values()
             ->all();
@@ -1310,7 +1310,7 @@ class Event extends PackageEvent implements AuditableContract
         $personInChargeIds = $keyPeople
             ->where('role_code', EventKeyPersonRole::PersonInCharge->value)
             ->pluck('involveable_id')
-            ->filter(fn (mixed $speakerId): bool => is_string($speakerId) && $speakerId !== '')
+            ->filter(fn (mixed $personId): bool => is_string($personId) && $personId !== '')
             ->values()
             ->all();
 
@@ -1333,28 +1333,28 @@ class Event extends PackageEvent implements AuditableContract
         $moderatorIds = $keyPeople
             ->where('role_code', EventKeyPersonRole::Moderator->value)
             ->pluck('involveable_id')
-            ->filter(fn (mixed $speakerId): bool => is_string($speakerId) && $speakerId !== '')
+            ->filter(fn (mixed $personId): bool => is_string($personId) && $personId !== '')
             ->values()
             ->all();
 
         $imamIds = $keyPeople
             ->where('role_code', EventKeyPersonRole::Imam->value)
             ->pluck('involveable_id')
-            ->filter(fn (mixed $speakerId): bool => is_string($speakerId) && $speakerId !== '')
+            ->filter(fn (mixed $personId): bool => is_string($personId) && $personId !== '')
             ->values()
             ->all();
 
         $khatibIds = $keyPeople
             ->where('role_code', EventKeyPersonRole::Khatib->value)
             ->pluck('involveable_id')
-            ->filter(fn (mixed $speakerId): bool => is_string($speakerId) && $speakerId !== '')
+            ->filter(fn (mixed $personId): bool => is_string($personId) && $personId !== '')
             ->values()
             ->all();
 
         $bilalIds = $keyPeople
             ->where('role_code', EventKeyPersonRole::Bilal->value)
             ->pluck('involveable_id')
-            ->filter(fn (mixed $speakerId): bool => is_string($speakerId) && $speakerId !== '')
+            ->filter(fn (mixed $personId): bool => is_string($personId) && $personId !== '')
             ->values()
             ->all();
 
@@ -1420,7 +1420,7 @@ class Event extends PackageEvent implements AuditableContract
             'reference_ids' => $this->references->pluck('id')->values()->all(),
             'person_ids' => $this->personKeyPeople
                 ->pluck('involveable_id')
-                ->filter(fn (mixed $speakerId): bool => is_string($speakerId) && $speakerId !== '')
+                ->filter(fn (mixed $personId): bool => is_string($personId) && $personId !== '')
                 ->values()
                 ->all(),
             'key_person_roles' => $keyPersonRoles,
@@ -1589,14 +1589,6 @@ class Event extends PackageEvent implements AuditableContract
             ->withPivot(['id', 'involveable_type', 'role_code', 'sort_order', 'notes'])
             ->withTimestamps()
             ->orderByPivot('sort_order');
-    }
-
-    /**
-     * @return BelongsToMany<Person, $this, EventKeyPersonPivot, 'pivot'>
-     */
-    public function speakers(): BelongsToMany
-    {
-        return $this->persons();
     }
 
     /**

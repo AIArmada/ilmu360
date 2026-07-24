@@ -22,7 +22,7 @@ test('institution can have social media', function () {
     expect($institution->socialProfiles->first()?->profileUrl())->toBe('https://www.facebook.com/masjid_official');
 });
 
-test('speaker can have social media', function () {
+test('person can have social media', function () {
     $person = Person::factory()->create();
 
     $person->socialProfiles()->create([

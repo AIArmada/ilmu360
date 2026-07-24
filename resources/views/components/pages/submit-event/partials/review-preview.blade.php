@@ -209,7 +209,7 @@
         ->filter()
         ->all();
 
-    $personIds = $asList($get('speakers'));
+    $personIds = $asList($get('persons'));
     $personMap = Person::query()->whereIn('id', $personIds)->pluck('name', 'id')->toArray();
     $personLabels = collect($personIds)
         ->map(fn (mixed $id): ?string => $personMap[$id] ?? null)
@@ -240,11 +240,11 @@
     $primaryOrganizerId = $get('primary_organizer_id');
     $primaryOrganizerKind = $get('primary_organizer_kind');
 
-    if (! in_array($primaryOrganizerKind, ['institution', 'speaker'], true) && filled($primaryOrganizerId)) {
+    if (! in_array($primaryOrganizerKind, ['institution', 'person'], true) && filled($primaryOrganizerId)) {
         if (Institution::query()->whereKey($primaryOrganizerId)->exists()) {
             $primaryOrganizerKind = 'institution';
         } elseif (Person::query()->whereKey($primaryOrganizerId)->exists()) {
-            $primaryOrganizerKind = 'speaker';
+            $primaryOrganizerKind = 'person';
         }
     }
 
@@ -268,7 +268,7 @@
 
     $organizerName = $primaryOrganizerKind === 'institution'
         ? ($institutionMap[(string) $primaryOrganizerId] ?? null)
-        : (Person::query()->whereKey($get('primary_organizer_speaker_id') ?: $primaryOrganizerId)->value('name'));
+        : (Person::query()->whereKey($get('primary_organizer_person_id') ?: $primaryOrganizerId)->value('name'));
 
     $locationLabel = null;
     if ($toScalar($get('event_format')) === EventFormat::Online->value) {

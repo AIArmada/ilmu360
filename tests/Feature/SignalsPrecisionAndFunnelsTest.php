@@ -353,7 +353,7 @@ it('supports route-based funnel steps using named laravel routes', function () {
         'settings' => [
             'funnel_steps' => [
                 ['label' => 'Home Route', 'step_type' => 'route', 'route_name' => 'home'],
-                ['label' => 'Speakers Route', 'step_type' => 'route', 'route_name' => 'persons.index'],
+                ['label' => 'Persons Route', 'step_type' => 'route', 'route_name' => 'persons.index'],
             ],
         ],
         'is_shared' => false,

@@ -110,7 +110,7 @@ describe('Event Approval', function () {
         $moderator = User::factory()->create();
         $moderator->assignRole('moderator');
 
-        // Create pending speaker
+        // Create pending person
         $person = Person::factory()->create([
             'status' => 'pending',
         ]);
@@ -153,7 +153,7 @@ describe('Event Approval', function () {
         $moderator = User::factory()->create();
         $moderator->assignRole('moderator');
 
-        // Create already verified speaker
+        // Create already verified person
         $person = Person::factory()->create([
             'status' => 'verified',
         ]);
@@ -187,7 +187,7 @@ describe('Event Needs Changes', function () {
             $event,
             $moderator,
             'incomplete_info',
-            'Please add speaker details'
+            'Please add person details'
         );
 
         $review = ModerationReview::query()->where('actionable_id', $event->id)->whereIn('actionable_type', [Event::class, 'event'])->latest()->first();

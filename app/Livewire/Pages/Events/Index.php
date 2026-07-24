@@ -237,7 +237,7 @@ class Index extends Component implements HasForms
     public bool $search_include_institutions = true;
 
     #[Url]
-    public bool $search_include_speakers = true;
+    public bool $search_include_persons = true;
 
     #[Url]
     public bool $search_include_references = true;
@@ -1341,7 +1341,7 @@ class Index extends Component implements HasForms
 
         // Boolean scope toggles must be included even when false.
         $searchFilters['search_include_institutions'] = $filters['search_include_institutions'];
-        $searchFilters['search_include_speakers'] = $filters['search_include_speakers'];
+        $searchFilters['search_include_persons'] = $filters['search_include_persons'];
         $searchFilters['search_include_references'] = $filters['search_include_references'];
 
         if ($filters['reference_author_search'] !== []) {
@@ -1460,7 +1460,7 @@ class Index extends Component implements HasForms
             'radius_km' => 15,
             'sort' => 'time',
             'search_include_institutions' => true,
-            'search_include_speakers' => true,
+            'search_include_persons' => true,
             'search_include_references' => true,
             'reference_author_search' => [],
         ];
@@ -1527,7 +1527,7 @@ class Index extends Component implements HasForms
             'radius_km' => max(1, min(1000, $this->radius_km)),
             'sort' => in_array($this->sort, ['time', 'relevance', 'distance'], true) ? $this->sort : $defaults['sort'],
             'search_include_institutions' => $this->search_include_institutions,
-            'search_include_speakers' => $this->search_include_speakers,
+            'search_include_persons' => $this->search_include_persons,
             'search_include_references' => $this->search_include_references,
             'reference_author_search' => $this->normalizeStringArray($this->reference_author_search),
         ];
@@ -1581,7 +1581,7 @@ class Index extends Component implements HasForms
         $this->radius_km = $filters['radius_km'];
         $this->sort = $filters['sort'];
         $this->search_include_institutions = (bool) ($filters['search_include_institutions'] ?? true);
-        $this->search_include_speakers = (bool) ($filters['search_include_speakers'] ?? true);
+        $this->search_include_persons = (bool) ($filters['search_include_persons'] ?? true);
         $this->search_include_references = (bool) ($filters['search_include_references'] ?? true);
         $this->reference_author_search = $filters['reference_author_search'];
     }
@@ -1673,7 +1673,7 @@ class Index extends Component implements HasForms
             'radius_km' => max(1, min(1000, (int) ($normalized['radius_km'] ?? $defaults['radius_km']))),
             'sort' => $sort,
             'search_include_institutions' => (bool) ($normalized['search_include_institutions'] ?? true),
-            'search_include_speakers' => (bool) ($normalized['search_include_speakers'] ?? true),
+            'search_include_persons' => (bool) ($normalized['search_include_persons'] ?? true),
             'search_include_references' => (bool) ($normalized['search_include_references'] ?? true),
             'reference_author_search' => $this->normalizeStringArray($normalized['reference_author_search'] ?? []),
         ];

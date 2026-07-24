@@ -25,9 +25,9 @@ it('deletes all related records when an event is deleted', function () {
     EventAccessPolicy::factory()->create(['event_id' => $event->id]);
     EventKeyPerson::factory()->create([
         'event_id' => $event->id,
-        'involveable_type' => 'speaker',
+        'involveable_type' => 'person',
         'involveable_id' => $person->id,
-        'role_code' => 'speaker',
+        'role_code' => 'person',
     ]);
     EventReference::factory()->create(['event_id' => $event->id]);
     EventCheckin::factory()->create(['event_id' => $event->id]);

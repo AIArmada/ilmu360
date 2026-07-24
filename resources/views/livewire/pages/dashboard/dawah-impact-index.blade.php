@@ -15,7 +15,7 @@
     $subjectBadgeClass = static fn (string $subjectType): string => match ($subjectType) {
         'event' => 'bg-emerald-100 text-emerald-700',
         'institution' => 'bg-sky-100 text-sky-700',
-        'speaker' => 'bg-violet-100 text-violet-700',
+        'person' => 'bg-violet-100 text-violet-700',
         'series' => 'bg-indigo-100 text-indigo-700',
         'reference' => 'bg-amber-100 text-amber-700',
         'search' => 'bg-rose-100 text-rose-700',
@@ -29,7 +29,7 @@
         'event_save' => __('Saved an event'),
         'event_going' => __('Planned to attend'),
         'institution_follow' => __('Followed an institution'),
-        'speaker_follow' => __('Followed a speaker'),
+        'person_follow' => __('Followed a speaker'),
         'series_follow' => __('Followed a series'),
         'reference_follow' => __('Followed a reference'),
         'saved_search_created' => __('Saved a search'),

@@ -173,7 +173,7 @@ new
     $frontCover = $series->getFirstMediaUrl('cover', 'thumb');
     $backCover = null;
 
-    // ── Helpers identical to speaker page ────────────────────────────────────
+    // ── Helpers identical to person page ────────────────────────────────────
     $resolveEventCategoryLabel = static fn (\App\Models\Event $event): string => app(\App\Support\Events\EventCategoryPresenter::class)->forEvent($event)[0]['path'] ?? __('Umum');
 
     $resolveVenueLocation = static function (\App\Models\Event $event) use ($resolveEventCategoryLabel): string {

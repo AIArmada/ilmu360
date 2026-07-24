@@ -130,12 +130,12 @@ class SearchController extends FrontendController
         private readonly PublicDiscovery $publicDiscovery,
     ) {}
 
-    #[Group('Search', 'Public aggregate search endpoints across events, speakers, and institutions.')]
+    #[Group('Search', 'Public aggregate search endpoints across events, persons, and institutions.')]
     #[Endpoint(
-        title: 'Search events, speakers, and institutions',
-        description: 'Returns a compact public search payload for events, speakers, and institutions using the same visibility rules as the client surface.',
+        title: 'Search events, persons, and institutions',
+        description: 'Returns a compact public search payload for events, persons, and institutions using the same visibility rules as the client surface.',
     )]
-    #[QueryParameter('search', 'Optional free-text search query across public events, speakers, and institutions.', required: false, type: 'string', infer: false, example: 'Kuliah')]
+    #[QueryParameter('search', 'Optional free-text search query across public events, persons, and institutions.', required: false, type: 'string', infer: false, example: 'Kuliah')]
     #[QueryParameter('q', 'Alias for `search`, accepted for clients that use common search-query naming.', required: false, type: 'string', infer: false, example: 'Kuliah')]
     public function search(Request $request): JsonResponse
     {
@@ -185,7 +185,7 @@ class SearchController extends FrontendController
                     'items' => collect($eventPaginator->items())->map(fn (Event $event): array => $this->eventListData($event))->all(),
                     'total' => $eventPaginator->total(),
                 ],
-                'speakers' => [
+                'persons' => [
                     'items' => $personQuery->orderBy('name')->limit(4)->get()->map(fn (Person $person): array => $this->personListData($person, $user))->all(),
                     'total' => count($personIds),
                 ],
@@ -470,8 +470,8 @@ class SearchController extends FrontendController
                 'contactMethods',
                 'socialProfiles',
                 'donationChannels.media',
-                'speakers' => fn ($query) => $query->where('status', 'verified')->orderByPivot('is_primary', 'desc')->limit(12),
-                'speakers.media',
+                'persons' => fn ($query) => $query->where('status', 'verified')->orderByPivot('is_primary', 'desc')->limit(12),
+                'persons.media',
                 'spaces' => fn ($query) => $query->where('status', 'active'),
                 'languages',
             ])
@@ -675,7 +675,7 @@ class SearchController extends FrontendController
                 ->with([
                     'institution.media',
                     'institution.addresses.country',
-                    'speakers.media',
+                    'persons.media',
                     'keyPeople.person.media',
                     'media',
                     'references',
@@ -692,7 +692,7 @@ class SearchController extends FrontendController
                 ->with([
                     'institution.media',
                     'institution.addresses.country',
-                    'speakers.media',
+                    'persons.media',
                     'keyPeople.person.media',
                     'media',
                     'references',
@@ -808,7 +808,7 @@ class SearchController extends FrontendController
                     'institution',
                     'institution.media',
                     'institution.addresses.country',
-                    'speakers.media',
+                    'persons.media',
                     'venue.addresses.country',
                     'media',
                 ])
@@ -828,7 +828,7 @@ class SearchController extends FrontendController
                     'institution',
                     'institution.media',
                     'institution.addresses.country',
-                    'speakers.media',
+                    'persons.media',
                     'venue.addresses.country',
                     'media',
                 ])
@@ -1405,7 +1405,7 @@ class SearchController extends FrontendController
             country: $this->searchPayloadTransformer->countryData($addressModel),
             addressLine: $this->searchPayloadTransformer->addressLocation($addressModel),
             media: $institutionMedia,
-            speakerCount: $this->institutionSpeakerCount($institution),
+            personCount: $this->institutionPersonCount($institution),
             contacts: $this->searchPayloadTransformer->contactData($institution->contactMethods),
             socialMedia: $this->searchPayloadTransformer->socialMediaData($institution->socialProfiles),
             donationChannels: $institution->donationChannels
@@ -1559,7 +1559,7 @@ class SearchController extends FrontendController
         return InstitutionDonationChannelData::fromModel($channel)->toArray();
     }
 
-    private function institutionSpeakerCount(Institution $institution): int
+    private function institutionPersonCount(Institution $institution): int
     {
         $eventIds = Event::query()
             ->where('institution_id', $institution->id)
@@ -1569,7 +1569,7 @@ class SearchController extends FrontendController
 
         return (int) DB::table('event_involvements')
             ->where('role_code', EventKeyPersonRole::Speaker->value)
-            ->where('involveable_type', 'speaker')
+            ->where('involveable_type', 'person')
             ->whereNotNull('involveable_id')
             ->whereIn('event_id', $eventIds)
             ->distinct('involveable_id')

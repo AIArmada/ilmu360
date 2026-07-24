@@ -18,7 +18,7 @@ beforeEach(function () {
 });
 
 /**
- * @return array{domain_tag: EventTerm, discipline_tag: EventTerm, institution: Institution, speaker: Person}
+ * @return array{domain_tag: EventTerm, discipline_tag: EventTerm, institution: Institution, person: Person}
  */
 function submitEventNotesFixtures(): array
 {
@@ -26,12 +26,12 @@ function submitEventNotesFixtures(): array
         'domain_tag' => submitEventTerm('domain'),
         'discipline_tag' => submitEventTerm('discipline'),
         'institution' => Institution::factory()->create(['status' => 'verified']),
-        'speaker' => Person::factory()->create(['status' => 'verified']),
+        'person' => Person::factory()->create(['status' => 'verified']),
     ];
 }
 
 /**
- * @param  array{domain_tag: EventTerm, discipline_tag: EventTerm, institution: Institution, speaker: Person}  $fixtures
+ * @param  array{domain_tag: EventTerm, discipline_tag: EventTerm, institution: Institution, person: Person}  $fixtures
  * @return array<string, mixed>
  */
 function submitEventNotesFormData(array $fixtures, array $overrides = []): array
@@ -50,7 +50,7 @@ function submitEventNotesFormData(array $fixtures, array $overrides = []): array
         'age_group' => [EventAgeGroup::AllAges->value],
         'languages' => [101],
         'primary_organizer_id' => $fixtures['institution']->id,
-        'speakers' => [$fixtures['speaker']->id],
+        'persons' => [$fixtures['person']->id],
         'submitter_name' => 'Test User',
         'submitter_email' => 'test@example.com',
     ], $overrides);

@@ -21,7 +21,7 @@ class PublicListingsCache
 
         foreach ($this->supportedLocales() as $locale) {
             Cache::forget("events_institutions_{$locale}_v2");
-            Cache::forget("events_speakers_{$locale}_v2");
+            Cache::forget("events_persons_{$locale}_v2");
             Cache::forget("events_disciplines_{$locale}_v2");
             Cache::forget("events_domains_{$locale}_v2");
             Cache::forget("events_sources_{$locale}_v2");

@@ -18,7 +18,7 @@ beforeEach(function (): void {
     Filament::setCurrentPanel('ahli');
 });
 
-it('shows only pending public-submitted events from member institutions and speakers on the ahli dashboard widget', function () {
+it('shows only pending public-submitted events from member institutions and persons on the ahli dashboard widget', function () {
     $user = User::factory()->create();
     $memberInstitution = Institution::factory()->create();
     $memberPerson = Person::factory()->create();

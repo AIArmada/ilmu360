@@ -34,7 +34,7 @@ it('serializes institution detail response schemas to nested arrays', function (
         ->and($payload['meta']['request_id'])->toBe('req-institution');
 });
 
-it('serializes speaker detail and directory schemas to nested arrays', function () {
+it('serializes person detail and directory schemas to nested arrays', function () {
     $detailResponse = new PersonDetailResponse(
         data: new PersonDetailPage(
             person: samplePersonSchema(),
@@ -55,13 +55,13 @@ it('serializes speaker detail and directory schemas to nested arrays', function 
             other_role_past_participations: [],
             other_role_past_total: 0,
         ),
-        meta: ['request_id' => 'req-speaker'],
+        meta: ['request_id' => 'req-person'],
     );
 
     $directoryResponse = new PersonDirectoryResponse(
         data: [
             new PersonListItem(
-                id: 'speaker-1',
+                id: 'person-1',
                 slug: 'ustaz-adam',
                 name: 'Adam Yusuf',
                 gender: 'male',
@@ -69,7 +69,7 @@ it('serializes speaker detail and directory schemas to nested arrays', function 
                 status: 'verified',
                 verified_by: null,
                 events_count: 4,
-                avatar_url: 'https://example.test/speaker-avatar.jpg',
+                avatar_url: 'https://example.test/person-avatar.jpg',
                 country: sampleCountrySchema(),
                 is_following: true,
             ),
@@ -78,7 +78,7 @@ it('serializes speaker detail and directory schemas to nested arrays', function 
             'pagination' => ['page' => 1, 'per_page' => 12, 'total' => 1],
             'following' => ['total' => 1],
             'cache' => ['version' => 'v1'],
-            'request_id' => 'req-speaker-directory',
+            'request_id' => 'req-person-directory',
         ],
     );
 
@@ -87,10 +87,10 @@ it('serializes speaker detail and directory schemas to nested arrays', function 
 
     expect($detailPayload['data']['person']['slug'])->toBe('ustaz-adam')
         ->and($detailPayload['data']['other_role_upcoming_participations'][0]['event']['slug'])->toBe('weekly-tafsir')
-        ->and($detailPayload['meta']['request_id'])->toBe('req-speaker')
+        ->and($detailPayload['meta']['request_id'])->toBe('req-person')
         ->and($directoryPayload['data'][0]['country']['iso2'])->toBe('MY')
         ->and($directoryPayload['meta']['following']['total'])->toBe(1)
-        ->and($directoryPayload['meta']['request_id'])->toBe('req-speaker-directory');
+        ->and($directoryPayload['meta']['request_id'])->toBe('req-person-directory');
 });
 
 function sampleAddressSelectionSchema(): AddressSelection
@@ -157,12 +157,12 @@ function sampleEventSummarySchema(string $id = 'event-1', string $slug = 'weekly
             'name' => 'Dewan Utama',
             'slug' => 'dewan-utama',
         ],
-        speakers: [[
-            'id' => 'speaker-1',
+        persons: [[
+            'id' => 'person-1',
             'name' => 'Adam Yusuf',
             'formatted_name' => 'Ustaz Adam Yusuf',
             'slug' => 'ustaz-adam',
-            'avatar_url' => 'https://example.test/speaker-avatar.jpg',
+            'avatar_url' => 'https://example.test/person-avatar.jpg',
         ]],
     );
 }
@@ -185,7 +185,7 @@ function sampleInstitutionSchema(): Institution
         country: sampleCountrySchema(),
         map_url: 'https://maps.google.com/?q=masjid-biru',
         followers_count: 120,
-        speaker_count: 8,
+        person_count: 8,
         is_following: true,
         media: [
             'public_image_url' => 'https://example.test/institution.jpg',
@@ -202,7 +202,7 @@ function sampleInstitutionSchema(): Institution
 function samplePersonSchema(): Person
 {
     return new Person(
-        id: 'speaker-1',
+        id: 'person-1',
         slug: 'ustaz-adam',
         name: 'Adam Yusuf',
         gender: 'male',
@@ -215,13 +215,13 @@ function samplePersonSchema(): Person
         verified_by: null,
         is_following: true,
         media: [
-            'avatar_url' => 'https://example.test/speaker-avatar.jpg',
-            'cover_url' => 'https://example.test/speaker-cover.jpg',
-            'share_image_url' => 'https://example.test/speaker-share.jpg',
+            'avatar_url' => 'https://example.test/person-avatar.jpg',
+            'cover_url' => 'https://example.test/person-cover.jpg',
+            'share_image_url' => 'https://example.test/person-share.jpg',
         ],
         gallery: [['url' => 'https://example.test/gallery-1.jpg']],
         institutions: [['id' => 'institution-1', 'name' => 'Masjid Biru']],
-        contacts: [['label' => 'Email', 'value' => 'speaker@example.test']],
+        contacts: [['label' => 'Email', 'value' => 'person@example.test']],
         social_media: [['platform' => 'facebook', 'url' => 'https://facebook.com/ustazadam']],
     );
 }

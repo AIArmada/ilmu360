@@ -48,7 +48,7 @@ class EventSeeder extends Seeder
     /**
      * @var array<string, string>
      */
-    private array $scheduleSpeakerIds = [];
+    private array $schedulePersonIds = [];
 
     /**
      * Run the database seeds.
@@ -76,7 +76,7 @@ class EventSeeder extends Seeder
                 ->limit(90)
                 ->get();
             $seriesIds = Series::query()->pluck('id')->toArray();
-            $speakerIds = Person::query()->pluck('id')->toArray();
+            $personIds = Person::query()->pluck('id')->toArray();
             $venueIds = Venue::query()->pluck('id')->toArray();
 
             if ($institutions->isEmpty()) {
@@ -129,7 +129,7 @@ class EventSeeder extends Seeder
                         ]);
                     }
 
-                    $this->seedKeyPeopleForEvent($event, $speakerIds);
+                    $this->seedKeyPeopleForEvent($event, $personIds);
                 }
 
                 // If a series exists in the system, attach events via pivot table.
@@ -156,19 +156,19 @@ class EventSeeder extends Seeder
                 }
 
                 // Prepare bulk key-person data
-                $speakerKeyPeople = [];
+                $personKeyPeople = [];
 
                 foreach ($events as $event) {
-                    // Randomly select 1-3 speakers
-                    if (! empty($speakerIds)) {
-                        $numSpeakers = min(random_int(1, 3), count($speakerIds));
-                        $selectedSpeakers = (array) array_rand(array_flip($speakerIds), $numSpeakers);
-                        foreach (array_values($selectedSpeakers) as $index => $speakerId) {
-                            $speakerKeyPeople[] = [
+                    // Randomly select 1-3 persons
+                    if (! empty($personIds)) {
+                        $numPersons = min(random_int(1, 3), count($personIds));
+                        $selectedPersons = (array) array_rand(array_flip($personIds), $numPersons);
+                        foreach (array_values($selectedPersons) as $index => $personId) {
+                            $personKeyPeople[] = [
                                 'id' => (string) Str::uuid(),
                                 'event_id' => $event->id,
                                 'involveable_type' => 'person',
-                                'involveable_id' => $speakerId,
+                                'involveable_id' => $personId,
                                 'role_code' => EventKeyPersonRole::Speaker->value,
                                 'sort_order' => $index + 1,
                                 'notes' => null,
@@ -184,9 +184,9 @@ class EventSeeder extends Seeder
                     }
                 }
 
-                // Bulk insert speaker key people
-                if ($speakerKeyPeople !== []) {
-                    DB::table('event_involvements')->insert($speakerKeyPeople);
+                // Bulk insert person key people
+                if ($personKeyPeople !== []) {
+                    DB::table('event_involvements')->insert($personKeyPeople);
                 }
 
                 $count += 10;
@@ -279,72 +279,72 @@ class EventSeeder extends Seeder
         }
 
         $schedule = [
-            ['date' => '2026-01-05', 'slot' => 'Dhuha', 'time' => '10:30', 'speaker' => 'Ust Mukhlisur Riyadus', 'topic' => 'Adab Iman'],
-            ['date' => '2026-01-05', 'slot' => 'Maghrib', 'time' => '20:00', 'speaker' => 'Ust Mohd Aris Johari', 'topic' => 'Tafsir Juz Amma (Surah Jasim)'],
-            ['date' => '2026-01-12', 'slot' => 'Dhuha', 'time' => '10:00', 'speaker' => 'Ust Muhd Zulkifli', 'topic' => 'Kitab Idaman Penuntut Ilmu'],
-            ['date' => '2026-01-12', 'slot' => 'Maghrib', 'time' => '20:00', 'speaker' => 'Ust Mohd Faiz al-Izzani', 'topic' => 'Tafsir Juz Amma'],
-            ['date' => '2026-01-19', 'slot' => 'Dhuha', 'time' => '10:00', 'speaker' => 'Ust Mohd Nazri Abdul Razak', 'topic' => 'Berusrah Bersama'],
-            ['date' => '2026-01-19', 'slot' => 'Maghrib', 'time' => '20:00', 'speaker' => 'Ust Anuar Harun', 'topic' => 'Tafsir Juz Amma'],
-            ['date' => '2026-01-26', 'slot' => 'Dhuha', 'time' => '10:00', 'speaker' => 'Ust Mohd Nazri Abdul Razak', 'topic' => 'Berusrah Bersama'],
-            ['date' => '2026-01-26', 'slot' => 'Maghrib', 'time' => '20:00', 'speaker' => 'Ust Fawwaz Mohd Nur', 'topic' => 'Tafsir Juz Amma'],
+            ['date' => '2026-01-05', 'slot' => 'Dhuha', 'time' => '10:30', 'person' => 'Ust Mukhlisur Riyadus', 'topic' => 'Adab Iman'],
+            ['date' => '2026-01-05', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Ust Mohd Aris Johari', 'topic' => 'Tafsir Juz Amma (Surah Jasim)'],
+            ['date' => '2026-01-12', 'slot' => 'Dhuha', 'time' => '10:00', 'person' => 'Ust Muhd Zulkifli', 'topic' => 'Kitab Idaman Penuntut Ilmu'],
+            ['date' => '2026-01-12', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Ust Mohd Faiz al-Izzani', 'topic' => 'Tafsir Juz Amma'],
+            ['date' => '2026-01-19', 'slot' => 'Dhuha', 'time' => '10:00', 'person' => 'Ust Mohd Nazri Abdul Razak', 'topic' => 'Berusrah Bersama'],
+            ['date' => '2026-01-19', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Ust Anuar Harun', 'topic' => 'Tafsir Juz Amma'],
+            ['date' => '2026-01-26', 'slot' => 'Dhuha', 'time' => '10:00', 'person' => 'Ust Mohd Nazri Abdul Razak', 'topic' => 'Berusrah Bersama'],
+            ['date' => '2026-01-26', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Ust Fawwaz Mohd Nur', 'topic' => 'Tafsir Juz Amma'],
 
-            ['date' => '2026-01-06', 'slot' => 'Quran Time', 'time' => '08:45', 'speaker' => 'Ust Adi Hamman Mahwi', 'topic' => 'Quran Time'],
-            ['date' => '2026-01-06', 'slot' => 'Maghrib', 'time' => '20:00', 'speaker' => 'Dr Adnin Ramly'],
-            ['date' => '2026-01-13', 'slot' => 'Dhuha', 'time' => '10:30', 'speaker' => 'Ust Abdul Khair Zaki'],
-            ['date' => '2026-01-13', 'slot' => 'Maghrib', 'time' => '20:00', 'speaker' => 'Ust Abu Hazim'],
-            ['date' => '2026-01-20', 'slot' => 'Quran Time', 'time' => '08:45', 'speaker' => 'Ust Adi Hamman Mahwi', 'topic' => 'Quran Time'],
-            ['date' => '2026-01-20', 'slot' => 'Maghrib', 'time' => '20:00', 'speaker' => 'Ust Ebit Lew'],
-            ['date' => '2026-01-27', 'slot' => 'Talaqqi al-Quran', 'time' => '10:30', 'speaker' => 'Ust Izani Zulkifli', 'topic' => 'Talaqqi al-Quran'],
-            ['date' => '2026-01-27', 'slot' => 'Maghrib', 'time' => '20:00', 'speaker' => 'Ust Dr Zulkifli Mohamad al-Bakri'],
+            ['date' => '2026-01-06', 'slot' => 'Quran Time', 'time' => '08:45', 'person' => 'Ust Adi Hamman Mahwi', 'topic' => 'Quran Time'],
+            ['date' => '2026-01-06', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Dr Adnin Ramly'],
+            ['date' => '2026-01-13', 'slot' => 'Dhuha', 'time' => '10:30', 'person' => 'Ust Abdul Khair Zaki'],
+            ['date' => '2026-01-13', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Ust Abu Hazim'],
+            ['date' => '2026-01-20', 'slot' => 'Quran Time', 'time' => '08:45', 'person' => 'Ust Adi Hamman Mahwi', 'topic' => 'Quran Time'],
+            ['date' => '2026-01-20', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Ust Ebit Lew'],
+            ['date' => '2026-01-27', 'slot' => 'Talaqqi al-Quran', 'time' => '10:30', 'person' => 'Ust Izani Zulkifli', 'topic' => 'Talaqqi al-Quran'],
+            ['date' => '2026-01-27', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Ust Dr Zulkifli Mohamad al-Bakri'],
 
-            ['date' => '2026-01-07', 'slot' => 'Dhuha', 'time' => '10:00', 'speaker' => 'Ust Muhd Zulkifli', 'topic' => 'Kitab Idaman Penuntut Ilmu'],
-            ['date' => '2026-01-07', 'slot' => 'Maghrib', 'time' => '20:00', 'speaker' => 'Dato Dr Danial Zainal Abidin'],
-            ['date' => '2026-01-14', 'slot' => 'Dhuha', 'time' => '10:00', 'speaker' => 'Ust Muhamad Azmi', 'topic' => 'Kitab Nuru al-Iqna Masail Taharah'],
-            ['date' => '2026-01-14', 'slot' => 'Maghrib', 'time' => '20:00', 'speaker' => 'Ust Syed Mohd Shahabuddin'],
-            ['date' => '2026-01-21', 'slot' => 'Dhuha', 'time' => '10:00', 'speaker' => 'Ust Muhamad Azmi'],
-            ['date' => '2026-01-21', 'slot' => 'Maghrib', 'time' => '20:00', 'speaker' => 'Ust Hj Zakaria Othman'],
-            ['date' => '2026-01-28', 'slot' => 'Dhuha', 'time' => '10:00', 'speaker' => 'Ust Muhd Azmi'],
-            ['date' => '2026-01-28', 'slot' => 'Maghrib', 'time' => '20:00', 'speaker' => 'Ust Jamil Hashim'],
+            ['date' => '2026-01-07', 'slot' => 'Dhuha', 'time' => '10:00', 'person' => 'Ust Muhd Zulkifli', 'topic' => 'Kitab Idaman Penuntut Ilmu'],
+            ['date' => '2026-01-07', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Dato Dr Danial Zainal Abidin'],
+            ['date' => '2026-01-14', 'slot' => 'Dhuha', 'time' => '10:00', 'person' => 'Ust Muhamad Azmi', 'topic' => 'Kitab Nuru al-Iqna Masail Taharah'],
+            ['date' => '2026-01-14', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Ust Syed Mohd Shahabuddin'],
+            ['date' => '2026-01-21', 'slot' => 'Dhuha', 'time' => '10:00', 'person' => 'Ust Muhamad Azmi'],
+            ['date' => '2026-01-21', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Ust Hj Zakaria Othman'],
+            ['date' => '2026-01-28', 'slot' => 'Dhuha', 'time' => '10:00', 'person' => 'Ust Muhd Azmi'],
+            ['date' => '2026-01-28', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Ust Jamil Hashim'],
 
             ['date' => '2026-01-01', 'slot' => 'Maghrib', 'time' => '20:00', 'topic' => 'Bacaan Yasin & Tazkirah'],
-            ['date' => '2026-01-08', 'slot' => 'Dhuha', 'time' => '10:30', 'speaker' => 'Ust Muhd Izudin Salem', 'topic' => 'Hadis Riyadus Solihin'],
+            ['date' => '2026-01-08', 'slot' => 'Dhuha', 'time' => '10:30', 'person' => 'Ust Muhd Izudin Salem', 'topic' => 'Hadis Riyadus Solihin'],
             ['date' => '2026-01-08', 'slot' => 'Maghrib', 'time' => '20:00', 'topic' => 'Bacaan Yasin & Tazkirah'],
-            ['date' => '2026-01-15', 'slot' => 'Dhuha', 'time' => '10:30', 'speaker' => 'Puan Farhana Abdul Ghani', 'topic' => 'Hikam ke-140'],
+            ['date' => '2026-01-15', 'slot' => 'Dhuha', 'time' => '10:30', 'person' => 'Puan Farhana Abdul Ghani', 'topic' => 'Hikam ke-140'],
             ['date' => '2026-01-15', 'slot' => 'Maghrib', 'time' => '20:00', 'topic' => 'Bacaan Yasin & Tazkirah'],
-            ['date' => '2026-01-22', 'slot' => 'Dhuha', 'time' => '10:30', 'speaker' => 'Dr Azman Shah Alias'],
+            ['date' => '2026-01-22', 'slot' => 'Dhuha', 'time' => '10:30', 'person' => 'Dr Azman Shah Alias'],
             ['date' => '2026-01-22', 'slot' => 'Maghrib', 'time' => '20:00', 'topic' => 'Bacaan Yasin & Tazkirah'],
-            ['date' => '2026-01-29', 'slot' => 'Dhuha', 'time' => '10:30', 'speaker' => 'Ust Anas Mohd'],
+            ['date' => '2026-01-29', 'slot' => 'Dhuha', 'time' => '10:30', 'person' => 'Ust Anas Mohd'],
             ['date' => '2026-01-29', 'slot' => 'Maghrib', 'time' => '20:00', 'topic' => 'Bacaan Yasin & Tazkirah'],
 
             ['date' => '2026-01-02', 'slot' => 'Dhuha', 'time' => '10:00', 'note' => 'Ditangguhkan', 'topic' => 'Kuliah Dhuha'],
-            ['date' => '2026-01-02', 'slot' => 'Maghrib', 'time' => '20:00', 'speaker' => 'Ust Akid Shafie'],
-            ['date' => '2026-01-09', 'slot' => 'Dhuha', 'time' => '10:00', 'speaker' => 'Ust Ahmad Fawwaz Zaidon'],
-            ['date' => '2026-01-09', 'slot' => 'Maghrib', 'time' => '20:00', 'speaker' => 'Ust Adnin Ramly'],
-            ['date' => '2026-01-16', 'slot' => 'Dhuha', 'time' => '10:00', 'speaker' => 'Dato Dr Najmuddin'],
-            ['date' => '2026-01-16', 'slot' => 'Maghrib', 'time' => '20:00', 'speaker' => 'Ust Ahmad Saffwan'],
-            ['date' => '2026-01-23', 'slot' => 'Dhuha', 'time' => '10:00', 'speaker' => 'Dato Dr Mohd Radzi'],
-            ['date' => '2026-01-23', 'slot' => 'Maghrib', 'time' => '20:00', 'speaker' => 'Dato Dr Ahmad Zaki'],
-            ['date' => '2026-01-30', 'slot' => 'Dhuha', 'time' => '10:00', 'speaker' => 'Dr Mizan Mohamed'],
-            ['date' => '2026-01-30', 'slot' => 'Maghrib', 'time' => '20:00', 'speaker' => 'Ust Jamil Hashim'],
+            ['date' => '2026-01-02', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Ust Akid Shafie'],
+            ['date' => '2026-01-09', 'slot' => 'Dhuha', 'time' => '10:00', 'person' => 'Ust Ahmad Fawwaz Zaidon'],
+            ['date' => '2026-01-09', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Ust Adnin Ramly'],
+            ['date' => '2026-01-16', 'slot' => 'Dhuha', 'time' => '10:00', 'person' => 'Dato Dr Najmuddin'],
+            ['date' => '2026-01-16', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Ust Ahmad Saffwan'],
+            ['date' => '2026-01-23', 'slot' => 'Dhuha', 'time' => '10:00', 'person' => 'Dato Dr Mohd Radzi'],
+            ['date' => '2026-01-23', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Dato Dr Ahmad Zaki'],
+            ['date' => '2026-01-30', 'slot' => 'Dhuha', 'time' => '10:00', 'person' => 'Dr Mizan Mohamed'],
+            ['date' => '2026-01-30', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Ust Jamil Hashim'],
 
-            ['date' => '2026-01-03', 'slot' => 'Subuh', 'time' => '05:45', 'speaker' => 'Ust Roslan Mohamed'],
-            ['date' => '2026-01-03', 'slot' => 'Maghrib', 'time' => '20:00', 'speaker' => 'Ust Fahmi Ideris'],
-            ['date' => '2026-01-10', 'slot' => 'Subuh', 'time' => '05:45', 'speaker' => 'Ust Radzi Shahari'],
-            ['date' => '2026-01-10', 'slot' => 'Maghrib', 'time' => '20:00', 'speaker' => 'Ust Ahmad Anwar'],
-            ['date' => '2026-01-17', 'slot' => 'Subuh', 'time' => '05:45', 'speaker' => 'Ust Ahmad Rosli'],
-            ['date' => '2026-01-17', 'slot' => 'Maghrib', 'time' => '20:00', 'speaker' => 'Ust Mohd Sufyan'],
-            ['date' => '2026-01-24', 'slot' => 'Subuh', 'time' => '05:45', 'speaker' => 'Ust Mohd Shah Rizal'],
-            ['date' => '2026-01-24', 'slot' => 'Maghrib', 'time' => '20:00', 'speaker' => 'Ust Dr Fathullah Kani'],
+            ['date' => '2026-01-03', 'slot' => 'Subuh', 'time' => '05:45', 'person' => 'Ust Roslan Mohamed'],
+            ['date' => '2026-01-03', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Ust Fahmi Ideris'],
+            ['date' => '2026-01-10', 'slot' => 'Subuh', 'time' => '05:45', 'person' => 'Ust Radzi Shahari'],
+            ['date' => '2026-01-10', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Ust Ahmad Anwar'],
+            ['date' => '2026-01-17', 'slot' => 'Subuh', 'time' => '05:45', 'person' => 'Ust Ahmad Rosli'],
+            ['date' => '2026-01-17', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Ust Mohd Sufyan'],
+            ['date' => '2026-01-24', 'slot' => 'Subuh', 'time' => '05:45', 'person' => 'Ust Mohd Shah Rizal'],
+            ['date' => '2026-01-24', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Ust Dr Fathullah Kani'],
             ['date' => '2026-01-31', 'slot' => 'Maghrib', 'time' => '20:00', 'note' => 'Dibatalkan', 'topic' => 'Kuliah Maghrib'],
 
-            ['date' => '2026-01-04', 'slot' => 'Subuh', 'time' => '05:45', 'speaker' => 'Mufti Wilayah Persekutuan'],
-            ['date' => '2026-01-04', 'slot' => 'Maghrib', 'time' => '20:00', 'speaker' => 'Imam Muda Hassan'],
-            ['date' => '2026-01-11', 'slot' => 'Subuh', 'time' => '05:45', 'speaker' => 'Dato Prof Dr Basri Ibrahim'],
-            ['date' => '2026-01-11', 'slot' => 'Maghrib', 'time' => '20:00', 'speaker' => 'Ust Ahmad Anwar'],
-            ['date' => '2026-01-18', 'slot' => 'Subuh', 'time' => '05:45', 'speaker' => 'Dato Seri Zulkifli al-Bakri'],
-            ['date' => '2026-01-18', 'slot' => 'Maghrib', 'time' => '20:00', 'speaker' => 'Ust Ibrahim Zamzibar'],
-            ['date' => '2026-01-25', 'slot' => 'Subuh', 'time' => '05:45', 'speaker' => 'Dato Dr Danial Zainal Abidin'],
-            ['date' => '2026-01-25', 'slot' => 'Maghrib', 'time' => '20:00', 'speaker' => 'Ust Azhar Idrus'],
+            ['date' => '2026-01-04', 'slot' => 'Subuh', 'time' => '05:45', 'person' => 'Mufti Wilayah Persekutuan'],
+            ['date' => '2026-01-04', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Imam Muda Hassan'],
+            ['date' => '2026-01-11', 'slot' => 'Subuh', 'time' => '05:45', 'person' => 'Dato Prof Dr Basri Ibrahim'],
+            ['date' => '2026-01-11', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Ust Ahmad Anwar'],
+            ['date' => '2026-01-18', 'slot' => 'Subuh', 'time' => '05:45', 'person' => 'Dato Seri Zulkifli al-Bakri'],
+            ['date' => '2026-01-18', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Ust Ibrahim Zamzibar'],
+            ['date' => '2026-01-25', 'slot' => 'Subuh', 'time' => '05:45', 'person' => 'Dato Dr Danial Zainal Abidin'],
+            ['date' => '2026-01-25', 'slot' => 'Maghrib', 'time' => '20:00', 'person' => 'Ust Azhar Idrus'],
         ];
 
         foreach ($schedule as $entry) {
@@ -367,8 +367,8 @@ class EventSeeder extends Seeder
             if ($topic) {
                 $descriptionParts[] = $topic;
             }
-            if (isset($entry['speaker'])) {
-                $descriptionParts[] = 'Bersama '.$entry['speaker'];
+            if (isset($entry['person'])) {
+                $descriptionParts[] = 'Bersama '.$entry['person'];
             }
             if ($note) {
                 $descriptionParts[] = $note;
@@ -427,16 +427,16 @@ class EventSeeder extends Seeder
                 'prayer_display_text' => $prayerDisplayText,
             ];
 
-            $existingScheduleEvent = $this->resolveExistingScheduleEvent($eventAttributes, $entry['speaker'] ?? null);
-            $speaker = $this->resolveScheduleSpeaker($entry['speaker'] ?? null, $existingScheduleEvent);
+            $existingScheduleEvent = $this->resolveExistingScheduleEvent($eventAttributes, $entry['person'] ?? null);
+            $person = $this->resolveSchedulePerson($entry['person'] ?? null, $existingScheduleEvent);
 
             $eventAttributes['slug'] = app(GenerateEventSlugAction::class)->handle(
                 $title,
                 $entry['date'],
                 'Asia/Kuala_Lumpur',
                 $existingScheduleEvent?->getKey() !== null ? (string) $existingScheduleEvent->getKey() : null,
-                $speaker instanceof Person && is_string($speaker->slug) && $speaker->slug !== ''
-                    ? [$speaker->slug]
+                $person instanceof Person && is_string($person->slug) && $person->slug !== ''
+                    ? [$person->slug]
                     : [],
             );
 
@@ -476,7 +476,7 @@ class EventSeeder extends Seeder
                 app(SyncEventClassificationsAction::class)->handle($event, ['event_category_ids' => [$categoryId]]);
             }
 
-            OwnerContext::withOwner(null, fn () => $event->setPrimaryOrganizer($speaker ?? $institution));
+            OwnerContext::withOwner(null, fn () => $event->setPrimaryOrganizer($person ?? $institution));
 
             // Attach default language (Malay) if exists
             if (class_exists(Language::class)) {
@@ -491,7 +491,7 @@ class EventSeeder extends Seeder
 
             app(EventKeyPersonSyncService::class)->sync(
                 $event,
-                $speaker instanceof Person ? [$speaker->id] : [],
+                $person instanceof Person ? [$person->id] : [],
             );
 
             $this->ensureScheduleEventHasTags($event, $title, $topic);
@@ -499,22 +499,22 @@ class EventSeeder extends Seeder
         }
     }
 
-    private function resolveScheduleSpeaker(?string $speakerName, ?Event $existingScheduleEvent = null): ?Person
+    private function resolveSchedulePerson(?string $personName, ?Event $existingScheduleEvent = null): ?Person
     {
         if ($existingScheduleEvent instanceof Event) {
-            if (! is_string($speakerName) || $speakerName === '') {
+            if (! is_string($personName) || $personName === '') {
                 return null;
             }
 
             $organizerInvolveable = $existingScheduleEvent->primaryOrganizerInvolvement?->involveable;
             $organizerPerson = $organizerInvolveable instanceof Person ? $organizerInvolveable : null;
 
-            if ($organizerPerson instanceof Person && $organizerPerson->name === $speakerName) {
-                app(GeneratePersonSlugAction::class)->syncSpeakerSlug(
+            if ($organizerPerson instanceof Person && $organizerPerson->name === $personName) {
+                app(GeneratePersonSlugAction::class)->syncPersonSlug(
                     $organizerPerson->loadMissing('addresses.country'),
                 );
-                app(GenerateEventSlugAction::class)->syncEventSlugsForSpeakerId((string) $organizerPerson->getKey());
-                $this->scheduleSpeakerIds[$speakerName] = (string) $organizerPerson->getKey();
+                app(GenerateEventSlugAction::class)->syncEventSlugsForPersonId((string) $organizerPerson->getKey());
+                $this->schedulePersonIds[$personName] = (string) $organizerPerson->getKey();
 
                 $organizerPerson->refresh();
 
@@ -525,13 +525,13 @@ class EventSeeder extends Seeder
 
             if (
                 $existingPerson instanceof Person
-                && $existingPerson->name === $speakerName
+                && $existingPerson->name === $personName
             ) {
-                app(GeneratePersonSlugAction::class)->syncSpeakerSlug(
+                app(GeneratePersonSlugAction::class)->syncPersonSlug(
                     $existingPerson->loadMissing('addresses.country'),
                 );
-                app(GenerateEventSlugAction::class)->syncEventSlugsForSpeakerId((string) $existingPerson->getKey());
-                $this->scheduleSpeakerIds[$speakerName] = (string) $existingPerson->getKey();
+                app(GenerateEventSlugAction::class)->syncEventSlugsForPersonId((string) $existingPerson->getKey());
+                $this->schedulePersonIds[$personName] = (string) $existingPerson->getKey();
 
                 $existingPerson->refresh();
 
@@ -539,27 +539,27 @@ class EventSeeder extends Seeder
             }
         }
 
-        if (! is_string($speakerName) || $speakerName === '') {
+        if (! is_string($personName) || $personName === '') {
             return null;
         }
 
-        if (isset($this->scheduleSpeakerIds[$speakerName])) {
-            $cachedPerson = Person::query()->find($this->scheduleSpeakerIds[$speakerName]);
+        if (isset($this->schedulePersonIds[$personName])) {
+            $cachedPerson = Person::query()->find($this->schedulePersonIds[$personName]);
 
             if ($cachedPerson instanceof Person) {
                 return $cachedPerson;
             }
 
-            unset($this->scheduleSpeakerIds[$speakerName]);
+            unset($this->schedulePersonIds[$personName]);
         }
 
         $createdPerson = Person::query()->create([
-            'name' => $speakerName,
-            'slug' => app(GeneratePersonSlugAction::class)->handle($speakerName),
+            'name' => $personName,
+            'slug' => app(GeneratePersonSlugAction::class)->handle($personName),
             'status' => 'verified',
         ]);
 
-        $this->scheduleSpeakerIds[$speakerName] = (string) $createdPerson->getKey();
+        $this->schedulePersonIds[$personName] = (string) $createdPerson->getKey();
 
         return $createdPerson;
     }
@@ -567,7 +567,7 @@ class EventSeeder extends Seeder
     /**
      * @param  array<string, mixed>  $eventAttributes
      */
-    private function resolveExistingScheduleEvent(array $eventAttributes, ?string $speakerName): ?Event
+    private function resolveExistingScheduleEvent(array $eventAttributes, ?string $personName): ?Event
     {
         $matchingEvents = Event::query()
             ->with(['keyPeople.person'])
@@ -579,24 +579,24 @@ class EventSeeder extends Seeder
             ->get()
             ->filter(fn (Event $event): bool => $event->schedule_kind === $eventAttributes['schedule_kind']);
 
-        if (is_string($speakerName) && $speakerName !== '') {
+        if (is_string($personName) && $personName !== '') {
             $matchedEvent = $matchingEvents->first(fn (Event $event): bool => $event->keyPeople
                 ->where('role_code', EventKeyPersonRole::Speaker->value)
-                ->contains(function (mixed $keyPerson) use ($speakerName): bool {
+                ->contains(function (mixed $keyPerson) use ($personName): bool {
                     $person = $keyPerson->person;
 
-                    return (is_string($keyPerson->display_name) && $keyPerson->display_name === $speakerName)
-                        || ($person instanceof Person && $person->name === $speakerName);
+                    return (is_string($keyPerson->display_name) && $keyPerson->display_name === $personName)
+                        || ($person instanceof Person && $person->name === $personName);
                 }));
 
             if ($matchedEvent instanceof Event) {
                 return $matchedEvent;
             }
 
-            $organizerMatchedEvent = $matchingEvents->first(function (Event $event) use ($speakerName): bool {
+            $organizerMatchedEvent = $matchingEvents->first(function (Event $event) use ($personName): bool {
                 $organizerPerson = $event->primaryOrganizerInvolvement?->involveable;
 
-                return $organizerPerson instanceof Person && $organizerPerson->name === $speakerName;
+                return $organizerPerson instanceof Person && $organizerPerson->name === $personName;
             });
 
             if ($organizerMatchedEvent instanceof Event) {
@@ -604,13 +604,13 @@ class EventSeeder extends Seeder
             }
         }
 
-        if (! is_string($speakerName) || $speakerName === '') {
-            $noSpeakerEvent = $matchingEvents->first(fn (Event $event): bool => $event->keyPeople
+        if (! is_string($personName) || $personName === '') {
+            $noPersonEvent = $matchingEvents->first(fn (Event $event): bool => $event->keyPeople
                 ->where('role_code', EventKeyPersonRole::Speaker->value)
                 ->isEmpty());
 
-            if ($noSpeakerEvent instanceof Event) {
-                return $noSpeakerEvent;
+            if ($noPersonEvent instanceof Event) {
+                return $noPersonEvent;
             }
         }
 
@@ -759,10 +759,10 @@ class EventSeeder extends Seeder
                     }
 
                     if ($event->primaryOrganizerInvolvement === null) {
-                        $firstSpeaker = $event->persons->first();
+                        $firstPerson = $event->persons->first();
 
                         $organizer = match (true) {
-                            $firstSpeaker !== null => $firstSpeaker,
+                            $firstPerson !== null => $firstPerson,
                             ! empty($event->institution_id) => Institution::query()->find($event->institution_id),
                             default => null,
                         };
@@ -801,30 +801,30 @@ class EventSeeder extends Seeder
     }
 
     /**
-     * @param  list<string>  $speakerIds
+     * @param  list<string>  $personIds
      */
-    private function seedKeyPeopleForEvent(Event $event, array $speakerIds): void
+    private function seedKeyPeopleForEvent(Event $event, array $personIds): void
     {
         $categoryCatalog = app(EventCategoryCatalog::class);
         $categoryTerms = collect($categoryCatalog->terms($categoryCatalog->descendantIds($event->event_category_ids)));
-        $speakerRoleRequired = app(EventCategoryPolicyResolver::class)->requiresSpeaker($event->event_category_ids);
-        $selectedSpeakerIds = [];
+        $personRoleRequired = app(EventCategoryPolicyResolver::class)->requiresSpeaker($event->event_category_ids);
+        $selectedPersonIds = [];
 
-        if ($speakerRoleRequired && $speakerIds !== []) {
-            shuffle($speakerIds);
-            $selectedSpeakerIds = array_slice($speakerIds, 0, random_int(1, min(2, count($speakerIds))));
+        if ($personRoleRequired && $personIds !== []) {
+            shuffle($personIds);
+            $selectedPersonIds = array_slice($personIds, 0, random_int(1, min(2, count($personIds))));
         }
 
         $otherKeyPeople = [];
 
         if ($categoryTerms->contains('code', 'forum')) {
-            $moderatorSpeakerId = $selectedSpeakerIds[0] ?? ($speakerIds[0] ?? null);
+            $moderatorPersonId = $selectedPersonIds[0] ?? ($personIds[0] ?? null);
 
-            if (is_string($moderatorSpeakerId)) {
+            if (is_string($moderatorPersonId)) {
                 $otherKeyPeople[] = [
                     'role_code' => EventKeyPersonRole::Moderator->value,
-                    'involveable_type' => 'speaker',
-                    'involveable_id' => $moderatorSpeakerId,
+                    'involveable_type' => 'person',
+                    'involveable_id' => $moderatorPersonId,
                     'display_name' => null,
                     'visibility' => 'public',
                 ];
@@ -832,33 +832,33 @@ class EventSeeder extends Seeder
         }
 
         if ($categoryTerms->whereIn('code', ['tahlil', 'solat_hajat', 'qiamullail'])->isNotEmpty()) {
-            $imamSpeakerId = $speakerIds[0] ?? null;
+            $imamPersonId = $personIds[0] ?? null;
 
             $otherKeyPeople[] = [
                 'role_code' => EventKeyPersonRole::Imam->value,
-                'involveable_type' => is_string($imamSpeakerId) ? 'person' : null,
-                'involveable_id' => is_string($imamSpeakerId) ? $imamSpeakerId : null,
-                'display_name' => is_string($imamSpeakerId) ? null : fake()->name(),
+                'involveable_type' => is_string($imamPersonId) ? 'person' : null,
+                'involveable_id' => is_string($imamPersonId) ? $imamPersonId : null,
+                'display_name' => is_string($imamPersonId) ? null : fake()->name(),
                 'visibility' => 'public',
             ];
         }
 
         if ($categoryTerms->contains('code', 'khutbah_jumaat')) {
-            $khatibSpeakerId = $speakerIds[0] ?? null;
-            $imamSpeakerId = $speakerIds[1] ?? $khatibSpeakerId;
+            $khatibPersonId = $personIds[0] ?? null;
+            $imamPersonId = $personIds[1] ?? $khatibPersonId;
 
             $otherKeyPeople[] = [
                 'role_code' => EventKeyPersonRole::Khatib->value,
-                'involveable_type' => is_string($khatibSpeakerId) ? 'person' : null,
-                'involveable_id' => is_string($khatibSpeakerId) ? $khatibSpeakerId : null,
-                'display_name' => is_string($khatibSpeakerId) ? null : fake()->name(),
+                'involveable_type' => is_string($khatibPersonId) ? 'person' : null,
+                'involveable_id' => is_string($khatibPersonId) ? $khatibPersonId : null,
+                'display_name' => is_string($khatibPersonId) ? null : fake()->name(),
                 'visibility' => 'public',
             ];
             $otherKeyPeople[] = [
                 'role_code' => EventKeyPersonRole::Imam->value,
-                'involveable_type' => is_string($imamSpeakerId) ? 'person' : null,
-                'involveable_id' => is_string($imamSpeakerId) ? $imamSpeakerId : null,
-                'display_name' => is_string($imamSpeakerId) ? null : fake()->name(),
+                'involveable_type' => is_string($imamPersonId) ? 'person' : null,
+                'involveable_id' => is_string($imamPersonId) ? $imamPersonId : null,
+                'display_name' => is_string($imamPersonId) ? null : fake()->name(),
                 'visibility' => 'public',
             ];
             $otherKeyPeople[] = [
@@ -880,6 +880,6 @@ class EventSeeder extends Seeder
             ];
         }
 
-        app(EventKeyPersonSyncService::class)->sync($event, $selectedSpeakerIds, $otherKeyPeople);
+        app(EventKeyPersonSyncService::class)->sync($event, $selectedPersonIds, $otherKeyPeople);
     }
 }

@@ -21,7 +21,7 @@ class AddressObserver
     public function __construct(
         protected GenerateEventSlugAction $generateEventSlugAction,
         protected GenerateInstitutionSlugAction $generateInstitutionSlugAction,
-        protected GeneratePersonSlugAction $generateSpeakerSlugAction,
+        protected GeneratePersonSlugAction $generatePersonSlugAction,
         protected GenerateVenueSlugAction $generateVenueSlugAction,
         protected PublicDirectoryCacheVersion $publicDirectoryCacheVersion,
         protected PublicListingsCache $publicListingsCache,
@@ -74,8 +74,8 @@ class AddressObserver
             }
 
             if ($addressable instanceof Person) {
-                $this->generateSpeakerSlugAction->syncSpeakerSlugsForName($addressable->name);
-                $this->generateEventSlugAction->syncEventSlugsForSpeakerName($addressable->name);
+                $this->generatePersonSlugAction->syncPersonSlugsForName($addressable->name);
+                $this->generateEventSlugAction->syncEventSlugsForPersonName($addressable->name);
                 $this->syncSearchableModel($addressable);
                 $this->publicListingsCache->bustMajlisListing();
 

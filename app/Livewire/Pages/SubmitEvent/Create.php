@@ -231,7 +231,7 @@ class Create extends Component implements HasActions, HasForms
             'primary_organizer_kind' => 'institution',
             'primary_organizer_id' => $institution->id,
             'primary_organizer_institution_id' => $institution->id,
-            'primary_organizer_speaker_id' => null,
+            'primary_organizer_person_id' => null,
             'location_same_as_institution' => true,
             'location_type' => 'institution',
             'location_institution_id' => $institution->id,
@@ -485,7 +485,7 @@ class Create extends Component implements HasActions, HasForms
             $this->buildEventInfoStep(),
             $this->buildCategoriesStep(),
             $this->buildOrganizerLocationStep($hasScopedInstitution, $hasScopedInstitutionJs),
-            $this->buildSpeakersMediaStep(),
+            $this->buildPersonsMediaStep(),
             $this->buildReviewStep($hasScopedInstitution),
         ])
             ->skippable()
@@ -1275,7 +1275,8 @@ class Create extends Component implements HasActions, HasForms
                         ->required(fn (Get $get): bool => ! $hasScopedInstitution && ! filled($get('primary_organizer_id')))
                         ->options([
                             'institution' => __('Institusi'),
-                            'speaker' => __('Penceramah'),
+                            'person' => __('Penceramah'),
+
                         ])
                         ->default('institution')
                         ->inline()
@@ -1285,10 +1286,9 @@ class Create extends Component implements HasActions, HasForms
                                 $set('primary_organizer_institution_id', null);
                             }
 
-                            if ($state !== 'speaker') {
-                                $set('primary_organizer_speaker_id', null);
+                            if ($state !== 'person') {
+                                $set('primary_organizer_person_id', null);
                             }
-
                             $set('primary_organizer_id', null);
                         }),
 
@@ -1314,21 +1314,21 @@ class Create extends Component implements HasActions, HasForms
                         ->createOptionForm(InstitutionFormSchema::createOptionForm(includeLocationPicker: true))
                         ->createOptionUsing(fn (array $data, Schema $schema): string => InstitutionFormSchema::createOptionUsing($data, $schema)),
 
-                    Select::make('primary_organizer_speaker_id')
+                    Select::make('primary_organizer_person_id')
                         ->label(__('Penceramah'))
-                        ->options(fn (): array => $this->availableSpeakerOptions())
+                        ->options(fn (): array => $this->availablePersonOptions())
                         ->searchable()
                         ->preload()
-                        ->visibleJs("! {$hasScopedInstitutionJs} && \$get('primary_organizer_kind') === 'speaker'")
-                        ->required(fn (Get $get): bool => $this->selectedPrimaryOrganizerKind($get('primary_organizer_kind'), $get('primary_organizer_id')) === 'speaker' && ! filled($get('primary_organizer_id')))
+                        ->visibleJs("! {$hasScopedInstitutionJs} && \$get('primary_organizer_kind') === 'person'")
+                        ->required(fn (Get $get): bool => $this->selectedPrimaryOrganizerKind($get('primary_organizer_kind'), $get('primary_organizer_id')) === 'person' && ! filled($get('primary_organizer_id')))
                         ->afterStateUpdated(function (Set $set, mixed $state): void {
                             $set('primary_organizer_id', is_scalar($state) && trim((string) $state) !== '' ? trim((string) $state) : null);
                         })
                         ->afterStateUpdatedJs(<<<'JS'
                                                     if ($state) {
-                                                        const currentSpeakers = $get('speakers') || []
-                                                        if (!currentSpeakers.includes($state)) {
-                                                            $set('speakers', [...currentSpeakers, $state])
+                                                        const currentPersons = $get('persons') || []
+                                                        if (!currentPersons.includes($state)) {
+                                                            $set('persons', [...currentPersons, $state])
                                                         }
                                                     }
                                                     JS)
@@ -1369,16 +1369,16 @@ class Create extends Component implements HasActions, HasForms
                         ])
                         ->inline()
                         ->default('institution')
-                        ->visibleJs("! {$hasScopedInstitutionJs} && (\$get('primary_organizer_kind') === 'speaker' || !\$get('location_same_as_institution'))")
-                        ->required(fn (Get $get): bool => ($this->selectedPrimaryOrganizerKind($get('primary_organizer_kind'), $get('primary_organizer_id')) === 'speaker' || ! $get('location_same_as_institution')) && $get('event_format') !== 'online'),
+                        ->visibleJs("! {$hasScopedInstitutionJs} && (\$get('primary_organizer_kind') === 'person' || !\$get('location_same_as_institution'))")
+                        ->required(fn (Get $get): bool => ($this->selectedPrimaryOrganizerKind($get('primary_organizer_kind'), $get('primary_organizer_id')) === 'person' || ! $get('location_same_as_institution')) && $get('event_format') !== 'online'),
 
                     Select::make('location_institution_id')
                         ->label(__('Institusi'))
                         ->options(fn (): array => $this->availableInstitutionOptions())
                         ->searchable()
                         ->preload()
-                        ->visibleJs("! {$hasScopedInstitutionJs} && (\$get('primary_organizer_kind') === 'speaker' || !\$get('location_same_as_institution')) && \$get('location_type') === 'institution'")
-                        ->required(fn (Get $get): bool => ($this->selectedPrimaryOrganizerKind($get('primary_organizer_kind'), $get('primary_organizer_id')) === 'speaker' || ! $get('location_same_as_institution')) && $get('location_type') === 'institution')
+                        ->visibleJs("! {$hasScopedInstitutionJs} && (\$get('primary_organizer_kind') === 'person' || !\$get('location_same_as_institution')) && \$get('location_type') === 'institution'")
+                        ->required(fn (Get $get): bool => ($this->selectedPrimaryOrganizerKind($get('primary_organizer_kind'), $get('primary_organizer_id')) === 'person' || ! $get('location_same_as_institution')) && $get('location_type') === 'institution')
                         ->createOptionForm(InstitutionFormSchema::createOptionForm(includeLocationPicker: true))
                         ->createOptionUsing(fn (array $data, Schema $schema): string => InstitutionFormSchema::createOptionUsing($data, $schema)),
 
@@ -1387,8 +1387,8 @@ class Create extends Component implements HasActions, HasForms
                         ->options(fn (): array => $this->cachedSubmitVenueOptions())
                         ->searchable()
                         ->preload()
-                        ->visibleJs("({$hasScopedInstitutionJs} && !\$get('location_same_as_institution')) || (! {$hasScopedInstitutionJs} && (\$get('primary_organizer_kind') === 'speaker' || !\$get('location_same_as_institution')) && \$get('location_type') === 'venue')")
-                        ->required(fn (Get $get): bool => ($this->selectedPrimaryOrganizerKind($get('primary_organizer_kind'), $get('primary_organizer_id')) === 'speaker' || ! $get('location_same_as_institution')) && $get('location_type') === 'venue')
+                        ->visibleJs("({$hasScopedInstitutionJs} && !\$get('location_same_as_institution')) || (! {$hasScopedInstitutionJs} && (\$get('primary_organizer_kind') === 'person' || !\$get('location_same_as_institution')) && \$get('location_type') === 'venue')")
+                        ->required(fn (Get $get): bool => ($this->selectedPrimaryOrganizerKind($get('primary_organizer_kind'), $get('primary_organizer_id')) === 'person' || ! $get('location_same_as_institution')) && $get('location_type') === 'venue')
                         ->createOptionForm(VenueFormSchema::createOptionForm(includeLocationPicker: true))
                         ->createOptionUsing(fn (array $data, Schema $schema): string => VenueFormSchema::createOptionUsing($data, $schema)),
 
@@ -1399,7 +1399,7 @@ class Create extends Component implements HasActions, HasForms
                         ->searchable()
                         ->preload()
                         ->multiple()
-                        ->visibleJs("({$hasScopedInstitutionJs} && (\$get('location_same_as_institution') !== false)) || (\$get('primary_organizer_kind') === 'institution' && (\$get('location_same_as_institution') !== false)) || ((\$get('primary_organizer_kind') === 'speaker' || !\$get('location_same_as_institution')) && \$get('location_type') === 'institution')")
+                        ->visibleJs("({$hasScopedInstitutionJs} && (\$get('location_same_as_institution') !== false)) || (\$get('primary_organizer_kind') === 'institution' && (\$get('location_same_as_institution') !== false)) || ((\$get('primary_organizer_kind') === 'person' || !\$get('location_same_as_institution')) && \$get('location_type') === 'institution')")
                         ->options(
                             fn (): array => Space::query()
                                 ->where('status', 'active')
@@ -1411,30 +1411,30 @@ class Create extends Component implements HasActions, HasForms
         ];
     }
 
-    private function buildSpeakersMediaStep(): Step
+    private function buildPersonsMediaStep(): Step
     {
         return Step::make(__('Penceramah & Media'))
             ->icon('heroicon-o-user-group')
-            ->schema($this->getSpeakersMediaFields());
+            ->schema($this->getPersonsMediaFields());
     }
 
     /**
      * @return array<int, mixed>
      */
-    private function getSpeakersMediaFields(): array
+    private function getPersonsMediaFields(): array
     {
         return [
             Section::make(__('Penceramah'))
                 ->schema([
-                    Select::make('speakers')
+                    Select::make('persons')
                         ->label(__('Pilih Penceramah'))
-                        ->required(fn (Get $get): bool => $this->categoriesRequireSpeakers($get('event_category_ids')))
+                        ->required(fn (Get $get): bool => $this->categoriesRequirePersons($get('event_category_ids')))
                         ->multiple()
                         ->closeOnSelect()
                         ->searchable()
                         ->preload()
-                        ->options(fn (): array => $this->availableSpeakerOptions())
-                        ->helperText(fn (Get $get): string => $this->categoriesRequireSpeakers($get('event_category_ids'))
+                        ->options(fn (): array => $this->availablePersonOptions())
+                        ->helperText(fn (Get $get): string => $this->categoriesRequirePersons($get('event_category_ids'))
                             ? __('Sekurang-kurangnya seorang penceramah diperlukan untuk jenis majlis ini.')
                             : __('Kosongkan jika majlis ini tidak mempunyai penceramah khusus.'))
                         ->getOptionLabelUsing(fn (mixed $value): ?string => Person::query()->find($value)?->formatted_name)
@@ -1457,13 +1457,13 @@ class Create extends Component implements HasActions, HasForms
                                 ->native(false),
                             Select::make('involveable_id')
                                 ->label(__('Pautkan Profil Penceramah'))
-                                ->options(fn (): array => $this->availableSpeakerOptions())
+                                ->options(fn (): array => $this->availablePersonOptions())
                                 ->searchable()
                                 ->preload()
                                 ->live()
                                 ->afterStateUpdated(function (Set $set, mixed $state): void {
                                     $set('display_name', null);
-                                    $set('involveable_type', filled($state) ? 'speaker' : null);
+                                    $set('involveable_type', filled($state) ? 'person' : null);
                                 })
                                 ->getOptionLabelUsing(fn (mixed $value): ?string => Person::query()->find($value)?->formatted_name)
                                 ->createOptionForm(PersonFormSchema::createOptionForm())
@@ -1645,7 +1645,7 @@ class Create extends Component implements HasActions, HasForms
         $validated['primary_organizer_kind'] = 'institution';
         $validated['primary_organizer_id'] = $institution->id;
         $validated['primary_organizer_institution_id'] = $institution->id;
-        $validated['primary_organizer_speaker_id'] = null;
+        $validated['primary_organizer_person_id'] = null;
         $validated['location_same_as_institution'] = (bool) ($validated['location_same_as_institution'] ?? true);
 
         if (($validated['event_format'] ?? EventFormat::Physical->value) === EventFormat::Online->value) {
@@ -1738,17 +1738,17 @@ class Create extends Component implements HasActions, HasForms
             $defaults['primary_organizer_kind'] = 'institution';
             $defaults['primary_organizer_id'] = $organizer->involveable_id;
             $defaults['primary_organizer_institution_id'] = $organizer->involveable_id;
-            $defaults['primary_organizer_speaker_id'] = null;
+            $defaults['primary_organizer_person_id'] = null;
             $defaults['location_same_as_institution'] = true;
             $defaults['location_type'] = 'institution';
             $defaults['location_institution_id'] = $event->institution_id ?: $organizer->involveable_id;
         }
 
         if ($organizer?->involveable_type === Person::class && filled($organizer->involveable_id)) {
-            $defaults['primary_organizer_kind'] = 'speaker';
+            $defaults['primary_organizer_kind'] = 'person';
             $defaults['primary_organizer_id'] = $organizer->involveable_id;
             $defaults['primary_organizer_institution_id'] = null;
-            $defaults['primary_organizer_speaker_id'] = $organizer->involveable_id;
+            $defaults['primary_organizer_person_id'] = $organizer->involveable_id;
             $defaults['location_type'] = $event->default_venue_id ? 'venue' : 'institution';
             $defaults['location_institution_id'] = $event->institution_id;
 
@@ -1774,7 +1774,7 @@ class Create extends Component implements HasActions, HasForms
                 'tags:id,type,status',
                 'references:id,title',
                 'languages:id,code',
-                'speakers',
+                'persons',
                 'keyPeople.person',
             ])
             ->find($duplicateId);
@@ -1882,7 +1882,7 @@ class Create extends Component implements HasActions, HasForms
                 ->values()
                 ->all(),
             'references' => $duplicateEvent->references->pluck('id')->values()->all(),
-            'speakers' => $this->duplicateSpeakerState($duplicateEvent),
+            'persons' => $this->duplicatePersonState($duplicateEvent),
             'other_key_people' => $this->duplicateOtherKeyPeopleState($duplicateEvent),
         ];
 
@@ -2000,14 +2000,14 @@ class Create extends Component implements HasActions, HasForms
     /**
      * @return list<string>
      */
-    protected function duplicateSpeakerState(Event $duplicateEvent): array
+    protected function duplicatePersonState(Event $duplicateEvent): array
     {
         $access = app(EntitySubmissionAccess::class);
         $submitter = $this->submitterUser();
 
         return $duplicateEvent->persons
             ->pluck('id')
-            ->map(fn (mixed $speakerId): ?string => is_string($speakerId) && $access->canUsePerson($submitter, $speakerId) ? $speakerId : null)
+            ->map(fn (mixed $personId): ?string => is_string($personId) && $access->canUsePerson($submitter, $personId) ? $personId : null)
             ->filter()
             ->values()
             ->all();
@@ -2024,18 +2024,18 @@ class Create extends Component implements HasActions, HasForms
         return $duplicateEvent->keyPeople
             ->filter(fn (EventKeyPerson $keyPerson): bool => $keyPerson->role_code !== EventKeyPersonRole::Speaker->value)
             ->map(function (EventKeyPerson $keyPerson) use ($access, $submitter): array {
-                $speakerId = is_string($keyPerson->involveable_id) && $access->canUsePerson($submitter, $keyPerson->involveable_id)
+                $personId = is_string($keyPerson->involveable_id) && $access->canUsePerson($submitter, $keyPerson->involveable_id)
                     ? $keyPerson->involveable_id
                     : null;
 
-                $fallbackName = $speakerId === null
+                $fallbackName = $personId === null
                     ? $keyPerson->display_name
                     : null;
 
                 return [
                     'role_code' => (string) $keyPerson->role_code,
-                    'involveable_type' => $speakerId === null ? null : 'person',
-                    'involveable_id' => $speakerId,
+                    'involveable_type' => $personId === null ? null : 'person',
+                    'involveable_id' => $personId,
                     'display_name' => filled($fallbackName) ? (string) $fallbackName : null,
                     'visibility' => $keyPerson->visibility ?? 'public',
                     'notes' => filled($keyPerson->notes) ? (string) $keyPerson->notes : null,
@@ -2064,14 +2064,14 @@ class Create extends Component implements HasActions, HasForms
             $defaults['primary_organizer_kind'] = 'institution';
             $defaults['primary_organizer_id'] = $organizerId;
             $defaults['primary_organizer_institution_id'] = $organizerId;
-            $defaults['primary_organizer_speaker_id'] = null;
+            $defaults['primary_organizer_person_id'] = null;
         }
 
         if ($organizer?->involveable_type === Person::class && $organizerId !== null && $access->canUsePerson($submitter, $organizerId)) {
-            $defaults['primary_organizer_kind'] = 'speaker';
+            $defaults['primary_organizer_kind'] = 'person';
             $defaults['primary_organizer_id'] = $organizerId;
             $defaults['primary_organizer_institution_id'] = null;
-            $defaults['primary_organizer_speaker_id'] = $organizerId;
+            $defaults['primary_organizer_person_id'] = $organizerId;
         }
 
         if ($eventFormat === EventFormat::Online->value) {
@@ -2173,13 +2173,13 @@ class Create extends Component implements HasActions, HasForms
     /**
      * @return array<string, string>
      */
-    protected function availableSpeakerOptions(): array
+    protected function availablePersonOptions(): array
     {
         $access = app(EntitySubmissionAccess::class);
         $submitter = $this->submitterUser();
 
         if (! $submitter instanceof User) {
-            return Cache::remember('submit_speakers', 60, fn (): array => $access->personQueryForSubmitter(null)
+            return Cache::remember('submit_persons', 60, fn (): array => $access->personQueryForSubmitter(null)
                 ->orderBy('name')
                 ->get()
                 ->mapWithKeys(fn (Person $person): array => [(string) $person->id => $person->formatted_name])
@@ -2195,7 +2195,7 @@ class Create extends Component implements HasActions, HasForms
 
     protected function selectedPrimaryOrganizerKind(mixed $organizerKind, mixed $primaryOrganizerId): ?string
     {
-        if (in_array($organizerKind, ['institution', 'speaker'], true)) {
+        if (in_array($organizerKind, ['institution', 'person'], true)) {
             return $organizerKind;
         }
 
@@ -2226,7 +2226,7 @@ class Create extends Component implements HasActions, HasForms
         }
 
         if (Person::query()->whereKey($organizerId)->exists()) {
-            return 'speaker';
+            return 'person';
         }
 
         return null;
@@ -2253,14 +2253,14 @@ class Create extends Component implements HasActions, HasForms
             ]);
         }
 
-        if ($organizerType === 'speaker' && $primaryOrganizerId !== '' && ! $access->canUsePerson($submitter, $primaryOrganizerId)) {
+        if ($organizerType === 'person' && $primaryOrganizerId !== '' && ! $access->canUsePerson($submitter, $primaryOrganizerId)) {
             throw ValidationException::withMessages([
                 'data.primary_organizer_id' => __('Anda tidak dibenarkan memilih penceramah ini untuk penghantaran majlis.'),
             ]);
         }
 
         $eventFormat = $validated['event_format'] ?? EventFormat::Physical->value;
-        $requiresLocationChoice = $organizerType === 'speaker' || ! ($validated['location_same_as_institution'] ?? true);
+        $requiresLocationChoice = $organizerType === 'person' || ! ($validated['location_same_as_institution'] ?? true);
         $usesLocationInstitution = $eventFormat !== EventFormat::Online->value
             && $requiresLocationChoice
             && (($validated['location_type'] ?? 'institution') === 'institution');
@@ -2271,22 +2271,22 @@ class Create extends Component implements HasActions, HasForms
             ]);
         }
 
-        $speakerIds = collect(array_merge(
-            (array) ($validated['speakers'] ?? []),
+        $personIds = collect(array_merge(
+            (array) ($validated['persons'] ?? []),
             collect((array) ($validated['other_key_people'] ?? []))
                 ->pluck('involveable_id')
                 ->all(),
-            (array) ($this->data['speakers'] ?? []),
+            (array) ($this->data['persons'] ?? []),
         ))
             ->map(fn (mixed $value): ?string => filled($value) ? (string) $value : null)
             ->filter()
             ->unique()
             ->values();
 
-        foreach ($speakerIds as $speakerId) {
-            if (! $access->canUsePerson($submitter, $speakerId)) {
+        foreach ($personIds as $personId) {
+            if (! $access->canUsePerson($submitter, $personId)) {
                 throw ValidationException::withMessages([
-                    'data.speakers' => __('Senarai penceramah mengandungi pilihan yang tidak dibenarkan untuk penghantaran ini.'),
+                    'data.persons' => __('Senarai penceramah mengandungi pilihan yang tidak dibenarkan untuk penghantaran ini.'),
                 ]);
             }
         }
@@ -2307,7 +2307,7 @@ class Create extends Component implements HasActions, HasForms
         );
     }
 
-    protected function categoriesRequireSpeakers(mixed $categoryIds): bool
+    protected function categoriesRequirePersons(mixed $categoryIds): bool
     {
         if ($categoryIds instanceof Collection) {
             $categoryIds = $categoryIds->all();

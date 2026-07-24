@@ -66,7 +66,7 @@ class PersonSearchService implements PublicDiscoveryAdapter
             try {
                 return $this->applyScoutSearch($query, $normalizedSearch);
             } catch (\Throwable $exception) {
-                $this->logScoutFallback('Speaker Typesense search failed, falling back to local search', $exception, $normalizedSearch);
+                $this->logScoutFallback('Person Typesense search failed, falling back to local search', $exception, $normalizedSearch);
             }
         }
 
@@ -120,14 +120,14 @@ class PersonSearchService implements PublicDiscoveryAdapter
             return $query->whereRaw('1 = 0');
         }
 
-        $qualifiedSpeakerId = $query->getModel()->qualifyColumn('id');
+        $qualifiedPersonId = $query->getModel()->qualifyColumn('id');
 
-        return $query->where(function (Builder $speakerQuery) use ($searchTokens, $qualifiedSpeakerId): void {
+        return $query->where(function (Builder $personQuery) use ($searchTokens, $qualifiedPersonId): void {
             foreach ($searchTokens as $token) {
-                $speakerQuery->whereExists(function ($termQuery) use ($qualifiedSpeakerId, $token): void {
+                $personQuery->whereExists(function ($termQuery) use ($qualifiedPersonId, $token): void {
                     $termQuery->selectRaw('1')
                         ->from('person_search_terms')
-                        ->whereColumn('person_search_terms.person_id', $qualifiedSpeakerId)
+                        ->whereColumn('person_search_terms.person_id', $qualifiedPersonId)
                         ->where('person_search_terms.term', 'like', '%'.$token.'%');
                 });
             }
@@ -179,7 +179,7 @@ class PersonSearchService implements PublicDiscoveryAdapter
 
                     return $this->mergeOrderedIds($scoutIds, $localIds);
                 } catch (\Throwable $exception) {
-                    $this->logScoutFallback('Speaker Typesense public search failed, falling back to local search', $exception, $normalizedSearch);
+                    $this->logScoutFallback('Person Typesense public search failed, falling back to local search', $exception, $normalizedSearch);
                 }
             }
 
@@ -265,11 +265,11 @@ class PersonSearchService implements PublicDiscoveryAdapter
                         'prioritize_exact_match' => true,
                     ]);
                 } catch (\Throwable $exception) {
-                    $this->logScoutFallback('Speaker Typesense fuzzy search failed, falling back to local fuzzy search', $exception, $normalizedSearch);
+                    $this->logScoutFallback('Person Typesense fuzzy search failed, falling back to local fuzzy search', $exception, $normalizedSearch);
                 }
             }
 
-            $speakerQuery = Person::query()
+            $personQuery = Person::query()
                 ->active()
                 ->where('status', 'verified')
                 ->select(['id'])
@@ -278,18 +278,18 @@ class PersonSearchService implements PublicDiscoveryAdapter
                 ->limit($this->typesenseResultLimit());
 
             if ($this->hasSearchableNameColumn()) {
-                $speakerQuery->addSelect('searchable_name');
+                $personQuery->addSelect('searchable_name');
             } else {
-                $speakerQuery->addSelect(['name']);
+                $personQuery->addSelect(['name']);
             }
 
-            return $speakerQuery
+            return $personQuery
                 ->get()
-                ->map(function (Person $speaker) use ($normalizedSearch): array {
-                    $candidate = $this->speakerCandidateSearchableName($speaker);
+                ->map(function (Person $person) use ($normalizedSearch): array {
+                    $candidate = $this->personCandidateSearchableName($person);
 
                     if ($candidate === '') {
-                        return ['id' => (string) $speaker->id, 'score' => 0.0];
+                        return ['id' => (string) $person->id, 'score' => 0.0];
                     }
 
                     $scoreCandidates = [
@@ -310,7 +310,7 @@ class PersonSearchService implements PublicDiscoveryAdapter
                     }
 
                     return [
-                        'id' => (string) $speaker->id,
+                        'id' => (string) $person->id,
                         'score' => max($scoreCandidates),
                     ];
                 })
@@ -333,7 +333,7 @@ class PersonSearchService implements PublicDiscoveryAdapter
         $model = $query->getModel();
         $keyColumn = $model->qualifyColumn($model->getKeyName());
 
-        $speakerQuery = (clone $query)
+        $personQuery = (clone $query)
             ->reorder()
             ->select([$keyColumn])
             ->tap(fn (Builder $builder): Builder => $this->applyFuzzyCandidateFilter($builder, $normalizedSearch))
@@ -341,20 +341,20 @@ class PersonSearchService implements PublicDiscoveryAdapter
             ->limit($this->typesenseResultLimit());
 
         if ($this->hasSearchableNameColumn()) {
-            $speakerQuery->addSelect($model->qualifyColumn('searchable_name'));
+            $personQuery->addSelect($model->qualifyColumn('searchable_name'));
         } else {
-            $speakerQuery->addSelect([
+            $personQuery->addSelect([
                 $model->qualifyColumn('name'),
             ]);
         }
 
-        return $speakerQuery
+        return $personQuery
             ->get()
-            ->map(function (Person $speaker) use ($normalizedSearch): array {
-                $candidate = $this->speakerCandidateSearchableName($speaker);
+            ->map(function (Person $person) use ($normalizedSearch): array {
+                $candidate = $this->personCandidateSearchableName($person);
 
                 if ($candidate === '') {
-                    return ['id' => (string) $speaker->id, 'score' => 0.0];
+                    return ['id' => (string) $person->id, 'score' => 0.0];
                 }
 
                 $scoreCandidates = [
@@ -375,7 +375,7 @@ class PersonSearchService implements PublicDiscoveryAdapter
                 }
 
                 return [
-                    'id' => (string) $speaker->id,
+                    'id' => (string) $person->id,
                     'score' => max($scoreCandidates),
                 ];
             })
@@ -513,18 +513,18 @@ class PersonSearchService implements PublicDiscoveryAdapter
         return (string) config('scout.driver');
     }
 
-    public function syncIndex(Person $speaker): void
+    public function syncIndex(Person $person): void
     {
         if (! $this->hasPersonSearchTermsTable()) {
             return;
         }
 
         DB::table('person_search_terms')
-            ->where('person_id', $speaker->getKey())
+            ->where('person_id', $person->getKey())
             ->delete();
 
         $terms = $this->buildSearchTerms(
-            $speaker->formatted_name,
+            $person->formatted_name,
         );
 
         if ($terms === []) {
@@ -535,21 +535,16 @@ class PersonSearchService implements PublicDiscoveryAdapter
             collect($terms)
                 ->map(fn (string $term): array => [
                     'id' => (string) Str::uuid(),
-                    'person_id' => (string) $speaker->getKey(),
+                    'person_id' => (string) $person->getKey(),
                     'term' => $term,
                 ])
                 ->all()
         );
     }
 
-    public function syncSpeakerRecord(Person $speaker): void
+    public function syncPersonRecord(Person $person): void
     {
-        $this->syncSpeakerRecordWithOptions($speaker, true);
-    }
-
-    public function syncPersonRecord(Person $speaker): void
-    {
-        $this->syncSpeakerRecord($speaker);
+        $this->syncPersonRecordWithOptions($person, true);
     }
 
     public function reindexAll(int $chunkSize = 100): int
@@ -559,9 +554,9 @@ class PersonSearchService implements PublicDiscoveryAdapter
         Person::query()
             ->select(['id', 'name'])
             ->orderBy('id')
-            ->chunk(max(1, $chunkSize), function ($speakers) use (&$processed): void {
-                foreach ($speakers as $speaker) {
-                    $this->syncSpeakerRecordWithOptions($speaker, false);
+            ->chunk(max(1, $chunkSize), function ($persons) use (&$processed): void {
+                foreach ($persons as $person) {
+                    $this->syncPersonRecordWithOptions($person, false);
                     $processed++;
                 }
             });
@@ -576,39 +571,39 @@ class PersonSearchService implements PublicDiscoveryAdapter
         return $this->hasSearchableNameColumn() && $this->hasPersonSearchTermsTable();
     }
 
-    private function syncSpeakerRecordWithOptions(Person $speaker, bool $bustCache): void
+    private function syncPersonRecordWithOptions(Person $person, bool $bustCache): void
     {
         if ($this->hasSearchableNameColumn()) {
             DB::table('persons')
-                ->where('id', $speaker->getKey())
+                ->where('id', $person->getKey())
                 ->update([
                     'searchable_name' => $this->buildSearchableName(
-                        $speaker->formatted_name,
+                        $person->formatted_name,
                     ),
                 ]);
         }
 
-        $this->syncIndex($speaker);
+        $this->syncIndex($person);
 
         if ($bustCache) {
             $this->bustPublicSearchCache();
         }
     }
 
-    public function purgeIndex(Person $speaker): void
+    public function purgeIndex(Person $person): void
     {
         if (! $this->hasPersonSearchTermsTable()) {
             return;
         }
 
         DB::table('person_search_terms')
-            ->where('person_id', $speaker->getKey())
+            ->where('person_id', $person->getKey())
             ->delete();
     }
 
-    public function purgeSpeakerRecord(Person $speaker): void
+    public function purgePersonRecord(Person $person): void
     {
-        $this->purgeIndex($speaker);
+        $this->purgeIndex($person);
         $this->bustPublicSearchCache();
     }
 
@@ -671,8 +666,8 @@ class PersonSearchService implements PublicDiscoveryAdapter
         $collapsedWildcardSearch = '%'.str_replace(' ', '%', $collapsedSearch).'%';
         $searchTokens = array_values(array_filter(explode(' ', $collapsedSearch), static fn (string $token): bool => $token !== ''));
 
-        return $query->where(function (Builder $speakerQuery) use ($operator, $collapsedSearch, $collapsedWildcardSearch, $searchTokens): void {
-            $speakerQuery->where('name', $operator, "%{$collapsedSearch}%")
+        return $query->where(function (Builder $personQuery) use ($operator, $collapsedSearch, $collapsedWildcardSearch, $searchTokens): void {
+            $personQuery->where('name', $operator, "%{$collapsedSearch}%")
                 ->orWhere('name', $operator, $collapsedWildcardSearch);
 
             foreach ($searchTokens as $token) {
@@ -680,21 +675,21 @@ class PersonSearchService implements PublicDiscoveryAdapter
                     continue;
                 }
 
-                $speakerQuery->orWhere('name', $operator, "%{$token}%");
+                $personQuery->orWhere('name', $operator, "%{$token}%");
             }
         });
     }
 
-    private function speakerCandidateSearchableName(Person $speaker): string
+    private function personCandidateSearchableName(Person $person): string
     {
-        $candidate = $speaker->searchable_name;
+        $candidate = $person->searchable_name;
 
         if (is_string($candidate) && $candidate !== '') {
             return $candidate;
         }
 
         return $this->buildSearchableName(
-            $speaker->formatted_name,
+            $person->formatted_name,
         );
     }
 

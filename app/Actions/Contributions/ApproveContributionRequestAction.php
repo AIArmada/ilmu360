@@ -94,7 +94,7 @@ class ApproveContributionRequestAction
 
         return match ($request->subject_type) {
             ContributionSubjectType::Institution => $this->createInstitutionFromRequest($payload),
-            ContributionSubjectType::Person => $this->createSpeakerFromRequest($request, $payload),
+            ContributionSubjectType::Person => $this->createPersonFromRequest($request, $payload),
             default => throw new RuntimeException('Unsupported create request subject.'),
         };
     }
@@ -149,25 +149,25 @@ class ApproveContributionRequestAction
     /**
      * @param  array<string, mixed>  $payload
      */
-    private function createSpeakerFromRequest(ContributionRequest $request, array $payload): Person
+    private function createPersonFromRequest(ContributionRequest $request, array $payload): Person
     {
         $address = $this->addressPayload($payload);
 
-        $speaker = Person::create([
-            'name' => (string) ($payload['name'] ?? 'Speaker'),
+        $person = Person::create([
+            'name' => (string) ($payload['name'] ?? 'Person'),
             'gender' => (string) ($payload['gender'] ?? 'male'),
             'bio' => $payload['bio'] ?? null,
-            'slug' => $this->generatePersonSlugAction->handle((string) ($payload['name'] ?? 'Speaker'), $payload),
+            'slug' => $this->generatePersonSlugAction->handle((string) ($payload['name'] ?? 'Person'), $payload),
             'status' => 'verified',
             'verified_at' => now(),
             'last_state_change_at' => now(),
             'allow_public_event_submission' => true,
         ]);
 
-        SharedFormSchema::createAddressFromData($speaker, $address, allowCountryOnly: true);
-        $this->attachAsOwnerIfSupported($request->proposer, $speaker);
+        SharedFormSchema::createAddressFromData($person, $address, allowCountryOnly: true);
+        $this->attachAsOwnerIfSupported($request->proposer, $person);
 
-        return $speaker;
+        return $person;
     }
 
     /**

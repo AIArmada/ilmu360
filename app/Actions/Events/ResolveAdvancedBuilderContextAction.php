@@ -29,7 +29,7 @@ class ResolveAdvancedBuilderContextAction
     {
         $membershipOptions = $this->resolveAdvancedBuilderMembershipOptionsAction->handle($user);
         $institutionOptions = $membershipOptions['institution_options'];
-        $speakerOptions = $membershipOptions['person_options'];
+        $personOptions = $membershipOptions['person_options'];
 
         $preferredInstitutionId = is_string($requestedInstitutionId)
             && $requestedInstitutionId !== ''
@@ -39,13 +39,13 @@ class ResolveAdvancedBuilderContextAction
 
         $defaultPrimaryOrganizerId = $preferredInstitutionId
             ?: array_key_first($institutionOptions)
-            ?: array_key_first($speakerOptions);
+            ?: array_key_first($personOptions);
         $defaultPrimaryOrganizerIsInstitution = is_string($defaultPrimaryOrganizerId)
             && array_key_exists($defaultPrimaryOrganizerId, $institutionOptions);
 
         return [
             'institution_options' => $institutionOptions,
-            'person_options' => $speakerOptions,
+            'person_options' => $personOptions,
             'default_form' => [
                 'title' => '',
                 'description' => '',

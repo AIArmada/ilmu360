@@ -19,11 +19,11 @@ class PersonObserver implements ShouldHandleEventsAfterCommit
 
     public function __construct(
         protected GenerateEventSlugAction $generateEventSlugAction,
-        protected GeneratePersonSlugAction $generateSpeakerSlugAction,
+        protected GeneratePersonSlugAction $generatePersonSlugAction,
         protected SyncSlugRedirectAction $syncSlugRedirectAction,
         protected PublicDirectoryCacheVersion $publicDirectoryCacheVersion,
         protected PublicListingsCache $publicListingsCache,
-        protected PersonSearchService $speakerSearchService,
+        protected PersonSearchService $personSearchService,
     ) {}
 
     public function saved(Person $person): void
@@ -37,14 +37,14 @@ class PersonObserver implements ShouldHandleEventsAfterCommit
         ]);
 
         if ($searchableNameChanged) {
-            $this->speakerSearchService->syncSpeakerRecord($person);
+            $this->personSearchService->syncPersonRecord($person);
 
             OwnerContext::withOwner(null, function () use ($person): void {
                 $this->syncCurrentAndPreviousString(
                     $person->name,
                     $person->wasChanged('name') ? ($person->getPrevious()['name'] ?? null) : null,
-                    fn (string $name): bool => $this->generateSpeakerSlugAction->syncSpeakerSlugsForName($name),
-                    fn (string $name): bool => $this->generateEventSlugAction->syncEventSlugsForSpeakerName($name),
+                    fn (string $name): bool => $this->generatePersonSlugAction->syncPersonSlugsForName($name),
+                    fn (string $name): bool => $this->generateEventSlugAction->syncEventSlugsForPersonName($name),
                 );
             });
         }
@@ -57,10 +57,10 @@ class PersonObserver implements ShouldHandleEventsAfterCommit
     public function deleted(Person $person): void
     {
         $this->syncSlugRedirectAction->purgeForModel($person);
-        $this->generateSpeakerSlugAction->syncSpeakerSlugsForName($person->name);
-        $this->generateEventSlugAction->syncEventSlugsForSpeakerId((string) $person->getKey());
-        $this->generateEventSlugAction->syncEventSlugsForSpeakerName($person->name);
-        $this->speakerSearchService->purgeSpeakerRecord($person);
+        $this->generatePersonSlugAction->syncPersonSlugsForName($person->name);
+        $this->generateEventSlugAction->syncEventSlugsForPersonId((string) $person->getKey());
+        $this->generateEventSlugAction->syncEventSlugsForPersonName($person->name);
+        $this->personSearchService->purgePersonRecord($person);
         $this->publicListingsCache->bustHomepageStats();
         $this->publicListingsCache->bustMajlisListing();
         $this->publicDirectoryCacheVersion->bumpPerson();

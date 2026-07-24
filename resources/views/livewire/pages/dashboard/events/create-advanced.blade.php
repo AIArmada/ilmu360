@@ -125,7 +125,7 @@
                                     @error('form.primary_organizer_id')<p class="mt-2 text-sm text-rose-600">{{ $message }}</p>@enderror
                                 </div>
 
-                                @if($selectedOrganizerType === 'speaker' && $institutionOptions !== [])
+                                @if($selectedOrganizerType === 'person' && $institutionOptions !== [])
                                     <div class="xl:col-span-3">
                                         <label class="mb-2 block text-sm font-semibold text-slate-800">{{ __('Location Institution') }}</label>
                                         <select wire:model.defer="form.location_institution_id" class="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-4 focus:ring-emerald-100">

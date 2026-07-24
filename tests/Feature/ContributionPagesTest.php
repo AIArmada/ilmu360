@@ -60,7 +60,7 @@ it('renders the dedicated institution contribution page', function () {
         ->assertSee(__('Before you submit, please check the existing institutions directory. If it already exists, submit an update instead of creating a new record.'))
         ->assertSee(__('Check Existing Institutions'))
         ->assertDontSee(__('View My Contributions'))
-        ->assertDontSee(__('Need to add a speaker instead?'))
+        ->assertDontSee(__('Need to add a person instead?'))
         ->assertDontSee(__('Submit Person'))
         ->assertDontSee(__('What happens next?'))
         ->assertDontSee(__('Submission Note'))
@@ -92,7 +92,7 @@ it('renders the institution contribution page with translated copy when the loca
         ->assertDontSee('Lihat Sumbangan Saya');
 });
 
-it('renders the dedicated speaker contribution page', function () {
+it('renders the dedicated person contribution page', function () {
     $user = User::factory()->create();
 
     $this->actingAs($user);
@@ -112,7 +112,7 @@ it('renders the dedicated speaker contribution page', function () {
         ->assertDontSee('lg:grid-cols-2', false);
 });
 
-it('renders the speaker contribution page with translated copy when the locale changes', function () {
+it('renders the person contribution page with translated copy when the locale changes', function () {
     $user = User::factory()->create();
 
     app()->setLocale('ms');
@@ -136,7 +136,7 @@ it('renders the speaker contribution page with translated copy when the locale c
         ->assertDontSee('Contact Details');
 });
 
-it('shows speaker affiliation fields on the dedicated create and update forms', function () {
+it('shows person affiliation fields on the dedicated create and update forms', function () {
     $user = User::factory()->create();
     $institution = Institution::factory()->create([
         'status' => 'verified',
@@ -161,7 +161,7 @@ it('shows speaker affiliation fields on the dedicated create and update forms', 
         ->assertFormFieldVisible('institution_position');
 });
 
-it('stores speaker affiliations from the dedicated speaker contribution page', function () {
+it('stores person affiliations from the dedicated person contribution page', function () {
     $user = User::factory()->create();
     $institution = Institution::factory()->create([
         'status' => 'verified',
@@ -211,7 +211,7 @@ it('renders the institution contribution submission success page', function () {
         ->assertSee(__('My Contributions'));
 });
 
-it('renders the speaker contribution submission success page', function () {
+it('renders the person contribution submission success page', function () {
     $user = User::factory()->create();
 
     $this->actingAs($user);
@@ -220,7 +220,7 @@ it('renders the speaker contribution submission success page', function () {
         ->get(route('contributions.submission-success', ['subjectType' => ContributionSubjectType::Person->publicRouteSegment()]))
         ->assertOk()
         ->assertSee('Ustaz Cadangan Baru')
-        ->assertSee(__('Thank you for submitting a new speaker.'))
+        ->assertSee(__('Thank you for submitting a new person.'))
         ->assertSee(__('Jejaki sumbangan anda dan statusnya.'))
         ->assertDontSee('We appreciate you taking the time to grow the ilmu360° directory. Our team will review your submission carefully.')
         ->assertDontSee(__('We will notify you once your submission has been approved or rejected.'))
@@ -249,7 +249,7 @@ it('renders the institution contribution submission success page with translated
         ->assertSee('Sumbangan Saya');
 });
 
-it('renders the speaker contribution submission success page with translated copy when the locale changes', function () {
+it('renders the person contribution submission success page with translated copy when the locale changes', function () {
     $user = User::factory()->create();
 
     app()->setLocale('ms');
@@ -391,7 +391,7 @@ it('renders the institution suggest update page with translated direct-edit copy
         ->assertDontSee(__('View My Contributions'));
 });
 
-it('renders the speaker suggest update page with the compact shared shell', function () {
+it('renders the person suggest update page with the compact shared shell', function () {
     $user = User::factory()->create();
     $person = Person::factory()->create([
         'status' => 'verified',
@@ -464,7 +464,7 @@ it('uses the institution location picker on the suggest update page when google 
         ->assertSee(__('Search for an institution or address'));
 });
 
-it('shows the speaker media uploads on the suggest update page only for maintainers', function () {
+it('shows the person media uploads on the suggest update page only for maintainers', function () {
     $owner = User::factory()->create();
     $visitor = User::factory()->create();
     $person = Person::factory()->create([
@@ -498,7 +498,7 @@ it('shows the speaker media uploads on the suggest update page only for maintain
         ->assertSee(__('Gallery'));
 });
 
-it('applies direct speaker affiliation edits for owner maintainers from the suggest update page', function () {
+it('applies direct person affiliation edits for owner maintainers from the suggest update page', function () {
     $user = User::factory()->create();
     $currentInstitution = Institution::factory()->create([
         'status' => 'verified',
@@ -902,9 +902,9 @@ it('normalizes submit-style organizer and location changes on the event update p
         'subjectType' => ContributionSubjectType::Event->publicRouteSegment(),
         'subjectId' => $event->slug,
     ])
-        ->set('data.primary_organizer_kind', 'speaker')
+        ->set('data.primary_organizer_kind', 'person')
         ->set('data.primary_organizer_id', $person->id)
-        ->set('data.primary_organizer_speaker_id', $person->id)
+        ->set('data.primary_organizer_person_id', $person->id)
         ->set('data.location_same_as_institution', false)
         ->set('data.location_type', 'venue')
         ->set('data.location_venue_id', $venue->id)
@@ -1094,7 +1094,7 @@ it('renders contribution requests and event submissions without approval control
         ->assertSee(__('New Submissions'))
         ->assertSee(__('Update Submissions'))
         ->assertSee(__('Report Submissions'))
-        ->assertSee(__('Requests for new institutions and speakers.'))
+        ->assertSee(__('Requests for new institutions and persons.'))
         ->assertSee(__('Updates you submit here will appear with their status and review notes.'))
         ->assertSee(__('Reports you submit here will appear with their status and review notes.'))
         ->assertSee(__('Membership Claims'))
@@ -1292,7 +1292,7 @@ it('redirects guests to login on canonical report and suggest update pages while
 
     $eventRouteSegment = ContributionSubjectType::Event->publicRouteSegment();
     $institutionRouteSegment = ContributionSubjectType::Institution->publicRouteSegment();
-    $speakerRouteSegment = ContributionSubjectType::Person->publicRouteSegment();
+    $personRouteSegment = ContributionSubjectType::Person->publicRouteSegment();
     $referenceRouteSegment = ContributionSubjectType::Reference->publicRouteSegment();
 
     $this->get(route('contributions.suggest-update', ['subjectType' => $institutionRouteSegment, 'subjectId' => $institution->slug]))
@@ -1301,16 +1301,16 @@ it('redirects guests to login on canonical report and suggest update pages while
     $this->get(route('reports.create', ['subjectType' => $institutionRouteSegment, 'subjectId' => $institution->slug]))
         ->assertRedirect(route('login'));
 
-    $this->get(route('contributions.suggest-update', ['subjectType' => $speakerRouteSegment, 'subjectId' => $person->slug]))
+    $this->get(route('contributions.suggest-update', ['subjectType' => $personRouteSegment, 'subjectId' => $person->slug]))
         ->assertRedirect(route('login'));
 
-    $this->get(route('reports.create', ['subjectType' => $speakerRouteSegment, 'subjectId' => $person->slug]))
+    $this->get(route('reports.create', ['subjectType' => $personRouteSegment, 'subjectId' => $person->slug]))
         ->assertRedirect(route('login'));
 
-    $this->get("/sumbangan/speaker/{$person->slug}/kemas-kini")
+    $this->get("/sumbangan/person/{$person->slug}/kemas-kini")
         ->assertNotFound();
 
-    $this->get("/lapor/speaker/{$person->slug}")
+    $this->get("/lapor/person/{$person->slug}")
         ->assertNotFound();
 
     $this->get("/sumbangan/institution/{$institution->slug}/kemas-kini")
@@ -1348,7 +1348,7 @@ it('forbids users banned from directory feedback from opening update and report 
         ->assertForbidden();
 });
 
-it('resolves speaker slugs on the update suggestion page without uuid casting errors', function () {
+it('resolves person slugs on the update suggestion page without uuid casting errors', function () {
     $user = User::factory()->create();
     $person = Person::factory()->create([
         'status' => 'verified',
@@ -1359,10 +1359,10 @@ it('resolves speaker slugs on the update suggestion page without uuid casting er
     Livewire::test(SuggestUpdate::class, [
         'subjectType' => ContributionSubjectType::Person->publicRouteSegment(),
         'subjectId' => $person->slug,
-    ])->assertSet('subjectType', 'speaker');
+    ])->assertSet('subjectType', 'person');
 });
 
-it('keeps speaker update suggestions on a region-only address form', function () {
+it('keeps person update suggestions on a region-only address form', function () {
     $user = User::factory()->create();
     $person = Person::factory()->create([
         'status' => 'verified',
@@ -1383,7 +1383,7 @@ it('keeps speaker update suggestions on a region-only address form', function ()
         ->assertDontSee(__('Waze URL'));
 });
 
-it('does not treat unchanged speaker update forms as changes when legacy address fields exist', function () {
+it('does not treat unchanged person update forms as changes when legacy address fields exist', function () {
     $owner = User::factory()->create();
     $country = ensureTestMalaysiaCountry();
     $person = Person::factory()->create([
@@ -1395,7 +1395,7 @@ it('does not treat unchanged speaker update forms as changes when legacy address
         $person->contactMethods()->create([
             'type' => ContactMethodType::Email->value,
             'purpose' => ContactPurpose::General->value,
-            'value' => 'speaker@example.test',
+            'value' => 'person@example.test',
             'is_public' => true,
         ]);
         $person->contactMethods()->create([
@@ -1461,14 +1461,14 @@ it('shows the reported institution clearly on the public report page', function 
         ->assertSeeText($viewInstitutionLabel);
 });
 
-it('shows the reported speaker clearly on the public report page', function () {
+it('shows the reported person clearly on the public report page', function () {
     $user = User::factory()->create();
     $person = Person::factory()->create([
         'name' => 'Amina binti Rashid',
         'status' => 'verified',
     ]);
-    $selectedSpeakerLabel = __('Selected :subject', ['subject' => strtolower(__('Person'))]);
-    $viewSpeakerLabel = __('View this :subject', ['subject' => strtolower(__('Person'))]);
+    $selectedPersonLabel = __('Selected :subject', ['subject' => strtolower(__('Person'))]);
+    $viewPersonLabel = __('View this :subject', ['subject' => strtolower(__('Person'))]);
 
     $this->actingAs($user);
 
@@ -1477,9 +1477,9 @@ it('shows the reported speaker clearly on the public report page', function () {
         'subjectId' => $person->slug,
     ]))
         ->assertOk()
-        ->assertSeeText($selectedSpeakerLabel)
+        ->assertSeeText($selectedPersonLabel)
         ->assertSeeText($person->formatted_name)
-        ->assertSeeText($viewSpeakerLabel);
+        ->assertSeeText($viewPersonLabel);
 });
 
 it('shows the reported event clearly on the public report page', function () {

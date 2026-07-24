@@ -23,7 +23,7 @@ final readonly class EnsureUniqueContributionCreateAction
     {
         match ($subjectType) {
             ContributionSubjectType::Institution => $this->ensureUniqueInstitution($state, $validationKeyPrefix),
-            ContributionSubjectType::Person => $this->ensureUniqueSpeaker($state, $validationKeyPrefix),
+            ContributionSubjectType::Person => $this->ensureUniquePerson($state, $validationKeyPrefix),
             default => null,
         };
     }
@@ -47,9 +47,9 @@ final readonly class EnsureUniqueContributionCreateAction
     /**
      * @param  array<string, mixed>  $state
      */
-    private function ensureUniqueSpeaker(array $state, string $validationKeyPrefix): void
+    private function ensureUniquePerson(array $state, string $validationKeyPrefix): void
     {
-        if (! $this->speakerDuplicateExists($state)) {
+        if (! $this->personDuplicateExists($state)) {
             return;
         }
 
@@ -104,7 +104,7 @@ final readonly class EnsureUniqueContributionCreateAction
     /**
      * @param  array<string, mixed>  $state
      */
-    private function speakerDuplicateExists(array $state): bool
+    private function personDuplicateExists(array $state): bool
     {
         $name = $this->normalizeComparableString($state['name'] ?? null);
         $gender = $this->normalizeComparableString($state['gender'] ?? null);
@@ -127,8 +127,8 @@ final readonly class EnsureUniqueContributionCreateAction
             ->where('gender', $gender)
             ->whereHas('addresses', fn (Builder $query): Builder => $query->where('country_id', $countryId))
             ->get(['name', 'gender'])
-            ->contains(fn (Person $speaker): bool => $this->normalizeComparableString($speaker->name) === $name
-                && $this->normalizeComparableString($speaker->gender) === $gender);
+            ->contains(fn (Person $person): bool => $this->normalizeComparableString($person->name) === $name
+                && $this->normalizeComparableString($person->gender) === $gender);
     }
 
     private function normalizeComparableString(mixed $value): ?string

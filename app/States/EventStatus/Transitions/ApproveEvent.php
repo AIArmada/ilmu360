@@ -69,7 +69,7 @@ class ApproveEvent extends Transition implements HasColor, HasIcon, HasLabel
     }
 
     /**
-     * Auto-verify pending Speaker/Institution/Venue records.
+     * Auto-verify pending Person/Institution/Venue records.
      * By approving the event, the moderator implicitly verifies these related entities.
      */
     protected function verifyPendingRelatedRecords(Event $event): void

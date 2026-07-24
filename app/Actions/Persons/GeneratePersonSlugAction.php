@@ -21,7 +21,7 @@ class GeneratePersonSlugAction
         private readonly SyncCanonicalSlugAction $syncCanonicalSlugAction,
     ) {}
 
-    public function syncSpeakerSlugsForName(string $name): bool
+    public function syncPersonSlugsForName(string $name): bool
     {
         $normalizedName = trim($name);
 
@@ -29,32 +29,32 @@ class GeneratePersonSlugAction
             return false;
         }
 
-        $speakers = Person::query()
+        $persons = Person::query()
             ->where('persons.name', $normalizedName)
             ->with(['addresses'])
             ->get();
 
-        return $this->syncOrderedModels($speakers, fn (Person $speaker): bool => $this->syncSpeakerSlug($speaker));
+        return $this->syncOrderedModels($persons, fn (Person $person): bool => $this->syncPersonSlug($person));
     }
 
-    public function syncSpeakerSlug(Person $speaker): bool
+    public function syncPersonSlug(Person $person): bool
     {
-        $slug = $this->forSpeaker($speaker);
+        $slug = $this->forPerson($person);
 
-        return $this->syncCanonicalSlugAction->persist($speaker, $slug);
+        return $this->syncCanonicalSlugAction->persist($person, $slug);
     }
 
     /**
      * @param  array<string, mixed>  $payload
      */
-    public function handle(string $name, array $payload = [], ?string $ignoreSpeakerId = null): string
+    public function handle(string $name, array $payload = [], ?string $ignorePersonId = null): string
     {
         $normalizedName = trim($name);
         $displayName = $this->displayName($normalizedName);
         $nameSlug = Str::slug($displayName !== '' ? $displayName : $normalizedName);
 
         if ($nameSlug === '') {
-            $nameSlug = 'speaker';
+            $nameSlug = 'person';
         }
 
         $locationSuffix = $this->locationSuffix($payload);
@@ -64,25 +64,25 @@ class GeneratePersonSlugAction
             $nameSlug,
             [],
             $locationSuffix,
-            $ignoreSpeakerId,
+            $ignorePersonId,
         );
     }
 
-    public function forSpeaker(Person $speaker): string
+    public function forPerson(Person $person): string
     {
-        $speaker->loadMissing(['addresses']);
+        $person->loadMissing(['addresses']);
 
-        $address = $speaker->primaryAddress();
+        $address = $person->primaryAddress();
 
         return $this->handle(
-            $speaker->name,
+            $person->name,
             [
                 'city' => $address?->city,
                 'state' => $address?->state,
                 'country_id' => $address?->country_id,
                 'country_code' => $address?->country_code,
             ],
-            (string) $speaker->getKey(),
+            (string) $person->getKey(),
         );
     }
 

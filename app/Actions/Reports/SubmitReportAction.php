@@ -53,7 +53,7 @@ class SubmitReportAction
 
         $this->productSignalsService->recordReportSubmitted($report, $request ?? request());
 
-        if (in_array($category, ['donation_scam', 'fake_speaker', 'fake_institution', 'fake_reference'], true)) {
+        if (in_array($category, ['donation_scam', 'fake_person', 'fake_institution', 'fake_reference'], true)) {
             $this->handleHighRiskReport($entity, $report);
         }
 

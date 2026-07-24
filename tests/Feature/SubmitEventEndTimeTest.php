@@ -19,7 +19,7 @@ beforeEach(function () {
 });
 
 /**
- * @return array{domain_tag: EventTerm, discipline_tag: EventTerm, institution: Institution, speaker: Person}
+ * @return array{domain_tag: EventTerm, discipline_tag: EventTerm, institution: Institution, person: Person}
  */
 function submitEventEndTimeFixtures(): array
 {
@@ -27,7 +27,7 @@ function submitEventEndTimeFixtures(): array
         'domain_tag' => submitEventTerm('domain'),
         'discipline_tag' => submitEventTerm('discipline'),
         'institution' => Institution::factory()->create(['status' => 'verified']),
-        'speaker' => Person::factory()->create(['status' => 'verified']),
+        'person' => Person::factory()->create(['status' => 'verified']),
     ];
 }
 
@@ -45,7 +45,7 @@ function submitEventAddressCountry(string $iso2 = 'MY', string $name = 'Malaysia
 }
 
 /**
- * @param  array{domain_tag: EventTerm, discipline_tag: EventTerm, institution: Institution, speaker: Person}  $fixtures
+ * @param  array{domain_tag: EventTerm, discipline_tag: EventTerm, institution: Institution, person: Person}  $fixtures
  * @return array<string, mixed>
  */
 function submitEventEndTimeFormData(array $fixtures, array $overrides = []): array
@@ -64,7 +64,7 @@ function submitEventEndTimeFormData(array $fixtures, array $overrides = []): arr
         'age_group' => [EventAgeGroup::AllAges->value],
         'languages' => [101],
         'primary_organizer_id' => $fixtures['institution']->id,
-        'speakers' => [$fixtures['speaker']->id],
+        'persons' => [$fixtures['person']->id],
         'submitter_name' => 'Test User',
         'submitter_email' => 'test@example.com',
         'submission_country_id' => (string) submitEventAddressCountry()->getKey(),

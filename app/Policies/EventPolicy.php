@@ -80,7 +80,7 @@ class EventPolicy
             return true;
         }
 
-        // Responsible institution/speaker approvers may access pending public submissions.
+        // Responsible institution/person approvers may access pending public submissions.
         if ($event->userCanApprovePublicSubmission($user)) {
             return true;
         }
@@ -99,7 +99,7 @@ class EventPolicy
             return true;
         }
 
-        // Members of the organizing institution or speaker can delete events scoped to them
+        // Members of the organizing institution or person can delete events scoped to them
         if ($event->userHasScopedEventPermission($user, 'event.delete', includeEventScope: false)) {
             return true;
         }

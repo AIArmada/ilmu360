@@ -270,14 +270,14 @@ it('changes the documentation fingerprint when scramble runtime config changes',
     }
 });
 
-it('groups speaker endpoints under a dedicated speaker tag in scramble docs', function () {
+it('groups person endpoints under a dedicated person tag in scramble docs', function () {
     $response = $this->getJson('https://api.ilmu360.test/docs.json', [
         'Host' => 'api.ilmu360.test',
     ])->assertOk();
 
     $paths = $response->json('paths');
 
-    expect($paths['/speakers']['get']['tags'] ?? null)->toContain('Person')
+    expect($paths['/persons']['get']['tags'] ?? null)->toContain('Person')
         ->and($paths['/persons/{personKey}']['get']['tags'] ?? null)->toContain('Person');
 });
 
@@ -296,7 +296,7 @@ it('groups other public directory endpoints under dedicated entity tags in scram
         ->and($paths['/series/{series}']['get']['tags'] ?? null)->toContain('Series');
 });
 
-it('publishes named speaker institution and reference schemas for the public directory endpoints', function () {
+it('publishes named person institution and reference schemas for the public directory endpoints', function () {
     $response = $this->getJson('https://api.ilmu360.test/docs.json', [
         'Host' => 'api.ilmu360.test',
     ])->assertOk();
@@ -339,10 +339,10 @@ it('publishes named speaker institution and reference schemas for the public dir
         ->and(collect(data_get($paths, '/institutions/near.get.parameters', []))->pluck('name')->all())->toContain('near', 'radius_km', 'fields')
         ->and(data_get($institutionsNearParameters->get('lat'), 'schema.type'))->toBe('number')
         ->and(data_get($institutionsNearParameters->get('lng'), 'schema.type'))->toBe('number')
-        ->and(collect(data_get($paths, '/speakers.get.parameters', []))->pluck('name')->all())->toContain('fields')
+        ->and(collect(data_get($paths, '/persons.get.parameters', []))->pluck('name')->all())->toContain('fields')
         ->and(collect(data_get($paths, '/references.get.parameters', []))->pluck('name')->all())->toContain('fields', 'search', 'following', 'page', 'per_page')
         ->and(collect(data_get($paths, '/references/{referenceKey}.get.parameters', []))->pluck('name')->all())->toContain('include_all_parts')
-        ->and(data_get($paths, '/speakers.get.responses.200.content.application/json.schema'))->not->toBeNull()
+        ->and(data_get($paths, '/persons.get.responses.200.content.application/json.schema'))->not->toBeNull()
         ->and(data_get($paths, '/persons/{personKey}.get.responses.200.content.application/json.schema'))->not->toBeNull()
         ->and(data_get($paths, '/institutions.get.responses.200.content.application/json.schema'))->not->toBeNull()
         ->and(data_get($paths, '/institutions/near.get.responses.200.content.application/json.schema'))->not->toBeNull()
@@ -350,7 +350,7 @@ it('publishes named speaker institution and reference schemas for the public dir
         ->and(data_get($paths, '/references.get.responses.200.content.application/json.schema'))->not->toBeNull()
         ->and(data_get($paths, '/references/{referenceKey}.get.responses.200.content.application/json.schema'))->not->toBeNull()
         ->and(data_get($schemas, 'EventSummary.properties.institution.properties.type'))->not->toBeNull()
-        ->and(data_get($schemas, 'EventSummary.properties.speakers.items.properties.gender'))->not->toBeNull();
+        ->and(data_get($schemas, 'EventSummary.properties.persons.items.properties.gender'))->not->toBeNull();
 });
 
 it('documents share payload and tracking endpoints for client integrations', function () {
@@ -475,9 +475,9 @@ it('documents public and admin mutation capability boundaries in the api overvie
         ->toContain('Collection endpoints clamp per_page to server-supported maxima')
         ->toContain('Get the update schema using the route_key returned by the record detail payload')
         ->toContain('PUT /api/v1/admin/persons/ahmad-fauzi-my')
-        ->toContain('Public create flows currently exist for events, institutions, and speakers.')
+        ->toContain('Public create flows currently exist for events, institutions, and persons.')
         ->toContain('must include an explicit country selection')
-        ->toContain('Public update flows currently exist for events, institutions, speakers, and references')
+        ->toContain('Public update flows currently exist for events, institutions, persons, and references')
         ->toContain('does not currently include creating references, venues, or series')
         ->toContain('GET /forms/*')
         ->toContain('GET /admin/manifest')
@@ -487,7 +487,7 @@ it('documents public and admin mutation capability boundaries in the api overvie
         ->toContain('GET /institution-workspace auto-selects the first accessible institution when institution_id is omitted')
         ->not->toContain('The recordKey parameter must be the UUID primary key')
         ->not->toContain('Get the update schema using the id (UUID primary key, not the slug)')
-        ->toContain('Current admin write support includes events, institutions, speakers, references, venues, and subdistricts.');
+        ->toContain('Current admin write support includes events, institutions, persons, references, venues, and subdistricts.');
 });
 
 it('documents utc transport fields and request-timezone helper behavior clearly', function () {
@@ -688,9 +688,9 @@ it('adds workflow summaries to public contract and mutation endpoints', function
         ->and($paths['/contributions/institutions']['post']['description'] ?? null)->toContain('address.country_id')
         ->and($paths['/contributions/institutions']['post']['description'] ?? null)->toContain('canonical Google Maps URL')
         ->and($paths['/contributions/institutions']['post']['description'] ?? null)->not->toContain('address.country_code')
-        ->and($paths['/contributions/speakers']['post']['summary'] ?? null)->toBe('Create a speaker contribution')
-        ->and($paths['/contributions/speakers']['post']['description'] ?? null)->toContain('address.country_id')
-        ->and($paths['/contributions/speakers']['post']['description'] ?? null)->not->toContain('address.country_code')
+        ->and($paths['/contributions/persons']['post']['summary'] ?? null)->toBe('Create a person contribution')
+        ->and($paths['/contributions/persons']['post']['description'] ?? null)->toContain('address.country_id')
+        ->and($paths['/contributions/persons']['post']['description'] ?? null)->not->toContain('address.country_code')
         ->and($paths['/forms/contributions/{subjectType}/{subject}/suggest']['get']['summary'] ?? null)->toBe('Get editable contribution context')
         ->and($paths['/forms/contributions/{subjectType}/{subject}/suggest']['get']['description'] ?? null)->toContain('event `cover`/`poster`/`gallery`')
         ->and($paths['/forms/institution-workspace']['get']['description'] ?? null)->toContain('workspace endpoint')
@@ -845,7 +845,7 @@ it('publishes explicit schemas for search manifest and public form contracts', f
         'MobileTelemetryFormResponse',
         'SubmitEventFormResponse',
         'InstitutionContributionFormResponse',
-        'SpeakerContributionFormResponse',
+        'PersonContributionFormResponse',
         'ReportFormResponse',
         'GitHubIssueReportFormResponse',
         'AccountSettingsFormResponse',
@@ -860,7 +860,7 @@ it('publishes explicit schemas for search manifest and public form contracts', f
         ->and(data_get($paths, '/forms/mobile-telemetry.get.responses.200.content.application/json.schema.$ref'))->toBe('#/components/schemas/MobileTelemetryFormResponse')
         ->and(data_get($paths, '/forms/submit-event.get.responses.200.content.application/json.schema.$ref'))->toBe('#/components/schemas/SubmitEventFormResponse')
         ->and(data_get($paths, '/forms/contributions/institutions.get.responses.200.content.application/json.schema.$ref'))->toBe('#/components/schemas/InstitutionContributionFormResponse')
-        ->and(data_get($paths, '/forms/contributions/speakers.get.responses.200.content.application/json.schema.$ref'))->toBe('#/components/schemas/SpeakerContributionFormResponse')
+        ->and(data_get($paths, '/forms/contributions/persons.get.responses.200.content.application/json.schema.$ref'))->toBe('#/components/schemas/PersonContributionFormResponse')
         ->and(data_get($paths, '/forms/report.get.responses.200.content.application/json.schema.$ref'))->toBe('#/components/schemas/ReportFormResponse')
         ->and(data_get($paths, '/forms/github-issue-report.get.responses.200.content.application/json.schema.$ref'))->toBe('#/components/schemas/GitHubIssueReportFormResponse')
         ->and(data_get($paths, '/forms/account-settings.get.responses.200.content.application/json.schema.$ref'))->toBe('#/components/schemas/AccountSettingsFormResponse')
@@ -870,7 +870,7 @@ it('publishes explicit schemas for search manifest and public form contracts', f
         ->and(data_get($paths, '/forms/contributions/{subjectType}/{subject}/suggest.get.responses.200.content.application/json.schema.$ref'))->toBe('#/components/schemas/ContributionSuggestContextResponse')
         ->and(data_get($schemas, 'AccountSettingsFormResponse.properties.data.properties.mcp_tokens_endpoint.type'))->toBe('string')
         ->and(data_get($schemas, 'AccountSettingsFormResponse.properties.data.properties.mcp_token_fields.type'))->toBe('array')
-        ->and(data_get($schemas, 'SearchIndexResponse.properties.data.properties.speakers.properties.items.type'))->toBe('array')
+        ->and(data_get($schemas, 'SearchIndexResponse.properties.data.properties.persons.properties.items.type'))->toBe('array')
         ->and(data_get($schemas, 'PublicFormFieldContract.properties.name.type'))->toBe('string')
         ->and(data_get($schemas, 'PublicConditionalRule.properties.field.type'))->toBe('string');
 });
@@ -949,7 +949,7 @@ it('publishes follow-up request examples for authenticated workflow mutations', 
         ->and(data_get($paths, '/follows/{type}/{subject}.post.requestBody'))->toBeNull()
         ->and(data_get($paths, '/follows/{type}/{subject}.post.parameters.0.example'))->toBe('institution')
         ->and(data_get($paths, '/follows/{type}/{subject}.post.parameters.0.description'))->toContain('Use singular values only')
-        ->and(data_get($paths, '/follows/{type}/{subject}.post.parameters.0.description'))->toContain('plural list paths such as `/follows/speakers` are not valid');
+        ->and(data_get($paths, '/follows/{type}/{subject}.post.parameters.0.description'))->toContain('plural list paths such as `/follows/persons` are not valid');
 });
 
 function docsJsonCacheScope(): string

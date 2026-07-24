@@ -12,7 +12,7 @@ use Illuminate\Contracts\Support\Arrayable;
  * @phpstan-import-type CountryArray from Country
  *
  * @phpstan-type InstitutionMediaArray array{public_image_url: string, logo_url: string, cover_url: ?string}
- * @phpstan-type InstitutionArray array{id: string, slug: string, name: string, nickname: ?string, display_name: string, description: ?string, status: string, verified_by: ?string, type: string|null, type_label: ?string, address_line: ?string, address: AddressSelectionArray|null, country: CountryArray|null, map_url: ?string, followers_count: int, speaker_count: int, is_following: bool, media: InstitutionMediaArray, contacts: list<array<string, mixed>>, social_media: list<array<string, mixed>>, waze_url: ?string, donation_channels: list<array<string, mixed>>}
+ * @phpstan-type InstitutionArray array{id: string, slug: string, name: string, nickname: ?string, display_name: string, description: ?string, status: string, verified_by: ?string, type: string|null, type_label: ?string, address_line: ?string, address: AddressSelectionArray|null, country: CountryArray|null, map_url: ?string, followers_count: int, person_count: int, is_following: bool, media: InstitutionMediaArray, contacts: list<array<string, mixed>>, social_media: list<array<string, mixed>>, waze_url: ?string, donation_channels: list<array<string, mixed>>}
  *
  * @implements Arrayable<string, mixed>
  */
@@ -41,7 +41,7 @@ final readonly class Institution implements Arrayable
         public ?Country $country,
         public ?string $map_url,
         public int $followers_count,
-        public int $speaker_count,
+        public int $person_count,
         public bool $is_following,
         public array $media,
         public array $contacts,
@@ -69,7 +69,7 @@ final readonly class Institution implements Arrayable
             'country' => $this->country?->toArray(),
             'map_url' => $this->map_url,
             'followers_count' => $this->followers_count,
-            'speaker_count' => $this->speaker_count,
+            'person_count' => $this->person_count,
             'is_following' => $this->is_following,
             'media' => $this->media,
             'contacts' => $this->contacts,

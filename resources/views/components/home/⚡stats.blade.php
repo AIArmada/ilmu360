@@ -24,7 +24,7 @@ new class extends Component {
     {
         return Cache::remember('home.stats.persons.upcoming', 300, function () {
             return Person::active()
-                ->whereHas('speakerEvents', function ($query) {
+                ->whereHas('events', function ($query) {
                     $query->active()
                         ->where('starts_at', '>=', now());
                 })->count('id');

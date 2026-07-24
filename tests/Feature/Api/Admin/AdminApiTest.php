@@ -170,7 +170,7 @@ it('reflects global admin role grants and removals on an existing bearer token',
         ->assertForbidden();
 });
 
-it('returns admin speaker resource metadata and records', function () {
+it('returns admin person resource metadata and records', function () {
     $admin = adminApiUser('super_admin');
     $person = Person::factory()->create([
         'name' => 'Admin API Person',
@@ -229,7 +229,7 @@ it('redacts tracked property write keys in admin api payloads', function () {
         ->assertJsonPath('data.record.attributes.write_key', 'present');
 });
 
-it('filters admin speaker records by explicit query parameters', function () {
+it('filters admin person records by explicit query parameters', function () {
     $admin = adminApiUser('super_admin');
 
     $personWithEvents = Person::factory()->create([
@@ -278,7 +278,7 @@ it('filters admin speaker records by explicit query parameters', function () {
     expect(in_array($personWithoutEvents->getKey(), $hasEventsIds, true))->toBeFalse();
 });
 
-it('uses the richer speaker institution and reference search behavior on the admin api', function () {
+it('uses the richer person institution and reference search behavior on the admin api', function () {
     $admin = adminApiUser('super_admin');
 
     $matchingPerson = Person::factory()->create([
@@ -1592,7 +1592,7 @@ it('surfaces donation channel update semantics through the admin api schema', fu
 
     $fields = collect($schema['fields'] ?? [])->keyBy('name');
 
-    expect(data_get($fields->get('donatable_type'), 'accepted_aliases.speakers'))->toBe((string) (new Person)->getMorphClass())
+    expect(data_get($fields->get('donatable_type'), 'accepted_aliases.persons'))->toBe((string) (new Person)->getMorphClass())
         ->and(data_get($fields->get('method'), 'mutation_semantics'))->toBe('replace_scalar_with_method_partition_reset')
         ->and(data_get($fields->get('method'), 'switch_clears_fields.duitnow'))->toContain('bank_name', 'account_number')
         ->and(data_get($fields->get('label'), 'clear_semantics.explicit_null'))->toBe('clear_to_null')
@@ -1697,7 +1697,7 @@ it('requires a valid granted role when approving a membership claim through the 
     expect($claim->fresh()?->status->value)->toBe('pending');
 });
 
-it('exposes admin speaker write schema and can create and update speakers through the api', function () {
+it('exposes admin person write schema and can create and update persons through the api', function () {
     ensureAdminApiMalaysiaCountryExists();
 
     $admin = adminApiUser('super_admin');
@@ -1711,15 +1711,15 @@ it('exposes admin speaker write schema and can create and update speakers throug
         ->assertJsonPath('data.schema.endpoint', '/api/v1/admin/people')
         ->json('data.schema');
 
-    $speakerFields = collect($schema['fields'] ?? [])->pluck('name')->all();
+    $personFields = collect($schema['fields'] ?? [])->pluck('name')->all();
 
     expect(collect($schema['catalogs'] ?? [])->pluck('field')->all())
         ->toContain('address.country_id')
         ->toContain('address.admin_area_1_id', 'address.admin_area_2_id')
-        ->and($speakerFields)->toContain('address.country_id')
-        ->and($speakerFields)->toContain('address.admin_area_1_id', 'address.admin_area_2_id')
-        ->and($speakerFields)->not->toContain('address.admin_area_3_id')
-        ->and($speakerFields)->not->toContain('address.country_code', 'address.country_key')
+        ->and($personFields)->toContain('address.country_id')
+        ->and($personFields)->toContain('address.admin_area_1_id', 'address.admin_area_2_id')
+        ->and($personFields)->not->toContain('address.admin_area_3_id')
+        ->and($personFields)->not->toContain('address.country_code', 'address.country_key')
         ->and(collect($schema['conditional_rules'] ?? [])->pluck('field')->all())->not->toContain('address.country_id');
 
     $createResponse = $this->postJson('/api/v1/admin/people', [
@@ -1735,7 +1735,7 @@ it('exposes admin speaker write schema and can create and update speakers throug
     $person = Person::query()->findOrFail($personRouteKey);
 
     expect($person->name)->toBe('Admin API Created Person')
-        ->and($person->slug)->toBe('admin-api-created-speaker-my')
+        ->and($person->slug)->toBe('admin-api-created-person-my')
         ->and($person->status)->toBe('verified')
         ->and($person->allow_public_event_submission)->toBeTrue();
 
@@ -1752,10 +1752,10 @@ it('exposes admin speaker write schema and can create and update speakers throug
         ],
     ])->assertOk()
         ->assertJsonPath('data.record.attributes.name', 'Admin API Updated Person')
-        ->assertJsonPath('data.record.attributes.slug', 'prof-madya-dato-dr-admin-api-updated-speaker-phd-ba-hons-my');
+        ->assertJsonPath('data.record.attributes.slug', 'prof-madya-dato-dr-admin-api-updated-person-phd-ba-hons-my');
 });
 
-it('requires explicit country and still prohibits detailed address fields when creating speakers through the admin api', function () {
+it('requires explicit country and still prohibits detailed address fields when creating persons through the admin api', function () {
     $admin = adminApiUser('super_admin');
 
     Sanctum::actingAs($admin);
@@ -1786,7 +1786,7 @@ it('requires explicit country and still prohibits detailed address fields when c
         ]);
 });
 
-it('returns fresh speaker address data on admin GET requests after updates', function () {
+it('returns fresh person address data on admin GET requests after updates', function () {
     $this->seed(ScopedMemberRolesSeeder::class);
 
     $firstFixtures = ensureAdminApiSubdistrictFixtures();
@@ -1840,7 +1840,7 @@ it('returns fresh speaker address data on admin GET requests after updates', fun
         ->assertJsonPath('data.record.attributes.address.admin_area_1_id', $secondFixtures['admin_area_1_id'])
         ->assertJsonPath('data.record.attributes.address.admin_area_2_id', $secondFixtures['admin_area_2_id']);
 
-    $this->getJson('/api/v1/admin/people?search=Admin%20API%20Address%20Freshness%20Speaker')
+    $this->getJson('/api/v1/admin/people?search=Admin%20API%20Address%20Freshness%20Person')
         ->assertOk()
         ->assertJsonPath('data.0.attributes.address.country_id', $secondFixtures['country_id'])
         ->assertJsonMissingPath('data.0.attributes.address.line1')
@@ -1849,7 +1849,7 @@ it('returns fresh speaker address data on admin GET requests after updates', fun
         ->assertJsonPath('data.0.attributes.address.admin_area_2_id', $secondFixtures['admin_area_2_id']);
 });
 
-it('surfaces speaker update semantics and collection rules through the admin api schema', function () {
+it('surfaces person update semantics and collection rules through the admin api schema', function () {
     ensureAdminApiMalaysiaCountryExists();
 
     $admin = adminApiUser('super_admin');
@@ -1884,7 +1884,7 @@ it('surfaces speaker update semantics and collection rules through the admin api
         ->and(data_get($fields->get('social_media'), 'input_normalization.platform_aliases.x.accepted_by_write_validation'))->toBeFalse();
 });
 
-it('replaces speaker collections and still requires an explicit country when mutating address data through the admin api', function () {
+it('replaces person collections and still requires an explicit country when mutating address data through the admin api', function () {
     ensureAdminApiMalaysiaCountryExists();
 
     $languageMalay = Language::where('code', 'ms')->first() ?? Language::query()->create([
@@ -1921,7 +1921,7 @@ it('replaces speaker collections and still requires an explicit country when mut
         ]],
         'social_media' => [[
             'platform' => 'website',
-            'url' => 'https://example.test/speakers/admin-api-speaker-collections',
+            'url' => 'https://example.test/persons/admin-api-person-collections',
         ], [
             'platform' => 'instagram',
             'handle' => 'asal_penceramah',
@@ -1957,15 +1957,15 @@ it('replaces speaker collections and still requires an explicit country when mut
         ]],
         'social_media' => [[
             'platform' => 'facebook',
-            'url' => 'https://facebook.com/admin-api-speaker-collections-updated',
+            'url' => 'https://facebook.com/admin-api-person-collections-updated',
         ]],
     ])->assertOk()
         ->assertJsonPath('data.record.attributes.name', 'Admin API Person Collections Updated')
         ->assertJsonPath('data.record.attributes.honorific.0', 'datuk')
         ->assertJsonPath('data.record.attributes.contacts.0.type', 'whatsapp')
         ->assertJsonPath('data.record.attributes.social_media.0.platform', 'facebook')
-        ->assertJsonPath('data.record.attributes.social_media.0.handle', 'admin-api-speaker-collections-updated')
-        ->assertJsonPath('data.record.attributes.social_media.0.url', 'https://facebook.com/admin-api-speaker-collections-updated');
+        ->assertJsonPath('data.record.attributes.social_media.0.handle', 'admin-api-person-collections-updated')
+        ->assertJsonPath('data.record.attributes.social_media.0.url', 'https://facebook.com/admin-api-person-collections-updated');
 
     $person = withGlobalOwnerContext(
         fn (): Person => $person->refresh()->load(['contactMethods', 'socialProfiles', 'languages']),
@@ -1978,8 +1978,8 @@ it('replaces speaker collections and still requires an explicit country when mut
         ->and(collect($person->contactMethods->modelKeys())->intersect($originalContactIds)->all())->toBe([])
         ->and($person->socialProfiles)->toHaveCount(1)
         ->and($person->socialProfiles->first()?->getRawOriginal('platform'))->toBe('facebook')
-        ->and($person->socialProfiles->first()?->handle)->toBe('admin-api-speaker-collections-updated')
-        ->and($person->socialProfiles->first()?->url)->toBe('https://facebook.com/admin-api-speaker-collections-updated')
+        ->and($person->socialProfiles->first()?->handle)->toBe('admin-api-person-collections-updated')
+        ->and($person->socialProfiles->first()?->url)->toBe('https://facebook.com/admin-api-person-collections-updated')
         ->and(collect($person->socialProfiles->modelKeys())->intersect($originalSocialMediaIds)->all())->toBe([]);
 
     $this->putJson('/api/v1/admin/people/'.$personRouteKey, [
@@ -3042,7 +3042,7 @@ it('exposes admin event write schema and can create and update events through th
 
     $createResponse = $this->postJson('/api/v1/admin/events', adminApiEventPayload([
         'institution' => $institution,
-        'speaker' => $person,
+        'person' => $person,
         'reference' => $reference,
         'series' => $series,
         'domain_tag' => $domainTag,
@@ -3066,7 +3066,7 @@ it('exposes admin event write schema and can create and update events through th
 
     $this->putJson('/api/v1/admin/events/'.$eventRouteKey, adminApiEventPayload([
         'institution' => $institution,
-        'speaker' => $person,
+        'person' => $person,
         'reference' => $reference,
         'series' => $series,
         'domain_tag' => $domainTag,
@@ -3125,7 +3125,7 @@ it('surfaces event update semantics and sparse relation rules through the admin 
 
     $createResponse = $this->postJson('/api/v1/admin/events', adminApiEventPayload([
         'institution' => $institution,
-        'speaker' => $person,
+        'person' => $person,
         'reference' => $reference,
         'series' => $series,
         'domain_tag' => $domainTag,
@@ -3146,9 +3146,9 @@ it('surfaces event update semantics and sparse relation rules through the admin 
         ->and(data_get($fields->get('references'), 'collection_semantics.explicit_null'))->toBe('clear_collection')
         ->and(data_get($fields->get('domain_tags'), 'taxonomy_code'))->toBe('domain')
         ->and(data_get($fields->get('primary_organizer_id'), 'accepted_models'))->toBe([Institution::class, Person::class])
-        ->and(data_get($fields->get('persons'), 'collection_semantics.submitted_array'))->toBe('replace_speaker_subset_and_rebuild_key_people')
+        ->and(data_get($fields->get('persons'), 'collection_semantics.submitted_array'))->toBe('replace_person_subset_and_rebuild_key_people')
         ->and(data_get($fields->get('persons'), 'collection_semantics.item_ids_preserved'))->toBeFalse()
-        ->and(data_get($fields->get('other_key_people'), 'collection_semantics.ordering'))->toBe('payload_order_sets_order_column_after_speakers')
+        ->and(data_get($fields->get('other_key_people'), 'collection_semantics.ordering'))->toBe('payload_order_sets_order_column_after_persons')
         ->and($otherKeyPeopleFields->keys()->all())->toContain('role_code', 'involveable_type', 'involveable_id', 'display_name', 'visibility', 'notes')
         ->and(data_get($fields->get('registration_mode'), 'lock_behavior.when_event_has_registrations'))->toBe('retain_current_value');
 });
@@ -3183,7 +3183,7 @@ it('supports sparse event updates while replacing submitted relation collections
 
     $createResponse = $this->postJson('/api/v1/admin/events', adminApiEventPayload([
         'institution' => $institution,
-        'speaker' => $person,
+        'person' => $person,
         'reference' => $reference,
         'series' => $series,
         'domain_tag' => $domainTag,
@@ -3247,7 +3247,7 @@ it('clears event poster when clear_poster is submitted as a form-style boolean',
 
     $createResponse = $this->postJson('/api/v1/admin/events', adminApiEventPayload([
         'institution' => $institution,
-        'speaker' => $person,
+        'person' => $person,
         'reference' => $reference,
         'series' => $series,
         'domain_tag' => $domainTag,
@@ -3277,7 +3277,7 @@ it('clears event poster when clear_poster is submitted as a form-style boolean',
         ->assertJsonPath('data.schema.current_media.poster', []);
 });
 
-it('rejects admin event writes that omit required speakers for speaker-led event types', function () {
+it('rejects admin event writes that omit required persons for person-led event types', function () {
     ensureAdminApiMalaysiaCountryExists();
 
     $admin = adminApiUser('super_admin');
@@ -3296,7 +3296,7 @@ it('rejects admin event writes that omit required speakers for speaker-led event
 
     $this->postJson('/api/v1/admin/events', adminApiEventPayload([
         'institution' => $institution,
-        'speaker' => $person,
+        'person' => $person,
         'reference' => $reference,
         'series' => $series,
         'domain_tag' => $domainTag,
@@ -3308,7 +3308,7 @@ it('rejects admin event writes that omit required speakers for speaker-led event
         ->assertJsonValidationErrors(['persons']);
 });
 
-it('rejects admin event writes with organizer ids that do not resolve to institutions or speakers', function () {
+it('rejects admin event writes with organizer ids that do not resolve to institutions or persons', function () {
     ensureAdminApiMalaysiaCountryExists();
 
     $admin = adminApiUser('super_admin');
@@ -3328,7 +3328,7 @@ it('rejects admin event writes with organizer ids that do not resolve to institu
 
     $this->postJson('/api/v1/admin/events', adminApiEventPayload([
         'institution' => $institution,
-        'speaker' => $person,
+        'person' => $person,
         'reference' => $reference,
         'series' => $series,
         'domain_tag' => $domainTag,
@@ -3366,7 +3366,7 @@ it('rejects admin event writes with conflicting location selections', function (
 
     $this->postJson('/api/v1/admin/events', adminApiEventPayload([
         'institution' => $institution,
-        'speaker' => $person,
+        'person' => $person,
         'reference' => $reference,
         'series' => $series,
         'domain_tag' => $domainTag,
@@ -3466,7 +3466,7 @@ function adminApiUser(string $role): User
 /**
  * @param  array{
  *     institution: Institution,
- *     speaker: Person,
+ *     person: Person,
  *     reference: Reference,
  *     series: Series,
  *     domain_tag: EventTerm,
@@ -3502,7 +3502,7 @@ function adminApiEventPayload(array $fixtures, array $overrides = []): array
         'primary_organizer_id' => (string) $fixtures['institution']->getKey(),
         'institution_id' => (string) $fixtures['institution']->getKey(),
         'series' => [(string) $fixtures['series']->getKey()],
-        'persons' => [(string) $fixtures['speaker']->getKey()],
+        'persons' => [(string) $fixtures['person']->getKey()],
         'other_key_people' => [
             [
                 'role_code' => 'moderator',

@@ -16,7 +16,7 @@
     $pastTotal = $this->pastTotal;
     $publicContacts = $institution->contactMethods->where('is_public', true)->values();
     $donationChannels = $institution->donationChannels;
-    $persons = $institution->speakers;
+    $persons = $institution->persons;
     $spaces = $institution->spaces;
     $institutionUrl = route('institutions.show', $institution);
     $institutionRedirectUrl = route('institutions.show', $institution, absolute: false);
@@ -111,8 +111,8 @@
         return $names->join(', ', ' dan ');
     };
 
-    $resolveEventSpeakerAvatarStack = static function (\App\Models\Event $event): array {
-        $avatars = $event->speakers
+    $resolveEventPersonAvatarStack = static function (\App\Models\Event $event): array {
+        $avatars = $event->persons
             ->map(function (\App\Models\Person $person): array {
                 return [
                     'name' => trim((string) ($person->formatted_name !== '' ? $person->formatted_name : $person->name)),
@@ -130,7 +130,7 @@
     };
 
     $resolveEventPeople = static function (\App\Models\Event $event) use ($joinEventPeopleNames): array {
-        $personSummary = $event->speakers
+        $personSummary = $event->persons
             ->map(fn (\App\Models\Person $person): string => trim((string) ($person->formatted_name !== '' ? $person->formatted_name : $person->name)))
             ->filter(fn (string $name): bool => $name !== '')
             ->unique()
@@ -155,8 +155,8 @@
             ->map(function (\Illuminate\Support\Collection $keyPeople, string $role) use ($joinEventPeopleNames): ?string {
                 $names = $keyPeople
                     ->map(fn (\App\Models\EventKeyPerson $keyPerson): string => trim((string) ($keyPerson->display_name
-                        ?: $keyPerson->speaker?->formatted_name
-                        ?: $keyPerson->speaker?->name
+                        ?: $keyPerson->person?->formatted_name
+                        ?: $keyPerson->person?->name
                         ?: '')))
                     ->filter(fn (string $name): bool => $name !== '')
                     ->unique()
@@ -285,7 +285,7 @@
                             @php
                                 $venueLocation = $resolveVenueLocation($event);
                                 $eventPeople = $resolveEventPeople($event);
-                                $personAvatarStack = $resolveEventSpeakerAvatarStack($event);
+                                $personAvatarStack = $resolveEventPersonAvatarStack($event);
                                 $eventTypeLabel = $resolveEventCategoryLabel($event);
                                 $bookReferenceTitle = $event->reference_study_subtitle;
                                 $eventFormatValue = $event->delivery_mode?->value ?? $event->delivery_mode;

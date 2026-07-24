@@ -42,7 +42,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 #[Group(
     'Contribution',
-    'Authenticated public contribution flows for creating institutions or speakers and suggesting edits to existing events, institutions, speakers, or references. '
+    'Authenticated public contribution flows for creating institutions or persons and suggesting edits to existing events, institutions, persons, or references. '
     .'Update suggestions are permission-aware: the same endpoint either edits directly or creates a review request.',
     weight: 20,
 )]
@@ -155,12 +155,12 @@ class ContributionController extends FrontendController
     }
 
     #[Endpoint(
-        title: 'Create a speaker contribution',
-        description: 'Creates a new public speaker contribution request using a region-level address payload plus an explicit country selection. '
+        title: 'Create a person contribution',
+        description: 'Creates a new public person contribution request using a region-level address payload plus an explicit country selection. '
             .'The payload may also set one affiliated institution and an optional position label. '
             .'Clients must send `address.country_id`, but must not send detailed street or map keys here. '
-            .'Duplicate speakers are rejected when the normalized name, gender, title set, and country match an existing speaker. '
-            .'Fetch `GET /forms/contributions/speakers` first to discover required fields, defaults, media support, and conditional rules.',
+            .'Duplicate persons are rejected when the normalized name, gender, title set, and country match an existing person. '
+            .'Fetch `GET /forms/contributions/persons` first to discover required fields, defaults, media support, and conditional rules.',
     )]
     public function storePerson(
         Request $request,
@@ -252,7 +252,7 @@ class ContributionController extends FrontendController
         title: 'Get editable contribution context',
         description: 'Returns the current editable state, presentation metadata, and permission flags for an existing subject. '
             .'Call this before submitting an update so you know whether the caller can edit directly, which sparse top-level fields are supported, and whether a pending request already exists. '
-            .'Only direct-edit media fields exposed in `direct_edit_media_fields` are uploadable, currently institution `cover`/`gallery`, speaker `avatar`/`cover`/`gallery`, and event `cover`/`poster`/`gallery`.',
+            .'Only direct-edit media fields exposed in `direct_edit_media_fields` are uploadable, currently institution `cover`/`gallery`, person `avatar`/`cover`/`gallery`, and event `cover`/`poster`/`gallery`.',
     )]
     public function suggestContext(
         string $subjectType,
@@ -314,11 +314,11 @@ class ContributionController extends FrontendController
         required: false,
         type: 'string',
         infer: false,
-        example: 'Please update the speaker list and correct the title spelling.',
+        example: 'Please update the person list and correct the title spelling.',
     )]
     #[Endpoint(
         title: 'Submit a contribution update',
-        description: 'Submits a sparse top-level payload for an existing event, institution, speaker, or reference. '
+        description: 'Submits a sparse top-level payload for an existing event, institution, person, or reference. '
             .'Fetch `GET /forms/contributions/{subjectType}/{subject}/suggest` first to discover the editable field contract and current values. '
             .'Only files named in `direct_edit_media_fields` may be uploaded, and only when the current user can edit the subject directly. '
             .'If the caller can update the subject directly, the changes are applied immediately and the response `mode` is `direct_edit`; otherwise a contribution review request is created and the response `mode` is `review`.',
@@ -559,7 +559,7 @@ class ContributionController extends FrontendController
                 $helperState['prayer_display_text'],
                 $helperState['primary_organizer_kind'],
                 $helperState['primary_organizer_institution_id'],
-                $helperState['primary_organizer_speaker_id'],
+                $helperState['primary_organizer_person_id'],
                 $helperState['institution_id'],
                 $helperState['venue_id'],
             );
@@ -773,7 +773,7 @@ class ContributionController extends FrontendController
             ],
             $entity instanceof Person => [
                 'id' => $entity->getKey(),
-                'type' => 'speaker',
+                'type' => 'person',
                 'slug' => $entity->slug,
                 'title' => $entity->formatted_name,
                 'status' => $entity->status,

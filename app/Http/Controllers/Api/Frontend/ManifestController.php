@@ -61,13 +61,13 @@ class ManifestController extends FrontendController
     }
 
     #[Endpoint(
-        title: 'Get speaker contribution field contract',
-        description: 'Returns the canonical field contract for authenticated public speaker creation. '
-            .'Use this before calling `POST /contributions/speakers`. '
-            .'Speaker create requires an explicit address country via `address.country_id`. '
-            .'Detailed street and map fields remain unsupported on this public speaker flow.',
+        title: 'Get person contribution field contract',
+        description: 'Returns the canonical field contract for authenticated public person creation. '
+            .'Use this before calling `POST /contributions/persons`. '
+            .'Person create requires an explicit address country via `address.country_id`. '
+            .'Detailed street and map fields remain unsupported on this public person flow.',
     )]
-    public function submitSpeaker(): JsonResponse
+    public function submitPerson(): JsonResponse
     {
         return response()->json([
             'data' => $this->contracts->submitPerson(),

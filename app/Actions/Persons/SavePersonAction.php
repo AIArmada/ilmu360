@@ -31,10 +31,10 @@ final readonly class SavePersonAction
     /**
      * @param  array<string, mixed>  $data
      */
-    public function handle(array $data, User $actor, ?Person $speaker = null, string $validationErrorKey = 'allow_public_event_submission'): Person
+    public function handle(array $data, User $actor, ?Person $person = null, string $validationErrorKey = 'allow_public_event_submission'): Person
     {
-        $creating = ! $speaker instanceof Person;
-        $speaker ??= new Person;
+        $creating = ! $person instanceof Person;
+        $person ??= new Person;
 
         $address = is_array($data['address'] ?? null) ? $data['address'] : [];
         $addressProvided = array_key_exists('address', $data) && is_array($data['address'] ?? null);
@@ -58,15 +58,15 @@ final readonly class SavePersonAction
             $data['address'] = $address;
         }
 
-        $currentPublicSubmission = $creating ? true : (bool) $speaker->allow_public_event_submission;
+        $currentPublicSubmission = $creating ? true : (bool) $person->allow_public_event_submission;
         $requestedPublicSubmission = $creating
             ? true
             : (array_key_exists('allow_public_event_submission', $data) ? (bool) $data['allow_public_event_submission'] : $currentPublicSubmission);
         $attributes = [
-            'name' => $this->normalizeRequiredString($data['name'] ?? $speaker->name, 'Speaker'),
-            'gender' => $this->normalizeGender($data['gender'] ?? $speaker->gender ?? null),
-            'bio' => array_key_exists('bio', $data) ? $data['bio'] : $speaker->bio,
-            'status' => array_key_exists('status', $data) ? (string) $data['status'] : ($creating ? 'pending' : (string) $speaker->status),
+            'name' => $this->normalizeRequiredString($data['name'] ?? $person->name, 'Person'),
+            'gender' => $this->normalizeGender($data['gender'] ?? $person->gender ?? null),
+            'bio' => array_key_exists('bio', $data) ? $data['bio'] : $person->bio,
+            'status' => array_key_exists('status', $data) ? (string) $data['status'] : ($creating ? 'pending' : (string) $person->status),
         ];
 
         if ($creating) {
@@ -75,36 +75,36 @@ final readonly class SavePersonAction
             ]));
             $attributes['allow_public_event_submission'] = true;
 
-            $speaker = Person::create($attributes);
-            $this->addMemberAction->handle($speaker, $actor, MemberRole::Owner);
+            $person = Person::create($attributes);
+            $this->addMemberAction->handle($person, $actor, MemberRole::Owner);
         } else {
-            $speaker->fill($attributes);
-            $speaker->save();
+            $person->fill($attributes);
+            $person->save();
         }
 
-        $this->contributionEntityMutationService->syncPersonRelations($speaker, Arr::only($data, [
+        $this->contributionEntityMutationService->syncPersonRelations($person, Arr::only($data, [
             'address',
             'contactMethods',
             'social_media',
             'language_ids',
         ]));
-        $this->syncMedia($speaker, $data);
+        $this->syncMedia($person, $data);
 
         if (! $creating) {
-            $this->syncPublicSubmissionToggle($speaker, $actor, $currentPublicSubmission, $requestedPublicSubmission, $validationErrorKey);
+            $this->syncPublicSubmissionToggle($person, $actor, $currentPublicSubmission, $requestedPublicSubmission, $validationErrorKey);
         }
 
-        return $speaker->fresh([
+        return $person->fresh([
             'addresses',
             'contactMethods',
             'socialProfiles',
             'languages',
             'media',
-        ]) ?? $speaker;
+        ]) ?? $person;
     }
 
     private function syncPublicSubmissionToggle(
-        Person $speaker,
+        Person $person,
         User $actor,
         bool $currentPublicSubmission,
         bool $requestedPublicSubmission,
@@ -115,12 +115,12 @@ final readonly class SavePersonAction
         }
 
         if ($requestedPublicSubmission) {
-            $this->publicSubmissionLockService->unlockPerson($speaker, $actor);
+            $this->publicSubmissionLockService->unlockPerson($person, $actor);
 
             return;
         }
 
-        $eligibility = $this->publicSubmissionLockService->personEligibility($speaker);
+        $eligibility = $this->publicSubmissionLockService->personEligibility($person);
 
         if (! $eligibility->eligible) {
             throw ValidationException::withMessages([
@@ -128,28 +128,28 @@ final readonly class SavePersonAction
             ]);
         }
 
-        $this->publicSubmissionLockService->lockPerson($speaker, $actor);
+        $this->publicSubmissionLockService->lockPerson($person, $actor);
     }
 
     /**
      * @param  array<string, mixed>  $data
      */
-    private function syncMedia(Person $speaker, array $data): void
+    private function syncMedia(Person $person, array $data): void
     {
         if (($data['clear_avatar'] ?? false) === true) {
-            $this->mediaSyncService->clearCollection($speaker, 'avatar');
+            $this->mediaSyncService->clearCollection($person, 'avatar');
         }
 
         if (($data['clear_cover'] ?? false) === true) {
-            $this->mediaSyncService->clearCollection($speaker, 'cover');
+            $this->mediaSyncService->clearCollection($person, 'cover');
         }
 
         if (($data['clear_main'] ?? false) === true) {
-            $this->mediaSyncService->clearCollection($speaker, 'main');
+            $this->mediaSyncService->clearCollection($person, 'main');
         }
 
         if (($data['clear_gallery'] ?? false) === true) {
-            $this->mediaSyncService->clearCollection($speaker, 'gallery');
+            $this->mediaSyncService->clearCollection($person, 'gallery');
         }
 
         $avatar = $data['avatar'] ?? null;
@@ -158,22 +158,22 @@ final readonly class SavePersonAction
         $gallery = $data['gallery'] ?? null;
 
         $this->mediaSyncService->syncSingle(
-            $speaker,
+            $person,
             $avatar instanceof UploadedFile ? $avatar : null,
             'avatar',
         );
         $this->mediaSyncService->syncSingle(
-            $speaker,
+            $person,
             $main instanceof UploadedFile ? $main : null,
             'main',
         );
         $this->mediaSyncService->syncSingle(
-            $speaker,
+            $person,
             $cover instanceof UploadedFile ? $cover : null,
             'cover',
         );
         $this->mediaSyncService->syncMultiple(
-            $speaker,
+            $person,
             is_array($gallery) ? $gallery : null,
             'gallery',
             replace: is_array($gallery),

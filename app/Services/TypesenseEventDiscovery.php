@@ -59,7 +59,7 @@ class TypesenseEventDiscovery implements EventDiscoveryAdapter
                 ->ordered(),
             'references',
             'classifications',
-            'speakers.media' => fn ($query) => $query
+            'persons.media' => fn ($query) => $query
                 ->where('collection_name', 'avatar')
                 ->ordered(),
             'institution.media' => fn ($query) => $query
@@ -95,7 +95,7 @@ class TypesenseEventDiscovery implements EventDiscoveryAdapter
         $search->options([
             'filter_by' => implode(' && ', $this->buildTypesenseFilterParts($filters)),
             'sort_by' => $sortBy,
-            'query_by' => 'title,speaker_names,institution_name',
+            'query_by' => 'title,person_names,institution_name',
         ]);
 
         return $search->paginate($perPage);
@@ -146,7 +146,7 @@ class TypesenseEventDiscovery implements EventDiscoveryAdapter
         $search->options([
             'filter_by' => $filterBy,
             'sort_by' => "location({$lat}, {$lng}):asc,starts_at:asc",
-            'query_by' => 'title,speaker_names,institution_name',
+            'query_by' => 'title,person_names,institution_name',
         ]);
 
         return $search->paginate($perPage);
@@ -239,11 +239,11 @@ class TypesenseEventDiscovery implements EventDiscoveryAdapter
             $filterParts[] = 'venue_id:='.$filters['venue_id'];
         }
 
-        if (! empty($filters['speaker_ids'])) {
-            $speakerIds = $this->normalizeArrayFilter($filters['speaker_ids']);
+        if (! empty($filters['person_ids'])) {
+            $personIds = $this->normalizeArrayFilter($filters['person_ids']);
 
-            if ($speakerIds !== []) {
-                $filterParts[] = 'speaker_ids:['.implode(',', $speakerIds).']';
+            if ($personIds !== []) {
+                $filterParts[] = 'person_ids:['.implode(',', $personIds).']';
             }
         }
 

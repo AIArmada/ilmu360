@@ -29,7 +29,7 @@ class RefactorTest extends TestCase
         $this->assertFalse(Schema::hasTable('notification_destinations'));
         $this->assertFalse(Schema::hasTable('notification_deliveries'));
         $this->assertFalse(Schema::hasColumn('moderation_reviews', 'reviewer_id'));
-        $this->assertFalse(Schema::hasTable('event_speaker'));
+        $this->assertFalse(Schema::hasTable('event_person'));
         $this->assertFalse(Schema::hasTable('event_participants'));
         $this->assertFalse(Schema::hasTable('notification_preferences'));
         $this->assertFalse(Schema::hasTable('notification_endpoints'));
@@ -38,7 +38,7 @@ class RefactorTest extends TestCase
         $this->assertFalse(Schema::hasTable('notifications'));
     }
 
-    public function test_speaker_avatar_url_behavior()
+    public function test_person_avatar_url_behavior()
     {
         $person = Person::factory()->create();
 

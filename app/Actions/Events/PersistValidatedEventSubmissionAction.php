@@ -45,7 +45,7 @@ final readonly class PersistValidatedEventSubmissionAction
                 $state['event_date'] ?? null,
                 $submission->timezone,
                 null,
-                $submission->speakerSlugSegments,
+                $submission->personSlugSegments,
             ),
             'description' => $state['description'] ?? null,
             'timezone' => $submission->timezone,
@@ -101,7 +101,7 @@ final readonly class PersistValidatedEventSubmissionAction
                     $state['event_date'] ?? null,
                     $submission->timezone,
                     null,
-                    $submission->speakerSlugSegments,
+                    $submission->personSlugSegments,
                 ),
                 'summary' => $state['description'] ?? null,
                 'description' => $state['description'] ?? null,
@@ -132,7 +132,7 @@ final readonly class PersistValidatedEventSubmissionAction
             }
         }
 
-        $this->eventKeyPersonSync->sync($event, $state['speakers'] ?? [], $this->canonicalKeyPeople($state['other_key_people'] ?? []));
+        $this->eventKeyPersonSync->sync($event, $state['persons'] ?? [], $this->canonicalKeyPeople($state['other_key_people'] ?? []));
 
         if (! empty($state['languages'])) {
             $event->syncLanguages($state['languages']);

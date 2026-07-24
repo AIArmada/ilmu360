@@ -17,7 +17,7 @@ use Dedoc\Scramble\Attributes\PathParameter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
-#[Group('Follow', 'Authenticated endpoints for reading and mutating follow state across public institutions, speakers, references, and series.')]
+#[Group('Follow', 'Authenticated endpoints for reading and mutating follow state across public institutions, persons, references, and series.')]
 class FollowController extends FrontendController
 {
     public function __construct(
@@ -25,11 +25,11 @@ class FollowController extends FrontendController
         private readonly SlugOrUuidResolver $slugOrUuidResolver,
     ) {}
 
-    #[PathParameter('type', 'Followable public resource type. Use singular values only: `institution`, `speaker`, `reference`, or `series`; plural list paths such as `/follows/speakers` are not valid.', example: 'institution')]
+    #[PathParameter('type', 'Followable public resource type. Use singular values only: `institution`, `person`, `reference`, or `series`; plural list paths such as `/follows/persons` are not valid.', example: 'institution')]
     #[PathParameter('subject', 'Public slug or UUID of the followable resource.', example: 'masjid-jamek-kuala-lumpur')]
     #[Endpoint(
         title: 'Get follow state',
-        description: 'Returns whether the current authenticated user is following one requested public institution, speaker, reference, or series. The `{subject}` path segment is required; followed directory lists use `/speakers?following=true`, `/institutions?following=true`, or `/references?following=true` instead of plural `/follows/...` routes.',
+        description: 'Returns whether the current authenticated user is following one requested public institution, person, reference, or series. The `{subject}` path segment is required; followed directory lists use `/persons?following=true`, `/institutions?following=true`, or `/references?following=true` instead of plural `/follows/...` routes.',
     )]
     public function show(string $type, string $subject, Request $request): JsonResponse
     {
@@ -44,11 +44,11 @@ class FollowController extends FrontendController
         ]);
     }
 
-    #[PathParameter('type', 'Followable public resource type. Use singular values only: `institution`, `speaker`, `reference`, or `series`; plural list paths such as `/follows/speakers` are not valid.', example: 'institution')]
+    #[PathParameter('type', 'Followable public resource type. Use singular values only: `institution`, `person`, `reference`, or `series`; plural list paths such as `/follows/persons` are not valid.', example: 'institution')]
     #[PathParameter('subject', 'Public slug or UUID of the followable resource.', example: 'masjid-jamek-kuala-lumpur')]
     #[Endpoint(
         title: 'Follow a resource',
-        description: 'Creates a follow relationship for the current authenticated user and one requested public institution, speaker, reference, or series. The `{subject}` path segment is required; followed directory lists use `/speakers?following=true`, `/institutions?following=true`, or `/references?following=true` instead of plural `/follows/...` routes.',
+        description: 'Creates a follow relationship for the current authenticated user and one requested public institution, person, reference, or series. The `{subject}` path segment is required; followed directory lists use `/persons?following=true`, `/institutions?following=true`, or `/references?following=true` instead of plural `/follows/...` routes.',
     )]
     public function store(string $type, string $subject, Request $request): JsonResponse
     {
@@ -79,11 +79,11 @@ class FollowController extends FrontendController
         ], 201);
     }
 
-    #[PathParameter('type', 'Followable public resource type. Use singular values only: `institution`, `speaker`, `reference`, or `series`; plural list paths such as `/follows/speakers` are not valid.', example: 'institution')]
+    #[PathParameter('type', 'Followable public resource type. Use singular values only: `institution`, `person`, `reference`, or `series`; plural list paths such as `/follows/persons` are not valid.', example: 'institution')]
     #[PathParameter('subject', 'Public slug or UUID of the followable resource.', example: 'masjid-jamek-kuala-lumpur')]
     #[Endpoint(
         title: 'Unfollow a resource',
-        description: 'Removes the follow relationship between the current authenticated user and one requested public institution, speaker, reference, or series. The `{subject}` path segment is required; followed directory lists use `/speakers?following=true`, `/institutions?following=true`, or `/references?following=true` instead of plural `/follows/...` routes.',
+        description: 'Removes the follow relationship between the current authenticated user and one requested public institution, person, reference, or series. The `{subject}` path segment is required; followed directory lists use `/persons?following=true`, `/institutions?following=true`, or `/references?following=true` instead of plural `/follows/...` routes.',
     )]
     public function destroy(string $type, string $subject, Request $request): JsonResponse
     {
@@ -104,7 +104,7 @@ class FollowController extends FrontendController
     {
         return match ($type) {
             'institution' => $this->resolveInstitution($subject, $user),
-            'speaker' => $this->resolveSpeaker($subject, $user),
+            'person' => $this->resolvePerson($subject, $user),
             'reference' => $this->resolveReference($subject),
             'series' => $this->resolveSeries($subject, $user),
             default => abort(404),
@@ -127,7 +127,7 @@ class FollowController extends FrontendController
         return $record;
     }
 
-    private function resolveSpeaker(string $subject, User $user): Person
+    private function resolvePerson(string $subject, User $user): Person
     {
         /** @var Person $record */
         $record = $this->slugOrUuidResolver->firstOrFail(

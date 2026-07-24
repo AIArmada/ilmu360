@@ -10,7 +10,7 @@ enum EventChangeType: string
     case RescheduledLater = 'rescheduled_later';
     case ScheduleChanged = 'schedule_changed';
     case LocationChanged = 'location_changed';
-    case SpeakerChanged = 'speaker_changed';
+    case PersonChanged = 'person_changed';
     case TopicChanged = 'topic_changed';
     case ReferenceChanged = 'reference_changed';
     case OrganizerChanged = 'organizer_changed';
@@ -26,7 +26,7 @@ enum EventChangeType: string
             self::RescheduledLater => __('Rescheduled later'),
             self::ScheduleChanged => __('Schedule changed'),
             self::LocationChanged => __('Location changed'),
-            self::SpeakerChanged => __('Speaker changed'),
+            self::PersonChanged => __('Person changed'),
             self::TopicChanged => __('Topic changed'),
             self::ReferenceChanged => __('Reference changed'),
             self::OrganizerChanged => __('Organizer changed'),

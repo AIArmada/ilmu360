@@ -416,8 +416,8 @@ class MemberResourceRegistry
                                         ->whereIn('involveable_type', [Institution::class, 'institution'])
                                         ->whereIn('involveable_id', $user->institutions()->select('institutions.id'));
                                 })
-                                ->orWhere(function (Builder $speakerQuery) use ($user): void {
-                                    $speakerQuery
+                                ->orWhere(function (Builder $personQuery) use ($user): void {
+                                    $personQuery
                                         ->whereIn('involveable_type', [Person::class, 'person'])
                                         ->whereIn('involveable_id', $user->persons()->select('persons.id'));
                                 });

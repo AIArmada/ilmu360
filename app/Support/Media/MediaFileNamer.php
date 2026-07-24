@@ -56,7 +56,7 @@ class MediaFileNamer extends FileNamer
             return 'media';
         }
 
-        // Try slug first (Event, Speaker, Venue, Institution, Series)
+        // Try slug first (Event, Person, Venue, Institution, Series)
         $slug = isset($model->slug) ? $model->getAttribute('slug') : null;
         if (filled($slug) && is_scalar($slug)) {
             return str((string) $slug)->slug()->toString();

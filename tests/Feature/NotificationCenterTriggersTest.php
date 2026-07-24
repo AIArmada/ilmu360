@@ -23,9 +23,9 @@ use Illuminate\Support\Str;
 
 uses(RefreshDatabase::class);
 
-it('creates followed-content notifications for followed speakers institutions and series', function () {
+it('creates followed-content notifications for followed persons institutions and series', function () {
     $institutionFollower = User::factory()->create();
-    $speakerFollower = User::factory()->create();
+    $personFollower = User::factory()->create();
     $seriesFollower = User::factory()->create();
 
     $institution = Institution::factory()->create();
@@ -35,7 +35,7 @@ it('creates followed-content notifications for followed speakers institutions an
     ]);
 
     $institutionFollower->follow($institution);
-    $speakerFollower->follow($person);
+    $personFollower->follow($person);
     $seriesFollower->follow($series);
 
     $event = Event::factory()->for($institution)->create([
@@ -46,17 +46,17 @@ it('creates followed-content notifications for followed speakers institutions an
         'published_at' => now(),
     ]);
 
-    $event->speakers()->attach($person->id);
+    $event->persons()->attach($person->id);
     $event->series()->attach($series->id, ['id' => (string) Str::uuid()]);
 
-    app(EventNotificationService::class)->notifyPublication($event->fresh(['institution', 'speakers', 'series', 'references']));
+    app(EventNotificationService::class)->notifyPublication($event->fresh(['institution', 'persons', 'series', 'references']));
 
     $this->assertDatabaseHas('notification_inboxes', [
         'recipient_id' => $institutionFollower->id,
     ]);
 
     $this->assertDatabaseHas('notification_inboxes', [
-        'recipient_id' => $speakerFollower->id,
+        'recipient_id' => $personFollower->id,
     ]);
 
     $this->assertDatabaseHas('notification_inboxes', [
@@ -65,12 +65,12 @@ it('creates followed-content notifications for followed speakers institutions an
 
 });
 
-it('does not create followed-speaker notifications when a followed profile is only a non-speaker participant', function () {
-    $speakerFollower = User::factory()->create();
+it('does not create followed-person notifications when a followed profile is only a non-person participant', function () {
+    $personFollower = User::factory()->create();
     $institution = Institution::factory()->create();
     $person = Person::factory()->create();
 
-    $speakerFollower->follow($person);
+    $personFollower->follow($person);
 
     $event = Event::factory()->for($institution)->create([
         'title' => 'Forum Dengan Moderator Sahaja',
@@ -81,16 +81,16 @@ it('does not create followed-speaker notifications when a followed profile is on
 
     $event->keyPeople()->create([
         'involveable_id' => $person->id,
-        'involveable_type' => 'speaker',
+        'involveable_type' => 'person',
         'role_code' => EventKeyPersonRole::Moderator->value,
         'sort_order' => 1,
         'visibility' => 'public',
     ]);
 
-    app(EventNotificationService::class)->notifyPublication($event->fresh(['institution', 'keyPeople.speaker', 'series', 'references']));
+    app(EventNotificationService::class)->notifyPublication($event->fresh(['institution', 'keyPeople.person', 'series', 'references']));
 
     $this->assertDatabaseMissing('notification_inboxes', [
-        'recipient_id' => $speakerFollower->id,
+        'recipient_id' => $personFollower->id,
     ]);
 });
 

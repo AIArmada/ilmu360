@@ -66,10 +66,10 @@ class PrepareAdvancedParentProgramSubmissionAction
         }
 
         if (array_key_exists($primaryOrganizerId, $membershipOptions['person_options'])) {
-            $speaker = Person::query()->find($primaryOrganizerId);
+            $person = Person::query()->find($primaryOrganizerId);
 
-            if ($speaker instanceof Person) {
-                return $speaker;
+            if ($person instanceof Person) {
+                return $person;
             }
         }
 

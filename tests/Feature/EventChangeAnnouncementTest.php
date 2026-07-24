@@ -358,7 +358,7 @@ it('rejects replacement events that are not publicly reachable', function () {
     expect(EventChangeAnnouncement::query()->where('event_id', $original->id)->exists())->toBeFalse();
 });
 
-it('allows speaker members for listed event speakers to publish change announcements', function () {
+it('allows person members for listed event persons to publish change announcements', function () {
     eventChangeSeedScopedRoles();
 
     $editor = User::factory()->create();

@@ -51,7 +51,7 @@ it('renders the admin dashboard with moderation actions before event overview in
         ->assertSeeInOrder([
             'Needs Approval',
             'Events Needing Approval',
-            'Speakers Needing Approval',
+            'Persons Needing Approval',
             'Institutions Needing Approval',
             'References Needing Approval',
             'Venues Needing Approval',
@@ -146,7 +146,7 @@ it('computes approval and event overview dashboard stats from the intended datas
             'url' => ModerationQueue::getUrl(panel: 'admin').'?tab=pending',
         ],
         [
-            'label' => 'Speakers Needing Approval',
+            'label' => 'Persons Needing Approval',
             'value' => 1,
             'url' => PersonResource::getUrl('index', panel: 'admin').'?tableFilters[status][value]=pending',
         ],

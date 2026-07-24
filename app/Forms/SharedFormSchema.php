@@ -145,7 +145,7 @@ class SharedFormSchema
     }
 
     /**
-     * Country-plus-region address group for public speaker submissions.
+     * Country-plus-region address group for public person submissions.
      */
     public static function regionAddressGroup(
         ?string $statePath = null,
@@ -170,7 +170,7 @@ class SharedFormSchema
     }
 
     /**
-     * Country-plus-region address fields for public speaker submissions.
+     * Country-plus-region address fields for public person submissions.
      *
      * @return array<int, Component>
      */

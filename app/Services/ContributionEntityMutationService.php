@@ -71,7 +71,7 @@ class ContributionEntityMutationService
     {
         return match (true) {
             $entity instanceof Institution => $this->institutionState($entity),
-            $entity instanceof Person => $this->speakerState($entity),
+            $entity instanceof Person => $this->personState($entity),
             $entity instanceof Reference => $this->referenceState($entity),
             $entity instanceof Event => $this->eventState($entity),
             $entity instanceof Venue => $this->venueState($entity),
@@ -169,7 +169,7 @@ class ContributionEntityMutationService
                     $this->field('issue_tags', 'array<string>', catalog: route('api.client.catalogs.taxonomy-terms', ['type' => EventTaxonomyCode::Issue->value])),
                     $this->field('reference_ids', 'array<string>', catalog: route('api.client.catalogs.references')),
                     $this->field('series_ids', 'array<string>'),
-                    $this->field('speaker_ids', 'array<string>', catalog: route('api.client.catalogs.submit-persons')),
+                    $this->field('person_ids', 'array<string>', catalog: route('api.client.catalogs.submit-persons')),
                     $this->field('other_key_people', 'array<object>'),
                 ],
                 'conditional_rules' => [
@@ -302,8 +302,8 @@ class ContributionEntityMutationService
                 'reference_ids.*' => ['uuid', 'exists:references,id'],
                 'series_ids' => ['sometimes', 'array'],
                 'series_ids.*' => ['uuid', 'exists:series,id'],
-                'speaker_ids' => ['sometimes', 'array'],
-                'speaker_ids.*' => ['uuid', 'exists:persons,id'],
+                'person_ids' => ['sometimes', 'array'],
+                'person_ids.*' => ['uuid', 'exists:persons,id'],
                 'other_key_people' => ['sometimes', 'array'],
                 'other_key_people.*.role_code' => ['required_with:other_key_people.*.display_name,other_key_people.*.involveable_id', Rule::in($this->enumValues(EventKeyPersonRole::class))],
                 'other_key_people.*.involveable_type' => ['nullable', 'string', 'max:255'],
@@ -345,24 +345,24 @@ class ContributionEntityMutationService
      */
     public function createPerson(array $payload, User $proposer): Person
     {
-        $speaker = Person::create([
-            'name' => (string) ($payload['name'] ?? 'Speaker'),
+        $person = Person::create([
+            'name' => (string) ($payload['name'] ?? 'Person'),
             'gender' => $this->normalizeGender($payload['gender'] ?? null),
             'bio' => $payload['bio'] ?? null,
             'slug' => $this->generatePersonSlugAction->handle(
-                (string) ($payload['name'] ?? 'Speaker'),
+                (string) ($payload['name'] ?? 'Person'),
                 $payload,
             ),
             'status' => 'pending',
             'allow_public_event_submission' => true,
         ]);
 
-        $this->addMemberAction->handle($speaker, $proposer, MemberRole::Owner);
+        $this->addMemberAction->handle($person, $proposer, MemberRole::Owner);
 
-        $this->syncPersonRelations($speaker, $payload);
-        $this->generatePersonSlugAction->syncSpeakerSlug($speaker);
+        $this->syncPersonRelations($person, $payload);
+        $this->generatePersonSlugAction->syncPersonSlug($person);
 
-        return $speaker;
+        return $person;
     }
 
     /**
@@ -373,7 +373,7 @@ class ContributionEntityMutationService
     {
         return match (true) {
             $entity instanceof Institution => $this->applyInstitution($entity, $payload),
-            $entity instanceof Person => $this->applySpeaker($entity, $payload),
+            $entity instanceof Person => $this->applyPerson($entity, $payload),
             $entity instanceof Reference => $this->applyReference($entity, $payload),
             $entity instanceof Event => $this->applyEvent($entity, $payload),
             default => throw new RuntimeException('Unsupported contribution entity type.'),
@@ -410,21 +410,21 @@ class ContributionEntityMutationService
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed>
      */
-    private function applySpeaker(Person $speaker, array $payload): array
+    private function applyPerson(Person $person, array $payload): array
     {
-        $speaker->fill([
-            'name' => $payload['name'] ?? $speaker->name,
+        $person->fill([
+            'name' => $payload['name'] ?? $person->name,
             'gender' => array_key_exists('gender', $payload)
                 ? $this->normalizeGender($payload['gender'])
-                : $speaker->gender,
-            'bio' => array_key_exists('bio', $payload) ? $payload['bio'] : $speaker->bio,
+                : $person->gender,
+            'bio' => array_key_exists('bio', $payload) ? $payload['bio'] : $person->bio,
         ]);
 
-        $dirty = $speaker->getDirty();
-        $speaker->save();
+        $dirty = $person->getDirty();
+        $person->save();
 
-        $this->syncPersonRelations($speaker, $payload);
-        $this->generatePersonSlugAction->syncSpeakerSlug($speaker);
+        $this->syncPersonRelations($person, $payload);
+        $this->generatePersonSlugAction->syncPersonSlug($person);
 
         return $dirty;
     }
@@ -624,12 +624,12 @@ class ContributionEntityMutationService
         }
 
         if (
-            array_key_exists('speaker_ids', $payload)
+            array_key_exists('person_ids', $payload)
             || array_key_exists('other_key_people', $payload)
         ) {
             $this->eventKeyPersonSyncService->sync(
                 $event,
-                $this->normalizeStringArray($payload['speaker_ids'] ?? []),
+                $this->normalizeStringArray($payload['person_ids'] ?? []),
                 $this->normalizeKeyPeople($payload['other_key_people'] ?? []),
             );
         }
@@ -674,22 +674,22 @@ class ContributionEntityMutationService
     /**
      * @return array<string, mixed>
      */
-    private function speakerState(Person $speaker): array
+    private function personState(Person $person): array
     {
-        $speaker->loadMissing(['addresses', 'contactMethods', 'socialProfiles', 'languages']);
+        $person->loadMissing(['addresses', 'contactMethods', 'socialProfiles', 'languages']);
 
-        $affiliatedInstitution = $this->currentSpeakerAffiliation($speaker);
+        $affiliatedInstitution = $this->currentPersonAffiliation($person);
 
         return [
-            'name' => $speaker->name,
-            'gender' => (string) $speaker->gender,
-            'bio' => $speaker->bio,
-            'language_ids' => $speaker->languages->pluck('id')->map(fn (mixed $id): int => (int) $id)->values()->all(),
+            'name' => $person->name,
+            'gender' => (string) $person->gender,
+            'bio' => $person->bio,
+            'language_ids' => $person->languages->pluck('id')->map(fn (mixed $id): int => (int) $id)->values()->all(),
             'institution_id' => $affiliatedInstitution?->getKey(),
             'institution_position' => self::institutionPivotPosition($affiliatedInstitution),
-            'address' => $this->addressState($speaker->primaryAddress()),
-            'contactMethods' => $this->contactMethodsState($speaker->contactMethods),
-            'social_media' => $this->socialMediaState($speaker->socialProfiles),
+            'address' => $this->addressState($person->primaryAddress()),
+            'contactMethods' => $this->contactMethodsState($person->contactMethods),
+            'social_media' => $this->socialMediaState($person->socialProfiles),
         ];
     }
 
@@ -761,10 +761,10 @@ class ContributionEntityMutationService
             'issue_tags' => $tags->get(EventTaxonomyCode::Issue->value, collect())->pluck('event_term_id')->values()->all(),
             'reference_ids' => $event->references->pluck('id')->values()->all(),
             'series_ids' => $event->series->pluck('id')->values()->all(),
-            'speaker_ids' => $event->keyPeople
+            'person_ids' => $event->keyPeople
                 ->where('role_code', EventKeyPersonRole::Speaker->value)
                 ->pluck('involveable_id')
-                ->filter(fn (mixed $speakerId): bool => is_string($speakerId) && $speakerId !== '')
+                ->filter(fn (mixed $personId): bool => is_string($personId) && $personId !== '')
                 ->values()
                 ->all(),
             'other_key_people' => $event->keyPeople
@@ -828,36 +828,36 @@ class ContributionEntityMutationService
     /**
      * @param  array<string, mixed>  $payload
      */
-    public function syncPersonRelations(Person $speaker, array $payload): void
+    public function syncPersonRelations(Person $person, array $payload): void
     {
-        $addressPayload = $this->speakerAddressPayload($payload);
+        $addressPayload = $this->personAddressPayload($payload);
 
         if (is_array($addressPayload)) {
-            $addressPayload = $this->preserveHiddenSpeakerAddressFields($speaker, $addressPayload);
-            $this->syncAddress($speaker, $addressPayload, allowCountryOnly: true);
+            $addressPayload = $this->preserveHiddenPersonAddressFields($person, $addressPayload);
+            $this->syncAddress($person, $addressPayload, allowCountryOnly: true);
         }
 
         if (array_key_exists('contactMethods', $payload)) {
-            $this->syncContactMethods($speaker, $payload['contactMethods']);
+            $this->syncContactMethods($person, $payload['contactMethods']);
         }
 
         if (array_key_exists('social_media', $payload)) {
-            $this->syncSocialMedia($speaker, $payload['social_media']);
+            $this->syncSocialMedia($person, $payload['social_media']);
         }
 
         if (array_key_exists('language_ids', $payload)) {
-            $speaker->syncLanguages($this->normalizeIntegerArray(
+            $person->syncLanguages($this->normalizeIntegerArray(
                 is_iterable($payload['language_ids']) ? $payload['language_ids'] : [],
             ));
         }
 
-        $this->syncSpeakerAffiliation($speaker, $payload);
+        $this->syncPersonAffiliation($person, $payload);
     }
 
     /**
      * @param  array<string, mixed>  $payload
      */
-    private function syncSpeakerAffiliation(Person $speaker, array $payload): void
+    private function syncPersonAffiliation(Person $person, array $payload): void
     {
         $institutionId = array_key_exists('institution_id', $payload)
             ? $this->normalizeOptionalString($payload['institution_id'])
@@ -870,8 +870,8 @@ class ContributionEntityMutationService
             return;
         }
 
-        $beforeAffiliations = $this->speakerAffiliationAuditState($speaker);
-        $currentAffiliation = $this->currentSpeakerAffiliation($speaker);
+        $beforeAffiliations = $this->personAffiliationAuditState($person);
+        $currentAffiliation = $this->currentPersonAffiliation($person);
         $currentAffiliationId = $currentAffiliation?->getKey();
 
         $institutionId = array_key_exists('institution_id', $payload)
@@ -880,10 +880,10 @@ class ContributionEntityMutationService
 
         if ($institutionId === null) {
             if ($currentAffiliation instanceof Institution) {
-                $speaker->institutions()->detach($currentAffiliation->getKey());
+                $person->institutions()->detach($currentAffiliation->getKey());
             }
 
-            $this->recordSpeakerAffiliationAudit($speaker, $beforeAffiliations);
+            $this->recordPersonAffiliationAudit($person, $beforeAffiliations);
 
             return;
         }
@@ -893,44 +893,44 @@ class ContributionEntityMutationService
             : self::institutionPivotPosition($currentAffiliation);
 
         if ($currentAffiliation instanceof Institution && (string) $currentAffiliation->getKey() !== $institutionId) {
-            $speaker->institutions()->detach($currentAffiliation->getKey());
+            $person->institutions()->detach($currentAffiliation->getKey());
         }
 
-        $speaker->institutions()
+        $person->institutions()
             ->newPivotStatement()
-            ->where('affiliatable_id', $speaker->getKey())
-            ->where('affiliatable_type', $speaker->getMorphClass())
+            ->where('affiliatable_id', $person->getKey())
+            ->where('affiliatable_type', $person->getMorphClass())
             ->where('institution_id', '!=', $institutionId)
             ->update([
                 'is_primary' => false,
                 'updated_at' => now(),
             ]);
 
-        $alreadyAttached = $speaker->institutions()
+        $alreadyAttached = $person->institutions()
             ->where('institutions.id', $institutionId)
             ->exists();
 
         if ($alreadyAttached) {
-            $speaker->institutions()->updateExistingPivot($institutionId, [
+            $person->institutions()->updateExistingPivot($institutionId, [
                 'position' => $position,
                 'is_primary' => true,
             ]);
 
-            $this->recordSpeakerAffiliationAudit($speaker, $beforeAffiliations);
+            $this->recordPersonAffiliationAudit($person, $beforeAffiliations);
 
             return;
         }
 
         Affiliation::query()->create([
-            'affiliatable_type' => $speaker->getMorphClass(),
-            'affiliatable_id' => $speaker->getKey(),
+            'affiliatable_type' => $person->getMorphClass(),
+            'affiliatable_id' => $person->getKey(),
             'institution_id' => $institutionId,
             'affiliation_type' => AffiliationType::Member,
             'position' => $position,
             'is_primary' => true,
         ]);
 
-        $this->recordSpeakerAffiliationAudit($speaker, $beforeAffiliations);
+        $this->recordPersonAffiliationAudit($person, $beforeAffiliations);
     }
 
     private static function institutionPivotPosition(?Institution $institution): ?string
@@ -949,10 +949,10 @@ class ContributionEntityMutationService
         return (bool) data_get($institution->getRelations(), 'pivot.is_primary', false);
     }
 
-    private function currentSpeakerAffiliation(Person $speaker): ?Institution
+    private function currentPersonAffiliation(Person $person): ?Institution
     {
         /** @var Institution|null $institution */
-        $institution = $speaker->institutions()
+        $institution = $person->institutions()
             ->orderByPivot('is_primary', 'desc')
             ->orderBy('institutions.name')
             ->first();
@@ -963,9 +963,9 @@ class ContributionEntityMutationService
     /**
      * @return list<array{id: string, name: string, position: ?string, is_primary: bool}>
      */
-    private function speakerAffiliationAuditState(Person $speaker): array
+    private function personAffiliationAuditState(Person $person): array
     {
-        return $speaker->institutions()
+        return $person->institutions()
             ->orderByPivot('is_primary', 'desc')
             ->orderBy('institutions.name')
             ->get()
@@ -982,16 +982,16 @@ class ContributionEntityMutationService
     /**
      * @param  list<array{id: string, name: string, position: ?string, is_primary: bool}>  $beforeAffiliations
      */
-    private function recordSpeakerAffiliationAudit(Person $speaker, array $beforeAffiliations): void
+    private function recordPersonAffiliationAudit(Person $person, array $beforeAffiliations): void
     {
-        $speaker->load('institutions');
-        $afterAffiliations = $this->speakerAffiliationAuditState($speaker);
+        $person->load('institutions');
+        $afterAffiliations = $this->personAffiliationAuditState($person);
 
         if ($beforeAffiliations === $afterAffiliations) {
             return;
         }
 
-        $speaker->recordCustomAuditDifferences(
+        $person->recordCustomAuditDifferences(
             'sync',
             ['institutions' => $beforeAffiliations],
             ['institutions' => $afterAffiliations],
@@ -1219,7 +1219,7 @@ class ContributionEntityMutationService
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed>|null
      */
-    private function speakerAddressPayload(array $payload): ?array
+    private function personAddressPayload(array $payload): ?array
     {
         if (array_key_exists('address', $payload)) {
             return is_array($payload['address']) ? $payload['address'] : [];
@@ -1260,11 +1260,11 @@ class ContributionEntityMutationService
      * @param  array<string, mixed>  $addressPayload
      * @return array<string, mixed>
      */
-    private function preserveHiddenSpeakerAddressFields(Person $speaker, array $addressPayload): array
+    private function preserveHiddenPersonAddressFields(Person $person, array $addressPayload): array
     {
-        $speaker->loadMissing('addresses');
+        $person->loadMissing('addresses');
 
-        $existingAddress = $speaker->primaryAddress();
+        $existingAddress = $person->primaryAddress();
 
         if (! $existingAddress instanceof Address) {
             return $addressPayload;

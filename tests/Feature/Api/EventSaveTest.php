@@ -167,7 +167,7 @@ test('saved events index still includes cancelled events', function () {
     ]);
     $person = Person::factory()->create([
         'name' => 'Person Saved',
-        'slug' => 'speaker-saved',
+        'slug' => 'person-saved',
     ]);
 
     $savedEvent = Event::factory()->create([
@@ -192,7 +192,7 @@ test('saved events index still includes cancelled events', function () {
         'starts_at' => now()->addDays(12),
     ]);
 
-    $savedEvent->speakers()->attach($person->id);
+    $savedEvent->persons()->attach($person->id);
 
     app(EngagementManager::class)->bookmark($this->user, $savedEvent);
     app(EngagementManager::class)->bookmark($this->user, $cancelledEvent);
@@ -213,9 +213,9 @@ test('saved events index still includes cancelled events', function () {
         ->assertJsonPath('data.0.institution.slug', $institution->slug)
         ->assertJsonPath('data.0.venue.id', $venue->id)
         ->assertJsonPath('data.0.venue.name', 'Dewan Saved')
-        ->assertJsonPath('data.0.speakers.0.id', $person->id)
-        ->assertJsonPath('data.0.speakers.0.name', 'Person Saved')
-        ->assertJsonPath('data.0.speakers.0.slug', $person->slug)
+        ->assertJsonPath('data.0.persons.0.id', $person->id)
+        ->assertJsonPath('data.0.persons.0.name', 'Person Saved')
+        ->assertJsonPath('data.0.persons.0.slug', $person->slug)
         ->assertJsonMissing(['id' => $inactiveEvent->id])
         ->assertJsonPath('meta.request_id', fn (string $requestId) => filled($requestId));
 });

@@ -79,7 +79,7 @@ it('publishes the advanced event contract with the primary organizer field and g
         ->and($contract['defaults']['primary_organizer_id'])->toBe($institution->id)
         ->and(collect($contract['fields'])->pluck('name'))->toContain('primary_organizer_id')
         ->and($contract['options']['primary_organizer_options']['institution'])->toHaveKey($institution->id, 'Masjid Kontrak')
-        ->and($contract['options']['primary_organizer_options']['speaker'])->toHaveKey($person->id, 'Penceramah Kontrak')
+        ->and($contract['options']['primary_organizer_options']['person'])->toHaveKey($person->id, 'Penceramah Kontrak')
         ->and($contract['options']['location_institution_options'])->toHaveKey($institution->id, 'Masjid Kontrak');
 });
 
@@ -123,7 +123,7 @@ it('syncs event resource relations and persists the requested registration mode'
     ])
         ->and($event->accessPolicy?->registration_required)->toBeFalse()
         ->and($event->resolvedRegistrationMode())->toBe(PackageRegistrationMode::None)
-        ->and($event->speakers->pluck('id')->all())->toBe([$person->id]);
+        ->and($event->persons->pluck('id')->all())->toBe([$person->id]);
 });
 
 it('persists the direction of prayer-relative offsets', function (): void {

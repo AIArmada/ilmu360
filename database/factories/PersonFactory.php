@@ -114,7 +114,7 @@ class PersonFactory extends Factory
 
                 $person->refresh();
                 $person->forceFill([
-                    'slug' => app(GeneratePersonSlugAction::class)->forSpeaker($person),
+                    'slug' => app(GeneratePersonSlugAction::class)->forPerson($person),
                 ])->saveQuietly();
 
                 $person->contactMethods()->create([

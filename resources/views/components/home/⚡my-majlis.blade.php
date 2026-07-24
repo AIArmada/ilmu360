@@ -18,7 +18,7 @@ new class extends Component {
         }
 
         return $user->goingEvents()
-            ->with(['institution', 'venue', 'speakers'])
+            ->with(['institution', 'venue', 'persons'])
             ->where('starts_at', '>=', now())
             ->orderBy('starts_at')
             ->first();
@@ -36,7 +36,7 @@ new class extends Component {
         $nextId = $this->nextGoingEvent?->id;
 
         return $user->goingEvents()
-            ->with(['institution', 'venue', 'speakers'])
+            ->with(['institution', 'venue', 'persons'])
             ->where('starts_at', '>=', now())
             ->when($nextId, fn($q) => $q->where('events.id', '!=', $nextId))
             ->orderBy('starts_at')
@@ -45,7 +45,7 @@ new class extends Component {
     }
 
     #[Computed]
-    public function followedSpeakersEvents(): Collection
+    public function followedPersonsEvents(): Collection
     {
         $user = auth()->user();
 
@@ -53,16 +53,16 @@ new class extends Component {
             return new Collection();
         }
 
-        $followedSpeakerIds = $user->followingSpeakers()->pluck('speakers.id');
+        $followedPersonIds = $user->followingPersons()->pluck('persons.id');
 
-        if ($followedSpeakerIds->isEmpty()) {
+        if ($followedPersonIds->isEmpty()) {
             return new Collection();
         }
 
         return Event::active()
             ->where('starts_at', '>=', now())
-            ->whereHas('speakers', fn($q) => $q->whereIn('speakers.id', $followedSpeakerIds))
-            ->with(['institution', 'venue', 'speakers'])
+            ->whereHas('persons', fn($q) => $q->whereIn('persons.id', $followedPersonIds))
+            ->with(['institution', 'venue', 'persons'])
             ->orderBy('starts_at')
             ->take(4)
             ->get();
@@ -78,7 +78,7 @@ new class extends Component {
         }
 
         return $user->savedEvents()
-            ->with(['institution', 'venue', 'speakers'])
+            ->with(['institution', 'venue', 'persons'])
             ->where('starts_at', '>=', now())
             ->orderBy('starts_at')
             ->take(3)
@@ -97,7 +97,7 @@ new class extends Component {
         return [
             'going' => $user->goingEvents()->where('starts_at', '>=', now())->count(),
             'saved' => $user->savedEvents()->where('starts_at', '>=', now())->count(),
-            'following' => $user->followingSpeakers()->count(),
+            'following' => $user->followingPersons()->count(),
         ];
     }
 };
@@ -109,7 +109,7 @@ new class extends Component {
             $user = auth()->user();
             $nextEvent = $this->nextGoingEvent;
             $upcomingEvents = $this->upcomingGoingEvents;
-            $personEvents = $this->followedSpeakersEvents;
+            $personEvents = $this->followedPersonsEvents;
             $saved = $this->savedEvents;
             $counts = $this->counts;
             $firstName = explode(' ', $user->name)[0];
@@ -241,10 +241,10 @@ new class extends Component {
                                         class="truncate">{{ $nextEvent->venue?->name ?? $nextEvent->institution?->name ?? __('Online') }}</span>
                                 </div>
 
-                                @if($nextEvent->speakers->isNotEmpty())
+                                @if($nextEvent->persons->isNotEmpty())
                                     <div class="flex items-center gap-2 mt-3 pt-3 border-t border-white/5">
                                         <div class="flex -space-x-2">
-                                            @foreach($nextEvent->speakers->take(3) as $person)
+                                            @foreach($nextEvent->persons->take(3) as $person)
                                                 <div
                                                     class="w-7 h-7 rounded-full border-2 border-slate-800 overflow-hidden bg-slate-700">
                                                     <img src="{{ $person->avatar_url ?: $person->default_avatar_url }}"
@@ -252,7 +252,7 @@ new class extends Component {
                                                 </div>
                                             @endforeach
                                         </div>
-                                        <span class="text-xs text-slate-400">{{ $nextEvent->speakers->first()->name }}</span>
+                                        <span class="text-xs text-slate-400">{{ $nextEvent->persons->first()->name }}</span>
                                     </div>
                                 @endif
                             </div>
@@ -403,7 +403,7 @@ new class extends Component {
                                 <div class="space-y-2">
                                     @foreach($personEvents as $event)
                                         <a href="{{ route('events.show', $event) }}" wire:navigate
-                                            wire:key="speaker-{{ $event->id }}"
+                                            wire:key="person-{{ $event->id }}"
                                             class="group flex items-center gap-3 bg-white rounded-xl border border-slate-100 hover:border-purple-200 hover:shadow-sm transition-all p-3">
                                             <div
                                                 class="flex-shrink-0 w-10 h-10 rounded-lg bg-purple-50 flex flex-col items-center justify-center">
@@ -416,9 +416,9 @@ new class extends Component {
                                                 <p
                                                     class="text-sm font-semibold text-slate-800 group-hover:text-purple-700 transition-colors line-clamp-1">
                                                     {{ $event->title }}</p>
-                                                @if($event->speakers->isNotEmpty())
+                                                @if($event->persons->isNotEmpty())
                                                     <p class="text-xs text-purple-500 truncate font-medium">
-                                                        {{ $event->speakers->first()->name }}</p>
+                                                        {{ $event->persons->first()->name }}</p>
                                                 @endif
                                             </div>
                                         </a>

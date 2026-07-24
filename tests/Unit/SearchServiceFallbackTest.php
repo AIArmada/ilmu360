@@ -21,14 +21,14 @@ beforeEach(function (): void {
     }
 });
 
-it('falls back to the local speaker search index when typesense lookup fails', function () {
+it('falls back to the local person search index when typesense lookup fails', function () {
     $person = Person::factory()->create([
         'name' => 'Nurul Akma',
         'status' => 'verified',
     ]);
 
     $baseService = app(PersonSearchService::class);
-    $baseService->syncSpeakerRecord($person);
+    $baseService->syncPersonRecord($person);
 
     $service = new class extends PersonSearchService
     {
@@ -55,13 +55,13 @@ it('falls back to the local speaker search index when typesense lookup fails', f
         ->and($queryIds)->toContain((string) $person->id);
 });
 
-it('falls back to local speaker fuzzy search when typesense lookup fails', function () {
+it('falls back to local person fuzzy search when typesense lookup fails', function () {
     $person = Person::factory()->create([
         'name' => 'Samad Al-Bakri',
         'status' => 'verified',
     ]);
 
-    app(PersonSearchService::class)->syncSpeakerRecord($person);
+    app(PersonSearchService::class)->syncPersonRecord($person);
 
     $service = new class extends PersonSearchService
     {
@@ -81,13 +81,13 @@ it('falls back to local speaker fuzzy search when typesense lookup fails', funct
     expect($service->publicFuzzySearchIds('Smad'))->toContain((string) $person->id);
 });
 
-it('keeps transposed speaker typos reachable through fallback candidate filtering', function () {
+it('keeps transposed person typos reachable through fallback candidate filtering', function () {
     $person = Person::factory()->create([
         'name' => 'Ahmad Fauzi',
         'status' => 'verified',
     ]);
 
-    app(PersonSearchService::class)->syncSpeakerRecord($person);
+    app(PersonSearchService::class)->syncPersonRecord($person);
 
     $service = new class extends PersonSearchService
     {
@@ -107,7 +107,7 @@ it('keeps transposed speaker typos reachable through fallback candidate filterin
     expect($service->publicFuzzySearchIds('Ahmda'))->toContain((string) $person->id);
 });
 
-it('keeps exact speaker fuzzy matches inside the capped fallback candidate set', function () {
+it('keeps exact person fuzzy matches inside the capped fallback candidate set', function () {
     $baseService = app(PersonSearchService::class);
 
     foreach (range(1, 5) as $index) {
@@ -122,7 +122,7 @@ it('keeps exact speaker fuzzy matches inside the capped fallback candidate set',
         'status' => 'verified',
     ]);
 
-    $baseService->syncSpeakerRecord($exactPerson);
+    $baseService->syncPersonRecord($exactPerson);
 
     $service = new class extends PersonSearchService
     {
@@ -282,13 +282,13 @@ it('uses scout database search for persons when the database driver is configure
     ]);
 
     $service = app(PersonSearchService::class);
-    $service->syncSpeakerRecord($person);
+    $service->syncPersonRecord($person);
 
     expect($service->publicSearchIds($person->name))->toContain((string) $person->id)
         ->not->toContain((string) $hiddenPerson->id);
 });
 
-it('keeps token-order-insensitive speaker search when the database driver is configured', function () {
+it('keeps token-order-insensitive person search when the database driver is configured', function () {
     config()->set('scout.driver', 'database');
 
     $person = Person::factory()->create([
@@ -297,12 +297,12 @@ it('keeps token-order-insensitive speaker search when the database driver is con
     ]);
 
     $service = app(PersonSearchService::class);
-    $service->syncSpeakerRecord($person);
+    $service->syncPersonRecord($person);
 
     expect($service->publicSearchIds($person->name))->toContain((string) $person->id);
 });
 
-it('keeps local fuzzy speaker search when the database driver is configured', function () {
+it('keeps local fuzzy person search when the database driver is configured', function () {
     config()->set('scout.driver', 'database');
 
     $person = Person::factory()->create([
@@ -316,7 +316,7 @@ it('keeps local fuzzy speaker search when the database driver is configured', fu
     ]);
 
     $service = app(PersonSearchService::class);
-    $service->syncSpeakerRecord($person);
+    $service->syncPersonRecord($person);
 
     expect($service->publicFuzzySearchIds('Smad'))->toContain((string) $person->id)
         ->not->toContain((string) $hiddenPerson->id);
@@ -381,7 +381,7 @@ it('keeps local fuzzy institution search when the database driver is configured'
         ->not->toContain((string) $hiddenInstitution->id);
 });
 
-it('resolves the same speaker ids for public and scoped search flows when the scope matches', function () {
+it('resolves the same person ids for public and scoped search flows when the scope matches', function () {
     config()->set('scout.driver', 'collection');
 
     $person = Person::factory()->create([
@@ -395,7 +395,7 @@ it('resolves the same speaker ids for public and scoped search flows when the sc
     ]);
 
     $service = app(PersonSearchService::class);
-    $service->syncSpeakerRecord($person);
+    $service->syncPersonRecord($person);
 
     $publicIds = $service->resolvedPublicSearchIds('Aisyh');
     $scopedIds = $service->scopedSearchIds(

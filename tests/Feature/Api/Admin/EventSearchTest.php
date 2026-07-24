@@ -92,7 +92,7 @@ describe('Event Search API', function () {
             ->and(data_get($response->json(), 'meta.search.nearby.enabled'))->toBeFalse();
     });
 
-    it('searches by institution, speaker, and reference associations', function () {
+    it('searches by institution, person, and reference associations', function () {
         $admin = eventSearchAdminUser();
 
         Sanctum::actingAs($admin);
@@ -125,10 +125,10 @@ describe('Event Search API', function () {
         ]);
 
         $personEvent->keyPeople()->create([
-            'involveable_type' => 'speaker',
+            'involveable_type' => 'person',
             'involveable_id' => $person->id,
             'display_name' => $person->name,
-            'role_code' => 'speaker',
+            'role_code' => 'person',
             'sort_order' => 1,
         ]);
 
@@ -153,10 +153,10 @@ describe('Event Search API', function () {
         expect(collect(data_get($institutionResponse->json(), 'data', []))->pluck('title')->all())
             ->toContain('API Admin Institution Match Event');
 
-        $speakerResponse = $this->getJson('/api/v1/admin/events/search?query=Akram%20API%20Admin&time_scope=all')
+        $personResponse = $this->getJson('/api/v1/admin/events/search?query=Akram%20API%20Admin&time_scope=all')
             ->assertOk();
 
-        expect(collect(data_get($speakerResponse->json(), 'data', []))->pluck('title')->all())
+        expect(collect(data_get($personResponse->json(), 'data', []))->pluck('title')->all())
             ->toContain('API Admin Person Match Event');
 
         $referenceResponse = $this->getJson('/api/v1/admin/events/search?query=API%20Admin%20Search%20Reference&time_scope=all')

@@ -67,7 +67,7 @@ class DocumentationLibrary
             [
                 'id' => 'docs-event-domain-understanding',
                 'title' => 'ilmu360° Event Domain Understanding',
-                'description' => 'Domain primer for event structure, scheduling, speakers, institutions, and related content semantics.',
+                'description' => 'Domain primer for event structure, scheduling, persons, institutions, and related content semantics.',
                 'relative_path' => 'docs/ilmu360_event_domain_understanding.md',
                 'resource_uri' => 'file://docs/ilmu360_event_domain_understanding.md',
                 'mime_type' => 'text/markdown',

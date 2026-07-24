@@ -21,7 +21,7 @@ it('seeds EventRole rows from EventKeyPersonRole + organizer', function (): void
     expect($organizer)->not->toBeNull()
         ->and($organizer->name)->toBe('Organizer');
 
-    $person = EventRole::query()->where('code', 'speaker')->first();
+    $person = EventRole::query()->where('code', 'person')->first();
     expect($person)->not->toBeNull()
         ->and($person->name)->toBe(EventKeyPersonRole::Speaker->getLabel());
 });

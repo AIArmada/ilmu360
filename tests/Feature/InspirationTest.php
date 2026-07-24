@@ -104,10 +104,10 @@ it('seeds inspirations via InspirationSeeder', function () {
     }
 });
 
-it('shows sidebar inspiration on speaker page', function () {
+it('shows sidebar inspiration on person page', function () {
     Inspiration::factory()->category(InspirationCategory::QuranQuote)->create([
         'title' => 'Test Quran Quote',
-        'content' => 'Test content for speaker page',
+        'content' => 'Test content for person page',
     ]);
 
     $person = Person::factory()->create(['status' => 'verified']);

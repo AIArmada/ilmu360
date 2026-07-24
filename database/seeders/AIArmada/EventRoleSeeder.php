@@ -13,7 +13,7 @@ class EventRoleSeeder extends Seeder
     public function run(): void
     {
         $roles = [
-            'organizer' => ['name' => 'Organizer', 'description' => 'Event organizer (institution/speaker hosting the event)'],
+            'organizer' => ['name' => 'Organizer', 'description' => 'Event organizer (institution/person hosting the event)'],
         ];
 
         foreach (EventKeyPersonRole::cases() as $case) {

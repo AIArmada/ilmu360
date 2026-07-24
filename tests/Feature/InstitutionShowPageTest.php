@@ -190,7 +190,7 @@ it('displays upcoming events for the institution', function () {
         ->assertSee('Kuliah Subuh Lalu');
 });
 
-it('renders institution event cards with localized prayer timing stacked speaker avatars and no institution fallback location', function () {
+it('renders institution event cards with localized prayer timing stacked person avatars and no institution fallback location', function () {
     Storage::fake('public');
     config()->set('media-library.disk_name', 'public');
 
@@ -231,14 +231,14 @@ it('renders institution event cards with localized prayer timing stacked speaker
             'status' => 'verified',
             'name' => 'Ustaz Abdullah Fahmi',
         ]);
-        $person->addMedia(UploadedFile::fake()->image('speaker-one.jpg', 320, 320))
+        $person->addMedia(UploadedFile::fake()->image('person-one.jpg', 320, 320))
             ->toMediaCollection('avatar');
 
         $secondPerson = Person::factory()->create([
             'status' => 'verified',
             'name' => 'Ustaz Ahmad Razak',
         ]);
-        $secondPerson->addMedia(UploadedFile::fake()->image('speaker-two.jpg', 320, 320))
+        $secondPerson->addMedia(UploadedFile::fake()->image('person-two.jpg', 320, 320))
             ->toMediaCollection('avatar');
 
         $moderator = Person::factory()->create([
@@ -247,7 +247,7 @@ it('renders institution event cards with localized prayer timing stacked speaker
         ]);
 
         $event->keyPeople()->create([
-            'involveable_type' => 'speaker',
+            'involveable_type' => 'person',
             'involveable_id' => $person->id,
             'role_code' => EventKeyPersonRole::Speaker->value,
             'sort_order' => 1,
@@ -255,7 +255,7 @@ it('renders institution event cards with localized prayer timing stacked speaker
         ]);
 
         $event->keyPeople()->create([
-            'involveable_type' => 'speaker',
+            'involveable_type' => 'person',
             'involveable_id' => $secondPerson->id,
             'role_code' => EventKeyPersonRole::Speaker->value,
             'sort_order' => 2,
@@ -263,7 +263,7 @@ it('renders institution event cards with localized prayer timing stacked speaker
         ]);
 
         $event->keyPeople()->create([
-            'involveable_type' => 'speaker',
+            'involveable_type' => 'person',
             'involveable_id' => $moderator->id,
             'role_code' => EventKeyPersonRole::Moderator->value,
             'sort_order' => 3,
@@ -362,7 +362,7 @@ it('renders the book title on institution event cards without parentheses', func
         ->not->toContain('Artikel Dakwah Semasa');
 });
 
-it('renders institution event cards cleanly when an event has no speakers', function () {
+it('renders institution event cards cleanly when an event has no persons', function () {
     $institution = Institution::factory()->create([
         'name' => 'Akademi Tahfiz Tanpa Penceramah',
         'status' => 'verified',
@@ -411,7 +411,7 @@ it('uses stronger calendar event colors on institution page', function () {
         ->assertDontSee('bg-emerald-50 text-emerald-700 hover:bg-emerald-100', false);
 });
 
-it('displays affiliated speakers', function () {
+it('displays affiliated persons', function () {
     $institution = Institution::factory()->create(['status' => 'verified']);
 
     $person = Person::factory()->create([
@@ -419,7 +419,7 @@ it('displays affiliated speakers', function () {
         'name' => 'Ustaz Ahmad bin Abdullah',
     ]);
 
-    $institution->speakers()->attach($person, [
+    $institution->persons()->attach($person, [
         'position' => 'Imam Besar',
         'is_primary' => true,
     ]);

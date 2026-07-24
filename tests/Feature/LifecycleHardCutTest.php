@@ -106,7 +106,7 @@ it('records distinct contribution request timestamps', function () {
         ->and($cancelled->last_state_change_at)->not->toBeNull();
 });
 
-it('uses status for speaker listing instead of is_active column', function () {
+it('uses status for person listing instead of is_active column', function () {
     expect(Schema::hasColumn('persons', 'is_active'))->toBeFalse()
         ->and(Schema::hasColumn('persons', 'verified_at'))->toBeTrue()
         ->and(Schema::hasColumn('persons', 'inactive_at'))->toBeTrue();
@@ -154,7 +154,7 @@ it('centralises report status timestamps on transition', function () {
     $person = Person::factory()->create(['status' => 'verified']);
 
     $report = app(SaveReportAction::class)->handle([
-        'entity_type' => 'speaker',
+        'entity_type' => 'person',
         'entity_id' => (string) $person->getKey(),
         'category' => 'wrong_info',
         'description' => 'Test report',
@@ -166,7 +166,7 @@ it('centralises report status timestamps on transition', function () {
         ->and($report->resolved_at)->toBeNull();
 
     $resolved = app(SaveReportAction::class)->handle([
-        'entity_type' => 'speaker',
+        'entity_type' => 'person',
         'entity_id' => (string) $person->getKey(),
         'category' => 'wrong_info',
         'description' => 'Test report',
@@ -177,7 +177,7 @@ it('centralises report status timestamps on transition', function () {
         ->and($resolved->resolved_at)->not->toBeNull();
 
     $dismissed = app(SaveReportAction::class)->handle([
-        'entity_type' => 'speaker',
+        'entity_type' => 'person',
         'entity_id' => (string) $person->getKey(),
         'category' => 'wrong_info',
         'description' => 'Test report',

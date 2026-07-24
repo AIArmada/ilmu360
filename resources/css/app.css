@@ -237,7 +237,7 @@
     }
 }
 
-/* Speaker hero — ambient floating orbs */
+/* Person hero — ambient floating orbs */
 @keyframes float-drift {
     0%, 100% { transform: translate(0, 0) scale(1); }
     25% { transform: translate(12px, -18px) scale(1.05); }

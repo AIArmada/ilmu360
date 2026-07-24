@@ -18,7 +18,7 @@ beforeEach(function (): void {
     app(PermissionRegistrar::class)->forgetCachedPermissions();
 });
 
-it('denies ahli panel access to users without any institution, speaker, reference, or event membership', function () {
+it('denies ahli panel access to users without any institution, person, reference, or event membership', function () {
     $user = User::factory()->create();
 
     expect($user->canAccessPanel(Panel::make()->id('ahli')))->toBeFalse();
@@ -33,7 +33,7 @@ it('allows ahli panel access to institution members', function () {
     expect($user->canAccessPanel(Panel::make()->id('ahli')))->toBeTrue();
 });
 
-it('allows ahli panel access to speaker members', function () {
+it('allows ahli panel access to person members', function () {
     $user = User::factory()->create();
     $person = Person::factory()->create();
 

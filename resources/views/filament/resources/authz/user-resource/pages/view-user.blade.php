@@ -156,7 +156,7 @@
                 </div>
                 <div>
                     <div class="text-sm text-gray-500">Memberships</div>
-                    <div class="text-2xl font-semibold text-gray-950 dark:text-white">{{ $user->institutions->count() + $user->speakers->count() + $user->memberEvents->count() + $user->references->count() }}</div>
+                    <div class="text-2xl font-semibold text-gray-950 dark:text-white">{{ $user->institutions->count() + $user->persons->count() + $user->memberEvents->count() + $user->references->count() }}</div>
                 </div>
                 <div>
                     <div class="text-sm text-gray-500">Saved Searches</div>
@@ -310,19 +310,19 @@
                 </div>
             </x-filament::section>
 
-            <x-filament::section heading="Following Speakers">
+            <x-filament::section heading="Following Persons">
                 <div class="space-y-4">
-                    @forelse ($user->followingSpeakers as $person)
+                    @forelse ($user->followingPersons as $person)
                         <div class="rounded-xl border border-gray-200 p-4 dark:border-white/10">
                             <div class="flex items-start justify-between gap-3">
-                                <a href="{{ $this->speakerUrl($person) }}" class="font-medium text-primary-600 hover:underline">
+                                <a href="{{ $this->personUrl($person) }}" class="font-medium text-primary-600 hover:underline">
                                     {{ $person->name }}
                                 </a>
                                 <x-filament::badge :color="$this->entityStatusBadgeColor($person->status)">{{ $this->humanLabel($person->status) }}</x-filament::badge>
                             </div>
                         </div>
                     @empty
-                        <div class="text-sm text-gray-500">Not following any speakers.</div>
+                        <div class="text-sm text-gray-500">Not following any persons.</div>
                     @endforelse
                 </div>
             </x-filament::section>
@@ -363,19 +363,19 @@
                 </div>
             </x-filament::section>
 
-            <x-filament::section heading="Speaker Memberships">
+            <x-filament::section heading="Person Memberships">
                 <div class="space-y-4">
-                    @forelse ($user->speakers as $person)
+                    @forelse ($user->persons as $person)
                         <div class="rounded-xl border border-gray-200 p-4 dark:border-white/10">
                             <div class="flex items-start justify-between gap-3">
-                                <a href="{{ $this->speakerUrl($person) }}" class="font-medium text-primary-600 hover:underline">
+                                <a href="{{ $this->personUrl($person) }}" class="font-medium text-primary-600 hover:underline">
                                     {{ $person->name }}
                                 </a>
                                 <x-filament::badge :color="$this->entityStatusBadgeColor($person->status)">{{ $this->humanLabel($person->status) }}</x-filament::badge>
                             </div>
                         </div>
                     @empty
-                        <div class="text-sm text-gray-500">No speaker memberships.</div>
+                        <div class="text-sm text-gray-500">No person memberships.</div>
                     @endforelse
                 </div>
             </x-filament::section>

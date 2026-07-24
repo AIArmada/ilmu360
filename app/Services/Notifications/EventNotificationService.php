@@ -447,7 +447,7 @@ class EventNotificationService
      */
     protected function changeAnnouncementRecipients(Event $event): Collection
     {
-        $event->loadMissing(['institution', 'primaryOrganizerInvolvement.involveable', 'speakers']);
+        $event->loadMissing(['institution', 'primaryOrganizerInvolvement.involveable', 'persons']);
 
         $recipients = collect()
             ->merge($this->trackedUsers($event))
@@ -550,7 +550,7 @@ class EventNotificationService
         $event->loadMissing('personKeyPeople.person.followers');
 
         $this->dispatchFollowedEntityNotifications(
-            trigger: NotificationTrigger::FollowedSpeakerEvent,
+            trigger: NotificationTrigger::FollowedPersonEvent,
             event: $event,
             followables: $event->personKeyPeople
                 ->pluck('person')

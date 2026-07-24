@@ -176,8 +176,8 @@ class ModerationQueue extends Page implements HasTable
                         'unverified' => 'gray',
                         default => 'gray',
                     }),
-                TextColumn::make('speakers_status')
-                    ->label('Speakers Status')
+                TextColumn::make('persons_status')
+                    ->label('Persons Status')
                     ->badge()
                     ->state(function (Event $record): string {
                         $total = $record->persons->count();
@@ -291,7 +291,7 @@ class ModerationQueue extends Page implements HasTable
                                 'spam' => 'Spam',
                                 'wrong_category' => 'Wrong Category',
                                 'inaccurate_details' => 'Inaccurate Details',
-                                'missing_speaker' => 'Missing Speaker Information',
+                                'missing_person' => 'Missing Person Information',
                                 'missing_venue' => 'Missing Venue Information',
                                 'other' => 'Other',
                             ])
@@ -339,7 +339,7 @@ class ModerationQueue extends Page implements HasTable
                                 'inappropriate' => 'Inappropriate Content',
                                 'wrong_category' => 'Wrong Category',
                                 'inaccurate_details' => 'Inaccurate Details',
-                                'missing_speaker' => 'Missing Speaker Information',
+                                'missing_person' => 'Missing Person Information',
                                 'missing_venue' => 'Missing Venue Information',
                                 'other' => 'Other',
                             ])
@@ -420,7 +420,7 @@ class ModerationQueue extends Page implements HasTable
     protected function getTableQuery(): Builder
     {
         $query = Event::query()
-            ->with(['institution', 'venue', 'speakers', 'references', 'addresses.country', 'latestModerationReview', 'escalations'])
+            ->with(['institution', 'venue', 'persons', 'references', 'addresses.country', 'latestModerationReview', 'escalations'])
             ->withCount([
                 'reports as open_reports_count' => fn (Builder $reportQuery) => $reportQuery->where('status', 'open'),
             ]);

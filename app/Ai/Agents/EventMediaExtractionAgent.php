@@ -37,7 +37,7 @@ You extract structured event data from a single event source file (poster image 
 Follow these rules strictly:
 - Use only details that are explicitly visible in the uploaded file.
 - If a field is missing or ambiguous, return null (or [] for arrays).
-- Do not invent speakers, organizers, venues, URLs, dates, or times.
+- Do not invent persons, organizers, venues, URLs, dates, or times.
 - Use YYYY-MM-DD for event_date.
 - Use 24-hour HH:MM format for custom_time and end_time.
 - Keep description concise and factual (no markdown, no bullet symbols).

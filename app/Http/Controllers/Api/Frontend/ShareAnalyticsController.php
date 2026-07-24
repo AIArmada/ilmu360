@@ -35,7 +35,7 @@ class ShareAnalyticsController extends FrontendController
         title: 'Get share analytics dashboard',
         description: 'Returns the authenticated share dashboard data used by the web Dawah impact view, including summary metrics, channel breakdowns, top shared subjects, top links, recent responses, and a paginated link library for iOS and Android clients.',
     )]
-    #[QueryParameter('type', 'Optional shared subject filter. Supported values match the web dashboard: all, event, institution, speaker, series, reference, search, page.', required: false, type: 'string', infer: false, default: 'all', example: 'event')]
+    #[QueryParameter('type', 'Optional shared subject filter. Supported values match the web dashboard: all, event, institution, person, series, reference, search, page.', required: false, type: 'string', infer: false, default: 'all', example: 'event')]
     #[QueryParameter('sort', 'Optional link sort mode. Supported values: recent, visits, signups, registrations, checkins, submissions.', required: false, type: 'string', infer: false, default: 'recent', example: 'visits')]
     #[QueryParameter('status', 'Optional link activity filter. Supported values: all, active, inactive.', required: false, type: 'string', infer: false, default: 'all', example: 'active')]
     #[QueryParameter('outcome', 'Optional outcome filter. Supported values: all, signup, event_registration, event_checkin, event_submission, event_save, event_going, institution_follow, person_follow, series_follow, reference_follow, saved_search_created.', required: false, type: 'string', infer: false, default: 'all', example: 'signup')]

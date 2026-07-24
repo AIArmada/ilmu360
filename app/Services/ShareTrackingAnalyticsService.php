@@ -250,7 +250,7 @@ final readonly class ShareTrackingAnalyticsService
         return match ($subjectType) {
             'event' => __('Events'),
             'institution' => __('Institutions'),
-            'speaker' => __('Speakers'),
+            'person' => __('Speakers'),
             'series' => __('Series'),
             'reference' => __('References'),
             'search' => __('Search Results'),

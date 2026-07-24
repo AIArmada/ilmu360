@@ -7,7 +7,7 @@
     $summary = $this->summaryStats;
     $savedEvents = $this->savedEvents;
     $goingEvents = $this->goingEvents;
-    $followingSpeakers = $this->followingSpeakers;
+    $followingPersons = $this->followingPersons;
     $followingReferences = $this->followingReferences;
     $followingInstitutions = $this->followingInstitutions;
     $recentSavedSearches = $this->recentSavedSearches;
@@ -81,7 +81,7 @@
         ],
         [
             'label' => __('Penceramah Diikuti'),
-            'value' => $followingSpeakers->count(),
+            'value' => $followingPersons->count(),
             'icon' => 'M15 7a3 3 0 11-6 0 3 3 0 016 0zM4 21a8 8 0 0116 0',
             'class' => 'bg-teal-50 text-teal-700',
         ],
@@ -118,11 +118,11 @@
         ],
         [
             'label' => __('Penceramah'),
-            'count' => $followingSpeakers->count(),
+            'count' => $followingPersons->count(),
             'description' => __('Ulama dan ustaz yang saya ikuti'),
             'url' => route('persons.index'),
-            'type' => 'speaker',
-            'images' => $followingSpeakers->map(fn($s) => $s->public_avatar_url)->filter()->values()->take(4)->all(),
+            'type' => 'person',
+            'images' => $followingPersons->map(fn($s) => $s->public_avatar_url)->filter()->values()->take(4)->all(),
             'placeholder' => asset('images/placeholders/person.png'),
         ],
         [
@@ -375,7 +375,7 @@
                                         $panelImages = $panel['images'] ?? [];
                                         $panelPlaceholder = $panel['placeholder'] ?? '';
                                     @endphp
-                                    @if($panelType === 'speaker' && count($panelImages) > 0)
+                                    @if($panelType === 'person' && count($panelImages) > 0)
                                         <div class="flex h-full w-full items-center justify-center bg-[#f7f3ea]">
                                             <div class="flex items-center -space-x-4">
                                                 @foreach(array_slice($panelImages, 0, 3) as $idx => $imgUrl)

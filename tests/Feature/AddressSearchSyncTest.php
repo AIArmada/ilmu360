@@ -9,7 +9,7 @@ use Laravel\Scout\Jobs\MakeSearchable;
 
 uses(RefreshDatabase::class);
 
-it('queues speaker reindexing when a speaker address changes', function () {
+it('queues person reindexing when a person address changes', function () {
     Queue::fake();
     config()->set('scout.queue', [
         'connection' => 'sync',

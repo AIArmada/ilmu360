@@ -35,7 +35,7 @@ class PersonPolicy
             return true;
         }
 
-        return app(MemberPermissionGate::class)->canPerson($user, 'speaker.view', $person);
+        return app(MemberPermissionGate::class)->canPerson($user, 'person.view', $person);
     }
 
     /**
@@ -57,7 +57,7 @@ class PersonPolicy
             return true;
         }
 
-        return app(MemberPermissionGate::class)->canPerson($user, 'speaker.update', $person);
+        return app(MemberPermissionGate::class)->canPerson($user, 'person.update', $person);
     }
 
     /**
@@ -70,7 +70,7 @@ class PersonPolicy
             return true;
         }
 
-        return app(MemberPermissionGate::class)->canPerson($user, 'speaker.delete', $person);
+        return app(MemberPermissionGate::class)->canPerson($user, 'person.delete', $person);
     }
 
     /**
@@ -82,6 +82,6 @@ class PersonPolicy
             return true;
         }
 
-        return app(MemberPermissionGate::class)->canPerson($user, 'speaker.manage-members', $person);
+        return app(MemberPermissionGate::class)->canPerson($user, 'person.manage-members', $person);
     }
 }

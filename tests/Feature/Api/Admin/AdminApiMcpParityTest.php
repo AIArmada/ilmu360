@@ -33,7 +33,7 @@ use Laravel\Mcp\Server\Testing\TestResponse as McpTestResponse;
 use Laravel\Sanctum\Sanctum;
 use Spatie\Permission\PermissionRegistrar;
 
-it('keeps admin api and admin mcp speaker search results aligned', function () {
+it('keeps admin api and admin mcp person search results aligned', function () {
     $admin = parityAdminUser('super_admin');
     $matchingPerson = Person::factory()->create([
         'name' => 'Admin Parity Person Match',
@@ -54,7 +54,7 @@ it('keeps admin api and admin mcp speaker search results aligned', function () {
 
     $mcpResponse = AdminServer::actingAs($admin)
         ->tool(AdminListRecordsTool::class, [
-            'resource_key' => 'speakers',
+            'resource_key' => 'persons',
             'search' => 'syeikhul maqari',
         ])
         ->assertOk();
@@ -118,7 +118,7 @@ it('keeps admin api and admin mcp related record listings aligned', function () 
         'title' => 'Admin Parity Nested Event '.Str::ulid(),
     ]);
 
-    $matchingEvent->speakers()->attach($person);
+    $matchingEvent->persons()->attach($person);
 
     Sanctum::actingAs($admin);
 
@@ -127,7 +127,7 @@ it('keeps admin api and admin mcp related record listings aligned', function () 
 
     $mcpResponse = AdminServer::actingAs($admin)
         ->tool(AdminListRelatedRecordsTool::class, [
-            'resource_key' => 'speakers',
+            'resource_key' => 'persons',
             'record_key' => (string) $person->getKey(),
             'relation' => 'events',
             'search' => $matchingEvent->title,
@@ -166,7 +166,7 @@ it('keeps admin api and admin mcp validate-only update previews aligned', functi
 
     $mcpResponse = AdminServer::actingAs($admin)
         ->tool(AdminUpdateRecordTool::class, [
-            'resource_key' => 'speakers',
+            'resource_key' => 'persons',
             'record_key' => (string) $person->getKey(),
             'validate_only' => true,
             'payload' => $payload,

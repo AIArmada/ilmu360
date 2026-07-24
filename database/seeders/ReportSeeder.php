@@ -29,7 +29,7 @@ class ReportSeeder extends Seeder
         $categories = [
             'wrong_info',
             'cancelled_not_updated',
-            'fake_speaker',
+            'fake_person',
             'inappropriate_content',
             'donation_scam',
             'other',

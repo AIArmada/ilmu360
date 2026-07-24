@@ -27,7 +27,7 @@ class ResourceController extends Controller
         private readonly AdminWriteValidationFeedback $validationFeedback,
     ) {}
 
-    #[PathParameter('resourceKey', 'Admin resource key from `GET /admin/manifest`, for example `events`, `institutions`, or `speakers`.', example: 'events')]
+    #[PathParameter('resourceKey', 'Admin resource key from `GET /admin/manifest`, for example `events`, `institutions`, or `persons`.', example: 'events')]
     #[Endpoint(
         title: 'Get admin resource metadata',
         description: 'Returns metadata for a single admin resource, including read and write support flags and related API routes.',
@@ -37,11 +37,11 @@ class ResourceController extends Controller
         return response()->json($this->resourceService->resourceMeta($resourceKey));
     }
 
-    #[PathParameter('resourceKey', 'Admin resource key from `GET /admin/manifest`, for example `events`, `institutions`, or `speakers`.', example: 'events')]
+    #[PathParameter('resourceKey', 'Admin resource key from `GET /admin/manifest`, for example `events`, `institutions`, or `persons`.', example: 'events')]
     #[QueryParameter('search', 'Optional free-text search across the resource\'s searchable columns.', required: false, type: 'string', infer: false, example: 'maghrib')]
-    #[QueryParameter('filter[status]', 'Optional status filter for resources that expose a status filter. Speakers accept `pending`, `verified`, `rejected`, and `inactive`; events accept `draft`, `pending`, `needs_changes`, `approved`, `cancelled`, and `rejected`.', required: false, type: 'string', infer: false, example: 'verified')]
+    #[QueryParameter('filter[status]', 'Optional status filter for resources that expose a status filter. Persons accept `pending`, `verified`, `rejected`, and `inactive`; events accept `draft`, `pending`, `needs_changes`, `approved`, `cancelled`, and `rejected`.', required: false, type: 'string', infer: false, example: 'verified')]
     #[QueryParameter('filter[published]', 'Optional published-state filter for event resources. Use `true` for events with `published_at` set and `false` for unpublished events.', required: false, type: 'boolean', infer: false, example: true)]
-    #[QueryParameter('filter[has_events]', 'Optional event-history filter for speaker resources. Use `true` for speakers linked to at least one event and `false` for speakers with no linked events.', required: false, type: 'boolean', infer: false, example: true)]
+    #[QueryParameter('filter[has_events]', 'Optional event-history filter for person resources. Use `true` for persons linked to at least one event and `false` for persons with no linked events.', required: false, type: 'boolean', infer: false, example: true)]
     #[QueryParameter('filter[visibility]', 'Optional visibility filter for event resources. Accepts `public`, `private`, or `unlisted`.', required: false, type: 'string', infer: false, example: 'public')]
     #[QueryParameter('filter[event_format]', 'Optional event-format filter for event resources. Accepts `physical`, `online`, or `hybrid`.', required: false, type: 'string', infer: false, example: 'online')]
     #[QueryParameter('filter[event_category_ids]', 'Optional event-category term UUID filter. Parent terms include descendants.', required: false, type: 'string', infer: false)]
@@ -71,9 +71,9 @@ class ResourceController extends Controller
         ));
     }
 
-    #[PathParameter('resourceKey', 'Admin resource key from `GET /admin/manifest`, for example `events`, `institutions`, or `speakers`.', example: 'events')]
+    #[PathParameter('resourceKey', 'Admin resource key from `GET /admin/manifest`, for example `events`, `institutions`, or `persons`.', example: 'events')]
     #[PathParameter('recordKey', 'Existing admin record route key returned by the collection or record endpoints.', example: '0195b86a-3c15-73fa-a2d8-5a45f6a7f701')]
-    #[PathParameter('relation', 'Admin relation key from the resource metadata `relations` list. Use the exact key returned by `GET /admin/{resourceKey}/meta`.', example: 'speakers')]
+    #[PathParameter('relation', 'Admin relation key from the resource metadata `relations` list. Use the exact key returned by `GET /admin/{resourceKey}/meta`.', example: 'persons')]
     #[QueryParameter('search', 'Optional free-text search across the related resource or related model columns.', required: false, type: 'string', infer: false, example: 'maghrib')]
     #[QueryParameter('page', 'Pagination page number.', required: false, type: 'integer', infer: false, default: 1, example: 1)]
     #[QueryParameter('per_page', 'Pagination page size. Values are clamped to the server\'s allowed range.', required: false, type: 'integer', infer: false, default: 15, example: 15)]
@@ -94,7 +94,7 @@ class ResourceController extends Controller
         ));
     }
 
-    #[PathParameter('resourceKey', 'Admin resource key from `GET /admin/manifest`, for example `events`, `institutions`, or `speakers`.', example: 'events')]
+    #[PathParameter('resourceKey', 'Admin resource key from `GET /admin/manifest`, for example `events`, `institutions`, or `persons`.', example: 'events')]
     #[QueryParameter('operation', 'Schema mode. Use `create` for new records or `update` for existing records.', required: false, type: 'string', infer: false, default: 'create', example: 'update')]
     #[QueryParameter('recordKey', 'Required when `operation=update`. Use the record route key returned by the admin collection or record endpoints.', required: false, type: 'string', infer: false, example: '0195b86a-3c15-73fa-a2d8-5a45f6a7f701')]
     #[Endpoint(
@@ -113,7 +113,7 @@ class ResourceController extends Controller
         ));
     }
 
-    #[PathParameter('resourceKey', 'Writable admin resource key from `GET /admin/manifest`.', example: 'speakers')]
+    #[PathParameter('resourceKey', 'Writable admin resource key from `GET /admin/manifest`.', example: 'persons')]
     #[QueryParameter('validate_only', 'When true, validates and normalizes the payload without persisting changes. Successful responses return a preview envelope; validation failures return schema-driven `feedback` hints plus remediation details such as `fix_plan`, `remaining_blockers`, `normalized_payload_preview`, and `can_retry`.', required: false, type: 'boolean', infer: false, default: false, example: false)]
     #[QueryParameter('apply_defaults', 'When true together with `validate_only`, the server applies schema defaults before validating and returns the candidate normalized payload in validation feedback.', required: false, type: 'boolean', infer: false, default: false, example: false)]
     #[Endpoint(
@@ -169,7 +169,7 @@ class ResourceController extends Controller
         }
     }
 
-    #[PathParameter('resourceKey', 'Writable admin resource key from `GET /admin/manifest`.', example: 'speakers')]
+    #[PathParameter('resourceKey', 'Writable admin resource key from `GET /admin/manifest`.', example: 'persons')]
     #[PathParameter('recordKey', 'Existing admin record route key returned by the collection or record endpoints.', example: '0195b86a-3c15-73fa-a2d8-5a45f6a7f701')]
     #[QueryParameter('validate_only', 'When true, validates and normalizes the payload without persisting changes. Successful responses include the current record snapshot and destructive media clear-flag warnings; validation failures return schema-driven `feedback` hints plus remediation details such as `fix_plan`, `remaining_blockers`, `normalized_payload_preview`, and `can_retry`.', required: false, type: 'boolean', infer: false, default: false, example: false)]
     #[QueryParameter('apply_defaults', 'When true together with `validate_only`, the server applies schema defaults before validating and returns the candidate normalized payload in validation feedback.', required: false, type: 'boolean', infer: false, default: false, example: false)]
@@ -237,7 +237,7 @@ class ResourceController extends Controller
         return response()->json($this->resourceService->showRecord($resourceKey, $recordKey, includeResourceMeta: true));
     }
 
-    #[PathParameter('resourceKey', 'Writable admin resource key from `GET /admin/manifest`.', example: 'speakers')]
+    #[PathParameter('resourceKey', 'Writable admin resource key from `GET /admin/manifest`.', example: 'persons')]
     #[QueryParameter('validate_only', 'When true, validates all items without persisting any changes. Returns per-row preview or validation error details.', required: false, type: 'boolean', infer: false, default: false, example: false)]
     #[Endpoint(
         title: 'Batch create admin resource records',
@@ -273,7 +273,7 @@ class ResourceController extends Controller
         );
     }
 
-    #[PathParameter('resourceKey', 'Writable admin resource key from `GET /admin/manifest`.', example: 'speakers')]
+    #[PathParameter('resourceKey', 'Writable admin resource key from `GET /admin/manifest`.', example: 'persons')]
     #[QueryParameter('validate_only', 'When true, validates all items without persisting any changes. Returns per-row preview or validation error details.', required: false, type: 'boolean', infer: false, default: false, example: false)]
     #[Endpoint(
         title: 'Batch update admin resource records',

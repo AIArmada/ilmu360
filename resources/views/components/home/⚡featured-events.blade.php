@@ -23,7 +23,7 @@ new class extends Component
                 'institution.media' => fn ($query) => $query
                     ->where('collection_name', 'logo')
                     ->ordered(),
-                'speakers.media' => fn ($query) => $query
+                'persons.media' => fn ($query) => $query
                     ->where('collection_name', 'avatar')
                     ->ordered(),
             ])
@@ -138,9 +138,9 @@ new class extends Component
                                         </p>
                                     @endif
 
-                                    @if($event->speakers->isNotEmpty())
+                                    @if($event->persons->isNotEmpty())
                                         <p class="text-sm text-slate-500 mb-3 truncate">
-                                            <span class="text-emerald-600">●</span> {{ $event->speakers->first()?->name }}
+                                            <span class="text-emerald-600">●</span> {{ $event->persons->first()?->name }}
                                         </p>
                                     @endif
 

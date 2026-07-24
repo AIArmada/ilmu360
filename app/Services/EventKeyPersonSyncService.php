@@ -16,10 +16,10 @@ class EventKeyPersonSyncService
     ) {}
 
     /**
-     * @param  list<string>  $speakerIds
+     * @param  list<string>  $personIds
      * @param  list<array<string, mixed>>  $otherKeyPeople  Canonical key-person rows.
      */
-    public function sync(Event $event, array $speakerIds = [], array $otherKeyPeople = []): void
+    public function sync(Event $event, array $personIds = [], array $otherKeyPeople = []): void
     {
         $event->keyPeople()->delete();
 
@@ -27,12 +27,12 @@ class EventKeyPersonSyncService
 
         $base = ['status' => 'active', 'visibility' => 'public'];
 
-        foreach ($this->normalizeSpeakerIds($speakerIds) as $speakerId) {
+        foreach ($this->normalizePersonIds($personIds) as $personId) {
             EventKeyPerson::query()->forceCreate($base + [
                 'id' => (string) Str::uuid(),
                 'event_id' => $event->id,
                 'involveable_type' => 'person',
-                'involveable_id' => $speakerId,
+                'involveable_id' => $personId,
                 'role_code' => EventKeyPersonRole::Speaker->value,
                 'sort_order' => $order++,
             ]);
@@ -56,13 +56,13 @@ class EventKeyPersonSyncService
     }
 
     /**
-     * @param  list<string|int|mixed>  $speakerIds
+     * @param  list<string|int|mixed>  $personIds
      * @return list<string>
      */
-    protected function normalizeSpeakerIds(array $speakerIds): array
+    protected function normalizePersonIds(array $personIds): array
     {
-        return collect($speakerIds)
-            ->filter(fn (mixed $speakerId): bool => is_string($speakerId) && $speakerId !== '')
+        return collect($personIds)
+            ->filter(fn (mixed $personId): bool => is_string($personId) && $personId !== '')
             ->unique()
             ->values()
             ->all();

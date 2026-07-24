@@ -39,7 +39,7 @@ class NotificationCatalog
                     NotificationChannel::InApp->value,
                 ],
                 'triggers' => [
-                    NotificationTrigger::FollowedSpeakerEvent->value,
+                    NotificationTrigger::FollowedPersonEvent->value,
                     NotificationTrigger::FollowedInstitutionEvent->value,
                     NotificationTrigger::FollowedSeriesEvent->value,
                     NotificationTrigger::FollowedReferenceEvent->value,
@@ -171,10 +171,10 @@ class NotificationCatalog
     public static function triggers(): array
     {
         return [
-            NotificationTrigger::FollowedSpeakerEvent->value => self::buildTriggerDefinition(
-                NotificationTrigger::FollowedSpeakerEvent,
+            NotificationTrigger::FollowedPersonEvent->value => self::buildTriggerDefinition(
+                NotificationTrigger::FollowedPersonEvent,
                 NotificationFamily::FollowedContent,
-                'followed_speaker_event',
+                'followed_person_event',
                 NotificationCadence::Daily,
                 [NotificationChannel::Email->value, NotificationChannel::InApp->value, NotificationChannel::Push->value],
                 [NotificationChannel::Email->value, NotificationChannel::InApp->value],

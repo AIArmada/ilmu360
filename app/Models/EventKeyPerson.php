@@ -41,14 +41,6 @@ class EventKeyPerson extends EventInvolvement
         return $this->belongsTo(Person::class, 'involveable_id');
     }
 
-    /**
-     * @return BelongsTo<Person, $this>
-     */
-    public function speaker(): BelongsTo
-    {
-        return $this->person();
-    }
-
     public function getResolvedNameAttribute(): string
     {
         $person = $this->getRelationValue('person');

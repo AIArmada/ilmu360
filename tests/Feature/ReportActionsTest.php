@@ -39,13 +39,13 @@ it('resolves report form context for public subjects through the action layer', 
 
     $institutionContext = app(ResolveReportFormContextAction::class)->handle('institution', $institution);
     $eventContext = app(ResolveReportFormContextAction::class)->handle('event', $event);
-    $speakerContext = app(ResolveReportFormContextAction::class)->handle('speaker', $person);
+    $personContext = app(ResolveReportFormContextAction::class)->handle('person', $person);
 
     expect($institutionContext['subject_label'])->toBe(__('Institution'))
         ->and($institutionContext['subject_title'])->toBe($institution->name)
         ->and($institutionContext['category_options'])->toHaveKey('fake_institution', __('Fake institution'))
         ->and($institutionContext['redirect_url'])->toBe(route('institutions.show', $institution))
-        ->and($speakerContext['subject_title'])->toBe($person->formatted_name)
+        ->and($personContext['subject_title'])->toBe($person->formatted_name)
         ->and($eventContext['default_category'])->toBe('wrong_info')
         ->and($eventContext['subject_title'])->toBe($event->title)
         ->and($eventContext['redirect_url'])->toBe(route('events.show', $event));

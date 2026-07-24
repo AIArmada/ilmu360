@@ -193,7 +193,7 @@ final readonly class ShareTrackingUrlService
             $subject instanceof Person => [
                 'subject_type' => DawahShareSubjectType::Person->value,
                 'subject_id' => $subject->id,
-                'subject_key' => 'speaker:'.$subject->id,
+                'subject_key' => 'person:'.$subject->id,
             ],
             $subject instanceof Series => [
                 'subject_type' => DawahShareSubjectType::Series->value,
@@ -396,7 +396,7 @@ final readonly class ShareTrackingUrlService
         return match ($routeName) {
             'events.show' => $this->eventTarget((string) ($parameters['event'] ?? '')),
             'institutions.show' => $this->institutionTarget((string) ($parameters['institution'] ?? '')),
-            'persons.show' => $this->speakerTarget((string) ($parameters['speaker'] ?? '')),
+            'persons.show' => $this->personTarget((string) ($parameters['person'] ?? '')),
             'series.show' => $this->seriesTarget((string) ($parameters['series'] ?? '')),
             'references.show' => $this->referenceTarget((string) ($parameters['reference'] ?? '')),
             'events.index' => $this->searchOrPageTarget($query, $fallbackTitle),
@@ -503,11 +503,11 @@ final readonly class ShareTrackingUrlService
      *     metadata: array<string, mixed>
      * }
      */
-    private function speakerTarget(string $slug): array
+    private function personTarget(string $slug): array
     {
-        $speaker = Person::query()->where('slug', $slug)->first();
+        $person = Person::query()->where('slug', $slug)->first();
 
-        if (! $speaker instanceof Person) {
+        if (! $person instanceof Person) {
             return $this->subjectResult(
                 DawahShareSubjectType::Page,
                 null,
@@ -521,12 +521,12 @@ final readonly class ShareTrackingUrlService
 
         return $this->subjectResult(
             DawahShareSubjectType::Person,
-            $speaker->id,
-            'speaker:'.$speaker->id,
-            route('persons.show', $speaker),
-            route('persons.show', $speaker),
-            $speaker->formatted_name,
-            ['slug' => $speaker->slug],
+            $person->id,
+            'person:'.$person->id,
+            route('persons.show', $person),
+            route('persons.show', $person),
+            $person->formatted_name,
+            ['slug' => $person->slug],
         );
     }
 

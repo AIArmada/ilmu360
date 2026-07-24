@@ -36,8 +36,8 @@ class CreateAdvancedEventAction
         ?string $locationInstitutionId,
     ): Event {
         return DB::transaction(function () use ($user, $form, $startsAt, $endsAt, $timezone, $primaryOrganizer, $locationInstitutionId): Event {
-            $speakerSlugSegments = $primaryOrganizer instanceof Person
-                ? app(GenerateEventSlugAction::class)->speakerSlugSegmentsForSpeakerIds([(string) $primaryOrganizer->getKey()])
+            $personSlugSegments = $primaryOrganizer instanceof Person
+                ? app(GenerateEventSlugAction::class)->personSlugSegmentsForPersonIds([(string) $primaryOrganizer->getKey()])
                 : [];
 
             $event = Event::query()->create([
@@ -49,7 +49,7 @@ class CreateAdvancedEventAction
                     $startsAt,
                     $timezone,
                     null,
-                    $speakerSlugSegments,
+                    $personSlugSegments,
                 ),
                 'description' => (string) ($form['description'] ?? ''),
                 'timezone' => $timezone,

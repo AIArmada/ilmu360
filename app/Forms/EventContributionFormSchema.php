@@ -318,7 +318,7 @@ class EventContributionFormSchema
                                 ->label(__('Jenis Penganjur'))
                                 ->options([
                                     'institution' => __('Institusi'),
-                                    'speaker' => __('Penceramah'),
+                                    'person' => __('Penceramah'),
                                 ])
                                 ->default('institution')
                                 ->inline()
@@ -339,7 +339,7 @@ class EventContributionFormSchema
                                         return;
                                     }
 
-                                    $organizerId = self::normalizedString($get('primary_organizer_speaker_id'));
+                                    $organizerId = self::normalizedString($get('primary_organizer_person_id'));
                                     $set('primary_organizer_id', $organizerId);
                                     $set('location_same_as_institution', false);
                                 }),
@@ -371,19 +371,19 @@ class EventContributionFormSchema
                                 })
                                 ->createOptionForm(InstitutionFormSchema::createOptionForm(includeLocationPicker: true))
                                 ->createOptionUsing(fn (array $data, ?Schema $schema = null): string => InstitutionFormSchema::createOptionUsing($data, $schema)),
-                            Select::make('primary_organizer_speaker_id')
+                            Select::make('primary_organizer_person_id')
                                 ->label(__('Penceramah'))
-                                ->options(fn (): array => self::speakerOptions())
+                                ->options(fn (): array => self::personOptions())
                                 ->searchable()
                                 ->preload()
                                 ->visible(fn (Get $get): bool => self::selectedPrimaryOrganizerKind(
                                     $get('primary_organizer_kind'),
                                     $get('primary_organizer_id'),
-                                ) === 'speaker')
+                                ) === 'person')
                                 ->required(fn (Get $get): bool => self::selectedPrimaryOrganizerKind(
                                     $get('primary_organizer_kind'),
                                     $get('primary_organizer_id'),
-                                ) === 'speaker' && ! filled($get('primary_organizer_id')))
+                                ) === 'person' && ! filled($get('primary_organizer_id')))
                                 ->afterStateUpdated(function (mixed $state, Get $get, Set $set): void {
                                     $set('primary_organizer_id', self::normalizedString($state));
                                     $set('location_same_as_institution', false);
@@ -392,11 +392,11 @@ class EventContributionFormSchema
                                         return;
                                     }
 
-                                    $currentSpeakers = self::normalizeStringList($get('speaker_ids'));
+                                    $currentPersons = self::normalizeStringList($get('person_ids'));
 
-                                    if (! in_array($state, $currentSpeakers, true)) {
-                                        $currentSpeakers[] = $state;
-                                        $set('speaker_ids', $currentSpeakers);
+                                    if (! in_array($state, $currentPersons, true)) {
+                                        $currentPersons[] = $state;
+                                        $set('person_ids', $currentPersons);
                                     }
                                 })
                                 ->createOptionForm(PersonFormSchema::createOptionForm())
@@ -536,7 +536,7 @@ class EventContributionFormSchema
                 ->columns(['default' => 1, 'sm' => 2]),
             Section::make(__('Penceramah & Peranan'))
                 ->schema([
-                    Select::make('speaker_ids')
+                    Select::make('person_ids')
                         ->label(__('Pilih Penceramah'))
                         ->options(fn (): array => Person::query()
                             ->whereIn('status', ['verified', 'pending'])
@@ -544,14 +544,14 @@ class EventContributionFormSchema
                             ->get()
                             ->mapWithKeys(fn (Person $person): array => [(string) $person->id => $person->formatted_name])
                             ->all())
-                        ->required(fn (Get $get): bool => self::requiresSpeakersForCategories($get('event_category_ids')))
+                        ->required(fn (Get $get): bool => self::requiresPersonsForCategories($get('event_category_ids')))
                         ->multiple()
                         ->closeOnSelect()
                         ->searchable()
                         ->preload()
                         ->createOptionForm(PersonFormSchema::createOptionForm())
                         ->createOptionUsing(fn (array $data, ?Schema $schema = null): string => PersonFormSchema::createOptionUsing($data, $schema))
-                        ->helperText(fn (Get $get): string => self::requiresSpeakersForCategories($get('event_category_ids'))
+                        ->helperText(fn (Get $get): string => self::requiresPersonsForCategories($get('event_category_ids'))
                             ? __('Sekurang-kurangnya seorang penceramah diperlukan untuk jenis majlis ini.')
                             : __('Kosongkan jika majlis ini tidak mempunyai penceramah khusus.')),
                     Repeater::make('other_key_people')
@@ -576,7 +576,7 @@ class EventContributionFormSchema
                                 ->live()
                                 ->afterStateUpdated(function (Set $set, mixed $state): void {
                                     $set('display_name', null);
-                                    $set('involveable_type', filled($state) ? 'speaker' : null);
+                                    $set('involveable_type', filled($state) ? 'person' : null);
                                 })
                                 ->createOptionForm(PersonFormSchema::createOptionForm())
                                 ->createOptionUsing(fn (array $data, ?Schema $schema = null): string => PersonFormSchema::createOptionUsing($data, $schema)),
@@ -744,7 +744,7 @@ class EventContributionFormSchema
             ->all();
     }
 
-    private static function requiresSpeakersForCategories(mixed $categoryIds): bool
+    private static function requiresPersonsForCategories(mixed $categoryIds): bool
     {
         if ($categoryIds instanceof Collection) {
             $categoryIds = $categoryIds->all();
@@ -775,7 +775,7 @@ class EventContributionFormSchema
     /**
      * @return array<string, string>
      */
-    private static function speakerOptions(): array
+    private static function personOptions(): array
     {
         return Person::query()
             ->whereIn('status', ['verified', 'pending'])
@@ -813,7 +813,7 @@ class EventContributionFormSchema
 
     private static function requiresSeparateLocationChoice(mixed $organizerType, mixed $sameAsInstitution): bool
     {
-        return $organizerType === 'speaker' || $sameAsInstitution === false;
+        return $organizerType === 'person' || $sameAsInstitution === false;
     }
 
     private static function resolvedLocationType(mixed $organizerType, mixed $sameAsInstitution, mixed $locationType): ?string
@@ -847,7 +847,7 @@ class EventContributionFormSchema
 
     private static function selectedPrimaryOrganizerKind(mixed $organizerKind, mixed $primaryOrganizerId): ?string
     {
-        $normalizedKind = in_array($organizerKind, ['institution', 'speaker'], true)
+        $normalizedKind = in_array($organizerKind, ['institution', 'person'], true)
             ? $organizerKind
             : null;
 
@@ -874,7 +874,7 @@ class EventContributionFormSchema
         }
 
         if (Person::query()->whereKey($organizerId)->exists()) {
-            return 'speaker';
+            return 'person';
         }
 
         return null;

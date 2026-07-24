@@ -26,7 +26,7 @@ class PruneOrphanedEntities extends Command
      *
      * @var string
      */
-    protected $description = 'Prune pending institutions, speakers, and venues with no associated events after a threshold period';
+    protected $description = 'Prune pending institutions, persons, and venues with no associated events after a threshold period';
 
     /**
      * Execute the console command.

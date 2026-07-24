@@ -78,7 +78,7 @@ it('uses one pivot-constrained existence query for each membership scope', funct
     $checks = [
         fn (): bool => $gate->hasAnyInstitutionPermission($user, 'institution.view'),
         fn (): bool => $gate->hasAnyEventPermission($user, 'event.view'),
-        fn (): bool => $gate->hasAnyPersonPermission($user, 'speaker.view'),
+        fn (): bool => $gate->hasAnyPersonPermission($user, 'person.view'),
         fn (): bool => $gate->hasAnyReferencePermission($user, 'reference.view'),
     ];
 

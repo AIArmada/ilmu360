@@ -44,13 +44,13 @@ it('creates an advanced event with an institution primary organizer', function (
         ->and($response->json('data.event.status'))->toBe('draft');
 });
 
-it('creates an advanced event with a speaker primary organizer', function () {
+it('creates an advanced event with a person primary organizer', function () {
     $user = User::factory()->create();
     $institution = Institution::factory()->create(['name' => 'Masjekt Test', 'status' => 'verified']);
     $person = Person::factory()->create(['name' => 'Ustaz Test', 'status' => 'verified']);
 
     $user->institutions()->syncWithoutDetaching([$institution->id]);
-    $user->speakers()->syncWithoutDetaching([$person->id]);
+    $user->persons()->syncWithoutDetaching([$person->id]);
 
     Sanctum::actingAs($user);
 

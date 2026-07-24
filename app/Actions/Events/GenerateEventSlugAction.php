@@ -41,26 +41,26 @@ class GenerateEventSlugAction
         return $this->syncOrderedModels($events, fn (Event $event): bool => $this->syncEventSlug($event));
     }
 
-    public function syncEventSlugsForSpeakerName(string $speakerName): bool
+    public function syncEventSlugsForPersonName(string $personName): bool
     {
-        $normalizedSpeakerName = trim($speakerName);
+        $normalizedPersonName = trim($personName);
 
-        if ($normalizedSpeakerName === '') {
+        if ($normalizedPersonName === '') {
             return false;
         }
 
-        $speakerIds = Person::query()
-            ->where('name', $normalizedSpeakerName)
+        $personIds = Person::query()
+            ->where('name', $normalizedPersonName)
             ->pluck('id');
 
         $titles = Event::query()
-            ->where(function ($query) use ($normalizedSpeakerName, $speakerIds): void {
-                $query->whereHas('persons', function ($personQuery) use ($normalizedSpeakerName): void {
-                    $personQuery->where('persons.name', $normalizedSpeakerName);
-                })->orWhereHas('involvements', function ($involvementQuery) use ($speakerIds): void {
+            ->where(function ($query) use ($normalizedPersonName, $personIds): void {
+                $query->whereHas('persons', function ($personQuery) use ($normalizedPersonName): void {
+                    $personQuery->where('persons.name', $normalizedPersonName);
+                })->orWhereHas('involvements', function ($involvementQuery) use ($personIds): void {
                     $involvementQuery
                         ->where('involveable_type', Person::class)
-                        ->whereIn('involveable_id', $speakerIds)
+                        ->whereIn('involveable_id', $personIds)
                         ->where('role_code', 'organizer')
                         ->where('is_primary', true);
                 });
@@ -70,25 +70,25 @@ class GenerateEventSlugAction
         return $this->syncEventSlugsForTitles($titles);
     }
 
-    public function syncEventSlugsForSpeakerId(string $speakerId): bool
+    public function syncEventSlugsForPersonId(string $personId): bool
     {
-        $normalizedSpeakerId = trim($speakerId);
+        $normalizedPersonId = trim($personId);
 
-        if ($normalizedSpeakerId === '') {
+        if ($normalizedPersonId === '') {
             return false;
         }
 
         $titles = Event::query()
-            ->where(function ($query) use ($normalizedSpeakerId): void {
-                $query->whereHas('keyPeople', function ($keyPeopleQuery) use ($normalizedSpeakerId): void {
+            ->where(function ($query) use ($normalizedPersonId): void {
+                $query->whereHas('keyPeople', function ($keyPeopleQuery) use ($normalizedPersonId): void {
                     $keyPeopleQuery
                         ->where('involveable_type', 'person')
-                        ->where('involveable_id', $normalizedSpeakerId)
+                        ->where('involveable_id', $normalizedPersonId)
                         ->where('role_code', EventKeyPersonRole::Speaker->value);
-                })->orWhereHas('involvements', function ($involvementQuery) use ($normalizedSpeakerId): void {
+                })->orWhereHas('involvements', function ($involvementQuery) use ($normalizedPersonId): void {
                     $involvementQuery
                         ->where('involveable_type', Person::class)
-                        ->where('involveable_id', $normalizedSpeakerId)
+                        ->where('involveable_id', $normalizedPersonId)
                         ->where('role_code', 'organizer')
                         ->where('is_primary', true);
                 });
@@ -106,15 +106,15 @@ class GenerateEventSlugAction
     }
 
     /**
-     * @param  string[]  $speakerIds
+     * @param  string[]  $personIds
      * @return string[]
      */
-    public function speakerSlugSegmentsForState(array $speakerIds, Institution|Person|null $primaryOrganizer): array
+    public function personSlugSegmentsForState(array $personIds, Institution|Person|null $primaryOrganizer): array
     {
-        $segments = $this->speakerSlugSegmentsForSpeakerIds($speakerIds);
+        $segments = $this->personSlugSegmentsForPersonIds($personIds);
 
         if ($segments === [] && $primaryOrganizer instanceof Person) {
-            $segments = $this->speakerSlugSegmentsForSpeakerIds([
+            $segments = $this->personSlugSegmentsForPersonIds([
                 (string) $primaryOrganizer->getKey(),
             ]);
         }
@@ -123,14 +123,14 @@ class GenerateEventSlugAction
     }
 
     /**
-     * @param  list<string>  $speakerSlugs
+     * @param  list<string>  $personSlugs
      */
     public function handle(
         string $title,
         CarbonInterface|string|null $date = null,
         ?string $timezone = null,
         ?string $ignoreEventId = null,
-        array $speakerSlugs = [],
+        array $personSlugs = [],
     ): string {
         $normalizedTitle = trim($title);
         $titleSlug = Str::slug($normalizedTitle);
@@ -139,13 +139,13 @@ class GenerateEventSlugAction
             $titleSlug = 'event';
         }
 
-        $normalizedSpeakerSlugs = $this->normalizedSpeakerSlugs($speakerSlugs);
+        $normalizedPersonSlugs = $this->normalizedPersonSlugs($personSlugs);
         $dateSuffix = $this->dateSuffix($date, $timezone);
 
         return $this->buildUniqueSlug(
             Event::class,
             $titleSlug,
-            $normalizedSpeakerSlugs,
+            $normalizedPersonSlugs,
             $dateSuffix,
             $ignoreEventId,
         );
@@ -158,34 +158,34 @@ class GenerateEventSlugAction
             $this->slugDateForEvent($event),
             is_string($event->timezone) ? $event->timezone : null,
             (string) $event->getKey(),
-            $this->speakerSlugSegmentsForEvent($event),
+            $this->personSlugSegmentsForEvent($event),
         );
     }
 
     /**
-     * @param  list<mixed>  $speakerIds
+     * @param  list<mixed>  $personIds
      * @return list<string>
      */
-    public function speakerSlugSegmentsForSpeakerIds(array $speakerIds): array
+    public function personSlugSegmentsForPersonIds(array $personIds): array
     {
-        $normalizedSpeakerIds = $this->normalizedSpeakerIds($speakerIds);
+        $normalizedPersonIds = $this->normalizedPersonIds($personIds);
 
-        if ($normalizedSpeakerIds === []) {
+        if ($normalizedPersonIds === []) {
             return [];
         }
 
-        /** @var Collection<string, Person> $speakersById */
-        $speakersById = Person::query()
-            ->whereIn('id', $normalizedSpeakerIds)
+        /** @var Collection<string, Person> $personsById */
+        $personsById = Person::query()
+            ->whereIn('id', $normalizedPersonIds)
             ->get(['id', 'slug'])
-            ->keyBy(fn (Person $speaker): string => (string) $speaker->getKey());
+            ->keyBy(fn (Person $person): string => (string) $person->getKey());
 
-        return collect($normalizedSpeakerIds)
-            ->map(function (string $speakerId) use ($speakersById): ?string {
-                $speakerSlug = $speakersById->get($speakerId)?->slug;
+        return collect($normalizedPersonIds)
+            ->map(function (string $personId) use ($personsById): ?string {
+                $personSlug = $personsById->get($personId)?->slug;
 
-                return is_string($speakerSlug) && $speakerSlug !== ''
-                    ? $speakerSlug
+                return is_string($personSlug) && $personSlug !== ''
+                    ? $personSlug
                     : null;
             })
             ->filter()
@@ -206,20 +206,20 @@ class GenerateEventSlugAction
     }
 
     /**
-     * @param  array<int, mixed>  $speakerSlugs
+     * @param  array<int, mixed>  $personSlugs
      * @return list<string>
      */
-    private function normalizedSpeakerSlugs(array $speakerSlugs): array
+    private function normalizedPersonSlugs(array $personSlugs): array
     {
-        return collect($speakerSlugs)
-            ->map(function (mixed $speakerSlug): ?string {
-                if (! is_string($speakerSlug)) {
+        return collect($personSlugs)
+            ->map(function (mixed $personSlug): ?string {
+                if (! is_string($personSlug)) {
                     return null;
                 }
 
-                $normalizedSpeakerSlug = trim($speakerSlug);
+                $normalizedPersonSlug = trim($personSlug);
 
-                return $normalizedSpeakerSlug !== '' ? $normalizedSpeakerSlug : null;
+                return $normalizedPersonSlug !== '' ? $normalizedPersonSlug : null;
             })
             ->filter()
             ->unique()
@@ -228,20 +228,20 @@ class GenerateEventSlugAction
     }
 
     /**
-     * @param  list<mixed>  $speakerIds
+     * @param  list<mixed>  $personIds
      * @return list<string>
      */
-    private function normalizedSpeakerIds(array $speakerIds): array
+    private function normalizedPersonIds(array $personIds): array
     {
-        return collect($speakerIds)
-            ->map(function (mixed $speakerId): ?string {
-                if (! is_string($speakerId) && ! is_int($speakerId)) {
+        return collect($personIds)
+            ->map(function (mixed $personId): ?string {
+                if (! is_string($personId) && ! is_int($personId)) {
                     return null;
                 }
 
-                $normalizedSpeakerId = trim((string) $speakerId);
+                $normalizedPersonId = trim((string) $personId);
 
-                return $normalizedSpeakerId !== '' ? $normalizedSpeakerId : null;
+                return $normalizedPersonId !== '' ? $normalizedPersonId : null;
             })
             ->filter()
             ->unique()
@@ -252,24 +252,24 @@ class GenerateEventSlugAction
     /**
      * @return list<string>
      */
-    private function speakerSlugSegmentsForEvent(Event $event): array
+    private function personSlugSegmentsForEvent(Event $event): array
     {
         $event->loadMissing(['persons:id,slug', 'primaryOrganizerInvolvement.involveable']);
 
-        $speakerSlugSegments = $event->persons
-            ->map(function (Person $speaker): ?string {
-                $speakerSlug = $speaker->slug;
+        $personSlugSegments = $event->persons
+            ->map(function (Person $person): ?string {
+                $personSlug = $person->slug;
 
-                return is_string($speakerSlug) && $speakerSlug !== ''
-                    ? $speakerSlug
+                return is_string($personSlug) && $personSlug !== ''
+                    ? $personSlug
                     : null;
             })
             ->filter()
             ->values()
             ->all();
 
-        if ($speakerSlugSegments !== []) {
-            return $speakerSlugSegments;
+        if ($personSlugSegments !== []) {
+            return $personSlugSegments;
         }
 
         $organizer = $event->primaryOrganizerInvolvement?->involveable;

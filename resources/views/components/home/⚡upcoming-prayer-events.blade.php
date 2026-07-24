@@ -37,7 +37,7 @@ new class extends Component {
 
         $query = Event::active()
             ->orderBy('starts_at')
-            ->with(['institution', 'venue', 'speakers', 'references'])
+            ->with(['institution', 'venue', 'persons', 'references'])
             ->take(6);
 
         // Simple time-based logic for now, utilizing the UTC timestamps in DB
@@ -114,17 +114,17 @@ new class extends Component {
                         </div>
                         
                         <div class="flex items-center gap-3 pt-4 border-t border-slate-200/60">
-                            @if($event->speakers->isNotEmpty())
+                            @if($event->persons->isNotEmpty())
                                 <div class="flex -space-x-2">
-                                    @foreach($event->speakers->take(3) as $speaker)
-                                        <div class="w-8 h-8 rounded-full border-2 border-white overflow-hidden shadow-sm bg-slate-100" title="{{ $speaker->name }}">
-                                            <img src="{{ $speaker->avatar_url ?: $speaker->default_avatar_url }}" alt="{{ $speaker->name }}" class="w-full h-full object-cover" width="32" height="32" loading="lazy">
+                                    @foreach($event->persons->take(3) as $person)
+                                        <div class="w-8 h-8 rounded-full border-2 border-white overflow-hidden shadow-sm bg-slate-100" title="{{ $person->name }}">
+                                            <img src="{{ $person->avatar_url ?: $person->default_avatar_url }}" alt="{{ $person->name }}" class="w-full h-full object-cover" width="32" height="32" loading="lazy">
                                         </div>
                                     @endforeach
                                 </div>
                                 <span class="text-xs font-medium text-slate-600">
-                                    {{ $event->speakers->first()->name }}
-                                    @if($event->speakers->count() > 1) +{{ $event->speakers->count() - 1 }} @endif
+                                    {{ $event->persons->first()->name }}
+                                    @if($event->persons->count() > 1) +{{ $event->persons->count() - 1 }} @endif
                                 </span>
                             @else
                                 <span class="text-xs text-slate-400 italic">{{ __('Tiada penceramah') }}</span>

@@ -86,7 +86,7 @@ class SyncEventResourceRelationsAction
         if ($syncKeyPeople) {
             $this->eventKeyPersonSyncService->sync(
                 $event,
-                is_array($state['speakers'] ?? null) ? $state['speakers'] : [],
+                is_array($state['persons'] ?? null) ? $state['persons'] : [],
                 $this->canonicalKeyPeople($state['other_key_people'] ?? []),
             );
         }

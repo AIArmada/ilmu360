@@ -322,7 +322,7 @@ it('auto-reopens institution submission when lock credibility drifts', function 
     expect($institution->allow_public_event_submission)->toBeTrue();
 });
 
-it('supports locking and unlocking speaker records through the toggle', function () {
+it('supports locking and unlocking person records through the toggle', function () {
     $admin = User::factory()->create();
     assignGlobalRole($admin, 'super_admin');
 
@@ -340,7 +340,7 @@ it('supports locking and unlocking speaker records through the toggle', function
 
     $person->members()->syncWithoutDetaching([$member->id]);
 
-    $scope = app(MemberRoleScopes::class)->speaker();
+    $scope = app(MemberRoleScopes::class)->person();
     Authz::withScope($scope, function () use ($member): void {
         $member->syncRoles(['admin']);
     }, $member);
@@ -368,7 +368,7 @@ it('supports locking and unlocking speaker records through the toggle', function
     expect($person->fresh()->allow_public_event_submission)->toBeTrue();
 });
 
-it('refreshes speaker public submission toggle eligibility without remounting the edit page', function () {
+it('refreshes person public submission toggle eligibility without remounting the edit page', function () {
     $admin = User::factory()->create();
     assignGlobalRole($admin, 'super_admin');
 
@@ -391,7 +391,7 @@ it('refreshes speaker public submission toggle eligibility without remounting th
 
     $person->members()->syncWithoutDetaching([$member->id]);
 
-    $scope = app(MemberRoleScopes::class)->speaker();
+    $scope = app(MemberRoleScopes::class)->person();
     Authz::withScope($scope, function () use ($member): void {
         $member->syncRoles(['admin']);
     }, $member);

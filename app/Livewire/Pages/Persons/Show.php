@@ -186,7 +186,7 @@ class Show extends Component
     {
         $eventsTable = (new Event)->getTable();
 
-        return $this->person->speakerEvents()
+        return $this->person->personEvents()
             ->whereIn("{$eventsTable}.status", Event::PUBLIC_STATUSES)
             ->where("{$eventsTable}.visibility", EventVisibility::Public)
             ->whereNotNull("{$eventsTable}.published_at")

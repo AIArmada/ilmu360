@@ -40,7 +40,7 @@ class UserResource extends BaseUserResource
                 ->columns(2),
             ...UserAuthzForm::components(),
             Section::make('Protected Scoped Roles')
-                ->description('Change protected institution, speaker, event, and reference ownership roles from this central admin surface.')
+                ->description('Change protected institution, person, event, and reference ownership roles from this central admin surface.')
                 ->schema([
                     View::make('filament.resources.authz.user-resource.components.protected-scoped-role-manager'),
                 ])

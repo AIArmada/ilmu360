@@ -32,7 +32,7 @@ class ReportFactory extends Factory
             'report_type' => fake()->randomElement([
                 'wrong_info',
                 'cancelled_not_updated',
-                'fake_speaker',
+                'fake_person',
                 'inappropriate_content',
                 'donation_scam',
                 'other',

@@ -275,7 +275,7 @@ class PublishEventChangeAnnouncement
 
         return match ($type) {
             EventChangeType::LocationChanged,
-            EventChangeType::SpeakerChanged,
+            EventChangeType::PersonChanged,
             EventChangeType::TopicChanged,
             EventChangeType::ReferenceChanged,
             EventChangeType::OrganizerChanged,
@@ -339,7 +339,7 @@ class PublishEventChangeAnnouncement
             EventChangeType::RescheduledLater,
             EventChangeType::ScheduleChanged => __('The event schedule has changed. Please check the latest date and time.'),
             EventChangeType::LocationChanged => __('The event location has changed. Please check the latest venue details.'),
-            EventChangeType::SpeakerChanged => __('The event speaker details have changed.'),
+            EventChangeType::PersonChanged => __('The event person details have changed.'),
             EventChangeType::TopicChanged => __('The event topic has changed.'),
             EventChangeType::ReferenceChanged => __('The event reference details have changed.'),
             EventChangeType::OrganizerChanged => __('The event organizer details have changed.'),
@@ -389,7 +389,7 @@ class PublishEventChangeAnnouncement
                 'id' => (string) $event->primaryLocation->venueSpace->getKey(),
                 'name' => $event->primaryLocation->venueSpace->name,
             ],
-            'speakers' => $event->personKeyPeople
+            'persons' => $event->personKeyPeople
                 ->map(fn (EventKeyPerson $keyPerson): array => [
                     'id' => $keyPerson->person instanceof Person ? (string) $keyPerson->person->getKey() : null,
                     'name' => $keyPerson->person instanceof Person ? $keyPerson->person->name : $keyPerson->display_name,

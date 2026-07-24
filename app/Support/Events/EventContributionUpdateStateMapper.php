@@ -54,7 +54,7 @@ class EventContributionUpdateStateMapper
 
         $state['primary_organizer_kind'] = $organizerType;
         $state['primary_organizer_institution_id'] = $organizerType === 'institution' ? $primaryOrganizerId : null;
-        $state['primary_organizer_speaker_id'] = $organizerType === 'speaker' ? $primaryOrganizerId : null;
+        $state['primary_organizer_person_id'] = $organizerType === 'person' ? $primaryOrganizerId : null;
 
         if ($organizerType === 'institution') {
             $sameAsInstitution = $venueId === null && $institutionId !== null && $institutionId === $primaryOrganizerId;
@@ -102,7 +102,7 @@ class EventContributionUpdateStateMapper
             } elseif ($locationType === 'venue') {
                 $state['venue_id'] = $locationVenueId;
             }
-        } elseif ($organizerType === 'speaker') {
+        } elseif ($organizerType === 'person') {
             if ($locationType === 'institution') {
                 $state['institution_id'] = $locationInstitutionId;
             } elseif ($locationType === 'venue') {
@@ -117,7 +117,7 @@ class EventContributionUpdateStateMapper
         unset(
             $state['primary_organizer_kind'],
             $state['primary_organizer_institution_id'],
-            $state['primary_organizer_speaker_id'],
+            $state['primary_organizer_person_id'],
             $state['location_same_as_institution'],
             $state['location_type'],
             $state['location_institution_id'],
@@ -138,7 +138,7 @@ class EventContributionUpdateStateMapper
         }
 
         if (Person::query()->whereKey($primaryOrganizerId)->exists()) {
-            return 'speaker';
+            return 'person';
         }
 
         return null;

@@ -21,7 +21,7 @@
 @else
     <div class="space-y-6">
         <p class="text-sm text-gray-500">
-            Membership roles are managed from the institution, speaker, event, or reference itself. This summary is read-only.
+            Membership roles are managed from the institution, person, event, or reference itself. This summary is read-only.
         </p>
 
         <div class="grid gap-6 xl:grid-cols-2">
@@ -44,8 +44,8 @@
             </div>
 
             <div class="space-y-3">
-                <h3 class="text-sm font-medium text-gray-950 dark:text-white">Speakers</h3>
-                @forelse ($user->speakers as $person)
+                <h3 class="text-sm font-medium text-gray-950 dark:text-white">Persons</h3>
+                @forelse ($user->persons as $person)
                     <div class="rounded-xl border border-gray-200 px-4 py-3 text-sm dark:border-white/10">
                         <div class="flex items-start justify-between gap-3">
                             <a class="font-medium text-primary-600 hover:underline" href="{{ PersonResource::getUrl('edit', ['record' => $person], panel: 'admin') }}">
@@ -57,7 +57,7 @@
                         </div>
                     </div>
                 @empty
-                    <p class="text-sm text-gray-500">No speaker memberships.</p>
+                    <p class="text-sm text-gray-500">No person memberships.</p>
                 @endforelse
             </div>
 

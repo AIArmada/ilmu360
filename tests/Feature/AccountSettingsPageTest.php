@@ -296,11 +296,11 @@ it('keeps inherited trigger controls aligned with live family changes', function
     Livewire::actingAs($user)
         ->test(AccountSettings::class)
         ->set('tab', 'notifications')
-        ->assertSet('notificationTriggersState.followed_speaker_event.inherits_family', true)
+        ->assertSet('notificationTriggersState.followed_person_event.inherits_family', true)
         ->set('notificationFamiliesState.followed_content.cadence', 'weekly')
         ->set('notificationFamiliesState.followed_content.channels', ['push'])
-        ->assertSet('notificationTriggersState.followed_speaker_event.cadence', 'weekly')
-        ->assertSet('notificationTriggersState.followed_speaker_event.channels', ['push']);
+        ->assertSet('notificationTriggersState.followed_person_event.cadence', 'weekly')
+        ->assertSet('notificationTriggersState.followed_person_event.channels', ['push']);
 });
 
 it('requires at least one contact method on account settings', function () {

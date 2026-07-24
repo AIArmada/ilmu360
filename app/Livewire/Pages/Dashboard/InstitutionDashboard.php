@@ -573,7 +573,7 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
                     ->where('institution_id', $institution->id)
                     ->with([
                         'primaryLocation.venueSpace:id,name',
-                        'speakers:id,name',
+                        'persons:id,name',
                         'references:id,title',
                     ])
                     ->withCount(['registrations as dashboard_registrations_count']);
@@ -617,7 +617,7 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
                         'rejected', 'cancelled' => 'danger',
                         default => 'gray',
                     }),
-                TextColumn::make('speaker_names')
+                TextColumn::make('person_names')
                     ->label(__('Speakers'))
                     ->state(fn (Event $record): array => $record->persons
                         ->pluck('name')

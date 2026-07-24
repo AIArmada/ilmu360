@@ -141,7 +141,7 @@ it('starts a membership claim from the contributions page search form', function
         ]));
 });
 
-it('does not show membership claim call to action on public institution and speaker pages', function () {
+it('does not show membership claim call to action on public institution and person pages', function () {
     $user = User::factory()->create();
     $institution = Institution::factory()->create([
         'status' => 'verified',
@@ -154,7 +154,7 @@ it('does not show membership claim call to action on public institution and spea
         'subjectType' => MemberSubjectType::Institution->publicRouteSegment(),
         'subjectId' => $institution->getKey(),
     ]);
-    $speakerClaimUrl = route('membership-applications.create', [
+    $personClaimUrl = route('membership-applications.create', [
         'subjectType' => MemberSubjectType::Person->publicRouteSegment(),
         'subjectId' => $person->getKey(),
     ]);
@@ -168,6 +168,6 @@ it('does not show membership claim call to action on public institution and spea
     $this->actingAs($user)
         ->get(route('persons.show', $person))
         ->assertSuccessful()
-        ->assertDontSee($speakerClaimUrl, false)
+        ->assertDontSee($personClaimUrl, false)
         ->assertDontSee('Tuntut Pengurusan');
 });

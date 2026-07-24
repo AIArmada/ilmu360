@@ -310,7 +310,7 @@ it('returns fallback URL when Person has no avatar', function () {
 
     $fallbackUrl = $person->getFirstMediaUrl('avatar');
 
-    expect($fallbackUrl)->toContain('images/placeholders/speaker.png');
+    expect($fallbackUrl)->toContain('images/placeholders/person.png');
 });
 
 it('returns avatar_url using thumb conversion when media exists', function () {

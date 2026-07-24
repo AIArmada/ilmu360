@@ -135,8 +135,8 @@ class SubmitFrontendEventAction
         }
 
         $autoApproved = $scopedInstitution instanceof Institution;
-        $speakerSlugSegments = $this->generateEventSlugAction->speakerSlugSegmentsForState(
-            is_array($validated['speakers'] ?? null) ? $validated['speakers'] : [],
+        $personSlugSegments = $this->generateEventSlugAction->personSlugSegmentsForState(
+            is_array($validated['persons'] ?? null) ? $validated['persons'] : [],
             $primaryOrganizer,
         );
 
@@ -158,7 +158,7 @@ class SubmitFrontendEventAction
             sessionSubmission: $isSessionSubmission,
             submitter: $submitter,
             eventContainer: $eventContainer,
-            speakerSlugSegments: $speakerSlugSegments,
+            personSlugSegments: $personSlugSegments,
         );
         $persisted = DB::transaction(fn (): array => $this->persistValidatedSubmission->handle($validatedSubmission, $persistRelationships));
         $event = $persisted['event'];
@@ -251,7 +251,7 @@ class SubmitFrontendEventAction
             return;
         }
 
-        $requiresLocationChoice = $organizerType === 'speaker' || ! $sameAsInstitution;
+        $requiresLocationChoice = $organizerType === 'person' || ! $sameAsInstitution;
 
         if (! $requiresLocationChoice) {
             return;
@@ -291,14 +291,14 @@ class SubmitFrontendEventAction
             ]);
         }
 
-        if ($organizerType === 'speaker' && $primaryOrganizerId !== '' && ! $this->entitySubmissionAccess->canUsePerson($submitter, $primaryOrganizerId)) {
+        if ($organizerType === 'person' && $primaryOrganizerId !== '' && ! $this->entitySubmissionAccess->canUsePerson($submitter, $primaryOrganizerId)) {
             throw ValidationException::withMessages([
                 $this->validationKey('primary_organizer_id', $validationKeyPrefix) => __('Anda tidak dibenarkan memilih penceramah ini untuk penghantaran majlis.'),
             ]);
         }
 
         $eventFormat = $this->normalizeEnumValue($validated['event_format'] ?? null, EventFormat::Physical->value);
-        $requiresLocationChoice = $organizerType === 'speaker' || ! ($validated['location_same_as_institution'] ?? true);
+        $requiresLocationChoice = $organizerType === 'person' || ! ($validated['location_same_as_institution'] ?? true);
         $usesLocationInstitution = $eventFormat !== EventFormat::Online->value
             && $requiresLocationChoice
             && (($validated['location_type'] ?? 'institution') === 'institution');
@@ -309,8 +309,8 @@ class SubmitFrontendEventAction
             ]);
         }
 
-        $speakerIds = collect(array_merge(
-            (array) ($validated['speakers'] ?? []),
+        $personIds = collect(array_merge(
+            (array) ($validated['persons'] ?? []),
             collect((array) ($validated['other_key_people'] ?? []))->pluck('involveable_id')->all(),
         ))
             ->map(fn (mixed $value): ?string => filled($value) ? (string) $value : null)
@@ -318,10 +318,10 @@ class SubmitFrontendEventAction
             ->unique()
             ->values();
 
-        foreach ($speakerIds as $speakerId) {
-            if (! $this->entitySubmissionAccess->canUsePerson($submitter, $speakerId)) {
+        foreach ($personIds as $personId) {
+            if (! $this->entitySubmissionAccess->canUsePerson($submitter, $personId)) {
                 throw ValidationException::withMessages([
-                    $this->validationKey('speakers', $validationKeyPrefix) => __('Senarai penceramah mengandungi pilihan yang tidak dibenarkan untuk penghantaran ini.'),
+                    $this->validationKey('persons', $validationKeyPrefix) => __('Senarai penceramah mengandungi pilihan yang tidak dibenarkan untuk penghantaran ini.'),
                 ]);
             }
         }
@@ -576,7 +576,7 @@ class SubmitFrontendEventAction
 
         return match (true) {
             $organizer instanceof Institution => 'institution',
-            $organizer instanceof Person => 'speaker',
+            $organizer instanceof Person => 'person',
             default => null,
         };
     }

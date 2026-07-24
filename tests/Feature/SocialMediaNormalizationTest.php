@@ -88,7 +88,7 @@ it('keeps custom social links under the other platform', function () {
         ->and($social->profileUrl())->toBe('https://en.wikipedia.org/wiki/Imam_al-Nawawi');
 });
 
-it('renders resolved social url on speaker page when url column is null', function () {
+it('renders resolved social url on person page when url column is null', function () {
     $person = Person::factory()->create([
         'status' => 'verified',
     ]);

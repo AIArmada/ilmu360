@@ -23,7 +23,7 @@ class EventSearchController extends Controller
 
     #[Endpoint(
         title: 'Search admin events',
-        description: 'Advanced event search with rich filtering, geo-proximity, and temporal scoping. Keyword query expands across event title and related institution/speaker/reference surfaces by default, with optional include toggles and reference-author filtering. Mirrors the admin-search-events MCP tool.',
+        description: 'Advanced event search with rich filtering, geo-proximity, and temporal scoping. Keyword query expands across event title and related institution/person/reference surfaces by default, with optional include toggles and reference-author filtering. Mirrors the admin-search-events MCP tool.',
     )]
     public function search(SearchAdminEventsRequest $request): JsonResponse
     {

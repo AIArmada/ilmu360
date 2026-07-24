@@ -206,7 +206,7 @@
         $locationHref = route('venues.show', $locationEntity);
     }
 
-    // Single context card below speakers:
+    // Single context card below persons:
     // - show Organizer only when organizer differs from location
     // - otherwise show Location
     $organizerEntity = $event->organizer ?: $event->institution;
@@ -398,7 +398,7 @@
     CINEMATIC HERO
     Atmosphere: institution/venue cover or gradient — NEVER the poster.
     With poster: grid layout, poster as clear card on right.
-    Without poster: full-width text, speakers emerge from bottom-right.
+    Without poster: full-width text, persons emerge from bottom-right.
     ============================== --}}
     <div class="relative w-full overflow-hidden bg-slate-950 pt-20 lg:pt-0" @if($eventHasPoster)
     x-data="{ posterModalOpen: false }" @endif>
@@ -543,7 +543,7 @@
                 </div>{{-- /poster grid --}}
 
             @else
-                {{-- ── NO-POSTER LAYOUT: full-width text column, speakers emerge from bottom-right ── --}}
+                {{-- ── NO-POSTER LAYOUT: full-width text column, persons emerge from bottom-right ── --}}
                 <div
                     class="relative z-10 flex flex-col justify-end pb-16 pt-12 lg:max-w-[60%] lg:pb-24 lg:pt-12 xl:max-w-[55%]">
 
@@ -1060,8 +1060,8 @@
                 </section>
             @endif
 
-            {{-- SPEAKERS — shown first: people come for the speaker --}}
-            @if($event->speakers->isNotEmpty())
+            {{-- PERSONS — shown first: people come for the person --}}
+            @if($event->persons->isNotEmpty())
                 <section class="scroll-reveal reveal-up revealed" x-intersect.once="$el.classList.add('revealed')">
                     <div class="mb-5 flex items-center gap-3">
                         <div class="flex size-10 items-center justify-center rounded-xl bg-teal-100 text-teal-600">
@@ -1071,14 +1071,14 @@
                             </svg>
                         </div>
                         <h2 class="font-heading text-2xl font-bold text-slate-900">
-                            {{ $event->speakers->count() === 1 ? __('Speaker') : __('Speakers') }}
+                            {{ $event->persons->count() === 1 ? __('Speaker') : __('Speakers') }}
                         </h2>
                     </div>
 
-                    @if($event->speakers->count() === 1)
-                        {{-- Single speaker: full-width horizontal featured card --}}
+                    @if($event->persons->count() === 1)
+                        {{-- Single person: full-width horizontal featured card --}}
                         @php
-                            $sp = $event->speakers->first();
+                            $sp = $event->persons->first();
                             $spProfile = $sp->getFirstMediaUrl('avatar', 'profile') ?: $sp->avatar_url ?: $sp->default_avatar_url;
                             $spCover = $sp->getMedia('cover')->isNotEmpty() ? $sp->getFirstMediaUrl('cover', 'banner') : null;
                             $spBio = $sp->bio ? Str::limit(strip_tags(is_array($sp->bio) ? ($sp->bio['html'] ?? '') : $sp->bio), 220) : null;
@@ -1130,9 +1130,9 @@
                         </a>
 
                     @else
-                        {{-- Multiple speakers: responsive grid --}}
+                        {{-- Multiple persons: responsive grid --}}
                         <div class="flex flex-wrap justify-center gap-5">
-                            @foreach($event->speakers as $person)
+                            @foreach($event->persons as $person)
                                 @php
                                     $personProfileImg = $person->getFirstMediaUrl('avatar', 'profile') ?: null;
                                     $personThumbImg = $person->avatar_url ?: $person->default_avatar_url;
@@ -1211,7 +1211,7 @@
                                 <div class="mt-3 space-y-3">
                                     @foreach($keyPeople as $keyPerson)
                                         @php
-                                            $linkedPerson = $keyPerson->speaker;
+                                            $linkedPerson = $keyPerson->person;
                                             $displayName = $keyPerson->display_name;
                                         @endphp
                                         <div wire:key="key-person-{{ $keyPerson->id }}" class="rounded-2xl bg-white/80 p-3 ring-1 ring-amber-100">

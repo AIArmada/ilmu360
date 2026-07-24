@@ -189,9 +189,9 @@ class ViewUser extends ViewRecord
         return $institution instanceof Institution ? InstitutionResource::getUrl('view', ['record' => $institution]) : null;
     }
 
-    public function speakerUrl(?Person $speaker): ?string
+    public function personUrl(?Person $person): ?string
     {
-        return $speaker instanceof Person ? PersonResource::getUrl('view', ['record' => $speaker]) : null;
+        return $person instanceof Person ? PersonResource::getUrl('view', ['record' => $person]) : null;
     }
 
     public function referenceUrl(?Reference $reference): ?string

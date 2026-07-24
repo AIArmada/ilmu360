@@ -18,7 +18,7 @@ use Livewire\Livewire;
 uses(RefreshDatabase::class);
 
 /**
- * @return array{domain_tag: EventTerm, discipline_tag: EventTerm, institution: Institution, speaker: Person}
+ * @return array{domain_tag: EventTerm, discipline_tag: EventTerm, institution: Institution, person: Person}
  */
 function submitEventCaptchaFixtures(): array
 {
@@ -32,12 +32,12 @@ function submitEventCaptchaFixtures(): array
             'is_active' => true,
         ]),
         'institution' => Institution::factory()->create(['status' => 'verified']),
-        'speaker' => Person::factory()->create(['status' => 'verified']),
+        'person' => Person::factory()->create(['status' => 'verified']),
     ];
 }
 
 /**
- * @param  array{domain_tag: EventTerm, discipline_tag: EventTerm, institution: Institution, speaker: Person}  $fixtures
+ * @param  array{domain_tag: EventTerm, discipline_tag: EventTerm, institution: Institution, person: Person}  $fixtures
  */
 function fillSubmitEventCaptchaForm(mixed $component, array $fixtures, string $title): void
 {
@@ -55,7 +55,7 @@ function fillSubmitEventCaptchaForm(mixed $component, array $fixtures, string $t
         'age_group' => [EventAgeGroup::AllAges->value],
         'languages' => [101],
         'primary_organizer_id' => $fixtures['institution']->id,
-        'speakers' => [$fixtures['speaker']->id],
+        'persons' => [$fixtures['person']->id],
         'submitter_name' => 'Test User',
         'submitter_email' => 'test@example.com',
     ]);

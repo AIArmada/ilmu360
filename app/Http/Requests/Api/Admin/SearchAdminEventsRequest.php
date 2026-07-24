@@ -17,7 +17,7 @@ class SearchAdminEventsRequest extends FormRequest
         'event_category_ids',
         'age_group',
         'event_format',
-        'speaker_ids',
+        'person_ids',
         'key_person_roles',
         'person_in_charge_ids',
         'moderator_ids',

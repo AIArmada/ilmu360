@@ -44,7 +44,7 @@ it('loads public index pages', function () {
 
     $this->get('/events')->assertNotFound();
     $this->get('/institutions')->assertNotFound();
-    $this->get('/speakers')->assertNotFound();
+    $this->get('/persons')->assertNotFound();
     $this->get('/venues')->assertNotFound();
     $this->get('/references')->assertNotFound();
     $this->get('/submit-event')->assertNotFound();
@@ -206,7 +206,7 @@ it('uses a 16:9 placeholder aspect ratio for public events index cards without p
         ->assertSee('data-cover-aspect="16:9"', false);
 });
 
-it('uses the real speaker avatar in public speaker share metadata and preview', function () {
+it('uses the real person avatar in public person share metadata and preview', function () {
     Storage::fake('public');
     config()->set('media-library.disk_name', 'public');
 
@@ -214,7 +214,7 @@ it('uses the real speaker avatar in public speaker share metadata and preview', 
         'status' => 'verified',
     ]);
 
-    $person->addMedia(UploadedFile::fake()->image('speaker-avatar.jpg', 1200, 1200))
+    $person->addMedia(UploadedFile::fake()->image('person-avatar.jpg', 1200, 1200))
         ->toMediaCollection('avatar');
 
     $this->get(route('persons.show', $person))
@@ -501,17 +501,17 @@ it('does not leak share tracking javascript into public page body text', functio
     });
 });
 
-it('renders speaker contribution links with penceramah route segments', function () {
+it('renders person contribution links with penceramah route segments', function () {
     $person = Person::factory()->create([
         'status' => 'verified',
     ]);
 
-    $speakerRouteSegment = ContributionSubjectType::Person->publicRouteSegment();
+    $personRouteSegment = ContributionSubjectType::Person->publicRouteSegment();
 
     $this->get(route('persons.show', $person))
         ->assertSuccessful()
-        ->assertSee("/sumbangan/{$speakerRouteSegment}/{$person->slug}/kemas-kini", false)
-        ->assertSee("/lapor/{$speakerRouteSegment}/{$person->slug}", false);
+        ->assertSee("/sumbangan/{$personRouteSegment}/{$person->slug}/kemas-kini", false)
+        ->assertSee("/lapor/{$personRouteSegment}/{$person->slug}", false);
 });
 
 it('renders institution contribution links with institusi route segments', function () {
@@ -718,7 +718,7 @@ it('loads institution detail page with upcoming event category collection', func
         ->assertSee($eventCategory->name);
 });
 
-it('hides unverified speakers and institutions from public pages', function () {
+it('hides unverified persons and institutions from public pages', function () {
     $institution = Institution::factory()->create(['status' => 'pending']);
     $person = Person::factory()->create(['status' => 'pending']);
 
@@ -750,7 +750,7 @@ it('records guest submissions without a submitter id', function () {
         ->set('data.age_group', [EventAgeGroup::AllAges->value])
         ->set('data.domain_tags', [$domainTag->id])
         ->set('data.discipline_tags', [$disciplineTag->id])
-        ->set('data.speakers', [$person->id])
+        ->set('data.persons', [$person->id])
         ->set('data.primary_organizer_kind', 'institution')
         ->set('data.primary_organizer_id', $institution->id)
         ->set('data.primary_organizer_institution_id', $institution->id)

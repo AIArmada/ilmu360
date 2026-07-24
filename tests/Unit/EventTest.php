@@ -197,28 +197,28 @@ it('deduplicates key person roles in the searchable payload', function () {
         ]);
 
         $event->keyPeople()->create([
-            'involveable_type' => 'speaker',
+            'involveable_type' => 'person',
             'involveable_id' => $moderator->getKey(),
             'role_code' => EventKeyPersonRole::Moderator->value,
             'display_name' => $moderator->name,
         ]);
 
         $event->keyPeople()->create([
-            'involveable_type' => 'speaker',
+            'involveable_type' => 'person',
             'involveable_id' => $moderator->getKey(),
             'role_code' => EventKeyPersonRole::Moderator->value,
             'display_name' => $moderator->name,
         ]);
 
         $event->keyPeople()->create([
-            'involveable_type' => 'speaker',
+            'involveable_type' => 'person',
             'involveable_id' => $imam->getKey(),
             'role_code' => EventKeyPersonRole::Imam->value,
             'display_name' => $imam->name,
         ]);
 
         $event->keyPeople()->create([
-            'involveable_type' => 'speaker',
+            'involveable_type' => 'person',
             'involveable_id' => $personInCharge->getKey(),
             'role_code' => EventKeyPersonRole::PersonInCharge->value,
             'display_name' => $personInCharge->name,

@@ -51,8 +51,8 @@ new class extends Component
             ->with([
                 'institution.media',
                 'institution.addresses.country',
-                'speakers.media',
-                'keyPeople.speaker.media',
+                'persons.media',
+                'keyPeople.person.media',
                 'media',
             ])
             ->orderBy('starts_at')
@@ -79,8 +79,8 @@ new class extends Component
             ->with([
                 'institution.media',
                 'institution.addresses.country',
-                'speakers.media',
-                'keyPeople.speaker.media',
+                'persons.media',
+                'keyPeople.person.media',
                 'media',
             ])
             ->orderByDesc('starts_at')

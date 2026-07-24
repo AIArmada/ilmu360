@@ -71,10 +71,10 @@ it('exposes quick-add actions for every update-form event select that supports c
         'issue_tags',
         'reference_ids',
         'primary_organizer_institution_id',
-        'primary_organizer_speaker_id',
+        'primary_organizer_person_id',
         'location_institution_id',
         'location_venue_id',
-        'speaker_ids',
+        'person_ids',
     ];
 
     foreach ($quickAddFieldNames as $fieldName) {
@@ -94,7 +94,7 @@ it('creates pending related records from event update quick-add actions', functi
         Schema::make(),
     );
 
-    $personId = (eventContributionSelect('primary_organizer_speaker_id')->getCreateOptionUsing())(
+    $personId = (eventContributionSelect('primary_organizer_person_id')->getCreateOptionUsing())(
         [
             'name' => 'Ustaz Quick Add Update',
             'gender' => 'male',

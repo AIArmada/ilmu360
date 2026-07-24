@@ -97,11 +97,11 @@ it('updates an existing donation channel', function () {
         ->and($updated->fresh()->status)->toBe('verified');
 });
 
-it('assigns a channel to a speaker owner', function () {
+it('assigns a channel to a person owner', function () {
     $person = Person::factory()->create();
 
     $channel = app(SaveDonationChannelAction::class)->handle([
-        'donatable_type' => 'speaker',
+        'donatable_type' => 'person',
         'donatable_id' => (string) $person->getKey(),
         'recipient' => 'Ustaz Ahmad',
         'method' => 'bank_account',

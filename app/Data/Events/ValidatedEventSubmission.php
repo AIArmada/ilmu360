@@ -15,7 +15,7 @@ final readonly class ValidatedEventSubmission
 {
     /**
      * @param  array<string, mixed>  $state
-     * @param  list<string>  $speakerSlugSegments
+     * @param  list<string>  $personSlugSegments
      */
     public function __construct(
         public array $state,
@@ -33,6 +33,6 @@ final readonly class ValidatedEventSubmission
         public bool $sessionSubmission,
         public ?User $submitter,
         public ?Event $eventContainer,
-        public array $speakerSlugSegments,
+        public array $personSlugSegments,
     ) {}
 }

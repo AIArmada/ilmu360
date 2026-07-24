@@ -6,7 +6,7 @@ namespace App\Enums;
 
 enum NotificationTrigger: string
 {
-    case FollowedSpeakerEvent = 'followed_speaker_event';
+    case FollowedPersonEvent = 'followed_person_event';
     case FollowedInstitutionEvent = 'followed_institution_event';
     case FollowedSeriesEvent = 'followed_series_event';
     case FollowedReferenceEvent = 'followed_reference_event';

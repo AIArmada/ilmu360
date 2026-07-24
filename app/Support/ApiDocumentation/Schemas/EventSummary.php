@@ -10,8 +10,8 @@ use Illuminate\Contracts\Support\Arrayable;
 /**
  * @phpstan-type EventSummaryInstitutionArray array{id: string, name: string, slug: string, type: string|null, display_name: ?string, public_image_url: ?string, logo_url: ?string}
  * @phpstan-type EventSummaryVenueArray array{id: string, name: string, slug: string}
- * @phpstan-type EventSummarySpeakerArray array{id: string, name: string, gender: string|null, formatted_name: string, slug: string, avatar_url: ?string}
- * @phpstan-type EventSummaryArray array{id: string, slug: string, title: string, starts_at: ?string, starts_at_local: ?string, starts_on_local_date: ?string, ends_at: ?string, ends_at_local: ?string, timing_display: ?string, prayer_display_text: ?string, end_time_display: ?string, visibility: string, status: string, status_label: string, event_categories: list<array<string,mixed>>, event_format: string, event_format_label: ?string, reference_study_subtitle: ?string, location: ?string, is_remote: bool, is_pending: bool, is_cancelled: bool, has_poster: bool, poster_url: ?string, card_image_url: ?string, institution: EventSummaryInstitutionArray|null, venue: EventSummaryVenueArray|null, speakers: list<EventSummarySpeakerArray>}
+ * @phpstan-type EventSummaryPersonArray array{id: string, name: string, gender: string|null, formatted_name: string, slug: string, avatar_url: ?string}
+ * @phpstan-type EventSummaryArray array{id: string, slug: string, title: string, starts_at: ?string, starts_at_local: ?string, starts_on_local_date: ?string, ends_at: ?string, ends_at_local: ?string, timing_display: ?string, prayer_display_text: ?string, end_time_display: ?string, visibility: string, status: string, status_label: string, event_categories: list<array<string,mixed>>, event_format: string, event_format_label: ?string, reference_study_subtitle: ?string, location: ?string, is_remote: bool, is_pending: bool, is_cancelled: bool, has_poster: bool, poster_url: ?string, card_image_url: ?string, institution: EventSummaryInstitutionArray|null, venue: EventSummaryVenueArray|null, persons: list<EventSummaryPersonArray>}
  *
  * @implements Arrayable<string, mixed>
  */
@@ -22,7 +22,7 @@ final readonly class EventSummary implements Arrayable
      * @param  list<array<string,mixed>>  $event_categories
      * @param  array{id: string, name: string, slug: string, type: string|null, display_name: ?string, public_image_url: ?string, logo_url: ?string}|null  $institution
      * @param  array{id: string, name: string, slug: string}|null  $venue
-     * @param  list<array{id: string, name: string, gender: string|null, formatted_name: string, slug: string, avatar_url: ?string}>  $speakers
+     * @param  list<array{id: string, name: string, gender: string|null, formatted_name: string, slug: string, avatar_url: ?string}>  $persons
      */
     public function __construct(
         public string $id,
@@ -52,7 +52,7 @@ final readonly class EventSummary implements Arrayable
         public ?string $card_image_url,
         public ?array $institution,
         public ?array $venue,
-        public array $speakers,
+        public array $persons,
     ) {}
 
     /** @return EventSummaryArray */
@@ -86,7 +86,7 @@ final readonly class EventSummary implements Arrayable
             'card_image_url' => $this->card_image_url,
             'institution' => $this->institution,
             'venue' => $this->venue,
-            'speakers' => $this->speakers,
+            'persons' => $this->persons,
         ];
     }
 }

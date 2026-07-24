@@ -422,7 +422,7 @@ new
                         data-signal-event="navigation.home_feature_clicked"
                         data-signal-category="navigation"
                         data-signal-component="home_value_cards"
-                        data-signal-control="speakers"
+                        data-signal-control="persons"
                         class="group p-8 rounded-3xl bg-gradient-to-br from-purple-50 to-violet-50 border border-purple-100 hover:border-purple-300 hover:shadow-xl hover:shadow-purple-100 transition-all hover:-translate-y-1">
                         <div class="w-14 h-14 rounded-2xl bg-purple-500 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-lg shadow-purple-500/30">
                             <svg class="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">

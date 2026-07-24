@@ -25,7 +25,7 @@ Schedule::job(new EscalatePendingEvents)
     ->name('escalate-pending-events')
     ->withoutOverlapping();
 
-// Prune orphaned entities (institutions, speakers, venues) with no events after 48 hours
+// Prune orphaned entities (institutions, persons, venues) with no events after 48 hours
 Schedule::command('app:prune-orphaned-entities')
     ->daily()
     ->timezone('Asia/Kuala_Lumpur')

@@ -138,8 +138,8 @@ it('searches member persons by formatted public title parts through MCP list rec
 
     expect($matchingPerson)->not->toBeNull();
 
-    app(PersonSearchService::class)->syncSpeakerRecord($matchingPerson);
-    app(PersonSearchService::class)->syncSpeakerRecord($otherPerson);
+    app(PersonSearchService::class)->syncPersonRecord($matchingPerson);
+    app(PersonSearchService::class)->syncPersonRecord($otherPerson);
 
     MemberServer::actingAs($member)
         ->tool(MemberListRecordsTool::class, [
@@ -673,7 +673,7 @@ it('returns member update schema for events with surfaced mutation semantics', f
 
                 return data_get($fieldMap->get('title'), 'required') === false
                     && data_get($fieldMap->get('references'), 'collection_semantics.explicit_null') === 'clear_collection'
-                    && data_get($fieldMap->get('speakers'), 'collection_semantics.submitted_array') === 'replace_person_subset_and_rebuild_key_people'
+                    && data_get($fieldMap->get('persons'), 'collection_semantics.submitted_array') === 'replace_person_subset_and_rebuild_key_people'
                     && data_get($fieldMap->get('primary_organizer_id'), 'accepted_models') === [Institution::class, Person::class]
                     && data_get($fieldMap->get('registration_mode'), 'lock_behavior.when_event_has_registrations') === 'retain_current_value'
                     && $otherKeyPeopleFields->has('role_code')

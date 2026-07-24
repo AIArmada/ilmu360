@@ -26,7 +26,7 @@ it('can search persons case-insensitively', function () {
         'status' => 'verified',
     ]);
 
-    $searchService->syncSpeakerRecord($person);
+    $searchService->syncPersonRecord($person);
 
     Person::factory()->create([
         'name' => 'Ahmad Bin Ali',
@@ -61,7 +61,7 @@ it('can search persons by formatted honorific and prenominal titles', function (
         'status' => AssignmentStatus::Active,
     ]);
 
-    app(PersonSearchService::class)->syncSpeakerRecord($person->fresh());
+    app(PersonSearchService::class)->syncPersonRecord($person->fresh());
 
     Person::factory()->create([
         'name' => 'Fatimah Binti Omar',
@@ -98,7 +98,7 @@ it('shows the total person count on the person index', function () {
     Person::factory()->count(2)->create([
         'name' => $searchPrefix,
         'status' => 'verified',
-    ])->each(fn ($p) => $searchService->syncSpeakerRecord($p));
+    ])->each(fn ($p) => $searchService->syncPersonRecord($p));
 
     get('/penceramah?search='.urlencode($searchPrefix))
         ->assertSuccessful()
@@ -185,7 +185,7 @@ it('supports fuzzy search with minor typos', function () {
         'status' => 'verified',
     ]);
 
-    $searchService->syncSpeakerRecord($p1);
+    $searchService->syncPersonRecord($p1);
 
     Person::factory()->create([
         'name' => 'Sulaiman Hasan',
@@ -206,7 +206,7 @@ it('matches partial person names within a larger token', function () {
         'status' => 'verified',
     ]);
 
-    $searchService->syncSpeakerRecord($p1);
+    $searchService->syncPersonRecord($p1);
 
     Person::factory()->create([
         'name' => 'Ustaz Hafiz Rahman',
@@ -239,7 +239,7 @@ it('updates search results live when query changes', function () {
         'status' => 'verified',
     ]);
 
-    $searchService->syncSpeakerRecord($p1);
+    $searchService->syncPersonRecord($p1);
 
     Person::factory()->create([
         'name' => 'Ahmad Bin Ali',
@@ -269,7 +269,7 @@ it('refreshes cached person title search results after person updates', function
         'status' => AssignmentStatus::Active,
     ]);
 
-    $searchService->syncSpeakerRecord($person->fresh());
+    $searchService->syncPersonRecord($person->fresh());
 
     expect($searchService->publicSearchIds('ustazah'))
         ->toContain((string) $person->id);
@@ -283,7 +283,7 @@ it('refreshes cached person title search results after person updates', function
         'status' => AssignmentStatus::Active,
     ]);
 
-    $searchService->syncSpeakerRecord($person->fresh());
+    $searchService->syncPersonRecord($person->fresh());
 
     expect($searchService->publicSearchIds('ustazah'))
         ->not->toContain((string) $person->id)
@@ -409,7 +409,7 @@ it('renders profile-quality avatar URLs on the person index cards', function () 
         'status' => 'verified',
     ]);
 
-    app(PersonSearchService::class)->syncSpeakerRecord($person);
+    app(PersonSearchService::class)->syncPersonRecord($person);
 
     $person->addMedia(UploadedFile::fake()->image('kazim.jpg', 1200, 1200))
         ->toMediaCollection('main');

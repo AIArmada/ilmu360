@@ -142,7 +142,7 @@ it('exposes corrected frontend contract metadata', function () {
         ->and($shareAnalyticsFlow['endpoint'] ?? null)->toContain('/api/v1/share/analytics')
         ->and($shareAnalyticsFlow['link_endpoint_template'] ?? null)->toContain('/api/v1/share/analytics/links/link')
         ->and($shareAnalyticsFlow['auth_required'] ?? null)->toBeTrue()
-        ->and($shareAnalyticsFlow['filters']['type'] ?? [])->toContain('event', 'institution', 'speaker', 'series', 'reference', 'search', 'page')
+        ->and($shareAnalyticsFlow['filters']['type'] ?? [])->toContain('event', 'institution', 'person', 'series', 'reference', 'search', 'page')
         ->and($shareAnalyticsFlow['filters']['sort'] ?? [])->toContain('recent', 'visits', 'signups', 'registrations', 'checkins', 'submissions')
         ->and($institutionsNearFlow['endpoint'] ?? null)->toContain('/api/v1/institutions/near')
         ->and($institutionsNearFlow['near_format'] ?? null)->toBe('lat,lng')
@@ -157,12 +157,12 @@ it('exposes corrected frontend contract metadata', function () {
         ->and($mobileTelemetryEventFields)->toContain('event_name', 'screen_name', 'component', 'action', 'properties')
         ->and($mobileTelemetryContract['notes'] ?? [])->toContain('Do not use this endpoint for mobile web page views; browser sessions should keep using the web signals tracker.');
 
-    $speakerContract = $this->getJson(route('api.client.forms.contributions.persons'))
+    $personContract = $this->getJson(route('api.client.forms.contributions.persons'))
         ->assertOk()
         ->json('data');
-    $speakerFields = collect($speakerContract['fields'] ?? [])->pluck('name')->all();
+    $personFields = collect($personContract['fields'] ?? [])->pluck('name')->all();
 
-    expect($speakerFields)
+    expect($personFields)
         ->not->toContain('address.country_code', 'address.country_key')
         ->not->toContain('address.line1')
         ->not->toContain('address.google_maps_url')
@@ -487,7 +487,7 @@ it('normalizes event update context to public organizer values and exposes looku
         ->and($response->json('data.initial_state.custom_time'))->toBe($event->fresh()->starts_at?->timezone('Asia/Kuala_Lumpur')->format('H:i'))
         ->and($fields->firstWhere('name', 'primary_organizer_id')['type'])->toBe('uuid')
         ->and($fields->firstWhere('name', 'language_ids')['catalog'])->toContain('/api/v1/catalogs/languages')
-        ->and($fields->firstWhere('name', 'speaker_ids')['catalog'])->toContain('/api/v1/catalogs/submit-persons')
+        ->and($fields->firstWhere('name', 'person_ids')['catalog'])->toContain('/api/v1/catalogs/submit-persons')
         ->and($fieldNames)->toContain(
             'event_date',
             'prayer_time',
@@ -499,8 +499,8 @@ it('normalizes event update context to public organizer values and exposes looku
             'location_institution_id',
             'location_venue_id',
         )
-        ->and($fieldNames)->not->toContain('starts_at', 'ends_at', 'institution_id', 'venue_id', 'timing_mode', 'prayer_reference', 'prayer_offset', 'prayer_display_text', 'primary_organizer_kind', 'primary_organizer_institution_id', 'primary_organizer_speaker_id')
-        ->and($initialStateKeys)->not->toContain('starts_at', 'ends_at', 'institution_id', 'venue_id', 'timing_mode', 'prayer_reference', 'prayer_offset', 'prayer_display_text', 'primary_organizer_kind', 'primary_organizer_institution_id', 'primary_organizer_speaker_id');
+        ->and($fieldNames)->not->toContain('starts_at', 'ends_at', 'institution_id', 'venue_id', 'timing_mode', 'prayer_reference', 'prayer_offset', 'prayer_display_text', 'primary_organizer_kind', 'primary_organizer_institution_id', 'primary_organizer_person_id')
+        ->and($initialStateKeys)->not->toContain('starts_at', 'ends_at', 'institution_id', 'venue_id', 'timing_mode', 'prayer_reference', 'prayer_offset', 'prayer_display_text', 'primary_organizer_kind', 'primary_organizer_institution_id', 'primary_organizer_person_id');
 });
 
 it('exposes event direct edit media support for authorized public updaters', function () {
@@ -614,7 +614,7 @@ it('allows direct contribution updates to clear nullable institution fields', fu
     expect($institution->fresh()->description)->toBeNull();
 });
 
-it('exposes speaker avatar direct edit media support for authorized public updaters', function () {
+it('exposes person avatar direct edit media support for authorized public updaters', function () {
     Storage::fake('public');
     config()->set('media-library.disk_name', 'public');
 
@@ -678,7 +678,7 @@ it('allows direct institution gallery uploads on public contribution update sugg
     expect($institution->fresh()?->getMedia('gallery'))->toHaveCount(1);
 });
 
-it('returns only region address keys in the speaker suggest context state', function () {
+it('returns only region address keys in the person suggest context state', function () {
     $owner = User::factory()->create();
     $countryId = ensureFrontendApiMalaysiaCountryExists();
     $country = AddressCountry::query()->findOrFail($countryId);
@@ -701,7 +701,7 @@ it('returns only region address keys in the speaker suggest context state', func
         'lat' => 3.139,
         'lng' => 101.6869,
         'google_maps_url' => 'https://maps.google.com/?q=3.1390,101.6869',
-        'google_place_id' => 'speaker-suggest-place',
+        'google_place_id' => 'person-suggest-place',
         'waze_url' => 'https://waze.com/ul?ll=3.1390,101.6869',
     ]);
 
@@ -720,7 +720,7 @@ it('returns only region address keys in the speaker suggest context state', func
     ]);
 });
 
-it('rejects unchanged speaker region-only address round trips as validation errors', function () {
+it('rejects unchanged person region-only address round trips as validation errors', function () {
     $owner = User::factory()->create();
     $countryId = ensureFrontendApiMalaysiaCountryExists();
     $country = AddressCountry::query()->findOrFail($countryId);
@@ -761,7 +761,7 @@ it('rejects unchanged speaker region-only address round trips as validation erro
         ->and($person?->primaryAddress()?->google_maps_url)->toBe('https://maps.google.com/?q=3.1390,101.6869');
 });
 
-it('preserves hidden speaker address details during region-only direct updates', function () {
+it('preserves hidden person address details during region-only direct updates', function () {
     $owner = User::factory()->create();
     $countryId = ensureFrontendApiMalaysiaCountryExists();
     $country = AddressCountry::query()->findOrFail($countryId);
@@ -813,7 +813,7 @@ it('preserves hidden speaker address details during region-only direct updates',
         ->and($person?->primaryAddress()?->google_maps_url)->toBe($expectedGoogleMapsUrl);
 });
 
-it('allows direct speaker avatar uploads on public contribution update suggestions', function () {
+it('allows direct person avatar uploads on public contribution update suggestions', function () {
     Storage::fake('public');
     config()->set('media-library.disk_name', 'public');
 
@@ -829,7 +829,7 @@ it('allows direct speaker avatar uploads on public contribution update suggestio
         'subjectType' => 'penceramah',
         'subject' => $person->slug,
     ]), [
-        'avatar' => fakeGeneratedImageUpload('speaker-avatar.jpg', 1200, 1200),
+        'avatar' => fakeGeneratedImageUpload('person-avatar.jpg', 1200, 1200),
     ], [
         'Accept' => 'application/json',
     ])
@@ -842,11 +842,11 @@ it('allows direct speaker avatar uploads on public contribution update suggestio
         ->and($person?->public_avatar_url)->not->toBe('');
 });
 
-it('allows direct speaker cover uploads on public contribution update suggestions', function () {
+it('allows direct person cover uploads on public contribution update suggestions', function () {
     Storage::fake('public');
     config()->set('media-library.disk_name', 'public');
 
-    $coverUpload = fakeGeneratedImageUpload('speaker-cover.png', 1200, 1200);
+    $coverUpload = fakeGeneratedImageUpload('person-cover.png', 1200, 1200);
 
     $owner = User::factory()->create();
     $person = Person::factory()->create([
@@ -873,7 +873,7 @@ it('allows direct speaker cover uploads on public contribution update suggestion
         ->and($person?->getFirstMediaUrl('cover'))->not->toBe('');
 });
 
-it('allows direct speaker gallery uploads on public contribution update suggestions', function () {
+it('allows direct person gallery uploads on public contribution update suggestions', function () {
     Storage::fake('public');
     config()->set('media-library.disk_name', 'public');
 
@@ -889,7 +889,7 @@ it('allows direct speaker gallery uploads on public contribution update suggesti
         'subjectType' => 'penceramah',
         'subject' => $person->slug,
     ]), [
-        'gallery' => [fakeGeneratedImageUpload('speaker-gallery.jpg', 1200, 1200)],
+        'gallery' => [fakeGeneratedImageUpload('person-gallery.jpg', 1200, 1200)],
     ], [
         'Accept' => 'application/json',
     ])
@@ -899,7 +899,7 @@ it('allows direct speaker gallery uploads on public contribution update suggesti
     expect($person->fresh()?->getMedia('gallery'))->toHaveCount(1);
 });
 
-it('rejects unsupported speaker media files on public contribution update suggestions', function () {
+it('rejects unsupported person media files on public contribution update suggestions', function () {
     $owner = User::factory()->create();
     $person = Person::factory()->create([
         'status' => 'verified',
@@ -912,7 +912,7 @@ it('rejects unsupported speaker media files on public contribution update sugges
         'subjectType' => 'penceramah',
         'subject' => $person->slug,
     ]), [
-        'poster' => fakeGeneratedImageUpload('speaker-poster.jpg'),
+        'poster' => fakeGeneratedImageUpload('person-poster.jpg'),
     ], [
         'Accept' => 'application/json',
     ])
@@ -1031,7 +1031,7 @@ it('rejects direct event cover and poster uploads with invalid aspect ratios', f
         ->assertJsonValidationErrors(['cover', 'poster']);
 });
 
-it('searches speakers api by formatted title parts used on the public directory', function () {
+it('searches persons api by formatted title parts used on the public directory', function () {
     $matchingPerson = Person::factory()->create([
         'name' => 'Aisyah Binti Hassan',
         'status' => 'verified',
@@ -1050,7 +1050,7 @@ it('searches speakers api by formatted title parts used on the public directory'
         ->not->toContain((string) $otherPerson->id);
 });
 
-it('falls back to local speaker and institution search on the frontend unified search api when typesense fails', function () {
+it('falls back to local person and institution search on the frontend unified search api when typesense fails', function () {
     $institution = Institution::factory()->create([
         'name' => 'Masjid Nur Hikmah',
         'status' => 'verified',
@@ -1097,13 +1097,13 @@ it('falls back to local speaker and institution search on the frontend unified s
     $response = $this->getJson('/api/v1/search?search='.urlencode('Nur Hikmah'))
         ->assertOk();
 
-    expect(collect($response->json('data.speakers.items'))->pluck('id')->all())
+    expect(collect($response->json('data.persons.items'))->pluck('id')->all())
         ->toContain((string) $person->id)
         ->and(collect($response->json('data.institutions.items'))->pluck('id')->all())
         ->toContain((string) $institution->id);
 });
 
-it('returns full unified search totals while limiting speaker and institution previews', function () {
+it('returns full unified search totals while limiting person and institution previews', function () {
     foreach (range(1, 6) as $index) {
         $person = Person::factory()->create([
             'name' => sprintf('Audit Search Total Person %d', $index),
@@ -1131,13 +1131,13 @@ it('returns full unified search totals while limiting speaker and institution pr
     $response = $this->getJson('/api/v1/search?search='.urlencode('Audit Search Total'))
         ->assertOk();
 
-    expect($response->json('data.speakers.total'))->toBe(6)
+    expect($response->json('data.persons.total'))->toBe(6)
         ->and($response->json('data.institutions.total'))->toBe(6)
-        ->and($response->json('data.speakers.items'))->toHaveCount(4)
+        ->and($response->json('data.persons.items'))->toHaveCount(4)
         ->and($response->json('data.institutions.items'))->toHaveCount(4);
 });
 
-it('uses the same fuzzy speaker and institution resolution in the unified search api as the directory endpoints', function () {
+it('uses the same fuzzy person and institution resolution in the unified search api as the directory endpoints', function () {
     $person = Person::factory()->create([
         'name' => 'Aisyah Binti Hassan',
         'status' => 'verified',
@@ -1150,14 +1150,14 @@ it('uses the same fuzzy speaker and institution resolution in the unified search
 
     app(PersonSearchService::class)->syncPersonRecord($person);
 
-    $speakerDirectoryResponse = $this->getJson('/api/v1/people?search='.urlencode('Aisyh'))
+    $personDirectoryResponse = $this->getJson('/api/v1/people?search='.urlencode('Aisyh'))
         ->assertOk();
-    $speakerUnifiedResponse = $this->getJson('/api/v1/search?search='.urlencode('Aisyh'))
+    $personUnifiedResponse = $this->getJson('/api/v1/search?search='.urlencode('Aisyh'))
         ->assertOk();
 
-    expect(collect($speakerDirectoryResponse->json('data'))->pluck('id')->all())
+    expect(collect($personDirectoryResponse->json('data'))->pluck('id')->all())
         ->toContain((string) $person->id)
-        ->and(collect($speakerUnifiedResponse->json('data.speakers.items'))->pluck('id')->all())
+        ->and(collect($personUnifiedResponse->json('data.persons.items'))->pluck('id')->all())
         ->toContain((string) $person->id);
 
     $institutionDirectoryResponse = $this->getJson('/api/v1/institutions?search='.urlencode('Hidayh'))
@@ -1248,7 +1248,7 @@ it('serializes event list payloads with card image metadata for mobile clients',
         ->toMediaCollection('poster');
 
     $item = Closure::bind(
-        fn (): array => $this->eventListData($event->fresh(['institution.media', 'venue', 'speakers.media', 'keyPeople.speaker'])),
+        fn (): array => $this->eventListData($event->fresh(['institution.media', 'venue', 'persons.media', 'keyPeople.person'])),
         app(SearchController::class),
         SearchController::class,
     )();
@@ -1280,7 +1280,7 @@ it('returns card image metadata on public events index responses', function () {
     $person = Person::factory()->create([
         'gender' => 'male',
     ]);
-    $posterEvent->speakers()->attach($person);
+    $posterEvent->persons()->attach($person);
 
     $placeholderEvent = Event::factory()->create([
         'title' => 'Home Placeholder Event',
@@ -1302,9 +1302,9 @@ it('returns card image metadata on public events index responses', function () {
         ->and(array_keys($posterItem))->not->toContain('media', 'references', 'key_people')
         ->and(data_get($posterItem, 'institution.media'))->toBeNull()
         ->and(data_get($posterItem, 'institution.type'))->toBe('masjid')
-        ->and(data_get($posterItem, 'speakers.0.id'))->toBe((string) $person->getKey())
-        ->and(data_get($posterItem, 'speakers.0.gender'))->toBe('male')
-        ->and(data_get($posterItem, 'speakers.0.pivot'))->toBeNull()
+        ->and(data_get($posterItem, 'persons.0.id'))->toBe((string) $person->getKey())
+        ->and(data_get($posterItem, 'persons.0.gender'))->toBe('male')
+        ->and(data_get($posterItem, 'persons.0.pivot'))->toBeNull()
         ->and($placeholderResponse->json('data.0.has_poster'))->toBeFalse()
         ->and($placeholderResponse->json('data.0.card_image_url'))->toContain('images/placeholders/event.png')
         ->and($placeholderResponse->json('data.0.poster_url'))->toBeNull();
@@ -1743,7 +1743,7 @@ it('serializes institution detail payloads with address and donation metadata fo
         ->and(data_get($item, 'map_lat'))->toBe(3.4501)
         ->and(data_get($item, 'map_lng'))->toBe(102.4194)
         ->and(data_get($item, 'is_following'))->toBeTrue()
-        ->and(data_get($item, 'speaker_count'))->toBe(0)
+        ->and(data_get($item, 'person_count'))->toBe(0)
         ->and(data_get($item, 'media.public_image_url'))->toBeString()->not->toBe('')
         ->and(data_get($item, 'media.logo_url'))->toBeString()->not->toBe('')
         ->and(data_get($item, 'media.cover_url'))->toBeString()->not->toBe('')
@@ -1906,7 +1906,7 @@ it('creates institution contribution requests through the frontend api', functio
         ->and(ContributionRequest::query()->where('entity_id', $institution->getKey())->exists())->toBeTrue();
 });
 
-it('creates speaker contribution requests through the frontend api with an explicit country alias', function () {
+it('creates person contribution requests through the frontend api with an explicit country alias', function () {
     $user = User::factory()->create();
     $singaporeId = (string) ensureTestAddressCountry('SG', 'Singapore', 'SGP', ['Asia/Singapore'], '65')->getKey();
 
@@ -1921,7 +1921,7 @@ it('creates speaker contribution requests through the frontend api with an expli
                 'state_id' => null,
             ],
         ])->assertCreated()
-        ->assertJsonPath('data.speaker.name', 'Frontend API Scoped Country Person');
+        ->assertJsonPath('data.person.name', 'Frontend API Scoped Country Person');
 
     $person = Person::query()
         ->with('addresses')
@@ -1933,7 +1933,7 @@ it('creates speaker contribution requests through the frontend api with an expli
         ->and(ContributionRequest::query()->where('entity_id', $person->getKey())->exists())->toBeTrue();
 });
 
-it('requires explicit country and still prohibits detailed address fields when creating speakers through the frontend api', function () {
+it('requires explicit country and still prohibits detailed address fields when creating persons through the frontend api', function () {
     $user = User::factory()->create();
 
     Sanctum::actingAs($user);
@@ -1962,7 +1962,7 @@ it('requires explicit country and still prohibits detailed address fields when c
         ]);
 });
 
-it('returns profile-quality speaker avatar urls from the frontend search api', function () {
+it('returns profile-quality person avatar urls from the frontend search api', function () {
     Storage::fake('public');
     config()->set('media-library.disk_name', 'public');
 
@@ -1980,7 +1980,7 @@ it('returns profile-quality speaker avatar urls from the frontend search api', f
         ->assertJsonPath('data.0.avatar_url', $person->public_avatar_url);
 });
 
-it('exposes explicit country data and country filters on frontend institution and speaker reads', function () {
+it('exposes explicit country data and country filters on frontend institution and person reads', function () {
     $countryId = ensureFrontendApiMalaysiaCountryExists();
 
     $institution = Institution::factory()->create([
@@ -2014,7 +2014,7 @@ it('exposes explicit country data and country filters on frontend institution an
         ->assertJsonPath('data.0.gender', 'male');
 });
 
-it('returns authenticated follow state in the frontend speaker api', function () {
+it('returns authenticated follow state in the frontend person api', function () {
     $user = User::factory()->create();
 
     $person = Person::factory()->create([
@@ -2031,7 +2031,7 @@ it('returns authenticated follow state in the frontend speaker api', function ()
         ->assertJsonPath('data.0.is_following', true);
 });
 
-it('returns the total followed speaker count for the full speaker query, not just the current page', function () {
+it('returns the total followed person count for the full person query, not just the current page', function () {
     $user = User::factory()->create();
 
     $followedPersons = Person::factory()->count(3)->create([
@@ -2055,7 +2055,7 @@ it('returns the total followed speaker count for the full speaker query, not jus
         ->assertJsonPath('meta.following.total', 3);
 });
 
-it('supports server-side filtering to only followed speakers in the frontend speaker api', function () {
+it('supports server-side filtering to only followed persons in the frontend person api', function () {
     $user = User::factory()->create();
 
     $followedPerson = Person::factory()->create([
@@ -2326,7 +2326,7 @@ it('serializes person directory payloads with country and follow metadata for mo
         ->and(data_get($item, 'is_following'))->toBeTrue();
 });
 
-it('bumps the person directory cache version when speaker records change', function () {
+it('bumps the person directory cache version when person records change', function () {
     $person = Person::factory()->create([
         'name' => 'Person Cache Version',
         'status' => 'verified',
@@ -2348,7 +2348,7 @@ it('bumps the person directory cache version when speaker records change', funct
         ->and($updatedVersion)->not->toBe($initialVersion);
 });
 
-it('bumps the person directory cache version when speaker media changes', function () {
+it('bumps the person directory cache version when person media changes', function () {
     Storage::fake('public');
     config()->set('media-library.disk_name', 'public');
 
@@ -2361,7 +2361,7 @@ it('bumps the person directory cache version when speaker media changes', functi
         ->assertOk()
         ->json('meta.cache.version');
 
-    $person->addMedia(fakeGeneratedImageUpload('speaker-cache-media.jpg', 1200, 1200))
+    $person->addMedia(fakeGeneratedImageUpload('person-cache-media.jpg', 1200, 1200))
         ->toMediaCollection('avatar');
 
     $updatedVersion = $this->getJson(route('api.client.persons.index'))
@@ -2372,7 +2372,7 @@ it('bumps the person directory cache version when speaker media changes', functi
         ->and($updatedVersion)->not->toBe($initialVersion);
 });
 
-it('bumps the person directory cache version when speaker addresses change', function () {
+it('bumps the person directory cache version when person addresses change', function () {
     $countryId = ensureFrontendApiMalaysiaCountryExists();
 
     $person = Person::factory()->create([
@@ -2437,7 +2437,7 @@ it('bumps public directory cache versions when country metadata changes', functi
         ->and($updatedPersonVersion)->not->toBe($initialPersonVersion);
 });
 
-it('bumps the person directory cache version when speaker event participation changes', function () {
+it('bumps the person directory cache version when person event participation changes', function () {
     $person = Person::factory()->create([
         'name' => 'Person Cache Event',
         'status' => 'verified',
@@ -2455,7 +2455,7 @@ it('bumps the person directory cache version when speaker event participation ch
 
     EventKeyPersonFactory::new()
         ->for($event, 'event')
-        ->for($person, 'speaker')
+        ->for($person, 'person')
         ->create();
 
     $updatedVersion = $this->getJson(route('api.client.persons.index'))
@@ -2466,7 +2466,7 @@ it('bumps the person directory cache version when speaker event participation ch
         ->and($updatedVersion)->not->toBe($initialVersion);
 });
 
-it('uses the same stable public directory ordering in the frontend speaker api', function () {
+it('uses the same stable public directory ordering in the frontend person api', function () {
     $firstPerson = Person::factory()->create([
         'name' => 'Adam Person API',
         'status' => 'verified',
@@ -2504,7 +2504,7 @@ it('uses the same stable public directory ordering in the frontend speaker api',
         ->all())->toBe($expectedOrder);
 });
 
-it('uses an explicit mobile directory seed for speaker ordering', function () {
+it('uses an explicit mobile directory seed for person ordering', function () {
     $seedPairs = collect(['mobile-seed-a', 'mobile-seed-b', 'mobile-seed-c', 'mobile-seed-d'])
         ->crossJoin(['mobile-seed-a', 'mobile-seed-b', 'mobile-seed-c', 'mobile-seed-d'])
         ->first(fn (array $pair): bool => $pair[0] !== $pair[1]
@@ -2533,7 +2533,7 @@ it('uses an explicit mobile directory seed for speaker ordering', function () {
         );
     };
 
-    $speakers = collect([
+    $persons = collect([
         ['id' => $personId('f', '0'), 'name' => 'Person Seed A'],
         ['id' => $personId('0', 'f'), 'name' => 'Person Seed B'],
         ['id' => $personId('8', '1'), 'name' => 'Person Seed C'],
@@ -2553,9 +2553,9 @@ it('uses an explicit mobile directory seed for speaker ordering', function () {
         'directory_seed' => $secondSeed,
     ]))->assertOk();
 
-    $speakerIds = $speakers->pluck('id')->all();
-    $expectedFirstOrder = $speakerIds;
-    $expectedSecondOrder = $speakerIds;
+    $personIds = $persons->pluck('id')->all();
+    $expectedFirstOrder = $personIds;
+    $expectedSecondOrder = $personIds;
 
     usort($expectedFirstOrder, static function (string $left, string $right) use ($firstSeed): int {
         $leftParts = Person::publicDirectorySortParts($left, $firstSeed);
@@ -2583,9 +2583,9 @@ it('uses an explicit mobile directory seed for speaker ordering', function () {
         return $leftParts['secondary'] <=> $rightParts['secondary'];
     });
 
-    expect(collect($firstResponse->json('data'))->pluck('id')->intersect($speakerIds)->values()->all())
+    expect(collect($firstResponse->json('data'))->pluck('id')->intersect($personIds)->values()->all())
         ->toBe($expectedFirstOrder)
-        ->and(collect($secondResponse->json('data'))->pluck('id')->intersect($speakerIds)->values()->all())
+        ->and(collect($secondResponse->json('data'))->pluck('id')->intersect($personIds)->values()->all())
         ->toBe($expectedSecondOrder)
         ->and($expectedFirstOrder)->not->toBe($expectedSecondOrder);
 });
@@ -2891,7 +2891,7 @@ it('submits events with media through the frontend api', function () {
         'languages' => [101],
         'domain_tags' => [$domainTag->getKey()],
         'primary_organizer_id' => $institution->getKey(),
-        'speakers' => [$person->getKey()],
+        'persons' => [$person->getKey()],
         'submission_country_id' => ensureFrontendApiMalaysiaCountryExists(),
         'cover' => fakeGeneratedImageUpload('cover.jpg', 1600, 900),
         'poster' => fakeGeneratedImageUpload('poster.jpg', 1200, 1500),
@@ -2971,7 +2971,7 @@ it('requires explicit country input for frontend event submissions and accepts a
         'languages' => [101],
         'domain_tags' => [$domainTag->getKey()],
         'primary_organizer_id' => $institution->getKey(),
-        'speakers' => [$person->getKey()],
+        'persons' => [$person->getKey()],
     ];
 
     $this->postJson(route('api.client.submit-event.store'), $payload)
@@ -3016,7 +3016,7 @@ it('accepts any valid submission country uuid for frontend event submissions', f
         'languages' => [101],
         'domain_tags' => [$domainTag->getKey()],
         'primary_organizer_id' => $institution->getKey(),
-        'speakers' => [$person->getKey()],
+        'persons' => [$person->getKey()],
         'submitter_name' => 'Guest Submitter',
         'submitter_email' => 'guest@example.test',
     ];
@@ -3058,7 +3058,7 @@ it('requires guest event submissions to include email or phone', function () {
         'languages' => [101],
         'domain_tags' => [$domainTag->getKey()],
         'primary_organizer_id' => $institution->getKey(),
-        'speakers' => [$person->getKey()],
+        'persons' => [$person->getKey()],
         'submission_country_id' => ensureFrontendApiMalaysiaCountryExists(),
         'submitter_name' => 'Guest Submitter',
     ])
@@ -3096,7 +3096,7 @@ it('allows online frontend event submissions without a live url', function () {
     expect(withGlobalOwnerContext(fn () => Event::query()->where('title', 'Online Frontend API Event')->firstOrFail()->live_url))->toBeNull();
 });
 
-it('requires a physical location for speaker-organized physical event submissions', function () {
+it('requires a physical location for person-organized physical event submissions', function () {
     $person = Person::factory()->create([
         'status' => 'verified',
         'allow_public_event_submission' => true,
@@ -3134,7 +3134,7 @@ it('mirrors public detail media and public contact payloads', function () {
     $person->contactMethods()->create([
         'type' => ContactMethodType::Email->value,
         'purpose' => ContactPurpose::General->value,
-        'value' => 'public-speaker@example.test',
+        'value' => 'public-person@example.test',
         'is_public' => true,
     ]);
     $person->contactMethods()->create([
@@ -3146,9 +3146,9 @@ it('mirrors public detail media and public contact payloads', function () {
     $person->socialProfiles()->create([
         'platform' => SocialPlatform::Website->value,
         'purpose' => ContactPurpose::General->value,
-        'url' => 'https://speaker.example.test',
+        'url' => 'https://person.example.test',
     ]);
-    $person->addMedia(fakeGeneratedImageUpload('speaker-cover.jpg'))->toMediaCollection('cover');
+    $person->addMedia(fakeGeneratedImageUpload('person-cover.jpg'))->toMediaCollection('cover');
 
     $venue = Venue::factory()->create([
         'status' => 'verified',
@@ -3171,24 +3171,24 @@ it('mirrors public detail media and public contact payloads', function () {
     ]);
     $reference->addMedia(fakeGeneratedImageUpload('reference-front-cover.jpg'))->toMediaCollection('front_cover');
 
-    $speakerResponse = $this->getJson(route('api.client.persons.show', ['speakerKey' => $person->slug]))
+    $personResponse = $this->getJson(route('api.client.persons.show', ['personKey' => $person->slug]))
         ->assertOk();
     $venueResponse = $this->getJson(route('api.client.venues.show', ['venueKey' => $venue->slug]))
         ->assertOk();
     $referenceResponse = $this->getJson(route('api.client.references.show', ['referenceKey' => $reference->slug]))
         ->assertOk();
 
-    $speakerContactValues = collect($speakerResponse->json('data.speaker.contacts'))->pluck('value')->all();
+    $personContactValues = collect($personResponse->json('data.person.contacts'))->pluck('value')->all();
 
-    expect($speakerResponse->json('data.speaker.media.cover_url'))->not->toBeEmpty()
-        ->and($speakerContactValues)->toContain('public-speaker@example.test')
-        ->and($speakerContactValues)->not->toContain('+6011222333')
-        ->and($speakerResponse->json('data.speaker.social_media.0.resolved_url'))->toBe('https://speaker.example.test')
+    expect($personResponse->json('data.person.media.cover_url'))->not->toBeEmpty()
+        ->and($personContactValues)->toContain('public-person@example.test')
+        ->and($personContactValues)->not->toContain('+6011222333')
+        ->and($personResponse->json('data.person.social_media.0.resolved_url'))->toBe('https://person.example.test')
         ->and($venueResponse->json('data.venue.media.cover_url'))->not->toBeEmpty()
         ->and($referenceResponse->json('data.reference.media.front_cover_url'))->not->toBeEmpty()
         ->and($referenceResponse->json('data.reference.social_media.0.resolved_url'))->toBe('https://reference.example.test');
 
-    $speakerResponse->assertJsonMissingPath('data.speaker.media.main_url');
+    $personResponse->assertJsonMissingPath('data.person.media.main_url');
     $referenceResponse->assertJsonMissingPath('data.reference.media.cover_url');
 });
 
@@ -3298,12 +3298,12 @@ it('serializes series detail payloads with follow and media metadata for mobile 
         ->and($response->json('data.past_total'))->toBe(0);
 });
 
-it('mirrors the public speaker page payload for app clients', function () {
+it('mirrors the public person page payload for app clients', function () {
     Storage::fake('public');
     config()->set('media-library.disk_name', 'public');
 
     $countryId = ensureFrontendApiMalaysiaCountryExists();
-    $bioText = str_repeat('Biodata speaker aplikasi ini panjang dan terperinci. ', 20);
+    $bioText = str_repeat('Biodata person aplikasi ini panjang dan terperinci. ', 20);
 
     $person = Person::factory()->create([
         'status' => 'verified',
@@ -3319,15 +3319,15 @@ it('mirrors the public speaker page payload for app clients', function () {
             ]],
         ],
     ]);
-    $person->addMedia(fakeGeneratedImageUpload('speaker-avatar.jpg'))->toMediaCollection('avatar');
-    $person->addMedia(fakeGeneratedImageUpload('speaker-cover.jpg'))->toMediaCollection('cover');
-    $person->addMedia(fakeGeneratedImageUpload('speaker-gallery-1.jpg'))->toMediaCollection('gallery');
-    $person->addMedia(fakeGeneratedImageUpload('speaker-gallery-2.jpg'))->toMediaCollection('gallery');
+    $person->addMedia(fakeGeneratedImageUpload('person-avatar.jpg'))->toMediaCollection('avatar');
+    $person->addMedia(fakeGeneratedImageUpload('person-cover.jpg'))->toMediaCollection('cover');
+    $person->addMedia(fakeGeneratedImageUpload('person-gallery-1.jpg'))->toMediaCollection('gallery');
+    $person->addMedia(fakeGeneratedImageUpload('person-gallery-2.jpg'))->toMediaCollection('gallery');
 
     $country = AddressCountry::query()->findOrFail($countryId);
-    $speakerGeo = createTestPackageGeography('Pahang', 'Temerloh', 'Temerloh', country: $country);
+    $personGeo = createTestPackageGeography('Pahang', 'Temerloh', 'Temerloh', country: $country);
 
-    syncPrimaryAddressForTest($person, $speakerGeo['address']);
+    syncPrimaryAddressForTest($person, $personGeo['address']);
 
     $institution = Institution::factory()->create([
         'name' => 'Madrasah API',
@@ -3343,9 +3343,9 @@ it('mirrors the public speaker page payload for app clients', function () {
         'name' => 'Dewan Seri API',
         'status' => 'verified',
     ]);
-    $venueSubdistrict = createTestAddressArea('Mentakab', 3, parent: $speakerGeo['district'], country: $country);
+    $venueSubdistrict = createTestAddressArea('Mentakab', 3, parent: $personGeo['district'], country: $country);
     syncPrimaryAddressForTest($venue, [
-        ...$speakerGeo['address'],
+        ...$personGeo['address'],
         'admin_area_2_id' => (string) $venueSubdistrict->getKey(),
         'city' => 'Mentakab',
     ]);
@@ -3411,7 +3411,7 @@ it('mirrors the public speaker page payload for app clients', function () {
 
     EventKeyPerson::factory()->create([
         'event_id' => $otherRoleEvent->id,
-        'involveable_type' => 'speaker',
+        'involveable_type' => 'person',
         'involveable_id' => $person->id,
         'role_code' => EventKeyPersonRole::Moderator->value,
         'visibility' => 'public',
@@ -3419,25 +3419,25 @@ it('mirrors the public speaker page payload for app clients', function () {
     ]);
 
     $response = $this->withUnencryptedCookie('user_timezone', 'Asia/Kuala_Lumpur')
-        ->getJson(route('api.client.persons.show', ['speakerKey' => $person->slug]))
+        ->getJson(route('api.client.persons.show', ['personKey' => $person->slug]))
         ->assertOk();
 
-    $speakerInstitution = $response->json('data.speaker.institutions.0');
+    $personInstitution = $response->json('data.person.institutions.0');
 
-    expect($response->json('data.speaker.gender'))->toBe('male')
-        ->and($response->json('data.speaker.address.country_id'))->toBe($countryId)
-        ->and($response->json('data.speaker.country.iso2'))->toBe('MY')
-        ->and($response->json('data.speaker.country.key'))->toBe('malaysia')
-        ->and($response->json('data.speaker.location'))->toBe('Temerloh, Pahang')
-        ->and(data_get($response->json('data.speaker.bio'), 'content.0.content.0.text'))->toBe($bioText)
-        ->and($response->json('data.speaker.media.avatar_url'))->not->toBeEmpty()
-        ->and($response->json('data.speaker.media.share_image_url'))->not->toBeEmpty()
-        ->and($response->json('data.speaker.gallery'))->toHaveCount(2)
-        ->and($response->json('data.speaker.institutions.0.name'))->toBe('Madrasah API')
-        ->and($response->json('data.speaker.institutions.0.position'))->toBe('Mudarris')
-        ->and($response->json('data.speaker.institutions.0.is_primary'))->toBeTrue()
-        ->and($response->json('data.speaker.institutions.0.public_image_url'))->not->toBeEmpty()
-        ->and(array_key_exists('chip_image_url', is_array($speakerInstitution) ? $speakerInstitution : []))->toBeFalse()
+    expect($response->json('data.person.gender'))->toBe('male')
+        ->and($response->json('data.person.address.country_id'))->toBe($countryId)
+        ->and($response->json('data.person.country.iso2'))->toBe('MY')
+        ->and($response->json('data.person.country.key'))->toBe('malaysia')
+        ->and($response->json('data.person.location'))->toBe('Temerloh, Pahang')
+        ->and(data_get($response->json('data.person.bio'), 'content.0.content.0.text'))->toBe($bioText)
+        ->and($response->json('data.person.media.avatar_url'))->not->toBeEmpty()
+        ->and($response->json('data.person.media.share_image_url'))->not->toBeEmpty()
+        ->and($response->json('data.person.gallery'))->toHaveCount(2)
+        ->and($response->json('data.person.institutions.0.name'))->toBe('Madrasah API')
+        ->and($response->json('data.person.institutions.0.position'))->toBe('Mudarris')
+        ->and($response->json('data.person.institutions.0.is_primary'))->toBeTrue()
+        ->and($response->json('data.person.institutions.0.public_image_url'))->not->toBeEmpty()
+        ->and(array_key_exists('chip_image_url', is_array($personInstitution) ? $personInstitution : []))->toBeFalse()
         ->and($response->json('data.upcoming_events.0.reference_study_subtitle'))->toBe('Kitab API')
         ->and($response->json('data.upcoming_events.0.event_categories.0.name'))->toBe('Kuliah / Ceramah')
         ->and($response->json('data.upcoming_events.0.event_format'))->toBe('hybrid')
@@ -3460,13 +3460,13 @@ it('mirrors the public speaker page payload for app clients', function () {
         ->and($response->json('data.other_role_upcoming_participations.0.role_label'))->toBe(EventKeyPersonRole::Moderator->getLabel())
         ->and($response->json('data.other_role_upcoming_participations.0.event.title'))->toBe('Forum API Moderator');
 
-    $response->assertJsonMissingPath('data.speaker.bio_html')
-        ->assertJsonMissingPath('data.speaker.bio_text')
-        ->assertJsonMissingPath('data.speaker.bio_excerpt')
-        ->assertJsonMissingPath('data.speaker.should_collapse_bio');
+    $response->assertJsonMissingPath('data.person.bio_html')
+        ->assertJsonMissingPath('data.person.bio_text')
+        ->assertJsonMissingPath('data.person.bio_excerpt')
+        ->assertJsonMissingPath('data.person.should_collapse_bio');
 });
 
-it('allows following and unfollowing a speaker through the frontend api', function () {
+it('allows following and unfollowing a person through the frontend api', function () {
     $user = User::factory()->create();
     $person = Person::factory()->create([
         'status' => 'verified',
@@ -3474,13 +3474,13 @@ it('allows following and unfollowing a speaker through the frontend api', functi
 
     Sanctum::actingAs($user);
 
-    $this->postJson(route('api.client.follows.store', ['type' => 'speaker', 'subject' => $person->slug]))
+    $this->postJson(route('api.client.follows.store', ['type' => 'person', 'subject' => $person->slug]))
         ->assertCreated()
         ->assertJsonPath('data.is_following', true);
 
     expect($user->fresh()->isFollowing($person))->toBeTrue();
 
-    $this->deleteJson(route('api.client.follows.destroy', ['type' => 'speaker', 'subject' => $person->slug]))
+    $this->deleteJson(route('api.client.follows.destroy', ['type' => 'person', 'subject' => $person->slug]))
         ->assertOk()
         ->assertJsonPath('data.is_following', false);
 

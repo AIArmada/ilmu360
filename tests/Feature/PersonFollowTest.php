@@ -15,7 +15,7 @@ it('allows an authenticated user to follow a person', function () {
 
     $this->actingAs($user);
 
-    $this->get(route('persons.show'))
+    $this->get(route('persons.show', $person))
         ->assertSuccessful()
         ->assertSee(__('Ikuti'));
 
@@ -74,7 +74,7 @@ it('redirects guest to login when trying to follow', function () {
 
     Livewire::test('pages.persons.show', ['person' => $person])
         ->call('toggleFollow')
-        ->assertRedirect(route('login', ['redirect' => route('persons.show')]));
+        ->assertRedirect(route('login', ['redirect' => route('persons.show', $person)]));
 });
 
 it('returns correct followingPersons relationship', function () {

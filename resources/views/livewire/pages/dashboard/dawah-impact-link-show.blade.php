@@ -11,7 +11,7 @@
     $subjectBadgeClass = match ((string) $link->subject_type) {
         'event' => 'bg-emerald-100 text-emerald-700',
         'institution' => 'bg-sky-100 text-sky-700',
-        'speaker' => 'bg-violet-100 text-violet-700',
+        'person' => 'bg-violet-100 text-violet-700',
         'series' => 'bg-indigo-100 text-indigo-700',
         'reference' => 'bg-amber-100 text-amber-700',
         'search' => 'bg-rose-100 text-rose-700',
@@ -20,7 +20,7 @@
     $subjectLabel = match ((string) $link->subject_type) {
         'event' => __('Event'),
         'institution' => __('Institution'),
-        'speaker' => __('Speaker'),
+        'person' => __('Speaker'),
         'series' => __('Series'),
         'reference' => __('Reference'),
         'search' => __('Search Results'),

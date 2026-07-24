@@ -29,7 +29,7 @@ class ModerationReviewFactory extends Factory
                 'donation_changed',
                 'time_changed',
                 'venue_changed',
-                'speaker_changed',
+                'person_changed',
                 'details_incomplete',
             ]),
         ];

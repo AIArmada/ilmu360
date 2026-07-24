@@ -112,7 +112,7 @@ class ReportResolvedNotification extends Notification implements ShouldQueue
         return match ($this->report->entity_type) {
             'event' => __('Event'),
             'institution' => __('Institution'),
-            'speaker' => __('Speaker'),
+            'person' => __('Speaker'),
             'reference' => __('Reference'),
             default => __('Item'),
         };

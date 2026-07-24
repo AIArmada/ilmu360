@@ -212,7 +212,7 @@ class CreateAdvanced extends Component
         }
 
         if (array_key_exists($organizerId, $this->personOptions)) {
-            return 'speaker';
+            return 'person';
         }
 
         return null;

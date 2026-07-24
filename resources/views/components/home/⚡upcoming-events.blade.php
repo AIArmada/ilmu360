@@ -12,7 +12,7 @@ new class extends Component {
         return Event::active()
             ->where('starts_at', '>=', now())
             ->orderBy('starts_at')
-            ->with(['institution', 'venue', 'speakers', 'references'])
+            ->with(['institution', 'venue', 'persons', 'references'])
             ->take(9)
             ->get();
     }
@@ -122,10 +122,10 @@ new class extends Component {
                                         class="inline-block rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600">
                                         {{ $event->eventType?->name ?? __('Kuliah') }}
                                     </span>
-                                    @if($event->speakers->isNotEmpty())
+                                    @if($event->persons->isNotEmpty())
                                         <span
                                             class="inline-block rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
-                                            {{ $event->speakers->first()?->name }}
+                                            {{ $event->persons->first()?->name }}
                                         </span>
                                     @endif
                                 </div>

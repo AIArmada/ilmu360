@@ -16,12 +16,12 @@ beforeEach(function () {
 });
 
 /**
- * @return array{domain_tag: Tag, discipline_tag: Tag, speaker: Person, venue: Venue}
+ * @return array{domain_tag: Tag, discipline_tag: Tag, person: Person, venue: Venue}
  */
 function submitEventOrganizerFixtures(): array
 {
     return [
-        'speaker' => Person::factory()->create(['status' => 'verified']),
+        'person' => Person::factory()->create(['status' => 'verified']),
         'domain_tag' => submitEventTerm('domain'),
         'discipline_tag' => submitEventTerm('discipline'),
         'venue' => Venue::factory()->create(['status' => 'verified']),
@@ -29,14 +29,14 @@ function submitEventOrganizerFixtures(): array
 }
 
 /**
- * @param  array{domain_tag: Tag, discipline_tag: Tag, speaker: Person, venue: Venue}  $fixtures
+ * @param  array{domain_tag: Tag, discipline_tag: Tag, person: Person, venue: Venue}  $fixtures
  * @return array<string, mixed>
  */
 function submitEventOrganizerFormData(array $fixtures, array $overrides = []): array
 {
     return array_merge([
-        'primary_organizer_id' => $fixtures['speaker']->id,
-        'speakers' => [$fixtures['speaker']->id],
+        'primary_organizer_id' => $fixtures['person']->id,
+        'persons' => [$fixtures['person']->id],
         'title' => 'Auto Select Person Event',
         'event_date' => now()->addDay()->toDateString(),
         'prayer_time' => EventPrayerTime::SelepasMaghrib->value,
@@ -55,7 +55,7 @@ function submitEventOrganizerFormData(array $fixtures, array $overrides = []): a
     ], $overrides);
 }
 
-it('assigns the speaker as event speaker when speaker is the organizer', function () {
+it('assigns the person as event person when person is the organizer', function () {
     $fixtures = submitEventOrganizerFixtures();
 
     setSubmitEventFormState(
@@ -67,16 +67,16 @@ it('assigns the speaker as event speaker when speaker is the organizer', functio
         ->assertRedirect(route('submit-event.success'));
 
     $event = Event::where('title', 'Auto Select Person Event')->firstOrFail();
-    $speakerInvolvements = $event->involvements()->where('role_code', 'speaker')->get();
-    expect($speakerInvolvements)->toHaveCount(1);
-    expect($speakerInvolvements->first()->involveable_id)->toBe((string) $fixtures['speaker']->id);
+    $personInvolvements = $event->involvements()->where('role_code', 'person')->get();
+    expect($personInvolvements)->toHaveCount(1);
+    expect($personInvolvements->first()->involveable_id)->toBe((string) $fixtures['person']->id);
 
     $involvement = $event->primaryOrganizerInvolvement;
     expect($involvement->involveable_type)->toBe(Person::class);
-    expect($involvement->involveable_id)->toBe((string) $fixtures['speaker']->id);
+    expect($involvement->involveable_id)->toBe((string) $fixtures['person']->id);
 });
 
-it('shows formatted speaker names in submit event speaker selectors', function () {
+it('shows formatted person names in submit event person selectors', function () {
     $person = Person::factory()->create([
         'name' => 'Aisyah binti Noor',
         'status' => 'verified',
@@ -86,7 +86,7 @@ it('shows formatted speaker names in submit event speaker selectors', function (
         ->assertSee($person->formatted_name);
 });
 
-it('uses the organizer speaker slug when no explicit speakers are selected', function () {
+it('uses the organizer person slug when no explicit persons are selected', function () {
     $fixtures = submitEventOrganizerFixtures();
     $eventDate = now()->addDay()->toDateString();
     $expectedSuffix = Carbon::parse($eventDate, 'Asia/Kuala_Lumpur')->format('j-n-y');
@@ -97,7 +97,7 @@ it('uses the organizer speaker slug when no explicit speakers are selected', fun
             'title' => 'Organizer Fallback Submit Event',
             'event_date' => $eventDate,
             'event_category_ids' => [eventCategoryId('other')],
-            'speakers' => [],
+            'persons' => [],
         ]),
     )
         ->call('submit')
@@ -105,5 +105,5 @@ it('uses the organizer speaker slug when no explicit speakers are selected', fun
         ->assertRedirect(route('submit-event.success'));
 
     expect(Event::where('title', 'Organizer Fallback Submit Event')->firstOrFail()->slug)
-        ->toBe(sprintf('organizer-fallback-submit-event-%s-%s', $fixtures['speaker']->slug, $expectedSuffix));
+        ->toBe(sprintf('organizer-fallback-submit-event-%s-%s', $fixtures['person']->slug, $expectedSuffix));
 });

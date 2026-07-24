@@ -200,14 +200,6 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
     }
 
     /**
-     * @return BelongsToMany<Person, $this>
-     */
-    public function speakers(): BelongsToMany
-    {
-        return $this->persons();
-    }
-
-    /**
      * @return MorphToMany<Role, $this, MorphPivot, 'pivot'>
      */
     public function globalRoles(): MorphToMany
@@ -426,14 +418,6 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
 
         return $this->morphedByMany(Person::class, 'followable', $table, 'follower_id', 'followable_id')
             ->where("{$table}.status", 'active');
-    }
-
-    /**
-     * @return MorphToMany<Person, $this>
-     */
-    public function followingSpeakers(): MorphToMany
-    {
-        return $this->followingPersons();
     }
 
     /**

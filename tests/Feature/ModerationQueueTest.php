@@ -35,7 +35,7 @@ it('shows verification warnings in moderation queue', function () {
         'institution_id' => $institution->id,
         'default_venue_id' => $venue->id,
     ]);
-    $event->speakers()->attach($person);
+    $event->persons()->attach($person);
 
     $this->actingAs($moderator)
         ->get('/admin/moderation-queue')
@@ -109,7 +109,7 @@ it('shows pending references in moderation queue reference status', function () 
         'institution_id' => $institution->id,
         'default_venue_id' => $venue->id,
     ]);
-    $event->speakers()->attach($person);
+    $event->persons()->attach($person);
     $event->references()->attach($pendingReference);
 
     $this->actingAs($moderator)
@@ -136,7 +136,7 @@ it('shows all verified when moderation queue event references are already approv
         'institution_id' => $institution->id,
         'default_venue_id' => $venue->id,
     ]);
-    $event->speakers()->attach($person);
+    $event->persons()->attach($person);
     $event->references()->attach($verifiedReference);
 
     $this->actingAs($moderator)
@@ -159,7 +159,7 @@ it('shows none when moderation queue event has no references', function () {
         'institution_id' => $institution->id,
         'default_venue_id' => $venue->id,
     ]);
-    $event->speakers()->attach($person);
+    $event->persons()->attach($person);
 
     $this->actingAs($moderator)
         ->get('/admin/moderation-queue')

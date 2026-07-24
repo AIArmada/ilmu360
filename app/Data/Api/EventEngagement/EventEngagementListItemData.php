@@ -18,14 +18,14 @@ class EventEngagementListItemData extends Data
      * @param  array<string, mixed>  $attributes
      * @param  array<string, mixed>|null  $institution
      * @param  array<string, mixed>|null  $venue
-     * @param  list<array<string, mixed>>  $speakers
+     * @param  list<array<string, mixed>>  $persons
      * @param  array<string, mixed>|null  $pivot
      */
     public function __construct(
         public array $attributes,
         public ?array $institution,
         public ?array $venue,
-        public array $speakers,
+        public array $persons,
         public ?array $pivot,
     ) {}
 
@@ -56,9 +56,9 @@ class EventEngagementListItemData extends Data
             venue: $event->relationLoaded('venue') && $event->venue instanceof Venue
                 ? Arr::only($event->venue->toArray(), ['id', 'name'])
                 : null,
-            speakers: $event->relationLoaded('persons')
+            persons: $event->relationLoaded('persons')
                 ? $event->persons
-                    ->map(fn (Person $speaker): array => Arr::only($speaker->toArray(), ['id', 'name', 'slug', 'pivot']))
+                    ->map(fn (Person $person): array => Arr::only($person->toArray(), ['id', 'name', 'slug', 'pivot']))
                     ->values()
                     ->all()
                 : [],
@@ -80,7 +80,7 @@ class EventEngagementListItemData extends Data
         return array_merge($this->attributes, [
             'institution' => $this->institution,
             'venue' => $this->venue,
-            'speakers' => $this->speakers,
+            'persons' => $this->persons,
             'pivot' => $this->pivot,
         ]);
     }

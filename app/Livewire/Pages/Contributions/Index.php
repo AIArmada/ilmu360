@@ -133,7 +133,7 @@ class Index extends Component implements HasForms
                 });
             })
             ->with([
-                'event' => fn ($query) => $query->with(['institution', 'speakers', 'references']),
+                'event' => fn ($query) => $query->with(['institution', 'persons', 'references']),
             ])
             ->latest('created_at')
             ->paginate(perPage: 5, pageName: 'submitted_events_page'));

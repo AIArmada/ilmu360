@@ -45,11 +45,11 @@ final class EventDiscoveryCriteriaFactory
                 'children_allowed', 'time_scope', 'timing_mode', 'prayer_time', 'starts_after',
                 'starts_before', 'starts_on_local_date', 'starts_time_from', 'starts_time_until',
                 'has_end_time', 'has_event_url', 'has_live_url', 'is_muslim_only',
-                'search_include_institutions', 'search_include_speakers', 'search_include_references',
+                'search_include_institutions', 'search_include_persons', 'search_include_references',
             ]),
             relationFilters: $this->select($normalizedFilters, [
                 'country_id', 'state_id', 'city_id', 'admin_area_1_id', 'admin_area_2_id',
-                'institution_id', 'venue_id', 'speaker_ids', 'reference_ids', 'language_codes',
+                'institution_id', 'venue_id', 'person_ids', 'reference_ids', 'language_codes',
                 'person_in_charge_ids', 'person_in_charge_search', 'domain_tag_ids', 'discipline_tag_ids',
                 'source_tag_ids', 'issue_tag_ids', 'event_category_ids',
             ]),
@@ -81,7 +81,7 @@ final class EventDiscoveryCriteriaFactory
             }
         }
 
-        foreach (['speaker_ids', 'reference_ids', 'person_in_charge_ids', 'domain_tag_ids', 'discipline_tag_ids', 'source_tag_ids', 'issue_tag_ids', 'event_category_ids'] as $key) {
+        foreach (['person_ids', 'reference_ids', 'person_in_charge_ids', 'domain_tag_ids', 'discipline_tag_ids', 'source_tag_ids', 'issue_tag_ids', 'event_category_ids'] as $key) {
             if (array_key_exists($key, $normalized)) {
                 $normalized[$key] = $this->uuidList($normalized[$key]);
             }

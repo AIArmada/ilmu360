@@ -51,7 +51,7 @@ it('queues institution and related event reindex when an addressable is created'
     ));
 });
 
-it('queues speaker reindex when an addressable is created for a speaker', function () {
+it('queues person reindex when an addressable is created for a person', function () {
     $person = Person::factory()->create(['status' => 'verified']);
 
     syncPrimaryAddressForTest($person, [

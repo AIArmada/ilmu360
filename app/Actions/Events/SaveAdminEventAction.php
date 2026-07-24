@@ -67,7 +67,7 @@ final readonly class SaveAdminEventAction
             'source_tags' => [],
             'issue_tags' => [],
             'primary_organizer_id' => null,
-            'speakers' => [],
+            'persons' => [],
             'other_key_people' => [],
             'registration_required' => false,
             'registration_mode' => RegistrationMode::None->value,
@@ -139,10 +139,10 @@ final readonly class SaveAdminEventAction
             'issue_tags' => $groupedTerms->get('issue', collect())->pluck('event_term_id')->map(fn (mixed $id): string => (string) $id)->values()->all(),
             'references' => $event->references->pluck('id')->map(fn (mixed $id): string => (string) $id)->values()->all(),
             'series' => $event->series->pluck('id')->map(fn (mixed $id): string => (string) $id)->values()->all(),
-            'speakers' => $event->keyPeople
+            'persons' => $event->keyPeople
                 ->where('role_code', EventKeyPersonRole::Speaker->value)
                 ->pluck('involveable_id')
-                ->filter(fn (mixed $speakerId): bool => is_string($speakerId) && $speakerId !== '')
+                ->filter(fn (mixed $personId): bool => is_string($personId) && $personId !== '')
                 ->values()
                 ->all(),
             'other_key_people' => $event->keyPeople
@@ -340,7 +340,7 @@ final readonly class SaveAdminEventAction
         $institutionId = $this->normalizeOptionalString($state['institution_id'] ?? null);
         $venueId = $this->normalizeOptionalString($state['venue_id'] ?? null);
         $spaceIds = $this->normalizeStringArray($state['space_ids'] ?? []);
-        $speakerIds = $this->normalizeStringArray($state['speakers'] ?? []);
+        $personIds = $this->normalizeStringArray($state['persons'] ?? []);
 
         if ($primaryOrganizerId === null) {
             $errors['primary_organizer_id'][] = __('Penganjur utama diperlukan.');
@@ -386,8 +386,8 @@ final readonly class SaveAdminEventAction
             }
         }
 
-        if ($this->requiresSpeakers($state['event_category_ids'] ?? []) && $speakerIds === []) {
-            $errors['speakers'][] = __('Sekurang-kurangnya seorang penceramah diperlukan untuk jenis majlis ini.');
+        if ($this->requiresPersons($state['event_category_ids'] ?? []) && $personIds === []) {
+            $errors['persons'][] = __('Sekurang-kurangnya seorang penceramah diperlukan untuk jenis majlis ini.');
         }
 
         if ($errors !== []) {
@@ -404,8 +404,8 @@ final readonly class SaveAdminEventAction
         $primaryOrganizerId = $this->normalizeOptionalString($state['primary_organizer_id'] ?? null);
         $primaryOrganizer = OrganizerResolver::find($primaryOrganizerId);
 
-        $speakerSlugSegments = $this->generateEventSlugAction->speakerSlugSegmentsForState(
-            $this->normalizeStringArray($state['speakers'] ?? []),
+        $personSlugSegments = $this->generateEventSlugAction->personSlugSegmentsForState(
+            $this->normalizeStringArray($state['persons'] ?? []),
             $primaryOrganizer,
         );
 
@@ -414,7 +414,7 @@ final readonly class SaveAdminEventAction
             $state['event_date'] ?? $startsAt ?? null,
             is_string($attributes['timezone']) ? $attributes['timezone'] : null,
             $creating ? null : (string) $event->getKey(),
-            $speakerSlugSegments,
+            $personSlugSegments,
         );
     }
 
@@ -518,7 +518,7 @@ final readonly class SaveAdminEventAction
         return filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) === true;
     }
 
-    private function requiresSpeakers(mixed $categoryIds): bool
+    private function requiresPersons(mixed $categoryIds): bool
     {
         return app(EventCategoryPolicyResolver::class)->requiresSpeaker(
             app(EventCategoryCatalog::class)->validateTermIds(is_array($categoryIds) ? $categoryIds : [$categoryIds]),

@@ -69,7 +69,7 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
             $directQuery,
             $query,
             (bool) ($filters['search_include_institutions'] ?? true),
-            (bool) ($filters['search_include_speakers'] ?? true),
+            (bool) ($filters['search_include_persons'] ?? true),
             (bool) ($filters['search_include_references'] ?? true),
         );
         $this->applyDatabaseOrdering($directQuery, $sort, $query);
@@ -119,7 +119,7 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
                 ->ordered(),
             'references',
             'classifications',
-            'speakers.media' => fn ($query) => $query
+            'persons.media' => fn ($query) => $query
                 ->where('collection_name', 'avatar')
                 ->ordered(),
             'institution.media' => fn ($query) => $query
@@ -181,7 +181,7 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
                 $queryBuilder,
                 $query,
                 (bool) ($filters['search_include_institutions'] ?? true),
-                (bool) ($filters['search_include_speakers'] ?? true),
+                (bool) ($filters['search_include_persons'] ?? true),
                 (bool) ($filters['search_include_references'] ?? true),
             );
         }
@@ -257,7 +257,7 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
             $queryBuilder->where('default_venue_id', $filters['venue_id']);
         }
 
-        $personIds = $this->uuidFilterValues($filters['speaker_ids'] ?? null);
+        $personIds = $this->uuidFilterValues($filters['person_ids'] ?? null);
 
         if ($personIds !== []) {
             $queryBuilder->whereHas('persons', function (Builder $personQuery) use ($personIds) {
@@ -289,7 +289,7 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
             $queryBuilder->whereHas('keyPeople', function (Builder $keyPersonQuery) use ($roleSpecificIds, $role): void {
                 $keyPersonQuery
                     ->where('role_code', $role->value)
-                    ->where('involveable_type', 'speaker')
+                    ->where('involveable_type', 'person')
                     ->whereIn('involveable_id', $roleSpecificIds);
             });
         }
@@ -305,10 +305,10 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
                     ->where(function (Builder $personInChargeQuery) use ($operator, $personInChargeSearch): void {
                         $personInChargeQuery
                             ->where('event_involvements.display_name', $operator, "%{$personInChargeSearch}%")
-                            ->orWhereHas('speaker', function (Builder $speakerQuery) use ($operator, $personInChargeSearch): void {
-                                $speakerQuery
-                                    ->where('speakers.name', $operator, "%{$personInChargeSearch}%")
-                                    ->orWhere('speakers.searchable_name', $operator, "%{$personInChargeSearch}%");
+                            ->orWhereHas('person', function (Builder $personQuery) use ($operator, $personInChargeSearch): void {
+                                $personQuery
+                                    ->where('persons.name', $operator, "%{$personInChargeSearch}%")
+                                    ->orWhere('persons.searchable_name', $operator, "%{$personInChargeSearch}%");
                             });
                     });
             });
@@ -432,7 +432,7 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
         EventBuilder $queryBuilder,
         string $search,
         bool $includeInstitutions = true,
-        bool $includeSpeakers = true,
+        bool $includePersons = true,
         bool $includeReferences = true,
     ): void {
         $normalizedSearch = trim($search);
@@ -451,11 +451,11 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
             static fn (string $token): bool => $token !== ''
         ));
 
-        $speakerIds = $includeSpeakers ? $this->personSearch->publicSearchIds($normalizedSearch) : [];
+        $personIds = $includePersons ? $this->personSearch->publicSearchIds($normalizedSearch) : [];
         $institutionIds = $includeInstitutions ? $this->institutionSearch->publicSearchIds($normalizedSearch) : [];
         $referenceIds = $includeReferences ? $this->referenceSearch->publicSearchIds($normalizedSearch) : [];
 
-        $queryBuilder->where(function (Builder $nestedQuery) use ($normalizedSearch, $operator, $collapsedWildcardSearch, $searchTokens, $speakerIds, $institutionIds, $referenceIds, $includeSpeakers): void {
+        $queryBuilder->where(function (Builder $nestedQuery) use ($normalizedSearch, $operator, $collapsedWildcardSearch, $searchTokens, $personIds, $institutionIds, $referenceIds, $includePersons): void {
             $nestedQuery->where(function (Builder $titleQuery) use ($normalizedSearch, $operator, $collapsedWildcardSearch, $searchTokens): void {
                 $titleQuery
                     ->where('title', $operator, "%{$normalizedSearch}%")
@@ -486,18 +486,18 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
                 });
             }
 
-            if ($includeSpeakers) {
-                $nestedQuery->orWhereHas('keyPeople', function (Builder $keyPeopleQuery) use ($speakerIds, $normalizedSearch, $operator): void {
-                    $keyPeopleQuery->where(function (Builder $inner) use ($speakerIds, $normalizedSearch, $operator): void {
+            if ($includePersons) {
+                $nestedQuery->orWhereHas('keyPeople', function (Builder $keyPeopleQuery) use ($personIds, $normalizedSearch, $operator): void {
+                    $keyPeopleQuery->where(function (Builder $inner) use ($personIds, $normalizedSearch, $operator): void {
                         $inner
                             ->where('event_involvements.display_name', $operator, "%{$normalizedSearch}%")
-                            ->orWhereHas('speaker', fn (Builder $speakerQuery) => $speakerQuery
+                            ->orWhereHas('person', fn (Builder $personQuery) => $personQuery
                                 ->where('name', $operator, "%{$normalizedSearch}%")
                                 ->orWhere('searchable_name', $operator, "%{$normalizedSearch}%")
                             );
 
-                        if ($speakerIds !== []) {
-                            $inner->orWhereIn('event_involvements.involveable_id', $speakerIds);
+                        if ($personIds !== []) {
+                            $inner->orWhereIn('event_involvements.involveable_id', $personIds);
                         }
                     });
                 });
@@ -667,7 +667,7 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
         $queryBuilder = $this->buildDatabaseQuery(null, $filters);
         $this->applyDirectSearch($queryBuilder, $query,
             (bool) ($filters['search_include_institutions'] ?? true),
-            (bool) ($filters['search_include_speakers'] ?? true),
+            (bool) ($filters['search_include_persons'] ?? true),
             (bool) ($filters['search_include_references'] ?? true),
         );
 

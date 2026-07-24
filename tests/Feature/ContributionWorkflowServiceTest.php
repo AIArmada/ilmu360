@@ -73,7 +73,7 @@ it('creates staged pending institution records with structured relation data', f
         ->and($institution->members()->whereKey($proposer->id)->exists())->toBeFalse();
 });
 
-it('creates staged pending speaker records with structured relation data', function () {
+it('creates staged pending person records with structured relation data', function () {
     $proposer = User::factory()->create();
 
     $person = app(ContributionEntityMutationService::class)->createPerson([
@@ -265,7 +265,7 @@ it('applies structured event participant and reference updates through approval'
         [
             'title' => 'Kuliah Terkini',
             'reference_ids' => [$reference->id],
-            'speaker_ids' => [$person->id],
+            'person_ids' => [$person->id],
             'other_key_people' => [[
                 'role_code' => 'moderator',
                 'display_name' => 'Moderator Test',

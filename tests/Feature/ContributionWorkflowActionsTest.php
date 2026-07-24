@@ -116,7 +116,7 @@ it('submits staged institution contributions through the action layer', function
         ]);
 });
 
-it('submits staged speaker contributions through the action layer', function () {
+it('submits staged person contributions through the action layer', function () {
     $proposer = User::factory()->create();
 
     $person = app(SubmitStagedContributionCreateAction::class)->handle(
@@ -125,7 +125,7 @@ it('submits staged speaker contributions through the action layer', function () 
             'name' => 'Person Beraksi',
             'gender' => 'male',
             'bio' => 'Person created through staged action.',
-            'proposer_note' => 'Please review this speaker.',
+            'proposer_note' => 'Please review this person.',
         ],
         $proposer,
     );
@@ -244,7 +244,7 @@ it('cancels pending contribution requests through the action layer', function ()
 
 it('resolves contribution update context from slug and uuid subjects', function () {
     $person = Person::factory()->create([
-        'slug' => 'speaker-action-subject',
+        'slug' => 'person-action-subject',
         'name' => 'Person Action Subject',
         'bio' => 'Person bio.',
     ])->fresh();
@@ -253,11 +253,11 @@ it('resolves contribution update context from slug and uuid subjects', function 
         'slug' => 'action-event',
     ]);
 
-    $speakerContext = app(ResolveContributionUpdateContextAction::class)->handle('penceramah', (string) $person->slug);
+    $personContext = app(ResolveContributionUpdateContextAction::class)->handle('penceramah', (string) $person->slug);
     $eventContext = app(ResolveContributionUpdateContextAction::class)->handle('majlis', 'action-event');
 
-    expect($speakerContext['entity']->is($person))->toBeTrue()
-        ->and($speakerContext['initial_state'])->toHaveKey('name', 'Person Action Subject')
+    expect($personContext['entity']->is($person))->toBeTrue()
+        ->and($personContext['initial_state'])->toHaveKey('name', 'Person Action Subject')
         ->and($eventContext['entity']->is($event))->toBeTrue()
         ->and($eventContext['initial_state'])->toHaveKey('title', 'Action Event');
 });

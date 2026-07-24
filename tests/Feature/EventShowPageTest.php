@@ -397,9 +397,9 @@ describe('Event Show Page Location & Contact Info', function () {
             ->toBeLessThan(strpos($html, 'data-testid="event-detail-location-section"'));
     });
 
-    it('does not use speaker images as hero background when location media is missing', function () {
+    it('does not use person images as hero background when location media is missing', function () {
         $person = Person::factory()->create();
-        $person->addMedia(UploadedFile::fake()->image('speaker-avatar.jpg', 800, 800))
+        $person->addMedia(UploadedFile::fake()->image('person-avatar.jpg', 800, 800))
             ->toMediaCollection('avatar');
 
         $event = Event::factory()->create([
@@ -412,7 +412,7 @@ describe('Event Show Page Location & Contact Info', function () {
         ]);
         OwnerContext::withOwner(null, fn () => $event->setPrimaryOrganizer($person));
 
-        $event->speakers()->attach($person->id);
+        $event->persons()->attach($person->id);
 
         $this->get(route('events.show', $event))
             ->assertOk()

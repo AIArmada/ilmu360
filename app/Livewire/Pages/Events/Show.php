@@ -108,10 +108,10 @@ class Show extends Component
                 'languages',
                 'latestPublishedChangeAnnouncement.replacementEvent.media',
                 'latestPublishedChangeAnnouncement.replacementEvent.institution.media',
-                'latestPublishedChangeAnnouncement.replacementEvent.speakers.media',
+                'latestPublishedChangeAnnouncement.replacementEvent.persons.media',
                 'latestPublishedReplacementAnnouncement.replacementEvent.media',
                 'latestPublishedReplacementAnnouncement.replacementEvent.institution.media',
-                'latestPublishedReplacementAnnouncement.replacementEvent.speakers.media',
+                'latestPublishedReplacementAnnouncement.replacementEvent.persons.media',
                 'publishedChangeAnnouncements.replacementEvent',
             ]);
 

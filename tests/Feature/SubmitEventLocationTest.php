@@ -40,7 +40,7 @@ function submitEventLocationFormData(array $overrides = []): array
     ], $overrides);
 }
 
-it('can submit an event as a speaker with an institution location', function () {
+it('can submit an event as a person with an institution location', function () {
     $person = Person::factory()->create(['status' => 'verified']);
     $institution = Institution::factory()->create(['status' => 'verified']);
 
@@ -66,7 +66,7 @@ it('can submit an event as a speaker with an institution location', function () 
         ->and($event->default_venue_id)->toBeNull();
 });
 
-it('can submit an event as a speaker with a venue location', function () {
+it('can submit an event as a person with a venue location', function () {
     $person = Person::factory()->create(['status' => 'verified']);
     $venue = Venue::factory()->create(['status' => 'verified']);
 
@@ -116,14 +116,14 @@ it('automatically sets location to institution when organizer is an institution'
         ->and($event->default_venue_id)->toBeNull();
 });
 
-it('requires location type when organizer is speaker', function () {
+it('requires location type when organizer is person', function () {
     $person = Person::factory()->create(['status' => 'verified']);
 
     Livewire::actingAs($this->user)
         ->test(Create::class)
-        ->set('data.primary_organizer_kind', 'speaker')
+        ->set('data.primary_organizer_kind', 'person')
         ->set('data.primary_organizer_id', $person->id)
-        ->set('data.primary_organizer_speaker_id', $person->id)
+        ->set('data.primary_organizer_person_id', $person->id)
         ->set('data.location_type')
         ->set('data.visibility', EventVisibility::Public->value)
         ->call('submit')

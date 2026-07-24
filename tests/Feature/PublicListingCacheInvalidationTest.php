@@ -40,7 +40,7 @@ function primeMajlisListingCache(): array
 
     foreach ($supportedLocales as $locale) {
         $keys[] = "events_institutions_{$locale}_v2";
-        $keys[] = "events_speakers_{$locale}_v2";
+        $keys[] = "events_persons_{$locale}_v2";
         $keys[] = "events_disciplines_{$locale}_v2";
         $keys[] = "events_domains_{$locale}_v2";
         $keys[] = "events_sources_{$locale}_v2";
@@ -63,7 +63,7 @@ function primeHomepageStatsCache(): array
 {
     $keys = [
         'home.stats.events.upcoming',
-        'home.stats.speakers.upcoming',
+        'home.stats.persons.upcoming',
         'home.stats.institutions.upcoming',
     ];
 
@@ -119,7 +119,7 @@ it('clears majlis listing cache when event is submitted from public submit form'
             'age_group' => [EventAgeGroup::AllAges->value],
             'languages' => [101],
             'primary_organizer_id' => $institution->id,
-            'speakers' => [$person->id],
+            'persons' => [$person->id],
             'domain_tags' => [$domainTag->id],
             'discipline_tags' => [$disciplineTag->id],
             'submitter_name' => 'Cache Tester',
@@ -182,7 +182,7 @@ it('clears homepage stats cache when event key people are created or deleted', f
     $homepageKeysAfterCreate = primeHomepageStatsCache();
     $eventKeyPerson = EventKeyPerson::query()->create([
         'event_id' => $event->getKey(),
-        'involveable_type' => 'speaker',
+        'involveable_type' => 'person',
         'involveable_id' => $person->getKey(),
         'role_code' => EventKeyPersonRole::Speaker->value,
         'visibility' => 'public',
