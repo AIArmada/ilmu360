@@ -143,7 +143,7 @@ class AdminCreateRecordTool extends AbstractAdminWriteTool
         $tool['_meta'] = array_merge(
             is_array($tool['_meta'] ?? null) ? $tool['_meta'] : [],
             [
-                'openai/note' => 'Media file descriptors are passed inside the payload object field for media-capable resources (Event, Institution, Reference, Report, Speaker, Venue, Series, DonationChannel, Inspiration, Space). Pass {content_base64, filename} or {content_url, filename}.',
+                'openai/note' => 'Media file descriptors are passed inside the payload object field for media-capable resources (Event, Institution, Reference, Report, Person, Venue, Series, DonationChannel, Inspiration, Space). Pass {content_base64, filename} or {content_url, filename}.',
             ],
         );
 

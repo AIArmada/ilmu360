@@ -24,7 +24,7 @@ class McpEventSearchService
         'event_category_ids',
         'age_group',
         'event_format',
-        'speaker_ids',
+        'person_ids',
         'key_person_roles',
         'person_in_charge_ids',
         'moderator_ids',
@@ -58,7 +58,7 @@ class McpEventSearchService
         'is_muslim_only',
         'institution_id',
         'venue_id',
-        'speaker_ids',
+        'person_ids',
         'key_person_roles',
         'person_in_charge_ids',
         'person_in_charge_search',
@@ -83,7 +83,7 @@ class McpEventSearchService
         'has_live_url',
         'has_end_time',
         'search_include_institutions',
-        'search_include_speakers',
+        'search_include_persons',
         'search_include_references',
         'reference_author_search',
     ];
@@ -208,8 +208,8 @@ class McpEventSearchService
             'is_muslim_only' => ['sometimes', 'nullable', 'boolean'],
             'institution_id' => ['sometimes', 'nullable', 'string'],
             'venue_id' => ['sometimes', 'nullable', 'string'],
-            'speaker_ids' => ['sometimes', 'nullable', 'array'],
-            'speaker_ids.*' => ['string'],
+            'person_ids' => ['sometimes', 'nullable', 'array'],
+            'person_ids.*' => ['string'],
             'key_person_roles' => ['sometimes', 'nullable', 'array'],
             'key_person_roles.*' => ['string'],
             'person_in_charge_ids' => ['sometimes', 'nullable', 'array'],
@@ -246,7 +246,7 @@ class McpEventSearchService
             'has_live_url' => ['sometimes', 'nullable', 'boolean'],
             'has_end_time' => ['sometimes', 'nullable', 'boolean'],
             'search_include_institutions' => ['sometimes', 'nullable', 'boolean'],
-            'search_include_speakers' => ['sometimes', 'nullable', 'boolean'],
+            'search_include_persons' => ['sometimes', 'nullable', 'boolean'],
             'search_include_references' => ['sometimes', 'nullable', 'boolean'],
             'reference_author_search' => ['sometimes', 'nullable', 'array'],
             'reference_author_search.*' => ['string', 'max:255'],
@@ -262,7 +262,7 @@ class McpEventSearchService
 
         return [
             'query' => $schema->string()->nullable()->description(
-                'Optional keyword search across event titles, descriptions, and associated speaker/institution names.'
+                'Optional keyword search across event titles, descriptions, and associated person/institution names.'
             ),
             'page' => $schema->integer()->default(1)->description('Page number for pagination. Starts at 1.'),
             'per_page' => $schema->integer()->default(12)->description('Number of results per page. Max 100.'),
@@ -323,22 +323,22 @@ class McpEventSearchService
             'venue_id' => $schema->string()->nullable()->description(
                 'UUID of the venue. Restricts results to events held at that specific venue.'
             ),
-            'speaker_ids' => $stringArray->description(
-                'Array of speaker UUIDs. Returns events where any of the given speakers appear as a key person (any role).'
+            'person_ids' => $stringArray->description(
+                'Array of person UUIDs. Returns events where any of the given persons appear as a key person (any role).'
             ),
             'key_person_roles' => $stringArray->description(
-                'Array of key-person role values to filter by. Valid values: speaker, moderator, person_in_charge, imam, khatib, bilal. Use with speaker_ids to narrow by role.'
+                'Array of key-person role values to filter by. Valid values: speaker, moderator, person_in_charge, imam, khatib, bilal. Use with person_ids to narrow by role.'
             ),
             'person_in_charge_ids' => $stringArray->description(
-                'Array of speaker UUIDs who are assigned the person_in_charge (PIC/coordinator) role on the event.'
+                'Array of person UUIDs who are assigned the person_in_charge (PIC/coordinator) role on the event.'
             ),
             'person_in_charge_search' => $schema->string()->nullable()->description(
                 'Text search on the name of the person in charge / event coordinator.'
             ),
-            'moderator_ids' => $stringArray->description('Array of speaker UUIDs who are the event moderator(s).'),
-            'imam_ids' => $stringArray->description('Array of speaker UUIDs who are the event imam(s).'),
-            'khatib_ids' => $stringArray->description('Array of speaker UUIDs who are the event khatib(s).'),
-            'bilal_ids' => $stringArray->description('Array of speaker UUIDs who are the event bilal(s).'),
+            'moderator_ids' => $stringArray->description('Array of person UUIDs who are the event moderator(s).'),
+            'imam_ids' => $stringArray->description('Array of person UUIDs who are the event imam(s).'),
+            'khatib_ids' => $stringArray->description('Array of person UUIDs who are the event khatib(s).'),
+            'bilal_ids' => $stringArray->description('Array of person UUIDs who are the event bilal(s).'),
             'topic_ids' => $stringArray->description(
                 'Array of topic UUIDs. Returns events tagged with any of the given topics.'
             ),
@@ -393,8 +393,8 @@ class McpEventSearchService
             'search_include_institutions' => $schema->boolean()->nullable()->description(
                 'When false, the keyword search (query) will not expand to match institution names. Default: true.'
             ),
-            'search_include_speakers' => $schema->boolean()->nullable()->description(
-                'When false, the keyword search (query) will not expand to match speaker names or key-person names. Default: true.'
+            'search_include_persons' => $schema->boolean()->nullable()->description(
+                'When false, the keyword search (query) will not expand to match person names or key-person names. Default: true.'
             ),
             'search_include_references' => $schema->boolean()->nullable()->description(
                 'When false, the keyword search (query) will not expand to match reference (book/kitab) titles or authors. Default: true.'
@@ -425,14 +425,14 @@ class McpEventSearchService
         $includeInstitutions = isset($filters['search_include_institutions'])
             ? (bool) $filters['search_include_institutions']
             : true;
-        $includeSpeakers = isset($filters['search_include_speakers'])
-            ? (bool) $filters['search_include_speakers']
+        $includePersons = isset($filters['search_include_persons'])
+            ? (bool) $filters['search_include_persons']
             : true;
         $includeReferences = isset($filters['search_include_references'])
             ? (bool) $filters['search_include_references']
             : true;
 
-        unset($filters['search_include_institutions'], $filters['search_include_speakers'], $filters['search_include_references']);
+        unset($filters['search_include_institutions'], $filters['search_include_persons'], $filters['search_include_references']);
 
         if (($filters['time_scope'] ?? 'upcoming') === 'upcoming') {
             $filters['time_scope'] = null;
@@ -461,7 +461,7 @@ class McpEventSearchService
 
         // Boolean scope toggles must be preserved even when false.
         $filtered['search_include_institutions'] = $includeInstitutions;
-        $filtered['search_include_speakers'] = $includeSpeakers;
+        $filtered['search_include_persons'] = $includePersons;
         $filtered['search_include_references'] = $includeReferences;
 
         return $filtered;

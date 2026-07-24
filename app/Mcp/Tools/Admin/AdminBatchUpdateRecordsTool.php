@@ -72,7 +72,7 @@ class AdminBatchUpdateRecordsTool extends AbstractAdminWriteTool
     public function schema(JsonSchema $schema): array
     {
         return [
-            'resource_key' => $schema->string()->required()->min(1)->description('Writable admin resource key (e.g. speakers, references, institutions).'),
+            'resource_key' => $schema->string()->required()->min(1)->description('Writable admin resource key (e.g. persons, references, institutions).'),
             'items' => $schema->array()->required()->min(1)->max(100)->items(
                 $schema->object([
                     'record_key' => $schema->string()->required()->description('Route key of the record to update (UUID or slug).'),

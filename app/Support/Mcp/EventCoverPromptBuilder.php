@@ -18,9 +18,9 @@ use App\Models\Event;
 use App\Models\EventKeyPerson;
 use App\Models\Institution;
 use App\Models\MediaLink;
+use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Series;
-use App\Models\Speaker;
 use App\Models\Venue;
 use App\Support\Events\EventCategoryPresenter;
 use App\Support\Location\AddressHierarchyFormatter;
@@ -58,7 +58,7 @@ class EventCoverPromptBuilder
             'cover' => ['banner'],
             'gallery' => ['gallery_thumb'],
         ],
-        Speaker::class => [
+        Person::class => [
             'avatar' => ['profile', 'thumb'],
             'cover' => ['banner'],
             'gallery' => ['gallery_thumb'],
@@ -138,7 +138,7 @@ class EventCoverPromptBuilder
                         'collection' => $target['collection'],
                     ],
                     'safety_notes' => [
-                        'Do not invent speaker likenesses when no actual speaker image is provided.',
+                        'Do not invent person likenesses when no actual person image is provided.',
                         'Do not invent official logos, QR codes, sponsors, phone numbers, or registration claims.',
                         'Keep all visible event facts consistent with source_data.',
                     ],
@@ -159,8 +159,8 @@ class EventCoverPromptBuilder
             'venue.addresses.country',
             'primaryLocation.venueSpace',
             'primaryOrganizerInvolvement.involveable',
-            'speakers.media',
-            'keyPeople.speaker.media',
+            'persons.media',
+            'keyPeople.person.media',
             'classifications',
             'references.media',
             'references.parentReference.media',
@@ -287,7 +287,7 @@ class EventCoverPromptBuilder
         }
 
         foreach ($event->keyPeople as $keyPerson) {
-            if (! $keyPerson instanceof EventKeyPerson || ! $keyPerson->speaker instanceof Speaker) {
+            if (! $keyPerson instanceof EventKeyPerson || ! $keyPerson->person instanceof Person) {
                 continue;
             }
 
@@ -295,10 +295,10 @@ class EventCoverPromptBuilder
             $this->pushMediaCandidates(
                 $selected,
                 $seen,
-                $keyPerson->speaker,
+                $keyPerson->person,
                 'cover',
                 ['banner', 'thumb'],
-                "speaker_cover:{$role}",
+                "person_cover:{$role}",
                 "Use as the primary likeness/context reference for {$keyPerson->display_name} ({$this->roleLabel($keyPerson->role_code)}).",
                 1,
             );
@@ -306,11 +306,11 @@ class EventCoverPromptBuilder
             $this->pushMediaCandidates(
                 $selected,
                 $seen,
-                $keyPerson->speaker,
+                $keyPerson->person,
                 'avatar',
                 ['profile', 'thumb'],
-                "speaker_avatar:{$role}",
-                "Use as fallback likeness reference for {$keyPerson->display_name} ({$this->roleLabel($keyPerson->role_code)}) when speaker cover is unavailable.",
+                "person_avatar:{$role}",
+                "Use as fallback likeness reference for {$keyPerson->display_name} ({$this->roleLabel($keyPerson->role_code)}) when person cover is unavailable.",
                 1,
             );
         }
@@ -328,7 +328,7 @@ class EventCoverPromptBuilder
                 && (string) $event->organizer->getKey() === (string) $institutionReference->getKey();
 
             $coverReason = $isOrganizerInstitution
-                ? 'Fallback environment reference from the event organizer institution when speaker media is unavailable.'
+                ? 'Fallback environment reference from the event organizer institution when person media is unavailable.'
                 : 'Fallback environment reference from the linked institution when event-level media is unavailable.';
             $logoReason = $isOrganizerInstitution
                 ? 'Fallback organizer identity mark from the event organizer institution.'
@@ -448,10 +448,10 @@ class EventCoverPromptBuilder
             $lines[] = "- Location: {$location}";
         }
 
-        $speakerNames = $this->speakerNames($event);
+        $personNames = $this->personNames($event);
 
-        if ($speakerNames !== [] && ! $isCover) {
-            $lines[] = '- Speaker(s): '.implode(', ', $speakerNames);
+        if ($personNames !== [] && ! $isCover) {
+            $lines[] = '- Person(s): '.implode(', ', $personNames);
         }
 
         $keyPeople = $this->nonSpeakerKeyPeopleLine($event);
@@ -483,11 +483,11 @@ class EventCoverPromptBuilder
             '- Use refined Islamic editorial design: confident hierarchy, elegant Malay typography, generous negative space, and contemporary masjid/knowledge visual language.',
             '- Treat the event title as the primary narrative cue for ambience: tune lighting, tone, palette, and setting details to match the meaning and spirit of the title.',
             '- Prefer authentic visual cues from the selected reference media over generic stock imagery.',
-            '- If speaker reference images are provided, preserve likeness respectfully. If no actual speaker media is provided, use text-only speaker treatment and do not invent faces.',
+            '- If person reference images are provided, preserve likeness respectfully. If no actual person media is provided, use text-only person treatment and do not invent faces.',
             '- If book/reference cover images are provided, use them as subtle study-material cues rather than copying the full cover as the poster.',
             '- Avoid clutter, fake logos, fake QR codes, fake sponsors, fake phone numbers, and unprovided claims.',
             $isCover
-                ? '- Keep visible text minimal: title plus at most one short supporting cue such as date, institution, speaker, or kitab when it improves the design.'
+                ? '- Keep visible text minimal: title plus at most one short supporting cue such as date, institution, person, or kitab when it improves the design.'
                 : '- Keep the exact event facts above legible; do not add extra event details not present in source_data.',
         ];
 
@@ -544,7 +544,7 @@ class EventCoverPromptBuilder
                 'space' => $event->primaryLocation?->venueSpace instanceof Model ? $this->modelPayload($event->primaryLocation->venueSpace) : null,
                 'organizer' => $event->organizer instanceof Model ? $this->modelPayload($event->organizer) : null,
                 'key_people' => $event->keyPeople->map(fn (EventKeyPerson $keyPerson): array => $this->keyPersonPayload($keyPerson))->values()->all(),
-                'speakers' => $event->speakers->map(fn (Speaker $speaker): array => $this->modelPayload($speaker))->values()->all(),
+                'persons' => $event->persons->map(fn (Person $person): array => $this->modelPayload($person))->values()->all(),
                 'references' => $event->references->map(fn (Reference $reference): array => $this->referencePayload($reference))->values()->all(),
                 'series' => $event->series->map(fn (Series $series): array => $this->modelPayload($series))->values()->all(),
                 'classifications' => $this->classificationsPayload($classifications),
@@ -568,7 +568,7 @@ class EventCoverPromptBuilder
             ...$this->modelPayload($keyPerson),
             'display_name' => $keyPerson->display_name,
             'role_label' => $this->roleLabel($keyPerson->role_code),
-            'speaker' => $keyPerson->speaker instanceof Speaker ? $this->modelPayload($keyPerson->speaker) : null,
+            'person' => $keyPerson->person instanceof Person ? $this->modelPayload($keyPerson->person) : null,
         ];
     }
 
@@ -896,12 +896,12 @@ class EventCoverPromptBuilder
     /**
      * @return list<string>
      */
-    private function speakerNames(Event $event): array
+    private function personNames(Event $event): array
     {
         return $event->keyPeople
             ->filter(fn (EventKeyPerson $keyPerson): bool => $this->roleValue($keyPerson->role_code) === EventKeyPersonRole::Speaker->value)
-            ->map(fn (EventKeyPerson $keyPerson): string => $keyPerson->speaker instanceof Speaker
-                ? (string) $keyPerson->speaker->name
+            ->map(fn (EventKeyPerson $keyPerson): string => $keyPerson->person instanceof Person
+                ? (string) $keyPerson->person->name
                 : (string) ($keyPerson->display_name ?? ''))
             ->filter(fn (string $name): bool => trim($name) !== '')
             ->unique()

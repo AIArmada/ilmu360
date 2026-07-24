@@ -12,9 +12,9 @@ use App\Enums\EventPrayerTime;
 use App\Enums\EventVisibility;
 use App\Enums\RegistrationScope;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Space;
-use App\Models\Speaker;
 use App\Models\Venue;
 use App\Support\Api\Admin\AdminResourceService;
 use Generator;
@@ -39,7 +39,7 @@ class AdminBatchUpdateEventsTool extends AbstractAdminWriteTool
 
     protected string $title = 'Batch Update Events';
 
-    protected string $description = 'Use this MCP-only event wrapper to update multiple existing events in one request. Each item identifies the target event via event_key and resolves organizer, location, speakers, and references by route keys before calling the shared admin event update path. speaker_keys and reference_keys are full-sync aliases for the underlying speakers/references UUID arrays: omit the field or pass null to preserve existing relationships; pass [] to detach all; pass a non-empty array to replace all. Items are processed independently; the response contains a per-row result with status updated, validation_failed, unresolved_key, not_found, or error. Set validate_only=true to preview all rows without persisting. Include external_row_id per item for idempotency tracking and safe retries after interruption. Maximum 50 events per batch.';
+    protected string $description = 'Use this MCP-only event wrapper to update multiple existing events in one request. Each item identifies the target event via event_key and resolves organizer, location, persons, and references by route keys before calling the shared admin event update path. person_keys and reference_keys are full-sync aliases for the underlying persons/references UUID arrays: omit the field or pass null to preserve existing relationships; pass [] to detach all; pass a non-empty array to replace all. Items are processed independently; the response contains a per-row result with status updated, validation_failed, unresolved_key, not_found, or error. Set validate_only=true to preview all rows without persisting. Include external_row_id per item for idempotency tracking and safe retries after interruption. Maximum 50 events per batch.';
 
     public function __construct(
         private readonly AdminResourceService $resourceService,
@@ -202,7 +202,7 @@ class AdminBatchUpdateEventsTool extends AbstractAdminWriteTool
             $payload['institution_key'],
             $payload['venue_key'],
             $payload['space_key'],
-            $payload['speaker_keys'],
+            $payload['person_keys'],
             $payload['reference_keys'],
         );
 
@@ -246,22 +246,22 @@ class AdminBatchUpdateEventsTool extends AbstractAdminWriteTool
             );
         }
 
-        $speakerKeys = array_values(array_filter(
+        $personKeys = array_values(array_filter(
             array_map(
                 $this->normalizeOptionalString(...),
-                (array) ($item['speaker_keys'] ?? [])
+                (array) ($item['person_keys'] ?? [])
             ),
             static fn (?string $v): bool => $v !== null,
         ));
 
-        if (array_key_exists('speaker_keys', $item) && is_array($item['speaker_keys'])) {
-            $payload['speakers'] = array_values(array_map(
+        if (array_key_exists('person_keys', $item) && is_array($item['person_keys'])) {
+            $payload['persons'] = array_values(array_map(
                 fn (string $key): string => $this->resolveRecordIdentifier(
-                    field: 'speaker_keys',
-                    modelClass: Speaker::class,
+                    field: 'person_keys',
+                    modelClass: Person::class,
                     key: $key,
                 ),
-                $speakerKeys,
+                $personKeys,
             ));
         }
 
@@ -313,11 +313,11 @@ class AdminBatchUpdateEventsTool extends AbstractAdminWriteTool
             'children_allowed' => $schema->boolean(),
             'is_muslim_only' => $schema->boolean(),
             'event_category_ids' => $schema->array()->items($schema->string()->enum(array_keys(app(EventCategoryCatalog::class)->options()))),
-            'primary_organizer_key' => $schema->string()->nullable()->description('Primary organizer route key (institution or speaker slug preferred, UUID allowed). Omit to preserve the current organizer.'),
+            'primary_organizer_key' => $schema->string()->nullable()->description('Primary organizer route key (institution or person slug preferred, UUID allowed). Omit to preserve the current organizer.'),
             'institution_key' => $schema->string()->nullable()->description('Institution route key (slug preferred, UUID allowed).'),
             'venue_key' => $schema->string()->nullable()->description('Venue route key (slug preferred, UUID allowed).'),
             'space_key' => $schema->string()->nullable()->description('Space route key (slug preferred, UUID allowed).'),
-            'speaker_keys' => $schema->array()->items($schema->string())->nullable()->description('MCP-only route-key alias for the underlying speakers UUID array. Omit or pass null to preserve currently attached speakers. Pass [] to detach all speakers. Pass a non-empty array of speaker slugs/UUIDs to replace all attached speakers.'),
+            'person_keys' => $schema->array()->items($schema->string())->nullable()->description('MCP-only route-key alias for the underlying persons UUID array. Omit or pass null to preserve currently attached persons. Pass [] to detach all persons. Pass a non-empty array of person slugs/UUIDs to replace all attached persons.'),
             'reference_keys' => $schema->array()->items($schema->string())->nullable()->description('MCP-only route-key alias for the underlying references UUID array. Omit or pass null to preserve currently linked references. Pass [] to detach all references. Pass a non-empty array of reference slugs/UUIDs to replace all linked references.'),
             'languages' => $schema->array()->items($schema->integer())->nullable(),
             'domain_tags' => $schema->array()->items($schema->string())->nullable(),

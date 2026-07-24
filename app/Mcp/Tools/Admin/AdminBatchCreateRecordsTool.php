@@ -27,7 +27,7 @@ class AdminBatchCreateRecordsTool extends AbstractAdminWriteTool
 {
     protected string $name = 'admin-batch-create-records';
 
-    protected string $description = 'Use this to create multiple records for a writable admin resource in a single request. Each item is processed independently; the response contains a per-row result with status created, validation_failed, or error. Set validate_only=true to preview normalized payloads and surface all validation errors upfront without persisting any records. Include external_row_id in each item for idempotency tracking and safe retries. For batch event creation use admin-batch-create-events instead, which supports human-readable organizer/speaker/reference/venue key resolution.';
+    protected string $description = 'Use this to create multiple records for a writable admin resource in a single request. Each item is processed independently; the response contains a per-row result with status created, validation_failed, or error. Set validate_only=true to preview normalized payloads and surface all validation errors upfront without persisting any records. Include external_row_id in each item for idempotency tracking and safe retries. For batch event creation use admin-batch-create-events instead, which supports human-readable organizer/person/reference/venue key resolution.';
 
     public function __construct(
         private readonly AdminResourceService $resourceService,
@@ -72,7 +72,7 @@ class AdminBatchCreateRecordsTool extends AbstractAdminWriteTool
     public function schema(JsonSchema $schema): array
     {
         return [
-            'resource_key' => $schema->string()->required()->min(1)->description('Writable admin resource key (e.g. speakers, references, institutions).'),
+            'resource_key' => $schema->string()->required()->min(1)->description('Writable admin resource key (e.g. persons, references, institutions).'),
             'items' => $schema->array()->required()->min(1)->max(100)->items(
                 $schema->object([
                     'external_row_id' => $schema->string()->nullable()->description('Optional caller-assigned row identifier for idempotency tracking and safe retries.'),

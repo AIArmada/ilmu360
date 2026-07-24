@@ -21,7 +21,7 @@ class AdminDocumentationSearchTool extends AbstractAdminTool
 
     protected string $title = 'Search Verified Documentation';
 
-    protected string $description = 'Use this when you need to search the verified ilmu360 admin MCP documentation exposed by this server. Do not use this for runtime event, speaker, institution, reference, or venue record searches.';
+    protected string $description = 'Use this when you need to search the verified ilmu360 admin MCP documentation exposed by this server. Do not use this for runtime event, person, institution, reference, or venue record searches.';
 
     public function __construct(
         private readonly VerifiedDocumentationCatalog $documentationCatalog,

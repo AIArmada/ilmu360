@@ -30,7 +30,7 @@ class McpTokenManager
             $servers[self::MEMBER_SERVER] = [
                 'label' => 'Member MCP',
                 'endpoint' => url('/mcp/member'),
-                'description' => 'Ahli-scoped MCP server for institution, speaker, reference, and related event access.',
+                'description' => 'Ahli-scoped MCP server for institution, person, reference, and related event access.',
                 'ability' => self::MEMBER_ABILITY,
             ];
         }

@@ -19,7 +19,7 @@ class AdminListRelatedRecordsTool extends AbstractAdminTool
 {
     protected string $name = 'admin-list-related-records';
 
-    protected string $description = 'Use this when you need to list records related to one admin record (e.g. speakers for an event, events for a venue). Supports search and pagination. Do not use for listing top-level records; use admin-list-records for that.';
+    protected string $description = 'Use this when you need to list records related to one admin record (e.g. persons for an event, events for a venue). Supports search and pagination. Do not use for listing top-level records; use admin-list-records for that.';
 
     public function __construct(
         private readonly AdminResourceService $resourceService,

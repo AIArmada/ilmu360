@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Mcp\Tools\Admin;
 
 use App\Models\Institution;
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Models\User;
 use App\Support\Api\Admin\AdminResourceService;
 use App\Support\Api\Admin\AdminValidateOnlyRemediationPlanner;
@@ -193,7 +193,7 @@ abstract class AbstractAdminWriteTool extends AbstractAdminTool
 
     protected function resolvePrimaryOrganizerIdentifier(string $field, string $key): string
     {
-        foreach ([Institution::class, Speaker::class] as $modelClass) {
+        foreach ([Institution::class, Person::class] as $modelClass) {
             try {
                 return $this->resolveRecordIdentifier($field, $modelClass, $key);
             } catch (ValidationException) {

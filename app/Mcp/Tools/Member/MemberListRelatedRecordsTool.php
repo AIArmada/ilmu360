@@ -19,7 +19,7 @@ class MemberListRelatedRecordsTool extends AbstractMemberTool
 {
     protected string $name = 'member-list-related-records';
 
-    protected string $description = 'Use this when you need to list records related to one Ahli-scoped member record (e.g. speakers for an event). Supports search and pagination. Do not use for listing top-level records; use member-list-records for that.';
+    protected string $description = 'Use this when you need to list records related to one Ahli-scoped member record (e.g. persons for an event). Supports search and pagination. Do not use for listing top-level records; use member-list-records for that.';
 
     public function __construct(
         private readonly MemberResourceService $resourceService,

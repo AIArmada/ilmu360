@@ -12,9 +12,9 @@ use App\Enums\EventPrayerTime;
 use App\Enums\EventVisibility;
 use App\Enums\RegistrationScope;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Space;
-use App\Models\Speaker;
 use App\Models\Venue;
 use App\Support\Api\Admin\AdminResourceService;
 use Generator;
@@ -40,7 +40,7 @@ class AdminUpdateEventTool extends AbstractAdminWriteTool
 
     protected string $title = 'Update Event';
 
-    protected string $description = 'Use this MCP-only event wrapper to update an existing event record by event_key. It resolves organizer, location, speakers, and references by human-readable route keys before calling the shared admin event update path. speaker_keys and reference_keys are full-sync aliases for the underlying speakers/references UUID arrays: omit the field or pass null to preserve existing relationships; pass [] to detach all; pass a non-empty array to replace all. apply_defaults is only honored together with validate_only=true for preview/autofill feedback and is ignored for persisted updates. Supports cover, poster, and gallery image descriptors in the same request; media clear flags are not supported, so omit fields to leave existing media unchanged. Do not use to create a new event; use admin-create-event instead.';
+    protected string $description = 'Use this MCP-only event wrapper to update an existing event record by event_key. It resolves organizer, location, persons, and references by human-readable route keys before calling the shared admin event update path. person_keys and reference_keys are full-sync aliases for the underlying persons/references UUID arrays: omit the field or pass null to preserve existing relationships; pass [] to detach all; pass a non-empty array to replace all. apply_defaults is only honored together with validate_only=true for preview/autofill feedback and is ignored for persisted updates. Supports cover, poster, and gallery image descriptors in the same request; media clear flags are not supported, so omit fields to leave existing media unchanged. Do not use to create a new event; use admin-create-event instead.';
 
     public function __construct(
         private readonly AdminResourceService $resourceService,
@@ -81,8 +81,8 @@ class AdminUpdateEventTool extends AbstractAdminWriteTool
                 'institution_key' => ['nullable', 'string'],
                 'venue_key' => ['nullable', 'string'],
                 'space_key' => ['nullable', 'string'],
-                'speaker_keys' => ['sometimes', 'nullable', 'array'],
-                'speaker_keys.*' => ['string'],
+                'person_keys' => ['sometimes', 'nullable', 'array'],
+                'person_keys.*' => ['string'],
                 'reference_keys' => ['sometimes', 'nullable', 'array'],
                 'reference_keys.*' => ['string'],
                 'languages' => ['sometimes', 'nullable', 'array'],
@@ -183,7 +183,7 @@ class AdminUpdateEventTool extends AbstractAdminWriteTool
             $payload['institution_key'],
             $payload['venue_key'],
             $payload['space_key'],
-            $payload['speaker_keys'],
+            $payload['person_keys'],
             $payload['reference_keys'],
         );
 
@@ -227,22 +227,22 @@ class AdminUpdateEventTool extends AbstractAdminWriteTool
             );
         }
 
-        $speakerKeys = array_values(array_filter(
+        $personKeys = array_values(array_filter(
             array_map(
                 $this->normalizeOptionalString(...),
-                (array) ($validated['speaker_keys'] ?? [])
+                (array) ($validated['person_keys'] ?? [])
             ),
             static fn (?string $v): bool => $v !== null,
         ));
 
-        if (array_key_exists('speaker_keys', $validated) && is_array($validated['speaker_keys'])) {
-            $payload['speakers'] = array_values(array_map(
+        if (array_key_exists('person_keys', $validated) && is_array($validated['person_keys'])) {
+            $payload['persons'] = array_values(array_map(
                 fn (string $key): string => $this->resolveRecordIdentifier(
-                    field: 'speaker_keys',
-                    modelClass: Speaker::class,
+                    field: 'person_keys',
+                    modelClass: Person::class,
                     key: $key,
                 ),
-                $speakerKeys,
+                $personKeys,
             ));
         }
 
@@ -293,11 +293,11 @@ class AdminUpdateEventTool extends AbstractAdminWriteTool
             'children_allowed' => $schema->boolean(),
             'is_muslim_only' => $schema->boolean(),
             'event_category_ids' => $schema->array()->items($schema->string()->enum(array_keys(app(EventCategoryCatalog::class)->options()))),
-            'primary_organizer_key' => $schema->string()->nullable()->description('Primary organizer route key (institution or speaker slug preferred, UUID allowed). Omit to preserve the current organizer.'),
+            'primary_organizer_key' => $schema->string()->nullable()->description('Primary organizer route key (institution or person slug preferred, UUID allowed). Omit to preserve the current organizer.'),
             'institution_key' => $schema->string()->nullable()->description('Institution route key (slug preferred, UUID allowed).'),
             'venue_key' => $schema->string()->nullable()->description('Venue route key (slug preferred, UUID allowed).'),
             'space_key' => $schema->string()->nullable()->description('Space route key (slug preferred, UUID allowed).'),
-            'speaker_keys' => $schema->array()->items($schema->string())->nullable()->description('MCP-only route-key alias for the underlying speakers UUID array. Omit or pass null to preserve currently attached speakers. Pass [] to detach all speakers. Pass a non-empty array of speaker slugs/UUIDs to replace all attached speakers.'),
+            'person_keys' => $schema->array()->items($schema->string())->nullable()->description('MCP-only route-key alias for the underlying persons UUID array. Omit or pass null to preserve currently attached persons. Pass [] to detach all persons. Pass a non-empty array of person slugs/UUIDs to replace all attached persons.'),
             'reference_keys' => $schema->array()->items($schema->string())->nullable()->description('MCP-only route-key alias for the underlying references UUID array. Omit or pass null to preserve currently linked references. Pass [] to detach all references. Pass a non-empty array of reference slugs/UUIDs to replace all linked references.'),
             'languages' => $schema->array()->items($schema->integer())->nullable()->description('Array of language record IDs (integers).'),
             'domain_tags' => $schema->array()->items($schema->string())->nullable()->description('Array of domain/category tag UUIDs (max 3).'),
@@ -307,7 +307,7 @@ class AdminUpdateEventTool extends AbstractAdminWriteTool
             'other_key_people' => $schema->array()->items(
                 $schema->object([
                     'role_code' => $schema->string()->required()->description('One of the non-speaker EventKeyPersonRole values.'),
-                    'involveable_type' => $schema->string()->nullable()->description('Morph type for the linked profile, such as speaker.'),
+                    'involveable_type' => $schema->string()->nullable()->description('Morph type for the linked profile, such as person.'),
                     'involveable_id' => $schema->string()->nullable()->description('UUID of the linked profile. Required when display_name is omitted.'),
                     'display_name' => $schema->string()->nullable()->description('Display name. Required when involveable_id is omitted.'),
                     'visibility' => $schema->string()->enum(['public', 'private'])->default('public'),

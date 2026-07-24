@@ -21,7 +21,7 @@ class MemberDocumentationSearchTool extends AbstractMemberTool
 
     protected string $title = 'Search Verified Documentation';
 
-    protected string $description = 'Use this when you need to search the verified ilmu360 member MCP documentation exposed by this server. Do not use this for Ahli resource, institution, speaker, reference, or event record searches.';
+    protected string $description = 'Use this when you need to search the verified ilmu360 member MCP documentation exposed by this server. Do not use this for Ahli resource, institution, person, reference, or event record searches.';
 
     public function __construct(
         private readonly MemberVerifiedDocumentationCatalog $documentationCatalog,

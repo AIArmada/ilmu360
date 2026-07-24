@@ -93,7 +93,7 @@ final class McpWriteSchemaFormatter
                 'institution_key' => 'resolves to institution_id',
                 'venue_key' => 'resolves to venue_id',
                 'space_key' => 'resolves to space_id',
-                'speaker_keys' => 'resolves to speakers',
+                'person_keys' => 'resolves to persons',
                 'reference_keys' => 'resolves to references',
             ],
             'update_relation_arrays' => [
