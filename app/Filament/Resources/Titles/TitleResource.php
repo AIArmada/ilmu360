@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Filament\Resources\Titles;
 
 use App\Filament\Resources\Titles\Pages\CreateTitle;
@@ -20,16 +22,19 @@ class TitleResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
+    #[\Override]
     public static function form(Schema $schema): Schema
     {
         return TitleForm::configure($schema);
     }
 
+    #[\Override]
     public static function table(Table $table): Table
     {
         return TitlesTable::configure($table);
     }
 
+    #[\Override]
     public static function getRelations(): array
     {
         return [
@@ -37,6 +42,7 @@ class TitleResource extends Resource
         ];
     }
 
+    #[\Override]
     public static function getPages(): array
     {
         return [

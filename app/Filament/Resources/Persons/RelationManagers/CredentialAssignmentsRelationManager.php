@@ -18,6 +18,7 @@ class CredentialAssignmentsRelationManager extends RelationManager
 
     protected static ?string $title = 'Credentials';
 
+    #[\Override]
     public function form(Schema $schema): Schema
     {
         return $schema

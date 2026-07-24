@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Filament\Resources\TitleIssuers;
 
 use App\Filament\Resources\TitleIssuers\Pages\CreateTitleIssuer;
@@ -20,16 +22,19 @@ class TitleIssuerResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
+    #[\Override]
     public static function form(Schema $schema): Schema
     {
         return TitleIssuerForm::configure($schema);
     }
 
+    #[\Override]
     public static function table(Table $table): Table
     {
         return TitleIssuersTable::configure($table);
     }
 
+    #[\Override]
     public static function getRelations(): array
     {
         return [
@@ -37,6 +42,7 @@ class TitleIssuerResource extends Resource
         ];
     }
 
+    #[\Override]
     public static function getPages(): array
     {
         return [

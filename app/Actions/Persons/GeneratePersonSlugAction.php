@@ -50,7 +50,7 @@ class GeneratePersonSlugAction
     public function handle(string $name, array $payload = [], ?string $ignoreSpeakerId = null): string
     {
         $normalizedName = trim($name);
-        $displayName = $this->displayName($normalizedName, $payload);
+        $displayName = $this->displayName($normalizedName);
         $nameSlug = Str::slug($displayName !== '' ? $displayName : $normalizedName);
 
         if ($nameSlug === '') {
@@ -113,10 +113,7 @@ class GeneratePersonSlugAction
         return implode('-', $segments);
     }
 
-    /**
-     * @param  array<string, mixed>  $payload
-     */
-    private function displayName(string $name, array $payload): string
+    private function displayName(string $name): string
     {
         return Person::formatDisplayedName($name);
     }
