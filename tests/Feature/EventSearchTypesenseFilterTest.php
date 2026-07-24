@@ -42,7 +42,7 @@ test('discovery criteria are normalized deterministically before search executio
     $filters = [
         'country_id' => $countryId,
         'state_id' => 'not-a-uuid',
-        'speaker_ids' => [$countryId, 'invalid'],
+        'person_ids' => [$countryId, 'invalid'],
         'starts_after' => '2026-07-16',
         'starts_before' => '2026-07-20',
         'venue_id' => $countryId,
@@ -56,7 +56,7 @@ test('discovery criteria are normalized deterministically before search executio
         ->and($first->text)->toBe('tafsir')
         ->and($first->countryId)->toBe($countryId)
         ->and($first->stateId)->toBeNull()
-        ->and($first->relationFilters['speaker_ids'])->toBe([$countryId])
+        ->and($first->relationFilters['person_ids'])->toBe([$countryId])
         ->and($first->startsAfterUtc?->getTimezone()->getName())->toBe('UTC')
         ->and($first->requiresDatabaseFiltering)->toBeTrue()
         ->and($first->filters)->not->toHaveKey('empty');

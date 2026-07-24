@@ -537,8 +537,8 @@ test('threads redirect records an outbound share touchpoint for authenticated us
 });
 
 test('equivalent filtered search urls reuse the same canonical share link', function () {
-    $firstUrl = config('app.url').'/majlis?search=fiqh&speaker_ids%5B0%5D=b&speaker_ids%5B1%5D=a';
-    $secondUrl = config('app.url').'/majlis?speaker_ids%5B0%5D=a&speaker_ids%5B1%5D=b&search=fiqh';
+    $firstUrl = config('app.url').'/majlis?search=fiqh&person_ids%5B0%5D=b&person_ids%5B1%5D=a';
+    $secondUrl = config('app.url').'/majlis?person_ids%5B0%5D=a&person_ids%5B1%5D=b&search=fiqh';
 
     $this->actingAs($this->sharer)
         ->getJson(route('dawah-share.payload', [

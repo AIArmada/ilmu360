@@ -55,12 +55,12 @@ describe('Event Search API', function () {
 
         Sanctum::actingAs($admin);
 
-        $response = $this->getJson('/api/v1/admin/events/search?query=fiqh&sort=time&time_scope=all&event_format=online,hybrid&age_group=adults,youth&speaker_ids=abc,def&language_codes=ms,en&has_live_url=1')
+        $response = $this->getJson('/api/v1/admin/events/search?query=fiqh&sort=time&time_scope=all&event_format=online,hybrid&age_group=adults,youth&person_ids=abc,def&language_codes=ms,en&has_live_url=1')
             ->assertOk();
 
         expect(data_get($response->json(), 'meta.search.filters.event_format'))->toBe(['online', 'hybrid'])
             ->and(data_get($response->json(), 'meta.search.filters.age_group'))->toBe(['adults', 'youth'])
-            ->and(data_get($response->json(), 'meta.search.filters.speaker_ids'))->toBe(['abc', 'def'])
+            ->and(data_get($response->json(), 'meta.search.filters.person_ids'))->toBe(['abc', 'def'])
             ->and(data_get($response->json(), 'meta.search.filters.language_codes'))->toBe(['ms', 'en'])
             ->and(data_get($response->json(), 'meta.search.filters.has_live_url'))->toBe('1');
     });
