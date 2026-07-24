@@ -429,6 +429,14 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
     }
 
     /**
+     * @return MorphToMany<Person, $this>
+     */
+    public function followingSpeakers(): MorphToMany
+    {
+        return $this->followingPersons();
+    }
+
+    /**
      * @return MorphToMany<Institution, $this>
      */
     public function followingInstitutions(): MorphToMany

@@ -289,6 +289,14 @@ class Institution extends Model implements AuditableContract, HasMedia
     }
 
     /**
+     * @return MorphToMany<Person, $this>
+     */
+    public function speakers(): MorphToMany
+    {
+        return $this->persons();
+    }
+
+    /**
      * @return BelongsTo<User, $this>
      */
     public function verifier(): BelongsTo

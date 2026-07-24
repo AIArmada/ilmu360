@@ -194,7 +194,7 @@ it('returns admin speaker resource metadata and records', function () {
         ->assertJsonPath('data.resource.mcp_tools.create.arguments.validate_only', false)
         ->assertJsonPath('data.resource.mcp_tools.update.arguments.validate_only', false);
 
-    $this->getJson('/api/v1/admin/people?search=Admin%20API%20Speaker')
+    $this->getJson('/api/v1/admin/people?search=Admin%20API%20Person')
         ->assertOk()
         ->assertJsonPath('data.0.id', $person->getKey())
         ->assertJsonPath('data.0.title', 'Admin API Person')
@@ -3248,7 +3248,7 @@ it('supports sparse event updates while replacing submitted relation collections
         ->and($event->classifications->pluck('event_term_id')->all())->toContain($disciplineTag->getKey(), $sourceTag->getKey())
         ->and($event->classifications->pluck('event_term_id')->all())->not->toContain($domainTag->getKey())
         ->and($event->keyPeople)->toHaveCount(3)
-        ->and($event->keyPeople->where('role_code', EventKeyPersonRole::Person->value)->pluck('involveable_id')->all())->toEqualCanonicalizing([
+        ->and($event->keyPeople->where('role_code', EventKeyPersonRole::Speaker->value)->pluck('involveable_id')->all())->toEqualCanonicalizing([
             (string) $person->getKey(),
             (string) $secondPerson->getKey(),
         ])

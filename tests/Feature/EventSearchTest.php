@@ -556,7 +556,7 @@ describe('Event Search Filters', function () {
         ]);
         $matchEvent->keyPeople()->create([
             'display_name' => 'Ustaz Tarmizi Jamaluddin',
-            'role_code' => EventKeyPersonRole::Person->value,
+            'role_code' => EventKeyPersonRole::Speaker->value,
             'sort_order' => 1,
         ]);
 
@@ -569,7 +569,7 @@ describe('Event Search Filters', function () {
         ]);
         $otherEvent->keyPeople()->create([
             'display_name' => 'Ustaz Hafiz Rahim',
-            'role_code' => EventKeyPersonRole::Person->value,
+            'role_code' => EventKeyPersonRole::Speaker->value,
             'sort_order' => 1,
         ]);
 
@@ -773,7 +773,7 @@ describe('Event Search Filters', function () {
             'involveable_type' => 'speaker',
             'involveable_id' => $person->id,
             'display_name' => $person->name,
-            'role_code' => EventKeyPersonRole::Person->value,
+            'role_code' => EventKeyPersonRole::Speaker->value,
         ]);
 
         // With speaker scope enabled (default), event surfaces via speaker name.
@@ -1128,7 +1128,7 @@ describe('Event Search Filters', function () {
         $excludedEvent->persons()->attach($excludedPerson->id);
 
         $query = http_build_query([
-            'speaker_ids' => [$includedPerson->id],
+            'person_ids' => [$includedPerson->id],
         ]);
 
         $response = $this->get(eventsIndexUrl($query));
@@ -1700,7 +1700,7 @@ describe('Event Search Filters', function () {
             'starts_at' => now()->addDay(),
         ]);
         $linkedPicEvent->keyPeople()->create([
-            'role_code' => EventKeyPersonRole::PersonInCharge->value,
+            'role_code' => EventKeyPersonRole::SpeakerInCharge->value,
             'involveable_type' => 'speaker',
             'involveable_id' => $linkedPic->id,
             'sort_order' => 1,
@@ -1715,7 +1715,7 @@ describe('Event Search Filters', function () {
             'starts_at' => now()->addDays(2),
         ]);
         $freeTextPicEvent->keyPeople()->create([
-            'role_code' => EventKeyPersonRole::PersonInCharge->value,
+            'role_code' => EventKeyPersonRole::SpeakerInCharge->value,
             'display_name' => 'Encik Free Text Penyelaras',
             'sort_order' => 1,
             'visibility' => 'public',

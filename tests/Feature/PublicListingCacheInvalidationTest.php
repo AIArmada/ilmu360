@@ -119,7 +119,7 @@ it('clears majlis listing cache when event is submitted from public submit form'
             'age_group' => [EventAgeGroup::AllAges->value],
             'languages' => [101],
             'primary_organizer_id' => $institution->id,
-            'persons' => [$person->id],
+            'speakers' => [$person->id],
             'domain_tags' => [$domainTag->id],
             'discipline_tags' => [$disciplineTag->id],
             'submitter_name' => 'Cache Tester',
@@ -184,7 +184,7 @@ it('clears homepage stats cache when event key people are created or deleted', f
         'event_id' => $event->getKey(),
         'involveable_type' => 'speaker',
         'involveable_id' => $person->getKey(),
-        'role_code' => EventKeyPersonRole::Person->value,
+        'role_code' => EventKeyPersonRole::Speaker->value,
         'visibility' => 'public',
     ]);
 

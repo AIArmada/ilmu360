@@ -12,7 +12,7 @@ it('runs the scout import wrappers for the supported search drivers', function (
         ->assertSuccessful();
 })->with([
     'events' => 'search:index-events',
-    'speakers' => 'search:index-speakers',
+    'speakers' => 'search:index-persons',
     'institutions' => 'search:index-institutions',
     'references' => 'search:index-references',
 ]);
@@ -24,7 +24,7 @@ it('rejects unsupported scout drivers in the wrapper commands', function (string
         ->assertFailed();
 })->with([
     'events' => 'search:index-events',
-    'speakers' => 'search:index-speakers',
+    'speakers' => 'search:index-persons',
     'institutions' => 'search:index-institutions',
     'references' => 'search:index-references',
 ]);

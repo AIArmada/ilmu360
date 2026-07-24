@@ -181,7 +181,7 @@ describe('Saved Search API Endpoints', function () {
                 $response = $this->postJson('/api/v1/saved-searches', [
                     'name' => 'Role Search',
                     'filters' => [
-                        'key_person_roles' => ['invalid-role', EventKeyPersonRole::Person->value],
+                        'key_person_roles' => ['invalid-role', EventKeyPersonRole::Speaker->value],
                     ],
                     'notify' => 'daily',
                 ]);

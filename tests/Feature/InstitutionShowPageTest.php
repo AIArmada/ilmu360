@@ -249,7 +249,7 @@ it('renders institution event cards with localized prayer timing stacked speaker
         $event->keyPeople()->create([
             'involveable_type' => 'speaker',
             'involveable_id' => $person->id,
-            'role_code' => EventKeyPersonRole::Person->value,
+            'role_code' => EventKeyPersonRole::Speaker->value,
             'sort_order' => 1,
             'visibility' => 'public',
         ]);
@@ -257,7 +257,7 @@ it('renders institution event cards with localized prayer timing stacked speaker
         $event->keyPeople()->create([
             'involveable_type' => 'speaker',
             'involveable_id' => $secondPerson->id,
-            'role_code' => EventKeyPersonRole::Person->value,
+            'role_code' => EventKeyPersonRole::Speaker->value,
             'sort_order' => 2,
             'visibility' => 'public',
         ]);

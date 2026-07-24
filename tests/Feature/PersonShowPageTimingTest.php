@@ -21,7 +21,7 @@ function linkPersonEvent(Person $person, Event $event): void
         'event_id' => $event->getKey(),
         'involveable_type' => 'person',
         'involveable_id' => $person->getKey(),
-        'role_code' => EventKeyPersonRole::Person->value,
+        'role_code' => EventKeyPersonRole::Speaker->value,
         'sort_order' => 1,
         'visibility' => 'public',
     ]);
@@ -323,7 +323,7 @@ it('shows linked non-person roles in a separate section on the person page', fun
     $personEvent->keyPeople()->create([
         'involveable_type' => 'person',
         'involveable_id' => $person->id,
-        'role_code' => EventKeyPersonRole::Person->value,
+        'role_code' => EventKeyPersonRole::Speaker->value,
         'sort_order' => 1,
         'visibility' => 'public',
     ]);

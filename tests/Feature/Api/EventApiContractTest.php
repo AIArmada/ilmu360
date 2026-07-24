@@ -626,7 +626,7 @@ it('filters events by key person roles and role-specific linked speakers', funct
     $personInChargeEvent->keyPeople()->create([
         'involveable_type' => 'speaker',
         'involveable_id' => $personInChargePerson->id,
-        'role_code' => EventKeyPersonRole::PersonInCharge->value,
+        'role_code' => EventKeyPersonRole::SpeakerInCharge->value,
         'sort_order' => 1,
         'visibility' => 'public',
     ]);
@@ -638,7 +638,7 @@ it('filters events by key person roles and role-specific linked speakers', funct
     ]);
 
     $freeTextPersonInChargeEvent->keyPeople()->create([
-        'role_code' => EventKeyPersonRole::PersonInCharge->value,
+        'role_code' => EventKeyPersonRole::SpeakerInCharge->value,
         'display_name' => 'Encik API Free Text PIC',
         'sort_order' => 1,
         'visibility' => 'public',
@@ -701,7 +701,7 @@ it('includes reference study subtitle in the generic paginated events payload', 
 
     $event->references()->attach($bookReference->id);
 
-    $response = $this->getJson('/api/v1/events?filter[institution_id]='.$event->institution_id.'&filter[status]=approved&include=speakers&page=1&per_page=15&sort=starts_at');
+    $response = $this->getJson('/api/v1/events?filter[institution_id]='.$event->institution_id.'&filter[status]=approved&include=persons&page=1&per_page=15&sort=starts_at');
 
     $response->assertOk()
         ->assertJsonPath('data.0.id', $event->id)
@@ -754,7 +754,7 @@ it('serializes event detail payloads with poster metadata and included speakers'
 
     $event->persons()->attach($person->id);
 
-    $response = $this->getJson('/api/v1/events/'.$event->id.'?include=speakers');
+    $response = $this->getJson('/api/v1/events/'.$event->id.'?include=persons');
 
     $response->assertOk()
         ->assertJsonPath('data.id', $event->id)

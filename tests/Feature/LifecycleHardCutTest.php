@@ -107,9 +107,9 @@ it('records distinct contribution request timestamps', function () {
 });
 
 it('uses status for speaker listing instead of is_active column', function () {
-    expect(Schema::hasColumn('speakers', 'is_active'))->toBeFalse()
-        ->and(Schema::hasColumn('speakers', 'verified_at'))->toBeTrue()
-        ->and(Schema::hasColumn('speakers', 'inactive_at'))->toBeTrue();
+    expect(Schema::hasColumn('persons', 'is_active'))->toBeFalse()
+        ->and(Schema::hasColumn('persons', 'verified_at'))->toBeTrue()
+        ->and(Schema::hasColumn('persons', 'inactive_at'))->toBeTrue();
 
     $verified = Person::factory()->create(['status' => 'verified']);
     $inactive = Person::factory()->create(['status' => 'inactive']);

@@ -547,6 +547,11 @@ class PersonSearchService implements PublicDiscoveryAdapter
         $this->syncSpeakerRecordWithOptions($speaker, true);
     }
 
+    public function syncPersonRecord(Person $speaker): void
+    {
+        $this->syncSpeakerRecord($speaker);
+    }
+
     public function reindexAll(int $chunkSize = 100): int
     {
         $processed = 0;

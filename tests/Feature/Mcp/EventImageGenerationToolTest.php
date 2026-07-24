@@ -584,7 +584,7 @@ function eventImageGenerationEventFixture(?Institution $institution = null): arr
         'event_id' => $event->getKey(),
         'involveable_type' => 'speaker',
         'involveable_id' => $person->getKey(),
-        'role_code' => EventKeyPersonRole::Person->value,
+        'role_code' => EventKeyPersonRole::Speaker->value,
         'visibility' => 'public',
         'sort_order' => 1,
     ]);

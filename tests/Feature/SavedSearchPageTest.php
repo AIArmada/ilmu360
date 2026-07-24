@@ -84,7 +84,7 @@ it('drops unsupported speaker-only key person roles before saving searches from 
     $this->actingAs($user);
 
     Livewire::withQueryParams([
-        'key_person_roles' => [EventKeyPersonRole::Person->value],
+        'key_person_roles' => [EventKeyPersonRole::Speaker->value],
     ])->test(SavedSearchesIndex::class)
         ->set('name', 'Person Role Search')
         ->set('notify', 'daily')
@@ -250,7 +250,7 @@ it('renders key person role and linked profile chips using human-readable values
 
     $this->actingAs($user)
         ->get(route('saved-searches.index', [
-            'key_person_roles' => [EventKeyPersonRole::PersonInCharge->value],
+            'key_person_roles' => [EventKeyPersonRole::SpeakerInCharge->value],
             'person_in_charge_ids' => [$picPerson->id],
             'person_in_charge_search' => 'Penyelaras Saf',
             'imam_ids' => [$imamPerson->id],

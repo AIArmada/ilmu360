@@ -30,7 +30,7 @@ it('loads public index pages', function () {
     $this->get(route('home'))->assertSuccessful()->assertSee('Majlis Ilmu');
     $this->get(route('events.index'))->assertSuccessful()->assertSee('Majlis Ilmu');
     $this->get(route('institutions.index'))->assertSuccessful()->assertSee('Majlis Ilmu');
-    $this->get(route('speakers.index'))->assertSuccessful()->assertSee(__('Cari ustaz, ustazah'));
+    $this->get(route('persons.index'))->assertSuccessful()->assertSee(__('Cari ustaz, ustazah'));
     $this->get(route('venues.index'))->assertSuccessful()->assertSee('Majlis Ilmu');
     $this->get(route('references.index'))->assertSuccessful()->assertSee('Majlis Ilmu');
     $this->get(route('submit-event.landing'))
@@ -75,7 +75,7 @@ it('uses homepage-like vertical spacing on the public listing pages', function (
     collect([
         route('events.index'),
         route('institutions.index'),
-        route('speakers.index'),
+        route('persons.index'),
         route('venues.index'),
         route('references.index'),
     ])->each(function (string $url): void {
@@ -618,7 +618,7 @@ it('renders optimized seo metadata on public listing pages', function () {
         ->assertSee('<title>Direktori Institusi Islam di Malaysia - '.config('app.name').'</title>', false)
         ->assertSee('Terokai masjid, surau, pusat pengajian, dan institusi penganjur majlis ilmu di seluruh Malaysia.', false);
 
-    $this->get(route('speakers.index'))
+    $this->get(route('persons.index'))
         ->assertSuccessful()
         ->assertSee('<title>Direktori Penceramah Islam - '.config('app.name').'</title>', false)
         ->assertSee('Cari profil penceramah, ustaz, dan pendakwah serta semak majlis ilmu mereka yang akan datang di seluruh Malaysia.', false);

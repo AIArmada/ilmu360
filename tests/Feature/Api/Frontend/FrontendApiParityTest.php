@@ -157,7 +157,7 @@ it('exposes corrected frontend contract metadata', function () {
         ->and($mobileTelemetryEventFields)->toContain('event_name', 'screen_name', 'component', 'action', 'properties')
         ->and($mobileTelemetryContract['notes'] ?? [])->toContain('Do not use this endpoint for mobile web page views; browser sessions should keep using the web signals tracker.');
 
-    $speakerContract = $this->getJson(route('api.client.forms.contributions.speakers'))
+    $speakerContract = $this->getJson(route('api.client.forms.contributions.persons'))
         ->assertOk()
         ->json('data');
     $speakerFields = collect($speakerContract['fields'] ?? [])->pluck('name')->all();
@@ -487,7 +487,7 @@ it('normalizes event update context to public organizer values and exposes looku
         ->and($response->json('data.initial_state.custom_time'))->toBe($event->fresh()->starts_at?->timezone('Asia/Kuala_Lumpur')->format('H:i'))
         ->and($fields->firstWhere('name', 'primary_organizer_id')['type'])->toBe('uuid')
         ->and($fields->firstWhere('name', 'language_ids')['catalog'])->toContain('/api/v1/catalogs/languages')
-        ->and($fields->firstWhere('name', 'speaker_ids')['catalog'])->toContain('/api/v1/catalogs/submit-speakers')
+        ->and($fields->firstWhere('name', 'speaker_ids')['catalog'])->toContain('/api/v1/catalogs/submit-persons')
         ->and($fieldNames)->toContain(
             'event_date',
             'prayer_time',
@@ -1289,9 +1289,9 @@ it('returns card image metadata on public events index responses', function () {
         'starts_at' => now()->addDays(2),
     ]);
 
-    $posterResponse = $this->getJson('/api/v1/events?include=institution,venue,speakers&filter[search]=Home%20Poster%20Event&per_page=1')
+    $posterResponse = $this->getJson('/api/v1/events?include=institution,venue,persons&filter[search]=Home%20Poster%20Event&per_page=1')
         ->assertOk();
-    $placeholderResponse = $this->getJson('/api/v1/events?include=institution,venue,speakers&filter[search]=Home%20Placeholder%20Event&per_page=1')
+    $placeholderResponse = $this->getJson('/api/v1/events?include=institution,venue,persons&filter[search]=Home%20Placeholder%20Event&per_page=1')
         ->assertOk();
 
     $posterItem = $posterResponse->json('data.0');
@@ -1913,7 +1913,7 @@ it('creates speaker contribution requests through the frontend api with an expli
     Sanctum::actingAs($user);
 
     $this->withHeader('X-Timezone', 'Asia/Singapore')
-        ->postJson(route('api.client.contributions.speakers.store'), [
+        ->postJson(route('api.client.contributions.persons.store'), [
             'name' => 'Frontend API Scoped Country Person',
             'gender' => 'male',
             'address' => [
@@ -1938,7 +1938,7 @@ it('requires explicit country and still prohibits detailed address fields when c
 
     Sanctum::actingAs($user);
 
-    $this->postJson(route('api.client.contributions.speakers.store'), [
+    $this->postJson(route('api.client.contributions.persons.store'), [
         'name' => 'Frontend API Missing Person Country',
         'gender' => 'male',
         'address' => [
@@ -1947,7 +1947,7 @@ it('requires explicit country and still prohibits detailed address fields when c
     ])->assertUnprocessable()
         ->assertJsonValidationErrors(['address.country_id']);
 
-    $this->postJson(route('api.client.contributions.speakers.store'), [
+    $this->postJson(route('api.client.contributions.persons.store'), [
         'name' => 'Frontend API Invalid Person Address',
         'gender' => 'male',
         'address' => [
@@ -3377,7 +3377,7 @@ it('mirrors the public speaker page payload for app clients', function () {
     EventKeyPersonFactory::new()->create([
         'event_id' => $upcomingEvent->id,
         'involveable_id' => $person->id,
-        'role_code' => EventKeyPersonRole::Person->value,
+        'role_code' => EventKeyPersonRole::Speaker->value,
     ]);
 
     $pastEvent = Event::factory()->create([
@@ -3394,7 +3394,7 @@ it('mirrors the public speaker page payload for app clients', function () {
     EventKeyPersonFactory::new()->create([
         'event_id' => $pastEvent->id,
         'involveable_id' => $person->id,
-        'role_code' => EventKeyPersonRole::Person->value,
+        'role_code' => EventKeyPersonRole::Speaker->value,
     ]);
 
     $otherRoleEvent = Event::factory()->create([

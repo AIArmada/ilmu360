@@ -14,6 +14,11 @@ final readonly class MemberRoleScopes
         return Person::query()->firstOrFail();
     }
 
+    public function speaker(): Person
+    {
+        return $this->person();
+    }
+
     public function institution(): Institution
     {
         return Institution::query()->firstOrFail();

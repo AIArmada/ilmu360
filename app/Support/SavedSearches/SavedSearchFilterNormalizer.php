@@ -31,7 +31,7 @@ final class SavedSearchFilterNormalizer
         }
 
         foreach ([
-            'speaker_ids',
+            'person_ids',
             'person_in_charge_ids',
             'moderator_ids',
             'imam_ids',
@@ -83,7 +83,7 @@ final class SavedSearchFilterNormalizer
             'admin_area_2_id',
             'institution_id',
             'venue_id',
-            'speaker_ids',
+            'person_ids',
             'key_person_roles',
             'person_in_charge_ids',
             'person_in_charge_search',

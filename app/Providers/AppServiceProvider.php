@@ -272,6 +272,7 @@ class AppServiceProvider extends ServiceProvider
             'member_invitation' => MemberInvitation::class,
             'registration' => Registration::class,
             'person' => Person::class,
+            'speaker' => Person::class,
             'series' => Series::class,
             'social_media' => SocialProfile::class,
             'space' => Space::class,
