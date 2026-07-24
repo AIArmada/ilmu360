@@ -223,8 +223,5 @@ function samplePersonSchema(): Person
         institutions: [['id' => 'institution-1', 'name' => 'Masjid Biru']],
         contacts: [['label' => 'Email', 'value' => 'speaker@example.test']],
         social_media: [['platform' => 'facebook', 'url' => 'https://facebook.com/ustazadam']],
-        job_title: 'Penceramah',
-        is_freelance: false,
-        qualifications: ['PhD'],
     );
 }
