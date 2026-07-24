@@ -370,7 +370,7 @@ it('restores a deleted user together with key relationships and child records', 
         ->not->toHaveKey('remember_token');
 
     assertDatabaseHas('institutions', ['id' => $institution->id]);
-    assertDatabaseHas('speakers', ['id' => $person->id]);
+    assertDatabaseHas('persons', ['id' => $person->id]);
     assertDatabaseHas('references', ['id' => $reference->id]);
     assertDatabaseHas('venues', ['id' => $venue->id]);
     expect($ownedEvent->fresh()->owner_id)->toBeNull()

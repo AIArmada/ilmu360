@@ -274,7 +274,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
 
         // PersonContributionFormSchema::components(includeMedia: false) returns:
         // 0: Profil Penceramah, 1: Address, 2: Affiliated Institution,
-        // 3: Education, 4: Contact, 5: Social Media
+        // 3: Contact, 4: Social Media
 
         $mediaSchema = $this->shouldShowDirectEditMediaSection()
             ? [$this->personDirectEditMediaSection()]
@@ -300,9 +300,9 @@ class SuggestUpdate extends Component implements HasActions, HasForms
                     Tab::make(__('Pendidikan'))
                         ->icon(Heroicon::AcademicCap)
                         ->schema([$sections[3]]),
-                    Tab::make(__('Hubungan'))
+                    Tab::make(__('Sosial'))
                         ->icon(Heroicon::ChatBubbleLeftRight)
-                        ->schema([$sections[4], $sections[5]]),
+                        ->schema([$sections[4]]),
                 ]),
         ];
     }
