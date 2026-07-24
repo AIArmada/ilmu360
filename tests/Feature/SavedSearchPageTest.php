@@ -250,7 +250,7 @@ it('renders key person role and linked profile chips using human-readable values
 
     $this->actingAs($user)
         ->get(route('saved-searches.index', [
-            'key_person_roles' => [EventKeyPersonRole::SpeakerInCharge->value],
+            'key_person_roles' => [EventKeyPersonRole::PersonInCharge->value],
             'person_in_charge_ids' => [$picPerson->id],
             'person_in_charge_search' => 'Penyelaras Saf',
             'imam_ids' => [$imamPerson->id],

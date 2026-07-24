@@ -1700,7 +1700,7 @@ describe('Event Search Filters', function () {
             'starts_at' => now()->addDay(),
         ]);
         $linkedPicEvent->keyPeople()->create([
-            'role_code' => EventKeyPersonRole::SpeakerInCharge->value,
+            'role_code' => EventKeyPersonRole::PersonInCharge->value,
             'involveable_type' => 'speaker',
             'involveable_id' => $linkedPic->id,
             'sort_order' => 1,
@@ -1715,7 +1715,7 @@ describe('Event Search Filters', function () {
             'starts_at' => now()->addDays(2),
         ]);
         $freeTextPicEvent->keyPeople()->create([
-            'role_code' => EventKeyPersonRole::SpeakerInCharge->value,
+            'role_code' => EventKeyPersonRole::PersonInCharge->value,
             'display_name' => 'Encik Free Text Penyelaras',
             'sort_order' => 1,
             'visibility' => 'public',

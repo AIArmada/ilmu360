@@ -169,7 +169,7 @@ class ContributionEntityMutationService
                     $this->field('issue_tags', 'array<string>', catalog: route('api.client.catalogs.taxonomy-terms', ['type' => EventTaxonomyCode::Issue->value])),
                     $this->field('reference_ids', 'array<string>', catalog: route('api.client.catalogs.references')),
                     $this->field('series_ids', 'array<string>'),
-                    $this->field('speaker_ids', 'array<string>', catalog: route('api.client.catalogs.submit-speakers')),
+                    $this->field('speaker_ids', 'array<string>', catalog: route('api.client.catalogs.submit-persons')),
                     $this->field('other_key_people', 'array<object>'),
                 ],
                 'conditional_rules' => [

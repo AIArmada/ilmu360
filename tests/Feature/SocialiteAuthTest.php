@@ -95,7 +95,7 @@ it('redirects to the intended page after registration', function () {
 });
 
 it('redirects to the intended page after google sign-in', function () {
-    $target = route('speakers.index', absolute: false);
+    $target = route('persons.index', absolute: false);
 
     Socialite::fake('google', (new SocialiteUser)->map([
         'id' => 'google-intended-123',

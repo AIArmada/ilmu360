@@ -75,7 +75,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/mobile-telemetry', [ManifestController::class, 'mobileTelemetry'])->name('mobile-telemetry');
             Route::get('/submit-event', [ManifestController::class, 'submitEvent'])->name('submit-event');
             Route::get('/contributions/institutions', [ManifestController::class, 'submitInstitution'])->name('contributions.institutions');
-            Route::get('/contributions/persons', [ManifestController::class, 'submitPerson'])->name('contributions.persons');
+            Route::get('/contributions/persons', [ManifestController::class, 'submitSpeaker'])->name('contributions.persons');
         });
 
         Route::prefix('catalogs')->name('catalogs.')->group(function () {

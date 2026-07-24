@@ -220,12 +220,12 @@ it('deduplicates key person roles in the searchable payload', function () {
         $event->keyPeople()->create([
             'involveable_type' => 'speaker',
             'involveable_id' => $personInCharge->getKey(),
-            'role_code' => EventKeyPersonRole::SpeakerInCharge->value,
+            'role_code' => EventKeyPersonRole::PersonInCharge->value,
             'display_name' => $personInCharge->name,
         ]);
 
         $event->keyPeople()->create([
-            'role_code' => EventKeyPersonRole::SpeakerInCharge->value,
+            'role_code' => EventKeyPersonRole::PersonInCharge->value,
             'display_name' => 'Encik Free Text PIC',
         ]);
 
@@ -234,7 +234,7 @@ it('deduplicates key person roles in the searchable payload', function () {
         expect($payload['key_person_roles'])->toBe([
             EventKeyPersonRole::Moderator->value,
             EventKeyPersonRole::Imam->value,
-            EventKeyPersonRole::SpeakerInCharge->value,
+            EventKeyPersonRole::PersonInCharge->value,
         ])->and($payload['key_person_person_ids'])->toBe([
             (string) $moderator->getKey(),
             (string) $imam->getKey(),
