@@ -7,7 +7,7 @@ namespace Database\Factories;
 use App\Enums\EventKeyPersonRole;
 use App\Models\Event;
 use App\Models\EventKeyPerson;
-use App\Models\Speaker;
+use App\Models\Person;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -24,8 +24,8 @@ class EventKeyPersonFactory extends Factory
     {
         return [
             'event_id' => Event::factory(),
-            'involveable_type' => 'speaker',
-            'involveable_id' => Speaker::factory(),
+            'involveable_type' => 'person',
+            'involveable_id' => Person::factory(),
             'role_code' => EventKeyPersonRole::Speaker->value,
             'visibility' => 'public',
             'sort_order' => 1,

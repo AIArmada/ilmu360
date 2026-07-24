@@ -4,7 +4,7 @@ namespace Database\Seeders;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Models\Institution;
-// use App\Models\Speaker;
+use App\Models\Person;
 use App\Models\User;
 use App\Models\Venue;
 use Database\Seeders\AIArmada\FoundationSeeder;
@@ -69,7 +69,8 @@ class DatabaseSeeder extends Seeder
         // Guard non-idempotent seeders.
         $this->seedWhenEmpty(Institution::class, InstitutionSeeder::class);
         $this->seedWhenEmpty(Venue::class, VenueSeeder::class);
-        // $this->seedWhenEmpty(Speaker::class, SpeakerSeeder::class);
+        $this->call([TitleCategorySeeder::class, TitleSeeder::class]);
+        $this->seedWhenEmpty(Person::class, PersonSeeder::class);
 
         // Optional national masjid directory import.
         if ($this->shouldSeedMasjidDirectory()) {

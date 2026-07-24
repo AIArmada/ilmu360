@@ -31,7 +31,7 @@ class EventKeyPersonSyncService
             EventKeyPerson::query()->forceCreate($base + [
                 'id' => (string) Str::uuid(),
                 'event_id' => $event->id,
-                'involveable_type' => 'speaker',
+                'involveable_type' => 'person',
                 'involveable_id' => $speakerId,
                 'role_code' => EventKeyPersonRole::Speaker->value,
                 'sort_order' => $order++,
@@ -100,7 +100,7 @@ class EventKeyPersonSyncService
 
                 return [
                     'role_code' => $role,
-                    'involveable_type' => $involveableId === null ? null : 'speaker',
+                    'involveable_type' => $involveableId === null ? null : 'person',
                     'involveable_id' => $involveableId,
                     'display_name' => $displayName,
                     'visibility' => $visibility,

@@ -7,16 +7,13 @@ namespace Database\Seeders;
 use App\Models\DonationChannel;
 use App\Models\Event;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Report;
-use App\Models\Speaker;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 
 class ReportSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
         if (Report::query()->exists()) {
@@ -58,11 +55,11 @@ class ReportSeeder extends Seeder
             ]);
         }
 
-        $speakers = Speaker::query()->take(1)->get();
-        foreach ($speakers as $speaker) {
+        $persons = Person::query()->take(1)->get();
+        foreach ($persons as $person) {
             Report::factory()->create([
-                'entity_type' => 'speaker',
-                'entity_id' => $speaker->id,
+                'entity_type' => 'person',
+                'entity_id' => $person->id,
                 'category' => fake()->randomElement($categories),
                 'reporter_id' => $reporters->random()->id,
             ]);

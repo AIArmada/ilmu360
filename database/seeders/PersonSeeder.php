@@ -4,35 +4,31 @@ namespace Database\Seeders;
 
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
-use App\Actions\Speakers\GenerateSpeakerSlugAction;
-use App\Models\Speaker;
+use App\Actions\Persons\GeneratePersonSlugAction;
+use App\Models\Person;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
-class SpeakerSeeder extends Seeder
+class PersonSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        // Disable model events for faster seeding
-        Speaker::unsetEventDispatcher();
+        Person::unsetEventDispatcher();
 
         try {
             DB::transaction(function (): void {
-                $this->seedSpeakers();
+                $this->seedPersons();
             });
         } finally {
-            Speaker::setEventDispatcher(app('events'));
+            Person::setEventDispatcher(app('events'));
         }
     }
 
-    private function seedSpeakers(): void
+    private function seedPersons(): void
     {
-        $realSpeakers = [
+        $realPersons = [
             'Ustaz Azhar Idrus',
             'Dr. MAZA (Dr. Mohd Asri Zainul Abidin)',
             'Ustaz Wadi Annuar',
@@ -53,12 +49,11 @@ class SpeakerSeeder extends Seeder
         $userIds = User::query()->pluck('id')->toArray();
         $memberAttachments = [];
 
-        // Create real speakers
-        foreach ($realSpeakers as $name) {
-            $speaker = Speaker::firstOrCreate(
+        foreach ($realPersons as $name) {
+            $person = Person::firstOrCreate(
                 ['name' => $name],
                 [
-                    'slug' => app(GenerateSpeakerSlugAction::class)->handle($name),
+                    'slug' => app(GeneratePersonSlugAction::class)->handle($name),
                     'bio' => [
                         'type' => 'doc',
                         'content' => [[
@@ -73,42 +68,40 @@ class SpeakerSeeder extends Seeder
                 ]
             );
 
-            $speaker->contactMethods()->updateOrCreate(
+            $person->contactMethods()->updateOrCreate(
                 ['type' => ContactMethodType::Email->value],
                 ['value' => Str::slug($name).'@example.com', 'purpose' => ContactPurpose::General->value]
             );
 
-            $speaker->contactMethods()->updateOrCreate(
+            $person->contactMethods()->updateOrCreate(
                 ['type' => ContactMethodType::Phone->value],
                 ['value' => $this->deterministicPhoneNumber($name), 'purpose' => ContactPurpose::General->value]
             );
 
             if (! empty($userIds)) {
                 $memberAttachments[] = [
-                    'speaker_id' => $speaker->id,
+                    'person_id' => $person->id,
                     'user_id' => $userIds[array_rand($userIds)],
                 ];
             }
         }
 
-        // Add filler speakers if needed
-        $currentCount = Speaker::count();
+        $currentCount = Person::count();
         if ($currentCount < 30) {
-            $speakers = Speaker::factory()->count(30 - $currentCount)->create();
+            $persons = Person::factory()->count(30 - $currentCount)->create();
 
-            foreach ($speakers as $speaker) {
+            foreach ($persons as $person) {
                 if (! empty($userIds)) {
                     $memberAttachments[] = [
-                        'speaker_id' => $speaker->id,
+                        'person_id' => $person->id,
                         'user_id' => $userIds[array_rand($userIds)],
                     ];
                 }
             }
         }
 
-        // Bulk insert member attachments
         if ($memberAttachments !== []) {
-            DB::table('speaker_members')->insertOrIgnore($memberAttachments);
+            DB::table('person_members')->insertOrIgnore($memberAttachments);
         }
     }
 

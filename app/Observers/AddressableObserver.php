@@ -6,11 +6,11 @@ use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\Addressable;
 use App\Actions\Events\GenerateEventSlugAction;
 use App\Actions\Institutions\GenerateInstitutionSlugAction;
-use App\Actions\Speakers\GenerateSpeakerSlugAction;
+use App\Actions\Persons\GeneratePersonSlugAction;
 use App\Actions\Venues\GenerateVenueSlugAction;
 use App\Models\Event;
 use App\Models\Institution;
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Models\Venue;
 use App\Support\Cache\PublicDirectoryCacheVersion;
 use App\Support\Cache\PublicListingsCache;
@@ -22,7 +22,7 @@ class AddressableObserver implements ShouldHandleEventsAfterCommit
     public function __construct(
         private readonly GenerateEventSlugAction $generateEventSlugAction,
         private readonly GenerateInstitutionSlugAction $generateInstitutionSlugAction,
-        private readonly GenerateSpeakerSlugAction $generateSpeakerSlugAction,
+        private readonly GeneratePersonSlugAction $generateSpeakerSlugAction,
         private readonly GenerateVenueSlugAction $generateVenueSlugAction,
         private readonly PublicDirectoryCacheVersion $publicDirectoryCacheVersion,
         private readonly PublicListingsCache $publicListingsCache,
@@ -69,7 +69,7 @@ class AddressableObserver implements ShouldHandleEventsAfterCommit
             return;
         }
 
-        if ($subject instanceof Speaker) {
+        if ($subject instanceof Person) {
             $this->generateSpeakerSlugAction->syncSpeakerSlugsForName($subject->name);
             $this->generateEventSlugAction->syncEventSlugsForSpeakerName($subject->name);
             $this->syncSearchableModel($subject);
@@ -85,7 +85,7 @@ class AddressableObserver implements ShouldHandleEventsAfterCommit
         }
     }
 
-    private function syncSearchableModel(Institution|Speaker $model): void
+    private function syncSearchableModel(Institution|Person $model): void
     {
         if ($model->shouldBeSearchable()) {
             $model->searchable();

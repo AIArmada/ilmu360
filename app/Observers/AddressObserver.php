@@ -6,11 +6,11 @@ use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Support\AddressCountryResolver;
 use App\Actions\Events\GenerateEventSlugAction;
 use App\Actions\Institutions\GenerateInstitutionSlugAction;
-use App\Actions\Speakers\GenerateSpeakerSlugAction;
+use App\Actions\Persons\GeneratePersonSlugAction;
 use App\Actions\Venues\GenerateVenueSlugAction;
 use App\Models\Event;
 use App\Models\Institution;
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Models\Venue;
 use App\Support\Cache\PublicDirectoryCacheVersion;
 use App\Support\Cache\PublicListingsCache;
@@ -21,7 +21,7 @@ class AddressObserver
     public function __construct(
         protected GenerateEventSlugAction $generateEventSlugAction,
         protected GenerateInstitutionSlugAction $generateInstitutionSlugAction,
-        protected GenerateSpeakerSlugAction $generateSpeakerSlugAction,
+        protected GeneratePersonSlugAction $generateSpeakerSlugAction,
         protected GenerateVenueSlugAction $generateVenueSlugAction,
         protected PublicDirectoryCacheVersion $publicDirectoryCacheVersion,
         protected PublicListingsCache $publicListingsCache,
@@ -73,7 +73,7 @@ class AddressObserver
                 continue;
             }
 
-            if ($addressable instanceof Speaker) {
+            if ($addressable instanceof Person) {
                 $this->generateSpeakerSlugAction->syncSpeakerSlugsForName($addressable->name);
                 $this->generateEventSlugAction->syncEventSlugsForSpeakerName($addressable->name);
                 $this->syncSearchableModel($addressable);
@@ -90,7 +90,7 @@ class AddressObserver
         }
     }
 
-    private function syncSearchableModel(Institution|Speaker $model): void
+    private function syncSearchableModel(Institution|Person $model): void
     {
         if ($model->shouldBeSearchable()) {
             $model->searchable();

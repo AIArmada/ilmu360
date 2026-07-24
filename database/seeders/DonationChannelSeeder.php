@@ -4,16 +4,13 @@ namespace Database\Seeders;
 
 use App\Models\DonationChannel;
 use App\Models\Institution;
-use App\Models\Speaker;
+use App\Models\Person;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class DonationChannelSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
         if (DonationChannel::query()->exists()) {
@@ -24,7 +21,6 @@ class DonationChannelSeeder extends Seeder
 
         try {
             DB::transaction(function (): void {
-                // Create donation channels for institutions in bulk
                 $institutions = Institution::query()->pluck('status', 'id')->toArray();
 
                 if (empty($institutions)) {
@@ -34,7 +30,6 @@ class DonationChannelSeeder extends Seeder
                 $donationChannels = [];
 
                 foreach ($institutions as $institutionId => $status) {
-                    // Default bank account
                     $donationChannels[] = array_merge(
                         DonationChannel::factory()->bankAccount()->make([
                             'donatable_type' => 'institution',
@@ -45,7 +40,6 @@ class DonationChannelSeeder extends Seeder
                         ['id' => (string) Str::uuid(), 'created_at' => now(), 'updated_at' => now()]
                     );
 
-                    // Optionally add DuitNow (60% chance)
                     if (fake()->boolean(60)) {
                         $donationChannels[] = array_merge(
                             DonationChannel::factory()->duitnow()->make([
@@ -57,7 +51,6 @@ class DonationChannelSeeder extends Seeder
                         );
                     }
 
-                    // Optionally add e-wallet (30% chance)
                     if (fake()->boolean(30)) {
                         $donationChannels[] = array_merge(
                             DonationChannel::factory()->ewallet()->make([
@@ -70,15 +63,14 @@ class DonationChannelSeeder extends Seeder
                     }
                 }
 
-                // Create donation channels for some speakers
-                $speakers = Speaker::query()->take(5)->pluck('status', 'id')->toArray();
+                $persons = Person::query()->take(5)->pluck('status', 'id')->toArray();
 
-                foreach ($speakers as $speakerId => $status) {
+                foreach ($persons as $personId => $status) {
                     if (fake()->boolean(30)) {
                         $donationChannels[] = array_merge(
                             DonationChannel::factory()->bankAccount()->make([
-                                'donatable_type' => 'speaker',
-                                'donatable_id' => $speakerId,
+                                'donatable_type' => 'person',
+                                'donatable_id' => $personId,
                                 'status' => $status === 'verified' ? 'verified' : 'unverified',
                                 'is_default' => true,
                             ])->toArray(),
@@ -87,7 +79,6 @@ class DonationChannelSeeder extends Seeder
                     }
                 }
 
-                // Bulk insert all donation channels
                 foreach (array_chunk($donationChannels, 100) as $chunk) {
                     DonationChannel::insert($chunk);
                 }

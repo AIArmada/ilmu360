@@ -6,7 +6,7 @@ use AIArmada\Membership\Enums\ApplicationStatus;
 use App\Enums\MemberSubjectType;
 use App\Models\Institution;
 use App\Models\MembershipApplication;
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -33,11 +33,11 @@ class MembershipApplicationFactory extends Factory
         ];
     }
 
-    public function speaker(): static
+    public function person(): static
     {
         return $this->state(fn (array $attributes): array => [
-            'subject_type' => MemberSubjectType::Speaker,
-            'subject_id' => Speaker::factory(),
+            'subject_type' => MemberSubjectType::Person,
+            'subject_id' => Person::factory(),
         ]);
     }
 

@@ -35,7 +35,7 @@ class GenerateEventSlugAction
 
         $events = Event::query()
             ->where('events.title', $normalizedTitle)
-            ->with(['speakers:id,slug'])
+            ->with(['persons:id,slug'])
             ->get();
 
         return $this->syncOrderedModels($events, fn (Event $event): bool => $this->syncEventSlug($event));
@@ -82,7 +82,7 @@ class GenerateEventSlugAction
             ->where(function ($query) use ($normalizedSpeakerId): void {
                 $query->whereHas('keyPeople', function ($keyPeopleQuery) use ($normalizedSpeakerId): void {
                     $keyPeopleQuery
-                        ->where('involveable_type', 'speaker')
+                        ->where('involveable_type', 'person')
                         ->where('involveable_id', $normalizedSpeakerId)
                         ->where('role_code', EventKeyPersonRole::Speaker->value);
                 })->orWhereHas('involvements', function ($involvementQuery) use ($normalizedSpeakerId): void {
@@ -254,9 +254,9 @@ class GenerateEventSlugAction
      */
     private function speakerSlugSegmentsForEvent(Event $event): array
     {
-        $event->loadMissing(['speakers:id,slug', 'primaryOrganizerInvolvement.involveable']);
+        $event->loadMissing(['persons:id,slug', 'primaryOrganizerInvolvement.involveable']);
 
-        $speakerSlugSegments = $event->speakers
+        $speakerSlugSegments = $event->persons
             ->map(function (Person $speaker): ?string {
                 $speakerSlug = $speaker->slug;
 

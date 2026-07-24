@@ -4,8 +4,8 @@ namespace App\Observers;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Actions\Events\GenerateEventSlugAction;
+use App\Actions\Persons\GeneratePersonSlugAction;
 use App\Actions\Slugs\SyncSlugRedirectAction;
-use App\Actions\Speakers\GenerateSpeakerSlugAction;
 use App\Models\Person;
 use App\Observers\Concerns\SyncsCurrentAndPreviousValues;
 use App\Support\Cache\PublicDirectoryCacheVersion;
@@ -19,7 +19,7 @@ class PersonObserver implements ShouldHandleEventsAfterCommit
 
     public function __construct(
         protected GenerateEventSlugAction $generateEventSlugAction,
-        protected GenerateSpeakerSlugAction $generateSpeakerSlugAction,
+        protected GeneratePersonSlugAction $generateSpeakerSlugAction,
         protected SyncSlugRedirectAction $syncSlugRedirectAction,
         protected PublicDirectoryCacheVersion $publicDirectoryCacheVersion,
         protected PublicListingsCache $publicListingsCache,

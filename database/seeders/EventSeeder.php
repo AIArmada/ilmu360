@@ -11,7 +11,7 @@ use AIArmada\Events\Enums\ScheduleKind;
 use App\Actions\Events\GenerateEventSlugAction;
 use App\Actions\Events\SyncEventClassificationsAction;
 use App\Actions\Events\SyncEventScheduleAction;
-use App\Actions\Speakers\GenerateSpeakerSlugAction;
+use App\Actions\Persons\GeneratePersonSlugAction;
 use App\Contracts\EventCategoryCatalog;
 use App\Contracts\EventCategoryPolicyResolver;
 use App\Enums\EventAgeGroup;
@@ -25,8 +25,8 @@ use App\Enums\PrayerReference;
 use App\Enums\TimingMode;
 use App\Models\Event;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Series;
-use App\Models\Speaker;
 use App\Models\Venue;
 use App\Services\EventKeyPersonSyncService;
 use Database\Seeders\Concerns\SeedsPackageAddresses;
@@ -76,7 +76,7 @@ class EventSeeder extends Seeder
                 ->limit(90)
                 ->get();
             $seriesIds = Series::query()->pluck('id')->toArray();
-            $speakerIds = Speaker::query()->pluck('id')->toArray();
+            $speakerIds = Person::query()->pluck('id')->toArray();
             $venueIds = Venue::query()->pluck('id')->toArray();
 
             if ($institutions->isEmpty()) {
@@ -167,7 +167,7 @@ class EventSeeder extends Seeder
                             $speakerKeyPeople[] = [
                                 'id' => (string) Str::uuid(),
                                 'event_id' => $event->id,
-                                'involveable_type' => 'speaker',
+                                'involveable_type' => 'person',
                                 'involveable_id' => $speakerId,
                                 'role_code' => EventKeyPersonRole::Speaker->value,
                                 'sort_order' => $index + 1,
@@ -435,7 +435,7 @@ class EventSeeder extends Seeder
                 $entry['date'],
                 'Asia/Kuala_Lumpur',
                 $existingScheduleEvent?->getKey() !== null ? (string) $existingScheduleEvent->getKey() : null,
-                $speaker instanceof Speaker && is_string($speaker->slug) && $speaker->slug !== ''
+                $speaker instanceof Person && is_string($speaker->slug) && $speaker->slug !== ''
                     ? [$speaker->slug]
                     : [],
             );
@@ -491,7 +491,7 @@ class EventSeeder extends Seeder
 
             app(EventKeyPersonSyncService::class)->sync(
                 $event,
-                $speaker instanceof Speaker ? [$speaker->id] : [],
+                $speaker instanceof Person ? [$speaker->id] : [],
             );
 
             $this->ensureScheduleEventHasTags($event, $title, $topic);
@@ -499,7 +499,7 @@ class EventSeeder extends Seeder
         }
     }
 
-    private function resolveScheduleSpeaker(?string $speakerName, ?Event $existingScheduleEvent = null): ?Speaker
+    private function resolveScheduleSpeaker(?string $speakerName, ?Event $existingScheduleEvent = null): ?Person
     {
         if ($existingScheduleEvent instanceof Event) {
             if (! is_string($speakerName) || $speakerName === '') {
@@ -507,35 +507,35 @@ class EventSeeder extends Seeder
             }
 
             $organizerInvolveable = $existingScheduleEvent->primaryOrganizerInvolvement?->involveable;
-            $organizerSpeaker = $organizerInvolveable instanceof Speaker ? $organizerInvolveable : null;
+            $organizerPerson = $organizerInvolveable instanceof Person ? $organizerInvolveable : null;
 
-            if ($organizerSpeaker instanceof Speaker && $organizerSpeaker->name === $speakerName) {
-                app(GenerateSpeakerSlugAction::class)->syncSpeakerSlug(
-                    $organizerSpeaker->loadMissing('addresses.country'),
+            if ($organizerPerson instanceof Person && $organizerPerson->name === $speakerName) {
+                app(GeneratePersonSlugAction::class)->syncSpeakerSlug(
+                    $organizerPerson->loadMissing('addresses.country'),
                 );
-                app(GenerateEventSlugAction::class)->syncEventSlugsForSpeakerId((string) $organizerSpeaker->getKey());
-                $this->scheduleSpeakerIds[$speakerName] = (string) $organizerSpeaker->getKey();
+                app(GenerateEventSlugAction::class)->syncEventSlugsForSpeakerId((string) $organizerPerson->getKey());
+                $this->scheduleSpeakerIds[$speakerName] = (string) $organizerPerson->getKey();
 
-                $organizerSpeaker->refresh();
+                $organizerPerson->refresh();
 
-                return $organizerSpeaker;
+                return $organizerPerson;
             }
 
-            $existingSpeaker = $existingScheduleEvent->speakers()->first();
+            $existingPerson = $existingScheduleEvent->persons()->first();
 
             if (
-                $existingSpeaker instanceof Speaker
-                && $existingSpeaker->name === $speakerName
+                $existingPerson instanceof Person
+                && $existingPerson->name === $speakerName
             ) {
-                app(GenerateSpeakerSlugAction::class)->syncSpeakerSlug(
-                    $existingSpeaker->loadMissing('addresses.country'),
+                app(GeneratePersonSlugAction::class)->syncSpeakerSlug(
+                    $existingPerson->loadMissing('addresses.country'),
                 );
-                app(GenerateEventSlugAction::class)->syncEventSlugsForSpeakerId((string) $existingSpeaker->getKey());
-                $this->scheduleSpeakerIds[$speakerName] = (string) $existingSpeaker->getKey();
+                app(GenerateEventSlugAction::class)->syncEventSlugsForSpeakerId((string) $existingPerson->getKey());
+                $this->scheduleSpeakerIds[$speakerName] = (string) $existingPerson->getKey();
 
-                $existingSpeaker->refresh();
+                $existingPerson->refresh();
 
-                return $existingSpeaker;
+                return $existingPerson;
             }
         }
 
@@ -544,24 +544,24 @@ class EventSeeder extends Seeder
         }
 
         if (isset($this->scheduleSpeakerIds[$speakerName])) {
-            $cachedSpeaker = Speaker::query()->find($this->scheduleSpeakerIds[$speakerName]);
+            $cachedPerson = Person::query()->find($this->scheduleSpeakerIds[$speakerName]);
 
-            if ($cachedSpeaker instanceof Speaker) {
-                return $cachedSpeaker;
+            if ($cachedPerson instanceof Person) {
+                return $cachedPerson;
             }
 
             unset($this->scheduleSpeakerIds[$speakerName]);
         }
 
-        $createdSpeaker = Speaker::query()->create([
+        $createdPerson = Person::query()->create([
             'name' => $speakerName,
-            'slug' => app(GenerateSpeakerSlugAction::class)->handle($speakerName),
+            'slug' => app(GeneratePersonSlugAction::class)->handle($speakerName),
             'status' => 'verified',
         ]);
 
-        $this->scheduleSpeakerIds[$speakerName] = (string) $createdSpeaker->getKey();
+        $this->scheduleSpeakerIds[$speakerName] = (string) $createdPerson->getKey();
 
-        return $createdSpeaker;
+        return $createdPerson;
     }
 
     /**
@@ -570,7 +570,7 @@ class EventSeeder extends Seeder
     private function resolveExistingScheduleEvent(array $eventAttributes, ?string $speakerName): ?Event
     {
         $matchingEvents = Event::query()
-            ->with(['keyPeople.speaker'])
+            ->with(['keyPeople.person'])
             ->where('title', $eventAttributes['title'])
             ->whereHas('occurrences', function ($query) use ($eventAttributes): void {
                 $query->where('starts_at', $eventAttributes['starts_at']);
@@ -583,10 +583,10 @@ class EventSeeder extends Seeder
             $matchedEvent = $matchingEvents->first(fn (Event $event): bool => $event->keyPeople
                 ->where('role_code', EventKeyPersonRole::Speaker->value)
                 ->contains(function (mixed $keyPerson) use ($speakerName): bool {
-                    $speaker = $keyPerson->speaker;
+                    $person = $keyPerson->person;
 
                     return (is_string($keyPerson->display_name) && $keyPerson->display_name === $speakerName)
-                        || ($speaker instanceof Speaker && $speaker->name === $speakerName);
+                        || ($person instanceof Person && $person->name === $speakerName);
                 }));
 
             if ($matchedEvent instanceof Event) {
@@ -594,9 +594,9 @@ class EventSeeder extends Seeder
             }
 
             $organizerMatchedEvent = $matchingEvents->first(function (Event $event) use ($speakerName): bool {
-                $organizerSpeaker = $event->primaryOrganizerInvolvement?->involveable;
+                $organizerPerson = $event->primaryOrganizerInvolvement?->involveable;
 
-                return $organizerSpeaker instanceof Speaker && $organizerSpeaker->name === $speakerName;
+                return $organizerPerson instanceof Person && $organizerPerson->name === $speakerName;
             });
 
             if ($organizerMatchedEvent instanceof Event) {
@@ -713,7 +713,7 @@ class EventSeeder extends Seeder
     {
         Event::query()
             ->with([
-                'speakers:id',
+                'persons:id',
                 'classifications',
                 'primaryOrganizerInvolvement',
             ])
@@ -759,7 +759,7 @@ class EventSeeder extends Seeder
                     }
 
                     if ($event->primaryOrganizerInvolvement === null) {
-                        $firstSpeaker = $event->speakers->first();
+                        $firstSpeaker = $event->persons->first();
 
                         $organizer = match (true) {
                             $firstSpeaker !== null => $firstSpeaker,
@@ -836,7 +836,7 @@ class EventSeeder extends Seeder
 
             $otherKeyPeople[] = [
                 'role_code' => EventKeyPersonRole::Imam->value,
-                'involveable_type' => is_string($imamSpeakerId) ? 'speaker' : null,
+                'involveable_type' => is_string($imamSpeakerId) ? 'person' : null,
                 'involveable_id' => is_string($imamSpeakerId) ? $imamSpeakerId : null,
                 'display_name' => is_string($imamSpeakerId) ? null : fake()->name(),
                 'visibility' => 'public',
@@ -849,14 +849,14 @@ class EventSeeder extends Seeder
 
             $otherKeyPeople[] = [
                 'role_code' => EventKeyPersonRole::Khatib->value,
-                'involveable_type' => is_string($khatibSpeakerId) ? 'speaker' : null,
+                'involveable_type' => is_string($khatibSpeakerId) ? 'person' : null,
                 'involveable_id' => is_string($khatibSpeakerId) ? $khatibSpeakerId : null,
                 'display_name' => is_string($khatibSpeakerId) ? null : fake()->name(),
                 'visibility' => 'public',
             ];
             $otherKeyPeople[] = [
                 'role_code' => EventKeyPersonRole::Imam->value,
-                'involveable_type' => is_string($imamSpeakerId) ? 'speaker' : null,
+                'involveable_type' => is_string($imamSpeakerId) ? 'person' : null,
                 'involveable_id' => is_string($imamSpeakerId) ? $imamSpeakerId : null,
                 'display_name' => is_string($imamSpeakerId) ? null : fake()->name(),
                 'visibility' => 'public',

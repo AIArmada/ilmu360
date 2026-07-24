@@ -87,6 +87,31 @@ class Person extends Model implements AuditableContract, HasMedia
         ];
     }
 
+    /**
+     * @param  array<string, mixed>|null  $honorific
+     * @param  array<string, mixed>|null  $preNominal
+     * @param  array<string, mixed>|null  $postNominal
+     */
+    public static function formatDisplayedName(string $name, ?array $honorific = null, ?array $preNominal = null, ?array $postNominal = null): string
+    {
+        $before = '';
+
+        if ($honorific !== null) {
+            $before .= implode(' ', $honorific).' ';
+        }
+
+        if ($preNominal !== null) {
+            $before .= implode(' ', $preNominal).' ';
+        }
+
+        $after = '';
+        if ($postNominal !== null) {
+            $after = ', '.implode(', ', $postNominal);
+        }
+
+        return trim($before.$name.$after);
+    }
+
     public function shouldBeSearchable(): bool
     {
         return in_array((string) $this->status, ['verified', 'pending'], true);

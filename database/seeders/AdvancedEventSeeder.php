@@ -16,7 +16,7 @@ use App\Enums\EventVisibility;
 use App\Enums\TimingMode;
 use App\Models\Event;
 use App\Models\Institution;
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Services\EventKeyPersonSyncService;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Seeder;
@@ -32,26 +32,26 @@ class AdvancedEventSeeder extends Seeder
             ->inRandomOrder()
             ->first();
 
-        $speakerIds = Speaker::query()
+        $personIds = Person::query()
             ->where('status', 'verified')
             ->inRandomOrder()
             ->limit(6)
             ->pluck('id')
             ->all();
 
-        $this->seedWeeklySeries($institution, $speakerIds);
-        $this->seedRamadanProgram($institution, $speakerIds);
-        $this->seedWeekendIntensive($institution, $speakerIds);
-        $this->seedMultiDayStandalone($institution, $speakerIds);
-        $this->seedStandaloneSpecialLecture($institution, $speakerIds);
+        $this->seedWeeklySeries($institution, $personIds);
+        $this->seedRamadanProgram($institution, $personIds);
+        $this->seedWeekendIntensive($institution, $personIds);
+        $this->seedMultiDayStandalone($institution, $personIds);
+        $this->seedStandaloneSpecialLecture($institution, $personIds);
 
         $this->command->info('  [AdvancedEventSeeder] Seeded 5 event examples with package occurrences and sessions.');
     }
 
     /**
-     * @param  list<string>  $speakerIds
+     * @param  list<string>  $personIds
      */
-    private function seedWeeklySeries(?Institution $institution, array $speakerIds): void
+    private function seedWeeklySeries(?Institution $institution, array $personIds): void
     {
         $tz = 'Asia/Kuala_Lumpur';
         $firstFriday = now($tz)->next(Carbon::FRIDAY)->setTime(20, 30);
@@ -61,7 +61,7 @@ class AdvancedEventSeeder extends Seeder
             description: 'Program payung untuk siri pengajian mingguan. Setiap pertemuan direkodkan sebagai sesi dalam occurrence program.',
             scheduleKind: ScheduleKind::CustomChain,
             institution: $institution,
-            speakerIds: $speakerIds,
+            personIds: $personIds,
             tz: $tz,
             startsAt: $firstFriday->copy()->utc(),
             endsAt: $firstFriday->copy()->addWeeks(4)->utc(),
@@ -73,9 +73,9 @@ class AdvancedEventSeeder extends Seeder
     }
 
     /**
-     * @param  list<string>  $speakerIds
+     * @param  list<string>  $personIds
      */
-    private function seedRamadanProgram(?Institution $institution, array $speakerIds): void
+    private function seedRamadanProgram(?Institution $institution, array $personIds): void
     {
         $tz = 'Asia/Kuala_Lumpur';
         $nightOne = now($tz)->addDays(10)->setTime(21, 15);
@@ -85,7 +85,7 @@ class AdvancedEventSeeder extends Seeder
             description: 'Program payung Ramadan yang menghimpunkan kuliah malam, tadabbur hujung minggu, dan program khas.',
             scheduleKind: ScheduleKind::CustomChain,
             institution: $institution,
-            speakerIds: $speakerIds,
+            personIds: $personIds,
             tz: $tz,
             startsAt: $nightOne->copy()->utc(),
             endsAt: $nightOne->copy()->addDays(14)->utc(),
@@ -97,9 +97,9 @@ class AdvancedEventSeeder extends Seeder
     }
 
     /**
-     * @param  list<string>  $speakerIds
+     * @param  list<string>  $personIds
      */
-    private function seedWeekendIntensive(?Institution $institution, array $speakerIds): void
+    private function seedWeekendIntensive(?Institution $institution, array $personIds): void
     {
         $tz = 'Asia/Kuala_Lumpur';
         $friday = now($tz)->next(Carbon::FRIDAY)->addWeeks(3)->setTime(20, 30);
@@ -109,7 +109,7 @@ class AdvancedEventSeeder extends Seeder
             description: 'Program intensif hujung minggu dengan sesi utama dalam satu occurrence supaya jadual awam kekal jelas.',
             scheduleKind: ScheduleKind::MultiDay,
             institution: $institution,
-            speakerIds: $speakerIds,
+            personIds: $personIds,
             tz: $tz,
             startsAt: $friday->copy()->utc(),
             endsAt: $friday->copy()->addDays(2)->utc(),
@@ -122,9 +122,9 @@ class AdvancedEventSeeder extends Seeder
     }
 
     /**
-     * @param  list<string>  $speakerIds
+     * @param  list<string>  $personIds
      */
-    private function seedMultiDayStandalone(?Institution $institution, array $speakerIds): void
+    private function seedMultiDayStandalone(?Institution $institution, array $personIds): void
     {
         $tz = 'Asia/Kuala_Lumpur';
         $friday = now($tz)->next(Carbon::FRIDAY)->addWeek();
@@ -134,7 +134,7 @@ class AdvancedEventSeeder extends Seeder
             description: 'Daurah intensif tiga hari yang berlangsung sebagai satu event eksplisit merentasi beberapa hari.',
             scheduleKind: ScheduleKind::MultiDay,
             institution: $institution,
-            speakerIds: $speakerIds,
+            personIds: $personIds,
             tz: $tz,
             startsAt: $friday->copy()->setTime(9, 0)->utc(),
             endsAt: $friday->copy()->addDays(2)->setTime(16, 0)->utc(),
@@ -142,9 +142,9 @@ class AdvancedEventSeeder extends Seeder
     }
 
     /**
-     * @param  list<string>  $speakerIds
+     * @param  list<string>  $personIds
      */
-    private function seedStandaloneSpecialLecture(?Institution $institution, array $speakerIds): void
+    private function seedStandaloneSpecialLecture(?Institution $institution, array $personIds): void
     {
         $tz = 'Asia/Kuala_Lumpur';
         $night = now($tz)->next(Carbon::SUNDAY)->addDays(10)->setTime(20, 45);
@@ -154,7 +154,7 @@ class AdvancedEventSeeder extends Seeder
             description: 'Kuliah khas satu malam yang kekal sebagai event eksplisit tanpa lapisan jadual tambahan.',
             scheduleKind: ScheduleKind::Single,
             institution: $institution,
-            speakerIds: $speakerIds,
+            personIds: $personIds,
             tz: $tz,
             startsAt: $night->copy()->utc(),
             endsAt: $night->copy()->addHours(2)->utc(),
@@ -187,14 +187,14 @@ class AdvancedEventSeeder extends Seeder
     }
 
     /**
-     * @param  list<string>  $speakerIds
+     * @param  list<string>  $personIds
      */
     private function makeBaseEvent(
         string $title,
         string $description,
         ScheduleKind $scheduleKind,
         ?Institution $institution,
-        array $speakerIds,
+        array $personIds,
         string $tz,
         ?CarbonInterface $startsAt = null,
         ?CarbonInterface $endsAt = null,
@@ -241,19 +241,19 @@ class AdvancedEventSeeder extends Seeder
 
         $event->unsetRelation('primaryOccurrence');
 
-        OwnerContext::withOwner(null, function () use ($event, $institution, $speakerIds): void {
+        OwnerContext::withOwner(null, function () use ($event, $institution, $personIds): void {
             if ($institution instanceof Institution) {
                 $event->setPrimaryOrganizer($institution);
             }
 
-            if ($speakerIds !== []) {
-                $selected = array_slice($speakerIds, 0, random_int(1, min(3, count($speakerIds))));
+            if ($personIds !== []) {
+                $selected = array_slice($personIds, 0, random_int(1, min(3, count($personIds))));
                 $otherKeyPeople = [];
 
                 if (count($selected) > 1) {
                     $otherKeyPeople[] = [
                         'role_code' => EventKeyPersonRole::Moderator->value,
-                        'involveable_type' => 'speaker',
+                        'involveable_type' => 'person',
                         'involveable_id' => $selected[0],
                         'display_name' => null,
                         'visibility' => 'public',
