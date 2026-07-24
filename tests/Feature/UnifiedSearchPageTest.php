@@ -77,7 +77,7 @@ it('falls back to local speaker and institution search on the unified search pag
         'status' => 'verified',
     ]);
 
-    app(PersonSearchService::class)->syncPersonRecord($person);
+    app(PersonSearchService::class)->syncSpeakerRecord($person);
     config()->set('scout.driver', 'typesense');
 
     $this->app->bind(PersonSearchService::class, fn (): PersonSearchService => new class extends PersonSearchService

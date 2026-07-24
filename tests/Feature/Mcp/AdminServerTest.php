@@ -138,8 +138,8 @@ it('matches richer public search behavior for persons, institutions, and referen
         'status' => 'verified',
     ]);
 
-    app(PersonSearchService::class)->syncPersonRecord($matchingPerson);
-    app(PersonSearchService::class)->syncPersonRecord($otherPerson);
+    app(PersonSearchService::class)->syncSpeakerRecord($matchingPerson);
+    app(PersonSearchService::class)->syncSpeakerRecord($otherPerson);
 
     AdminServer::actingAs($admin)
         ->tool(AdminListRecordsTool::class, [

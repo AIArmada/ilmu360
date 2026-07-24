@@ -200,6 +200,14 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
     }
 
     /**
+     * @return BelongsToMany<Person, $this>
+     */
+    public function speakers(): BelongsToMany
+    {
+        return $this->persons();
+    }
+
+    /**
      * @return MorphToMany<Role, $this, MorphPivot, 'pivot'>
      */
     public function globalRoles(): MorphToMany

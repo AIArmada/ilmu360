@@ -138,8 +138,8 @@ it('searches member persons by formatted public title parts through MCP list rec
 
     expect($matchingPerson)->not->toBeNull();
 
-    app(PersonSearchService::class)->syncPersonRecord($matchingPerson);
-    app(PersonSearchService::class)->syncPersonRecord($otherPerson);
+    app(PersonSearchService::class)->syncSpeakerRecord($matchingPerson);
+    app(PersonSearchService::class)->syncSpeakerRecord($otherPerson);
 
     MemberServer::actingAs($member)
         ->tool(MemberListRecordsTool::class, [

@@ -1592,6 +1592,14 @@ class Event extends PackageEvent implements AuditableContract
     }
 
     /**
+     * @return BelongsToMany<Person, $this, EventKeyPersonPivot, 'pivot'>
+     */
+    public function speakers(): BelongsToMany
+    {
+        return $this->persons();
+    }
+
+    /**
      * Catalog references attached via package event_references pivot.
      *
      * @return BelongsToMany<Reference, $this, EventReferencePivot, 'pivot'>
