@@ -250,7 +250,7 @@
             $contextPhone = $contextEntity->contactMethods->firstWhere('type', \AIArmada\Contacting\Enums\ContactMethodType::Phone->value)?->value;
             $contextEmail = $contextEntity->contactMethods->firstWhere('type', \AIArmada\Contacting\Enums\ContactMethodType::Email->value)?->value;
         }
-    } elseif ($contextEntity instanceof \App\Models\Speaker) {
+    } elseif ($contextEntity instanceof \App\Models\Person) {
         $contextHref = route('persons.show', $contextEntity);
         $contextThumb = $contextEntity->getFirstMediaUrl('avatar', 'thumb');
         $contextCover = $contextEntity->getFirstMediaUrl('cover', 'banner');
@@ -1135,19 +1135,19 @@
                     @else
                         {{-- Multiple speakers: responsive grid --}}
                         <div class="flex flex-wrap justify-center gap-5">
-                            @foreach($event->speakers as $speaker)
+                            @foreach($event->speakers as $person)
                                 @php
-                                    $speakerProfileImg = $speaker->getFirstMediaUrl('avatar', 'profile') ?: null;
-                                    $speakerThumbImg = $speaker->avatar_url ?: $speaker->default_avatar_url;
-                                    $speakerCoverImg = $speaker->getFirstMedia('cover')?->getAvailableUrl(['banner']) ?? null;
+                                    $personProfileImg = $person->getFirstMediaUrl('avatar', 'profile') ?: null;
+                                    $personThumbImg = $person->avatar_url ?: $person->default_avatar_url;
+                                    $personCoverImg = $person->getFirstMedia('cover')?->getAvailableUrl(['banner']) ?? null;
                                 @endphp
-                                <a wire:key="speaker-{{ $speaker->id }}" href="{{ route('persons.show', $speaker) }}" wire:navigate
+                                <a wire:key="person-{{ $person->id }}" href="{{ route('persons.show', $person) }}" wire:navigate
                                     class="group relative w-[240px] flex flex-col overflow-hidden rounded-3xl border border-slate-200/60 bg-white/80 shadow-lg shadow-slate-200/40 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-emerald-300 hover:shadow-xl hover:shadow-emerald-100">
 
                                     {{-- Cover background --}}
                                     <div class="relative h-24 w-full overflow-hidden bg-slate-100">
-                                        @if($speakerCoverImg)
-                                            <img src="{{ $speakerCoverImg }}" alt=""
+                                        @if($personCoverImg)
+                                            <img src="{{ $personCoverImg }}" alt=""
                                                 class="size-full object-cover transition duration-700 group-hover:scale-105 group-hover:opacity-80"
                                                 loading="lazy">
                                         @else
@@ -1164,27 +1164,27 @@
                                     <div class="relative -mt-16 flex flex-col items-center px-3 pb-2 text-center">
                                         <div
                                             class="relative size-32 shrink-0 overflow-hidden rounded-2xl border-4 border-white bg-white shadow-xl transition-transform duration-300 group-hover:-translate-y-2">
-                                            <img src="{{ $speakerProfileImg ?: $speakerThumbImg }}" alt="{{ $speaker->name }}"
+                                            <img src="{{ $personProfileImg ?: $personThumbImg }}" alt="{{ $person->name }}"
                                                 class="size-full object-cover" width="128" height="128" loading="lazy">
                                         </div>
 
                                         <div class="mt-2">
                                             <h4
                                                 class="font-heading text-lg font-bold text-slate-900 transition-colors group-hover:text-emerald-700">
-                                                {{ $speaker->formatted_name ?? $speaker->name }}
+                                                {{ $person->formatted_name ?? $person->name }}
                                             </h4>
-                                            @if($speaker->job_title)
-                                                <p class="mt-1 text-sm font-medium text-slate-500">{{ $speaker->job_title }}</p>
+                                            @if($person->job_title)
+                                                <p class="mt-1 text-sm font-medium text-slate-500">{{ $person->job_title }}</p>
                                             @endif
                                         </div>
                                     </div>
 
                                     {{-- Bio snippet --}}
-                                    @if($speaker->bio)
+                                    @if($person->bio)
                                         <div
                                             class="mt-auto border-t border-slate-100 bg-slate-50/50 px-4 py-3 transition-colors group-hover:bg-emerald-50/30">
                                             <p class="line-clamp-2 text-sm leading-relaxed text-slate-600">
-                                                {{ Str::limit(strip_tags(is_array($speaker->bio) ? ($speaker->bio['html'] ?? '') : $speaker->bio), 120) }}
+                                                {{ Str::limit(strip_tags(is_array($person->bio) ? ($person->bio['html'] ?? '') : $person->bio), 120) }}
                                             </p>
                                         </div>
                                     @endif
@@ -1217,12 +1217,12 @@
                                 <div class="mt-3 space-y-3">
                                     @foreach($keyPeople as $keyPerson)
                                         @php
-                                            $linkedSpeaker = $keyPerson->speaker;
+                                            $linkedPerson = $keyPerson->speaker;
                                             $displayName = $keyPerson->display_name;
                                         @endphp
                                         <div wire:key="key-person-{{ $keyPerson->id }}" class="rounded-2xl bg-white/80 p-3 ring-1 ring-amber-100">
-                                            @if($linkedSpeaker)
-                                                <a href="{{ route('persons.show', $linkedSpeaker) }}" wire:navigate class="font-semibold text-slate-900 hover:text-emerald-700">
+                                            @if($linkedPerson)
+                                                <a href="{{ route('persons.show', $linkedPerson) }}" wire:navigate class="font-semibold text-slate-900 hover:text-emerald-700">
                                                     {{ $displayName }}
                                                 </a>
                                             @else
@@ -1459,7 +1459,7 @@
                                                 loading="lazy">
                                         @else
                                             <div class="flex size-full items-center justify-center bg-emerald-50">
-                                                @if($contextEntity instanceof \App\Models\Speaker)
+                                                @if($contextEntity instanceof \App\Models\Person)
                                                     <svg class="size-7 text-emerald-400" fill="none" viewBox="0 0 24 24"
                                                         stroke="currentColor" stroke-width="1.5">
                                                         <path stroke-linecap="round" stroke-linejoin="round"

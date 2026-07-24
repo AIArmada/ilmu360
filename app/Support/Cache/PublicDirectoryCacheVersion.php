@@ -16,7 +16,7 @@ class PublicDirectoryCacheVersion
 {
     private const string INSTITUTION_DIRECTORY_VERSION_KEY = 'public_directory:institutions:version:v1';
 
-    private const string SPEAKER_DIRECTORY_VERSION_KEY = 'public_directory:persons:version:v1';
+    private const string PERSON_DIRECTORY_VERSION_KEY = 'public_directory:persons:version:v1';
 
     /**
      * @return array{version: string}
@@ -39,7 +39,7 @@ class PublicDirectoryCacheVersion
 
         return [
             'version' => implode('|', [
-                $this->compositeVersion(self::SPEAKER_DIRECTORY_VERSION_KEY),
+                $this->compositeVersion(self::PERSON_DIRECTORY_VERSION_KEY),
                 $participationCount,
                 (string) $latestParticipationChange,
             ]),
@@ -53,7 +53,7 @@ class PublicDirectoryCacheVersion
 
     public function bumpPerson(): void
     {
-        $this->storeVersion(self::SPEAKER_DIRECTORY_VERSION_KEY);
+        $this->storeVersion(self::PERSON_DIRECTORY_VERSION_KEY);
     }
 
     public function bumpAll(): void

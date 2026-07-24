@@ -52,7 +52,7 @@
     $showCancelledEventStatusNotice = $upcomingEvents->concat($pastEvents)->contains(
         fn (\App\Models\Event $event): bool => (string) $event->status === 'cancelled'
     );
-    $personRouteSegment = \App\Enums\ContributionSubjectType::Speaker->publicRouteSegment();
+    $personRouteSegment = \App\Enums\ContributionSubjectType::Person->publicRouteSegment();
 
     $resolveEventCategoryLabel = static fn (\App\Models\Event $event): string => app(\App\Support\Events\EventCategoryPresenter::class)->forEvent($event)[0]['path'] ?? __('Umum');
 
@@ -208,7 +208,7 @@
 
                                 @if(auth()->user()?->hasAnyRole(['super_admin', 'admin']))
                                     <a
-                                        href="{{ \App\Filament\Resources\Speakers\SpeakerResource::getUrl('edit', ['record' => $person], panel: 'admin') }}"
+                                        href="{{ \App\Filament\Resources\Persons\PersonResource::getUrl('edit', ['record' => $person], panel: 'admin') }}"
                                         target="_blank"
                                         class="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-6 text-sm font-bold text-amber-800 transition hover:-translate-y-0.5 hover:border-amber-300 hover:bg-amber-100"
                                     >
@@ -226,7 +226,7 @@
         </div>
     </section>
 
-    {{-- Speaker-specific profile content --}}
+    {{-- Person-specific profile content --}}
     <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
         <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
             <main class="min-w-0 space-y-8">

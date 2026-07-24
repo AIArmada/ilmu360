@@ -12,7 +12,7 @@ use Livewire\Component;
 use Livewire\WithPagination;
 
 new
-    #[Title('Speakers - ilmu360°')]
+    #[Title('Persons - ilmu360°')]
     class extends Component
     {
         use WithPagination;
@@ -32,7 +32,7 @@ new
         }
 
         #[Computed]
-        public function speakers(): LengthAwarePaginatorContract
+        public function persons(): LengthAwarePaginatorContract
         {
             $search = $this->normalizedSearch();
 
@@ -106,7 +106,7 @@ new
                 return new LengthAwarePaginator(collect(), count($orderedIds), $perPage, $currentPage, $paginationMeta);
             }
 
-            $speakers = $this->basePersonsQuery()
+            $persons = $this->basePersonsQuery()
                 ->whereIn('id', $paginatedIds)
                 ->get()
                 ->sortBy(static function (Person $person) use ($paginatedIds): int {
@@ -116,7 +116,7 @@ new
                 })
                 ->values();
 
-            return new LengthAwarePaginator($speakers, count($orderedIds), $perPage, $currentPage, $paginationMeta);
+            return new LengthAwarePaginator($persons, count($orderedIds), $perPage, $currentPage, $paginationMeta);
         }
 
         private function emptyPaginator(): LengthAwarePaginatorContract
@@ -162,11 +162,11 @@ new
 @section('og_image_height', '1024')
 
 @php
-    $speakers = $this->speakers;
+    $persons = $this->persons;
     $search = $this->search;
-    $speakerLoadingTarget = 'search,clearSearch';
+    $personLoadingTarget = 'search,clearSearch';
     $submitPersonUrl = route('contributions.submit-person');
-    $speakerTotal = $speakers->total();
+    $personTotal = $persons->total();
 @endphp
 
 <div class="relative min-h-screen overflow-x-clip bg-[#fafaf7] text-slate-800">
@@ -207,7 +207,7 @@ new
                     <!-- Search Box - refined pill -->
                     <div class="mt-9 max-w-xl">
                         <div class="group relative rounded-[1.5rem] border border-white/80 bg-white/90 p-1.5 shadow-[0_20px_60px_-28px_rgba(6,78,59,0.40),0_4px_12px_-2px_rgba(0,0,0,0.04)] backdrop-blur-xl transition-all duration-300 focus-within:scale-[1.01] focus-within:border-emerald-300 focus-within:ring-4 focus-within:ring-emerald-600/10 focus-within:shadow-[0_28px_70px_-30px_rgba(6,78,59,0.50)]">
-                            <label for="speaker-search" class="sr-only">{{ __('Cari penceramah') }}</label>
+                            <label for="person-search" class="sr-only">{{ __('Cari penceramah') }}</label>
                             <div class="flex items-center gap-3">
                                 <span class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-emerald-50 text-emerald-700 transition-colors duration-300 group-focus-within:bg-emerald-100">
                                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
@@ -217,7 +217,7 @@ new
 
                                 <input
                                     type="search"
-                                    id="speaker-search"
+                                    id="person-search"
                                     wire:model.live.debounce.300ms="search"
                                     wire:keydown.escape="clearSearch"
                                     placeholder="{{ __('Cari nama penceramah…') }}"
@@ -249,13 +249,13 @@ new
     <!-- Main Content -->
     <div class="mx-auto max-w-7xl px-5 py-10 sm:px-6 lg:px-8 lg:py-12">
         <!-- Loading Skeleton -->
-        <div wire:loading.delay.short wire:target="{{ $speakerLoadingTarget }}">
-            <x-ui.skeleton.speaker-card-grid />
+        <div wire:loading.delay.short wire:target="{{ $personLoadingTarget }}">
+            <x-ui.skeleton.person-card-grid />
         </div>
 
-        <div wire:loading.remove wire:target="{{ $speakerLoadingTarget }}">
+        <div wire:loading.remove wire:target="{{ $personLoadingTarget }}">
             <!-- Empty State -->
-            @if($speakers->isEmpty())
+            @if($persons->isEmpty())
                 <div class="flex min-h-[26rem] items-center justify-center">
                     <div class="flex max-w-md flex-col items-center text-center">
                         <div class="grid h-22 w-22 place-items-center rounded-[1.5rem] bg-white text-emerald-300 shadow-lg shadow-emerald-900/[0.06] ring-1 ring-emerald-100">
@@ -312,7 +312,7 @@ new
                             @endif
                         </h2>
                         <p class="mt-2 text-sm text-slate-500">
-                            {{ trans_choice(':count penceramah ditemui|:count penceramah ditemui', $speakerTotal, ['count' => number_format($speakerTotal)]) }}
+                            {{ trans_choice(':count penceramah ditemui|:count penceramah ditemui', $personTotal, ['count' => number_format($personTotal)]) }}
                         </p>
                     </div>
 
@@ -336,12 +336,12 @@ new
                     @endunless
                 </div>
 
-                <!-- Speaker Grid -->
+                <!-- Person Grid -->
                 <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                    @foreach($speakers as $speaker)
+                    @foreach($persons as $person)
                         <a
-                            href="{{ route('persons.show', $speaker) }}"
-                            wire:key="speaker-directory-{{ $speaker->id }}"
+                            href="{{ route('persons.show', $person) }}"
+                            wire:key="person-directory-{{ $person->id }}"
                             wire:navigate
                             class="group relative flex min-h-[10rem] gap-0 overflow-hidden rounded-[1.5rem] border border-slate-200/80 bg-white transition-all duration-300 hover:-translate-y-1.5 hover:border-emerald-300/80 hover:shadow-[0_22px_50px_-28px_rgba(6,78,59,0.40)] sm:block sm:min-h-0"
                         >
@@ -350,17 +350,17 @@ new
                                 <!-- Dot pattern overlay -->
                                 <div class="absolute inset-0 opacity-[0.15]" style="background-image: radial-gradient(circle at 1.5px 1.5px, rgba(7,91,72,.14) 1px, transparent 0); background-size: 16px 16px;"></div>
                                 @php
-                                    $initials = str($speaker->name)->explode(' ')
+                                    $initials = str($person->name)->explode(' ')
                                         ->reject(fn(string $w): bool => in_array(strtolower($w), ['bin', 'binti', 'ibni', 'ibn', 'binte', 'abd', 'abdul', 'abu'], true))
                                         ->take(2)
                                         ->map(fn(string $w): string => str($w)->substr(0, 1)->upper())
                                         ->implode('');
                                 @endphp
 
-                                @if($speaker->hasMedia('main'))
+                                @if($person->hasMedia('main'))
                                     <img
-                                        src="{{ $speaker->public_main_url }}"
-                                        alt="{{ $speaker->formatted_name }}"
+                                        src="{{ $person->public_main_url }}"
+                                        alt="{{ $person->formatted_name }}"
                                         class="relative h-full w-full object-cover object-top transition duration-500 ease-out group-hover:scale-[1.04]"
                                         width="320"
                                         height="427"
@@ -393,7 +393,7 @@ new
                             <!-- Content area -->
                             <div class="flex min-w-0 flex-1 flex-col p-4 sm:p-5">
                                 <h3 class="font-heading text-lg font-bold leading-tight tracking-[-0.02em] text-emerald-950 transition-colors duration-200 group-hover:text-emerald-700">
-                                    {{ $speaker->formatted_name }}
+                                    {{ $person->formatted_name }}
                                 </h3>
 
                                 <div class="mt-3 flex items-center gap-2.5 text-xs text-slate-500">
@@ -403,8 +403,8 @@ new
                                         </svg>
                                     </span>
                                     <span>
-                                        <strong class="font-bold text-slate-800">{{ number_format($speaker->events_count) }}</strong>
-                                        {{ trans_choice('majlis akan datang|majlis akan datang', $speaker->events_count) }}
+                                        <strong class="font-bold text-slate-800">{{ number_format($person->events_count) }}</strong>
+                                        {{ trans_choice('majlis akan datang|majlis akan datang', $person->events_count) }}
                                     </span>
                                 </div>
 
@@ -422,9 +422,9 @@ new
                 </div>
 
                 <!-- Pagination -->
-                @if($speakers->hasPages())
+                @if($persons->hasPages())
                     <div class="mt-10 rounded-2xl border border-slate-200/80 bg-white px-5 py-4 shadow-sm">
-                        {{ $speakers->links() }}
+                        {{ $persons->links() }}
                     </div>
                 @endif
             @endif

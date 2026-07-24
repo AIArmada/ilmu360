@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 use App\Models\Event;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
-use App\Models\Speaker;
 
 return [
 
@@ -200,7 +200,7 @@ return [
                         ['name' => 'title', 'type' => 'string'],
                         ['name' => 'description', 'type' => 'string', 'optional' => true],
                         ['name' => 'slug', 'type' => 'string'],
-                        ['name' => 'speaker_names', 'type' => 'string', 'optional' => true],
+                        ['name' => 'person_names', 'type' => 'string', 'optional' => true],
                         ['name' => 'institution_id', 'type' => 'string', 'optional' => true, 'facet' => true],
                         ['name' => 'institution_name', 'type' => 'string', 'optional' => true],
                         ['name' => 'venue_id', 'type' => 'string', 'optional' => true, 'facet' => true],
@@ -230,9 +230,9 @@ return [
                         ['name' => 'taxonomy_term_ids', 'type' => 'string[]', 'optional' => true, 'facet' => true],
                         ['name' => 'taxonomy_codes', 'type' => 'string[]', 'optional' => true, 'facet' => true],
                         ['name' => 'reference_ids', 'type' => 'string[]', 'optional' => true, 'facet' => true],
-                        ['name' => 'speaker_ids', 'type' => 'string[]', 'optional' => true, 'facet' => true],
+                        ['name' => 'person_ids', 'type' => 'string[]', 'optional' => true, 'facet' => true],
                         ['name' => 'key_person_roles', 'type' => 'string[]', 'optional' => true, 'facet' => true],
-                        ['name' => 'key_person_speaker_ids', 'type' => 'string[]', 'optional' => true, 'facet' => true],
+                        ['name' => 'key_person_person_ids', 'type' => 'string[]', 'optional' => true, 'facet' => true],
                         ['name' => 'person_in_charge_ids', 'type' => 'string[]', 'optional' => true, 'facet' => true],
                         ['name' => 'person_in_charge_names', 'type' => 'string', 'optional' => true],
                         ['name' => 'moderator_ids', 'type' => 'string[]', 'optional' => true, 'facet' => true],
@@ -248,10 +248,10 @@ return [
                     'default_sorting_field' => 'starts_at',
                 ],
                 'search-parameters' => [
-                    'query_by' => 'title,description,speaker_names,institution_name,venue_name',
+                    'query_by' => 'title,description,person_names,institution_name,venue_name',
                 ],
             ],
-            Speaker::class => [
+            Person::class => [
                 'collection-schema' => [
                     'fields' => [
                         ['name' => 'id', 'type' => 'string'],

@@ -8,7 +8,7 @@
     use App\Models\Institution;
     use App\Models\Reference;
     use App\Models\Space;
-    use App\Models\Speaker;
+    use App\Models\Person;
     use AIArmada\Events\Models\EventTerm;
     use App\Models\Venue;
     use AIArmada\Addressing\Support\AddressCountryResolver;
@@ -209,23 +209,23 @@
         ->filter()
         ->all();
 
-    $speakerIds = $asList($get('speakers'));
-    $speakerMap = Speaker::query()->whereIn('id', $speakerIds)->pluck('name', 'id')->toArray();
-    $speakerLabels = collect($speakerIds)
-        ->map(fn (mixed $id): ?string => $speakerMap[$id] ?? null)
+    $personIds = $asList($get('speakers'));
+    $personMap = Person::query()->whereIn('id', $personIds)->pluck('name', 'id')->toArray();
+    $personLabels = collect($personIds)
+        ->map(fn (mixed $id): ?string => $personMap[$id] ?? null)
         ->filter()
         ->all();
 
     $otherKeyPeopleLabels = collect((array) $get('other_key_people'))
-        ->map(function (mixed $keyPerson) use ($speakerMap): ?string {
+        ->map(function (mixed $keyPerson) use ($personMap): ?string {
             if (! is_array($keyPerson)) {
                 return null;
             }
 
             $role = EventKeyPersonRole::tryFrom((string) ($keyPerson['role_code'] ?? ''));
-            $speakerId = (string) ($keyPerson['involveable_id'] ?? '');
+            $personId = (string) ($keyPerson['involveable_id'] ?? '');
             $name = is_string($keyPerson['display_name'] ?? null) ? trim((string) $keyPerson['display_name']) : '';
-            $displayName = $speakerMap[$speakerId] ?? $name;
+            $displayName = $personMap[$personId] ?? $name;
 
             if (! $role instanceof EventKeyPersonRole || $displayName === '') {
                 return null;
@@ -243,7 +243,7 @@
     if (! in_array($primaryOrganizerKind, ['institution', 'speaker'], true) && filled($primaryOrganizerId)) {
         if (Institution::query()->whereKey($primaryOrganizerId)->exists()) {
             $primaryOrganizerKind = 'institution';
-        } elseif (Speaker::query()->whereKey($primaryOrganizerId)->exists()) {
+        } elseif (Person::query()->whereKey($primaryOrganizerId)->exists()) {
             $primaryOrganizerKind = 'speaker';
         }
     }
@@ -268,7 +268,7 @@
 
     $organizerName = $primaryOrganizerKind === 'institution'
         ? ($institutionMap[(string) $primaryOrganizerId] ?? null)
-        : (Speaker::query()->whereKey($get('primary_organizer_speaker_id') ?: $primaryOrganizerId)->value('name'));
+        : (Person::query()->whereKey($get('primary_organizer_speaker_id') ?: $primaryOrganizerId)->value('name'));
 
     $locationLabel = null;
     if ($toScalar($get('event_format')) === EventFormat::Online->value) {
@@ -406,7 +406,7 @@
             </div>
             <div class="md:col-span-2">
                 <dt class="text-slate-500">{{ __('Pilih Penceramah') }}</dt>
-                <dd class="font-medium text-slate-900">{{ $toJoined($speakerLabels) }}</dd>
+                <dd class="font-medium text-slate-900">{{ $toJoined($personLabels) }}</dd>
             </div>
             <div class="md:col-span-2">
                 <dt class="text-slate-500">{{ __('Peranan Lain') }}</dt>

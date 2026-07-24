@@ -3,7 +3,7 @@
     use AIArmada\FilamentEvents\Resources\EventResource;
     use App\Filament\Resources\Institutions\InstitutionResource;
     use App\Filament\Resources\References\ReferenceResource;
-    use App\Filament\Resources\Speakers\SpeakerResource;
+    use App\Filament\Resources\Persons\PersonResource;
     use App\Models\User;
     use App\Support\Authz\MemberRoleCatalog;
 
@@ -11,7 +11,7 @@
     $user = $record instanceof User ? $record : null;
     $memberRoleCatalog = app(MemberRoleCatalog::class);
     $institutionRoles = $user instanceof User ? implode(', ', $memberRoleCatalog->roleNamesFor($user, MemberSubjectType::Institution)) : '';
-    $speakerRoles = $user instanceof User ? implode(', ', $memberRoleCatalog->roleNamesFor($user, MemberSubjectType::Speaker)) : '';
+    $personRoles = $user instanceof User ? implode(', ', $memberRoleCatalog->roleNamesFor($user, MemberSubjectType::Person)) : '';
     $eventRoles = $user instanceof User ? implode(', ', $memberRoleCatalog->roleNamesFor($user, MemberSubjectType::Event)) : '';
     $referenceRoles = $user instanceof User ? implode(', ', $memberRoleCatalog->roleNamesFor($user, MemberSubjectType::Reference)) : '';
 @endphp
@@ -45,14 +45,14 @@
 
             <div class="space-y-3">
                 <h3 class="text-sm font-medium text-gray-950 dark:text-white">Speakers</h3>
-                @forelse ($user->speakers as $speaker)
+                @forelse ($user->speakers as $person)
                     <div class="rounded-xl border border-gray-200 px-4 py-3 text-sm dark:border-white/10">
                         <div class="flex items-start justify-between gap-3">
-                            <a class="font-medium text-primary-600 hover:underline" href="{{ SpeakerResource::getUrl('edit', ['record' => $speaker], panel: 'admin') }}">
-                                {{ $speaker->name }}
+                            <a class="font-medium text-primary-600 hover:underline" href="{{ PersonResource::getUrl('edit', ['record' => $person], panel: 'admin') }}">
+                                {{ $person->name }}
                             </a>
                             <span class="text-xs text-gray-500">
-                                {{ $speakerRoles !== '' ? $speakerRoles : 'No role' }}
+                                {{ $personRoles !== '' ? $personRoles : 'No role' }}
                             </span>
                         </div>
                     </div>

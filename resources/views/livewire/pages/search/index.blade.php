@@ -4,21 +4,21 @@
 
 @php
     $eventResults = $this->eventResults;
-    $speakerResults = $this->speakerResults;
+    $personResults = $this->personResults;
     $referenceResults = $this->referenceResults;
     $institutionResults = $this->institutionResults;
 
     /** @var \Illuminate\Support\Collection<int, \App\Models\Event> $eventMatches */
     $eventMatches = $eventResults['items'];
-    /** @var \Illuminate\Support\Collection<int, \App\Models\Speaker> $speakerMatches */
-    $speakerMatches = $speakerResults['items'];
+    /** @var \Illuminate\Support\Collection<int, \App\Models\Person> $personMatches */
+    $personMatches = $personResults['items'];
     /** @var \Illuminate\Support\Collection<int, \App\Models\Reference> $referenceMatches */
     $referenceMatches = $referenceResults['items'];
     /** @var \Illuminate\Support\Collection<int, \App\Models\Institution> $institutionMatches */
     $institutionMatches = $institutionResults['items'];
 
     $eventTotal = $eventResults['total'];
-    $speakerTotal = $speakerResults['total'];
+    $personTotal = $personResults['total'];
     $referenceTotal = $referenceResults['total'];
     $institutionTotal = $institutionResults['total'];
 
@@ -28,7 +28,7 @@
     $lat = $this->lat;
     $lng = $this->lng;
     $radiusKm = $this->radius_km;
-    $hasAnyResults = $eventTotal > 0 || $speakerTotal > 0 || $referenceTotal > 0 || $institutionTotal > 0;
+    $hasAnyResults = $eventTotal > 0 || $personTotal > 0 || $referenceTotal > 0 || $institutionTotal > 0;
 
     $eventQueryParams = array_filter([
         'search' => $search,
@@ -37,7 +37,7 @@
         'radius_km' => ($lat !== null && $lng !== null) ? $radiusKm : null,
     ], static fn (mixed $value): bool => filled($value));
 
-    $speakerQueryParams = array_filter([
+    $personQueryParams = array_filter([
         'search' => $search,
     ], static fn (mixed $value): bool => filled($value));
 
@@ -139,7 +139,7 @@
 
                                 <div class="rounded-2xl border border-sky-100 bg-white p-4 shadow-sm">
                                     <p class="text-xs font-black uppercase tracking-[0.2em] text-sky-600">{{ __('Speakers') }}</p>
-                                    <p class="mt-3 text-3xl font-heading font-bold text-slate-900">{{ $speakerTotal }}</p>
+                                    <p class="mt-3 text-3xl font-heading font-bold text-slate-900">{{ $personTotal }}</p>
                                     <p class="mt-1 text-sm text-slate-500">{{ __('Matching speakers') }}</p>
                                 </div>
 
@@ -169,7 +169,7 @@
                             </a>
 
                             @if($hasTypedSearch)
-                                <a href="{{ route('speakers.index', $speakerQueryParams) }}" wire:navigate class="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-sky-300 hover:text-sky-700">
+                                <a href="{{ route('persons.index', $personQueryParams) }}" wire:navigate class="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-sky-300 hover:text-sky-700">
                                     {{ __('View all speakers') }}
                                 </a>
 
@@ -359,7 +359,7 @@
                                     <h2 class="mt-3 font-heading text-3xl font-bold text-slate-900">{{ __('Matching speakers') }}</h2>
                                 </div>
 
-                                <a href="{{ route('speakers.index', $speakerQueryParams) }}" wire:navigate class="inline-flex items-center gap-2 text-sm font-semibold text-sky-700 transition hover:text-sky-800">
+                                <a href="{{ route('persons.index', $personQueryParams) }}" wire:navigate class="inline-flex items-center gap-2 text-sm font-semibold text-sky-700 transition hover:text-sky-800">
                                     {{ __('View all speakers') }}
                                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
@@ -367,24 +367,24 @@
                                 </a>
                             </div>
 
-                            @if($speakerMatches->isEmpty())
+                            @if($personMatches->isEmpty())
                                 <div class="mt-8 rounded-[1.5rem] border border-dashed border-slate-200 bg-slate-50 px-6 py-10 text-center">
                                     <p class="font-heading text-2xl font-bold text-slate-900">{{ __('No matching speakers yet') }}</p>
                                     <p class="mt-3 text-sm leading-6 text-slate-600">{{ __('Try a different name, title, or keyword.') }}</p>
                                 </div>
                             @else
                                 <div class="mt-8 grid gap-5 sm:grid-cols-2">
-                                    @foreach($speakerMatches as $speaker)
-                                        <a href="{{ route('persons.show', $speaker) }}" wire:navigate class="group rounded-[1.5rem] border border-slate-200 bg-slate-50/60 p-5 text-center transition hover:-translate-y-1 hover:border-sky-200 hover:bg-white hover:shadow-lg hover:shadow-sky-900/10">
+                                    @foreach($personMatches as $person)
+                                        <a href="{{ route('persons.show', $person) }}" wire:navigate class="group rounded-[1.5rem] border border-slate-200 bg-slate-50/60 p-5 text-center transition hover:-translate-y-1 hover:border-sky-200 hover:bg-white hover:shadow-lg hover:shadow-sky-900/10">
                                             <div class="mx-auto h-24 w-24 overflow-hidden rounded-full bg-white p-1.5 ring-2 ring-slate-200 transition group-hover:ring-sky-300">
-                                                <img src="{{ $speaker->public_avatar_url }}" alt="{{ $speaker->formatted_name }}" class="h-full w-full rounded-full object-cover" loading="lazy">
+                                                <img src="{{ $person->public_avatar_url }}" alt="{{ $person->formatted_name }}" class="h-full w-full rounded-full object-cover" loading="lazy">
                                             </div>
-                                            <h3 class="mt-5 font-heading text-lg font-bold leading-tight text-slate-900 transition group-hover:text-sky-700">{{ $speaker->formatted_name }}</h3>
+                                            <h3 class="mt-5 font-heading text-lg font-bold leading-tight text-slate-900 transition group-hover:text-sky-700">{{ $person->formatted_name }}</h3>
                                             <div class="mt-4 inline-flex items-center gap-1.5 rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700 ring-1 ring-sky-200">
                                                 <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                                 </svg>
-                                                {{ $speaker->events_count }} {{ __('Events') }}
+                                                {{ $person->events_count }} {{ __('Events') }}
                                             </div>
                                         </a>
                                     @endforeach

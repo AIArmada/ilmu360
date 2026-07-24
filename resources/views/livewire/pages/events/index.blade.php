@@ -89,7 +89,7 @@
     $selectedLanguageCodes = array_values(array_filter((array) $this->language_codes));
     $selectedPersonInChargeOptions = $this->speakerOptionLabels($selectedPersonInChargeIds);
     $selectedPersonInChargeLabels = collect($selectedPersonInChargeIds)
-        ->map(fn (string $speakerId): ?string => $selectedPersonInChargeOptions[$speakerId] ?? null)
+        ->map(fn (string $personId): ?string => $selectedPersonInChargeOptions[$personId] ?? null)
         ->filter()
         ->values();
     $eventCategoryLabels = app(\App\Contracts\EventCategoryCatalog::class)->options();
@@ -934,12 +934,12 @@
                                             $locationPrimaryText = $formatValue === \App\Enums\EventFormat::Online->value ? __('Online') : __('Location pending');
                                         }
 
-                                        $speakerNames = $event->speakers
+                                        $personNames = $event->speakers
                                             ->take(2)
-                                            ->map(fn (\App\Models\Speaker $speaker): string => (string) ($speaker->formatted_name ?? $speaker->name))
+                                            ->map(fn (\App\Models\Person $person): string => (string) ($person->formatted_name ?? $person->name))
                                             ->filter()
                                             ->values();
-                                        $speakerText = $speakerNames->isNotEmpty() ? $speakerNames->implode(', ') : __('Penceramah akan diumumkan');
+                                        $personText = $personNames->isNotEmpty() ? $personNames->implode(', ') : __('Penceramah akan diumumkan');
                                         $languageChips = collect($event->getAttribute('languages'))
                                             ->take(1)
                                             ->map(fn (\Nnjeim\World\Models\Language $language): string => (string) ($language->code === 'ms' ? 'BM' : strtoupper((string) $language->code)))
@@ -1023,7 +1023,7 @@
                                                                 <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.5 20.25a8.25 8.25 0 1 1 15 0" />
                                                             </svg>
                                                         </dt>
-                                                        <dd class="min-w-0 truncate">{{ $speakerText }}</dd>
+                                                        <dd class="min-w-0 truncate">{{ $personText }}</dd>
                                                     </div>
                                                     <div class="flex gap-2">
                                                         <dt class="mt-0.5 text-slate-500">

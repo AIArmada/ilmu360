@@ -123,7 +123,7 @@
             'url' => route('persons.index'),
             'type' => 'speaker',
             'images' => $followingSpeakers->map(fn($s) => $s->public_avatar_url)->filter()->values()->take(4)->all(),
-            'placeholder' => asset('images/placeholders/speaker.png'),
+            'placeholder' => asset('images/placeholders/person.png'),
         ],
         [
             'label' => __('Rujukan'),

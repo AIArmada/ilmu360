@@ -114,9 +114,9 @@
                                                 @endforeach
                                             </optgroup>
                                         @endif
-                                        @if($speakerOptions !== [])
+                                        @if($personOptions !== [])
                                             <optgroup label="{{ __('Speakers') }}">
-                                                @foreach($speakerOptions as $value => $label)
+                                                @foreach($personOptions as $value => $label)
                                                     <option value="{{ $value }}">{{ $label }}</option>
                                                 @endforeach
                                             </optgroup>

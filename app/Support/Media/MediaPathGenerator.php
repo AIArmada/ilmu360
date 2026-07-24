@@ -13,12 +13,12 @@ use Spatie\MediaLibrary\Support\PathGenerator\PathGenerator;
  * Examples:
  *   events/019c/019c4228-10d2-733c-989c-b598e9485cca/poster/
  *   events/019c/019c4228-10d2-733c-989c-b598e9485cca/gallery/
- *   speakers/01a5/01a5f392-88b1-7e2c-a4d3-c1e920da17f8/avatar/
+ *   persons/01a5/01a5f392-88b1-7e2c-a4d3-c1e920da17f8/avatar/
  *   institutions/01b2/01b2c1d4-5e6f-7a8b-9c0d-e1f2a3b4c5d6/logo/
  *   institutions/01b2/01b2c1d4-5e6f-7a8b-9c0d-e1f2a3b4c5d6/gallery/
  *
  * Why this structure:
- * - Model type grouping: all event media together, all speaker media together, etc.
+ * - Model type grouping: all event media together, all person media together, etc.
  * - UUID shard (first 4 chars): prevents filesystem bottlenecks from thousands
  *   of subdirectories in a single folder (max ~65k shards per type).
  * - Full model UUID: unique per record, ties media to its owner unambiguously.

@@ -2,7 +2,7 @@
 
 use App\Models\Event;
 use App\Models\Institution;
-use App\Models\Speaker;
+use App\Models\Person;
 use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
@@ -20,10 +20,10 @@ new class extends Component {
     }
 
     #[Computed]
-    public function speakers(): int
+    public function persons(): int
     {
-        return Cache::remember('home.stats.speakers.upcoming', 300, function () {
-            return Speaker::active()
+        return Cache::remember('home.stats.persons.upcoming', 300, function () {
+            return Person::active()
                 ->whereHas('speakerEvents', function ($query) {
                     $query->active()
                         ->where('starts_at', '>=', now());
@@ -70,7 +70,7 @@ new class extends Component {
         <div class="text-xs sm:text-sm text-slate-400 leading-none">{{ __('Majlis Akan Datang') }}</div>
     </div>
     <div class="text-center border-x border-white/10">
-        <div class="text-3xl sm:text-4xl font-bold leading-none text-white">{{ number_format($this->speakers) }}</div>
+        <div class="text-3xl sm:text-4xl font-bold leading-none text-white">{{ number_format($this->persons) }}</div>
         <div class="text-xs sm:text-sm text-slate-400 leading-none">{{ __('Penceramah') }}</div>
     </div>
     <div class="text-center">

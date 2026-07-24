@@ -38,8 +38,8 @@ return [
         ],
         'directories' => [
             'title' => 'Directories',
-            'description' => 'Public speakers, institutions, references, venues, and series.',
-            'prefixes' => ['/speakers', '/institutions', '/references', '/venues', '/series'],
+            'description' => 'Public persons, institutions, references, venues, and series.',
+            'prefixes' => ['/persons', '/institutions', '/references', '/venues', '/series'],
         ],
         'contributions' => [
             'title' => 'Contributions',
@@ -84,13 +84,13 @@ return [
 
     ROUTING SURFACES:
 
-    Public routes (/api/v1/speakers, /api/v1/institutions, etc.) return only active and verified records (is_active=true AND status=verified).
+    Public routes (/api/v1/persons, /api/v1/institutions, etc.) return only active and verified records (is_active=true AND status=verified).
 
-    Admin routes (/api/v1/admin/speakers, etc.) return all records by default. Event collections expose explicit filters such as filter[status], filter[visibility], filter[event_format], filter[event_category_ids], filter[timing_mode], and filter[prayer_reference]. Speaker collections expose filter[status], filter[is_active], and filter[has_events]. Date-aware admin resources also accept starts_after, starts_before, and starts_on_local_date.
+    Admin routes (/api/v1/admin/persons, etc.) return all records by default. Event collections expose explicit filters such as filter[status], filter[visibility], filter[event_format], filter[event_category_ids], filter[timing_mode], and filter[prayer_reference]. Person collections expose filter[status], filter[is_active], and filter[has_events]. Date-aware admin resources also accept starts_after, starts_before, and starts_on_local_date.
 
     The same search= parameter on both surfaces returns different result sets by design.
 
-    Collection endpoints clamp per_page to server-supported maxima. Public /events, /institutions, and /speakers currently cap at 50. Most authenticated collections and admin resource listings currently cap at 100.
+    Collection endpoints clamp per_page to server-supported maxima. Public /events, /institutions, and /persons currently cap at 50. Most authenticated collections and admin resource listings currently cap at 100.
 
     Do not send public contribution payloads to /admin endpoints and do not expect admin schemas from /forms endpoints.
 
@@ -108,9 +108,9 @@ return [
 
     PUBLIC FLOWS:
 
-    Public create flows currently exist for events, institutions, and speakers.
+    Public create flows currently exist for events, institutions, and persons.
 
-    Public update flows currently exist for events, institutions, speakers, and references via the contribution suggestion endpoints; those updates either apply immediately (mode=direct_edit) or create a review request (mode=review) depending on the caller's permissions.
+    Public update flows currently exist for events, institutions, persons, and references via the contribution suggestion endpoints; those updates either apply immediately (mode=direct_edit) or create a review request (mode=review) depending on the caller's permissions.
 
     Public API support does not currently include creating references, venues, or series, and it does not currently include updating venues or series through the contribution endpoints.
 
@@ -122,9 +122,9 @@ return [
 
     GET /institution-workspace auto-selects the first accessible institution when institution_id is omitted and always returns selected_institution together with events_pagination and members_pagination metadata.
 
-    Public institution, speaker, and submit-event writes must include an explicit country selection using the canonical *_country_id fields.
+    Public institution, person, and submit-event writes must include an explicit country selection using the canonical *_country_id fields.
 
-    Speaker create/update still forbids detailed street or map fields: address.line1, address.line2, address.postcode, address.lat, address.lng, address.google_maps_url, address.google_place_id, and address.waze_url return HTTP 422 on speaker contribution flows.
+    Person create/update still forbids detailed street or map fields: address.line1, address.line2, address.postcode, address.lat, address.lng, address.google_maps_url, address.google_place_id, and address.waze_url return HTTP 422 on person contribution flows.
 
     ADMIN FLOWS:
 
@@ -134,7 +134,7 @@ return [
 
     Admin PUT is not a partial update. Fields marked required in the schema must be sent on every update, not just on create.
 
-    For speakers: name, gender, and status are always required on both create and update.
+    For persons: name, gender, and status are always required on both create and update.
 
     For institutions: name, type, and status are always required on both create and update.
 
@@ -142,7 +142,7 @@ return [
 
     For admin geography lookups, use the authenticated GET /admin/catalogs/* endpoints referenced by schema catalog metadata.
 
-    Current admin write support includes events, institutions, speakers, references, venues, and subdistricts.
+    Current admin write support includes events, institutions, persons, references, venues, and subdistricts.
 
     Admin write support is limited to resources whose write_support.schema flag is true in the admin manifest.
     MD,

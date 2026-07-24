@@ -1,7 +1,7 @@
 <?php
 
 use App\Models\Event;
-use App\Models\Speaker;
+use App\Models\Person;
 use Illuminate\Database\Eloquent\Collection;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
@@ -109,7 +109,7 @@ new class extends Component {
             $user = auth()->user();
             $nextEvent = $this->nextGoingEvent;
             $upcomingEvents = $this->upcomingGoingEvents;
-            $speakerEvents = $this->followedSpeakersEvents;
+            $personEvents = $this->followedSpeakersEvents;
             $saved = $this->savedEvents;
             $counts = $this->counts;
             $firstName = explode(' ', $user->name)[0];
@@ -244,11 +244,11 @@ new class extends Component {
                                 @if($nextEvent->speakers->isNotEmpty())
                                     <div class="flex items-center gap-2 mt-3 pt-3 border-t border-white/5">
                                         <div class="flex -space-x-2">
-                                            @foreach($nextEvent->speakers->take(3) as $speaker)
+                                            @foreach($nextEvent->speakers->take(3) as $person)
                                                 <div
                                                     class="w-7 h-7 rounded-full border-2 border-slate-800 overflow-hidden bg-slate-700">
-                                                    <img src="{{ $speaker->avatar_url ?: $speaker->default_avatar_url }}"
-                                                        alt="{{ $speaker->name }}" class="w-full h-full object-cover">
+                                                    <img src="{{ $person->avatar_url ?: $person->default_avatar_url }}"
+                                                        alt="{{ $person->name }}" class="w-full h-full object-cover">
                                                 </div>
                                             @endforeach
                                         </div>
@@ -340,7 +340,7 @@ new class extends Component {
                         @endif
                     </div>
 
-                    {{-- Right Sidebar: Saved & Following Speaker Events --}}
+                    {{-- Right Sidebar: Saved & Following Person Events --}}
                     <div class="space-y-8">
                         {{-- Saved Events --}}
                         <div>
@@ -386,8 +386,8 @@ new class extends Component {
                             @endif
                         </div>
 
-                        {{-- Following Speaker Events --}}
-                        @if($speakerEvents->isNotEmpty())
+                        {{-- Following Person Events --}}
+                        @if($personEvents->isNotEmpty())
                             <div>
                                 <div class="flex items-center justify-between mb-4">
                                     <h3 class="font-heading text-base font-bold text-slate-900 flex items-center gap-2">
@@ -401,7 +401,7 @@ new class extends Component {
                                 </div>
 
                                 <div class="space-y-2">
-                                    @foreach($speakerEvents as $event)
+                                    @foreach($personEvents as $event)
                                         <a href="{{ route('events.show', $event) }}" wire:navigate
                                             wire:key="speaker-{{ $event->id }}"
                                             class="group flex items-center gap-3 bg-white rounded-xl border border-slate-100 hover:border-purple-200 hover:shadow-sm transition-all p-3">

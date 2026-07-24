@@ -312,13 +312,13 @@
 
             <x-filament::section heading="Following Speakers">
                 <div class="space-y-4">
-                    @forelse ($user->followingSpeakers as $speaker)
+                    @forelse ($user->followingSpeakers as $person)
                         <div class="rounded-xl border border-gray-200 p-4 dark:border-white/10">
                             <div class="flex items-start justify-between gap-3">
-                                <a href="{{ $this->speakerUrl($speaker) }}" class="font-medium text-primary-600 hover:underline">
-                                    {{ $speaker->name }}
+                                <a href="{{ $this->speakerUrl($person) }}" class="font-medium text-primary-600 hover:underline">
+                                    {{ $person->name }}
                                 </a>
-                                <x-filament::badge :color="$this->entityStatusBadgeColor($speaker->status)">{{ $this->humanLabel($speaker->status) }}</x-filament::badge>
+                                <x-filament::badge :color="$this->entityStatusBadgeColor($person->status)">{{ $this->humanLabel($person->status) }}</x-filament::badge>
                             </div>
                         </div>
                     @empty
@@ -365,13 +365,13 @@
 
             <x-filament::section heading="Speaker Memberships">
                 <div class="space-y-4">
-                    @forelse ($user->speakers as $speaker)
+                    @forelse ($user->speakers as $person)
                         <div class="rounded-xl border border-gray-200 p-4 dark:border-white/10">
                             <div class="flex items-start justify-between gap-3">
-                                <a href="{{ $this->speakerUrl($speaker) }}" class="font-medium text-primary-600 hover:underline">
-                                    {{ $speaker->name }}
+                                <a href="{{ $this->speakerUrl($person) }}" class="font-medium text-primary-600 hover:underline">
+                                    {{ $person->name }}
                                 </a>
-                                <x-filament::badge :color="$this->entityStatusBadgeColor($speaker->status)">{{ $this->humanLabel($speaker->status) }}</x-filament::badge>
+                                <x-filament::badge :color="$this->entityStatusBadgeColor($person->status)">{{ $this->humanLabel($person->status) }}</x-filament::badge>
                             </div>
                         </div>
                     @empty

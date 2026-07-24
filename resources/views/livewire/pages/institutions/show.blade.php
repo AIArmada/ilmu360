@@ -16,7 +16,7 @@
     $pastTotal = $this->pastTotal;
     $publicContacts = $institution->contactMethods->where('is_public', true)->values();
     $donationChannels = $institution->donationChannels;
-    $speakers = $institution->speakers;
+    $persons = $institution->speakers;
     $spaces = $institution->spaces;
     $institutionUrl = route('institutions.show', $institution);
     $institutionRedirectUrl = route('institutions.show', $institution, absolute: false);
@@ -113,10 +113,10 @@
 
     $resolveEventSpeakerAvatarStack = static function (\App\Models\Event $event): array {
         $avatars = $event->speakers
-            ->map(function (\App\Models\Speaker $speaker): array {
+            ->map(function (\App\Models\Person $person): array {
                 return [
-                    'name' => trim((string) ($speaker->formatted_name !== '' ? $speaker->formatted_name : $speaker->name)),
-                    'url' => $speaker->public_avatar_url,
+                    'name' => trim((string) ($person->formatted_name !== '' ? $person->formatted_name : $person->name)),
+                    'url' => $person->public_avatar_url,
                 ];
             })
             ->filter(fn (array $avatar): bool => $avatar['name'] !== '' && $avatar['url'] !== '')
@@ -130,8 +130,8 @@
     };
 
     $resolveEventPeople = static function (\App\Models\Event $event) use ($joinEventPeopleNames): array {
-        $speakerSummary = $event->speakers
-            ->map(fn (\App\Models\Speaker $speaker): string => trim((string) ($speaker->formatted_name !== '' ? $speaker->formatted_name : $speaker->name)))
+        $personSummary = $event->speakers
+            ->map(fn (\App\Models\Person $person): string => trim((string) ($person->formatted_name !== '' ? $person->formatted_name : $person->name)))
             ->filter(fn (string $name): bool => $name !== '')
             ->unique()
             ->values();
@@ -175,7 +175,7 @@
             ->implode(' • ');
 
         return [
-            'speakers' => $speakerSummary->isNotEmpty() ? $joinEventPeopleNames($speakerSummary) : '',
+            'persons' => $personSummary->isNotEmpty() ? $joinEventPeopleNames($personSummary) : '',
             'roles' => $roleSummary,
         ];
     };
@@ -285,7 +285,7 @@
                             @php
                                 $venueLocation = $resolveVenueLocation($event);
                                 $eventPeople = $resolveEventPeople($event);
-                                $speakerAvatarStack = $resolveEventSpeakerAvatarStack($event);
+                                $personAvatarStack = $resolveEventSpeakerAvatarStack($event);
                                 $eventTypeLabel = $resolveEventCategoryLabel($event);
                                 $bookReferenceTitle = $event->reference_study_subtitle;
                                 $eventFormatValue = $event->delivery_mode?->value ?? $event->delivery_mode;
@@ -326,9 +326,9 @@
                                             @endif
                                         </div>
 
-                                        @if($speakerAvatarStack['items']->isNotEmpty())
+                                        @if($personAvatarStack['items']->isNotEmpty())
                                             <div class="flex -space-x-3" aria-label="{{ __('Penceramah') }}">
-                                                @foreach($speakerAvatarStack['items'] as $avatar)
+                                                @foreach($personAvatarStack['items'] as $avatar)
                                                     <img
                                                         src="{{ $avatar['url'] }}"
                                                         alt="{{ $avatar['name'] }}"
@@ -337,9 +337,9 @@
                                                     >
                                                 @endforeach
 
-                                                @if($speakerAvatarStack['overflow'] > 0)
+                                                @if($personAvatarStack['overflow'] > 0)
                                                     <span class="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-[10px] font-semibold text-slate-600 ring-2 ring-white shadow-sm sm:h-11 sm:w-11 sm:text-[11px]">
-                                                        +{{ $speakerAvatarStack['overflow'] }}
+                                                        +{{ $personAvatarStack['overflow'] }}
                                                     </span>
                                                 @endif
                                             </div>
@@ -371,13 +371,13 @@
                                             @endif
                                         </div>
 
-                                        @if($eventPeople['speakers'] !== '')
+                                        @if($eventPeople['persons'] !== '')
                                             <div class="flex items-start gap-2">
                                                 <svg class="mt-0.5 h-4 w-4 shrink-0 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                                     <path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.742-.479 3 3 0 00-4.682-2.72m.94 3.198v.75c0 .414-.336.75-.75.75H4.75a.75.75 0 01-.75-.75v-.75a4.5 4.5 0 014.5-4.5h4.5a4.5 4.5 0 014.5 4.5z" />
                                                     <path stroke-linecap="round" stroke-linejoin="round" d="M15 7.5a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
                                                 </svg>
-                                                <span class="line-clamp-2">{{ $eventPeople['speakers'] }}</span>
+                                                <span class="line-clamp-2">{{ $eventPeople['persons'] }}</span>
                                             </div>
                                         @endif
 
@@ -486,13 +486,13 @@
                                                 @endif
                                             </div>
 
-                                            @if($eventPeople['speakers'] !== '')
+                                            @if($eventPeople['persons'] !== '')
                                                 <div class="flex items-start gap-2">
                                                     <svg class="mt-0.5 h-4 w-4 shrink-0 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                                         <path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.742-.479 3 3 0 00-4.682-2.72m.94 3.198v.75c0 .414-.336.75-.75.75H4.75a.75.75 0 01-.75-.75v-.75a4.5 4.5 0 014.5-4.5h4.5a4.5 4.5 0 014.5 4.5z" />
                                                         <path stroke-linecap="round" stroke-linejoin="round" d="M15 7.5a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
                                                     </svg>
-                                                    <span class="line-clamp-2">{{ $eventPeople['speakers'] }}</span>
+                                                    <span class="line-clamp-2">{{ $eventPeople['persons'] }}</span>
                                                 </div>
                                             @endif
 
@@ -581,22 +581,22 @@
                     </section>
                 @endif
 
-                @if($speakers->isNotEmpty())
+                @if($persons->isNotEmpty())
                     <section class="scroll-reveal reveal-right revealed rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                         <h2 class="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">{{ __('Penceramah') }}</h2>
                         <ul class="mt-4 space-y-4">
-                            @foreach($speakers as $speaker)
+                            @foreach($persons as $person)
                                 <li class="flex items-center gap-3">
                                     <img
-                                        src="{{ $speaker->public_avatar_url }}"
-                                        alt="{{ $speaker->formatted_name !== '' ? $speaker->formatted_name : $speaker->name }}"
+                                        src="{{ $person->public_avatar_url }}"
+                                        alt="{{ $person->formatted_name !== '' ? $person->formatted_name : $person->name }}"
                                         class="h-12 w-12 rounded-full object-cover"
                                         loading="lazy"
                                     >
                                     <div class="min-w-0">
-                                        <p class="font-semibold text-slate-900">{{ $speaker->name }}</p>
-                                        @if(filled($speaker->pivot?->position))
-                                            <p class="text-sm text-slate-500">{{ $speaker->pivot->position }}</p>
+                                        <p class="font-semibold text-slate-900">{{ $person->name }}</p>
+                                        @if(filled($person->pivot?->position))
+                                            <p class="text-sm text-slate-500">{{ $person->pivot->position }}</p>
                                         @endif
                                     </div>
                                 </li>
