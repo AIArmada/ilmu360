@@ -1909,11 +1909,6 @@ it('replaces speaker collections and still requires an explicit country when mut
         'gender' => 'male',
         'status' => 'verified',
         'honorific' => ['dato'],
-            'institution' => 'Universiti Lama',
-            'degree' => 'BA',
-            'field' => 'Fiqh',
-            'year' => '2010',
-        ]],
         'language_ids' => [$languageMalay->id],
         'address' => [
             'country_id' => ensureAdminApiMalaysiaCountryExists(),
@@ -1953,11 +1948,6 @@ it('replaces speaker collections and still requires an explicit country when mut
         'gender' => 'male',
         'status' => 'verified',
         'honorific' => ['datuk'],
-            'institution' => 'Universiti Baharu',
-            'degree' => 'PhD',
-            'field' => 'Aqidah',
-            'year' => '2024',
-        ]],
         'language_ids' => [$languageEnglish->id],
         'contactMethods' => [[
             'type' => 'whatsapp',
