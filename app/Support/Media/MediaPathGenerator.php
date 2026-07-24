@@ -60,10 +60,10 @@ class MediaPathGenerator implements PathGenerator
      */
     protected function getModelTypeDirectory(Media $media): string
     {
-        $morphType = $media->model_type;
-
-        // The morph map stores short aliases like 'event', 'speaker', etc.
-        // Pluralize for a natural directory name.
-        return str($morphType)->plural()->slug()->toString();
+        // str('person')->plural() returns 'people' — override to 'persons'
+        return match ($media->model_type) {
+            'person' => 'persons',
+            default => str($media->model_type)->plural()->slug()->toString(),
+        };
     }
 }
