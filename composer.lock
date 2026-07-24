@@ -12,12 +12,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/AIArmada/addressing.git",
-                "reference": "33423997affbcbea60611fd4cccda2e269fbf40e"
+                "reference": "f31f29031ce0563b567ab046056163c8d0d60357"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/AIArmada/addressing/zipball/33423997affbcbea60611fd4cccda2e269fbf40e",
-                "reference": "33423997affbcbea60611fd4cccda2e269fbf40e",
+                "url": "https://api.github.com/repos/AIArmada/addressing/zipball/f31f29031ce0563b567ab046056163c8d0d60357",
+                "reference": "f31f29031ce0563b567ab046056163c8d0d60357",
                 "shasum": ""
             },
             "require": {
@@ -66,7 +66,7 @@
             "support": {
                 "source": "https://github.com/AIArmada/addressing/tree/main"
             },
-            "time": "2026-07-17T16:20:26+00:00"
+            "time": "2026-07-24T15:10:37+00:00"
         },
         {
             "name": "aiarmada/affiliates",
@@ -529,12 +529,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/AIArmada/filament-addressing.git",
-                "reference": "45ae90f18d97853826d347e138c7017c88241336"
+                "reference": "b1748dadd71d832fb101877694d934dcbd722f41"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/AIArmada/filament-addressing/zipball/45ae90f18d97853826d347e138c7017c88241336",
-                "reference": "45ae90f18d97853826d347e138c7017c88241336",
+                "url": "https://api.github.com/repos/AIArmada/filament-addressing/zipball/b1748dadd71d832fb101877694d934dcbd722f41",
+                "reference": "b1748dadd71d832fb101877694d934dcbd722f41",
                 "shasum": ""
             },
             "require": {
@@ -565,7 +565,7 @@
                 "issues": "https://github.com/AIArmada/filament-addressing/issues",
                 "source": "https://github.com/AIArmada/filament-addressing/tree/main"
             },
-            "time": "2026-07-14T09:30:13+00:00"
+            "time": "2026-07-24T12:53:09+00:00"
         },
         {
             "name": "aiarmada/filament-authz",
@@ -1633,16 +1633,16 @@
         },
         {
             "name": "aws/aws-sdk-php",
-            "version": "3.388.12",
+            "version": "3.389.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/aws/aws-sdk-php.git",
-                "reference": "9eca8f6408501a47efe5dee2ce494b93eac983a6"
+                "reference": "e6e6649e58826c7edaa9f546f444461a25a22719"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/aws/aws-sdk-php/zipball/9eca8f6408501a47efe5dee2ce494b93eac983a6",
-                "reference": "9eca8f6408501a47efe5dee2ce494b93eac983a6",
+                "url": "https://api.github.com/repos/aws/aws-sdk-php/zipball/e6e6649e58826c7edaa9f546f444461a25a22719",
+                "reference": "e6e6649e58826c7edaa9f546f444461a25a22719",
                 "shasum": ""
             },
             "require": {
@@ -1650,9 +1650,9 @@
                 "ext-json": "*",
                 "ext-pcre": "*",
                 "ext-simplexml": "*",
-                "guzzlehttp/guzzle": "^7.4.5",
-                "guzzlehttp/promises": "^2.0",
-                "guzzlehttp/psr7": "^2.4.5",
+                "guzzlehttp/guzzle": "^7.8.2 || ^8.0",
+                "guzzlehttp/promises": "^2.0.3 || ^3.0",
+                "guzzlehttp/psr7": "^2.6.3 || ^3.0",
                 "mtdowling/jmespath.php": "^2.9.1",
                 "php": ">=8.1",
                 "psr/http-message": "^1.0 || ^2.0",
@@ -1724,9 +1724,9 @@
             "support": {
                 "forum": "https://github.com/aws/aws-sdk-php/discussions",
                 "issues": "https://github.com/aws/aws-sdk-php/issues",
-                "source": "https://github.com/aws/aws-sdk-php/tree/3.388.12"
+                "source": "https://github.com/aws/aws-sdk-php/tree/3.389.0"
             },
-            "time": "2026-07-22T18:05:00+00:00"
+            "time": "2026-07-24T18:05:53+00:00"
         },
         {
             "name": "bacon/bacon-qr-code",
