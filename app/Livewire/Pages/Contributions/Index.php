@@ -171,8 +171,8 @@ class Index extends Component implements HasForms
             $details[] = __('Institution: :name', ['name' => $event->institution->display_name]);
         }
 
-        if ($event->speakers->isNotEmpty()) {
-            $details[] = __('Speakers: :names', ['names' => $event->speakers->pluck('formatted_name')->join(', ')]);
+        if ($event->persons->isNotEmpty()) {
+            $details[] = __('Speakers: :names', ['names' => $event->persons->pluck('formatted_name')->join(', ')]);
         }
 
         if ($event->references->isNotEmpty()) {

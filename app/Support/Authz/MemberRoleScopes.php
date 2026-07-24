@@ -4,11 +4,12 @@ namespace App\Support\Authz;
 
 use App\Models\Event;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
 
 final readonly class MemberRoleScopes
 {
-    public function speaker(): Speaker
+    public function person(): Person
     {
         return Person::query()->firstOrFail();
     }

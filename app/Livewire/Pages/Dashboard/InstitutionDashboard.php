@@ -619,7 +619,7 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
                     }),
                 TextColumn::make('speaker_names')
                     ->label(__('Speakers'))
-                    ->state(fn (Event $record): array => $record->speakers
+                    ->state(fn (Event $record): array => $record->persons
                         ->pluck('name')
                         ->filter(fn (mixed $name): bool => is_string($name) && trim($name) !== '')
                         ->map(fn (string $name): string => trim($name))
@@ -630,7 +630,7 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
                     ->expandableLimitedList()
                     ->placeholder('-')
                     ->wrap()
-                    ->tooltip(fn (Event $record): ?string => $record->speakers
+                    ->tooltip(fn (Event $record): ?string => $record->persons
                         ->pluck('name')
                         ->filter(fn (mixed $name): bool => is_string($name) && trim($name) !== '')
                         ->map(fn (string $name): string => trim($name))

@@ -15,8 +15,8 @@ it('resolves public directory detail endpoints by uuid', function (string $resou
             Institution::factory()->create(['status' => 'verified']),
         ],
         'speaker' => [
-            'api.client.speakers.show',
-            'speakerKey',
+            'api.client.persons.show',
+            'personKey',
             'speaker',
             Person::factory()->create(['status' => 'verified']),
         ],

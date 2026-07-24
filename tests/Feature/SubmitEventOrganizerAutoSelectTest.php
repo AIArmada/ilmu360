@@ -67,8 +67,9 @@ it('assigns the speaker as event speaker when speaker is the organizer', functio
         ->assertRedirect(route('submit-event.success'));
 
     $event = Event::where('title', 'Auto Select Person Event')->firstOrFail();
-    expect($event->speakers)->toHaveCount(1);
-    expect($event->speakers->first()->id)->toBe($fixtures['speaker']->id);
+    $speakerInvolvements = $event->involvements()->where('role_code', 'speaker')->get();
+    expect($speakerInvolvements)->toHaveCount(1);
+    expect($speakerInvolvements->first()->involveable_id)->toBe((string) $fixtures['speaker']->id);
 
     $involvement = $event->primaryOrganizerInvolvement;
     expect($involvement->involveable_type)->toBe(Person::class);
@@ -79,8 +80,6 @@ it('shows formatted speaker names in submit event speaker selectors', function (
     $person = Person::factory()->create([
         'name' => 'Aisyah binti Noor',
         'status' => 'verified',
-        'honorific' => ['toh_puan'],
-        'pre_nominal' => ['dr'],
     ]);
 
     Livewire::test(Create::class)

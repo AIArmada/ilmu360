@@ -37,7 +37,6 @@ it('keeps admin api and admin mcp speaker search results aligned', function () {
     $admin = parityAdminUser('super_admin');
     $matchingPerson = Person::factory()->create([
         'name' => 'Admin Parity Person Match',
-        'pre_nominal' => ['syeikhul_maqari'],
         'status' => 'verified',
     ]);
     $otherPerson = Person::factory()->create([
@@ -154,8 +153,6 @@ it('keeps admin api and admin mcp validate-only update previews aligned', functi
         'name' => 'Admin Parity Preview Person Updated',
         'gender' => 'male',
         'status' => 'verified',
-        'is_freelance' => true,
-        'job_title' => 'Imam',
         'allow_public_event_submission' => true,
         'address' => [
             'country_id' => parityEnsureMalaysiaCountryExists(),

@@ -10,7 +10,6 @@ class PersonDetailData extends Data
 {
     /**
      * @param  array<string, mixed>|string|null  $bio
-     * @param  list<array<string, mixed>>  $qualifications
      * @param  array{country_id: ?string, admin_area_1_id: ?string, admin_area_2_id: ?string}|null  $address
      * @param  array{id: string, name: string, iso2: string, key: ?string}|null  $country
      * @param  array{avatar_url: string, cover_url: string, share_image_url: string}  $media
@@ -25,10 +24,7 @@ class PersonDetailData extends Data
         public string $name,
         public ?string $gender,
         public string $formatted_name,
-        public ?string $job_title,
-        public bool $is_freelance,
         public array|string|null $bio,
-        public array $qualifications,
         public ?array $address,
         public ?array $country,
         public ?string $location,
@@ -70,10 +66,7 @@ class PersonDetailData extends Data
             name: (string) $person->name,
             gender: filled($person->gender) ? (string) $person->gender : null,
             formatted_name: (string) $person->formatted_name,
-            job_title: $person->job_title,
-            is_freelance: (bool) $person->is_freelance,
             bio: $person->bio,
-            qualifications: is_array($person->qualifications) ? array_values($person->qualifications) : [],
             address: $address,
             country: $country,
             location: $location,

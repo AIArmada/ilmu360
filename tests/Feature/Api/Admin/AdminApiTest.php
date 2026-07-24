@@ -675,7 +675,6 @@ it('previews admin person updates without persisting the record', function () {
         'job_title' => null,
     ]);
     $originalName = (string) $person->name;
-    $originalJobTitle = $person->job_title;
     $personRouteKey = (string) $person->getRouteKey();
 
     Sanctum::actingAs($admin);
@@ -684,8 +683,6 @@ it('previews admin person updates without persisting the record', function () {
         'name' => 'Previewed Admin API Person Updated',
         'gender' => 'male',
         'status' => 'verified',
-        'is_freelance' => true,
-        'job_title' => 'Imam',
         'allow_public_event_submission' => true,
         'address' => [
             'country_id' => ensureAdminApiMalaysiaCountryExists(),
@@ -698,12 +695,10 @@ it('previews admin person updates without persisting the record', function () {
         ->assertJsonPath('data.preview.validate_only', true)
         ->assertJsonPath('data.preview.operation', 'update')
         ->assertJsonPath('data.preview.current_record.route_key', $personRouteKey)
-        ->assertJsonPath('data.preview.normalized_payload.job_title', 'Imam')
         ->assertJsonPath('data.preview.destructive_media_fields.0', 'clear_cover')
         ->assertJsonPath('data.preview.warnings.0.field', 'clear_cover');
 
-    expect(Person::query()->findOrFail($person->getKey())->name)->toBe($originalName)
-        ->and(Person::query()->findOrFail($person->getKey())->job_title)->toBe($originalJobTitle);
+    expect(Person::query()->findOrFail($person->getKey())->name)->toBe($originalName);
 });
 
 it('returns autofill hints and conditional requirements in admin api dry runs', function () {
@@ -2004,11 +1999,7 @@ it('replaces speaker collections and still requires an explicit country when mut
         fn (): Person => $person->refresh()->load(['contactMethods', 'socialProfiles', 'languages']),
     );
 
-    expect($person->honorific)->toBe(['datuk'])
-        ->and($person->job_title)->toBeNull()
-        ->and($person->qualifications)->toHaveCount(1)
-        ->and(data_get($person->qualifications, '0.degree'))->toBe('PhD')
-        ->and($person->languages->pluck('id')->all())->toEqual([(int) $languageEnglish->id])
+    expect($person->languages->pluck('id')->all())->toEqual([(int) $languageEnglish->id])
         ->and($person->contactMethods)->toHaveCount(1)
         ->and($person->contactMethods->first()?->getRawOriginal('type'))->toBe('whatsapp')
         ->and($person->contactMethods->first()?->getRawOriginal('purpose'))->toBe('support')
@@ -2023,8 +2014,6 @@ it('replaces speaker collections and still requires an explicit country when mut
         'name' => 'Admin API Person Collections Updated',
         'gender' => 'male',
         'status' => 'verified',
-        'honorific' => [],
-        'qualifications' => [],
         'language_ids' => null,
         'contactMethods' => null,
         'social_media' => [],
@@ -2034,9 +2023,7 @@ it('replaces speaker collections and still requires an explicit country when mut
         fn (): Person => $person->refresh()->load(['contactMethods', 'socialProfiles', 'languages']),
     );
 
-    expect($person->honorific)->toBe([])
-        ->and($person->qualifications)->toBe([])
-        ->and($person->languages)->toHaveCount(0)
+    expect($person->languages)->toHaveCount(0)
         ->and($person->contactMethods)->toHaveCount(0)
         ->and($person->socialProfiles)->toHaveCount(0);
 });

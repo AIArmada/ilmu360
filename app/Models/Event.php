@@ -2287,7 +2287,7 @@ class Event extends PackageEvent implements AuditableContract
             return true;
         }
 
-        if ($this->organizer instanceof Person && $memberPermissions->canSpeaker($user, $permission, $this->organizer)) {
+        if ($this->organizer instanceof Person && $memberPermissions->canPerson($user, $permission, $this->organizer)) {
             return true;
         }
 

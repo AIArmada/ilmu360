@@ -25,8 +25,8 @@ use App\Enums\EventVisibility;
 use App\Enums\ReferenceType;
 use App\Forms\Components\Select;
 use App\Forms\InstitutionFormSchema;
+use App\Forms\PersonFormSchema;
 use App\Forms\SharedFormSchema;
-use App\Forms\SpeakerFormSchema;
 use App\Forms\VenueFormSchema;
 use App\Models\Event;
 use App\Models\EventKeyPerson;
@@ -1332,8 +1332,8 @@ class Create extends Component implements HasActions, HasForms
                                                         }
                                                     }
                                                     JS)
-                        ->createOptionForm(SpeakerFormSchema::createOptionForm())
-                        ->createOptionUsing(fn (array $data, Schema $schema, Set $set, Get $get): string => SpeakerFormSchema::createOptionUsing($data, $schema)),
+                        ->createOptionForm(PersonFormSchema::createOptionForm())
+                        ->createOptionUsing(fn (array $data, Schema $schema, Set $set, Get $get): string => PersonFormSchema::createOptionUsing($data, $schema)),
                 ]),
 
             Section::make(__('Lokasi'))
@@ -1443,8 +1443,8 @@ class Create extends Component implements HasActions, HasForms
                             ->get()
                             ->mapWithKeys(fn (Person $person): array => [(string) $person->id => $person->formatted_name])
                             ->toArray())
-                        ->createOptionForm(SpeakerFormSchema::createOptionForm())
-                        ->createOptionUsing(fn (array $data, Schema $schema): string => SpeakerFormSchema::createOptionUsing($data, $schema)),
+                        ->createOptionForm(PersonFormSchema::createOptionForm())
+                        ->createOptionUsing(fn (array $data, Schema $schema): string => PersonFormSchema::createOptionUsing($data, $schema)),
 
                     Repeater::make('other_key_people')
                         ->label(__('Peranan Lain'))
@@ -1466,8 +1466,8 @@ class Create extends Component implements HasActions, HasForms
                                     $set('involveable_type', filled($state) ? 'speaker' : null);
                                 })
                                 ->getOptionLabelUsing(fn (mixed $value): ?string => Person::query()->find($value)?->formatted_name)
-                                ->createOptionForm(SpeakerFormSchema::createOptionForm())
-                                ->createOptionUsing(fn (array $data, Schema $schema): string => SpeakerFormSchema::createOptionUsing($data, $schema)),
+                                ->createOptionForm(PersonFormSchema::createOptionForm())
+                                ->createOptionUsing(fn (array $data, Schema $schema): string => PersonFormSchema::createOptionUsing($data, $schema)),
                             Hidden::make('involveable_type'),
                             TextInput::make('display_name')
                                 ->label(__('Nama Paparan'))
@@ -2253,7 +2253,7 @@ class Create extends Component implements HasActions, HasForms
             ]);
         }
 
-        if ($organizerType === 'speaker' && $primaryOrganizerId !== '' && ! $access->canUseSpeaker($submitter, $primaryOrganizerId)) {
+        if ($organizerType === 'speaker' && $primaryOrganizerId !== '' && ! $access->canUsePerson($submitter, $primaryOrganizerId)) {
             throw ValidationException::withMessages([
                 'data.primary_organizer_id' => __('Anda tidak dibenarkan memilih penceramah ini untuk penghantaran majlis.'),
             ]);
@@ -2284,7 +2284,7 @@ class Create extends Component implements HasActions, HasForms
             ->values();
 
         foreach ($speakerIds as $speakerId) {
-            if (! $access->canUseSpeaker($submitter, $speakerId)) {
+            if (! $access->canUsePerson($submitter, $speakerId)) {
                 throw ValidationException::withMessages([
                     'data.speakers' => __('Senarai penceramah mengandungi pilihan yang tidak dibenarkan untuk penghantaran ini.'),
                 ]);

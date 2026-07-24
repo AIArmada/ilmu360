@@ -846,7 +846,7 @@ class SharedFormSchema
      *
      * @param  array<string, mixed>  $data
      */
-    public static function createSocialMediaFromData(Institution|Speaker|Venue|Reference $model, array $data): void
+    public static function createSocialMediaFromData(Institution|Person|Venue|Reference $model, array $data): void
     {
         if (! empty($data['social_media'])) {
             foreach ($data['social_media'] as $index => $social) {
@@ -866,7 +866,7 @@ class SharedFormSchema
     /**
      * @param  array<string, mixed>  $data
      */
-    public static function createContactsFromData(Institution|Speaker $model, array $data): void
+    public static function createContactsFromData(Institution|Person $model, array $data): void
     {
         if (! isset($data['contactMethods']) || ! is_array($data['contactMethods'])) {
             return;

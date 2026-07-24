@@ -21,7 +21,7 @@ class PrepareAdvancedParentProgramSubmissionAction
      * @param  array<string, mixed>  $form
      * @return array{
      *     timezone: string,
-     *     primary_organizer: Institution|Speaker,
+     *     primary_organizer: Institution|Person,
      *     location_institution_id: ?string,
      *     program_starts_at: Carbon,
      *     program_ends_at: Carbon
@@ -65,7 +65,7 @@ class PrepareAdvancedParentProgramSubmissionAction
             }
         }
 
-        if (array_key_exists($primaryOrganizerId, $membershipOptions['speaker_options'])) {
+        if (array_key_exists($primaryOrganizerId, $membershipOptions['person_options'])) {
             $speaker = Person::query()->find($primaryOrganizerId);
 
             if ($speaker instanceof Person) {

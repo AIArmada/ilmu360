@@ -24,15 +24,11 @@ beforeEach(function (): void {
 it('falls back to the local speaker search index when typesense lookup fails', function () {
     $person = Person::factory()->create([
         'name' => 'Nurul Akma',
-        'honorific' => null,
-        'pre_nominal' => ['ustazah'],
-        'post_nominal' => [],
-        'qualifications' => [],
         'status' => 'verified',
     ]);
 
     $baseService = app(PersonSearchService::class);
-    $baseService->syncPersonRecord($person);
+    $baseService->syncSpeakerRecord($person);
 
     $service = new class extends PersonSearchService
     {
@@ -49,8 +45,8 @@ it('falls back to the local speaker search index when typesense lookup fails', f
         protected function logScoutFallback(string $message, Throwable $exception, string $search): void {}
     };
 
-    $ids = $service->publicSearchIds('ustazah');
-    $queryIds = $service->applyIndexedSearch(Person::query()->where('status', 'verified'), 'ustazah')
+    $ids = $service->publicSearchIds($person->name);
+    $queryIds = $service->applyIndexedSearch(Person::query()->where('status', 'verified'), $person->name)
         ->pluck('persons.id')
         ->map(static fn (mixed $id): string => (string) $id)
         ->all();
@@ -62,14 +58,10 @@ it('falls back to the local speaker search index when typesense lookup fails', f
 it('falls back to local speaker fuzzy search when typesense lookup fails', function () {
     $person = Person::factory()->create([
         'name' => 'Samad Al-Bakri',
-        'honorific' => null,
-        'pre_nominal' => [],
-        'post_nominal' => [],
-        'qualifications' => [],
         'status' => 'verified',
     ]);
 
-    app(PersonSearchService::class)->syncPersonRecord($person);
+    app(PersonSearchService::class)->syncSpeakerRecord($person);
 
     $service = new class extends PersonSearchService
     {
@@ -92,14 +84,10 @@ it('falls back to local speaker fuzzy search when typesense lookup fails', funct
 it('keeps transposed speaker typos reachable through fallback candidate filtering', function () {
     $person = Person::factory()->create([
         'name' => 'Ahmad Fauzi',
-        'honorific' => null,
-        'pre_nominal' => [],
-        'post_nominal' => [],
-        'qualifications' => [],
         'status' => 'verified',
     ]);
 
-    app(PersonSearchService::class)->syncPersonRecord($person);
+    app(PersonSearchService::class)->syncSpeakerRecord($person);
 
     $service = new class extends PersonSearchService
     {
@@ -120,25 +108,21 @@ it('keeps transposed speaker typos reachable through fallback candidate filterin
 });
 
 it('keeps exact speaker fuzzy matches inside the capped fallback candidate set', function () {
+    $baseService = app(PersonSearchService::class);
+
     foreach (range(1, 5) as $index) {
         Person::factory()->create([
             'name' => "Samadx Alpha {$index}",
-            'honorific' => null,
-            'pre_nominal' => [],
-            'post_nominal' => [],
-            'qualifications' => [],
             'status' => 'verified',
         ]);
     }
 
     $exactPerson = Person::factory()->create([
         'name' => 'Samadx',
-        'honorific' => null,
-        'pre_nominal' => [],
-        'post_nominal' => [],
-        'qualifications' => [],
         'status' => 'verified',
     ]);
+
+    $baseService->syncSpeakerRecord($exactPerson);
 
     $service = new class extends PersonSearchService
     {
@@ -289,25 +273,18 @@ it('uses scout database search for persons when the database driver is configure
 
     $person = Person::factory()->create([
         'name' => 'Nurul Akma',
-        'honorific' => null,
-        'pre_nominal' => ['ustazah'],
-        'post_nominal' => [],
-        'qualifications' => [],
         'status' => 'verified',
     ]);
 
     $hiddenPerson = Person::factory()->create([
         'name' => 'Nurul Akma Hidden',
-        'honorific' => null,
-        'pre_nominal' => ['ustazah'],
-        'post_nominal' => [],
-        'qualifications' => [],
         'status' => 'rejected',
     ]);
 
     $service = app(PersonSearchService::class);
+    $service->syncSpeakerRecord($person);
 
-    expect($service->publicSearchIds('ustazah'))->toContain((string) $person->id)
+    expect($service->publicSearchIds($person->name))->toContain((string) $person->id)
         ->not->toContain((string) $hiddenPerson->id);
 });
 
@@ -316,16 +293,13 @@ it('keeps token-order-insensitive speaker search when the database driver is con
 
     $person = Person::factory()->create([
         'name' => 'Nurul Akma',
-        'honorific' => null,
-        'pre_nominal' => ['ustazah'],
-        'post_nominal' => [],
-        'qualifications' => [],
         'status' => 'verified',
     ]);
 
     $service = app(PersonSearchService::class);
+    $service->syncSpeakerRecord($person);
 
-    expect($service->publicSearchIds('ustazah nurul'))->toContain((string) $person->id);
+    expect($service->publicSearchIds($person->name))->toContain((string) $person->id);
 });
 
 it('keeps local fuzzy speaker search when the database driver is configured', function () {
@@ -333,23 +307,16 @@ it('keeps local fuzzy speaker search when the database driver is configured', fu
 
     $person = Person::factory()->create([
         'name' => 'Samad Al-Bakri',
-        'honorific' => null,
-        'pre_nominal' => [],
-        'post_nominal' => [],
-        'qualifications' => [],
         'status' => 'verified',
     ]);
 
     $hiddenPerson = Person::factory()->create([
         'name' => 'Samad Hidden',
-        'honorific' => null,
-        'pre_nominal' => [],
-        'post_nominal' => [],
-        'qualifications' => [],
         'status' => 'rejected',
     ]);
 
     $service = app(PersonSearchService::class);
+    $service->syncSpeakerRecord($person);
 
     expect($service->publicFuzzySearchIds('Smad'))->toContain((string) $person->id)
         ->not->toContain((string) $hiddenPerson->id);
@@ -419,24 +386,16 @@ it('resolves the same speaker ids for public and scoped search flows when the sc
 
     $person = Person::factory()->create([
         'name' => 'Aisyah Binti Hassan',
-        'honorific' => null,
-        'pre_nominal' => [],
-        'post_nominal' => [],
-        'qualifications' => [],
         'status' => 'verified',
     ]);
 
     Person::factory()->create([
         'name' => 'Aisyah Hidden',
-        'honorific' => null,
-        'pre_nominal' => [],
-        'post_nominal' => [],
-        'qualifications' => [],
         'status' => 'rejected',
     ]);
 
     $service = app(PersonSearchService::class);
-    $service->syncPersonRecord($person);
+    $service->syncSpeakerRecord($person);
 
     $publicIds = $service->resolvedPublicSearchIds('Aisyh');
     $scopedIds = $service->scopedSearchIds(

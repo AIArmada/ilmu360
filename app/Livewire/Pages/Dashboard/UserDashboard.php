@@ -149,7 +149,7 @@ class UserDashboard extends Component
             ->orderBy('name')
             ->get();
 
-        return $speakers;
+        return $persons;
     }
 
     /**

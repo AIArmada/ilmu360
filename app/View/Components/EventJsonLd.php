@@ -8,6 +8,7 @@ use App\Enums\EventChangeType;
 use App\Models\Event;
 use App\Models\EventChangeAnnouncement;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Venue;
 use Illuminate\View\Component;
 use Illuminate\View\View;
@@ -95,11 +96,11 @@ class EventJsonLd extends Component
             ];
         }
 
-        if ($event->speakers->isNotEmpty()) {
-            $jsonLd['performer'] = $event->speakers->map(fn (Speaker $speaker): array => [
+        if ($event->persons->isNotEmpty()) {
+            $jsonLd['performer'] = $event->persons->map(fn (Person $person): array => [
                 '@type' => 'Person',
-                'name' => $speaker->name,
-                'url' => route('speakers.show', $speaker),
+                'name' => $person->name,
+                'url' => route('persons.show', $person),
             ])->toArray();
         }
 

@@ -70,7 +70,7 @@ class ManifestController extends FrontendController
     public function submitSpeaker(): JsonResponse
     {
         return response()->json([
-            'data' => $this->contracts->submitSpeaker(),
+            'data' => $this->contracts->submitPerson(),
         ]);
     }
 

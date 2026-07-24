@@ -882,7 +882,7 @@ test('follow actions are attributed across supported public followable pages', f
     'institution follow' => ['pages.institutions.show', 'institutions.show', 'institution', fn () => Institution::factory()->create([
         'status' => 'verified',
     ]), 'institution_follow', 'institution'],
-    'speaker follow' => ['pages.persons.show', 'speakers.show', 'speaker', fn () => Person::factory()->create([
+    'speaker follow' => ['pages.persons.show', 'persons.show', 'speaker', fn () => Person::factory()->create([
         'status' => 'verified',
     ]), 'speaker_follow', 'speaker'],
     'series follow' => ['pages.series.show', 'series.show', 'series', fn () => Series::factory()->create([
@@ -903,7 +903,7 @@ test('guest follow actions redirect to login with the current page as intended d
     'institution guest follow redirect' => ['pages.institutions.show', 'institutions.show', 'institution', fn () => Institution::factory()->create([
         'status' => 'verified',
     ])],
-    'speaker guest follow redirect' => ['pages.persons.show', 'speakers.show', 'speaker', fn () => Person::factory()->create([
+    'speaker guest follow redirect' => ['pages.persons.show', 'persons.show', 'speaker', fn () => Person::factory()->create([
         'status' => 'verified',
     ])],
     'series guest follow redirect' => ['pages.series.show', 'series.show', 'series', fn () => Series::factory()->create([

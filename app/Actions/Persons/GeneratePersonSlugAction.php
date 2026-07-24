@@ -118,11 +118,6 @@ class GeneratePersonSlugAction
      */
     private function displayName(string $name, array $payload): string
     {
-        return Person::formatDisplayedName(
-            $name,
-            $payload['honorific'] ?? null,
-            $payload['pre_nominal'] ?? null,
-            $payload['post_nominal'] ?? null,
-        );
+        return Person::formatDisplayedName($name);
     }
 }

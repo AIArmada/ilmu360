@@ -42,7 +42,7 @@ class EventSearchService
                 ->ordered(),
             'references',
             'classifications',
-            'speakers.media' => fn ($query) => $query
+            'persons.media' => fn ($query) => $query
                 ->where('collection_name', 'avatar')
                 ->ordered(),
             'institution.media' => fn ($query) => $query
@@ -102,7 +102,7 @@ class EventSearchService
         return new PostgresEventDiscovery(
             fuzzyMatcher: $this->fuzzyMatcher,
             filterSet: $this->filterSet,
-            speakerSearch: $this->personSearch,
+            personSearch: $this->personSearch,
             institutionSearch: $this->institutionSearch,
             referenceSearch: $this->referenceSearch,
             categoryCatalog: $this->categoryCatalog,

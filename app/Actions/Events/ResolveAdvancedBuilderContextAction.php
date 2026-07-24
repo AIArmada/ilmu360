@@ -21,7 +21,7 @@ class ResolveAdvancedBuilderContextAction
     /**
      * @return array{
      *     institution_options: array<string, string>,
-     *     speaker_options: array<string, string>,
+     *     person_options: array<string, string>,
      *     default_form: array<string, mixed>
      * }
      */
@@ -29,7 +29,7 @@ class ResolveAdvancedBuilderContextAction
     {
         $membershipOptions = $this->resolveAdvancedBuilderMembershipOptionsAction->handle($user);
         $institutionOptions = $membershipOptions['institution_options'];
-        $speakerOptions = $membershipOptions['speaker_options'];
+        $speakerOptions = $membershipOptions['person_options'];
 
         $preferredInstitutionId = is_string($requestedInstitutionId)
             && $requestedInstitutionId !== ''
@@ -45,7 +45,7 @@ class ResolveAdvancedBuilderContextAction
 
         return [
             'institution_options' => $institutionOptions,
-            'speaker_options' => $speakerOptions,
+            'person_options' => $speakerOptions,
             'default_form' => [
                 'title' => '',
                 'description' => '',

@@ -4,11 +4,13 @@ namespace App\Models;
 
 use App\Enums\CredentialType;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class CredentialDefinition extends Model
 {
+    /** @use HasFactory<Factory<static>> */
     use HasFactory, HasUuids;
 
     public $incrementing = false;

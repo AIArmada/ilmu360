@@ -605,7 +605,7 @@ class SearchController extends FrontendController
 
         $upcomingPerPage = max(1, min($request->integer('upcoming_per_page', 10), 50));
         $upcomingEvents = $this->limitedEventPayloadWithTotal(
-            $record->personEvents()
+            $record->events()
                 ->active()
                 ->where('starts_at', '>=', $now)
                 ->with(['institution', 'institution.media', 'institution.addresses.country', 'venue.addresses.country', 'media', 'references'])
@@ -615,7 +615,7 @@ class SearchController extends FrontendController
 
         $pastPerPage = max(1, min($request->integer('past_per_page', 10), 50));
         $pastEvents = $this->limitedEventPayloadWithTotal(
-            $record->personEvents()
+            $record->events()
                 ->active()
                 ->where('starts_at', '<', $now)
                 ->with(['institution', 'institution.media', 'institution.addresses.country', 'venue.addresses.country', 'media', 'references'])

@@ -120,10 +120,10 @@ class MemberResourceRegistry
 
         return match ($resourceClass) {
             AhliInstitutionResource::class => $user->institutions()->exists(),
-            AhliPersonResource::class => $user->speakers()->exists(),
+            AhliPersonResource::class => $user->persons()->exists(),
             AhliReferenceResource::class => $user->references()->exists(),
             AhliEventResource::class => $user->institutions()->exists()
-                || $user->speakers()->exists()
+                || $user->persons()->exists()
                 || $user->memberEvents()->exists(),
             default => false,
         };
@@ -419,7 +419,7 @@ class MemberResourceRegistry
                                 ->orWhere(function (Builder $speakerQuery) use ($user): void {
                                     $speakerQuery
                                         ->whereIn('involveable_type', [Person::class, 'person'])
-                                        ->whereIn('involveable_id', $user->speakers()->select('speakers.id'));
+                                        ->whereIn('involveable_id', $user->persons()->select('persons.id'));
                                 });
                         });
                 });

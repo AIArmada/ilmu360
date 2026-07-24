@@ -17,48 +17,24 @@ class PersonSearchService implements PublicDiscoveryAdapter
 
     private const string PUBLIC_SEARCH_CACHE_VERSION_KEY = 'person_search_public_version_v1';
 
-    /**
-     * @param  iterable<int, string|\BackedEnum>|string|null  $honorific
-     * @param  iterable<int, string|\BackedEnum>|string|null  $preNominal
-     * @param  iterable<int, string|\BackedEnum>|string|null  $postNominal
-     */
     public function buildSearchableName(
         ?string $name,
-        iterable|string|null $honorific = null,
-        iterable|string|null $preNominal = null,
-        iterable|string|null $postNominal = null,
     ): string {
-        $formattedName = Person::formatDisplayedName($name, $honorific, $preNominal, $postNominal);
-
-        $rawDecorations = collect([
-            ...$this->normalizedStringValues($honorific),
-            ...$this->normalizedStringValues($preNominal),
-            ...$this->normalizedStringValues($postNominal),
-
-        ])
-            ->map(static fn (string $value): string => str_replace(['_', '-'], ' ', $value))
-            ->implode(' ');
+        $formattedName = Person::formatDisplayedName($name);
 
         return $this->normalizeText(implode(' ', array_filter([
             trim($formattedName),
             trim((string) $name),
-            trim($rawDecorations),
         ])));
     }
 
     /**
-     * @param  iterable<int, string|\BackedEnum>|string|null  $honorific
-     * @param  iterable<int, string|\BackedEnum>|string|null  $preNominal
-     * @param  iterable<int, string|\BackedEnum>|string|null  $postNominal
      * @return list<string>
      */
     public function buildSearchTerms(
         ?string $name,
-        iterable|string|null $honorific = null,
-        iterable|string|null $preNominal = null,
-        iterable|string|null $postNominal = null,
     ): array {
-        $searchableName = $this->buildSearchableName($name, $honorific, $preNominal, $postNominal);
+        $searchableName = $this->buildSearchableName($name);
 
         if ($searchableName === '') {
             return [];
@@ -304,7 +280,7 @@ class PersonSearchService implements PublicDiscoveryAdapter
             if ($this->hasSearchableNameColumn()) {
                 $speakerQuery->addSelect('searchable_name');
             } else {
-                $speakerQuery->addSelect(['name', 'honorific', 'pre_nominal', 'post_nominal']);
+                $speakerQuery->addSelect(['name']);
             }
 
             return $speakerQuery
@@ -369,9 +345,6 @@ class PersonSearchService implements PublicDiscoveryAdapter
         } else {
             $speakerQuery->addSelect([
                 $model->qualifyColumn('name'),
-                $model->qualifyColumn('honorific'),
-                $model->qualifyColumn('pre_nominal'),
-                $model->qualifyColumn('post_nominal'),
             ]);
         }
 
@@ -504,7 +477,7 @@ class PersonSearchService implements PublicDiscoveryAdapter
 
         $rawResults = Person::search($search)
             ->options([
-                'query_by' => 'formatted_name,search_text,name,job_title',
+                'query_by' => 'formatted_name,search_text,name',
                 'per_page' => $this->typesenseResultLimit(),
                 ...$options,
             ])
@@ -551,10 +524,7 @@ class PersonSearchService implements PublicDiscoveryAdapter
             ->delete();
 
         $terms = $this->buildSearchTerms(
-            $speaker->name,
-            $speaker->honorific,
-            $speaker->pre_nominal,
-            $speaker->post_nominal,
+            $speaker->formatted_name,
         );
 
         if ($terms === []) {
@@ -582,7 +552,7 @@ class PersonSearchService implements PublicDiscoveryAdapter
         $processed = 0;
 
         Person::query()
-            ->select(['id', 'name', 'honorific', 'pre_nominal', 'post_nominal'])
+            ->select(['id', 'name'])
             ->orderBy('id')
             ->chunk(max(1, $chunkSize), function ($speakers) use (&$processed): void {
                 foreach ($speakers as $speaker) {
@@ -608,10 +578,7 @@ class PersonSearchService implements PublicDiscoveryAdapter
                 ->where('id', $speaker->getKey())
                 ->update([
                     'searchable_name' => $this->buildSearchableName(
-                        $speaker->name,
-                        $speaker->honorific,
-                        $speaker->pre_nominal,
-                        $speaker->post_nominal,
+                        $speaker->formatted_name,
                     ),
                 ]);
         }
@@ -722,10 +689,7 @@ class PersonSearchService implements PublicDiscoveryAdapter
         }
 
         return $this->buildSearchableName(
-            $speaker->name,
-            $speaker->honorific,
-            $speaker->pre_nominal,
-            $speaker->post_nominal,
+            $speaker->formatted_name,
         );
     }
 
@@ -762,44 +726,6 @@ class PersonSearchService implements PublicDiscoveryAdapter
         $similarityScore = $similarityPercent / 100;
 
         return max($distanceScore, $similarityScore);
-    }
-
-    /**
-     * @param  iterable<int, mixed>|string|null  $values
-     * @return list<string>
-     */
-    private function normalizedStringValues(iterable|string|null $values): array
-    {
-        if (is_string($values)) {
-            $trimmed = trim($values);
-
-            return $trimmed !== '' ? [$trimmed] : [];
-        }
-
-        if (! is_iterable($values)) {
-            return [];
-        }
-
-        /** @var list<string> $normalized */
-        $normalized = collect($values)
-            ->map(static function (mixed $value): ?string {
-                if ($value instanceof \BackedEnum) {
-                    $value = $value->value;
-                }
-
-                if (! is_string($value)) {
-                    return null;
-                }
-
-                $trimmed = trim($value);
-
-                return $trimmed !== '' ? $trimmed : null;
-            })
-            ->filter()
-            ->values()
-            ->all();
-
-        return $normalized;
     }
 
     /**

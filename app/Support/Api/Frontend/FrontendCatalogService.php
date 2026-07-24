@@ -470,7 +470,7 @@ class FrontendCatalogService
     }
 
     /**
-     * @return array{institution_options: array<string, string>, speaker_options: array<string, string>, default_form: array<string, mixed>}
+     * @return array{institution_options: array<string, string>, person_options: array<string, string>, default_form: array<string, mixed>}
      */
     public function advancedBuilderContext(User $user, ?string $requestedInstitutionId = null): array
     {

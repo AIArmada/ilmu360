@@ -23,6 +23,7 @@ use App\Actions\Events\SyncEventScheduleAction;
 use App\Actions\Institutions\GenerateInstitutionSlugAction;
 use App\Actions\Persons\GeneratePersonSlugAction;
 use App\Contracts\EventCategoryCatalog;
+use App\Enums\AffiliationType;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
@@ -31,15 +32,13 @@ use App\Enums\EventPrayerTime;
 use App\Enums\EventTaxonomyCode;
 use App\Enums\EventVisibility;
 use App\Enums\Gender;
-use App\Enums\Honorific;
 use App\Enums\InstitutionType;
-use App\Enums\PostNominal;
 use App\Enums\PrayerOffset;
-use App\Enums\PreNominal;
 use App\Enums\ReferencePartType;
 use App\Enums\ReferenceType;
 use App\Enums\TimingMode;
 use App\Forms\SharedFormSchema;
+use App\Models\Affiliation;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
@@ -111,13 +110,7 @@ class ContributionEntityMutationService
                 'fields' => [
                     $this->field('name', 'string', maxLength: 255),
                     $this->field('gender', 'string', allowedValues: $this->enumValues(Gender::class)),
-                    $this->field('is_freelance', 'boolean'),
-                    $this->field('job_title', 'string', maxLength: 255),
-                    $this->field('honorific', 'array<string>', allowedValues: $this->enumValues(Honorific::class)),
-                    $this->field('pre_nominal', 'array<string>', allowedValues: $this->enumValues(PreNominal::class)),
-                    $this->field('post_nominal', 'array<string>', allowedValues: $this->enumValues(PostNominal::class)),
                     $this->field('bio', 'rich_text'),
-                    $this->field('qualifications', 'array<object>'),
                     $this->field('language_ids', 'array<int>', catalog: route('api.client.catalogs.languages')),
                     $this->field('institution_id', 'uuid', catalog: route('api.client.catalogs.submit-institutions')),
                     $this->field('institution_position', 'string', maxLength: 255),
@@ -227,14 +220,6 @@ class ContributionEntityMutationService
             $entity instanceof Person => [
                 'name' => ['sometimes', 'string', 'max:255'],
                 'gender' => ['sometimes', Rule::in($this->enumValues(Gender::class))],
-                'is_freelance' => ['nullable', 'boolean'],
-                'job_title' => ['nullable', 'string', 'max:255'],
-                'honorific' => ['sometimes', 'array'],
-                'honorific.*' => ['string', Rule::in($this->enumValues(Honorific::class))],
-                'pre_nominal' => ['sometimes', 'array'],
-                'pre_nominal.*' => ['string', Rule::in($this->enumValues(PreNominal::class))],
-                'post_nominal' => ['sometimes', 'array'],
-                'post_nominal.*' => ['string', Rule::in($this->enumValues(PostNominal::class))],
                 'bio' => ['nullable'],
                 'institution_id' => ['nullable', 'uuid', 'exists:institutions,id'],
                 'institution_position' => ['nullable', 'string', 'max:255'],
@@ -250,11 +235,6 @@ class ContributionEntityMutationService
                 'address.google_maps_url' => ['prohibited'],
                 'address.provider_place_id' => ['prohibited'],
                 'address.waze_url' => ['prohibited'],
-                'qualifications' => ['sometimes', 'array'],
-                'qualifications.*.institution' => ['required_with:qualifications.*.degree', 'nullable', 'string', 'max:255'],
-                'qualifications.*.degree' => ['required_with:qualifications.*.institution', 'nullable', 'string', 'max:255'],
-                'qualifications.*.field' => ['nullable', 'string', 'max:255'],
-                'qualifications.*.year' => ['nullable', 'digits:4'],
                 'language_ids' => ['sometimes', 'array'],
                 'language_ids.*' => ['integer', 'exists:languages,id'],
                 'contactMethods' => ['sometimes', 'array'],
@@ -368,13 +348,7 @@ class ContributionEntityMutationService
         $speaker = Person::create([
             'name' => (string) ($payload['name'] ?? 'Speaker'),
             'gender' => $this->normalizeGender($payload['gender'] ?? null),
-            'honorific' => $this->normalizeStringArray($payload['honorific'] ?? []),
-            'pre_nominal' => $this->normalizeStringArray($payload['pre_nominal'] ?? []),
-            'post_nominal' => $this->normalizeStringArray($payload['post_nominal'] ?? []),
             'bio' => $payload['bio'] ?? null,
-            'qualifications' => $this->normalizeQualificationEntries($payload['qualifications'] ?? []),
-            'is_freelance' => (bool) ($payload['is_freelance'] ?? false),
-            'job_title' => $payload['job_title'] ?? null,
             'slug' => $this->generatePersonSlugAction->handle(
                 (string) ($payload['name'] ?? 'Speaker'),
                 $payload,
@@ -443,13 +417,7 @@ class ContributionEntityMutationService
             'gender' => array_key_exists('gender', $payload)
                 ? $this->normalizeGender($payload['gender'])
                 : $speaker->gender,
-            'honorific' => array_key_exists('honorific', $payload) ? $this->normalizeStringArray($payload['honorific']) : $speaker->honorific,
-            'pre_nominal' => array_key_exists('pre_nominal', $payload) ? $this->normalizeStringArray($payload['pre_nominal']) : $speaker->pre_nominal,
-            'post_nominal' => array_key_exists('post_nominal', $payload) ? $this->normalizeStringArray($payload['post_nominal']) : $speaker->post_nominal,
             'bio' => array_key_exists('bio', $payload) ? $payload['bio'] : $speaker->bio,
-            'qualifications' => array_key_exists('qualifications', $payload) ? $this->normalizeQualificationEntries($payload['qualifications']) : $speaker->qualifications,
-            'is_freelance' => array_key_exists('is_freelance', $payload) ? (bool) $payload['is_freelance'] : $speaker->is_freelance,
-            'job_title' => array_key_exists('job_title', $payload) ? $payload['job_title'] : $speaker->job_title,
         ]);
 
         $dirty = $speaker->getDirty();
@@ -715,13 +683,7 @@ class ContributionEntityMutationService
         return [
             'name' => $speaker->name,
             'gender' => (string) $speaker->gender,
-            'is_freelance' => (bool) $speaker->is_freelance,
-            'job_title' => $speaker->job_title,
-            'honorific' => $this->normalizeStringArray($speaker->honorific ?? []),
-            'pre_nominal' => $this->normalizeStringArray($speaker->pre_nominal ?? []),
-            'post_nominal' => $this->normalizeStringArray($speaker->post_nominal ?? []),
             'bio' => $speaker->bio,
-            'qualifications' => $this->normalizeQualificationEntries($speaker->qualifications ?? []),
             'language_ids' => $speaker->languages->pluck('id')->map(fn (mixed $id): int => (int) $id)->values()->all(),
             'institution_id' => $affiliatedInstitution?->getKey(),
             'institution_position' => self::institutionPivotPosition($affiliatedInstitution),
@@ -897,7 +859,14 @@ class ContributionEntityMutationService
      */
     private function syncSpeakerAffiliation(Person $speaker, array $payload): void
     {
-        if (! array_key_exists('institution_id', $payload) && ! array_key_exists('institution_position', $payload)) {
+        $institutionId = array_key_exists('institution_id', $payload)
+            ? $this->normalizeOptionalString($payload['institution_id'])
+            : null;
+        $institutionPosition = array_key_exists('institution_position', $payload)
+            ? $this->normalizeOptionalString($payload['institution_position'])
+            : null;
+
+        if ($institutionId === null && $institutionPosition === null) {
             return;
         }
 
@@ -929,7 +898,8 @@ class ContributionEntityMutationService
 
         $speaker->institutions()
             ->newPivotStatement()
-            ->where('speaker_id', $speaker->getKey())
+            ->where('affiliatable_id', $speaker->getKey())
+            ->where('affiliatable_type', $speaker->getMorphClass())
             ->where('institution_id', '!=', $institutionId)
             ->update([
                 'is_primary' => false,
@@ -951,7 +921,11 @@ class ContributionEntityMutationService
             return;
         }
 
-        $speaker->institutions()->attach($institutionId, [
+        Affiliation::query()->create([
+            'affiliatable_type' => $speaker->getMorphClass(),
+            'affiliatable_id' => $speaker->getKey(),
+            'institution_id' => $institutionId,
+            'affiliation_type' => AffiliationType::Member,
             'position' => $position,
             'is_primary' => true,
         ]);
@@ -1501,39 +1475,6 @@ class ContributionEntityMutationService
         return collect($values)
             ->map(fn (mixed $value): ?int => is_numeric($value) ? (int) $value : null)
             ->filter(static fn (?int $value): bool => $value !== null)
-            ->values()
-            ->all();
-    }
-
-    /**
-     * @param  iterable<int, mixed>  $entries
-     * @return list<array<string, mixed>>
-     */
-    private function normalizeQualificationEntries(iterable $entries): array
-    {
-        return collect($entries)
-            ->map(function (mixed $entry): ?array {
-                if (! is_array($entry)) {
-                    return null;
-                }
-
-                $institution = is_string($entry['institution'] ?? null) ? trim($entry['institution']) : null;
-                $degree = is_string($entry['degree'] ?? null) ? trim($entry['degree']) : null;
-                $field = is_string($entry['field'] ?? null) ? trim($entry['field']) : null;
-                $year = is_scalar($entry['year'] ?? null) ? trim((string) $entry['year']) : null;
-
-                if (($institution === null || $institution === '') && ($degree === null || $degree === '')) {
-                    return null;
-                }
-
-                return [
-                    'institution' => $institution,
-                    'degree' => $degree,
-                    'field' => $field !== '' ? $field : null,
-                    'year' => $year !== '' ? $year : null,
-                ];
-            })
-            ->filter()
             ->values()
             ->all();
     }

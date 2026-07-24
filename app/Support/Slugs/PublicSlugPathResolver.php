@@ -58,7 +58,7 @@ final class PublicSlugPathResolver
         return match ($parameter) {
             'event' => 'events.show',
             'institution' => 'institutions.show',
-            'speaker' => 'speakers.show',
+            'speaker' => 'persons.show',
             'venue' => 'venues.show',
             'reference' => 'references.show',
             default => null,

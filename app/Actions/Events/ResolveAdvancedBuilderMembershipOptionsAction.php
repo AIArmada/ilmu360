@@ -15,7 +15,7 @@ class ResolveAdvancedBuilderMembershipOptionsAction
     /**
      * @return array{
      *     institution_options: array<string, string>,
-     *     speaker_options: array<string, string>
+     *     person_options: array<string, string>
      * }
      */
     public function handle(User $user): array
@@ -28,11 +28,11 @@ class ResolveAdvancedBuilderMembershipOptionsAction
                 ->get(['institutions.id', 'institutions.name', 'institutions.nickname'])
                 ->mapWithKeys(fn (Institution $institution): array => [(string) $institution->id => $institution->display_name])
                 ->all(),
-            'speaker_options' => $user->speakers()
+            'person_options' => $user->persons()
                 ->whereIn('status', ['verified', 'pending'])
                 ->whereIn('status', ['verified', 'pending'])
                 ->orderBy('name')
-                ->pluck('speakers.name', 'speakers.id')
+                ->pluck('persons.name', 'persons.id')
                 ->all(),
         ];
     }

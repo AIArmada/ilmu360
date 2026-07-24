@@ -38,8 +38,8 @@ class ResolveContributionUpdateContextAction
 
         return [
             'entity' => $entity,
-            'initial_state' => $this->contributionEntityMutationService->buildState($entity),
-            'contract' => $this->contributionEntityMutationService->buildFormContract($entity),
+            'initial_state' => $this->contributionEntityMutationService->stateFor($entity),
+            'contract' => $this->contributionEntityMutationService->contractFor($entity),
         ];
     }
 }

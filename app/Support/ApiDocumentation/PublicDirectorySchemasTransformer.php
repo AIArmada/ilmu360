@@ -270,10 +270,7 @@ final class PublicDirectorySchemasTransformer implements DocumentTransformer
                 ->addProperty('name', new StringType)
                 ->addProperty('gender', (new StringType)->nullable(true))
                 ->addProperty('formatted_name', new StringType)
-                ->addProperty('job_title', (new StringType)->nullable(true))
-                ->addProperty('is_freelance', new BooleanType)
                 ->addProperty('bio', (new StringType)->nullable(true))
-                ->addProperty('qualifications', (new ArrayType)->setItems(new StringType))
                 ->addProperty('address', $this->nullableReference($components, 'AddressSelection'))
                 ->addProperty('country', $this->nullableReference($components, 'Country'))
                 ->addProperty('location', (new StringType)->nullable(true))
@@ -290,10 +287,7 @@ final class PublicDirectorySchemasTransformer implements DocumentTransformer
                     'name',
                     'gender',
                     'formatted_name',
-                    'job_title',
-                    'is_freelance',
                     'bio',
-                    'qualifications',
                     'address',
                     'country',
                     'location',

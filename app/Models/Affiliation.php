@@ -4,13 +4,16 @@ namespace App\Models;
 
 use App\Enums\AffiliationType;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class Affiliation extends Model
 {
+    /** @use HasFactory<Factory<static>> */
     use HasFactory, HasUuids;
 
     public $incrementing = false;
@@ -25,6 +28,7 @@ class Affiliation extends Model
         'affiliatable_id',
         'institution_id',
         'affiliation_type',
+        'position',
         'joined_at',
         'left_at',
         'is_primary',
@@ -47,6 +51,14 @@ class Affiliation extends Model
     public function affiliatable(): MorphTo
     {
         return $this->morphTo();
+    }
+
+    /**
+     * @return BelongsTo<Institution, $this>
+     */
+    public function institution(): BelongsTo
+    {
+        return $this->belongsTo(Institution::class);
     }
 
     /**

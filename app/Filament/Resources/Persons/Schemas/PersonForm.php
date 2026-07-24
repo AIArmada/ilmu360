@@ -243,7 +243,7 @@ class PersonForm
             return true;
         }
 
-        return app(PublicSubmissionLockService::class)->speakerEligibility($record)->eligible;
+        return app(PublicSubmissionLockService::class)->personEligibility($record)->eligible;
     }
 
     private static function hasPublicSubmissionToggleAccess(): bool
@@ -271,7 +271,7 @@ class PersonForm
             return __('Enabled means anyone can submit. Disabled means only members can submit.');
         }
 
-        $eligibility = app(PublicSubmissionLockService::class)->speakerEligibility($record);
+        $eligibility = app(PublicSubmissionLockService::class)->personEligibility($record);
 
         if ($eligibility->eligible) {
             return __('Turn this off to shift submission responsibility entirely to members.');

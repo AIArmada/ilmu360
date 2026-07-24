@@ -74,10 +74,6 @@ it('falls back to local speaker and institution search on the unified search pag
 
     $person = Person::factory()->create([
         'name' => 'Nur Hikmah Hassan',
-        'honorific' => null,
-        'pre_nominal' => [],
-        'post_nominal' => [],
-        'qualifications' => [],
         'status' => 'verified',
     ]);
 

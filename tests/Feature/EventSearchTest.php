@@ -2597,21 +2597,11 @@ describe('Event Detail Page', function () {
 
         $speakerOne = Person::factory()->create([
             'name' => 'Ustaz Person One',
-            'honorific' => null,
-            'pre_nominal' => null,
-            'post_nominal' => null,
-            'job_title' => 'Pensyarah',
-            'is_freelance' => false,
             'status' => 'verified',
         ]);
 
         $speakerTwo = Person::factory()->create([
             'name' => 'Ustaz Person Two',
-            'honorific' => null,
-            'pre_nominal' => null,
-            'post_nominal' => null,
-            'job_title' => 'Mudir',
-            'is_freelance' => false,
             'status' => 'verified',
         ]);
 
@@ -2623,9 +2613,7 @@ describe('Event Detail Page', function () {
         $response->assertOk()
             ->assertSee('Speakers')
             ->assertSee('Ustaz Person One')
-            ->assertSee('Pensyarah')
-            ->assertSee('Ustaz Person Two')
-            ->assertSee('Mudir');
+            ->assertSee('Ustaz Person Two');
     });
 
     it('displays image gallery slider when gallery media exists', function () {

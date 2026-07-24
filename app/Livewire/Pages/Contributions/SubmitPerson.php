@@ -5,7 +5,7 @@ namespace App\Livewire\Pages\Contributions;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Actions\Contributions\SubmitStagedContributionCreateAction;
 use App\Enums\ContributionSubjectType;
-use App\Forms\SpeakerContributionFormSchema;
+use App\Forms\PersonContributionFormSchema;
 use App\Models\Person;
 use App\Models\User;
 use Filament\Actions\Concerns\InteractsWithActions;
@@ -52,7 +52,7 @@ class SubmitPerson extends Component implements HasActions, HasForms
         return $schema
             ->model(new Person)
             ->statePath('data')
-            ->components(SpeakerContributionFormSchema::components(
+            ->components(PersonContributionFormSchema::components(
                 includeMedia: true,
                 addressStatePath: 'address',
                 regionOnlyAddress: true,

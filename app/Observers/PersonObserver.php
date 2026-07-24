@@ -10,7 +10,7 @@ use App\Models\Person;
 use App\Observers\Concerns\SyncsCurrentAndPreviousValues;
 use App\Support\Cache\PublicDirectoryCacheVersion;
 use App\Support\Cache\PublicListingsCache;
-use App\Support\Search\SpeakerSearchService;
+use App\Support\Search\PersonSearchService;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
 class PersonObserver implements ShouldHandleEventsAfterCommit
@@ -23,7 +23,7 @@ class PersonObserver implements ShouldHandleEventsAfterCommit
         protected SyncSlugRedirectAction $syncSlugRedirectAction,
         protected PublicDirectoryCacheVersion $publicDirectoryCacheVersion,
         protected PublicListingsCache $publicListingsCache,
-        protected SpeakerSearchService $speakerSearchService,
+        protected PersonSearchService $speakerSearchService,
     ) {}
 
     public function saved(Person $person): void
@@ -51,7 +51,7 @@ class PersonObserver implements ShouldHandleEventsAfterCommit
 
         $this->publicListingsCache->bustHomepageStats();
         $this->publicListingsCache->bustMajlisListing();
-        $this->publicDirectoryCacheVersion->bumpSpeaker();
+        $this->publicDirectoryCacheVersion->bumpPerson();
     }
 
     public function deleted(Person $person): void
@@ -63,6 +63,6 @@ class PersonObserver implements ShouldHandleEventsAfterCommit
         $this->speakerSearchService->purgeSpeakerRecord($person);
         $this->publicListingsCache->bustHomepageStats();
         $this->publicListingsCache->bustMajlisListing();
-        $this->publicDirectoryCacheVersion->bumpSpeaker();
+        $this->publicDirectoryCacheVersion->bumpPerson();
     }
 }

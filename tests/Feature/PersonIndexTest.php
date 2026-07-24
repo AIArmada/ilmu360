@@ -1,10 +1,13 @@
 <?php
 
+use App\Enums\AssignmentStatus;
 use App\Enums\ContributionSubjectType;
 use App\Livewire\Pages\Contributions\SubmitPerson;
 use App\Models\ContributionRequest;
 use App\Models\Event;
 use App\Models\Person;
+use App\Models\Title;
+use App\Models\TitleAssignment;
 use App\Models\User;
 use App\Services\EventKeyPersonSyncService;
 use App\Support\Search\PersonSearchService;
@@ -16,10 +19,14 @@ use function Pest\Laravel\get;
 
 it('can search persons case-insensitively', function () {
     // Create persons with different cases
-    Person::factory()->create([
+    $searchService = app(PersonSearchService::class);
+
+    $person = Person::factory()->create([
         'name' => 'Samad Al-Bakri',
         'status' => 'verified',
     ]);
+
+    $searchService->syncSpeakerRecord($person);
 
     Person::factory()->create([
         'name' => 'Ahmad Bin Ali',
@@ -40,11 +47,21 @@ it('can search persons case-insensitively', function () {
 });
 
 it('can search persons by formatted honorific and prenominal titles', function () {
-    Person::factory()->create([
+    $person = Person::factory()->create([
         'name' => 'Aisyah Binti Hassan',
-        'pre_nominal' => ['syeikhul_maqari'],
         'status' => 'verified',
     ]);
+
+    $syeikhulMaqari = Title::query()->where('short_form', 'Syeikhul Maqari')->firstOrFail();
+
+    TitleAssignment::query()->create([
+        'titleable_type' => $person->getMorphClass(),
+        'titleable_id' => $person->getKey(),
+        'title_id' => $syeikhulMaqari->getKey(),
+        'status' => AssignmentStatus::Active,
+    ]);
+
+    app(PersonSearchService::class)->syncSpeakerRecord($person->fresh());
 
     Person::factory()->create([
         'name' => 'Fatimah Binti Omar',
@@ -75,12 +92,13 @@ it('filters by active status on public person index', function () {
 });
 
 it('shows the total person count on the person index', function () {
+    $searchService = app(PersonSearchService::class);
     $searchPrefix = 'Jumlah Penceramah Ujian';
 
     Person::factory()->count(2)->create([
         'name' => $searchPrefix,
         'status' => 'verified',
-    ]);
+    ])->each(fn ($p) => $searchService->syncSpeakerRecord($p));
 
     get('/penceramah?search='.urlencode($searchPrefix))
         ->assertSuccessful()
@@ -160,10 +178,14 @@ it('shows add-missing-person call to action on person index', function () {
 });
 
 it('supports fuzzy search with minor typos', function () {
-    Person::factory()->create([
+    $searchService = app(PersonSearchService::class);
+
+    $p1 = Person::factory()->create([
         'name' => 'Samad Al-Bakri',
         'status' => 'verified',
     ]);
+
+    $searchService->syncSpeakerRecord($p1);
 
     Person::factory()->create([
         'name' => 'Sulaiman Hasan',
@@ -177,10 +199,14 @@ it('supports fuzzy search with minor typos', function () {
 });
 
 it('matches partial person names within a larger token', function () {
-    Person::factory()->create([
+    $searchService = app(PersonSearchService::class);
+
+    $p1 = Person::factory()->create([
         'name' => 'Datuk Ustazah Dr Norhafizah Musa',
         'status' => 'verified',
     ]);
+
+    $searchService->syncSpeakerRecord($p1);
 
     Person::factory()->create([
         'name' => 'Ustaz Hafiz Rahman',
@@ -206,10 +232,14 @@ it('shows the empty state when person search has no public matches', function ()
 });
 
 it('updates search results live when query changes', function () {
-    Person::factory()->create([
+    $searchService = app(PersonSearchService::class);
+
+    $p1 = Person::factory()->create([
         'name' => 'Samad Al-Bakri',
         'status' => 'verified',
     ]);
+
+    $searchService->syncSpeakerRecord($p1);
 
     Person::factory()->create([
         'name' => 'Ahmad Bin Ali',
@@ -226,16 +256,34 @@ it('refreshes cached person title search results after person updates', function
     $searchService = app(PersonSearchService::class);
     $person = Person::factory()->create([
         'name' => 'Nurul Akma',
-        'pre_nominal' => ['ustazah'],
         'status' => 'verified',
     ]);
+
+    $ustazah = Title::query()->where('short_form', 'Ustazah')->firstOrFail();
+    $hafizah = Title::query()->where('short_form', 'Hafizah')->firstOrFail();
+
+    $assignment = TitleAssignment::query()->create([
+        'titleable_type' => $person->getMorphClass(),
+        'titleable_id' => $person->getKey(),
+        'title_id' => $ustazah->getKey(),
+        'status' => AssignmentStatus::Active,
+    ]);
+
+    $searchService->syncSpeakerRecord($person->fresh());
 
     expect($searchService->publicSearchIds('ustazah'))
         ->toContain((string) $person->id);
 
-    $person->update([
-        'pre_nominal' => ['hafizah'],
+    $assignment->delete();
+
+    TitleAssignment::query()->create([
+        'titleable_type' => $person->getMorphClass(),
+        'titleable_id' => $person->getKey(),
+        'title_id' => $hafizah->getKey(),
+        'status' => AssignmentStatus::Active,
     ]);
+
+    $searchService->syncSpeakerRecord($person->fresh());
 
     expect($searchService->publicSearchIds('ustazah'))
         ->not->toContain((string) $person->id)
@@ -253,12 +301,6 @@ it('refreshes cached person title search results after person updates', function
 
 it('allows users to submit a missing person from person index with pending status', function () {
     $personName = 'Cadangan Baru';
-    $expectedDisplayName = Person::formatDisplayedName(
-        $personName,
-        ['dato'],
-        ['ustaz'],
-        ['PhD'],
-    );
 
     $user = User::factory()->create();
     $country = ensureTestMalaysiaCountry();
@@ -268,18 +310,15 @@ it('allows users to submit a missing person from person index with pending statu
         ->set('data.name', $personName)
         ->set('data.gender', 'male')
         ->set('data.address.country_id', (string) $country->getKey())
-        ->set('data.honorific', ['dato'])
-        ->set('data.pre_nominal', ['ustaz'])
-        ->set('data.post_nominal', ['PhD'])
         ->call('submit')
         ->assertRedirect(route('contributions.submission-success', ['subjectType' => ContributionSubjectType::Person->publicRouteSegment()]))
         ->assertHasNoErrors();
 
-    expect(session('contribution_submission_name'))->toBe($expectedDisplayName);
+    expect(session('contribution_submission_name'))->toBe($personName);
 
     get(route('contributions.submission-success', ['subjectType' => ContributionSubjectType::Person->publicRouteSegment()]))
         ->assertOk()
-        ->assertSee($expectedDisplayName);
+        ->assertSee($personName);
 
     $person = Person::query()
         ->where('name', $personName)
@@ -299,10 +338,6 @@ it('rejects duplicate person submissions when name gender and titles all match',
     $person = Person::factory()->create([
         'name' => 'Ustaz Samad Hassan',
         'gender' => 'male',
-        'honorific' => ['dato'],
-        'pre_nominal' => ['ustaz'],
-        'post_nominal' => ['PhD'],
-        'qualifications' => [],
         'status' => 'verified',
     ]);
     syncPrimaryAddressForTest($person, [
@@ -314,9 +349,6 @@ it('rejects duplicate person submissions when name gender and titles all match',
         ->set('data.name', 'Ustaz   Samad   Hassan')
         ->set('data.gender', 'male')
         ->set('data.address.country_id', (string) $country->getKey())
-        ->set('data.honorific', ['dato'])
-        ->set('data.pre_nominal', ['ustaz'])
-        ->set('data.post_nominal', ['PhD'])
         ->call('submit')
         ->assertHasErrors(['data.name']);
 
@@ -377,10 +409,12 @@ it('renders profile-quality avatar URLs on the person index cards', function () 
         'status' => 'verified',
     ]);
 
+    app(PersonSearchService::class)->syncSpeakerRecord($person);
+
     $person->addMedia(UploadedFile::fake()->image('kazim.jpg', 1200, 1200))
-        ->toMediaCollection('avatar');
+        ->toMediaCollection('main');
 
     get('/penceramah?search=kazim')
         ->assertSuccessful()
-        ->assertSee($person->public_avatar_url, false);
+        ->assertSee($person->public_main_url, false);
 });

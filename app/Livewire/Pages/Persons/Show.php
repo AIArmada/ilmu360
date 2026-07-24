@@ -69,7 +69,7 @@ class Show extends Component
         $this->isFollowing = true;
 
         app(ShareTrackingService::class)->recordOutcome(
-            type: DawahShareOutcomeType::SpeakerFollow,
+            type: DawahShareOutcomeType::PersonFollow,
             outcomeKey: 'person_follow:user:'.$user->id.':person:'.$this->person->id,
             subject: $this->person,
             actor: $user,
@@ -160,7 +160,7 @@ class Show extends Component
 
     public function render(): View
     {
-        $this->loadSpeakerRelations();
+        $this->loadPersonRelations();
 
         return view('livewire.pages.persons.show');
     }

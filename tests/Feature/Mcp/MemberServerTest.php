@@ -125,7 +125,6 @@ it('searches member persons by formatted public title parts through MCP list rec
 
     $matchingPerson->update([
         'name' => 'Member MCP Person Match',
-        'pre_nominal' => ['syeikhul_maqari'],
     ]);
 
     $otherPerson = Person::factory()->create([

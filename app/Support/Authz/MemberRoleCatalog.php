@@ -73,7 +73,7 @@ final readonly class MemberRoleCatalog
     {
         $relation = match ($modelClass) {
             Institution::class => 'institutions',
-            Person::class => 'speakers',
+            Person::class => 'persons',
             Event::class => 'memberEvents',
             Reference::class => 'references',
             default => null,

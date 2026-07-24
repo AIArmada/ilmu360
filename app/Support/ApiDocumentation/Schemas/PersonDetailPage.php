@@ -12,7 +12,7 @@ use Illuminate\Contracts\Support\Arrayable;
  * @phpstan-import-type EventSummaryArray from EventSummary
  * @phpstan-import-type EventParticipationArray from EventParticipation
  *
- * @phpstan-type PersonDetailPageArray array{speaker: PersonArray, upcoming_events: list<EventSummaryArray>, upcoming_total: int, past_events: list<EventSummaryArray>, past_total: int, other_role_upcoming_participations: list<EventParticipationArray>, other_role_upcoming_total: int, other_role_past_participations: list<EventParticipationArray>, other_role_past_total: int}
+ * @phpstan-type PersonDetailPageArray array{person: PersonArray, upcoming_events: list<EventSummaryArray>, upcoming_total: int, past_events: list<EventSummaryArray>, past_total: int, other_role_upcoming_participations: list<EventParticipationArray>, other_role_upcoming_total: int, other_role_past_participations: list<EventParticipationArray>, other_role_past_total: int}
  *
  * @implements Arrayable<string, mixed>
  */

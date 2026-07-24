@@ -180,13 +180,13 @@ class ModerationQueue extends Page implements HasTable
                     ->label('Speakers Status')
                     ->badge()
                     ->state(function (Event $record): string {
-                        $total = $record->speakers->count();
+                        $total = $record->persons->count();
 
                         if ($total === 0) {
                             return 'None';
                         }
 
-                        $unverified = $record->speakers->where('status', '!=', 'verified')->count();
+                        $unverified = $record->persons->where('pivot.status', '!=', 'verified')->count();
 
                         return $unverified === 0 ? 'All verified' : $unverified.' unverified';
                     })

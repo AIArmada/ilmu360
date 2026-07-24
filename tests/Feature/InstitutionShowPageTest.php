@@ -230,9 +230,6 @@ it('renders institution event cards with localized prayer timing stacked speaker
         $person = Person::factory()->create([
             'status' => 'verified',
             'name' => 'Ustaz Abdullah Fahmi',
-            'honorific' => null,
-            'pre_nominal' => null,
-            'post_nominal' => null,
         ]);
         $person->addMedia(UploadedFile::fake()->image('speaker-one.jpg', 320, 320))
             ->toMediaCollection('avatar');
@@ -240,9 +237,6 @@ it('renders institution event cards with localized prayer timing stacked speaker
         $secondPerson = Person::factory()->create([
             'status' => 'verified',
             'name' => 'Ustaz Ahmad Razak',
-            'honorific' => null,
-            'pre_nominal' => null,
-            'post_nominal' => null,
         ]);
         $secondPerson->addMedia(UploadedFile::fake()->image('speaker-two.jpg', 320, 320))
             ->toMediaCollection('avatar');
@@ -250,9 +244,6 @@ it('renders institution event cards with localized prayer timing stacked speaker
         $moderator = Person::factory()->create([
             'status' => 'verified',
             'name' => 'Ustazah Mariam Yusuf',
-            'honorific' => null,
-            'pre_nominal' => null,
-            'post_nominal' => null,
         ]);
 
         $event->keyPeople()->create([
@@ -426,7 +417,6 @@ it('displays affiliated speakers', function () {
     $person = Person::factory()->create([
         'status' => 'verified',
         'name' => 'Ustaz Ahmad bin Abdullah',
-        'is_freelance' => true,
     ]);
 
     $institution->speakers()->attach($person, [

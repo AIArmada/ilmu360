@@ -134,7 +134,7 @@ class MembershipApplicationPresenter
         $title = $subject instanceof Institution ? $subject->name : $subject->formatted_name;
         $redirectUrl = $subject instanceof Institution
             ? route('institutions.show', $subject)
-            : route('speakers.show', $subject);
+            : route('persons.show', $subject);
 
         return [
             'subject_label' => $label,

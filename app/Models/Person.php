@@ -7,12 +7,14 @@ use AIArmada\Addressing\Traits\HasAddresses;
 use AIArmada\Contacting\Concerns\HasContactMethods;
 use AIArmada\Contacting\Concerns\HasSocialProfiles;
 use AIArmada\Engagement\Models\Follow;
+use AIArmada\Membership\Models\MembershipInvitation;
 use AIArmada\Membership\Traits\HasMembers;
 use App\Enums\EventKeyPersonRole;
 use App\Models\Concerns\AuditsModelChanges;
 use App\Models\Concerns\HasDonationChannels;
 use App\Models\Concerns\HasLanguages;
 use Carbon\CarbonInterface;
+use Database\Factories\PersonFactory;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -33,14 +35,12 @@ use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
-/**
- * @use HasMembers<User>
- */
 class Person extends Model implements AuditableContract, HasMedia
 {
     public const string PUBLIC_DIRECTORY_SESSION_KEY = 'public_persons_directory_seed';
 
     /**
+     * @use HasFactory<PersonFactory>
      * @use HasMembers<User>
      */
     use AuditsModelChanges, HasAddresses, HasContactMethods, HasDonationChannels, HasFactory, HasLanguages, HasMembers, HasSocialProfiles, HasUuids, InteractsWithMedia, KeepsDeletedModels, Searchable;
@@ -92,29 +92,9 @@ class Person extends Model implements AuditableContract, HasMedia
         ];
     }
 
-    /**
-     * @param  array<string, mixed>|null  $honorific
-     * @param  array<string, mixed>|null  $preNominal
-     * @param  array<string, mixed>|null  $postNominal
-     */
-    public static function formatDisplayedName(string $name, ?array $honorific = null, ?array $preNominal = null, ?array $postNominal = null): string
+    public static function formatDisplayedName(string $name): string
     {
-        $before = '';
-
-        if ($honorific !== null) {
-            $before .= implode(' ', $honorific).' ';
-        }
-
-        if ($preNominal !== null) {
-            $before .= implode(' ', $preNominal).' ';
-        }
-
-        $after = '';
-        if ($postNominal !== null) {
-            $after = ', '.implode(', ', $postNominal);
-        }
-
-        return trim($before.$name.$after);
+        return trim($name);
     }
 
     public function shouldBeSearchable(): bool
@@ -354,6 +334,14 @@ class Person extends Model implements AuditableContract, HasMedia
     }
 
     /**
+     * @return MorphMany<MembershipInvitation, $this>
+     */
+    public function memberInvitations(): MorphMany
+    {
+        return $this->invitations();
+    }
+
+    /**
      * @return MorphMany<CredentialAssignment, $this>
      */
     public function credentialAssignments(): MorphMany
@@ -367,6 +355,16 @@ class Person extends Model implements AuditableContract, HasMedia
     public function affiliations(): MorphMany
     {
         return $this->morphMany(Affiliation::class, 'affiliatable');
+    }
+
+    /**
+     * @return MorphToMany<Institution, $this>
+     */
+    public function institutions(): MorphToMany
+    {
+        return $this->morphToMany(Institution::class, 'affiliatable', 'affiliations')
+            ->withPivot(['position', 'is_primary'])
+            ->withTimestamps();
     }
 
     /**

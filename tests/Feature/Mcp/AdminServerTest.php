@@ -131,7 +131,6 @@ it('matches richer public search behavior for persons, institutions, and referen
 
     $matchingPerson = Person::factory()->create([
         'name' => 'Admin MCP Person Match',
-        'pre_nominal' => ['syeikhul_maqari'],
         'status' => 'verified',
     ]);
     $otherPerson = Person::factory()->create([
@@ -1695,7 +1694,6 @@ it('previews admin person creation through the MCP write tool without persisting
             'payload' => [
                 'name' => 'Previewed Admin MCP Person',
                 'gender' => 'male',
-                'is_freelance' => false,
                 'status' => 'verified',
                 'address' => [
                     'country_id' => $countryId,
@@ -1720,8 +1718,6 @@ it('previews admin person updates through the MCP write tool without persisting 
     $admin = adminMcpUser('super_admin');
     $person = Person::factory()->create([
         'name' => 'Previewable Admin MCP Person',
-        'is_freelance' => false,
-        'job_title' => null,
     ]);
 
     AdminServer::actingAs($admin)
@@ -1732,8 +1728,6 @@ it('previews admin person updates through the MCP write tool without persisting 
             'payload' => [
                 'name' => 'Previewed Admin MCP Person Updated',
                 'gender' => 'male',
-                'is_freelance' => true,
-                'job_title' => 'Imam',
                 'status' => 'verified',
                 'allow_public_event_submission' => true,
                 'address' => [
@@ -1757,8 +1751,6 @@ it('previews admin person updates through the MCP write tool without persisting 
             'payload' => [
                 'name' => 'Previewed Admin MCP Person Updated',
                 'gender' => 'male',
-                'is_freelance' => true,
-                'job_title' => 'Imam',
                 'status' => 'verified',
                 'allow_public_event_submission' => true,
                 'address' => [
@@ -1769,8 +1761,7 @@ it('previews admin person updates through the MCP write tool without persisting 
         ])
         ->assertHasErrors(['Destructive media clear flags are not supported through MCP. Upload a replacement file or array when the schema advertises that media field.']);
 
-    expect(Person::query()->findOrFail($person->getKey())->name)->toBe('Previewable Admin MCP Person')
-        ->and(Person::query()->findOrFail($person->getKey())->job_title)->toBeNull();
+    expect(Person::query()->findOrFail($person->getKey())->name)->toBe('Previewable Admin MCP Person');
 });
 
 it('returns remediation details for validate-only admin create validation failures', function () {
@@ -1884,7 +1875,6 @@ it('creates and updates persons through MCP write tools', function () {
             'payload' => [
                 'name' => 'Admin MCP Created Person',
                 'gender' => 'male',
-                'is_freelance' => false,
                 'status' => 'verified',
                 'avatar' => adminMcpImageDescriptor('admin-mcp-avatar'),
                 'address' => [
@@ -1935,8 +1925,6 @@ it('creates and updates persons through MCP write tools', function () {
             'payload' => [
                 'name' => 'Admin MCP Updated Person',
                 'gender' => 'male',
-                'is_freelance' => true,
-                'job_title' => 'Imam',
                 'status' => 'verified',
                 'allow_public_event_submission' => true,
                 'gallery' => [
@@ -2697,7 +2685,6 @@ it('rejects malformed MCP media descriptors through write tools', function () {
             'payload' => [
                 'name' => 'Person With Media',
                 'gender' => 'male',
-                'is_freelance' => false,
                 'status' => 'verified',
                 'avatar' => 'base64-data',
                 'address' => [

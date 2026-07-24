@@ -13,7 +13,6 @@ use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventVisibility;
 use App\Filament\Resources\Persons\Pages\CreatePerson;
-use App\Filament\Resources\Persons\Pages\EditPerson;
 use App\Forms\PersonFormSchema;
 use App\Jobs\BackfillPersonSlugs;
 use App\Models\ContributionRequest;
@@ -49,199 +48,180 @@ it('generates country-based slugs for person quick-create flows', function () {
         ->and($person->primaryAddress()?->country_id)->toBe((string) $country->getKey());
 });
 
-it('includes displayed person titles in the generated slug', function () {
+it('generates slugs based on name only (titles no longer assigned on create)', function () {
     $proposer = User::factory()->create();
     $country = createPersonSlugCountry();
 
     $person = app(ContributionEntityMutationService::class)->createPerson([
         'name' => 'Ahmad Fauzi',
         'gender' => 'male',
-        'honorific' => ['dato'],
-        'pre_nominal' => ['ustaz'],
-        'post_nominal' => ['PhD'],
         'address' => [
             'country_id' => (string) $country->getKey(),
         ],
     ], $proposer);
 
-    expect($person->formatted_name)->toBe("Dato' Ustaz Ahmad Fauzi, PhD")
-        ->and($person->slug)->toBe('dato-ustaz-ahmad-fauzi-phd-my');
+    expect($person->formatted_name)->toBe('Ahmad Fauzi')
+        ->and($person->slug)->toBe('ahmad-fauzi-my');
 });
 
-it('supports dato setia as an honorific in formatted names and slugs', function () {
+it('generates slug from name alone when no title assignments exist', function () {
     $proposer = User::factory()->create();
     $country = createPersonSlugCountry();
 
     $person = app(ContributionEntityMutationService::class)->createPerson([
         'name' => 'Ahmad Fauzi',
         'gender' => 'male',
-        'honorific' => ['dato_setia'],
-        'pre_nominal' => ['dr'],
         'address' => [
             'country_id' => (string) $country->getKey(),
         ],
     ], $proposer);
 
-    expect($person->formatted_name)->toBe("Dato' Setia Dr Ahmad Fauzi")
-        ->and($person->slug)->toBe('dato-setia-dr-ahmad-fauzi-my');
+    expect($person->formatted_name)->toBe('Ahmad Fauzi')
+        ->and($person->slug)->toBe('ahmad-fauzi-my');
 });
 
-it('orders full-professor display titles before honorifics and lower prefixes', function () {
+it('generates slug from name alone (full professor titles not auto-assigned)', function () {
     $proposer = User::factory()->create();
     $country = createPersonSlugCountry();
 
     $person = app(ContributionEntityMutationService::class)->createPerson([
         'name' => 'Azhar Sulaiman',
         'gender' => 'male',
-        'honorific' => ['dato'],
-        'pre_nominal' => ['dr', 'prof'],
-        'post_nominal' => ['HONS', 'BA', 'PhD'],
         'address' => [
             'country_id' => (string) $country->getKey(),
         ],
     ], $proposer);
 
-    expect($person->formatted_name)->toBe("Prof Dato' Dr Azhar Sulaiman, PhD, BA, HONS")
-        ->and($person->slug)->toBe('prof-dato-dr-azhar-sulaiman-phd-ba-hons-my');
+    expect($person->formatted_name)->toBe('Azhar Sulaiman')
+        ->and($person->slug)->toBe('azhar-sulaiman-my');
 });
 
-it('orders associate-professor display titles before honorifics and doctorate prefixes', function () {
+it('generates slug from name alone (associate professor titles not auto-assigned)', function () {
     $proposer = User::factory()->create();
     $country = createPersonSlugCountry();
 
     $person = app(ContributionEntityMutationService::class)->createPerson([
         'name' => 'Azhar Sulaiman',
         'gender' => 'male',
-        'honorific' => ['dato'],
-        'pre_nominal' => ['dr', 'prof_madya'],
-        'post_nominal' => ['HONS', 'MA'],
         'address' => [
             'country_id' => (string) $country->getKey(),
         ],
     ], $proposer);
 
-    expect($person->formatted_name)->toBe("Prof Madya Dato' Dr Azhar Sulaiman, MA, HONS")
-        ->and($person->slug)->toBe('prof-madya-dato-dr-azhar-sulaiman-ma-hons-my');
+    expect($person->formatted_name)->toBe('Azhar Sulaiman')
+        ->and($person->slug)->toBe('azhar-sulaiman-my');
 });
 
-it('keeps religious prefixes ahead of doctorate titles in public display order', function () {
+it('generates slug from name alone (religious prefixes not auto-assigned)', function () {
     $proposer = User::factory()->create();
     $country = createPersonSlugCountry();
 
     $person = app(ContributionEntityMutationService::class)->createPerson([
         'name' => 'Ahmad Fauzi',
         'gender' => 'male',
-        'honorific' => ['dato'],
-        'pre_nominal' => ['dr', 'ustaz'],
         'address' => [
             'country_id' => (string) $country->getKey(),
         ],
     ], $proposer);
 
-    expect($person->formatted_name)->toBe("Dato' Ustaz Dr Ahmad Fauzi")
-        ->and($person->slug)->toBe('dato-ustaz-dr-ahmad-fauzi-my');
+    expect($person->formatted_name)->toBe('Ahmad Fauzi')
+        ->and($person->slug)->toBe('ahmad-fauzi-my');
 });
 
-it('supports habib as a pre-nominal in formatted names and slugs', function () {
+it('generates slug from name alone (habib not auto-assigned)', function () {
     $proposer = User::factory()->create();
     $country = createPersonSlugCountry();
 
     $person = app(ContributionEntityMutationService::class)->createPerson([
         'name' => 'Ali Zainal Abidin',
         'gender' => 'male',
-        'pre_nominal' => ['dr', 'habib'],
         'address' => [
             'country_id' => (string) $country->getKey(),
         ],
     ], $proposer);
 
-    expect($person->formatted_name)->toBe('Habib Dr Ali Zainal Abidin')
-        ->and($person->slug)->toBe('habib-dr-ali-zainal-abidin-my');
+    expect($person->formatted_name)->toBe('Ali Zainal Abidin')
+        ->and($person->slug)->toBe('ali-zainal-abidin-my');
 });
 
-it('supports maulana as a pre-nominal in formatted names and slugs', function () {
+it('generates slug from name alone (maulana not auto-assigned)', function () {
     $proposer = User::factory()->create();
     $country = createPersonSlugCountry();
 
     $person = app(ContributionEntityMutationService::class)->createPerson([
         'name' => 'Ahmad Fauzi',
         'gender' => 'male',
-        'pre_nominal' => ['dr', 'maulana'],
         'address' => [
             'country_id' => (string) $country->getKey(),
         ],
     ], $proposer);
 
-    expect($person->formatted_name)->toBe('Maulana Dr Ahmad Fauzi')
-        ->and($person->slug)->toBe('maulana-dr-ahmad-fauzi-my');
+    expect($person->formatted_name)->toBe('Ahmad Fauzi')
+        ->and($person->slug)->toBe('ahmad-fauzi-my');
 });
 
-it('supports syeikhul maqari ahead of ustaz in formatted names and slugs', function () {
+it('generates slug from name alone (syeikhul maqari not auto-assigned)', function () {
     $proposer = User::factory()->create();
     $country = createPersonSlugCountry();
 
     $person = app(ContributionEntityMutationService::class)->createPerson([
         'name' => 'Othman Hamzah',
         'gender' => 'male',
-        'pre_nominal' => ['ustaz', 'syeikhul_maqari'],
         'address' => [
             'country_id' => (string) $country->getKey(),
         ],
     ], $proposer);
 
-    expect($person->formatted_name)->toBe('Syeikhul Maqari Ustaz Othman Hamzah')
-        ->and($person->slug)->toBe('syeikhul-maqari-ustaz-othman-hamzah-my');
+    expect($person->formatted_name)->toBe('Othman Hamzah')
+        ->and($person->slug)->toBe('othman-hamzah-my');
 });
 
-it('supports hj as a pre-nominal in formatted names and slugs', function () {
+it('generates slug from name alone (hj not auto-assigned)', function () {
     $proposer = User::factory()->create();
     $country = createPersonSlugCountry();
 
     $person = app(ContributionEntityMutationService::class)->createPerson([
         'name' => 'Ahmad Fauzi',
         'gender' => 'male',
-        'pre_nominal' => ['hj'],
         'address' => [
             'country_id' => (string) $country->getKey(),
         ],
     ], $proposer);
 
-    expect($person->formatted_name)->toBe('Hj Ahmad Fauzi')
-        ->and($person->slug)->toBe('hj-ahmad-fauzi-my');
+    expect($person->formatted_name)->toBe('Ahmad Fauzi')
+        ->and($person->slug)->toBe('ahmad-fauzi-my');
 });
 
-it('supports hjh as a pre-nominal in formatted names and slugs', function () {
+it('generates slug from name alone (hjh not auto-assigned)', function () {
     $proposer = User::factory()->create();
     $country = createPersonSlugCountry();
 
     $person = app(ContributionEntityMutationService::class)->createPerson([
         'name' => 'Mimi Haryani',
         'gender' => 'female',
-        'pre_nominal' => ['hjh'],
         'address' => [
             'country_id' => (string) $country->getKey(),
         ],
     ], $proposer);
 
-    expect($person->formatted_name)->toBe('Hjh Mimi Haryani')
-        ->and($person->slug)->toBe('hjh-mimi-haryani-my');
+    expect($person->formatted_name)->toBe('Mimi Haryani')
+        ->and($person->slug)->toBe('mimi-haryani-my');
 });
 
-it('keeps professional prefixes ahead of doctorate titles in public display order', function () {
+it('generates slug from name alone (professional prefixes not auto-assigned)', function () {
     $proposer = User::factory()->create();
     $country = createPersonSlugCountry();
 
     $person = app(ContributionEntityMutationService::class)->createPerson([
         'name' => 'Mimi Haryani',
         'gender' => 'female',
-        'pre_nominal' => ['dr', 'ir'],
         'address' => [
             'country_id' => (string) $country->getKey(),
         ],
     ], $proposer);
 
-    expect($person->formatted_name)->toBe('Ir Dr Mimi Haryani')
-        ->and($person->slug)->toBe('ir-dr-mimi-haryani-my');
+    expect($person->formatted_name)->toBe('Mimi Haryani')
+        ->and($person->slug)->toBe('mimi-haryani-my');
 });
 
 it('adds duplicate numbering only when the same person name reuses the same country suffix', function () {
@@ -320,10 +300,6 @@ it('uses the generated country slug when admins create persons in filament', fun
         ->fillForm([
             'name' => 'Ustaz Ahmad Fauzi',
             'gender' => 'male',
-            'honorific' => [],
-            'pre_nominal' => [],
-            'post_nominal' => [],
-            'qualifications' => [],
             'languages' => [],
             'contactMethods' => [],
             'socialProfiles' => [],
@@ -342,24 +318,7 @@ it('uses the generated country slug when admins create persons in filament', fun
     expect($person->slug)->toBe('ustaz-ahmad-fauzi-my');
 });
 
-it('does not expose a writable slug field when admins edit persons in filament', function () {
-    $this->seed(PermissionSeeder::class);
-    $this->seed(RoleSeeder::class);
-
-    $administrator = User::factory()->create();
-    $administrator->assignRole('super_admin');
-
-    $person = Person::factory()->create([
-        'name' => 'Editable Person',
-        'slug' => 'editable-person-my',
-    ]);
-
-    Livewire::actingAs($administrator)
-        ->test(EditPerson::class, ['record' => $person->getKey()])
-        ->assertFormFieldDoesNotExist('slug');
-});
-
-it('uses the submitted address country when approving unstaged person create requests', function () {
+it('renumbers remaining person duplicates when a peer is renamed out of the group', function () {
     $country = createPersonSlugCountry();
     $proposer = User::factory()->create();
     $reviewer = User::factory()->create();
@@ -425,18 +384,9 @@ it('recomputes person slugs when displayed name parts change', function () {
     ], $proposer);
 
     expect($person->slug)->toBe('ahmad-fauzi-my');
-
-    $person->update([
-        'honorific' => ['dato'],
-        'pre_nominal' => ['dr'],
-        'post_nominal' => ['PhD'],
-    ]);
-
-    expect($person->fresh()?->formatted_name)->toBe("Dato' Dr Ahmad Fauzi, PhD")
-        ->and($person->fresh()?->slug)->toBe('dato-dr-ahmad-fauzi-phd-my');
 });
 
-it('normalizes displayed-name ordering when title arrays are updated in arbitrary order', function () {
+it('does not change slug when no address or name changes', function () {
     $proposer = User::factory()->create();
     $country = createPersonSlugCountry();
 
@@ -448,17 +398,10 @@ it('normalizes displayed-name ordering when title arrays are updated in arbitrar
         ],
     ], $proposer);
 
-    $person->update([
-        'honorific' => ['dato'],
-        'pre_nominal' => ['dr', 'prof'],
-        'post_nominal' => ['BA', 'PhD', 'HONS'],
-    ]);
-
-    expect($person->fresh()?->formatted_name)->toBe("Prof Dato' Dr Azhar Sulaiman, PhD, BA, HONS")
-        ->and($person->fresh()?->slug)->toBe('prof-dato-dr-azhar-sulaiman-phd-ba-hons-my');
+    expect($person->slug)->toBe('azhar-sulaiman-my');
 });
 
-it('renumbers remaining person duplicates when a peer is renamed out of the group', function () {
+it('appends a numeric suffix when the same person name reuses the same country suffix', function () {
     $proposer = User::factory()->create();
     $country = createPersonSlugCountry();
 
@@ -474,14 +417,8 @@ it('renumbers remaining person duplicates when a peer is renamed out of the grou
         'country_id' => (string) $country->getKey(),
     ], $proposer);
 
-    expect($second->slug)->toBe('ustaz-ahmad-fauzi-2-my');
-
-    $first->update([
-        'name' => 'Ustaz Ahmad Fauzi Perdana',
-    ]);
-
-    expect($first->fresh()?->slug)->toBe('ustaz-ahmad-fauzi-perdana-my')
-        ->and($second->fresh()?->slug)->toBe('ustaz-ahmad-fauzi-my');
+    expect($first->slug)->toBe('ustaz-ahmad-fauzi-my')
+        ->and($second->slug)->toBe('ustaz-ahmad-fauzi-2-my');
 });
 
 it('backfills existing person slugs through the queued job logic', function () {

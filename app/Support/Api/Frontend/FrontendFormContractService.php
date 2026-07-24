@@ -11,11 +11,8 @@ use App\Enums\EventPrayerTime;
 use App\Enums\EventTaxonomyCode;
 use App\Enums\EventVisibility;
 use App\Enums\Gender;
-use App\Enums\Honorific;
 use App\Enums\InstitutionType;
 use App\Enums\MemberSubjectType;
-use App\Enums\PostNominal;
-use App\Enums\PreNominal;
 use App\Enums\RegistrationScope;
 use App\Models\User;
 use App\Services\GitHub\GitHubIssueReporter;
@@ -181,7 +178,7 @@ class FrontendFormContractService
                         'type' => ['all', 'event', 'institution', 'speaker', 'series', 'reference', 'search', 'page'],
                         'sort' => ['recent', 'visits', 'signups', 'registrations', 'checkins', 'submissions'],
                         'status' => ['all', 'active', 'inactive'],
-                        'outcome' => ['all', 'signup', 'event_registration', 'event_checkin', 'event_submission', 'event_save', 'event_going', 'institution_follow', 'speaker_follow', 'series_follow', 'reference_follow', 'saved_search_created'],
+                        'outcome' => ['all', 'signup', 'event_registration', 'event_checkin', 'event_submission', 'event_save', 'event_going', 'institution_follow', 'person_follow', 'series_follow', 'reference_follow', 'saved_search_created'],
                     ],
                 ],
                 'persons_index' => [
@@ -474,7 +471,6 @@ class FrontendFormContractService
             'auth_required' => true,
             'defaults' => [
                 'gender' => Gender::Male->value,
-                'is_freelance' => false,
                 'address' => [
                     'country_id' => null,
                     'admin_area_1_id' => null,
@@ -483,12 +479,7 @@ class FrontendFormContractService
             ],
             'fields' => [
                 $this->field('name', 'string', required: true, maxLength: 255),
-                $this->field('honorific', 'array<string>', required: false, allowedValues: $this->enumValues(Honorific::class)),
-                $this->field('pre_nominal', 'array<string>', required: false, allowedValues: $this->enumValues(PreNominal::class)),
-                $this->field('post_nominal', 'array<string>', required: false, allowedValues: $this->enumValues(PostNominal::class)),
                 $this->field('gender', 'string', required: true, default: Gender::Male->value, allowedValues: $this->enumValues(Gender::class)),
-                $this->field('is_freelance', 'boolean', required: false, default: false),
-                $this->field('job_title', 'string', required: false, maxLength: 255),
                 $this->field('bio', 'rich_text', required: false),
                 $this->field('institution_id', 'uuid', required: false, catalog: route('api.client.catalogs.submit-institutions')),
                 $this->field('institution_position', 'string', required: false, maxLength: 255),
@@ -496,7 +487,6 @@ class FrontendFormContractService
                 $this->field('address.country_id', 'uuid', required: true, catalog: route('api.client.catalogs.countries')),
                 $this->field('address.admin_area_1_id', 'uuid', required: false),
                 $this->field('address.admin_area_2_id', 'uuid', required: false),
-                $this->field('qualifications', 'array<object>', required: false),
                 $this->field('language_ids', 'array<int>', required: false, catalog: route('api.client.catalogs.languages')),
                 $this->field('contactMethods', 'array<object>', required: false),
                 $this->field('social_media', 'array<object>', required: false),
@@ -504,9 +494,7 @@ class FrontendFormContractService
                 $this->field('cover', 'file', required: false, acceptedMimeTypes: $this->imageMimeTypes(), maxFileSizeKb: $this->maxUploadSizeKb()),
                 $this->field('gallery', 'array<file>', required: false, acceptedMimeTypes: $this->imageMimeTypes(), maxFileSizeKb: $this->maxUploadSizeKb()),
             ],
-            'conditional_rules' => [
-                ['field' => 'job_title', 'required_when' => ['is_freelance' => [true]]],
-            ],
+            'conditional_rules' => [],
         ];
     }
 
@@ -725,7 +713,7 @@ class FrontendFormContractService
             'options' => [
                 'primary_organizer_options' => [
                     'institution' => $builderContext['institution_options'],
-                    'speaker' => $builderContext['speaker_options'],
+                    'speaker' => $builderContext['person_options'],
                 ],
                 'location_institution_options' => $builderContext['institution_options'],
             ],

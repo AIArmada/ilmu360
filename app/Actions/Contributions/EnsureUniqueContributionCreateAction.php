@@ -3,7 +3,6 @@
 namespace App\Actions\Contributions;
 
 use App\Enums\ContributionSubjectType;
-use App\Enums\PostNominal;
 use App\Forms\SharedFormSchema;
 use App\Models\Institution;
 use App\Models\Person;
@@ -123,88 +122,13 @@ final readonly class EnsureUniqueContributionCreateAction
             return false;
         }
 
-        $honorific = $this->normalizeStringSet($state['honorific'] ?? []);
-        $preNominal = $this->normalizeStringSet($state['pre_nominal'] ?? []);
-        $postNominal = $this->effectivePostNominalSet($state);
-
         return Person::query()
             ->whereIn('status', ['verified', 'pending'])
             ->where('gender', $gender)
             ->whereHas('addresses', fn (Builder $query): Builder => $query->where('country_id', $countryId))
-            ->get(['name', 'gender', 'honorific', 'pre_nominal', 'post_nominal'])
+            ->get(['name', 'gender'])
             ->contains(fn (Person $speaker): bool => $this->normalizeComparableString($speaker->name) === $name
-                && $this->normalizeComparableString($speaker->gender) === $gender
-                && $this->normalizeStringSet($speaker->honorific ?? []) === $honorific
-                && $this->normalizeStringSet($speaker->pre_nominal ?? []) === $preNominal
-                && $this->normalizeStringSet($speaker->post_nominal ?? []) === $postNominal);
-    }
-
-    /**
-     * @param  array<string, mixed>  $state
-     * @return list<string>
-     */
-    private function effectivePostNominalSet(array $state): array
-    {
-        $allowedPostNominals = array_map(
-            static fn (PostNominal $postNominal): string => $postNominal->value,
-            PostNominal::cases(),
-        );
-
-        $hasQualifications = false;
-        $derivedPostNominals = [];
-
-        foreach (is_iterable($state['qualifications'] ?? null) ? $state['qualifications'] : [] as $qualification) {
-            if (! is_array($qualification)) {
-                continue;
-            }
-
-            $institution = $this->normalizeComparableString($qualification['institution'] ?? null);
-            $degree = $this->normalizeComparableString($qualification['degree'] ?? null);
-
-            if ($institution === null && $degree === null) {
-                continue;
-            }
-
-            $hasQualifications = true;
-
-            if ($degree !== null && in_array($degree, $allowedPostNominals, true)) {
-                $derivedPostNominals[] = $degree;
-            }
-        }
-
-        if ($hasQualifications) {
-            return $this->normalizeStringSet($derivedPostNominals);
-        }
-
-        return $this->normalizeStringSet($state['post_nominal'] ?? []);
-    }
-
-    /**
-     * @param  iterable<int, mixed>|string|null  $values
-     * @return list<string>
-     */
-    private function normalizeStringSet(iterable|string|null $values): array
-    {
-        if ($values instanceof BackedEnum || is_string($values)) {
-            $values = [$values];
-        }
-
-        $normalized = [];
-
-        foreach ($values ?? [] as $value) {
-            $candidate = $this->normalizeComparableString($value instanceof BackedEnum ? $value->value : $value);
-
-            if ($candidate === null) {
-                continue;
-            }
-
-            $normalized[$candidate] = $candidate;
-        }
-
-        $normalized = array_values($normalized);
-        sort($normalized, SORT_STRING);
-
-        return $normalized;
+                && $this->normalizeComparableString($speaker->gender) === $gender);
     }
 
     private function normalizeComparableString(mixed $value): ?string

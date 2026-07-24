@@ -79,19 +79,10 @@ it('creates staged pending speaker records with structured relation data', funct
     $person = app(ContributionEntityMutationService::class)->createPerson([
         'name' => 'Ustaz Arif',
         'gender' => 'male',
-        'job_title' => 'Pendakwah',
         'bio' => ['type' => 'doc', 'content' => []],
-        'qualifications' => [[
-            'institution' => 'Universiti Islam',
-            'degree' => 'MA',
-            'field' => 'Dakwah',
-            'year' => '2020',
-        ]],
     ], $proposer);
 
     expect($person->status)->toBe('pending')
-        ->and($person->job_title)->toBe('Pendakwah')
-        ->and($person->qualifications)->toBeArray()
         ->and($person->members()->whereKey($proposer->id)->exists())->toBeTrue();
 });
 
@@ -290,7 +281,7 @@ it('applies structured event participant and reference updates through approval'
     expect($event->title)->toBe('Kuliah Terkini')
         ->and($event->references()->whereKey($reference->id)->exists())->toBeTrue()
         ->and($event->keyPeople()
-            ->where('involveable_type', 'speaker')
+            ->where('involveable_type', (new Person)->getMorphClass())
             ->where('involveable_id', $person->id)
             ->exists())->toBeTrue()
         ->and($event->keyPeople()->where('role_code', 'moderator')->exists())->toBeTrue();

@@ -469,13 +469,13 @@ class EventNotificationService
 
         if ($event->organizer instanceof Person) {
             $recipients = $recipients->merge(
-                $this->memberPermissionGate->speakerMembersWithPermission($event->organizer, 'event.update')
+                $this->memberPermissionGate->personMembersWithPermission($event->organizer, 'event.update')
             );
         }
 
-        foreach ($event->speakers as $speaker) {
+        foreach ($event->persons as $person) {
             $recipients = $recipients->merge(
-                $this->memberPermissionGate->speakerMembersWithPermission($speaker, 'event.update')
+                $this->memberPermissionGate->personMembersWithPermission($person, 'event.update')
             );
         }
 

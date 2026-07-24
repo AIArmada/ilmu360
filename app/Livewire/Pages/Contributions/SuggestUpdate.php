@@ -13,9 +13,9 @@ use App\Actions\Contributions\SubmitContributionUpdateRequestAction;
 use App\Enums\ContributionSubjectType;
 use App\Forms\EventContributionFormSchema;
 use App\Forms\InstitutionContributionFormSchema;
+use App\Forms\PersonContributionFormSchema;
 use App\Forms\ReferenceContributionFormSchema;
 use App\Forms\SharedFormSchema;
-use App\Forms\SpeakerContributionFormSchema;
 use App\Livewire\Concerns\InteractsWithLocationPickerSelection;
 use App\Livewire\Concerns\InteractsWithToasts;
 use App\Models\ContributionRequest;
@@ -266,13 +266,13 @@ class SuggestUpdate extends Component implements HasActions, HasForms
      */
     private function personSubjectSchema(): array
     {
-        $sections = SpeakerContributionFormSchema::components(
+        $sections = PersonContributionFormSchema::components(
             includeMedia: false,
             addressStatePath: 'address',
             regionOnlyAddress: true,
         );
 
-        // SpeakerContributionFormSchema::components(includeMedia: false) returns:
+        // PersonContributionFormSchema::components(includeMedia: false) returns:
         // 0: Profil Penceramah, 1: Address, 2: Affiliated Institution,
         // 3: Education, 4: Contact, 5: Social Media
 
@@ -345,21 +345,6 @@ class SuggestUpdate extends Component implements HasActions, HasForms
                 ]],
             ];
         }
-
-        $initialState['qualifications'] = array_map(
-            static function (mixed $qualification): mixed {
-                if (! is_array($qualification)) {
-                    return $qualification;
-                }
-
-                if (is_numeric($qualification['year'] ?? null)) {
-                    $qualification['year'] = (int) $qualification['year'];
-                }
-
-                return $qualification;
-            },
-            is_array($initialState['qualifications'] ?? null) ? $initialState['qualifications'] : [],
-        );
 
         $initialState['contactMethods'] = array_map(
             static function (mixed $contact): mixed {

@@ -17,6 +17,7 @@ use App\Enums\EventVisibility;
 use App\Enums\ReferenceType;
 use App\Forms\Components\Select;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Series;
 use App\Models\Space;
@@ -398,8 +399,8 @@ class EventContributionFormSchema
                                         $set('speaker_ids', $currentSpeakers);
                                     }
                                 })
-                                ->createOptionForm(SpeakerFormSchema::createOptionForm())
-                                ->createOptionUsing(fn (array $data, ?Schema $schema = null): string => SpeakerFormSchema::createOptionUsing($data, $schema)),
+                                ->createOptionForm(PersonFormSchema::createOptionForm())
+                                ->createOptionUsing(fn (array $data, ?Schema $schema = null): string => PersonFormSchema::createOptionUsing($data, $schema)),
                             Select::make('series_ids')
                                 ->label(__('Siri'))
                                 ->options(fn (): array => Series::query()->orderBy('title')->pluck('title', 'id')->all())
@@ -541,15 +542,15 @@ class EventContributionFormSchema
                             ->whereIn('status', ['verified', 'pending'])
                             ->orderBy('name')
                             ->get()
-                            ->mapWithKeys(fn (Speaker $speaker): array => [(string) $speaker->id => $speaker->formatted_name])
+                            ->mapWithKeys(fn (Person $person): array => [(string) $person->id => $person->formatted_name])
                             ->all())
                         ->required(fn (Get $get): bool => self::requiresSpeakersForCategories($get('event_category_ids')))
                         ->multiple()
                         ->closeOnSelect()
                         ->searchable()
                         ->preload()
-                        ->createOptionForm(SpeakerFormSchema::createOptionForm())
-                        ->createOptionUsing(fn (array $data, ?Schema $schema = null): string => SpeakerFormSchema::createOptionUsing($data, $schema))
+                        ->createOptionForm(PersonFormSchema::createOptionForm())
+                        ->createOptionUsing(fn (array $data, ?Schema $schema = null): string => PersonFormSchema::createOptionUsing($data, $schema))
                         ->helperText(fn (Get $get): string => self::requiresSpeakersForCategories($get('event_category_ids'))
                             ? __('Sekurang-kurangnya seorang penceramah diperlukan untuk jenis majlis ini.')
                             : __('Kosongkan jika majlis ini tidak mempunyai penceramah khusus.')),
@@ -568,7 +569,7 @@ class EventContributionFormSchema
                                     ->whereIn('status', ['verified', 'pending'])
                                     ->orderBy('name')
                                     ->get()
-                                    ->mapWithKeys(fn (Speaker $speaker): array => [(string) $speaker->id => $speaker->formatted_name])
+                                    ->mapWithKeys(fn (Person $person): array => [(string) $person->id => $person->formatted_name])
                                     ->all())
                                 ->searchable()
                                 ->preload()
@@ -577,8 +578,8 @@ class EventContributionFormSchema
                                     $set('display_name', null);
                                     $set('involveable_type', filled($state) ? 'speaker' : null);
                                 })
-                                ->createOptionForm(SpeakerFormSchema::createOptionForm())
-                                ->createOptionUsing(fn (array $data, ?Schema $schema = null): string => SpeakerFormSchema::createOptionUsing($data, $schema)),
+                                ->createOptionForm(PersonFormSchema::createOptionForm())
+                                ->createOptionUsing(fn (array $data, ?Schema $schema = null): string => PersonFormSchema::createOptionUsing($data, $schema)),
                             Hidden::make('involveable_type'),
                             TextInput::make('display_name')
                                 ->label(__('Nama Paparan'))
@@ -780,7 +781,7 @@ class EventContributionFormSchema
             ->whereIn('status', ['verified', 'pending'])
             ->orderBy('name')
             ->get()
-            ->mapWithKeys(fn (Speaker $speaker): array => [(string) $speaker->id => $speaker->formatted_name])
+            ->mapWithKeys(fn (Person $person): array => [(string) $person->id => $person->formatted_name])
             ->all();
     }
 

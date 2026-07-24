@@ -64,7 +64,7 @@ final readonly class MemberPermissionGate
 
     public function hasAnyPersonPermission(User $user, string $permission): bool
     {
-        return $this->hasAnyMembershipWithPermission($user->speakers(), $permission);
+        return $this->hasAnyMembershipWithPermission($user->persons(), $permission);
     }
 
     public function hasAnyReferencePermission(User $user, string $permission): bool
@@ -85,7 +85,7 @@ final readonly class MemberPermissionGate
      */
     public function personMembersWithPermission(Person $person, string $permission): Collection
     {
-        return $this->membersWithPermission($speaker, $permission);
+        return $this->membersWithPermission($person, $permission);
     }
 
     /**

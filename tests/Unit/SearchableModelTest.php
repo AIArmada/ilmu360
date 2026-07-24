@@ -16,12 +16,6 @@ it('builds the speaker searchable payload with title text and geography facets',
         $person = Person::factory()->create([
             'name' => 'Samad Hassan',
             'gender' => 'male',
-            'honorific' => null,
-            'pre_nominal' => ['ustaz'],
-            'post_nominal' => ['PhD'],
-            'qualifications' => [],
-            'is_freelance' => false,
-            'job_title' => 'Pensyarah',
             'status' => 'pending',
         ]);
 
@@ -37,9 +31,7 @@ it('builds the speaker searchable payload with title text and geography facets',
 
         expect($person->fresh()->shouldBeSearchable())->toBeTrue()
             ->and($payload)->toHaveKey('id', (string) $person->id)
-            ->and($payload)->toHaveKey('formatted_name', Person::formatDisplayedName('Samad Hassan', null, ['ustaz'], ['PhD']))
-            ->and($payload['search_text'])->toContain('Ustaz Samad Hassan, PhD')
-            ->and($payload['search_text'])->toContain('Pensyarah')
+            ->and($payload)->toHaveKey('formatted_name', Person::formatDisplayedName('Samad Hassan'))
             ->and($payload)->toHaveKey('country_code', 'MY')
             ->and($payload)->toHaveKey('state', 'Selangor')
             ->and($payload)->toHaveKey('city', 'Shah Alam')
@@ -209,17 +201,6 @@ it('scopes make all searchable queries to the intended scout-ready records', fun
 
 it('only marks search indexes dirty when searchable fields change', function () {
     withGlobalOwnerContext(function (): void {
-        $person = Person::factory()->create([
-            'status' => 'verified',
-        ])->fresh();
-        $person->touch();
-
-        expect($person->searchIndexShouldBeUpdated())->toBeFalse();
-
-        $person->update(['job_title' => 'Mudir']);
-
-        expect($person->searchIndexShouldBeUpdated())->toBeTrue();
-
         $institution = Institution::factory()->create([
             'status' => 'verified',
         ])->fresh();

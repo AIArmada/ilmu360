@@ -170,8 +170,8 @@ class CalendarService
         }
 
         // Add speakers
-        if ($event->speakers->isNotEmpty()) {
-            $speakerNames = $event->speakers->pluck('name')->join(', ');
+        if ($event->persons->isNotEmpty()) {
+            $speakerNames = $event->persons->pluck('name')->join(', ');
             $parts[] = '';
             $parts[] = "Penceramah: {$speakerNames}";
         }

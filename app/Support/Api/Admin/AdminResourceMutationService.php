@@ -34,11 +34,8 @@ use App\Enums\EventPrayerTime;
 use App\Enums\EventTaxonomyCode;
 use App\Enums\EventVisibility;
 use App\Enums\Gender;
-use App\Enums\Honorific;
 use App\Enums\InspirationCategory;
 use App\Enums\InstitutionType;
-use App\Enums\PostNominal;
-use App\Enums\PreNominal;
 use App\Enums\ReferencePartType;
 use App\Enums\ReferenceType;
 use App\Enums\RegistrationScope;
@@ -266,9 +263,7 @@ class AdminResourceMutationService
                 'current_media' => $record instanceof Person ? $this->mediaState($record, ['avatar', 'main', 'cover', 'gallery']) : null,
                 'fields' => $this->personFields($updating),
                 'catalogs' => $this->addressCatalogs('address'),
-                'conditional_rules' => [
-                    ['field' => 'job_title', 'required_when' => ['is_freelance' => [true]]],
-                ],
+                'conditional_rules' => [],
             ],
             SpaceResource::class => [
                 'resource_key' => $resourceKey,
@@ -553,7 +548,6 @@ class AdminResourceMutationService
             ],
             PersonResource::class => [
                 'gender' => Gender::Male->value,
-                'is_freelance' => false,
                 'status' => 'verified',
                 'clear_avatar' => false,
                 'clear_main' => false,
@@ -1193,7 +1187,7 @@ class AdminResourceMutationService
                 'accepted_aliases' => [
                     'institutions' => (string) (new Institution)->getMorphClass(),
                     Institution::class => (string) (new Institution)->getMorphClass(),
-                    'speakers' => (string) (new Speaker)->getMorphClass(),
+                    'speakers' => (string) (new Person)->getMorphClass(),
                     Person::class => (string) (new Person)->getMorphClass(),
                     'events' => (string) (new Event)->getMorphClass(),
                     Event::class => (string) (new Event)->getMorphClass(),
@@ -1267,20 +1261,7 @@ class AdminResourceMutationService
         $fields = [
             $this->field('name', 'string', required: true, maxLength: 255),
             $this->field('gender', 'string', required: true, default: Gender::Male->value, allowedValues: $this->enumValues(Gender::class)),
-            $this->field('is_freelance', 'boolean', required: false, default: false),
-            $this->field('job_title', 'string', required: false, maxLength: 255, meta: array_merge(
-                $this->trimmedStringMutationMeta(),
-                [
-                    'coerced_when' => [
-                        'is_freelance_false' => 'stored_as_null',
-                    ],
-                ],
-            )),
-            $this->field('honorific', 'array<string>', required: false, allowedValues: $this->enumValues(Honorific::class), meta: $this->simpleArrayCollectionMeta()),
-            $this->field('pre_nominal', 'array<string>', required: false, allowedValues: $this->enumValues(PreNominal::class), meta: $this->simpleArrayCollectionMeta()),
-            $this->field('post_nominal', 'array<string>', required: false, allowedValues: $this->enumValues(PostNominal::class), meta: $this->simpleArrayCollectionMeta()),
             $this->field('bio', 'rich_text', required: false),
-            $this->field('qualifications', 'array<object>', required: false, meta: $this->qualificationCollectionMeta()),
             $this->field('language_ids', 'array<int>', required: false, meta: [
                 'collection_semantics' => $this->replaceCollectionSemantics(
                     submittedArray: 'replace_relation_sync',
@@ -1789,38 +1770,6 @@ class AdminResourceMutationService
     /**
      * @return array<string, mixed>
      */
-    private function qualificationCollectionMeta(): array
-    {
-        return [
-            'collection_semantics' => $this->replaceCollectionSemantics(
-                itemIdsPreserved: null,
-                ordering: null,
-            ),
-            'item_schema' => [
-                'type' => 'object',
-                'paired_required_fields' => [
-                    ['institution', 'degree'],
-                ],
-                'empty_entries_discarded' => true,
-                'fields' => [
-                    $this->field('institution', 'string', required: false, maxLength: 255, meta: [
-                        'required_with' => ['degree'],
-                    ]),
-                    $this->field('degree', 'string', required: false, maxLength: 255, meta: [
-                        'required_with' => ['institution'],
-                    ]),
-                    $this->field('field', 'string', required: false, maxLength: 255),
-                    $this->field('year', 'string', required: false, maxLength: 4, meta: [
-                        'format' => 'yyyy',
-                    ]),
-                ],
-            ],
-        ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
     private function facilitiesCollectionMeta(): array
     {
         return [
@@ -1834,20 +1783,6 @@ class AdminResourceMutationService
                 'replacement_scope' => 'general_venue_facilities_only',
                 'unknown_codes' => 'rejected',
             ],
-        ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function simpleArrayCollectionMeta(): array
-    {
-        return [
-            'collection_semantics' => $this->replaceCollectionSemantics(
-                itemIdsPreserved: null,
-                ordering: null,
-                safeClientStrategy: 'send_full_array_when_editing',
-            ),
         ];
     }
 
@@ -2339,20 +2274,7 @@ class AdminResourceMutationService
         return [
             'name' => ['required', 'string', 'max:255'],
             'gender' => ['required', Rule::enum(Gender::class)],
-            'is_freelance' => ['sometimes', 'boolean'],
-            'job_title' => ['nullable', 'string', 'max:255', 'required_if:is_freelance,true'],
-            'honorific' => ['nullable', 'array'],
-            'honorific.*' => [Rule::enum(Honorific::class)],
-            'pre_nominal' => ['nullable', 'array'],
-            'pre_nominal.*' => [Rule::enum(PreNominal::class)],
-            'post_nominal' => ['nullable', 'array'],
-            'post_nominal.*' => [Rule::enum(PostNominal::class)],
             'bio' => ['nullable', 'array'],
-            'qualifications' => ['nullable', 'array'],
-            'qualifications.*.institution' => ['required_with:qualifications.*.degree', 'string', 'max:255'],
-            'qualifications.*.degree' => ['required_with:qualifications.*.institution', 'string', 'max:255'],
-            'qualifications.*.field' => ['nullable', 'string', 'max:255'],
-            'qualifications.*.year' => ['nullable', 'digits:4'],
             'language_ids' => ['nullable', 'array'],
             'language_ids.*' => ['integer', 'exists:languages,id'],
             'status' => ['required', Rule::in(['pending', 'verified', 'rejected', 'inactive'])],

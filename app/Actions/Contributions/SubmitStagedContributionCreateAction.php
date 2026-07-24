@@ -40,7 +40,7 @@ class SubmitStagedContributionCreateAction
 
         $entity = match ($subjectType) {
             ContributionSubjectType::Institution => $this->contributionEntityMutationService->createInstitution($state, $user),
-            ContributionSubjectType::Person => $this->contributionEntityMutationService->createSpeaker($state, $user),
+            ContributionSubjectType::Person => $this->contributionEntityMutationService->createPerson($state, $user),
             default => throw new InvalidArgumentException("Unsupported contribution subject type [{$subjectType->value}]"),
         };
 

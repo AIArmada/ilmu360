@@ -194,9 +194,9 @@ final readonly class PublicSubmissionLockService
         }
 
         /** @var list<string> $personIds */
-        $personIds = $user->speakers()
+        $personIds = $user->persons()
             ->where('allow_public_event_submission', false)
-            ->pluck('speakers.id')
+            ->pluck('persons.id')
             ->map(fn (mixed $id): string => (string) $id)
             ->values()
             ->all();

@@ -14,6 +14,8 @@ use AIArmada\Signals\Models\TrackedProperty;
 use App\Support\Cache\PublicListingsCache;
 use App\Support\Signals\ProductSignalsSurfaceResolver;
 use Database\Seeders\AIArmada\EventTaxonomySeeder;
+use Database\Seeders\TitleCategorySeeder;
+use Database\Seeders\TitleSeeder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -130,6 +132,14 @@ pest()->extend(TestCase::class)
         Cache::forget('submit_venues_safe_v1');
 
         app(PublicListingsCache::class)->bustMajlisListing();
+
+        // Seed title categories and titles for tests
+        try {
+            app(TitleCategorySeeder::class)->run();
+            app(TitleSeeder::class)->run();
+        } catch (Throwable) {
+            // idempotent
+        }
 
         // Seed common languages for tests that use the submit event form
         $languages = [

@@ -53,6 +53,10 @@ class PersonResource extends Resource
             MemberInvitationsRelationManager::class,
             FollowersRelationManager::class,
             RelationManagers\InstitutionsRelationManager::class,
+            RelationManagers\TitlesRelationManager::class,
+            RelationManagers\CredentialAssignmentsRelationManager::class,
+            RelationManagers\AffiliationsRelationManager::class,
+            RelationManagers\NamesRelationManager::class,
             EventsRelationManager::class,
             AuditsRelationManager::class,
         ];

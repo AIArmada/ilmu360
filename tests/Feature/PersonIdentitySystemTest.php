@@ -2,6 +2,7 @@
 
 use App\Enums\AffiliationType;
 use App\Enums\AssignmentStatus;
+use App\Enums\CredentialType;
 use App\Enums\TitleUsagePosition;
 use App\Models\Affiliation;
 use App\Models\AffiliationRole;
@@ -11,24 +12,14 @@ use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Title;
 use App\Models\TitleAssignment;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use App\Models\TitleCategory;
 
-uses(RefreshDatabase::class);
-
-it('sets formatted_name from name when no titles are assigned', function () {
+it('formatted_name falls back to the bare name when no titles are assigned', function () {
     $person = Person::factory()->create([
         'name' => 'Ahmad Fauzi',
     ]);
 
-    $expected = Person::formatDisplayedName('Ahmad Fauzi', [], [], []);
-
-    expect($expected)->toBe('Ahmad Fauzi');
-});
-
-it('includes honorific and pre-nominal and post-nominal in formatted_name', function () {
-    $expected = Person::formatDisplayedName('Azhar Sulaiman', ['dato'], ['dr', 'ustaz'], ['PhD', 'BA']);
-
-    expect($expected)->toBe("Dato' Ustaz Dr Azhar Sulaiman, PhD, BA");
+    expect($person->formatted_name)->toBe('Ahmad Fauzi');
 });
 
 it('assigns a title to a person and returns it through the titleAssignments relationship', function () {
@@ -37,9 +28,10 @@ it('assigns a title to a person and returns it through the titleAssignments rela
     ]);
 
     $title = Title::query()->create([
+        'category_id' => TitleCategory::query()->where('code', 'academic')->firstOrFail()->id,
         'name' => 'Professor',
         'short_form' => 'Prof.',
-        'usage_position' => TitleUsagePosition::Prefix,
+        'usage_position' => TitleUsagePosition::BeforeName,
         'sort_order' => 1,
     ]);
 
@@ -64,6 +56,7 @@ it('assigns a credential to a person and returns it through the credentialAssign
         'name' => 'Bachelor of Islamic Studies',
         'short_form' => 'B.Isl.St.',
         'field' => 'Islamic Studies',
+        'credential_type' => CredentialType::AcademicDegree->value,
     ]);
 
     CredentialAssignment::query()->create([
@@ -97,12 +90,12 @@ it('creates an affiliation with an institution and assigns multiple roles', func
 
     AffiliationRole::query()->create([
         'affiliation_id' => $affiliation->getKey(),
-        'role' => 'Lecturer',
+        'role_name' => 'Lecturer',
     ]);
 
     AffiliationRole::query()->create([
         'affiliation_id' => $affiliation->getKey(),
-        'role' => 'Researcher',
+        'role_name' => 'Researcher',
     ]);
 
     $freshPerson = $person->fresh(['affiliations.roles']);
@@ -110,7 +103,7 @@ it('creates an affiliation with an institution and assigns multiple roles', func
     expect($freshPerson->affiliations)->toHaveCount(1)
         ->and($freshPerson->affiliations->first()->institution_id)->toBe((string) $institution->getKey())
         ->and($freshPerson->affiliations->first()->roles)->toHaveCount(2)
-        ->and($freshPerson->affiliations->first()->roles->pluck('role')->all())->toContain('Lecturer', 'Researcher')
+        ->and($freshPerson->affiliations->first()->roles->pluck('role_name')->all())->toContain('Lecturer', 'Researcher')
         ->and($freshPerson->affiliations->first()->is_primary)->toBeTrue();
 });
 

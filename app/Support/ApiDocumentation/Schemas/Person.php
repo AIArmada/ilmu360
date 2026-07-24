@@ -12,7 +12,7 @@ use Illuminate\Contracts\Support\Arrayable;
  * @phpstan-import-type CountryArray from Country
  *
  * @phpstan-type PersonMediaArray array{avatar_url: string, cover_url: ?string, share_image_url: ?string}
- * @phpstan-type PersonArray array{id: string, slug: string, name: string, gender: string|null, formatted_name: string, job_title: ?string, is_freelance: bool, bio: ?string, qualifications: list<string>, address: AddressSelectionArray|null, country: CountryArray|null, location: ?string, status: string, verified_by: ?string, is_following: bool, media: PersonMediaArray, gallery: list<array<string, mixed>>, institutions: list<array<string, mixed>>, contacts: list<array<string, mixed>>, social_media: list<array<string, mixed>>}
+ * @phpstan-type PersonArray array{id: string, slug: string, name: string, gender: string|null, formatted_name: string, bio: ?string, address: AddressSelectionArray|null, country: CountryArray|null, location: ?string, status: string, verified_by: ?string, is_following: bool, media: PersonMediaArray, gallery: list<array<string, mixed>>, institutions: list<array<string, mixed>>, contacts: list<array<string, mixed>>, social_media: list<array<string, mixed>>}
  *
  * @implements Arrayable<string, mixed>
  */
@@ -20,7 +20,6 @@ use Illuminate\Contracts\Support\Arrayable;
 final readonly class Person implements Arrayable
 {
     /**
-     * @param  list<string>  $qualifications
      * @param  array{avatar_url: string, cover_url: ?string, share_image_url: ?string}  $media
      * @param  list<array<string, mixed>>  $gallery
      * @param  list<array<string, mixed>>  $institutions
@@ -33,10 +32,7 @@ final readonly class Person implements Arrayable
         public string $name,
         public ?string $gender,
         public string $formatted_name,
-        public ?string $job_title,
-        public bool $is_freelance,
         public ?string $bio,
-        public array $qualifications,
         public ?AddressSelection $address,
         public ?Country $country,
         public ?string $location,
@@ -59,10 +55,7 @@ final readonly class Person implements Arrayable
             'name' => $this->name,
             'gender' => $this->gender,
             'formatted_name' => $this->formatted_name,
-            'job_title' => $this->job_title,
-            'is_freelance' => $this->is_freelance,
             'bio' => $this->bio,
-            'qualifications' => $this->qualifications,
             'address' => $this->address?->toArray(),
             'country' => $this->country?->toArray(),
             'location' => $this->location,

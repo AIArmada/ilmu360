@@ -642,9 +642,6 @@ it('renders optimized seo metadata on public detail pages', function () {
 
     $person = Person::factory()->create([
         'name' => 'Ahmad Fauzi',
-        'honorific' => null,
-        'pre_nominal' => null,
-        'post_nominal' => null,
         'bio' => [
             'type' => 'doc',
             'content' => [[

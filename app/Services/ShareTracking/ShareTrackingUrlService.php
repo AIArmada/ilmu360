@@ -191,7 +191,7 @@ final readonly class ShareTrackingUrlService
                 'subject_key' => 'institution:'.$subject->id,
             ],
             $subject instanceof Person => [
-                'subject_type' => DawahShareSubjectType::Speaker->value,
+                'subject_type' => DawahShareSubjectType::Person->value,
                 'subject_id' => $subject->id,
                 'subject_key' => 'speaker:'.$subject->id,
             ],
@@ -396,7 +396,7 @@ final readonly class ShareTrackingUrlService
         return match ($routeName) {
             'events.show' => $this->eventTarget((string) ($parameters['event'] ?? '')),
             'institutions.show' => $this->institutionTarget((string) ($parameters['institution'] ?? '')),
-            'speakers.show' => $this->speakerTarget((string) ($parameters['speaker'] ?? '')),
+            'persons.show' => $this->speakerTarget((string) ($parameters['speaker'] ?? '')),
             'series.show' => $this->seriesTarget((string) ($parameters['series'] ?? '')),
             'references.show' => $this->referenceTarget((string) ($parameters['reference'] ?? '')),
             'events.index' => $this->searchOrPageTarget($query, $fallbackTitle),
@@ -520,11 +520,11 @@ final readonly class ShareTrackingUrlService
         }
 
         return $this->subjectResult(
-            DawahShareSubjectType::Speaker,
+            DawahShareSubjectType::Person,
             $speaker->id,
             'speaker:'.$speaker->id,
-            route('speakers.show', $speaker),
-            route('speakers.show', $speaker),
+            route('persons.show', $speaker),
+            route('persons.show', $speaker),
             $speaker->formatted_name,
             ['slug' => $speaker->slug],
         );

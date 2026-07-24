@@ -65,7 +65,7 @@ final readonly class ResolvePublicSlugAction
         return match ($parameter) {
             'event' => $this->resolveBySlugOrUuid(new Event, $value),
             'institution' => $this->resolveBySlugOrUuid(new Institution, $value),
-            'speaker' => $this->resolveBySlugOrUuid(new Speaker, $value),
+            'speaker' => $this->resolveBySlugOrUuid(new Person, $value),
             'venue' => $this->resolveBySlugOrUuid(new Venue, $value),
             'reference' => $this->resolveBySlugOrUuid(new Reference, $value),
             default => null,

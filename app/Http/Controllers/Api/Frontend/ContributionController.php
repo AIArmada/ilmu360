@@ -18,10 +18,7 @@ use App\Actions\Contributions\SubmitContributionUpdateRequestAction;
 use App\Actions\Contributions\SubmitStagedContributionCreateAction;
 use App\Enums\ContributionSubjectType;
 use App\Enums\Gender;
-use App\Enums\Honorific;
 use App\Enums\InstitutionType;
-use App\Enums\PostNominal;
-use App\Enums\PreNominal;
 use App\Filament\Resources\ContributionRequests\Support\ContributionRequestPresenter;
 use App\Forms\SharedFormSchema;
 use App\Models\ContributionRequest;
@@ -177,14 +174,6 @@ class ContributionController extends FrontendController
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'gender' => ['required', Rule::in(array_column(Gender::cases(), 'value'))],
-            'is_freelance' => ['nullable', 'boolean'],
-            'job_title' => ['nullable', 'string', 'max:255'],
-            'honorific' => ['nullable', 'array'],
-            'honorific.*' => ['string', Rule::in(array_column(Honorific::cases(), 'value'))],
-            'pre_nominal' => ['nullable', 'array'],
-            'pre_nominal.*' => ['string', Rule::in(array_column(PreNominal::cases(), 'value'))],
-            'post_nominal' => ['nullable', 'array'],
-            'post_nominal.*' => ['string', Rule::in(array_column(PostNominal::cases(), 'value'))],
             'bio' => ['nullable'],
             'institution_id' => ['nullable', 'uuid', 'exists:institutions,id'],
             'institution_position' => ['nullable', 'string', 'max:255'],
@@ -200,11 +189,6 @@ class ContributionController extends FrontendController
             'address.google_maps_url' => ['prohibited'],
             'address.provider_place_id' => ['prohibited'],
             'address.waze_url' => ['prohibited'],
-            'qualifications' => ['nullable', 'array'],
-            'qualifications.*.institution' => ['required_with:qualifications.*.degree', 'nullable', 'string', 'max:255'],
-            'qualifications.*.degree' => ['required_with:qualifications.*.institution', 'nullable', 'string', 'max:255'],
-            'qualifications.*.field' => ['nullable', 'string', 'max:255'],
-            'qualifications.*.year' => ['nullable', 'digits:4'],
             'language_ids' => ['nullable', 'array'],
             'language_ids.*' => ['integer'],
             'contactMethods' => ['nullable', 'array'],

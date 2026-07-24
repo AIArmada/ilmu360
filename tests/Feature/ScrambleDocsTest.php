@@ -278,7 +278,7 @@ it('groups speaker endpoints under a dedicated speaker tag in scramble docs', fu
     $paths = $response->json('paths');
 
     expect($paths['/speakers']['get']['tags'] ?? null)->toContain('Person')
-        ->and($paths['/speakers/{speakerKey}']['get']['tags'] ?? null)->toContain('Person');
+        ->and($paths['/persons/{personKey}']['get']['tags'] ?? null)->toContain('Person');
 });
 
 it('groups other public directory endpoints under dedicated entity tags in scramble docs', function () {
@@ -343,7 +343,7 @@ it('publishes named speaker institution and reference schemas for the public dir
         ->and(collect(data_get($paths, '/references.get.parameters', []))->pluck('name')->all())->toContain('fields', 'search', 'following', 'page', 'per_page')
         ->and(collect(data_get($paths, '/references/{referenceKey}.get.parameters', []))->pluck('name')->all())->toContain('include_all_parts')
         ->and(data_get($paths, '/speakers.get.responses.200.content.application/json.schema'))->not->toBeNull()
-        ->and(data_get($paths, '/speakers/{speakerKey}.get.responses.200.content.application/json.schema'))->not->toBeNull()
+        ->and(data_get($paths, '/persons/{personKey}.get.responses.200.content.application/json.schema'))->not->toBeNull()
         ->and(data_get($paths, '/institutions.get.responses.200.content.application/json.schema'))->not->toBeNull()
         ->and(data_get($paths, '/institutions/near.get.responses.200.content.application/json.schema'))->not->toBeNull()
         ->and(data_get($paths, '/institutions/{institutionKey}.get.responses.200.content.application/json.schema'))->not->toBeNull()

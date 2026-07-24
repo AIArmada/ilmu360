@@ -33,7 +33,7 @@ class EventSaveController extends Controller
     {
         $savedEvents = $this->currentUser($request)
             ->savedEvents()
-            ->with(['institution:id,name,slug', 'venue:id,name', 'speakers:id,name,slug'])
+            ->with(['institution:id,name,slug', 'venue:id,name', 'persons:id,name,slug'])
             ->active()
             ->orderBy('starts_at')
             ->simplePaginate(ApiPagination::normalizePerPage($request->integer('per_page', 20), default: 20, max: 100));

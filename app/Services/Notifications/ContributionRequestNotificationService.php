@@ -170,7 +170,7 @@ class ContributionRequestNotificationService
         $subjectType = $this->normalizedSubjectType($request);
 
         return $request->type === ContributionRequestType::Create
-            && in_array($subjectType, [ContributionSubjectType::Institution, ContributionSubjectType::Speaker], true);
+            && in_array($subjectType, [ContributionSubjectType::Institution, ContributionSubjectType::Person], true);
     }
 
     private function normalizedSubjectType(ContributionRequest $request): ?ContributionSubjectType
@@ -192,7 +192,7 @@ class ContributionRequestNotificationService
     {
         return match ($this->normalizedSubjectType($request)) {
             ContributionSubjectType::Institution => __('Institution'),
-            ContributionSubjectType::Speaker => __('Speaker'),
+            ContributionSubjectType::Person => __('Speaker'),
             default => __('Submission'),
         };
     }
@@ -215,7 +215,7 @@ class ContributionRequestNotificationService
 
         return match (true) {
             $entity instanceof Institution => route('institutions.show', $entity),
-            $entity instanceof Person => route('speakers.show', $entity),
+            $entity instanceof Person => route('persons.show', $entity),
             default => route('contributions.index'),
         };
     }

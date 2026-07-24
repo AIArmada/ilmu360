@@ -3,17 +3,12 @@
 namespace App\Forms;
 
 use App\Enums\Gender;
-use App\Enums\Honorific;
-use App\Enums\PostNominal;
-use App\Enums\PreNominal;
 use App\Forms\Components\Select as QuickAddSelect;
 use App\Models\Institution;
-use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
@@ -45,32 +40,6 @@ class PersonContributionFormSchema
                         ->options(Gender::class)
                         ->default(Gender::Male->value)
                         ->required(),
-                    Toggle::make('is_freelance')
-                        ->label(__('Penceramah Bebas'))
-                        ->default(false)
-                        ->live(),
-                    TextInput::make('job_title')
-                        ->label(__('Job Title'))
-                        ->maxLength(255)
-                        ->visible(fn (Get $get): bool => (bool) $get('is_freelance')),
-                    Select::make('honorific')
-                        ->label(__('Honorific'))
-                        ->options(Honorific::class)
-                        ->multiple()
-                        ->preload()
-                        ->searchable(),
-                    Select::make('pre_nominal')
-                        ->label(__('Pre-nominal'))
-                        ->options(PreNominal::class)
-                        ->multiple()
-                        ->preload()
-                        ->searchable(),
-                    Select::make('post_nominal')
-                        ->label(__('Post-nominal'))
-                        ->options(PostNominal::class)
-                        ->multiple()
-                        ->preload()
-                        ->searchable(),
                     RichEditor::make('bio')
                         ->label(__('Biography'))
                         ->json()
@@ -112,27 +81,6 @@ class PersonContributionFormSchema
                             )])),
                 ])
                 ->columns($addressStatePath === null ? 2 : 1),
-            Section::make(__('Education'))
-                ->schema([
-                    Repeater::make('qualifications')
-                        ->label(__('Qualifications'))
-                        ->default([])
-                        ->schema([
-                            TextInput::make('institution')
-                                ->label(__('Institution'))
-                                ->required(),
-                            TextInput::make('degree')
-                                ->label(__('Degree / Level'))
-                                ->required(),
-                            TextInput::make('field')
-                                ->label(__('Field of Study')),
-                            TextInput::make('year')
-                                ->label(__('Year'))
-                                ->numeric()
-                                ->length(4),
-                        ])
-                        ->columns(2),
-                ]),
             Section::make(__('Contact'))
                 ->schema([
                     SharedFormSchema::contactsRepeater(),

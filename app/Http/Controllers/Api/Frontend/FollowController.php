@@ -100,7 +100,7 @@ class FollowController extends FrontendController
         ]);
     }
 
-    private function resolveFollowable(string $type, string $subject, User $user): Institution|Speaker|Reference|Series
+    private function resolveFollowable(string $type, string $subject, User $user): Institution|Person|Reference|Series
     {
         return match ($type) {
             'institution' => $this->resolveInstitution($subject, $user),
@@ -127,12 +127,12 @@ class FollowController extends FrontendController
         return $record;
     }
 
-    private function resolveSpeaker(string $subject, User $user): Speaker
+    private function resolveSpeaker(string $subject, User $user): Person
     {
-        /** @var Speaker $record */
+        /** @var Person $record */
         $record = $this->slugOrUuidResolver->firstOrFail(
             Person::query(),
-            'speakers.slug',
+            'persons.slug',
             $subject,
         );
 
@@ -176,7 +176,7 @@ class FollowController extends FrontendController
     /**
      * @return array<string, mixed>
      */
-    private function followData(Institution|Speaker|Reference|Series $record, User $user): array
+    private function followData(Institution|Person|Reference|Series $record, User $user): array
     {
         return FollowStateData::fromModel($record, $user)->toArray();
     }
@@ -185,7 +185,7 @@ class FollowController extends FrontendController
     {
         return match (true) {
             $record instanceof Institution => DawahShareOutcomeType::InstitutionFollow,
-            $record instanceof Person => DawahShareOutcomeType::SpeakerFollow,
+            $record instanceof Person => DawahShareOutcomeType::PersonFollow,
             $record instanceof Reference => DawahShareOutcomeType::ReferenceFollow,
             default => DawahShareOutcomeType::SeriesFollow,
         };

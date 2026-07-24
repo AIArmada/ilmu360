@@ -74,7 +74,7 @@ readonly class AppMembershipHook implements MembershipHook
 
         match ($subject::class) {
             Institution::class => $this->publicSubmissionLockService->ensureInstitutionUnlockedIfIneligible($subject->fresh()),
-            Person::class => $this->publicSubmissionLockService->ensureSpeakerUnlockedIfIneligible($subject->fresh()),
+            Person::class => $this->publicSubmissionLockService->ensurePersonUnlockedIfIneligible($subject->fresh()),
             default => null,
         };
     }

@@ -695,7 +695,7 @@ final readonly class AffiliatesShareTrackingAnalyticsService
             'event_save' => __('Event saves'),
             'event_going' => __('Going responses'),
             'institution_follow' => __('Institution follows'),
-            'speaker_follow' => __('Speaker follows'),
+            'person_follow' => __('Speaker follows'),
             'series_follow' => __('Series follows'),
             'reference_follow' => __('Reference follows'),
             'saved_search_created' => __('Saved searches created'),

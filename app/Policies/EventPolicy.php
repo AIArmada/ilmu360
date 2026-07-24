@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Enums\EventVisibility;
 use App\Models\Event;
+use App\Models\Person;
 use App\Models\User;
 use App\States\EventStatus\Draft;
 use App\Support\Authz\MemberPermissionGate;
@@ -163,11 +164,11 @@ class EventPolicy
             return true;
         }
 
-        $event->loadMissing('speakers');
+        $event->loadMissing('persons');
         $memberPermissionGate = app(MemberPermissionGate::class);
 
-        return $event->speakers->contains(
-            fn (Speaker $speaker): bool => $memberPermissionGate->canSpeaker($user, 'event.update', $speaker)
+        return $event->persons->contains(
+            fn (Person $person): bool => $memberPermissionGate->canPerson($user, 'event.update', $person)
         );
     }
 }

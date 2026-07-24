@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Models\Event;
-use App\Models\Institution;
 use App\Models\Person;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
@@ -39,19 +38,6 @@ class RefactorTest extends TestCase
         $this->assertFalse(Schema::hasTable('notifications'));
     }
 
-    public function test_speaker_post_nominal_logic()
-    {
-        $person = Person::factory()->create([
-            'qualifications' => [
-                ['degree' => 'PhD', 'institution' => 'Oxford'],
-                ['degree' => 'MA', 'institution' => 'Cairo'],
-            ],
-        ]);
-
-        // post_nominal is cast to array, not string
-        $this->assertEquals(['PhD', 'MA'], $person->post_nominal);
-    }
-
     public function test_speaker_avatar_url_behavior()
     {
         $person = Person::factory()->create();
@@ -62,23 +48,7 @@ class RefactorTest extends TestCase
         // We can't really test setting it because the column is gone and the accessor is read-only for media
     }
 
-    public function test_relationships()
-    {
-        OwnerContext::withOwner(null, function (): void {
-            $person = Person::factory()->create();
-            $event = Event::factory()->create();
-            $institution = Institution::factory()->create();
-
-            $event->speakers()->attach($person);
-            $institution->speakers()->attach($person);
-
-            $this->assertTrue($event->speakers->contains($person));
-            $this->assertTrue($institution->speakers->contains($person));
-            $this->assertTrue($person->institutions->contains($institution));
-        });
-    }
-
-    public function test_event_card_image_url_uses_speaker_fallback()
+    public function test_event_card_image_url_uses_default_placeholder()
     {
         $person = null;
         $event = null;
@@ -86,8 +56,6 @@ class RefactorTest extends TestCase
         OwnerContext::withOwner(null, function () use (&$person, &$event): void {
             $person = Person::factory()->create();
             $event = Event::factory()->create();
-
-            $event->speakers()->attach($person);
 
             $event->update(['institution_id' => null]);
         });

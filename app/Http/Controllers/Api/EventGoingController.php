@@ -37,7 +37,7 @@ class EventGoingController extends Controller
             ->with([
                 'institution:id,name,slug',
                 'venue:id,name',
-                'speakers:id,name,slug',
+                'persons:id,name,slug',
                 'goingBy' => fn ($query) => $query
                     ->where('responder_type', $user->getMorphClass())
                     ->where('responder_id', $user->getKey())

@@ -1034,7 +1034,6 @@ it('rejects direct event cover and poster uploads with invalid aspect ratios', f
 it('searches speakers api by formatted title parts used on the public directory', function () {
     $matchingPerson = Person::factory()->create([
         'name' => 'Aisyah Binti Hassan',
-        'pre_nominal' => ['syeikhul_maqari'],
         'status' => 'verified',
     ]);
 
@@ -1059,10 +1058,6 @@ it('falls back to local speaker and institution search on the frontend unified s
 
     $person = Person::factory()->create([
         'name' => 'Nur Hikmah Hassan',
-        'honorific' => null,
-        'pre_nominal' => [],
-        'post_nominal' => [],
-        'qualifications' => [],
         'status' => 'verified',
     ]);
 
@@ -1112,10 +1107,6 @@ it('returns full unified search totals while limiting speaker and institution pr
     foreach (range(1, 6) as $index) {
         $person = Person::factory()->create([
             'name' => sprintf('Audit Search Total Person %d', $index),
-            'honorific' => null,
-            'pre_nominal' => [],
-            'post_nominal' => [],
-            'qualifications' => [],
             'status' => 'verified',
         ]);
 
@@ -1129,10 +1120,6 @@ it('returns full unified search totals while limiting speaker and institution pr
 
     Person::factory()->create([
         'name' => 'Other Search Person',
-        'honorific' => null,
-        'pre_nominal' => [],
-        'post_nominal' => [],
-        'qualifications' => [],
         'status' => 'verified',
     ]);
 
@@ -1153,10 +1140,6 @@ it('returns full unified search totals while limiting speaker and institution pr
 it('uses the same fuzzy speaker and institution resolution in the unified search api as the directory endpoints', function () {
     $person = Person::factory()->create([
         'name' => 'Aisyah Binti Hassan',
-        'honorific' => null,
-        'pre_nominal' => [],
-        'post_nominal' => [],
-        'qualifications' => [],
         'status' => 'verified',
     ]);
 
@@ -1191,10 +1174,6 @@ it('uses the same fuzzy speaker and institution resolution in the unified search
 it('falls back to local person directory search when typesense fails', function () {
     $person = Person::factory()->create([
         'name' => 'Aisyah Binti Hassan',
-        'honorific' => null,
-        'pre_nominal' => ['syeikhul_maqari'],
-        'post_nominal' => [],
-        'qualifications' => [],
         'status' => 'verified',
     ]);
 
@@ -2358,7 +2337,6 @@ it('bumps the person directory cache version when speaker records change', funct
         ->json('meta.cache.version');
 
     $person->update([
-        'job_title' => 'Pensyarah Kanan',
     ]);
 
     $updatedVersion = $this->getJson(route('api.client.persons.index'))
@@ -3193,7 +3171,7 @@ it('mirrors public detail media and public contact payloads', function () {
     ]);
     $reference->addMedia(fakeGeneratedImageUpload('reference-front-cover.jpg'))->toMediaCollection('front_cover');
 
-    $speakerResponse = $this->getJson(route('api.client.speakers.show', ['speakerKey' => $person->slug]))
+    $speakerResponse = $this->getJson(route('api.client.persons.show', ['speakerKey' => $person->slug]))
         ->assertOk();
     $venueResponse = $this->getJson(route('api.client.venues.show', ['venueKey' => $venue->slug]))
         ->assertOk();
@@ -3329,8 +3307,6 @@ it('mirrors the public speaker page payload for app clients', function () {
 
     $person = Person::factory()->create([
         'status' => 'verified',
-        'job_title' => 'Penasihat Dakwah',
-        'is_freelance' => true,
         'gender' => 'male',
         'bio' => [
             'type' => 'doc',
@@ -3347,7 +3323,6 @@ it('mirrors the public speaker page payload for app clients', function () {
     $person->addMedia(fakeGeneratedImageUpload('speaker-cover.jpg'))->toMediaCollection('cover');
     $person->addMedia(fakeGeneratedImageUpload('speaker-gallery-1.jpg'))->toMediaCollection('gallery');
     $person->addMedia(fakeGeneratedImageUpload('speaker-gallery-2.jpg'))->toMediaCollection('gallery');
-    $person->update(['job_title' => 'Penasihat Dakwah']);
 
     $country = AddressCountry::query()->findOrFail($countryId);
     $speakerGeo = createTestPackageGeography('Pahang', 'Temerloh', 'Temerloh', country: $country);
@@ -3444,7 +3419,7 @@ it('mirrors the public speaker page payload for app clients', function () {
     ]);
 
     $response = $this->withUnencryptedCookie('user_timezone', 'Asia/Kuala_Lumpur')
-        ->getJson(route('api.client.speakers.show', ['speakerKey' => $person->slug]))
+        ->getJson(route('api.client.persons.show', ['speakerKey' => $person->slug]))
         ->assertOk();
 
     $speakerInstitution = $response->json('data.speaker.institutions.0');

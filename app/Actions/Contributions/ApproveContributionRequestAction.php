@@ -156,12 +156,7 @@ class ApproveContributionRequestAction
         $speaker = Person::create([
             'name' => (string) ($payload['name'] ?? 'Speaker'),
             'gender' => (string) ($payload['gender'] ?? 'male'),
-            'honorific' => $payload['honorific'] ?? null,
-            'pre_nominal' => $payload['pre_nominal'] ?? null,
-            'post_nominal' => $payload['post_nominal'] ?? null,
-            'job_title' => $payload['job_title'] ?? null,
             'bio' => $payload['bio'] ?? null,
-            'is_freelance' => (bool) ($payload['is_freelance'] ?? false),
             'slug' => $this->generatePersonSlugAction->handle((string) ($payload['name'] ?? 'Speaker'), $payload),
             'status' => 'verified',
             'verified_at' => now(),

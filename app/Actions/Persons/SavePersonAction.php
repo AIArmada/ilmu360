@@ -11,10 +11,8 @@ use App\Models\User;
 use App\Services\ContributionEntityMutationService;
 use App\Support\Media\ModelMediaSyncService;
 use App\Support\Submission\PublicSubmissionLockService;
-use BackedEnum;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
 
@@ -64,22 +62,10 @@ final readonly class SavePersonAction
         $requestedPublicSubmission = $creating
             ? true
             : (array_key_exists('allow_public_event_submission', $data) ? (bool) $data['allow_public_event_submission'] : $currentPublicSubmission);
-        $isFreelance = array_key_exists('is_freelance', $data) ? (bool) $data['is_freelance'] : ($creating ? false : (bool) $speaker->is_freelance);
-
         $attributes = [
             'name' => $this->normalizeRequiredString($data['name'] ?? $speaker->name, 'Speaker'),
             'gender' => $this->normalizeGender($data['gender'] ?? $speaker->gender ?? null),
-            'honorific' => array_key_exists('honorific', $data) ? $this->normalizeStringArray($data['honorific'] ?? []) : $speaker->honorific,
-            'pre_nominal' => array_key_exists('pre_nominal', $data) ? $this->normalizeStringArray($data['pre_nominal'] ?? []) : $speaker->pre_nominal,
-            'post_nominal' => array_key_exists('post_nominal', $data) ? $this->normalizeStringArray($data['post_nominal'] ?? []) : $speaker->post_nominal,
             'bio' => array_key_exists('bio', $data) ? $data['bio'] : $speaker->bio,
-            'qualifications' => array_key_exists('qualifications', $data)
-                ? $this->normalizeQualificationEntries($data['qualifications'] ?? [])
-                : $speaker->qualifications,
-            'is_freelance' => $isFreelance,
-            'job_title' => $isFreelance
-                ? $this->normalizeOptionalString($data['job_title'] ?? $speaker->job_title)
-                : null,
             'status' => array_key_exists('status', $data) ? (string) $data['status'] : ($creating ? 'pending' : (string) $speaker->status),
         ];
 
@@ -96,7 +82,7 @@ final readonly class SavePersonAction
             $speaker->save();
         }
 
-        $this->contributionEntityMutationService->syncSpeakerRelations($speaker, Arr::only($data, [
+        $this->contributionEntityMutationService->syncPersonRelations($speaker, Arr::only($data, [
             'address',
             'contactMethods',
             'social_media',
@@ -129,12 +115,12 @@ final readonly class SavePersonAction
         }
 
         if ($requestedPublicSubmission) {
-            $this->publicSubmissionLockService->unlockSpeaker($speaker, $actor);
+            $this->publicSubmissionLockService->unlockPerson($speaker, $actor);
 
             return;
         }
 
-        $eligibility = $this->publicSubmissionLockService->speakerEligibility($speaker);
+        $eligibility = $this->publicSubmissionLockService->personEligibility($speaker);
 
         if (! $eligibility->eligible) {
             throw ValidationException::withMessages([
@@ -142,7 +128,7 @@ final readonly class SavePersonAction
             ]);
         }
 
-        $this->publicSubmissionLockService->lockSpeaker($speaker, $actor);
+        $this->publicSubmissionLockService->lockPerson($speaker, $actor);
     }
 
     /**
@@ -194,39 +180,6 @@ final readonly class SavePersonAction
         );
     }
 
-    /**
-     * @param  iterable<int, mixed>  $entries
-     * @return list<array{institution: string, degree: string, field: string|null, year: string|null}>
-     */
-    private function normalizeQualificationEntries(iterable $entries): array
-    {
-        return collect($entries)
-            ->map(function (mixed $entry): ?array {
-                if (! is_array($entry)) {
-                    return null;
-                }
-
-                $institution = $this->normalizeOptionalString($entry['institution'] ?? null);
-                $degree = $this->normalizeOptionalString($entry['degree'] ?? null);
-                $field = $this->normalizeOptionalString($entry['field'] ?? null);
-                $year = is_scalar($entry['year'] ?? null) ? trim((string) $entry['year']) : null;
-
-                if ($institution === null || $degree === null) {
-                    return null;
-                }
-
-                return [
-                    'institution' => $institution,
-                    'degree' => $degree,
-                    'field' => $field,
-                    'year' => $year !== '' ? $year : null,
-                ];
-            })
-            ->filter()
-            ->values()
-            ->all();
-    }
-
     private function normalizeGender(mixed $value): string
     {
         if ($value instanceof Gender) {
@@ -256,24 +209,5 @@ final readonly class SavePersonAction
         $normalized = $this->normalizeOptionalString($value);
 
         return $normalized ?? $fallback;
-    }
-
-    /**
-     * @param  iterable<int, mixed>  $values
-     * @return list<string>
-     */
-    private function normalizeStringArray(iterable $values): array
-    {
-        return Collection::make($values)
-            ->map(function (mixed $value): ?string {
-                if ($value instanceof BackedEnum) {
-                    return trim((string) $value->value) ?: null;
-                }
-
-                return is_string($value) && trim($value) !== '' ? trim($value) : null;
-            })
-            ->filter()
-            ->values()
-            ->all();
     }
 }
