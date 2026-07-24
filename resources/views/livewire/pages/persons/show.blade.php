@@ -1,45 +1,45 @@
 @php
-    $speakerShareImageUrl = $speaker->public_avatar_url;
+    $personShareImageUrl = $person->public_avatar_url;
 @endphp
 
-@section('title', $speaker->formatted_name . ' - ' . config('app.name'))
-@section('meta_description', \Illuminate\Support\Str::limit((is_array($speaker->bio) ? \Filament\Forms\Components\RichEditor\RichContentRenderer::make($speaker->bio)->toText() : trim(strip_tags((string) $speaker->bio))) ?: __('Lihat profil, biodata, dan jadual majlis oleh :name di :app.', ['name' => $speaker->formatted_name, 'app' => config('app.name')]), 160))
-@section('meta_robots', ($speaker->status === 'verified') ? 'index, follow' : 'noindex, nofollow')
-@section('og_url', route('speakers.show', $speaker))
-@section('og_image', $speakerShareImageUrl)
-@section('og_image_alt', __('Profil penceramah :name', ['name' => $speaker->formatted_name]))
+@section('title', $person->formatted_name . ' - ' . config('app.name'))
+@section('meta_description', \Illuminate\Support\Str::limit((is_array($person->bio) ? \Filament\Forms\Components\RichEditor\RichContentRenderer::make($person->bio)->toText() : trim(strip_tags((string) $person->bio))) ?: __('Lihat profil, biodata, dan jadual majlis oleh :name di :app.', ['name' => $person->formatted_name, 'app' => config('app.name')]), 160))
+@section('meta_robots', ($person->status === 'verified') ? 'index, follow' : 'noindex, nofollow')
+@section('og_url', route('persons.show', $person))
+@section('og_image', $personShareImageUrl)
+@section('og_image_alt', __('Profil penceramah :name', ['name' => $person->formatted_name]))
 
 @php
-    $bioRenderer = is_array($speaker->bio)
-        ? \Filament\Forms\Components\RichEditor\RichContentRenderer::make($speaker->bio)
+    $bioRenderer = is_array($person->bio)
+        ? \Filament\Forms\Components\RichEditor\RichContentRenderer::make($person->bio)
         : null;
-    $bioHtml = is_array($speaker->bio) ? $bioRenderer?->toHtml() ?? '' : (string) $speaker->bio;
-    $bioText = is_array($speaker->bio) ? trim($bioRenderer?->toText() ?? '') : trim(strip_tags((string) $speaker->bio));
+    $bioHtml = is_array($person->bio) ? $bioRenderer?->toHtml() ?? '' : (string) $person->bio;
+    $bioText = is_array($person->bio) ? trim($bioRenderer?->toText() ?? '') : trim(strip_tags((string) $person->bio));
     $shouldCollapseBio = \Illuminate\Support\Str::length($bioText) > 680;
-    $locationString = \App\Support\Location\AddressHierarchyFormatter::format($speaker->primaryAddress());
+    $locationString = \App\Support\Location\AddressHierarchyFormatter::format($person->primaryAddress());
     $upcomingEvents = $this->upcomingEvents;
     $pastEvents = $this->pastEvents;
     $upcomingTotal = $this->upcomingTotal;
     $pastTotal = $this->pastTotal;
     $otherRoleParticipations = $this->otherRoleParticipations;
-    $speakerUrl = route('speakers.show', $speaker);
-    $speakerRedirectUrl = route('speakers.show', $speaker, absolute: false);
-    $shareText = trim($speaker->formatted_name . ' - ' . config('app.name'));
+    $personUrl = route('persons.show', $person);
+    $personRedirectUrl = route('persons.show', $person, absolute: false);
+    $shareText = trim($person->formatted_name . ' - ' . config('app.name'));
     $shareLinks = app(\App\Services\ShareTrackingService::class)->redirectLinks(
-        $speakerUrl,
+        $personUrl,
         $shareText,
-        $speaker->formatted_name,
+        $person->formatted_name,
     );
     $shareData = [
-        'title' => $speaker->formatted_name,
+        'title' => $person->formatted_name,
         'text' => $bioText !== '' ? \Illuminate\Support\Str::limit($bioText, 180) : __('Lihat profil penceramah ini di :app', ['app' => config('app.name')]),
-        'url' => $speakerUrl,
-        'sourceUrl' => $speakerUrl,
+        'url' => $personUrl,
+        'sourceUrl' => $personUrl,
         'shareText' => $shareText,
-        'fallbackTitle' => $speaker->formatted_name,
+        'fallbackTitle' => $person->formatted_name,
         'payloadEndpoint' => route('dawah-share.payload'),
     ];
-    $socialLinks = $speaker->socialProfiles
+    $socialLinks = $person->socialProfiles
         ->filter(function ($social): bool {
             $resolvedUrl = $social->resolved_url ?? $social->url;
 
@@ -52,7 +52,7 @@
     $showCancelledEventStatusNotice = $upcomingEvents->concat($pastEvents)->contains(
         fn (\App\Models\Event $event): bool => (string) $event->status === 'cancelled'
     );
-    $speakerRouteSegment = \App\Enums\ContributionSubjectType::Speaker->publicRouteSegment();
+    $personRouteSegment = \App\Enums\ContributionSubjectType::Speaker->publicRouteSegment();
 
     $resolveEventCategoryLabel = static fn (\App\Models\Event $event): string => app(\App\Support\Events\EventCategoryPresenter::class)->forEvent($event)[0]['path'] ?? __('Umum');
 
@@ -94,7 +94,7 @@
 
         <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
             <a
-                href="{{ route('speakers.index') }}"
+                href="{{ route('persons.index') }}"
                 wire:navigate
                 class="inline-flex items-center gap-2 text-sm font-semibold text-emerald-800 transition hover:text-emerald-600"
             >
@@ -109,15 +109,15 @@
                     <div class="relative min-h-[22rem] overflow-hidden bg-gradient-to-br from-emerald-100 via-[#f4efe4] to-amber-100 lg:min-h-[30rem]">
                         <div class="absolute inset-0 opacity-40" style="background-image: radial-gradient(circle at 1px 1px, rgba(7,91,72,.2) 1px, transparent 0); background-size: 20px 20px;"></div>
                         <img
-                            src="{{ $speaker->public_main_url }}"
-                            alt="{{ $speaker->formatted_name }}"
+                            src="{{ $person->public_main_url }}"
+                            alt="{{ $person->formatted_name }}"
                             class="relative h-full w-full object-cover object-top"
                             loading="eager"
                         >
                         <div class="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-emerald-950/80 via-emerald-950/25 to-transparent"></div>
 
                         <div class="absolute inset-x-5 bottom-5 flex items-center justify-between gap-3">
-                            @if($speaker->status === 'verified')
+                            @if($person->status === 'verified')
                                 <span class="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/92 px-3 py-1.5 text-xs font-bold text-emerald-800 shadow-lg backdrop-blur">
                                     <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                                         <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.051l-7.5 9.75a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.897 3.896 6.976-9.07a.75.75 0 0 1 1.051-.142Z" clip-rule="evenodd" />
@@ -140,7 +140,7 @@
                                 </p>
 
                                 <h1 class="mt-3 max-w-3xl font-heading text-4xl font-bold leading-[1.05] tracking-[-0.035em] text-emerald-950 sm:text-5xl lg:text-6xl">
-                                    {{ $speaker->formatted_name }}
+                                    {{ $person->formatted_name }}
                                 </h1>
 
                                 @if($locationString !== '')
@@ -186,7 +186,7 @@
                                     </button>
                                 @else
                                     <a
-                                        href="{{ \App\Support\Auth\IntendedRedirect::loginUrl($speakerRedirectUrl) }}"
+                                        href="{{ \App\Support\Auth\IntendedRedirect::loginUrl($personRedirectUrl) }}"
                                         class="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-emerald-800 px-6 text-sm font-bold text-white shadow-lg shadow-emerald-900/15 transition hover:-translate-y-0.5 hover:bg-emerald-700"
                                     >
                                         <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
@@ -208,7 +208,7 @@
 
                                 @if(auth()->user()?->hasAnyRole(['super_admin', 'admin']))
                                     <a
-                                        href="{{ \App\Filament\Resources\Speakers\SpeakerResource::getUrl('edit', ['record' => $speaker], panel: 'admin') }}"
+                                        href="{{ \App\Filament\Resources\Speakers\SpeakerResource::getUrl('edit', ['record' => $person], panel: 'admin') }}"
                                         target="_blank"
                                         class="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-6 text-sm font-bold text-amber-800 transition hover:-translate-y-0.5 hover:border-amber-300 hover:bg-amber-100"
                                     >
@@ -512,10 +512,10 @@
             <aside class="space-y-6 lg:sticky lg:top-24 lg:self-start">
                 <section class="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
                     <p class="text-[10px] font-black uppercase tracking-[0.22em] text-amber-700">{{ __('Ringkasan Profil') }}</p>
-                    <h2 class="mt-1 font-heading text-xl font-bold text-emerald-950">{{ $speaker->formatted_name }}</h2>
+                    <h2 class="mt-1 font-heading text-xl font-bold text-emerald-950">{{ $person->formatted_name }}</h2>
 
                     <div class="mt-5 space-y-3">
-                        @if($speaker->status === 'verified')
+                        @if($person->status === 'verified')
                             <div class="flex items-center gap-3 rounded-xl bg-emerald-50 p-3">
                                 <span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-emerald-700 text-white">
                                     <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -582,7 +582,7 @@
 
                 <section id="speaker-share-panel" class="scroll-reveal reveal-right revealed">
                     <x-dawah-share-panel
-                        :preview-title="$speaker->formatted_name"
+                        :preview-title="$person->formatted_name"
                         :preview-subtitle="$locationString !== '' ? $locationString : null"
                         :share-data="$shareData"
                         :share-links="$shareLinks"
@@ -598,14 +598,14 @@
 
                     <div class="mt-4 grid gap-2">
                         <a
-                            href="{{ route('contributions.suggest-update', ['subjectType' => $speakerRouteSegment, 'subjectId' => $speaker->slug]) }}"
+                            href="{{ route('contributions.suggest-update', ['subjectType' => $personRouteSegment, 'subjectId' => $person->slug]) }}"
                             wire:navigate
                             class="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-sky-200 bg-sky-50 px-4 text-xs font-bold text-sky-800 transition hover:border-sky-300 hover:bg-sky-100"
                         >
                             {{ __('Cadangkan Kemaskini') }}
                         </a>
                         <a
-                            href="{{ route('reports.create', ['subjectType' => $speakerRouteSegment, 'subjectId' => $speaker->slug]) }}"
+                            href="{{ route('reports.create', ['subjectType' => $personRouteSegment, 'subjectId' => $person->slug]) }}"
                             wire:navigate
                             class="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 text-xs font-bold text-rose-800 transition hover:border-rose-300 hover:bg-rose-100"
                         >

@@ -14,7 +14,7 @@ use App\Http\Middleware\SetLocale;
 use App\Livewire\Pages\About\Show as AboutPage;
 use App\Livewire\Pages\Contributions\Index as ContributionsIndex;
 use App\Livewire\Pages\Contributions\SubmitInstitution;
-use App\Livewire\Pages\Contributions\SubmitSpeaker;
+use App\Livewire\Pages\Contributions\SubmitPerson;
 use App\Livewire\Pages\Contributions\SuggestUpdate as SuggestContributionUpdate;
 use App\Livewire\Pages\Dashboard\AccountSettings;
 use App\Livewire\Pages\Dashboard\DawahImpactIndex;
@@ -106,7 +106,7 @@ Route::middleware('auth')->group(function () {
     Route::livewire('/jemputan-ahli/{token}', ShowMemberInvitation::class)->name('member-invitations.show');
     Route::livewire('/sumbangan', ContributionsIndex::class)->name('contributions.index');
     Route::livewire('/sumbangan/institusi/baru', SubmitInstitution::class)->name('contributions.submit-institution');
-    Route::livewire('/sumbangan/penceramah/baru', SubmitSpeaker::class)->name('contributions.submit-speaker');
+    Route::livewire('/sumbangan/penceramah/baru', SubmitPerson::class)->name('contributions.submit-person');
     Route::livewire('/sumbangan/{subjectType}/berjaya', 'pages.contributions.submission-success')
         ->whereIn('subjectType', [
             ContributionSubjectType::Institution->publicRouteSegment(),
@@ -143,13 +143,13 @@ Route::livewire('/institusi/{institution:slug}', 'pages.institutions.show')
     ->middleware(ResolvePublicSlugRedirect::class)
     ->name('institutions.show');
 
-// Speakers (with search rate limiting)
-Route::livewire('/penceramah', 'pages.speakers.index')
+// Persons (with search rate limiting)
+Route::livewire('/penceramah', 'pages.persons.index')
     ->middleware('throttle:search')
-    ->name('speakers.index');
-Route::livewire('/penceramah/{speaker:slug}', 'pages.speakers.show')
+    ->name('persons.index');
+Route::livewire('/penceramah/{person:slug}', 'pages.persons.show')
     ->middleware(ResolvePublicSlugRedirect::class)
-    ->name('speakers.show');
+    ->name('persons.show');
 
 // Venues
 Route::livewire('/tempat', 'pages.venues.index')
@@ -174,7 +174,7 @@ Route::livewire('/rujukan/{reference:slug}', 'pages.references.show')
 Route::get('/peta-laman.xml', [SitemapController::class, 'index'])->name('sitemap.index');
 Route::get('/peta-laman-majlis.xml', [SitemapController::class, 'events'])->name('sitemap.events');
 Route::get('/peta-laman-institusi.xml', [SitemapController::class, 'institutions'])->name('sitemap.institutions');
-Route::get('/peta-laman-penceramah.xml', [SitemapController::class, 'speakers'])->name('sitemap.speakers');
+Route::get('/peta-laman-penceramah.xml', [SitemapController::class, 'persons'])->name('sitemap.persons');
 
 Route::view('/welcome', 'welcome', [
     'canRegister' => Features::enabled(Features::registration()),

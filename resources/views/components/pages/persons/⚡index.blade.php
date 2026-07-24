@@ -1,7 +1,7 @@
 <?php
 
-use App\Models\Speaker;
-use App\Support\Search\SpeakerSearchService;
+use App\Models\Person;
+use App\Support\Search\PersonSearchService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator as LengthAwarePaginatorContract;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -26,7 +26,7 @@ new
         private function applySort(Builder $query): Builder
         {
             return match ($this->sort) {
-                'name' => $query->orderBy('speakers.name'),
+                'name' => $query->orderBy('persons.name'),
                 default => $query->publicDirectoryOrder(),
             };
         }
@@ -37,7 +37,7 @@ new
             $search = $this->normalizedSearch();
 
             if ($search === null) {
-                return $this->applySort($this->baseSpeakersQuery())
+                return $this->applySort($this->basePersonsQuery())
                     ->paginate(12);
             }
 
@@ -61,9 +61,9 @@ new
             $this->resetPage();
         }
 
-        private function baseSpeakersQuery(): Builder
+        private function basePersonsQuery(): Builder
         {
-            return Speaker::query()
+            return Person::query()
                 ->active()
                 ->where('status', 'verified')
                 ->withCount(['events' => function ($query) {
@@ -78,20 +78,20 @@ new
 
         private function directSearch(string $search): LengthAwarePaginatorContract
         {
-            $matchingIds = $this->speakerSearchService()->publicSearchIds($search);
+            $matchingIds = $this->personSearchService()->publicSearchIds($search);
 
             if ($matchingIds === []) {
                 return $this->emptyPaginator();
             }
 
-            return $this->applySort($this->baseSpeakersQuery()
-                ->whereIn('speakers.id', $matchingIds))
+            return $this->applySort($this->basePersonsQuery()
+                ->whereIn('persons.id', $matchingIds))
                 ->paginate(12);
         }
 
         private function fuzzySearch(string $search): LengthAwarePaginatorContract
         {
-            $orderedIds = $this->speakerSearchService()->publicFuzzySearchIds($search);
+            $orderedIds = $this->personSearchService()->publicFuzzySearchIds($search);
 
             if ($orderedIds === []) {
                 return $this->emptyPaginator();
@@ -106,11 +106,11 @@ new
                 return new LengthAwarePaginator(collect(), count($orderedIds), $perPage, $currentPage, $paginationMeta);
             }
 
-            $speakers = $this->baseSpeakersQuery()
+            $speakers = $this->basePersonsQuery()
                 ->whereIn('id', $paginatedIds)
                 ->get()
-                ->sortBy(static function (Speaker $speaker) use ($paginatedIds): int {
-                    $position = array_search($speaker->id, $paginatedIds, true);
+                ->sortBy(static function (Person $person) use ($paginatedIds): int {
+                    $position = array_search($person->id, $paginatedIds, true);
 
                     return is_int($position) ? $position : PHP_INT_MAX;
                 })
@@ -146,17 +146,17 @@ new
             ];
         }
 
-        private function speakerSearchService(): SpeakerSearchService
+        private function personSearchService(): PersonSearchService
         {
-            return app(SpeakerSearchService::class);
+            return app(PersonSearchService::class);
         }
     };
 ?>
 
 @section('title', __('Direktori Penceramah Islam') . ' - ' . config('app.name'))
 @section('meta_description', __('Cari profil penceramah, ustaz, dan pendakwah serta semak majlis ilmu mereka yang akan datang di seluruh Malaysia.'))
-@section('og_url', route('speakers.index'))
-@section('og_image', asset('images/placeholders/speaker.png'))
+@section('og_url', route('persons.index'))
+@section('og_image', asset('images/placeholders/person.png'))
 @section('og_image_alt', __('Direktori penceramah Islam'))
 @section('og_image_width', '1024')
 @section('og_image_height', '1024')
@@ -165,7 +165,7 @@ new
     $speakers = $this->speakers;
     $search = $this->search;
     $speakerLoadingTarget = 'search,clearSearch';
-    $submitSpeakerUrl = route('contributions.submit-speaker');
+    $submitPersonUrl = route('contributions.submit-person');
     $speakerTotal = $speakers->total();
 @endphp
 
@@ -288,7 +288,7 @@ new
                             @endif
 
                             <a
-                                href="{{ $submitSpeakerUrl }}"
+                                href="{{ $submitPersonUrl }}"
                                 wire:navigate
                                 class="inline-flex h-11 items-center justify-center gap-2.5 rounded-xl border-2 border-emerald-200 bg-white px-5 text-sm font-bold text-emerald-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-300 hover:bg-emerald-50 hover:shadow-md"
                             >
@@ -340,7 +340,7 @@ new
                 <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                     @foreach($speakers as $speaker)
                         <a
-                            href="{{ route('speakers.show', $speaker) }}"
+                            href="{{ route('persons.show', $speaker) }}"
                             wire:key="speaker-directory-{{ $speaker->id }}"
                             wire:navigate
                             class="group relative flex min-h-[10rem] gap-0 overflow-hidden rounded-[1.5rem] border border-slate-200/80 bg-white transition-all duration-300 hover:-translate-y-1.5 hover:border-emerald-300/80 hover:shadow-[0_22px_50px_-28px_rgba(6,78,59,0.40)] sm:block sm:min-h-0"
@@ -449,7 +449,7 @@ new
                         </div>
 
                         <a
-                            href="{{ $submitSpeakerUrl }}"
+                            href="{{ $submitPersonUrl }}"
                             wire:navigate
                             class="group inline-flex min-h-14 w-full items-center justify-between gap-5 rounded-[1.25rem] bg-white px-5 py-3.5 text-left text-emerald-900 shadow-xl shadow-black/15 transition-all duration-200 hover:-translate-y-0.5 hover:bg-amber-50 hover:shadow-2xl hover:shadow-black/20 sm:w-auto sm:min-w-[18rem]"
                         >

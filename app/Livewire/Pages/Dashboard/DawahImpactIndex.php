@@ -79,7 +79,7 @@ class DawahImpactIndex extends Component
             $options[$type->value] = match ($type) {
                 DawahShareSubjectType::Event => __('Events'),
                 DawahShareSubjectType::Institution => __('Institutions'),
-                DawahShareSubjectType::Speaker => __('Speakers'),
+                DawahShareSubjectType::Person => __('Speakers'),
                 DawahShareSubjectType::Series => __('Series'),
                 DawahShareSubjectType::Reference => __('References'),
                 DawahShareSubjectType::Search => __('Search Results'),
@@ -123,7 +123,7 @@ class DawahImpactIndex extends Component
                 DawahShareOutcomeType::EventSave => __('Event saves'),
                 DawahShareOutcomeType::EventGoing => __('Going responses'),
                 DawahShareOutcomeType::InstitutionFollow => __('Institution follows'),
-                DawahShareOutcomeType::SpeakerFollow => __('Speaker follows'),
+                DawahShareOutcomeType::PersonFollow => __('Person follows'),
                 DawahShareOutcomeType::SeriesFollow => __('Series follows'),
                 DawahShareOutcomeType::ReferenceFollow => __('Reference follows'),
                 DawahShareOutcomeType::SavedSearchCreated => __('Saved searches created'),

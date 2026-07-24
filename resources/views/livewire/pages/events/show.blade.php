@@ -251,7 +251,7 @@
             $contextEmail = $contextEntity->contactMethods->firstWhere('type', \AIArmada\Contacting\Enums\ContactMethodType::Email->value)?->value;
         }
     } elseif ($contextEntity instanceof \App\Models\Speaker) {
-        $contextHref = route('speakers.show', $contextEntity);
+        $contextHref = route('persons.show', $contextEntity);
         $contextThumb = $contextEntity->getFirstMediaUrl('avatar', 'thumb');
         $contextCover = $contextEntity->getFirstMediaUrl('cover', 'banner');
     } elseif ($contextEntity instanceof \App\Models\Venue) {
@@ -1083,7 +1083,7 @@
                             $spCover = $sp->getMedia('cover')->isNotEmpty() ? $sp->getFirstMediaUrl('cover', 'banner') : null;
                             $spBio = $sp->bio ? Str::limit(strip_tags(is_array($sp->bio) ? ($sp->bio['html'] ?? '') : $sp->bio), 220) : null;
                         @endphp
-                        <a href="{{ route('speakers.show', $sp) }}" wire:navigate
+                        <a href="{{ route('persons.show', $sp) }}" wire:navigate
                             class="group relative flex flex-col overflow-hidden rounded-3xl border border-emerald-200/60 bg-white/90 shadow-xl shadow-emerald-100/40 backdrop-blur-xl transition-all duration-300 hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-2xl hover:shadow-emerald-100/60 sm:min-h-44 sm:flex-row">
 
                             {{-- Left: cover/portrait panel --}}
@@ -1141,7 +1141,7 @@
                                     $speakerThumbImg = $speaker->avatar_url ?: $speaker->default_avatar_url;
                                     $speakerCoverImg = $speaker->getFirstMedia('cover')?->getAvailableUrl(['banner']) ?? null;
                                 @endphp
-                                <a wire:key="speaker-{{ $speaker->id }}" href="{{ route('speakers.show', $speaker) }}" wire:navigate
+                                <a wire:key="speaker-{{ $speaker->id }}" href="{{ route('persons.show', $speaker) }}" wire:navigate
                                     class="group relative w-[240px] flex flex-col overflow-hidden rounded-3xl border border-slate-200/60 bg-white/80 shadow-lg shadow-slate-200/40 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-emerald-300 hover:shadow-xl hover:shadow-emerald-100">
 
                                     {{-- Cover background --}}
@@ -1222,7 +1222,7 @@
                                         @endphp
                                         <div wire:key="key-person-{{ $keyPerson->id }}" class="rounded-2xl bg-white/80 p-3 ring-1 ring-amber-100">
                                             @if($linkedSpeaker)
-                                                <a href="{{ route('speakers.show', $linkedSpeaker) }}" wire:navigate class="font-semibold text-slate-900 hover:text-emerald-700">
+                                                <a href="{{ route('persons.show', $linkedSpeaker) }}" wire:navigate class="font-semibold text-slate-900 hover:text-emerald-700">
                                                     {{ $displayName }}
                                                 </a>
                                             @else

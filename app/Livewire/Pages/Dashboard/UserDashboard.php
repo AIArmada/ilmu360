@@ -8,10 +8,10 @@ use App\Models\Event;
 use App\Models\EventCheckin;
 use App\Models\EventSubmission;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Registration;
 use App\Models\SavedSearch;
-use App\Models\Speaker;
 use App\Models\User;
 use App\Services\ShareTrackingAnalyticsService;
 use App\Support\Timezone\UserDateTimeFormatter;
@@ -138,13 +138,13 @@ class UserDashboard extends Component
     }
 
     /**
-     * @return Collection<int, Speaker>
+     * @return Collection<int, Person>
      */
     #[Computed]
-    public function followingSpeakers(): Collection
+    public function followingPersons(): Collection
     {
-        /** @var Collection<int, Speaker> $speakers */
-        $speakers = $this->user()->followingSpeakers()
+        /** @var Collection<int, Person> $persons */
+        $persons = $this->user()->followingPersons()
             ->with(['media'])
             ->orderBy('name')
             ->get();
@@ -507,12 +507,12 @@ class UserDashboard extends Component
     }
 
     /**
-     * @return LengthAwarePaginator<int, Speaker>
+     * @return LengthAwarePaginator<int, Person>
      */
     #[Computed]
-    public function paginatedFollowingSpeakers(): LengthAwarePaginator
+    public function paginatedFollowingPersons(): LengthAwarePaginator
     {
-        return $this->paginateCollection($this->followingSpeakers(), self::PLANNER_BUCKET_PER_PAGE, 'following_speakers_page');
+        return $this->paginateCollection($this->followingPersons(), self::PLANNER_BUCKET_PER_PAGE, 'following_persons_page');
     }
 
     /**

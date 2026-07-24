@@ -6,7 +6,7 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Actions\Contributions\SubmitStagedContributionCreateAction;
 use App\Enums\ContributionSubjectType;
 use App\Forms\SpeakerContributionFormSchema;
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Models\User;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
@@ -20,8 +20,8 @@ use Livewire\WithFileUploads;
 use RuntimeException;
 
 #[Layout('layouts.app')]
-#[Title('Submit Speaker')]
-class SubmitSpeaker extends Component implements HasActions, HasForms
+#[Title('Submit Person')]
+class SubmitPerson extends Component implements HasActions, HasForms
 {
     use InteractsWithActions;
     use InteractsWithForms;
@@ -50,7 +50,7 @@ class SubmitSpeaker extends Component implements HasActions, HasForms
     public function form(Schema $schema): Schema
     {
         return $schema
-            ->model(new Speaker)
+            ->model(new Person)
             ->statePath('data')
             ->components(SpeakerContributionFormSchema::components(
                 includeMedia: true,
@@ -67,38 +67,25 @@ class SubmitSpeaker extends Component implements HasActions, HasForms
 
             abort_unless($user instanceof User, 403);
 
-            $submittedName = data_get($this->data, 'name');
-            $displayName = is_string($submittedName) && filled($submittedName)
-                ? Speaker::formatDisplayedName(
-                    $submittedName,
-                    data_get($this->data, 'honorific'),
-                    data_get($this->data, 'pre_nominal'),
-                    data_get($this->data, 'post_nominal'),
-                )
-                : null;
-
             $submitStagedContributionCreateAction->handle(
-                ContributionSubjectType::Speaker,
+                ContributionSubjectType::Person,
                 $this->contributionForm()->getState(),
                 $user,
-                function (Speaker $speaker): void {
-                    $this->contributionForm()->model($speaker)->saveRelationships();
+                function (Person $person): void {
+                    $this->contributionForm()->model($person)->saveRelationships();
+                    session()->flash('contribution_submission_name', $person->formatted_name);
                 },
                 'data',
             );
 
-            if (is_string($displayName) && filled($displayName)) {
-                session()->flash('contribution_submission_name', $displayName);
-            }
-
             $this->redirect(route('contributions.submission-success', [
-                'subjectType' => ContributionSubjectType::Speaker->publicRouteSegment(),
+                'subjectType' => ContributionSubjectType::Person->publicRouteSegment(),
             ]), navigate: true);
         });
     }
 
     protected function contributionForm(): Schema
     {
-        return $this->getForm('form') ?? throw new RuntimeException('Speaker contribution form is not available.');
+        return $this->getForm('form') ?? throw new RuntimeException('Person contribution form is not available.');
     }
 }

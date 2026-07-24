@@ -21,7 +21,7 @@ use App\Models\EventCheckin;
 use App\Models\EventKeyPerson;
 use App\Models\EventSubmission;
 use App\Models\Institution;
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Models\User;
 use App\Services\CalendarService;
 use App\Services\ShareTrackingService;
@@ -118,7 +118,7 @@ class Show extends Component
             if ($involveable = $event->primaryOrganizerInvolvement?->involveable) {
                 if ($involveable instanceof Institution) {
                     $involveable->loadMissing(['media', 'contactMethods']);
-                } elseif ($involveable instanceof Speaker) {
+                } elseif ($involveable instanceof Person) {
                     $involveable->loadMissing(['media']);
                 }
             }

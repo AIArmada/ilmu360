@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Livewire\Pages\Speakers;
+namespace App\Livewire\Pages\Persons;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Enums\DawahShareOutcomeType;
@@ -8,7 +8,7 @@ use App\Enums\EventVisibility;
 use App\Models\Event;
 use App\Models\EventKeyPerson;
 use App\Models\EventKeyPersonPivot;
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Services\ShareTrackingService;
 use App\Support\Auth\IntendedRedirect;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
@@ -21,7 +21,7 @@ use Livewire\Component;
 #[Layout('layouts.app')]
 class Show extends Component
 {
-    public Speaker $speaker;
+    public Person $person;
 
     public int $upcomingPerPage = 10;
 
@@ -34,15 +34,15 @@ class Show extends Component
         OwnerContext::setForRequest(null);
     }
 
-    public function mount(Speaker $speaker): void
+    public function mount(Person $person): void
     {
         $canBypassVisibility = auth()->user()?->hasAnyRole(['super_admin', 'moderator']) ?? false;
 
-        abort_unless($speaker->status === 'verified' || $canBypassVisibility, 404);
+        abort_unless($person->status === 'verified' || $canBypassVisibility, 404);
 
-        $this->speaker = $speaker;
-        $this->loadSpeakerRelations();
-        $this->isFollowing = auth()->user()?->isFollowing($speaker) ?? false;
+        $this->person = $person;
+        $this->loadPersonRelations();
+        $this->isFollowing = auth()->user()?->isFollowing($person) ?? false;
     }
 
     public function toggleFollow(): void
@@ -51,7 +51,7 @@ class Show extends Component
 
         if (! $user) {
             $this->redirect(
-                IntendedRedirect::loginUrl(route('speakers.show', $this->speaker, absolute: false)),
+                IntendedRedirect::loginUrl(route('persons.show', $this->person, absolute: false)),
                 navigate: true,
             );
 
@@ -59,23 +59,23 @@ class Show extends Component
         }
 
         if ($this->isFollowing) {
-            $user->unfollow($this->speaker);
+            $user->unfollow($this->person);
             $this->isFollowing = false;
 
             return;
         }
 
-        $user->follow($this->speaker);
+        $user->follow($this->person);
         $this->isFollowing = true;
 
         app(ShareTrackingService::class)->recordOutcome(
             type: DawahShareOutcomeType::SpeakerFollow,
-            outcomeKey: 'speaker_follow:user:'.$user->id.':speaker:'.$this->speaker->id,
-            subject: $this->speaker,
+            outcomeKey: 'person_follow:user:'.$user->id.':person:'.$this->person->id,
+            subject: $this->person,
             actor: $user,
             request: request(),
             metadata: [
-                'speaker_id' => $this->speaker->id,
+                'person_id' => $this->person->id,
             ],
         );
     }
@@ -95,7 +95,7 @@ class Show extends Component
      */
     public function getUpcomingEventsProperty(): EloquentCollection
     {
-        return $this->speakerEventQuery()
+        return $this->personEventQuery()
             ->where('starts_at', '>=', now())
             ->orderBy('starts_at', 'asc')
             ->take($this->upcomingPerPage)
@@ -104,7 +104,7 @@ class Show extends Component
 
     public function getUpcomingTotalProperty(): int
     {
-        return $this->speakerEventQuery()
+        return $this->personEventQuery()
             ->where('starts_at', '>=', now())
             ->count();
     }
@@ -114,7 +114,7 @@ class Show extends Component
      */
     public function getPastEventsProperty(): EloquentCollection
     {
-        return $this->speakerEventQuery()
+        return $this->personEventQuery()
             ->where('starts_at', '<', now())
             ->orderBy('starts_at', 'desc')
             ->take($this->pastPerPage)
@@ -123,7 +123,7 @@ class Show extends Component
 
     public function getPastTotalProperty(): int
     {
-        return $this->speakerEventQuery()
+        return $this->personEventQuery()
             ->where('starts_at', '<', now())
             ->count();
     }
@@ -133,7 +133,7 @@ class Show extends Component
      */
     public function getOtherRoleParticipationsProperty(): Collection
     {
-        return $this->speaker->nonSpeakerEventKeyPeople()
+        return $this->person->nonSpeakerEventKeyPeople()
             ->whereHas('event', function ($query): void {
                 $query->whereIn('events.status', Event::PUBLIC_STATUSES)
                     ->where('events.visibility', EventVisibility::Public)
@@ -162,13 +162,13 @@ class Show extends Component
     {
         $this->loadSpeakerRelations();
 
-        return view('livewire.pages.speakers.show');
+        return view('livewire.pages.persons.show');
     }
 
-    private function loadSpeakerRelations(): void
+    private function loadPersonRelations(): void
     {
         OwnerContext::withOwner(null, function (): void {
-            $this->speaker->load([
+            $this->person->load([
                 'media',
                 'contactMethods',
                 'socialProfiles',
@@ -180,13 +180,13 @@ class Show extends Component
     }
 
     /**
-     * @return BelongsToMany<Event, Speaker, EventKeyPersonPivot, 'pivot'>
+     * @return BelongsToMany<Event, Person, EventKeyPersonPivot, 'pivot'>
      */
-    private function speakerEventQuery(): BelongsToMany
+    private function personEventQuery(): BelongsToMany
     {
         $eventsTable = (new Event)->getTable();
 
-        return $this->speaker->speakerEvents()
+        return $this->person->speakerEvents()
             ->whereIn("{$eventsTable}.status", Event::PUBLIC_STATUSES)
             ->where("{$eventsTable}.visibility", EventVisibility::Public)
             ->whereNotNull("{$eventsTable}.published_at")

@@ -21,8 +21,8 @@ use App\Enums\TimingMode;
 use App\Forms\SharedFormSchema;
 use App\Models\Event;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
-use App\Models\Speaker;
 use App\Models\User;
 use App\Models\Venue;
 use App\Services\EventSearchService;
@@ -114,7 +114,7 @@ class Index extends Component implements HasForms
      * @var list<string>
      */
     #[Url]
-    public array $speaker_ids = [];
+    public array $person_ids = [];
 
     /**
      * @var list<string>
@@ -386,13 +386,13 @@ class Index extends Component implements HasForms
                 Section::make(__('Penceramah & kandungan'))
                     ->extraAttributes(['class' => 'mi-advanced-filter-group'])
                     ->schema([
-                        Select::make('speaker_ids')
+                        Select::make('person_ids')
                             ->label(__('Speaker'))
                             ->placeholder(__('Any Speaker'))
                             ->searchable()
                             ->multiple()
-                            ->getSearchResultsUsing(fn (string $search): array => $this->searchSpeakerOptions($search))
-                            ->getOptionLabelsUsing(fn (array $values): array => $this->speakerOptionLabels($values))
+                            ->getSearchResultsUsing(fn (string $search): array => $this->searchPersonOptions($search))
+                            ->getOptionLabelsUsing(fn (array $values): array => $this->personOptionLabels($values))
                             ->live(),
 
                         Select::make('key_person_roles')
@@ -408,8 +408,8 @@ class Index extends Component implements HasForms
                             ->placeholder(__('Any PIC / Penyelaras'))
                             ->searchable()
                             ->multiple()
-                            ->getSearchResultsUsing(fn (string $search): array => $this->searchSpeakerOptions($search))
-                            ->getOptionLabelsUsing(fn (array $values): array => $this->speakerOptionLabels($values))
+                            ->getSearchResultsUsing(fn (string $search): array => $this->searchPersonOptions($search))
+                            ->getOptionLabelsUsing(fn (array $values): array => $this->personOptionLabels($values))
                             ->live(),
 
                         TextInput::make('person_in_charge_search')
@@ -423,8 +423,8 @@ class Index extends Component implements HasForms
                             ->placeholder(__('Any Moderator'))
                             ->searchable()
                             ->multiple()
-                            ->getSearchResultsUsing(fn (string $search): array => $this->searchSpeakerOptions($search))
-                            ->getOptionLabelsUsing(fn (array $values): array => $this->speakerOptionLabels($values))
+                            ->getSearchResultsUsing(fn (string $search): array => $this->searchPersonOptions($search))
+                            ->getOptionLabelsUsing(fn (array $values): array => $this->personOptionLabels($values))
                             ->live(),
 
                         Select::make('imam_ids')
@@ -432,8 +432,8 @@ class Index extends Component implements HasForms
                             ->placeholder(__('Any Imam'))
                             ->searchable()
                             ->multiple()
-                            ->getSearchResultsUsing(fn (string $search): array => $this->searchSpeakerOptions($search))
-                            ->getOptionLabelsUsing(fn (array $values): array => $this->speakerOptionLabels($values))
+                            ->getSearchResultsUsing(fn (string $search): array => $this->searchPersonOptions($search))
+                            ->getOptionLabelsUsing(fn (array $values): array => $this->personOptionLabels($values))
                             ->live(),
 
                         Select::make('khatib_ids')
@@ -441,8 +441,8 @@ class Index extends Component implements HasForms
                             ->placeholder(__('Any Khatib'))
                             ->searchable()
                             ->multiple()
-                            ->getSearchResultsUsing(fn (string $search): array => $this->searchSpeakerOptions($search))
-                            ->getOptionLabelsUsing(fn (array $values): array => $this->speakerOptionLabels($values))
+                            ->getSearchResultsUsing(fn (string $search): array => $this->searchPersonOptions($search))
+                            ->getOptionLabelsUsing(fn (array $values): array => $this->personOptionLabels($values))
                             ->live(),
 
                         Select::make('bilal_ids')
@@ -450,8 +450,8 @@ class Index extends Component implements HasForms
                             ->placeholder(__('Any Bilal'))
                             ->searchable()
                             ->multiple()
-                            ->getSearchResultsUsing(fn (string $search): array => $this->searchSpeakerOptions($search))
-                            ->getOptionLabelsUsing(fn (array $values): array => $this->speakerOptionLabels($values))
+                            ->getSearchResultsUsing(fn (string $search): array => $this->searchPersonOptions($search))
+                            ->getOptionLabelsUsing(fn (array $values): array => $this->personOptionLabels($values))
                             ->live(),
 
                         Select::make('domain_tag_ids')
@@ -970,10 +970,10 @@ class Index extends Component implements HasForms
     /**
      * @return array<string, string>
      */
-    private function searchSpeakerOptions(string $search): array
+    private function searchPersonOptions(string $search): array
     {
         return $this->pluckOptions(
-            Speaker::query()
+            Person::query()
                 ->whereIn('status', ['verified', 'pending'])
                 ->whereIn('status', ['verified', 'pending'])
                 ->tap(fn (Builder $query): Builder => $this->applySearchConstraint($query, 'name', $search))
@@ -987,14 +987,14 @@ class Index extends Component implements HasForms
      * @param  list<string>  $values
      * @return array<string, string>
      */
-    public function speakerOptionLabels(array $values): array
+    public function personOptionLabels(array $values): array
     {
         if ($values === []) {
             return [];
         }
 
         return $this->pluckOptions(
-            Speaker::query()
+            Person::query()
                 ->whereIn('status', ['verified', 'pending'])
                 ->whereIn('status', ['verified', 'pending'])
                 ->whereIn('id', $values),
@@ -1262,15 +1262,15 @@ class Index extends Component implements HasForms
     }
 
     /**
-     * @return Collection<int, Speaker>
+     * @return Collection<int, Person>
      */
     #[Computed]
-    public function speakers(): Collection
+    public function persons(): Collection
     {
         return app(SafeModelCache::class)->rememberCollection(
-            key: 'events_speakers_'.app()->getLocale().'_v2',
+            key: 'events_persons_'.app()->getLocale().'_v2',
             ttl: 300,
-            query: Speaker::query()
+            query: Person::query()
                 ->whereIn('status', ['verified', 'pending'])
                 ->whereIn('status', ['verified', 'pending'])
                 ->orderBy('name')
@@ -1301,7 +1301,7 @@ class Index extends Component implements HasForms
             'is_muslim_only' => $filters['is_muslim_only'],
             'institution_id' => $filters['institution_id'],
             'venue_id' => $filters['venue_id'],
-            'speaker_ids' => $filters['speaker_ids'],
+            'person_ids' => $filters['person_ids'],
             'key_person_roles' => $filters['key_person_roles'],
             'person_in_charge_ids' => $filters['person_in_charge_ids'],
             'person_in_charge_search' => $filters['person_in_charge_search'],
@@ -1431,7 +1431,7 @@ class Index extends Component implements HasForms
             'is_muslim_only' => null,
             'institution_id' => null,
             'venue_id' => null,
-            'speaker_ids' => [],
+            'person_ids' => [],
             'key_person_roles' => [],
             'person_in_charge_ids' => [],
             'person_in_charge_search' => null,
@@ -1496,7 +1496,7 @@ class Index extends Component implements HasForms
             'is_muslim_only' => $this->normalizeNullableBoolean($this->is_muslim_only),
             'institution_id' => filled($this->institution_id) ? $this->institution_id : null,
             'venue_id' => filled($this->venue_id) ? $this->venue_id : null,
-            'speaker_ids' => $this->normalizeStringArray($this->speaker_ids),
+            'person_ids' => $this->normalizeStringArray($this->person_ids),
             'key_person_roles' => $this->normalizeStringArray($this->key_person_roles),
             'person_in_charge_ids' => $this->normalizeStringArray($this->person_in_charge_ids),
             'person_in_charge_search' => filled($this->person_in_charge_search) ? trim($this->person_in_charge_search) : null,
@@ -1552,7 +1552,7 @@ class Index extends Component implements HasForms
         $this->is_muslim_only = $filters['is_muslim_only'];
         $this->institution_id = $filters['institution_id'];
         $this->venue_id = $filters['venue_id'];
-        $this->speaker_ids = $filters['speaker_ids'];
+        $this->person_ids = $filters['person_ids'];
         $this->key_person_roles = $filters['key_person_roles'];
         $this->person_in_charge_ids = $filters['person_in_charge_ids'];
         $this->person_in_charge_search = $filters['person_in_charge_search'];
@@ -1644,7 +1644,7 @@ class Index extends Component implements HasForms
             'is_muslim_only' => $this->normalizeNullableBoolean($normalized['is_muslim_only'] ?? null),
             'institution_id' => filled($normalized['institution_id']) ? (string) $normalized['institution_id'] : null,
             'venue_id' => filled($normalized['venue_id']) ? (string) $normalized['venue_id'] : null,
-            'speaker_ids' => $this->normalizeStringArray($normalized['speaker_ids'] ?? []),
+            'person_ids' => $this->normalizeStringArray($normalized['person_ids'] ?? []),
             'key_person_roles' => $this->normalizeStringArray($normalized['key_person_roles'] ?? []),
             'person_in_charge_ids' => $this->normalizeStringArray($normalized['person_in_charge_ids'] ?? []),
             'person_in_charge_search' => filled($normalized['person_in_charge_search'] ?? null) ? trim((string) $normalized['person_in_charge_search']) : null,

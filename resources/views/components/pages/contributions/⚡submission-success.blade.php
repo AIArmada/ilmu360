@@ -55,7 +55,7 @@ new class extends Component
     {
         return match ($this->subjectType) {
             'institution' => route('institutions.index'),
-            'speaker' => route('speakers.index'),
+            'speaker' => route('persons.index'),
             default => route('home'),
         };
     }

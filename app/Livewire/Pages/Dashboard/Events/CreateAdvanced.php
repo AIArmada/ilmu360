@@ -36,7 +36,7 @@ class CreateAdvanced extends Component
     /**
      * @var array<string, string>
      */
-    public array $speakerOptions = [];
+    public array $personOptions = [];
 
     public int $activeStep = 1;
 
@@ -55,7 +55,7 @@ class CreateAdvanced extends Component
         );
 
         $this->institutionOptions = $builderContext['institution_options'];
-        $this->speakerOptions = $builderContext['speaker_options'];
+        $this->personOptions = $builderContext['person_options'];
 
         abort_unless($this->hasBuilderAccess(), 403);
 
@@ -189,7 +189,7 @@ class CreateAdvanced extends Component
 
     protected function hasBuilderAccess(): bool
     {
-        return $this->institutionOptions !== [] || $this->speakerOptions !== [];
+        return $this->institutionOptions !== [] || $this->personOptions !== [];
     }
 
     protected function currentUser(): ?User
@@ -211,7 +211,7 @@ class CreateAdvanced extends Component
             return 'institution';
         }
 
-        if (array_key_exists($organizerId, $this->speakerOptions)) {
+        if (array_key_exists($organizerId, $this->personOptions)) {
             return 'speaker';
         }
 
@@ -246,7 +246,7 @@ class CreateAdvanced extends Component
     {
         return view('livewire.pages.dashboard.events.create-advanced', [
             'institutionOptions' => $this->institutionOptions,
-            'speakerOptions' => $this->speakerOptions,
+            'personOptions' => $this->personOptions,
             'selectedOrganizerType' => $this->selectedOrganizerType(),
             'eventCategoryOptions' => app(EventCategoryCatalog::class)->options(),
             'eventFormatOptions' => collect(EventFormat::cases())->mapWithKeys(fn (EventFormat $format): array => [$format->value => $format->label()])->all(),

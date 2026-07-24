@@ -207,7 +207,7 @@
                     <p class="mt-3 text-sm leading-6 text-slate-600">{{ __('Open the full majlis listing if you want filters, saved searches, and nearby discovery.') }}</p>
                 </a>
 
-                <a href="{{ route('speakers.index') }}" wire:navigate class="group rounded-[1.75rem] border border-sky-100 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-xl hover:shadow-sky-900/10">
+                <a href="{{ route('persons.index') }}" wire:navigate class="group rounded-[1.75rem] border border-sky-100 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-xl hover:shadow-sky-900/10">
                     <span class="inline-flex rounded-full bg-sky-50 px-3 py-1 text-[11px] font-black uppercase tracking-[0.2em] text-sky-700">{{ __('Speakers') }}</span>
                     <h2 class="mt-4 font-heading text-2xl font-bold text-slate-900">{{ __('Explore speaker profiles') }}</h2>
                     <p class="mt-3 text-sm leading-6 text-slate-600">{{ __('Search well-known asatizah and discover who is actively teaching in upcoming majlis.') }}</p>
@@ -242,7 +242,7 @@
                     <a href="{{ route('events.index') }}" wire:navigate class="rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800">
                         {{ __('View all events') }}
                     </a>
-                    <a href="{{ route('speakers.index') }}" wire:navigate class="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-sky-300 hover:text-sky-700">
+                    <a href="{{ route('persons.index') }}" wire:navigate class="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-sky-300 hover:text-sky-700">
                         {{ __('View all speakers') }}
                     </a>
                     <a href="{{ route('references.index') }}" wire:navigate class="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-violet-300 hover:text-violet-700">
@@ -375,7 +375,7 @@
                             @else
                                 <div class="mt-8 grid gap-5 sm:grid-cols-2">
                                     @foreach($speakerMatches as $speaker)
-                                        <a href="{{ route('speakers.show', $speaker) }}" wire:navigate class="group rounded-[1.5rem] border border-slate-200 bg-slate-50/60 p-5 text-center transition hover:-translate-y-1 hover:border-sky-200 hover:bg-white hover:shadow-lg hover:shadow-sky-900/10">
+                                        <a href="{{ route('persons.show', $speaker) }}" wire:navigate class="group rounded-[1.5rem] border border-slate-200 bg-slate-50/60 p-5 text-center transition hover:-translate-y-1 hover:border-sky-200 hover:bg-white hover:shadow-lg hover:shadow-sky-900/10">
                                             <div class="mx-auto h-24 w-24 overflow-hidden rounded-full bg-white p-1.5 ring-2 ring-slate-200 transition group-hover:ring-sky-300">
                                                 <img src="{{ $speaker->public_avatar_url }}" alt="{{ $speaker->formatted_name }}" class="h-full w-full rounded-full object-cover" loading="lazy">
                                             </div>

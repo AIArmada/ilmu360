@@ -10,8 +10,8 @@ use App\Enums\ContributionSubjectType;
 use App\Livewire\Concerns\InteractsWithToasts;
 use App\Models\Event;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
-use App\Models\Speaker;
 use App\Models\User;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -29,7 +29,7 @@ class Create extends Component implements HasForms
     use InteractsWithForms;
     use InteractsWithToasts;
 
-    public Event|Institution|Reference|Speaker $entity;
+    public Event|Institution|Reference|Person $entity;
 
     public string $subjectType;
 
@@ -162,7 +162,7 @@ class Create extends Component implements HasForms
     {
         return match (true) {
             $this->entity instanceof Institution => $this->entity->slug,
-            $this->entity instanceof Speaker => $this->entity->slug,
+            $this->entity instanceof Person => $this->entity->slug,
             $this->entity instanceof Reference => $this->entity->slug,
             default => $this->entity->slug,
         };

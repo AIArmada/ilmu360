@@ -8,7 +8,7 @@ use App\Enums\MemberSubjectType;
 use App\Livewire\Concerns\InteractsWithToasts;
 use App\Models\Institution;
 use App\Models\MembershipApplication;
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Models\User;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\Textarea;
@@ -33,7 +33,7 @@ class Create extends Component implements HasForms
         OwnerContext::setForRequest(null);
     }
 
-    public Institution|Speaker $subject;
+    public Institution|Person $subject;
 
     public string $subjectType;
 
@@ -164,7 +164,7 @@ class Create extends Component implements HasForms
         return (string) $this->subject->getKey();
     }
 
-    private function resolveSubject(string $subjectType, string $subjectId): Institution|Speaker
+    private function resolveSubject(string $subjectType, string $subjectId): Institution|Person
     {
         $resolvedSubjectType = MemberSubjectType::fromRouteSegment($subjectType);
 
@@ -176,16 +176,16 @@ class Create extends Component implements HasForms
     /**
      * @return array{subject_label: string, subject_title: string, redirect_url: string, admin_url: string}
      */
-    private function resolveSubjectPresentation(Institution|Speaker $subject): array
+    private function resolveSubjectPresentation(Institution|Person $subject): array
     {
-        $subjectType = $subject instanceof Institution ? MemberSubjectType::Institution : MemberSubjectType::Speaker;
+        $subjectType = $subject instanceof Institution ? MemberSubjectType::Institution : MemberSubjectType::Person;
 
         return [
             'subject_label' => $subjectType->label(),
             'subject_title' => $subject instanceof Institution ? $subject->name : $subject->formatted_name,
             'redirect_url' => $subject instanceof Institution
                 ? route('institutions.show', $subject)
-                : route('speakers.show', $subject),
+                : route('persons.show', $subject),
             'admin_url' => '',
         ];
     }

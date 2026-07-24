@@ -10,8 +10,8 @@ use App\Livewire\Concerns\InteractsWithToasts;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\MemberInvitation;
+use App\Models\Person;
 use App\Models\Reference;
-use App\Models\Speaker;
 use App\Models\User;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Livewire\Attributes\Computed;
@@ -26,7 +26,7 @@ class ShowInvitation extends Component
 
     public MemberInvitation $invitation;
 
-    public Event|Institution|Reference|Speaker $subject;
+    public Event|Institution|Reference|Person $subject;
 
     /** @var array{subject_label: string, redirect_url: string} */
     public array $subjectPresentation = [
@@ -166,7 +166,7 @@ class ShowInvitation extends Component
         return null;
     }
 
-    private function resolveSubjectName(Event|Institution|Reference|Speaker $subject): string
+    private function resolveSubjectName(Event|Institution|Reference|Person $subject): string
     {
         return match (true) {
             $subject instanceof Event => $subject->title,
@@ -189,19 +189,19 @@ class ShowInvitation extends Component
     /**
      * @return array{subject_label: string, redirect_url: string}
      */
-    private function resolveSubjectPresentation(Event|Institution|Reference|Speaker $subject): array
+    private function resolveSubjectPresentation(Event|Institution|Reference|Person $subject): array
     {
         return [
             'subject_label' => match (true) {
                 $subject instanceof Event => __('Event'),
                 $subject instanceof Institution => __('Institution'),
-                $subject instanceof Speaker => __('Speaker'),
+                $subject instanceof Person => __('Speaker'),
                 $subject instanceof Reference => __('Reference'),
             },
             'redirect_url' => match (true) {
                 $subject instanceof Event => route('events.show', $subject),
                 $subject instanceof Institution => route('institutions.show', $subject),
-                $subject instanceof Speaker => route('speakers.show', $subject),
+                $subject instanceof Person => route('persons.show', $subject),
                 $subject instanceof Reference => route('references.show', $subject),
             },
         ];
@@ -211,7 +211,7 @@ class ShowInvitation extends Component
     {
         return match ($subjectType) {
             MemberSubjectType::Institution => __('Institution'),
-            MemberSubjectType::Speaker => __('Speaker'),
+            MemberSubjectType::Person => __('Speaker'),
             MemberSubjectType::Reference => __('Reference'),
             MemberSubjectType::Event => __('Event'),
         };

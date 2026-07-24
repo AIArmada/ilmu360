@@ -58,7 +58,7 @@
                         class="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50">
                         {{ __('Submit Institution') }}
                     </a>
-                    <a href="{{ route('contributions.submit-speaker') }}" wire:navigate
+                    <a href="{{ route('contributions.submit-person') }}" wire:navigate
                         class="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50">
                         {{ __('Submit Speaker') }}
                     </a>
@@ -320,7 +320,7 @@
                             <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
                             {{ __('Submit Institution') }}
                         </a>
-                        <a href="{{ route('contributions.submit-speaker') }}" wire:navigate
+                        <a href="{{ route('contributions.submit-person') }}" wire:navigate
                             class="inline-flex items-center gap-1.5 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-sm font-semibold text-sky-700 transition hover:bg-sky-100">
                             <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
                             {{ __('Submit Speaker') }}

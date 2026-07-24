@@ -20,9 +20,9 @@ use App\Enums\TimingMode;
 use App\Exceptions\SavedSearchLimitReachedException;
 use App\Livewire\Concerns\InteractsWithToasts;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
 use App\Models\SavedSearch;
-use App\Models\Speaker;
 use App\Models\User;
 use App\Models\Venue;
 use App\Support\Timezone\UserDateTimeFormatter;
@@ -106,7 +106,7 @@ class Index extends Component
     /**
      * @var array<string, string|null>
      */
-    private array $speakerNames = [];
+    private array $personNames = [];
 
     public bool $hasFilters = false;
 
@@ -407,10 +407,10 @@ class Index extends Component
             $filters['reference_ids'] = $referenceIds;
         }
 
-        $speakerIds = array_values(array_filter((array) request()->input('speaker_ids', [])));
+        $personIds = array_values(array_filter((array) request()->input('person_ids', [])));
 
-        if ($speakerIds !== []) {
-            $filters['speaker_ids'] = $speakerIds;
+        if ($personIds !== []) {
+            $filters['person_ids'] = $personIds;
         }
 
         $keyPersonRoles = array_values(array_filter((array) request()->input('key_person_roles', [])));
@@ -478,7 +478,7 @@ class Index extends Component
             'admin_area_2_id' => __('Subdistrict / Local Area'),
             'institution_id' => __('Institution'),
             'venue_id' => __('Venue'),
-            'speaker_ids' => __('Speaker'),
+            'person_ids' => __('Speaker'),
             'key_person_roles' => __('Key Person Roles'),
             'person_in_charge_ids' => __('PIC / Penyelaras'),
             'person_in_charge_search' => __('Nama PIC / Penyelaras'),
@@ -537,9 +537,9 @@ class Index extends Component
             'admin_area_2_id' => $this->adminAreaName($value) ?? $value,
             'institution_id' => $this->institutionName($value) ?? $value,
             'venue_id' => $this->venueName($value) ?? $value,
-            'speaker_ids' => $this->speakerName($value) ?? $value,
+            'person_ids' => $this->personName($value) ?? $value,
             'key_person_roles' => EventKeyPersonRole::tryFrom($value)?->getLabel() ?? $value,
-            'person_in_charge_ids', 'moderator_ids', 'imam_ids', 'khatib_ids', 'bilal_ids' => $this->speakerName($value) ?? $value,
+            'person_in_charge_ids', 'moderator_ids', 'imam_ids', 'khatib_ids', 'bilal_ids' => $this->personName($value) ?? $value,
             'domain_tag_ids', 'topic_ids', 'source_tag_ids', 'issue_tag_ids' => $this->tagName($value) ?? $value,
             'reference_ids' => $this->referenceTitle($value) ?? $value,
             'language_codes' => $this->languageLabel($value) ?? $value,
@@ -643,17 +643,17 @@ class Index extends Component
         return $this->venueNames[$id];
     }
 
-    private function speakerName(string $id): ?string
+    private function personName(string $id): ?string
     {
         if (! Str::isUuid($id)) {
             return null;
         }
 
-        if (! array_key_exists($id, $this->speakerNames)) {
-            $this->speakerNames[$id] = Speaker::query()->whereKey($id)->value('name');
+        if (! array_key_exists($id, $this->personNames)) {
+            $this->personNames[$id] = Person::query()->whereKey($id)->value('name');
         }
 
-        return $this->speakerNames[$id];
+        return $this->personNames[$id];
     }
 
     private function tagName(string $id): ?string

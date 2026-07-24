@@ -173,7 +173,7 @@
                             class="hover:text-emerald-600 transition-colors relative after:absolute after:bottom-[-4px] after:left-0 after:h-[2px] after:w-0 after:bg-emerald-500 after:transition-all hover:after:w-full">{{ __('Events') }}</a>
                         <a href="{{ route('institutions.index') }}" wire:navigate
                             class="hover:text-emerald-600 transition-colors relative after:absolute after:bottom-[-4px] after:left-0 after:h-[2px] after:w-0 after:bg-emerald-500 after:transition-all hover:after:w-full">{{ __('Institutions') }}</a>
-                        <a href="{{ route('speakers.index') }}" wire:navigate
+                        <a href="{{ route('persons.index') }}" wire:navigate
                             class="hover:text-emerald-600 transition-colors relative after:absolute after:bottom-[-4px] after:left-0 after:h-[2px] after:w-0 after:bg-emerald-500 after:transition-all hover:after:w-full">{{ __('Speakers') }}</a>
                     </div>
 
@@ -309,7 +309,7 @@
                                 class="block py-2 text-base font-semibold text-slate-700 hover:text-emerald-600">{{ __('Events') }}</a>
                             <a href="{{ route('institutions.index') }}" wire:navigate
                                 class="block py-2 text-base font-semibold text-slate-700 hover:text-emerald-600">{{ __('Institutions') }}</a>
-                            <a href="{{ route('speakers.index') }}" wire:navigate
+                            <a href="{{ route('persons.index') }}" wire:navigate
                                 class="block py-2 text-base font-semibold text-slate-700 hover:text-emerald-600">{{ __('Speakers') }}</a>
                         </div>
                         <div class="border-t border-slate-100 pt-4 flex flex-col gap-3">
@@ -438,7 +438,7 @@
                                 <li><a href="{{ route('institutions.index') }}" wire:navigate
                                         class="hover:text-emerald-600 transition-colors">{{ __('Institutions') }}</a>
                                 </li>
-                                <li><a href="{{ route('speakers.index') }}" wire:navigate
+                                <li><a href="{{ route('persons.index') }}" wire:navigate
                                         class="hover:text-emerald-600 transition-colors">{{ __('Speakers') }}</a></li>
                                 <li><a href="{{ route('venues.index') }}" wire:navigate
                                         class="hover:text-emerald-600 transition-colors">{{ __('Venue') }}</a></li>

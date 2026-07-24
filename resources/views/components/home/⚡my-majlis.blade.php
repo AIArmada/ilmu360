@@ -427,7 +427,7 @@ new class extends Component {
                             </div>
                         @elseif($counts['following'] === 0)
                             <div class="pt-2">
-                                <a href="{{ route('speakers.index') }}" wire:navigate
+                                <a href="{{ route('persons.index') }}" wire:navigate
                                     class="group flex items-center gap-3 p-4 bg-gradient-to-r from-purple-50 to-purple-50/50 border border-purple-100 rounded-xl hover:border-purple-200 transition-all">
                                     <div
                                         class="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center flex-shrink-0 group-hover:bg-purple-200 transition-colors">

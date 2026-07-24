@@ -12,8 +12,8 @@ use App\Models\ContributionRequest;
 use App\Models\Event;
 use App\Models\EventSubmission;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Report;
-use App\Models\Speaker;
 use App\Models\User;
 use App\Support\Location\AddressHierarchyFormatter;
 use Filament\Forms\Components\Select;
@@ -194,7 +194,7 @@ class Index extends Component implements HasForms
                             ->label(__('Record Type'))
                             ->options([
                                 MemberSubjectType::Institution->value => __('Institusi'),
-                                MemberSubjectType::Speaker->value => __('Penceramah'),
+                                MemberSubjectType::Person->value => __('Penceramah'),
                             ])
                             ->required()
                             ->columnSpan(1)
@@ -216,7 +216,7 @@ class Index extends Component implements HasForms
                                 subjectSlug: is_string($value) ? $value : null,
                             ))
                             ->columnSpan(2)
-                            ->helperText(__('Hanya rekod institusi dan penceramah yang aktif dipaparkan di sini.')),
+                            ->helperText(__('Hanya rekod institusi dan orang yang aktif dipaparkan di sini.')),
                     ])
                     ->columns([
                         'default' => 1,
@@ -281,14 +281,14 @@ class Index extends Component implements HasForms
                 ->get(['id', 'slug', 'name', 'nickname'])
                 ->mapWithKeys(fn (Institution $institution): array => [(string) $institution->getKey() => $this->institutionMembershipApplicationLabel($institution)])
                 ->all(),
-            MemberSubjectType::Speaker => Speaker::query()
+            MemberSubjectType::Person => Person::query()
                 ->where('status', 'verified')
                 ->whereIn('status', ['verified', 'pending'])
                 ->tap(fn (Builder $query): Builder => $this->applySearchConstraint($query, 'name', $search))
                 ->orderBy('name')
                 ->limit(50)
                 ->get()
-                ->mapWithKeys(fn (Speaker $speaker): array => [(string) $speaker->getKey() => $speaker->formatted_name])
+                ->mapWithKeys(fn (Person $person): array => [(string) $person->getKey() => $person->formatted_name])
                 ->all(),
             default => [],
         };
@@ -302,7 +302,7 @@ class Index extends Component implements HasForms
 
         return match (MemberSubjectType::tryFrom((string) $subjectType)) {
             MemberSubjectType::Institution => $this->resolveInstitutionMembershipApplicationOptionLabel($subjectSlug),
-            MemberSubjectType::Speaker => Speaker::query()
+            MemberSubjectType::Person => Person::query()
                 ->where('status', 'verified')
                 ->whereIn('status', ['verified', 'pending'])
                 ->whereKey($subjectSlug)

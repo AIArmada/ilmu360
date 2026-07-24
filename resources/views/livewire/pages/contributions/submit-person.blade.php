@@ -8,30 +8,30 @@
     @push('styles')
         <style>
             @media (max-width: 767px) {
-                .mi-submit-speaker-form .fi-section {
+                .mi-submit-person-form .fi-section {
                     border-radius: 1rem;
                     border-color: rgb(226 232 240 / 0.72);
                     background: rgb(255 255 255 / 0.96);
                     box-shadow: none;
                 }
 
-                .mi-submit-speaker-form .fi-section-header {
+                .mi-submit-person-form .fi-section-header {
                     padding: 1rem 1rem 0.75rem;
                 }
 
-                .mi-submit-speaker-form .fi-section-content-ctn {
+                .mi-submit-person-form .fi-section-content-ctn {
                     padding: 0 1rem 1rem;
                 }
 
-                .mi-submit-speaker-form .fi-section-content {
+                .mi-submit-person-form .fi-section-content {
                     gap: 0.85rem;
                 }
 
-                .mi-submit-speaker-form .fi-input-wrp,
-                .mi-submit-speaker-form .fi-select-input,
-                .mi-submit-speaker-form .fi-select-control,
-                .mi-submit-speaker-form .fi-fo-file-upload,
-                .mi-submit-speaker-form .fi-fo-repeater-item {
+                .mi-submit-person-form .fi-input-wrp,
+                .mi-submit-person-form .fi-select-input,
+                .mi-submit-person-form .fi-select-control,
+                .mi-submit-person-form .fi-fo-file-upload,
+                .mi-submit-person-form .fi-fo-repeater-item {
                     border-radius: 0.95rem;
                 }
             }
@@ -53,14 +53,14 @@
                     {{ __('Before you submit, please check the existing speakers directory. If it already exists, submit an update instead of creating a new record.') }}
                 </p>
                 <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-                    <a href="{{ route('speakers.index') }}" wire:navigate
+                    <a href="{{ route('persons.index') }}" wire:navigate
                         class="inline-flex w-full items-center justify-center rounded-xl border border-amber-300 bg-white px-4 py-2.5 text-sm font-semibold text-amber-900 transition hover:border-amber-400 hover:bg-amber-100 sm:w-auto">
                         {{ __('Check Existing Speakers') }}
                     </a>
                 </div>
             </div>
 
-            <form wire:submit="submit" class="mi-submit-speaker-form mt-6 space-y-5 sm:mt-8 sm:space-y-6">
+            <form wire:submit="submit" class="mi-submit-person-form mt-6 space-y-5 sm:mt-8 sm:space-y-6">
                 {{ $this->form }}
 
                 <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">

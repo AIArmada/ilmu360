@@ -14,8 +14,8 @@ use App\Enums\EventPrayerTime;
 use App\Enums\TimingMode;
 use App\Forms\SharedFormSchema;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
-use App\Models\Speaker;
 use App\Models\Venue;
 use App\Support\Location\PublicGeolocationPermission;
 use Filament\Forms\Components\DatePicker;
@@ -293,13 +293,13 @@ class AdvancedFiltersPanel extends Component implements HasForms
                             ->description(__('Filter by speakers, categories, knowledge fields, themes, and references.'))
                             ->columns(['default' => 1, 'md' => 2, 'xl' => 3])
                             ->schema([
-                                Select::make('speaker_ids')
+                                Select::make('person_ids')
                                     ->label(__('Speaker'))
                                     ->placeholder(__('Any Speaker'))
                                     ->searchable()
                                     ->multiple()
-                                    ->getSearchResultsUsing(fn (string $search): array => $this->searchSpeakerOptions($search))
-                                    ->getOptionLabelsUsing(fn (array $values): array => $this->speakerOptionLabels($values))
+                                    ->getSearchResultsUsing(fn (string $search): array => $this->searchPersonOptions($search))
+                                    ->getOptionLabelsUsing(fn (array $values): array => $this->personOptionLabels($values))
                                     ->live(),
 
                                 Select::make('key_person_roles')
@@ -315,8 +315,8 @@ class AdvancedFiltersPanel extends Component implements HasForms
                                     ->placeholder(__('Any PIC / Penyelaras'))
                                     ->searchable()
                                     ->multiple()
-                                    ->getSearchResultsUsing(fn (string $search): array => $this->searchSpeakerOptions($search))
-                                    ->getOptionLabelsUsing(fn (array $values): array => $this->speakerOptionLabels($values))
+                                    ->getSearchResultsUsing(fn (string $search): array => $this->searchPersonOptions($search))
+                                    ->getOptionLabelsUsing(fn (array $values): array => $this->personOptionLabels($values))
                                     ->live(),
 
                                 TextInput::make('person_in_charge_search')
@@ -330,8 +330,8 @@ class AdvancedFiltersPanel extends Component implements HasForms
                                     ->placeholder(__('Any Moderator'))
                                     ->searchable()
                                     ->multiple()
-                                    ->getSearchResultsUsing(fn (string $search): array => $this->searchSpeakerOptions($search))
-                                    ->getOptionLabelsUsing(fn (array $values): array => $this->speakerOptionLabels($values))
+                                    ->getSearchResultsUsing(fn (string $search): array => $this->searchPersonOptions($search))
+                                    ->getOptionLabelsUsing(fn (array $values): array => $this->personOptionLabels($values))
                                     ->live(),
 
                                 Select::make('imam_ids')
@@ -339,8 +339,8 @@ class AdvancedFiltersPanel extends Component implements HasForms
                                     ->placeholder(__('Any Imam'))
                                     ->searchable()
                                     ->multiple()
-                                    ->getSearchResultsUsing(fn (string $search): array => $this->searchSpeakerOptions($search))
-                                    ->getOptionLabelsUsing(fn (array $values): array => $this->speakerOptionLabels($values))
+                                    ->getSearchResultsUsing(fn (string $search): array => $this->searchPersonOptions($search))
+                                    ->getOptionLabelsUsing(fn (array $values): array => $this->personOptionLabels($values))
                                     ->live(),
 
                                 Select::make('khatib_ids')
@@ -348,8 +348,8 @@ class AdvancedFiltersPanel extends Component implements HasForms
                                     ->placeholder(__('Any Khatib'))
                                     ->searchable()
                                     ->multiple()
-                                    ->getSearchResultsUsing(fn (string $search): array => $this->searchSpeakerOptions($search))
-                                    ->getOptionLabelsUsing(fn (array $values): array => $this->speakerOptionLabels($values))
+                                    ->getSearchResultsUsing(fn (string $search): array => $this->searchPersonOptions($search))
+                                    ->getOptionLabelsUsing(fn (array $values): array => $this->personOptionLabels($values))
                                     ->live(),
 
                                 Select::make('bilal_ids')
@@ -357,8 +357,8 @@ class AdvancedFiltersPanel extends Component implements HasForms
                                     ->placeholder(__('Any Bilal'))
                                     ->searchable()
                                     ->multiple()
-                                    ->getSearchResultsUsing(fn (string $search): array => $this->searchSpeakerOptions($search))
-                                    ->getOptionLabelsUsing(fn (array $values): array => $this->speakerOptionLabels($values))
+                                    ->getSearchResultsUsing(fn (string $search): array => $this->searchPersonOptions($search))
+                                    ->getOptionLabelsUsing(fn (array $values): array => $this->personOptionLabels($values))
                                     ->live(),
 
                                 Select::make('domain_tag_ids')
@@ -575,14 +575,14 @@ class AdvancedFiltersPanel extends Component implements HasForms
      * @param  list<string>  $values
      * @return array<string, string>
      */
-    public function speakerOptionLabels(array $values): array
+    public function personOptionLabels(array $values): array
     {
         if ($values === []) {
             return [];
         }
 
         return $this->pluckOptions(
-            Speaker::query()->whereIn('status', ['verified', 'pending'])->whereIn('id', $values),
+            Person::query()->whereIn('status', ['verified', 'pending'])->whereIn('id', $values),
             'name',
             count($values),
         );
@@ -665,7 +665,7 @@ class AdvancedFiltersPanel extends Component implements HasForms
             'is_muslim_only' => null,
             'institution_id' => null,
             'venue_id' => null,
-            'speaker_ids' => [],
+            'person_ids' => [],
             'key_person_roles' => [],
             'person_in_charge_ids' => [],
             'person_in_charge_search' => null,
@@ -750,7 +750,7 @@ class AdvancedFiltersPanel extends Component implements HasForms
             'is_muslim_only' => $this->normalizeNullableBoolean($normalized['is_muslim_only'] ?? null),
             'institution_id' => filled($normalized['institution_id']) ? (string) $normalized['institution_id'] : null,
             'venue_id' => filled($normalized['venue_id']) ? (string) $normalized['venue_id'] : null,
-            'speaker_ids' => $this->normalizeStringArray($normalized['speaker_ids'] ?? []),
+            'person_ids' => $this->normalizeStringArray($normalized['person_ids'] ?? []),
             'key_person_roles' => $this->normalizeStringArray($normalized['key_person_roles'] ?? []),
             'person_in_charge_ids' => $this->normalizeStringArray($normalized['person_in_charge_ids'] ?? []),
             'person_in_charge_search' => filled($normalized['person_in_charge_search'] ?? null) ? trim((string) $normalized['person_in_charge_search']) : null,
@@ -875,10 +875,10 @@ class AdvancedFiltersPanel extends Component implements HasForms
     /**
      * @return array<string, string>
      */
-    private function searchSpeakerOptions(string $search): array
+    private function searchPersonOptions(string $search): array
     {
         return $this->pluckOptions(
-            Speaker::query()
+            Person::query()
                 ->whereIn('status', ['verified', 'pending'])
                 ->whereIn('status', ['verified', 'pending'])
                 ->tap(fn (Builder $query): Builder => $this->applySearchConstraint($query, 'name', $search))

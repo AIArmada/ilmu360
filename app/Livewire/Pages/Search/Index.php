@@ -5,12 +5,12 @@ namespace App\Livewire\Pages\Search;
 use App\Enums\EventVisibility;
 use App\Models\Event;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
-use App\Models\Speaker;
 use App\Services\EventSearchService;
 use App\Support\Search\InstitutionSearchService;
+use App\Support\Search\PersonSearchService;
 use App\Support\Search\ReferenceSearchService;
-use App\Support\Search\SpeakerSearchService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -100,10 +100,10 @@ class Index extends Component
     }
 
     /**
-     * @return array{items: Collection<int, Speaker>, total: int}
+     * @return array{items: Collection<int, Person>, total: int}
      */
     #[Computed]
-    public function speakerResults(): array
+    public function personResults(): array
     {
         $search = $this->normalizedSearch();
 
@@ -114,10 +114,10 @@ class Index extends Component
             ];
         }
 
-        $query = $this->speakerSearchQuery($search);
+        $query = $this->personSearchQuery($search);
         $total = (clone $query)->count();
 
-        /** @var Collection<int, Speaker> $items */
+        /** @var Collection<int, Person> $items */
         $items = $query
             ->orderBy('name')
             ->limit(4)
@@ -195,12 +195,12 @@ class Index extends Component
     }
 
     /**
-     * @return Builder<Speaker>
+     * @return Builder<Person>
      */
-    private function speakerSearchQuery(string $search): Builder
+    private function personSearchQuery(string $search): Builder
     {
-        return app(SpeakerSearchService::class)->applyIndexedSearch(
-            Speaker::query()
+        return app(PersonSearchService::class)->applyIndexedSearch(
+            Person::query()
                 ->active()
                 ->where('status', 'verified')
                 ->withCount(['events' => function (Builder $query): void {

@@ -418,7 +418,7 @@ new
                     </a>
 
                     {{-- Feature 3: Penceramah --}}
-                    <a href="{{ route('speakers.index') }}" wire:navigate
+                    <a href="{{ route('persons.index') }}" wire:navigate
                         data-signal-event="navigation.home_feature_clicked"
                         data-signal-category="navigation"
                         data-signal-component="home_value_cards"

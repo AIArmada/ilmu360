@@ -21,8 +21,8 @@ use App\Livewire\Concerns\InteractsWithToasts;
 use App\Models\ContributionRequest;
 use App\Models\Event;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
-use App\Models\Speaker;
 use App\Models\User;
 use App\Support\Events\EventContributionUpdateStateMapper;
 use Filament\Actions\Concerns\InteractsWithActions;
@@ -51,7 +51,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
     use InteractsWithToasts;
     use WithFileUploads;
 
-    public Event|Institution|Reference|Speaker $entity;
+    public Event|Institution|Reference|Person $entity;
 
     public string $subjectType;
 
@@ -241,7 +241,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
     {
         return match (true) {
             $this->entity instanceof Institution => $this->institutionSubjectSchema(),
-            $this->entity instanceof Speaker => $this->speakerSubjectSchema(),
+            $this->entity instanceof Person => $this->personSubjectSchema(),
             $this->entity instanceof Reference => ReferenceContributionFormSchema::components(includeMedia: false),
             default => $this->eventSubjectSchema(),
         };
@@ -264,7 +264,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
     /**
      * @return array<int, \Filament\Schemas\Components\Component>
      */
-    private function speakerSubjectSchema(): array
+    private function personSubjectSchema(): array
     {
         $sections = SpeakerContributionFormSchema::components(
             includeMedia: false,
@@ -277,7 +277,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
         // 3: Education, 4: Contact, 5: Social Media
 
         $mediaSchema = $this->shouldShowDirectEditMediaSection()
-            ? [$this->speakerDirectEditMediaSection()]
+            ? [$this->personDirectEditMediaSection()]
             : [];
 
         return [
@@ -322,18 +322,18 @@ class SuggestUpdate extends Component implements HasActions, HasForms
             return $this->eventComparableState($initialState);
         }
 
-        if (! $this->entity instanceof Speaker) {
+        if (! $this->entity instanceof Person) {
             return $initialState;
         }
 
-        $speakerAddress = is_array($initialState['address'] ?? null)
+        $personAddress = is_array($initialState['address'] ?? null)
             ? $initialState['address']
             : [];
 
         $initialState['address'] = SharedFormSchema::expandStoredAreasForForm([
-            'country_id' => SharedFormSchema::normalizeLocationId($speakerAddress['country_id'] ?? null),
-            'admin_area_1_id' => SharedFormSchema::normalizeLocationId($speakerAddress['admin_area_1_id'] ?? null),
-            'admin_area_2_id' => SharedFormSchema::normalizeLocationId($speakerAddress['admin_area_2_id'] ?? null),
+            'country_id' => SharedFormSchema::normalizeLocationId($personAddress['country_id'] ?? null),
+            'admin_area_1_id' => SharedFormSchema::normalizeLocationId($personAddress['admin_area_1_id'] ?? null),
+            'admin_area_2_id' => SharedFormSchema::normalizeLocationId($personAddress['admin_area_2_id'] ?? null),
         ]);
 
         if (($initialState['bio'] ?? null) === null) {
@@ -391,7 +391,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
     {
         return match (true) {
             $this->entity instanceof Institution => $this->entity->slug,
-            $this->entity instanceof Speaker => $this->entity->slug,
+            $this->entity instanceof Person => $this->entity->slug,
             $this->entity instanceof Reference => $this->entity->slug,
             default => $this->entity->slug,
         };
@@ -426,7 +426,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
         return $this->canDirectEdit() && $this->directEditMediaFields !== [];
     }
 
-    private function speakerDirectEditMediaSection(): Section
+    private function personDirectEditMediaSection(): Section
     {
         $components = [];
 
@@ -456,7 +456,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
                 ->responsiveImages()
                 ->conversion('banner')
                 ->deletable(false)
-                ->helperText(__('Cover image for speaker profile'));
+                ->helperText(__('Cover image for person profile'));
         }
 
         if (in_array('gallery', $this->directEditMediaFields, true)) {
@@ -541,7 +541,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
 
     private function directEditMediaFieldChanged(string $field): bool
     {
-        if (! $this->entity instanceof Event && ! $this->entity instanceof Institution && ! $this->entity instanceof Speaker) {
+        if (! $this->entity instanceof Event && ! $this->entity instanceof Institution && ! $this->entity instanceof Person) {
             return false;
         }
 
@@ -574,7 +574,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
      */
     private function currentDirectEditMediaState(string $field): array
     {
-        if (! $this->entity instanceof Event && ! $this->entity instanceof Institution && ! $this->entity instanceof Speaker) {
+        if (! $this->entity instanceof Event && ! $this->entity instanceof Institution && ! $this->entity instanceof Person) {
             return [];
         }
 

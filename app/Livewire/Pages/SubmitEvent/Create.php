@@ -32,9 +32,9 @@ use App\Models\Event;
 use App\Models\EventKeyPerson;
 use App\Models\EventSubmission;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Space;
-use App\Models\Speaker;
 use App\Models\User;
 use App\Models\Venue;
 use App\Services\Ai\EventMediaExtractionService;
@@ -1437,11 +1437,11 @@ class Create extends Component implements HasActions, HasForms
                         ->helperText(fn (Get $get): string => $this->categoriesRequireSpeakers($get('event_category_ids'))
                             ? __('Sekurang-kurangnya seorang penceramah diperlukan untuk jenis majlis ini.')
                             : __('Kosongkan jika majlis ini tidak mempunyai penceramah khusus.'))
-                        ->getOptionLabelUsing(fn (mixed $value): ?string => Speaker::query()->find($value)?->formatted_name)
-                        ->getOptionLabelsUsing(fn (array $values): array => Speaker::query()
+                        ->getOptionLabelUsing(fn (mixed $value): ?string => Person::query()->find($value)?->formatted_name)
+                        ->getOptionLabelsUsing(fn (array $values): array => Person::query()
                             ->whereIn('id', $values)
                             ->get()
-                            ->mapWithKeys(fn (Speaker $speaker): array => [(string) $speaker->id => $speaker->formatted_name])
+                            ->mapWithKeys(fn (Person $person): array => [(string) $person->id => $person->formatted_name])
                             ->toArray())
                         ->createOptionForm(SpeakerFormSchema::createOptionForm())
                         ->createOptionUsing(fn (array $data, Schema $schema): string => SpeakerFormSchema::createOptionUsing($data, $schema)),
@@ -1465,7 +1465,7 @@ class Create extends Component implements HasActions, HasForms
                                     $set('display_name', null);
                                     $set('involveable_type', filled($state) ? 'speaker' : null);
                                 })
-                                ->getOptionLabelUsing(fn (mixed $value): ?string => Speaker::query()->find($value)?->formatted_name)
+                                ->getOptionLabelUsing(fn (mixed $value): ?string => Person::query()->find($value)?->formatted_name)
                                 ->createOptionForm(SpeakerFormSchema::createOptionForm())
                                 ->createOptionUsing(fn (array $data, Schema $schema): string => SpeakerFormSchema::createOptionUsing($data, $schema)),
                             Hidden::make('involveable_type'),
@@ -1744,7 +1744,7 @@ class Create extends Component implements HasActions, HasForms
             $defaults['location_institution_id'] = $event->institution_id ?: $organizer->involveable_id;
         }
 
-        if ($organizer?->involveable_type === Speaker::class && filled($organizer->involveable_id)) {
+        if ($organizer?->involveable_type === Person::class && filled($organizer->involveable_id)) {
             $defaults['primary_organizer_kind'] = 'speaker';
             $defaults['primary_organizer_id'] = $organizer->involveable_id;
             $defaults['primary_organizer_institution_id'] = null;
@@ -2067,7 +2067,7 @@ class Create extends Component implements HasActions, HasForms
             $defaults['primary_organizer_speaker_id'] = null;
         }
 
-        if ($organizer?->involveable_type === Speaker::class && $organizerId !== null && $access->canUseSpeaker($submitter, $organizerId)) {
+        if ($organizer?->involveable_type === Person::class && $organizerId !== null && $access->canUseSpeaker($submitter, $organizerId)) {
             $defaults['primary_organizer_kind'] = 'speaker';
             $defaults['primary_organizer_id'] = $organizerId;
             $defaults['primary_organizer_institution_id'] = null;
@@ -2182,14 +2182,14 @@ class Create extends Component implements HasActions, HasForms
             return Cache::remember('submit_speakers', 60, fn (): array => $access->speakerQueryForSubmitter(null)
                 ->orderBy('name')
                 ->get()
-                ->mapWithKeys(fn (Speaker $speaker): array => [(string) $speaker->id => $speaker->formatted_name])
+                ->mapWithKeys(fn (Person $person): array => [(string) $person->id => $person->formatted_name])
                 ->all());
         }
 
         return $access->speakerQueryForSubmitter($submitter)
             ->orderBy('name')
             ->get()
-            ->mapWithKeys(fn (Speaker $speaker): array => [(string) $speaker->id => $speaker->formatted_name])
+            ->mapWithKeys(fn (Person $person): array => [(string) $person->id => $person->formatted_name])
             ->all();
     }
 
@@ -2225,7 +2225,7 @@ class Create extends Component implements HasActions, HasForms
             return 'institution';
         }
 
-        if (Speaker::query()->whereKey($organizerId)->exists()) {
+        if (Person::query()->whereKey($organizerId)->exists()) {
             return 'speaker';
         }
 

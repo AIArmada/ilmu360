@@ -75,7 +75,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/mobile-telemetry', [ManifestController::class, 'mobileTelemetry'])->name('mobile-telemetry');
             Route::get('/submit-event', [ManifestController::class, 'submitEvent'])->name('submit-event');
             Route::get('/contributions/institutions', [ManifestController::class, 'submitInstitution'])->name('contributions.institutions');
-            Route::get('/contributions/speakers', [ManifestController::class, 'submitSpeaker'])->name('contributions.speakers');
+            Route::get('/contributions/persons', [ManifestController::class, 'submitPerson'])->name('contributions.persons');
         });
 
         Route::prefix('catalogs')->name('catalogs.')->group(function () {
@@ -89,7 +89,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/tags/{type}', [CatalogController::class, 'tags'])->name('tags');
             Route::get('/references', [CatalogController::class, 'references'])->name('references');
             Route::get('/submit-institutions', [CatalogController::class, 'submitInstitutions'])->name('submit-institutions');
-            Route::get('/submit-speakers', [CatalogController::class, 'submitSpeakers'])->name('submit-speakers');
+            Route::get('/submit-persons', [CatalogController::class, 'submitPersons'])->name('submit-persons');
             Route::get('/venues', [CatalogController::class, 'venues'])->name('venues');
             Route::get('/spaces', [CatalogController::class, 'spaces'])->name('spaces');
             Route::get('/membership-application-subjects/{subjectType}', [CatalogController::class, 'membershipClaimSubjects'])
@@ -111,8 +111,8 @@ Route::prefix('v1')->group(function () {
         Route::get('/institutions', [SearchController::class, 'institutions'])->name('institutions.index');
         Route::get('/institutions/near', [SearchController::class, 'institutionsNear'])->name('institutions.near');
         Route::get('/institutions/{institutionKey}', [SearchController::class, 'showInstitution'])->name('institutions.show');
-        Route::get('/speakers', [SearchController::class, 'speakers'])->name('speakers.index');
-        Route::get('/speakers/{speakerKey}', [SearchController::class, 'showSpeaker'])->name('speakers.show');
+        Route::get('/persons', [SearchController::class, 'persons'])->name('persons.index');
+        Route::get('/persons/{personKey}', [SearchController::class, 'showPerson'])->name('persons.show');
         Route::get('/inspirations/random', [SearchController::class, 'randomInspiration'])->name('inspirations.random');
         Route::get('/venues/{venueKey}', [SearchController::class, 'showVenue'])->name('venues.show');
         Route::get('/references', [SearchController::class, 'references'])->name('references.index');
@@ -202,7 +202,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
 
         Route::get('/contributions', [ContributionController::class, 'index'])->name('contributions.index');
         Route::post('/contributions/institutions', [ContributionController::class, 'storeInstitution'])->name('contributions.institutions.store');
-        Route::post('/contributions/speakers', [ContributionController::class, 'storeSpeaker'])->name('contributions.speakers.store');
+        Route::post('/contributions/persons', [ContributionController::class, 'storePerson'])->name('contributions.persons.store');
         Route::post('/contributions/{subjectType}/{subject}/suggest', [ContributionController::class, 'suggestUpdate'])
             ->whereIn('subjectType', ContributionSubjectType::publicRouteSegments())
             ->name('contributions.suggest.store');
@@ -219,13 +219,13 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::post('/advanced-events', [AdvancedEventController::class, 'store'])->name('advanced-events.store');
 
         Route::get('/follows/{type}/{subject}', [FollowController::class, 'show'])
-            ->whereIn('type', ['institution', 'speaker', 'reference', 'series'])
+            ->whereIn('type', ['institution', 'person', 'reference', 'series'])
             ->name('follows.show');
         Route::post('/follows/{type}/{subject}', [FollowController::class, 'store'])
-            ->whereIn('type', ['institution', 'speaker', 'reference', 'series'])
+            ->whereIn('type', ['institution', 'person', 'reference', 'series'])
             ->name('follows.store');
         Route::delete('/follows/{type}/{subject}', [FollowController::class, 'destroy'])
-            ->whereIn('type', ['institution', 'speaker', 'reference', 'series'])
+            ->whereIn('type', ['institution', 'person', 'reference', 'series'])
             ->name('follows.destroy');
 
         Route::get('/institution-workspace', [InstitutionWorkspaceController::class, 'show'])->name('institution-workspace.show');

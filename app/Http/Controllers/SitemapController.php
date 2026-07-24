@@ -85,7 +85,7 @@ class SitemapController extends Controller
 
         foreach ($speakers as $speaker) {
             $content .= '<url>';
-            $content .= '<loc>'.route('speakers.show', $speaker->slug).'</loc>';
+            $content .= '<loc>'.route('persons.show', $speaker->slug).'</loc>';
             $content .= '<lastmod>'.$speaker->updated_at->toW3cString().'</lastmod>';
             $content .= '<changefreq>monthly</changefreq>';
             $content .= '<priority>0.5</priority>';
