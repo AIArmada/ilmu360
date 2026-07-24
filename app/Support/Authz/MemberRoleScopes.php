@@ -5,7 +5,6 @@ namespace App\Support\Authz;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Reference;
-use App\Models\Speaker;
 
 final readonly class MemberRoleScopes
 {

@@ -503,8 +503,8 @@ class FrontendCatalogService
     }
 
     /**
-     * @param  Builder<Speaker>  $query
-     * @return Builder<Speaker>
+     * @param  Builder<Person>  $query
+     * @return Builder<Person>
      */
     private function applyPersonSearch(Builder $query, string $search): Builder
     {

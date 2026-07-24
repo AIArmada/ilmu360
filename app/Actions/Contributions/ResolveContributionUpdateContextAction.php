@@ -6,8 +6,8 @@ namespace App\Actions\Contributions;
 
 use App\Models\Event;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
-use App\Models\Speaker;
 use App\Services\ContributionEntityMutationService;
 use Lorisleiva\Actions\Concerns\AsAction;
 
@@ -22,7 +22,7 @@ class ResolveContributionUpdateContextAction
 
     /**
      * @return array{
-     *     entity: Event|Institution|Reference|Speaker,
+     *     entity: Event|Institution|Reference|Person,
      *     initial_state: array<string, mixed>,
      *     contract: array{
      *         accepts_partial_updates: bool,
@@ -38,8 +38,8 @@ class ResolveContributionUpdateContextAction
 
         return [
             'entity' => $entity,
-            'initial_state' => $this->contributionEntityMutationService->stateFor($entity),
-            'contract' => $this->contributionEntityMutationService->contractFor($entity),
+            'initial_state' => $this->contributionEntityMutationService->buildState($entity),
+            'contract' => $this->contributionEntityMutationService->buildFormContract($entity),
         ];
     }
 }

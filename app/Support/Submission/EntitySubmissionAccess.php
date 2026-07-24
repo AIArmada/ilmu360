@@ -40,7 +40,7 @@ final class EntitySubmissionAccess
     }
 
     /**
-     * @return Builder<Speaker>
+     * @return Builder<Person>
      */
     public function personQueryForSubmitter(?User $user): Builder
     {
@@ -69,8 +69,8 @@ final class EntitySubmissionAccess
     }
 
     /**
-     * @param  Builder<Speaker>  $query
-     * @return Builder<Speaker>
+     * @param  Builder<Person>  $query
+     * @return Builder<Person>
      */
     public function constrainPersonQueryForSubmitter(Builder $query, ?User $user): Builder
     {

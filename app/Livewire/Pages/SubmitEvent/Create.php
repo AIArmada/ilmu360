@@ -1775,7 +1775,7 @@ class Create extends Component implements HasActions, HasForms
                 'references:id,title',
                 'languages:id,code',
                 'speakers',
-                'keyPeople.speaker',
+                'keyPeople.person',
             ])
             ->find($duplicateId);
 
@@ -2005,9 +2005,9 @@ class Create extends Component implements HasActions, HasForms
         $access = app(EntitySubmissionAccess::class);
         $submitter = $this->submitterUser();
 
-        return $duplicateEvent->speakers
+        return $duplicateEvent->persons
             ->pluck('id')
-            ->map(fn (mixed $speakerId): ?string => is_string($speakerId) && $access->canUseSpeaker($submitter, $speakerId) ? $speakerId : null)
+            ->map(fn (mixed $speakerId): ?string => is_string($speakerId) && $access->canUsePerson($submitter, $speakerId) ? $speakerId : null)
             ->filter()
             ->values()
             ->all();
@@ -2024,7 +2024,7 @@ class Create extends Component implements HasActions, HasForms
         return $duplicateEvent->keyPeople
             ->filter(fn (EventKeyPerson $keyPerson): bool => $keyPerson->role_code !== EventKeyPersonRole::Speaker->value)
             ->map(function (EventKeyPerson $keyPerson) use ($access, $submitter): array {
-                $speakerId = is_string($keyPerson->involveable_id) && $access->canUseSpeaker($submitter, $keyPerson->involveable_id)
+                $speakerId = is_string($keyPerson->involveable_id) && $access->canUsePerson($submitter, $keyPerson->involveable_id)
                     ? $keyPerson->involveable_id
                     : null;
 
@@ -2034,7 +2034,7 @@ class Create extends Component implements HasActions, HasForms
 
                 return [
                     'role_code' => (string) $keyPerson->role_code,
-                    'involveable_type' => $speakerId === null ? null : 'speaker',
+                    'involveable_type' => $speakerId === null ? null : 'person',
                     'involveable_id' => $speakerId,
                     'display_name' => filled($fallbackName) ? (string) $fallbackName : null,
                     'visibility' => $keyPerson->visibility ?? 'public',
@@ -2067,7 +2067,7 @@ class Create extends Component implements HasActions, HasForms
             $defaults['primary_organizer_speaker_id'] = null;
         }
 
-        if ($organizer?->involveable_type === Person::class && $organizerId !== null && $access->canUseSpeaker($submitter, $organizerId)) {
+        if ($organizer?->involveable_type === Person::class && $organizerId !== null && $access->canUsePerson($submitter, $organizerId)) {
             $defaults['primary_organizer_kind'] = 'speaker';
             $defaults['primary_organizer_id'] = $organizerId;
             $defaults['primary_organizer_institution_id'] = null;
@@ -2179,14 +2179,14 @@ class Create extends Component implements HasActions, HasForms
         $submitter = $this->submitterUser();
 
         if (! $submitter instanceof User) {
-            return Cache::remember('submit_speakers', 60, fn (): array => $access->speakerQueryForSubmitter(null)
+            return Cache::remember('submit_speakers', 60, fn (): array => $access->personQueryForSubmitter(null)
                 ->orderBy('name')
                 ->get()
                 ->mapWithKeys(fn (Person $person): array => [(string) $person->id => $person->formatted_name])
                 ->all());
         }
 
-        return $access->speakerQueryForSubmitter($submitter)
+        return $access->personQueryForSubmitter($submitter)
             ->orderBy('name')
             ->get()
             ->mapWithKeys(fn (Person $person): array => [(string) $person->id => $person->formatted_name])

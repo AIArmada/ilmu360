@@ -7,7 +7,7 @@ use AIArmada\Events\Enums\ScheduleKind;
 use App\Enums\TimingMode;
 use App\Models\Event;
 use App\Models\Institution;
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -32,11 +32,11 @@ class CreateAdvancedEventAction
         Carbon $startsAt,
         Carbon $endsAt,
         string $timezone,
-        Institution|Speaker $primaryOrganizer,
+        Institution|Person $primaryOrganizer,
         ?string $locationInstitutionId,
     ): Event {
         return DB::transaction(function () use ($user, $form, $startsAt, $endsAt, $timezone, $primaryOrganizer, $locationInstitutionId): Event {
-            $speakerSlugSegments = $primaryOrganizer instanceof Speaker
+            $speakerSlugSegments = $primaryOrganizer instanceof Person
                 ? app(GenerateEventSlugAction::class)->speakerSlugSegmentsForSpeakerIds([(string) $primaryOrganizer->getKey()])
                 : [];
 

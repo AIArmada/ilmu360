@@ -8,7 +8,6 @@ use App\Enums\EventChangeType;
 use App\Models\Event;
 use App\Models\EventChangeAnnouncement;
 use App\Models\Institution;
-use App\Models\Speaker;
 use App\Models\Venue;
 use Illuminate\View\Component;
 use Illuminate\View\View;

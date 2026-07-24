@@ -29,8 +29,8 @@ class SubmitContributionCreateRequestAction
         ?string $proposerNote = null,
         ?Model $entity = null,
     ): ContributionRequest {
-        if (! in_array($subjectType, [ContributionSubjectType::Institution, ContributionSubjectType::Speaker], true)) {
-            throw new RuntimeException('Only institution and speaker creation requests are currently supported.');
+        if (! in_array($subjectType, [ContributionSubjectType::Institution, ContributionSubjectType::Person], true)) {
+            throw new RuntimeException('Only institution and person creation requests are currently supported.');
         }
 
         $entityMetadata = $entity instanceof Model

@@ -5,7 +5,7 @@ namespace App\Support\Membership;
 use AIArmada\Membership\Contracts\MembershipHook;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Models\Institution;
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Support\Submission\PublicSubmissionLockService;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
@@ -74,7 +74,7 @@ readonly class AppMembershipHook implements MembershipHook
 
         match ($subject::class) {
             Institution::class => $this->publicSubmissionLockService->ensureInstitutionUnlockedIfIneligible($subject->fresh()),
-            Speaker::class => $this->publicSubmissionLockService->ensureSpeakerUnlockedIfIneligible($subject->fresh()),
+            Person::class => $this->publicSubmissionLockService->ensureSpeakerUnlockedIfIneligible($subject->fresh()),
             default => null,
         };
     }

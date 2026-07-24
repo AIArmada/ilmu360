@@ -51,6 +51,11 @@ class Person extends Model implements AuditableContract, HasMedia
 
     protected $table = 'persons';
 
+    public static function getResourceKey(): string
+    {
+        return 'person';
+    }
+
     /**
      * @var list<string>
      */

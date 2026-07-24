@@ -4,7 +4,7 @@ namespace App\Actions\Contributions;
 
 use App\Enums\ContributionSubjectType;
 use App\Models\Institution;
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Models\User;
 use App\Services\ContributionEntityMutationService;
 use Illuminate\Support\Arr;
@@ -24,7 +24,7 @@ class SubmitStagedContributionCreateAction
 
     /**
      * @param  array<string, mixed>  $state
-     * @param  (callable(Institution|Speaker): void)|null  $persistRelationships
+     * @param  (callable(Institution|Person): void)|null  $persistRelationships
      */
     public function handle(
         ContributionSubjectType $subjectType,
@@ -32,7 +32,7 @@ class SubmitStagedContributionCreateAction
         User $user,
         ?callable $persistRelationships = null,
         string $validationKeyPrefix = '',
-    ): Institution|Speaker {
+    ): Institution|Person {
         $submissionState = $this->resolveContributionSubmissionStateAction->handle($state);
         $state = $submissionState['state'];
 
@@ -40,7 +40,7 @@ class SubmitStagedContributionCreateAction
 
         $entity = match ($subjectType) {
             ContributionSubjectType::Institution => $this->contributionEntityMutationService->createInstitution($state, $user),
-            ContributionSubjectType::Speaker => $this->contributionEntityMutationService->createSpeaker($state, $user),
+            ContributionSubjectType::Person => $this->contributionEntityMutationService->createSpeaker($state, $user),
             default => throw new InvalidArgumentException("Unsupported contribution subject type [{$subjectType->value}]"),
         };
 
@@ -66,7 +66,7 @@ class SubmitStagedContributionCreateAction
     {
         return match ($subjectType) {
             ContributionSubjectType::Institution => ['logo', 'cover', 'gallery'],
-            ContributionSubjectType::Speaker => ['avatar', 'cover', 'gallery'],
+            ContributionSubjectType::Person => ['avatar', 'cover', 'gallery'],
             default => [],
         };
     }

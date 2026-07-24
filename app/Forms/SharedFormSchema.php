@@ -16,8 +16,8 @@ use AIArmada\Contacting\Enums\SocialPlatform;
 use App\Actions\Location\NormalizeGoogleMapsInputAction;
 use App\Models\Event;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
-use App\Models\Speaker;
 use App\Models\Venue;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
@@ -523,7 +523,7 @@ class SharedFormSchema
      * @param  array<string, mixed>  $data
      */
     public static function createAddressFromData(
-        Event|Institution|Speaker|Venue $model,
+        Event|Institution|Person|Venue $model,
         array $data,
         string $type = 'main',
         bool $allowCountryOnly = false,

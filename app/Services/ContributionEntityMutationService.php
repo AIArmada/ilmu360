@@ -758,7 +758,7 @@ class ContributionEntityMutationService
      */
     private function eventState(Event $event): array
     {
-        $event->loadMissing(['references', 'series', 'classifications', 'keyPeople.speaker', 'languages:id,event_id']);
+        $event->loadMissing(['references', 'series', 'classifications', 'keyPeople.person', 'languages:id,event_id']);
 
         $tags = $event->classifications->groupBy('taxonomy_code');
 

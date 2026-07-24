@@ -440,8 +440,8 @@ class EventController extends Controller
             'institution.addresses',
             'institution.addresses.country',
             'keyPeople',
-            'keyPeople.speaker',
-            'speakers',
+            'keyPeople.person',
+            'persons',
             'series',
             'mediaLinks',
             'accessPolicy',
@@ -518,8 +518,8 @@ class EventController extends Controller
             'institution.addresses',
             'institution.addresses.country',
             'keyPeople',
-            'keyPeople.speaker',
-            'speakers',
+            'keyPeople.person',
+            'persons',
             'series',
             'mediaLinks',
             'accessPolicy',
@@ -532,7 +532,7 @@ class EventController extends Controller
         $this->abortUnlessShowVisibleEvent($event);
 
         $event = QueryBuilder::for(Event::query()->with([
-            'keyPeople.speaker',
+            'keyPeople.person',
             'institution.media',
             'institution.addresses.country',
             'venue.addresses.country',

@@ -4,9 +4,9 @@ namespace App\Actions\Slugs;
 
 use App\Models\Event;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
 use App\Models\SlugRedirect;
-use App\Models\Speaker;
 use App\Models\Venue;
 use App\Support\Models\SlugOrUuidResolver;
 use App\Support\Slugs\PublicSlugPathResolver;
@@ -86,7 +86,7 @@ final readonly class ResolvePublicSlugAction
         $modelClass = match ($parameter) {
             'event' => Event::class,
             'institution' => Institution::class,
-            'speaker' => Speaker::class,
+            'person' => Person::class,
             'venue' => Venue::class,
             'reference' => Reference::class,
             default => Model::class,

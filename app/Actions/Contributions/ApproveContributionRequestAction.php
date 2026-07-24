@@ -94,7 +94,7 @@ class ApproveContributionRequestAction
 
         return match ($request->subject_type) {
             ContributionSubjectType::Institution => $this->createInstitutionFromRequest($payload),
-            ContributionSubjectType::Speaker => $this->createSpeakerFromRequest($request, $payload),
+            ContributionSubjectType::Person => $this->createSpeakerFromRequest($request, $payload),
             default => throw new RuntimeException('Unsupported create request subject.'),
         };
     }

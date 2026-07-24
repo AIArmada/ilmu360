@@ -77,9 +77,6 @@ class GeneratePersonSlugAction
         return $this->handle(
             $speaker->name,
             [
-                'honorific' => $speaker->honorific,
-                'pre_nominal' => $speaker->pre_nominal,
-                'post_nominal' => $speaker->post_nominal,
                 'city' => $address?->city,
                 'state' => $address?->state,
                 'country_id' => $address?->country_id,

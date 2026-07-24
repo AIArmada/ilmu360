@@ -7,7 +7,7 @@ namespace App\Actions\DonationChannels;
 use App\Models\DonationChannel;
 use App\Models\Event;
 use App\Models\Institution;
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Support\Media\ModelMediaSyncService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
@@ -149,7 +149,7 @@ final readonly class SaveDonationChannelAction
 
         return match ($normalized) {
             'institution', 'institutions', Institution::class => Institution::class,
-            'speaker', 'speakers', Speaker::class => Speaker::class,
+            'person', 'persons', Person::class => Person::class,
             'event', 'events', Event::class => Event::class,
             default => throw ValidationException::withMessages([
                 'donatable_type' => __('The selected donation channel owner type is invalid.'),

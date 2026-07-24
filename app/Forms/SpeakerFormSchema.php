@@ -6,7 +6,6 @@ use AIArmada\Membership\Actions\AddMemberAction;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Actions\Speakers\GenerateSpeakerSlugAction;
 use App\Enums\Gender;
-use App\Models\Speaker;
 use App\Models\User;
 use App\Services\ContributionEntityMutationService;
 use Filament\Schemas\Components\Component;

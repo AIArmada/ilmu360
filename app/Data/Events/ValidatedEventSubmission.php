@@ -7,7 +7,7 @@ namespace App\Data\Events;
 use App\Enums\EventPrayerTime;
 use App\Models\Event;
 use App\Models\Institution;
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Models\User;
 use Carbon\Carbon;
 
@@ -22,7 +22,7 @@ final readonly class ValidatedEventSubmission
         public Carbon $startsAt,
         public ?Carbon $endsAt,
         public string $timezone,
-        public Institution|Speaker $primaryOrganizer,
+        public Institution|Person $primaryOrganizer,
         public ?string $targetInstitutionId,
         public ?string $targetVenueId,
         public ?EventPrayerTime $prayerTime,

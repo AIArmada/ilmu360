@@ -3,7 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\Institution;
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Models\Venue;
 use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Builder;
@@ -63,7 +63,7 @@ class PruneOrphanedEntities extends Command
 
         $totalPruned += $this->pruneModel(
             'Speakers',
-            Speaker::query()
+            Person::query()
                 ->where('status', 'pending')
                 ->where('created_at', '<', $threshold)
                 ->whereDoesntHave('events'),

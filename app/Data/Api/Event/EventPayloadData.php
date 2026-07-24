@@ -11,8 +11,8 @@ use App\Models\Event;
 use App\Models\EventChangeAnnouncement;
 use App\Models\EventKeyPerson;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
-use App\Models\Speaker;
 use App\Support\Events\EventCategoryPresenter;
 use App\Support\Location\AddressHierarchyFormatter;
 use App\Support\Timezone\UserDateTimeFormatter;
@@ -44,7 +44,7 @@ class EventPayloadData extends Data
             'primaryLocation.venueSpace',
             'primaryOccurrence',
             'timeExpressions',
-            'keyPeople.speaker',
+            'keyPeople.person',
         ]);
 
         /** @var array<string, mixed> $payload */
@@ -117,11 +117,11 @@ class EventPayloadData extends Data
             }
         }
 
-        if ($event->relationLoaded('speakers')) {
-            $event->speakers->loadMissing('media');
+        if ($event->relationLoaded('persons')) {
+            $event->persons->loadMissing('media');
 
-            $payload['speakers'] = $event->speakers
-                ->map(fn (Speaker $speaker): array => EventSpeakerData::fromModel($speaker)->toArray())
+            $payload['speakers'] = $event->persons
+                ->map(fn (Person $speaker): array => EventSpeakerData::fromModel($speaker)->toArray())
                 ->values()
                 ->all();
         }
@@ -250,8 +250,8 @@ class EventPayloadData extends Data
             'name' => $keyPerson->display_name,
             'visibility' => $keyPerson->visibility,
             'sort_order' => $keyPerson->sort_order,
-            'speaker' => $keyPerson->speaker instanceof Speaker
-                ? EventSpeakerData::fromModel($keyPerson->speaker)->toArray()
+            'speaker' => $keyPerson->person instanceof Person
+                ? EventSpeakerData::fromModel($keyPerson->person)->toArray()
                 : null,
         ];
     }

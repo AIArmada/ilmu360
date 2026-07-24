@@ -6,7 +6,7 @@ use AIArmada\Addressing\Models\Address;
 use App\Enums\EventFormat;
 use App\Models\Event;
 use App\Models\Institution;
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Models\Venue;
 use App\Support\Events\EventCategoryPresenter;
 use App\Support\Location\AddressHierarchyFormatter;
@@ -100,8 +100,8 @@ class EventListData extends Data
             venue: $event->venue instanceof Venue
                 ? EventListVenueData::fromModel($event->venue)->toArray()
                 : null,
-            speakers: $event->speakers
-                ->map(fn (Speaker $speaker): array => EventListSpeakerData::fromModel($speaker)->toArray())
+            speakers: $event->persons
+                ->map(fn (Person $speaker): array => EventListSpeakerData::fromModel($speaker)->toArray())
                 ->values()
                 ->all(),
         );

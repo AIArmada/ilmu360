@@ -291,7 +291,7 @@ class SubmitFrontendEventAction
             ]);
         }
 
-        if ($organizerType === 'speaker' && $primaryOrganizerId !== '' && ! $this->entitySubmissionAccess->canUseSpeaker($submitter, $primaryOrganizerId)) {
+        if ($organizerType === 'speaker' && $primaryOrganizerId !== '' && ! $this->entitySubmissionAccess->canUsePerson($submitter, $primaryOrganizerId)) {
             throw ValidationException::withMessages([
                 $this->validationKey('primary_organizer_id', $validationKeyPrefix) => __('Anda tidak dibenarkan memilih penceramah ini untuk penghantaran majlis.'),
             ]);
@@ -319,7 +319,7 @@ class SubmitFrontendEventAction
             ->values();
 
         foreach ($speakerIds as $speakerId) {
-            if (! $this->entitySubmissionAccess->canUseSpeaker($submitter, $speakerId)) {
+            if (! $this->entitySubmissionAccess->canUsePerson($submitter, $speakerId)) {
                 throw ValidationException::withMessages([
                     $this->validationKey('speakers', $validationKeyPrefix) => __('Senarai penceramah mengandungi pilihan yang tidak dibenarkan untuk penghantaran ini.'),
                 ]);

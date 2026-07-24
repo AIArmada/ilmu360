@@ -24,7 +24,7 @@ final readonly class EnsureUniqueContributionCreateAction
     {
         match ($subjectType) {
             ContributionSubjectType::Institution => $this->ensureUniqueInstitution($state, $validationKeyPrefix),
-            ContributionSubjectType::Speaker => $this->ensureUniqueSpeaker($state, $validationKeyPrefix),
+            ContributionSubjectType::Person => $this->ensureUniqueSpeaker($state, $validationKeyPrefix),
             default => null,
         };
     }

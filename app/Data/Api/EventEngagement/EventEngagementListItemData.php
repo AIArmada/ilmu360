@@ -5,7 +5,7 @@ namespace App\Data\Api\EventEngagement;
 use AIArmada\Engagement\Models\Response;
 use App\Models\Event;
 use App\Models\Institution;
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Models\Venue;
 use App\Support\Events\EventCategoryPresenter;
 use BackedEnum;
@@ -56,9 +56,9 @@ class EventEngagementListItemData extends Data
             venue: $event->relationLoaded('venue') && $event->venue instanceof Venue
                 ? Arr::only($event->venue->toArray(), ['id', 'name'])
                 : null,
-            speakers: $event->relationLoaded('speakers')
-                ? $event->speakers
-                    ->map(fn (Speaker $speaker): array => Arr::only($speaker->toArray(), ['id', 'name', 'slug', 'pivot']))
+            speakers: $event->relationLoaded('persons')
+                ? $event->persons
+                    ->map(fn (Person $speaker): array => Arr::only($speaker->toArray(), ['id', 'name', 'slug', 'pivot']))
                     ->values()
                     ->all()
                 : [],

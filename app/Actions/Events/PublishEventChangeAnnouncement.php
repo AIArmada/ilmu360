@@ -357,7 +357,7 @@ class PublishEventChangeAnnouncement
             'institution:id,name,slug',
             'venue:id,name,slug',
             'primaryLocation.venueSpace:id,name,slug',
-            'speakerKeyPeople.speaker:id,name,slug',
+            'personKeyPeople.person:id,name,slug',
             'references:id,title,slug',
         ];
     }
@@ -389,11 +389,11 @@ class PublishEventChangeAnnouncement
                 'id' => (string) $event->primaryLocation->venueSpace->getKey(),
                 'name' => $event->primaryLocation->venueSpace->name,
             ],
-            'speakers' => $event->speakerKeyPeople
+            'speakers' => $event->personKeyPeople
                 ->map(fn (EventKeyPerson $keyPerson): array => [
-                    'id' => $keyPerson->speaker instanceof Person ? (string) $keyPerson->speaker->getKey() : null,
-                    'name' => $keyPerson->speaker instanceof Person ? $keyPerson->speaker->name : $keyPerson->display_name,
-                    'slug' => $keyPerson->speaker instanceof Person ? $keyPerson->speaker->slug : null,
+                    'id' => $keyPerson->person instanceof Person ? (string) $keyPerson->person->getKey() : null,
+                    'name' => $keyPerson->person instanceof Person ? $keyPerson->person->name : $keyPerson->display_name,
+                    'slug' => $keyPerson->person instanceof Person ? $keyPerson->person->slug : null,
                 ])
                 ->values()
                 ->all(),

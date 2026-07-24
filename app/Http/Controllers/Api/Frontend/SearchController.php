@@ -485,7 +485,7 @@ class SearchController extends FrontendController
             $this->institutionEventsQuery($record)
                 ->active()
                 ->where('starts_at', '>=', $now)
-                ->with(['institution.media', 'venue.addresses.country', 'speakers.media', 'keyPeople.speaker', 'media', 'references'])
+                ->with(['institution.media', 'venue.addresses.country', 'persons.media', 'keyPeople.person', 'media', 'references'])
                 ->orderBy('starts_at'),
             $upcomingPerPage,
         );
@@ -495,7 +495,7 @@ class SearchController extends FrontendController
             $this->institutionEventsQuery($record)
                 ->active()
                 ->where('starts_at', '<', $now)
-                ->with(['institution.media', 'venue.addresses.country', 'speakers.media', 'keyPeople.speaker', 'media', 'references'])
+                ->with(['institution.media', 'venue.addresses.country', 'persons.media', 'keyPeople.person', 'media', 'references'])
                 ->orderByDesc('starts_at'),
             $pastPerPage,
         );
@@ -676,7 +676,7 @@ class SearchController extends FrontendController
                     'institution.media',
                     'institution.addresses.country',
                     'speakers.media',
-                    'keyPeople.speaker.media',
+                    'keyPeople.person.media',
                     'media',
                     'references',
                 ])
@@ -693,7 +693,7 @@ class SearchController extends FrontendController
                     'institution.media',
                     'institution.addresses.country',
                     'speakers.media',
-                    'keyPeople.speaker.media',
+                    'keyPeople.person.media',
                     'media',
                     'references',
                 ])

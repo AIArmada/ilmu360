@@ -7,7 +7,7 @@ use AIArmada\Membership\Enums\MemberRole;
 use App\Enums\MemberSubjectType;
 use App\Models\Institution;
 use App\Models\MembershipApplication;
-use App\Models\Speaker;
+use App\Models\Person;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
@@ -123,13 +123,13 @@ class MembershipApplicationPresenter
             return null;
         }
 
-        if (! $subject instanceof Institution && ! $subject instanceof Speaker) {
+        if (! $subject instanceof Institution && ! $subject instanceof Person) {
             return null;
         }
 
         $label = $subject instanceof Institution
             ? MemberSubjectType::Institution->label()
-            : MemberSubjectType::Speaker->label();
+            : MemberSubjectType::Person->label();
 
         $title = $subject instanceof Institution ? $subject->name : $subject->formatted_name;
         $redirectUrl = $subject instanceof Institution

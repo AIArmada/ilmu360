@@ -20,7 +20,6 @@ use App\Models\Institution;
 use App\Models\Reference;
 use App\Models\Series;
 use App\Models\Space;
-use App\Models\Speaker;
 use App\Models\Venue;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Hidden;

@@ -4,9 +4,9 @@ namespace App\Filament\Resources\SlugRedirects\Schemas;
 
 use App\Models\Event;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
 use App\Models\SlugRedirect;
-use App\Models\Speaker;
 use App\Models\Venue;
 use App\Support\Slugs\PublicSlugPathResolver;
 use Filament\Forms\Components\DateTimePicker;
@@ -89,7 +89,7 @@ class SlugRedirectForm
         return [
             'event' => 'Event',
             'institution' => 'Institution',
-            'speaker' => 'Speaker',
+            'person' => 'Person',
             'venue' => 'Venue',
             'reference' => 'Reference',
         ];
@@ -121,7 +121,7 @@ class SlugRedirectForm
                         ->where('title', 'like', "%{$term}%")
                         ->orWhere('slug', 'like', "%{$term}%");
                 }),
-                'speaker' => $query->where(function ($query) use ($term): void {
+                'person' => $query->where(function ($query) use ($term): void {
                     $query
                         ->where('name', 'like', "%{$term}%")
                         ->orWhere('slug', 'like', "%{$term}%");
@@ -226,7 +226,7 @@ class SlugRedirectForm
         $name = match (true) {
             $record instanceof Event => $record->title,
             $record instanceof Institution => $record->name,
-            $record instanceof Speaker => $record->formatted_name,
+            $record instanceof Person => $record->formatted_name,
             $record instanceof Venue => $record->name,
             $record instanceof Reference => $record->title,
             default => class_basename($record::class).' #'.$record->getKey(),

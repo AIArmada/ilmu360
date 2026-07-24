@@ -133,7 +133,7 @@ class Show extends Component
                 'venue.media',
                 'venue.addresses',
                 'speakers.media',
-                'keyPeople.speaker',
+                'keyPeople.person',
                 'references',
                 'media',
             ]);

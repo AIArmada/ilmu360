@@ -5,7 +5,7 @@ namespace App\Actions\Contributions;
 use App\Enums\ContributionRequestType;
 use App\Models\ContributionRequest;
 use App\Models\Institution;
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Models\User;
 use App\Services\Notifications\ContributionRequestNotificationService;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -44,7 +44,7 @@ class RejectContributionRequestAction
         if ($request->type === ContributionRequestType::Create) {
             $entity = $request->entity;
 
-            if ($entity instanceof Institution || $entity instanceof Speaker) {
+            if ($entity instanceof Institution || $entity instanceof Person) {
                 $entity->forceFill([
                     'status' => 'rejected',
                     'rejected_at' => $now,

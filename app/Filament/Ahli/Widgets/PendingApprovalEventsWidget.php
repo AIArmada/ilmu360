@@ -7,7 +7,7 @@ use AIArmada\FilamentEvents\Resources\EventResource;
 use App\Models\Event;
 use App\Models\EventSubmission;
 use App\Models\Institution;
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Models\User;
 use App\Support\Events\SubmitterContactPresenter;
 use App\Support\Timezone\UserDateTimeFormatter;
@@ -107,8 +107,8 @@ class PendingApprovalEventsWidget extends TableWidget
                                 $instQuery->whereIn('involveable_type', [Institution::class, 'institution'])
                                     ->whereIn('involveable_id', $user->institutions()->select('institutions.id'));
                             })->orWhere(function (Builder $spkQuery) use ($user): void {
-                                $spkQuery->whereIn('involveable_type', [Speaker::class, 'speaker'])
-                                    ->whereIn('involveable_id', $user->speakers()->select('speakers.id'));
+                                $spkQuery->whereIn('involveable_type', [Person::class, 'person'])
+                                    ->whereIn('involveable_id', $user->persons()->select('persons.id'));
                             });
                         });
                 });
@@ -131,7 +131,7 @@ class PendingApprovalEventsWidget extends TableWidget
             return 'Institution: '.$record->organizer->name;
         }
 
-        if ($record->organizer instanceof Speaker) {
+        if ($record->organizer instanceof Person) {
             return 'Speaker: '.$record->organizer->formatted_name;
         }
 

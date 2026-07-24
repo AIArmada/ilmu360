@@ -4,7 +4,6 @@ namespace App\Policies;
 
 use App\Enums\EventVisibility;
 use App\Models\Event;
-use App\Models\Speaker;
 use App\Models\User;
 use App\States\EventStatus\Draft;
 use App\Support\Authz\MemberPermissionGate;

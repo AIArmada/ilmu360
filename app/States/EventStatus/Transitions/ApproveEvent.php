@@ -6,8 +6,8 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\ModerationReview;
+use App\Models\Person;
 use App\Models\Reference;
-use App\Models\Speaker;
 use App\Models\User;
 use App\Models\Venue;
 use App\Services\Notifications\EventNotificationService;
@@ -74,21 +74,21 @@ class ApproveEvent extends Transition implements HasColor, HasIcon, HasLabel
      */
     protected function verifyPendingRelatedRecords(Event $event): void
     {
-        $speakerIds = $event->keyPeople()->where('involveable_type', 'speaker')->pluck('involveable_id');
+        $personIds = $event->keyPeople()->where('involveable_type', 'person')->pluck('involveable_id');
 
         $organizer = $event->primaryOrganizerInvolvement?->involveable;
-        if ($organizer instanceof Speaker) {
-            $speakerIds->push((string) $organizer->getKey());
+        if ($organizer instanceof Person) {
+            $personIds->push((string) $organizer->getKey());
         }
 
-        // Verify linked speaker profiles across all event roles.
-        Speaker::query()
-            ->whereIn('id', $speakerIds->unique()->values())
+        // Verify linked person profiles across all event roles.
+        Person::query()
+            ->whereIn('id', $personIds->unique()->values())
             ->where('status', 'pending')
             ->get()
-            ->each(function (Speaker $speaker): void {
+            ->each(function (Person $person): void {
                 $now = now();
-                $speaker->forceFill([
+                $person->forceFill([
                     'status' => 'verified',
                     'verified_at' => $now,
                     'last_state_change_at' => $now,

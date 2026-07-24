@@ -83,7 +83,7 @@ final readonly class SaveAdminEventAction
      */
     public function formStateForRecord(Event $event): array
     {
-        $event->loadMissing(['references:id,title', 'series:id,title', 'classifications', 'keyPeople.speaker', 'languages:id,event_id', 'accessPolicy', 'primaryLocation.venueSpace']);
+        $event->loadMissing(['references:id,title', 'series:id,title', 'classifications', 'keyPeople.person', 'languages:id,event_id', 'accessPolicy', 'primaryLocation.venueSpace']);
 
         $timeFields = AdminEventTimeMapper::injectFormTimeFields([
             'starts_at' => $event->starts_at?->toISOString(),
