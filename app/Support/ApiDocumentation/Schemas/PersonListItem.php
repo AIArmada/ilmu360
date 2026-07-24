@@ -10,12 +10,12 @@ use Illuminate\Contracts\Support\Arrayable;
 /**
  * @phpstan-import-type CountryArray from Country
  *
- * @phpstan-type SpeakerListItemArray array{id: string, slug: string, name: string, gender: string|null, formatted_name: string, status: string, verified_by: ?string, events_count: int, avatar_url: string, country: CountryArray|null, is_following: bool}
+ * @phpstan-type PersonListItemArray array{id: string, slug: string, name: string, gender: string|null, formatted_name: string, status: string, verified_by: ?string, events_count: int, avatar_url: string, country: CountryArray|null, is_following: bool}
  *
  * @implements Arrayable<string, mixed>
  */
-#[SchemaName('SpeakerListItem')]
-final readonly class SpeakerListItem implements Arrayable
+#[SchemaName('PersonListItem')]
+final readonly class PersonListItem implements Arrayable
 {
     public function __construct(
         public string $id,
@@ -31,7 +31,7 @@ final readonly class SpeakerListItem implements Arrayable
         public bool $is_following,
     ) {}
 
-    /** @return SpeakerListItemArray */
+    /** @return PersonListItemArray */
     public function toArray(): array
     {
         return [

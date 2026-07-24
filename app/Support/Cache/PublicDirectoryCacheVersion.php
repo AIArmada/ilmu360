@@ -6,7 +6,7 @@ use AIArmada\Addressing\Models\Address;
 use App\Models\Event;
 use App\Models\EventKeyPerson;
 use App\Models\Institution;
-use App\Models\Speaker;
+use App\Models\Person;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -16,7 +16,7 @@ class PublicDirectoryCacheVersion
 {
     private const string INSTITUTION_DIRECTORY_VERSION_KEY = 'public_directory:institutions:version:v1';
 
-    private const string SPEAKER_DIRECTORY_VERSION_KEY = 'public_directory:speakers:version:v1';
+    private const string SPEAKER_DIRECTORY_VERSION_KEY = 'public_directory:persons:version:v1';
 
     /**
      * @return array{version: string}
@@ -31,7 +31,7 @@ class PublicDirectoryCacheVersion
     /**
      * @return array{version: string}
      */
-    public function speaker(): array
+    public function person(): array
     {
         $involvementsTable = config('events.database.tables.event_involvements', 'event_involvements');
         $participationCount = DB::table($involvementsTable)->count();
@@ -51,7 +51,7 @@ class PublicDirectoryCacheVersion
         $this->storeVersion(self::INSTITUTION_DIRECTORY_VERSION_KEY);
     }
 
-    public function bumpSpeaker(): void
+    public function bumpPerson(): void
     {
         $this->storeVersion(self::SPEAKER_DIRECTORY_VERSION_KEY);
     }
@@ -59,7 +59,7 @@ class PublicDirectoryCacheVersion
     public function bumpAll(): void
     {
         $this->bumpInstitution();
-        $this->bumpSpeaker();
+        $this->bumpPerson();
     }
 
     public function bumpForAddress(Address $address): void
@@ -75,8 +75,8 @@ class PublicDirectoryCacheVersion
                 continue;
             }
 
-            if ($addressable instanceof Speaker) {
-                $this->bumpSpeaker();
+            if ($addressable instanceof Person) {
+                $this->bumpPerson();
             }
         }
     }
@@ -91,20 +91,20 @@ class PublicDirectoryCacheVersion
             return;
         }
 
-        if (in_array($modelType, [(new Speaker)->getMorphClass(), Speaker::class], true)) {
-            $this->bumpSpeaker();
+        if (in_array($modelType, [(new Person)->getMorphClass(), Person::class], true)) {
+            $this->bumpPerson();
         }
     }
 
     public function bumpForEvent(Event $event): void
     {
         $this->bumpInstitution();
-        $this->bumpSpeaker();
+        $this->bumpPerson();
     }
 
     public function bumpForEventKeyPerson(EventKeyPerson $eventKeyPerson): void
     {
-        $this->bumpSpeaker();
+        $this->bumpPerson();
     }
 
     private function versionFor(string $key): string

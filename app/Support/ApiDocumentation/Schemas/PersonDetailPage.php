@@ -8,16 +8,16 @@ use Dedoc\Scramble\Attributes\SchemaName;
 use Illuminate\Contracts\Support\Arrayable;
 
 /**
- * @phpstan-import-type SpeakerArray from Speaker
+ * @phpstan-import-type PersonArray from Person
  * @phpstan-import-type EventSummaryArray from EventSummary
  * @phpstan-import-type EventParticipationArray from EventParticipation
  *
- * @phpstan-type SpeakerDetailPageArray array{speaker: SpeakerArray, upcoming_events: list<EventSummaryArray>, upcoming_total: int, past_events: list<EventSummaryArray>, past_total: int, other_role_upcoming_participations: list<EventParticipationArray>, other_role_upcoming_total: int, other_role_past_participations: list<EventParticipationArray>, other_role_past_total: int}
+ * @phpstan-type PersonDetailPageArray array{speaker: PersonArray, upcoming_events: list<EventSummaryArray>, upcoming_total: int, past_events: list<EventSummaryArray>, past_total: int, other_role_upcoming_participations: list<EventParticipationArray>, other_role_upcoming_total: int, other_role_past_participations: list<EventParticipationArray>, other_role_past_total: int}
  *
  * @implements Arrayable<string, mixed>
  */
-#[SchemaName('SpeakerDetailPage')]
-final readonly class SpeakerDetailPage implements Arrayable
+#[SchemaName('PersonDetailPage')]
+final readonly class PersonDetailPage implements Arrayable
 {
     /**
      * @param  list<EventSummary>  $upcoming_events
@@ -26,7 +26,7 @@ final readonly class SpeakerDetailPage implements Arrayable
      * @param  list<EventParticipation>  $other_role_past_participations
      */
     public function __construct(
-        public Speaker $speaker,
+        public Person $person,
         public array $upcoming_events,
         public int $upcoming_total,
         public array $past_events,
@@ -37,11 +37,11 @@ final readonly class SpeakerDetailPage implements Arrayable
         public int $other_role_past_total,
     ) {}
 
-    /** @return SpeakerDetailPageArray */
+    /** @return PersonDetailPageArray */
     public function toArray(): array
     {
         return [
-            'speaker' => $this->speaker->toArray(),
+            'person' => $this->person->toArray(),
             'upcoming_events' => array_map(static fn (EventSummary $event): array => $event->toArray(), $this->upcoming_events),
             'upcoming_total' => $this->upcoming_total,
             'past_events' => array_map(static fn (EventSummary $event): array => $event->toArray(), $this->past_events),

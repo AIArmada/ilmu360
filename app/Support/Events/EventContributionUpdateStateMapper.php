@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Support\Events;
 
 use App\Models\Institution;
-use App\Models\Speaker;
+use App\Models\Person;
 use Carbon\CarbonInterface;
 
 class EventContributionUpdateStateMapper
@@ -137,7 +137,7 @@ class EventContributionUpdateStateMapper
             return 'institution';
         }
 
-        if (Speaker::query()->whereKey($primaryOrganizerId)->exists()) {
+        if (Person::query()->whereKey($primaryOrganizerId)->exists()) {
             return 'speaker';
         }
 

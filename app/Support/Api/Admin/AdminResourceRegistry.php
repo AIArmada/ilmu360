@@ -15,10 +15,10 @@ use App\Enums\EventFormat;
 use App\Enums\EventVisibility;
 use App\Enums\PrayerReference;
 use App\Enums\TimingMode;
-use App\Filament\Resources\Speakers\SpeakerResource;
+use App\Filament\Resources\Persons\PersonResource;
 use App\Models\Event;
 use App\Models\Institution;
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Models\User;
 use App\Models\Venue;
 use Filament\Facades\Filament;
@@ -379,7 +379,7 @@ class AdminResourceRegistry
                     'type' => 'boolean',
                 ],
             ],
-            SpeakerResource::class => [
+            PersonResource::class => [
                 [
                     'key' => 'status',
                     'label' => 'Status',
@@ -787,14 +787,14 @@ class AdminResourceRegistry
         }
 
         if (method_exists($record, 'primaryAddress')) {
-            /** @var Institution|Speaker|Venue $record */
+            /** @var Institution|Person|Venue $record */
             $address = $record->primaryAddress();
 
             $attributes['address'] = $address instanceof Address
                 ? $address->toArray()
                 : [];
 
-            if ($record instanceof Speaker && is_array($attributes['address'])) {
+            if ($record instanceof Person && is_array($attributes['address'])) {
                 $attributes['address'] = Arr::only($attributes['address'], [
                     'country_id',
                     'admin_area_1_id',

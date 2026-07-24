@@ -237,13 +237,13 @@ class EventController extends Controller
                 });
             }),
             AllowedFilter::callback('speaker', function (Builder $query, mixed $value): void {
-                $speakerIds = $this->normalizeArrayFilter($value);
-                if ($speakerIds === []) {
+                $personIds = $this->normalizeArrayFilter($value);
+                if ($personIds === []) {
                     return;
                 }
 
-                $query->whereHas('speakers', function (Builder $speakerQuery) use ($speakerIds): void {
-                    $speakerQuery->whereIn('speakers.id', $speakerIds);
+                $query->whereHas('speakers', function (Builder $personQuery) use ($personIds): void {
+                    $personQuery->whereIn('speakers.id', $personIds);
                 });
             }),
             AllowedFilter::callback('key_person_roles', function (Builder $query, mixed $value): void {

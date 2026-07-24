@@ -8,24 +8,24 @@ use Dedoc\Scramble\Attributes\SchemaName;
 use Illuminate\Contracts\Support\Arrayable;
 
 /**
- * @phpstan-import-type SpeakerDetailPageArray from SpeakerDetailPage
+ * @phpstan-import-type PersonDetailPageArray from PersonDetailPage
  *
- * @phpstan-type SpeakerDetailResponseArray array{data: SpeakerDetailPageArray, meta: array{request_id: string}}
+ * @phpstan-type PersonDetailResponseArray array{data: PersonDetailPageArray, meta: array{request_id: string}}
  *
  * @implements Arrayable<string, mixed>
  */
-#[SchemaName('SpeakerDetailResponse')]
-final readonly class SpeakerDetailResponse implements Arrayable
+#[SchemaName('PersonDetailResponse')]
+final readonly class PersonDetailResponse implements Arrayable
 {
     /**
      * @param  array{request_id: string}  $meta
      */
     public function __construct(
-        public SpeakerDetailPage $data,
+        public PersonDetailPage $data,
         public array $meta,
     ) {}
 
-    /** @return SpeakerDetailResponseArray */
+    /** @return PersonDetailResponseArray */
     public function toArray(): array
     {
         return [

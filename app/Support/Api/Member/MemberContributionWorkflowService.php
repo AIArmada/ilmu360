@@ -16,8 +16,8 @@ use App\Filament\Resources\ContributionRequests\Support\ContributionRequestPrese
 use App\Models\ContributionRequest;
 use App\Models\Event;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
-use App\Models\Speaker;
 use App\Models\User;
 use BackedEnum;
 use Carbon\CarbonInterface;
@@ -129,7 +129,7 @@ final readonly class MemberContributionWorkflowService
         $presentation = $request->entity instanceof Event
             || $request->entity instanceof Institution
             || $request->entity instanceof Reference
-            || $request->entity instanceof Speaker
+            || $request->entity instanceof Person
                 ? $this->resolveContributionSubjectPresentationAction->handle($request->entity)
                 : null;
 

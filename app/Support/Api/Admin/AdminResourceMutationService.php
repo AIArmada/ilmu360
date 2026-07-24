@@ -17,13 +17,13 @@ use App\Actions\DonationChannels\SaveDonationChannelAction;
 use App\Actions\Events\SaveAdminEventAction;
 use App\Actions\Inspirations\SaveInspirationAction;
 use App\Actions\Institutions\SaveInstitutionAction;
+use App\Actions\Persons\SavePersonAction;
 use App\Actions\References\SaveReferenceAction;
 use App\Actions\Reports\ResolveReportCategoryOptionsAction;
 use App\Actions\Reports\ResolveReportEntityMetadataAction;
 use App\Actions\Reports\SaveReportAction;
 use App\Actions\Series\SaveSeriesAction;
 use App\Actions\Spaces\SaveSpaceAction;
-use App\Actions\Speakers\SaveSpeakerAction;
 use App\Actions\Venues\SaveVenueAction;
 use App\Contracts\EventCategoryCatalog;
 use App\Enums\EventAgeGroup;
@@ -46,21 +46,21 @@ use App\Enums\VenueType;
 use App\Filament\Resources\DonationChannels\DonationChannelResource;
 use App\Filament\Resources\Inspirations\InspirationResource;
 use App\Filament\Resources\Institutions\InstitutionResource;
+use App\Filament\Resources\Persons\PersonResource;
 use App\Filament\Resources\References\ReferenceResource;
 use App\Filament\Resources\Reports\ReportResource;
 use App\Filament\Resources\Series\SeriesResource;
 use App\Filament\Resources\Spaces\SpaceResource;
-use App\Filament\Resources\Speakers\SpeakerResource;
 use App\Forms\SharedFormSchema;
 use App\Models\DonationChannel;
 use App\Models\Event;
 use App\Models\Inspiration;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Report;
 use App\Models\Series;
 use App\Models\Space;
-use App\Models\Speaker;
 use App\Models\User;
 use App\Models\Venue;
 use App\Services\ContributionEntityMutationService;
@@ -85,7 +85,7 @@ class AdminResourceMutationService
         private readonly SaveReportAction $saveReportAction,
         private readonly SaveReferenceAction $saveReferenceAction,
         private readonly SaveSeriesAction $saveSeriesAction,
-        private readonly SaveSpeakerAction $saveSpeakerAction,
+        private readonly SavePersonAction $savePersonAction,
         private readonly SaveSpaceAction $saveSpaceAction,
         private readonly SaveVenueAction $saveVenueAction,
     ) {}
@@ -104,7 +104,7 @@ class AdminResourceMutationService
             ReferenceResource::class,
             ReportResource::class,
             SeriesResource::class,
-            SpeakerResource::class,
+            PersonResource::class,
             SpaceResource::class,
             VenueResource::class,
         ], true);
@@ -253,7 +253,7 @@ class AdminResourceMutationService
                 'catalogs' => [],
                 'conditional_rules' => [],
             ],
-            SpeakerResource::class => [
+            PersonResource::class => [
                 'resource_key' => $resourceKey,
                 'operation' => $operation,
                 'method' => $updating ? 'PUT' : 'POST',
@@ -263,8 +263,8 @@ class AdminResourceMutationService
                 'content_type' => 'multipart/form-data',
                 'slug_behavior' => 'auto_managed',
                 'defaults' => $defaults,
-                'current_media' => $record instanceof Speaker ? $this->mediaState($record, ['avatar', 'main', 'cover', 'gallery']) : null,
-                'fields' => $this->speakerFields($updating),
+                'current_media' => $record instanceof Person ? $this->mediaState($record, ['avatar', 'main', 'cover', 'gallery']) : null,
+                'fields' => $this->personFields($updating),
                 'catalogs' => $this->addressCatalogs('address'),
                 'conditional_rules' => [
                     ['field' => 'job_title', 'required_when' => ['is_freelance' => [true]]],
@@ -318,7 +318,7 @@ class AdminResourceMutationService
             ReferenceResource::class => $this->referenceRules($updating),
             ReportResource::class => $this->reportRules($updating),
             SeriesResource::class => $this->seriesRules($updating),
-            SpeakerResource::class => $this->speakerRules($updating),
+            PersonResource::class => $this->personRules($updating),
             SpaceResource::class => $this->spaceRules($updating),
             VenueResource::class => $this->venueRules($updating),
             default => [],
@@ -340,7 +340,7 @@ class AdminResourceMutationService
             return $this->normalizeReportPayload($validated);
         }
 
-        if (! in_array($resourceClass, [InstitutionResource::class, SpeakerResource::class], true)) {
+        if (! in_array($resourceClass, [InstitutionResource::class, PersonResource::class], true)) {
             return $validated;
         }
 
@@ -391,7 +391,7 @@ class AdminResourceMutationService
             ReferenceResource::class => $this->saveReferenceAction->handle($validated),
             ReportResource::class => $this->saveReportAction->handle($validated),
             SeriesResource::class => $this->saveSeriesAction->handle($validated),
-            SpeakerResource::class => $this->saveSpeakerAction->handle($validated, $actor),
+            PersonResource::class => $this->savePersonAction->handle($validated, $actor),
             SpaceResource::class => $this->saveSpaceAction->handle($validated),
             VenueResource::class => $this->saveVenueAction->handle($validated),
             default => throw new \RuntimeException('Unsupported admin write resource.'),
@@ -429,9 +429,9 @@ class AdminResourceMutationService
             SeriesResource::class => $record instanceof Series
                 ? $this->saveSeriesAction->handle($validated, $record)
                 : throw new \RuntimeException('Expected series record.'),
-            SpeakerResource::class => $record instanceof Speaker
-                ? $this->saveSpeakerAction->handle($validated, $actor, $record)
-                : throw new \RuntimeException('Expected speaker record.'),
+            PersonResource::class => $record instanceof Person
+                ? $this->savePersonAction->handle($validated, $actor, $record)
+                : throw new \RuntimeException('Expected person record.'),
             SpaceResource::class => $record instanceof Space
                 ? $this->saveSpaceAction->handle($validated, $record)
                 : throw new \RuntimeException('Expected space record.'),
@@ -551,7 +551,7 @@ class AdminResourceMutationService
                 'clear_cover' => false,
                 'clear_gallery' => false,
             ],
-            SpeakerResource::class => [
+            PersonResource::class => [
                 'gender' => Gender::Male->value,
                 'is_freelance' => false,
                 'status' => 'verified',
@@ -665,7 +665,7 @@ class AdminResourceMutationService
             $defaults['clear_gallery'] = false;
         }
 
-        if ($record instanceof Speaker) {
+        if ($record instanceof Person) {
             if (is_array($defaults['address'] ?? null)) {
                 unset(
                     $defaults['address']['line1'],
@@ -1012,7 +1012,7 @@ class AdminResourceMutationService
 
         return match ($normalized) {
             'institution', 'institutions', Institution::class => (string) (new Institution)->getMorphClass(),
-            'speaker', 'speakers', Speaker::class => (string) (new Speaker)->getMorphClass(),
+            'speaker', 'speakers', Person::class => (string) (new Person)->getMorphClass(),
             'event', 'events', Event::class => (string) (new Event)->getMorphClass(),
             default => throw ValidationException::withMessages([
                 'donatable_type' => __('The selected donation channel owner type is invalid.'),
@@ -1027,7 +1027,7 @@ class AdminResourceMutationService
     {
         return match ($ownerType) {
             (string) (new Institution)->getMorphClass() => Institution::class,
-            (string) (new Speaker)->getMorphClass() => Speaker::class,
+            (string) (new Person)->getMorphClass() => Person::class,
             (string) (new Event)->getMorphClass() => Event::class,
             default => throw new \RuntimeException('Unsupported donation channel owner type.'),
         };
@@ -1040,7 +1040,7 @@ class AdminResourceMutationService
     {
         return [
             (string) (new Institution)->getMorphClass(),
-            (string) (new Speaker)->getMorphClass(),
+            (string) (new Person)->getMorphClass(),
             (string) (new Event)->getMorphClass(),
         ];
     }
@@ -1053,7 +1053,7 @@ class AdminResourceMutationService
         return array_values(array_unique([
             ...$this->donationChannelOwnerTypeValues(),
             Institution::class,
-            Speaker::class,
+            Person::class,
             Event::class,
             'institutions',
             'speakers',
@@ -1194,7 +1194,7 @@ class AdminResourceMutationService
                     'institutions' => (string) (new Institution)->getMorphClass(),
                     Institution::class => (string) (new Institution)->getMorphClass(),
                     'speakers' => (string) (new Speaker)->getMorphClass(),
-                    Speaker::class => (string) (new Speaker)->getMorphClass(),
+                    Person::class => (string) (new Person)->getMorphClass(),
                     'events' => (string) (new Event)->getMorphClass(),
                     Event::class => (string) (new Event)->getMorphClass(),
                 ],
@@ -1262,7 +1262,7 @@ class AdminResourceMutationService
     /**
      * @return array<int, array<string, mixed>>
      */
-    private function speakerFields(bool $updating): array
+    private function personFields(bool $updating): array
     {
         $fields = [
             $this->field('name', 'string', required: true, maxLength: 255),
@@ -1609,7 +1609,7 @@ class AdminResourceMutationService
                 ],
                 'accepted_models' => [
                     Institution::class,
-                    Speaker::class,
+                    Person::class,
                 ],
             ]),
             $this->field('institution_id', 'string', required: false, meta: [
@@ -2331,7 +2331,7 @@ class AdminResourceMutationService
     /**
      * @return array<string, mixed>
      */
-    private function speakerRules(bool $updating): array
+    private function personRules(bool $updating): array
     {
         $addressRule = $updating ? ['sometimes', 'array'] : ['present', 'array'];
         $maxUploadSize = 'max:'.$this->maxUploadSizeKb();

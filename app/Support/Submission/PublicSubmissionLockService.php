@@ -4,7 +4,7 @@ namespace App\Support\Submission;
 
 use AIArmada\Membership\Enums\MemberRole;
 use App\Models\Institution;
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Carbon;
@@ -27,10 +27,10 @@ final readonly class PublicSubmissionLockService
         );
     }
 
-    public function speakerEligibility(Speaker $speaker): SubmissionLockEligibilityResult
+    public function personEligibility(Person $person): SubmissionLockEligibilityResult
     {
         /** @var Collection<int, User> $members */
-        $members = $speaker->members()->get();
+        $members = $person->members()->get();
 
         return $this->resolveEligibility(
             $members,
@@ -61,11 +61,11 @@ final readonly class PublicSubmissionLockService
         Cache::forget('submit_institutions');
     }
 
-    public function lockSpeaker(Speaker $speaker, User $actor): void
+    public function lockPerson(Person $person, User $actor): void
     {
         $this->ensureGlobalLockPermission($actor);
 
-        $eligibility = $this->speakerEligibility($speaker);
+        $eligibility = $this->personEligibility($person);
 
         if (! $eligibility->eligible) {
             throw ValidationException::withMessages([
@@ -73,13 +73,13 @@ final readonly class PublicSubmissionLockService
             ]);
         }
 
-        $speaker->forceFill([
+        $person->forceFill([
             'allow_public_event_submission' => false,
             'public_submission_locked_at' => Carbon::now(),
             'public_submission_locked_by' => $actor->getKey(),
         ])->save();
 
-        Cache::forget('submit_speakers');
+        Cache::forget('submit_persons');
     }
 
     public function unlockInstitution(Institution $institution, User $actor): void
@@ -93,15 +93,15 @@ final readonly class PublicSubmissionLockService
         Cache::forget('submit_institutions');
     }
 
-    public function unlockSpeaker(Speaker $speaker, User $actor): void
+    public function unlockPerson(Person $person, User $actor): void
     {
         $this->ensureGlobalLockPermission($actor);
 
-        $speaker->forceFill([
+        $person->forceFill([
             'allow_public_event_submission' => true,
         ])->save();
 
-        Cache::forget('submit_speakers');
+        Cache::forget('submit_persons');
     }
 
     public function ensureInstitutionUnlockedIfIneligible(Institution $institution): bool
@@ -125,23 +125,23 @@ final readonly class PublicSubmissionLockService
         return true;
     }
 
-    public function ensureSpeakerUnlockedIfIneligible(Speaker $speaker): bool
+    public function ensurePersonUnlockedIfIneligible(Person $person): bool
     {
-        if ($speaker->allow_public_event_submission) {
+        if ($person->allow_public_event_submission) {
             return false;
         }
 
-        $eligibility = $this->speakerEligibility($speaker);
+        $eligibility = $this->personEligibility($person);
 
         if ($eligibility->eligible) {
             return false;
         }
 
-        $speaker->forceFill([
+        $person->forceFill([
             'allow_public_event_submission' => true,
         ])->save();
 
-        Cache::forget('submit_speakers');
+        Cache::forget('submit_persons');
 
         return true;
     }
@@ -161,19 +161,19 @@ final readonly class PublicSubmissionLockService
                 }
             });
 
-        $speakersReopened = 0;
+        $personsReopened = 0;
 
-        Speaker::query()
+        Person::query()
             ->where('allow_public_event_submission', false)
-            ->each(function (Speaker $speaker) use (&$speakersReopened): void {
-                if ($this->ensureSpeakerUnlockedIfIneligible($speaker)) {
-                    $speakersReopened++;
+            ->each(function (Person $person) use (&$personsReopened): void {
+                if ($this->ensurePersonUnlockedIfIneligible($person)) {
+                    $personsReopened++;
                 }
             });
 
         return [
             'institutions_reopened' => $institutionsReopened,
-            'speakers_reopened' => $speakersReopened,
+            'speakers_reopened' => $personsReopened,
         ];
     }
 
@@ -193,18 +193,18 @@ final readonly class PublicSubmissionLockService
                 ->each(fn (Institution $institution): bool => $this->ensureInstitutionUnlockedIfIneligible($institution));
         }
 
-        /** @var list<string> $speakerIds */
-        $speakerIds = $user->speakers()
+        /** @var list<string> $personIds */
+        $personIds = $user->speakers()
             ->where('allow_public_event_submission', false)
             ->pluck('speakers.id')
             ->map(fn (mixed $id): string => (string) $id)
             ->values()
             ->all();
 
-        if ($speakerIds !== []) {
-            Speaker::query()
-                ->whereIn('id', $speakerIds)
-                ->each(fn (Speaker $speaker): bool => $this->ensureSpeakerUnlockedIfIneligible($speaker));
+        if ($personIds !== []) {
+            Person::query()
+                ->whereIn('id', $personIds)
+                ->each(fn (Person $person): bool => $this->ensurePersonUnlockedIfIneligible($person));
         }
     }
 

@@ -8,14 +8,14 @@ use App\Data\Api\Frontend\Search\EventListData;
 use App\Data\Api\Frontend\Search\InstitutionDetailData;
 use App\Data\Api\Frontend\Search\InstitutionDonationChannelData;
 use App\Data\Api\Frontend\Search\InstitutionListData;
+use App\Data\Api\Frontend\Search\PersonDetailData;
+use App\Data\Api\Frontend\Search\PersonDetailMediaData;
+use App\Data\Api\Frontend\Search\PersonGalleryItemData;
+use App\Data\Api\Frontend\Search\PersonInstitutionData;
+use App\Data\Api\Frontend\Search\PersonListData;
 use App\Data\Api\Frontend\Search\ReferenceDetailData;
 use App\Data\Api\Frontend\Search\ReferenceListData;
 use App\Data\Api\Frontend\Search\SeriesDetailData;
-use App\Data\Api\Frontend\Search\SpeakerDetailData;
-use App\Data\Api\Frontend\Search\SpeakerDetailMediaData;
-use App\Data\Api\Frontend\Search\SpeakerGalleryItemData;
-use App\Data\Api\Frontend\Search\SpeakerInstitutionData;
-use App\Data\Api\Frontend\Search\SpeakerListData;
 use App\Data\Api\Frontend\Search\VenueDetailData;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventVisibility;
@@ -26,9 +26,9 @@ use App\Models\Event;
 use App\Models\EventKeyPerson;
 use App\Models\Inspiration;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Series;
-use App\Models\Speaker;
 use App\Models\User;
 use App\Models\Venue;
 use App\Services\EventSearchService;
@@ -37,15 +37,15 @@ use App\Support\Api\Frontend\SearchPayloadTransformer;
 use App\Support\Api\Frontend\SearchRequestNormalizer;
 use App\Support\ApiDocumentation\Schemas\InstitutionDetailResponse;
 use App\Support\ApiDocumentation\Schemas\InstitutionDirectoryResponse;
+use App\Support\ApiDocumentation\Schemas\PersonDetailResponse;
+use App\Support\ApiDocumentation\Schemas\PersonDirectoryResponse;
 use App\Support\ApiDocumentation\Schemas\ReferenceDirectoryResponse;
-use App\Support\ApiDocumentation\Schemas\SpeakerDetailResponse;
-use App\Support\ApiDocumentation\Schemas\SpeakerDirectoryResponse;
 use App\Support\Cache\PublicDirectoryCacheVersion;
 use App\Support\Models\SlugOrUuidResolver;
 use App\Support\PublicDiscovery\PublicDiscovery;
 use App\Support\Search\InstitutionSearchService;
+use App\Support\Search\PersonSearchService;
 use App\Support\Search\ReferenceSearchService;
-use App\Support\Search\SpeakerSearchService;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
 use Dedoc\Scramble\Attributes\QueryParameter;
@@ -104,7 +104,7 @@ class SearchController extends FrontendController
     ];
 
     /** @var list<string> */
-    private const array SPEAKER_LIST_FIELDS = [
+    private const array PERSON_LIST_FIELDS = [
         'id',
         'slug',
         'name',
@@ -121,7 +121,7 @@ class SearchController extends FrontendController
         private readonly EventSearchService $eventSearchService,
         private readonly InstitutionSearchService $institutionSearchService,
         private readonly ReferenceSearchService $referenceSearchService,
-        private readonly SpeakerSearchService $speakerSearchService,
+        private readonly PersonSearchService $personSearchService,
         private readonly PublicDirectoryCacheVersion $publicDirectoryCacheVersion,
         private readonly SearchRequestNormalizer $searchRequestNormalizer,
         private readonly SearchPayloadTransformer $searchPayloadTransformer,
@@ -162,10 +162,10 @@ class SearchController extends FrontendController
                 sort: $search !== null ? 'relevance' : 'time',
             );
 
-        $speakerIds = $search !== null ? $this->speakerSearchService->resolvedPublicSearchIds($search) : [];
-        $speakerQuery = $search !== null
-            ? $this->baseSpeakerQuery($user)->whereIn('speakers.id', $speakerIds)
-            : Speaker::query()->whereRaw('1 = 0');
+        $personIds = $search !== null ? $this->personSearchService->resolvedPublicSearchIds($search) : [];
+        $personQuery = $search !== null
+            ? $this->basePersonQuery($user)->whereIn('persons.id', $personIds)
+            : Person::query()->whereRaw('1 = 0');
         $institutionIds = $search !== null ? $this->institutionSearchService->resolvedPublicSearchIds($search) : [];
         $institutionQuery = $search !== null
             ? $this->aggregateInstitutionSearchItemsQuery($institutionIds)
@@ -186,8 +186,8 @@ class SearchController extends FrontendController
                     'total' => $eventPaginator->total(),
                 ],
                 'speakers' => [
-                    'items' => $speakerQuery->orderBy('name')->limit(4)->get()->map(fn (Speaker $speaker): array => $this->speakerListData($speaker, $user))->all(),
-                    'total' => count($speakerIds),
+                    'items' => $personQuery->orderBy('name')->limit(4)->get()->map(fn (Person $person): array => $this->personListData($person, $user))->all(),
+                    'total' => count($personIds),
                 ],
                 'institutions' => [
                     'items' => $institutionQuery->orderBy('name')->limit(4)->get()->map(fn (Institution $institution): array => $this->institutionListData($institution))->all(),
@@ -342,24 +342,24 @@ class SearchController extends FrontendController
         return $this->institutions($request);
     }
 
-    #[Group('Speaker', 'Public speaker directory and detail endpoints.')]
+    #[Group('Person', 'Public person directory and detail endpoints.')]
     #[Endpoint(
-        title: 'List public speakers',
-        description: 'Returns the public speaker directory with search, location, gender, and follow-state filters.',
+        title: 'List public persons',
+        description: 'Returns the public person directory with search, location, gender, and follow-state filters.',
     )]
     #[QueryParameter('admin_area_3_id', 'Optional country-profile administrative-area UUID filter.', required: false, type: 'string', infer: false)]
     #[QueryParameter('admin_area_4_id', 'Optional country-profile administrative-area UUID filter.', required: false, type: 'string', infer: false)]
     #[QueryParameter('fields', 'Optional comma-separated top-level list fields to return. Supported fields: id, slug, name, gender, formatted_name, status, events_count, avatar_url, country, is_following.', required: false, type: 'string', infer: false, example: 'id,name,avatar_url')]
     #[Response(
         status: 200,
-        description: 'Speaker directory response.',
-        type: SpeakerDirectoryResponse::class,
+        description: 'Person directory response.',
+        type: PersonDirectoryResponse::class,
     )]
-    public function speakers(Request $request): JsonResponse
+    public function persons(Request $request): JsonResponse
     {
         $user = $this->currentUser($request);
         $search = $this->searchRequestNormalizer->normalizedString($request->query('search'));
-        $requestedFields = $this->searchRequestNormalizer->requestedFields($request, self::SPEAKER_LIST_FIELDS, 'speaker');
+        $requestedFields = $this->searchRequestNormalizer->requestedFields($request, self::PERSON_LIST_FIELDS, 'person');
         $directorySeed = $this->searchRequestNormalizer->normalizedString($request->query('directory_seed'));
         $perPage = ApiPagination::normalizePerPage($request->integer('per_page', 12), default: 12, max: 50);
         $countryId = $this->searchRequestNormalizer->requestedCountryId($request);
@@ -374,14 +374,14 @@ class SearchController extends FrontendController
         $followingOnly = $request->boolean('following');
         $followingTotal = 0;
 
-        $baseQuery = $this->baseSpeakerQuery($user);
+        $baseQuery = $this->basePersonQuery($user);
 
         $stateId = $this->searchRequestNormalizer->normalizedUuid($request->query('state_id'));
         $cityId = $this->searchRequestNormalizer->normalizedUuid($request->query('city_id'));
-        $this->applySpeakerLocationScope($baseQuery, $countryId, $stateId, $cityId, $adminArea1Id, $adminArea2Id, $adminArea3Id, $adminArea4Id);
+        $this->applyPersonLocationScope($baseQuery, $countryId, $stateId, $cityId, $adminArea1Id, $adminArea2Id, $adminArea3Id, $adminArea4Id);
 
         if ($gender !== null) {
-            $baseQuery->where('speakers.gender', $gender);
+            $baseQuery->where('persons.gender', $gender);
         }
 
         if ($sort === 'upcoming') {
@@ -389,39 +389,39 @@ class SearchController extends FrontendController
         }
 
         if ($followingOnly) {
-            $this->applySpeakerFollowingScope($baseQuery, $user);
+            $this->applyPersonFollowingScope($baseQuery, $user);
         } elseif ($user instanceof User) {
-            $followedSpeakerQuery = clone $baseQuery;
+            $followedPersonQuery = clone $baseQuery;
 
-            $this->applySpeakerFollowingScope($followedSpeakerQuery, $user);
+            $this->applyPersonFollowingScope($followedPersonQuery, $user);
 
-            $followingTotal = $this->speakerDirectoryTotalWithBase($request, $search, $followedSpeakerQuery, $sort);
+            $followingTotal = $this->personDirectoryTotalWithBase($request, $search, $followedPersonQuery, $sort);
         }
 
-        $speakers = $search === null
+        $persons = $search === null
             ? $baseQuery->when($sort === null, fn ($q) => $q->publicDirectoryOrder($directorySeed))->paginate($perPage)
-            : $this->speakerDirectorySearchPaginatorWithBase($request, $search, $perPage, $baseQuery, $sort);
+            : $this->personDirectorySearchPaginatorWithBase($request, $search, $perPage, $baseQuery, $sort);
 
         if ($followingOnly) {
-            $followingTotal = $speakers->total();
+            $followingTotal = $persons->total();
         }
 
-        $speakerDirectoryCache = $this->speakerDirectoryCacheData();
+        $personDirectoryCache = $this->personDirectoryCacheData();
 
         return response()->json([
-            'data' => collect($speakers->items())
-                ->map(fn (Speaker $speaker): array => $this->searchRequestNormalizer->sparsePayload($this->speakerListData($speaker, $user), $requestedFields))
+            'data' => collect($persons->items())
+                ->map(fn (Person $person): array => $this->searchRequestNormalizer->sparsePayload($this->personListData($person, $user), $requestedFields))
                 ->all(),
             'meta' => [
                 'pagination' => [
-                    'page' => $speakers->currentPage(),
-                    'per_page' => $speakers->perPage(),
-                    'total' => $speakers->total(),
+                    'page' => $persons->currentPage(),
+                    'per_page' => $persons->perPage(),
+                    'total' => $persons->total(),
                 ],
                 'following' => [
                     'total' => $followingTotal,
                 ],
-                'cache' => $speakerDirectoryCache,
+                'cache' => $personDirectoryCache,
             ],
         ]);
     }
@@ -511,21 +511,21 @@ class SearchController extends FrontendController
         ]);
     }
 
-    #[Group('Speaker', 'Public speaker directory and detail endpoints.')]
+    #[Group('Person', 'Public person directory and detail endpoints.')]
     #[Endpoint(
-        title: 'Get a public speaker',
-        description: 'Returns the public speaker detail payload by slug or UUID, including speaker events and other key-person participations.',
+        title: 'Get a public person',
+        description: 'Returns the public person detail payload by slug or UUID, including person events and other key-person participations.',
     )]
     #[Response(
         status: 200,
-        description: 'Speaker detail response.',
-        type: SpeakerDetailResponse::class,
+        description: 'Person detail response.',
+        type: PersonDetailResponse::class,
     )]
-    public function showSpeaker(Request $request, string $speakerKey): JsonResponse
+    public function showPerson(Request $request, string $personKey): JsonResponse
     {
         $user = $this->currentUser($request);
         $now = now();
-        $record = Speaker::query()
+        $record = Person::query()
             ->with([
                 'media',
                 'contactMethods',
@@ -534,7 +534,7 @@ class SearchController extends FrontendController
                 'institutions' => fn ($query) => $query->orderByPivot('is_primary', 'desc')->limit(3),
                 'institutions.media',
             ])
-            ->tap(fn (Builder $query): Builder => $this->slugOrUuidResolver->apply($query, 'speakers.slug', $speakerKey))
+            ->tap(fn (Builder $query): Builder => $this->slugOrUuidResolver->apply($query, 'persons.slug', $personKey))
             ->firstOrFail();
 
         abort_unless($user instanceof User ? $user->can('view', $record) : ($record->status === 'verified'), 404);
@@ -605,7 +605,7 @@ class SearchController extends FrontendController
 
         $upcomingPerPage = max(1, min($request->integer('upcoming_per_page', 10), 50));
         $upcomingEvents = $this->limitedEventPayloadWithTotal(
-            $record->speakerEvents()
+            $record->personEvents()
                 ->active()
                 ->where('starts_at', '>=', $now)
                 ->with(['institution', 'institution.media', 'institution.addresses.country', 'venue.addresses.country', 'media', 'references'])
@@ -615,7 +615,7 @@ class SearchController extends FrontendController
 
         $pastPerPage = max(1, min($request->integer('past_per_page', 10), 50));
         $pastEvents = $this->limitedEventPayloadWithTotal(
-            $record->speakerEvents()
+            $record->personEvents()
                 ->active()
                 ->where('starts_at', '<', $now)
                 ->with(['institution', 'institution.media', 'institution.addresses.country', 'venue.addresses.country', 'media', 'references'])
@@ -625,7 +625,7 @@ class SearchController extends FrontendController
 
         return response()->json([
             'data' => [
-                'speaker' => $this->speakerDetailData($record, $user),
+                'person' => $this->personDetailData($record, $user),
                 'upcoming_events' => $upcomingEvents['items'],
                 'upcoming_total' => $upcomingEvents['total'],
                 'past_events' => $pastEvents['items'],
@@ -1161,23 +1161,23 @@ class SearchController extends FrontendController
     /**
      * @return array{version: string}
      */
-    private function speakerDirectoryCacheData(): array
+    private function personDirectoryCacheData(): array
     {
-        return $this->publicDirectoryCacheVersion->speaker();
+        return $this->publicDirectoryCacheVersion->person();
     }
 
     /**
-     * @return Builder<Speaker>
+     * @return Builder<Person>
      */
-    private function baseSpeakerQuery(?User $user = null): Builder
+    private function basePersonQuery(?User $user = null): Builder
     {
-        $query = Speaker::query();
+        $query = Person::query();
 
         if ($user instanceof User) {
-            $query->select('speakers.*')
+            $query->select('persons.*')
                 ->selectRaw(
-                    'exists(select 1 from engagement_follows where engagement_follows.follower_id = ? and engagement_follows.followable_id = speakers.id and engagement_follows.followable_type = ? and engagement_follows.follower_type = ? and engagement_follows.status = ?) as is_following',
-                    [$user->id, (new Speaker)->getMorphClass(), (new User)->getMorphClass(), 'active'],
+                    'exists(select 1 from engagement_follows where engagement_follows.follower_id = ? and engagement_follows.followable_id = persons.id and engagement_follows.followable_type = ? and engagement_follows.follower_type = ? and engagement_follows.status = ?) as is_following',
+                    [$user->id, (new Person)->getMorphClass(), (new User)->getMorphClass(), 'active'],
                 );
         }
 
@@ -1194,10 +1194,10 @@ class SearchController extends FrontendController
     }
 
     /**
-     * @param  Builder<Speaker>  $base
-     * @return LengthAwarePaginator<int, Speaker>
+     * @param  Builder<Person>  $base
+     * @return LengthAwarePaginator<int, Person>
      */
-    private function speakerDirectorySearchPaginatorWithBase(Request $request, string $search, int $perPage, Builder $base, ?string $sort): LengthAwarePaginator
+    private function personDirectorySearchPaginatorWithBase(Request $request, string $search, int $perPage, Builder $base, ?string $sort): LengthAwarePaginator
     {
         return $this->publicDiscovery->paginate(
             request: $request,
@@ -1205,15 +1205,15 @@ class SearchController extends FrontendController
             perPage: $perPage,
             base: $base,
             directBase: $sort === 'upcoming' ? clone $base : (clone $base)->publicDirectoryOrder(),
-            adapter: $this->speakerSearchService,
-            idColumn: 'speakers.id',
+            adapter: $this->personSearchService,
+            idColumn: 'persons.id',
         );
     }
 
     /**
-     * @param  Builder<Speaker>  $query
+     * @param  Builder<Person>  $query
      */
-    private function applySpeakerLocationScope(
+    private function applyPersonLocationScope(
         Builder $query,
         ?string $countryId,
         ?string $stateId,
@@ -1235,21 +1235,21 @@ class SearchController extends FrontendController
     }
 
     /**
-     * @param  Builder<Speaker>  $base
+     * @param  Builder<Person>  $base
      */
-    private function speakerDirectoryTotalWithBase(Request $request, ?string $search, Builder $base, ?string $sort): int
+    private function personDirectoryTotalWithBase(Request $request, ?string $search, Builder $base, ?string $sort): int
     {
         if ($search === null) {
             return (clone $base)->count();
         }
 
-        return $this->speakerDirectorySearchPaginatorWithBase($request, $search, 1, $base, $sort)->total();
+        return $this->personDirectorySearchPaginatorWithBase($request, $search, 1, $base, $sort)->total();
     }
 
     /**
-     * @param  Builder<Speaker>  $query
+     * @param  Builder<Person>  $query
      */
-    private function applySpeakerFollowingScope(Builder $query, ?User $user): void
+    private function applyPersonFollowingScope(Builder $query, ?User $user): void
     {
         if (! $user instanceof User) {
             $query->whereRaw('1 = 0');
@@ -1262,8 +1262,8 @@ class SearchController extends FrontendController
                 ->selectRaw('1')
                 ->from('engagement_follows')
                 ->where('engagement_follows.follower_id', $user->id)
-                ->where('engagement_follows.followable_type', (new Speaker)->getMorphClass())
-                ->whereColumn('engagement_follows.followable_id', 'speakers.id')
+                ->where('engagement_follows.followable_type', (new Person)->getMorphClass())
+                ->whereColumn('engagement_follows.followable_id', 'persons.id')
                 ->where('engagement_follows.follower_type', (new User)->getMorphClass())
                 ->where('engagement_follows.status', 'active');
         });
@@ -1420,23 +1420,23 @@ class SearchController extends FrontendController
     /**
      * @return array<string, mixed>
      */
-    private function speakerDetailData(Speaker $speaker, ?User $user): array
+    private function personDetailData(Person $person, ?User $user): array
     {
-        $coverUrl = $speaker->getFirstMediaUrl('cover', 'banner') ?: $speaker->getFirstMediaUrl('cover');
+        $coverUrl = $person->getFirstMediaUrl('cover', 'banner') ?: $person->getFirstMediaUrl('cover');
 
-        return SpeakerDetailData::fromModel(
-            speaker: $speaker,
+        return PersonDetailData::fromModel(
+            person: $person,
             user: $user,
-            address: $this->searchPayloadTransformer->addressFilterData($speaker->primaryAddress()),
-            country: $this->searchPayloadTransformer->countryData($speaker->primaryAddress()),
-            location: $this->searchPayloadTransformer->addressLocation($speaker->primaryAddress()),
-            media: SpeakerDetailMediaData::fromModel($speaker, $coverUrl)->toArray(),
-            gallery: $this->speakerGalleryData($speaker),
-            institutions: $speaker->institutions
-                ->map(fn (Institution $institution): array => $this->speakerInstitutionData($institution))
+            address: $this->searchPayloadTransformer->addressFilterData($person->primaryAddress()),
+            country: $this->searchPayloadTransformer->countryData($person->primaryAddress()),
+            location: $this->searchPayloadTransformer->addressLocation($person->primaryAddress()),
+            media: PersonDetailMediaData::fromModel($person, $coverUrl)->toArray(),
+            gallery: $this->personGalleryData($person),
+            institutions: $person->institutions
+                ->map(fn (Institution $institution): array => $this->personInstitutionData($institution))
                 ->all(),
-            contacts: $this->searchPayloadTransformer->contactData($speaker->contactMethods),
-            socialMedia: $this->searchPayloadTransformer->socialMediaData($speaker->socialProfiles),
+            contacts: $this->searchPayloadTransformer->contactData($person->contactMethods),
+            socialMedia: $this->searchPayloadTransformer->socialMediaData($person->socialProfiles),
         )->toArray();
     }
 
@@ -1491,9 +1491,9 @@ class SearchController extends FrontendController
     /**
      * @return array<string, mixed>
      */
-    private function speakerListData(Speaker $speaker, ?User $user = null): array
+    private function personListData(Person $person, ?User $user = null): array
     {
-        return SpeakerListData::fromModel($speaker, $user)->toArray();
+        return PersonListData::fromModel($person, $user)->toArray();
     }
 
     /**
@@ -1536,18 +1536,18 @@ class SearchController extends FrontendController
     }
 
     /** @return array{id: string, name: string, display_name: string, slug: string, position: ?string, is_primary: bool, public_image_url: string, logo_url: string, cover_url: ?string} */
-    private function speakerInstitutionData(Institution $institution): array
+    private function personInstitutionData(Institution $institution): array
     {
-        return SpeakerInstitutionData::fromModel($institution, $this->institutionCardMediaData($institution))->toArray();
+        return PersonInstitutionData::fromModel($institution, $this->institutionCardMediaData($institution))->toArray();
     }
 
     /**
      * @return list<array{id: string, name: string, url: string, thumb_url: string}>
      */
-    private function speakerGalleryData(Speaker $speaker): array
+    private function personGalleryData(Person $person): array
     {
-        return $speaker->getMedia('gallery')
-            ->map(fn (Media $media): array => SpeakerGalleryItemData::fromModel($media)->toArray())
+        return $person->getMedia('gallery')
+            ->map(fn (Media $media): array => PersonGalleryItemData::fromModel($media)->toArray())
             ->all();
     }
 

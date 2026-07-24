@@ -116,7 +116,7 @@ class FrontendFormContractService
                 'admin_area_level_1' => route('api.client.catalogs.admin-area-level-1'),
                 'admin_area_level_2' => route('api.client.catalogs.admin-area-level-2'),
                 'languages' => route('api.client.catalogs.languages'),
-                'submit_speakers' => route('api.client.catalogs.submit-speakers'),
+                'submit_speakers' => route('api.client.catalogs.submit-persons'),
                 'submit_institutions' => route('api.client.catalogs.submit-institutions'),
                 'venues' => route('api.client.catalogs.venues'),
                 'references' => route('api.client.catalogs.references'),
@@ -184,14 +184,14 @@ class FrontendFormContractService
                         'outcome' => ['all', 'signup', 'event_registration', 'event_checkin', 'event_submission', 'event_save', 'event_going', 'institution_follow', 'speaker_follow', 'series_follow', 'reference_follow', 'saved_search_created'],
                     ],
                 ],
-                'speakers_index' => [
+                'persons_index' => [
                     'method' => 'GET',
-                    'endpoint' => route('api.client.speakers.index'),
+                    'endpoint' => route('api.client.persons.index'),
                     'auth_required' => false,
                 ],
-                'speakers_show' => [
+                'persons_show' => [
                     'method' => 'GET',
-                    'endpoint_template' => route('api.client.speakers.show', ['speakerKey' => 'subject'], false),
+                    'endpoint_template' => route('api.client.persons.show', ['personKey' => 'subject'], false),
                     'auth_required' => false,
                 ],
                 'inspirations_random' => [
@@ -226,11 +226,11 @@ class FrontendFormContractService
                     'auth_required' => true,
                     'schema_endpoint' => route('api.client.forms.contributions.institutions'),
                 ],
-                'submit_speaker' => [
+                'submit_person' => [
                     'method' => 'POST',
-                    'endpoint' => route('api.client.contributions.speakers.store'),
+                    'endpoint' => route('api.client.contributions.persons.store'),
                     'auth_required' => true,
-                    'schema_endpoint' => route('api.client.forms.contributions.speakers'),
+                    'schema_endpoint' => route('api.client.forms.contributions.persons'),
                 ],
                 'contribution_update' => [
                     'method' => 'POST',
@@ -380,7 +380,7 @@ class FrontendFormContractService
                 $this->field('primary_organizer_id', 'uuid', required: true, meta: [
                     'catalogs' => [
                         'institution' => route('api.client.catalogs.submit-institutions'),
-                        'speaker' => route('api.client.catalogs.submit-speakers'),
+                        'speaker' => route('api.client.catalogs.submit-persons'),
                     ],
                 ]),
                 $this->field('location_same_as_institution', 'boolean', required: false, default: true),
@@ -388,7 +388,7 @@ class FrontendFormContractService
                 $this->field('location_institution_id', 'uuid', required: false, catalog: route('api.client.catalogs.submit-institutions')),
                 $this->field('location_venue_id', 'uuid', required: false, catalog: route('api.client.catalogs.venues')),
                 $this->field('space_id', 'uuid', required: false, catalog: route('api.client.catalogs.spaces')),
-                $this->field('speakers', 'array<string>', required: false, catalog: route('api.client.catalogs.submit-speakers')),
+                $this->field('speakers', 'array<string>', required: false, catalog: route('api.client.catalogs.submit-persons')),
                 $this->field('other_key_people', 'array<object>', required: false),
                 $this->field('submission_country_id', 'uuid', required: true, allowedValues: $submissionCountryIds),
                 $this->field('submitter_name', 'string', required: ! $user instanceof User, maxLength: 255),
@@ -465,12 +465,12 @@ class FrontendFormContractService
     /**
      * @return array<string, mixed>
      */
-    public function submitSpeaker(): array
+    public function submitPerson(): array
     {
         return [
-            'flow' => 'submit_speaker',
+            'flow' => 'submit_person',
             'method' => 'POST',
-            'endpoint' => route('api.client.contributions.speakers.store'),
+            'endpoint' => route('api.client.contributions.persons.store'),
             'auth_required' => true,
             'defaults' => [
                 'gender' => Gender::Male->value,

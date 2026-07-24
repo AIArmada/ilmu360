@@ -6,8 +6,8 @@ namespace App\Support\Slugs;
 
 use App\Models\Event;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
-use App\Models\Speaker;
 use App\Models\Venue;
 use Illuminate\Database\Eloquent\Model;
 
@@ -46,7 +46,7 @@ final class PublicSlugPathResolver
         return match ($model::class) {
             Event::class => 'event',
             Institution::class => 'institution',
-            Speaker::class => 'speaker',
+            Person::class => 'person',
             Venue::class => 'venue',
             Reference::class => 'reference',
             default => null,

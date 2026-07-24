@@ -153,13 +153,13 @@ class CatalogController extends FrontendController
     }
 
     #[Endpoint(
-        title: 'List speaker submit selectors',
-        description: 'Returns speaker options available to the current client context for event submission flows.',
+        title: 'List person submit selectors',
+        description: 'Returns person options available to the current client context for event submission flows.',
     )]
-    public function submitSpeakers(Request $request): JsonResponse
+    public function submitPersons(Request $request): JsonResponse
     {
         return response()->json([
-            'data' => $this->catalogs->submitSpeakers(
+            'data' => $this->catalogs->submitPersons(
                 $this->currentUser($request),
                 $request->string('q')->toString(),
             ),

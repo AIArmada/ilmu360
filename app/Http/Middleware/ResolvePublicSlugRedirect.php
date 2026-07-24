@@ -30,7 +30,7 @@ class ResolvePublicSlugRedirect
             return $next($request);
         }
 
-        foreach (['event', 'institution', 'speaker', 'venue', 'reference'] as $parameter) {
+        foreach (['event', 'institution', 'person', 'venue', 'reference'] as $parameter) {
             if (! $route->hasParameter($parameter)) {
                 continue;
             }

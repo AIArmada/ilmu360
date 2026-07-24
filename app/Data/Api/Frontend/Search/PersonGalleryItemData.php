@@ -5,7 +5,7 @@ namespace App\Data\Api\Frontend\Search;
 use Spatie\LaravelData\Data;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
-class SpeakerGalleryItemData extends Data
+class PersonGalleryItemData extends Data
 {
     public function __construct(
         public string $id,

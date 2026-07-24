@@ -14,13 +14,13 @@ use App\Enums\EventTaxonomyCode;
 use App\Enums\MemberSubjectType;
 use App\Forms\SharedFormSchema;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Space;
-use App\Models\Speaker;
 use App\Models\User;
 use App\Models\Venue;
 use App\Support\Search\InstitutionSearchService;
-use App\Support\Search\SpeakerSearchService;
+use App\Support\Search\PersonSearchService;
 use App\Support\Submission\EntitySubmissionAccess;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -31,7 +31,7 @@ class FrontendCatalogService
 {
     public function __construct(
         private readonly InstitutionSearchService $institutionSearchService,
-        private readonly SpeakerSearchService $speakerSearchService,
+        private readonly PersonSearchService $personSearchService,
     ) {}
 
     /**
@@ -330,24 +330,24 @@ class FrontendCatalogService
     /**
      * @return list<array{id: string, label: string}>
      */
-    public function submitSpeakers(?User $user, ?string $search = null, int $limit = 50): array
+    public function submitPersons(?User $user, ?string $search = null, int $limit = 50): array
     {
         $query = app(EntitySubmissionAccess::class)
-            ->speakerQueryForSubmitter($user)
+            ->personQueryForSubmitter($user)
             ->orderBy('name');
 
         $normalizedSearch = trim((string) $search);
 
         if ($normalizedSearch !== '') {
-            $this->applySpeakerSearch($query, $normalizedSearch);
+            $this->applyPersonSearch($query, $normalizedSearch);
         }
 
         return $query
             ->limit($limit)
             ->get()
-            ->map(fn (Speaker $speaker): array => [
-                'id' => (string) $speaker->id,
-                'label' => $speaker->formatted_name,
+            ->map(fn (Person $person): array => [
+                'id' => (string) $person->id,
+                'label' => $person->formatted_name,
             ])
             ->all();
     }
@@ -426,17 +426,17 @@ class FrontendCatalogService
                     'label' => $institution->display_name,
                 ])
                 ->all(),
-            MemberSubjectType::Speaker => Speaker::query()
+            MemberSubjectType::Person => Person::query()
                 ->where('status', 'verified')
                 ->whereIn('status', ['verified', 'pending'])
-                ->tap(fn (Builder $query): Builder => $this->applySpeakerSearch($query, $search))
+                ->tap(fn (Builder $query): Builder => $this->applyPersonSearch($query, $search))
                 ->orderBy('name')
                 ->limit(50)
                 ->get()
-                ->map(fn (Speaker $speaker): array => [
-                    'id' => (string) $speaker->id,
-                    'slug' => (string) $speaker->slug,
-                    'label' => $speaker->formatted_name,
+                ->map(fn (Person $person): array => [
+                    'id' => (string) $person->id,
+                    'slug' => (string) $person->slug,
+                    'label' => $person->formatted_name,
                 ])
                 ->all(),
             default => [],
@@ -506,7 +506,7 @@ class FrontendCatalogService
      * @param  Builder<Speaker>  $query
      * @return Builder<Speaker>
      */
-    private function applySpeakerSearch(Builder $query, string $search): Builder
+    private function applyPersonSearch(Builder $query, string $search): Builder
     {
         $normalizedSearch = trim($search);
 
@@ -514,6 +514,6 @@ class FrontendCatalogService
             return $query;
         }
 
-        return $this->speakerSearchService->applyIndexedSearch($query, $normalizedSearch);
+        return $this->personSearchService->applyIndexedSearch($query, $normalizedSearch);
     }
 }

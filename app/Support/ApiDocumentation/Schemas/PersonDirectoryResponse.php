@@ -8,17 +8,17 @@ use Dedoc\Scramble\Attributes\SchemaName;
 use Illuminate\Contracts\Support\Arrayable;
 
 /**
- * @phpstan-import-type SpeakerListItemArray from SpeakerListItem
+ * @phpstan-import-type PersonListItemArray from PersonListItem
  *
- * @phpstan-type SpeakerDirectoryResponseArray array{data: list<SpeakerListItemArray>, meta: array{pagination: array{page: int, per_page: int, total: int}, following: array{total: int}, cache: array{version: string}, request_id: string}}
+ * @phpstan-type PersonDirectoryResponseArray array{data: list<PersonListItemArray>, meta: array{pagination: array{page: int, per_page: int, total: int}, following: array{total: int}, cache: array{version: string}, request_id: string}}
  *
  * @implements Arrayable<string, mixed>
  */
-#[SchemaName('SpeakerDirectoryResponse')]
-final readonly class SpeakerDirectoryResponse implements Arrayable
+#[SchemaName('PersonDirectoryResponse')]
+final readonly class PersonDirectoryResponse implements Arrayable
 {
     /**
-     * @param  list<SpeakerListItem>  $data
+     * @param  list<PersonListItem>  $data
      * @param  array{pagination: array{page: int, per_page: int, total: int}, following: array{total: int}, cache: array{version: string}, request_id: string}  $meta
      */
     public function __construct(
@@ -26,11 +26,11 @@ final readonly class SpeakerDirectoryResponse implements Arrayable
         public array $meta,
     ) {}
 
-    /** @return SpeakerDirectoryResponseArray */
+    /** @return PersonDirectoryResponseArray */
     public function toArray(): array
     {
         return [
-            'data' => array_map(static fn (SpeakerListItem $item): array => $item->toArray(), $this->data),
+            'data' => array_map(static fn (PersonListItem $item): array => $item->toArray(), $this->data),
             'meta' => $this->meta,
         ];
     }

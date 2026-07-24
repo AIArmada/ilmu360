@@ -2,11 +2,11 @@
 
 namespace App\Data\Api\Frontend\Search;
 
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Models\User;
 use Spatie\LaravelData\Data;
 
-class SpeakerDetailData extends Data
+class PersonDetailData extends Data
 {
     /**
      * @param  array<string, mixed>|string|null  $bio
@@ -53,7 +53,7 @@ class SpeakerDetailData extends Data
      * @param  list<array<string, mixed>>  $socialMedia
      */
     public static function fromModel(
-        Speaker $speaker,
+        Person $person,
         ?User $user,
         ?array $address,
         ?array $country,
@@ -65,22 +65,22 @@ class SpeakerDetailData extends Data
         array $socialMedia,
     ): self {
         return new self(
-            id: (string) $speaker->id,
-            slug: (string) $speaker->slug,
-            name: (string) $speaker->name,
-            gender: filled($speaker->gender) ? (string) $speaker->gender : null,
-            formatted_name: (string) $speaker->formatted_name,
-            job_title: $speaker->job_title,
-            is_freelance: (bool) $speaker->is_freelance,
-            bio: $speaker->bio,
-            qualifications: is_array($speaker->qualifications) ? array_values($speaker->qualifications) : [],
+            id: (string) $person->id,
+            slug: (string) $person->slug,
+            name: (string) $person->name,
+            gender: filled($person->gender) ? (string) $person->gender : null,
+            formatted_name: (string) $person->formatted_name,
+            job_title: $person->job_title,
+            is_freelance: (bool) $person->is_freelance,
+            bio: $person->bio,
+            qualifications: is_array($person->qualifications) ? array_values($person->qualifications) : [],
             address: $address,
             country: $country,
             location: $location,
-            status: (string) $speaker->status,
-            verified_by: $speaker->getAttribute('verified_by'),
-            is_following: $user?->isFollowing($speaker) ?? false,
-            followers_count: $speaker->followersCount(),
+            status: (string) $person->status,
+            verified_by: $person->getAttribute('verified_by'),
+            is_following: $user?->isFollowing($person) ?? false,
+            followers_count: $person->followersCount(),
             media: $media,
             gallery: $gallery,
             institutions: $institutions,

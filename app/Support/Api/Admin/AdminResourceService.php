@@ -11,7 +11,7 @@ use App\Enums\EventFormat;
 use App\Enums\EventVisibility;
 use App\Enums\PrayerReference;
 use App\Enums\TimingMode;
-use App\Filament\Resources\Speakers\SpeakerResource;
+use App\Filament\Resources\Persons\PersonResource;
 use App\Models\Event;
 use App\Models\User;
 use App\Support\Api\Admin\Concerns\ResolvesAccessibleResource;
@@ -939,8 +939,8 @@ class AdminResourceService
             return;
         }
 
-        if ($resourceClass === SpeakerResource::class) {
-            $this->applySpeakerFilters($query, $filters);
+        if ($resourceClass === PersonResource::class) {
+            $this->applyPersonFilters($query, $filters);
 
             return;
         }
@@ -954,7 +954,7 @@ class AdminResourceService
      * @param  array<string, mixed>  $filters
      * @param  Builder<Model>  $query
      */
-    private function applySpeakerFilters(Builder $query, array $filters): void
+    private function applyPersonFilters(Builder $query, array $filters): void
     {
         $model = $query->getModel();
 

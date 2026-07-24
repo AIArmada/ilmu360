@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace App\Support\Api;
 
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
-use App\Models\Speaker;
 use App\Support\Search\InstitutionSearchService;
+use App\Support\Search\PersonSearchService;
 use App\Support\Search\ReferenceSearchService;
-use App\Support\Search\SpeakerSearchService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
@@ -18,7 +18,7 @@ class ResourceSearchDispatcher
     public function __construct(
         private readonly InstitutionSearchService $institutionSearchService,
         private readonly ReferenceSearchService $referenceSearchService,
-        private readonly SpeakerSearchService $speakerSearchService,
+        private readonly PersonSearchService $personSearchService,
     ) {}
 
     /**
@@ -28,11 +28,11 @@ class ResourceSearchDispatcher
     {
         $model = $query->getModel();
 
-        if ($model instanceof Speaker) {
-            /** @var Builder<Speaker> $speakerQuery */
-            $speakerQuery = $query;
+        if ($model instanceof Person) {
+            /** @var Builder<Person> $personQuery */
+            $personQuery = $query;
 
-            return $this->applyMatchingIds($query, $this->speakerSearchService->scopedSearchIds($speakerQuery, $search));
+            return $this->applyMatchingIds($query, $this->personSearchService->scopedSearchIds($personQuery, $search));
         }
 
         if ($model instanceof Institution) {

@@ -55,11 +55,11 @@ class MemberResourceMutationService
 
         return match ($resourceClass) {
             AhliInstitutionResource::class => $this->memberPermissionGate->hasAnyInstitutionPermission($user, 'institution.update'),
-            AhliPersonResource::class => $this->memberPermissionGate->hasAnySpeakerPermission($user, 'speaker.update'),
+            AhliPersonResource::class => $this->memberPermissionGate->hasAnyPersonPermission($user, 'person.update'),
             AhliReferenceResource::class => $this->memberPermissionGate->hasAnyReferencePermission($user, 'reference.update'),
             AhliEventResource::class => $this->memberPermissionGate->hasAnyEventPermission($user, 'event.update')
                 || $this->memberPermissionGate->hasAnyInstitutionPermission($user, 'event.update')
-                || $this->memberPermissionGate->hasAnySpeakerPermission($user, 'event.update'),
+                || $this->memberPermissionGate->hasAnyPersonPermission($user, 'event.update'),
             default => false,
         };
     }
@@ -98,7 +98,7 @@ class MemberResourceMutationService
         $organizer = $record->organizer;
 
         return ($organizer instanceof Institution && $memberPermissionGate->canInstitution($user, 'event.update', $organizer))
-            || ($organizer instanceof Person && $memberPermissionGate->canSpeaker($user, 'event.update', $organizer));
+            || ($organizer instanceof Person && $memberPermissionGate->canPerson($user, 'event.update', $organizer));
     }
 
     /**

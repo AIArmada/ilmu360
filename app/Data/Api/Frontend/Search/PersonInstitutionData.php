@@ -5,7 +5,7 @@ namespace App\Data\Api\Frontend\Search;
 use App\Models\Institution;
 use Spatie\LaravelData\Data;
 
-class SpeakerInstitutionData extends Data
+class PersonInstitutionData extends Data
 {
     public function __construct(
         public string $id,

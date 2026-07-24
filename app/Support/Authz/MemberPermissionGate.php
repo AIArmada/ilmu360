@@ -4,8 +4,8 @@ namespace App\Support\Authz;
 
 use App\Models\Event;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
-use App\Models\Speaker;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -37,9 +37,9 @@ final readonly class MemberPermissionGate
         return $this->memberCan($institution, $user, $permission);
     }
 
-    public function canSpeaker(User $user, string $permission, Speaker $speaker): bool
+    public function canPerson(User $user, string $permission, Person $person): bool
     {
-        return $this->memberCan($speaker, $user, $permission);
+        return $this->memberCan($person, $user, $permission);
     }
 
     public function canEvent(User $user, string $permission, Event $event): bool
@@ -62,7 +62,7 @@ final readonly class MemberPermissionGate
         return $this->hasAnyMembershipWithPermission($user->memberEvents(), $permission);
     }
 
-    public function hasAnySpeakerPermission(User $user, string $permission): bool
+    public function hasAnyPersonPermission(User $user, string $permission): bool
     {
         return $this->hasAnyMembershipWithPermission($user->speakers(), $permission);
     }
@@ -83,7 +83,7 @@ final readonly class MemberPermissionGate
     /**
      * @return Collection<int, User>
      */
-    public function speakerMembersWithPermission(Speaker $speaker, string $permission): Collection
+    public function personMembersWithPermission(Person $person, string $permission): Collection
     {
         return $this->membersWithPermission($speaker, $permission);
     }

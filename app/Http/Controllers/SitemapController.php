@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Event;
 use App\Models\Institution;
-use App\Models\Speaker;
+use App\Models\Person;
 use Illuminate\Http\Response;
 
 class SitemapController extends Controller
@@ -15,7 +15,7 @@ class SitemapController extends Controller
         $content .= '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
         $content .= '<sitemap><loc>'.url('/sitemap-events.xml').'</loc></sitemap>';
         $content .= '<sitemap><loc>'.url('/sitemap-institutions.xml').'</loc></sitemap>';
-        $content .= '<sitemap><loc>'.url('/sitemap-speakers.xml').'</loc></sitemap>';
+        $content .= '<sitemap><loc>'.url('/sitemap-persons.xml').'</loc></sitemap>';
         $content .= '</sitemapindex>';
 
         return response($content)
@@ -73,9 +73,9 @@ class SitemapController extends Controller
             ->header('Content-Type', 'application/xml');
     }
 
-    public function speakers(): Response
+    public function persons(): Response
     {
-        $speakers = Speaker::query()
+        $persons = Person::query()
             ->orderBy('updated_at', 'desc')
             ->take(50000)
             ->get(['slug', 'updated_at']);
@@ -83,10 +83,10 @@ class SitemapController extends Controller
         $content = '<?xml version="1.0" encoding="UTF-8"?>';
         $content .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
 
-        foreach ($speakers as $speaker) {
+        foreach ($persons as $person) {
             $content .= '<url>';
-            $content .= '<loc>'.route('persons.show', $speaker->slug).'</loc>';
-            $content .= '<lastmod>'.$speaker->updated_at->toW3cString().'</lastmod>';
+            $content .= '<loc>'.route('persons.show', $person->slug).'</loc>';
+            $content .= '<lastmod>'.$person->updated_at->toW3cString().'</lastmod>';
             $content .= '<changefreq>monthly</changefreq>';
             $content .= '<priority>0.5</priority>';
             $content .= '</url>';

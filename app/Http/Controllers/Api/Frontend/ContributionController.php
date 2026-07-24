@@ -27,8 +27,8 @@ use App\Forms\SharedFormSchema;
 use App\Models\ContributionRequest;
 use App\Models\Event;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
-use App\Models\Speaker;
 use App\Models\User;
 use App\Services\ContributionEntityMutationService;
 use App\Support\Api\Frontend\FrontendMediaSyncService;
@@ -165,7 +165,7 @@ class ContributionController extends FrontendController
             .'Duplicate speakers are rejected when the normalized name, gender, title set, and country match an existing speaker. '
             .'Fetch `GET /forms/contributions/speakers` first to discover required fields, defaults, media support, and conditional rules.',
     )]
-    public function storeSpeaker(
+    public function storePerson(
         Request $request,
         SubmitStagedContributionCreateAction $submitStagedContributionCreateAction,
         FrontendMediaSyncService $frontendMediaSyncService,
@@ -223,15 +223,15 @@ class ContributionController extends FrontendController
         ]);
         $validated = $this->normalizeContributionAddressPayload($validated);
 
-        $speaker = $submitStagedContributionCreateAction->handle(
-            ContributionSubjectType::Speaker,
+        $person = $submitStagedContributionCreateAction->handle(
+            ContributionSubjectType::Person,
             $validated,
             $user,
-            function (Speaker $speaker) use ($request, $frontendMediaSyncService): void {
-                $frontendMediaSyncService->syncSingle($speaker, $request->file('avatar'), 'avatar');
-                $frontendMediaSyncService->syncSingle($speaker, $request->file('cover'), 'cover');
+            function (Person $person) use ($request, $frontendMediaSyncService): void {
+                $frontendMediaSyncService->syncSingle($person, $request->file('avatar'), 'avatar');
+                $frontendMediaSyncService->syncSingle($person, $request->file('cover'), 'cover');
                 $frontendMediaSyncService->syncMultiple(
-                    $speaker,
+                    $person,
                     is_array($request->file('gallery')) ? $request->file('gallery') : null,
                     'gallery',
                 );
@@ -239,13 +239,13 @@ class ContributionController extends FrontendController
         );
 
         return response()->json([
-            'message' => __('Thank you. Your speaker submission has been received. We will notify you if it is approved or rejected.'),
+            'message' => __('Thank you. Your person submission has been received. We will notify you if it is approved or rejected.'),
             'data' => [
-                'speaker' => [
-                    'id' => $speaker->getKey(),
-                    'slug' => $speaker->slug,
-                    'name' => $speaker->name,
-                    'status' => $speaker->status,
+                'person' => [
+                    'id' => $person->getKey(),
+                    'slug' => $person->slug,
+                    'name' => $person->name,
+                    'status' => $person->status,
                 ],
             ],
             'meta' => [
@@ -414,7 +414,7 @@ class ContributionController extends FrontendController
 
             $normalizedState = EventContributionUpdateStateMapper::toPersistenceState($mergedState);
         }
-        $comparableSubmissionState = $entity instanceof Speaker
+        $comparableSubmissionState = $entity instanceof Person
             ? $this->apiInitialState($entity, $normalizedState)
             : $normalizedState;
         $changes = $resolveContributionChangedPayloadAction->handle($comparableSubmissionState, $comparableOriginalData);
@@ -561,7 +561,7 @@ class ContributionController extends FrontendController
      * @param  array<string, mixed>  $initialState
      * @return array<string, mixed>
      */
-    private function apiInitialState(Event|Institution|Reference|Speaker $entity, array $initialState): array
+    private function apiInitialState(Event|Institution|Reference|Person $entity, array $initialState): array
     {
         if ($entity instanceof Event) {
             $helperState = EventContributionUpdateStateMapper::toHelperState($initialState);
@@ -583,18 +583,18 @@ class ContributionController extends FrontendController
             return $helperState;
         }
 
-        if (! $entity instanceof Speaker) {
+        if (! $entity instanceof Person) {
             return $initialState;
         }
 
-        $speakerAddress = is_array($initialState['address'] ?? null)
+        $personAddress = is_array($initialState['address'] ?? null)
             ? $initialState['address']
             : [];
 
         $initialState['address'] = [
-            'country_id' => $speakerAddress['country_id'] ?? null,
-            'admin_area_1_id' => $speakerAddress['admin_area_1_id'] ?? null,
-            'admin_area_2_id' => $speakerAddress['admin_area_2_id'] ?? null,
+            'country_id' => $personAddress['country_id'] ?? null,
+            'admin_area_1_id' => $personAddress['admin_area_1_id'] ?? null,
+            'admin_area_2_id' => $personAddress['admin_area_2_id'] ?? null,
         ];
 
         return $initialState;
@@ -633,9 +633,9 @@ class ContributionController extends FrontendController
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed>
      */
-    private function normalizeSuggestionPayload(Event|Institution|Reference|Speaker $entity, array $payload): array
+    private function normalizeSuggestionPayload(Event|Institution|Reference|Person $entity, array $payload): array
     {
-        if (! $entity instanceof Institution && ! $entity instanceof Speaker) {
+        if (! $entity instanceof Institution && ! $entity instanceof Person) {
             return $payload;
         }
 
@@ -650,7 +650,7 @@ class ContributionController extends FrontendController
      * @param  list<string>  $directEditMediaFields
      * @return array<string, mixed>
      */
-    private function directEditMediaValidationRules(Event|Institution|Reference|Speaker $entity, array $directEditMediaFields): array
+    private function directEditMediaValidationRules(Event|Institution|Reference|Person $entity, array $directEditMediaFields): array
     {
         $rules = [];
         $maxUploadSizeKb = (int) ceil(((int) config('media-library.max_file_size', 10 * 1024 * 1024)) / 1024);
@@ -681,7 +681,7 @@ class ContributionController extends FrontendController
      * @param  list<string>  $directEditMediaFields
      * @return array<string, array<string, mixed>>
      */
-    private function directEditMediaContract(Event|Institution|Reference|Speaker $entity, array $directEditMediaFields): array
+    private function directEditMediaContract(Event|Institution|Reference|Person $entity, array $directEditMediaFields): array
     {
         $maxUploadSizeKb = (int) ceil(((int) config('media-library.max_file_size', 10 * 1024 * 1024)) / 1024);
         $contract = [];
@@ -714,7 +714,7 @@ class ContributionController extends FrontendController
      * @param  list<string>  $directEditMediaFields
      */
     private function syncDirectEditMediaChanges(
-        Event|Institution|Reference|Speaker $entity,
+        Event|Institution|Reference|Person $entity,
         Request $request,
         FrontendMediaSyncService $frontendMediaSyncService,
         array $directEditMediaFields,
@@ -747,7 +747,7 @@ class ContributionController extends FrontendController
         $presentation = $contributionRequest->entity instanceof Event
             || $contributionRequest->entity instanceof Institution
             || $contributionRequest->entity instanceof Reference
-            || $contributionRequest->entity instanceof Speaker
+            || $contributionRequest->entity instanceof Person
                 ? app(ResolveContributionSubjectPresentationAction::class)->handle($contributionRequest->entity)
                 : null;
 
@@ -777,7 +777,7 @@ class ContributionController extends FrontendController
     /**
      * @return array<string, mixed>
      */
-    private function entityData(Event|Institution|Reference|Speaker $entity): array
+    private function entityData(Event|Institution|Reference|Person $entity): array
     {
         return match (true) {
             $entity instanceof Institution => [
@@ -787,7 +787,7 @@ class ContributionController extends FrontendController
                 'title' => $entity->display_name,
                 'status' => $entity->status,
             ],
-            $entity instanceof Speaker => [
+            $entity instanceof Person => [
                 'id' => $entity->getKey(),
                 'type' => 'speaker',
                 'slug' => $entity->slug,
@@ -815,7 +815,7 @@ class ContributionController extends FrontendController
      * @param  list<string>  $directEditMediaFields
      * @return array<string, list<array{id: string, name: string, url: string, thumb_url: string|null}>>
      */
-    private function directEditCurrentMediaData(Event|Institution|Reference|Speaker $entity, array $directEditMediaFields): array
+    private function directEditCurrentMediaData(Event|Institution|Reference|Person $entity, array $directEditMediaFields): array
     {
         $entity->loadMissing('media');
         $state = [];

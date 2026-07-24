@@ -9,8 +9,8 @@ use AIArmada\FilamentAuthz\Facades\Authz;
 use App\Enums\MemberSubjectType;
 use App\Models\Event;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
-use App\Models\Speaker;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -73,7 +73,7 @@ final readonly class MemberRoleCatalog
     {
         $relation = match ($modelClass) {
             Institution::class => 'institutions',
-            Speaker::class => 'speakers',
+            Person::class => 'speakers',
             Event::class => 'memberEvents',
             Reference::class => 'references',
             default => null,
@@ -90,7 +90,7 @@ final readonly class MemberRoleCatalog
     {
         return match ($type) {
             MemberSubjectType::Institution => $this->scopes->institution(),
-            MemberSubjectType::Speaker => $this->scopes->speaker(),
+            MemberSubjectType::Person => $this->scopes->person(),
             MemberSubjectType::Event => $this->scopes->event(),
             MemberSubjectType::Reference => $this->scopes->reference(),
         };

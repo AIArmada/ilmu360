@@ -3,7 +3,7 @@
 namespace App\Support\Submission;
 
 use App\Models\Institution;
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -42,12 +42,12 @@ final class EntitySubmissionAccess
     /**
      * @return Builder<Speaker>
      */
-    public function speakerQueryForSubmitter(?User $user): Builder
+    public function personQueryForSubmitter(?User $user): Builder
     {
-        /** @var Builder<Speaker> $query */
-        $query = Speaker::query();
+        /** @var Builder<Person> $query */
+        $query = Person::query();
 
-        return $this->constrainSpeakerQueryForSubmitter($query, $user);
+        return $this->constrainPersonQueryForSubmitter($query, $user);
     }
 
     /**
@@ -72,7 +72,7 @@ final class EntitySubmissionAccess
      * @param  Builder<Speaker>  $query
      * @return Builder<Speaker>
      */
-    public function constrainSpeakerQueryForSubmitter(Builder $query, ?User $user): Builder
+    public function constrainPersonQueryForSubmitter(Builder $query, ?User $user): Builder
     {
         return $query
             ->whereIn('status', self::ALLOWED_ENTITY_STATUSES)
@@ -100,10 +100,10 @@ final class EntitySubmissionAccess
             ->exists();
     }
 
-    public function canUseSpeaker(?User $user, string $speakerId): bool
+    public function canUsePerson(?User $user, string $personId): bool
     {
-        return $this->speakerQueryForSubmitter($user)
-            ->whereKey($speakerId)
+        return $this->personQueryForSubmitter($user)
+            ->whereKey($personId)
             ->exists();
     }
 }

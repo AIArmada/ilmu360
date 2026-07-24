@@ -11,13 +11,13 @@ use Illuminate\Contracts\Support\Arrayable;
  * @phpstan-import-type AddressSelectionArray from AddressSelection
  * @phpstan-import-type CountryArray from Country
  *
- * @phpstan-type SpeakerMediaArray array{avatar_url: string, cover_url: ?string, share_image_url: ?string}
- * @phpstan-type SpeakerArray array{id: string, slug: string, name: string, gender: string|null, formatted_name: string, job_title: ?string, is_freelance: bool, bio: ?string, qualifications: list<string>, address: AddressSelectionArray|null, country: CountryArray|null, location: ?string, status: string, verified_by: ?string, is_following: bool, media: SpeakerMediaArray, gallery: list<array<string, mixed>>, institutions: list<array<string, mixed>>, contacts: list<array<string, mixed>>, social_media: list<array<string, mixed>>}
+ * @phpstan-type PersonMediaArray array{avatar_url: string, cover_url: ?string, share_image_url: ?string}
+ * @phpstan-type PersonArray array{id: string, slug: string, name: string, gender: string|null, formatted_name: string, job_title: ?string, is_freelance: bool, bio: ?string, qualifications: list<string>, address: AddressSelectionArray|null, country: CountryArray|null, location: ?string, status: string, verified_by: ?string, is_following: bool, media: PersonMediaArray, gallery: list<array<string, mixed>>, institutions: list<array<string, mixed>>, contacts: list<array<string, mixed>>, social_media: list<array<string, mixed>>}
  *
  * @implements Arrayable<string, mixed>
  */
-#[SchemaName('Speaker')]
-final readonly class Speaker implements Arrayable
+#[SchemaName('Person')]
+final readonly class Person implements Arrayable
 {
     /**
      * @param  list<string>  $qualifications
@@ -50,7 +50,7 @@ final readonly class Speaker implements Arrayable
         public array $social_media,
     ) {}
 
-    /** @return SpeakerArray */
+    /** @return PersonArray */
     public function toArray(): array
     {
         return [
