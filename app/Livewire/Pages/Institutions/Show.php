@@ -132,7 +132,7 @@ class Show extends Component
             ->with([
                 'venue.media',
                 'venue.addresses',
-                'speakers.media',
+                'persons.media',
                 'keyPeople.person',
                 'references',
                 'media',
@@ -156,7 +156,7 @@ class Show extends Component
                 'socialProfiles',
                 'donationChannels.media',
                 'speakers',
-                'speakers.media',
+                'persons.media',
                 'spaces' => fn ($query) => $query->where('status', 'active'),
                 'languages',
             ]);

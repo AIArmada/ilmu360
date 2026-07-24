@@ -589,7 +589,6 @@ it('returns member update schema for persons with surfaced mutation semantics', 
             ->where('data.schema.resource_key', 'people')
             ->where('data.schema.fields', function ($fields): bool {
                 $fieldMap = collect($fields)->keyBy('name');
-                $qualificationItemFields = collect(data_get($fieldMap->get('qualifications'), 'item_schema.fields', []))->keyBy('name');
 
                 return data_get($fieldMap->get('avatar'), 'mcp_upload.shape') === 'file_descriptor'
                     && data_get($fieldMap->get('gallery'), 'mcp_upload.shape') === 'array<file_descriptor>'

@@ -1897,7 +1897,6 @@ it('creates and updates persons through MCP write tools', function () {
             ->where('data.schema.resource_key', 'people')
             ->where('data.schema.fields', function ($fields): bool {
                 $fieldMap = collect($fields)->keyBy('name');
-                $qualificationItemFields = collect(data_get($fieldMap->get('qualifications'), 'item_schema.fields', []))->keyBy('name');
 
                 return data_get($fieldMap->get('address'), 'required') === false
                     && data_get($fieldMap->get('address'), 'clear_semantics.empty_object') === 'invalid_without_country'

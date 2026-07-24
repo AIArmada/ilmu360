@@ -98,7 +98,7 @@ class Show extends Component
                 'institution.contactMethods',
                 'venue.media',
                 'venue.addresses.country',
-                'speakers.media',
+                'persons.media',
                 'keyPeople.person.media',
                 'classifications',
                 'donationChannel.media',

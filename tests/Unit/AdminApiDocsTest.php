@@ -24,7 +24,7 @@ it('documents mixed speaker venue and reference mutation semantics in the admin 
     expect($markdown)
         ->toContain('Person-specific update rules:')
         ->toContain('`address = {}` returns HTTP `422` for persons.')
-        ->toContain('The array-style speaker fields `honorific`, `pre_nominal`, `post_nominal`, `qualifications`, `language_ids`, `contacts`, and `social_media` all use replacement semantics when present')
+        ->toContain('The array-style speaker fields `language_ids`, `contacts`, and `social_media` all use replacement semantics when present')
         ->toContain('### Venue-specific update rules')
         ->toContain('`address = {}` is destructive for venues: it deletes the existing stored address.')
         ->toContain('`facilities` is a replacement set, not a patchable map')

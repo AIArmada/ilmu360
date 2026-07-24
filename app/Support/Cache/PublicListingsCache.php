@@ -9,7 +9,7 @@ class PublicListingsCache
     public function bustHomepageStats(): void
     {
         Cache::forget('home.stats.events.upcoming');
-        Cache::forget('home.stats.speakers.upcoming');
+        Cache::forget('home.stats.persons.upcoming');
         Cache::forget('home.stats.institutions.upcoming');
     }
 

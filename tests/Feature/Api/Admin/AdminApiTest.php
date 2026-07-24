@@ -650,7 +650,6 @@ it('previews admin person creation without persisting the record', function () {
         'name' => 'Previewed Admin API Person',
         'gender' => 'male',
         'status' => 'verified',
-        'is_freelance' => false,
         'address' => [
             'country_id' => ensureAdminApiMalaysiaCountryExists(),
         ],
@@ -1727,7 +1726,6 @@ it('exposes admin speaker write schema and can create and update speakers throug
         'name' => 'Admin API Created Person',
         'gender' => 'male',
         'status' => 'verified',
-        'is_freelance' => false,
         'address' => [
             'country_id' => ensureAdminApiMalaysiaCountryExists(),
         ],
@@ -1748,7 +1746,6 @@ it('exposes admin speaker write schema and can create and update speakers throug
         'pre_nominal' => ['dr', 'prof_madya'],
         'post_nominal' => ['BA', 'PhD', 'HONS'],
         'status' => 'verified',
-        'is_freelance' => true,
         'allow_public_event_submission' => true,
         'address' => [
             'country_id' => ensureAdminApiMalaysiaCountryExists(),
@@ -1767,7 +1764,6 @@ it('requires explicit country and still prohibits detailed address fields when c
         'name' => 'Admin API Missing Person Country',
         'gender' => 'male',
         'status' => 'verified',
-        'is_freelance' => false,
         'address' => [],
     ])->assertUnprocessable()
         ->assertJsonValidationErrors([
@@ -1778,7 +1774,6 @@ it('requires explicit country and still prohibits detailed address fields when c
         'name' => 'Admin API Invalid Person Address',
         'gender' => 'male',
         'status' => 'verified',
-        'is_freelance' => false,
         'address' => [
             'country_id' => ensureAdminApiMalaysiaCountryExists(),
             'line1' => 'Alamat Lama',
@@ -1804,7 +1799,6 @@ it('returns fresh speaker address data on admin GET requests after updates', fun
         'name' => 'Admin API Address Freshness Person',
         'gender' => 'male',
         'status' => 'verified',
-        'is_freelance' => false,
         'address' => [
             'country_id' => $firstFixtures['country_id'],
             'admin_area_1_id' => $firstFixtures['admin_area_1_id'],
@@ -1826,7 +1820,6 @@ it('returns fresh speaker address data on admin GET requests after updates', fun
         'name' => 'Admin API Address Freshness Person',
         'gender' => 'male',
         'status' => 'verified',
-        'is_freelance' => false,
         'address' => [
             'country_id' => $secondFixtures['country_id'],
             'admin_area_1_id' => $secondFixtures['admin_area_1_id'],
@@ -1866,7 +1859,6 @@ it('surfaces speaker update semantics and collection rules through the admin api
         'name' => 'Admin API Person Schema Surface',
         'gender' => 'male',
         'status' => 'verified',
-        'is_freelance' => false,
         'address' => [
             'country_id' => ensureAdminApiMalaysiaCountryExists(),
         ],
@@ -1877,7 +1869,6 @@ it('surfaces speaker update semantics and collection rules through the admin api
         ->json('data.schema');
 
     $fields = collect($schema['fields'] ?? [])->keyBy('name');
-    $qualificationItemFields = collect(data_get($fields->get('qualifications'), 'item_schema.fields', []))->keyBy('name');
 
     expect(data_get($fields->get('address'), 'required'))->toBeFalse()
         ->and(data_get($fields->get('address'), 'mutation_semantics'))->toBe('deep_merge_when_present_visible_fields_only')
@@ -1886,7 +1877,6 @@ it('surfaces speaker update semantics and collection rules through the admin api
         ->and(data_get($fields->get('address.country_id'), 'required'))->toBeFalse()
         ->and(data_get($fields->get('address.country_id'), 'required_when_parent_present_on_update'))->toBeTrue()
         ->and(data_get($fields->get('honorific'), 'collection_semantics.submitted_array'))->toBe('replace_collection')
-        ->and(data_get($fields->get('qualifications'), 'collection_semantics.empty_array'))->toBe('clear_collection')
         ->and($qualificationItemFields->keys()->all())->toContain('institution', 'degree', 'field', 'year')
         ->and(data_get($fields->get('language_ids'), 'collection_semantics.submitted_array'))->toBe('replace_relation_sync')
         ->and(data_get($fields->get('contactMethods'), 'collection_semantics.explicit_null'))->toBe('clear_collection')
@@ -1918,9 +1908,7 @@ it('replaces speaker collections and still requires an explicit country when mut
         'name' => 'Admin API Person Collections',
         'gender' => 'male',
         'status' => 'verified',
-        'is_freelance' => true,
         'honorific' => ['dato'],
-        'qualifications' => [[
             'institution' => 'Universiti Lama',
             'degree' => 'BA',
             'field' => 'Fiqh',
@@ -1964,9 +1952,7 @@ it('replaces speaker collections and still requires an explicit country when mut
         'name' => 'Admin API Person Collections Updated',
         'gender' => 'male',
         'status' => 'verified',
-        'is_freelance' => false,
         'honorific' => ['datuk'],
-        'qualifications' => [[
             'institution' => 'Universiti Baharu',
             'degree' => 'PhD',
             'field' => 'Aqidah',

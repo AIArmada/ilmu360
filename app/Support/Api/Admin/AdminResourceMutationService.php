@@ -2141,7 +2141,7 @@ class AdminResourceMutationService
             'space_ids' => ['nullable', 'array'],
             'space_ids.*' => ['uuid', 'exists:venue_spaces,id'],
             'speakers' => ['nullable', 'array'],
-            'speakers.*' => ['uuid', 'exists:persons,id'],
+            'persons.*' => ['uuid', 'exists:persons,id'],
             'other_key_people' => ['nullable', 'array'],
             'other_key_people.*.role_code' => ['required_with:other_key_people.*.display_name,other_key_people.*.involveable_id', Rule::enum(EventKeyPersonRole::class)],
             'other_key_people.*.involveable_type' => ['nullable', Rule::in(['person']), 'required_with:other_key_people.*.involveable_id'],

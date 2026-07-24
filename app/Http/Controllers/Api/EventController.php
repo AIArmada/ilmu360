@@ -302,8 +302,8 @@ class EventController extends Controller
                                 ->where('event_involvements.display_name', $operator, "%{$searchTerm}%")
                                 ->orWhereHas('speaker', function (Builder $speakerQuery) use ($operator, $searchTerm): void {
                                     $speakerQuery
-                                        ->where('speakers.name', $operator, "%{$searchTerm}%")
-                                        ->orWhere('speakers.searchable_name', $operator, "%{$searchTerm}%");
+                                        ->where('persons.name', $operator, "%{$searchTerm}%")
+                                        ->orWhere('persons.searchable_name', $operator, "%{$searchTerm}%");
                                 });
                         });
                 });
@@ -462,7 +462,7 @@ class EventController extends Controller
             'institution.addresses.country',
             'institution.media' => fn ($query) => $query->whereIn('collection_name', ['logo', 'cover']),
             'venue.addresses.country',
-            'speakers.media' => fn ($query) => $query->where('collection_name', 'avatar'),
+            'persons.media' => fn ($query) => $query->where('collection_name', 'avatar'),
             'media' => fn ($query) => $query->where('collection_name', 'poster'),
             'references',
         ]))

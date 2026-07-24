@@ -3424,7 +3424,6 @@ it('mirrors the public speaker page payload for app clients', function () {
     $speakerInstitution = $response->json('data.speaker.institutions.0');
 
         ->and($response->json('data.speaker.gender'))->toBe('male')
-        ->and($response->json('data.speaker.is_freelance'))->toBeTrue()
         ->and($response->json('data.speaker.address.country_id'))->toBe($countryId)
         ->and($response->json('data.speaker.country.iso2'))->toBe('MY')
         ->and($response->json('data.speaker.country.key'))->toBe('malaysia')
