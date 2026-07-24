@@ -1755,7 +1755,7 @@ it('exposes admin speaker write schema and can create and update speakers throug
         ],
     ])->assertOk()
         ->assertJsonPath('data.record.attributes.name', 'Admin API Updated Person')
-        ->assertJsonPath('data.record.attributes.slug', 'prof-madya-dato-dr-admin-api-updated-speaker-phd-ba-hons-my')
+        ->assertJsonPath('data.record.attributes.slug', 'prof-madya-dato-dr-admin-api-updated-speaker-phd-ba-hons-my');
 });
 
 it('requires explicit country and still prohibits detailed address fields when creating speakers through the admin api', function () {
