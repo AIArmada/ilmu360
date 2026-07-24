@@ -257,11 +257,11 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
             $queryBuilder->where('default_venue_id', $filters['venue_id']);
         }
 
-        $speakerIds = $this->uuidFilterValues($filters['speaker_ids'] ?? null);
+        $personIds = $this->uuidFilterValues($filters['speaker_ids'] ?? null);
 
-        if ($speakerIds !== []) {
-            $queryBuilder->whereHas('speakers', function (Builder $speakerQuery) use ($speakerIds) {
-                $speakerQuery->whereIn('speakers.id', $speakerIds);
+        if ($personIds !== []) {
+            $queryBuilder->whereHas('persons', function (Builder $personQuery) use ($personIds) {
+                $personQuery->whereIn('persons.id', $personIds);
             });
         }
 

@@ -242,8 +242,8 @@ class EventController extends Controller
                     return;
                 }
 
-                $query->whereHas('speakers', function (Builder $personQuery) use ($personIds): void {
-                    $personQuery->whereIn('speakers.id', $personIds);
+                $query->whereHas('persons', function (Builder $personQuery) use ($personIds): void {
+                    $personQuery->whereIn('persons.id', $personIds);
                 });
             }),
             AllowedFilter::callback('key_person_roles', function (Builder $query, mixed $value): void {

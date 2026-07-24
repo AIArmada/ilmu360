@@ -55,8 +55,8 @@ class GenerateEventSlugAction
 
         $titles = Event::query()
             ->where(function ($query) use ($normalizedSpeakerName, $speakerIds): void {
-                $query->whereHas('speakers', function ($speakerQuery) use ($normalizedSpeakerName): void {
-                    $speakerQuery->where('speakers.name', $normalizedSpeakerName);
+                $query->whereHas('persons', function ($personQuery) use ($normalizedSpeakerName): void {
+                    $personQuery->where('persons.name', $normalizedSpeakerName);
                 })->orWhereHas('involvements', function ($involvementQuery) use ($speakerIds): void {
                     $involvementQuery
                         ->where('involveable_type', Person::class)
