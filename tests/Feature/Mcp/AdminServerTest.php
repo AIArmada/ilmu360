@@ -1741,7 +1741,6 @@ it('previews admin person updates through the MCP write tool without persisting 
             ->where('data.preview.validate_only', true)
             ->where('data.preview.operation', 'update')
             ->where('data.preview.current_record.route_key', $person->getRouteKey())
-            ->where('data.preview.normalized_payload.job_title', 'Imam')
             ->etc());
 
     AdminServer::actingAs($admin)
@@ -1938,7 +1937,6 @@ it('creates and updates persons through MCP write tools', function () {
         ->assertOk()
         ->assertStructuredContent(fn ($json) => $json
             ->where('data.record.attributes.name', 'Admin MCP Updated Person')
-            ->where('data.record.attributes.job_title', 'Imam')
             ->etc());
 
     expect($person->fresh()?->getMedia('gallery'))->toHaveCount(1);

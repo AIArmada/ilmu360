@@ -626,7 +626,7 @@ it('filters events by key person roles and role-specific linked speakers', funct
     $personInChargeEvent->keyPeople()->create([
         'involveable_type' => 'speaker',
         'involveable_id' => $personInChargePerson->id,
-        'role_code' => EventKeyPersonRole::SpeakerInCharge->value,
+        'role_code' => EventKeyPersonRole::PersonInCharge->value,
         'sort_order' => 1,
         'visibility' => 'public',
     ]);
@@ -638,7 +638,7 @@ it('filters events by key person roles and role-specific linked speakers', funct
     ]);
 
     $freeTextPersonInChargeEvent->keyPeople()->create([
-        'role_code' => EventKeyPersonRole::SpeakerInCharge->value,
+        'role_code' => EventKeyPersonRole::PersonInCharge->value,
         'display_name' => 'Encik API Free Text PIC',
         'sort_order' => 1,
         'visibility' => 'public',

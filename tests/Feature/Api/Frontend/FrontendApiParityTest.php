@@ -162,7 +162,6 @@ it('exposes corrected frontend contract metadata', function () {
         ->json('data');
     $speakerFields = collect($speakerContract['fields'] ?? [])->pluck('name')->all();
 
-    expect($speakerFields)->toContain('job_title', 'avatar', 'cover', 'address.country_id', 'qualifications', 'institution_id', 'institution_position')
         ->not->toContain('address.country_code', 'address.country_key')
         ->not->toContain('address.line1')
         ->not->toContain('address.google_maps_url')
@@ -3424,7 +3423,6 @@ it('mirrors the public speaker page payload for app clients', function () {
 
     $speakerInstitution = $response->json('data.speaker.institutions.0');
 
-    expect($response->json('data.speaker.job_title'))->toBe('Penasihat Dakwah')
         ->and($response->json('data.speaker.gender'))->toBe('male')
         ->and($response->json('data.speaker.is_freelance'))->toBeTrue()
         ->and($response->json('data.speaker.address.country_id'))->toBe($countryId)

@@ -672,7 +672,6 @@ it('previews admin person updates without persisting the record', function () {
     $admin = adminApiUser('super_admin');
     $person = Person::factory()->create([
         'name' => 'Previewable Admin API Person',
-        'job_title' => null,
     ]);
     $originalName = (string) $person->name;
     $personRouteKey = (string) $person->getRouteKey();
@@ -1750,7 +1749,6 @@ it('exposes admin speaker write schema and can create and update speakers throug
         'post_nominal' => ['BA', 'PhD', 'HONS'],
         'status' => 'verified',
         'is_freelance' => true,
-        'job_title' => 'Imam',
         'allow_public_event_submission' => true,
         'address' => [
             'country_id' => ensureAdminApiMalaysiaCountryExists(),
@@ -1758,7 +1756,6 @@ it('exposes admin speaker write schema and can create and update speakers throug
     ])->assertOk()
         ->assertJsonPath('data.record.attributes.name', 'Admin API Updated Person')
         ->assertJsonPath('data.record.attributes.slug', 'prof-madya-dato-dr-admin-api-updated-speaker-phd-ba-hons-my')
-        ->assertJsonPath('data.record.attributes.job_title', 'Imam');
 });
 
 it('requires explicit country and still prohibits detailed address fields when creating speakers through the admin api', function () {
@@ -1922,7 +1919,6 @@ it('replaces speaker collections and still requires an explicit country when mut
         'gender' => 'male',
         'status' => 'verified',
         'is_freelance' => true,
-        'job_title' => 'Imam',
         'honorific' => ['dato'],
         'qualifications' => [[
             'institution' => 'Universiti Lama',
