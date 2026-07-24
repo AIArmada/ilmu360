@@ -7,10 +7,10 @@ use Illuminate\Console\Command;
 
 class ReindexPersonSearch extends Command
 {
-    protected $signature = 'speakers:reindex-search
-                            {--chunk=100 : Number of speakers to process per chunk}';
+    protected $signature = 'persons:reindex-search
+                            {--chunk=100 : Number of persons to process per chunk}';
 
-    protected $description = 'Rebuild the speaker search index and searchable names for all speakers.';
+    protected $description = 'Rebuild the person search index and searchable names for all persons.';
 
     public function __construct(
         private readonly PersonSearchService $personSearchService,
@@ -21,7 +21,7 @@ class ReindexPersonSearch extends Command
     public function handle(): int
     {
         if (! $this->personSearchService->searchIndexSchemaReady()) {
-            $this->error('Speaker search schema is not ready. Run the migrations first.');
+            $this->error('Person search schema is not ready. Run the migrations first.');
 
             return self::FAILURE;
         }
@@ -29,7 +29,7 @@ class ReindexPersonSearch extends Command
         $chunkSize = max(1, (int) $this->option('chunk'));
         $processed = $this->personSearchService->reindexAll($chunkSize);
 
-        $this->info(sprintf('Reindexed %d speaker search record(s).', $processed));
+        $this->info(sprintf('Reindexed %d person search record(s).', $processed));
 
         return self::SUCCESS;
     }

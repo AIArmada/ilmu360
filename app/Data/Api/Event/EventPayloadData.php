@@ -121,7 +121,7 @@ class EventPayloadData extends Data
             $event->persons->loadMissing('media');
 
             $payload['speakers'] = $event->persons
-                ->map(fn (Person $speaker): array => EventSpeakerData::fromModel($speaker)->toArray())
+                ->map(fn (Person $speaker): array => EventPersonData::fromModel($speaker)->toArray())
                 ->values()
                 ->all();
         }
@@ -251,7 +251,7 @@ class EventPayloadData extends Data
             'visibility' => $keyPerson->visibility,
             'sort_order' => $keyPerson->sort_order,
             'speaker' => $keyPerson->person instanceof Person
-                ? EventSpeakerData::fromModel($keyPerson->person)->toArray()
+                ? EventPersonData::fromModel($keyPerson->person)->toArray()
                 : null,
         ];
     }

@@ -20,7 +20,7 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Nnjeim\World\Models\Language;
 
-class SpeakerContributionFormSchema
+class PersonContributionFormSchema
 {
     /**
      * @return array<int, Component>

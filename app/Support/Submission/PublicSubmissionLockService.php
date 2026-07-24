@@ -147,7 +147,7 @@ final readonly class PublicSubmissionLockService
     }
 
     /**
-     * @return array{institutions_reopened: int, speakers_reopened: int}
+     * @return array{institutions_reopened: int, persons_reopened: int}
      */
     public function sweepLockedEntities(): array
     {
@@ -173,7 +173,7 @@ final readonly class PublicSubmissionLockService
 
         return [
             'institutions_reopened' => $institutionsReopened,
-            'speakers_reopened' => $personsReopened,
+            'persons_reopened' => $personsReopened,
         ];
     }
 

@@ -537,7 +537,7 @@ class EventContributionFormSchema
                 ->schema([
                     Select::make('speaker_ids')
                         ->label(__('Pilih Penceramah'))
-                        ->options(fn (): array => Speaker::query()
+                        ->options(fn (): array => Person::query()
                             ->whereIn('status', ['verified', 'pending'])
                             ->orderBy('name')
                             ->get()
@@ -564,7 +564,7 @@ class EventContributionFormSchema
                                 ->required(),
                             Select::make('involveable_id')
                                 ->label(__('Pautkan Profil Penceramah'))
-                                ->options(fn (): array => Speaker::query()
+                                ->options(fn (): array => Person::query()
                                     ->whereIn('status', ['verified', 'pending'])
                                     ->orderBy('name')
                                     ->get()
@@ -776,7 +776,7 @@ class EventContributionFormSchema
      */
     private static function speakerOptions(): array
     {
-        return Speaker::query()
+        return Person::query()
             ->whereIn('status', ['verified', 'pending'])
             ->orderBy('name')
             ->get()
@@ -872,7 +872,7 @@ class EventContributionFormSchema
             return 'institution';
         }
 
-        if (Speaker::query()->whereKey($organizerId)->exists()) {
+        if (Person::query()->whereKey($organizerId)->exists()) {
             return 'speaker';
         }
 

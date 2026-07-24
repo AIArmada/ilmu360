@@ -131,7 +131,7 @@ class FollowController extends FrontendController
     {
         /** @var Speaker $record */
         $record = $this->slugOrUuidResolver->firstOrFail(
-            Speaker::query(),
+            Person::query(),
             'speakers.slug',
             $subject,
         );

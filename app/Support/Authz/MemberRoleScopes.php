@@ -10,7 +10,7 @@ final readonly class MemberRoleScopes
 {
     public function speaker(): Speaker
     {
-        return Speaker::query()->firstOrFail();
+        return Person::query()->firstOrFail();
     }
 
     public function institution(): Institution

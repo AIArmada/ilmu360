@@ -4,14 +4,14 @@ namespace App\Forms;
 
 use AIArmada\Membership\Actions\AddMemberAction;
 use AIArmada\Membership\Enums\MemberRole;
-use App\Actions\Speakers\GenerateSpeakerSlugAction;
+use App\Actions\Speakers\GeneratePersonSlugAction;
 use App\Enums\Gender;
 use App\Models\User;
 use App\Services\ContributionEntityMutationService;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Schema;
 
-class SpeakerFormSchema
+class PersonFormSchema
 {
     /**
      * Shared createOptionForm for Speaker selects.
@@ -34,7 +34,7 @@ class SpeakerFormSchema
      */
     public static function createOptionUsing(array $data, ?Schema $schema = null): string
     {
-        $speaker = Speaker::create([
+        $speaker = Person::create([
             'name' => $data['name'],
             'gender' => $data['gender'] ?? Gender::Male->value,
             'honorific' => empty($data['honorific']) ? null : $data['honorific'],
@@ -44,7 +44,7 @@ class SpeakerFormSchema
             'bio' => $data['bio'] ?? null,
             'qualifications' => self::normalizeQualificationEntries($data['qualifications'] ?? []),
             'is_freelance' => (bool) ($data['is_freelance'] ?? false),
-            'slug' => app(GenerateSpeakerSlugAction::class)->handle((string) ($data['name'] ?? 'Speaker'), $data),
+            'slug' => app(GeneratePersonSlugAction::class)->handle((string) ($data['name'] ?? 'Speaker'), $data),
             'status' => 'pending',
         ]);
 
@@ -58,7 +58,7 @@ class SpeakerFormSchema
         $schema?->model($speaker)->saveRelationships();
 
         app(ContributionEntityMutationService::class)->syncSpeakerRelations($speaker, $data);
-        app(GenerateSpeakerSlugAction::class)->syncSpeakerSlug($speaker);
+        app(GeneratePersonSlugAction::class)->syncSpeakerSlug($speaker);
 
         return (string) $speaker->getKey();
     }

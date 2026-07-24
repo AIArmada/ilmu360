@@ -2193,7 +2193,7 @@ class AdminResourceMutationService
 
                     if (
                         Institution::query()->whereKey($value)->exists()
-                        || Speaker::query()->whereKey($value)->exists()
+                        || Person::query()->whereKey($value)->exists()
                     ) {
                         return;
                     }

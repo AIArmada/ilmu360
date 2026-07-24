@@ -62,7 +62,7 @@ class PruneOrphanedEntities extends Command
         );
 
         $totalPruned += $this->pruneModel(
-            'Speakers',
+            'Persons',
             Person::query()
                 ->where('status', 'pending')
                 ->where('created_at', '<', $threshold)

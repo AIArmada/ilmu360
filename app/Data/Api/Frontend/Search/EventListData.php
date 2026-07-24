@@ -101,7 +101,7 @@ class EventListData extends Data
                 ? EventListVenueData::fromModel($event->venue)->toArray()
                 : null,
             speakers: $event->persons
-                ->map(fn (Person $speaker): array => EventListSpeakerData::fromModel($speaker)->toArray())
+                ->map(fn (Person $speaker): array => EventListPersonData::fromModel($speaker)->toArray())
                 ->values()
                 ->all(),
         );

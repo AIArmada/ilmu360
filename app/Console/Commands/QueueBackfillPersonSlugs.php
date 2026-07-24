@@ -9,15 +9,15 @@ use Illuminate\Console\Command;
 
 class QueueBackfillPersonSlugs extends Command
 {
-    protected $signature = 'speakers:queue-slug-backfill';
+    protected $signature = 'persons:queue-slug-backfill';
 
-    protected $description = 'Queue regeneration of speaker slugs using the displayed-name and country slug format.';
+    protected $description = 'Queue regeneration of person slugs using the displayed-name and country slug format.';
 
     public function handle(): int
     {
         BackfillPersonSlugs::dispatch();
 
-        $this->info('Queued speaker slug backfill job.');
+        $this->info('Queued person slug backfill job.');
 
         return self::SUCCESS;
     }

@@ -56,8 +56,8 @@ class StatsOverview extends StatsOverviewWidget
                 ->descriptionIcon('heroicon-m-arrow-top-right-on-square')
                 ->color(fn (): string => $pendingEvents > 0 ? 'warning' : 'success')
                 ->url($this->moderationQueueUrl()),
-            Stat::make('Speakers Needing Approval', $pendingSpeakers)
-                ->description('Review pending speakers')
+            Stat::make('Persons Needing Approval', $pendingSpeakers)
+                ->description('Review pending persons')
                 ->descriptionIcon('heroicon-m-arrow-top-right-on-square')
                 ->color(fn (): string => $pendingSpeakers > 0 ? 'warning' : 'success')
                 ->url($this->pendingSpeakersUrl()),

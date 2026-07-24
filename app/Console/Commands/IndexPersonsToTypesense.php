@@ -8,11 +8,11 @@ use App\Models\Person;
 
 class IndexPersonsToTypesense extends AbstractIndexToScout
 {
-    protected $signature = 'search:index-speakers
+    protected $signature = 'search:index-persons
                             {--fresh : Flush the current Scout index before importing}
                             {--chunk=500 : Number of records to process per chunk}';
 
-    protected $description = 'Import all searchable speakers into the configured Scout driver';
+    protected $description = 'Import all searchable persons into the configured Scout driver';
 
     protected function searchableModel(): string
     {
@@ -21,6 +21,6 @@ class IndexPersonsToTypesense extends AbstractIndexToScout
 
     protected function searchableLabel(): string
     {
-        return 'speaker';
+        return 'person';
     }
 }
