@@ -133,8 +133,8 @@
     ],
     "search_parity_notes": [
         "Admin HTTP API now exposes dedicated event discovery at GET /api/v1/admin/events/search and aligns with admin-search-events via the same validation and normalization contract.",
-        "Admin HTTP API and Admin/Member MCP now route list search for speakers, institutions, and references through shared specialized search services.",
-        "Public speaker, institution, and reference directory endpoints use the same underlying search services for those resource families, but public reads still enforce active plus verified visibility while admin/member surfaces preserve their broader or scoped record sets.",
+        "Admin HTTP API and Admin/Member MCP now route list search for persons, institutions, and references through shared specialized search services.",
+        "Public person, institution, and reference directory endpoints use the same underlying search services for those resource families, but public reads still enforce active plus verified visibility while admin/member surfaces preserve their broader or scoped record sets.",
         "This is search-engine parity, not full surface symmetry; transport, authorization, filters, and returned field sets still differ by surface."
     ],
     "surface_sync_contract": {
@@ -400,7 +400,7 @@
     "runtime_inventory": {
         "admin_panel": {
             "source_of_truth": "Filament::getPanel('admin')->getResources()",
-            "resource_count": 63,
+            "resource_count": 66,
             "resources": [
                 {
                     "resource_key": "address-areas",
@@ -1057,9 +1057,9 @@
                     "generic_admin_write": true
                 },
                 {
-                    "resource_key": "speakers",
-                    "resource_class": "App\\Filament\\Resources\\Speakers\\SpeakerResource",
-                    "model_class": "App\\Models\\Speaker",
+                    "resource_key": "people",
+                    "resource_class": "App\\Filament\\Resources\\Persons\\PersonResource",
+                    "model_class": "App\\Models\\Person",
                     "source": "app",
                     "page_keys": [
                         "index",
@@ -1068,6 +1068,18 @@
                         "edit"
                     ],
                     "generic_admin_write": true
+                },
+                {
+                    "resource_key": "credential-definitions",
+                    "resource_class": "App\\Filament\\Resources\\CredentialDefinitions\\CredentialDefinitionResource",
+                    "model_class": "App\\Models\\CredentialDefinition",
+                    "source": "app",
+                    "page_keys": [
+                        "index",
+                        "create",
+                        "edit"
+                    ],
+                    "generic_admin_write": false
                 },
                 {
                     "resource_key": "subscriptions",
@@ -1089,6 +1101,30 @@
                         "index",
                         "create",
                         "view",
+                        "edit"
+                    ],
+                    "generic_admin_write": false
+                },
+                {
+                    "resource_key": "title-issuers",
+                    "resource_class": "App\\Filament\\Resources\\TitleIssuers\\TitleIssuerResource",
+                    "model_class": "App\\Models\\TitleIssuer",
+                    "source": "app",
+                    "page_keys": [
+                        "index",
+                        "create",
+                        "edit"
+                    ],
+                    "generic_admin_write": false
+                },
+                {
+                    "resource_key": "titles",
+                    "resource_class": "App\\Filament\\Resources\\Titles\\TitleResource",
+                    "model_class": "App\\Models\\Title",
+                    "source": "app",
+                    "page_keys": [
+                        "index",
+                        "create",
                         "edit"
                     ],
                     "generic_admin_write": false
@@ -1340,9 +1376,9 @@
                     "generic_member_write": false
                 },
                 {
-                    "resource_key": "speakers",
-                    "resource_class": "App\\Filament\\Ahli\\Resources\\Speakers\\SpeakerResource",
-                    "model_class": "App\\Models\\Speaker",
+                    "resource_key": "people",
+                    "resource_class": "App\\Filament\\Ahli\\Resources\\Persons\\PersonResource",
+                    "model_class": "App\\Models\\Person",
                     "page_keys": [
                         "index",
                         "view",
@@ -1393,14 +1429,44 @@
             "events",
             "inspirations",
             "institutions",
+            "people",
             "references",
             "reports",
             "series",
             "spaces",
-            "speakers",
             "venues"
         ],
         "resource_details": {
+            "people": {
+                "admin_api": {
+                    "schema": true,
+                    "store": true,
+                    "update": true,
+                    "validate_only": true,
+                    "apply_defaults": true,
+                    "validation_feedback": true,
+                    "schema_content_type": "multipart/form-data",
+                    "related_records": true
+                },
+                "member_api": {
+                    "schema": true,
+                    "update": true,
+                    "validate_only": true,
+                    "related_records": true
+                },
+                "public_api": {
+                    "list": true,
+                    "detail": true,
+                    "search": true,
+                    "follow": true,
+                    "contribution": true
+                },
+                "workflow_overlap": [
+                    "public person discovery/detail",
+                    "authenticated contribution create/suggest",
+                    "follows"
+                ]
+            },
             "address-areas": {
                 "admin_api": {
                     "schema": true,
@@ -1752,7 +1818,7 @@
                     "event space assignment"
                 ]
             },
-            "speakers": {
+            "persons": {
                 "admin_api": {
                     "schema": true,
                     "store": true,
@@ -1881,8 +1947,8 @@
         "resource_keys": [
             "events",
             "institutions",
-            "references",
-            "speakers"
+            "people",
+            "references"
         ],
         "update_only": true,
         "validate_only": true,

@@ -235,7 +235,7 @@ it('deduplicates key person roles in the searchable payload', function () {
             EventKeyPersonRole::Moderator->value,
             EventKeyPersonRole::Imam->value,
             EventKeyPersonRole::PersonInCharge->value,
-        ])->and($payload['key_person_speaker_ids'])->toBe([
+        ])->and($payload['key_person_person_ids'])->toBe([
             (string) $moderator->getKey(),
             (string) $imam->getKey(),
             (string) $personInCharge->getKey(),

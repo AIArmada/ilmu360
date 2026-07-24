@@ -85,7 +85,7 @@ it('serializes speaker detail and directory schemas to nested arrays', function 
     $detailPayload = $detailResponse->toArray();
     $directoryPayload = $directoryResponse->toArray();
 
-    expect($detailPayload['data']['speaker']['slug'])->toBe('ustaz-adam')
+    expect($detailPayload['data']['person']['slug'])->toBe('ustaz-adam')
         ->and($detailPayload['data']['other_role_upcoming_participations'][0]['event']['slug'])->toBe('weekly-tafsir')
         ->and($detailPayload['meta']['request_id'])->toBe('req-speaker')
         ->and($directoryPayload['data'][0]['country']['iso2'])->toBe('MY')

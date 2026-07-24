@@ -44,8 +44,8 @@ This API has **two distinct routing surfaces**. Understanding the difference is 
 
 Key routing rules:
 
-- **Public query routes** (`/api/v1/speakers`, `/api/v1/institutions`, etc.) return only records where `is_active = true` AND `status = 'verified'`. They never return drafts or rejected records.
-- **Admin routes** (`/api/v1/admin/speakers`, etc.) use Filament's own Eloquent query, which includes all records regardless of active or status state. The same `search=...` parameter on both surfaces therefore returns different result sets.
+- **Public query routes** (`/api/v1/persons`, `/api/v1/institutions`, etc.) return only records where `is_active = true` AND `status = 'verified'`. They never return drafts or rejected records.
+- **Admin routes** (`/api/v1/admin/persons`, etc.) use Filament's own Eloquent query, which includes all records regardless of active or status state. The same `search=...` parameter on both surfaces therefore returns different result sets.
 - **Admin mutation routes** (POST / PUT) use the resource key and the record's admin **route_key** for record-specific paths. The format is `/api/v1/admin/{resourceKey}/{recordKey}`. Use the `route_key` returned by the admin collection or detail payloads.
 - Do not send public contribution payloads to `/api/v1/admin`, and do not expect admin schemas from `/api/v1/forms/...`.
 
@@ -56,7 +56,7 @@ Speaker-specific discovery tip:
 - If you only know the speaker's name, first search the speaker directory:
 
 ```http
-GET /api/v1/speakers?search=Norhafizah
+GET /api/v1/persons?search=Norhafizah
 ```
 
 Then use the `id` from that response with the events filter:
@@ -65,7 +65,7 @@ Then use the `id` from that response with the events filter:
 GET /api/v1/events?filter[speaker]=019d5cb5-7de1-7055-a4d3-b57ab007331e&filter[starts_after]=2026-04-18
 ```
 
-- For a speaker's event history, open `GET /api/v1/speakers/{speakerKey}` and read the `upcoming_events` and `past_events` arrays.
+- For a person's event history, open `GET /api/v1/persons/{personKey}` and read the `upcoming_events` and `past_events` arrays.
 
 ---
 
@@ -113,18 +113,18 @@ The `search` parameter on public and admin surfaces queries different record sco
 
 | Surface | Endpoint | Records returned |
 |---|---|---|
-| Public | `GET /api/v1/speakers?search=...` | Only `is_active = true` AND `status = 'verified'` |
+| Public | `GET /api/v1/persons?search=...` | Only `is_active = true` AND `status = 'verified'` |
 | Public | `GET /api/v1/institutions?search=...` | Only `is_active = true` AND `status = 'verified'` |
-| Admin | `GET /api/v1/admin/speakers?search=...` | **All** records — active, inactive, pending, rejected |
+| Admin | `GET /api/v1/admin/persons?search=...` | **All** records — active, inactive, pending, rejected |
 | Admin | `GET /api/v1/admin/institutions?search=...` | **All** records — active, inactive, pending, rejected |
 
-This is intentional. The admin surface mirrors Filament's resource query, which does not apply visibility filters. A speaker that returns zero results on the public surface may appear on the admin surface because it is inactive or has `status = 'pending'`.
+This is intentional. The admin surface mirrors Filament's resource query, which does not apply visibility filters. A person that returns zero results on the public surface may appear on the admin surface because it is inactive or has `status = 'pending'`.
 
-For `speakers`, `institutions`, and `references`, the admin HTTP API now reuses the same specialized search services that also back the public directory endpoints and the admin/member MCP `*list-records` tools. That means decorated speaker-title matching, institution nickname or typo-tolerant matching, and reference descriptive-text matching behave similarly across those surfaces; the main difference is which records each surface is allowed to return.
+For `persons`, `institutions`, and `references`, the admin HTTP API now reuses the same specialized search services that also back the public directory endpoints and the admin/member MCP `*list-records` tools. That means decorated person-title matching, institution nickname or typo-tolerant matching, and reference descriptive-text matching behave similarly across those surfaces; the main difference is which records each surface is allowed to return.
 
-Public event discovery follows the same principle: use `filter[search]` for event title/description text matching and `filter[speaker]` when you need an exact speaker UUID match.
+Public event discovery follows the same principle: use `filter[search]` for event title/description text matching and `filter[person]` when you need an exact person UUID match.
 
-**AI agent guidance:** Never assume that a search result from one surface tells you anything definitive about results from the other. If you need to verify whether a speaker is visible to the public, check `is_active` and `status` in the record attributes.
+**AI agent guidance:** Never assume that a search result from one surface tells you anything definitive about results from the other. If you need to verify whether a person is visible to the public, check `is_active` and `status` in the record attributes.
 
 ---
 
@@ -424,13 +424,13 @@ Authenticated engagement lists `GET /me/events/saved` and `GET /me/events/going`
 
 Those two endpoints do **not** return `meta.pagination.total`.
 
-List endpoints clamp `per_page` to server-supported maxima. Public `/events`, `/institutions`, and `/speakers` currently cap at 50. Most authenticated collections and admin resource listings currently cap at 100.
+List endpoints clamp `per_page` to server-supported maxima. Public `/events`, `/institutions`, and `/persons` currently cap at 50. Most authenticated collections and admin resource listings currently cap at 100.
 
 ### Sparse list fields
 
 Public list endpoints now support an optional top-level `fields` query parameter for lighter mobile pagination payloads.
 
-- Supported endpoints: `GET /events`, `GET /institutions`, `GET /institutions/near`, and `GET /speakers`.
+- Supported endpoints: `GET /events`, `GET /institutions`, `GET /institutions/near`, and `GET /persons`.
 - Format: comma-separated top-level field names, for example `fields=id,name,location`.
 - Unsupported field names return HTTP `422` with a `fields` validation error.
 - When omitted, each endpoint returns its full default list payload.
@@ -440,7 +440,7 @@ Examples:
 ```http
 GET /api/v1/institutions?fields=id,name,location
 GET /api/v1/events?fields=id,title,starts_at,card_image_url
-GET /api/v1/speakers?fields=id,name,status,is_active,avatar_url
+GET /api/v1/persons?fields=id,name,status,is_active,avatar_url
 ```
 
 Validation failures use the same `error` envelope with a field-level bag preserved for direct form binding:
@@ -486,7 +486,7 @@ Interactive API docs are available on the API host under `/docs`, with the gener
 | `GET` | `/forms/mobile-telemetry` | Optional | Native mobile telemetry contract for real iOS/iPadOS/Android apps |
 | `GET` | `/forms/submit-event` | Optional | Submit-event schema, defaults, and validation metadata |
 | `GET` | `/forms/contributions/institutions` | Optional | Institution contribution contract |
-| `GET` | `/forms/contributions/speakers` | Optional | Speaker contribution contract |
+| `GET` | `/forms/contributions/persons` | Optional | Person contribution contract |
 | `GET` | `/forms/report` | Required | Report form contract, including optional evidence upload metadata |
 | `GET` | `/forms/github-issue-report` | Required | GitHub issue-report contract for MCP/API bugs, docs mismatches, and proposals |
 | `GET` | `/forms/account-settings` | Required | Account-settings contract |
@@ -499,13 +499,13 @@ Interactive API docs are available on the API host under `/docs`, with the gener
 
 | Method | Path | Purpose |
 |---|---|---|
-| `GET` | `/search` | Unified search payload for events, speakers, and institutions |
+| `GET` | `/search` | Unified search payload for events, persons, and institutions |
 | `GET` | `/share/payload` | Build a share payload for web, iOS, Android, and native share sheets |
 | `GET` | `/institutions` | Public institution listing filters |
 | `GET` | `/institutions/near` | Nearby institution alias using `near=lat,lng` |
 | `GET` | `/institutions/{institutionKey}` | Public institution detail by slug or UUID |
-| `GET` | `/speakers` | Public speaker listing filters; speaker directory items include `status` and `is_active` in the default payload |
-| `GET` | `/speakers/{speakerKey}` | Public speaker detail by slug or UUID |
+| `GET` | `/persons` | Public person listing filters; person directory items include `status` and `is_active` in the default payload |
+| `GET` | `/persons/{personKey}` | Public person detail by slug or UUID |
 | `GET` | `/references` | Public reference listing filters; default directory pages show root/standalone references, while searched child parts can also appear. Reference directory items include `display_title`, `parent_reference_id`, `part_type`, `part_number`, `part_label`, `is_part`, `author`, `type`, `publisher`, `publication_year`, `is_active`, `events_count`, `front_cover_url`, and `is_following` in the default payload |
 | `GET` | `/inspirations/random` | Random active inspiration payload with category and media metadata |
 | `GET` | `/venues/{venueKey}` | Public venue detail by slug or UUID |
@@ -514,8 +514,8 @@ Interactive API docs are available on the API host under `/docs`, with the gener
 
 Notes:
 
-- **Visibility rule:** `/speakers`, `/institutions`, and `/references` return **only** records where `is_active = true` AND `status = 'verified'`. Inactive or unverified records are invisible on the public surface. To access all records including drafts, use the admin surface.
-- Public speaker directory list items expose `status` and `is_active` alongside the existing summary fields. Keep client logic aligned with those canonical fields instead of inferring alternate aliases.
+- **Visibility rule:** `/persons`, `/institutions`, and `/references` return **only** records where `is_active = true` AND `status = 'verified'`. Inactive or unverified records are invisible on the public surface. To access all records including drafts, use the admin surface.
+- Public person directory list items expose `status` and `is_active` alongside the existing summary fields. Keep client logic aligned with those canonical fields instead of inferring alternate aliases.
 - Public reference directory list items expose `display_title`, `parent_reference_id`, `part_type`, `part_number`, `part_label`, `is_part`, `author`, `type`, `publisher`, `publication_year`, `is_active`, `events_count`, `front_cover_url`, and `is_following` by default. `display_title` is the safest client-facing label because child parts can render as values like `Riyadhus Solihin — Jilid 2`.
 - Default `/references` pagination intentionally hides child parts unless the client is actively searching. Search queries can return both root books and matching child parts.
 - `GET /references/{referenceKey}` now returns the same part metadata in the `reference` payload. Root books aggregate events from the whole family by default. Child parts return only exact-part events by default, but clients can opt into whole-book aggregation with `include_all_parts=true`.
@@ -526,10 +526,10 @@ Notes:
 - Public event detail payloads now serialize linked references with a normalized image contract for mobile cards and previews: `media.front_cover_url`, `media.back_cover_url`, plus top-level aliases `front_cover_url`, `back_cover_url`, `cover_url`, and `thumb_url`.
 - Unified search accepts `search` as the canonical query parameter and `q` as a compatibility alias, for example `GET /api/v1/search?search=Kuliah` or `GET /api/v1/search?q=Kuliah`.
 - Institution directory requests can filter by the device's current location: `GET /api/v1/institutions?lat=3.1390&lng=101.6869&radius_km=15` or `GET /api/v1/institutions/near?near=3.1390,101.6869&radius_km=15`. The `/institutions/near` alias requires either `near=lat,lng` or both `lat` and `lng`; calling it without coordinates intentionally returns a validation error. `radius_km` defaults to 15, is clamped between 1 and 100, and is always expressed in kilometers. Nearby results are sorted nearest-first and include `distance_km`; non-nearby requests return `distance_km: null`.
-- Followed directory records are listed through the same directory endpoints with `following=true`, for example `GET /api/v1/speakers?following=true`, `GET /api/v1/institutions?following=true`, and `GET /api/v1/references?following=true`. There are no plural follow-list routes such as `/follows/speakers`; the `/follows/{type}/{subject}` endpoints are only for a single record's follow state and follow/unfollow mutations.
-- Public `/events`, `/institutions`, `/institutions/near`, `/speakers`, and `/references` list endpoints accept `fields=` for sparse top-level responses when mobile clients need smaller pagination payloads.
+- Followed directory records are listed through the same directory endpoints with `following=true`, for example `GET /api/v1/persons?following=true`, `GET /api/v1/institutions?following=true`, and `GET /api/v1/references?following=true`. There are no plural follow-list routes such as `/follows/persons`; the `/follows/{type}/{subject}` endpoints are only for a single record's follow state and follow/unfollow mutations.
+- Public `/events`, `/institutions`, `/institutions/near`, `/persons`, and `/references` list endpoints accept `fields=` for sparse top-level responses when mobile clients need smaller pagination payloads.
 - The inspiration endpoint returns `title`, plain-text `content`, `content_html`, `preview_text`, `source`, category metadata, and both thumb/full media URLs when an image exists.
-- `speakerKey`, `venueKey`, `institutionKey`, and `referenceKey` intentionally bypass the app-wide public-slug route binders so the API can safely resolve slug or UUID itself.
+- `personKey`, `venueKey`, `institutionKey`, and `referenceKey` intentionally bypass the app-wide public-slug route binders so the API can safely resolve slug or UUID itself.
 - `GET /catalogs/spaces` returns only global spaces when `institution_id` is omitted. When `institution_id` is provided, the response includes those global spaces plus spaces linked to the selected institution.
 
 ### Submission and authenticated workflow endpoints
@@ -545,7 +545,7 @@ Notes:
 | `PUT` | `/account-settings` | Update current profile settings |
 | `GET` | `/contributions` | Contribution inbox for the current user |
 | `POST` | `/contributions/institutions` | Submit a new institution contribution |
-| `POST` | `/contributions/speakers` | Submit a new speaker contribution |
+| `POST` | `/contributions/persons` | Submit a new person contribution |
 | `POST` | `/contributions/{subjectType}/{subject}/suggest` | Suggest an update or apply a direct edit when authorized |
 | `POST` | `/contributions/{requestId}/approve` | Approve a reviewable contribution request |
 | `POST` | `/contributions/{requestId}/reject` | Reject a reviewable contribution request |
@@ -716,7 +716,7 @@ Assignment behavior:
 - Public institution create accepts media fields `cover` and `gallery`.
 - If the same normalized institution name plus the same `state_id`, `admin_area_1_id` (district), and `admin_area_2_id` (subdistrict) already exists, create will fail with HTTP `422` on `name`.
 
-#### `GET /forms/contributions/speakers`
+#### `GET /forms/contributions/persons`
 
 - Use this as the authoritative create contract for public speaker submissions.
 - Speaker create requires an explicit country plus region selectors. Send:
@@ -802,7 +802,7 @@ Current scope:
 - Generic record listing with search and resource-specific filters
 - Generic record detail with per-record abilities
 - Named relation traversal for related admin records
-- Shared create/update write support for `speakers`, `institutions`, `venues`, `references`, `events`, and `subdistricts`
+- Shared create/update write support for `persons`, `institutions`, `venues`, `references`, `events`, and `subdistricts`
 - Optional `validate_only=true` preview mode for admin create/update requests
 - `current_media` is metadata only; it is useful for pre-populating edit forms, but it does not expose signed or temporary file URLs
 - File fields in schema responses include `accepted_mime_types`, `max_file_size_kb`, and `max_files` where applicable
@@ -874,7 +874,7 @@ Authorization note:
 - The admin API now follows the same top-level access rule as the Filament admin panel: any authenticated user with application admin-panel access can reach it.
 - Bearer token abilities do not elevate a non-admin user into this surface.
 - Within that surface, per-resource create/view and per-record update/view/delete abilities are still computed from the underlying Laravel policies, so the payload advertises what the current user can actually do.
-- For `speakers` and `institutions`, the API write path now reuses the same save actions as the Filament create/edit pages, including address/contact/social sync, media handling, and public-submission toggle rules.
+- For `persons` and `institutions`, the API write path now reuses the same save actions as the Filament create/edit pages, including address/contact/social sync, media handling, and public-submission toggle rules.
 - Slugs for these write-capable resources are treated as auto-managed by the API contract. Clients should not attempt to persist custom slugs through these endpoints.
 
 ### Schema endpoint — key behaviors
@@ -882,8 +882,8 @@ Authorization note:
 The `GET /admin/{resourceKey}/schema` endpoint is the authoritative source for what fields are required and allowed for any given mutation.
 
 ```
-GET /api/v1/admin/speakers/schema?operation=create
-GET /api/v1/admin/speakers/schema?operation=update&recordKey=ahmad-fauzi-my
+GET /api/v1/admin/persons/schema?operation=create
+GET /api/v1/admin/persons/schema?operation=update&recordKey=ahmad-fauzi-my
 ```
 
 Rules:
@@ -893,7 +893,7 @@ Rules:
 - The schema response also embeds `defaults` with current field values, and `current_media` with existing media metadata, enabling pre-population of edit forms without exposing signed media URLs.
 - File fields include `accepted_mime_types`, `max_file_size_kb`, and `max_files` where applicable. Use `multipart/form-data` for raw HTTP API writes that include files.
 - The `method` field tells you whether to use `POST` or `PUT`.
-- `conditional_rules` describe fields that become required based on other field values (e.g., `job_title` is required when `is_freelance = true` for speakers).
+- `conditional_rules` describe fields that become required based on other field values (e.g., `job_title` is required when `is_freelance = true` for persons).
 
 ### Always-required fields for admin speaker write operations
 
@@ -910,12 +910,12 @@ The `bio`, `qualifications`, `honorific`, `pre_nominal`, `post_nominal`, `langua
 
 To avoid unexpected `422` errors, always fetch the schema first and mirror the `required: true` fields verbatim.
 
-Speaker-specific update rules:
+Person-specific update rules:
 
 - `address` is optional on update, but if you send it you must also send `address.country_id`.
-- `address = {}` returns HTTP `422` for speakers. Omit the `address` key entirely when you intend “no address change”.
-- Omitted speaker address region keys preserve the existing visible address values.
-- Hidden speaker address fields (`line1`, `line2`, `postcode`, `lat`, `lng`, `google_maps_url`, `google_place_id`, `waze_url`) remain prohibited on admin writes and are preserved only by omission.
+- `address = {}` returns HTTP `422` for persons. Omit the `address` key entirely when you intend "no address change".
+- Omitted person address region keys preserve the existing visible address values.
+- Hidden person address fields (`line1`, `line2`, `postcode`, `lat`, `lng`, `google_maps_url`, `google_place_id`, `waze_url`) remain prohibited on admin writes and are preserved only by omission.
 - The array-style speaker fields `honorific`, `pre_nominal`, `post_nominal`, `qualifications`, `language_ids`, `contacts`, and `social_media` all use replacement semantics when present: omit to preserve, send `null` or `[]` to clear where the schema allows it, and resend the full array/list when editing.
 - `language_ids` syncs the exact set of selected languages; it is not patchable item-by-item.
 - `contacts` and `social_media` recreate rows rather than patching item ids in place. Payload order controls `order_column` when it is omitted.
@@ -983,7 +983,7 @@ Nested collection item contracts for institutions:
 - Event media clear flags (`clear_cover`, `clear_poster`, `clear_gallery`) remove existing media when truthy (`true`, `1`, `"1"`, `"true"`). Poster clears are reflected immediately in the update response (`has_poster=false`, `poster_url=null`) and in update schema `current_media.poster`.
 - Optional URL scalars like `event_url`, `live_url`, and `recording_url` preserve the current value when omitted and clear to `null` when you send `null` or `""`.
 - The relation arrays `languages`, `references`, `series`, `domain_tags`, `discipline_tags`, `source_tags`, and `issue_tags` use server-merged replacement semantics on update: omit to preserve the current set, send `null` or `[]` to clear, and send the full replacement list when changing them.
-- `speakers` and `other_key_people` also preserve on omission, but any submitted array rebuilds the underlying `key_people` rows. Stable item ids are not preserved, and payload order becomes the new `order_column` sequence (speaker rows first, then `other_key_people`).
+- `persons` and `other_key_people` also preserve on omission, but any submitted array rebuilds the underlying `key_people` rows. Stable item ids are not preserved, and payload order becomes the new `order_column` sequence (person rows first, then `other_key_people`).
 - `organizer_type` accepts the canonical class names plus the raw HTTP aliases `institution` and `speaker`.
 - `registration_mode` may remain locked to the current stored value when the event already has registrations.
 
@@ -997,7 +997,7 @@ Nested collection item contracts for institutions:
 ### Donation-channel-specific update rules
 
 - Donation channel `PUT` still requires `donatable_type`, `donatable_id`, `recipient`, `method`, and `status`.
-- `donatable_type` is normalized to the canonical owner morph value. The raw HTTP admin API accepts alias inputs like `institutions`, `speakers`, `events`, and the model class names, but stored output is canonicalized.
+- `donatable_type` is normalized to the canonical owner morph value. The raw HTTP admin API accepts alias inputs like `institutions`, `persons`, `events`, and the model class names, but stored output is canonicalized.
 - `label`, `reference_note`, `bank_code`, `ewallet_handle`, and `ewallet_qr_payload` are trimmed optional scalars: omit to preserve, send `null` or `""` to clear.
 - Switching `method` clears unrelated method-specific fields. Example: changing from `bank_account` to `duitnow` clears the bank and ewallet fields before persisting the DuitNow payload.
 - `clear_qr=true` is supported on the raw HTTP admin API when you need to remove the stored QR media without uploading a replacement.
@@ -1040,7 +1040,7 @@ Nested collection item contracts for institutions:
 
 - Always fetch `/admin/{resourceKey}/schema` before `POST` or `PUT`.
 - Treat the returned schema as authoritative for allowed and prohibited fields.
-- For `speakers`, admin write contracts now require the same explicit country plus region address model as the public speaker flows.
+- For `persons`, admin write contracts now require the same explicit country plus region address model as the public person flows.
 - Admin speaker create/update clients must send `address.country_id` when they send an address block.
 - Admin speaker create/update clients must not send:
   - `address.line1`
@@ -1054,9 +1054,9 @@ Nested collection item contracts for institutions:
 - Admin speaker clients should send `address.country_id`, `address.state_id`, `address.city_id` (optional), `address.admin_area_1_id` (district), and `address.admin_area_2_id` (subdistrict).
 - The `allow_public_event_submission` field is only accepted on `PUT` (update), not on `POST` (create). Sending it on create returns `422`.
 - For events, sparse `PUT` updates are supported. Omitted scalar fields and relation arrays preserve the current stored value; you only need to send the arrays that should actually change.
-- For events, submitted `speakers` or `other_key_people` arrays rebuild the combined `key_people` rows. Do not rely on row ids surviving an update.
-- For institutions, speakers, venues, and references, admin and member get-record responses now embed `contacts` and `social_media` directly in `attributes` alongside `address`. To update these collections, fetch the current record, modify locally, then resend the **full** array. Generic patch-style array updates are not supported.
-- For speakers, apply the same fetch-modify-resend rule to `honorific`, `pre_nominal`, `post_nominal`, `qualifications`, and `language_ids` whenever you want to preserve existing entries.
+- For events, submitted `persons` or `other_key_people` arrays rebuild the combined `key_people` rows. Do not rely on row ids surviving an update.
+- For institutions, persons, venues, and references, admin and member get-record responses now embed `contacts` and `social_media` directly in `attributes` alongside `address`. To update these collections, fetch the current record, modify locally, then resend the **full** array. Generic patch-style array updates are not supported.
+- For persons, apply the same fetch-modify-resend rule to `honorific`, `pre_nominal`, `post_nominal`, `qualifications`, and `language_ids` whenever you want to preserve existing entries.
 - For venues, never send `address = {}` as a no-op placeholder. On the shared save path it removes the stored address.
 - For series, `languages` follows omit-preserve / null-clear / array-replace semantics, but `title`, `slug`, and `visibility` remain required on update.
 - For donation channels, remember that switching `method` intentionally wipes the unrelated bank / DuitNow / ewallet fields before saving the new method-specific payload.
@@ -1073,10 +1073,10 @@ Nested collection item contracts for institutions:
 GET /api/v1/admin/manifest
 
 # 2. Get the create schema
-GET /api/v1/admin/speakers/schema?operation=create
+GET /api/v1/admin/persons/schema?operation=create
 
 # 3. Create
-POST /api/v1/admin/speakers
+POST /api/v1/admin/persons
 Content-Type: multipart/form-data
 
 name=Ahmad Fauzi
@@ -1090,10 +1090,10 @@ address[state_id]=14
 # { "data": { "record": { "route_key": "ahmad-fauzi-my", ... } } }
 
 # 5. Get the update schema using the route_key returned by the record detail payload
-GET /api/v1/admin/speakers/schema?operation=update&recordKey=ahmad-fauzi-my
+GET /api/v1/admin/persons/schema?operation=update&recordKey=ahmad-fauzi-my
 
 # 6. Update — name, gender, status are always required
-PUT /api/v1/admin/speakers/ahmad-fauzi-my
+PUT /api/v1/admin/persons/ahmad-fauzi-my
 Content-Type: multipart/form-data
 
 name=Ahmad Fauzi bin Abdullah
@@ -1145,8 +1145,8 @@ Supported filters:
 Notes:
 
 - `filter[search]` matches event title and description text only. It does **not** search nested speaker payloads.
-- `filter[speaker]` accepts one or more speaker UUIDs and returns events linked to those speakers.
-- If you need to discover all events for a specific speaker, use `GET /api/v1/speakers/{speakerKey}`; the speaker detail payload includes `upcoming_events` and `past_events`.
+- `filter[person]` accepts one or more person UUIDs and returns events linked to those persons.
+- If you need to discover all events for a specific person, use `GET /api/v1/persons/{personKey}`; the person detail payload includes `upcoming_events` and `past_events`.
 
 Supported includes:
 
@@ -1160,7 +1160,7 @@ Supported includes:
 - `institution.address`
 - `keyPeople`
 - `keyPeople.speaker`
-- `speakers`
+- `persons`
 - `series`
 - `mediaLinks`
 - `settings`
@@ -1183,16 +1183,16 @@ Supported sorts:
 Examples:
 
 ```http
-GET /api/v1/events?filter[search]=kuliah&filter[state_id]=10&include=institution,venue,speakers,settings&sort=starts_at
+GET /api/v1/events?filter[search]=kuliah&filter[state_id]=10&include=institution,venue,persons,settings&sort=starts_at
 ```
 
 ```http
-GET /api/v1/events?filter[speaker]=019d5cb5-7de1-7055-a4d3-b57ab007331e&include=institution,venue,speakers&sort=starts_at
+GET /api/v1/events?filter[person]=019d5cb5-7de1-7055-a4d3-b57ab007331e&include=institution,venue,persons&sort=starts_at
 ```
 
 Mobile recommendation:
 
-- For event detail screens, request `institution`, `venue.address`, `speakers`, `settings`, `languages`, and `donationChannels` when needed.
+- For event detail screens, request `institution`, `venue.address`, `persons`, `settings`, `languages`, and `donationChannels` when needed.
 - The detail endpoint returns active `public` events plus active `unlisted` events when the client already has the UUID or slug. The `/events` index still excludes unlisted events.
 - Event detail payloads now include `active_change_notice`, `change_announcements`, and `replacement_event` so native clients can render the same source-of-truth notice, change history, and replacement CTA behavior as the web event page.
 - `active_change_notice` is the latest published public notice or `null`.
@@ -1463,7 +1463,7 @@ This section summarizes the non-obvious rules that AI agents must internalize be
 | Read a record detail via admin API | `route_key` |
 | Fetch write schema (`?operation=update&recordKey=...`) | `route_key` |
 | PUT to update a record via admin API | `route_key` in `/admin/{resourceKey}/{recordKey}` |
-| Resolve public speaker/institution | Slug or UUID both accepted (`/speakers/{speakerKey}`) |
+| Resolve public person/institution | Slug or UUID both accepted (`/persons/{personKey}`) |
 
 > The `route_key` field in admin API responses is the canonical record-specific path key.
 
@@ -1484,24 +1484,24 @@ Important exceptions and mixed-semantic reminders:
 - Speaker updates still require `name`, `gender`, and `status`, but `address` remains optional; if you send it, include `address.country_id`, and never use `address = {}` as a no-op.
 - Venue updates are sparse; `name`, `type`, and `status` are not required on update. `address = {}` deletes the stored venue address.
 - Reference updates still require `title`, `type`, and `status`, while optional normalized scalars like `author` and `publisher` clear to `null` when you send `null`.
-- For social-media writes across institutions, speakers, venues, and references, use `twitter` as the canonical write value for Twitter / X.
+- For social-media writes across institutions, persons, venues, and references, use `twitter` as the canonical write value for Twitter / X.
 
 ### Search result scope
 
 | Surface | Returns |
 |---|---|
-| `GET /api/v1/speakers?search=` | Active + verified speakers only |
+| `GET /api/v1/persons?search=` | Active + verified persons only |
 | `GET /api/v1/institutions?search=` | Active + verified institutions only |
-| `GET /api/v1/admin/speakers?search=` | All speakers (any status, active or inactive) |
+| `GET /api/v1/admin/persons?search=` | All persons (any status, active or inactive) |
 | `GET /api/v1/admin/institutions?search=` | All institutions (any status, active or inactive) |
 
 ### Timestamp interpretation
 
 All timestamps in API responses end in `Z` (UTC). Convert them to the viewer's timezone in the client, or rely on localized helper fields when you send timezone context. For date-only filters, send the user's local calendar date together with timezone context (for example `X-Timezone`) so the server can convert that local date to the correct UTC boundaries.
 
-### Prohibited address fields for speakers
+### Prohibited address fields for persons
 
-Never send any of the following for speaker create or update (both public contribution and admin):
+Never send any of the following for person create or update (both public contribution and admin):
 `address.line1`, `address.line2`, `address.postcode`, `address.lat`, `address.lng`, `address.google_maps_url`, `address.google_place_id`, `address.waze_url`
 
 The server will reject them with HTTP `422`. Send `address.country_id`, then `address.state_id`, optional `address.city_id`, `address.admin_area_1_id` (district), and `address.admin_area_2_id` (subdistrict).

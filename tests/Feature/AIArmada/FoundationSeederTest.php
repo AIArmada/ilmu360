@@ -23,7 +23,7 @@ it('seeds EventRole rows from EventKeyPersonRole + organizer', function (): void
 
     $person = EventRole::query()->where('code', 'speaker')->first();
     expect($person)->not->toBeNull()
-        ->and($person->name)->toBe(EventKeyPersonRole::Person->getLabel());
+        ->and($person->name)->toBe(EventKeyPersonRole::Speaker->getLabel());
 });
 
 it('seeds hierarchical EventTaxonomy and EventTerm categories', function (): void {

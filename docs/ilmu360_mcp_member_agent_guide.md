@@ -275,13 +275,13 @@ Event image generation uses a 3-step workflow on the member server:
 | --- | --- | --- |
 | `events` | list/get/meta + schema + update + preview | Member scope only; no member create |
 | `institutions` | list/get/meta + schema + update + preview | Member scope limited to linked institutions |
-| `speakers` | list/get/meta + schema + update + preview | Member scope limited to linked speakers |
+| `persons` | list/get/meta + schema + update + preview | Member scope limited to linked persons |
 | `references` | list/get/meta + schema + update + preview | Member scope limited to linked references |
 
 ## Current member-write-capable resources include:
 
 - `institutions`
-- `speakers`
+- `persons`
 - `references`
 - `events`
 

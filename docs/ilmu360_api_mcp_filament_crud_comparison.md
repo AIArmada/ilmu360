@@ -86,11 +86,11 @@ The public/authenticated API is not a second generic CRUD registry. It is a set 
 - `GET /api/v1/manifest`
 - `GET /api/v1/forms/submit-event`
 - `GET /api/v1/forms/contributions/institutions`
-- `GET /api/v1/forms/contributions/speakers`
+- `GET /api/v1/forms/contributions/persons`
 - `GET /api/v1/catalogs/*`
 - `GET /api/v1/search`
 - `GET /api/v1/institutions*`
-- `GET /api/v1/speakers*`
+- `GET /api/v1/persons*`
 - `GET /api/v1/venues/{venueKey}`
 - `GET /api/v1/references*`
 - `GET /api/v1/series/{series}`
@@ -128,9 +128,9 @@ The public/authenticated API is not a second generic CRUD registry. It is a set 
 
 ## Search parity note
 
-- Admin HTTP API now exposes a dedicated event discovery endpoint (`GET /api/v1/admin/events/search`) aligned with `admin-search-events`; both surfaces share the same validation and filter normalization contract, including cross-entity keyword expansion (institution/speaker/reference), scope toggles (`search_include_*`), and `reference_author_search`.
-- Admin HTTP API and Admin/Member MCP also route list search for `speakers`, `institutions`, and `references` through shared specialized search services.
-- Public speaker, institution, and reference directory endpoints use the same underlying search services for those resource families, but public reads still enforce active + verified visibility while admin/member surfaces preserve their broader or scoped record sets.
+- Admin HTTP API now exposes a dedicated event discovery endpoint (`GET /api/v1/admin/events/search`) aligned with `admin-search-events`; both surfaces share the same validation and filter normalization contract, including cross-entity keyword expansion (institution/person/reference), scope toggles (`search_include_*`), and `reference_author_search`.
+- Admin HTTP API and Admin/Member MCP also route list search for `persons`, `institutions`, and `references` through shared specialized search services.
+- Public person, institution, and reference directory endpoints use the same underlying search services for those resource families, but public reads still enforce active + verified visibility while admin/member surfaces preserve their broader or scoped record sets.
 - References now have a root-book plus child-part family model across all surfaces. Public directory pagination defaults to root/standalone references, while search can still return child parts. Shared search behavior now covers part labels/numbers, and root reference event filters expand to linked child parts automatically.
 - This is search-engine parity, not full surface symmetry; transport, authorization, filters, and returned field sets still differ by surface.
 
@@ -169,7 +169,7 @@ Use **curated parity**, not full symmetry at any cost.
 	- Does the public or authenticated workflow API surface change?
 	- If a surface does not change, is the gap intentional and documented?
 
-## Runtime admin resource inventory (63 registered resources)
+## Runtime admin resource inventory (66 registered resources)
 
 This is the runtime admin panel inventory, not just the local `app/Filament/Resources` directory. It includes resources registered by application code and enabled plugins. The generic admin HTTP API and Admin MCP may additionally append explicit fallback resources when they are enabled outside the cached panel registration.
 
@@ -190,7 +190,7 @@ This is the runtime admin panel inventory, not just the local `app/Filament/Reso
 | `series` | app | `index`, `create`, `edit` | yes |
 | `slug-redirects` | app | `index`, `create`, `view`, `edit` | no |
 | `spaces` | app | `index`, `create`, `view`, `edit` | yes |
-| `speakers` | app | `index`, `create`, `view`, `edit` | yes |
+| `persons` | app | `index`, `create`, `view`, `edit` | yes |
 | `tags` | app | `index`, `create`, `edit` | yes |
 | `users` | app | `index`, `create`, `view`, `edit` | no |
 
@@ -285,7 +285,7 @@ It does **not** mean every admin-facing actor can write it. Actual create/update
 | `references` | `index`, `edit` | yes | references the current member belongs to |
 | `reminders` | `index`, `view` | no | plugin resource |
 | `responses` | `index`, `view` | no | plugin resource |
-| `speakers` | `index`, `view`, `edit` | yes | speakers the current member belongs to |
+| `persons` | `index`, `view`, `edit` | yes | persons the current member belongs to |
 | `subscriptions` | `index`, `view` | no | plugin resource |
 | `venues` | `index`, `view` | no | plugin resource |
 
@@ -310,7 +310,7 @@ This write whitelist is sourced from the admin registry plus mutation service, s
 | `reports` | `R + meta + related + S + C + BC + U + BU + P` | `R + meta + related + S + C + BC + U + BU + P` | not exposed | `index`, `create`, `edit` | not exposed | authenticated report submission; explicit admin report triage |
 | `series` | `R + meta + related + S + C + BC + U + BU + P` | `R + meta + related + S + C + BC + U + BU + P` | not exposed | `index`, `create`, `edit` | not exposed | public read/detail; authenticated follows; event-series assignment |
 | `spaces` | `R + meta + related + S + C + BC + U + BU + P` | `R + meta + related + S + C + BC + U + BU + P` | not exposed | `index`, `create`, `view`, `edit` | not exposed | public space catalogs; event space assignment |
-| `speakers` | `R + meta + related + S + C + BC + U + BU + P` | `R + meta + related + S + C + BC + U + BU + P` | `R + related + S + U + P` | `index`, `create`, `view`, `edit` | `index`, `view`, `edit` | public read/detail; authenticated contribution create/suggest; follows |
+| `persons` | `R + meta + related + S + C + BC + U + BU + P` | `R + meta + related + S + C + BC + U + BU + P` | `R + related + S + U + P` | `index`, `create`, `view`, `edit` | `index`, `view`, `edit` | public read/detail; authenticated contribution create/suggest; follows |
 | `tags` | `R + meta + related + S + C + BC + U + BU + P` | `R + meta + related + S + C + BC + U + BU + P` | not exposed | `index`, `create`, `edit` | not exposed | taxonomy and event-tagging management |
 | `venues` | `R + meta + related + S + C + BC + U + BU + P` | `R + meta + related + S + C + BC + U + BU + P` | not exposed | `index`, `create`, `view`, `edit` | not exposed | public read/detail plus public venue catalogs |
 
@@ -333,7 +333,7 @@ These capabilities remain outside generic admin CRUD, but now have explicit admi
 	- HTTP update: `PUT /api/v1/admin/{resourceKey}/batch` with `items` array of `{record_key, payload}`; supports `validate_only` query param
 	- MCP tool (create): `admin-batch-create-records` — generic batch create for any writable resource
 	- MCP tool (update): `admin-batch-update-records` — generic batch update for any writable resource
-	- MCP tool (events create): `admin-batch-create-events` — event-specific batch create with `organizer_key`, `speaker_keys`, `reference_keys`, `institution_key`, `venue_key`, `space_key` key resolution (same semantics as `admin-create-event`)
+	- MCP tool (events create): `admin-batch-create-events` — event-specific batch create with `organizer_key`, `person_keys`, `reference_keys`, `institution_key`, `venue_key`, `space_key` key resolution (same semantics as `admin-create-event`)
 	- MCP tool (events update): `admin-batch-update-events` — event-specific batch update with the same key resolution as `admin-update-event`
 	- All batch tools return a per-row result list (`created`/`updated`/`validation_failed`/`not_found`/`unresolved_key`/`error`/`preview`) plus a `summary` object
 	- `external_row_id` per item enables idempotency tracking and safe retries after interruption
@@ -396,7 +396,7 @@ This is the area where the previous version drifted the most.
 - Validation failures in validate-only mode now return machine-readable remediation details: `fix_plan`, `remaining_blockers`, `normalized_payload_preview`, and `can_retry`.
 
 - Schema `content_type` is resource-specific:
-	- `multipart/form-data` for media-capable resources such as `events`, `institutions`, `reports`, `speakers`, `references`, and `venues`
+	- `multipart/form-data` for media-capable resources such as `events`, `institutions`, `reports`, `persons`, `references`, and `venues`
 	- `application/json` for `address-areas`, `spaces`, and `tags`
 
 ### Admin MCP
@@ -408,7 +408,7 @@ This is the area where the previous version drifted the most.
 - Validation failures in validate-only mode now return the same remediation fields as the admin HTTP API so AI clients can recover in one retry loop.
 - When a schema advertises file fields, MCP uploads use `json_base64_descriptor`, not multipart.
 - Descriptor normalization and staging is implemented by `McpFilePayloadNormalizer`.
-- Dedicated MCP event tools are route-key wrappers over the shared admin event writer. On update, `speaker_keys` and `reference_keys` are presence-sensitive: omitted or `null` preserves existing relations, `[]` detaches all, and a non-empty array replaces all.
+- Dedicated MCP event tools are route-key wrappers over the shared admin event writer. On update, `person_keys` and `reference_keys` are presence-sensitive: omitted or `null` preserves existing relations, `[]` detaches all, and a non-empty array replaces all.
 - Destructive media clear flags such as `clear_cover`, `clear_avatar`, `clear_gallery`, and siblings are intentionally removed from MCP schema fields and rejected by the write tools.
 
 ### Member MCP
@@ -480,7 +480,7 @@ These are intentionally MCP-only because they serve agent workflows, not user-fa
 - **Runtime admin inventory is broader than local app files.** Because the registry uses live Filament panel registration, vendor/plugin resources are part of the admin surface.
 - **Page keys do not equal permission.** `getPages()` and generic write support describe structural capability; per-actor authorization still comes from middleware and model policies.
 - **Admin API and Admin MCP share one mutation whitelist.** If `AdminResourceMutationService` changes, both transports change together.
-- **Admin API and Admin/Member MCP share the dedicated event discovery contract (`/api/v1/admin/events/search` ↔ `admin-search-events`) and the richer directory search path for `speakers`, `institutions`, and `references`.** Public directories use the same search services, but visibility and scope still differ.
+- **Admin API and Admin/Member MCP share the dedicated event discovery contract (`/api/v1/admin/events/search` ↔ `admin-search-events`) and the richer directory search path for `persons`, `institutions`, and `references`.** Public directories use the same search services, but visibility and scope still differ.
 - **Reference write semantics now include hierarchy metadata.** Admin API plus admin/member MCP reference schemas can carry `parent_reference_id`, `part_type`, `part_number`, and `part_label`, while list/detail payloads can expose `display_title` and `is_part` for human-safe rendering.
 - **Member MCP is narrower than admin.** Generic member CRUD still maps only to the four Ahli resources and exposes updates only, but the server now also carries workflow tools for contribution queues and membership claims.
 - **Public contributions and reports are authenticated workflows.** The API exposes form discovery publicly, but the actual create routes for contributions and reports live behind `auth:sanctum`.

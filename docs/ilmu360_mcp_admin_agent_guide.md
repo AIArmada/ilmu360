@@ -284,7 +284,7 @@ Event image generation uses a 3-step workflow on the admin server:
 | `events` | list/get/meta + schema + create + batch-create + update + batch-update + preview | Event moderation has a dedicated workflow schema tool |
 | `inspirations` | list/get/meta + schema + create + batch-create + update + batch-update + preview | Admin-only through the current MCP surface |
 | `institutions` | list/get/meta + schema + create + batch-create + update + batch-update + preview | Member scope is separate |
-| `speakers` | list/get/meta + schema + create + batch-create + update + batch-update + preview | Member scope is separate |
+| `persons` | list/get/meta + schema + create + batch-create + update + batch-update + preview | Member scope is separate |
 | `references` | list/get/meta + schema + create + batch-create + update + batch-update + preview | Member scope is separate |
 | `reports` | list/get/meta + schema + create + batch-create + update + batch-update + preview | Admin-only CRUD plus explicit triage workflow |
 | `donation-channels` | list/get/meta + schema + create + batch-create + update + batch-update + preview | Admin-only payment channel management |
@@ -296,7 +296,7 @@ Event image generation uses a 3-step workflow on the admin server:
 
 ## Current structurally write-capable admin resources include:
 
-- `speakers`
+- `persons`
 - `events`
 - `inspirations`
 - `institutions`
