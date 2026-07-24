@@ -16,9 +16,9 @@ use App\Livewire\Pages\Events\AdvancedFiltersPanel;
 use App\Livewire\Pages\Events\Index;
 use App\Models\Event;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Registration;
-use App\Models\Speaker;
 use App\Models\User;
 use App\Models\Venue;
 use App\Services\EventSearchService;
@@ -276,8 +276,8 @@ describe('Event Search Filters', function () {
     });
 
     it('does not preload unrelated filter option labels into the initial events index response', function () {
-        Speaker::factory()->create([
-            'name' => 'Speaker Hidden Filter Payload Test',
+        Person::factory()->create([
+            'name' => 'Person Hidden Filter Payload Test',
             'status' => 'verified',
         ]);
 
@@ -310,7 +310,7 @@ describe('Event Search Filters', function () {
 
         $this->get(eventsIndexUrl())
             ->assertOk()
-            ->assertDontSee('Speaker Hidden Filter Payload Test')
+            ->assertDontSee('Person Hidden Filter Payload Test')
             ->assertDontSee('Institution Hidden Filter Payload Test')
             ->assertDontSee('Venue Hidden Filter Payload Test')
             ->assertDontSee('Reference Hidden Filter Payload Test')
@@ -511,39 +511,39 @@ describe('Event Search Filters', function () {
     });
 
     it('searches events by speaker name when the speaker is attached', function () {
-        $matchSpeaker = Speaker::factory()->create([
+        $matchPerson = Person::factory()->create([
             'name' => 'Ustaz Samad Al-Bakri',
             'status' => 'verified',
         ]);
 
-        $otherSpeaker = Speaker::factory()->create([
+        $otherPerson = Person::factory()->create([
             'name' => 'Ustaz Ahmad Zain',
             'status' => 'verified',
         ]);
 
         $matchEvent = createVisibleEventForSearch([
-            'title' => 'Kuliah Speaker A',
+            'title' => 'Kuliah Person A',
             'status' => 'approved',
             'visibility' => 'public',
             'published_at' => now(),
             'starts_at' => now()->addDays(1),
         ]);
-        $matchEvent->speakers()->attach($matchSpeaker->id);
+        $matchEvent->persons()->attach($matchPerson->id);
 
         $otherEvent = createVisibleEventForSearch([
-            'title' => 'Kuliah Speaker B',
+            'title' => 'Kuliah Person B',
             'status' => 'approved',
             'visibility' => 'public',
             'published_at' => now(),
             'starts_at' => now()->addDays(1),
         ]);
-        $otherEvent->speakers()->attach($otherSpeaker->id);
+        $otherEvent->persons()->attach($otherPerson->id);
 
         $response = $this->get(eventsIndexUrl('search=Samad'));
 
         $response->assertOk()
-            ->assertSee('Kuliah Speaker A')
-            ->assertDontSee('Kuliah Speaker B');
+            ->assertSee('Kuliah Person A')
+            ->assertDontSee('Kuliah Person B');
     });
 
     it('searches events by free-text key person name when no linked speaker entity exists', function () {
@@ -556,7 +556,7 @@ describe('Event Search Filters', function () {
         ]);
         $matchEvent->keyPeople()->create([
             'display_name' => 'Ustaz Tarmizi Jamaluddin',
-            'role_code' => EventKeyPersonRole::Speaker->value,
+            'role_code' => EventKeyPersonRole::Person->value,
             'sort_order' => 1,
         ]);
 
@@ -569,7 +569,7 @@ describe('Event Search Filters', function () {
         ]);
         $otherEvent->keyPeople()->create([
             'display_name' => 'Ustaz Hafiz Rahim',
-            'role_code' => EventKeyPersonRole::Speaker->value,
+            'role_code' => EventKeyPersonRole::Person->value,
             'sort_order' => 1,
         ]);
 
@@ -757,23 +757,23 @@ describe('Event Search Filters', function () {
     });
 
     it('excludes speaker name from search expansion when search_include_speakers is false', function () {
-        $speaker = Speaker::factory()->create([
+        $person = Person::factory()->create([
             'name' => 'Ustaz Zakaria Najib',
             'status' => 'verified',
         ]);
 
-        $speakerEvent = createVisibleEventForSearch([
-            'title' => 'Kuliah Speaker Scope Xqrz',
+        $personEvent = createVisibleEventForSearch([
+            'title' => 'Kuliah Person Scope Xqrz',
             'status' => 'approved',
             'visibility' => 'public',
             'published_at' => now(),
             'starts_at' => now()->addDays(1),
         ]);
-        $speakerEvent->keyPeople()->create([
+        $personEvent->keyPeople()->create([
             'involveable_type' => 'speaker',
-            'involveable_id' => $speaker->id,
-            'display_name' => $speaker->name,
-            'role_code' => EventKeyPersonRole::Speaker->value,
+            'involveable_id' => $person->id,
+            'display_name' => $person->name,
+            'role_code' => EventKeyPersonRole::Person->value,
         ]);
 
         // With speaker scope enabled (default), event surfaces via speaker name.
@@ -785,7 +785,7 @@ describe('Event Search Filters', function () {
         );
 
         expect(collect($withScope->items())->pluck('title')->all())
-            ->toContain('Kuliah Speaker Scope Xqrz');
+            ->toContain('Kuliah Person Scope Xqrz');
 
         // With speaker scope disabled, event must not appear.
         $withoutScope = app(EventSearchService::class)->search(
@@ -796,7 +796,7 @@ describe('Event Search Filters', function () {
         );
 
         expect(collect($withoutScope->items())->pluck('title')->all())
-            ->not->toContain('Kuliah Speaker Scope Xqrz');
+            ->not->toContain('Kuliah Person Scope Xqrz');
     });
 
     it('excludes reference from search expansion when search_include_references is false', function () {
@@ -1106,36 +1106,36 @@ describe('Event Search Filters', function () {
     });
 
     it('filters events by selected speaker ids in advanced filters', function () {
-        $includedSpeaker = Speaker::factory()->create(['status' => 'verified']);
-        $excludedSpeaker = Speaker::factory()->create(['status' => 'verified']);
+        $includedPerson = Person::factory()->create(['status' => 'verified']);
+        $excludedPerson = Person::factory()->create(['status' => 'verified']);
 
         $includedEvent = createVisibleEventForSearch([
-            'title' => 'Speaker Match Event',
+            'title' => 'Person Match Event',
             'status' => 'approved',
             'visibility' => 'public',
             'published_at' => now(),
             'starts_at' => now()->addDays(2),
         ]);
-        $includedEvent->speakers()->attach($includedSpeaker->id);
+        $includedEvent->persons()->attach($includedPerson->id);
 
         $excludedEvent = createVisibleEventForSearch([
-            'title' => 'Speaker Excluded Event',
+            'title' => 'Person Excluded Event',
             'status' => 'approved',
             'visibility' => 'public',
             'published_at' => now(),
             'starts_at' => now()->addDays(2),
         ]);
-        $excludedEvent->speakers()->attach($excludedSpeaker->id);
+        $excludedEvent->persons()->attach($excludedPerson->id);
 
         $query = http_build_query([
-            'speaker_ids' => [$includedSpeaker->id],
+            'speaker_ids' => [$includedPerson->id],
         ]);
 
         $response = $this->get(eventsIndexUrl($query));
 
         $response->assertOk()
-            ->assertSee('Speaker Match Event')
-            ->assertDontSee('Speaker Excluded Event');
+            ->assertSee('Person Match Event')
+            ->assertDontSee('Person Excluded Event');
     });
 
     it('filters events by a single language_codes value', function () {
@@ -1687,7 +1687,7 @@ describe('Event Search Filters', function () {
     });
 
     it('filters events by PIC linked profile and free-text name', function () {
-        $linkedPic = Speaker::factory()->create([
+        $linkedPic = Person::factory()->create([
             'name' => 'Ustaz Linked PIC',
             'status' => 'verified',
         ]);
@@ -1993,7 +1993,7 @@ describe('Event Search Filters', function () {
         expect($event)->not->toBeNull()
             ->and($event->relationLoaded('institution'))->toBeTrue()
             ->and($event->relationLoaded('venue'))->toBeTrue()
-            ->and($event->relationLoaded('speakers'))->toBeTrue()
+            ->and($event->relationLoaded('persons'))->toBeTrue()
             ->and($event->relationLoaded('media'))->toBeTrue();
 
         if ($event->institution) {
@@ -2595,8 +2595,8 @@ describe('Event Detail Page', function () {
             'published_at' => now(),
         ]);
 
-        $speakerOne = Speaker::factory()->create([
-            'name' => 'Ustaz Speaker One',
+        $speakerOne = Person::factory()->create([
+            'name' => 'Ustaz Person One',
             'honorific' => null,
             'pre_nominal' => null,
             'post_nominal' => null,
@@ -2605,8 +2605,8 @@ describe('Event Detail Page', function () {
             'status' => 'verified',
         ]);
 
-        $speakerTwo = Speaker::factory()->create([
-            'name' => 'Ustaz Speaker Two',
+        $speakerTwo = Person::factory()->create([
+            'name' => 'Ustaz Person Two',
             'honorific' => null,
             'pre_nominal' => null,
             'post_nominal' => null,
@@ -2615,16 +2615,16 @@ describe('Event Detail Page', function () {
             'status' => 'verified',
         ]);
 
-        $event->speakers()->attach($speakerOne->id);
-        $event->speakers()->attach($speakerTwo->id);
+        $event->persons()->attach($speakerOne->id);
+        $event->persons()->attach($speakerTwo->id);
 
         $response = $this->get(eventShowUrl($event));
 
         $response->assertOk()
             ->assertSee('Speakers')
-            ->assertSee('Ustaz Speaker One')
+            ->assertSee('Ustaz Person One')
             ->assertSee('Pensyarah')
-            ->assertSee('Ustaz Speaker Two')
+            ->assertSee('Ustaz Person Two')
             ->assertSee('Mudir');
     });
 

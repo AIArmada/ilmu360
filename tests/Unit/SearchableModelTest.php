@@ -2,8 +2,8 @@
 
 use App\Models\Event;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
-use App\Models\Speaker;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -13,7 +13,7 @@ it('builds the speaker searchable payload with title text and geography facets',
     withGlobalOwnerContext(function (): void {
         $country = ensureTestMalaysiaCountry();
 
-        $speaker = Speaker::factory()->create([
+        $person = Person::factory()->create([
             'name' => 'Samad Hassan',
             'gender' => 'male',
             'honorific' => null,
@@ -25,7 +25,7 @@ it('builds the speaker searchable payload with title text and geography facets',
             'status' => 'pending',
         ]);
 
-        syncPrimaryAddressForTest($speaker, [
+        syncPrimaryAddressForTest($person, [
             'country_id' => (string) $country->getKey(),
             'country_code' => 'MY',
             'state' => 'Selangor',
@@ -33,11 +33,11 @@ it('builds the speaker searchable payload with title text and geography facets',
             'postcode' => '40100',
         ]);
 
-        $payload = $speaker->fresh()->toSearchableArray();
+        $payload = $person->fresh()->toSearchableArray();
 
-        expect($speaker->fresh()->shouldBeSearchable())->toBeTrue()
-            ->and($payload)->toHaveKey('id', (string) $speaker->id)
-            ->and($payload)->toHaveKey('formatted_name', Speaker::formatDisplayedName('Samad Hassan', null, ['ustaz'], ['PhD']))
+        expect($person->fresh()->shouldBeSearchable())->toBeTrue()
+            ->and($payload)->toHaveKey('id', (string) $person->id)
+            ->and($payload)->toHaveKey('formatted_name', Person::formatDisplayedName('Samad Hassan', null, ['ustaz'], ['PhD']))
             ->and($payload['search_text'])->toContain('Ustaz Samad Hassan, PhD')
             ->and($payload['search_text'])->toContain('Pensyarah')
             ->and($payload)->toHaveKey('country_code', 'MY')
@@ -52,23 +52,23 @@ it('builds the speaker searchable payload with title text and geography facets',
     });
 });
 
-it('only indexes active verified or pending speakers', function () {
+it('only indexes active verified or pending persons', function () {
     withGlobalOwnerContext(function (): void {
-        $pendingSpeaker = Speaker::factory()->create([
+        $pendingPerson = Person::factory()->create([
             'status' => 'pending',
         ]);
 
-        $rejectedSpeaker = Speaker::factory()->create([
+        $rejectedPerson = Person::factory()->create([
             'status' => 'rejected',
         ]);
 
-        $inactiveSpeaker = Speaker::factory()->create([
+        $inactivePerson = Person::factory()->create([
             'status' => 'inactive',
         ]);
 
-        expect($pendingSpeaker->fresh()->shouldBeSearchable())->toBeTrue()
-            ->and($rejectedSpeaker->fresh()->shouldBeSearchable())->toBeFalse()
-            ->and($inactiveSpeaker->fresh()->shouldBeSearchable())->toBeFalse();
+        expect($pendingPerson->fresh()->shouldBeSearchable())->toBeTrue()
+            ->and($rejectedPerson->fresh()->shouldBeSearchable())->toBeFalse()
+            ->and($inactivePerson->fresh()->shouldBeSearchable())->toBeFalse();
     });
 });
 
@@ -159,10 +159,10 @@ it('builds the reference searchable payload and only indexes active verified or 
 
 it('scopes make all searchable queries to the intended scout-ready records', function () {
     withGlobalOwnerContext(function (): void {
-        $searchableSpeaker = Speaker::factory()->create([
+        $searchablePerson = Person::factory()->create([
             'status' => 'verified',
         ]);
-        $hiddenSpeaker = Speaker::factory()->create([
+        $hiddenPerson = Person::factory()->create([
             'status' => 'rejected',
         ]);
 
@@ -189,9 +189,9 @@ it('scopes make all searchable queries to the intended scout-ready records', fun
             'visibility' => 'private',
         ]);
 
-        expect(Speaker::makeAllSearchableQuery()->pluck('speakers.id')->all())
-            ->toContain((string) $searchableSpeaker->id)
-            ->not->toContain((string) $hiddenSpeaker->id)
+        expect(Person::makeAllSearchableQuery()->pluck('persons.id')->all())
+            ->toContain((string) $searchablePerson->id)
+            ->not->toContain((string) $hiddenPerson->id)
             ->and(Institution::makeAllSearchableQuery()->pluck('institutions.id')->all())
             ->toContain((string) $searchableInstitution->id)
             ->not->toContain((string) $hiddenInstitution->id)
@@ -209,16 +209,16 @@ it('scopes make all searchable queries to the intended scout-ready records', fun
 
 it('only marks search indexes dirty when searchable fields change', function () {
     withGlobalOwnerContext(function (): void {
-        $speaker = Speaker::factory()->create([
+        $person = Person::factory()->create([
             'status' => 'verified',
         ])->fresh();
-        $speaker->touch();
+        $person->touch();
 
-        expect($speaker->searchIndexShouldBeUpdated())->toBeFalse();
+        expect($person->searchIndexShouldBeUpdated())->toBeFalse();
 
-        $speaker->update(['job_title' => 'Mudir']);
+        $person->update(['job_title' => 'Mudir']);
 
-        expect($speaker->searchIndexShouldBeUpdated())->toBeTrue();
+        expect($person->searchIndexShouldBeUpdated())->toBeTrue();
 
         $institution = Institution::factory()->create([
             'status' => 'verified',

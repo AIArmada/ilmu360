@@ -1,27 +1,27 @@
 <?php
 
 use App\Enums\ContributionSubjectType;
-use App\Livewire\Pages\Contributions\SubmitSpeaker;
+use App\Livewire\Pages\Contributions\SubmitPerson;
 use App\Models\ContributionRequest;
 use App\Models\Event;
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Models\User;
 use App\Services\EventKeyPersonSyncService;
-use App\Support\Search\SpeakerSearchService;
+use App\Support\Search\PersonSearchService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 
 use function Pest\Laravel\get;
 
-it('can search speakers case-insensitively', function () {
-    // Create speakers with different cases
-    Speaker::factory()->create([
+it('can search persons case-insensitively', function () {
+    // Create persons with different cases
+    Person::factory()->create([
         'name' => 'Samad Al-Bakri',
         'status' => 'verified',
     ]);
 
-    Speaker::factory()->create([
+    Person::factory()->create([
         'name' => 'Ahmad Bin Ali',
         'status' => 'verified',
     ]);
@@ -39,14 +39,14 @@ it('can search speakers case-insensitively', function () {
         ->assertDontSee('Ahmad');
 });
 
-it('can search speakers by formatted honorific and prenominal titles', function () {
-    Speaker::factory()->create([
+it('can search persons by formatted honorific and prenominal titles', function () {
+    Person::factory()->create([
         'name' => 'Aisyah Binti Hassan',
         'pre_nominal' => ['syeikhul_maqari'],
         'status' => 'verified',
     ]);
 
-    Speaker::factory()->create([
+    Person::factory()->create([
         'name' => 'Fatimah Binti Omar',
         'status' => 'verified',
     ]);
@@ -57,27 +57,27 @@ it('can search speakers by formatted honorific and prenominal titles', function 
         ->assertDontSee('Fatimah Binti Omar');
 });
 
-it('filters by active status on public speaker index', function () {
-    Speaker::factory()->create([
-        'name' => 'Active Speaker',
+it('filters by active status on public person index', function () {
+    Person::factory()->create([
+        'name' => 'Active Person',
         'status' => 'verified',
     ]);
 
-    Speaker::factory()->create([
-        'name' => 'Inactive Speaker',
+    Person::factory()->create([
+        'name' => 'Inactive Person',
         'status' => 'inactive',
     ]);
 
     get('/penceramah')
         ->assertSuccessful()
-        ->assertSee('Active Speaker')
-        ->assertDontSee('Inactive Speaker');
+        ->assertSee('Active Person')
+        ->assertDontSee('Inactive Person');
 });
 
-it('shows the total speaker count on the speaker index', function () {
+it('shows the total person count on the person index', function () {
     $searchPrefix = 'Jumlah Penceramah Ujian';
 
-    Speaker::factory()->count(2)->create([
+    Person::factory()->count(2)->create([
         'name' => $searchPrefix,
         'status' => 'verified',
     ]);
@@ -88,9 +88,9 @@ it('shows the total speaker count on the speaker index', function () {
         ->assertSee('2 penceramah ditemui');
 });
 
-it('uses a stable random speaker order instead of alphabetical sorting', function () {
-    $directoryOffset = Speaker::publicDirectoryOrderOffset();
-    $speakerId = static function (string $sortCharacter, string $tailCharacter) use ($directoryOffset): string {
+it('uses a stable random person order instead of alphabetical sorting', function () {
+    $directoryOffset = Person::publicDirectoryOrderOffset();
+    $personId = static function (string $sortCharacter, string $tailCharacter) use ($directoryOffset): string {
         $characters = array_fill(0, 32, '0');
         $characters[$directoryOffset - 1] = $sortCharacter;
         $characters[31] = $tailCharacter;
@@ -106,21 +106,21 @@ it('uses a stable random speaker order instead of alphabetical sorting', functio
         );
     };
 
-    $firstAlphabetical = Speaker::factory()->create([
-        'id' => $speakerId('f', '1'),
+    $firstAlphabetical = Person::factory()->create([
+        'id' => $personId('f', '1'),
         'name' => 'Adam Penceramah Rawak',
         'status' => 'verified',
     ]);
 
-    $secondAlphabetical = Speaker::factory()->create([
-        'id' => $speakerId('0', '2'),
+    $secondAlphabetical = Person::factory()->create([
+        'id' => $personId('0', '2'),
         'name' => 'Zaid Penceramah Rawak',
         'status' => 'verified',
     ]);
 
-    $component = Livewire::test('pages.speakers.index');
+    $component = Livewire::test('pages.persons.index');
 
-    $orderedIds = collect($component->instance()->speakers->items())
+    $orderedIds = collect($component->instance()->persons->items())
         ->pluck('id')
         ->all();
 
@@ -131,7 +131,7 @@ it('uses a stable random speaker order instead of alphabetical sorting', functio
         ->and($expectedOrder)->not->toBe([$firstAlphabetical->id, $secondAlphabetical->id]);
 });
 
-it('renders translated search placeholder on speaker index', function () {
+it('renders translated search placeholder on person index', function () {
     app()->setLocale('ms');
 
     get('/penceramah')
@@ -140,7 +140,7 @@ it('renders translated search placeholder on speaker index', function () {
 });
 
 it('renders the search clear control as an icon button instead of text', function () {
-    Speaker::factory()->create([
+    Person::factory()->create([
         'name' => 'Samad Al-Bakri',
         'status' => 'verified',
     ]);
@@ -151,7 +151,7 @@ it('renders the search clear control as an icon button instead of text', functio
         ->assertDontSee('aria-label="Clear"', false);
 });
 
-it('shows add-missing-speaker call to action on speaker index', function () {
+it('shows add-missing-person call to action on person index', function () {
     get('/penceramah')
         ->assertSuccessful()
         ->assertSee(__('Kenal penceramah yang belum tersenarai?'))
@@ -160,12 +160,12 @@ it('shows add-missing-speaker call to action on speaker index', function () {
 });
 
 it('supports fuzzy search with minor typos', function () {
-    Speaker::factory()->create([
+    Person::factory()->create([
         'name' => 'Samad Al-Bakri',
         'status' => 'verified',
     ]);
 
-    Speaker::factory()->create([
+    Person::factory()->create([
         'name' => 'Sulaiman Hasan',
         'status' => 'verified',
     ]);
@@ -176,13 +176,13 @@ it('supports fuzzy search with minor typos', function () {
         ->assertDontSee('Sulaiman');
 });
 
-it('matches partial speaker names within a larger token', function () {
-    Speaker::factory()->create([
+it('matches partial person names within a larger token', function () {
+    Person::factory()->create([
         'name' => 'Datuk Ustazah Dr Norhafizah Musa',
         'status' => 'verified',
     ]);
 
-    Speaker::factory()->create([
+    Person::factory()->create([
         'name' => 'Ustaz Hafiz Rahman',
         'status' => 'verified',
     ]);
@@ -192,8 +192,8 @@ it('matches partial speaker names within a larger token', function () {
         ->assertSee('Datuk Ustazah Dr Norhafizah Musa');
 });
 
-it('shows the empty state when speaker search has no public matches', function () {
-    Speaker::factory()->create([
+it('shows the empty state when person search has no public matches', function () {
+    Person::factory()->create([
         'name' => 'Ammar',
         'status' => 'pending',
     ]);
@@ -206,55 +206,55 @@ it('shows the empty state when speaker search has no public matches', function (
 });
 
 it('updates search results live when query changes', function () {
-    Speaker::factory()->create([
+    Person::factory()->create([
         'name' => 'Samad Al-Bakri',
         'status' => 'verified',
     ]);
 
-    Speaker::factory()->create([
+    Person::factory()->create([
         'name' => 'Ahmad Bin Ali',
         'status' => 'verified',
     ]);
 
-    Livewire::test('pages.speakers.index')
+    Livewire::test('pages.persons.index')
         ->set('search', 'Smad')
         ->assertSee('Samad')
         ->assertDontSee('Ahmad');
 });
 
-it('refreshes cached speaker title search results after speaker updates', function () {
-    $searchService = app(SpeakerSearchService::class);
-    $speaker = Speaker::factory()->create([
+it('refreshes cached person title search results after person updates', function () {
+    $searchService = app(PersonSearchService::class);
+    $person = Person::factory()->create([
         'name' => 'Nurul Akma',
         'pre_nominal' => ['ustazah'],
         'status' => 'verified',
     ]);
 
     expect($searchService->publicSearchIds('ustazah'))
-        ->toContain((string) $speaker->id);
+        ->toContain((string) $person->id);
 
-    $speaker->update([
+    $person->update([
         'pre_nominal' => ['hafizah'],
     ]);
 
     expect($searchService->publicSearchIds('ustazah'))
-        ->not->toContain((string) $speaker->id)
+        ->not->toContain((string) $person->id)
         ->and($searchService->publicSearchIds('hafizah'))
-        ->toContain((string) $speaker->id);
+        ->toContain((string) $person->id);
 
-    $updatedSearchResults = Livewire::test('pages.speakers.index')
+    $updatedSearchResults = Livewire::test('pages.persons.index')
         ->set('search', 'hafizah')
         ->instance()
-        ->speakers;
+        ->persons;
 
     expect(collect($updatedSearchResults->items())->pluck('id')->all())
-        ->toContain((string) $speaker->id);
+        ->toContain((string) $person->id);
 });
 
-it('allows users to submit a missing speaker from speaker index with pending status', function () {
-    $speakerName = 'Cadangan Baru';
-    $expectedDisplayName = Speaker::formatDisplayedName(
-        $speakerName,
+it('allows users to submit a missing person from person index with pending status', function () {
+    $personName = 'Cadangan Baru';
+    $expectedDisplayName = Person::formatDisplayedName(
+        $personName,
         ['dato'],
         ['ustaz'],
         ['PhD'],
@@ -264,39 +264,39 @@ it('allows users to submit a missing speaker from speaker index with pending sta
     $country = ensureTestMalaysiaCountry();
 
     Livewire::actingAs($user)
-        ->test(SubmitSpeaker::class)
-        ->set('data.name', $speakerName)
+        ->test(SubmitPerson::class)
+        ->set('data.name', $personName)
         ->set('data.gender', 'male')
         ->set('data.address.country_id', (string) $country->getKey())
         ->set('data.honorific', ['dato'])
         ->set('data.pre_nominal', ['ustaz'])
         ->set('data.post_nominal', ['PhD'])
         ->call('submit')
-        ->assertRedirect(route('contributions.submission-success', ['subjectType' => ContributionSubjectType::Speaker->publicRouteSegment()]))
+        ->assertRedirect(route('contributions.submission-success', ['subjectType' => ContributionSubjectType::Person->publicRouteSegment()]))
         ->assertHasNoErrors();
 
     expect(session('contribution_submission_name'))->toBe($expectedDisplayName);
 
-    get(route('contributions.submission-success', ['subjectType' => ContributionSubjectType::Speaker->publicRouteSegment()]))
+    get(route('contributions.submission-success', ['subjectType' => ContributionSubjectType::Person->publicRouteSegment()]))
         ->assertOk()
         ->assertSee($expectedDisplayName);
 
-    $speaker = Speaker::query()
-        ->where('name', $speakerName)
+    $person = Person::query()
+        ->where('name', $personName)
         ->with('addresses')
         ->first();
 
-    expect($speaker)->not->toBeNull()
-        ->and($speaker?->status)->toBe('pending')
-        ->and((string) $speaker?->status)->toBeIn(['verified', 'pending'])
-        ->and($speaker?->primaryAddress()?->country_id)->toBe((string) $country->getKey());
+    expect($person)->not->toBeNull()
+        ->and($person?->status)->toBe('pending')
+        ->and((string) $person?->status)->toBeIn(['verified', 'pending'])
+        ->and($person?->primaryAddress()?->country_id)->toBe((string) $country->getKey());
 });
 
-it('rejects duplicate speaker submissions when name gender and titles all match', function () {
+it('rejects duplicate person submissions when name gender and titles all match', function () {
     $user = User::factory()->create();
     $country = ensureTestMalaysiaCountry();
 
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'name' => 'Ustaz Samad Hassan',
         'gender' => 'male',
         'honorific' => ['dato'],
@@ -305,12 +305,12 @@ it('rejects duplicate speaker submissions when name gender and titles all match'
         'qualifications' => [],
         'status' => 'verified',
     ]);
-    syncPrimaryAddressForTest($speaker, [
+    syncPrimaryAddressForTest($person, [
         'country_id' => (string) $country->getKey(),
     ]);
 
     Livewire::actingAs($user)
-        ->test(SubmitSpeaker::class)
+        ->test(SubmitPerson::class)
         ->set('data.name', 'Ustaz   Samad   Hassan')
         ->set('data.gender', 'male')
         ->set('data.address.country_id', (string) $country->getKey())
@@ -320,18 +320,18 @@ it('rejects duplicate speaker submissions when name gender and titles all match'
         ->call('submit')
         ->assertHasErrors(['data.name']);
 
-    expect(Speaker::query()->where('name', 'Ustaz Samad Hassan')->count())->toBe(1)
+    expect(Person::query()->where('name', 'Ustaz Samad Hassan')->count())->toBe(1)
         ->and(ContributionRequest::query()->count())->toBe(0);
 });
 
-it('redirects guests to login when opening add speaker form', function () {
-    get(route('contributions.submit-speaker'))
+it('redirects guests to login when opening add person form', function () {
+    get(route('contributions.submit-person'))
         ->assertRedirect(route('login'));
 });
 
-it('counts only upcoming public events on the speaker index cards', function () {
-    $speaker = Speaker::factory()->create([
-        'name' => 'Speaker Dengan Majlis Akan Datang',
+it('counts only upcoming public events on the person index cards', function () {
+    $person = Person::factory()->create([
+        'name' => 'Person Dengan Majlis Akan Datang',
         'status' => 'verified',
     ]);
 
@@ -351,36 +351,36 @@ it('counts only upcoming public events on the speaker index cards', function () 
 
     app(EventKeyPersonSyncService::class)->sync(
         $upcomingEvent,
-        [(string) $speaker->getKey()],
+        [(string) $person->getKey()],
     );
     app(EventKeyPersonSyncService::class)->sync(
         $pastEvent,
-        [(string) $speaker->getKey()],
+        [(string) $person->getKey()],
     );
 
-    $component = Livewire::test('pages.speakers.index')
-        ->assertSee('Speaker Dengan Majlis Akan Datang');
+    $component = Livewire::test('pages.persons.index')
+        ->assertSee('Person Dengan Majlis Akan Datang');
 
-    $listedSpeaker = collect($component->instance()->speakers->items())
-        ->firstWhere('id', $speaker->id);
+    $listedPerson = collect($component->instance()->persons->items())
+        ->firstWhere('id', $person->id);
 
-    expect($listedSpeaker)->not->toBeNull()
-        ->and((int) $listedSpeaker?->events_count)->toBe(1);
+    expect($listedPerson)->not->toBeNull()
+        ->and((int) $listedPerson?->events_count)->toBe(1);
 });
 
-it('renders profile-quality avatar URLs on the speaker index cards', function () {
+it('renders profile-quality avatar URLs on the person index cards', function () {
     Storage::fake('public');
     config()->set('media-library.disk_name', 'public');
 
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'name' => 'Kazim Elias',
         'status' => 'verified',
     ]);
 
-    $speaker->addMedia(UploadedFile::fake()->image('kazim.jpg', 1200, 1200))
+    $person->addMedia(UploadedFile::fake()->image('kazim.jpg', 1200, 1200))
         ->toMediaCollection('avatar');
 
     get('/penceramah?search=kazim')
         ->assertSuccessful()
-        ->assertSee($speaker->public_avatar_url, false);
+        ->assertSee($person->public_avatar_url, false);
 });

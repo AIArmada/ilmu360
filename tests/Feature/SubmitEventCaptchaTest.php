@@ -10,7 +10,7 @@ use App\Enums\EventVisibility;
 use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Event;
 use App\Models\Institution;
-use App\Models\Speaker;
+use App\Models\Person;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Livewire\Livewire;
@@ -18,7 +18,7 @@ use Livewire\Livewire;
 uses(RefreshDatabase::class);
 
 /**
- * @return array{domain_tag: EventTerm, discipline_tag: EventTerm, institution: Institution, speaker: Speaker}
+ * @return array{domain_tag: EventTerm, discipline_tag: EventTerm, institution: Institution, speaker: Person}
  */
 function submitEventCaptchaFixtures(): array
 {
@@ -32,12 +32,12 @@ function submitEventCaptchaFixtures(): array
             'is_active' => true,
         ]),
         'institution' => Institution::factory()->create(['status' => 'verified']),
-        'speaker' => Speaker::factory()->create(['status' => 'verified']),
+        'speaker' => Person::factory()->create(['status' => 'verified']),
     ];
 }
 
 /**
- * @param  array{domain_tag: EventTerm, discipline_tag: EventTerm, institution: Institution, speaker: Speaker}  $fixtures
+ * @param  array{domain_tag: EventTerm, discipline_tag: EventTerm, institution: Institution, speaker: Person}  $fixtures
  */
 function fillSubmitEventCaptchaForm(mixed $component, array $fixtures, string $title): void
 {

@@ -1,9 +1,9 @@
 <?php
 
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Series;
-use App\Models\Speaker;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
@@ -15,7 +15,7 @@ it('serializes follow state payloads for each followable type', function (string
 
     $record = match ($type) {
         'institution' => Institution::factory()->create($attributes),
-        'speaker' => Speaker::factory()->create($attributes),
+        'speaker' => Person::factory()->create($attributes),
         'reference' => Reference::factory()->create($attributes),
         'series' => Series::factory()->create($attributes),
     };
@@ -42,31 +42,31 @@ it('serializes follow state payloads for each followable type', function (string
 
 it('returns the same follow payload shape across store and destroy', function () {
     $user = User::factory()->create();
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'status' => 'verified',
     ]);
 
     Sanctum::actingAs($user);
 
-    $storeResponse = $this->postJson(route('api.client.follows.store', ['type' => 'speaker', 'subject' => $speaker->slug]));
+    $storeResponse = $this->postJson(route('api.client.follows.store', ['type' => 'speaker', 'subject' => $person->slug]));
 
     $storeResponse->assertCreated()
         ->assertJsonPath('data.type', 'speaker')
-        ->assertJsonPath('data.id', $speaker->id)
-        ->assertJsonPath('data.slug', $speaker->slug)
+        ->assertJsonPath('data.id', $person->id)
+        ->assertJsonPath('data.slug', $person->slug)
         ->assertJsonPath('data.is_following', true)
         ->assertJsonPath('meta.request_id', fn (string $requestId) => filled($requestId));
 
-    expect($user->fresh()->isFollowing($speaker))->toBeTrue();
+    expect($user->fresh()->isFollowing($person))->toBeTrue();
 
-    $destroyResponse = $this->deleteJson(route('api.client.follows.destroy', ['type' => 'speaker', 'subject' => $speaker->slug]));
+    $destroyResponse = $this->deleteJson(route('api.client.follows.destroy', ['type' => 'speaker', 'subject' => $person->slug]));
 
     $destroyResponse->assertOk()
         ->assertJsonPath('data.type', 'speaker')
-        ->assertJsonPath('data.id', $speaker->id)
-        ->assertJsonPath('data.slug', $speaker->slug)
+        ->assertJsonPath('data.id', $person->id)
+        ->assertJsonPath('data.slug', $person->slug)
         ->assertJsonPath('data.is_following', false)
         ->assertJsonPath('meta.request_id', fn (string $requestId) => filled($requestId));
 
-    expect($user->fresh()->isFollowing($speaker))->toBeFalse();
+    expect($user->fresh()->isFollowing($person))->toBeFalse();
 });

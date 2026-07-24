@@ -7,7 +7,7 @@ use App\Filament\Resources\MembershipApplications\Pages\ListMembershipApplicatio
 use App\Filament\Resources\MembershipApplications\Pages\ViewMembershipApplication;
 use App\Models\Institution;
 use App\Models\MembershipApplication;
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Models\User;
 use App\Support\Authz\MemberRoleCatalog;
 use Database\Seeders\PermissionSeeder;
@@ -52,10 +52,10 @@ it('allows moderators to approve membership applications as owner from the admin
     $moderator = User::factory()->create();
     $moderator->assignRole('moderator');
 
-    $speaker = Speaker::factory()->create();
+    $person = Person::factory()->create();
     $claimant = User::factory()->create();
     $claim = MembershipApplication::factory()
-        ->for($speaker, 'subject')
+        ->for($person, 'subject')
         ->create([
             'applicant_id' => $claimant->getKey(),
             'status' => ApplicationStatus::Pending,
@@ -71,8 +71,8 @@ it('allows moderators to approve membership applications as owner from the admin
 
     expect($claim->fresh()->status)->toBe(ApplicationStatus::Approved)
         ->and($claim->fresh()->granted_role)->toBe('owner')
-        ->and($speaker->fresh()->members()->whereKey($claimant->getKey())->exists())->toBeTrue()
-        ->and(app(MemberRoleCatalog::class)->roleNamesFor($claimant->fresh(), MemberSubjectType::Speaker))->toBe(['owner']);
+        ->and($person->fresh()->members()->whereKey($claimant->getKey())->exists())->toBeTrue()
+        ->and(app(MemberRoleCatalog::class)->roleNamesFor($claimant->fresh(), MemberSubjectType::Person))->toBe(['owner']);
 });
 
 it('allows moderators to reject pending membership applications from the admin view page', function () {

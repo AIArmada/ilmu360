@@ -5,8 +5,8 @@ use AIArmada\Contacting\Models\ContactMethod;
 use AIArmada\Contacting\Models\SocialProfile;
 use AIArmada\Events\Models\EventAccessPolicy;
 use App\Filament\Ahli\Resources\Institutions\InstitutionResource as AhliInstitutionResource;
+use App\Filament\Ahli\Resources\Persons\PersonResource as AhliPersonResource;
 use App\Filament\Ahli\Resources\References\ReferenceResource as AhliReferenceResource;
-use App\Filament\Ahli\Resources\Speakers\SpeakerResource as AhliSpeakerResource;
 use App\Filament\RelationManagers\AuditsRelationManager;
 use App\Filament\Resources\AiModelPricings\AiModelPricingResource;
 use App\Filament\Resources\Audits\AuditResource;
@@ -16,11 +16,11 @@ use App\Filament\Resources\DonationChannels\DonationChannelResource;
 use App\Filament\Resources\Inspirations\InspirationResource;
 use App\Filament\Resources\Institutions\InstitutionResource;
 use App\Filament\Resources\MembershipApplications\MembershipApplicationResource;
+use App\Filament\Resources\Persons\PersonResource;
 use App\Filament\Resources\References\ReferenceResource;
 use App\Filament\Resources\Reports\ReportResource;
 use App\Filament\Resources\Series\SeriesResource;
 use App\Filament\Resources\Spaces\SpaceResource;
-use App\Filament\Resources\Speakers\SpeakerResource;
 use App\Models\AiModelPricing;
 use App\Models\Audit;
 use App\Models\ContributionRequest;
@@ -34,12 +34,12 @@ use App\Models\MediaLink;
 use App\Models\MemberInvitation;
 use App\Models\MembershipApplication;
 use App\Models\ModerationReview;
+use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Registration;
 use App\Models\Report;
 use App\Models\Series;
 use App\Models\Space;
-use App\Models\Speaker;
 use App\Models\User;
 use App\Models\Venue;
 use Database\Seeders\PermissionSeeder;
@@ -54,7 +54,7 @@ beforeEach(function () {
     EventSubmission::observe(AuditableObserver::class);
     Institution::observe(AuditableObserver::class);
     ModerationReview::observe(AuditableObserver::class);
-    Speaker::observe(AuditableObserver::class);
+    Person::observe(AuditableObserver::class);
     Venue::observe(AuditableObserver::class);
 
     $this->seed(RoleSeeder::class);
@@ -64,7 +64,7 @@ beforeEach(function () {
 it('registers the audits relation manager on audited admin and ahli resources', function () {
     $resources = [
         InstitutionResource::class,
-        SpeakerResource::class,
+        PersonResource::class,
         SeriesResource::class,
         ReferenceResource::class,
         DonationChannelResource::class,
@@ -76,7 +76,7 @@ it('registers the audits relation manager on audited admin and ahli resources', 
         InspirationResource::class,
         UserResource::class,
         AhliInstitutionResource::class,
-        AhliSpeakerResource::class,
+        AhliPersonResource::class,
         AhliReferenceResource::class,
     ];
 
@@ -149,7 +149,7 @@ it('registers morph aliases for audited models', function () {
         Series::class,
         SocialProfile::class,
         Space::class,
-        Speaker::class,
+        Person::class,
         User::class,
         Venue::class,
     ];

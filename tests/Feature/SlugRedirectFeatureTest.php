@@ -11,9 +11,9 @@ use App\Filament\Resources\SlugRedirects\Pages\EditSlugRedirect;
 use App\Filament\Resources\SlugRedirects\Pages\ListSlugRedirects;
 use App\Forms\VenueFormSchema;
 use App\Models\Event;
+use App\Models\Person;
 use App\Models\Reference;
 use App\Models\SlugRedirect;
-use App\Models\Speaker;
 use App\Models\User;
 use App\Models\Venue;
 use App\Services\ContributionEntityMutationService;
@@ -63,17 +63,17 @@ it('creates a speaker slug redirect when a visited slug changes', function () {
     $proposer = User::factory()->create();
     $country = createSlugRedirectCountry();
 
-    $speaker = app(ContributionEntityMutationService::class)->createSpeaker([
+    $person = app(ContributionEntityMutationService::class)->createPerson([
         'name' => 'Ustaz Lama',
         'gender' => 'male',
         'country_id' => (string) $country->getKey(),
     ], $proposer);
 
-    $oldPath = route('speakers.show', $speaker, false);
-    $oldSlug = $speaker->slug;
+    $oldPath = route('persons.show', $person, false);
+    $oldSlug = $person->slug;
     recordVisitedPath($oldPath);
 
-    $speaker->update([
+    $person->update([
         'name' => 'Ustaz Baru',
     ]);
 
@@ -81,8 +81,8 @@ it('creates a speaker slug redirect when a visited slug changes', function () {
 
     expect($redirect->source_slug)->toBe($oldSlug)
         ->and($redirect->source_path)->toBe($oldPath)
-        ->and($redirect->destination_slug)->toBe($speaker->fresh()->slug)
-        ->and($redirect->destination_path)->toBe(route('speakers.show', $speaker->fresh(), false));
+        ->and($redirect->destination_slug)->toBe($person->fresh()->slug)
+        ->and($redirect->destination_path)->toBe(route('persons.show', $person->fresh(), false));
 });
 
 it('creates a reference slug redirect when a visited title slug changes', function () {
@@ -181,7 +181,7 @@ it('creates an event slug redirect even when the old slug was never visited', fu
 });
 
 it('redirects old event slugs when a related speaker slug changes', function () {
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'name' => 'Habib Umar',
         'slug' => 'habib-umar',
         'status' => 'verified',
@@ -194,12 +194,12 @@ it('redirects old event slugs when a related speaker slug changes', function () 
         startsAt: Carbon::parse('2026-04-12 20:00:00', 'Asia/Kuala_Lumpur')->utc(),
     );
 
-    app(EventKeyPersonSyncService::class)->sync($event, [$speaker->id]);
+    app(EventKeyPersonSyncService::class)->sync($event, [$person->id]);
 
     $oldPath = route('events.show', $event->fresh(), false);
     recordVisitedPath($oldPath);
 
-    $speaker->update([
+    $person->update([
         'name' => 'Habib Umar Abdullah',
     ]);
 
@@ -215,7 +215,7 @@ it('redirects old event slugs when a related speaker slug changes', function () 
 it('redirects old event slugs when only the organizer speaker changes', function () {
     $expectedSuffix = Carbon::parse('2026-04-12', 'Asia/Kuala_Lumpur')->format('j-n-y');
 
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'name' => 'Habib Umar',
         'slug' => 'habib-umar',
         'status' => 'verified',
@@ -232,8 +232,8 @@ it('redirects old event slugs when only the organizer speaker changes', function
     recordVisitedPath($oldPath);
 
     $event->refresh();
-    OwnerContext::withOwner(null, function () use ($event, $speaker): void {
-        $event->setPrimaryOrganizer($speaker);
+    OwnerContext::withOwner(null, function () use ($event, $person): void {
+        $event->setPrimaryOrganizer($person);
         app(GenerateEventSlugAction::class)->syncEventSlugsForTitle($event->title);
     });
 
@@ -241,7 +241,7 @@ it('redirects old event slugs when only the organizer speaker changes', function
 
     expect($event->fresh()?->slug)->toBe(sprintf(
         'majlis-organizer-tukar-%s-%s',
-        $speaker->fresh()?->slug,
+        $person->fresh()?->slug,
         $expectedSuffix,
     ))
         ->and($redirect->source_path)->toBe($oldPath)

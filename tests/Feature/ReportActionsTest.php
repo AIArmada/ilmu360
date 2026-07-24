@@ -6,7 +6,7 @@ use App\Actions\Reports\ResolveReporterFingerprintAction;
 use App\Actions\Reports\ResolveReportFormContextAction;
 use App\Models\Event;
 use App\Models\Institution;
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Models\User;
 use Illuminate\Http\Request;
 
@@ -33,19 +33,19 @@ it('resolves shared report entity metadata for api and admin report surfaces', f
 it('resolves report form context for public subjects through the action layer', function () {
     $institution = Institution::factory()->create();
     $event = Event::factory()->create();
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'name' => 'Amina binti Rashid',
     ]);
 
     $institutionContext = app(ResolveReportFormContextAction::class)->handle('institution', $institution);
     $eventContext = app(ResolveReportFormContextAction::class)->handle('event', $event);
-    $speakerContext = app(ResolveReportFormContextAction::class)->handle('speaker', $speaker);
+    $speakerContext = app(ResolveReportFormContextAction::class)->handle('speaker', $person);
 
     expect($institutionContext['subject_label'])->toBe(__('Institution'))
         ->and($institutionContext['subject_title'])->toBe($institution->name)
         ->and($institutionContext['category_options'])->toHaveKey('fake_institution', __('Fake institution'))
         ->and($institutionContext['redirect_url'])->toBe(route('institutions.show', $institution))
-        ->and($speakerContext['subject_title'])->toBe($speaker->formatted_name)
+        ->and($speakerContext['subject_title'])->toBe($person->formatted_name)
         ->and($eventContext['default_category'])->toBe('wrong_info')
         ->and($eventContext['subject_title'])->toBe($event->title)
         ->and($eventContext['redirect_url'])->toBe(route('events.show', $event));

@@ -14,11 +14,11 @@ use App\Models\Event;
 use App\Models\EventCheckin;
 use App\Models\EventSubmission;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Registration;
 use App\Models\SavedSearch;
 use App\Models\Space;
-use App\Models\Speaker;
 use App\Models\User;
 use App\Support\Authz\MemberRoleCatalog;
 use App\Support\Authz\MemberRoleScopes;
@@ -242,8 +242,8 @@ it('shows the redesigned followed-entity category cards on the dashboard', funct
         'starts_at' => now()->addDays(4),
     ]);
 
-    $speaker = Speaker::factory()->create([
-        'name' => 'Menu Speaker',
+    $person = Person::factory()->create([
+        'name' => 'Menu Person',
     ]);
 
     $reference = Reference::factory()->create([
@@ -260,7 +260,7 @@ it('shows the redesigned followed-entity category cards on the dashboard', funct
         'visibility' => 'public',
         'responded_at' => now(),
     ]);
-    $user->follow($speaker);
+    $user->follow($person);
     $user->follow($reference);
     $user->follow($followedInstitution);
 
@@ -275,7 +275,7 @@ it('shows the redesigned followed-entity category cards on the dashboard', funct
         ->assertSee('My Events')
         ->assertSee('Follow')
         ->assertSee('Institution')
-        ->assertSee('Speaker')
+        ->assertSee('Person')
         ->assertSee('Saved')
         ->assertSee('Going')
         ->assertSee('Sidebar Saved Event')
@@ -706,8 +706,8 @@ it('shows institution profile and events for members without a separate registra
         'starts_at' => now()->addDays(5),
     ]);
 
-    $speaker = Speaker::factory()->create([
-        'name' => 'Ustaz Dashboard Speaker',
+    $person = Person::factory()->create([
+        'name' => 'Ustaz Dashboard Person',
     ]);
     $reference = Reference::factory()->create([
         'title' => 'Kitab Dashboard Reference',
@@ -718,7 +718,7 @@ it('shows institution profile and events for members without a separate registra
 
     $institution->spaces()->syncWithoutDetaching([$space->id]);
     $eventInInstitution->syncLocation(null, [(string) $space->id]);
-    $eventInInstitution->speakers()->attach($speaker->id);
+    $eventInInstitution->persons()->attach($person->id);
     $eventInInstitution->references()->attach($reference->id);
 
     $eventOutsideInstitution = Event::factory()->for($otherInstitution)->create([
@@ -759,7 +759,7 @@ it('shows institution profile and events for members without a separate registra
         ->assertSee('Members & Roles')
         ->assertSee('Institution Dashboard Event')
         ->assertDontSee('Event List')
-        ->assertDontSee('Ustaz Dashboard Speaker')
+        ->assertDontSee('Ustaz Dashboard Person')
         ->assertDontSee('Kitab Dashboard Reference')
         ->assertDontSee('Add Child Event')
         ->assertDontSee('Event Registrations')
@@ -781,7 +781,7 @@ it('shows institution profile and events for members without a separate registra
         ->assertSee('References')
         ->assertSee('Location')
         ->assertSee('Institution Dashboard Event')
-        ->assertSee('Ustaz Dashboard Speaker')
+        ->assertSee('Ustaz Dashboard Person')
         ->assertSee('Kitab Dashboard Reference')
         ->assertSee('Dewan Utama Institusi')
         ->assertDontSee('Event Registrations')

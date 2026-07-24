@@ -5,7 +5,7 @@ use App\Filament\Resources\Inspirations\InspirationResource;
 use App\Models\Event;
 use App\Models\Inspiration;
 use App\Models\Institution;
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Models\User;
 use Database\Seeders\InspirationSeeder;
 use Database\Seeders\PermissionSeeder;
@@ -110,9 +110,9 @@ it('shows sidebar inspiration on speaker page', function () {
         'content' => 'Test content for speaker page',
     ]);
 
-    $speaker = Speaker::factory()->create(['status' => 'verified']);
+    $person = Person::factory()->create(['status' => 'verified']);
 
-    $this->get(route('speakers.show', $speaker))
+    $this->get(route('persons.show', $person))
         ->assertSuccessful()
         ->assertSee('Test Quran Quote');
 });
@@ -127,9 +127,9 @@ it('shows sidebar inspiration image instead of text when media exists', function
         ->toMediaCollection('main');
 
     $mediaUrl = $inspiration->getFirstMedia('main')?->getAvailableUrl(['thumb']);
-    $speaker = Speaker::factory()->create(['status' => 'verified']);
+    $person = Person::factory()->create(['status' => 'verified']);
 
-    $this->get(route('speakers.show', $speaker))
+    $this->get(route('persons.show', $person))
         ->assertSuccessful()
         ->assertSee('Image Inspiration')
         ->assertSee((string) $mediaUrl, false)
@@ -173,9 +173,9 @@ it('does not show inactive inspiration on public pages', function () {
         'content' => 'This should not be visible',
     ]);
 
-    $speaker = Speaker::factory()->create(['status' => 'verified']);
+    $person = Person::factory()->create(['status' => 'verified']);
 
-    $this->get(route('speakers.show', $speaker))
+    $this->get(route('persons.show', $person))
         ->assertSuccessful()
         ->assertDontSee('Inactive Inspiration Hidden');
 });
@@ -187,9 +187,9 @@ it('does not show inspiration from a different locale', function () {
     ]);
 
     app()->setLocale('ms');
-    $speaker = Speaker::factory()->create(['status' => 'verified']);
+    $person = Person::factory()->create(['status' => 'verified']);
 
-    $this->get(route('speakers.show', $speaker))
+    $this->get(route('persons.show', $person))
         ->assertSuccessful()
         ->assertDontSee('English Only Inspiration');
 });

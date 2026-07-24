@@ -2,11 +2,11 @@
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
-use App\Models\Speaker;
 use App\Support\Search\InstitutionSearchService;
+use App\Support\Search\PersonSearchService;
 use App\Support\Search\ReferenceSearchService;
-use App\Support\Search\SpeakerSearchService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Tests\TestCase;
@@ -22,7 +22,7 @@ beforeEach(function (): void {
 });
 
 it('falls back to the local speaker search index when typesense lookup fails', function () {
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'name' => 'Nurul Akma',
         'honorific' => null,
         'pre_nominal' => ['ustazah'],
@@ -31,10 +31,10 @@ it('falls back to the local speaker search index when typesense lookup fails', f
         'status' => 'verified',
     ]);
 
-    $baseService = app(SpeakerSearchService::class);
-    $baseService->syncSpeakerRecord($speaker);
+    $baseService = app(PersonSearchService::class);
+    $baseService->syncPersonRecord($person);
 
-    $service = new class extends SpeakerSearchService
+    $service = new class extends PersonSearchService
     {
         protected function shouldUseScoutSearch(): bool
         {
@@ -50,17 +50,17 @@ it('falls back to the local speaker search index when typesense lookup fails', f
     };
 
     $ids = $service->publicSearchIds('ustazah');
-    $queryIds = $service->applyIndexedSearch(Speaker::query()->where('status', 'verified'), 'ustazah')
-        ->pluck('speakers.id')
+    $queryIds = $service->applyIndexedSearch(Person::query()->where('status', 'verified'), 'ustazah')
+        ->pluck('persons.id')
         ->map(static fn (mixed $id): string => (string) $id)
         ->all();
 
-    expect($ids)->toContain((string) $speaker->id)
-        ->and($queryIds)->toContain((string) $speaker->id);
+    expect($ids)->toContain((string) $person->id)
+        ->and($queryIds)->toContain((string) $person->id);
 });
 
 it('falls back to local speaker fuzzy search when typesense lookup fails', function () {
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'name' => 'Samad Al-Bakri',
         'honorific' => null,
         'pre_nominal' => [],
@@ -69,9 +69,9 @@ it('falls back to local speaker fuzzy search when typesense lookup fails', funct
         'status' => 'verified',
     ]);
 
-    app(SpeakerSearchService::class)->syncSpeakerRecord($speaker);
+    app(PersonSearchService::class)->syncPersonRecord($person);
 
-    $service = new class extends SpeakerSearchService
+    $service = new class extends PersonSearchService
     {
         protected function shouldUseScoutSearch(): bool
         {
@@ -86,11 +86,11 @@ it('falls back to local speaker fuzzy search when typesense lookup fails', funct
         protected function logScoutFallback(string $message, Throwable $exception, string $search): void {}
     };
 
-    expect($service->publicFuzzySearchIds('Smad'))->toContain((string) $speaker->id);
+    expect($service->publicFuzzySearchIds('Smad'))->toContain((string) $person->id);
 });
 
 it('keeps transposed speaker typos reachable through fallback candidate filtering', function () {
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'name' => 'Ahmad Fauzi',
         'honorific' => null,
         'pre_nominal' => [],
@@ -99,9 +99,9 @@ it('keeps transposed speaker typos reachable through fallback candidate filterin
         'status' => 'verified',
     ]);
 
-    app(SpeakerSearchService::class)->syncSpeakerRecord($speaker);
+    app(PersonSearchService::class)->syncPersonRecord($person);
 
-    $service = new class extends SpeakerSearchService
+    $service = new class extends PersonSearchService
     {
         protected function shouldUseTypesenseSearch(): bool
         {
@@ -116,12 +116,12 @@ it('keeps transposed speaker typos reachable through fallback candidate filterin
         protected function logScoutFallback(string $message, Throwable $exception, string $search): void {}
     };
 
-    expect($service->publicFuzzySearchIds('Ahmda'))->toContain((string) $speaker->id);
+    expect($service->publicFuzzySearchIds('Ahmda'))->toContain((string) $person->id);
 });
 
 it('keeps exact speaker fuzzy matches inside the capped fallback candidate set', function () {
     foreach (range(1, 5) as $index) {
-        Speaker::factory()->create([
+        Person::factory()->create([
             'name' => "Samadx Alpha {$index}",
             'honorific' => null,
             'pre_nominal' => [],
@@ -131,7 +131,7 @@ it('keeps exact speaker fuzzy matches inside the capped fallback candidate set',
         ]);
     }
 
-    $exactSpeaker = Speaker::factory()->create([
+    $exactPerson = Person::factory()->create([
         'name' => 'Samadx',
         'honorific' => null,
         'pre_nominal' => [],
@@ -140,7 +140,7 @@ it('keeps exact speaker fuzzy matches inside the capped fallback candidate set',
         'status' => 'verified',
     ]);
 
-    $service = new class extends SpeakerSearchService
+    $service = new class extends PersonSearchService
     {
         protected function shouldUseTypesenseSearch(): bool
         {
@@ -160,7 +160,7 @@ it('keeps exact speaker fuzzy matches inside the capped fallback candidate set',
         }
     };
 
-    expect($service->publicFuzzySearchIds('Samadx'))->toContain((string) $exactSpeaker->id);
+    expect($service->publicFuzzySearchIds('Samadx'))->toContain((string) $exactPerson->id);
 });
 
 it('falls back to database institution search when typesense lookup fails', function () {
@@ -284,10 +284,10 @@ it('keeps exact institution fuzzy matches inside the capped fallback candidate s
     expect($service->publicFuzzySearchIds('Samadx'))->toContain((string) $exactInstitution->id);
 });
 
-it('uses scout database search for speakers when the database driver is configured', function () {
+it('uses scout database search for persons when the database driver is configured', function () {
     config()->set('scout.driver', 'database');
 
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'name' => 'Nurul Akma',
         'honorific' => null,
         'pre_nominal' => ['ustazah'],
@@ -296,7 +296,7 @@ it('uses scout database search for speakers when the database driver is configur
         'status' => 'verified',
     ]);
 
-    $hiddenSpeaker = Speaker::factory()->create([
+    $hiddenPerson = Person::factory()->create([
         'name' => 'Nurul Akma Hidden',
         'honorific' => null,
         'pre_nominal' => ['ustazah'],
@@ -305,16 +305,16 @@ it('uses scout database search for speakers when the database driver is configur
         'status' => 'rejected',
     ]);
 
-    $service = app(SpeakerSearchService::class);
+    $service = app(PersonSearchService::class);
 
-    expect($service->publicSearchIds('ustazah'))->toContain((string) $speaker->id)
-        ->not->toContain((string) $hiddenSpeaker->id);
+    expect($service->publicSearchIds('ustazah'))->toContain((string) $person->id)
+        ->not->toContain((string) $hiddenPerson->id);
 });
 
 it('keeps token-order-insensitive speaker search when the database driver is configured', function () {
     config()->set('scout.driver', 'database');
 
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'name' => 'Nurul Akma',
         'honorific' => null,
         'pre_nominal' => ['ustazah'],
@@ -323,15 +323,15 @@ it('keeps token-order-insensitive speaker search when the database driver is con
         'status' => 'verified',
     ]);
 
-    $service = app(SpeakerSearchService::class);
+    $service = app(PersonSearchService::class);
 
-    expect($service->publicSearchIds('ustazah nurul'))->toContain((string) $speaker->id);
+    expect($service->publicSearchIds('ustazah nurul'))->toContain((string) $person->id);
 });
 
 it('keeps local fuzzy speaker search when the database driver is configured', function () {
     config()->set('scout.driver', 'database');
 
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'name' => 'Samad Al-Bakri',
         'honorific' => null,
         'pre_nominal' => [],
@@ -340,7 +340,7 @@ it('keeps local fuzzy speaker search when the database driver is configured', fu
         'status' => 'verified',
     ]);
 
-    $hiddenSpeaker = Speaker::factory()->create([
+    $hiddenPerson = Person::factory()->create([
         'name' => 'Samad Hidden',
         'honorific' => null,
         'pre_nominal' => [],
@@ -349,10 +349,10 @@ it('keeps local fuzzy speaker search when the database driver is configured', fu
         'status' => 'rejected',
     ]);
 
-    $service = app(SpeakerSearchService::class);
+    $service = app(PersonSearchService::class);
 
-    expect($service->publicFuzzySearchIds('Smad'))->toContain((string) $speaker->id)
-        ->not->toContain((string) $hiddenSpeaker->id);
+    expect($service->publicFuzzySearchIds('Smad'))->toContain((string) $person->id)
+        ->not->toContain((string) $hiddenPerson->id);
 });
 
 it('uses scout database search for institutions when the database driver is configured', function () {
@@ -417,7 +417,7 @@ it('keeps local fuzzy institution search when the database driver is configured'
 it('resolves the same speaker ids for public and scoped search flows when the scope matches', function () {
     config()->set('scout.driver', 'collection');
 
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'name' => 'Aisyah Binti Hassan',
         'honorific' => null,
         'pre_nominal' => [],
@@ -426,7 +426,7 @@ it('resolves the same speaker ids for public and scoped search flows when the sc
         'status' => 'verified',
     ]);
 
-    Speaker::factory()->create([
+    Person::factory()->create([
         'name' => 'Aisyah Hidden',
         'honorific' => null,
         'pre_nominal' => [],
@@ -435,17 +435,17 @@ it('resolves the same speaker ids for public and scoped search flows when the sc
         'status' => 'rejected',
     ]);
 
-    $service = app(SpeakerSearchService::class);
-    $service->syncSpeakerRecord($speaker);
+    $service = app(PersonSearchService::class);
+    $service->syncPersonRecord($person);
 
     $publicIds = $service->resolvedPublicSearchIds('Aisyh');
     $scopedIds = $service->scopedSearchIds(
-        Speaker::query()->active()->where('status', 'verified'),
+        Person::query()->active()->where('status', 'verified'),
         'Aisyh',
     );
 
     expect($publicIds)->toBe($scopedIds)
-        ->toContain((string) $speaker->id);
+        ->toContain((string) $person->id);
 });
 
 it('resolves the same institution ids for public and scoped search flows when the scope matches', function () {

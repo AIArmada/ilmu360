@@ -23,8 +23,8 @@ use App\Enums\ContributionSubjectType;
 use App\Models\ContributionRequest;
 use App\Models\Event;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
-use App\Models\Speaker;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -119,12 +119,12 @@ it('submits staged institution contributions through the action layer', function
 it('submits staged speaker contributions through the action layer', function () {
     $proposer = User::factory()->create();
 
-    $speaker = app(SubmitStagedContributionCreateAction::class)->handle(
-        ContributionSubjectType::Speaker,
+    $person = app(SubmitStagedContributionCreateAction::class)->handle(
+        ContributionSubjectType::Person,
         [
-            'name' => 'Speaker Beraksi',
+            'name' => 'Person Beraksi',
             'gender' => 'male',
-            'bio' => 'Speaker created through staged action.',
+            'bio' => 'Person created through staged action.',
             'proposer_note' => 'Please review this speaker.',
         ],
         $proposer,
@@ -132,12 +132,12 @@ it('submits staged speaker contributions through the action layer', function () 
 
     $request = ContributionRequest::query()->latest('created_at')->first();
 
-    expect($speaker->name)->toBe('Speaker Beraksi')
-        ->and($speaker->status)->toBe('pending')
+    expect($person->name)->toBe('Person Beraksi')
+        ->and($person->status)->toBe('pending')
         ->and($request)->not->toBeNull()
-        ->and($request?->entity_id)->toBe($speaker->id)
+        ->and($request?->entity_id)->toBe($person->id)
         ->and($request?->proposed_data)->toMatchArray([
-            'name' => 'Speaker Beraksi',
+            'name' => 'Person Beraksi',
             'gender' => 'male',
         ]);
 });
@@ -243,21 +243,21 @@ it('cancels pending contribution requests through the action layer', function ()
 });
 
 it('resolves contribution update context from slug and uuid subjects', function () {
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'slug' => 'speaker-action-subject',
-        'name' => 'Speaker Action Subject',
-        'bio' => 'Speaker bio.',
+        'name' => 'Person Action Subject',
+        'bio' => 'Person bio.',
     ])->fresh();
     $event = Event::factory()->create([
         'title' => 'Action Event',
         'slug' => 'action-event',
     ]);
 
-    $speakerContext = app(ResolveContributionUpdateContextAction::class)->handle('penceramah', (string) $speaker->slug);
+    $speakerContext = app(ResolveContributionUpdateContextAction::class)->handle('penceramah', (string) $person->slug);
     $eventContext = app(ResolveContributionUpdateContextAction::class)->handle('majlis', 'action-event');
 
-    expect($speakerContext['entity']->is($speaker))->toBeTrue()
-        ->and($speakerContext['initial_state'])->toHaveKey('name', 'Speaker Action Subject')
+    expect($speakerContext['entity']->is($person))->toBeTrue()
+        ->and($speakerContext['initial_state'])->toHaveKey('name', 'Person Action Subject')
         ->and($eventContext['entity']->is($event))->toBeTrue()
         ->and($eventContext['initial_state'])->toHaveKey('title', 'Action Event');
 });
@@ -314,12 +314,12 @@ it('resolves the latest pending contribution request for a proposer and entity',
 });
 
 it('resolves contribution subject presentation through the action layer', function () {
-    $speaker = Speaker::factory()->create();
+    $person = Person::factory()->create();
 
-    $presentation = app(ResolveContributionSubjectPresentationAction::class)->handle($speaker);
+    $presentation = app(ResolveContributionSubjectPresentationAction::class)->handle($person);
 
-    expect($presentation['subject_label'])->toBe(__('Speaker'))
-        ->and($presentation['redirect_url'])->toBe(route('speakers.show', $speaker));
+    expect($presentation['subject_label'])->toBe(__('Person'))
+        ->and($presentation['redirect_url'])->toBe(route('persons.show', $person));
 });
 
 it('resolves changed contribution payloads through the action layer', function () {

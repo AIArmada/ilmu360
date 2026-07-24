@@ -1,7 +1,7 @@
 <?php
 
 use App\Models\Institution;
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Models\User;
 use App\Models\Venue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -41,21 +41,21 @@ it('sets verified_by on speaker when status changes to verified', function () {
     $user = User::factory()->create();
     $this->actingAs($user);
 
-    $speaker = Speaker::factory()->create(['status' => 'pending']);
+    $person = Person::factory()->create(['status' => 'pending']);
 
-    expect($speaker->verified_by)->toBeNull();
+    expect($person->verified_by)->toBeNull();
 
-    $speaker->update(['status' => 'verified']);
+    $person->update(['status' => 'verified']);
 
-    expect($speaker->fresh()->verified_by)->toBe((string) $user->getKey());
+    expect($person->fresh()->verified_by)->toBe((string) $user->getKey());
 });
 
 it('sets last_state_change_at on speaker when status changes', function () {
-    $speaker = Speaker::factory()->create(['status' => 'pending']);
+    $person = Person::factory()->create(['status' => 'pending']);
 
-    $speaker->update(['status' => 'verified']);
+    $person->update(['status' => 'verified']);
 
-    expect($speaker->fresh()->last_state_change_at)->not->toBeNull();
+    expect($person->fresh()->last_state_change_at)->not->toBeNull();
 });
 
 it('sets verified_by on venue when status changes to verified', function () {

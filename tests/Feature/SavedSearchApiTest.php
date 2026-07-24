@@ -7,8 +7,8 @@ use App\Enums\EventKeyPersonRole;
 use App\Enums\EventPrayerTime;
 use App\Enums\TimingMode;
 use App\Models\Event;
+use App\Models\Person;
 use App\Models\SavedSearch;
-use App\Models\Speaker;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -43,8 +43,8 @@ describe('Saved Search API Endpoints', function () {
 
         describe('POST /api/v1/saved-searches', function () {
             it('creates a saved search', function () {
-                $imamSpeaker = Speaker::factory()->create();
-                $personInChargeSpeaker = Speaker::factory()->create();
+                $imamPerson = Person::factory()->create();
+                $personInChargePerson = Person::factory()->create();
 
                 $response = $this->postJson('/api/v1/saved-searches', [
                     'name' => 'Kuliah Maghrib',
@@ -52,9 +52,9 @@ describe('Saved Search API Endpoints', function () {
                     'filters' => [
                         'language_codes' => ['ms'],
                         'key_person_roles' => [EventKeyPersonRole::Imam->value],
-                        'person_in_charge_ids' => [$personInChargeSpeaker->id],
+                        'person_in_charge_ids' => [$personInChargePerson->id],
                         'person_in_charge_search' => 'Penyelaras Saf',
-                        'imam_ids' => [$imamSpeaker->id],
+                        'imam_ids' => [$imamPerson->id],
                         'starts_on_local_date' => '2026-04-12',
                     ],
                     'notify' => 'daily',
@@ -63,9 +63,9 @@ describe('Saved Search API Endpoints', function () {
                 $response->assertCreated()
                     ->assertJsonPath('data.name', 'Kuliah Maghrib')
                     ->assertJsonPath('data.filters.key_person_roles.0', EventKeyPersonRole::Imam->value)
-                    ->assertJsonPath('data.filters.person_in_charge_ids.0', $personInChargeSpeaker->id)
+                    ->assertJsonPath('data.filters.person_in_charge_ids.0', $personInChargePerson->id)
                     ->assertJsonPath('data.filters.person_in_charge_search', 'Penyelaras Saf')
-                    ->assertJsonPath('data.filters.imam_ids.0', $imamSpeaker->id)
+                    ->assertJsonPath('data.filters.imam_ids.0', $imamPerson->id)
                     ->assertJsonPath('data.filters.starts_on_local_date', '2026-04-12');
 
                 $this->assertDatabaseHas('saved_searches', [
@@ -181,7 +181,7 @@ describe('Saved Search API Endpoints', function () {
                 $response = $this->postJson('/api/v1/saved-searches', [
                     'name' => 'Role Search',
                     'filters' => [
-                        'key_person_roles' => ['invalid-role', EventKeyPersonRole::Speaker->value],
+                        'key_person_roles' => ['invalid-role', EventKeyPersonRole::Person->value],
                     ],
                     'notify' => 'daily',
                 ]);

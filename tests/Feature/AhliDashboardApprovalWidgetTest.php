@@ -6,7 +6,7 @@ use App\Filament\Pages\AhliDashboard;
 use App\Models\Event;
 use App\Models\EventSubmission;
 use App\Models\Institution;
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Models\User;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -21,12 +21,12 @@ beforeEach(function (): void {
 it('shows only pending public-submitted events from member institutions and speakers on the ahli dashboard widget', function () {
     $user = User::factory()->create();
     $memberInstitution = Institution::factory()->create();
-    $memberSpeaker = Speaker::factory()->create();
-    $outsideSpeaker = Speaker::factory()->create();
+    $memberPerson = Person::factory()->create();
+    $outsidePerson = Person::factory()->create();
     $outsideInstitution = Institution::factory()->create();
 
     $memberInstitution->members()->syncWithoutDetaching([$user->id]);
-    $memberSpeaker->members()->syncWithoutDetaching([$user->id]);
+    $memberPerson->members()->syncWithoutDetaching([$user->id]);
 
     $institutionEvent = Event::factory()->create([
         'title' => 'Institution Pending Approval',
@@ -34,17 +34,17 @@ it('shows only pending public-submitted events from member institutions and spea
     ]);
     OwnerContext::withOwner(null, fn () => $institutionEvent->setPrimaryOrganizer($memberInstitution));
 
-    $speakerEvent = Event::factory()->create([
-        'title' => 'Speaker Pending Approval',
+    $personEvent = Event::factory()->create([
+        'title' => 'Person Pending Approval',
         'status' => 'pending',
     ]);
-    OwnerContext::withOwner(null, fn () => $speakerEvent->setPrimaryOrganizer($memberSpeaker));
+    OwnerContext::withOwner(null, fn () => $personEvent->setPrimaryOrganizer($memberPerson));
 
-    $institutionLinkedSpeakerEvent = Event::factory()->for($memberInstitution)->create([
-        'title' => 'Institution Linked Speaker Pending Approval',
+    $institutionLinkedPersonEvent = Event::factory()->for($memberInstitution)->create([
+        'title' => 'Institution Linked Person Pending Approval',
         'status' => 'pending',
     ]);
-    OwnerContext::withOwner(null, fn () => $institutionLinkedSpeakerEvent->setPrimaryOrganizer($outsideSpeaker));
+    OwnerContext::withOwner(null, fn () => $institutionLinkedPersonEvent->setPrimaryOrganizer($outsidePerson));
 
     $outsideEvent = Event::factory()->create([
         'title' => 'Outside Pending Approval',
@@ -65,15 +65,15 @@ it('shows only pending public-submitted events from member institutions and spea
     OwnerContext::withOwner(null, fn () => $pendingWithoutSubmission->setPrimaryOrganizer($memberInstitution));
 
     EventSubmission::factory()->for($institutionEvent)->create();
-    EventSubmission::factory()->for($speakerEvent)->create();
-    EventSubmission::factory()->for($institutionLinkedSpeakerEvent)->create();
+    EventSubmission::factory()->for($personEvent)->create();
+    EventSubmission::factory()->for($institutionLinkedPersonEvent)->create();
     EventSubmission::factory()->for($outsideEvent)->create();
     EventSubmission::factory()->for($draftEvent)->create();
 
     OwnerContext::withOwner(null, fn () => Livewire::actingAs($user)
         ->test(PendingApprovalEventsWidget::class)
         ->assertCountTableRecords(3)
-        ->assertCanSeeTableRecords([$institutionEvent, $speakerEvent, $institutionLinkedSpeakerEvent])
+        ->assertCanSeeTableRecords([$institutionEvent, $personEvent, $institutionLinkedPersonEvent])
         ->assertCanNotSeeTableRecords([$outsideEvent, $draftEvent, $pendingWithoutSubmission]));
 });
 

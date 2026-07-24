@@ -30,12 +30,12 @@ use App\Models\EventSubmission;
 use App\Models\Institution;
 use App\Models\MembershipApplication;
 use App\Models\ModerationReview;
+use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Registration;
 use App\Models\Report;
 use App\Models\SavedSearch;
 use App\Models\SocialAccount;
-use App\Models\Speaker;
 use App\Models\User;
 use App\Models\Venue;
 use Illuminate\Database\QueryException;
@@ -63,11 +63,11 @@ it('restores a deleted user together with key relationships and child records', 
     ]);
 
     $institution = Institution::factory()->create();
-    $speaker = Speaker::factory()->create();
+    $person = Person::factory()->create();
     $reference = Reference::factory()->create();
     $venue = Venue::factory()->create();
     $followedInstitution = Institution::factory()->create();
-    $followedSpeaker = Speaker::factory()->create();
+    $followedPerson = Person::factory()->create();
     $followedReference = Reference::factory()->create();
     $ownedEvent = Event::factory()->create([
         'owner_type' => $user->getMorphClass(),
@@ -315,7 +315,7 @@ it('restores a deleted user together with key relationships and child records', 
     $memberJoinedAt = now()->subDays(2)->startOfSecond();
 
     $user->institutions()->attach($institution->id, ['joined_at' => $institutionJoinedAt]);
-    $user->speakers()->attach($speaker->id, ['joined_at' => $speakerJoinedAt]);
+    $user->speakers()->attach($person->id, ['joined_at' => $speakerJoinedAt]);
     $user->references()->attach($reference->id, ['joined_at' => $referenceJoinedAt]);
     $user->follow($venue, ['followed_at' => $venueJoinedAt]);
 
@@ -329,12 +329,12 @@ it('restores a deleted user together with key relationships and child records', 
             'followed_at' => now(),
         ]);
     });
-    OwnerContext::withOwner(null, function () use ($user, $followedSpeaker): void {
+    OwnerContext::withOwner(null, function () use ($user, $followedPerson): void {
         Follow::query()->create([
             'follower_type' => $user->getMorphClass(),
             'follower_id' => $user->getKey(),
-            'followable_type' => $followedSpeaker->getMorphClass(),
-            'followable_id' => $followedSpeaker->getKey(),
+            'followable_type' => $followedPerson->getMorphClass(),
+            'followable_id' => $followedPerson->getKey(),
             'status' => 'active',
             'followed_at' => now(),
         ]);
@@ -370,7 +370,7 @@ it('restores a deleted user together with key relationships and child records', 
         ->not->toHaveKey('remember_token');
 
     assertDatabaseHas('institutions', ['id' => $institution->id]);
-    assertDatabaseHas('speakers', ['id' => $speaker->id]);
+    assertDatabaseHas('speakers', ['id' => $person->id]);
     assertDatabaseHas('references', ['id' => $reference->id]);
     assertDatabaseHas('venues', ['id' => $venue->id]);
     expect($ownedEvent->fresh()->owner_id)->toBeNull()
@@ -388,8 +388,8 @@ it('restores a deleted user together with key relationships and child records', 
         'institution_id' => $institution->id,
         'user_id' => $user->id,
     ]);
-    assertDatabaseMissing($speaker->members()->getTable(), [
-        'speaker_id' => $speaker->id,
+    assertDatabaseMissing($person->members()->getTable(), [
+        'person_id' => $person->id,
         'user_id' => $user->id,
     ]);
     assertDatabaseMissing($reference->members()->getTable(), [
@@ -458,8 +458,8 @@ it('restores a deleted user together with key relationships and child records', 
         'joined_at' => $institutionJoinedAt->toDateTimeString(),
     ]);
 
-    assertDatabaseHas($speaker->members()->getTable(), [
-        'speaker_id' => $speaker->id,
+    assertDatabaseHas($person->members()->getTable(), [
+        'person_id' => $person->id,
         'user_id' => $user->id,
         'joined_at' => $speakerJoinedAt->toDateTimeString(),
     ]);
@@ -487,8 +487,8 @@ it('restores a deleted user together with key relationships and child records', 
         'follower_id' => $user->id,
         'follower_type' => (new User)->getMorphClass(),
         'status' => 'active',
-        'followable_id' => $followedSpeaker->id,
-        'followable_type' => $followedSpeaker->getMorphClass(),
+        'followable_id' => $followedPerson->id,
+        'followable_type' => $followedPerson->getMorphClass(),
     ]);
 
     assertDatabaseHas('engagement_follows', [
@@ -657,7 +657,7 @@ it('restores an api self-deleted user from the deleted users admin page', functi
         'remember_token' => 'restore-token-secret',
     ]);
     $institution = Institution::factory()->create();
-    $speaker = Speaker::factory()->create();
+    $person = Person::factory()->create();
     $reference = Reference::factory()->create();
     $venue = Venue::factory()->create();
     $ownedEvent = Event::factory()->create([
@@ -689,7 +689,7 @@ it('restores an api self-deleted user from the deleted users admin page', functi
     $eventJoinedAt = now()->subHours(12)->startOfSecond();
 
     $user->institutions()->attach($institution->id, ['joined_at' => $institutionJoinedAt]);
-    $user->speakers()->attach($speaker->id, ['joined_at' => $speakerJoinedAt]);
+    $user->speakers()->attach($person->id, ['joined_at' => $speakerJoinedAt]);
     $user->references()->attach($reference->id, ['joined_at' => $referenceJoinedAt]);
     $user->follow($venue, ['followed_at' => $venueJoinedAt]);
     app(EngagementManager::class)->bookmark($user, $sharedEvent);
@@ -786,8 +786,8 @@ it('restores an api self-deleted user from the deleted users admin page', functi
         'user_id' => $user->id,
         'joined_at' => $institutionJoinedAt->toDateTimeString(),
     ]);
-    assertDatabaseHas($speaker->members()->getTable(), [
-        'speaker_id' => $speaker->id,
+    assertDatabaseHas($person->members()->getTable(), [
+        'person_id' => $person->id,
         'user_id' => $user->id,
         'joined_at' => $speakerJoinedAt->toDateTimeString(),
     ]);

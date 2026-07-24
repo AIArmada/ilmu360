@@ -277,8 +277,8 @@ it('groups speaker endpoints under a dedicated speaker tag in scramble docs', fu
 
     $paths = $response->json('paths');
 
-    expect($paths['/speakers']['get']['tags'] ?? null)->toContain('Speaker')
-        ->and($paths['/speakers/{speakerKey}']['get']['tags'] ?? null)->toContain('Speaker');
+    expect($paths['/speakers']['get']['tags'] ?? null)->toContain('Person')
+        ->and($paths['/speakers/{speakerKey}']['get']['tags'] ?? null)->toContain('Person');
 });
 
 it('groups other public directory endpoints under dedicated entity tags in scramble docs', function () {
@@ -308,20 +308,20 @@ it('publishes named speaker institution and reference schemas for the public dir
     $searchParameters = collect(data_get($paths, '/search.get.parameters', []))->pluck('name')->all();
 
     expect($schemas)->toHaveKeys([
-        'Speaker',
-        'SpeakerListItem',
-        'SpeakerDirectoryItem',
+        'Person',
+        'PersonListItem',
+        'PersonDirectoryItem',
         'Institution',
         'InstitutionListItem',
         'InstitutionDirectoryItem',
         'ReferenceListItem',
         'ReferenceDirectoryItem',
     ])
-        ->and(data_get($schemas, 'Speaker.properties.gender'))->not->toBeNull()
-        ->and(data_get($schemas, 'SpeakerListItem.properties.status.type'))->toBe('string')
-        ->and(data_get($schemas, 'SpeakerListItem.properties.gender'))->not->toBeNull()
-        ->and(data_get($schemas, 'SpeakerDirectoryItem.properties.status.type'))->toBe('string')
-        ->and(data_get($schemas, 'SpeakerDirectoryItem.properties.gender'))->not->toBeNull()
+        ->and(data_get($schemas, 'Person.properties.gender'))->not->toBeNull()
+        ->and(data_get($schemas, 'PersonListItem.properties.status.type'))->toBe('string')
+        ->and(data_get($schemas, 'PersonListItem.properties.gender'))->not->toBeNull()
+        ->and(data_get($schemas, 'PersonDirectoryItem.properties.status.type'))->toBe('string')
+        ->and(data_get($schemas, 'PersonDirectoryItem.properties.gender'))->not->toBeNull()
         ->and(data_get($schemas, 'Institution.properties.type'))->not->toBeNull()
         ->and(data_get($schemas, 'InstitutionListItem.properties.distance_km'))->not->toBeNull()
         ->and(data_get($schemas, 'InstitutionListItem.properties.type'))->not->toBeNull()
@@ -469,12 +469,12 @@ it('documents public and admin mutation capability boundaries in the api overvie
         ->toContain('Resource manifests now expose explicit `mcp_tools` for collection, meta, schema, store, and update call surfaces; use those tool names and argument templates instead of guessing URLs.')
         ->toContain('Event discovery supports `filter[starts_on_local_date]=YYYY-MM-DD` and returns `starts_at_local` / `starts_on_local_date` in event payloads.')
         ->toContain('Enum filters and write fields use enum backing values such as `kuliah_ceramah`, `all_ages`, and `prayer_relative`, not display labels such as `Kuliah / Ceramah`.')
-        ->toContain('Event collections expose explicit filters such as filter[status], filter[visibility], filter[event_format], filter[event_category_ids], filter[timing_mode], and filter[prayer_reference]. Speaker collections expose filter[status], filter[is_active], and filter[has_events]. Date-aware admin resources also accept starts_after, starts_before, and starts_on_local_date.')
+        ->toContain('Event collections expose explicit filters such as filter[status], filter[visibility], filter[event_format], filter[event_category_ids], filter[timing_mode], and filter[prayer_reference]. Person collections expose filter[status], filter[is_active], and filter[has_events]. Date-aware admin resources also accept starts_after, starts_before, and starts_on_local_date.')
         ->toContain('use the admin record `route_key` returned by admin collection or detail payloads')
         ->toContain('If you only have a public UUID-backed payload and route_key is unavailable, use the UUID id directly as recordKey.')
         ->toContain('Collection endpoints clamp per_page to server-supported maxima')
         ->toContain('Get the update schema using the route_key returned by the record detail payload')
-        ->toContain('PUT /api/v1/admin/speakers/ahmad-fauzi-my')
+        ->toContain('PUT /api/v1/admin/persons/ahmad-fauzi-my')
         ->toContain('Public create flows currently exist for events, institutions, and speakers.')
         ->toContain('must include an explicit country selection')
         ->toContain('Public update flows currently exist for events, institutions, speakers, and references')

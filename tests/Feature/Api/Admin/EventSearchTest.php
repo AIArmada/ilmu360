@@ -3,8 +3,8 @@
 use AIArmada\CommerceSupport\Models\Role;
 use App\Models\Event;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
-use App\Models\Speaker;
 use App\Models\User;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
@@ -111,23 +111,23 @@ describe('Event Search API', function () {
             'starts_at' => now()->addDay(),
         ]);
 
-        $speaker = Speaker::factory()->create([
+        $person = Person::factory()->create([
             'name' => 'Ustaz Akram API Admin',
             'status' => 'verified',
         ]);
 
-        $speakerEvent = Event::factory()->create([
-            'title' => 'API Admin Speaker Match Event',
+        $personEvent = Event::factory()->create([
+            'title' => 'API Admin Person Match Event',
             'status' => 'approved',
             'visibility' => 'public',
             'published_at' => now(),
             'starts_at' => now()->addDay(),
         ]);
 
-        $speakerEvent->keyPeople()->create([
+        $personEvent->keyPeople()->create([
             'involveable_type' => 'speaker',
-            'involveable_id' => $speaker->id,
-            'display_name' => $speaker->name,
+            'involveable_id' => $person->id,
+            'display_name' => $person->name,
             'role_code' => 'speaker',
             'sort_order' => 1,
         ]);
@@ -157,7 +157,7 @@ describe('Event Search API', function () {
             ->assertOk();
 
         expect(collect(data_get($speakerResponse->json(), 'data', []))->pluck('title')->all())
-            ->toContain('API Admin Speaker Match Event');
+            ->toContain('API Admin Person Match Event');
 
         $referenceResponse = $this->getJson('/api/v1/admin/events/search?query=API%20Admin%20Search%20Reference&time_scope=all')
             ->assertOk();

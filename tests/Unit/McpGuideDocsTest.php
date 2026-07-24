@@ -41,7 +41,7 @@ it('keeps the admin MCP guide aligned with the live admin write-capable resource
         'reports',
         'series',
         'spaces',
-        'speakers',
+        'persons',
         'subdistricts',
         'tags',
         'venues',
@@ -74,7 +74,7 @@ it('keeps the member MCP guide aligned with the live member write-capable resour
         'events',
         'institutions',
         'references',
-        'speakers',
+        'persons',
     ];
 
     sort($expected);

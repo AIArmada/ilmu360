@@ -9,8 +9,8 @@ use App\Enums\TimingMode;
 use App\Livewire\Pages\Events\Show;
 use App\Models\Event;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
-use App\Models\Speaker;
 use App\Models\User;
 use App\Models\Venue;
 use Illuminate\Http\UploadedFile;
@@ -398,8 +398,8 @@ describe('Event Show Page Location & Contact Info', function () {
     });
 
     it('does not use speaker images as hero background when location media is missing', function () {
-        $speaker = Speaker::factory()->create();
-        $speaker->addMedia(UploadedFile::fake()->image('speaker-avatar.jpg', 800, 800))
+        $person = Person::factory()->create();
+        $person->addMedia(UploadedFile::fake()->image('speaker-avatar.jpg', 800, 800))
             ->toMediaCollection('avatar');
 
         $event = Event::factory()->create([
@@ -410,9 +410,9 @@ describe('Event Show Page Location & Contact Info', function () {
             'institution_id' => null,
             'default_venue_id' => null,
         ]);
-        OwnerContext::withOwner(null, fn () => $event->setPrimaryOrganizer($speaker));
+        OwnerContext::withOwner(null, fn () => $event->setPrimaryOrganizer($person));
 
-        $event->speakers()->attach($speaker->id);
+        $event->speakers()->attach($person->id);
 
         $this->get(route('events.show', $event))
             ->assertOk()

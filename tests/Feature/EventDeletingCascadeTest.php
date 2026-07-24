@@ -9,8 +9,8 @@ use App\Models\EventKeyPerson;
 use App\Models\EventSubmission;
 use App\Models\MediaLink;
 use App\Models\ModerationReview;
+use App\Models\Person;
 use App\Models\Registration;
-use App\Models\Speaker;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -19,14 +19,14 @@ uses(RefreshDatabase::class);
 
 it('deletes all related records when an event is deleted', function () {
     $event = Event::factory()->create();
-    $speaker = Speaker::factory()->create();
+    $person = Person::factory()->create();
     $user = User::factory()->create();
 
     EventAccessPolicy::factory()->create(['event_id' => $event->id]);
     EventKeyPerson::factory()->create([
         'event_id' => $event->id,
         'involveable_type' => 'speaker',
-        'involveable_id' => $speaker->id,
+        'involveable_id' => $person->id,
         'role_code' => 'speaker',
     ]);
     EventReference::factory()->create(['event_id' => $event->id]);

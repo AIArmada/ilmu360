@@ -4,9 +4,9 @@ use App\Filament\Resources\Series\Pages\EditSeries;
 use App\Filament\Resources\Spaces\Pages\EditSpace;
 use App\Models\Event;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Series;
 use App\Models\Space;
-use App\Models\Speaker;
 use App\Models\User;
 use App\Services\ContributionEntityMutationService;
 use App\Support\Auditing\AuditValuePresenter;
@@ -30,7 +30,7 @@ beforeEach(function () {
 
     Event::observe(AuditableObserver::class);
     Institution::observe(AuditableObserver::class);
-    Speaker::observe(AuditableObserver::class);
+    Person::observe(AuditableObserver::class);
     Series::observe(AuditableObserver::class);
     Space::observe(AuditableObserver::class);
 
@@ -206,28 +206,28 @@ it('records speaker affiliation sync audits on auditable subjects', function () 
     $currentInstitution = Institution::factory()->create();
     $secondaryInstitution = Institution::factory()->create();
     $newInstitution = Institution::factory()->create();
-    $speaker = Speaker::factory()->create();
+    $person = Person::factory()->create();
 
-    $speaker->institutions()->detach();
+    $person->institutions()->detach();
 
-    $speaker->institutions()->attach($currentInstitution->id, [
+    $person->institutions()->attach($currentInstitution->id, [
         'position' => 'Imam',
         'is_primary' => true,
     ]);
-    $speaker->institutions()->attach($secondaryInstitution->id, [
+    $person->institutions()->attach($secondaryInstitution->id, [
         'position' => 'Advisor',
         'is_primary' => false,
     ]);
 
     $this->actingAs($administrator);
 
-    app(ContributionEntityMutationService::class)->syncSpeakerRelations($speaker, [
+    app(ContributionEntityMutationService::class)->syncPersonRelations($person, [
         'institution_id' => $newInstitution->id,
         'institution_position' => 'Mudir',
     ]);
 
-    $speaker = $speaker->fresh('institutions');
-    $syncAudit = $speaker?->audits()
+    $person = $person->fresh('institutions');
+    $syncAudit = $person?->audits()
         ->where('event', 'sync')
         ->latest('created_at')
         ->first();
@@ -235,14 +235,14 @@ it('records speaker affiliation sync audits on auditable subjects', function () 
     $newInstitutions = $syncAudit?->new_values['institutions'] ?? [];
     $presentedValues = $syncAudit === null ? [] : AuditValuePresenter::values($syncAudit, 'new_values');
 
-    $newAffiliation = $speaker?->institutions->firstWhere('id', $newInstitution->id);
-    $secondaryAffiliation = $speaker?->institutions->firstWhere('id', $secondaryInstitution->id);
+    $newAffiliation = $person?->institutions->firstWhere('id', $newInstitution->id);
+    $secondaryAffiliation = $person?->institutions->firstWhere('id', $secondaryInstitution->id);
 
-    expect($speaker?->institutions->pluck('id')->all())->toEqualCanonicalizing([
+    expect($person?->institutions->pluck('id')->all())->toEqualCanonicalizing([
         $newInstitution->getKey(),
         $secondaryInstitution->getKey(),
     ])
-        ->and($speaker?->institutions->firstWhere('id', $currentInstitution->id))->toBeNull()
+        ->and($person?->institutions->firstWhere('id', $currentInstitution->id))->toBeNull()
         ->and($newAffiliation)->not->toBeNull()
         ->and($newAffiliation?->pivot?->position)->toBe('Mudir')
         ->and((bool) $newAffiliation?->pivot?->is_primary)->toBeTrue()
@@ -264,23 +264,23 @@ it('records speaker affiliation pivot updates when the institution is already at
     $administrator->assignRole('super_admin');
 
     $institution = Institution::factory()->create();
-    $speaker = Speaker::factory()->create();
+    $person = Person::factory()->create();
 
-    $speaker->institutions()->detach();
-    $speaker->institutions()->attach($institution->id, [
+    $person->institutions()->detach();
+    $person->institutions()->attach($institution->id, [
         'position' => 'Imam',
         'is_primary' => true,
     ]);
 
     $this->actingAs($administrator);
 
-    app(ContributionEntityMutationService::class)->syncSpeakerRelations($speaker, [
+    app(ContributionEntityMutationService::class)->syncPersonRelations($person, [
         'institution_id' => $institution->id,
         'institution_position' => 'Mudir',
     ]);
 
-    $speaker = $speaker->fresh('institutions');
-    $syncAudit = $speaker?->audits()
+    $person = $person->fresh('institutions');
+    $syncAudit = $person?->audits()
         ->where('event', 'sync')
         ->latest('created_at')
         ->first();
@@ -289,6 +289,6 @@ it('records speaker affiliation pivot updates when the institution is already at
         ->and($syncAudit?->user_id)->toBe($administrator->id)
         ->and($syncAudit?->old_values['institutions'][0]['position'] ?? null)->toBe('Imam')
         ->and($syncAudit?->new_values['institutions'][0]['position'] ?? null)->toBe('Mudir')
-        ->and($speaker?->institutions->firstWhere('id', $institution->id)?->pivot?->position)->toBe('Mudir')
-        ->and((bool) $speaker?->institutions->firstWhere('id', $institution->id)?->pivot?->is_primary)->toBeTrue();
+        ->and($person?->institutions->firstWhere('id', $institution->id)?->pivot?->position)->toBe('Mudir')
+        ->and((bool) $person?->institutions->firstWhere('id', $institution->id)?->pivot?->is_primary)->toBeTrue();
 });

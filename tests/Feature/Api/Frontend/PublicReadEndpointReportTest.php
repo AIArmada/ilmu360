@@ -1,8 +1,8 @@
 <?php
 
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
-use App\Models\Speaker;
 use App\Models\User;
 use Laravel\Sanctum\Sanctum;
 
@@ -18,7 +18,7 @@ it('resolves public directory detail endpoints by uuid', function (string $resou
             'api.client.speakers.show',
             'speakerKey',
             'speaker',
-            Speaker::factory()->create(['status' => 'verified']),
+            Person::factory()->create(['status' => 'verified']),
         ],
         'reference' => [
             'api.client.references.show',
@@ -55,13 +55,13 @@ it('lists followed directory resources through the public listing following filt
     $user = User::factory()->create();
     $followedInstitution = Institution::factory()->create(['status' => 'verified']);
     $otherInstitution = Institution::factory()->create(['status' => 'verified']);
-    $followedSpeaker = Speaker::factory()->create(['status' => 'verified']);
-    $otherSpeaker = Speaker::factory()->create(['status' => 'verified']);
+    $followedPerson = Person::factory()->create(['status' => 'verified']);
+    $otherPerson = Person::factory()->create(['status' => 'verified']);
     $followedReference = Reference::factory()->create(['status' => 'verified']);
     $otherReference = Reference::factory()->create(['status' => 'verified']);
 
     $user->follow($followedInstitution);
-    $user->follow($followedSpeaker);
+    $user->follow($followedPerson);
     $user->follow($followedReference);
 
     Sanctum::actingAs($user);
@@ -69,7 +69,7 @@ it('lists followed directory resources through the public listing following filt
     $institutionIds = collect($this->getJson('/api/v1/institutions?following=true')
         ->assertOk()
         ->json('data'))->pluck('id');
-    $speakerIds = collect($this->getJson('/api/v1/speakers?following=true')
+    $speakerIds = collect($this->getJson('/api/v1/persons?following=true')
         ->assertOk()
         ->json('data'))->pluck('id');
     $referenceIds = collect($this->getJson('/api/v1/references?following=true')
@@ -78,8 +78,8 @@ it('lists followed directory resources through the public listing following filt
 
     expect($institutionIds->all())->toContain((string) $followedInstitution->id)
         ->not->toContain((string) $otherInstitution->id)
-        ->and($speakerIds->all())->toContain((string) $followedSpeaker->id)
-        ->not->toContain((string) $otherSpeaker->id)
+        ->and($speakerIds->all())->toContain((string) $followedPerson->id)
+        ->not->toContain((string) $otherPerson->id)
         ->and($referenceIds->all())->toContain((string) $followedReference->id)
         ->not->toContain((string) $otherReference->id);
 });

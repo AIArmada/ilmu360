@@ -11,8 +11,8 @@ use App\Enums\TimingMode;
 use App\Models\Event;
 use App\Models\EventChangeAnnouncement;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
-use App\Models\Speaker;
 use App\Models\User;
 use App\Models\Venue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -584,9 +584,9 @@ it('filters events by the dhuha group using morning events while excluding subuh
 });
 
 it('filters events by key person roles and role-specific linked speakers', function () {
-    $imamSpeaker = Speaker::factory()->create(['status' => 'verified']);
-    $moderatorSpeaker = Speaker::factory()->create(['status' => 'verified']);
-    $personInChargeSpeaker = Speaker::factory()->create([
+    $imamPerson = Person::factory()->create(['status' => 'verified']);
+    $moderatorPerson = Person::factory()->create(['status' => 'verified']);
+    $personInChargePerson = Person::factory()->create([
         'name' => 'Ustaz API PIC',
         'status' => 'verified',
     ]);
@@ -598,7 +598,7 @@ it('filters events by key person roles and role-specific linked speakers', funct
 
     $imamEvent->keyPeople()->create([
         'involveable_type' => 'speaker',
-        'involveable_id' => $imamSpeaker->id,
+        'involveable_id' => $imamPerson->id,
         'role_code' => EventKeyPersonRole::Imam->value,
         'sort_order' => 1,
         'visibility' => 'public',
@@ -611,7 +611,7 @@ it('filters events by key person roles and role-specific linked speakers', funct
 
     $moderatedEvent->keyPeople()->create([
         'involveable_type' => 'speaker',
-        'involveable_id' => $moderatorSpeaker->id,
+        'involveable_id' => $moderatorPerson->id,
         'role_code' => EventKeyPersonRole::Moderator->value,
         'sort_order' => 1,
         'visibility' => 'public',
@@ -625,7 +625,7 @@ it('filters events by key person roles and role-specific linked speakers', funct
 
     $personInChargeEvent->keyPeople()->create([
         'involveable_type' => 'speaker',
-        'involveable_id' => $personInChargeSpeaker->id,
+        'involveable_id' => $personInChargePerson->id,
         'role_code' => EventKeyPersonRole::PersonInCharge->value,
         'sort_order' => 1,
         'visibility' => 'public',
@@ -654,7 +654,7 @@ it('filters events by key person roles and role-specific linked speakers', funct
         ->toContain($imamEvent->id)
         ->not()->toContain($moderatedEvent->id);
 
-    $speakerResponse = $this->getJson('/api/v1/events?filter[moderator_ids]='.$moderatorSpeaker->id);
+    $speakerResponse = $this->getJson('/api/v1/events?filter[moderator_ids]='.$moderatorPerson->id);
 
     $speakerResponse->assertOk();
 
@@ -664,7 +664,7 @@ it('filters events by key person roles and role-specific linked speakers', funct
         ->toContain($moderatedEvent->id)
         ->not()->toContain($imamEvent->id);
 
-    $personInChargeResponse = $this->getJson('/api/v1/events?filter[person_in_charge_ids]='.$personInChargeSpeaker->id);
+    $personInChargeResponse = $this->getJson('/api/v1/events?filter[person_in_charge_ids]='.$personInChargePerson->id);
 
     $personInChargeResponse->assertOk();
 
@@ -709,7 +709,7 @@ it('includes reference study subtitle in the generic paginated events payload', 
 });
 
 it('includes key person data in the event api response', function () {
-    $imamSpeaker = Speaker::factory()->create(['status' => 'verified']);
+    $imamPerson = Person::factory()->create(['status' => 'verified']);
 
     $event = Event::factory()->create([
         'status' => 'approved',
@@ -718,7 +718,7 @@ it('includes key person data in the event api response', function () {
 
     $event->keyPeople()->create([
         'involveable_type' => 'speaker',
-        'involveable_id' => $imamSpeaker->id,
+        'involveable_id' => $imamPerson->id,
         'role_code' => EventKeyPersonRole::Imam->value,
         'sort_order' => 1,
         'visibility' => 'public',
@@ -728,7 +728,7 @@ it('includes key person data in the event api response', function () {
 
     $response->assertOk()
         ->assertJsonPath('data.key_people.0.role', EventKeyPersonRole::Imam->value)
-        ->assertJsonPath('data.key_people.0.speaker.id', $imamSpeaker->id)
+        ->assertJsonPath('data.key_people.0.speaker.id', $imamPerson->id)
         ->assertJsonPath('meta.request_id', fn (string $requestId) => filled($requestId));
 });
 
@@ -745,25 +745,25 @@ it('serializes event detail payloads with poster metadata and included speakers'
     $event->addMedia(fakeGeneratedImageUpload('event-poster.png', 1600, 900))
         ->toMediaCollection('poster');
 
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'status' => 'verified',
     ]);
 
-    $speaker->addMedia(fakeGeneratedImageUpload('speaker-avatar.png', 800, 800))
+    $person->addMedia(fakeGeneratedImageUpload('speaker-avatar.png', 800, 800))
         ->toMediaCollection('avatar');
 
-    $event->speakers()->attach($speaker->id);
+    $event->persons()->attach($person->id);
 
     $response = $this->getJson('/api/v1/events/'.$event->id.'?include=speakers');
 
     $response->assertOk()
         ->assertJsonPath('data.id', $event->id)
         ->assertJsonPath('data.has_poster', true)
-        ->assertJsonPath('data.speakers.0.id', $speaker->id)
-        ->assertJsonPath('data.speakers.0.name', $speaker->name)
-        ->assertJsonPath('data.speakers.0.formatted_name', $speaker->formatted_name)
-        ->assertJsonPath('data.speakers.0.slug', $speaker->slug)
-        ->assertJsonPath('data.speakers.0.avatar_url', $speaker->public_avatar_url);
+        ->assertJsonPath('data.speakers.0.id', $person->id)
+        ->assertJsonPath('data.speakers.0.name', $person->name)
+        ->assertJsonPath('data.speakers.0.formatted_name', $person->formatted_name)
+        ->assertJsonPath('data.speakers.0.slug', $person->slug)
+        ->assertJsonPath('data.speakers.0.avatar_url', $person->public_avatar_url);
 
     $payload = $response->json('data');
 

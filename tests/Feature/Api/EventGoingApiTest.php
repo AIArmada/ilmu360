@@ -4,7 +4,7 @@ use AIArmada\Engagement\Models\EngagementCounter;
 use AIArmada\Events\Models\EventOccurrence;
 use App\Models\Event;
 use App\Models\Institution;
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Models\User;
 use App\Models\Venue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -63,8 +63,8 @@ it('lists the current users going events', function () {
     $venue = Venue::factory()->create([
         'name' => 'Dewan Going',
     ]);
-    $speaker = Speaker::factory()->create([
-        'name' => 'Speaker Going',
+    $person = Person::factory()->create([
+        'name' => 'Person Going',
         'slug' => 'speaker-going',
     ]);
 
@@ -91,7 +91,7 @@ it('lists the current users going events', function () {
         'starts_at' => now()->addDays(4),
     ]);
 
-    $first->speakers()->attach($speaker->id);
+    $first->speakers()->attach($person->id);
 
     foreach ([$first, $second, $inactive] as $event) {
         $this->user->respond($event, 'going');
@@ -111,9 +111,9 @@ it('lists the current users going events', function () {
         ->assertJsonPath('data.0.institution.slug', $institution->slug)
         ->assertJsonPath('data.0.venue.id', $venue->id)
         ->assertJsonPath('data.0.venue.name', 'Dewan Going')
-        ->assertJsonPath('data.0.speakers.0.id', $speaker->id)
-        ->assertJsonPath('data.0.speakers.0.name', 'Speaker Going')
-        ->assertJsonPath('data.0.speakers.0.slug', $speaker->slug)
+        ->assertJsonPath('data.0.speakers.0.id', $person->id)
+        ->assertJsonPath('data.0.speakers.0.name', 'Person Going')
+        ->assertJsonPath('data.0.speakers.0.slug', $person->slug)
         ->assertJsonPath('data.0.speakers.0.pivot.event_id', $first->id)
         ->assertJsonPath('data.0.pivot.event_id', $first->id)
         ->assertJsonPath('data.0.pivot.user_id', $this->user->id)

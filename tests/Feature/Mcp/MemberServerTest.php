@@ -34,13 +34,13 @@ use App\Models\EventChangeAnnouncement;
 use App\Models\Institution;
 use App\Models\MembershipApplication;
 use App\Models\PassportUser;
+use App\Models\Person;
 use App\Models\Reference;
-use App\Models\Speaker;
 use App\Models\User;
 use App\Support\GitHub\GitHubIssueReportContract;
 use App\Support\Mcp\McpTokenManager;
 use App\Support\Mcp\MemberMcpDocumentationPreflight;
-use App\Support\Search\SpeakerSearchService;
+use App\Support\Search\PersonSearchService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -66,8 +66,8 @@ it('lists accessible member resources for institution members through the MCP se
             ->etc());
 });
 
-it('lists accessible member resources for speaker members through the MCP server', function () {
-    [$member] = speakerMemberMcpContext();
+it('lists accessible member resources for person members through the MCP server', function () {
+    [$member] = personMemberMcpContext();
 
     MemberServer::actingAs($member)
         ->tool(MemberListResourcesTool::class)
@@ -75,7 +75,7 @@ it('lists accessible member resources for speaker members through the MCP server
         ->assertHasNoErrors()
         ->assertStructuredContent(fn ($json) => $json
             ->has('data.resources', 2)
-            ->where('data.resources.0.key', 'speakers')
+            ->where('data.resources.0.key', 'people')
             ->where('data.resources.1.key', 'events')
             ->etc());
 });
@@ -120,38 +120,38 @@ it('returns member resource metadata, record listings, and record detail for ins
             ->etc());
 });
 
-it('searches member speakers by formatted public title parts through MCP list records', function () {
-    [$member, $matchingSpeaker] = speakerMemberMcpContext(role: 'admin');
+it('searches member persons by formatted public title parts through MCP list records', function () {
+    [$member, $matchingPerson] = personMemberMcpContext(role: 'admin');
 
-    $matchingSpeaker->update([
-        'name' => 'Member MCP Speaker Match',
+    $matchingPerson->update([
+        'name' => 'Member MCP Person Match',
         'pre_nominal' => ['syeikhul_maqari'],
     ]);
 
-    $otherSpeaker = Speaker::factory()->create([
-        'name' => 'Member MCP Speaker Other',
+    $otherPerson = Person::factory()->create([
+        'name' => 'Member MCP Person Other',
         'status' => 'verified',
     ]);
 
-    addTestMember($otherSpeaker, $member, 'viewer');
+    addTestMember($otherPerson, $member, 'viewer');
 
-    $matchingSpeaker = $matchingSpeaker->fresh();
+    $matchingPerson = $matchingPerson->fresh();
 
-    expect($matchingSpeaker)->not->toBeNull();
+    expect($matchingPerson)->not->toBeNull();
 
-    app(SpeakerSearchService::class)->syncSpeakerRecord($matchingSpeaker);
-    app(SpeakerSearchService::class)->syncSpeakerRecord($otherSpeaker);
+    app(PersonSearchService::class)->syncPersonRecord($matchingPerson);
+    app(PersonSearchService::class)->syncPersonRecord($otherPerson);
 
     MemberServer::actingAs($member)
         ->tool(MemberListRecordsTool::class, [
-            'resource_key' => 'speakers',
+            'resource_key' => 'people',
             'search' => 'syeikhul maqari',
         ])
         ->assertOk()
         ->assertStructuredContent(fn ($json) => $json
-            ->where('meta.resource.key', 'speakers')
+            ->where('meta.resource.key', 'people')
             ->where('meta.pagination.total', 1)
-            ->where('data.0.id', (string) $matchingSpeaker->getKey())
+            ->where('data.0.id', (string) $matchingPerson->getKey())
             ->etc());
 });
 
@@ -576,18 +576,18 @@ it('returns member update schema and updates institutions through member MCP wri
         ->assertHasErrors(['Destructive media clear flags are not supported through MCP. Upload a replacement file or array when the schema advertises that media field.']);
 });
 
-it('returns member update schema for speakers with surfaced mutation semantics', function () {
-    [$member, $speaker] = speakerMemberMcpContext(role: 'admin');
+it('returns member update schema for persons with surfaced mutation semantics', function () {
+    [$member, $person] = personMemberMcpContext(role: 'admin');
 
     MemberServer::actingAs($member)
         ->tool(MemberGetWriteSchemaTool::class, [
-            'resource_key' => 'speakers',
-            'record_key' => $speaker->getKey(),
+            'resource_key' => 'people',
+            'record_key' => $person->getKey(),
         ])
         ->assertOk()
         ->assertStructuredContent(fn ($json) => $json
-            ->where('data.resource.key', 'speakers')
-            ->where('data.schema.resource_key', 'speakers')
+            ->where('data.resource.key', 'people')
+            ->where('data.schema.resource_key', 'people')
             ->where('data.schema.fields', function ($fields): bool {
                 $fieldMap = collect($fields)->keyBy('name');
                 $qualificationItemFields = collect(data_get($fieldMap->get('qualifications'), 'item_schema.fields', []))->keyBy('name');
@@ -606,15 +606,15 @@ it('returns member update schema for speakers with surfaced mutation semantics',
             ->etc());
 });
 
-it('requires an explicit speaker country when the address is mutated through member MCP write tools', function () {
-    [$member, $speaker] = speakerMemberMcpContext(role: 'admin');
+it('requires an explicit person country when the address is mutated through member MCP write tools', function () {
+    [$member, $person] = personMemberMcpContext(role: 'admin');
 
     MemberServer::actingAs($member)
         ->tool(MemberUpdateRecordTool::class, [
-            'resource_key' => 'speakers',
-            'record_key' => $speaker->getKey(),
+            'resource_key' => 'people',
+            'record_key' => $person->getKey(),
             'payload' => [
-                'name' => $speaker->name,
+                'name' => $person->name,
                 'gender' => 'male',
                 'status' => 'verified',
                 'address' => [],
@@ -675,8 +675,8 @@ it('returns member update schema for events with surfaced mutation semantics', f
 
                 return data_get($fieldMap->get('title'), 'required') === false
                     && data_get($fieldMap->get('references'), 'collection_semantics.explicit_null') === 'clear_collection'
-                    && data_get($fieldMap->get('speakers'), 'collection_semantics.submitted_array') === 'replace_speaker_subset_and_rebuild_key_people'
-                    && data_get($fieldMap->get('primary_organizer_id'), 'accepted_models') === [Institution::class, Speaker::class]
+                    && data_get($fieldMap->get('speakers'), 'collection_semantics.submitted_array') === 'replace_person_subset_and_rebuild_key_people'
+                    && data_get($fieldMap->get('primary_organizer_id'), 'accepted_models') === [Institution::class, Person::class]
                     && data_get($fieldMap->get('registration_mode'), 'lock_behavior.when_event_has_registrations') === 'retain_current_value'
                     && $otherKeyPeopleFields->has('role_code')
                     && $otherKeyPeopleFields->has('display_name');
@@ -1190,7 +1190,7 @@ it('rejects legacy wildcard MCP tokens on the member MCP stream endpoint', funct
 it('initializes and lists member MCP tools over the HTTP endpoint', function () {
     configureGithubIssueReportingForMemberMcp();
 
-    [$member] = speakerMemberMcpContext(role: 'admin');
+    [$member] = personMemberMcpContext(role: 'admin');
     $token = $member->createToken('mcp-member-http-test', [McpTokenManager::MEMBER_ABILITY])->plainTextToken;
 
     $initialize = $this->withToken($token)->postJson('/mcp/member', [
@@ -1629,18 +1629,18 @@ function memberPassportUser(User $user): PassportUser
 }
 
 /**
- * @return array{0: User, 1: Speaker}
+ * @return array{0: User, 1: Person}
  */
-function speakerMemberMcpContext(string $role = 'viewer', string $status = 'verified'): array
+function personMemberMcpContext(string $role = 'viewer', string $status = 'verified'): array
 {
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'status' => $status,
     ]);
     $member = User::factory()->create();
 
-    addTestMember($speaker, $member, $role);
+    addTestMember($person, $member, $role);
 
-    return [$member, $speaker];
+    return [$member, $person];
 }
 
 /**

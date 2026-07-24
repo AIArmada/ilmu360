@@ -3,7 +3,7 @@
 use App\Actions\DonationChannels\SaveDonationChannelAction;
 use App\Models\DonationChannel;
 use App\Models\Institution;
-use App\Models\Speaker;
+use App\Models\Person;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
 
@@ -98,11 +98,11 @@ it('updates an existing donation channel', function () {
 });
 
 it('assigns a channel to a speaker owner', function () {
-    $speaker = Speaker::factory()->create();
+    $person = Person::factory()->create();
 
     $channel = app(SaveDonationChannelAction::class)->handle([
         'donatable_type' => 'speaker',
-        'donatable_id' => (string) $speaker->getKey(),
+        'donatable_id' => (string) $person->getKey(),
         'recipient' => 'Ustaz Ahmad',
         'method' => 'bank_account',
         'bank_code' => 'MBB',
@@ -111,8 +111,8 @@ it('assigns a channel to a speaker owner', function () {
         'status' => 'unverified',
     ]);
 
-    expect($channel->donatable_type)->toBe($speaker->getMorphClass())
-        ->and($channel->donatable_id)->toBe((string) $speaker->getKey());
+    expect($channel->donatable_type)->toBe($person->getMorphClass())
+        ->and($channel->donatable_id)->toBe((string) $person->getKey());
 });
 
 it('rejects an invalid donation method', function () {

@@ -2,7 +2,7 @@
 
 use App\Models\Event;
 use App\Models\Institution;
-use App\Models\Speaker;
+use App\Models\Person;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Laravel\Scout\Jobs\MakeSearchable;
@@ -16,16 +16,16 @@ it('queues speaker reindexing when a speaker address changes', function () {
         'queue' => 'scout',
     ]);
 
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'status' => 'verified',
     ]);
 
-    syncPrimaryAddressForTest($speaker, [
+    syncPrimaryAddressForTest($person, [
         'line1' => 'Jalan Baru 1',
     ]);
 
     Queue::assertPushed(MakeSearchable::class, fn (MakeSearchable $job): bool => $job->models->contains(
-        fn (Speaker $model): bool => $model->is($speaker)
+        fn (Person $model): bool => $model->is($person)
     ));
 });
 

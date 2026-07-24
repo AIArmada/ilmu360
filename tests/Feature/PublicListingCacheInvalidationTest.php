@@ -10,7 +10,7 @@ use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Event;
 use App\Models\EventKeyPerson;
 use App\Models\Institution;
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Models\Venue;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
@@ -100,7 +100,7 @@ it('clears majlis listing cache when event is submitted from public submit form'
     $domainTag = submitEventTerm('domain');
     $disciplineTag = submitEventTerm('discipline');
     $institution = Institution::factory()->create(['status' => 'verified']);
-    $speaker = Speaker::factory()->create(['status' => 'verified']);
+    $person = Person::factory()->create(['status' => 'verified']);
 
     $keys = primeMajlisListingCache();
     $homepageKeys = primeHomepageStatsCache();
@@ -119,7 +119,7 @@ it('clears majlis listing cache when event is submitted from public submit form'
             'age_group' => [EventAgeGroup::AllAges->value],
             'languages' => [101],
             'primary_organizer_id' => $institution->id,
-            'speakers' => [$speaker->id],
+            'persons' => [$person->id],
             'domain_tags' => [$domainTag->id],
             'discipline_tags' => [$disciplineTag->id],
             'submitter_name' => 'Cache Tester',
@@ -157,11 +157,11 @@ it('clears majlis listing cache when admin-managed related records are created',
     assertMajlisCacheWasCleared($keysAfterInstitutionPrime);
     assertHomepageStatsCacheWasCleared($homepageKeysAfterInstitutionPrime);
 
-    $keysAfterSpeakerPrime = primeMajlisListingCache();
-    $homepageKeysAfterSpeakerPrime = primeHomepageStatsCache();
-    Speaker::factory()->create(['status' => 'verified']);
-    assertMajlisCacheWasCleared($keysAfterSpeakerPrime);
-    assertHomepageStatsCacheWasCleared($homepageKeysAfterSpeakerPrime);
+    $keysAfterPersonPrime = primeMajlisListingCache();
+    $homepageKeysAfterPersonPrime = primeHomepageStatsCache();
+    Person::factory()->create(['status' => 'verified']);
+    assertMajlisCacheWasCleared($keysAfterPersonPrime);
+    assertHomepageStatsCacheWasCleared($homepageKeysAfterPersonPrime);
 
     $keysAfterTagPrime = primeMajlisListingCache();
     submitEventTerm('issue');
@@ -177,14 +177,14 @@ it('clears homepage stats cache when event key people are created or deleted', f
         'status' => 'approved',
         'starts_at' => now()->addDays(7),
     ]);
-    $speaker = Speaker::factory()->create(['status' => 'verified']);
+    $person = Person::factory()->create(['status' => 'verified']);
 
     $homepageKeysAfterCreate = primeHomepageStatsCache();
     $eventKeyPerson = EventKeyPerson::query()->create([
         'event_id' => $event->getKey(),
         'involveable_type' => 'speaker',
-        'involveable_id' => $speaker->getKey(),
-        'role_code' => EventKeyPersonRole::Speaker->value,
+        'involveable_id' => $person->getKey(),
+        'role_code' => EventKeyPersonRole::Person->value,
         'visibility' => 'public',
     ]);
 

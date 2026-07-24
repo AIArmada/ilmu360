@@ -10,8 +10,8 @@ use App\Enums\NotificationTrigger;
 use App\Models\Event;
 use App\Models\EventChangeAnnouncement;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Registration;
-use App\Models\Speaker;
 use App\Models\User;
 use App\Services\Notifications\EventNotificationService;
 use Carbon\Carbon;
@@ -362,18 +362,18 @@ it('allows speaker members for listed event speakers to publish change announcem
     eventChangeSeedScopedRoles();
 
     $editor = User::factory()->create();
-    $speaker = Speaker::factory()->create();
+    $person = Person::factory()->create();
     $event = eventChangeApprovedEvent([
         'title' => 'Kuliah Penceramah Ahli',
     ]);
 
     EventKeyPersonFactory::new()
         ->for($event)
-        ->for($speaker)
+        ->for($person)
         ->create();
 
-    $speaker->members()->syncWithoutDetaching([$editor->id]);
-    $speaker->members()->updateExistingPivot($editor->id, ['role' => 'admin']);
+    $person->members()->syncWithoutDetaching([$editor->id]);
+    $person->members()->updateExistingPivot($editor->id, ['role' => 'admin']);
 
     $announcement = app(PublishEventChangeAnnouncement::class)->handle(
         event: $event,

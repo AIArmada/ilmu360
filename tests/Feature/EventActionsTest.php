@@ -14,7 +14,7 @@ use App\Enums\TimingMode;
 use App\Models\Event;
 use App\Models\EventChangeAnnouncement;
 use App\Models\Institution;
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Models\User;
 use App\Support\Api\Frontend\FrontendFormContractService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -24,15 +24,15 @@ uses(RefreshDatabase::class);
 
 it('prepares advanced parent program submissions with utc timestamps and resolved location ownership', function () {
     $user = User::factory()->create();
-    $speaker = Speaker::factory()->create(['status' => 'verified']);
+    $person = Person::factory()->create(['status' => 'verified']);
     $locationInstitution = Institution::factory()->create(['status' => 'verified']);
 
-    $user->speakers()->syncWithoutDetaching([$speaker->id]);
+    $user->persons()()->syncWithoutDetaching([$person->id]);
     $user->institutions()->syncWithoutDetaching([$locationInstitution->id]);
 
     $prepared = app(PrepareAdvancedParentProgramSubmissionAction::class)->handle($user, [
         'timezone' => 'Asia/Kuala_Lumpur',
-        'primary_organizer_id' => $speaker->id,
+        'primary_organizer_id' => $person->id,
         'location_institution_id' => $locationInstitution->id,
         'program_starts_at' => '2026-04-10T20:00',
         'program_ends_at' => '2026-04-10T22:00',
@@ -40,8 +40,8 @@ it('prepares advanced parent program submissions with utc timestamps and resolve
 
     expect($prepared)->not->toHaveKey('organizer_type')
         ->and($prepared)->not->toHaveKey('organizer_id')
-        ->and($prepared['primary_organizer'])->toBeInstanceOf(Speaker::class)
-        ->and($prepared['primary_organizer']->is($speaker))->toBeTrue()
+        ->and($prepared['primary_organizer'])->toBeInstanceOf(Person::class)
+        ->and($prepared['primary_organizer']->is($person))->toBeTrue()
         ->and($prepared['location_institution_id'])->toBe($locationInstitution->id)
         ->and($prepared['program_starts_at']->format('Y-m-d H:i:s'))->toBe('2026-04-10 12:00:00')
         ->and($prepared['program_ends_at']->format('Y-m-d H:i:s'))->toBe('2026-04-10 14:00:00');
@@ -67,10 +67,10 @@ it('resolves advanced builder context with requested institution defaults', func
 it('publishes the advanced event contract with the primary organizer field and grouped options', function () {
     $user = User::factory()->create();
     $institution = Institution::factory()->create(['name' => 'Masjid Kontrak', 'status' => 'verified']);
-    $speaker = Speaker::factory()->create(['name' => 'Penceramah Kontrak', 'status' => 'verified']);
+    $person = Person::factory()->create(['name' => 'Penceramah Kontrak', 'status' => 'verified']);
 
     $user->institutions()->syncWithoutDetaching([$institution->id]);
-    $user->speakers()->syncWithoutDetaching([$speaker->id]);
+    $user->persons()()->syncWithoutDetaching([$person->id]);
 
     $contract = app(FrontendFormContractService::class)->advancedEvent($user);
 
@@ -79,7 +79,7 @@ it('publishes the advanced event contract with the primary organizer field and g
         ->and($contract['defaults']['primary_organizer_id'])->toBe($institution->id)
         ->and(collect($contract['fields'])->pluck('name'))->toContain('primary_organizer_id')
         ->and($contract['options']['primary_organizer_options']['institution'])->toHaveKey($institution->id, 'Masjid Kontrak')
-        ->and($contract['options']['primary_organizer_options']['speaker'])->toHaveKey($speaker->id, 'Penceramah Kontrak')
+        ->and($contract['options']['primary_organizer_options']['speaker'])->toHaveKey($person->id, 'Penceramah Kontrak')
         ->and($contract['options']['location_institution_options'])->toHaveKey($institution->id, 'Masjid Kontrak');
 });
 
@@ -87,22 +87,22 @@ it('resolves advanced builder membership options from active member organizers o
     $user = User::factory()->create();
     $activeInstitution = Institution::factory()->create(['name' => 'Masjid Aktif', 'status' => 'verified']);
     $inactiveInstitution = Institution::factory()->create(['name' => 'Masjid Pasif', 'status' => 'inactive']);
-    $activeSpeaker = Speaker::factory()->create(['name' => 'Speaker Aktif', 'status' => 'verified']);
-    $inactiveSpeaker = Speaker::factory()->create(['name' => 'Speaker Pasif', 'status' => 'inactive']);
+    $activePerson = Person::factory()->create(['name' => 'Person Aktif', 'status' => 'verified']);
+    $inactivePerson = Person::factory()->create(['name' => 'Person Pasif', 'status' => 'inactive']);
 
     $user->institutions()->syncWithoutDetaching([$activeInstitution->id, $inactiveInstitution->id]);
-    $user->speakers()->syncWithoutDetaching([$activeSpeaker->id, $inactiveSpeaker->id]);
+    $user->persons()()->syncWithoutDetaching([$activePerson->id, $inactivePerson->id]);
 
     $options = app(ResolveAdvancedBuilderMembershipOptionsAction::class)->handle($user);
 
     expect($options['institution_options'])->toBe([$activeInstitution->id => 'Masjid Aktif'])
-        ->and($options['speaker_options'])->toBe([$activeSpeaker->id => 'Speaker Aktif']);
+        ->and($options['person_options'])->toBe([$activePerson->id => 'Person Aktif']);
 });
 
 it('syncs event resource relations and persists the requested registration mode', function () {
     $event = Event::factory()->create();
 
-    $speaker = Speaker::factory()->create(['status' => 'verified']);
+    $person = Person::factory()->create(['status' => 'verified']);
     $result = app(SyncEventResourceRelationsAction::class)->handle($event, [
         'registration_required' => false,
         'domain_tags' => [],
@@ -110,12 +110,12 @@ it('syncs event resource relations and persists the requested registration mode'
         'source_tags' => [],
         'issue_tags' => [],
         'languages' => [],
-        'speakers' => [$speaker->id],
+        'persons' => [$person->id],
         'other_key_people' => [],
     ]);
 
     $event->refresh();
-    $event->load(['accessPolicy', 'speakers']);
+    $event->load(['accessPolicy', 'persons']);
 
     expect($result)->toMatchArray([
         'registration_mode' => PackageRegistrationMode::None->value,
@@ -123,7 +123,7 @@ it('syncs event resource relations and persists the requested registration mode'
     ])
         ->and($event->accessPolicy?->registration_required)->toBeFalse()
         ->and($event->resolvedRegistrationMode())->toBe(PackageRegistrationMode::None)
-        ->and($event->speakers->pluck('id')->all())->toBe([$speaker->id]);
+        ->and($event->speakers->pluck('id')->all())->toBe([$person->id]);
 });
 
 it('persists the direction of prayer-relative offsets', function (): void {

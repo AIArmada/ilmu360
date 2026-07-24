@@ -3,8 +3,8 @@
 use App\Enums\ReferenceType;
 use App\Models\Event;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
-use App\Models\Speaker;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Livewire\Livewire;
@@ -35,7 +35,7 @@ it('contains livewire components on the homepage', function () {
 it('loads the stats component', function () {
     // Create some test data
     Event::factory()->count(5)->create(['status' => 'approved']);
-    Speaker::factory()->count(3)->create();
+    Person::factory()->count(3)->create();
     Institution::factory()->count(2)->create();
 
     Livewire::test('home.stats')

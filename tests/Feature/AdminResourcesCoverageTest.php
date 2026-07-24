@@ -14,6 +14,10 @@ use App\Filament\Resources\Institutions\InstitutionResource;
 use App\Filament\Resources\Institutions\RelationManagers\DonationChannelsRelationManager as InstitutionDonationChannelsRelationManager;
 use App\Filament\Resources\Institutions\RelationManagers\MemberInvitationsRelationManager as InstitutionMemberInvitationsRelationManager;
 use App\Filament\Resources\MembershipApplications\MembershipApplicationResource;
+use App\Filament\Resources\Persons\PersonResource;
+use App\Filament\Resources\Persons\RelationManagers\EventsRelationManager as PersonEventsRelationManager;
+use App\Filament\Resources\Persons\RelationManagers\FollowersRelationManager as PersonFollowersRelationManager;
+use App\Filament\Resources\Persons\RelationManagers\MemberInvitationsRelationManager as PersonMemberInvitationsRelationManager;
 use App\Filament\Resources\References\ReferenceResource;
 use App\Filament\Resources\References\RelationManagers\EventsRelationManager as ReferenceEventsRelationManager;
 use App\Filament\Resources\References\RelationManagers\MemberInvitationsRelationManager as ReferenceMemberInvitationsRelationManager;
@@ -22,10 +26,6 @@ use App\Filament\Resources\Reports\ReportResource;
 use App\Filament\Resources\Series\RelationManagers\EventsRelationManager as SeriesEventsRelationManager;
 use App\Filament\Resources\Series\SeriesResource;
 use App\Filament\Resources\Spaces\SpaceResource;
-use App\Filament\Resources\Speakers\RelationManagers\EventsRelationManager as SpeakerEventsRelationManager;
-use App\Filament\Resources\Speakers\RelationManagers\FollowersRelationManager as SpeakerFollowersRelationManager;
-use App\Filament\Resources\Speakers\RelationManagers\MemberInvitationsRelationManager as SpeakerMemberInvitationsRelationManager;
-use App\Filament\Resources\Speakers\SpeakerResource;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
@@ -43,7 +43,7 @@ it('allows super admin to access all core admin resource index pages', function 
         EventResource::class,
         EventTemplateResource::class,
         InstitutionResource::class,
-        SpeakerResource::class,
+        PersonResource::class,
         VenueResource::class,
         SeriesResource::class,
         ReferenceResource::class,
@@ -89,9 +89,9 @@ it('registers and can create commerce event templates in both panels', function 
 
 it('registers expected relation managers on core admin resources', function () {
     expect(SeriesResource::getRelations())->toContain(SeriesEventsRelationManager::class);
-    expect(SpeakerResource::getRelations())->toContain(SpeakerEventsRelationManager::class);
-    expect(SpeakerResource::getRelations())->toContain(SpeakerFollowersRelationManager::class);
-    expect(SpeakerResource::getRelations())->toContain(SpeakerMemberInvitationsRelationManager::class);
+    expect(PersonResource::getRelations())->toContain(PersonEventsRelationManager::class);
+    expect(PersonResource::getRelations())->toContain(PersonFollowersRelationManager::class);
+    expect(PersonResource::getRelations())->toContain(PersonMemberInvitationsRelationManager::class);
     expect(ReferenceResource::getRelations())->toContain(ReferenceEventsRelationManager::class);
     expect(ReferenceResource::getRelations())->toContain(ReferenceMembersRelationManager::class);
     expect(ReferenceResource::getRelations())->toContain(ReferenceMemberInvitationsRelationManager::class);

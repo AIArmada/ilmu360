@@ -9,7 +9,7 @@ use App\Enums\EventVisibility;
 use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Event;
 use App\Models\Institution;
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Models\User;
 use Livewire\Livewire;
 
@@ -49,7 +49,7 @@ it('rejects guest submission when organizer institution is locked to members', f
         'status' => 'verified',
     ]);
 
-    $publicSpeaker = Speaker::factory()->create([
+    $publicPerson = Person::factory()->create([
         'allow_public_event_submission' => true,
         'status' => 'verified',
     ]);
@@ -58,7 +58,7 @@ it('rejects guest submission when organizer institution is locked to members', f
         Livewire::test(Create::class),
         submitEventEntityAccessPayload($this->domainTag, $this->disciplineTag, [
             'primary_organizer_id' => $lockedInstitution->id,
-            'speakers' => [$publicSpeaker->id],
+            'persons' => [$publicPerson->id],
         ]),
     )
         ->call('submit')
@@ -71,7 +71,7 @@ it('rejects guest submission when selected speakers include locked speaker', fun
         'status' => 'verified',
     ]);
 
-    $lockedSpeaker = Speaker::factory()->create([
+    $lockedPerson = Person::factory()->create([
         'allow_public_event_submission' => false,
         'status' => 'verified',
     ]);
@@ -80,7 +80,7 @@ it('rejects guest submission when selected speakers include locked speaker', fun
         Livewire::test(Create::class),
         submitEventEntityAccessPayload($this->domainTag, $this->disciplineTag, [
             'primary_organizer_id' => $publicInstitution->id,
-            'speakers' => [$lockedSpeaker->id],
+            'persons' => [$lockedPerson->id],
         ]),
     )
         ->call('submit')
@@ -95,20 +95,20 @@ it('allows authenticated members to submit locked institution and speaker entiti
         'status' => 'verified',
     ]);
 
-    $lockedSpeaker = Speaker::factory()->create([
+    $lockedPerson = Person::factory()->create([
         'allow_public_event_submission' => false,
         'status' => 'verified',
     ]);
 
     $lockedInstitution->members()->syncWithoutDetaching([$user->id]);
-    $lockedSpeaker->members()->syncWithoutDetaching([$user->id]);
+    $lockedPerson->members()->syncWithoutDetaching([$user->id]);
 
     setSubmitEventFormState(
         Livewire::actingAs($user)->test(Create::class),
         submitEventEntityAccessPayload($this->domainTag, $this->disciplineTag, [
             'title' => 'Member Locked Access Event',
-            'primary_organizer_id' => $lockedSpeaker->id,
-            'speakers' => [$lockedSpeaker->id],
+            'primary_organizer_id' => $lockedPerson->id,
+            'persons' => [$lockedPerson->id],
             'location_type' => 'institution',
             'location_institution_id' => $lockedInstitution->id,
         ]),
@@ -121,7 +121,7 @@ it('allows authenticated members to submit locked institution and speaker entiti
 
     expect($event)->not->toBeNull();
     $organizerInvolvement = $event?->primaryOrganizerInvolvement;
-    expect($organizerInvolvement?->involveable_id)->toBe((string) $lockedSpeaker->getKey());
+    expect($organizerInvolvement?->involveable_id)->toBe((string) $lockedPerson->getKey());
     expect($event?->institution_id)->toBe($lockedInstitution->id);
 });
 
@@ -169,7 +169,7 @@ it('auto-approves institution-scoped dashboard submissions and locks the organiz
         'allow_public_event_submission' => false,
         'status' => 'verified',
     ]);
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'allow_public_event_submission' => true,
         'status' => 'verified',
     ]);
@@ -181,7 +181,7 @@ it('auto-approves institution-scoped dashboard submissions and locks the organiz
         submitEventEntityAccessPayload($this->domainTag, $this->disciplineTag, [
             'title' => 'Institution Dashboard Published Event',
             'location_same_as_institution' => true,
-            'speakers' => [$speaker->id],
+            'persons' => [$person->id],
         ]),
     )
         ->call('submit')

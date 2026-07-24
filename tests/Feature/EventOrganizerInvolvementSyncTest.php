@@ -7,7 +7,7 @@ use App\Enums\EventVisibility;
 use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Event;
 use App\Models\Institution;
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Models\User;
 use App\Models\Venue;
 
@@ -78,19 +78,19 @@ it('clears the primary organizer via setPrimaryOrganizer(null)', function () {
 
 it('updates the existing primary involvement when organizer changes', function () {
     $institution = Institution::factory()->create(['status' => 'verified']);
-    $speaker = Speaker::factory()->create(['status' => 'verified']);
+    $person = Person::factory()->create(['status' => 'verified']);
     $event = Event::factory()->create();
 
     $event->setPrimaryOrganizer($institution);
     $event = $event->fresh();
     $firstId = $event->primaryOrganizerInvolvement->getKey();
 
-    $event->setPrimaryOrganizer($speaker);
+    $event->setPrimaryOrganizer($person);
     $involvement = $event->fresh()->primaryOrganizerInvolvement;
 
     expect($involvement->getKey())->toBe($firstId)
-        ->and($involvement->involveable_type)->toBe(Speaker::class)
-        ->and($involvement->involveable_id)->toBe((string) $speaker->getKey());
+        ->and($involvement->involveable_type)->toBe(Person::class)
+        ->and($involvement->involveable_id)->toBe((string) $person->getKey());
 });
 
 it('ignores legacy organizer metadata when no primary involvement exists', function () {
@@ -98,7 +98,7 @@ it('ignores legacy organizer metadata when no primary involvement exists', funct
 
     $event->metadata = array_merge(
         (array) $event->metadata,
-        ['organizer_type' => Speaker::class, 'organizer_id' => 'some-uuid'],
+        ['organizer_type' => Person::class, 'organizer_id' => 'some-uuid'],
     );
     $event->save();
 
@@ -109,14 +109,14 @@ it('ignores legacy organizer metadata when no primary involvement exists', funct
 
 it('creates organizer involvement via submit-event flow with a speaker organizer', function () {
     $user = User::factory()->create();
-    $speaker = Speaker::factory()->create(['status' => 'verified']);
+    $person = Person::factory()->create(['status' => 'verified']);
     $venue = Venue::factory()->create(['status' => 'verified']);
     $domainTag = submitEventTerm('domain');
     $disciplineTag = submitEventTerm('discipline');
 
     setSubmitEventFormState(
         Livewire::actingAs($user)->test(Create::class),
-        ['title' => 'Submit Event Organizer Involvement', 'description' => 'Test description.', 'event_date' => now()->addDays(7)->format('Y-m-d'), 'prayer_time' => 'selepas_maghrib', 'event_category_ids' => [eventCategoryId('kuliah_ceramah')], 'event_format' => EventFormat::Physical->value, 'visibility' => EventVisibility::Public->value, 'gender' => EventGenderRestriction::All->value, 'age_group' => [EventAgeGroup::AllAges->value], 'languages' => [101], 'submission_country_id' => (string) ensureTestMalaysiaCountry()->getKey(), 'primary_organizer_id' => $speaker->getKey(), 'speakers' => [$speaker->getKey()], 'location_type' => 'venue', 'location_venue_id' => $venue->getKey(), 'domain_tags' => [$domainTag->getKey()], 'discipline_tags' => [$disciplineTag->getKey()]],
+        ['title' => 'Submit Event Organizer Involvement', 'description' => 'Test description.', 'event_date' => now()->addDays(7)->format('Y-m-d'), 'prayer_time' => 'selepas_maghrib', 'event_category_ids' => [eventCategoryId('kuliah_ceramah')], 'event_format' => EventFormat::Physical->value, 'visibility' => EventVisibility::Public->value, 'gender' => EventGenderRestriction::All->value, 'age_group' => [EventAgeGroup::AllAges->value], 'languages' => [101], 'submission_country_id' => (string) ensureTestMalaysiaCountry()->getKey(), 'primary_organizer_id' => $person->getKey(), 'speakers' => [$person->getKey()], 'location_type' => 'venue', 'location_venue_id' => $venue->getKey(), 'domain_tags' => [$domainTag->getKey()], 'discipline_tags' => [$disciplineTag->getKey()]],
     )
         ->call('submit')
         ->assertHasNoErrors()
@@ -126,7 +126,7 @@ it('creates organizer involvement via submit-event flow with a speaker organizer
     $involvement = $event->fresh()->primaryOrganizerInvolvement;
 
     expect($involvement)->not->toBeNull()
-        ->and($involvement->involveable_type)->toBe(Speaker::class)
-        ->and($involvement->involveable_id)->toBe((string) $speaker->getKey())
-        ->and($event->organizer)->toBeInstanceOf(Speaker::class);
+        ->and($involvement->involveable_type)->toBe(Person::class)
+        ->and($involvement->involveable_id)->toBe((string) $person->getKey())
+        ->and($event->organizer)->toBeInstanceOf(Person::class);
 });

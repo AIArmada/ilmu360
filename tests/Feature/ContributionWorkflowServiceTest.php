@@ -11,8 +11,8 @@ use App\Enums\ContributionSubjectType;
 use App\Models\ContributionRequest;
 use App\Models\Event;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
-use App\Models\Speaker;
 use App\Models\User;
 use App\Services\ContributionEntityMutationService;
 use App\Support\Authz\MemberPermissionGate;
@@ -76,7 +76,7 @@ it('creates staged pending institution records with structured relation data', f
 it('creates staged pending speaker records with structured relation data', function () {
     $proposer = User::factory()->create();
 
-    $speaker = app(ContributionEntityMutationService::class)->createSpeaker([
+    $person = app(ContributionEntityMutationService::class)->createPerson([
         'name' => 'Ustaz Arif',
         'gender' => 'male',
         'job_title' => 'Pendakwah',
@@ -89,10 +89,10 @@ it('creates staged pending speaker records with structured relation data', funct
         ]],
     ], $proposer);
 
-    expect($speaker->status)->toBe('pending')
-        ->and($speaker->job_title)->toBe('Pendakwah')
-        ->and($speaker->qualifications)->toBeArray()
-        ->and($speaker->members()->whereKey($proposer->id)->exists())->toBeTrue();
+    expect($person->status)->toBe('pending')
+        ->and($person->job_title)->toBe('Pendakwah')
+        ->and($person->qualifications)->toBeArray()
+        ->and($person->members()->whereKey($proposer->id)->exists())->toBeTrue();
 });
 
 it('approves institution create requests without attaching proposer membership and notifies the proposer', function () {
@@ -261,7 +261,7 @@ it('applies structured event participant and reference updates through approval'
         'status' => 'approved',
         'visibility' => 'public',
     ]);
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'status' => 'verified',
     ]);
     $reference = Reference::factory()->create([
@@ -274,7 +274,7 @@ it('applies structured event participant and reference updates through approval'
         [
             'title' => 'Kuliah Terkini',
             'reference_ids' => [$reference->id],
-            'speaker_ids' => [$speaker->id],
+            'speaker_ids' => [$person->id],
             'other_key_people' => [[
                 'role_code' => 'moderator',
                 'display_name' => 'Moderator Test',
@@ -291,7 +291,7 @@ it('applies structured event participant and reference updates through approval'
         ->and($event->references()->whereKey($reference->id)->exists())->toBeTrue()
         ->and($event->keyPeople()
             ->where('involveable_type', 'speaker')
-            ->where('involveable_id', $speaker->id)
+            ->where('involveable_id', $person->id)
             ->exists())->toBeTrue()
         ->and($event->keyPeople()->where('role_code', 'moderator')->exists())->toBeTrue();
 });

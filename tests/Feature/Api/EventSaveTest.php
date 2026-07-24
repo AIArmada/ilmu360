@@ -4,7 +4,7 @@ use AIArmada\Engagement\Contracts\EngagementManager;
 use AIArmada\Engagement\Models\EngagementCounter;
 use App\Models\Event;
 use App\Models\Institution;
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Models\User;
 use App\Models\Venue;
 use Laravel\Sanctum\Sanctum;
@@ -165,8 +165,8 @@ test('saved events index still includes cancelled events', function () {
     $venue = Venue::factory()->create([
         'name' => 'Dewan Saved',
     ]);
-    $speaker = Speaker::factory()->create([
-        'name' => 'Speaker Saved',
+    $person = Person::factory()->create([
+        'name' => 'Person Saved',
         'slug' => 'speaker-saved',
     ]);
 
@@ -192,7 +192,7 @@ test('saved events index still includes cancelled events', function () {
         'starts_at' => now()->addDays(12),
     ]);
 
-    $savedEvent->speakers()->attach($speaker->id);
+    $savedEvent->speakers()->attach($person->id);
 
     app(EngagementManager::class)->bookmark($this->user, $savedEvent);
     app(EngagementManager::class)->bookmark($this->user, $cancelledEvent);
@@ -213,9 +213,9 @@ test('saved events index still includes cancelled events', function () {
         ->assertJsonPath('data.0.institution.slug', $institution->slug)
         ->assertJsonPath('data.0.venue.id', $venue->id)
         ->assertJsonPath('data.0.venue.name', 'Dewan Saved')
-        ->assertJsonPath('data.0.speakers.0.id', $speaker->id)
-        ->assertJsonPath('data.0.speakers.0.name', 'Speaker Saved')
-        ->assertJsonPath('data.0.speakers.0.slug', $speaker->slug)
+        ->assertJsonPath('data.0.speakers.0.id', $person->id)
+        ->assertJsonPath('data.0.speakers.0.name', 'Person Saved')
+        ->assertJsonPath('data.0.speakers.0.slug', $person->slug)
         ->assertJsonMissing(['id' => $inactiveEvent->id])
         ->assertJsonPath('meta.request_id', fn (string $requestId) => filled($requestId));
 });

@@ -7,7 +7,7 @@ use App\Models\Event;
 use App\Models\EventSubmission;
 use App\Models\Institution;
 use App\Models\ModerationReview;
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Models\User;
 use App\Models\Venue;
 use App\Notifications\EventSubmittedNotification;
@@ -111,7 +111,7 @@ describe('Event Approval', function () {
         $moderator->assignRole('moderator');
 
         // Create pending speaker
-        $speaker = Speaker::factory()->create([
+        $person = Person::factory()->create([
             'status' => 'pending',
         ]);
 
@@ -137,13 +137,13 @@ describe('Event Approval', function () {
         ]);
         OwnerContext::withOwner(null, fn () => $event->setPrimaryOrganizer($organizerInstitution));
 
-        app(EventKeyPersonSyncService::class)->sync($event, [(string) $speaker->id]);
+        app(EventKeyPersonSyncService::class)->sync($event, [(string) $person->id]);
 
         // Approve event
         OwnerContext::withOwner(null, fn () => $this->service->approve($event, $moderator));
 
         // Package taxonomy uses EventTerm/Classification (no Spatie Tag dual-verify on approve).
-        expect($speaker->fresh()->status)->toBe('verified')
+        expect($person->fresh()->status)->toBe('verified')
             ->and($organizerInstitution->fresh()->status)->toBe('verified')
             ->and($locationInstitution->fresh()->status)->toBe('verified')
             ->and($venue->fresh()->status)->toBe('verified');
@@ -154,7 +154,7 @@ describe('Event Approval', function () {
         $moderator->assignRole('moderator');
 
         // Create already verified speaker
-        $speaker = Speaker::factory()->create([
+        $person = Person::factory()->create([
             'status' => 'verified',
         ]);
 
@@ -162,12 +162,12 @@ describe('Event Approval', function () {
             'status' => 'pending',
         ]);
 
-        app(EventKeyPersonSyncService::class)->sync($event, [(string) $speaker->id]);
+        app(EventKeyPersonSyncService::class)->sync($event, [(string) $person->id]);
 
         $this->service->approve($event, $moderator);
 
         // Should remain verified
-        expect($speaker->fresh()->status)->toBe('verified');
+        expect($person->fresh()->status)->toBe('verified');
     });
 });
 

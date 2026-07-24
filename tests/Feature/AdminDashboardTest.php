@@ -6,14 +6,14 @@ use App\Enums\EventVisibility;
 use App\Filament\Pages\AdminDashboard;
 use App\Filament\Pages\ModerationQueue;
 use App\Filament\Resources\Institutions\InstitutionResource;
+use App\Filament\Resources\Persons\PersonResource;
 use App\Filament\Resources\References\ReferenceResource;
-use App\Filament\Resources\Speakers\SpeakerResource;
 use App\Filament\Widgets\EventInventoryOverview;
 use App\Filament\Widgets\StatsOverview;
 use App\Models\Event;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
-use App\Models\Speaker;
 use App\Models\User;
 use App\Models\Venue;
 use App\States\EventStatus\Draft;
@@ -61,7 +61,7 @@ it('renders the admin dashboard with moderation actions before event overview in
             'Featured Events',
         ])
         ->assertSee(ModerationQueue::getUrl(panel: 'admin').'?tab=pending', false)
-        ->assertSee(SpeakerResource::getUrl('index', panel: 'admin').'?tableFilters[status][value]=pending', false)
+        ->assertSee(PersonResource::getUrl('index', panel: 'admin').'?tableFilters[status][value]=pending', false)
         ->assertSee(InstitutionResource::getUrl('index', panel: 'admin').'?tableFilters[status][value]=pending', false)
         ->assertSee(ReferenceResource::getUrl('index', panel: 'admin').'?tableFilters[status][value]=pending', false)
         ->assertSee(VenueResource::getUrl('index', panel: 'admin').'?tableFilters[status][value]=pending', false);
@@ -95,7 +95,7 @@ it('computes approval and event overview dashboard stats from the intended datas
         'visibility' => EventVisibility::Private,
     ]);
 
-    Speaker::factory()->create([
+    Person::factory()->create([
         'status' => 'pending',
     ]);
 
@@ -148,7 +148,7 @@ it('computes approval and event overview dashboard stats from the intended datas
         [
             'label' => 'Speakers Needing Approval',
             'value' => 1,
-            'url' => SpeakerResource::getUrl('index', panel: 'admin').'?tableFilters[status][value]=pending',
+            'url' => PersonResource::getUrl('index', panel: 'admin').'?tableFilters[status][value]=pending',
         ],
         [
             'label' => 'Institutions Needing Approval',

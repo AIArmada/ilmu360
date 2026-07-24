@@ -4,10 +4,10 @@ use App\Models\DonationChannel;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\MembershipApplication;
+use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Report;
 use App\Models\Series;
-use App\Models\Speaker;
 use App\Models\Venue;
 use App\Support\Media\MediaFileNamer;
 use App\Support\Media\MediaPathGenerator;
@@ -272,32 +272,32 @@ it('bumps the institution public image version when logo media is updated', func
 });
 
 // ---------------------------------------------------------------
-// Speaker model
+// Person model
 // ---------------------------------------------------------------
 
-it('registers media conversions for Speaker model', function () {
-    $speaker = Speaker::factory()->create();
+it('registers media conversions for Person model', function () {
+    $person = Person::factory()->create();
 
-    $speaker->addMedia(fakeGeneratedImageUpload('avatar.png', 500, 500))
+    $person->addMedia(fakeGeneratedImageUpload('avatar.png', 500, 500))
         ->toMediaCollection('avatar');
 
-    $media = $speaker->getFirstMedia('avatar');
+    $media = $person->getFirstMedia('avatar');
 
     expect($media)->not->toBeNull();
     expect($media->getMediaConversionNames())->toContain('thumb');
     expect($media->getMediaConversionNames())->toContain('profile');
 });
 
-it('registers media conversions for Speaker cover and gallery collections', function () {
-    $speaker = Speaker::factory()->create();
+it('registers media conversions for Person cover and gallery collections', function () {
+    $person = Person::factory()->create();
 
-    $speaker->addMedia(fakeGeneratedImageUpload('cover.png', 100, 100))
+    $person->addMedia(fakeGeneratedImageUpload('cover.png', 100, 100))
         ->toMediaCollection('cover');
-    $speaker->addMedia(fakeGeneratedImageUpload('gallery.png', 100, 100))
+    $person->addMedia(fakeGeneratedImageUpload('gallery.png', 100, 100))
         ->toMediaCollection('gallery');
 
-    $coverMedia = $speaker->getFirstMedia('cover');
-    $galleryMedia = $speaker->getFirstMedia('gallery');
+    $coverMedia = $person->getFirstMedia('cover');
+    $galleryMedia = $person->getFirstMedia('gallery');
 
     expect($coverMedia)->not->toBeNull();
     expect($galleryMedia)->not->toBeNull();
@@ -305,57 +305,57 @@ it('registers media conversions for Speaker cover and gallery collections', func
     expect($galleryMedia->getMediaConversionNames())->toContain('gallery_thumb');
 });
 
-it('returns fallback URL when Speaker has no avatar', function () {
-    $speaker = Speaker::factory()->create();
+it('returns fallback URL when Person has no avatar', function () {
+    $person = Person::factory()->create();
 
-    $fallbackUrl = $speaker->getFirstMediaUrl('avatar');
+    $fallbackUrl = $person->getFirstMediaUrl('avatar');
 
     expect($fallbackUrl)->toContain('images/placeholders/speaker.png');
 });
 
 it('returns avatar_url using thumb conversion when media exists', function () {
-    $speaker = Speaker::factory()->create();
+    $person = Person::factory()->create();
 
-    $speaker->addMedia(fakeGeneratedImageUpload('avatar.png', 500, 500))
+    $person->addMedia(fakeGeneratedImageUpload('avatar.png', 500, 500))
         ->toMediaCollection('avatar');
 
-    $avatarUrl = $speaker->avatar_url;
+    $avatarUrl = $person->avatar_url;
 
     expect($avatarUrl)->not->toBeNull();
     expect($avatarUrl)->toContain('avatar');
 });
 
 it('returns public_avatar_url using the higher-resolution profile conversion when media exists', function () {
-    $speaker = Speaker::factory()->create();
+    $person = Person::factory()->create();
 
-    $speaker->addMedia(fakeGeneratedImageUpload('avatar.png', 500, 500))
+    $person->addMedia(fakeGeneratedImageUpload('avatar.png', 500, 500))
         ->toMediaCollection('avatar');
 
-    $publicAvatarUrl = $speaker->public_avatar_url;
+    $publicAvatarUrl = $person->public_avatar_url;
 
     expect($publicAvatarUrl)->not->toBeNull()
         ->and($publicAvatarUrl)->toContain('conversions')
         ->and($publicAvatarUrl)->toContain('card');
 });
 
-it('registers main media collection for Speaker model', function () {
-    $speaker = Speaker::factory()->create();
+it('registers main media collection for Person model', function () {
+    $person = Person::factory()->create();
 
-    $speaker->addMedia(fakeGeneratedImageUpload('main.png', 600, 800))
+    $person->addMedia(fakeGeneratedImageUpload('main.png', 600, 800))
         ->toMediaCollection('main');
 
-    $media = $speaker->getFirstMedia('main');
+    $media = $person->getFirstMedia('main');
 
     expect($media)->not->toBeNull();
-    expect($speaker->hasMedia('main'))->toBeTrue();
+    expect($person->hasMedia('main'))->toBeTrue();
     expect($media->getMediaConversionNames())->toContain('main_thumb');
     expect($media->getMediaConversionNames())->toContain('display');
 });
 
-it('returns public_main_url fallback when Speaker has no main photo', function () {
-    $speaker = Speaker::factory()->create();
+it('returns public_main_url fallback when Person has no main photo', function () {
+    $person = Person::factory()->create();
 
-    $mainUrl = $speaker->public_main_url;
+    $mainUrl = $person->public_main_url;
 
     expect($mainUrl)->not->toBeEmpty();
 });

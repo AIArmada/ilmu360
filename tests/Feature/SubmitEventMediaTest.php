@@ -7,7 +7,7 @@ use App\Enums\EventVisibility;
 use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Event;
 use App\Models\Institution;
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Models\User;
 use Filament\Forms\Components\FileUpload;
 use Illuminate\Http\UploadedFile;
@@ -28,7 +28,7 @@ function submitEventMediaFixtures(): array
         'event_date' => now()->addDay()->toDateString(),
         'domain_tag_ids' => [submitEventTerm('domain')->id, submitEventTerm('domain')->id],
         'discipline_tag_ids' => [submitEventTerm('discipline')->id],
-        'speaker_ids' => Speaker::factory()->count(2)->create()->pluck('id')->all(),
+        'speaker_ids' => Person::factory()->count(2)->create()->pluck('id')->all(),
         'institution_id' => Institution::factory()->create(['status' => 'verified'])->id,
     ];
 }
@@ -90,7 +90,7 @@ it('stores cover, poster, and gallery uploads when submitting an event', functio
     $event = Event::where('title', 'Test Event Media Upload')->firstOrFail();
     $expectedSuffix = Carbon::parse($fixtures['event_date'], 'Asia/Kuala_Lumpur')->format('j-n-y');
     $speakerSlugSegments = collect($fixtures['speaker_ids'])
-        ->map(fn (string $speakerId): string => Speaker::query()->findOrFail($speakerId)->slug)
+        ->map(fn (string $personId): string => Person::query()->findOrFail($personId)->slug)
         ->all();
 
     expect($event->getMedia('cover'))->toHaveCount(1);

@@ -8,9 +8,9 @@ use App\Enums\EventKeyPersonRole;
 use App\Models\Event;
 use App\Models\EventCheckin;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Registration;
 use App\Models\Series;
-use App\Models\Speaker;
 use App\Models\User;
 use App\Services\Notifications\EventNotificationService;
 use Carbon\Carbon;
@@ -29,13 +29,13 @@ it('creates followed-content notifications for followed speakers institutions an
     $seriesFollower = User::factory()->create();
 
     $institution = Institution::factory()->create();
-    $speaker = Speaker::factory()->create();
+    $person = Person::factory()->create();
     $series = Series::factory()->create([
         'visibility' => 'public',
     ]);
 
     $institutionFollower->follow($institution);
-    $speakerFollower->follow($speaker);
+    $speakerFollower->follow($person);
     $seriesFollower->follow($series);
 
     $event = Event::factory()->for($institution)->create([
@@ -46,7 +46,7 @@ it('creates followed-content notifications for followed speakers institutions an
         'published_at' => now(),
     ]);
 
-    $event->speakers()->attach($speaker->id);
+    $event->speakers()->attach($person->id);
     $event->series()->attach($series->id, ['id' => (string) Str::uuid()]);
 
     app(EventNotificationService::class)->notifyPublication($event->fresh(['institution', 'speakers', 'series', 'references']));
@@ -68,9 +68,9 @@ it('creates followed-content notifications for followed speakers institutions an
 it('does not create followed-speaker notifications when a followed profile is only a non-speaker participant', function () {
     $speakerFollower = User::factory()->create();
     $institution = Institution::factory()->create();
-    $speaker = Speaker::factory()->create();
+    $person = Person::factory()->create();
 
-    $speakerFollower->follow($speaker);
+    $speakerFollower->follow($person);
 
     $event = Event::factory()->for($institution)->create([
         'title' => 'Forum Dengan Moderator Sahaja',
@@ -80,7 +80,7 @@ it('does not create followed-speaker notifications when a followed profile is on
     ]);
 
     $event->keyPeople()->create([
-        'involveable_id' => $speaker->id,
+        'involveable_id' => $person->id,
         'involveable_type' => 'speaker',
         'role_code' => EventKeyPersonRole::Moderator->value,
         'sort_order' => 1,

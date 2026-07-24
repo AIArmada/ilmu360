@@ -93,7 +93,7 @@ it('keeps the CRUD comparison JSON aligned with runtime panel resources and writ
             ])
         ->and(data_get($document, 'event_detail_parity_notes.0'))->toContain('active_change_notice')
         ->and(data_get($document, 'search_parity_notes.0'))->toContain('/api/v1/admin/events/search')
-        ->and(data_get($document, 'search_parity_notes.1'))->toContain('speakers, institutions, and references')
+        ->and(data_get($document, 'search_parity_notes.1'))->toContain('persons, institutions, and references')
         ->and(data_get($document, 'search_parity_notes.2'))->toContain('active plus verified visibility')
         ->and(data_get($document, 'workflow_api_families.public_discovery_and_form_contracts'))->toContain('GET /api/v1/references*')
         ->and(data_get($document, 'surface_sync_contract'))->toEqual(SurfaceSyncPolicy::manifest())

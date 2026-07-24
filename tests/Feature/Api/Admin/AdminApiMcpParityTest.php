@@ -24,10 +24,10 @@ use App\Models\EventSubmission;
 use App\Models\Institution;
 use App\Models\MembershipApplication;
 use App\Models\ModerationReview;
+use App\Models\Person;
 use App\Models\Report;
-use App\Models\Speaker;
 use App\Models\User;
-use App\Support\Search\SpeakerSearchService;
+use App\Support\Search\PersonSearchService;
 use Illuminate\Support\Str;
 use Laravel\Mcp\Server\Testing\TestResponse as McpTestResponse;
 use Laravel\Sanctum\Sanctum;
@@ -35,22 +35,22 @@ use Spatie\Permission\PermissionRegistrar;
 
 it('keeps admin api and admin mcp speaker search results aligned', function () {
     $admin = parityAdminUser('super_admin');
-    $matchingSpeaker = Speaker::factory()->create([
-        'name' => 'Admin Parity Speaker Match',
+    $matchingPerson = Person::factory()->create([
+        'name' => 'Admin Parity Person Match',
         'pre_nominal' => ['syeikhul_maqari'],
         'status' => 'verified',
     ]);
-    $otherSpeaker = Speaker::factory()->create([
-        'name' => 'Admin Parity Speaker Other',
+    $otherPerson = Person::factory()->create([
+        'name' => 'Admin Parity Person Other',
         'status' => 'verified',
     ]);
 
-    app(SpeakerSearchService::class)->syncSpeakerRecord($matchingSpeaker);
-    app(SpeakerSearchService::class)->syncSpeakerRecord($otherSpeaker);
+    app(PersonSearchService::class)->syncPersonRecord($matchingPerson);
+    app(PersonSearchService::class)->syncPersonRecord($otherPerson);
 
     Sanctum::actingAs($admin);
 
-    $apiResponse = $this->getJson('/api/v1/admin/speakers?search='.urlencode('syeikhul maqari'))
+    $apiResponse = $this->getJson('/api/v1/admin/people?search='.urlencode('syeikhul maqari'))
         ->assertOk();
 
     $mcpResponse = AdminServer::actingAs($admin)
@@ -62,7 +62,7 @@ it('keeps admin api and admin mcp speaker search results aligned', function () {
 
     expect(collect($apiResponse->json('data'))->pluck('route_key')->all())
         ->toEqual(collect(adminMcpStructuredContent($mcpResponse)['data'] ?? [])->pluck('route_key')->all())
-        ->toContain((string) $matchingSpeaker->getRouteKey());
+        ->toContain((string) $matchingPerson->getRouteKey());
 });
 
 it('keeps admin api and admin mcp event filter results aligned', function () {
@@ -111,25 +111,25 @@ it('keeps admin api and admin mcp event filter results aligned', function () {
 
 it('keeps admin api and admin mcp related record listings aligned', function () {
     $admin = parityAdminUser('super_admin');
-    $speaker = Speaker::factory()->create([
-        'name' => 'Admin Parity Nested Speaker',
+    $person = Person::factory()->create([
+        'name' => 'Admin Parity Nested Person',
         'status' => 'verified',
     ]);
     $matchingEvent = Event::factory()->create([
         'title' => 'Admin Parity Nested Event '.Str::ulid(),
     ]);
 
-    $matchingEvent->speakers()->attach($speaker);
+    $matchingEvent->speakers()->attach($person);
 
     Sanctum::actingAs($admin);
 
-    $apiResponse = $this->getJson('/api/v1/admin/speakers/'.$speaker->getRouteKey().'/relations/events?search='.urlencode($matchingEvent->title))
+    $apiResponse = $this->getJson('/api/v1/admin/people/'.$person->getRouteKey().'/relations/events?search='.urlencode($matchingEvent->title))
         ->assertOk();
 
     $mcpResponse = AdminServer::actingAs($admin)
         ->tool(AdminListRelatedRecordsTool::class, [
             'resource_key' => 'speakers',
-            'record_key' => (string) $speaker->getKey(),
+            'record_key' => (string) $person->getKey(),
             'relation' => 'events',
             'search' => $matchingEvent->title,
         ])
@@ -144,14 +144,14 @@ it('keeps admin api and admin mcp validate-only update previews aligned', functi
     parityEnsureMalaysiaCountryExists();
 
     $admin = parityAdminUser('super_admin');
-    $speaker = Speaker::factory()->create([
-        'name' => 'Admin Parity Preview Speaker',
+    $person = Person::factory()->create([
+        'name' => 'Admin Parity Preview Person',
         'gender' => 'male',
         'status' => 'verified',
     ]);
 
     $payload = [
-        'name' => 'Admin Parity Preview Speaker Updated',
+        'name' => 'Admin Parity Preview Person Updated',
         'gender' => 'male',
         'status' => 'verified',
         'is_freelance' => true,
@@ -164,13 +164,13 @@ it('keeps admin api and admin mcp validate-only update previews aligned', functi
 
     Sanctum::actingAs($admin);
 
-    $apiResponse = $this->putJson('/api/v1/admin/speakers/'.$speaker->getRouteKey().'?validate_only=1', $payload)
+    $apiResponse = $this->putJson('/api/v1/admin/people/'.$person->getRouteKey().'?validate_only=1', $payload)
         ->assertOk();
 
     $mcpResponse = AdminServer::actingAs($admin)
         ->tool(AdminUpdateRecordTool::class, [
             'resource_key' => 'speakers',
-            'record_key' => (string) $speaker->getKey(),
+            'record_key' => (string) $person->getKey(),
             'validate_only' => true,
             'payload' => $payload,
         ])

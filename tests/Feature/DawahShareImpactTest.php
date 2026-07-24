@@ -19,10 +19,10 @@ use App\Models\Event;
 use App\Models\EventCheckin;
 use App\Models\EventSubmission;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Registration;
 use App\Models\Series;
-use App\Models\Speaker;
 use App\Models\User;
 use App\Services\ShareTrackingAnalyticsService;
 use App\Services\ShareTrackingService;
@@ -95,7 +95,7 @@ function dawahShareExtractSharedUrlFromWhatsAppRedirect(TestResponse $response):
 }
 
 /**
- * @return array{domain_tag: EventTerm, discipline_tag: EventTerm, institution: Institution, speaker: Speaker}
+ * @return array{domain_tag: EventTerm, discipline_tag: EventTerm, institution: Institution, speaker: Person}
  */
 function dawahShareSubmitEventFixtures(): array
 {
@@ -103,12 +103,12 @@ function dawahShareSubmitEventFixtures(): array
         'domain_tag' => submitEventTerm('domain'),
         'discipline_tag' => submitEventTerm('discipline'),
         'institution' => Institution::factory()->create(['status' => 'verified']),
-        'speaker' => Speaker::factory()->create(['status' => 'verified']),
+        'speaker' => Person::factory()->create(['status' => 'verified']),
     ];
 }
 
 /**
- * @param  array{domain_tag: EventTerm, discipline_tag: EventTerm, institution: Institution, speaker: Speaker}  $fixtures
+ * @param  array{domain_tag: EventTerm, discipline_tag: EventTerm, institution: Institution, speaker: Person}  $fixtures
  * @return array<string, mixed>
  */
 function dawahShareSubmitEventFormData(array $fixtures, array $overrides = []): array
@@ -882,7 +882,7 @@ test('follow actions are attributed across supported public followable pages', f
     'institution follow' => ['pages.institutions.show', 'institutions.show', 'institution', fn () => Institution::factory()->create([
         'status' => 'verified',
     ]), 'institution_follow', 'institution'],
-    'speaker follow' => ['pages.speakers.show', 'speakers.show', 'speaker', fn () => Speaker::factory()->create([
+    'speaker follow' => ['pages.persons.show', 'speakers.show', 'speaker', fn () => Person::factory()->create([
         'status' => 'verified',
     ]), 'speaker_follow', 'speaker'],
     'series follow' => ['pages.series.show', 'series.show', 'series', fn () => Series::factory()->create([
@@ -903,7 +903,7 @@ test('guest follow actions redirect to login with the current page as intended d
     'institution guest follow redirect' => ['pages.institutions.show', 'institutions.show', 'institution', fn () => Institution::factory()->create([
         'status' => 'verified',
     ])],
-    'speaker guest follow redirect' => ['pages.speakers.show', 'speakers.show', 'speaker', fn () => Speaker::factory()->create([
+    'speaker guest follow redirect' => ['pages.persons.show', 'speakers.show', 'speaker', fn () => Person::factory()->create([
         'status' => 'verified',
     ])],
     'series guest follow redirect' => ['pages.series.show', 'series.show', 'series', fn () => Series::factory()->create([
@@ -992,7 +992,7 @@ test('impact dashboard top subjects use canonical affiliate subject fields', fun
         'starts_at' => now()->addDay(),
     ]);
 
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'status' => 'verified',
     ]);
 
@@ -1006,14 +1006,14 @@ test('impact dashboard top subjects use canonical affiliate subject fields', fun
 
     $this->actingAs($this->sharer)
         ->getJson(route('dawah-share.payload', [
-            'url' => route('speakers.show', $speaker),
+            'url' => route('persons.show', $person),
             'text' => 'Share this speaker',
-            'title' => $speaker->formatted_name,
+            'title' => $person->formatted_name,
         ]))
         ->assertOk();
 
     $eventLink = AffiliateLink::query()->where('destination_url', route('events.show', $event))->firstOrFail();
-    $speakerLink = AffiliateLink::query()->where('destination_url', route('speakers.show', $speaker))->firstOrFail();
+    $speakerLink = AffiliateLink::query()->where('destination_url', route('persons.show', $person))->firstOrFail();
     $affiliate = Affiliate::query()->findOrFail($eventLink->affiliate_id);
 
     $eventAttribution = AffiliateAttribution::query()->create([
@@ -1091,7 +1091,7 @@ test('impact dashboard top subjects use canonical affiliate subject fields', fun
         'subject_type' => 'speaker',
         'subject_key' => $speakerLink->subject_key,
         'subject_instance' => 'share_tracking_link',
-        'subject_title_snapshot' => $speaker->formatted_name,
+        'subject_title_snapshot' => $person->formatted_name,
         'cookie_value' => 'speaker-top-subject-cookie',
         'landing_url' => $speakerLink->destination_url,
         'affiliate_link_id' => $speakerLink->id,
@@ -1107,7 +1107,7 @@ test('impact dashboard top subjects use canonical affiliate subject fields', fun
         'subject_type' => 'speaker',
         'subject_key' => $speakerLink->subject_key,
         'subject_instance' => 'share_tracking_link',
-        'subject_title_snapshot' => $speaker->formatted_name,
+        'subject_title_snapshot' => $person->formatted_name,
         'affiliate_link_id' => $speakerLink->id,
         'visitor_key' => 'speaker-top-subject-visitor',
         'touchpoint_type' => 'visit',
@@ -1523,7 +1523,7 @@ test('tracked share ui renders across supported public surfaces', function () {
         'status' => 'verified',
     ]);
 
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'status' => 'verified',
     ]);
 
@@ -1551,7 +1551,7 @@ test('tracked share ui renders across supported public surfaces', function () {
     foreach ([
         route('events.show', $event),
         route('institutions.show', $institution),
-        route('speakers.show', $speaker),
+        route('persons.show', $person),
         route('references.show', $reference),
     ] as $url) {
         $this->get($url)

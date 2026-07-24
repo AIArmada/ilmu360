@@ -5,9 +5,9 @@ use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
 use App\Enums\EventKeyPersonRole;
 use App\Livewire\Pages\SavedSearches\Index as SavedSearchesIndex;
+use App\Models\Person;
 use App\Models\Reference;
 use App\Models\SavedSearch;
-use App\Models\Speaker;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -84,16 +84,16 @@ it('drops unsupported speaker-only key person roles before saving searches from 
     $this->actingAs($user);
 
     Livewire::withQueryParams([
-        'key_person_roles' => [EventKeyPersonRole::Speaker->value],
+        'key_person_roles' => [EventKeyPersonRole::Person->value],
     ])->test(SavedSearchesIndex::class)
-        ->set('name', 'Speaker Role Search')
+        ->set('name', 'Person Role Search')
         ->set('notify', 'daily')
         ->call('save')
         ->assertHasNoErrors();
 
     $savedSearch = SavedSearch::query()
         ->where('user_id', $user->id)
-        ->where('name', 'Speaker Role Search')
+        ->where('name', 'Person Role Search')
         ->first();
 
     expect($savedSearch)->not->toBeNull()
@@ -245,15 +245,15 @@ it('renders source issue and reference chips using human-readable values', funct
 
 it('renders key person role and linked profile chips using human-readable values', function () {
     $user = User::factory()->create();
-    $imamSpeaker = Speaker::factory()->create(['name' => 'Ustaz Role Imam']);
-    $picSpeaker = Speaker::factory()->create(['name' => 'Ustaz Role PIC']);
+    $imamPerson = Person::factory()->create(['name' => 'Ustaz Role Imam']);
+    $picPerson = Person::factory()->create(['name' => 'Ustaz Role PIC']);
 
     $this->actingAs($user)
         ->get(route('saved-searches.index', [
             'key_person_roles' => [EventKeyPersonRole::PersonInCharge->value],
-            'person_in_charge_ids' => [$picSpeaker->id],
+            'person_in_charge_ids' => [$picPerson->id],
             'person_in_charge_search' => 'Penyelaras Saf',
-            'imam_ids' => [$imamSpeaker->id],
+            'imam_ids' => [$imamPerson->id],
         ]))
         ->assertOk()
         ->assertSee('Key Person Roles: PIC / Penyelaras')

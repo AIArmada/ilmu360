@@ -7,11 +7,11 @@ use App\Support\ApiDocumentation\Schemas\EventSummary;
 use App\Support\ApiDocumentation\Schemas\Institution;
 use App\Support\ApiDocumentation\Schemas\InstitutionDetailPage;
 use App\Support\ApiDocumentation\Schemas\InstitutionDetailResponse;
-use App\Support\ApiDocumentation\Schemas\Speaker;
-use App\Support\ApiDocumentation\Schemas\SpeakerDetailPage;
-use App\Support\ApiDocumentation\Schemas\SpeakerDetailResponse;
-use App\Support\ApiDocumentation\Schemas\SpeakerDirectoryResponse;
-use App\Support\ApiDocumentation\Schemas\SpeakerListItem;
+use App\Support\ApiDocumentation\Schemas\Person;
+use App\Support\ApiDocumentation\Schemas\PersonDetailPage;
+use App\Support\ApiDocumentation\Schemas\PersonDetailResponse;
+use App\Support\ApiDocumentation\Schemas\PersonDirectoryResponse;
+use App\Support\ApiDocumentation\Schemas\PersonListItem;
 
 it('serializes institution detail response schemas to nested arrays', function () {
     $response = new InstitutionDetailResponse(
@@ -35,9 +35,9 @@ it('serializes institution detail response schemas to nested arrays', function (
 });
 
 it('serializes speaker detail and directory schemas to nested arrays', function () {
-    $detailResponse = new SpeakerDetailResponse(
-        data: new SpeakerDetailPage(
-            speaker: sampleSpeakerSchema(),
+    $detailResponse = new PersonDetailResponse(
+        data: new PersonDetailPage(
+            person: samplePersonSchema(),
             upcoming_events: [sampleEventSummarySchema()],
             upcoming_total: 1,
             past_events: [],
@@ -58,9 +58,9 @@ it('serializes speaker detail and directory schemas to nested arrays', function 
         meta: ['request_id' => 'req-speaker'],
     );
 
-    $directoryResponse = new SpeakerDirectoryResponse(
+    $directoryResponse = new PersonDirectoryResponse(
         data: [
-            new SpeakerListItem(
+            new PersonListItem(
                 id: 'speaker-1',
                 slug: 'ustaz-adam',
                 name: 'Adam Yusuf',
@@ -199,9 +199,9 @@ function sampleInstitutionSchema(): Institution
     );
 }
 
-function sampleSpeakerSchema(): Speaker
+function samplePersonSchema(): Person
 {
-    return new Speaker(
+    return new Person(
         id: 'speaker-1',
         slug: 'ustaz-adam',
         name: 'Adam Yusuf',

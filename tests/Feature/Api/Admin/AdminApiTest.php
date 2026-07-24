@@ -28,15 +28,15 @@ use App\Models\Inspiration;
 use App\Models\Institution;
 use App\Models\MembershipApplication;
 use App\Models\ModerationReview;
+use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Report;
 use App\Models\Series;
 use App\Models\Space;
-use App\Models\Speaker;
 use App\Models\User;
 use App\Models\Venue;
 use App\Services\Signals\SignalsTracker;
-use App\Support\Search\SpeakerSearchService;
+use App\Support\Search\PersonSearchService;
 use Database\Seeders\ScopedMemberRolesSeeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
@@ -91,7 +91,7 @@ it('lists accessible admin resources for privileged users', function () {
 
     $resourceKeys = collect($response->json('data.resources'))->pluck('key')->all();
 
-    expect($resourceKeys)->toContain('speakers', 'events', 'inspirations', 'institutions', 'references', 'reports', 'series', 'spaces', 'venues', 'donation-channels', 'address-countries', 'address-areas');
+    expect($resourceKeys)->toContain('people', 'events', 'inspirations', 'institutions', 'references', 'reports', 'series', 'spaces', 'venues', 'donation-channels', 'address-countries', 'address-areas');
 });
 
 it('allows viewer-role users who can access the admin panel to reach the admin api manifest', function () {
@@ -172,21 +172,21 @@ it('reflects global admin role grants and removals on an existing bearer token',
 
 it('returns admin speaker resource metadata and records', function () {
     $admin = adminApiUser('super_admin');
-    $speaker = Speaker::factory()->create([
-        'name' => 'Admin API Speaker',
+    $person = Person::factory()->create([
+        'name' => 'Admin API Person',
     ]);
-    $speakerRouteKey = (string) $speaker->getRouteKey();
+    $personRouteKey = (string) $person->getRouteKey();
 
     Sanctum::actingAs($admin);
 
-    $this->getJson('/api/v1/admin/speakers/meta')
+    $this->getJson('/api/v1/admin/people/meta')
         ->assertOk()
-        ->assertJsonPath('data.resource.key', 'speakers')
+        ->assertJsonPath('data.resource.key', 'people')
         ->assertJsonPath('data.resource.pages.index', true)
         ->assertJsonPath('data.resource.abilities.view_any', true)
         ->assertJsonPath('data.resource.write_support.schema', true)
-        ->assertJsonPath('data.resource.api_routes.collection', '/api/v1/admin/speakers')
-        ->assertJsonPath('data.resource.api_routes.schema', '/api/v1/admin/speakers/schema')
+        ->assertJsonPath('data.resource.api_routes.collection', '/api/v1/admin/people')
+        ->assertJsonPath('data.resource.api_routes.schema', '/api/v1/admin/people/schema')
         ->assertJsonPath('data.resource.filters.0.key', 'status')
         ->assertJsonPath('data.resource.filters.0.options.verified', 'Verified')
         ->assertJsonPath('data.resource.filters.1.key', 'has_events')
@@ -194,17 +194,17 @@ it('returns admin speaker resource metadata and records', function () {
         ->assertJsonPath('data.resource.mcp_tools.create.arguments.validate_only', false)
         ->assertJsonPath('data.resource.mcp_tools.update.arguments.validate_only', false);
 
-    $this->getJson('/api/v1/admin/speakers?search=Admin%20API%20Speaker')
+    $this->getJson('/api/v1/admin/people?search=Admin%20API%20Speaker')
         ->assertOk()
-        ->assertJsonPath('data.0.id', $speaker->getKey())
-        ->assertJsonPath('data.0.title', 'Admin API Speaker')
+        ->assertJsonPath('data.0.id', $person->getKey())
+        ->assertJsonPath('data.0.title', 'Admin API Person')
         ->assertJsonPath('data.0.abilities.view', true);
 
-    $this->getJson('/api/v1/admin/speakers/'.$speakerRouteKey)
+    $this->getJson('/api/v1/admin/people/'.$personRouteKey)
         ->assertOk()
-        ->assertJsonPath('data.resource.key', 'speakers')
-        ->assertJsonPath('data.record.route_key', $speakerRouteKey)
-        ->assertJsonPath('data.record.attributes.name', 'Admin API Speaker')
+        ->assertJsonPath('data.resource.key', 'people')
+        ->assertJsonPath('data.record.route_key', $personRouteKey)
+        ->assertJsonPath('data.record.attributes.name', 'Admin API Person')
         ->assertJsonPath('data.record.abilities.view', true);
 });
 
@@ -232,67 +232,67 @@ it('redacts tracked property write keys in admin api payloads', function () {
 it('filters admin speaker records by explicit query parameters', function () {
     $admin = adminApiUser('super_admin');
 
-    $speakerWithEvents = Speaker::factory()->create([
-        'name' => 'Alpha Verified Speaker',
+    $personWithEvents = Person::factory()->create([
+        'name' => 'Alpha Verified Person',
         'status' => 'verified',
     ]);
 
-    $speakerWithoutEvents = Speaker::factory()->create([
-        'name' => 'Beta Inactive Speaker',
+    $personWithoutEvents = Person::factory()->create([
+        'name' => 'Beta Inactive Person',
         'status' => 'inactive',
     ]);
 
-    $pendingSpeaker = Speaker::factory()->create([
-        'name' => 'Gamma Pending Speaker',
+    $pendingPerson = Person::factory()->create([
+        'name' => 'Gamma Pending Person',
         'status' => 'pending',
     ]);
 
     Event::factory()->create([
-        'title' => 'Speaker Filter Event',
-    ])->speakers()->attach($speakerWithEvents->getKey());
+        'title' => 'Person Filter Event',
+    ])->persons()->attach($personWithEvents->getKey());
 
     Sanctum::actingAs($admin);
 
-    $verifiedResponse = $this->getJson('/api/v1/admin/speakers?filter[status]=verified')
+    $verifiedResponse = $this->getJson('/api/v1/admin/people?filter[status]=verified')
         ->assertOk();
 
     $verifiedIds = collect($verifiedResponse->json('data'))->pluck('id')->all();
 
-    expect(in_array($speakerWithEvents->getKey(), $verifiedIds, true))->toBeTrue();
-    expect(in_array($speakerWithoutEvents->getKey(), $verifiedIds, true))->toBeFalse();
-    expect(in_array($pendingSpeaker->getKey(), $verifiedIds, true))->toBeFalse();
+    expect(in_array($personWithEvents->getKey(), $verifiedIds, true))->toBeTrue();
+    expect(in_array($personWithoutEvents->getKey(), $verifiedIds, true))->toBeFalse();
+    expect(in_array($pendingPerson->getKey(), $verifiedIds, true))->toBeFalse();
 
-    $inactiveResponse = $this->getJson('/api/v1/admin/speakers?filter[status]=inactive')
+    $inactiveResponse = $this->getJson('/api/v1/admin/people?filter[status]=inactive')
         ->assertOk();
 
     $inactiveIds = collect($inactiveResponse->json('data'))->pluck('id')->all();
 
-    expect(in_array($speakerWithoutEvents->getKey(), $inactiveIds, true))->toBeTrue();
+    expect(in_array($personWithoutEvents->getKey(), $inactiveIds, true))->toBeTrue();
 
-    $hasEventsResponse = $this->getJson('/api/v1/admin/speakers?filter[has_events]=true')
+    $hasEventsResponse = $this->getJson('/api/v1/admin/people?filter[has_events]=true')
         ->assertOk();
 
     $hasEventsIds = collect($hasEventsResponse->json('data'))->pluck('id')->all();
 
-    expect(in_array($speakerWithEvents->getKey(), $hasEventsIds, true))->toBeTrue();
-    expect(in_array($speakerWithoutEvents->getKey(), $hasEventsIds, true))->toBeFalse();
+    expect(in_array($personWithEvents->getKey(), $hasEventsIds, true))->toBeTrue();
+    expect(in_array($personWithoutEvents->getKey(), $hasEventsIds, true))->toBeFalse();
 });
 
 it('uses the richer speaker institution and reference search behavior on the admin api', function () {
     $admin = adminApiUser('super_admin');
 
-    $matchingSpeaker = Speaker::factory()->create([
-        'name' => 'Admin API Decorated Speaker',
+    $matchingPerson = Person::factory()->create([
+        'name' => 'Admin API Decorated Person',
         'pre_nominal' => ['syeikhul_maqari'],
         'status' => 'verified',
     ]);
-    $otherSpeaker = Speaker::factory()->create([
-        'name' => 'Admin API Other Speaker',
+    $otherPerson = Person::factory()->create([
+        'name' => 'Admin API Other Person',
         'status' => 'verified',
     ]);
 
-    app(SpeakerSearchService::class)->syncSpeakerRecord($matchingSpeaker);
-    app(SpeakerSearchService::class)->syncSpeakerRecord($otherSpeaker);
+    app(PersonSearchService::class)->syncPersonRecord($matchingPerson);
+    app(PersonSearchService::class)->syncPersonRecord($otherPerson);
 
     $matchingInstitution = Institution::factory()->create([
         'name' => 'Masjid Sultan Salahuddin Abdul Aziz Shah',
@@ -317,10 +317,10 @@ it('uses the richer speaker institution and reference search behavior on the adm
 
     Sanctum::actingAs($admin);
 
-    $this->getJson('/api/v1/admin/speakers?search='.urlencode('syeikhul maqari'))
+    $this->getJson('/api/v1/admin/people?search='.urlencode('syeikhul maqari'))
         ->assertOk()
         ->assertJsonPath('meta.pagination.total', 1)
-        ->assertJsonPath('data.0.id', (string) $matchingSpeaker->getKey());
+        ->assertJsonPath('data.0.id', (string) $matchingPerson->getKey());
 
     $this->getJson('/api/v1/admin/institutions?search='.urlencode('Masjid Biru'))
         ->assertOk()
@@ -639,15 +639,15 @@ it('surfaces public event change projections on admin event detail payloads', fu
         ->assertJsonMissingPath('data.record.attributes.published_change_announcements');
 });
 
-it('previews admin speaker creation without persisting the record', function () {
+it('previews admin person creation without persisting the record', function () {
     ensureAdminApiMalaysiaCountryExists();
 
     $admin = adminApiUser('super_admin');
 
     Sanctum::actingAs($admin);
 
-    $response = $this->postJson('/api/v1/admin/speakers?validate_only=1', [
-        'name' => 'Previewed Admin API Speaker',
+    $response = $this->postJson('/api/v1/admin/people?validate_only=1', [
+        'name' => 'Previewed Admin API Person',
         'gender' => 'male',
         'status' => 'verified',
         'is_freelance' => false,
@@ -657,31 +657,31 @@ it('previews admin speaker creation without persisting the record', function () 
     ])->assertOk();
 
     $response
-        ->assertJsonPath('data.resource.key', 'speakers')
+        ->assertJsonPath('data.resource.key', 'people')
         ->assertJsonPath('data.preview.validate_only', true)
         ->assertJsonPath('data.preview.operation', 'create')
         ->assertJsonPath('data.preview.normalized_payload.address.country_id', ensureAdminApiMalaysiaCountryExists())
         ->assertJsonPath('data.preview.current_record', null);
 
-    expect(Speaker::query()->where('name', 'Previewed Admin API Speaker')->exists())->toBeFalse();
+    expect(Person::query()->where('name', 'Previewed Admin API Person')->exists())->toBeFalse();
 });
 
-it('previews admin speaker updates without persisting the record', function () {
+it('previews admin person updates without persisting the record', function () {
     ensureAdminApiMalaysiaCountryExists();
 
     $admin = adminApiUser('super_admin');
-    $speaker = Speaker::factory()->create([
-        'name' => 'Previewable Admin API Speaker',
+    $person = Person::factory()->create([
+        'name' => 'Previewable Admin API Person',
         'job_title' => null,
     ]);
-    $originalName = (string) $speaker->name;
-    $originalJobTitle = $speaker->job_title;
-    $speakerRouteKey = (string) $speaker->getRouteKey();
+    $originalName = (string) $person->name;
+    $originalJobTitle = $person->job_title;
+    $personRouteKey = (string) $person->getRouteKey();
 
     Sanctum::actingAs($admin);
 
-    $response = $this->putJson('/api/v1/admin/speakers/'.$speakerRouteKey.'?validate_only=1', [
-        'name' => 'Previewed Admin API Speaker Updated',
+    $response = $this->putJson('/api/v1/admin/people/'.$personRouteKey.'?validate_only=1', [
+        'name' => 'Previewed Admin API Person Updated',
         'gender' => 'male',
         'status' => 'verified',
         'is_freelance' => true,
@@ -694,16 +694,16 @@ it('previews admin speaker updates without persisting the record', function () {
     ])->assertOk();
 
     $response
-        ->assertJsonPath('data.resource.key', 'speakers')
+        ->assertJsonPath('data.resource.key', 'people')
         ->assertJsonPath('data.preview.validate_only', true)
         ->assertJsonPath('data.preview.operation', 'update')
-        ->assertJsonPath('data.preview.current_record.route_key', $speakerRouteKey)
+        ->assertJsonPath('data.preview.current_record.route_key', $personRouteKey)
         ->assertJsonPath('data.preview.normalized_payload.job_title', 'Imam')
         ->assertJsonPath('data.preview.destructive_media_fields.0', 'clear_cover')
         ->assertJsonPath('data.preview.warnings.0.field', 'clear_cover');
 
-    expect(Speaker::query()->findOrFail($speaker->getKey())->name)->toBe($originalName)
-        ->and(Speaker::query()->findOrFail($speaker->getKey())->job_title)->toBe($originalJobTitle);
+    expect(Person::query()->findOrFail($person->getKey())->name)->toBe($originalName)
+        ->and(Person::query()->findOrFail($person->getKey())->job_title)->toBe($originalJobTitle);
 });
 
 it('returns autofill hints and conditional requirements in admin api dry runs', function () {
@@ -733,8 +733,8 @@ it('returns remediation details for validate-only admin api create validation fa
 
     Sanctum::actingAs($admin);
 
-    $response = $this->postJson('/api/v1/admin/speakers?validate_only=1', [
-        'name' => 'Remediation Preview API Speaker',
+    $response = $this->postJson('/api/v1/admin/people?validate_only=1', [
+        'name' => 'Remediation Preview API Person',
     ])->assertUnprocessable();
 
     $fixPlan = collect($response->json('error.details.fix_plan'))->keyBy('field');
@@ -742,7 +742,7 @@ it('returns remediation details for validate-only admin api create validation fa
 
     $response
         ->assertJsonPath('error.code', 'validation_error')
-        ->assertJsonPath('error.details.normalized_payload_preview.name', 'Remediation Preview API Speaker')
+        ->assertJsonPath('error.details.normalized_payload_preview.name', 'Remediation Preview API Person')
         ->assertJsonPath('error.details.normalized_payload_preview.gender', 'male')
         ->assertJsonMissingPath('error.details.normalized_payload_preview.address')
         ->assertJsonPath('error.details.can_retry', false);
@@ -793,38 +793,38 @@ it('returns retryable remediation details for validate-only admin api update val
     ensureAdminApiMalaysiaCountryExists();
 
     $admin = adminApiUser('super_admin');
-    $speaker = Speaker::factory()->create([
-        'name' => 'Retryable Admin API Speaker',
+    $person = Person::factory()->create([
+        'name' => 'Retryable Admin API Person',
         'gender' => 'male',
         'status' => 'verified',
     ]);
-    $speakerRouteKey = (string) $speaker->getRouteKey();
+    $personRouteKey = (string) $person->getRouteKey();
 
     Sanctum::actingAs($admin);
 
-    $response = $this->putJson('/api/v1/admin/speakers/'.$speakerRouteKey.'?validate_only=1', [
-        'name' => 'Retryable Admin API Speaker Updated',
+    $response = $this->putJson('/api/v1/admin/people/'.$personRouteKey.'?validate_only=1', [
+        'name' => 'Retryable Admin API Person Updated',
     ])->assertUnprocessable();
 
     $fixPlan = collect($response->json('error.details.fix_plan'))->keyBy('field');
 
     $response
         ->assertJsonPath('error.code', 'validation_error')
-        ->assertJsonPath('error.details.normalized_payload_preview.name', 'Retryable Admin API Speaker Updated')
-        ->assertJsonPath('error.details.normalized_payload_preview.gender', $speaker->gender)
-        ->assertJsonPath('error.details.normalized_payload_preview.status', $speaker->status)
+        ->assertJsonPath('error.details.normalized_payload_preview.name', 'Retryable Admin API Person Updated')
+        ->assertJsonPath('error.details.normalized_payload_preview.gender', $person->gender)
+        ->assertJsonPath('error.details.normalized_payload_preview.status', $person->status)
         ->assertJsonCount(0, 'error.details.remaining_blockers')
         ->assertJsonPath('error.details.can_retry', true);
 
     expect($fixPlan->get('gender'))->toMatchArray([
         'action' => 'set_field',
         'field' => 'gender',
-        'value' => $speaker->gender,
+        'value' => $person->gender,
         'auto_apply_safe' => true,
     ])->and($fixPlan->get('status'))->toMatchArray([
         'action' => 'set_field',
         'field' => 'status',
-        'value' => $speaker->status,
+        'value' => $person->status,
         'auto_apply_safe' => true,
     ]);
 });
@@ -832,33 +832,33 @@ it('returns retryable remediation details for validate-only admin api update val
 it('lists related records for admin resource relations', function () {
     $admin = adminApiUser('super_admin');
     $relatedTitle = 'Nested Relation Event '.Str::ulid();
-    $speaker = Speaker::factory()->create([
-        'name' => 'Nested Relation Speaker',
+    $person = Person::factory()->create([
+        'name' => 'Nested Relation Person',
     ]);
     $event = Event::factory()->create([
         'title' => $relatedTitle,
     ]);
 
-    $event->speakers()->attach($speaker);
-    $speakerRouteKey = (string) $speaker->getRouteKey();
+    $event->persons()->attach($person);
+    $personRouteKey = (string) $person->getRouteKey();
 
     Sanctum::actingAs($admin);
 
-    $this->getJson('/api/v1/admin/speakers/meta')
+    $this->getJson('/api/v1/admin/people/meta')
         ->assertOk()
         ->assertJson(fn ($json) => $json
-            ->where('data.resource.api_routes.related_collection', '/api/v1/admin/speakers/record/relations/relation')
+            ->where('data.resource.api_routes.related_collection', '/api/v1/admin/people/record/relations/relation')
             ->where('data.resource.relations', fn ($relations): bool => collect($relations)->contains('events'))
             ->etc());
 
-    $response = $this->getJson('/api/v1/admin/speakers/'.$speakerRouteKey.'/relations/events?search='.urlencode($relatedTitle))
+    $response = $this->getJson('/api/v1/admin/people/'.$personRouteKey.'/relations/events?search='.urlencode($relatedTitle))
         ->assertOk();
 
     $response
         ->assertJsonPath('data.0.route_key', $event->getRouteKey())
         ->assertJsonPath('data.0.title', $relatedTitle)
-        ->assertJsonPath('meta.resource.key', 'speakers')
-        ->assertJsonPath('meta.parent_record.route_key', $speakerRouteKey)
+        ->assertJsonPath('meta.resource.key', 'people')
+        ->assertJsonPath('meta.parent_record.route_key', $personRouteKey)
         ->assertJsonPath('meta.relation.name', 'events')
         ->assertJsonPath('meta.relation.related_resource.key', 'events');
 });
@@ -1599,7 +1599,7 @@ it('surfaces donation channel update semantics through the admin api schema', fu
 
     $fields = collect($schema['fields'] ?? [])->keyBy('name');
 
-    expect(data_get($fields->get('donatable_type'), 'accepted_aliases.speakers'))->toBe((string) (new Speaker)->getMorphClass())
+    expect(data_get($fields->get('donatable_type'), 'accepted_aliases.speakers'))->toBe((string) (new Person)->getMorphClass())
         ->and(data_get($fields->get('method'), 'mutation_semantics'))->toBe('replace_scalar_with_method_partition_reset')
         ->and(data_get($fields->get('method'), 'switch_clears_fields.duitnow'))->toContain('bank_name', 'account_number')
         ->and(data_get($fields->get('label'), 'clear_semantics.explicit_null'))->toBe('clear_to_null')
@@ -1710,12 +1710,12 @@ it('exposes admin speaker write schema and can create and update speakers throug
     $admin = adminApiUser('super_admin');
     Sanctum::actingAs($admin);
 
-    $schema = $this->getJson('/api/v1/admin/speakers/schema?operation=create')
+    $schema = $this->getJson('/api/v1/admin/people/schema?operation=create')
         ->assertOk()
-        ->assertJsonPath('data.schema.resource_key', 'speakers')
+        ->assertJsonPath('data.schema.resource_key', 'people')
         ->assertJsonPath('data.schema.method', 'POST')
         ->assertJsonPath('data.schema.slug_behavior', 'auto_managed')
-        ->assertJsonPath('data.schema.endpoint', '/api/v1/admin/speakers')
+        ->assertJsonPath('data.schema.endpoint', '/api/v1/admin/people')
         ->json('data.schema');
 
     $speakerFields = collect($schema['fields'] ?? [])->pluck('name')->all();
@@ -1729,8 +1729,8 @@ it('exposes admin speaker write schema and can create and update speakers throug
         ->and($speakerFields)->not->toContain('address.country_code', 'address.country_key')
         ->and(collect($schema['conditional_rules'] ?? [])->pluck('field')->all())->not->toContain('address.country_id');
 
-    $createResponse = $this->postJson('/api/v1/admin/speakers', [
-        'name' => 'Admin API Created Speaker',
+    $createResponse = $this->postJson('/api/v1/admin/people', [
+        'name' => 'Admin API Created Person',
         'gender' => 'male',
         'status' => 'verified',
         'is_freelance' => false,
@@ -1739,16 +1739,16 @@ it('exposes admin speaker write schema and can create and update speakers throug
         ],
     ])->assertCreated();
 
-    $speakerRouteKey = (string) $createResponse->json('data.record.route_key');
-    $speaker = Speaker::query()->findOrFail($speakerRouteKey);
+    $personRouteKey = (string) $createResponse->json('data.record.route_key');
+    $person = Person::query()->findOrFail($personRouteKey);
 
-    expect($speaker->name)->toBe('Admin API Created Speaker')
-        ->and($speaker->slug)->toBe('admin-api-created-speaker-my')
-        ->and($speaker->status)->toBe('verified')
-        ->and($speaker->allow_public_event_submission)->toBeTrue();
+    expect($person->name)->toBe('Admin API Created Person')
+        ->and($person->slug)->toBe('admin-api-created-speaker-my')
+        ->and($person->status)->toBe('verified')
+        ->and($person->allow_public_event_submission)->toBeTrue();
 
-    $this->putJson('/api/v1/admin/speakers/'.$speakerRouteKey, [
-        'name' => 'Admin API Updated Speaker',
+    $this->putJson('/api/v1/admin/people/'.$personRouteKey, [
+        'name' => 'Admin API Updated Person',
         'gender' => 'male',
         'honorific' => ['dato'],
         'pre_nominal' => ['dr', 'prof_madya'],
@@ -1761,7 +1761,7 @@ it('exposes admin speaker write schema and can create and update speakers throug
             'country_id' => ensureAdminApiMalaysiaCountryExists(),
         ],
     ])->assertOk()
-        ->assertJsonPath('data.record.attributes.name', 'Admin API Updated Speaker')
+        ->assertJsonPath('data.record.attributes.name', 'Admin API Updated Person')
         ->assertJsonPath('data.record.attributes.slug', 'prof-madya-dato-dr-admin-api-updated-speaker-phd-ba-hons-my')
         ->assertJsonPath('data.record.attributes.job_title', 'Imam');
 });
@@ -1771,8 +1771,8 @@ it('requires explicit country and still prohibits detailed address fields when c
 
     Sanctum::actingAs($admin);
 
-    $this->postJson('/api/v1/admin/speakers', [
-        'name' => 'Admin API Missing Speaker Country',
+    $this->postJson('/api/v1/admin/people', [
+        'name' => 'Admin API Missing Person Country',
         'gender' => 'male',
         'status' => 'verified',
         'is_freelance' => false,
@@ -1782,8 +1782,8 @@ it('requires explicit country and still prohibits detailed address fields when c
             'address.country_id',
         ]);
 
-    $this->postJson('/api/v1/admin/speakers', [
-        'name' => 'Admin API Invalid Speaker Address',
+    $this->postJson('/api/v1/admin/people', [
+        'name' => 'Admin API Invalid Person Address',
         'gender' => 'male',
         'status' => 'verified',
         'is_freelance' => false,
@@ -1808,8 +1808,8 @@ it('returns fresh speaker address data on admin GET requests after updates', fun
     $admin = adminApiUser('super_admin');
     Sanctum::actingAs($admin);
 
-    $createResponse = $this->postJson('/api/v1/admin/speakers', [
-        'name' => 'Admin API Address Freshness Speaker',
+    $createResponse = $this->postJson('/api/v1/admin/people', [
+        'name' => 'Admin API Address Freshness Person',
         'gender' => 'male',
         'status' => 'verified',
         'is_freelance' => false,
@@ -1820,9 +1820,9 @@ it('returns fresh speaker address data on admin GET requests after updates', fun
         ],
     ])->assertCreated();
 
-    $speakerRouteKey = (string) $createResponse->json('data.record.route_key');
+    $personRouteKey = (string) $createResponse->json('data.record.route_key');
 
-    $this->getJson('/api/v1/admin/speakers/'.$speakerRouteKey)
+    $this->getJson('/api/v1/admin/people/'.$personRouteKey)
         ->assertOk()
         ->assertJsonPath('data.record.attributes.address.country_id', $firstFixtures['country_id'])
         ->assertJsonMissingPath('data.record.attributes.address.line1')
@@ -1830,8 +1830,8 @@ it('returns fresh speaker address data on admin GET requests after updates', fun
         ->assertJsonPath('data.record.attributes.address.admin_area_1_id', $firstFixtures['admin_area_1_id'])
         ->assertJsonPath('data.record.attributes.address.admin_area_2_id', $firstFixtures['admin_area_2_id']);
 
-    $this->putJson('/api/v1/admin/speakers/'.$speakerRouteKey, [
-        'name' => 'Admin API Address Freshness Speaker',
+    $this->putJson('/api/v1/admin/people/'.$personRouteKey, [
+        'name' => 'Admin API Address Freshness Person',
         'gender' => 'male',
         'status' => 'verified',
         'is_freelance' => false,
@@ -1847,7 +1847,7 @@ it('returns fresh speaker address data on admin GET requests after updates', fun
         ->assertJsonPath('data.record.attributes.address.admin_area_1_id', $secondFixtures['admin_area_1_id'])
         ->assertJsonPath('data.record.attributes.address.admin_area_2_id', $secondFixtures['admin_area_2_id']);
 
-    $this->getJson('/api/v1/admin/speakers/'.$speakerRouteKey)
+    $this->getJson('/api/v1/admin/people/'.$personRouteKey)
         ->assertOk()
         ->assertJsonPath('data.record.attributes.address.country_id', $secondFixtures['country_id'])
         ->assertJsonMissingPath('data.record.attributes.address.line1')
@@ -1855,7 +1855,7 @@ it('returns fresh speaker address data on admin GET requests after updates', fun
         ->assertJsonPath('data.record.attributes.address.admin_area_1_id', $secondFixtures['admin_area_1_id'])
         ->assertJsonPath('data.record.attributes.address.admin_area_2_id', $secondFixtures['admin_area_2_id']);
 
-    $this->getJson('/api/v1/admin/speakers?search=Admin%20API%20Address%20Freshness%20Speaker')
+    $this->getJson('/api/v1/admin/people?search=Admin%20API%20Address%20Freshness%20Speaker')
         ->assertOk()
         ->assertJsonPath('data.0.attributes.address.country_id', $secondFixtures['country_id'])
         ->assertJsonMissingPath('data.0.attributes.address.line1')
@@ -1870,8 +1870,8 @@ it('surfaces speaker update semantics and collection rules through the admin api
     $admin = adminApiUser('super_admin');
     Sanctum::actingAs($admin);
 
-    $createResponse = $this->postJson('/api/v1/admin/speakers', [
-        'name' => 'Admin API Speaker Schema Surface',
+    $createResponse = $this->postJson('/api/v1/admin/people', [
+        'name' => 'Admin API Person Schema Surface',
         'gender' => 'male',
         'status' => 'verified',
         'is_freelance' => false,
@@ -1880,7 +1880,7 @@ it('surfaces speaker update semantics and collection rules through the admin api
         ],
     ])->assertCreated();
 
-    $schema = $this->getJson('/api/v1/admin/speakers/schema?operation=update&recordKey='.$createResponse->json('data.record.route_key'))
+    $schema = $this->getJson('/api/v1/admin/people/schema?operation=update&recordKey='.$createResponse->json('data.record.route_key'))
         ->assertOk()
         ->json('data.schema');
 
@@ -1922,8 +1922,8 @@ it('replaces speaker collections and still requires an explicit country when mut
     $admin = adminApiUser('super_admin');
     Sanctum::actingAs($admin);
 
-    $createResponse = $this->postJson('/api/v1/admin/speakers', [
-        'name' => 'Admin API Speaker Collections',
+    $createResponse = $this->postJson('/api/v1/admin/people', [
+        'name' => 'Admin API Person Collections',
         'gender' => 'male',
         'status' => 'verified',
         'is_freelance' => true,
@@ -1954,23 +1954,23 @@ it('replaces speaker collections and still requires an explicit country when mut
         ]],
     ])->assertCreated();
 
-    $speakerRouteKey = (string) $createResponse->json('data.record.route_key');
-    $speaker = withGlobalOwnerContext(
-        fn (): Speaker => Speaker::query()->with(['contactMethods', 'socialProfiles', 'languages'])->findOrFail($speakerRouteKey),
+    $personRouteKey = (string) $createResponse->json('data.record.route_key');
+    $person = withGlobalOwnerContext(
+        fn (): Person => Person::query()->with(['contactMethods', 'socialProfiles', 'languages'])->findOrFail($personRouteKey),
     );
-    $originalContactIds = $speaker->contactMethods->modelKeys();
-    $originalSocialMediaIds = $speaker->socialProfiles->modelKeys();
+    $originalContactIds = $person->contactMethods->modelKeys();
+    $originalSocialMediaIds = $person->socialProfiles->modelKeys();
 
-    $this->putJson('/api/v1/admin/speakers/'.$speakerRouteKey, [
-        'name' => 'Admin API Speaker Collections',
+    $this->putJson('/api/v1/admin/people/'.$personRouteKey, [
+        'name' => 'Admin API Person Collections',
         'gender' => 'male',
         'status' => 'verified',
         'address' => [],
     ])->assertUnprocessable()
         ->assertJsonValidationErrors(['address.country_id']);
 
-    $this->putJson('/api/v1/admin/speakers/'.$speakerRouteKey, [
-        'name' => 'Admin API Speaker Collections Updated',
+    $this->putJson('/api/v1/admin/people/'.$personRouteKey, [
+        'name' => 'Admin API Person Collections Updated',
         'gender' => 'male',
         'status' => 'verified',
         'is_freelance' => false,
@@ -1993,34 +1993,34 @@ it('replaces speaker collections and still requires an explicit country when mut
             'url' => 'https://facebook.com/admin-api-speaker-collections-updated',
         ]],
     ])->assertOk()
-        ->assertJsonPath('data.record.attributes.name', 'Admin API Speaker Collections Updated')
+        ->assertJsonPath('data.record.attributes.name', 'Admin API Person Collections Updated')
         ->assertJsonPath('data.record.attributes.honorific.0', 'datuk')
         ->assertJsonPath('data.record.attributes.contacts.0.type', 'whatsapp')
         ->assertJsonPath('data.record.attributes.social_media.0.platform', 'facebook')
         ->assertJsonPath('data.record.attributes.social_media.0.handle', 'admin-api-speaker-collections-updated')
         ->assertJsonPath('data.record.attributes.social_media.0.url', 'https://facebook.com/admin-api-speaker-collections-updated');
 
-    $speaker = withGlobalOwnerContext(
-        fn (): Speaker => $speaker->refresh()->load(['contactMethods', 'socialProfiles', 'languages']),
+    $person = withGlobalOwnerContext(
+        fn (): Person => $person->refresh()->load(['contactMethods', 'socialProfiles', 'languages']),
     );
 
-    expect($speaker->honorific)->toBe(['datuk'])
-        ->and($speaker->job_title)->toBeNull()
-        ->and($speaker->qualifications)->toHaveCount(1)
-        ->and(data_get($speaker->qualifications, '0.degree'))->toBe('PhD')
-        ->and($speaker->languages->pluck('id')->all())->toEqual([(int) $languageEnglish->id])
-        ->and($speaker->contactMethods)->toHaveCount(1)
-        ->and($speaker->contactMethods->first()?->getRawOriginal('type'))->toBe('whatsapp')
-        ->and($speaker->contactMethods->first()?->getRawOriginal('purpose'))->toBe('support')
-        ->and(collect($speaker->contactMethods->modelKeys())->intersect($originalContactIds)->all())->toBe([])
-        ->and($speaker->socialProfiles)->toHaveCount(1)
-        ->and($speaker->socialProfiles->first()?->getRawOriginal('platform'))->toBe('facebook')
-        ->and($speaker->socialProfiles->first()?->handle)->toBe('admin-api-speaker-collections-updated')
-        ->and($speaker->socialProfiles->first()?->url)->toBe('https://facebook.com/admin-api-speaker-collections-updated')
-        ->and(collect($speaker->socialProfiles->modelKeys())->intersect($originalSocialMediaIds)->all())->toBe([]);
+    expect($person->honorific)->toBe(['datuk'])
+        ->and($person->job_title)->toBeNull()
+        ->and($person->qualifications)->toHaveCount(1)
+        ->and(data_get($person->qualifications, '0.degree'))->toBe('PhD')
+        ->and($person->languages->pluck('id')->all())->toEqual([(int) $languageEnglish->id])
+        ->and($person->contactMethods)->toHaveCount(1)
+        ->and($person->contactMethods->first()?->getRawOriginal('type'))->toBe('whatsapp')
+        ->and($person->contactMethods->first()?->getRawOriginal('purpose'))->toBe('support')
+        ->and(collect($person->contactMethods->modelKeys())->intersect($originalContactIds)->all())->toBe([])
+        ->and($person->socialProfiles)->toHaveCount(1)
+        ->and($person->socialProfiles->first()?->getRawOriginal('platform'))->toBe('facebook')
+        ->and($person->socialProfiles->first()?->handle)->toBe('admin-api-speaker-collections-updated')
+        ->and($person->socialProfiles->first()?->url)->toBe('https://facebook.com/admin-api-speaker-collections-updated')
+        ->and(collect($person->socialProfiles->modelKeys())->intersect($originalSocialMediaIds)->all())->toBe([]);
 
-    $this->putJson('/api/v1/admin/speakers/'.$speakerRouteKey, [
-        'name' => 'Admin API Speaker Collections Updated',
+    $this->putJson('/api/v1/admin/people/'.$personRouteKey, [
+        'name' => 'Admin API Person Collections Updated',
         'gender' => 'male',
         'status' => 'verified',
         'honorific' => [],
@@ -2030,15 +2030,15 @@ it('replaces speaker collections and still requires an explicit country when mut
         'social_media' => [],
     ])->assertOk();
 
-    $speaker = withGlobalOwnerContext(
-        fn (): Speaker => $speaker->refresh()->load(['contactMethods', 'socialProfiles', 'languages']),
+    $person = withGlobalOwnerContext(
+        fn (): Person => $person->refresh()->load(['contactMethods', 'socialProfiles', 'languages']),
     );
 
-    expect($speaker->honorific)->toBe([])
-        ->and($speaker->qualifications)->toBe([])
-        ->and($speaker->languages)->toHaveCount(0)
-        ->and($speaker->contactMethods)->toHaveCount(0)
-        ->and($speaker->socialProfiles)->toHaveCount(0);
+    expect($person->honorific)->toBe([])
+        ->and($person->qualifications)->toBe([])
+        ->and($person->languages)->toHaveCount(0)
+        ->and($person->contactMethods)->toHaveCount(0)
+        ->and($person->socialProfiles)->toHaveCount(0);
 });
 
 it('allows sparse venue address updates without resending the existing country through the admin api', function () {
@@ -3025,9 +3025,9 @@ it('clamps admin collection per_page values to the supported maximum', function 
     $admin = adminApiUser('super_admin');
     Sanctum::actingAs($admin);
 
-    Speaker::factory()->count(110)->create();
+    Person::factory()->count(110)->create();
 
-    $this->getJson('/api/v1/admin/speakers?per_page=500')
+    $this->getJson('/api/v1/admin/people?per_page=500')
         ->assertOk()
         ->assertJsonPath('meta.pagination.per_page', 100)
         ->assertJsonCount(100, 'data');
@@ -3055,7 +3055,7 @@ it('exposes admin event write schema and can create and update events through th
     $institution = Institution::factory()->create([
         'status' => 'verified',
     ]);
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'status' => 'verified',
     ]);
     $reference = Reference::factory()->verified()->create();
@@ -3083,7 +3083,7 @@ it('exposes admin event write schema and can create and update events through th
 
     $createResponse = $this->postJson('/api/v1/admin/events', adminApiEventPayload([
         'institution' => $institution,
-        'speaker' => $speaker,
+        'speaker' => $person,
         'reference' => $reference,
         'series' => $series,
         'domain_tag' => $domainTag,
@@ -3107,7 +3107,7 @@ it('exposes admin event write schema and can create and update events through th
 
     $this->putJson('/api/v1/admin/events/'.$eventRouteKey, adminApiEventPayload([
         'institution' => $institution,
-        'speaker' => $speaker,
+        'speaker' => $person,
         'reference' => $reference,
         'series' => $series,
         'domain_tag' => $domainTag,
@@ -3119,14 +3119,14 @@ it('exposes admin event write schema and can create and update events through th
         'custom_time' => null,
         'end_time' => '22:30',
         'live_url' => 'https://youtube.com/watch?v=admin-api-event-live',
-        'primary_organizer_id' => $speaker->getKey(),
+        'primary_organizer_id' => $person->getKey(),
         'institution_id' => null,
         'references' => [],
         'series' => [],
         'domain_tags' => [],
         'discipline_tags' => [],
         'source_tags' => [(string) $sourceTag->getKey()],
-        'speakers' => [],
+        'persons' => [],
         'other_key_people' => [],
         'registration_required' => false,
     ]))->assertOk()
@@ -3144,7 +3144,7 @@ it('exposes admin event write schema and can create and update events through th
         ->and($event->classifications->pluck('event_term_id')->all())->toContain($sourceTag->getKey())
         ->and($event->classifications->pluck('event_term_id')->all())->not->toContain($domainTag->getKey(), $disciplineTag->getKey())
         ->and($event->keyPeople)->toHaveCount(0)
-        ->and($event->slug)->toContain($speaker->slug);
+        ->and($event->slug)->toContain($person->slug);
 });
 
 it('surfaces event update semantics and sparse relation rules through the admin api schema', function () {
@@ -3156,7 +3156,7 @@ it('surfaces event update semantics and sparse relation rules through the admin 
     $institution = Institution::factory()->create([
         'status' => 'verified',
     ]);
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'status' => 'verified',
     ]);
     $reference = Reference::factory()->verified()->create();
@@ -3166,7 +3166,7 @@ it('surfaces event update semantics and sparse relation rules through the admin 
 
     $createResponse = $this->postJson('/api/v1/admin/events', adminApiEventPayload([
         'institution' => $institution,
-        'speaker' => $speaker,
+        'speaker' => $person,
         'reference' => $reference,
         'series' => $series,
         'domain_tag' => $domainTag,
@@ -3186,9 +3186,9 @@ it('surfaces event update semantics and sparse relation rules through the admin 
         ->and(data_get($fields->get('languages'), 'collection_semantics.submitted_array'))->toBe('replace_relation_sync')
         ->and(data_get($fields->get('references'), 'collection_semantics.explicit_null'))->toBe('clear_collection')
         ->and(data_get($fields->get('domain_tags'), 'taxonomy_code'))->toBe('domain')
-        ->and(data_get($fields->get('primary_organizer_id'), 'accepted_models'))->toBe([Institution::class, Speaker::class])
-        ->and(data_get($fields->get('speakers'), 'collection_semantics.submitted_array'))->toBe('replace_speaker_subset_and_rebuild_key_people')
-        ->and(data_get($fields->get('speakers'), 'collection_semantics.item_ids_preserved'))->toBeFalse()
+        ->and(data_get($fields->get('primary_organizer_id'), 'accepted_models'))->toBe([Institution::class, Person::class])
+        ->and(data_get($fields->get('persons'), 'collection_semantics.submitted_array'))->toBe('replace_speaker_subset_and_rebuild_key_people')
+        ->and(data_get($fields->get('persons'), 'collection_semantics.item_ids_preserved'))->toBeFalse()
         ->and(data_get($fields->get('other_key_people'), 'collection_semantics.ordering'))->toBe('payload_order_sets_order_column_after_speakers')
         ->and($otherKeyPeopleFields->keys()->all())->toContain('role_code', 'involveable_type', 'involveable_id', 'display_name', 'visibility', 'notes')
         ->and(data_get($fields->get('registration_mode'), 'lock_behavior.when_event_has_registrations'))->toBe('retain_current_value');
@@ -3210,10 +3210,10 @@ it('supports sparse event updates while replacing submitted relation collections
     $institution = Institution::factory()->create([
         'status' => 'verified',
     ]);
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'status' => 'verified',
     ]);
-    $secondSpeaker = Speaker::factory()->create([
+    $secondPerson = Person::factory()->create([
         'status' => 'verified',
     ]);
     $reference = Reference::factory()->verified()->create();
@@ -3224,7 +3224,7 @@ it('supports sparse event updates while replacing submitted relation collections
 
     $createResponse = $this->postJson('/api/v1/admin/events', adminApiEventPayload([
         'institution' => $institution,
-        'speaker' => $speaker,
+        'speaker' => $person,
         'reference' => $reference,
         'series' => $series,
         'domain_tag' => $domainTag,
@@ -3246,7 +3246,7 @@ it('supports sparse event updates while replacing submitted relation collections
         'series' => [],
         'languages' => [],
         'domain_tags' => [],
-        'speakers' => [(string) $speaker->getKey(), (string) $secondSpeaker->getKey()],
+        'persons' => [(string) $person->getKey(), (string) $secondPerson->getKey()],
     ])->assertOk()
         ->assertJsonPath('data.record.attributes.title', 'Admin API Event Created')
         ->assertJsonPath('data.record.attributes.live_url', null);
@@ -3261,9 +3261,9 @@ it('supports sparse event updates while replacing submitted relation collections
         ->and($event->classifications->pluck('event_term_id')->all())->toContain($disciplineTag->getKey(), $sourceTag->getKey())
         ->and($event->classifications->pluck('event_term_id')->all())->not->toContain($domainTag->getKey())
         ->and($event->keyPeople)->toHaveCount(3)
-        ->and($event->keyPeople->where('role_code', EventKeyPersonRole::Speaker->value)->pluck('involveable_id')->all())->toEqualCanonicalizing([
-            (string) $speaker->getKey(),
-            (string) $secondSpeaker->getKey(),
+        ->and($event->keyPeople->where('role_code', EventKeyPersonRole::Person->value)->pluck('involveable_id')->all())->toEqualCanonicalizing([
+            (string) $person->getKey(),
+            (string) $secondPerson->getKey(),
         ])
         ->and($event->keyPeople->where('role_code', EventKeyPersonRole::Moderator->value)->count())->toBe(1)
         ->and(collect($event->keyPeople->modelKeys())->intersect($originalKeyPeopleIds)->all())->toBe([]);
@@ -3278,7 +3278,7 @@ it('clears event poster when clear_poster is submitted as a form-style boolean',
     $institution = Institution::factory()->create([
         'status' => 'verified',
     ]);
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'status' => 'verified',
     ]);
     $reference = Reference::factory()->verified()->create();
@@ -3288,7 +3288,7 @@ it('clears event poster when clear_poster is submitted as a form-style boolean',
 
     $createResponse = $this->postJson('/api/v1/admin/events', adminApiEventPayload([
         'institution' => $institution,
-        'speaker' => $speaker,
+        'speaker' => $person,
         'reference' => $reference,
         'series' => $series,
         'domain_tag' => $domainTag,
@@ -3327,26 +3327,26 @@ it('rejects admin event writes that omit required speakers for speaker-led event
     $institution = Institution::factory()->create([
         'status' => 'verified',
     ]);
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'status' => 'verified',
     ]);
     $reference = Reference::factory()->verified()->create();
     $series = Series::factory()->create();
-    $domainTag = adminApiEventTerm('domain', 'Admin API Speaker Validation Domain');
-    $disciplineTag = adminApiEventTerm('discipline', 'Admin API Speaker Validation Discipline');
+    $domainTag = adminApiEventTerm('domain', 'Admin API Person Validation Domain');
+    $disciplineTag = adminApiEventTerm('discipline', 'Admin API Person Validation Discipline');
 
     $this->postJson('/api/v1/admin/events', adminApiEventPayload([
         'institution' => $institution,
-        'speaker' => $speaker,
+        'speaker' => $person,
         'reference' => $reference,
         'series' => $series,
         'domain_tag' => $domainTag,
         'discipline_tag' => $disciplineTag,
     ], [
         'event_category_ids' => [eventCategoryId('kuliah_ceramah')],
-        'speakers' => [],
+        'persons' => [],
     ]))->assertUnprocessable()
-        ->assertJsonValidationErrors(['speakers']);
+        ->assertJsonValidationErrors(['persons']);
 });
 
 it('rejects admin event writes with organizer ids that do not resolve to institutions or speakers', function () {
@@ -3358,7 +3358,7 @@ it('rejects admin event writes with organizer ids that do not resolve to institu
     $institution = Institution::factory()->create([
         'status' => 'verified',
     ]);
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'status' => 'verified',
     ]);
     $reference = Reference::factory()->verified()->create();
@@ -3369,7 +3369,7 @@ it('rejects admin event writes with organizer ids that do not resolve to institu
 
     $this->postJson('/api/v1/admin/events', adminApiEventPayload([
         'institution' => $institution,
-        'speaker' => $speaker,
+        'speaker' => $person,
         'reference' => $reference,
         'series' => $series,
         'domain_tag' => $domainTag,
@@ -3392,7 +3392,7 @@ it('rejects admin event writes with conflicting location selections', function (
     $otherInstitution = Institution::factory()->create([
         'status' => 'verified',
     ]);
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'status' => 'verified',
     ]);
     $reference = Reference::factory()->verified()->create();
@@ -3407,7 +3407,7 @@ it('rejects admin event writes with conflicting location selections', function (
 
     $this->postJson('/api/v1/admin/events', adminApiEventPayload([
         'institution' => $institution,
-        'speaker' => $speaker,
+        'speaker' => $person,
         'reference' => $reference,
         'series' => $series,
         'domain_tag' => $domainTag,
@@ -3507,7 +3507,7 @@ function adminApiUser(string $role): User
 /**
  * @param  array{
  *     institution: Institution,
- *     speaker: Speaker,
+ *     speaker: Person,
  *     reference: Reference,
  *     series: Series,
  *     domain_tag: EventTerm,
@@ -3543,7 +3543,7 @@ function adminApiEventPayload(array $fixtures, array $overrides = []): array
         'primary_organizer_id' => (string) $fixtures['institution']->getKey(),
         'institution_id' => (string) $fixtures['institution']->getKey(),
         'series' => [(string) $fixtures['series']->getKey()],
-        'speakers' => [(string) $fixtures['speaker']->getKey()],
+        'persons' => [(string) $fixtures['speaker']->getKey()],
         'other_key_people' => [
             [
                 'role_code' => 'moderator',
@@ -3564,22 +3564,22 @@ it('batch-creates admin resource records and returns per-row results', function 
 
     Sanctum::actingAs($admin);
 
-    $speaker1 = Speaker::factory()->create([
-        'name' => 'Batch API Speaker One',
+    $person1 = Person::factory()->create([
+        'name' => 'Batch API Person One',
         'status' => 'verified',
     ]);
 
-    $speaker2 = Speaker::factory()->create([
-        'name' => 'Batch API Speaker Two',
+    $person2 = Person::factory()->create([
+        'name' => 'Batch API Person Two',
         'status' => 'verified',
     ]);
 
-    $response = $this->postJson('/api/v1/admin/speakers/batch', [
+    $response = $this->postJson('/api/v1/admin/people/batch', [
         'items' => [
             [
                 'external_row_id' => 'row-A',
                 'payload' => [
-                    'name' => 'Batch Created Speaker Alpha',
+                    'name' => 'Batch Created Person Alpha',
                     'gender' => 'male',
                     'status' => 'verified',
                     'address' => ['country_id' => ensureAdminApiMalaysiaCountryExists()],
@@ -3588,7 +3588,7 @@ it('batch-creates admin resource records and returns per-row results', function 
             [
                 'external_row_id' => 'row-B',
                 'payload' => [
-                    'name' => 'Batch Created Speaker Beta',
+                    'name' => 'Batch Created Person Beta',
                     'gender' => 'female',
                     'status' => 'verified',
                     'address' => ['country_id' => ensureAdminApiMalaysiaCountryExists()],
@@ -3612,8 +3612,8 @@ it('batch-creates admin resource records and returns per-row results', function 
         ->and($results[1]['status'])->toBe('created')
         ->and($results[1]['external_row_id'])->toBe('row-B');
 
-    $this->assertDatabaseHas('speakers', ['name' => 'Batch Created Speaker Alpha']);
-    $this->assertDatabaseHas('speakers', ['name' => 'Batch Created Speaker Beta']);
+    $this->assertDatabaseHas('persons', ['name' => 'Batch Created Person Alpha']);
+    $this->assertDatabaseHas('persons', ['name' => 'Batch Created Person Beta']);
 });
 
 it('batch-creates records and returns per-row validation errors without rolling back successes', function () {
@@ -3622,12 +3622,12 @@ it('batch-creates records and returns per-row validation errors without rolling 
 
     Sanctum::actingAs($admin);
 
-    $response = $this->postJson('/api/v1/admin/speakers/batch', [
+    $response = $this->postJson('/api/v1/admin/people/batch', [
         'items' => [
             [
                 'external_row_id' => 'row-ok',
                 'payload' => [
-                    'name' => 'Batch Valid Speaker',
+                    'name' => 'Batch Valid Person',
                     'gender' => 'male',
                     'status' => 'verified',
                     'address' => ['country_id' => ensureAdminApiMalaysiaCountryExists()],
@@ -3659,7 +3659,7 @@ it('batch-creates records and returns per-row validation errors without rolling 
         ->and($failResult['status'])->toBe('validation_failed')
         ->and($failResult['errors'])->toBeArray();
 
-    $this->assertDatabaseHas('speakers', ['name' => 'Batch Valid Speaker']);
+    $this->assertDatabaseHas('persons', ['name' => 'Batch Valid Person']);
 });
 
 it('batch-creates records with validate_only and returns previews without persisting', function () {
@@ -3668,11 +3668,11 @@ it('batch-creates records with validate_only and returns previews without persis
 
     Sanctum::actingAs($admin);
 
-    $response = $this->postJson('/api/v1/admin/speakers/batch?validate_only=1', [
+    $response = $this->postJson('/api/v1/admin/people/batch?validate_only=1', [
         'items' => [
             [
                 'payload' => [
-                    'name' => 'Dry Run Speaker',
+                    'name' => 'Dry Run Person',
                     'gender' => 'male',
                     'status' => 'verified',
                     'address' => ['country_id' => ensureAdminApiMalaysiaCountryExists()],
@@ -3686,7 +3686,7 @@ it('batch-creates records with validate_only and returns previews without persis
     expect($response->json('data.validate_only'))->toBeTrue()
         ->and($response->json('data.results.0.status'))->toBe('preview');
 
-    $this->assertDatabaseMissing('speakers', ['name' => 'Dry Run Speaker']);
+    $this->assertDatabaseMissing('persons', ['name' => 'Dry Run Person']);
 });
 
 it('batch-updates admin resource records and returns per-row results', function () {
@@ -3694,32 +3694,32 @@ it('batch-updates admin resource records and returns per-row results', function 
 
     Sanctum::actingAs($admin);
 
-    $speaker1 = Speaker::factory()->create([
-        'name' => 'Batch Update Speaker One',
+    $person1 = Person::factory()->create([
+        'name' => 'Batch Update Person One',
         'status' => 'pending',
     ]);
 
-    $speaker2 = Speaker::factory()->create([
-        'name' => 'Batch Update Speaker Two',
+    $person2 = Person::factory()->create([
+        'name' => 'Batch Update Person Two',
         'status' => 'pending',
     ]);
 
-    $response = $this->putJson('/api/v1/admin/speakers/batch', [
+    $response = $this->putJson('/api/v1/admin/people/batch', [
         'items' => [
             [
-                'record_key' => (string) $speaker1->getKey(),
+                'record_key' => (string) $person1->getKey(),
                 'external_row_id' => 'update-A',
                 'payload' => [
-                    'name' => 'Batch Updated Speaker One',
+                    'name' => 'Batch Updated Person One',
                     'gender' => 'male',
                     'status' => 'verified',
                 ],
             ],
             [
-                'record_key' => (string) $speaker2->getKey(),
+                'record_key' => (string) $person2->getKey(),
                 'external_row_id' => 'update-B',
                 'payload' => [
-                    'name' => 'Batch Updated Speaker Two',
+                    'name' => 'Batch Updated Person Two',
                     'gender' => 'female',
                     'status' => 'verified',
                 ],
@@ -3742,8 +3742,8 @@ it('batch-updates admin resource records and returns per-row results', function 
         ->and($results[1]['status'])->toBe('updated')
         ->and($results[1]['external_row_id'])->toBe('update-B');
 
-    $this->assertDatabaseHas('speakers', ['name' => 'Batch Updated Speaker One']);
-    $this->assertDatabaseHas('speakers', ['name' => 'Batch Updated Speaker Two']);
+    $this->assertDatabaseHas('persons', ['name' => 'Batch Updated Person One']);
+    $this->assertDatabaseHas('persons', ['name' => 'Batch Updated Person Two']);
 });
 
 it('batch-updates returns not_found for missing record keys', function () {
@@ -3751,12 +3751,12 @@ it('batch-updates returns not_found for missing record keys', function () {
 
     Sanctum::actingAs($admin);
 
-    $response = $this->putJson('/api/v1/admin/speakers/batch', [
+    $response = $this->putJson('/api/v1/admin/people/batch', [
         'items' => [
             [
                 'record_key' => '00000000-0000-0000-0000-000000000000',
                 'payload' => [
-                    'name' => 'Ghost Speaker',
+                    'name' => 'Ghost Person',
                     'gender' => 'male',
                     'status' => 'verified',
                 ],
@@ -3775,11 +3775,11 @@ it('batch-updates returns error for items missing record_key', function () {
 
     Sanctum::actingAs($admin);
 
-    $response = $this->putJson('/api/v1/admin/speakers/batch', [
+    $response = $this->putJson('/api/v1/admin/people/batch', [
         'items' => [
             [
                 'payload' => [
-                    'name' => 'No Key Speaker',
+                    'name' => 'No Key Person',
                     'gender' => 'male',
                     'status' => 'verified',
                 ],
@@ -3803,13 +3803,13 @@ it('rejects batch operations on non-writable resources', function () {
 });
 
 it('rejects unauthenticated batch create requests', function () {
-    $this->postJson('/api/v1/admin/speakers/batch', [
+    $this->postJson('/api/v1/admin/people/batch', [
         'items' => [['payload' => ['name' => 'Test']]],
     ])->assertUnauthorized();
 });
 
 it('rejects unauthenticated batch update requests', function () {
-    $this->putJson('/api/v1/admin/speakers/batch', [
+    $this->putJson('/api/v1/admin/people/batch', [
         'items' => [['record_key' => 'some-key', 'payload' => ['name' => 'Test']]],
     ])->assertUnauthorized();
 });

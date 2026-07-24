@@ -1,10 +1,10 @@
 <?php
 
-use App\Forms\SpeakerFormSchema;
+use App\Forms\PersonFormSchema;
 use App\Models\Institution;
-use App\Models\Speaker;
+use App\Models\Person;
 
-it('includes biography, cover image, and institution position fields in speaker create option form', function () {
+it('includes biography, cover image, and institution position fields in person create option form', function () {
     $flatten = function (array $components) use (&$flatten): array {
         $flattened = [];
 
@@ -39,7 +39,7 @@ it('includes biography, cover image, and institution position fields in speaker 
         return $flattened;
     };
 
-    $components = collect($flatten(SpeakerFormSchema::createOptionForm()))
+    $components = collect($flatten(PersonFormSchema::createOptionForm()))
         ->keyBy(fn (mixed $component): ?string => method_exists($component, 'getName') ? $component->getName() : null);
 
     $fieldNames = $components
@@ -60,7 +60,7 @@ it('includes biography, cover image, and institution position fields in speaker 
     expect($components->get('pre_nominal')?->isMultiple())->toBeTrue();
 });
 
-it('stores biography and institution pivot position when creating a speaker via create option', function () {
+it('stores biography and institution pivot position when creating a person via create option', function () {
     $institution = Institution::factory()->create();
 
     $bio = [
@@ -74,8 +74,8 @@ it('stores biography and institution pivot position when creating a speaker via 
         ]],
     ];
 
-    $speakerId = SpeakerFormSchema::createOptionUsing([
-        'name' => 'Ustaz Test Speaker',
+    $personId = PersonFormSchema::createOptionUsing([
+        'name' => 'Ustaz Test Person',
         'gender' => 'male',
         'bio' => $bio,
         'post_nominal' => ['PhD', 'MSc'],
@@ -83,16 +83,16 @@ it('stores biography and institution pivot position when creating a speaker via 
         'institution_position' => 'Mudir',
     ]);
 
-    /** @var Speaker $speaker */
-    $speaker = Speaker::query()
+    /** @var Person $person */
+    $person = Person::query()
         ->with('institutions')
-        ->findOrFail($speakerId);
+        ->findOrFail($personId);
 
-    $linkedInstitution = $speaker->institutions->firstWhere('id', $institution->id);
+    $linkedInstitution = $person->institutions->firstWhere('id', $institution->id);
 
-    expect($speaker->bio)->toBe($bio)
-        ->and($speaker->post_nominal)->toBe(['PhD', 'MSc'])
-        ->and($speaker->status)->toBe('pending')
+    expect($person->bio)->toBe($bio)
+        ->and($person->post_nominal)->toBe(['PhD', 'MSc'])
+        ->and($person->status)->toBe('pending')
         ->and($linkedInstitution)->not->toBeNull()
         ->and($linkedInstitution?->pivot?->position)->toBe('Mudir')
         ->and((bool) $linkedInstitution?->pivot?->is_primary)->toBeTrue();

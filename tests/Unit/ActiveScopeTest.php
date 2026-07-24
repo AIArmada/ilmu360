@@ -2,7 +2,7 @@
 
 use App\Models\Event;
 use App\Models\Institution;
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Models\Venue;
 use App\States\EventStatus\Approved;
 use App\States\EventStatus\Draft;
@@ -13,9 +13,9 @@ uses(TestCase::class, RefreshDatabase::class);
 
 it('models have active scopes', function () {
     withGlobalOwnerContext(function (): void {
-        Speaker::factory()->create(['status' => 'verified']);
-        Speaker::factory()->create(['status' => 'inactive']);
-        expect(Speaker::active()->count())->toBe(1);
+        Person::factory()->create(['status' => 'verified']);
+        Person::factory()->create(['status' => 'inactive']);
+        expect(Person::active()->count())->toBe(1);
 
         Institution::factory()->create(['status' => 'verified']);
         Institution::factory()->create(['status' => 'inactive']);

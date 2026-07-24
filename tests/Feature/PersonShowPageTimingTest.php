@@ -10,25 +10,25 @@ use App\Models\Event;
 use App\Models\EventKeyPerson;
 use App\Models\Institution;
 use App\Models\Reference;
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Models\Venue;
 use App\Support\Location\AddressHierarchyFormatter;
 use Illuminate\Support\Carbon;
 
-function linkSpeakerEvent(Speaker $speaker, Event $event): void
+function linkPersonEvent(Person $person, Event $event): void
 {
     EventKeyPerson::query()->create([
         'event_id' => $event->getKey(),
-        'involveable_type' => 'speaker',
-        'involveable_id' => $speaker->getKey(),
-        'role_code' => EventKeyPersonRole::Speaker->value,
+        'involveable_type' => 'person',
+        'involveable_id' => $person->getKey(),
+        'role_code' => EventKeyPersonRole::Person->value,
         'sort_order' => 1,
         'visibility' => 'public',
     ]);
 }
 
-it('shows prayer-relative timing text on speaker page instead of absolute time', function () {
-    $speaker = Speaker::factory()->create([
+it('shows prayer-relative timing text on person page instead of absolute time', function () {
+    $person = Person::factory()->create([
         'status' => 'verified',
     ]);
 
@@ -41,12 +41,12 @@ it('shows prayer-relative timing text on speaker page instead of absolute time',
         'prayer_display_text' => 'Selepas Asar',
     ]);
 
-    linkSpeakerEvent($speaker, $event);
+    linkPersonEvent($person, $event);
 
     $expectedEndTime = $event->ends_at?->copy()->timezone('Asia/Kuala_Lumpur')->format('h:i A');
 
     $this->withUnencryptedCookie('user_timezone', 'Asia/Kuala_Lumpur')
-        ->get(route('speakers.show', $speaker))
+        ->get(route('persons.show'))
         ->assertSuccessful()
         ->assertSeeText('Selepas Asar')
         ->assertSeeText((string) $expectedEndTime)
@@ -58,7 +58,7 @@ it('uses the localized tarawih label instead of the generic isha offset text', f
     app()->setLocale('en');
 
     try {
-        $speaker = Speaker::factory()->create([
+        $person = Person::factory()->create([
             'status' => 'verified',
         ]);
 
@@ -73,10 +73,10 @@ it('uses the localized tarawih label instead of the generic isha offset text', f
             'prayer_display_text' => 'Selepas Tarawih',
         ]);
 
-        linkSpeakerEvent($speaker, $event);
+        linkPersonEvent($person, $event);
 
         $this->withUnencryptedCookie('user_timezone', 'Asia/Kuala_Lumpur')
-            ->get(route('speakers.show', $speaker))
+            ->get(route('persons.show'))
             ->assertSuccessful()
             ->assertSeeText('After Tarawih')
             ->assertDontSeeText('1 hour after Isha');
@@ -85,8 +85,8 @@ it('uses the localized tarawih label instead of the generic isha offset text', f
     }
 });
 
-it('shows cancelled public events with cancelled badge on speaker page', function () {
-    $speaker = Speaker::factory()->create([
+it('shows cancelled public events with cancelled badge on person page', function () {
+    $person = Person::factory()->create([
         'status' => 'verified',
     ]);
 
@@ -97,16 +97,16 @@ it('shows cancelled public events with cancelled badge on speaker page', functio
         'ends_at' => now()->addDay()->setTime(19, 15),
     ]);
 
-    linkSpeakerEvent($speaker, $event);
+    linkPersonEvent($person, $event);
 
-    $this->get(route('speakers.show', $speaker))
+    $this->get(route('persons.show'))
         ->assertSuccessful()
         ->assertSee($event->title)
         ->assertSee('Dibatalkan');
 });
 
-it('shows a moderation note when speaker page lists pending public events', function () {
-    $speaker = Speaker::factory()->create([
+it('shows a moderation note when person page lists pending public events', function () {
+    $person = Person::factory()->create([
         'status' => 'verified',
     ]);
 
@@ -116,17 +116,17 @@ it('shows a moderation note when speaker page lists pending public events', func
         'starts_at' => now()->addDay()->setTime(17, 45),
     ]);
 
-    linkSpeakerEvent($speaker, $event);
+    linkPersonEvent($person, $event);
 
-    $this->get(route('speakers.show', $speaker))
+    $this->get(route('persons.show'))
         ->assertSuccessful()
         ->assertSee($event->title)
         ->assertSee('Menunggu Kelulusan')
         ->assertSee('Semak lencana status pada setiap majlis sebelum hadir.');
 });
 
-it('uses stronger calendar event colors on speaker page', function () {
-    $speaker = Speaker::factory()->create([
+it('uses stronger calendar event colors on person page', function () {
+    $person = Person::factory()->create([
         'status' => 'verified',
     ]);
 
@@ -138,16 +138,16 @@ it('uses stronger calendar event colors on speaker page', function () {
         'title' => 'Kuliah Kalender Penceramah',
     ]);
 
-    linkSpeakerEvent($speaker, $event);
+    linkPersonEvent($person, $event);
 
-    $this->get(route('speakers.show', $speaker))
+    $this->get(route('persons.show'))
         ->assertSuccessful()
         ->assertSee('from-emerald-700 to-emerald-950', false)
         ->assertSee('hover:border-emerald-300', false);
 });
 
-it('renders event end time in event timezone on speaker page', function () {
-    $speaker = Speaker::factory()->create([
+it('renders event end time in event timezone on person page', function () {
+    $person = Person::factory()->create([
         'status' => 'verified',
     ]);
 
@@ -161,17 +161,17 @@ it('renders event end time in event timezone on speaker page', function () {
         'prayer_display_text' => 'Selepas Asar',
     ]);
 
-    linkSpeakerEvent($speaker, $event);
+    linkPersonEvent($person, $event);
 
     $this->withUnencryptedCookie('user_timezone', 'Asia/Kuala_Lumpur')
-        ->get(route('speakers.show', $speaker))
+        ->get(route('persons.show'))
         ->assertSuccessful()
         ->assertSeeText('Selepas Asar')
         ->assertDontSeeText('12:40 PM');
 });
 
-it('shows dedicated venue name for event location on speaker page when available', function () {
-    $speaker = Speaker::factory()->create([
+it('shows dedicated venue name for event location on person page when available', function () {
+    $person = Person::factory()->create([
         'status' => 'verified',
     ]);
 
@@ -195,16 +195,16 @@ it('shows dedicated venue name for event location on speaker page when available
         'prayer_display_text' => 'Selepas Asar',
     ]);
 
-    linkSpeakerEvent($speaker, $event);
+    linkPersonEvent($person, $event);
 
     $this->withUnencryptedCookie('user_timezone', 'Asia/Kuala_Lumpur')
-        ->get(route('speakers.show', $speaker))
+        ->get(route('persons.show'))
         ->assertSuccessful()
         ->assertSee('Dewan Utama Test');
 });
 
-it('falls back to institution name for event location on speaker page when venue is missing', function () {
-    $speaker = Speaker::factory()->create([
+it('falls back to institution name for event location on person page when venue is missing', function () {
+    $person = Person::factory()->create([
         'status' => 'verified',
     ]);
 
@@ -224,10 +224,10 @@ it('falls back to institution name for event location on speaker page when venue
         'prayer_display_text' => 'Selepas Asar',
     ]);
 
-    linkSpeakerEvent($speaker, $event);
+    linkPersonEvent($person, $event);
 
     $this->withUnencryptedCookie('user_timezone', 'Asia/Kuala_Lumpur')
-        ->get(route('speakers.show', $speaker))
+        ->get(route('persons.show'))
         ->assertSuccessful()
         ->assertSee('Masjid Al-Hidayah Test');
 });
@@ -263,22 +263,22 @@ it('formats federal-territory venue addresses with product state_id and no distr
         ->and($eventLocation)->not->toBe('Dewan Utama Test, Kuala Lumpur, Kuala Lumpur');
 });
 
-it('deduplicates matching speaker subdistrict and district labels in the speaker location badge', function () {
-    $speaker = Speaker::factory()->create([
+it('deduplicates matching person subdistrict and district labels in the person location badge', function () {
+    $person = Person::factory()->create([
         'status' => 'verified',
     ]);
 
     $geo = createTestPackageGeography('Pahang', 'Temerloh', 'Temerloh');
-    syncPrimaryAddressForTest($speaker, $geo['address']);
+    syncPrimaryAddressForTest($person, $geo['address']);
 
-    $this->get(route('speakers.show', $speaker))
+    $this->get(route('persons.show'))
         ->assertSuccessful()
         ->assertSee('Temerloh, Pahang')
         ->assertDontSee('Temerloh, Temerloh, Pahang');
 });
 
-it('renders speaker page when linked event has online format and no location address', function () {
-    $speaker = Speaker::factory()->create([
+it('renders person page when linked event has online format and no location address', function () {
+    $person = Person::factory()->create([
         'status' => 'verified',
     ]);
 
@@ -293,20 +293,20 @@ it('renders speaker page when linked event has online format and no location add
         'timing_mode' => TimingMode::Absolute,
     ]);
 
-    linkSpeakerEvent($speaker, $event);
+    linkPersonEvent($person, $event);
 
     $this->withUnencryptedCookie('user_timezone', 'Asia/Kuala_Lumpur')
-        ->get(route('speakers.show', $speaker))
+        ->get(route('persons.show'))
         ->assertSuccessful()
         ->assertSee($event->title);
 });
 
-it('shows linked non-speaker roles in a separate section on the speaker page', function () {
-    $speaker = Speaker::factory()->create([
+it('shows linked non-person roles in a separate section on the person page', function () {
+    $person = Person::factory()->create([
         'status' => 'verified',
     ]);
 
-    $speakerEvent = Event::factory()->create([
+    $personEvent = Event::factory()->create([
         'status' => 'approved',
         'visibility' => 'public',
         'starts_at' => now()->addDay(),
@@ -320,23 +320,23 @@ it('shows linked non-speaker roles in a separate section on the speaker page', f
         'title' => 'Forum Dengan Moderator',
     ]);
 
-    $speakerEvent->keyPeople()->create([
-        'involveable_type' => 'speaker',
-        'involveable_id' => $speaker->id,
-        'role_code' => EventKeyPersonRole::Speaker->value,
+    $personEvent->keyPeople()->create([
+        'involveable_type' => 'person',
+        'involveable_id' => $person->id,
+        'role_code' => EventKeyPersonRole::Person->value,
         'sort_order' => 1,
         'visibility' => 'public',
     ]);
 
     $moderatedEvent->keyPeople()->create([
-        'involveable_type' => 'speaker',
-        'involveable_id' => $speaker->id,
+        'involveable_type' => 'person',
+        'involveable_id' => $person->id,
         'role_code' => EventKeyPersonRole::Moderator->value,
         'sort_order' => 1,
         'visibility' => 'public',
     ]);
 
-    $response = $this->get(route('speakers.show', $speaker));
+    $response = $this->get(route('persons.show'));
 
     $response->assertSuccessful()
         ->assertSee('Kuliah Utama Penceramah')
@@ -347,8 +347,8 @@ it('shows linked non-speaker roles in a separate section on the speaker page', f
     expect(substr_count((string) $response->getContent(), 'Forum Dengan Moderator'))->toBe(1);
 });
 
-it('renders the book title on speaker event cards without parentheses', function () {
-    $speaker = Speaker::factory()->create([
+it('renders the book title on person event cards without parentheses', function () {
+    $person = Person::factory()->create([
         'status' => 'verified',
     ]);
 
@@ -379,10 +379,10 @@ it('renders the book title on speaker event cards without parentheses', function
     $bookEvent->references()->attach($bookReference->id);
     $articleEvent->references()->attach($articleReference->id);
 
-    linkSpeakerEvent($speaker, $bookEvent);
-    linkSpeakerEvent($speaker, $articleEvent);
+    linkPersonEvent($person, $bookEvent);
+    linkPersonEvent($person, $articleEvent);
 
-    $response = $this->get(route('speakers.show', $speaker));
+    $response = $this->get(route('persons.show'));
     $response->assertSuccessful();
 
     $html = $response->getContent();

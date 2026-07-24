@@ -4,10 +4,10 @@ use App\Enums\EventFormat;
 use App\Enums\ReferenceType;
 use App\Models\Event;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
-use App\Models\Speaker;
 use App\Support\Search\InstitutionSearchService;
-use App\Support\Search\SpeakerSearchService;
+use App\Support\Search\PersonSearchService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -29,12 +29,12 @@ it('shows grouped event speaker reference and institution matches on the unified
         'status' => 'verified',
     ]);
 
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'name' => 'Ustaz Nur Hikmah',
         'status' => 'verified',
     ]);
 
-    $speaker->addMedia(UploadedFile::fake()->image('speaker.jpg', 1200, 1200))
+    $person->addMedia(UploadedFile::fake()->image('speaker.jpg', 1200, 1200))
         ->toMediaCollection('avatar');
 
     $event = Event::factory()
@@ -59,9 +59,9 @@ it('shows grouped event speaker reference and institution matches on the unified
         ->assertSee('Ustaz Nur Hikmah')
         ->assertSee('Nur Hikmah: Adab Menuntut Ilmu')
         ->assertSee('Masjid Nur Hikmah')
-        ->assertSee($speaker->public_avatar_url, false)
+        ->assertSee($person->public_avatar_url, false)
         ->assertSee(route('events.show', $event), false)
-        ->assertSee(route('speakers.show', $speaker), false)
+        ->assertSee(route('persons.show', $person), false)
         ->assertSee(route('references.show', $reference), false)
         ->assertSee(route('institutions.show', $institution), false);
 });
@@ -72,7 +72,7 @@ it('falls back to local speaker and institution search on the unified search pag
         'status' => 'verified',
     ]);
 
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'name' => 'Nur Hikmah Hassan',
         'honorific' => null,
         'pre_nominal' => [],
@@ -81,10 +81,10 @@ it('falls back to local speaker and institution search on the unified search pag
         'status' => 'verified',
     ]);
 
-    app(SpeakerSearchService::class)->syncSpeakerRecord($speaker);
+    app(PersonSearchService::class)->syncPersonRecord($person);
     config()->set('scout.driver', 'typesense');
 
-    $this->app->bind(SpeakerSearchService::class, fn (): SpeakerSearchService => new class extends SpeakerSearchService
+    $this->app->bind(PersonSearchService::class, fn (): PersonSearchService => new class extends PersonSearchService
     {
         protected function shouldUseScoutSearch(): bool
         {

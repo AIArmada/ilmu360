@@ -6,8 +6,8 @@ use AIArmada\Events\Models\EventEscalation;
 use App\Filament\Pages\ModerationQueue;
 use App\Models\Event;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
-use App\Models\Speaker;
 use App\Models\User;
 use App\Models\Venue;
 use Database\Seeders\PermissionSeeder;
@@ -28,14 +28,14 @@ it('shows verification warnings in moderation queue', function () {
 
     $institution = Institution::factory()->create(['status' => 'verified']);
     $venue = Venue::factory()->create(['status' => 'unverified']);
-    $speaker = Speaker::factory()->create(['status' => 'pending']);
+    $person = Person::factory()->create(['status' => 'pending']);
 
     $event = Event::factory()->create([
         'status' => 'pending',
         'institution_id' => $institution->id,
         'default_venue_id' => $venue->id,
     ]);
-    $event->speakers()->attach($speaker);
+    $event->speakers()->attach($person);
 
     $this->actingAs($moderator)
         ->get('/admin/moderation-queue')
@@ -98,7 +98,7 @@ it('shows pending references in moderation queue reference status', function () 
 
     $institution = Institution::factory()->create(['status' => 'verified']);
     $venue = Venue::factory()->create(['status' => 'verified']);
-    $speaker = Speaker::factory()->create(['status' => 'verified']);
+    $person = Person::factory()->create(['status' => 'verified']);
     $pendingReference = Reference::factory()->create([
         'title' => 'Pending Reference For Queue',
         'status' => 'pending',
@@ -109,7 +109,7 @@ it('shows pending references in moderation queue reference status', function () 
         'institution_id' => $institution->id,
         'default_venue_id' => $venue->id,
     ]);
-    $event->speakers()->attach($speaker);
+    $event->speakers()->attach($person);
     $event->references()->attach($pendingReference);
 
     $this->actingAs($moderator)
@@ -126,7 +126,7 @@ it('shows all verified when moderation queue event references are already approv
 
     $institution = Institution::factory()->create(['status' => 'verified']);
     $venue = Venue::factory()->create(['status' => 'verified']);
-    $speaker = Speaker::factory()->create(['status' => 'verified']);
+    $person = Person::factory()->create(['status' => 'verified']);
     $verifiedReference = Reference::factory()->create([
         'status' => 'verified',
     ]);
@@ -136,7 +136,7 @@ it('shows all verified when moderation queue event references are already approv
         'institution_id' => $institution->id,
         'default_venue_id' => $venue->id,
     ]);
-    $event->speakers()->attach($speaker);
+    $event->speakers()->attach($person);
     $event->references()->attach($verifiedReference);
 
     $this->actingAs($moderator)
@@ -152,14 +152,14 @@ it('shows none when moderation queue event has no references', function () {
 
     $institution = Institution::factory()->create(['status' => 'verified']);
     $venue = Venue::factory()->create(['status' => 'verified']);
-    $speaker = Speaker::factory()->create(['status' => 'verified']);
+    $person = Person::factory()->create(['status' => 'verified']);
 
     $event = Event::factory()->create([
         'status' => 'pending',
         'institution_id' => $institution->id,
         'default_venue_id' => $venue->id,
     ]);
-    $event->speakers()->attach($speaker);
+    $event->speakers()->attach($person);
 
     $this->actingAs($moderator)
         ->get('/admin/moderation-queue')

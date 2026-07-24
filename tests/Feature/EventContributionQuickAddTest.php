@@ -5,8 +5,8 @@ use AIArmada\Events\Models\EventTerm;
 use App\Enums\EventTaxonomyCode;
 use App\Forms\EventContributionFormSchema;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
-use App\Models\Speaker;
 use App\Models\Venue;
 use Filament\Forms\Components\Select;
 use Filament\Schemas\Schema;
@@ -94,7 +94,7 @@ it('creates pending related records from event update quick-add actions', functi
         Schema::make(),
     );
 
-    $speakerId = (eventContributionSelect('primary_organizer_speaker_id')->getCreateOptionUsing())(
+    $personId = (eventContributionSelect('primary_organizer_speaker_id')->getCreateOptionUsing())(
         [
             'name' => 'Ustaz Quick Add Update',
             'gender' => 'male',
@@ -119,7 +119,7 @@ it('creates pending related records from event update quick-add actions', functi
     );
 
     expect(Institution::query()->findOrFail($institutionId)->status)->toBe('pending')
-        ->and(Speaker::query()->findOrFail($speakerId)->status)->toBe('pending')
+        ->and(Person::query()->findOrFail($personId)->status)->toBe('pending')
         ->and(Venue::query()->findOrFail($venueId)->status)->toBe('pending')
         ->and(Reference::query()->findOrFail($referenceId)->status)->toBe('pending');
 });

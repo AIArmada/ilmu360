@@ -4,8 +4,8 @@ use AIArmada\CommerceSupport\Models\Role;
 use AIArmada\FilamentAuthz\Facades\Authz;
 use App\Models\Event;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
-use App\Models\Speaker;
 use App\Models\User;
 use Filament\Panel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -35,9 +35,9 @@ it('allows ahli panel access to institution members', function () {
 
 it('allows ahli panel access to speaker members', function () {
     $user = User::factory()->create();
-    $speaker = Speaker::factory()->create();
+    $person = Person::factory()->create();
 
-    $speaker->members()->syncWithoutDetaching([$user->id]);
+    $person->members()->syncWithoutDetaching([$user->id]);
 
     expect($user->canAccessPanel(Panel::make()->id('ahli')))->toBeTrue();
 });

@@ -2,7 +2,7 @@
 
 use AIArmada\Contacting\Models\SocialProfile;
 use App\Models\Institution;
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Models\Venue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -23,15 +23,15 @@ test('institution can have social media', function () {
 });
 
 test('speaker can have social media', function () {
-    $speaker = Speaker::factory()->create();
+    $person = Person::factory()->create();
 
-    $speaker->socialProfiles()->create([
+    $person->socialProfiles()->create([
         'platform' => 'x',
         'url' => 'https://x.com/ustaz',
     ]);
 
-    expect($speaker->socialProfiles)->toHaveCount(1);
-    expect($speaker->socialProfiles->first()->platform)->toBe('x');
+    expect($person->socialProfiles)->toHaveCount(1);
+    expect($person->socialProfiles->first()->platform)->toBe('x');
 });
 
 test('venue can have social media', function () {

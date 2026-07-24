@@ -10,7 +10,7 @@ use App\Enums\EventVisibility;
 use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Event;
 use App\Models\Institution;
-use App\Models\Speaker;
+use App\Models\Person;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
 
@@ -19,7 +19,7 @@ beforeEach(function () {
 });
 
 /**
- * @return array{domain_tag: EventTerm, discipline_tag: EventTerm, institution: Institution, speaker: Speaker}
+ * @return array{domain_tag: EventTerm, discipline_tag: EventTerm, institution: Institution, speaker: Person}
  */
 function submitEventEndTimeFixtures(): array
 {
@@ -27,7 +27,7 @@ function submitEventEndTimeFixtures(): array
         'domain_tag' => submitEventTerm('domain'),
         'discipline_tag' => submitEventTerm('discipline'),
         'institution' => Institution::factory()->create(['status' => 'verified']),
-        'speaker' => Speaker::factory()->create(['status' => 'verified']),
+        'speaker' => Person::factory()->create(['status' => 'verified']),
     ];
 }
 
@@ -45,7 +45,7 @@ function submitEventAddressCountry(string $iso2 = 'MY', string $name = 'Malaysia
 }
 
 /**
- * @param  array{domain_tag: EventTerm, discipline_tag: EventTerm, institution: Institution, speaker: Speaker}  $fixtures
+ * @param  array{domain_tag: EventTerm, discipline_tag: EventTerm, institution: Institution, speaker: Person}  $fixtures
  * @return array<string, mixed>
  */
 function submitEventEndTimeFormData(array $fixtures, array $overrides = []): array

@@ -1,9 +1,9 @@
 <?php
 
-use App\Models\Speaker;
+use App\Models\Person;
 
-it('renders social media section below biodata on speaker show page', function () {
-    $speaker = Speaker::factory()->create([
+it('renders social media section below biodata on person show page', function () {
+    $person = Person::factory()->create([
         'status' => 'verified',
         'bio' => [
             'type' => 'doc',
@@ -11,27 +11,27 @@ it('renders social media section below biodata on speaker show page', function (
                 'type' => 'paragraph',
                 'content' => [[
                     'type' => 'text',
-                    'text' => 'Biodata test speaker.',
+                    'text' => 'Biodata test person.',
                 ]],
             ]],
         ],
     ]);
 
-    $speaker->socialProfiles()->create([
+    $person->socialProfiles()->create([
         'platform' => 'facebook',
         'url' => 'https://example.com',
         'handle' => 'example',
     ]);
 
-    $this->get(route('speakers.show', $speaker))
+    $this->get(route('persons.show'))
         ->assertSuccessful()
         ->assertSee('Biodata')
         ->assertSee('Media Sosial')
         ->assertSeeInOrder(['Biodata', 'Media Sosial']);
 });
 
-it('shows a reveal control for long speaker biodata', function () {
-    $speaker = Speaker::factory()->create([
+it('shows a reveal control for long person biodata', function () {
+    $person = Person::factory()->create([
         'status' => 'verified',
         'bio' => [
             'type' => 'doc',
@@ -45,15 +45,15 @@ it('shows a reveal control for long speaker biodata', function () {
         ],
     ]);
 
-    $this->get(route('speakers.show', $speaker))
+    $this->get(route('persons.show'))
         ->assertSuccessful()
         ->assertSee('Biodata')
         ->assertSee(__('Baca biodata penuh'))
         ->assertSee('max-h-[26rem] overflow-hidden', false);
 });
 
-it('does not show the biodata reveal control for short speaker biodata', function () {
-    $speaker = Speaker::factory()->create([
+it('does not show the biodata reveal control for short person biodata', function () {
+    $person = Person::factory()->create([
         'status' => 'verified',
         'bio' => [
             'type' => 'doc',
@@ -67,7 +67,7 @@ it('does not show the biodata reveal control for short speaker biodata', functio
         ],
     ]);
 
-    $this->get(route('speakers.show', $speaker))
+    $this->get(route('persons.show'))
         ->assertSuccessful()
         ->assertSee('Biodata')
         ->assertDontSee('Lihat biodata penuh');

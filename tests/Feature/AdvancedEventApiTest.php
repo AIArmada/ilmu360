@@ -4,7 +4,7 @@ use App\Enums\EventFormat;
 use App\Enums\EventVisibility;
 use App\Enums\RegistrationScope;
 use App\Models\Institution;
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -47,10 +47,10 @@ it('creates an advanced event with an institution primary organizer', function (
 it('creates an advanced event with a speaker primary organizer', function () {
     $user = User::factory()->create();
     $institution = Institution::factory()->create(['name' => 'Masjekt Test', 'status' => 'verified']);
-    $speaker = Speaker::factory()->create(['name' => 'Ustaz Test', 'status' => 'verified']);
+    $person = Person::factory()->create(['name' => 'Ustaz Test', 'status' => 'verified']);
 
     $user->institutions()->syncWithoutDetaching([$institution->id]);
-    $user->speakers()->syncWithoutDetaching([$speaker->id]);
+    $user->speakers()->syncWithoutDetaching([$person->id]);
 
     Sanctum::actingAs($user);
 
@@ -59,7 +59,7 @@ it('creates an advanced event with a speaker primary organizer', function () {
         'timezone' => 'Asia/Kuala_Lumpur',
         'program_starts_at' => now()->addDays(14)->format('Y-m-d H:i:s'),
         'program_ends_at' => now()->addDays(14)->addHours(1)->format('Y-m-d H:i:s'),
-        'primary_organizer_id' => (string) $speaker->getKey(),
+        'primary_organizer_id' => (string) $person->getKey(),
         'location_institution_id' => (string) $institution->getKey(),
         'default_event_category_ids' => [eventCategoryId('other')],
         'default_event_format' => EventFormat::Physical->value,

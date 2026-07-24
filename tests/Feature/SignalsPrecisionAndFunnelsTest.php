@@ -278,7 +278,7 @@ it('supports direct page-path funnel steps without separate goals', function () 
         'settings' => [
             'funnel_steps' => [
                 ['label' => 'Homepage', 'path_operator' => 'equals', 'path_value' => '/'],
-                ['label' => 'Speaker Directory', 'path_operator' => 'equals', 'path_value' => '/penceramah'],
+                ['label' => 'Person Directory', 'path_operator' => 'equals', 'path_value' => '/penceramah'],
             ],
         ],
         'is_shared' => false,
@@ -353,7 +353,7 @@ it('supports route-based funnel steps using named laravel routes', function () {
         'settings' => [
             'funnel_steps' => [
                 ['label' => 'Home Route', 'step_type' => 'route', 'route_name' => 'home'],
-                ['label' => 'Speakers Route', 'step_type' => 'route', 'route_name' => 'speakers.index'],
+                ['label' => 'Speakers Route', 'step_type' => 'route', 'route_name' => 'persons.index'],
             ],
         ],
         'is_shared' => false,

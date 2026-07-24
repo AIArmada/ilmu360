@@ -13,9 +13,9 @@ use App\Enums\TimingMode;
 use App\Models\Event;
 use App\Models\Inspiration;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Space;
-use App\Models\Speaker;
 use App\Models\User;
 use App\Models\Venue;
 use Illuminate\Http\UploadedFile;
@@ -227,27 +227,27 @@ it('renders institution event cards with localized prayer timing stacked speaker
                 'prayer_display_text' => 'Selepas Maghrib',
             ]);
 
-        $speaker = Speaker::factory()->create([
+        $person = Person::factory()->create([
             'status' => 'verified',
             'name' => 'Ustaz Abdullah Fahmi',
             'honorific' => null,
             'pre_nominal' => null,
             'post_nominal' => null,
         ]);
-        $speaker->addMedia(UploadedFile::fake()->image('speaker-one.jpg', 320, 320))
+        $person->addMedia(UploadedFile::fake()->image('speaker-one.jpg', 320, 320))
             ->toMediaCollection('avatar');
 
-        $secondSpeaker = Speaker::factory()->create([
+        $secondPerson = Person::factory()->create([
             'status' => 'verified',
             'name' => 'Ustaz Ahmad Razak',
             'honorific' => null,
             'pre_nominal' => null,
             'post_nominal' => null,
         ]);
-        $secondSpeaker->addMedia(UploadedFile::fake()->image('speaker-two.jpg', 320, 320))
+        $secondPerson->addMedia(UploadedFile::fake()->image('speaker-two.jpg', 320, 320))
             ->toMediaCollection('avatar');
 
-        $moderator = Speaker::factory()->create([
+        $moderator = Person::factory()->create([
             'status' => 'verified',
             'name' => 'Ustazah Mariam Yusuf',
             'honorific' => null,
@@ -257,16 +257,16 @@ it('renders institution event cards with localized prayer timing stacked speaker
 
         $event->keyPeople()->create([
             'involveable_type' => 'speaker',
-            'involveable_id' => $speaker->id,
-            'role_code' => EventKeyPersonRole::Speaker->value,
+            'involveable_id' => $person->id,
+            'role_code' => EventKeyPersonRole::Person->value,
             'sort_order' => 1,
             'visibility' => 'public',
         ]);
 
         $event->keyPeople()->create([
             'involveable_type' => 'speaker',
-            'involveable_id' => $secondSpeaker->id,
-            'role_code' => EventKeyPersonRole::Speaker->value,
+            'involveable_id' => $secondPerson->id,
+            'role_code' => EventKeyPersonRole::Person->value,
             'sort_order' => 2,
             'visibility' => 'public',
         ]);
@@ -294,8 +294,8 @@ it('renders institution event cards with localized prayer timing stacked speaker
             ->toContain('Ustaz Abdullah Fahmi')
             ->toContain('Ustaz Ahmad Razak')
             ->toContain('Moderator: Ustazah Mariam Yusuf')
-            ->toContain($speaker->public_avatar_url)
-            ->toContain($secondSpeaker->public_avatar_url)
+            ->toContain($person->public_avatar_url)
+            ->toContain($secondPerson->public_avatar_url)
             ->toContain('-space-x-3')
             ->toContain('sm:h-11 sm:w-11')
             ->not->toContain('Selepas Maghrib')
@@ -423,13 +423,13 @@ it('uses stronger calendar event colors on institution page', function () {
 it('displays affiliated speakers', function () {
     $institution = Institution::factory()->create(['status' => 'verified']);
 
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'status' => 'verified',
         'name' => 'Ustaz Ahmad bin Abdullah',
         'is_freelance' => true,
     ]);
 
-    $institution->speakers()->attach($speaker, [
+    $institution->speakers()->attach($person, [
         'position' => 'Imam Besar',
         'is_primary' => true,
     ]);

@@ -14,9 +14,9 @@ use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Event;
 use App\Models\EventSubmission;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Series;
-use App\Models\Speaker;
 use App\Models\User;
 use App\Models\Venue;
 use Database\Seeders\AIArmada\EventTaxonomySeeder;
@@ -119,7 +119,7 @@ it('loads public detail pages', function () {
     ]);
 
     $institution = Institution::factory()->create(['status' => 'verified']);
-    $speaker = Speaker::factory()->create(['status' => 'verified']);
+    $person = Person::factory()->create(['status' => 'verified']);
     $venue = Venue::factory()->create(['status' => 'verified']);
     $series = Series::factory()->create([
         'visibility' => 'public',
@@ -131,7 +131,7 @@ it('loads public detail pages', function () {
 
     $this->get(route('events.show', $event))->assertSuccessful()->assertSee($event->title);
     $this->get(route('institutions.show', $institution))->assertSuccessful()->assertSee($institution->name);
-    $this->get(route('speakers.show', $speaker))->assertSuccessful()->assertSee($speaker->name);
+    $this->get(route('persons.show', $person))->assertSuccessful()->assertSee($person->name);
     $this->get(route('venues.show', $venue))->assertSuccessful()->assertSee($venue->name);
     $this->get(route('series.show', $series))
         ->assertSuccessful()
@@ -210,18 +210,18 @@ it('uses the real speaker avatar in public speaker share metadata and preview', 
     Storage::fake('public');
     config()->set('media-library.disk_name', 'public');
 
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'status' => 'verified',
     ]);
 
-    $speaker->addMedia(UploadedFile::fake()->image('speaker-avatar.jpg', 1200, 1200))
+    $person->addMedia(UploadedFile::fake()->image('speaker-avatar.jpg', 1200, 1200))
         ->toMediaCollection('avatar');
 
-    $this->get(route('speakers.show', $speaker))
+    $this->get(route('persons.show', $person))
         ->assertSuccessful()
-        ->assertSee('<meta property="og:image" content="'.$speaker->public_avatar_url.'">', false)
-        ->assertSee('<meta name="twitter:image" content="'.$speaker->public_avatar_url.'">', false)
-        ->assertSee('src="'.$speaker->public_avatar_url.'"', false);
+        ->assertSee('<meta property="og:image" content="'.$person->public_avatar_url.'">', false)
+        ->assertSee('<meta name="twitter:image" content="'.$person->public_avatar_url.'">', false)
+        ->assertSee('src="'.$person->public_avatar_url.'"', false);
 });
 
 it('shows share actions on public series and reference pages', function () {
@@ -450,7 +450,7 @@ it('renders threads in public share modals instead of line', function () {
     ]);
 
     $institution = Institution::factory()->create(['status' => 'verified']);
-    $speaker = Speaker::factory()->create(['status' => 'verified']);
+    $person = Person::factory()->create(['status' => 'verified']);
     $series = Series::factory()->create([
         'visibility' => 'public',
         'status' => 'active',
@@ -462,7 +462,7 @@ it('renders threads in public share modals instead of line', function () {
     collect([
         $this->get(route('events.show', $event)),
         $this->get(route('institutions.show', $institution)),
-        $this->get(route('speakers.show', $speaker)),
+        $this->get(route('persons.show', $person)),
         $this->get(route('series.show', $series)),
         $this->get(route('references.show', $reference)),
     ])->each(function ($response): void {
@@ -483,12 +483,12 @@ it('does not leak share tracking javascript into public page body text', functio
     ]);
 
     $institution = Institution::factory()->create(['status' => 'verified']);
-    $speaker = Speaker::factory()->create(['status' => 'verified']);
+    $person = Person::factory()->create(['status' => 'verified']);
 
     collect([
         $this->get(route('events.show', $event)),
         $this->get(route('institutions.show', $institution)),
-        $this->get(route('speakers.show', $speaker)),
+        $this->get(route('persons.show', $person)),
     ])->each(function ($response): void {
         $response->assertSuccessful();
 
@@ -502,16 +502,16 @@ it('does not leak share tracking javascript into public page body text', functio
 });
 
 it('renders speaker contribution links with penceramah route segments', function () {
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'status' => 'verified',
     ]);
 
-    $speakerRouteSegment = ContributionSubjectType::Speaker->publicRouteSegment();
+    $speakerRouteSegment = ContributionSubjectType::Person->publicRouteSegment();
 
-    $this->get(route('speakers.show', $speaker))
+    $this->get(route('persons.show', $person))
         ->assertSuccessful()
-        ->assertSee("/sumbangan/{$speakerRouteSegment}/{$speaker->slug}/kemas-kini", false)
-        ->assertSee("/lapor/{$speakerRouteSegment}/{$speaker->slug}", false);
+        ->assertSee("/sumbangan/{$speakerRouteSegment}/{$person->slug}/kemas-kini", false)
+        ->assertSee("/lapor/{$speakerRouteSegment}/{$person->slug}", false);
 });
 
 it('renders institution contribution links with institusi route segments', function () {
@@ -567,7 +567,7 @@ it('renders noindex robots metadata for moderation-only or non-public detail pag
         'status' => 'pending',
     ]);
 
-    $pendingSpeaker = Speaker::factory()->create([
+    $pendingPerson = Person::factory()->create([
         'status' => 'pending',
     ]);
 
@@ -586,7 +586,7 @@ it('renders noindex robots metadata for moderation-only or non-public detail pag
         ->assertSuccessful()
         ->assertSee('<meta name="robots" content="noindex, nofollow">', false);
 
-    $this->get(route('speakers.show', $pendingSpeaker))
+    $this->get(route('persons.show', $pendingPerson))
         ->assertSuccessful()
         ->assertSee('<meta name="robots" content="noindex, nofollow">', false);
 
@@ -640,7 +640,7 @@ it('renders optimized seo metadata on public detail pages', function () {
         'status' => 'verified',
     ]);
 
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'name' => 'Ahmad Fauzi',
         'honorific' => null,
         'pre_nominal' => null,
@@ -683,9 +683,9 @@ it('renders optimized seo metadata on public detail pages', function () {
         ->assertSee('<meta property="og:image" content="'.asset('images/placeholders/institution.png').'">', false)
         ->assertSee('<meta property="og:image:alt" content="Profil institusi Masjid Al-Hidayah Taman Melawati">', false);
 
-    $this->get(route('speakers.show', $speaker))
+    $this->get(route('persons.show', $person))
         ->assertSuccessful()
-        ->assertSee('<title>'.$speaker->formatted_name.' - '.config('app.name').'</title>', false)
+        ->assertSee('<title>'.$person->formatted_name.' - '.config('app.name').'</title>', false)
         ->assertSee('Penceramah yang aktif mengendalikan kuliah aqidah, tafsir, dan pembinaan keluarga di seluruh negara.', false);
 
     $this->get(route('series.show', $series))
@@ -723,10 +723,10 @@ it('loads institution detail page with upcoming event category collection', func
 
 it('hides unverified speakers and institutions from public pages', function () {
     $institution = Institution::factory()->create(['status' => 'pending']);
-    $speaker = Speaker::factory()->create(['status' => 'pending']);
+    $person = Person::factory()->create(['status' => 'pending']);
 
     $this->get(route('institutions.show', $institution))->assertNotFound();
-    $this->get(route('speakers.show', $speaker))->assertNotFound();
+    $this->get(route('persons.show', $person))->assertNotFound();
 });
 
 it('updates submit event age group without error', function () {
@@ -741,7 +741,7 @@ it('records guest submissions without a submitter id', function () {
 
     $domainTag = submitEventTerm('domain');
     $disciplineTag = submitEventTerm('discipline');
-    $speaker = Speaker::factory()->create(['status' => 'verified']);
+    $person = Person::factory()->create(['status' => 'verified']);
     $institution = Institution::factory()->create(['status' => 'verified']);
     Livewire::test(Create::class)
         ->set('data.title', $title)
@@ -753,7 +753,7 @@ it('records guest submissions without a submitter id', function () {
         ->set('data.age_group', [EventAgeGroup::AllAges->value])
         ->set('data.domain_tags', [$domainTag->id])
         ->set('data.discipline_tags', [$disciplineTag->id])
-        ->set('data.speakers', [$speaker->id])
+        ->set('data.speakers', [$person->id])
         ->set('data.primary_organizer_kind', 'institution')
         ->set('data.primary_organizer_id', $institution->id)
         ->set('data.primary_organizer_institution_id', $institution->id)

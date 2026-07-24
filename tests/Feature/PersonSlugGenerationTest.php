@@ -4,7 +4,7 @@ use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressCountry;
 use App\Actions\Contributions\ApproveContributionRequestAction;
 use App\Actions\Events\GenerateEventSlugAction;
-use App\Actions\Speakers\GenerateSpeakerSlugAction;
+use App\Actions\Persons\GeneratePersonSlugAction;
 use App\Enums\ContributionRequestStatus;
 use App\Enums\ContributionRequestType;
 use App\Enums\ContributionSubjectType;
@@ -12,13 +12,13 @@ use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventVisibility;
-use App\Filament\Resources\Speakers\Pages\CreateSpeaker;
-use App\Filament\Resources\Speakers\Pages\EditSpeaker;
-use App\Forms\SpeakerFormSchema;
-use App\Jobs\BackfillSpeakerSlugs;
+use App\Filament\Resources\Persons\Pages\CreatePerson;
+use App\Filament\Resources\Persons\Pages\EditPerson;
+use App\Forms\PersonFormSchema;
+use App\Jobs\BackfillPersonSlugs;
 use App\Models\ContributionRequest;
 use App\Models\Event;
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Models\User;
 use App\Services\ContributionEntityMutationService;
 use App\Services\EventKeyPersonSyncService;
@@ -32,28 +32,28 @@ use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
 
-it('generates country-based slugs for speaker quick-create flows', function () {
-    $country = createSpeakerSlugCountry();
+it('generates country-based slugs for person quick-create flows', function () {
+    $country = createPersonSlugCountry();
 
-    $speakerId = SpeakerFormSchema::createOptionUsing([
+    $personId = PersonFormSchema::createOptionUsing([
         'name' => 'Ustaz Ahmad Fauzi',
         'gender' => 'male',
         'country_id' => (string) $country->getKey(),
     ]);
 
-    $speaker = Speaker::query()
+    $person = Person::query()
         ->with('addresses')
-        ->findOrFail($speakerId);
+        ->findOrFail($personId);
 
-    expect($speaker->slug)->toBe('ustaz-ahmad-fauzi-my')
-        ->and($speaker->primaryAddress()?->country_id)->toBe((string) $country->getKey());
+    expect($person->slug)->toBe('ustaz-ahmad-fauzi-my')
+        ->and($person->primaryAddress()?->country_id)->toBe((string) $country->getKey());
 });
 
-it('includes displayed speaker titles in the generated slug', function () {
+it('includes displayed person titles in the generated slug', function () {
     $proposer = User::factory()->create();
-    $country = createSpeakerSlugCountry();
+    $country = createPersonSlugCountry();
 
-    $speaker = app(ContributionEntityMutationService::class)->createSpeaker([
+    $person = app(ContributionEntityMutationService::class)->createPerson([
         'name' => 'Ahmad Fauzi',
         'gender' => 'male',
         'honorific' => ['dato'],
@@ -64,15 +64,15 @@ it('includes displayed speaker titles in the generated slug', function () {
         ],
     ], $proposer);
 
-    expect($speaker->formatted_name)->toBe("Dato' Ustaz Ahmad Fauzi, PhD")
-        ->and($speaker->slug)->toBe('dato-ustaz-ahmad-fauzi-phd-my');
+    expect($person->formatted_name)->toBe("Dato' Ustaz Ahmad Fauzi, PhD")
+        ->and($person->slug)->toBe('dato-ustaz-ahmad-fauzi-phd-my');
 });
 
 it('supports dato setia as an honorific in formatted names and slugs', function () {
     $proposer = User::factory()->create();
-    $country = createSpeakerSlugCountry();
+    $country = createPersonSlugCountry();
 
-    $speaker = app(ContributionEntityMutationService::class)->createSpeaker([
+    $person = app(ContributionEntityMutationService::class)->createPerson([
         'name' => 'Ahmad Fauzi',
         'gender' => 'male',
         'honorific' => ['dato_setia'],
@@ -82,15 +82,15 @@ it('supports dato setia as an honorific in formatted names and slugs', function 
         ],
     ], $proposer);
 
-    expect($speaker->formatted_name)->toBe("Dato' Setia Dr Ahmad Fauzi")
-        ->and($speaker->slug)->toBe('dato-setia-dr-ahmad-fauzi-my');
+    expect($person->formatted_name)->toBe("Dato' Setia Dr Ahmad Fauzi")
+        ->and($person->slug)->toBe('dato-setia-dr-ahmad-fauzi-my');
 });
 
 it('orders full-professor display titles before honorifics and lower prefixes', function () {
     $proposer = User::factory()->create();
-    $country = createSpeakerSlugCountry();
+    $country = createPersonSlugCountry();
 
-    $speaker = app(ContributionEntityMutationService::class)->createSpeaker([
+    $person = app(ContributionEntityMutationService::class)->createPerson([
         'name' => 'Azhar Sulaiman',
         'gender' => 'male',
         'honorific' => ['dato'],
@@ -101,15 +101,15 @@ it('orders full-professor display titles before honorifics and lower prefixes', 
         ],
     ], $proposer);
 
-    expect($speaker->formatted_name)->toBe("Prof Dato' Dr Azhar Sulaiman, PhD, BA, HONS")
-        ->and($speaker->slug)->toBe('prof-dato-dr-azhar-sulaiman-phd-ba-hons-my');
+    expect($person->formatted_name)->toBe("Prof Dato' Dr Azhar Sulaiman, PhD, BA, HONS")
+        ->and($person->slug)->toBe('prof-dato-dr-azhar-sulaiman-phd-ba-hons-my');
 });
 
 it('orders associate-professor display titles before honorifics and doctorate prefixes', function () {
     $proposer = User::factory()->create();
-    $country = createSpeakerSlugCountry();
+    $country = createPersonSlugCountry();
 
-    $speaker = app(ContributionEntityMutationService::class)->createSpeaker([
+    $person = app(ContributionEntityMutationService::class)->createPerson([
         'name' => 'Azhar Sulaiman',
         'gender' => 'male',
         'honorific' => ['dato'],
@@ -120,15 +120,15 @@ it('orders associate-professor display titles before honorifics and doctorate pr
         ],
     ], $proposer);
 
-    expect($speaker->formatted_name)->toBe("Prof Madya Dato' Dr Azhar Sulaiman, MA, HONS")
-        ->and($speaker->slug)->toBe('prof-madya-dato-dr-azhar-sulaiman-ma-hons-my');
+    expect($person->formatted_name)->toBe("Prof Madya Dato' Dr Azhar Sulaiman, MA, HONS")
+        ->and($person->slug)->toBe('prof-madya-dato-dr-azhar-sulaiman-ma-hons-my');
 });
 
 it('keeps religious prefixes ahead of doctorate titles in public display order', function () {
     $proposer = User::factory()->create();
-    $country = createSpeakerSlugCountry();
+    $country = createPersonSlugCountry();
 
-    $speaker = app(ContributionEntityMutationService::class)->createSpeaker([
+    $person = app(ContributionEntityMutationService::class)->createPerson([
         'name' => 'Ahmad Fauzi',
         'gender' => 'male',
         'honorific' => ['dato'],
@@ -138,15 +138,15 @@ it('keeps religious prefixes ahead of doctorate titles in public display order',
         ],
     ], $proposer);
 
-    expect($speaker->formatted_name)->toBe("Dato' Ustaz Dr Ahmad Fauzi")
-        ->and($speaker->slug)->toBe('dato-ustaz-dr-ahmad-fauzi-my');
+    expect($person->formatted_name)->toBe("Dato' Ustaz Dr Ahmad Fauzi")
+        ->and($person->slug)->toBe('dato-ustaz-dr-ahmad-fauzi-my');
 });
 
 it('supports habib as a pre-nominal in formatted names and slugs', function () {
     $proposer = User::factory()->create();
-    $country = createSpeakerSlugCountry();
+    $country = createPersonSlugCountry();
 
-    $speaker = app(ContributionEntityMutationService::class)->createSpeaker([
+    $person = app(ContributionEntityMutationService::class)->createPerson([
         'name' => 'Ali Zainal Abidin',
         'gender' => 'male',
         'pre_nominal' => ['dr', 'habib'],
@@ -155,15 +155,15 @@ it('supports habib as a pre-nominal in formatted names and slugs', function () {
         ],
     ], $proposer);
 
-    expect($speaker->formatted_name)->toBe('Habib Dr Ali Zainal Abidin')
-        ->and($speaker->slug)->toBe('habib-dr-ali-zainal-abidin-my');
+    expect($person->formatted_name)->toBe('Habib Dr Ali Zainal Abidin')
+        ->and($person->slug)->toBe('habib-dr-ali-zainal-abidin-my');
 });
 
 it('supports maulana as a pre-nominal in formatted names and slugs', function () {
     $proposer = User::factory()->create();
-    $country = createSpeakerSlugCountry();
+    $country = createPersonSlugCountry();
 
-    $speaker = app(ContributionEntityMutationService::class)->createSpeaker([
+    $person = app(ContributionEntityMutationService::class)->createPerson([
         'name' => 'Ahmad Fauzi',
         'gender' => 'male',
         'pre_nominal' => ['dr', 'maulana'],
@@ -172,15 +172,15 @@ it('supports maulana as a pre-nominal in formatted names and slugs', function ()
         ],
     ], $proposer);
 
-    expect($speaker->formatted_name)->toBe('Maulana Dr Ahmad Fauzi')
-        ->and($speaker->slug)->toBe('maulana-dr-ahmad-fauzi-my');
+    expect($person->formatted_name)->toBe('Maulana Dr Ahmad Fauzi')
+        ->and($person->slug)->toBe('maulana-dr-ahmad-fauzi-my');
 });
 
 it('supports syeikhul maqari ahead of ustaz in formatted names and slugs', function () {
     $proposer = User::factory()->create();
-    $country = createSpeakerSlugCountry();
+    $country = createPersonSlugCountry();
 
-    $speaker = app(ContributionEntityMutationService::class)->createSpeaker([
+    $person = app(ContributionEntityMutationService::class)->createPerson([
         'name' => 'Othman Hamzah',
         'gender' => 'male',
         'pre_nominal' => ['ustaz', 'syeikhul_maqari'],
@@ -189,15 +189,15 @@ it('supports syeikhul maqari ahead of ustaz in formatted names and slugs', funct
         ],
     ], $proposer);
 
-    expect($speaker->formatted_name)->toBe('Syeikhul Maqari Ustaz Othman Hamzah')
-        ->and($speaker->slug)->toBe('syeikhul-maqari-ustaz-othman-hamzah-my');
+    expect($person->formatted_name)->toBe('Syeikhul Maqari Ustaz Othman Hamzah')
+        ->and($person->slug)->toBe('syeikhul-maqari-ustaz-othman-hamzah-my');
 });
 
 it('supports hj as a pre-nominal in formatted names and slugs', function () {
     $proposer = User::factory()->create();
-    $country = createSpeakerSlugCountry();
+    $country = createPersonSlugCountry();
 
-    $speaker = app(ContributionEntityMutationService::class)->createSpeaker([
+    $person = app(ContributionEntityMutationService::class)->createPerson([
         'name' => 'Ahmad Fauzi',
         'gender' => 'male',
         'pre_nominal' => ['hj'],
@@ -206,15 +206,15 @@ it('supports hj as a pre-nominal in formatted names and slugs', function () {
         ],
     ], $proposer);
 
-    expect($speaker->formatted_name)->toBe('Hj Ahmad Fauzi')
-        ->and($speaker->slug)->toBe('hj-ahmad-fauzi-my');
+    expect($person->formatted_name)->toBe('Hj Ahmad Fauzi')
+        ->and($person->slug)->toBe('hj-ahmad-fauzi-my');
 });
 
 it('supports hjh as a pre-nominal in formatted names and slugs', function () {
     $proposer = User::factory()->create();
-    $country = createSpeakerSlugCountry();
+    $country = createPersonSlugCountry();
 
-    $speaker = app(ContributionEntityMutationService::class)->createSpeaker([
+    $person = app(ContributionEntityMutationService::class)->createPerson([
         'name' => 'Mimi Haryani',
         'gender' => 'female',
         'pre_nominal' => ['hjh'],
@@ -223,15 +223,15 @@ it('supports hjh as a pre-nominal in formatted names and slugs', function () {
         ],
     ], $proposer);
 
-    expect($speaker->formatted_name)->toBe('Hjh Mimi Haryani')
-        ->and($speaker->slug)->toBe('hjh-mimi-haryani-my');
+    expect($person->formatted_name)->toBe('Hjh Mimi Haryani')
+        ->and($person->slug)->toBe('hjh-mimi-haryani-my');
 });
 
 it('keeps professional prefixes ahead of doctorate titles in public display order', function () {
     $proposer = User::factory()->create();
-    $country = createSpeakerSlugCountry();
+    $country = createPersonSlugCountry();
 
-    $speaker = app(ContributionEntityMutationService::class)->createSpeaker([
+    $person = app(ContributionEntityMutationService::class)->createPerson([
         'name' => 'Mimi Haryani',
         'gender' => 'female',
         'pre_nominal' => ['dr', 'ir'],
@@ -240,14 +240,14 @@ it('keeps professional prefixes ahead of doctorate titles in public display orde
         ],
     ], $proposer);
 
-    expect($speaker->formatted_name)->toBe('Ir Dr Mimi Haryani')
-        ->and($speaker->slug)->toBe('ir-dr-mimi-haryani-my');
+    expect($person->formatted_name)->toBe('Ir Dr Mimi Haryani')
+        ->and($person->slug)->toBe('ir-dr-mimi-haryani-my');
 });
 
-it('adds duplicate numbering only when the same speaker name reuses the same country suffix', function () {
+it('adds duplicate numbering only when the same person name reuses the same country suffix', function () {
     $proposer = User::factory()->create();
-    $malaysia = createSpeakerSlugCountry();
-    $singapore = createSpeakerSlugCountry(
+    $malaysia = createPersonSlugCountry();
+    $singapore = createPersonSlugCountry(
         countryName: 'Singapore',
         countryIso2: 'SG',
         countryIso3: 'SGP',
@@ -255,19 +255,19 @@ it('adds duplicate numbering only when the same speaker name reuses the same cou
         phoneCode: '65',
     );
 
-    $first = app(ContributionEntityMutationService::class)->createSpeaker([
+    $first = app(ContributionEntityMutationService::class)->createPerson([
         'name' => 'Ustaz Ahmad Fauzi',
         'gender' => 'male',
         'country_id' => (string) $malaysia->getKey(),
     ], $proposer);
 
-    $second = app(ContributionEntityMutationService::class)->createSpeaker([
+    $second = app(ContributionEntityMutationService::class)->createPerson([
         'name' => 'Ustaz Ahmad Fauzi',
         'gender' => 'male',
         'country_id' => (string) $malaysia->getKey(),
     ], $proposer);
 
-    $third = app(ContributionEntityMutationService::class)->createSpeaker([
+    $third = app(ContributionEntityMutationService::class)->createPerson([
         'name' => 'Ustaz Ahmad Fauzi',
         'gender' => 'male',
         'country_id' => (string) $singapore->getKey(),
@@ -279,23 +279,23 @@ it('adds duplicate numbering only when the same speaker name reuses the same cou
         ->and($third->slug)->toBe('ustaz-ahmad-fauzi-sg');
 });
 
-it('keeps speaker slugs unique when a literal numbered name already occupies the expected duplicate slot', function () {
+it('keeps person slugs unique when a literal numbered name already occupies the expected duplicate slot', function () {
     $proposer = User::factory()->create();
-    $country = createSpeakerSlugCountry();
+    $country = createPersonSlugCountry();
 
-    $first = app(ContributionEntityMutationService::class)->createSpeaker([
+    $first = app(ContributionEntityMutationService::class)->createPerson([
         'name' => 'Ustaz Example',
         'gender' => 'male',
         'country_id' => (string) $country->getKey(),
     ], $proposer);
 
-    $numberedName = app(ContributionEntityMutationService::class)->createSpeaker([
+    $numberedName = app(ContributionEntityMutationService::class)->createPerson([
         'name' => 'Ustaz Example 2',
         'gender' => 'male',
         'country_id' => (string) $country->getKey(),
     ], $proposer);
 
-    $duplicate = app(ContributionEntityMutationService::class)->createSpeaker([
+    $duplicate = app(ContributionEntityMutationService::class)->createPerson([
         'name' => 'Ustaz Example',
         'gender' => 'male',
         'country_id' => (string) $country->getKey(),
@@ -306,16 +306,16 @@ it('keeps speaker slugs unique when a literal numbered name already occupies the
         ->and($duplicate->slug)->toBe('ustaz-example-3-my');
 });
 
-it('uses the generated country slug when admins create speakers in filament', function () {
+it('uses the generated country slug when admins create persons in filament', function () {
     $this->seed(PermissionSeeder::class);
     $this->seed(RoleSeeder::class);
 
     $administrator = User::factory()->create();
     $administrator->assignRole('super_admin');
-    $country = createSpeakerSlugCountry();
+    $country = createPersonSlugCountry();
 
     Livewire::actingAs($administrator)
-        ->test(CreateSpeaker::class)
+        ->test(CreatePerson::class)
         ->assertFormFieldDoesNotExist('slug')
         ->fillForm([
             'name' => 'Ustaz Ahmad Fauzi',
@@ -335,38 +335,38 @@ it('uses the generated country slug when admins create speakers in filament', fu
         ->call('create')
         ->assertHasNoErrors();
 
-    $speaker = Speaker::query()
+    $person = Person::query()
         ->where('name', 'Ustaz Ahmad Fauzi')
         ->firstOrFail();
 
-    expect($speaker->slug)->toBe('ustaz-ahmad-fauzi-my');
+    expect($person->slug)->toBe('ustaz-ahmad-fauzi-my');
 });
 
-it('does not expose a writable slug field when admins edit speakers in filament', function () {
+it('does not expose a writable slug field when admins edit persons in filament', function () {
     $this->seed(PermissionSeeder::class);
     $this->seed(RoleSeeder::class);
 
     $administrator = User::factory()->create();
     $administrator->assignRole('super_admin');
 
-    $speaker = Speaker::factory()->create([
-        'name' => 'Editable Speaker',
-        'slug' => 'editable-speaker-my',
+    $person = Person::factory()->create([
+        'name' => 'Editable Person',
+        'slug' => 'editable-person-my',
     ]);
 
     Livewire::actingAs($administrator)
-        ->test(EditSpeaker::class, ['record' => $speaker->getKey()])
+        ->test(EditPerson::class, ['record' => $person->getKey()])
         ->assertFormFieldDoesNotExist('slug');
 });
 
-it('uses the submitted address country when approving unstaged speaker create requests', function () {
-    $country = createSpeakerSlugCountry();
+it('uses the submitted address country when approving unstaged person create requests', function () {
+    $country = createPersonSlugCountry();
     $proposer = User::factory()->create();
     $reviewer = User::factory()->create();
 
     $request = ContributionRequest::factory()->create([
         'type' => ContributionRequestType::Create,
-        'subject_type' => ContributionSubjectType::Speaker,
+        'subject_type' => ContributionSubjectType::Person,
         'proposer_id' => $proposer->id,
         'status' => ContributionRequestStatus::Pending,
         'proposed_data' => [
@@ -380,18 +380,18 @@ it('uses the submitted address country when approving unstaged speaker create re
     ]);
 
     $approvedRequest = app(ApproveContributionRequestAction::class)->handle($request, $reviewer, 'Approved.');
-    $speaker = Speaker::query()
+    $person = Person::query()
         ->with('addresses')
         ->findOrFail($approvedRequest->entity_id);
 
-    expect($speaker->slug)->toBe('ustaz-ahmad-approval-my')
-        ->and($speaker->primaryAddress()?->country_id)->toBe((string) $country->getKey());
+    expect($person->slug)->toBe('ustaz-ahmad-approval-my')
+        ->and($person->primaryAddress()?->country_id)->toBe((string) $country->getKey());
 });
 
-it('recomputes speaker slugs when the speaker country changes', function () {
+it('recomputes person slugs when the person country changes', function () {
     $proposer = User::factory()->create();
-    $malaysia = createSpeakerSlugCountry();
-    $singapore = createSpeakerSlugCountry(
+    $malaysia = createPersonSlugCountry();
+    $singapore = createPersonSlugCountry(
         countryName: 'Singapore',
         countryIso2: 'SG',
         countryIso3: 'SGP',
@@ -399,24 +399,24 @@ it('recomputes speaker slugs when the speaker country changes', function () {
         phoneCode: '65',
     );
 
-    $speaker = app(ContributionEntityMutationService::class)->createSpeaker([
+    $person = app(ContributionEntityMutationService::class)->createPerson([
         'name' => 'Ustaz Ahmad Fauzi',
         'gender' => 'male',
         'country_id' => (string) $malaysia->getKey(),
     ], $proposer);
 
-    $speaker->primaryAddress()?->update([
+    $person->primaryAddress()?->update([
         'country_id' => (string) $singapore->getKey(),
     ]);
 
-    expect($speaker->fresh()?->slug)->toBe('ustaz-ahmad-fauzi-sg');
+    expect($person->fresh()?->slug)->toBe('ustaz-ahmad-fauzi-sg');
 });
 
-it('recomputes speaker slugs when displayed name parts change', function () {
+it('recomputes person slugs when displayed name parts change', function () {
     $proposer = User::factory()->create();
-    $country = createSpeakerSlugCountry();
+    $country = createPersonSlugCountry();
 
-    $speaker = app(ContributionEntityMutationService::class)->createSpeaker([
+    $person = app(ContributionEntityMutationService::class)->createPerson([
         'name' => 'Ahmad Fauzi',
         'gender' => 'male',
         'address' => [
@@ -424,23 +424,23 @@ it('recomputes speaker slugs when displayed name parts change', function () {
         ],
     ], $proposer);
 
-    expect($speaker->slug)->toBe('ahmad-fauzi-my');
+    expect($person->slug)->toBe('ahmad-fauzi-my');
 
-    $speaker->update([
+    $person->update([
         'honorific' => ['dato'],
         'pre_nominal' => ['dr'],
         'post_nominal' => ['PhD'],
     ]);
 
-    expect($speaker->fresh()?->formatted_name)->toBe("Dato' Dr Ahmad Fauzi, PhD")
-        ->and($speaker->fresh()?->slug)->toBe('dato-dr-ahmad-fauzi-phd-my');
+    expect($person->fresh()?->formatted_name)->toBe("Dato' Dr Ahmad Fauzi, PhD")
+        ->and($person->fresh()?->slug)->toBe('dato-dr-ahmad-fauzi-phd-my');
 });
 
 it('normalizes displayed-name ordering when title arrays are updated in arbitrary order', function () {
     $proposer = User::factory()->create();
-    $country = createSpeakerSlugCountry();
+    $country = createPersonSlugCountry();
 
-    $speaker = app(ContributionEntityMutationService::class)->createSpeaker([
+    $person = app(ContributionEntityMutationService::class)->createPerson([
         'name' => 'Azhar Sulaiman',
         'gender' => 'male',
         'address' => [
@@ -448,27 +448,27 @@ it('normalizes displayed-name ordering when title arrays are updated in arbitrar
         ],
     ], $proposer);
 
-    $speaker->update([
+    $person->update([
         'honorific' => ['dato'],
         'pre_nominal' => ['dr', 'prof'],
         'post_nominal' => ['BA', 'PhD', 'HONS'],
     ]);
 
-    expect($speaker->fresh()?->formatted_name)->toBe("Prof Dato' Dr Azhar Sulaiman, PhD, BA, HONS")
-        ->and($speaker->fresh()?->slug)->toBe('prof-dato-dr-azhar-sulaiman-phd-ba-hons-my');
+    expect($person->fresh()?->formatted_name)->toBe("Prof Dato' Dr Azhar Sulaiman, PhD, BA, HONS")
+        ->and($person->fresh()?->slug)->toBe('prof-dato-dr-azhar-sulaiman-phd-ba-hons-my');
 });
 
-it('renumbers remaining speaker duplicates when a peer is renamed out of the group', function () {
+it('renumbers remaining person duplicates when a peer is renamed out of the group', function () {
     $proposer = User::factory()->create();
-    $country = createSpeakerSlugCountry();
+    $country = createPersonSlugCountry();
 
-    $first = app(ContributionEntityMutationService::class)->createSpeaker([
+    $first = app(ContributionEntityMutationService::class)->createPerson([
         'name' => 'Ustaz Ahmad Fauzi',
         'gender' => 'male',
         'country_id' => (string) $country->getKey(),
     ], $proposer);
 
-    $second = app(ContributionEntityMutationService::class)->createSpeaker([
+    $second = app(ContributionEntityMutationService::class)->createPerson([
         'name' => 'Ustaz Ahmad Fauzi',
         'gender' => 'male',
         'country_id' => (string) $country->getKey(),
@@ -484,26 +484,26 @@ it('renumbers remaining speaker duplicates when a peer is renamed out of the gro
         ->and($second->fresh()?->slug)->toBe('ustaz-ahmad-fauzi-my');
 });
 
-it('backfills existing speaker slugs through the queued job logic', function () {
-    $country = createSpeakerSlugCountry();
+it('backfills existing person slugs through the queued job logic', function () {
+    $country = createPersonSlugCountry();
     $startsAt = Carbon::parse('2026-04-12 20:00:00', 'Asia/Kuala_Lumpur')->utc();
     $expectedSuffix = Carbon::parse('2026-04-12', 'Asia/Kuala_Lumpur')->format('j-n-y');
 
-    $first = createSpeakerForSlugBackfill(
+    $first = createPersonForSlugBackfill(
         id: '00000000-0000-0000-0000-000000000011',
         name: 'Ustaz Ahmad Fauzi',
         slug: 'legacy-random-1',
         country: $country,
     );
 
-    $second = createSpeakerForSlugBackfill(
+    $second = createPersonForSlugBackfill(
         id: '00000000-0000-0000-0000-000000000012',
         name: 'Ustaz Ahmad Fauzi',
         slug: 'legacy-random-2',
         country: $country,
     );
 
-    Speaker::withoutTimestamps(function () use ($first, $second): void {
+    Person::withoutTimestamps(function () use ($first, $second): void {
         $first->forceFill(['slug' => 'legacy-random-1'])->saveQuietly();
         $second->forceFill(['slug' => 'legacy-random-2'])->saveQuietly();
     });
@@ -526,9 +526,9 @@ it('backfills existing speaker slugs through the queued job logic', function () 
 
     expect($event->fresh()?->slug)->toBe("forum-backfill-penceramah-legacy-random-1-{$expectedSuffix}");
 
-    app(BackfillSpeakerSlugs::class)->handle(
+    app(BackfillPersonSlugs::class)->handle(
         app(GenerateEventSlugAction::class),
-        app(GenerateSpeakerSlugAction::class),
+        app(GeneratePersonSlugAction::class),
         app(PublicListingsCache::class),
     );
 
@@ -537,9 +537,9 @@ it('backfills existing speaker slugs through the queued job logic', function () 
         ->and($event->fresh()?->slug)->toBe("forum-backfill-penceramah-ustaz-ahmad-fauzi-my-{$expectedSuffix}");
 });
 
-it('updates related event slugs when a speaker address change changes the speaker slug', function () {
-    $malaysia = createSpeakerSlugCountry();
-    $singapore = createSpeakerSlugCountry(
+it('updates related event slugs when a person address change changes the person slug', function () {
+    $malaysia = createPersonSlugCountry();
+    $singapore = createPersonSlugCountry(
         countryName: 'Singapore',
         countryIso2: 'SG',
         countryIso3: 'SGP',
@@ -549,7 +549,7 @@ it('updates related event slugs when a speaker address change changes the speake
     $startsAt = Carbon::parse('2026-04-12 20:00:00', 'Asia/Kuala_Lumpur')->utc();
     $expectedSuffix = Carbon::parse('2026-04-12', 'Asia/Kuala_Lumpur')->format('j-n-y');
 
-    $speaker = createSpeakerForSlugBackfill(
+    $person = createPersonForSlugBackfill(
         id: '00000000-0000-0000-0000-000000000013',
         name: 'Ustaz Ahmad Fauzi',
         slug: 'ustaz-ahmad-fauzi-my',
@@ -570,36 +570,36 @@ it('updates related event slugs when a speaker address change changes the speake
         'status' => 'approved',
     ]);
 
-    app(EventKeyPersonSyncService::class)->sync($event, [$speaker->id]);
+    app(EventKeyPersonSyncService::class)->sync($event, [$person->id]);
 
     expect($event->fresh()?->slug)->toBe("forum-alamat-penceramah-ustaz-ahmad-fauzi-my-{$expectedSuffix}");
 
-    $speaker->addresses()->firstOrFail()->update([
+    $person->addresses()->firstOrFail()->update([
         'country_id' => (string) $singapore->getKey(),
     ]);
 
-    expect($speaker->fresh()?->slug)->toBe('ustaz-ahmad-fauzi-sg')
+    expect($person->fresh()?->slug)->toBe('ustaz-ahmad-fauzi-sg')
         ->and($event->fresh()?->slug)->toBe("forum-alamat-penceramah-ustaz-ahmad-fauzi-sg-{$expectedSuffix}");
 
-    $speaker->addresses()->firstOrFail()->delete();
+    $person->addresses()->firstOrFail()->delete();
 
-    expect($speaker->fresh()?->slug)->toBe('ustaz-ahmad-fauzi')
+    expect($person->fresh()?->slug)->toBe('ustaz-ahmad-fauzi')
         ->and($event->fresh()?->slug)->toBe("forum-alamat-penceramah-ustaz-ahmad-fauzi-{$expectedSuffix}");
 });
 
-it('queues the speaker slug backfill command', function () {
+it('queues the person slug backfill command', function () {
     Queue::fake();
 
-    $this->artisan('speakers:queue-slug-backfill')
-        ->expectsOutput('Queued speaker slug backfill job.')
+    $this->artisan('persons:queue-slug-backfill')
+        ->expectsOutput('Queued person slug backfill job.')
         ->assertSuccessful();
 
-    Queue::assertPushed(BackfillSpeakerSlugs::class);
+    Queue::assertPushed(BackfillPersonSlugs::class);
 });
 
-it('uses a country suffix only when speaker country data is present', function () {
-    $country = createSpeakerSlugCountry();
-    $generator = app(GenerateSpeakerSlugAction::class);
+it('uses a country suffix only when person country data is present', function () {
+    $country = createPersonSlugCountry();
+    $generator = app(GeneratePersonSlugAction::class);
 
     expect($generator->handle('Ustaz Tanpa Negara'))->toBe('ustaz-tanpa-negara')
         ->and($generator->handle('Ustaz Malaysia', [
@@ -610,7 +610,7 @@ it('uses a country suffix only when speaker country data is present', function (
         ]))->toBe('ustaz-singapura-sg');
 });
 
-function createSpeakerSlugCountry(
+function createPersonSlugCountry(
     string $countryName = 'Malaysia',
     string $countryIso2 = 'MY',
     string $countryIso3 = 'MYS',
@@ -636,9 +636,9 @@ function createSpeakerSlugCountry(
     ]);
 }
 
-function createSpeakerForSlugBackfill(string $id, string $name, string $slug, AddressCountry $country): Speaker
+function createPersonForSlugBackfill(string $id, string $name, string $slug, AddressCountry $country): Person
 {
-    $speaker = Speaker::unguarded(fn () => Speaker::query()->create([
+    $person = Person::unguarded(fn () => Person::query()->create([
         'id' => $id,
         'name' => $name,
         'gender' => 'male',
@@ -650,7 +650,7 @@ function createSpeakerForSlugBackfill(string $id, string $name, string $slug, Ad
         'country_id' => (string) $country->getKey(),
         'country_code' => $country->iso2,
     ]);
-    $speaker->attachAddress($address, type: 'primary', isPrimary: true);
+    $person->attachAddress($address, type: 'primary', isPrimary: true);
 
-    return $speaker->fresh(['addresses']) ?? $speaker;
+    return $person->fresh(['addresses']) ?? $person;
 }

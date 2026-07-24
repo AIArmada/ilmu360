@@ -22,8 +22,8 @@ it('documents mixed speaker venue and reference mutation semantics in the admin 
     $markdown = file_get_contents(base_path('docs/ilmu360_mobile_api_reference.md')) ?: '';
 
     expect($markdown)
-        ->toContain('Speaker-specific update rules:')
-        ->toContain('`address = {}` returns HTTP `422` for speakers.')
+        ->toContain('Person-specific update rules:')
+        ->toContain('`address = {}` returns HTTP `422` for persons.')
         ->toContain('The array-style speaker fields `honorific`, `pre_nominal`, `post_nominal`, `qualifications`, `language_ids`, `contacts`, and `social_media` all use replacement semantics when present')
         ->toContain('### Venue-specific update rules')
         ->toContain('`address = {}` is destructive for venues: it deletes the existing stored address.')
@@ -39,7 +39,7 @@ it('documents event series and donation-channel mutation semantics in the admin 
     expect($markdown)
         ->toContain('### Event-specific update rules')
         ->toContain('Event `PUT` is sparse on the raw admin API.')
-        ->toContain('`speakers` and `other_key_people` also preserve on omission, but any submitted array rebuilds the underlying `key_people` rows.')
+        ->toContain('`persons` and `other_key_people` also preserve on omission, but any submitted array rebuilds the underlying `key_people` rows.')
         ->toContain('### Series-specific update rules')
         ->toContain('Series `PUT` still requires `title`, `slug`, and `visibility`.')
         ->toContain('`languages` is a replacement relation: omit to preserve, send `null` or `[]` to clear, and send the full list when changing it.')
@@ -84,19 +84,19 @@ it('documents the public reference directory in the mobile api reference', funct
 
     expect($markdown)
         ->toContain('| `GET` | `/references` | Public reference listing filters; default directory pages show root/standalone references')
-        ->toContain('`/speakers`, `/institutions`, and `/references` return **only** records where `is_active = true` AND `status = \'verified\'`')
+        ->toContain('`/persons`, `/institutions`, and `/references` return **only** records where `is_active = true` AND `status = \'verified\'`')
         ->toContain('Public reference directory list items expose `display_title`, `parent_reference_id`, `part_type`, `part_number`, `part_label`, `is_part`, `author`, `type`, `publisher`, `publication_year`, `is_active`, `events_count`, `front_cover_url`, and `is_following` by default.')
         ->toContain('Unified search accepts `search` as the canonical query parameter and `q` as a compatibility alias')
         ->toContain('The `/institutions/near` alias requires either `near=lat,lng` or both `lat` and `lng`; calling it without coordinates intentionally returns a validation error.')
-        ->toContain('There are no plural follow-list routes such as `/follows/speakers`')
-        ->toContain('Public `/events`, `/institutions`, `/institutions/near`, `/speakers`, and `/references` list endpoints accept `fields=`');
+        ->toContain('There are no plural follow-list routes such as `/follows/persons`')
+        ->toContain('Public `/events`, `/institutions`, `/institutions/near`, `/persons`, and `/references` list endpoints accept `fields=`');
 });
 
 it('documents admin api search parity and scope differences versus the public and MCP surfaces', function () {
     $markdown = file_get_contents(base_path('docs/ilmu360_mobile_api_reference.md')) ?: '';
 
     expect($markdown)
-        ->toContain('For `speakers`, `institutions`, and `references`, the admin HTTP API now reuses the same specialized search services')
+        ->toContain('For `persons`, `institutions`, and `references`, the admin HTTP API now reuses the same specialized search services')
         ->toContain('admin/member MCP `*list-records` tools')
         ->toContain('the main difference is which records each surface is allowed to return.');
 });

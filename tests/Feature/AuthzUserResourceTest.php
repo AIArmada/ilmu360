@@ -12,10 +12,10 @@ use App\Models\Event;
 use App\Models\EventCheckin;
 use App\Models\EventSubmission;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Registration;
 use App\Models\SavedSearch;
-use App\Models\Speaker;
 use App\Models\User;
 use App\Support\Authz\MemberRoleCatalog;
 use App\Support\Authz\MemberRoleScopes;
@@ -107,12 +107,12 @@ it('shows read only membership summaries on the authz user edit page', function 
     $targetUser = User::factory()->create();
 
     $institution = Institution::factory()->create(['name' => 'Edit Membership Institution']);
-    $speaker = Speaker::factory()->create(['name' => 'Edit Membership Speaker']);
+    $person = Person::factory()->create(['name' => 'Edit Membership Person']);
     $event = Event::factory()->create(['title' => 'Edit Membership Event']);
     $reference = Reference::factory()->create(['title' => 'Edit Membership Reference']);
 
     $institution->members()->syncWithoutDetaching([$targetUser->id => ['role' => 'owner']]);
-    $speaker->members()->syncWithoutDetaching([$targetUser->id]);
+    $person->members()->syncWithoutDetaching([$targetUser->id]);
     $event->members()->syncWithoutDetaching([$targetUser->id => ['joined_at' => now()]]);
     $reference->members()->syncWithoutDetaching([$targetUser->id]);
 
@@ -121,7 +121,7 @@ it('shows read only membership summaries on the authz user edit page', function 
         ->assertSuccessful()
         ->assertSee('Memberships')
         ->assertSee('Edit Membership Institution')
-        ->assertSee('Edit Membership Speaker')
+        ->assertSee('Edit Membership Person')
         ->assertSee('Edit Membership Event')
         ->assertSee('Edit Membership Reference')
         ->assertSee('read-only', false);
@@ -300,18 +300,18 @@ it('shows authz user activity memberships follows submissions and saved searches
 
     $followedInstitution = Institution::factory()->create(['name' => 'Followed Institution']);
     $memberInstitution = Institution::factory()->create(['name' => 'Member Institution']);
-    $followedSpeaker = Speaker::factory()->create(['name' => 'Followed Speaker']);
-    $memberSpeaker = Speaker::factory()->create(['name' => 'Member Speaker']);
+    $followedPerson = Person::factory()->create(['name' => 'Followed Person']);
+    $memberPerson = Person::factory()->create(['name' => 'Member Person']);
     $followedReference = Reference::factory()->create(['title' => 'Followed Reference']);
 
     app(EngagementManager::class)->bookmark($targetUser, $savedEvent);
     $targetUser->respond($goingEvent, 'going');
     $targetUser->memberEvents()->attach($memberEvent->id, ['joined_at' => now()]);
     $memberInstitution->members()->syncWithoutDetaching([$targetUser->id]);
-    $memberSpeaker->members()->syncWithoutDetaching([$targetUser->id]);
+    $memberPerson->members()->syncWithoutDetaching([$targetUser->id]);
 
     $targetUser->follow($followedInstitution);
-    $targetUser->follow($followedSpeaker);
+    $targetUser->follow($followedPerson);
     $targetUser->follow($followedReference);
 
     Registration::factory()
@@ -353,12 +353,12 @@ it('shows authz user activity memberships follows submissions and saved searches
         ->assertSee('Registered Event')
         ->assertSee('Checked In Event')
         ->assertSee('Followed Institution')
-        ->assertSee('Followed Speaker')
+        ->assertSee('Followed Person')
         ->assertSee('Followed Reference')
         ->assertSee('Submitted Event')
         ->assertSee('Submitted from public form.')
         ->assertSee('Member Institution')
-        ->assertSee('Member Speaker')
+        ->assertSee('Member Person')
         ->assertSee('Member Event')
         ->assertSee('My Saved Search')
         ->assertSee('tafsir');

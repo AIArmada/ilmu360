@@ -9,7 +9,7 @@ use App\Actions\Membership\SubmitMembershipApplicationAction;
 use App\Enums\MemberSubjectType;
 use App\Models\Institution;
 use App\Models\MembershipApplication;
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Models\User;
 use App\Support\Authz\MemberRoleCatalog;
 use Database\Seeders\PermissionSeeder;
@@ -62,12 +62,12 @@ it('approves a claim and grants editor membership', function () {
 });
 
 it('approves a claim and can grant owner through the central moderation path', function () {
-    $speaker = Speaker::factory()->create();
+    $person = Person::factory()->create();
     $claimant = User::factory()->create();
     $reviewer = User::factory()->create();
 
     $claim = MembershipApplication::factory()
-        ->for($speaker, 'subject')
+        ->for($person, 'subject')
         ->create([
             'applicant_id' => $claimant->getKey(),
             'status' => ApplicationStatus::Pending,
@@ -77,8 +77,8 @@ it('approves a claim and can grant owner through the central moderation path', f
 
     expect($claim->fresh()->status)->toBe(ApplicationStatus::Approved)
         ->and($claim->fresh()->granted_role)->toBe('owner')
-        ->and($speaker->fresh()->members()->whereKey($claimant->getKey())->exists())->toBeTrue()
-        ->and(app(MemberRoleCatalog::class)->roleNamesFor($claimant->fresh(), MemberSubjectType::Speaker))->toBe(['owner']);
+        ->and($person->fresh()->members()->whereKey($claimant->getKey())->exists())->toBeTrue()
+        ->and(app(MemberRoleCatalog::class)->roleNamesFor($claimant->fresh(), MemberSubjectType::Person))->toBe(['owner']);
 });
 
 it('rejects a claim and records reviewer metadata', function () {

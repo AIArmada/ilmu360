@@ -12,16 +12,16 @@ use App\Enums\EventPrayerTime;
 use App\Enums\MemberSubjectType;
 use App\Livewire\Pages\Contributions\Index as ContributionsIndex;
 use App\Livewire\Pages\Contributions\SubmitInstitution;
-use App\Livewire\Pages\Contributions\SubmitSpeaker;
+use App\Livewire\Pages\Contributions\SubmitPerson;
 use App\Livewire\Pages\Contributions\SuggestUpdate;
 use App\Livewire\Pages\Reports\Create as CreateReportPage;
 use App\Models\ContributionRequest;
 use App\Models\Event;
 use App\Models\EventSubmission;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Report;
-use App\Models\Speaker;
 use App\Models\User;
 use App\Models\Venue;
 use Database\Seeders\PermissionSeeder;
@@ -42,9 +42,9 @@ function assignInstitutionOwner(User $user, Institution $institution): void
     withGlobalOwnerContext(fn (): null => addTestMember($institution, $user, MemberRole::Owner));
 }
 
-function assignSpeakerOwner(User $user, Speaker $speaker): void
+function assignPersonOwner(User $user, Person $person): void
 {
-    withGlobalOwnerContext(fn (): null => addTestMember($speaker, $user, MemberRole::Owner));
+    withGlobalOwnerContext(fn (): null => addTestMember($person, $user, MemberRole::Owner));
 }
 
 it('renders the dedicated institution contribution page', function () {
@@ -61,7 +61,7 @@ it('renders the dedicated institution contribution page', function () {
         ->assertSee(__('Check Existing Institutions'))
         ->assertDontSee(__('View My Contributions'))
         ->assertDontSee(__('Need to add a speaker instead?'))
-        ->assertDontSee(__('Submit Speaker'))
+        ->assertDontSee(__('Submit Person'))
         ->assertDontSee(__('What happens next?'))
         ->assertDontSee(__('Submission Note'))
         ->assertDontSee('lg:grid-cols-2', false);
@@ -97,9 +97,9 @@ it('renders the dedicated speaker contribution page', function () {
 
     $this->actingAs($user);
 
-    $this->get(route('contributions.submit-speaker'))
+    $this->get(route('contributions.submit-person'))
         ->assertOk()
-        ->assertSee(__('Add a New Speaker'))
+        ->assertSee(__('Add a New Person'))
         ->assertSee(__('Address'))
         ->assertSee(__('Check the existing directory first'))
         ->assertSee(__('Before you submit, please check the existing speakers directory. If it already exists, submit an update instead of creating a new record.'))
@@ -118,7 +118,7 @@ it('renders the speaker contribution page with translated copy when the locale c
     app()->setLocale('ms');
     $this->actingAs($user);
 
-    $this->get(route('contributions.submit-speaker'))
+    $this->get(route('contributions.submit-person'))
         ->assertOk()
         ->assertSee('Sumbangan Komuniti')
         ->assertSee('Tambah Penceramah Baru')
@@ -131,7 +131,7 @@ it('renders the speaker contribution page with translated copy when the locale c
         ->assertSee('Semak Penceramah Sedia Ada')
         ->assertSee('rekod baru')
         ->assertDontSee('Lihat Sumbangan Saya')
-        ->assertDontSee('Add a New Speaker')
+        ->assertDontSee('Add a New Person')
         ->assertDontSee('Education')
         ->assertDontSee('Contact Details');
 });
@@ -141,20 +141,20 @@ it('shows speaker affiliation fields on the dedicated create and update forms', 
     $institution = Institution::factory()->create([
         'status' => 'verified',
     ]);
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'status' => 'verified',
     ]);
 
     $this->actingAs($user);
 
-    Livewire::test(SubmitSpeaker::class)
+    Livewire::test(SubmitPerson::class)
         ->assertFormFieldVisible('institution_id')
         ->set('data.institution_id', $institution->id)
         ->assertFormFieldVisible('institution_position');
 
     Livewire::test(SuggestUpdate::class, [
-        'subjectType' => ContributionSubjectType::Speaker->publicRouteSegment(),
-        'subjectId' => $speaker->slug,
+        'subjectType' => ContributionSubjectType::Person->publicRouteSegment(),
+        'subjectId' => $person->slug,
     ])
         ->assertFormFieldVisible('institution_id')
         ->set('data.institution_id', $institution->id)
@@ -169,7 +169,7 @@ it('stores speaker affiliations from the dedicated speaker contribution page', f
 
     $this->actingAs($user);
 
-    Livewire::test(SubmitSpeaker::class)
+    Livewire::test(SubmitPerson::class)
         ->fillForm([
             'name' => 'Ustaz Pautan Institusi',
             'gender' => 'male',
@@ -179,14 +179,14 @@ it('stores speaker affiliations from the dedicated speaker contribution page', f
         ->call('submit')
         ->assertHasNoErrors();
 
-    $speaker = Speaker::query()
+    $person = Person::query()
         ->with('institutions')
         ->where('name', 'Ustaz Pautan Institusi')
         ->firstOrFail();
 
-    $affiliatedInstitution = $speaker->institutions->firstWhere('id', $institution->id);
+    $affiliatedInstitution = $person->institutions->firstWhere('id', $institution->id);
 
-    expect($speaker->status)->toBe('pending')
+    expect($person->status)->toBe('pending')
         ->and($affiliatedInstitution)->not->toBeNull()
         ->and($affiliatedInstitution?->pivot?->position)->toBe('Mudir')
         ->and((bool) $affiliatedInstitution?->pivot?->is_primary)->toBeTrue();
@@ -217,7 +217,7 @@ it('renders the speaker contribution submission success page', function () {
     $this->actingAs($user);
 
     $this->withSession(['contribution_submission_name' => 'Ustaz Cadangan Baru'])
-        ->get(route('contributions.submission-success', ['subjectType' => ContributionSubjectType::Speaker->publicRouteSegment()]))
+        ->get(route('contributions.submission-success', ['subjectType' => ContributionSubjectType::Person->publicRouteSegment()]))
         ->assertOk()
         ->assertSee('Ustaz Cadangan Baru')
         ->assertSee(__('Thank you for submitting a new speaker.'))
@@ -255,7 +255,7 @@ it('renders the speaker contribution submission success page with translated cop
     app()->setLocale('ms');
     $this->actingAs($user);
 
-    $this->get(route('contributions.submission-success', ['subjectType' => ContributionSubjectType::Speaker->publicRouteSegment()]))
+    $this->get(route('contributions.submission-success', ['subjectType' => ContributionSubjectType::Person->publicRouteSegment()]))
         ->assertOk()
         ->assertSee('Terima kasih kerana menghantar penceramah baru.')
         ->assertSee('Jejaki sumbangan anda dan statusnya.')
@@ -393,7 +393,7 @@ it('renders the institution suggest update page with translated direct-edit copy
 
 it('renders the speaker suggest update page with the compact shared shell', function () {
     $user = User::factory()->create();
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'status' => 'verified',
     ]);
 
@@ -401,8 +401,8 @@ it('renders the speaker suggest update page with the compact shared shell', func
     $this->actingAs($user);
 
     $this->get(route('contributions.suggest-update', [
-        'subjectType' => ContributionSubjectType::Speaker->publicRouteSegment(),
-        'subjectId' => $speaker->slug,
+        'subjectType' => ContributionSubjectType::Person->publicRouteSegment(),
+        'subjectId' => $person->slug,
     ]))
         ->assertOk()
         ->assertSee('Cadangan Kemas Kini')
@@ -467,7 +467,7 @@ it('uses the institution location picker on the suggest update page when google 
 it('shows the speaker media uploads on the suggest update page only for maintainers', function () {
     $owner = User::factory()->create();
     $visitor = User::factory()->create();
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'status' => 'verified',
         'bio' => null,
     ]);
@@ -475,8 +475,8 @@ it('shows the speaker media uploads on the suggest update page only for maintain
     $this->actingAs($visitor);
 
     $this->get(route('contributions.suggest-update', [
-        'subjectType' => ContributionSubjectType::Speaker->publicRouteSegment(),
-        'subjectId' => $speaker->slug,
+        'subjectType' => ContributionSubjectType::Person->publicRouteSegment(),
+        'subjectId' => $person->slug,
     ]))
         ->assertOk()
         ->assertDontSee(__('View My Contributions'))
@@ -484,12 +484,12 @@ it('shows the speaker media uploads on the suggest update page only for maintain
         ->assertDontSee(__('Cover Image'))
         ->assertDontSee(__('Gallery'));
 
-    assignSpeakerOwner($owner, $speaker);
+    assignPersonOwner($owner, $person);
     $this->actingAs($owner);
 
     $this->get(route('contributions.suggest-update', [
-        'subjectType' => ContributionSubjectType::Speaker->publicRouteSegment(),
-        'subjectId' => $speaker->slug,
+        'subjectType' => ContributionSubjectType::Person->publicRouteSegment(),
+        'subjectId' => $person->slug,
     ]))
         ->assertOk()
         ->assertDontSee(__('View My Contributions'))
@@ -509,38 +509,38 @@ it('applies direct speaker affiliation edits for owner maintainers from the sugg
     $newInstitution = Institution::factory()->create([
         'status' => 'verified',
     ]);
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'status' => 'verified',
     ]);
 
-    $speaker->institutions()->detach();
+    $person->institutions()->detach();
 
-    $speaker->institutions()->attach($currentInstitution->id, [
+    $person->institutions()->attach($currentInstitution->id, [
         'position' => 'Imam',
         'is_primary' => true,
     ]);
-    $speaker->institutions()->attach($secondaryInstitution->id, [
+    $person->institutions()->attach($secondaryInstitution->id, [
         'position' => 'Advisor',
         'is_primary' => false,
     ]);
 
-    assignSpeakerOwner($user, $speaker);
+    assignPersonOwner($user, $person);
     $this->actingAs($user);
 
     Livewire::test(SuggestUpdate::class, [
-        'subjectType' => ContributionSubjectType::Speaker->publicRouteSegment(),
-        'subjectId' => $speaker->slug,
+        'subjectType' => ContributionSubjectType::Person->publicRouteSegment(),
+        'subjectId' => $person->slug,
     ])
         ->set('data.institution_id', $newInstitution->id)
         ->set('data.institution_position', 'Mudir')
         ->call('submit')
         ->assertHasNoErrors();
 
-    $speaker = $speaker->fresh('institutions');
-    $newAffiliation = $speaker?->institutions->firstWhere('id', $newInstitution->id);
-    $secondaryAffiliation = $speaker?->institutions->firstWhere('id', $secondaryInstitution->id);
+    $person = $person->fresh('institutions');
+    $newAffiliation = $person?->institutions->firstWhere('id', $newInstitution->id);
+    $secondaryAffiliation = $person?->institutions->firstWhere('id', $secondaryInstitution->id);
 
-    expect($speaker?->institutions->pluck('id')->all())->toContain($newInstitution->id, $secondaryInstitution->id)
+    expect($person?->institutions->pluck('id')->all())->toContain($newInstitution->id, $secondaryInstitution->id)
         ->not->toContain($currentInstitution->id)
         ->and($newAffiliation)->not->toBeNull()
         ->and($newAffiliation?->pivot?->position)->toBe('Mudir')
@@ -559,7 +559,7 @@ it('exposes Filament action handlers required by public contribution media uploa
     $this->actingAs($user);
 
     expect(method_exists(Livewire::test(SubmitInstitution::class)->instance(), 'mountAction'))->toBeTrue()
-        ->and(method_exists(Livewire::test(SubmitSpeaker::class)->instance(), 'mountAction'))->toBeTrue()
+        ->and(method_exists(Livewire::test(SubmitPerson::class)->instance(), 'mountAction'))->toBeTrue()
         ->and(method_exists(Livewire::test(SuggestUpdate::class, [
             'subjectType' => ContributionSubjectType::Institution->publicRouteSegment(),
             'subjectId' => $institution->slug,
@@ -877,7 +877,7 @@ it('normalizes submit-style organizer and location changes on the event update p
     $institution = Institution::factory()->create([
         'status' => 'verified',
     ]);
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'status' => 'verified',
     ]);
     $venue = Venue::factory()->create([
@@ -903,8 +903,8 @@ it('normalizes submit-style organizer and location changes on the event update p
         'subjectId' => $event->slug,
     ])
         ->set('data.primary_organizer_kind', 'speaker')
-        ->set('data.primary_organizer_id', $speaker->id)
-        ->set('data.primary_organizer_speaker_id', $speaker->id)
+        ->set('data.primary_organizer_id', $person->id)
+        ->set('data.primary_organizer_speaker_id', $person->id)
         ->set('data.location_same_as_institution', false)
         ->set('data.location_type', 'venue')
         ->set('data.location_venue_id', $venue->id)
@@ -914,8 +914,8 @@ it('normalizes submit-style organizer and location changes on the event update p
     $involvement = $event->fresh()->primaryOrganizerInvolvement;
     $updatedEvent = $event->fresh();
 
-    expect($involvement?->involveable_type)->toBe(Speaker::class)
-        ->and($involvement?->involveable_id)->toBe((string) $speaker->getKey())
+    expect($involvement?->involveable_type)->toBe(Person::class)
+        ->and($involvement?->involveable_id)->toBe((string) $person->getKey())
         ->and($updatedEvent?->institution_id)->toBeNull()
         ->and($updatedEvent?->default_venue_id)->toBe($venue->id)
         ->and($updatedEvent?->primaryLocation?->venue_id)->toBe($venue->id)
@@ -1013,7 +1013,7 @@ it('renders contribution requests and event submissions without approval control
         'name' => 'Masjid Ahli',
         'status' => 'verified',
     ]);
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'name' => 'Ustaz Ahmad',
         'status' => 'verified',
     ]);
@@ -1059,7 +1059,7 @@ it('renders contribution requests and event submissions without approval control
         'visibility' => 'public',
     ]);
 
-    $event->speakers()->syncWithoutDetaching([$speaker->id]);
+    $event->persons()->syncWithoutDetaching([$person->id]);
     $event->references()->syncWithoutDetaching([$reference->id]);
 
     EventSubmission::factory()->for($event)->for($user, 'submitter')->create([
@@ -1088,7 +1088,7 @@ it('renders contribution requests and event submissions without approval control
     Livewire::test(ContributionsIndex::class)
         ->assertSee(__('Submit Event'))
         ->assertSee(__('Submit Institution'))
-        ->assertSee(__('Submit Speaker'))
+        ->assertSee(__('Submit Person'))
         ->assertDontSee('xl:grid-cols-[1.15fr_0.85fr]', false)
         ->assertSee(__('Event Submissions'))
         ->assertSee(__('New Submissions'))
@@ -1107,7 +1107,7 @@ it('renders contribution requests and event submissions without approval control
         ->assertSee(route('events.show', $event), false)
         ->assertDontSee(route('events.show', $ownedEvent), false)
         ->assertSee(__('Institution: :name', ['name' => $eventInstitution->display_name]))
-        ->assertSee(__('Speakers: :names', ['names' => $speaker->formatted_name]))
+        ->assertSee(__('Speakers: :names', ['names' => $person->formatted_name]))
         ->assertSee(__('References: :names', ['names' => $reference->title]))
         ->assertSee(__('Report Submission'))
         ->assertSee($reportInstitution->name)
@@ -1277,7 +1277,7 @@ it('redirects guests to login on canonical report and suggest update pages while
     $institution = Institution::factory()->create([
         'status' => 'verified',
     ]);
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'status' => 'verified',
     ]);
     $reference = Reference::factory()->create([
@@ -1292,7 +1292,7 @@ it('redirects guests to login on canonical report and suggest update pages while
 
     $eventRouteSegment = ContributionSubjectType::Event->publicRouteSegment();
     $institutionRouteSegment = ContributionSubjectType::Institution->publicRouteSegment();
-    $speakerRouteSegment = ContributionSubjectType::Speaker->publicRouteSegment();
+    $speakerRouteSegment = ContributionSubjectType::Person->publicRouteSegment();
     $referenceRouteSegment = ContributionSubjectType::Reference->publicRouteSegment();
 
     $this->get(route('contributions.suggest-update', ['subjectType' => $institutionRouteSegment, 'subjectId' => $institution->slug]))
@@ -1301,16 +1301,16 @@ it('redirects guests to login on canonical report and suggest update pages while
     $this->get(route('reports.create', ['subjectType' => $institutionRouteSegment, 'subjectId' => $institution->slug]))
         ->assertRedirect(route('login'));
 
-    $this->get(route('contributions.suggest-update', ['subjectType' => $speakerRouteSegment, 'subjectId' => $speaker->slug]))
+    $this->get(route('contributions.suggest-update', ['subjectType' => $speakerRouteSegment, 'subjectId' => $person->slug]))
         ->assertRedirect(route('login'));
 
-    $this->get(route('reports.create', ['subjectType' => $speakerRouteSegment, 'subjectId' => $speaker->slug]))
+    $this->get(route('reports.create', ['subjectType' => $speakerRouteSegment, 'subjectId' => $person->slug]))
         ->assertRedirect(route('login'));
 
-    $this->get("/sumbangan/speaker/{$speaker->slug}/kemas-kini")
+    $this->get("/sumbangan/speaker/{$person->slug}/kemas-kini")
         ->assertNotFound();
 
-    $this->get("/lapor/speaker/{$speaker->slug}")
+    $this->get("/lapor/speaker/{$person->slug}")
         ->assertNotFound();
 
     $this->get("/sumbangan/institution/{$institution->slug}/kemas-kini")
@@ -1335,44 +1335,44 @@ it('redirects guests to login on canonical report and suggest update pages while
 it('forbids users banned from directory feedback from opening update and report pages', function () {
     $user = User::factory()->create();
     $user->givePermissionTo('feedback.blocked');
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'status' => 'verified',
     ]);
 
     $this->actingAs($user);
 
-    $this->get(route('contributions.suggest-update', ['subjectType' => ContributionSubjectType::Speaker->publicRouteSegment(), 'subjectId' => $speaker->slug]))
+    $this->get(route('contributions.suggest-update', ['subjectType' => ContributionSubjectType::Person->publicRouteSegment(), 'subjectId' => $person->slug]))
         ->assertForbidden();
 
-    $this->get(route('reports.create', ['subjectType' => ContributionSubjectType::Speaker->publicRouteSegment(), 'subjectId' => $speaker->slug]))
+    $this->get(route('reports.create', ['subjectType' => ContributionSubjectType::Person->publicRouteSegment(), 'subjectId' => $person->slug]))
         ->assertForbidden();
 });
 
 it('resolves speaker slugs on the update suggestion page without uuid casting errors', function () {
     $user = User::factory()->create();
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'status' => 'verified',
     ]);
 
     $this->actingAs($user);
 
     Livewire::test(SuggestUpdate::class, [
-        'subjectType' => ContributionSubjectType::Speaker->publicRouteSegment(),
-        'subjectId' => $speaker->slug,
+        'subjectType' => ContributionSubjectType::Person->publicRouteSegment(),
+        'subjectId' => $person->slug,
     ])->assertSet('subjectType', 'speaker');
 });
 
 it('keeps speaker update suggestions on a region-only address form', function () {
     $user = User::factory()->create();
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'status' => 'verified',
     ]);
 
     $this->actingAs($user);
 
     $this->get(route('contributions.suggest-update', [
-        'subjectType' => ContributionSubjectType::Speaker->publicRouteSegment(),
-        'subjectId' => $speaker->slug,
+        'subjectType' => ContributionSubjectType::Person->publicRouteSegment(),
+        'subjectId' => $person->slug,
     ]))
         ->assertOk()
         ->assertSee(__('Address'))
@@ -1386,19 +1386,19 @@ it('keeps speaker update suggestions on a region-only address form', function ()
 it('does not treat unchanged speaker update forms as changes when legacy address fields exist', function () {
     $owner = User::factory()->create();
     $country = ensureTestMalaysiaCountry();
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'status' => 'verified',
     ]);
 
-    withGlobalOwnerContext(function () use ($speaker): void {
-        $speaker->contactMethods()->delete();
-        $speaker->contactMethods()->create([
+    withGlobalOwnerContext(function () use ($person): void {
+        $person->contactMethods()->delete();
+        $person->contactMethods()->create([
             'type' => ContactMethodType::Email->value,
             'purpose' => ContactPurpose::General->value,
             'value' => 'speaker@example.test',
             'is_public' => true,
         ]);
-        $speaker->contactMethods()->create([
+        $person->contactMethods()->create([
             'type' => ContactMethodType::Phone->value,
             'purpose' => ContactPurpose::General->value,
             'value' => '+1-878-669-9223',
@@ -1406,24 +1406,24 @@ it('does not treat unchanged speaker update forms as changes when legacy address
         ]);
     });
 
-    syncPrimaryAddressForTest($speaker, [
+    syncPrimaryAddressForTest($person, [
         'country_id' => (string) $country->getKey(),
         'line1' => 'Alamat Warisan',
         'google_maps_url' => 'https://maps.google.com/?q=3.1390,101.6869',
     ]);
 
-    assignSpeakerOwner($owner, $speaker);
+    assignPersonOwner($owner, $person);
 
     Livewire::actingAs($owner)
         ->test(SuggestUpdate::class, [
-            'subjectType' => ContributionSubjectType::Speaker->publicRouteSegment(),
-            'subjectId' => $speaker->slug,
+            'subjectType' => ContributionSubjectType::Person->publicRouteSegment(),
+            'subjectId' => $person->slug,
         ])
         ->call('submit')
         ->assertRedirect();
 
-    expect($speaker->fresh('addresses')?->primaryAddress()?->line1)->toBe('Alamat Warisan')
-        ->and($speaker->fresh('addresses')?->primaryAddress()?->google_maps_url)->toBe('https://www.google.com/maps/search/?api=1&query=3.139%2C101.6869');
+    expect($person->fresh('addresses')?->primaryAddress()?->line1)->toBe('Alamat Warisan')
+        ->and($person->fresh('addresses')?->primaryAddress()?->google_maps_url)->toBe('https://www.google.com/maps/search/?api=1&query=3.139%2C101.6869');
 });
 
 it('resolves institution slugs on the report page without uuid casting errors', function () {
@@ -1463,22 +1463,22 @@ it('shows the reported institution clearly on the public report page', function 
 
 it('shows the reported speaker clearly on the public report page', function () {
     $user = User::factory()->create();
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'name' => 'Amina binti Rashid',
         'status' => 'verified',
     ]);
-    $selectedSpeakerLabel = __('Selected :subject', ['subject' => strtolower(__('Speaker'))]);
-    $viewSpeakerLabel = __('View this :subject', ['subject' => strtolower(__('Speaker'))]);
+    $selectedSpeakerLabel = __('Selected :subject', ['subject' => strtolower(__('Person'))]);
+    $viewSpeakerLabel = __('View this :subject', ['subject' => strtolower(__('Person'))]);
 
     $this->actingAs($user);
 
     $this->get(route('reports.create', [
-        'subjectType' => ContributionSubjectType::Speaker->publicRouteSegment(),
-        'subjectId' => $speaker->slug,
+        'subjectType' => ContributionSubjectType::Person->publicRouteSegment(),
+        'subjectId' => $person->slug,
     ]))
         ->assertOk()
         ->assertSeeText($selectedSpeakerLabel)
-        ->assertSeeText($speaker->formatted_name)
+        ->assertSeeText($person->formatted_name)
         ->assertSeeText($viewSpeakerLabel);
 });
 

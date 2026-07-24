@@ -57,18 +57,18 @@ use App\Models\Institution;
 use App\Models\MembershipApplication;
 use App\Models\ModerationReview;
 use App\Models\PassportUser;
+use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Report;
 use App\Models\Series;
 use App\Models\Space;
-use App\Models\Speaker;
 use App\Models\User;
 use App\Models\Venue;
 use App\Services\Signals\SignalsTracker;
 use App\Support\GitHub\GitHubIssueReportContract;
 use App\Support\Mcp\McpDocumentationPreflight;
 use App\Support\Mcp\McpTokenManager;
-use App\Support\Search\SpeakerSearchService;
+use App\Support\Search\PersonSearchService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
@@ -84,7 +84,7 @@ it('lists accessible admin resources for admin users through the MCP server', fu
         ->assertOk()
         ->assertStructuredContent(fn ($json) => $json
             ->where('data.resources', fn (Collection $resources): bool => $resources->pluck('key')->intersect([
-                'donation-channels', 'events', 'institutions', 'references', 'reports', 'speakers',
+                'donation-channels', 'events', 'institutions', 'references', 'reports', 'people',
             ])->count() === 6)
             ->where('data.resources.0.key', fn (string $key): bool => filled($key))
             ->missing('data.resources.0.resource_class')
@@ -120,38 +120,38 @@ it('hides write tools when the authenticated user has no writable admin access',
 
     AdminServer::actingAs($viewer)
         ->tool(AdminGetWriteSchemaTool::class, [
-            'resource_key' => 'speakers',
+            'resource_key' => 'people',
             'operation' => 'create',
         ])
         ->assertHasErrors(['Tool [admin-get-write-schema] not found.']);
 });
 
-it('matches richer public search behavior for speakers, institutions, and references through admin MCP list records', function () {
+it('matches richer public search behavior for persons, institutions, and references through admin MCP list records', function () {
     $admin = adminMcpUser('super_admin');
 
-    $matchingSpeaker = Speaker::factory()->create([
-        'name' => 'Admin MCP Speaker Match',
+    $matchingPerson = Person::factory()->create([
+        'name' => 'Admin MCP Person Match',
         'pre_nominal' => ['syeikhul_maqari'],
         'status' => 'verified',
     ]);
-    $otherSpeaker = Speaker::factory()->create([
-        'name' => 'Admin MCP Speaker Other',
+    $otherPerson = Person::factory()->create([
+        'name' => 'Admin MCP Person Other',
         'status' => 'verified',
     ]);
 
-    app(SpeakerSearchService::class)->syncSpeakerRecord($matchingSpeaker);
-    app(SpeakerSearchService::class)->syncSpeakerRecord($otherSpeaker);
+    app(PersonSearchService::class)->syncPersonRecord($matchingPerson);
+    app(PersonSearchService::class)->syncPersonRecord($otherPerson);
 
     AdminServer::actingAs($admin)
         ->tool(AdminListRecordsTool::class, [
-            'resource_key' => 'speakers',
+            'resource_key' => 'people',
             'search' => 'syeikhul maqari',
         ])
         ->assertOk()
         ->assertStructuredContent(fn ($json) => $json
-            ->where('meta.resource.key', 'speakers')
+            ->where('meta.resource.key', 'people')
             ->where('meta.pagination.total', 1)
-            ->where('data.0.id', (string) $matchingSpeaker->getKey())
+            ->where('data.0.id', (string) $matchingPerson->getKey())
             ->etc());
 
     $matchingInstitution = Institution::factory()->create([
@@ -344,23 +344,23 @@ it('exposes report write schema and creates and updates reports through the admi
         ->and($report->getMedia('evidence'))->toHaveCount(1);
 });
 
-it('returns resource metadata, record listings, and record detail for speakers', function () {
+it('returns resource metadata, record listings, and record detail for persons', function () {
     $admin = adminMcpUser('super_admin');
-    $speaker = Speaker::factory()->create([
-        'name' => 'Admin MCP Speaker',
+    $person = Person::factory()->create([
+        'name' => 'Admin MCP Person',
     ]);
 
     AdminServer::actingAs($admin)
         ->tool(AdminGetResourceMetaTool::class, [
-            'resource_key' => 'speakers',
+            'resource_key' => 'people',
         ])
         ->assertOk()
         ->assertStructuredContent(fn ($json) => $json
-            ->where('data.resource.key', 'speakers')
-            ->where('data.resource.api_routes.collection', '/api/v1/admin/speakers')
-            ->where('data.resource.api_routes.schema', '/api/v1/admin/speakers/schema')
+            ->where('data.resource.key', 'people')
+            ->where('data.resource.api_routes.collection', '/api/v1/admin/people')
+            ->where('data.resource.api_routes.schema', '/api/v1/admin/people/schema')
             ->where('data.resource.mcp_tools.list_records.tool', 'admin-list-records')
-            ->where('data.resource.mcp_tools.list_records.arguments.resource_key', 'speakers')
+            ->where('data.resource.mcp_tools.list_records.arguments.resource_key', 'people')
             ->where('data.resource.mcp_tools.list_records.arguments.filters', 'object')
             ->where('data.resource.mcp_tools.get_record_actions.tool', 'admin-get-record-actions')
             ->where('data.resource.mcp_tools.get_record_actions.arguments.record_key', 'record')
@@ -370,26 +370,26 @@ it('returns resource metadata, record listings, and record detail for speakers',
 
     AdminServer::actingAs($admin)
         ->tool(AdminListRecordsTool::class, [
-            'resource_key' => 'speakers',
-            'search' => 'Admin MCP Speaker',
+            'resource_key' => 'people',
+            'search' => 'Admin MCP Person',
         ])
         ->assertOk()
         ->assertStructuredContent(fn ($json) => $json
-            ->where('data.0.id', $speaker->getKey())
-            ->where('data.0.title', 'Admin MCP Speaker')
-            ->where('meta.resource.key', 'speakers')
+            ->where('data.0.id', $person->getKey())
+            ->where('data.0.title', 'Admin MCP Person')
+            ->where('meta.resource.key', 'people')
             ->where('meta.pagination.page', 1)
             ->etc());
 
     AdminServer::actingAs($admin)
         ->tool(AdminGetRecordTool::class, [
-            'resource_key' => 'speakers',
-            'record_key' => $speaker->getKey(),
+            'resource_key' => 'people',
+            'record_key' => $person->getKey(),
         ])
         ->assertOk()
         ->assertStructuredContent(fn ($json) => $json
-            ->where('data.record.route_key', $speaker->getRouteKey())
-            ->where('data.record.attributes.name', 'Admin MCP Speaker')
+            ->where('data.record.route_key', $person->getRouteKey())
+            ->where('data.record.attributes.name', 'Admin MCP Person')
             ->etc());
 });
 
@@ -456,32 +456,32 @@ it('returns focused next-step actions for admin records through the MCP server',
 it('lists related records through the admin MCP server', function () {
     $admin = adminMcpUser('super_admin');
     $relatedTitle = 'Nested MCP Event '.Str::ulid();
-    $speaker = Speaker::factory()->create([
-        'name' => 'Nested MCP Speaker',
+    $person = Person::factory()->create([
+        'name' => 'Nested MCP Person',
     ]);
     $event = Event::factory()->create([
         'title' => $relatedTitle,
     ]);
 
-    $event->speakers()->attach($speaker);
+    $event->persons()->attach($person);
 
     AdminServer::actingAs($admin)
         ->tool(AdminGetResourceMetaTool::class, [
-            'resource_key' => 'speakers',
+            'resource_key' => 'people',
         ])
         ->assertOk()
         ->assertStructuredContent(fn ($json) => $json
-            ->where('data.resource.api_routes.related_collection', '/api/v1/admin/speakers/record/relations/relation')
+            ->where('data.resource.api_routes.related_collection', '/api/v1/admin/people/record/relations/relation')
             ->where('data.resource.mcp_tools.list_related_records.tool', 'admin-list-related-records')
-            ->where('data.resource.mcp_tools.list_related_records.arguments.resource_key', 'speakers')
+            ->where('data.resource.mcp_tools.list_related_records.arguments.resource_key', 'people')
             ->where('data.resource.mcp_tools.list_related_records.arguments.record_key', 'record')
             ->where('data.resource.mcp_tools.list_related_records.arguments.relation', 'relation')
             ->etc());
 
     AdminServer::actingAs($admin)
         ->tool(AdminListRelatedRecordsTool::class, [
-            'resource_key' => 'speakers',
-            'record_key' => $speaker->getKey(),
+            'resource_key' => 'people',
+            'record_key' => $person->getKey(),
             'relation' => 'events',
             'search' => $relatedTitle,
         ])
@@ -489,8 +489,8 @@ it('lists related records through the admin MCP server', function () {
         ->assertStructuredContent(fn ($json) => $json
             ->where('data.0.route_key', $event->getRouteKey())
             ->where('data.0.title', $relatedTitle)
-            ->where('meta.resource.key', 'speakers')
-            ->where('meta.parent_record.route_key', $speaker->getRouteKey())
+            ->where('meta.resource.key', 'people')
+            ->where('meta.parent_record.route_key', $person->getRouteKey())
             ->where('meta.relation.name', 'events')
             ->where('meta.relation.related_resource.key', 'events')
             ->etc());
@@ -1076,18 +1076,18 @@ it('submits draft events for moderation through the admin MCP workflow tool', fu
 
 it('reviews contribution requests through the admin MCP workflow tool', function () {
     $admin = adminMcpUser('super_admin');
-    $speaker = Speaker::factory()->create([
-        'name' => 'Pending MCP Speaker',
+    $person = Person::factory()->create([
+        'name' => 'Pending MCP Person',
         'status' => 'pending',
     ]);
     $request = ContributionRequest::factory()->create([
         'type' => ContributionRequestType::Create,
-        'subject_type' => ContributionSubjectType::Speaker,
-        'entity_type' => $speaker->getMorphClass(),
-        'entity_id' => $speaker->getKey(),
+        'subject_type' => ContributionSubjectType::Person,
+        'entity_type' => $person->getMorphClass(),
+        'entity_id' => $person->getKey(),
         'status' => ContributionRequestStatus::Pending,
         'proposed_data' => [
-            'name' => $speaker->name,
+            'name' => $person->name,
             'gender' => 'female',
         ],
     ]);
@@ -1109,8 +1109,8 @@ it('reviews contribution requests through the admin MCP workflow tool', function
 
     expect($request->fresh()?->status)->toBe(ContributionRequestStatus::Rejected)
         ->and($request->fresh()?->reason_code)->toBe('needs_more_evidence')
-        ->and($speaker->fresh()?->status)->toBe('rejected')
-        ->and((string) $speaker->fresh()?->status)->toBeIn(['inactive', 'rejected']);
+        ->and($person->fresh()?->status)->toBe('rejected')
+        ->and((string) $person->fresh()?->status)->toBeIn(['inactive', 'rejected']);
 });
 
 it('returns explicit admin workflow schemas through dedicated MCP schema tools', function () {
@@ -1121,18 +1121,18 @@ it('returns explicit admin workflow schemas through dedicated MCP schema tools',
     $report = Report::factory()->create([
         'status' => 'open',
     ]);
-    $speaker = Speaker::factory()->create([
-        'name' => 'Schema MCP Speaker',
+    $person = Person::factory()->create([
+        'name' => 'Schema MCP Person',
         'status' => 'pending',
     ]);
     $request = ContributionRequest::factory()->create([
         'type' => ContributionRequestType::Create,
-        'subject_type' => ContributionSubjectType::Speaker,
-        'entity_type' => $speaker->getMorphClass(),
-        'entity_id' => $speaker->getKey(),
+        'subject_type' => ContributionSubjectType::Person,
+        'entity_type' => $person->getMorphClass(),
+        'entity_id' => $person->getKey(),
         'status' => ContributionRequestStatus::Pending,
         'proposed_data' => [
-            'name' => $speaker->name,
+            'name' => $person->name,
             'gender' => 'female',
         ],
     ]);
@@ -1607,16 +1607,16 @@ it('returns write schema for supported resources and rejects unknown resources',
 
     AdminServer::actingAs($admin)
         ->tool(AdminGetWriteSchemaTool::class, [
-            'resource_key' => 'speakers',
+            'resource_key' => 'people',
             'operation' => 'create',
         ])
         ->assertOk()
         ->assertStructuredContent(fn ($json) => $json
-            ->where('data.schema.resource_key', 'speakers')
+            ->where('data.schema.resource_key', 'people')
             ->where('data.schema.method', 'POST')
             ->where('data.schema.transport', 'mcp')
             ->where('data.schema.tool', 'admin-create-record')
-            ->where('data.schema.tool_arguments.resource_key', 'speakers')
+            ->where('data.schema.tool_arguments.resource_key', 'people')
             ->where('data.schema.tool_arguments.payload', 'object')
             ->where('data.schema.tool_arguments.validate_only', false)
             ->where('data.schema.tool_arguments.apply_defaults', false)
@@ -1649,7 +1649,7 @@ it('returns write schema for supported resources and rejects unknown resources',
             ->where('data.schema.tool', 'admin-create-event')
             ->where('data.schema.tool_arguments.primary_organizer_key', 'route_key')
             ->where('data.schema.tool_arguments.institution_key', 'route_key')
-            ->where('data.schema.mcp_only_semantics.route_key_aliases.speaker_keys', 'resolves to speakers')
+            ->where('data.schema.mcp_only_semantics.route_key_aliases.person_keys', 'resolves to persons')
             ->where('data.schema.mcp_only_semantics.update_relation_arrays.empty_array', 'detach all related records for that alias')
             ->etc());
 
@@ -1683,17 +1683,17 @@ it('returns write schema for supported resources and rejects unknown resources',
         ->assertHasErrors(['Resource not found.']);
 });
 
-it('previews admin speaker creation through the MCP write tool without persisting the record', function () {
+it('previews admin person creation through the MCP write tool without persisting the record', function () {
     $countryId = ensureMcpMalaysiaCountryExists();
 
     $admin = adminMcpUser('super_admin');
 
     AdminServer::actingAs($admin)
         ->tool(AdminCreateRecordTool::class, [
-            'resource_key' => 'speakers',
+            'resource_key' => 'people',
             'validate_only' => true,
             'payload' => [
-                'name' => 'Previewed Admin MCP Speaker',
+                'name' => 'Previewed Admin MCP Person',
                 'gender' => 'male',
                 'is_freelance' => false,
                 'status' => 'verified',
@@ -1704,33 +1704,33 @@ it('previews admin speaker creation through the MCP write tool without persistin
         ])
         ->assertOk()
         ->assertStructuredContent(fn ($json) => $json
-            ->where('data.resource.key', 'speakers')
+            ->where('data.resource.key', 'people')
             ->where('data.preview.validate_only', true)
             ->where('data.preview.operation', 'create')
             ->where('data.preview.normalized_payload.address.country_id', $countryId)
             ->where('data.preview.current_record', null)
             ->etc());
 
-    expect(Speaker::query()->where('name', 'Previewed Admin MCP Speaker')->exists())->toBeFalse();
+    expect(Person::query()->where('name', 'Previewed Admin MCP Person')->exists())->toBeFalse();
 });
 
-it('previews admin speaker updates through the MCP write tool without persisting the record', function () {
+it('previews admin person updates through the MCP write tool without persisting the record', function () {
     $countryId = ensureMcpMalaysiaCountryExists();
 
     $admin = adminMcpUser('super_admin');
-    $speaker = Speaker::factory()->create([
-        'name' => 'Previewable Admin MCP Speaker',
+    $person = Person::factory()->create([
+        'name' => 'Previewable Admin MCP Person',
         'is_freelance' => false,
         'job_title' => null,
     ]);
 
     AdminServer::actingAs($admin)
         ->tool(AdminUpdateRecordTool::class, [
-            'resource_key' => 'speakers',
-            'record_key' => $speaker->getKey(),
+            'resource_key' => 'people',
+            'record_key' => $person->getKey(),
             'validate_only' => true,
             'payload' => [
-                'name' => 'Previewed Admin MCP Speaker Updated',
+                'name' => 'Previewed Admin MCP Person Updated',
                 'gender' => 'male',
                 'is_freelance' => true,
                 'job_title' => 'Imam',
@@ -1743,19 +1743,19 @@ it('previews admin speaker updates through the MCP write tool without persisting
         ])
         ->assertOk()
         ->assertStructuredContent(fn ($json) => $json
-            ->where('data.resource.key', 'speakers')
+            ->where('data.resource.key', 'people')
             ->where('data.preview.validate_only', true)
             ->where('data.preview.operation', 'update')
-            ->where('data.preview.current_record.route_key', $speaker->getRouteKey())
+            ->where('data.preview.current_record.route_key', $person->getRouteKey())
             ->where('data.preview.normalized_payload.job_title', 'Imam')
             ->etc());
 
     AdminServer::actingAs($admin)
         ->tool(AdminUpdateRecordTool::class, [
-            'resource_key' => 'speakers',
-            'record_key' => $speaker->getKey(),
+            'resource_key' => 'people',
+            'record_key' => $person->getKey(),
             'payload' => [
-                'name' => 'Previewed Admin MCP Speaker Updated',
+                'name' => 'Previewed Admin MCP Person Updated',
                 'gender' => 'male',
                 'is_freelance' => true,
                 'job_title' => 'Imam',
@@ -1769,8 +1769,8 @@ it('previews admin speaker updates through the MCP write tool without persisting
         ])
         ->assertHasErrors(['Destructive media clear flags are not supported through MCP. Upload a replacement file or array when the schema advertises that media field.']);
 
-    expect(Speaker::query()->findOrFail($speaker->getKey())->name)->toBe('Previewable Admin MCP Speaker')
-        ->and(Speaker::query()->findOrFail($speaker->getKey())->job_title)->toBeNull();
+    expect(Person::query()->findOrFail($person->getKey())->name)->toBe('Previewable Admin MCP Person')
+        ->and(Person::query()->findOrFail($person->getKey())->job_title)->toBeNull();
 });
 
 it('returns remediation details for validate-only admin create validation failures', function () {
@@ -1780,10 +1780,10 @@ it('returns remediation details for validate-only admin create validation failur
 
     AdminServer::actingAs($admin)
         ->tool(AdminCreateRecordTool::class, [
-            'resource_key' => 'speakers',
+            'resource_key' => 'people',
             'validate_only' => true,
             'payload' => [
-                'name' => 'Remediation Preview Speaker',
+                'name' => 'Remediation Preview Person',
             ],
         ])
         ->assertStructuredContent(fn ($json) => $json
@@ -1803,7 +1803,7 @@ it('returns remediation details for validate-only admin create validation failur
                     'auto_apply_safe' => true,
                 ];
             })
-            ->where('error.details.normalized_payload_preview.name', 'Remediation Preview Speaker')
+            ->where('error.details.normalized_payload_preview.name', 'Remediation Preview Person')
             ->where('error.details.normalized_payload_preview.gender', 'male')
             ->where('error.details.remaining_blockers', function ($remainingBlockers): bool {
                 $blockers = $remainingBlockers->keyBy('field');
@@ -1819,21 +1819,21 @@ it('returns retryable remediation details for validate-only admin update validat
     ensureMcpMalaysiaCountryExists();
 
     $admin = adminMcpUser('super_admin');
-    $speaker = Speaker::factory()->create([
-        'name' => 'Retryable Admin MCP Speaker',
+    $person = Person::factory()->create([
+        'name' => 'Retryable Admin MCP Person',
         'gender' => 'male',
         'status' => 'verified',
     ]);
-    $originalGender = $speaker->gender;
-    $originalStatus = $speaker->status;
+    $originalGender = $person->gender;
+    $originalStatus = $person->status;
 
     AdminServer::actingAs($admin)
         ->tool(AdminUpdateRecordTool::class, [
-            'resource_key' => 'speakers',
-            'record_key' => $speaker->getKey(),
+            'resource_key' => 'people',
+            'record_key' => $person->getKey(),
             'validate_only' => true,
             'payload' => [
-                'name' => 'Retryable Admin MCP Speaker Updated',
+                'name' => 'Retryable Admin MCP Person Updated',
             ],
         ])
         ->assertStructuredContent(fn ($json) => $json
@@ -1853,7 +1853,7 @@ it('returns retryable remediation details for validate-only admin update validat
                     'auto_apply_safe' => true,
                 ];
             })
-            ->where('error.details.normalized_payload_preview.name', 'Retryable Admin MCP Speaker Updated')
+            ->where('error.details.normalized_payload_preview.name', 'Retryable Admin MCP Person Updated')
             ->where('error.details.normalized_payload_preview.gender', $originalGender)
             ->where('error.details.normalized_payload_preview.status', $originalStatus)
             ->has('error.details.remaining_blockers', 0)
@@ -1866,23 +1866,23 @@ it('registers admin write tools when the MCP actor is a normalized Passport user
 
     AdminServer::actingAs(adminPassportUser($admin))
         ->tool(AdminGetWriteSchemaTool::class, [
-            'resource_key' => 'speakers',
+            'resource_key' => 'people',
             'operation' => 'create',
         ])
         ->assertOk()
         ->assertHasNoErrors();
 });
 
-it('creates and updates speakers through MCP write tools', function () {
+it('creates and updates persons through MCP write tools', function () {
     $countryId = ensureMcpMalaysiaCountryExists();
 
     $admin = adminMcpUser('super_admin');
 
     AdminServer::actingAs($admin)
         ->tool(AdminCreateRecordTool::class, [
-            'resource_key' => 'speakers',
+            'resource_key' => 'people',
             'payload' => [
-                'name' => 'Admin MCP Created Speaker',
+                'name' => 'Admin MCP Created Person',
                 'gender' => 'male',
                 'is_freelance' => false,
                 'status' => 'verified',
@@ -1894,18 +1894,18 @@ it('creates and updates speakers through MCP write tools', function () {
         ])
         ->assertOk();
 
-    $speaker = Speaker::query()->where('name', 'Admin MCP Created Speaker')->firstOrFail();
-    $speakerId = (string) $speaker->getKey();
+    $person = Person::query()->where('name', 'Admin MCP Created Person')->firstOrFail();
+    $personId = (string) $person->getKey();
 
     AdminServer::actingAs($admin)
         ->tool(AdminGetWriteSchemaTool::class, [
-            'resource_key' => 'speakers',
+            'resource_key' => 'people',
             'operation' => 'update',
-            'record_key' => $speakerId,
+            'record_key' => $personId,
         ])
         ->assertOk()
         ->assertStructuredContent(fn ($json) => $json
-            ->where('data.schema.resource_key', 'speakers')
+            ->where('data.schema.resource_key', 'people')
             ->where('data.schema.fields', function ($fields): bool {
                 $fieldMap = collect($fields)->keyBy('name');
                 $qualificationItemFields = collect(data_get($fieldMap->get('qualifications'), 'item_schema.fields', []))->keyBy('name');
@@ -1922,18 +1922,18 @@ it('creates and updates speakers through MCP write tools', function () {
             })
             ->etc());
 
-    expect($speaker->name)->toBe('Admin MCP Created Speaker')
-        ->and($speaker->status)->toBe('verified')
-        ->and($speaker->allow_public_event_submission)->toBeTrue()
-        ->and($speaker->getMedia('avatar'))->toHaveCount(1)
-        ->and($speaker->getFirstMedia('avatar')?->file_name)->toEndWith('.png');
+    expect($person->name)->toBe('Admin MCP Created Person')
+        ->and($person->status)->toBe('verified')
+        ->and($person->allow_public_event_submission)->toBeTrue()
+        ->and($person->getMedia('avatar'))->toHaveCount(1)
+        ->and($person->getFirstMedia('avatar')?->file_name)->toEndWith('.png');
 
     AdminServer::actingAs($admin)
         ->tool(AdminUpdateRecordTool::class, [
-            'resource_key' => 'speakers',
-            'record_key' => $speakerId,
+            'resource_key' => 'people',
+            'record_key' => $personId,
             'payload' => [
-                'name' => 'Admin MCP Updated Speaker',
+                'name' => 'Admin MCP Updated Person',
                 'gender' => 'male',
                 'is_freelance' => true,
                 'job_title' => 'Imam',
@@ -1949,29 +1949,29 @@ it('creates and updates speakers through MCP write tools', function () {
         ])
         ->assertOk()
         ->assertStructuredContent(fn ($json) => $json
-            ->where('data.record.attributes.name', 'Admin MCP Updated Speaker')
+            ->where('data.record.attributes.name', 'Admin MCP Updated Person')
             ->where('data.record.attributes.job_title', 'Imam')
             ->etc());
 
-    expect($speaker->fresh()?->getMedia('gallery'))->toHaveCount(1);
+    expect($person->fresh()?->getMedia('gallery'))->toHaveCount(1);
 });
 
-it('requires an explicit speaker country when the address is mutated through admin MCP write tools', function () {
+it('requires an explicit person country when the address is mutated through admin MCP write tools', function () {
     ensureMcpMalaysiaCountryExists();
 
     $admin = adminMcpUser('super_admin');
-    $speaker = Speaker::factory()->create([
-        'name' => 'Admin MCP Speaker Address Guard',
+    $person = Person::factory()->create([
+        'name' => 'Admin MCP Person Address Guard',
         'gender' => 'male',
         'status' => 'verified',
     ]);
 
     AdminServer::actingAs($admin)
         ->tool(AdminUpdateRecordTool::class, [
-            'resource_key' => 'speakers',
-            'record_key' => (string) $speaker->getKey(),
+            'resource_key' => 'people',
+            'record_key' => (string) $person->getKey(),
             'payload' => [
-                'name' => 'Admin MCP Speaker Address Guard',
+                'name' => 'Admin MCP Person Address Guard',
                 'gender' => 'male',
                 'status' => 'verified',
                 'address' => [],
@@ -2199,8 +2199,8 @@ it('surfaces event series and donation channel update semantics through admin MC
 
                 return data_get($fieldMap->get('title'), 'required') === false
                     && data_get($fieldMap->get('references'), 'collection_semantics.explicit_null') === 'clear_collection'
-                    && data_get($fieldMap->get('speakers'), 'collection_semantics.submitted_array') === 'replace_speaker_subset_and_rebuild_key_people'
-                    && data_get($fieldMap->get('primary_organizer_id'), 'accepted_models') === [Institution::class, Speaker::class]
+                    && data_get($fieldMap->get('persons'), 'collection_semantics.submitted_array') === 'replace_person_subset_and_rebuild_key_people'
+                    && data_get($fieldMap->get('primary_organizer_id'), 'accepted_models') === [Institution::class, Person::class]
                     && data_get($fieldMap->get('registration_mode'), 'lock_behavior.when_event_has_registrations') === 'retain_current_value'
                     && $otherKeyPeopleFields->has('role_code')
                     && $otherKeyPeopleFields->has('display_name');
@@ -2253,7 +2253,7 @@ it('creates and updates events through MCP write tools', function () {
         'slug' => 'masjid-tengku-ampuan-jemaah-bukit-jelutong-petaling-selangor-my',
         'status' => 'verified',
     ]);
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'status' => 'verified',
     ]);
     $reference = Reference::factory()->verified()->create();
@@ -2267,7 +2267,7 @@ it('creates and updates events through MCP write tools', function () {
             'resource_key' => 'events',
             'payload' => adminMcpEventPayload([
                 'institution' => $institution,
-                'speaker' => $speaker,
+                'person' => $person,
                 'reference' => $reference,
                 'series' => $series,
                 'domain_tag' => $domainTag,
@@ -2310,7 +2310,7 @@ it('creates and updates events through MCP write tools', function () {
             'record_key' => $eventId,
             'payload' => adminMcpEventPayload([
                 'institution' => $institution,
-                'speaker' => $speaker,
+                'person' => $person,
                 'reference' => $reference,
                 'series' => $series,
                 'domain_tag' => $domainTag,
@@ -2321,14 +2321,14 @@ it('creates and updates events through MCP write tools', function () {
                 'prayer_time' => EventPrayerTime::SelepasMaghrib->value,
                 'custom_time' => null,
                 'live_url' => 'https://youtube.com/watch?v=admin-mcp-event-live',
-                'primary_organizer_id' => $speaker->getKey(),
+                'primary_organizer_id' => $person->getKey(),
                 'institution_id' => null,
                 'references' => [],
                 'series' => [],
                 'domain_tags' => [],
                 'discipline_tags' => [],
                 'source_tags' => [(string) $sourceTag->getKey()],
-                'speakers' => [],
+                'persons' => [],
                 'other_key_people' => [],
                 'registration_required' => false,
             ]),
@@ -2429,7 +2429,7 @@ it('emulates production yasin create flow with validate-only then actual create'
     )->toBe('pending');
 });
 
-it('creates a tazkirah event with speaker_keys via admin-create-event', function () {
+it('creates a tazkirah event with person_keys via admin-create-event', function () {
     ensureMcpMalaysiaCountryExists();
 
     $admin = adminMcpUser('super_admin');
@@ -2438,7 +2438,7 @@ it('creates a tazkirah event with speaker_keys via admin-create-event', function
         'status' => 'verified',
     ]);
 
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'status' => 'verified',
     ]);
 
@@ -2448,7 +2448,7 @@ it('creates a tazkirah event with speaker_keys via admin-create-event', function
 
     AdminServer::actingAs($admin)
         ->tool(AdminCreateEventTool::class, [
-            'title' => 'Tazkirah Test With Speaker',
+            'title' => 'Tazkirah Test With Person',
             'description' => '<p>Test tazkirah</p>',
             'event_date' => '2026-06-15',
             'prayer_time' => EventPrayerTime::SelepasMaghrib->value,
@@ -2462,7 +2462,7 @@ it('creates a tazkirah event with speaker_keys via admin-create-event', function
             'event_category_ids' => [eventCategoryId('tazkirah')],
             'primary_organizer_key' => (string) $institution->slug,
             'institution_key' => (string) $institution->slug,
-            'speaker_keys' => [(string) $speaker->slug],
+            'person_keys' => [(string) $person->slug],
             'reference_keys' => [(string) $reference->slug],
             'languages' => [101],
             'registration_required' => false,
@@ -2473,15 +2473,15 @@ it('creates a tazkirah event with speaker_keys via admin-create-event', function
         ])
         ->assertOk()
         ->assertStructuredContent(fn ($json) => $json
-            ->where('data.record.attributes.title', 'Tazkirah Test With Speaker')
+            ->where('data.record.attributes.title', 'Tazkirah Test With Person')
             ->where('data.record.attributes.status', 'pending')
             ->etc());
 
-    $created = Event::query()->where('title', 'Tazkirah Test With Speaker')->firstOrFail();
+    $created = Event::query()->where('title', 'Tazkirah Test With Person')->firstOrFail();
     $created->load(['keyPeople', 'references']);
 
     expect($created->keyPeople)->toHaveCount(1)
-        ->and((string) $created->keyPeople->first()?->involveable_id)->toBe((string) $speaker->getKey())
+        ->and((string) $created->keyPeople->first()?->involveable_id)->toBe((string) $person->getKey())
         ->and($created->references)->toHaveCount(1)
         ->and((string) $created->references->first()?->getKey())->toBe((string) $reference->getKey());
 });
@@ -2571,7 +2571,7 @@ it('surfaces admin event validation failures through MCP write tools', function 
     $institution = Institution::factory()->create([
         'status' => 'verified',
     ]);
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'status' => 'verified',
     ]);
     $reference = Reference::factory()->verified()->create();
@@ -2584,14 +2584,14 @@ it('surfaces admin event validation failures through MCP write tools', function 
             'resource_key' => 'events',
             'payload' => adminMcpEventPayload([
                 'institution' => $institution,
-                'speaker' => $speaker,
+                'person' => $person,
                 'reference' => $reference,
                 'series' => $series,
                 'domain_tag' => $domainTag,
                 'discipline_tag' => $disciplineTag,
             ], [
                 'event_category_ids' => [eventCategoryId('kuliah_ceramah')],
-                'speakers' => [],
+                'persons' => [],
             ]),
         ])
         ->assertHasErrors(['Sekurang-kurangnya seorang penceramah diperlukan untuk jenis majlis ini.']);
@@ -2655,7 +2655,7 @@ it('returns structured admin MCP validation feedback outside validate-only previ
     $institution = Institution::factory()->create([
         'status' => 'verified',
     ]);
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'status' => 'verified',
     ]);
     $reference = Reference::factory()->verified()->create();
@@ -2668,7 +2668,7 @@ it('returns structured admin MCP validation feedback outside validate-only previ
             'resource_key' => 'events',
             'payload' => adminMcpEventPayload([
                 'institution' => $institution,
-                'speaker' => $speaker,
+                'person' => $person,
                 'reference' => $reference,
                 'series' => $series,
                 'domain_tag' => $domainTag,
@@ -2693,9 +2693,9 @@ it('rejects malformed MCP media descriptors through write tools', function () {
 
     AdminServer::actingAs($admin)
         ->tool(AdminCreateRecordTool::class, [
-            'resource_key' => 'speakers',
+            'resource_key' => 'people',
             'payload' => [
-                'name' => 'Speaker With Media',
+                'name' => 'Person With Media',
                 'gender' => 'male',
                 'is_freelance' => false,
                 'status' => 'verified',
@@ -2762,7 +2762,7 @@ it('searches /majlis-style events through the dedicated admin MCP tool', functio
             ->etc());
 });
 
-it('searches events by institution, speaker, and reference through admin-search-events MCP tool', function () {
+it('searches events by institution, person, and reference through admin-search-events MCP tool', function () {
     $admin = adminMcpUser('super_admin');
 
     $institution = Institution::factory()->create([
@@ -2779,24 +2779,24 @@ it('searches events by institution, speaker, and reference through admin-search-
         'starts_at' => now()->addDay(),
     ]);
 
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'name' => 'Ustaz Akram MCP Admin',
         'status' => 'verified',
     ]);
 
-    $speakerEvent = Event::factory()->create([
-        'title' => 'MCP Admin Speaker Match Event',
+    $personEvent = Event::factory()->create([
+        'title' => 'MCP Admin Person Match Event',
         'status' => 'approved',
         'visibility' => 'public',
         'published_at' => now(),
         'starts_at' => now()->addDay(),
     ]);
 
-    $speakerEvent->keyPeople()->create([
-        'involveable_type' => 'speaker',
-        'involveable_id' => $speaker->id,
-        'display_name' => $speaker->name,
-        'role_code' => 'speaker',
+    $personEvent->keyPeople()->create([
+        'involveable_type' => 'person',
+        'involveable_id' => $person->id,
+        'display_name' => $person->name,
+        'role_code' => 'person',
         'sort_order' => 1,
     ]);
 
@@ -2836,7 +2836,7 @@ it('searches events by institution, speaker, and reference through admin-search-
         ->assertOk()
         ->assertStructuredContent(fn ($json) => $json
             ->where('meta.search.query', 'Akram MCP Admin')
-            ->where('data', fn ($items): bool => collect($items)->pluck('title')->contains('MCP Admin Speaker Match Event'))
+            ->where('data', fn ($items): bool => collect($items)->pluck('title')->contains('MCP Admin Person Match Event'))
             ->etc());
 
     AdminServer::actingAs($admin)
@@ -3213,7 +3213,7 @@ it('initializes and lists admin MCP tools over the HTTP endpoint for Passport-au
     expect(data_get($tools->get('admin-create-event'), 'inputSchema.properties.organizer_key'))->toBeNull();
     expect(data_get($tools->get('admin-create-event'), 'inputSchema.properties.organizer_id'))->toBeNull();
     expect(data_get($tools->get('admin-create-event'), 'inputSchema.properties.institution_id'))->toBeNull();
-    expect(collect((array) data_get($tools->get('admin-create-event'), 'inputSchema.properties.speaker_keys.type'))->contains('array'))->toBeTrue();
+    expect(collect((array) data_get($tools->get('admin-create-event'), 'inputSchema.properties.person_keys.type'))->contains('array'))->toBeTrue();
     expect(collect((array) data_get($tools->get('admin-create-event'), 'inputSchema.properties.reference_keys.type'))->contains('array'))->toBeTrue();
     expect(collect((array) data_get($tools->get('admin-create-event'), 'inputSchema.properties.languages.type'))->contains('array'))->toBeTrue();
     expect((string) data_get($tools->get('admin-create-event'), 'inputSchema.properties.apply_defaults.description'))
@@ -3223,9 +3223,9 @@ it('initializes and lists admin MCP tools over the HTTP endpoint for Passport-au
         ->toContain('MCP-only event wrapper')
         ->toContain('pass [] to detach all')
         ->toContain('pass null to preserve');
-    expect((string) data_get($tools->get('admin-update-event'), 'inputSchema.properties.speaker_keys.description'))
+    expect((string) data_get($tools->get('admin-update-event'), 'inputSchema.properties.person_keys.description'))
         ->toContain('Omit or pass null to preserve')
-        ->toContain('Pass [] to detach all speakers');
+        ->toContain('Pass [] to detach all persons');
     expect((string) data_get($tools->get('admin-batch-create-events'), 'description'))
         ->toContain('apply_defaults is only honored together with validate_only=true')
         ->toContain('ignored for real creates');
@@ -3901,7 +3901,7 @@ function adminMcpEventTerm(string $taxonomyCode, string $name): EventTerm
 /**
  * @param  array{
  *     institution: Institution,
- *     speaker: Speaker,
+ *     person: Person,
  *     reference: Reference,
  *     series: Series,
  *     domain_tag: EventTerm,
@@ -3937,7 +3937,7 @@ function adminMcpEventPayload(array $fixtures, array $overrides = []): array
         'primary_organizer_id' => (string) $fixtures['institution']->getKey(),
         'institution_id' => (string) $fixtures['institution']->getKey(),
         'series' => [(string) $fixtures['series']->getKey()],
-        'speakers' => [(string) $fixtures['speaker']->getKey()],
+        'persons' => [(string) $fixtures['person']->getKey()],
         'other_key_people' => [
             [
                 'role_code' => 'moderator',
@@ -3990,12 +3990,12 @@ it('batch-creates admin resource records via the admin-batch-create-records MCP 
 
     AdminServer::actingAs($admin)
         ->tool(AdminBatchCreateRecordsTool::class, [
-            'resource_key' => 'speakers',
+            'resource_key' => 'people',
             'items' => [
                 [
                     'external_row_id' => 'mcp-row-1',
                     'payload' => [
-                        'name' => 'MCP Batch Speaker Alpha',
+                        'name' => 'MCP Batch Person Alpha',
                         'gender' => 'male',
                         'status' => 'verified',
                         'address' => [
@@ -4006,7 +4006,7 @@ it('batch-creates admin resource records via the admin-batch-create-records MCP 
                 [
                     'external_row_id' => 'mcp-row-2',
                     'payload' => [
-                        'name' => 'MCP Batch Speaker Beta',
+                        'name' => 'MCP Batch Person Beta',
                         'gender' => 'female',
                         'status' => 'verified',
                         'address' => [
@@ -4030,8 +4030,8 @@ it('batch-creates admin resource records via the admin-batch-create-records MCP 
             ->etc()
         );
 
-    $this->assertDatabaseHas('speakers', ['name' => 'MCP Batch Speaker Alpha']);
-    $this->assertDatabaseHas('speakers', ['name' => 'MCP Batch Speaker Beta']);
+    $this->assertDatabaseHas('persons', ['name' => 'MCP Batch Person Alpha']);
+    $this->assertDatabaseHas('persons', ['name' => 'MCP Batch Person Beta']);
 });
 
 it('batch-creates records with validate_only via the admin-batch-create-records MCP tool without persisting', function () {
@@ -4040,11 +4040,11 @@ it('batch-creates records with validate_only via the admin-batch-create-records 
 
     AdminServer::actingAs($admin)
         ->tool(AdminBatchCreateRecordsTool::class, [
-            'resource_key' => 'speakers',
+            'resource_key' => 'people',
             'items' => [
                 [
                     'payload' => [
-                        'name' => 'MCP Dry Run Speaker',
+                        'name' => 'MCP Dry Run Person',
                         'gender' => 'male',
                         'status' => 'verified',
                         'address' => [
@@ -4062,23 +4062,23 @@ it('batch-creates records with validate_only via the admin-batch-create-records 
             ->etc()
         );
 
-    $this->assertDatabaseMissing('speakers', ['name' => 'MCP Dry Run Speaker']);
+    $this->assertDatabaseMissing('persons', ['name' => 'MCP Dry Run Person']);
 });
 
 it('batch-updates admin resource records via the admin-batch-update-records MCP tool', function () {
     $admin = adminMcpUser('super_admin');
 
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'name' => 'MCP Batch Update Before',
         'status' => 'pending',
     ]);
 
     AdminServer::actingAs($admin)
         ->tool(AdminBatchUpdateRecordsTool::class, [
-            'resource_key' => 'speakers',
+            'resource_key' => 'people',
             'items' => [
                 [
-                    'record_key' => (string) $speaker->getKey(),
+                    'record_key' => (string) $person->getKey(),
                     'external_row_id' => 'mcp-update-1',
                     'payload' => [
                         'name' => 'MCP Batch Update After',
@@ -4097,15 +4097,15 @@ it('batch-updates admin resource records via the admin-batch-update-records MCP 
             ->etc()
         );
 
-    $this->assertDatabaseHas('speakers', ['name' => 'MCP Batch Update After']);
+    $this->assertDatabaseHas('persons', ['name' => 'MCP Batch Update After']);
 });
 
-it('batch-creates events via the admin-batch-create-events MCP tool with speaker_keys and reference_keys resolved', function () {
+it('batch-creates events via the admin-batch-create-events MCP tool with person_keys and reference_keys resolved', function () {
     $admin = adminMcpUser('super_admin');
 
-    $speaker = Speaker::factory()->create([
-        'name' => 'MCP Batch Event Speaker',
-        'slug' => 'mcp-batch-event-speaker',
+    $person = Person::factory()->create([
+        'name' => 'MCP Batch Event Person',
+        'slug' => 'mcp-batch-event-person',
         'gender' => 'male',
         'status' => 'verified',
     ]);
@@ -4134,7 +4134,7 @@ it('batch-creates events via the admin-batch-create-events MCP tool with speaker
                     'event_category_ids' => [eventCategoryId('other')],
                     'primary_organizer_key' => $institution->slug,
                     'institution_key' => $institution->slug,
-                    'speaker_keys' => [$speaker->slug],
+                    'person_keys' => [$person->slug],
                     'status' => 'draft',
                 ],
                 [
@@ -4238,20 +4238,20 @@ it('batch-creates events with validate_only via admin-batch-create-events withou
     $this->assertDatabaseMissing('events', ['title' => 'MCP Batch Dry Run Event']);
 });
 
-it('updates an event via the admin-update-event MCP tool with speaker_keys resolved', function () {
+it('updates an event via the admin-update-event MCP tool with person_keys resolved', function () {
     $admin = adminMcpUser('super_admin');
 
     $event = adminMcpStableEvent([
         'title' => 'Original Event Title',
     ]);
 
-    $speaker = Speaker::factory()->create(['slug' => 'test-update-speaker']);
+    $person = Person::factory()->create(['slug' => 'test-update-person']);
 
     AdminServer::actingAs($admin)
         ->tool(AdminUpdateEventTool::class, [
             'event_key' => $event->getRouteKey(),
             'title' => 'Updated Event Title',
-            'speaker_keys' => [$speaker->slug],
+            'person_keys' => [$person->slug],
         ])
         ->assertOk()
         ->assertStructuredContent(fn ($json) => $json
@@ -4264,23 +4264,23 @@ it('updates an event via the admin-update-event MCP tool with speaker_keys resol
         'title' => 'Updated Event Title',
     ]);
 
-    expect($event->refresh()->speakers->contains($speaker))->toBeTrue();
+    expect($event->refresh()->persons->contains($person))->toBeTrue();
 });
 
-it('detaches speakers and references when empty route-key arrays are provided via admin-update-event', function () {
+it('detaches persons and references when empty route-key arrays are provided via admin-update-event', function () {
     $admin = adminMcpUser('super_admin');
 
     $event = adminMcpStableEvent([
         'title' => 'Event With Existing Relations',
     ]);
 
-    $speaker = Speaker::factory()->create(['slug' => 'detach-update-speaker']);
+    $person = Person::factory()->create(['slug' => 'detach-update-person']);
     $reference = Reference::factory()->create(['slug' => 'detach-update-reference']);
 
     $event->keyPeople()->create([
-        'involveable_type' => 'speaker',
-        'involveable_id' => $speaker->id,
-        'role_code' => 'speaker',
+        'involveable_type' => 'person',
+        'involveable_id' => $person->id,
+        'role_code' => 'person',
         'sort_order' => 1,
     ]);
     $event->references()->attach($reference->id);
@@ -4288,7 +4288,7 @@ it('detaches speakers and references when empty route-key arrays are provided vi
     AdminServer::actingAs($admin)
         ->tool(AdminUpdateEventTool::class, [
             'event_key' => $event->getRouteKey(),
-            'speaker_keys' => [],
+            'person_keys' => [],
             'reference_keys' => [],
         ])
         ->assertOk()
@@ -4297,26 +4297,26 @@ it('detaches speakers and references when empty route-key arrays are provided vi
             ->etc()
         );
 
-    $event->refresh()->load(['speakers', 'references']);
+    $event->refresh()->load(['persons', 'references']);
 
-    expect($event->speakers)->toHaveCount(0)
+    expect($event->persons)->toHaveCount(0)
         ->and($event->references)->toHaveCount(0);
 });
 
-it('preserves speakers and references when route-key arrays are omitted via admin-update-event', function () {
+it('preserves persons and references when route-key arrays are omitted via admin-update-event', function () {
     $admin = adminMcpUser('super_admin');
 
     $event = adminMcpStableEvent([
         'title' => 'Event Preserve Existing Relations',
     ]);
 
-    $speaker = Speaker::factory()->create(['slug' => 'preserve-update-speaker']);
+    $person = Person::factory()->create(['slug' => 'preserve-update-person']);
     $reference = Reference::factory()->create(['slug' => 'preserve-update-reference']);
 
     $event->keyPeople()->create([
-        'involveable_type' => 'speaker',
-        'involveable_id' => $speaker->id,
-        'role_code' => 'speaker',
+        'involveable_type' => 'person',
+        'involveable_id' => $person->id,
+        'role_code' => 'person',
         'sort_order' => 1,
     ]);
     $event->references()->attach($reference->id);
@@ -4332,9 +4332,9 @@ it('preserves speakers and references when route-key arrays are omitted via admi
             ->etc()
         );
 
-    $event->refresh()->load(['speakers', 'references']);
+    $event->refresh()->load(['persons', 'references']);
 
-    expect($event->speakers->contains($speaker))->toBeTrue()
+    expect($event->persons->contains($person))->toBeTrue()
         ->and($event->references->contains($reference))->toBeTrue();
 });
 
@@ -4359,7 +4359,7 @@ it('updates an event with validate_only via admin-update-event without persistin
     ]);
 });
 
-it('batch-updates events and resolves speaker_keys via admin-batch-update-events', function () {
+it('batch-updates events and resolves person_keys via admin-batch-update-events', function () {
     $admin = adminMcpUser('super_admin');
 
     $eventA = adminMcpStableEvent([
@@ -4368,7 +4368,7 @@ it('batch-updates events and resolves speaker_keys via admin-batch-update-events
     $eventB = adminMcpStableEvent([
         'title' => 'Batch Update Event Beta',
     ]);
-    $speaker = Speaker::factory()->create(['slug' => 'batch-update-speaker']);
+    $person = Person::factory()->create(['slug' => 'batch-update-person']);
 
     AdminServer::actingAs($admin)
         ->tool(AdminBatchUpdateEventsTool::class, [
@@ -4377,7 +4377,7 @@ it('batch-updates events and resolves speaker_keys via admin-batch-update-events
                     'event_key' => $eventA->getRouteKey(),
                     'title' => 'Updated Alpha',
                     'external_row_id' => 'row-alpha',
-                    'speaker_keys' => [$speaker->slug],
+                    'person_keys' => [$person->slug],
                 ],
                 [
                     'event_key' => $eventB->getRouteKey(),
@@ -4395,10 +4395,10 @@ it('batch-updates events and resolves speaker_keys via admin-batch-update-events
 
     $this->assertDatabaseHas('events', ['id' => $eventA->id, 'title' => 'Updated Alpha']);
     $this->assertDatabaseHas('events', ['id' => $eventB->id, 'title' => 'Updated Beta']);
-    expect($eventA->refresh()->speakers->contains($speaker))->toBeTrue();
+    expect($eventA->refresh()->persons->contains($person))->toBeTrue();
 });
 
-it('batch-updates events detach or preserve speakers and references based on route-key array presence', function () {
+it('batch-updates events detach or preserve persons and references based on route-key array presence', function () {
     $admin = adminMcpUser('super_admin');
 
     $eventToDetach = adminMcpStableEvent([
@@ -4408,21 +4408,21 @@ it('batch-updates events detach or preserve speakers and references based on rou
         'title' => 'Batch Preserve Relations Event',
     ]);
 
-    $detachSpeaker = Speaker::factory()->create(['slug' => 'batch-detach-speaker']);
-    $preserveSpeaker = Speaker::factory()->create(['slug' => 'batch-preserve-speaker']);
+    $detachPerson = Person::factory()->create(['slug' => 'batch-detach-person']);
+    $preservePerson = Person::factory()->create(['slug' => 'batch-preserve-person']);
     $detachReference = Reference::factory()->create(['slug' => 'batch-detach-reference']);
     $preserveReference = Reference::factory()->create(['slug' => 'batch-preserve-reference']);
 
     $eventToDetach->keyPeople()->create([
-        'involveable_type' => 'speaker',
-        'involveable_id' => $detachSpeaker->id,
-        'role_code' => 'speaker',
+        'involveable_type' => 'person',
+        'involveable_id' => $detachPerson->id,
+        'role_code' => 'person',
         'sort_order' => 1,
     ]);
     $eventToPreserve->keyPeople()->create([
-        'involveable_type' => 'speaker',
-        'involveable_id' => $preserveSpeaker->id,
-        'role_code' => 'speaker',
+        'involveable_type' => 'person',
+        'involveable_id' => $preservePerson->id,
+        'role_code' => 'person',
         'sort_order' => 1,
     ]);
     $eventToDetach->references()->attach($detachReference->id);
@@ -4433,7 +4433,7 @@ it('batch-updates events detach or preserve speakers and references based on rou
             'items' => [
                 [
                     'event_key' => $eventToDetach->getRouteKey(),
-                    'speaker_keys' => [],
+                    'person_keys' => [],
                     'reference_keys' => [],
                 ],
                 [
@@ -4449,12 +4449,12 @@ it('batch-updates events detach or preserve speakers and references based on rou
             ->etc()
         );
 
-    $eventToDetach->refresh()->load(['speakers', 'references']);
-    $eventToPreserve->refresh()->load(['speakers', 'references']);
+    $eventToDetach->refresh()->load(['persons', 'references']);
+    $eventToPreserve->refresh()->load(['persons', 'references']);
 
-    expect($eventToDetach->speakers)->toHaveCount(0)
+    expect($eventToDetach->persons)->toHaveCount(0)
         ->and($eventToDetach->references)->toHaveCount(0)
-        ->and($eventToPreserve->speakers->contains($preserveSpeaker))->toBeTrue()
+        ->and($eventToPreserve->persons->contains($preservePerson))->toBeTrue()
         ->and($eventToPreserve->references->contains($preserveReference))->toBeTrue();
 });
 

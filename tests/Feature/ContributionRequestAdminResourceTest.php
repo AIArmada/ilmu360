@@ -8,7 +8,7 @@ use App\Filament\Resources\ContributionRequests\Pages\ListContributionRequests;
 use App\Filament\Resources\ContributionRequests\Pages\ViewContributionRequest;
 use App\Models\ContributionRequest;
 use App\Models\Institution;
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
@@ -59,18 +59,18 @@ it('allows moderators to reject pending staged create requests from the admin re
     $moderator = User::factory()->create();
     $moderator->assignRole('moderator');
 
-    $speaker = Speaker::factory()->create([
-        'name' => 'Pending Speaker',
+    $person = Person::factory()->create([
+        'name' => 'Pending Person',
         'status' => 'pending',
     ]);
     $request = ContributionRequest::factory()->create([
         'type' => ContributionRequestType::Create,
-        'subject_type' => ContributionSubjectType::Speaker,
-        'entity_type' => $speaker->getMorphClass(),
-        'entity_id' => $speaker->id,
+        'subject_type' => ContributionSubjectType::Person,
+        'entity_type' => $person->getMorphClass(),
+        'entity_id' => $person->id,
         'status' => ContributionRequestStatus::Pending,
         'proposed_data' => [
-            'name' => $speaker->name,
+            'name' => $person->name,
             'gender' => 'female',
         ],
     ]);
@@ -86,8 +86,8 @@ it('allows moderators to reject pending staged create requests from the admin re
     expect($request->fresh()->status)->toBe(ContributionRequestStatus::Rejected)
         ->and($request->fresh()->reviewer_id)->toBe($moderator->id)
         ->and($request->fresh()->reason_code)->toBe('needs_more_evidence')
-        ->and($speaker->fresh()->status)->toBe('rejected')
-        ->and((string) $speaker->fresh()->status)->toBeIn(['inactive', 'rejected']);
+        ->and($person->fresh()->status)->toBe('rejected')
+        ->and((string) $person->fresh()->status)->toBeIn(['inactive', 'rejected']);
 });
 
 it('opens contribution request records on the admin view page from the index', function () {

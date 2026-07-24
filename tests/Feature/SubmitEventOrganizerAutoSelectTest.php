@@ -6,7 +6,7 @@ use App\Enums\EventPrayerTime;
 use App\Enums\EventVisibility;
 use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Event;
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Models\Venue;
 use Illuminate\Support\Carbon;
 use Livewire\Livewire;
@@ -16,12 +16,12 @@ beforeEach(function () {
 });
 
 /**
- * @return array{domain_tag: Tag, discipline_tag: Tag, speaker: Speaker, venue: Venue}
+ * @return array{domain_tag: Tag, discipline_tag: Tag, speaker: Person, venue: Venue}
  */
 function submitEventOrganizerFixtures(): array
 {
     return [
-        'speaker' => Speaker::factory()->create(['status' => 'verified']),
+        'speaker' => Person::factory()->create(['status' => 'verified']),
         'domain_tag' => submitEventTerm('domain'),
         'discipline_tag' => submitEventTerm('discipline'),
         'venue' => Venue::factory()->create(['status' => 'verified']),
@@ -29,7 +29,7 @@ function submitEventOrganizerFixtures(): array
 }
 
 /**
- * @param  array{domain_tag: Tag, discipline_tag: Tag, speaker: Speaker, venue: Venue}  $fixtures
+ * @param  array{domain_tag: Tag, discipline_tag: Tag, speaker: Person, venue: Venue}  $fixtures
  * @return array<string, mixed>
  */
 function submitEventOrganizerFormData(array $fixtures, array $overrides = []): array
@@ -37,7 +37,7 @@ function submitEventOrganizerFormData(array $fixtures, array $overrides = []): a
     return array_merge([
         'primary_organizer_id' => $fixtures['speaker']->id,
         'speakers' => [$fixtures['speaker']->id],
-        'title' => 'Auto Select Speaker Event',
+        'title' => 'Auto Select Person Event',
         'event_date' => now()->addDay()->toDateString(),
         'prayer_time' => EventPrayerTime::SelepasMaghrib->value,
         'event_category_ids' => [eventCategoryId('kuliah_ceramah')],
@@ -66,17 +66,17 @@ it('assigns the speaker as event speaker when speaker is the organizer', functio
         ->assertHasNoErrors()
         ->assertRedirect(route('submit-event.success'));
 
-    $event = Event::where('title', 'Auto Select Speaker Event')->firstOrFail();
+    $event = Event::where('title', 'Auto Select Person Event')->firstOrFail();
     expect($event->speakers)->toHaveCount(1);
     expect($event->speakers->first()->id)->toBe($fixtures['speaker']->id);
 
     $involvement = $event->primaryOrganizerInvolvement;
-    expect($involvement->involveable_type)->toBe(Speaker::class);
+    expect($involvement->involveable_type)->toBe(Person::class);
     expect($involvement->involveable_id)->toBe((string) $fixtures['speaker']->id);
 });
 
 it('shows formatted speaker names in submit event speaker selectors', function () {
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'name' => 'Aisyah binti Noor',
         'status' => 'verified',
         'honorific' => ['toh_puan'],
@@ -84,7 +84,7 @@ it('shows formatted speaker names in submit event speaker selectors', function (
     ]);
 
     Livewire::test(Create::class)
-        ->assertSee($speaker->formatted_name);
+        ->assertSee($person->formatted_name);
 });
 
 it('uses the organizer speaker slug when no explicit speakers are selected', function () {

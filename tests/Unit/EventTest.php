@@ -3,7 +3,7 @@
 use App\Enums\EventKeyPersonRole;
 use App\Models\Event;
 use App\Models\Institution;
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Models\Venue;
 use App\States\EventStatus\Approved;
 use App\States\EventStatus\Cancelled;
@@ -189,9 +189,9 @@ it('deduplicates key person roles in the searchable payload', function () {
             'published_at' => now(),
         ]);
 
-        $moderator = Speaker::factory()->create();
-        $imam = Speaker::factory()->create();
-        $personInCharge = Speaker::factory()->create([
+        $moderator = Person::factory()->create();
+        $imam = Person::factory()->create();
+        $personInCharge = Person::factory()->create([
             'name' => 'Ustaz Searchable PIC',
             'searchable_name' => 'ustaz searchable pic',
         ]);

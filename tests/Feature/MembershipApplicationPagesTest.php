@@ -7,7 +7,7 @@ use App\Livewire\Pages\MembershipApplications\Create as CreateMembershipApplicat
 use App\Livewire\Pages\MembershipApplications\Index as MembershipApplicationsIndex;
 use App\Models\Institution;
 use App\Models\MembershipApplication;
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -57,12 +57,12 @@ it('lets authenticated users submit an institution claim with evidence', functio
 
 it('requires justification and evidence on the public claim form', function () {
     $user = User::factory()->create();
-    $speaker = Speaker::factory()->create(['status' => 'verified']);
+    $person = Person::factory()->create(['status' => 'verified']);
 
     Livewire::actingAs($user)
         ->test(CreateMembershipApplicationPage::class, [
-            'subjectType' => MemberSubjectType::Speaker->publicRouteSegment(),
-            'subjectId' => $speaker->getKey(),
+            'subjectType' => MemberSubjectType::Person->publicRouteSegment(),
+            'subjectId' => $person->getKey(),
         ])
         ->call('submit')
         ->assertHasErrors([
@@ -73,7 +73,7 @@ it('requires justification and evidence on the public claim form', function () {
 
 it('renders the public membership claim page in Malay without a side-by-side layout', function () {
     $user = User::factory()->create();
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'name' => 'Ustaz Kazim Elias',
         'status' => 'verified',
     ]);
@@ -82,8 +82,8 @@ it('renders the public membership claim page in Malay without a side-by-side lay
     $this->actingAs($user);
 
     $this->get(route('membership-applications.create', [
-        'subjectType' => MemberSubjectType::Speaker->publicRouteSegment(),
-        'subjectId' => $speaker->getKey(),
+        'subjectType' => MemberSubjectType::Person->publicRouteSegment(),
+        'subjectId' => $person->getKey(),
     ]))
         ->assertOk()
         ->assertSee('Pengurusan')
@@ -124,20 +124,20 @@ it('lets claimants cancel pending claims from the history page', function () {
 
 it('starts a membership claim from the contributions page search form', function () {
     $user = User::factory()->create();
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'status' => 'verified',
     ]);
 
     Livewire::actingAs($user)
         ->test(ContributionsIndex::class)
         ->fillForm([
-            'subject_type' => MemberSubjectType::Speaker->value,
-            'subject_slug' => $speaker->getKey(),
+            'subject_type' => MemberSubjectType::Person->value,
+            'subject_slug' => $person->getKey(),
         ])
         ->call('startMembershipApplication')
         ->assertRedirect(route('membership-applications.create', [
-            'subjectType' => MemberSubjectType::Speaker->publicRouteSegment(),
-            'subjectId' => $speaker->getKey(),
+            'subjectType' => MemberSubjectType::Person->publicRouteSegment(),
+            'subjectId' => $person->getKey(),
         ]));
 });
 
@@ -146,7 +146,7 @@ it('does not show membership claim call to action on public institution and spea
     $institution = Institution::factory()->create([
         'status' => 'verified',
     ]);
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'status' => 'verified',
     ]);
 
@@ -155,8 +155,8 @@ it('does not show membership claim call to action on public institution and spea
         'subjectId' => $institution->getKey(),
     ]);
     $speakerClaimUrl = route('membership-applications.create', [
-        'subjectType' => MemberSubjectType::Speaker->publicRouteSegment(),
-        'subjectId' => $speaker->getKey(),
+        'subjectType' => MemberSubjectType::Person->publicRouteSegment(),
+        'subjectId' => $person->getKey(),
     ]);
 
     $this->actingAs($user)
@@ -166,7 +166,7 @@ it('does not show membership claim call to action on public institution and spea
         ->assertDontSee('Tuntut Pengurusan');
 
     $this->actingAs($user)
-        ->get(route('speakers.show', $speaker))
+        ->get(route('persons.show', $person))
         ->assertSuccessful()
         ->assertDontSee($speakerClaimUrl, false)
         ->assertDontSee('Tuntut Pengurusan');

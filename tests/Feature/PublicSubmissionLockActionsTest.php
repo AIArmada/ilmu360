@@ -5,9 +5,9 @@ use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\FilamentAuthz\Facades\Authz;
 use App\Filament\Resources\Institutions\Pages\EditInstitution;
 use App\Filament\Resources\Institutions\RelationManagers\MembersRelationManager as InstitutionMembersRelationManager;
-use App\Filament\Resources\Speakers\Pages\EditSpeaker;
+use App\Filament\Resources\Persons\Pages\EditPerson;
 use App\Models\Institution;
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Models\User;
 use App\Support\Authz\MemberRoleScopes;
 use App\Support\Submission\PublicSubmissionUiEvents;
@@ -41,7 +41,7 @@ function normalizeInstitutionContactsForAdminForm(Institution $institution): voi
         ->update(['value' => '+60112223344']);
 }
 
-function setMembershipRole(Institution|Speaker $subject, User $member, string $role): void
+function setMembershipRole(Institution|Person $subject, User $member, string $role): void
 {
     $subject->members()->updateExistingPivot($member->id, ['role' => $role]);
 }
@@ -326,10 +326,10 @@ it('supports locking and unlocking speaker records through the toggle', function
     $admin = User::factory()->create();
     assignGlobalRole($admin, 'super_admin');
 
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'allow_public_event_submission' => true,
     ]);
-    syncPrimaryAddressForTest($speaker, [
+    syncPrimaryAddressForTest($person, [
         'country_id' => (string) ensureTestMalaysiaCountry()->getKey(),
     ]);
 
@@ -338,50 +338,50 @@ it('supports locking and unlocking speaker records through the toggle', function
         'phone_verified_at' => Carbon::now(),
     ]);
 
-    $speaker->members()->syncWithoutDetaching([$member->id]);
+    $person->members()->syncWithoutDetaching([$member->id]);
 
     $scope = app(MemberRoleScopes::class)->speaker();
     Authz::withScope($scope, function () use ($member): void {
         $member->syncRoles(['admin']);
     }, $member);
-    setMembershipRole($speaker, $member, 'admin');
+    setMembershipRole($person, $member, 'admin');
 
     $this->actingAs($admin);
 
-    Livewire::test(EditSpeaker::class, ['record' => $speaker->id])
+    Livewire::test(EditPerson::class, ['record' => $person->id])
         ->fillForm([
             'allow_public_event_submission' => false,
         ])
         ->call('save')
         ->assertHasNoErrors();
 
-    $speaker->refresh();
-    expect($speaker->allow_public_event_submission)->toBeFalse();
+    $person->refresh();
+    expect($person->allow_public_event_submission)->toBeFalse();
 
-    Livewire::test(EditSpeaker::class, ['record' => $speaker->id])
+    Livewire::test(EditPerson::class, ['record' => $person->id])
         ->fillForm([
             'allow_public_event_submission' => true,
         ])
         ->call('save')
         ->assertHasNoErrors();
 
-    expect($speaker->fresh()->allow_public_event_submission)->toBeTrue();
+    expect($person->fresh()->allow_public_event_submission)->toBeTrue();
 });
 
 it('refreshes speaker public submission toggle eligibility without remounting the edit page', function () {
     $admin = User::factory()->create();
     assignGlobalRole($admin, 'super_admin');
 
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'allow_public_event_submission' => true,
     ]);
-    syncPrimaryAddressForTest($speaker, [
+    syncPrimaryAddressForTest($person, [
         'country_id' => (string) ensureTestMalaysiaCountry()->getKey(),
     ]);
 
     $this->actingAs($admin);
 
-    $page = Livewire::test(EditSpeaker::class, ['record' => $speaker->id])
+    $page = Livewire::test(EditPerson::class, ['record' => $person->id])
         ->assertFormFieldDisabled('allow_public_event_submission');
 
     $member = User::factory()->create([
@@ -389,13 +389,13 @@ it('refreshes speaker public submission toggle eligibility without remounting th
         'phone_verified_at' => Carbon::now(),
     ]);
 
-    $speaker->members()->syncWithoutDetaching([$member->id]);
+    $person->members()->syncWithoutDetaching([$member->id]);
 
     $scope = app(MemberRoleScopes::class)->speaker();
     Authz::withScope($scope, function () use ($member): void {
         $member->syncRoles(['admin']);
     }, $member);
-    setMembershipRole($speaker, $member, 'admin');
+    setMembershipRole($person, $member, 'admin');
 
     $page->dispatch(PublicSubmissionUiEvents::REFRESH_TOGGLE)
         ->assertFormFieldEnabled('allow_public_event_submission');

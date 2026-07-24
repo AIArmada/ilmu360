@@ -3,8 +3,8 @@
 use AIArmada\Membership\Enums\MemberRole;
 use App\Models\Event;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
-use App\Models\Speaker;
 use App\Models\User;
 use App\Support\Authz\MemberPermissionGate;
 use Illuminate\Support\Facades\DB;
@@ -62,23 +62,23 @@ it('uses one pivot-constrained existence query for each membership scope', funct
     $user = User::factory()->create();
     $institution = Institution::factory()->create();
     $event = Event::factory()->create();
-    $speaker = Speaker::factory()->create();
+    $person = Person::factory()->create();
     $reference = Reference::factory()->create();
 
     addTestMember($institution, $user, MemberRole::Viewer);
     addTestMember($event, $user, MemberRole::Viewer);
-    addTestMember($speaker, $user, MemberRole::Viewer);
+    addTestMember($person, $user, MemberRole::Viewer);
     addTestMember($reference, $user, MemberRole::Viewer);
     addTestMember(Institution::factory()->create(), $user, MemberRole::Viewer);
     addTestMember(Event::factory()->create(), $user, MemberRole::Viewer);
-    addTestMember(Speaker::factory()->create(), $user, MemberRole::Viewer);
+    addTestMember(Person::factory()->create(), $user, MemberRole::Viewer);
     addTestMember(Reference::factory()->create(), $user, MemberRole::Viewer);
 
     $gate = app(MemberPermissionGate::class);
     $checks = [
         fn (): bool => $gate->hasAnyInstitutionPermission($user, 'institution.view'),
         fn (): bool => $gate->hasAnyEventPermission($user, 'event.view'),
-        fn (): bool => $gate->hasAnySpeakerPermission($user, 'speaker.view'),
+        fn (): bool => $gate->hasAnyPersonPermission($user, 'speaker.view'),
         fn (): bool => $gate->hasAnyReferencePermission($user, 'reference.view'),
     ];
 

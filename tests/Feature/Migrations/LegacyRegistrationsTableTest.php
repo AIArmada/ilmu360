@@ -6,10 +6,10 @@ use App\Models\EventSubmission;
 use App\Models\Institution;
 use App\Models\MemberInvitation;
 use App\Models\ModerationReview;
+use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Registration;
 use App\Models\Series;
-use App\Models\Speaker;
 use App\Models\User;
 use App\Models\Venue;
 
@@ -25,7 +25,7 @@ it('no model resolves to the registrations table', function () {
         Registration::class,
         MemberInvitation::class,
         Institution::class,
-        Speaker::class,
+        Person::class,
         User::class,
         Series::class,
         EventCheckin::class,

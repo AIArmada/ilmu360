@@ -21,9 +21,9 @@ use App\Mcp\Tools\Member\MemberUploadEventPosterImageTool;
 use App\Models\Event;
 use App\Models\EventKeyPerson;
 use App\Models\Institution;
+use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Series;
-use App\Models\Speaker;
 use App\Models\User;
 use App\Support\Mcp\EventCoverPromptBuilder;
 use Illuminate\Support\Carbon;
@@ -514,7 +514,7 @@ it('uses temporary signed urls for reference media payloads when disk supports i
 });
 
 /**
- * @return array{0: Event, 1: Speaker, 2: Reference, 3: Institution}
+ * @return array{0: Event, 1: Person, 2: Reference, 3: Institution}
  */
 function eventImageGenerationEventFixture(?Institution $institution = null): array
 {
@@ -527,12 +527,12 @@ function eventImageGenerationEventFixture(?Institution $institution = null): arr
         ->addMedia(fakeGeneratedImageUpload('institution-cover.jpg', 1600, 900))
         ->toMediaCollection('cover');
 
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'name' => 'Dr. MAZA',
         'status' => 'verified',
     ]);
 
-    $speaker
+    $person
         ->addMedia(fakeGeneratedImageUpload('speaker-avatar.jpg', 800, 800))
         ->toMediaCollection('avatar');
 
@@ -583,8 +583,8 @@ function eventImageGenerationEventFixture(?Institution $institution = null): arr
     EventKeyPerson::factory()->create([
         'event_id' => $event->getKey(),
         'involveable_type' => 'speaker',
-        'involveable_id' => $speaker->getKey(),
-        'role_code' => EventKeyPersonRole::Speaker->value,
+        'involveable_id' => $person->getKey(),
+        'role_code' => EventKeyPersonRole::Person->value,
         'visibility' => 'public',
         'sort_order' => 1,
     ]);
@@ -595,7 +595,7 @@ function eventImageGenerationEventFixture(?Institution $institution = null): arr
         'sort_order' => 1,
     ]);
 
-    return [$event->refresh(), $speaker, $reference, $institution];
+    return [$event->refresh(), $person, $reference, $institution];
 }
 
 function eventImageGenerationAdminUser(): User

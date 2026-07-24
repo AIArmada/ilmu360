@@ -17,7 +17,7 @@ use App\Enums\EventVisibility;
 use App\Models\ContributionRequest;
 use App\Models\Event;
 use App\Models\Inspiration;
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Models\User;
 use App\Models\Venue;
 use App\Services\ShareTrackingService;
@@ -49,13 +49,13 @@ it('records distinct contribution request timestamps', function () {
     $proposer = User::factory()->create();
     $reviewer = User::factory()->create();
 
-    $speaker = Speaker::factory()->create(['status' => 'verified', 'name' => 'Original']);
+    $person = Person::factory()->create(['status' => 'verified', 'name' => 'Original']);
 
     $approveRequest = ContributionRequest::factory()->create([
         'type' => ContributionRequestType::Update,
-        'subject_type' => ContributionSubjectType::Speaker,
-        'entity_type' => $speaker->getMorphClass(),
-        'entity_id' => $speaker->getKey(),
+        'subject_type' => ContributionSubjectType::Person,
+        'entity_type' => $person->getMorphClass(),
+        'entity_id' => $person->getKey(),
         'proposer_id' => $proposer->id,
         'status' => ContributionRequestStatus::Pending,
         'proposed_data' => ['name' => 'Updated'],
@@ -71,9 +71,9 @@ it('records distinct contribution request timestamps', function () {
 
     $rejectRequest = ContributionRequest::factory()->create([
         'type' => ContributionRequestType::Update,
-        'subject_type' => ContributionSubjectType::Speaker,
-        'entity_type' => $speaker->getMorphClass(),
-        'entity_id' => $speaker->getKey(),
+        'subject_type' => ContributionSubjectType::Person,
+        'entity_type' => $person->getMorphClass(),
+        'entity_id' => $person->getKey(),
         'proposer_id' => $proposer->id,
         'status' => ContributionRequestStatus::Pending,
         'proposed_data' => ['name' => 'Nope'],
@@ -94,7 +94,7 @@ it('records distinct contribution request timestamps', function () {
 
     $cancelRequest = ContributionRequest::factory()->create([
         'type' => ContributionRequestType::Update,
-        'subject_type' => ContributionSubjectType::Speaker,
+        'subject_type' => ContributionSubjectType::Person,
         'proposer_id' => $proposer->id,
         'status' => ContributionRequestStatus::Pending,
     ]);
@@ -111,10 +111,10 @@ it('uses status for speaker listing instead of is_active column', function () {
         ->and(Schema::hasColumn('speakers', 'verified_at'))->toBeTrue()
         ->and(Schema::hasColumn('speakers', 'inactive_at'))->toBeTrue();
 
-    $verified = Speaker::factory()->create(['status' => 'verified']);
-    $inactive = Speaker::factory()->create(['status' => 'inactive']);
+    $verified = Person::factory()->create(['status' => 'verified']);
+    $inactive = Person::factory()->create(['status' => 'inactive']);
 
-    $activeIds = Speaker::query()->active()->pluck('id')->all();
+    $activeIds = Person::query()->active()->pluck('id')->all();
 
     expect($activeIds)->toContain($verified->id)
         ->and($activeIds)->not->toContain($inactive->id);
@@ -151,11 +151,11 @@ it('does not expose is_active on event searchable payload', function () {
 });
 
 it('centralises report status timestamps on transition', function () {
-    $speaker = Speaker::factory()->create(['status' => 'verified']);
+    $person = Person::factory()->create(['status' => 'verified']);
 
     $report = app(SaveReportAction::class)->handle([
         'entity_type' => 'speaker',
-        'entity_id' => (string) $speaker->getKey(),
+        'entity_id' => (string) $person->getKey(),
         'category' => 'wrong_info',
         'description' => 'Test report',
         'status' => 'open',
@@ -167,7 +167,7 @@ it('centralises report status timestamps on transition', function () {
 
     $resolved = app(SaveReportAction::class)->handle([
         'entity_type' => 'speaker',
-        'entity_id' => (string) $speaker->getKey(),
+        'entity_id' => (string) $person->getKey(),
         'category' => 'wrong_info',
         'description' => 'Test report',
         'status' => 'resolved',
@@ -178,7 +178,7 @@ it('centralises report status timestamps on transition', function () {
 
     $dismissed = app(SaveReportAction::class)->handle([
         'entity_type' => 'speaker',
-        'entity_id' => (string) $speaker->getKey(),
+        'entity_id' => (string) $person->getKey(),
         'category' => 'wrong_info',
         'description' => 'Test report',
         'status' => 'dismissed',

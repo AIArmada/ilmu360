@@ -2,7 +2,7 @@
 
 use App\Models\Event;
 use App\Models\Institution;
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Models\Venue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
@@ -52,16 +52,16 @@ it('queues institution and related event reindex when an addressable is created'
 });
 
 it('queues speaker reindex when an addressable is created for a speaker', function () {
-    $speaker = Speaker::factory()->create(['status' => 'verified']);
+    $person = Person::factory()->create(['status' => 'verified']);
 
-    syncPrimaryAddressForTest($speaker, [
-        'line1' => 'Jalan Speaker',
+    syncPrimaryAddressForTest($person, [
+        'line1' => 'Jalan Person',
         'country' => 'Malaysia',
         'country_code' => 'MY',
     ]);
 
     Queue::assertPushed(MakeSearchable::class, fn (MakeSearchable $job): bool => $job->models->contains(
-        fn (mixed $model): bool => $model instanceof Speaker && $model->is($speaker)
+        fn (mixed $model): bool => $model instanceof Person && $model->is($person)
     ));
 });
 

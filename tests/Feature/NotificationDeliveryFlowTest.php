@@ -15,7 +15,7 @@ use AIArmada\Communications\Enums\NotificationTrigger as PackageNotificationTrig
 use AIArmada\Communications\Models\NotificationInbox;
 use App\Models\Event;
 use App\Models\Institution;
-use App\Models\Speaker;
+use App\Models\Person;
 use App\Models\User;
 use App\Services\Notifications\EventNotificationService;
 use App\Services\Notifications\NotificationSettingsManager;
@@ -31,7 +31,7 @@ it('writes package notification inboxes when a public approved future event is p
     $user = User::factory()->create([
         'email' => 'follower@example.test',
     ]);
-    $speaker = Speaker::factory()->create([
+    $person = Person::factory()->create([
         'name' => 'Ustaz Aiman',
     ]);
     $institution = Institution::factory()->create();
@@ -43,10 +43,10 @@ it('writes package notification inboxes when a public approved future event is p
         'published_at' => now()->subHour(),
     ]);
 
-    $event->speakers()->attach($speaker->id);
-    $user->follow($speaker);
+    $event->persons()->attach($person->id);
+    $user->follow($person);
 
-    app(EventNotificationService::class)->notifyPublication($event->fresh('speakers'));
+    app(EventNotificationService::class)->notifyPublication($event->fresh('persons'));
 
     $inboxes = OwnerContext::withOwner(null, fn () => NotificationInbox::query()
         ->where('recipient_id', $user->id)
@@ -62,7 +62,7 @@ it('writes package notification inboxes when a public approved future event is p
 it('localizes followed-content inbox notifications per recipient locale', function () {
     Http::fake();
 
-    $speaker = Speaker::factory()->create(['name' => 'Ustaz Aiman']);
+    $person = Person::factory()->create(['name' => 'Ustaz Aiman']);
     $institution = Institution::factory()->create();
     $startsAt = CarbonImmutable::now('UTC')->addDays(10)->setTime(12, 0);
     $event = Event::factory()->for($institution)->create([
@@ -73,13 +73,13 @@ it('localizes followed-content inbox notifications per recipient locale', functi
         'published_at' => now()->subHour(),
     ]);
 
-    $event->speakers()->attach($speaker->id);
+    $event->persons()->attach($person->id);
 
     $englishUser = User::factory()->create(['email' => 'english@example.test']);
     $malayUser = User::factory()->create(['email' => 'malay@example.test']);
 
-    $englishUser->follow($speaker);
-    $malayUser->follow($speaker);
+    $englishUser->follow($person);
+    $malayUser->follow($person);
 
     app(NotificationSettingsManager::class)->save($englishUser, [
         'settings' => [
@@ -95,7 +95,7 @@ it('localizes followed-content inbox notifications per recipient locale', functi
         ],
     ]);
 
-    app(EventNotificationService::class)->notifyPublication($event->fresh('speakers'));
+    app(EventNotificationService::class)->notifyPublication($event->fresh('persons'));
 
     $englishInbox = OwnerContext::withOwner(null, fn () => NotificationInbox::query()
         ->where('recipient_id', $englishUser->id)
