@@ -307,7 +307,7 @@ jobs:
       - name: Run tests (Pest)
         run: |
           mkdir -p artifacts/pest-timing
-          vendor/bin/pest --parallel --shard=${{ matrix.shard }}/10 --compact --log-junit=artifacts/pest-timing/pest.xml
+          vendor/bin/pest --parallel --shard=${{ matrix.shard }}/10 --log-junit=artifacts/pest-timing/pest.xml
 
       - name: Upload Pest timing artifact
         if: always()
