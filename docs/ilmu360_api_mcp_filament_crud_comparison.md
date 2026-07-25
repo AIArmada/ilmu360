@@ -268,7 +268,7 @@ These are registered at runtime and therefore part of the admin registry surface
 
 It does **not** mean every admin-facing actor can write it. Actual create/update access is still policy-driven per request.
 
-## Runtime Ahli resource inventory (22 registered resources)
+## Runtime Ahli resource inventory (25 registered resources)
 
 | Resource key | Pages | Generic member write | Scope |
 | --- | --- | --- | --- |
