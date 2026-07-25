@@ -74,13 +74,13 @@ it('records series language syncs performed by the filament edit page', function
     $english = Language::query()->firstWhere('code', 'en') ?? Language::query()->create([
         'code' => 'en',
         'name' => 'English',
-        'name_native' => 'English',
+        'native' => 'English',
         'dir' => 'ltr',
     ]);
     $malay = Language::query()->firstWhere('code', 'ms') ?? Language::query()->create([
         'code' => 'ms',
         'name' => 'Malay',
-        'name_native' => 'Bahasa Melayu',
+        'native' => 'Bahasa Melayu',
         'dir' => 'ltr',
     ]);
 

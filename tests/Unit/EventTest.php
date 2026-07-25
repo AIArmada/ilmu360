@@ -158,12 +158,12 @@ it('searchable payload uses canonical language_codes', function () {
     withGlobalOwnerContext(function (): void {
         $malay = Language::query()->firstOrCreate(
             ['code' => 'ms'],
-            ['name' => 'Malay', 'name_native' => 'Bahasa Melayu', 'dir' => 'ltr'],
+            ['name' => 'Malay', 'native' => 'Bahasa Melayu', 'dir' => 'ltr'],
         );
 
         $english = Language::query()->firstOrCreate(
             ['code' => 'en'],
-            ['name' => 'English', 'name_native' => 'English', 'dir' => 'ltr'],
+            ['name' => 'English', 'native' => 'English', 'dir' => 'ltr'],
         );
 
         $event = Event::factory()->create([

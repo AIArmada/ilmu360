@@ -143,13 +143,13 @@ pest()->extend(TestCase::class)
 
         // Seed common languages for tests that use the submit event form
         $languages = [
-            ['id' => 7, 'code' => 'ar', 'name' => 'Arabic', 'name_native' => 'العربية', 'dir' => 'rtl'],
-            ['id' => 30, 'code' => 'zh', 'name' => 'Chinese', 'name_native' => '中文', 'dir' => 'ltr'],
-            ['id' => 40, 'code' => 'en', 'name' => 'English', 'name_native' => 'English', 'dir' => 'ltr'],
-            ['id' => 64, 'code' => 'id', 'name' => 'Indonesian', 'name_native' => 'Bahasa Indonesia', 'dir' => 'ltr'],
-            ['id' => 74, 'code' => 'jv', 'name' => 'Javanese', 'name_native' => 'ꦧꦱꦗꦮ', 'dir' => 'ltr'],
-            ['id' => 101, 'code' => 'ms', 'name' => 'Malay', 'name_native' => 'bahasa Melayu', 'dir' => 'ltr'],
-            ['id' => 154, 'code' => 'ta', 'name' => 'Tamil', 'name_native' => 'தமிழ்', 'dir' => 'ltr'],
+            ['id' => 7, 'code' => 'ar', 'name' => 'Arabic', 'native' => 'العربية', 'dir' => 'rtl'],
+            ['id' => 30, 'code' => 'zh', 'name' => 'Chinese', 'native' => '中文', 'dir' => 'ltr'],
+            ['id' => 40, 'code' => 'en', 'name' => 'English', 'native' => 'English', 'dir' => 'ltr'],
+            ['id' => 64, 'code' => 'id', 'name' => 'Indonesian', 'native' => 'Bahasa Indonesia', 'dir' => 'ltr'],
+            ['id' => 74, 'code' => 'jv', 'name' => 'Javanese', 'native' => 'ꦧꦱꦗꦮ', 'dir' => 'ltr'],
+            ['id' => 101, 'code' => 'ms', 'name' => 'Malay', 'native' => 'bahasa Melayu', 'dir' => 'ltr'],
+            ['id' => 154, 'code' => 'ta', 'name' => 'Tamil', 'native' => 'தமிழ்', 'dir' => 'ltr'],
         ];
 
         try {

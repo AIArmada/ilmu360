@@ -1349,7 +1349,7 @@ it('clears series description and languages through the admin api', function () 
     $languageMalay = Language::where('code', 'ms')->first() ?? Language::query()->create([
         'code' => 'ms',
         'name' => 'Malay',
-        'name_native' => 'Bahasa Melayu',
+        'native' => 'Bahasa Melayu',
         'dir' => 'ltr',
     ]);
 
@@ -1890,14 +1890,14 @@ it('replaces person collections and still requires an explicit country when muta
     $languageMalay = Language::where('code', 'ms')->first() ?? Language::query()->create([
         'code' => 'ms',
         'name' => 'Malay',
-        'name_native' => 'Bahasa Melayu',
+        'native' => 'Bahasa Melayu',
         'dir' => 'ltr',
     ]);
 
     $languageEnglish = Language::where('code', 'en')->first() ?? Language::query()->create([
         'code' => 'en',
         'name' => 'English',
-        'name_native' => 'English',
+        'native' => 'English',
         'dir' => 'ltr',
     ]);
 
@@ -3156,7 +3156,7 @@ it('supports sparse event updates while replacing submitted relation collections
     $languageMalay = Language::where('code', 'ms')->first() ?? Language::query()->create([
         'code' => 'ms',
         'name' => 'Malay',
-        'name_native' => 'Bahasa Melayu',
+        'native' => 'Bahasa Melayu',
         'dir' => 'ltr',
     ]);
 

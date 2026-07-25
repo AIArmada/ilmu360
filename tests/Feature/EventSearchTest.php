@@ -1139,8 +1139,8 @@ describe('Event Search Filters', function () {
     });
 
     it('filters events by a single language_codes value', function () {
-        $malay = Language::where('code', 'ms')->first() ?? Language::query()->create(['code' => 'ms', 'name' => 'Malay', 'name_native' => 'Bahasa Melayu', 'dir' => 'ltr']);
-        $english = Language::where('code', 'en')->first() ?? Language::query()->create(['code' => 'en', 'name' => 'English', 'name_native' => 'English', 'dir' => 'ltr']);
+        $malay = Language::where('code', 'ms')->first() ?? Language::query()->create(['code' => 'ms', 'name' => 'Malay', 'native' => 'Bahasa Melayu', 'dir' => 'ltr']);
+        $english = Language::where('code', 'en')->first() ?? Language::query()->create(['code' => 'en', 'name' => 'English', 'native' => 'English', 'dir' => 'ltr']);
 
         $event1 = createVisibleEventForSearch([
             'title' => 'Malay Event',
@@ -1172,8 +1172,8 @@ describe('Event Search Filters', function () {
     });
 
     it('filters events by language_codes array filter', function () {
-        $malay = Language::where('code', 'ms')->first() ?? Language::query()->create(['code' => 'ms', 'name' => 'Malay', 'name_native' => 'Bahasa Melayu', 'dir' => 'ltr']);
-        $english = Language::where('code', 'en')->first() ?? Language::query()->create(['code' => 'en', 'name' => 'English', 'name_native' => 'English', 'dir' => 'ltr']);
+        $malay = Language::where('code', 'ms')->first() ?? Language::query()->create(['code' => 'ms', 'name' => 'Malay', 'native' => 'Bahasa Melayu', 'dir' => 'ltr']);
+        $english = Language::where('code', 'en')->first() ?? Language::query()->create(['code' => 'en', 'name' => 'English', 'native' => 'English', 'dir' => 'ltr']);
 
         $englishEvent = createVisibleEventForSearch([
             'title' => 'English Language Codes Event',

@@ -20,7 +20,7 @@ it('hydrates the events index language cache into the current safe payload forma
     Language::query()->create([
         'code' => 'ms',
         'name' => 'Malay',
-        'name_native' => 'Bahasa Melayu',
+        'native' => 'Bahasa Melayu',
         'dir' => 'ltr',
     ]);
 

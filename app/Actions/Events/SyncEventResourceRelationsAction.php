@@ -65,7 +65,7 @@ class SyncEventResourceRelationsAction
 
         $languageIds = collect($rawLanguageIds)
             ->filter(fn (mixed $id): bool => filled($id))
-            ->map(fn (mixed $id): int => (int) $id)
+            ->map(fn (mixed $id): string => (string) $id)
             ->values()
             ->all();
 
