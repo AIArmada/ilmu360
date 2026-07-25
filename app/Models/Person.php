@@ -9,6 +9,11 @@ use AIArmada\Contacting\Concerns\HasSocialProfiles;
 use AIArmada\Engagement\Models\Follow;
 use AIArmada\Membership\Models\MembershipInvitation;
 use AIArmada\Membership\Traits\HasMembers;
+use AIArmada\Persons\Enums\Gender;
+use AIArmada\Persons\Models\Affiliation;
+use AIArmada\Persons\Models\CredentialAssignment;
+use AIArmada\Persons\Models\PersonName;
+use AIArmada\Persons\Models\TitleAssignment;
 use App\Enums\EventKeyPersonRole;
 use App\Models\Concerns\AuditsModelChanges;
 use App\Models\Concerns\HasDonationChannels;
@@ -17,9 +22,6 @@ use Carbon\CarbonInterface;
 use Database\Factories\PersonFactory;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -35,7 +37,7 @@ use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
-class Person extends Model implements AuditableContract, HasMedia
+class Person extends \AIArmada\Persons\Models\Person implements AuditableContract, HasMedia
 {
     public const string PUBLIC_DIRECTORY_SESSION_KEY = 'public_persons_directory_seed';
 
@@ -43,18 +45,7 @@ class Person extends Model implements AuditableContract, HasMedia
      * @use HasFactory<PersonFactory>
      * @use HasMembers<User>
      */
-    use AuditsModelChanges, HasAddresses, HasContactMethods, HasDonationChannels, HasFactory, HasLanguages, HasMembers, HasSocialProfiles, HasUuids, InteractsWithMedia, KeepsDeletedModels, Searchable;
-
-    public $incrementing = false;
-
-    protected $keyType = 'string';
-
-    protected $table = 'persons';
-
-    public static function getResourceKey(): string
-    {
-        return 'person';
-    }
+    use AuditsModelChanges, HasAddresses, HasContactMethods, HasDonationChannels, HasLanguages, HasMembers, HasSocialProfiles, InteractsWithMedia, KeepsDeletedModels, Searchable;
 
     /**
      * @var list<string>
@@ -81,15 +72,14 @@ class Person extends Model implements AuditableContract, HasMedia
     #[\Override]
     protected function casts(): array
     {
-        return [
-            'bio' => 'array',
+        return array_merge(parent::casts(), [
             'verified_at' => 'immutable_datetime',
             'rejected_at' => 'immutable_datetime',
             'inactive_at' => 'immutable_datetime',
             'last_state_change_at' => 'immutable_datetime',
             'allow_public_event_submission' => 'boolean',
             'public_submission_locked_at' => 'datetime',
-        ];
+        ]);
     }
 
     public static function formatDisplayedName(string $name): string
@@ -229,36 +219,11 @@ class Person extends Model implements AuditableContract, HasMedia
             return $this->avatar_url;
         }
 
-        if ($this->gender === 'female') {
+        if ($this->gender === Gender::Female) {
             return asset('images/placeholders/person-female.png');
         }
 
         return asset('images/placeholders/person-male.png');
-    }
-
-    public function getFormattedNameAttribute(): string
-    {
-        $assignments = $this->titleAssignments()
-            ->where('status', 'active')
-            ->with('title')
-            ->get();
-
-        $beforeTitles = $assignments
-            ->filter(fn ($a) => $a->title->usage_position?->value === 'before_name')
-            ->sortBy('title.sort_order')
-            ->map(fn ($a) => $a->title->short_form ?? $a->title->name);
-
-        $afterTitles = $assignments
-            ->filter(fn ($a) => $a->title->usage_position?->value === 'after_name')
-            ->sortBy('title.sort_order')
-            ->map(fn ($a) => $a->title->short_form ?? $a->title->name);
-
-        $name = trim(implode(' ', $beforeTitles->all()).' '.$this->name);
-        if ($afterTitles->isNotEmpty()) {
-            $name .= ', '.implode(', ', $afterTitles->all());
-        }
-
-        return trim($name);
     }
 
     /**
@@ -383,9 +348,6 @@ class Person extends Model implements AuditableContract, HasMedia
         return $this->belongsTo(AddressCountry::class, 'nationality_country_id');
     }
 
-    /**
-     * Register media collections for Spatie Media Library.
-     */
     public function registerMediaCollections(): void
     {
         $this->addMediaCollection('avatar')
@@ -422,9 +384,6 @@ class Person extends Model implements AuditableContract, HasMedia
             ->acceptsMimeTypes(['application/pdf', 'image/jpeg', 'image/png', 'image/webp']);
     }
 
-    /**
-     * Register media conversions for optimized image delivery.
-     */
     public function registerMediaConversions(?Media $media = null): void
     {
         $this->addMediaConversion('thumb')
@@ -465,22 +424,12 @@ class Person extends Model implements AuditableContract, HasMedia
             ->format('webp');
     }
 
-    /**
-     * Scope a query to only include active persons.
-     *
-     * @param  Builder<self>  $query
-     */
     #[Scope]
     protected function active(Builder $query): void
     {
         $query->whereIn('status', ['verified', 'pending']);
     }
 
-    /**
-     * Stable pseudo-random directory order that stays pagination-safe for a day.
-     *
-     * @param  Builder<self>  $query
-     */
     #[Scope]
     protected function publicDirectoryOrder(Builder $query, ?string $sessionSeed = null): void
     {
