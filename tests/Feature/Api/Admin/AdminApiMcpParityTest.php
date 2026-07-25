@@ -49,13 +49,13 @@ it('keeps admin api and admin mcp person search results aligned', function () {
 
     Sanctum::actingAs($admin);
 
-    $apiResponse = $this->getJson('/api/v1/admin/people?search='.urlencode('syeikhul maqari'))
+    $apiResponse = $this->getJson('/api/v1/admin/people?search='.urlencode('Admin Parity Person'))
         ->assertOk();
 
     $mcpResponse = AdminServer::actingAs($admin)
         ->tool(AdminListRecordsTool::class, [
             'resource_key' => 'people',
-            'search' => 'syeikhul maqari',
+            'search' => 'Admin Parity Person',
         ])
         ->assertOk();
 
