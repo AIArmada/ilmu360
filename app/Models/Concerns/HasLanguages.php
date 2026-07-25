@@ -23,7 +23,7 @@ trait HasLanguages
     /**
      * Sync the languages for the model.
      *
-     * @param  array<int>|int  $languages
+     * @param  array<int|string>|int|string  $languages
      */
     public function syncLanguages(array|int $languages): void
     {

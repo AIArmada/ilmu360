@@ -64,7 +64,7 @@ class PersonDetailData extends Data
             id: (string) $person->id,
             slug: (string) $person->slug,
             name: (string) $person->name,
-            gender: filled($person->gender) ? $person->gender->value : null,
+            gender: $person->gender instanceof \BackedEnum ? $person->gender->value : null,
             formatted_name: (string) $person->formatted_name,
             bio: $person->bio,
             address: $address,

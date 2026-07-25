@@ -329,7 +329,7 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
     }
 
     /**
-     * @return MorphMany<Affiliation, $this>
+     * @return MorphMany<AIArmada\Persons\Models\Affiliation, $this>
      */
     #[\Override]
     public function affiliations(): MorphMany

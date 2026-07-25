@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use AIArmada\Persons\Models\Affiliation as BaseAffiliation;
+use Carbon\CarbonImmutable;
 
 /**
  * @property string $id
