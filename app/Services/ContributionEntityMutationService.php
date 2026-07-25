@@ -682,7 +682,7 @@ class ContributionEntityMutationService
 
         return [
             'name' => $person->name,
-            'gender' => $person->gender instanceof \BackedEnum ? $person->gender->value : '',
+            'gender' => $person->gender instanceof BackedEnum ? $person->gender->value : '',
             'bio' => $person->bio,
             'language_ids' => $person->languages->pluck('id')->map(fn (mixed $id): string => (string) $id)->values()->all(),
             'institution_id' => $affiliatedInstitution?->getKey(),
