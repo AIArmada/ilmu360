@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "4606f06add45329343fd6451e6e3cd68",
+    "content-hash": "c27003c01d00f46427071e5b33d35a90",
     "packages": [
         {
             "name": "aiarmada/addressing",
@@ -940,13 +940,14 @@
                     "AIArmada\\FilamentPersons\\": "src/"
                 }
             },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
             "description": "Filament admin for aiarmada/persons: manage persons, titles, credentials, affiliations.",
             "support": {
-                "source": "https://github.com/AIArmada/filament-persons/tree/main",
-                "issues": "https://github.com/AIArmada/filament-persons/issues"
+                "issues": "https://github.com/AIArmada/filament-persons/issues",
+                "source": "https://github.com/AIArmada/filament-persons/tree/main"
             },
             "time": "2026-07-25T09:53:45+00:00"
         },
@@ -1282,15 +1283,16 @@
                 }
             },
             "autoload": {
-                "psr-4": {
-                    "AIArmada\\Persons\\": "src/",
-                    "AIArmada\\Persons\\Database\\Factories\\": "database/factories",
-                    "AIArmada\\Persons\\Database\\Seeders\\": "database/seeders"
-                },
                 "files": [
                     "src/helpers.php"
-                ]
+                ],
+                "psr-4": {
+                    "AIArmada\\Persons\\": "src/",
+                    "AIArmada\\Persons\\Database\\Seeders\\": "database/seeders",
+                    "AIArmada\\Persons\\Database\\Factories\\": "database/factories"
+                }
             },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
@@ -1310,8 +1312,8 @@
                 "titles"
             ],
             "support": {
-                "source": "https://github.com/AIArmada/persons/tree/main",
-                "issues": "https://github.com/AIArmada/persons/issues"
+                "issues": "https://github.com/AIArmada/persons/issues",
+                "source": "https://github.com/AIArmada/persons/tree/main"
             },
             "time": "2026-07-25T12:49:05+00:00"
         },

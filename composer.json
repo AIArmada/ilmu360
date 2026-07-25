@@ -163,14 +163,6 @@
     "prefer-stable": true,
     "repositories": [
         {
-            "type": "vcs",
-            "url": "https://github.com/AIArmada/persons"
-        },
-        {
-            "type": "vcs",
-            "url": "https://github.com/AIArmada/filament-persons"
-        },
-        {
             "name": "filament",
             "type": "composer",
             "url": "https://packages.filamentphp.com/composer"
