@@ -1512,17 +1512,23 @@
     "generic_admin_write_support": {
         "source_of_truth": "App\\Support\\Api\\Admin\\AdminResourceMutationService::supports()",
         "resource_keys": [
-            "address-areas",
+            "authz/users",
             "donation-channels",
-            "events",
             "inspirations",
             "institutions",
-            "people",
+            "persons/people",
             "references",
             "reports",
             "series",
             "spaces",
-            "venues"
+            "authz/roles",
+            "address-states",
+            "address-cities",
+            "address-areas",
+            "events",
+            "venues",
+            "event-registrations",
+            "event-attendances"
         ],
         "resource_details": {
             "people": {
@@ -2033,10 +2039,9 @@
     "generic_member_write_support": {
         "source_of_truth": "App\\Support\\Api\\Member\\MemberResourceMutationService::supports()",
         "resource_keys": [
-            "events",
             "institutions",
-            "people",
-            "references"
+            "references",
+            "events"
         ],
         "update_only": true,
         "validate_only": true,
