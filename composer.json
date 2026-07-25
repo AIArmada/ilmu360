@@ -25,12 +25,14 @@
         "aiarmada/filament-engagement": "dev-main",
         "aiarmada/filament-events": "dev-main",
         "aiarmada/filament-inventory": "dev-main",
+        "aiarmada/filament-persons": "dev-main",
         "aiarmada/filament-seating": "dev-main",
         "aiarmada/filament-signals": "dev-main",
         "aiarmada/filament-ticketing": "dev-main",
         "aiarmada/inventory": "dev-main",
         "aiarmada/membership": "dev-main",
         "aiarmada/moderation": "dev-main",
+        "aiarmada/persons": "dev-main",
         "aiarmada/references": "dev-main",
         "aiarmada/seating": "dev-main",
         "aiarmada/signals": "dev-main",
@@ -161,6 +163,14 @@
     "minimum-stability": "dev",
     "prefer-stable": true,
     "repositories": [
+        {
+            "type": "path",
+            "url": "~/herd/commerce/packages/persons"
+        },
+        {
+            "type": "path",
+            "url": "~/herd/commerce/packages/filament-persons"
+        },
         {
             "name": "filament",
             "type": "composer",

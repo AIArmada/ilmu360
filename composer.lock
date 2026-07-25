@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "dfc78571289f721e68a0e876be9f65d4",
+    "content-hash": "52beb111c0122bf54cc37c5329d9cf73",
     "packages": [
         {
             "name": "aiarmada/addressing",
@@ -906,6 +906,41 @@
             "time": "2026-07-19T19:39:41+00:00"
         },
         {
+            "name": "aiarmada/filament-persons",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "/Users/Saiffil/herd/commerce/packages/filament-persons",
+                "reference": "cf33c65b60a5a62b014b70ea0ac44735c628817e"
+            },
+            "require": {
+                "aiarmada/commerce-support": "self.version",
+                "aiarmada/persons": "self.version",
+                "filament/filament": "^5.6.7",
+                "php": "^8.4"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "AIArmada\\FilamentPersons\\FilamentPersonsServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "AIArmada\\FilamentPersons\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "Filament admin for aiarmada/persons: manage persons, titles, credentials, affiliations.",
+            "transport-options": {
+                "relative": false
+            }
+        },
+        {
             "name": "aiarmada/filament-seating",
             "version": "dev-main",
             "source": {
@@ -1202,6 +1237,64 @@
                 "source": "https://github.com/AIArmada/moderation/tree/main"
             },
             "time": "2026-07-12T09:34:02+00:00"
+        },
+        {
+            "name": "aiarmada/persons",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "/Users/Saiffil/herd/commerce/packages/persons",
+                "reference": "4aaf2255a0884ae85c0c66cbc60bcdd17875d714"
+            },
+            "require": {
+                "aiarmada/commerce-support": "self.version",
+                "php": "^8.4",
+                "spatie/laravel-data": "^4.23",
+                "spatie/laravel-package-tools": "^1.16"
+            },
+            "suggest": {
+                "aiarmada/addressing": "Optional integration for nationality, title country scoping, and issuer country resolution.",
+                "spatie/laravel-medialibrary": "Required for media collections on the Person model."
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "AIArmada\\Persons\\PersonsServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "AIArmada\\Persons\\": "src/",
+                    "AIArmada\\Persons\\Database\\Factories\\": "database/factories",
+                    "AIArmada\\Persons\\Database\\Seeders\\": "database/seeders"
+                },
+                "files": [
+                    "src/helpers.php"
+                ]
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "AIArmada",
+                    "email": "dev@aiarmada.com"
+                }
+            ],
+            "description": "Reusable person identity package for Laravel - normalized persons, multi-context names, titles, credentials, and affiliations with polymorphic assignment tables",
+            "keywords": [
+                "affiliations",
+                "credentials",
+                "identity",
+                "laravel",
+                "persons",
+                "titles"
+            ],
+            "transport-options": {
+                "relative": false
+            }
         },
         {
             "name": "aiarmada/references",
@@ -20564,12 +20657,14 @@
         "aiarmada/filament-engagement": 20,
         "aiarmada/filament-events": 20,
         "aiarmada/filament-inventory": 20,
+        "aiarmada/filament-persons": 20,
         "aiarmada/filament-seating": 20,
         "aiarmada/filament-signals": 20,
         "aiarmada/filament-ticketing": 20,
         "aiarmada/inventory": 20,
         "aiarmada/membership": 20,
         "aiarmada/moderation": 20,
+        "aiarmada/persons": 20,
         "aiarmada/references": 20,
         "aiarmada/seating": 20,
         "aiarmada/signals": 20,
