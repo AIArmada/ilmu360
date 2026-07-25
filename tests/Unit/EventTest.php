@@ -172,7 +172,7 @@ it('searchable payload uses canonical language_codes', function () {
             'published_at' => now(),
         ]);
 
-        $event->syncLanguages([(int) $malay->getKey(), (int) $english->getKey()]);
+        $event->syncLanguages([$malay->getKey(), $english->getKey()]);
 
         $payload = $event->fresh()->toSearchableArray();
 

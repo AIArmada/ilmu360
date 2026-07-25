@@ -1149,7 +1149,7 @@ describe('Event Search Filters', function () {
             'published_at' => now(),
             'starts_at' => now()->addDays(1),
         ]);
-        $event1->syncLanguages([(int) $malay->getKey()]);
+        $event1->syncLanguages([$malay->getKey()]);
 
         $event2 = createVisibleEventForSearch([
             'title' => 'English Event',
@@ -1158,7 +1158,7 @@ describe('Event Search Filters', function () {
             'published_at' => now(),
             'starts_at' => now()->addDays(2),
         ]);
-        $event2->syncLanguages([(int) $english->getKey()]);
+        $event2->syncLanguages([$english->getKey()]);
 
         $query = http_build_query([
             'language_codes' => ['en'],
@@ -1182,7 +1182,7 @@ describe('Event Search Filters', function () {
             'published_at' => now(),
             'starts_at' => now()->addDays(1),
         ]);
-        $englishEvent->syncLanguages([(int) $english->id]);
+        $englishEvent->syncLanguages([$english->id]);
 
         $malayEvent = createVisibleEventForSearch([
             'title' => 'Malay Language Codes Event',
@@ -1191,7 +1191,7 @@ describe('Event Search Filters', function () {
             'published_at' => now(),
             'starts_at' => now()->addDays(2),
         ]);
-        $malayEvent->syncLanguages([(int) $malay->id]);
+        $malayEvent->syncLanguages([$malay->id]);
 
         $query = http_build_query([
             'language_codes' => ['en'],

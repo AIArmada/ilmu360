@@ -608,7 +608,7 @@ class ContributionEntityMutationService
         }
 
         if (array_key_exists('language_ids', $payload)) {
-            $languageIds = $this->normalizeIntegerArray($payload['language_ids']);
+            $languageIds = $this->normalizeStringArray($payload['language_ids']);
             $event->auditSync('languages', $languageIds, true, ['languages.id', 'languages.name']);
         }
 
@@ -684,7 +684,7 @@ class ContributionEntityMutationService
             'name' => $person->name,
             'gender' => $person->gender->value,
             'bio' => $person->bio,
-            'language_ids' => $person->languages->pluck('id')->map(fn (mixed $id): int => (int) $id)->values()->all(),
+            'language_ids' => $person->languages->pluck('id')->map(fn (mixed $id): string => (string) $id)->values()->all(),
             'institution_id' => $affiliatedInstitution?->getKey(),
             'institution_position' => self::institutionPivotPosition($affiliatedInstitution),
             'address' => $this->addressState($person->primaryAddress()),
@@ -846,7 +846,7 @@ class ContributionEntityMutationService
         }
 
         if (array_key_exists('language_ids', $payload)) {
-            $person->syncLanguages($this->normalizeIntegerArray(
+            $person->syncLanguages($this->normalizeStringArray(
                 is_iterable($payload['language_ids']) ? $payload['language_ids'] : [],
             ));
         }
@@ -1475,6 +1475,19 @@ class ContributionEntityMutationService
         return collect($values)
             ->map(fn (mixed $value): ?int => is_numeric($value) ? (int) $value : null)
             ->filter(static fn (?int $value): bool => $value !== null)
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  iterable<int, mixed>  $values
+     * @return list<string>
+     */
+    private function normalizeStringArray(iterable $values): array
+    {
+        return collect($values)
+            ->map(fn (mixed $value): ?string => filled($value) ? (string) $value : null)
+            ->filter(static fn (?string $value): bool => $value !== null)
             ->values()
             ->all();
     }
