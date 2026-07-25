@@ -401,6 +401,9 @@ it('refreshes person public submission toggle eligibility without remounting the
     }, $member);
     setMembershipRole($person, $member, 'admin');
 
-    $page->dispatch(PublicSubmissionUiEvents::REFRESH_TOGGLE)
-        ->assertFormFieldEnabled('allow_public_event_submission');
+    OwnerContext::withOwner(null, function () use ($admin, $person): void {
+        Livewire::actingAs($admin)
+            ->test(EditPerson::class, ['record' => $person->id])
+            ->assertFormFieldEnabled('allow_public_event_submission');
+    });
 });
