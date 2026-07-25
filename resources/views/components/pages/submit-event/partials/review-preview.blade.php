@@ -139,7 +139,7 @@
         'ta' => 'Bahasa Tamil',
         'jv' => 'Bahasa Jawa',
     ];
-    $languageMap = \Nnjeim\World\Models\Language::query()
+    $languageMap = \App\Models\Language::query()
         ->whereIn('id', $languageIds)
         ->get(['id', 'code', 'name'])
         ->mapWithKeys(fn ($language): array => [

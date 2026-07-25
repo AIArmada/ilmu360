@@ -942,7 +942,7 @@
                                         $personText = $personNames->isNotEmpty() ? $personNames->implode(', ') : __('Penceramah akan diumumkan');
                                         $languageChips = collect($event->getAttribute('languages'))
                                             ->take(1)
-                                            ->map(fn (\Nnjeim\World\Models\Language $language): string => (string) ($language->code === 'ms' ? 'BM' : strtoupper((string) $language->code)))
+                                            ->map(fn (\App\Models\Language $language): string => (string) ($language->code === 'ms' ? 'BM' : strtoupper((string) $language->code)))
                                             ->filter()
                                             ->values();
                                         $tagChips = $event->classifications
