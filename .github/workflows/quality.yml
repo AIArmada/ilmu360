@@ -309,9 +309,13 @@ jobs:
           mkdir -p artifacts/pest-timing
           # Pest parallel mode has a known exit-code race: it can return 1 even when all tests pass.
           # We parse the summary line to determine the real pass/fail status.
-          vendor/bin/pest --parallel --shard=${{ matrix.shard }}/10 --log-junit=artifacts/pest-timing/pest.xml > /tmp/pest-output.txt 2>&1
+          # `|| true` prevents set -e from swallowing output when Pest exits with code 2 (PHP error).
+          vendor/bin/pest --parallel --shard=${{ matrix.shard }}/10 --log-junit=artifacts/pest-timing/pest.xml > /tmp/pest-output.txt 2>&1 || true
           cat /tmp/pest-output.txt
-          if grep -qE 'Tests:.*[0-9]+ failed' /tmp/pest-output.txt; then
+          if grep -qE 'Tests:.*failed' /tmp/pest-output.txt; then
+            exit 1
+          fi
+          if ! grep -qE 'Tests:' /tmp/pest-output.txt; then
             exit 1
           fi
 
