@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "e96b8862010f8e8a929b449034f119e5",
+    "content-hash": "4606f06add45329343fd6451e6e3cd68",
     "packages": [
         {
             "name": "aiarmada/addressing",
@@ -909,10 +909,16 @@
         {
             "name": "aiarmada/filament-persons",
             "version": "dev-main",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/AIArmada/filament-persons.git",
+                "reference": "94e52c384c247a2e2a3bd0d4091a73ed3ffcfd3b"
+            },
             "dist": {
-                "type": "path",
-                "url": "/Users/Saiffil/herd/commerce/packages/filament-persons",
-                "reference": "cf33c65b60a5a62b014b70ea0ac44735c628817e"
+                "type": "zip",
+                "url": "https://api.github.com/repos/AIArmada/filament-persons/zipball/94e52c384c247a2e2a3bd0d4091a73ed3ffcfd3b",
+                "reference": "94e52c384c247a2e2a3bd0d4091a73ed3ffcfd3b",
+                "shasum": ""
             },
             "require": {
                 "aiarmada/commerce-support": "self.version",
@@ -920,6 +926,7 @@
                 "filament/filament": "^5.6.7",
                 "php": "^8.4"
             },
+            "default-branch": true,
             "type": "library",
             "extra": {
                 "laravel": {
@@ -937,9 +944,11 @@
                 "MIT"
             ],
             "description": "Filament admin for aiarmada/persons: manage persons, titles, credentials, affiliations.",
-            "transport-options": {
-                "relative": false
-            }
+            "support": {
+                "source": "https://github.com/AIArmada/filament-persons/tree/main",
+                "issues": "https://github.com/AIArmada/filament-persons/issues"
+            },
+            "time": "2026-07-25T09:53:45+00:00"
         },
         {
             "name": "aiarmada/filament-seating",
@@ -1242,10 +1251,16 @@
         {
             "name": "aiarmada/persons",
             "version": "dev-main",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/AIArmada/persons.git",
+                "reference": "eaf48b7656928e1d15f48eb7d3dcf33c388863b6"
+            },
             "dist": {
-                "type": "path",
-                "url": "/Users/Saiffil/herd/commerce/packages/persons",
-                "reference": "4aaf2255a0884ae85c0c66cbc60bcdd17875d714"
+                "type": "zip",
+                "url": "https://api.github.com/repos/AIArmada/persons/zipball/eaf48b7656928e1d15f48eb7d3dcf33c388863b6",
+                "reference": "eaf48b7656928e1d15f48eb7d3dcf33c388863b6",
+                "shasum": ""
             },
             "require": {
                 "aiarmada/commerce-support": "self.version",
@@ -1257,6 +1272,7 @@
                 "aiarmada/addressing": "Optional integration for nationality, title country scoping, and issuer country resolution.",
                 "spatie/laravel-medialibrary": "Required for media collections on the Person model."
             },
+            "default-branch": true,
             "type": "library",
             "extra": {
                 "laravel": {
@@ -1293,9 +1309,11 @@
                 "persons",
                 "titles"
             ],
-            "transport-options": {
-                "relative": false
-            }
+            "support": {
+                "source": "https://github.com/AIArmada/persons/tree/main",
+                "issues": "https://github.com/AIArmada/persons/issues"
+            },
+            "time": "2026-07-25T12:49:05+00:00"
         },
         {
             "name": "aiarmada/references",
