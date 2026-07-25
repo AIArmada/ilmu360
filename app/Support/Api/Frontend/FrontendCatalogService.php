@@ -25,7 +25,7 @@ use App\Support\Submission\EntitySubmissionAccess;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
-use Nnjeim\World\Models\Language;
+use App\Models\Language;
 
 class FrontendCatalogService
 {

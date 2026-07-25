@@ -19,7 +19,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Laravel\Ai\Files\Document;
 use Laravel\Ai\Files\Image;
-use Nnjeim\World\Models\Language;
+use App\Models\Language;
 use RuntimeException;
 use Throwable;
 

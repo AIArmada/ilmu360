@@ -9,7 +9,7 @@ use App\Filament\Resources\Series\SeriesResource;
 use App\Models\Series;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Database\Eloquent\Model;
-use Nnjeim\World\Models\Language;
+use App\Models\Language;
 
 class CreateSeries extends CreateRecord
 {

@@ -87,7 +87,7 @@ use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\WithFileUploads;
-use Nnjeim\World\Models\Language;
+use App\Models\Language;
 use RuntimeException;
 use Throwable;
 

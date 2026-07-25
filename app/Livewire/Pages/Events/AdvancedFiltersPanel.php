@@ -36,7 +36,7 @@ use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
 use Livewire\Component;
-use Nnjeim\World\Models\Language;
+use App\Models\Language;
 
 class AdvancedFiltersPanel extends Component implements HasForms
 {

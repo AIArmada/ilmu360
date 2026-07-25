@@ -10,7 +10,7 @@ use App\Models\Series;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Database\Eloquent\Model;
-use Nnjeim\World\Models\Language;
+use App\Models\Language;
 
 class EditSeries extends EditRecord
 {

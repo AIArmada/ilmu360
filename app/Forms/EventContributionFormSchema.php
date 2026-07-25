@@ -40,7 +40,7 @@ use Filament\Schemas\Schema;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
-use Nnjeim\World\Models\Language;
+use App\Models\Language;
 
 class EventContributionFormSchema
 {

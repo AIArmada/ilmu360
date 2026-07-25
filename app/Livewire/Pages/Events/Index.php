@@ -50,7 +50,7 @@ use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
-use Nnjeim\World\Models\Language;
+use App\Models\Language;
 
 #[Layout('layouts.app')]
 #[Title('Upcoming Events')]
