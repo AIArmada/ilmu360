@@ -5,7 +5,7 @@ namespace App\Filament\Resources\Persons\Schemas;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\Contacting\Enums\SocialPlatform;
-use App\Enums\Gender;
+use AIArmada\Persons\Enums\Gender;
 use App\Forms\SharedFormSchema;
 use App\Models\Person;
 use App\Models\User;
