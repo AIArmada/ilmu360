@@ -1,8 +1,9 @@
 # ilmu360° — Complete Application Map
 
 > Generated: 2026-07-23
+> Last Verified: 2026-07-26
 > Coverage: Routes, Menus, Forms, Imports, Data Flow → Database
-> Status: Verified against codebase (all sections audited)
+> Status: ✅ Verified against codebase
 
 ---
 
@@ -70,6 +71,7 @@
 - Engagement (follows)
 - Communications (notifications/digests)
 - Events (event management)
+- Persons (person/speaker management)
 - Inventory
 - Seating
 - Ticketing
@@ -81,7 +83,7 @@
 | **Panel Provider** | `app/Providers/Filament/AhliPanelProvider.php` |
 | **ID** | `ahli` |
 | **Path** | `/ahli` (or subdomain via env) |
-| **Plugins** | Events, Engagement (subset) |
+| **Plugins** | Events, Persons, Engagement (subset) |
 | **Scope** | Users only see records they own |
 
 ---
@@ -113,11 +115,11 @@
 | 17 | GET | `/peta-laman.xml` | `SitemapController@index` | `sitemap.index` | Main sitemap |
 | 18 | GET | `/peta-laman-majlis.xml` | `SitemapController@events` | `sitemap.events` | Events sitemap |
 | 19 | GET | `/peta-laman-institusi.xml` | `SitemapController@institutions` | `sitemap.institutions` | Institutions sitemap |
-| 20 | GET | `/peta-laman-penceramah.xml` | `SitemapController@speakers` | `sitemap.speakers` | Speakers sitemap |
+| 20 | GET | `/peta-laman-penceramah.xml` | `SitemapController@persons` | `sitemap.persons` | Persons sitemap |
 | 21 | GET | `/institusi` | `pages.institutions.index` (Livewire) | `institutions.index` | Institution listing |
 | 22 | GET | `/institusi/{institution:slug}` | `pages.institutions.show` (Livewire) | `institutions.show` | Institution detail |
-| 23 | GET | `/penceramah` | `pages.speakers.index` (Livewire) | `speakers.index` | Speaker listing |
-| 24 | GET | `/penceramah/{speaker:slug}` | `pages.speakers.show` (Livewire) | `speakers.show` | Speaker detail |
+| 23 | GET | `/penceramah` | `pages.persons.index` (Livewire) | `persons.index` | Person/speaker listing |
+| 24 | GET | `/penceramah/{person:slug}` | `pages.persons.show` (Livewire) | `persons.show` | Person/speaker detail |
 | 25 | GET | `/tempat` | `pages.venues.index` (Livewire) | `venues.index` | Venue listing |
 | 26 | GET | `/lokasi/{venue:slug}` | `pages.venues.show` (Livewire) | `venues.show` | Venue detail |
 | 27 | GET | `/siri/{series:slug}` | `pages.series.show` (Livewire) | `series.show` | Series detail |
@@ -144,7 +146,7 @@
 | 43 | GET | `/jemputan-ahli/{token}` | `ShowMemberInvitation` (Livewire) | `member-invitations.show` | Accept invitation |
 | 44 | GET | `/sumbangan` | `ContributionsIndex` (Livewire) | `contributions.index` | My contributions |
 | 45 | GET | `/sumbangan/institusi/baru` | `SubmitInstitution` (Livewire) | `contributions.submit-institution` | Submit institution |
-| 46 | GET | `/sumbangan/penceramah/baru` | `SubmitSpeaker` (Livewire) | `contributions.submit-speaker` | Submit speaker |
+| 46 | GET | `/sumbangan/penceramah/baru` | `SubmitPerson` (Livewire) | `contributions.submit-person` | Submit person/speaker |
 | 47 | GET | `/sumbangan/{subjectType}/berjaya` | `pages.contributions.submission-success` (Livewire) | `contributions.submission-success` | Submission success |
 | 48 | GET | `/permohonan-keahlian` | `MembershipApplicationsIndex` (Livewire) | `membership-applications.index` | My claims |
 | 49 | GET | `/pohon-keahlian/{subjectType}/{subjectId}` | `CreateMembershipApplicationPage` (Livewire) | `membership-applications.create` | New claim |
@@ -171,7 +173,7 @@ All under prefix `/api/v1`. Routes grouped by auth middleware as defined in `rou
 | 9 | GET | `/v1/forms/mobile-telemetry` | `ManifestController@mobileTelemetry` | Mobile telemetry form schema |
 | 10 | GET | `/v1/forms/submit-event` | `ManifestController@submitEvent` | Submit event form schema |
 | 11 | GET | `/v1/forms/contributions/institutions` | `ManifestController@submitInstitution` | Submit institution schema |
-| 12 | GET | `/v1/forms/contributions/speakers` | `ManifestController@submitSpeaker` | Submit speaker schema |
+| 12 | GET | `/v1/forms/contributions/persons` | `ManifestController@submitPerson` | Submit person schema |
 | 13 | GET | `/v1/catalogs/countries` | `CatalogController@countries` | List countries |
 | 14 | GET | `/v1/catalogs/states` | `CatalogController@states` | List states |
 | 15 | GET | `/v1/catalogs/cities` | `CatalogController@cities` | List cities |
@@ -182,7 +184,7 @@ All under prefix `/api/v1`. Routes grouped by auth middleware as defined in `rou
 | 20 | GET | `/v1/catalogs/tags/{type}` | `CatalogController@tags` | List tags by type |
 | 21 | GET | `/v1/catalogs/references` | `CatalogController@references` | List references |
 | 22 | GET | `/v1/catalogs/submit-institutions` | `CatalogController@submitInstitutions` | List institutions for forms |
-| 23 | GET | `/v1/catalogs/submit-speakers` | `CatalogController@submitSpeakers` | List speakers for forms |
+| 23 | GET | `/v1/catalogs/submit-persons` | `CatalogController@submitPersons` | List persons for forms |
 | 24 | GET | `/v1/catalogs/venues` | `CatalogController@venues` | List venues |
 | 25 | GET | `/v1/catalogs/spaces` | `CatalogController@spaces` | List spaces |
 | 26 | GET | `/v1/catalogs/prayer-institutions` | `CatalogController@prayerInstitutions` | List prayer institutions |
@@ -194,8 +196,8 @@ All under prefix `/api/v1`. Routes grouped by auth middleware as defined in `rou
 | 32 | GET | `/v1/institutions` | `SearchController@institutions` | Institution listing |
 | 33 | GET | `/v1/institutions/near` | `SearchController@institutionsNear` | Nearby institutions |
 | 34 | GET | `/v1/institutions/{institutionKey}` | `SearchController@showInstitution` | Institution detail |
-| 35 | GET | `/v1/speakers` | `SearchController@speakers` | Speaker listing |
-| 36 | GET | `/v1/speakers/{speakerKey}` | `SearchController@showSpeaker` | Speaker detail |
+| 35 | GET | `/v1/persons` | `SearchController@persons` | Person listing |
+| 36 | GET | `/v1/persons/{personKey}` | `SearchController@showPerson` | Person detail |
 | 37 | GET | `/v1/inspirations/random` | `SearchController@randomInspiration` | Random inspiration |
 | 38 | GET | `/v1/venues/{venueKey}` | `SearchController@showVenue` | Venue detail |
 | 39 | GET | `/v1/references` | `SearchController@references` | Reference listing |
@@ -242,7 +244,7 @@ All under prefix `/api/v1`. Routes grouped by auth middleware as defined in `rou
 | 75 | POST | `/v1/github-issues` | `GitHubIssueController@store` | Submit GitHub issue |
 | 76 | GET | `/v1/contributions` | `ContributionController@index` | List contributions |
 | 77 | POST | `/v1/contributions/institutions` | `ContributionController@storeInstitution` | Submit institution |
-| 78 | POST | `/v1/contributions/speakers` | `ContributionController@storeSpeaker` | Submit speaker |
+| 78 | POST | `/v1/contributions/persons` | `ContributionController@storePerson` | Submit person |
 | 79 | POST | `/v1/contributions/{subjectType}/{subject}/suggest` | `ContributionController@suggestUpdate` | Suggest update |
 | 80 | POST | `/v1/contributions/{requestId}/approve` | `ContributionController@approve` | Approve contribution |
 | 81 | POST | `/v1/contributions/{requestId}/reject` | `ContributionController@reject` | Reject contribution |
@@ -334,11 +336,13 @@ DASHBOARD
 DIRECTORY
   ├── Institutions (Heroicon: BuildingLibrary)
   │   └── Create, List, View, Edit
-  ├── Speakers (Heroicon: Microphone)
+  ├── People/Persons (Heroicon: UserGroup)
   │   └── Create, List, View, Edit
   ├── Spaces/Venue Spaces (Heroicon: RectangleStack)
   │   └── Create, List, View, Edit
-  └── References (Heroicon: RectangleStack)
+  ├── References (Heroicon: RectangleStack)
+  │   └── Create, List, Edit
+  └── Donation Channels (Heroicon: RectangleStack)
       └── Create, List, Edit
 
 CONTENT
@@ -397,7 +401,7 @@ EVENTS (from Events plugin)
 DIRECTORY
   └── Institutions (/ahli/institutions) — sort:20
       └── Edit (only)
-  └── Speakers (/ahli/speakers) — sort:30
+  └── People (/ahli/persons) — sort:30
       └── List, View, Edit
   └── References (/ahli/references) — sort:40
       └── List, Edit
@@ -411,7 +415,7 @@ HOMEPAGE (/)
 LISTINGS (all searchable/filterable)
   ├── Events / Majlis (/majlis)
   ├── Institutions (/institusi)
-  ├── Speakers (/penceramah)
+  ├── Speakers/People (/penceramah)
   ├── Venues (/tempat)
   └── References (/rujukan)
 
@@ -449,7 +453,7 @@ AUTH USER MENU (when logged in)
 ├── /submit-event        — Event submission (public)
 ├── /events/*            — Events CRUD + registrations + planner
 ├── /institutions/*      — Institutions
-├── /speakers/*          — Speakers
+├── /persons/*           — People/Speakers
 ├── /venues/*            — Venues
 ├── /references/*        — References
 ├── /series/*            — Series
@@ -482,7 +486,7 @@ AUTH USER MENU (when logged in)
 | 2 | **Submit Event** (API) | `POST /api/v1/submit-event` | Public (API) | `ValidatedEventSubmission` DTO | `SubmitFrontendEventAction` |
 | 3 | **Advanced Event** (multi-step) | `/dashboard/majlis/cipta-lanjutan` | Auth (Livewire) | Array state | `CreateAdvancedEventAction` |
 | 4 | **Create Institution** | `/sumbangan/institusi/baru` | Auth (Livewire) | Array state | `SubmitStagedContributionCreateAction` |
-| 5 | **Create Speaker** | `/sumbangan/penceramah/baru` | Auth (Livewire) | Array state | `SubmitStagedContributionCreateAction` |
+| 5 | **Create Person** | `/sumbangan/penceramah/baru` | Auth (Livewire) | Array state | `SubmitStagedContributionCreateAction` |
 | 6 | **Suggest Update** | `/sumbangan/{type}/{id}/kemas-kini` | Auth (Livewire) | Array state | `ApplyDirectContributionUpdateAction` / `SubmitContributionUpdateRequestAction` |
 | 7 | **Create Report** | `/lapor/{type}/{id}` | Auth (Livewire) | Array state | `SubmitReportAction` |
 | 8 | **Membership Application** | `/pohon-keahlian/{type}/{id}` | Auth (Livewire) | Array state | `SubmitMembershipApplicationAction` |
@@ -500,7 +504,7 @@ AUTH USER MENU (when logged in)
 |---|----------|-------|-------------|-----------|
 | 1 | User | `User` | name, email, phone, timezone, email_verified_at, phone_verified_at, password, roles | No |
 | 2 | Institution | `Institution` | type, name, nickname, slug, description, contactMethods, address (country/state/city/district/subdistrict), status, allow_public_event_submission, socialProfiles | Yes (logo, cover, gallery) |
-| 3 | Speaker | `Speaker` | name, gender, is_freelance, job_title, honorific, pre_nominal, post_nominal, bio, languages, address (region only), qualifications, contactMethods, status, socialProfiles | Yes (avatar, cover, gallery) |
+| 3 | Person | `Person` | name, gender, is_freelance, job_title, honorific, pre_nominal, post_nominal, bio, languages, address (region only), qualifications, contactMethods, status, socialProfiles | Yes (avatar, cover, gallery) |
 | 4 | Series | `Series` | title, slug, description, visibility, status, languages | Yes (cover, gallery) |
 | 5 | Space | `Space` | name, slug, capacity, status, visibility, institutions | No |
 | 6 | Reference | `Reference` | title, author, type, parent_id, part_type, part_number, part_label, year, publisher, is_canonical, status, description | Yes (front_cover, back_cover, gallery) |
@@ -523,7 +527,7 @@ AUTH USER MENU (when logged in)
 **Form fields (5-step wizard):**
 - Step 1: event_category_ids, title, description, submission_country_id, event_date, prayer_time, custom_time, end_time, event_format, visibility, event_url, live_url, gender, age_group, languages, children_allowed, is_muslim_only
 - Step 2: domain_tags, discipline_tags, source_tags, issue_tags, references
-- Step 3: primary_organizer_kind, primary_organizer_institution_id, primary_organizer_speaker_id, location_same_as_institution, location_type, location_institution_id, location_venue_id, space_ids
+- Step 3: primary_organizer_kind, primary_organizer_institution_id, primary_organizer_person_id, location_same_as_institution, location_type, location_institution_id, location_venue_id, space_ids
 - Step 4: speakers, other_key_people (repeater), cover, poster, gallery
 - Step 5: submitter_name, submitter_email, submitter_phone, notes, captcha_token
 
@@ -570,11 +574,11 @@ Form → Livewire submit()
 - `media` — cover, poster, gallery
 - `spaces` pivot — space links
 
-### 5.4 Complete Submission Flow: Contribution (Create Institution/Speaker)
+### 5.4 Complete Submission Flow: Contribution (Create Institution/Person)
 
 **Entry points:**
 - Web: `/sumbangan/institusi/baru`, `/sumbangan/penceramah/baru` (Livewire)
-- API: `POST /v1/contributions/institutions`, `POST /v1/contributions/speakers`
+- API: `POST /v1/contributions/institutions`, `POST /v1/contributions/persons`
 
 **Data flow:**
 ```
@@ -583,7 +587,7 @@ Form → SubmitStagedContributionCreateAction::handle()
     → Proposed data stored as JSON in proposed_data column
     → ContributionRequest created with:
       - type: 'create'
-      - subject_type: 'institution'|'speaker'
+      - subject_type: 'institution'|'person'
       - entity_type: null (entity not yet created)
       - proposer_id: auth user
       - status: 'pending'
@@ -671,7 +675,7 @@ Filament Form → Resource::mutateFormDataBeforeCreate()
                   → Observers fire (created, saved, updated)
                     → EventObserver (slug, cache, search)
                     → InstitutionObserver (slug, cache)
-                    → SpeakerObserver (slug, cache)
+                    → PersonObserver (slug, cache)
                     → etc.
               → Resource::afterCreate()
                 → SaveRelationships (Repeater, media, BelongsToMany)
@@ -686,9 +690,8 @@ Filament Form → Resource::mutateFormDataBeforeCreate()
 | Seeder | File | Records | Target Models | Env Gate |
 |--------|------|---------|---------------|----------|
 | `MasjidSeeder` | `database/seeders/senarai_masjid.csv` | 6,936 | `Institution` (masjid) + addresses + contacts | `SEED_MASJID_DIRECTORY=true` |
-| `GeneratedFileFinalFixedPoskodSeeder` | `database/seeders/Generated_File_Final_Fixed_Poskod.csv` | 6,935 | `Institution` (masjid) + addresses | Always runs in seed |
 | `InstitutionSeeder` | Inline array | ~59 | `Institution` + contacts + addresses | `seedWhenEmpty` |
-| `SpeakerSeeder` | Inline array | ~30 | `Speaker` | `seedWhenEmpty` |
+| `PersonSeeder` | Inline array | ~30 | `Person` | `seedWhenEmpty` |
 | `VenueSeeder` | Factory | 50 | `Venue` | `seedWhenEmpty` |
 | `ReferenceSeeder` | Inline array | 13 | `Reference` | `seedWhenEmpty` |
 | `EventTaxonomySeeder` | Inline tree (in `AIArmada/` subdir) | 29 terms | `EventTerm` | Always |
@@ -714,22 +717,24 @@ Filament Form → Resource::mutateFormDataBeforeCreate()
 | `SeriesSeeder` | Factory | ~5 | `Series` | Seed |
 | `SpaceSeeder` | Factory | ~5 | `Space` | Seed |
 | `SubdistrictSeeder` | Inline array | ~180 | `AddressArea` (subdistricts) | Seed |
+| `TitleCategorySeeder` | Inline array | ~5 | `TitleCategory` | Seed |
+| `TitleSeeder` | Inline array | ~10 | `Title` | Seed |
 | `UserSeeder` | Factory | ~5 | `User` | Seed |
 | `WorldSeeder` | CSV | ~200 | `AddressCountry` | Seed |
 
-**Key: MasjidSeeder** — reads CSV with `fgetcsv()`, resolves state via aliases, resolves district via `AddressArea`, limits to 300 rows, stores phone contacts.
+**Orphaned (on disk, not in DatabaseSeeder):** `GeneratedFileFinalFixedPoskodSeeder` — reads CSV with `fgetcsv()`, resolves state/district/subdistrict via sophisticated matching (aliases, overrides, Jengka inference, Pusa/Betong special case), creates missing subdistricts on-the-fly, enforces strict validation, creates/finds institutions with `firstOrNew` + idempotent slugs.
 
-**Key: GeneratedFileFinalFixedPoskodSeeder** — reads CSV with `fgetcsv()`, resolves state/district/subdistrict via sophisticated matching (aliases, overrides, Jengka inference, Pusa/Betong special case), creates missing subdistricts on-the-fly, enforces strict validation (throws on unresolvable rows), creates/finds institutions with `firstOrNew` + idempotent slugs.
+**Key: MasjidSeeder** — reads CSV with `fgetcsv()`, resolves state via aliases, resolves district via `AddressArea`, limits to 300 rows, stores phone contacts.
 
 ### 6.2 Scout Index Commands
 
 | Command | Model | Action |
 |---------|-------|--------|
 | `search:index-events` | `Event` | `scout:import` wrapper |
-| `search:index-speakers` | `Speaker` | `scout:import` wrapper |
+| `search:index-persons` | `Person` | `scout:import` wrapper |
 | `search:index-institutions` | `Institution` | `scout:import` wrapper |
 | `search:index-references` | `Reference` | `scout:import` wrapper |
-| `speakers:reindex-search` | Speaker names | Custom reindex (not Scout) |
+| `persons:reindex-search` | Person names | Custom reindex (not Scout) |
 
 ### 6.3 MCP Batch Tools
 
@@ -743,7 +748,7 @@ Filament Form → Resource::mutateFormDataBeforeCreate()
 | Job | Model | Purpose |
 |-----|-------|---------|
 | `BackfillEventSlugs` | `Event` | Regenerate slugs |
-| `BackfillSpeakerSlugs` | `Speaker` | Regenerate slugs |
+| `BackfillPersonSlugs` | `Person` | Regenerate slugs |
 | `BackfillInstitutionSlugs` | `Institution` | Regenerate slugs |
 | `BackfillVenueSlugs` | `Venue` | Regenerate slugs |
 | `BackfillReferenceSlugs` | `Reference` | Regenerate slugs |
@@ -757,9 +762,9 @@ Filament Form → Resource::mutateFormDataBeforeCreate()
 | # | Model | Table | Primary Key | Traits | Factory | Extends |
 |---|-------|-------|-------------|--------|---------|---------|
 | 1 | `Event` | `events` (package) | UUID | Audits, HasAddresses, HasDonationChannels, HasFactory, HasMembers, HasResponses, HasStates, KeepsDeletedModels, Searchable | `EventFactory` | `AIArmada\Events\Models\Event` |
-| 2 | `User` | `users` | UUID | Audits, CanBookmark, CanRespond, HasApiTokens, HasFactory, HasRoles, HasUuids, KeepsDeletedModels, MustVerifyEmail, CanFollow, HasInbox, Notifiable | `UserFactory` | `Illuminate\Foundation\Auth\User` |
+| 2 | `User` | `users` | UUID | Audits, CanBookmark, CanRespond, HasApiTokens, HasFactory, HasRoles, HasUuids, HasUserRestoration, KeepsDeletedModels, MustVerifyEmail, CanFollow, HasInbox, Notifiable | `UserFactory` | `Illuminate\Foundation\Auth\User` |
 | 3 | `Institution` | `institutions` | UUID | Audits, HasAddresses, HasContactMethods, HasDonationChannels, HasFactory, HasLanguages, HasMembers, HasSocialProfiles, HasUuids, InteractsWithMedia, KeepsDeletedModels, Searchable | `InstitutionFactory` | `Model` |
-| 4 | `Speaker` | `speakers` | UUID | Audits, HasAddresses, HasContactMethods, HasDonationChannels, HasFactory, HasLanguages, HasMembers, HasSocialProfiles, HasUuids, InteractsWithMedia, KeepsDeletedModels, Searchable | `SpeakerFactory` | `Model` |
+| 4 | `Person` | `persons` | UUID | Audits, HasAddresses, HasContactMethods, HasDonationChannels, HasFactory, HasLanguages, HasMembers, HasSocialProfiles, HasUuids, InteractsWithMedia, KeepsDeletedModels, Searchable | `PersonFactory` | `AIArmada\Persons\Models\Person` |
 | 5 | `Venue` | `venues` (package) | UUID | Audits, HasAddresses, HasContactMethods, HasFactory, HasSocialProfiles, KeepsDeletedModels | `VenueFactory` | `AIArmada\Events\Models\Venue` |
 | 6 | `Series` | `event_series` | UUID | Audits, HasFactory, HasLanguages, InteractsWithMedia | `SeriesFactory` | `AIArmada\Events\Models\EventSeries` |
 | 7 | `Reference` | `references` (package) | UUID | Audits, HasSocialProfiles, KeepsDeletedModels, Searchable, HasFactory, HasMembers | `ReferenceFactory` | `AIArmada\References\Models\Reference` |
@@ -781,25 +786,26 @@ Filament Form → Resource::mutateFormDataBeforeCreate()
 | 23 | `MembershipApplication` | `membership_applications` (package) | UUID | Audits, HasFactory, InteractsWithMedia | `MembershipApplicationFactory` | `AIArmada\Membership\Models\MembershipApplication` |
 | 24 | `EventKeyPerson` | `event_key_people` (package) | UUID | — | — | `AIArmada\Events\Models\EventInvolvement` |
 | 25 | `EventKeyPersonPivot` | `event_involvements` | UUID | HasUuids | — | `Pivot` |
-| 26 | `InstitutionSpeakerPivot` | `institution_speaker` | UUID | HasUuids | — | `Pivot` |
-| 27 | `EventReferencePivot` | `event_references` | UUID | HasUuids | — | `MorphPivot` |
-| 28 | `Inspiration` | `inspirations` | UUID | Audits, HasFactory, HasUuids, InteractsWithMedia | `InspirationFactory` | `Model` |
-| 29 | `AiModelPricing` | `ai_model_pricings` | UUID | Audits, HasFactory, HasUuids | — | `Model` |
-| 30 | `AiUsageLog` | `ai_usage_logs` | UUID | HasFactory, HasUuids | — | `Model` |
-| 31 | `Space` | `spaces` (package) | UUID | Audits | `SpaceFactory` | `AIArmada\Events\Models\VenueSpace` |
-| 32 | `PassportUser` | `users` | UUID | HasApiTokens | — | `Authenticatable` |
+| 26 | `EventReferencePivot` | `event_references` | UUID | HasUuids | — | `MorphPivot` |
+| 27 | `Inspiration` | `inspirations` | UUID | Audits, HasFactory, HasUuids, InteractsWithMedia | `InspirationFactory` | `Model` |
+| 28 | `AiModelPricing` | `ai_model_pricings` | UUID | Audits, HasFactory, HasUuids | — | `Model` |
+| 29 | `AiUsageLog` | `ai_usage_logs` | UUID | HasFactory, HasUuids | — | `Model` |
+| 30 | `Affiliation` | `affiliations` (package) | UUID | HasUuids, HasFactory | `AffiliationFactory` | `AIArmada\Persons\Models\Affiliation` |
+| 31 | `Language` | `languages` | UUID | HasUuids, HasFactory | `LanguageFactory` | `Model` |
+| 32 | `Space` | `spaces` (package) | UUID | Audits | `SpaceFactory` | `AIArmada\Events\Models\VenueSpace` |
+| 33 | `PassportUser` | `users` | UUID | HasApiTokens | — | `Authenticatable` |
 
 ### 7.2 Concern Traits (in `app/Models/Concerns/`)
 
 | Trait | Used By | Purpose |
 |-------|---------|---------|
 | `AuditsModelChanges` | Most models | Wraps owen-it/auditing with custom tags, custom audit methods |
-| `HasDonationChannels` | Event, Institution, Speaker | Polymorphic donation channels |
-| `HasLanguages` | Institution, Speaker, Series | Polymorphic language links |
+| `HasDonationChannels` | Event, Institution, Person | Polymorphic donation channels |
+| `HasLanguages` | Institution, Person, Series | Polymorphic language links |
 | `HasUserRestoration` | User only | Full user-deletion cascade + restoration logic (social accounts, follows, bookmarks, memberships, registrations, etc.) |
 
 **Package traits (not local):**
-- `KeepsDeletedModels` (spatie/laravel-deleted-models) — Event, User, Institution, Venue, Speaker, Reference
+- `KeepsDeletedModels` (spatie/laravel-deleted-models) — Event, User, Institution, Venue, Person, Reference
 
 ### 7.3 Model Events (Booted)
 
@@ -809,8 +815,8 @@ Filament Form → Resource::mutateFormDataBeforeCreate()
 | `Event` | `deleting` | Cascade cleanup (members, involvements, key people, submissions, etc.) |
 | `User` | `updated` | Sync public submission locks on phone_verified_at change |
 | `User` | `deleting` | Massive cleanup (social accounts, auth, memberships, follows, etc.) |
-| `Institution` | `saving` | Auto-set last_state_change_at, verified_at/rejected_at/inactive_at |
-| `Speaker` | `saving` | Auto-set last_state_change_at, auto-derive post_nominal |
+| `Institution` | `saving` | Auto-set last_state_change_at, verified_at/rejected_at/published_at |
+| `Person` | `saving` | Auto-set last_state_change_at, verified_at/rejected_at/published_at |
 | `Venue` | `saving` | Set verified_by on status change |
 | `Reference` | `saving` | Auto-generate slug, normalize parts, set verified_by |
 | `Report` | `creating` | Set default reporter_type |
@@ -830,7 +836,7 @@ Observers registered in `AppServiceProvider::registerModelObservers()` (13) + `A
 |----------|-------|--------|-------------|
 | `EventObserver` | `Event` | creating, created, updating, updated, saved, deleted | Slug generation, cache busting, Scout search, slug redirect sync |
 | `VenueObserver` | `Venue` | saved, deleted | Slug sync, cache busting |
-| `SpeakerObserver` | `Speaker` | saved, deleted | Slug sync (name/honorific changes), search record sync, cache busting |
+| `PersonObserver` | `Person` | saved, deleted | Slug sync (name/honorific changes), search record sync, cache busting |
 | `InstitutionObserver` | `Institution` | saved, deleted | Slug sync, cache busting (listings + directory + search) |
 | `ReferenceObserver` | `Reference` | updated, deleted | Slug sync |
 | `EventOccurrenceObserver` | `EventOccurrence` | saved, deleted | Re-sync parent Event searchability |
@@ -839,7 +845,7 @@ Observers registered in `AppServiceProvider::registerModelObservers()` (13) + `A
 | `EventTermObserver` | `EventTerm` | saved, deleted | Cache busting |
 | `AddressObserver` | `Address` | saving, saved, deleted | Default country, slug sync, cache busting |
 | `AddressableObserver` | `Addressable` | created, deleted | Cache busting, slug/search sync |
-| `AddressAreaObserver` | `AddressArea` | saving, saved, deleted | Location cache flush, guard delete if referenced |
+| `AddressAreaObserver` | `AddressArea` | saved, deleted, deleting | Location cache flush, guard delete if referenced |
 | `AddressCountryObserver` | `AddressCountry` | saving, saved, deleted | Entity type, cache flush, guard delete if referenced |
 | `AuditedMediaObserver` | `Media` | created, updating, updated, deleting, deleted | Audit trail on owner model, cache busting |
 
@@ -881,13 +887,12 @@ Observers registered in `AppServiceProvider::registerModelObservers()` (13) + `A
 | `SubmitContributionUpdateRequestAction` | Submit update request |
 | `SubmitStagedContributionCreateAction` | End-to-end staged create flow |
 
-### 9.3 Events (18)
+### 9.3 Events (17)
 
 | Action | Purpose |
 |--------|---------|
 | `CompleteFrontendEventSubmissionAction` | Post-persist side effects (share tracking, auto-approve) |
 | `CreateAdvancedEventAction` | Create advanced event (parent program) |
-| `GenerateEventCoverImageAction` | Generate AI cover image |
 | `GenerateEventSlugAction` | Generate unique slug |
 | `MarkEventGoingAction` | Mark user as going |
 | `PersistValidatedEventSubmissionAction` | **Write event to DB** (core persistence) |
@@ -911,12 +916,12 @@ Observers registered in `AppServiceProvider::registerModelObservers()` (13) + `A
 | `GenerateInstitutionSlugAction` | Generate slug |
 | `SaveInstitutionAction` | Save institution (used by Filament) |
 
-### 9.5 Speakers (2)
+### 9.5 Persons (2)
 
 | Action | Purpose |
 |--------|---------|
-| `GenerateSpeakerSlugAction` | Generate slug |
-| `SaveSpeakerAction` | Save speaker (used by Filament) |
+| `GeneratePersonSlugAction` | Generate slug |
+| `SavePersonAction` | Save person (used by Filament) |
 
 ### 9.6 References (2)
 
@@ -944,7 +949,7 @@ Observers registered in `AppServiceProvider::registerModelObservers()` (13) + `A
 | `InviteSubjectMember` | Invite new member |
 | `SubmitMembershipApplicationAction` | Submit membership claim |
 
-### 9.9 Other Actions (16)
+### 9.9 Other Actions (22)
 
 | Domain | Actions |
 |--------|---------|
@@ -1012,10 +1017,9 @@ Observers registered in `AppServiceProvider::registerModelObservers()` (13) + `A
 |---------|---------|
 | `GitHubIssueReporter` | Submit GitHub issues |
 
-**`Services/Notifications/` (5):**
+**`Services/Notifications/` (4):**
 | Service | Purpose |
 |---------|---------|
-| `ChannelSendResult` | Notification channel result DTO |
 | `ContributionRequestNotificationService` | Contribution notifications |
 | `EventNotificationService` | Event notifications |
 | `NotificationMessageRenderer` | Render notification templates |
@@ -1048,7 +1052,7 @@ Observers registered in `AppServiceProvider::registerModelObservers()` (13) + `A
 | `DispatchEventReminderNotifications` | default (every 15 min) | Send event reminders |
 | `EscalatePendingEvents` | default (hourly) | Escalate stuck pending events |
 | `BackfillEventSlugs` | default | Regenerate event slugs |
-| `BackfillSpeakerSlugs` | default | Regenerate speaker slugs |
+| `BackfillPersonSlugs` | default | Regenerate person slugs |
 | `BackfillInstitutionSlugs` | default | Regenerate institution slugs |
 | `BackfillVenueSlugs` | default | Regenerate venue slugs |
 | `BackfillReferenceSlugs` | default | Regenerate reference slugs |
@@ -1064,15 +1068,15 @@ Observers registered in `AppServiceProvider::registerModelObservers()` (13) + `A
 | `IndexEventsToTypesense` | `search:index-events {--fresh} {--chunk=500}` | Import events to Scout |
 | `IndexInstitutionsToTypesense` | `search:index-institutions {--fresh} {--chunk=500}` | Import institutions to Scout |
 | `IndexReferencesToTypesense` | `search:index-references {--fresh} {--chunk=500}` | Import references to Scout |
-| `IndexSpeakersToTypesense` | `search:index-speakers {--fresh} {--chunk=500}` | Import speakers to Scout |
-| `ReindexSpeakerSearch` | `speakers:reindex-search {--chunk=100}` | Rebuild speaker search index |
+| `IndexPersonsToTypesense` | `search:index-persons {--fresh} {--chunk=500}` | Import persons to Scout |
+| `ReindexPersonSearch` | `persons:reindex-search {--chunk=100}` | Rebuild person search index |
 | `IssueMcpToken` | `mcp:token {email} {name=opencode-mcp} {--server=admin}` | Issue MCP auth token |
 | `MigrateMediaToNewStructure` | `app:media:migrate-structure {--dry-run} {--force}` | Migrate media file structure |
 | `PruneOrphanedEntities` | `app:prune-orphaned-entities {--hours=48} {--dry-run}` | Remove orphaned records |
 | `QueueBackfillEventSlugs` | `events:queue-slug-backfill` | Queue slug backfill job |
 | `QueueBackfillInstitutionSlugs` | `institutions:queue-slug-backfill` | Queue slug backfill |
 | `QueueBackfillReferenceSlugs` | `references:queue-slug-backfill` | Queue slug backfill |
-| `QueueBackfillSpeakerSlugs` | `speakers:queue-slug-backfill` | Queue slug backfill |
+| `QueueBackfillPersonSlugs` | `persons:queue-slug-backfill` | Queue slug backfill |
 | `QueueBackfillVenueSlugs` | `venues:queue-slug-backfill` | Queue slug backfill |
 | `SendDigestNotificationsCommand` | `communications:send-digests` | Send digest emails |
 | `SyncPublicSubmissionLocks` | `app:sync-public-submission-locks` | Sync submission lock state |
@@ -1088,7 +1092,7 @@ User fills 5-step form (Livewire Anonymous Component)
   │
   ├─ Step 1: Details (title, date, prayer time, format, visibility, audience)
   ├─ Step 2: Categories & Tags (domain, discipline, source, issue, references)
-  ├─ Step 3: Organizer & Location (institution/speaker, venue, spaces)
+  ├─ Step 3: Organizer & Location (institution/person, venue, spaces)
   ├─ Step 4: Speakers & Media (speakers, roles, cover, poster, gallery)
   └─ Step 5: Review & Submit (submitter name/email/phone, notes, captcha)
         │
@@ -1099,8 +1103,8 @@ User fills 5-step form (Livewire Anonymous Component)
     ├── Assert conditional requirements
     ├── Assert entity access permissions
     ├── Resolve startsAt/endsAt/tz (prayer time or custom time)
-    ├── Resolve organizer & location (Institution|Speaker + Venue)
-    ├── Generate slug (title + date + speaker slugs)
+    ├── Resolve organizer & location (Institution|Person + Venue)
+    ├── Generate slug (title + date + person slugs)
     ├── Build ValidatedEventSubmission DTO
     │
     └── DB::transaction()
@@ -1108,7 +1112,7 @@ User fills 5-step form (Livewire Anonymous Component)
             ├── events: title, slug, description, timezone, status, visibility, gender, etc.
             ├── event_occurrences: starts_at, ends_at, timing_mode
             ├── event_locations: venue_id, institution_id, space_ids
-            ├── event_involvements: primary organizer (institution/speaker)
+            ├── event_involvements: primary organizer (institution/person)
             ├── event_key_people: speakers + other roles
             ├── event_languages: language IDs
             ├── event_classifications: category/domain/discipline/source/issue
@@ -1124,26 +1128,26 @@ User fills 5-step form (Livewire Anonymous Component)
                     └── ModerationService::approve()
 ```
 
-### 13.2 Contribution Flow (Create Institution/Speaker)
+### 13.2 Contribution Flow (Create Institution/Person)
 
 ```
 User fills contribution form (Livewire)
   │
   ├── Institution: name, type, address, contact, media, social
-  └── Speaker: name, gender, bio, qualifications, contact, media
+  └── Person: name, gender, bio, qualifications, contact, media
         │
         ▼
   SubmitStagedContributionCreateAction::handle()
     └── ContributionRequest:create
         ├── type: 'create'
-        ├── subject_type: 'institution'|'speaker'
+        ├── subject_type: 'institution'|'person'
         ├── proposer_id: auth user
         ├── status: 'pending'
         └── proposed_data: {full form JSON}
               │
               ▼  (Admin reviews via Filament or API)
   ApproveContributionRequestAction
-    └── Institution|Speaker::create(proposed_data)
+    └── Institution|Person::create(proposed_data)
               │
               ▼  OR
   RejectContributionRequestAction
@@ -1244,13 +1248,13 @@ users ──hasMany──→ contribution_requests (proposer)
 users ──hasMany──→ membership_applications (applicant)
 users ──hasMany──→ reports (reporter)
 users ──belongsToMany──→ institutions (as member)
-users ──belongsToMany──→ speakers (as member)
+users ──belongsToMany──→ persons (as member)
 users ──belongsToMany──→ references (as member)
 
 events ──belongsTo──→ institutions (owner)
 events ──belongsTo──→ venues (default venue)
 events ──hasMany──→ event_occurrences
-events ──hasMany──→ event_involvements (organizer, speakers, key people)
+events ──hasMany──→ event_involvements (organizer, key people)
 events ──hasMany──→ event_classifications (categories, domains, etc.)
 events ──hasMany──→ event_submissions
 events ──hasMany──→ event_checkins
@@ -1258,21 +1262,21 @@ events ──hasMany──→ event_change_announcements
 events ──morphMany──→ reports
 events ──morphMany──→ bookmarks
 events ──morphMany──→ responses (going/saved)
-events ──belongsToMany──→ speakers (via involvements)
+events ──belongsToMany──→ persons (via involvements)
 events ──belongsToMany──→ references
 events ──belongsToMany──→ series
 
 institutions ──hasMany──→ events
-institutions ──belongsToMany──→ speakers
+institutions ──belongsToMany──→ persons
 institutions ──belongsToMany──→ spaces
 institutions ──hasMany──→ donation_channels (morph)
 institutions ──hasMany──→ member_invitations (morph)
 
-speakers ──belongsToMany──→ events (via involvements)
-speakers ──belongsToMany──→ institutions
-speakers ──hasMany──→ event_key_people
+persons ──belongsToMany──→ events (via involvements)
+persons ──belongsToMany──→ institutions
+persons ──hasMany──→ event_key_people
 
-addresses ──morphTo──→ addressable (institution, speaker, venue, event)
+addresses ──morphTo──→ addressable (institution, person, venue, event)
 contact_methods ──morphTo──→ contactable
 media ──morphTo──→ model
 ```
@@ -1283,12 +1287,12 @@ media ──morphTo──→ model
 
 ```
 app/
-├── Actions/                 83 files (21 subdirs)
+├── Actions/                 82 files (21 subdirs)
 │   ├── AddressAreas/ (0 — reserved)
 │   ├── Auth/ (5)
 │   ├── Contributions/ (19)
 │   ├── DonationChannels/ (1)
-│   ├── Events/ (18)
+│   ├── Events/ (17)
 │   ├── Fortify/ (4)
 │   ├── GitHub/ (1)
 │   ├── Inspirations/ (1)
@@ -1303,10 +1307,10 @@ app/
 │   ├── Signals/ (1)
 │   ├── Slugs/ (7 — 3 actions + 4 concerns)
 │   ├── Spaces/ (1)
-│   ├── Speakers/ (2)
+│   ├── Persons/ (2)
 │   └── Venues/ (2)
 ├── Console/Commands/        16 files
-├── Data/                    56 files (18 subdirs incl. Api/, Events/, ShareTracking/, GitHub/)
+├── Data/                    56 files (19 subdirs incl. Api/, Events/, ShareTracking/, GitHub/)
 ├── Filament/
 │   ├── Ahli/Resources/      3 resources
 │   ├── Pages/               8 pages
@@ -1327,12 +1331,12 @@ app/
 │   ├── Reports/ (1)
 │   ├── SavedSearches/ (1)
 │   ├── Search/ (1)
-│   ├── Speakers/ (1)
+│   ├── Persons/ (1)
 │   └── SubmitEvent/ (1)
 ├── Mcp/                     MCP servers (Admin, Member) + tools + prompts
-├── Models/                  37 files (32 top-level + 4 concerns + 1 builder)
+├── Models/                  38 files (33 top-level + 4 concerns + 1 builder)
 ├── Observers/               15 files (14 observers + 1 concern)
-├── Services/                36 files (13 root + 23 in subdirs)
+├── Services/                35 files (13 root + 22 in subdirs)
 └── Support/                 Media, slugs, formatters, timezone
 ```
 

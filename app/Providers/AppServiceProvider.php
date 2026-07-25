@@ -62,6 +62,7 @@ use App\Observers\EventOccurrenceObserver;
 use App\Observers\EventTermObserver;
 use App\Observers\EventTimeExpressionObserver;
 use App\Observers\InstitutionObserver;
+use App\Observers\PersonObserver;
 use App\Observers\ReferenceObserver;
 use App\Observers\VenueObserver;
 use App\Policies\AddressAreaPolicy;
@@ -358,6 +359,7 @@ class AppServiceProvider extends ServiceProvider
         EventOccurrence::observe(EventOccurrenceObserver::class);
         EventTimeExpression::observe(EventTimeExpressionObserver::class);
         Institution::observe(InstitutionObserver::class);
+        Person::observe(PersonObserver::class);
         Reference::observe(ReferenceObserver::class);
         Venue::observe(VenueObserver::class);
 
