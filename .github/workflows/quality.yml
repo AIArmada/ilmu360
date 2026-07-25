@@ -315,7 +315,7 @@ jobs:
 
       - name: Upload Pest timing artifact
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: pest-timing-shard-${{ matrix.shard }}
           path: artifacts/pest-timing/report.csv
