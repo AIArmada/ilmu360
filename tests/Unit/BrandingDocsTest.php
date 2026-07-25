@@ -15,8 +15,6 @@ dataset('active current-brand docs', [
 ]);
 
 dataset('canonical lowercase docs', [
-    'api mcp filament crud comparison json' => 'docs/ilmu360_api_mcp_filament_crud_comparison.json',
-    'api mcp filament crud comparison markdown' => 'docs/ilmu360_api_mcp_filament_crud_comparison.md',
     'event domain understanding' => 'docs/ilmu360_event_domain_understanding.md',
     'mcp admin agent guide' => 'docs/ilmu360_mcp_admin_agent_guide.md',
     'mcp csv json creation guide' => 'docs/ilmu360_mcp_event_csv_json_creation_guide.md',

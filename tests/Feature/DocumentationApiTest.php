@@ -14,7 +14,6 @@ it('lists the curated documentation library over the public api', function (): v
             'docs-admin-mcp-guide',
             'docs-member-mcp-guide',
             'docs-review-and-enhancement-plan',
-            'docs-api-mcp-filament-crud-comparison-json',
         )
         ->and($documents->firstWhere('id', 'docs-mobile-api-reference')['endpoint'] ?? null)
         ->toContain('/api/v1/documentation/docs-mobile-api-reference')

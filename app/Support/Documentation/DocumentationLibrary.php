@@ -45,26 +45,6 @@ class DocumentationLibrary
     {
         return array_values(array_filter([
             [
-                'id' => 'docs-api-mcp-filament-crud-comparison',
-                'title' => 'ilmu360° API / MCP / Filament CRUD Comparison',
-                'description' => 'Capability matrix comparing the public API, admin/member MCP surfaces, and Filament-admin CRUD behavior.',
-                'relative_path' => 'docs/ilmu360_api_mcp_filament_crud_comparison.md',
-                'resource_uri' => 'file://docs/ilmu360_api_mcp_filament_crud_comparison.md',
-                'mime_type' => 'text/markdown',
-                'audiences' => [self::AUDIENCE_API, self::AUDIENCE_MCP_ADMIN, self::AUDIENCE_MCP_MEMBER],
-                'tags' => ['api', 'mcp', 'filament', 'crud', 'capability-matrix'],
-            ],
-            [
-                'id' => 'docs-api-mcp-filament-crud-comparison-json',
-                'title' => 'ilmu360° API / MCP / Filament CRUD Comparison (JSON)',
-                'description' => 'Machine-readable companion for the API, MCP, and Filament CRUD comparison matrix.',
-                'relative_path' => 'docs/ilmu360_api_mcp_filament_crud_comparison.json',
-                'resource_uri' => 'file://docs/ilmu360_api_mcp_filament_crud_comparison.json',
-                'mime_type' => 'application/json',
-                'audiences' => [self::AUDIENCE_API],
-                'tags' => ['api', 'mcp', 'filament', 'crud', 'json'],
-            ],
-            [
                 'id' => 'docs-event-domain-understanding',
                 'title' => 'ilmu360° Event Domain Understanding',
                 'description' => 'Domain primer for event structure, scheduling, persons, institutions, and related content semantics.',

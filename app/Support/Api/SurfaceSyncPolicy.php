@@ -129,11 +129,7 @@ final class SurfaceSyncPolicy
                 'routes/ai.php changes',
                 'MCP schema or file-normalization behavior changes',
             ],
-            'same_change_set_artifacts' => [
-                'docs/ilmu360_api_mcp_filament_crud_comparison.md',
-                'docs/ilmu360_api_mcp_filament_crud_comparison.json',
-                'tests/Unit/CrudComparisonDocsTest.php',
-            ],
+            'same_change_set_artifacts' => [],
             'change_checklist' => [
                 'Does the admin panel surface change?',
                 'Does the admin API surface change?',
