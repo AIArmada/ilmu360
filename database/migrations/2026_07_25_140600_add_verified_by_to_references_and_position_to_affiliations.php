@@ -46,8 +46,10 @@ return new class extends Migration
 
         // Raw inserts (e.g. MorphToMany::attach()) bypass the HasUuids trait,
         // so the DB needs defaults for NOT NULL columns they don't provide.
-        DB::statement('ALTER TABLE affiliations ALTER COLUMN id SET DEFAULT gen_random_uuid()');
-        DB::statement("ALTER TABLE affiliations ALTER COLUMN affiliation_type SET DEFAULT 'member'");
+        if (DB::getDriverName() === 'pgsql') {
+            DB::statement('ALTER TABLE affiliations ALTER COLUMN id SET DEFAULT gen_random_uuid()');
+            DB::statement("ALTER TABLE affiliations ALTER COLUMN affiliation_type SET DEFAULT 'member'");
+        }
 
         Schema::table('persons', function (Blueprint $table) {
             if (! Schema::hasColumn('persons', 'searchable_name')) {
