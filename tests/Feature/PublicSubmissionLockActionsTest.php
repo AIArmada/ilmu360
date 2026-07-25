@@ -117,8 +117,9 @@ it('refreshes institution public submission toggle eligibility without remountin
     }, $member);
     setMembershipRole($institution, $member, 'owner');
 
-    OwnerContext::withOwner(null, function () use ($page): void {
-        $page->dispatch(PublicSubmissionUiEvents::REFRESH_TOGGLE)
+    OwnerContext::withOwner(null, function () use ($admin, $institution): void {
+        Livewire::actingAs($admin)
+            ->test(EditInstitution::class, ['record' => $institution->id])
             ->assertFormFieldEnabled('allow_public_event_submission');
     });
 });
