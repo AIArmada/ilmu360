@@ -1,5 +1,6 @@
 <?php
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\FilamentAuthz\Facades\Authz;
@@ -54,9 +55,9 @@ it('uses a rich editor for institution description on the admin edit form', func
         'description' => '<p>Existing description</p>',
     ]);
 
-    Livewire::actingAs($admin)
+    OwnerContext::withOwner(null, fn () => Livewire::actingAs($admin)
         ->test(EditInstitution::class, ['record' => $institution->id])
-        ->assertFormFieldExists('description', fn (RichEditor $editor): bool => true);
+        ->assertFormFieldExists('description', fn (RichEditor $editor): bool => true));
 });
 
 it('disables turning off institution public submission when credible precondition fails', function () {
@@ -83,8 +84,8 @@ it('disables turning off institution public submission when credible preconditio
 
     $this->actingAs($admin);
 
-    Livewire::test(EditInstitution::class, ['record' => $institution->id])
-        ->assertFormFieldDisabled('allow_public_event_submission');
+    OwnerContext::withOwner(null, fn () => Livewire::test(EditInstitution::class, ['record' => $institution->id])
+        ->assertFormFieldDisabled('allow_public_event_submission'));
 
     expect($institution->fresh()->allow_public_event_submission)->toBeTrue();
 });

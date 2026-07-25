@@ -1,6 +1,7 @@
 <?php
 
 use AIArmada\Addressing\Models\Address;
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Filament\Resources\Persons\Pages\EditPerson;
 use App\Filament\Resources\Persons\PersonResource;
 use App\Models\Person;
@@ -24,9 +25,11 @@ it('loads person edit page when person has social media row', function () {
         'url' => 'https://www.facebook.com/atiqah',
     ]);
 
-    $this->actingAs($administrator)
-        ->get(PersonResource::getUrl('edit', ['record' => $person]))
-        ->assertSuccessful();
+    OwnerContext::withOwner(null, function () use ($administrator, $person): void {
+        $this->actingAs($administrator)
+            ->get(PersonResource::getUrl('edit', ['record' => $person]))
+            ->assertSuccessful();
+    });
 });
 
 it('saves the person edit page when a social media row only has a username', function () {
@@ -49,10 +52,12 @@ it('saves the person edit page when a social media row only has a username', fun
         'url' => null,
     ]);
 
-    Livewire::actingAs($administrator)
-        ->test(EditPerson::class, ['record' => $person->id])
-        ->call('save')
-        ->assertHasNoErrors();
+    OwnerContext::withOwner(null, function () use ($administrator, $person): void {
+        Livewire::actingAs($administrator)
+            ->test(EditPerson::class, ['record' => $person->id])
+            ->call('save')
+            ->assertHasNoErrors();
+    });
 
     expect($person->fresh()->socialProfiles()->where('platform', 'facebook')->value('handle'))->toBe('atiqah');
 });

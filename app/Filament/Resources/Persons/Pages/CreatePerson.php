@@ -5,17 +5,24 @@ declare(strict_types=1);
 namespace App\Filament\Resources\Persons\Pages;
 
 use App\Filament\Resources\Persons\PersonResource;
+use App\Models\Person;
+use App\Services\ContributionEntityMutationService;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreatePerson extends CreateRecord
 {
     protected static string $resource = PersonResource::class;
 
-    #[\Override]
-    protected function mutateFormDataBeforeCreate(array $data): array
+    protected function getCreatedModel(): Person
     {
-        unset($data['address']);
+        /** @var Person $person */
+        $person = parent::getCreatedModel();
 
-        return $data;
+        $address = $this->form->getState()['address'] ?? null;
+        if ($address !== null) {
+            app(ContributionEntityMutationService::class)->syncPersonRelations($person, ['address' => $address]);
+        }
+
+        return $person;
     }
 }
