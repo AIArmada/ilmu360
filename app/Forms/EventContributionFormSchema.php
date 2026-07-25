@@ -17,6 +17,7 @@ use App\Enums\EventVisibility;
 use App\Enums\ReferenceType;
 use App\Forms\Components\Select;
 use App\Models\Institution;
+use App\Models\Language;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Series;
@@ -40,7 +41,6 @@ use Filament\Schemas\Schema;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
-use App\Models\Language;
 
 class EventContributionFormSchema
 {

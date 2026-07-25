@@ -21,9 +21,6 @@ return new class extends Migration
             if (! Schema::hasColumn('persons', 'rejected_at')) {
                 $table->timestampTz('rejected_at')->nullable();
             }
-            if (! Schema::hasColumn('persons', 'inactive_at')) {
-                $table->timestampTz('inactive_at')->nullable();
-            }
             if (! Schema::hasColumn('persons', 'last_state_change_at')) {
                 $table->timestampTz('last_state_change_at')->nullable();
             }

@@ -37,7 +37,7 @@ return new class extends Migration
             $table->string('status')->default('unverified'); // unverified|verified|rejected|inactive
             $table->timestampTz('verified_at')->nullable();
             $table->timestampTz('rejected_at')->nullable();
-            $table->timestampTz('inactive_at')->nullable();
+            $table->timestampTz('published_at')->nullable();
             $table->timestampTz('last_state_change_at')->nullable();
             $table->foreignUuid('verified_by')->nullable()->index();
 

@@ -2,8 +2,8 @@
 
 namespace App\Models\Concerns;
 
-use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use App\Models\Language;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
 
 /**
  * @method array<string, list<mixed>> auditSync(string $relationName, mixed $ids, bool $detaching = true, array<int, string> $columns = ['*'], mixed $callback = null)

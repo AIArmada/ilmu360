@@ -25,6 +25,7 @@ use App\Enums\PrayerReference;
 use App\Enums\TimingMode;
 use App\Models\Event;
 use App\Models\Institution;
+use App\Models\Language;
 use App\Models\Person;
 use App\Models\Series;
 use App\Models\Venue;
@@ -35,7 +36,6 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use App\Models\Language;
 
 class EventSeeder extends Seeder
 {

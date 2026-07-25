@@ -17,10 +17,10 @@ use AIArmada\Persons\Models\Title;
 use AIArmada\Persons\Models\TitleAssignment;
 use App\Actions\Persons\GeneratePersonSlugAction;
 use App\Models\Institution;
+use App\Models\Language;
 use App\Models\Person;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
-use App\Models\Language;
 
 /**
  * @extends Factory<Person>

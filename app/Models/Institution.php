@@ -35,6 +35,9 @@ use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
+/**
+ * @property CarbonInterface|null $published_at
+ */
 class Institution extends Model implements AuditableContract, HasMedia
 {
     public const string PUBLIC_DIRECTORY_SESSION_KEY = 'public_institutions_directory_seed';
@@ -63,7 +66,7 @@ class Institution extends Model implements AuditableContract, HasMedia
         'verified_at',
         'verified_by',
         'rejected_at',
-        'inactive_at',
+        'published_at',
         'last_state_change_at',
         'allow_public_event_submission',
         'public_submission_locked_at',
@@ -77,7 +80,7 @@ class Institution extends Model implements AuditableContract, HasMedia
             'type' => InstitutionType::class,
             'verified_at' => 'immutable_datetime',
             'rejected_at' => 'immutable_datetime',
-            'inactive_at' => 'immutable_datetime',
+            'published_at' => 'immutable_datetime',
             'last_state_change_at' => 'immutable_datetime',
             'allow_public_event_submission' => 'boolean',
             'public_submission_locked_at' => 'datetime',
@@ -95,7 +98,7 @@ class Institution extends Model implements AuditableContract, HasMedia
                 match ((string) $institution->status) {
                     'verified' => $institution->verified_at ??= $now,
                     'rejected' => $institution->rejected_at ??= $now,
-                    'inactive' => $institution->inactive_at ??= $now,
+                    'inactive' => $institution->published_at ??= $now,
                     default => null,
                 };
 

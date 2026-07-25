@@ -21,6 +21,7 @@ use App\Enums\TimingMode;
 use App\Forms\SharedFormSchema;
 use App\Models\Event;
 use App\Models\Institution;
+use App\Models\Language;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\User;
@@ -50,7 +51,6 @@ use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
-use App\Models\Language;
 
 #[Layout('layouts.app')]
 #[Title('Upcoming Events')]

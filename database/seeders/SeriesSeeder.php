@@ -2,11 +2,11 @@
 
 namespace Database\Seeders;
 
+use App\Models\Language;
 use App\Models\Series;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use App\Models\Language;
 
 class SeriesSeeder extends Seeder
 {

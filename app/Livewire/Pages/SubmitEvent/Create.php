@@ -32,6 +32,7 @@ use App\Models\Event;
 use App\Models\EventKeyPerson;
 use App\Models\EventSubmission;
 use App\Models\Institution;
+use App\Models\Language;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Space;
@@ -87,7 +88,6 @@ use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\WithFileUploads;
-use App\Models\Language;
 use RuntimeException;
 use Throwable;
 

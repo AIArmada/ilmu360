@@ -18,6 +18,9 @@ return new class extends Migration
             if (! Schema::hasColumn('venues', 'last_state_change_at')) {
                 $table->timestampTz('last_state_change_at')->nullable();
             }
+            if (! Schema::hasColumn('venues', 'verified_by')) {
+                $table->foreignUuid('verified_by')->nullable()->index();
+            }
         });
 
         Schema::table('references', function (Blueprint $table): void {
@@ -26,9 +29,6 @@ return new class extends Migration
             }
             if (! Schema::hasColumn('references', 'rejected_at')) {
                 $table->timestampTz('rejected_at')->nullable();
-            }
-            if (! Schema::hasColumn('references', 'published_at')) {
-                $table->timestampTz('published_at')->nullable();
             }
             if (! Schema::hasColumn('references', 'last_state_change_at')) {
                 $table->timestampTz('last_state_change_at')->nullable();

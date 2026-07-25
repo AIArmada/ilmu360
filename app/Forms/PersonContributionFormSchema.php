@@ -5,6 +5,7 @@ namespace App\Forms;
 use AIArmada\Persons\Enums\Gender;
 use App\Forms\Components\Select as QuickAddSelect;
 use App\Models\Institution;
+use App\Models\Language;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
@@ -13,7 +14,6 @@ use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
-use App\Models\Language;
 
 class PersonContributionFormSchema
 {

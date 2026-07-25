@@ -43,7 +43,6 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  * @property CarbonImmutable|null $last_state_change_at
  * @property CarbonImmutable|null $verified_at
  * @property CarbonImmutable|null $rejected_at
- * @property CarbonImmutable|null $inactive_at
  * @property string|null $verified_by
  * @property Carbon|null $updated_at
  */
@@ -78,7 +77,6 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
         'verified_at',
         'verified_by',
         'rejected_at',
-        'inactive_at',
         'last_state_change_at',
         'allow_public_event_submission',
         'public_submission_locked_at',
@@ -91,7 +89,6 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
         return array_merge(parent::casts(), [
             'verified_at' => 'immutable_datetime',
             'rejected_at' => 'immutable_datetime',
-            'inactive_at' => 'immutable_datetime',
             'last_state_change_at' => 'immutable_datetime',
             'allow_public_event_submission' => 'boolean',
             'public_submission_locked_at' => 'datetime',
@@ -146,7 +143,7 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
             'formatted_name' => $this->formatted_name,
             'slug' => (string) $this->slug,
             'status' => (string) $this->status,
-            'gender' => $this->gender?->value,
+            'gender' => $this->gender instanceof Gender ? $this->gender->value : $this->gender,
             'country_code' => $address?->country_code,
             'city' => $address?->city,
             'state' => $address?->state,
@@ -183,7 +180,7 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
                 match ((string) $person->status) {
                     'verified' => $person->verified_at ??= $now,
                     'rejected' => $person->rejected_at ??= $now,
-                    'inactive' => $person->inactive_at ??= $now,
+                    'inactive' => $person->published_at ??= $now,
                     default => null,
                 };
 
@@ -309,6 +306,7 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
     /**
      * @return MorphMany<TitleAssignment, $this>
      */
+    #[\Override]
     public function titleAssignments(): MorphMany
     {
         return $this->morphMany(TitleAssignment::class, 'titleable');
@@ -325,6 +323,7 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
     /**
      * @return MorphMany<CredentialAssignment, $this>
      */
+    #[\Override]
     public function credentialAssignments(): MorphMany
     {
         return $this->morphMany(CredentialAssignment::class, 'credentialable');
@@ -333,6 +332,7 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
     /**
      * @return MorphMany<Affiliation, $this>
      */
+    #[\Override]
     public function affiliations(): MorphMany
     {
         return $this->morphMany(Affiliation::class, 'affiliatable');
@@ -351,6 +351,7 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
     /**
      * @return HasMany<PersonName, $this>
      */
+    #[\Override]
     public function names(): HasMany
     {
         return $this->hasMany(PersonName::class, 'person_id');
