@@ -148,7 +148,7 @@ class Create extends Component implements HasActions, HasForms
             'children_allowed' => true,
             'gender' => EventGenderRestriction::All->value,
             'age_group' => [EventAgeGroup::AllAges],
-            'languages' => [101], // Malay as default
+            'languages' => [Language::where('code', 'ms')->value('id') ?? ''],
             'event_format' => EventFormat::Physical,
             'visibility' => EventVisibility::Public->value,
             'location_same_as_institution' => true,
