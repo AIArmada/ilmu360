@@ -13,12 +13,12 @@ class CreatePerson extends CreateRecord
 {
     protected static string $resource = PersonResource::class;
 
-    protected function getCreatedModel(): Person
+    #[\Override]
+    protected function handleRecordCreation(array $data): Person
     {
-        /** @var Person $person */
-        $person = parent::getCreatedModel();
+        $person = parent::handleRecordCreation($data);
 
-        $address = $this->form->getState()['address'] ?? null;
+        $address = $data['address'] ?? null;
         if ($address !== null) {
             app(ContributionEntityMutationService::class)->syncPersonRelations($person, ['address' => $address]);
         }
