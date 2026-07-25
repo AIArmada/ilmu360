@@ -318,7 +318,7 @@ it('resolves contribution subject presentation through the action layer', functi
 
     $presentation = app(ResolveContributionSubjectPresentationAction::class)->handle($person);
 
-    expect($presentation['subject_label'])->toBe(__('Person'))
+    expect($presentation['subject_label'])->toBe(__('Speaker'))
         ->and($presentation['redirect_url'])->toBe(route('persons.show', $person));
 });
 

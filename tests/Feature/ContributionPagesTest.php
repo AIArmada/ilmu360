@@ -125,7 +125,7 @@ it('renders the person contribution page with translated copy when the locale ch
         ->assertSee('Hantar rekod penceramah baru untuk direktori ilmu360°.')
         ->assertDontSee('Tambah Penceramah Baharu')
         ->assertDontSee('Penyemak akan menilainya sebelum diterbitkan.')
-        ->assertSee('Pendidikan')
+        ->assertSee('Profil Penceramah')
         ->assertSee('Maklumat Perhubungan')
         ->assertSee('Semak direktori sedia ada dahulu')
         ->assertSee('Semak Penceramah Sedia Ada')
@@ -802,9 +802,9 @@ it('shows visible aspect ratio options for direct event media edits on the kemas
             $aspectRatioOptions = array_keys($upload->getImageEditorAspectRatioOptionsForJs());
 
             expect($upload->getImageAspectRatio())
-                ->toBe('4:5')
+                ->toBe('3:4')
                 ->and($aspectRatioOptions)
-                ->toContain('4:5')
+                ->toContain('3:4')
                 ->toHaveCount(2);
 
             return true;

@@ -1512,14 +1512,14 @@ class Create extends Component implements HasActions, HasForms
                         ->collection('poster')
                         ->image()
                         ->imageEditor()
-                        ->imageAspectRatio('3:4')
+                        ->imageAspectRatio('4:5')
                         ->automaticallyOpenImageEditorForAspectRatio()
-                        ->imageEditorAspectRatioOptions(['3:4', null])
+                        ->imageEditorAspectRatioOptions(['4:5', null])
                         ->automaticallyCropImagesToAspectRatio()
-                        ->rules(['dimensions:ratio=3/4'])
+                        ->rules(['dimensions:ratio=4/5'])
                         ->conversion('thumb')
                         ->responsiveImages()
-                        ->helperText(__('Untuk hebahan WhatsApp, Instagram, Facebook, dan saluran luar. Wajib portrait 3:4 dan boleh mengandungi maklumat penuh.')),
+                        ->helperText(__('Untuk hebahan WhatsApp, Instagram, Facebook, dan saluran luar. Wajib portrait 4:5 dan boleh mengandungi maklumat penuh.')),
                     SpatieMediaLibraryFileUpload::make('gallery')
                         ->label(__('Galeri'))
                         ->collection('gallery')

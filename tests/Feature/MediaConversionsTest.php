@@ -335,7 +335,7 @@ it('returns public_avatar_url using the higher-resolution profile conversion whe
 
     expect($publicAvatarUrl)->not->toBeNull()
         ->and($publicAvatarUrl)->toContain('conversions')
-        ->and($publicAvatarUrl)->toContain('card');
+        ->and($publicAvatarUrl)->toContain('profile');
 });
 
 it('registers main media collection for Person model', function () {
@@ -349,7 +349,7 @@ it('registers main media collection for Person model', function () {
     expect($media)->not->toBeNull();
     expect($person->hasMedia('main'))->toBeTrue();
     expect($media->getMediaConversionNames())->toContain('main_thumb');
-    expect($media->getMediaConversionNames())->toContain('display');
+    expect($media->getMediaConversionNames())->toContain('card');
 });
 
 it('returns public_main_url fallback when Person has no main photo', function () {

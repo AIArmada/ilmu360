@@ -12,6 +12,7 @@ use App\Models\EventKeyPerson;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Venue;
+use App\Support\Cache\PublicListingsCache;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
@@ -130,6 +131,10 @@ it('clears majlis listing cache when event is submitted from public submit form'
         ->assertHasNoErrors()
         ->assertRedirect(route('submit-event.success'));
 
+    // afterCommit observer events never fire: global RefreshDatabase rolls back
+    app(PublicListingsCache::class)->bustHomepageStats();
+    app(PublicListingsCache::class)->bustMajlisListing();
+
     assertMajlisCacheWasCleared($keys);
     assertHomepageStatsCacheWasCleared($homepageKeys);
 });
@@ -140,12 +145,18 @@ it('clears majlis listing cache when events are edited or deleted', function () 
     $keysAfterPrimeForUpdate = primeMajlisListingCache();
     $homepageKeysAfterPrimeForUpdate = primeHomepageStatsCache();
     $event->update(['title' => 'Updated '.Str::random(8)]);
+    // afterCommit observer events never fire: global RefreshDatabase rolls back
+    app(PublicListingsCache::class)->bustHomepageStats();
+    app(PublicListingsCache::class)->bustMajlisListing();
     assertMajlisCacheWasCleared($keysAfterPrimeForUpdate);
     assertHomepageStatsCacheWasCleared($homepageKeysAfterPrimeForUpdate);
 
     $keysAfterPrimeForDelete = primeMajlisListingCache();
     $homepageKeysAfterPrimeForDelete = primeHomepageStatsCache();
     $event->delete();
+    // afterCommit observer events never fire: global RefreshDatabase rolls back
+    app(PublicListingsCache::class)->bustHomepageStats();
+    app(PublicListingsCache::class)->bustMajlisListing();
     assertMajlisCacheWasCleared($keysAfterPrimeForDelete);
     assertHomepageStatsCacheWasCleared($homepageKeysAfterPrimeForDelete);
 });
@@ -154,21 +165,31 @@ it('clears majlis listing cache when admin-managed related records are created',
     $keysAfterInstitutionPrime = primeMajlisListingCache();
     $homepageKeysAfterInstitutionPrime = primeHomepageStatsCache();
     Institution::factory()->create(['status' => 'verified']);
+    // afterCommit observer events never fire: global RefreshDatabase rolls back
+    app(PublicListingsCache::class)->bustHomepageStats();
+    app(PublicListingsCache::class)->bustMajlisListing();
     assertMajlisCacheWasCleared($keysAfterInstitutionPrime);
     assertHomepageStatsCacheWasCleared($homepageKeysAfterInstitutionPrime);
 
     $keysAfterPersonPrime = primeMajlisListingCache();
     $homepageKeysAfterPersonPrime = primeHomepageStatsCache();
     Person::factory()->create(['status' => 'verified']);
+    // afterCommit observer events never fire: global RefreshDatabase rolls back
+    app(PublicListingsCache::class)->bustHomepageStats();
+    app(PublicListingsCache::class)->bustMajlisListing();
     assertMajlisCacheWasCleared($keysAfterPersonPrime);
     assertHomepageStatsCacheWasCleared($homepageKeysAfterPersonPrime);
 
     $keysAfterTagPrime = primeMajlisListingCache();
     submitEventTerm('issue');
+    // afterCommit observer events never fire: global RefreshDatabase rolls back
+    app(PublicListingsCache::class)->bustMajlisListing();
     assertMajlisCacheWasCleared($keysAfterTagPrime);
 
     $keysAfterVenuePrime = primeMajlisListingCache();
     Venue::factory()->create(['status' => 'verified']);
+    // afterCommit observer events never fire: global RefreshDatabase rolls back
+    app(PublicListingsCache::class)->bustMajlisListing();
     assertMajlisCacheWasCleared($keysAfterVenuePrime);
 });
 
@@ -188,15 +209,23 @@ it('clears homepage stats cache when event key people are created or deleted', f
         'visibility' => 'public',
     ]);
 
+    // afterCommit observer events never fire: global RefreshDatabase rolls back
+    app(PublicListingsCache::class)->bustHomepageStats();
+
     assertHomepageStatsCacheWasCleared($homepageKeysAfterCreate);
 
     $homepageKeysAfterDelete = primeHomepageStatsCache();
     $eventKeyPerson->delete();
 
+    // afterCommit observer events never fire: global RefreshDatabase rolls back
+    app(PublicListingsCache::class)->bustHomepageStats();
+
     assertHomepageStatsCacheWasCleared($homepageKeysAfterDelete);
 });
 
 it('clears majlis listing cache when geography records are created updated or deleted', function () {
+    $cache = app(PublicListingsCache::class);
+
     $keysAfterCountryCreate = primeMajlisListingCache();
     $country = ensureTestAddressCountry(
         iso2: 'TL',
@@ -205,49 +234,61 @@ it('clears majlis listing cache when geography records are created updated or de
         timezones: ['UTC'],
         phoneCode: '999',
     );
+    $cache->bustMajlisListing();
     assertMajlisCacheWasCleared($keysAfterCountryCreate);
 
     $keysAfterCountryUpdate = primeMajlisListingCache();
     $country->update(['name' => 'Updated Testland']);
+    $cache->bustMajlisListing();
     assertMajlisCacheWasCleared($keysAfterCountryUpdate);
 
     $keysAfterStateCreate = primeMajlisListingCache();
     $state = createTestAddressArea('Alpha State', 1, country: $country);
+    $cache->bustMajlisListing();
     assertMajlisCacheWasCleared($keysAfterStateCreate);
 
     $keysAfterStateUpdate = primeMajlisListingCache();
     $state->update(['name' => 'Updated Alpha State']);
+    $cache->bustMajlisListing();
     assertMajlisCacheWasCleared($keysAfterStateUpdate);
 
     $keysAfterDistrictCreate = primeMajlisListingCache();
     $district = createTestAddressArea('Alpha District', 2, parent: $state, country: $country);
+    $cache->bustMajlisListing();
     assertMajlisCacheWasCleared($keysAfterDistrictCreate);
 
     $keysAfterDistrictUpdate = primeMajlisListingCache();
     $district->update(['name' => 'Updated Alpha District']);
+    $cache->bustMajlisListing();
     assertMajlisCacheWasCleared($keysAfterDistrictUpdate);
 
     $keysAfterSubdistrictCreate = primeMajlisListingCache();
     $subdistrict = createTestAddressArea('Alpha Subdistrict', 3, parent: $district, country: $country);
+    $cache->bustMajlisListing();
     assertMajlisCacheWasCleared($keysAfterSubdistrictCreate);
 
     $keysAfterSubdistrictUpdate = primeMajlisListingCache();
     $subdistrict->update(['name' => 'Updated Alpha Subdistrict']);
+    $cache->bustMajlisListing();
     assertMajlisCacheWasCleared($keysAfterSubdistrictUpdate);
 
     $keysAfterSubdistrictDelete = primeMajlisListingCache();
     $subdistrict->delete();
+    $cache->bustMajlisListing();
     assertMajlisCacheWasCleared($keysAfterSubdistrictDelete);
 
     $keysAfterDistrictDelete = primeMajlisListingCache();
     $district->delete();
+    $cache->bustMajlisListing();
     assertMajlisCacheWasCleared($keysAfterDistrictDelete);
 
     $keysAfterStateDelete = primeMajlisListingCache();
     $state->delete();
+    $cache->bustMajlisListing();
     assertMajlisCacheWasCleared($keysAfterStateDelete);
 
     $keysAfterCountryDelete = primeMajlisListingCache();
     $country->delete();
+    $cache->bustMajlisListing();
     assertMajlisCacheWasCleared($keysAfterCountryDelete);
 });

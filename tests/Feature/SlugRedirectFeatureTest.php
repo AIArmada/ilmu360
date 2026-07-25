@@ -5,7 +5,11 @@ use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Signals\Models\SignalEvent;
 use App\Actions\Events\GenerateEventSlugAction;
+use App\Actions\Institutions\GenerateInstitutionSlugAction;
+use App\Actions\Persons\GeneratePersonSlugAction;
+use App\Actions\References\GenerateReferenceSlugAction;
 use App\Actions\Slugs\SyncCanonicalSlugAction;
+use App\Actions\Venues\GenerateVenueSlugAction;
 use App\Filament\Resources\SlugRedirects\Pages\CreateSlugRedirect;
 use App\Filament\Resources\SlugRedirects\Pages\EditSlugRedirect;
 use App\Filament\Resources\SlugRedirects\Pages\ListSlugRedirects;
@@ -51,6 +55,9 @@ it('creates an institution slug redirect only after the old public path has been
         'name' => 'Masjid Baru',
     ]);
 
+    // afterCommit observer never fires: RefreshDatabase rolls back
+    app(GenerateInstitutionSlugAction::class)->syncInstitutionSlugsForName('Masjid Baru');
+
     $redirect = SlugRedirect::query()->where('source_path', $oldPath)->firstOrFail();
 
     expect($redirect->source_slug)->toBe($oldSlug)
@@ -77,6 +84,9 @@ it('creates a person slug redirect when a visited slug changes', function () {
         'name' => 'Ustaz Baru',
     ]);
 
+    // afterCommit observer never fires: RefreshDatabase rolls back
+    app(GeneratePersonSlugAction::class)->syncPersonSlugsForName('Ustaz Baru');
+
     $redirect = SlugRedirect::query()->where('source_path', $oldPath)->firstOrFail();
 
     expect($redirect->source_slug)->toBe($oldSlug)
@@ -99,6 +109,9 @@ it('creates a reference slug redirect when a visited title slug changes', functi
     $reference->update([
         'title' => 'Kitab Baru',
     ]);
+
+    // afterCommit observer never fires: RefreshDatabase rolls back
+    app(GenerateReferenceSlugAction::class)->syncReferenceSlugsForTitle('Kitab Baru');
 
     $redirect = SlugRedirect::query()->where('source_path', $oldPath)->firstOrFail();
 
@@ -146,6 +159,9 @@ it('creates an event slug redirect when a visited dated slug changes', function 
         'title' => 'Majlis Baru',
     ]);
 
+    // afterCommit observer never fires: RefreshDatabase rolls back
+    app(GenerateEventSlugAction::class)->syncEventSlugsForTitle('Majlis Baru');
+
     $redirect = SlugRedirect::query()->where('source_path', $oldPath)->firstOrFail();
 
     expect($redirect->source_slug)->toBe($oldSlug)
@@ -168,6 +184,9 @@ it('creates an event slug redirect even when the old slug was never visited', fu
     $event->update([
         'title' => 'Majlis Tanpa Lawatan Baru',
     ]);
+
+    // afterCommit observer never fires: RefreshDatabase rolls back
+    app(GenerateEventSlugAction::class)->syncEventSlugsForTitle('Majlis Tanpa Lawatan Baru');
 
     $redirect = SlugRedirect::query()->where('source_path', $oldPath)->firstOrFail();
 
@@ -202,6 +221,10 @@ it('redirects old event slugs when a related person slug changes', function () {
     $person->update([
         'name' => 'Habib Umar Abdullah',
     ]);
+
+    // afterCommit observer never fires: RefreshDatabase rolls back
+    app(GeneratePersonSlugAction::class)->syncPersonSlugsForName('Habib Umar Abdullah');
+    app(GenerateEventSlugAction::class)->syncEventSlugsForPersonName('Habib Umar Abdullah');
 
     $redirect = SlugRedirect::query()->where('source_path', $oldPath)->firstOrFail();
 
@@ -268,6 +291,10 @@ it('does not create redirect rows for unvisited slug changes', function () {
         'name' => 'Masjid Tidak Dilawat Baru',
     ]);
 
+    // afterCommit observer never fires: RefreshDatabase rolls back
+    // Sync changes slug but does NOT create redirect (no visit recorded for non-Event)
+    app(GenerateInstitutionSlugAction::class)->syncInstitutionSlugsForName('Masjid Tidak Dilawat Baru');
+
     expect($oldSlug)->not->toBe($institution->fresh()->slug)
         ->and(SlugRedirect::query()->where('source_path', $oldPath)->exists())->toBeFalse();
 
@@ -293,6 +320,9 @@ it('creates a venue slug redirect when a visited geographic slug changes', funct
     $venue->update([
         'name' => 'Dewan Baru',
     ]);
+
+    // afterCommit observer never fires: RefreshDatabase rolls back
+    app(GenerateVenueSlugAction::class)->syncVenueSlugsForName('Dewan Baru');
 
     $redirect = SlugRedirect::query()->where('source_path', $oldPath)->firstOrFail();
 
@@ -320,6 +350,9 @@ it('redirects old venue slugs to the current canonical public url', function () 
         'name' => 'Dewan Laluan Baru',
     ]);
 
+    // afterCommit observer never fires: RefreshDatabase rolls back
+    app(GenerateVenueSlugAction::class)->syncVenueSlugsForName('Dewan Laluan Baru');
+
     $this->get($oldPath)
         ->assertRedirect(route('venues.show', $venue->fresh()));
 });
@@ -340,6 +373,9 @@ it('redirects old institution slugs to the current canonical public url', functi
     $institution->update([
         'name' => 'Masjid Laluan Baru',
     ]);
+
+    // afterCommit observer never fires: RefreshDatabase rolls back
+    app(GenerateInstitutionSlugAction::class)->syncInstitutionSlugsForName('Masjid Laluan Baru');
 
     $this->get($oldPath)
         ->assertRedirect(route('institutions.show', $institution->fresh()));
@@ -367,6 +403,9 @@ it('shows slug redirects in the admin resource table', function () {
     $institution->update([
         'name' => 'Masjid Admin Baru',
     ]);
+
+    // afterCommit observer never fires: RefreshDatabase rolls back
+    app(GenerateInstitutionSlugAction::class)->syncInstitutionSlugsForName('Masjid Admin Baru');
 
     $redirect = SlugRedirect::query()->where('source_path', $oldPath)->firstOrFail();
 

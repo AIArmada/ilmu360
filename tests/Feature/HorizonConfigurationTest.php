@@ -33,7 +33,7 @@ it('allows only global admins through the horizon gate', function () {
 });
 
 it('registers redis-backed horizon supervisors and metrics snapshots', function () {
-    expect(config('queue.connections.redis.retry_after'))->toBe(360)
+    expect(config('queue.connections.redis.retry_after'))->toBe(390)
         ->and(config('media-library.queue_name'))->toBe('media')
         ->and(config('horizon.defaults.supervisor-default.connection'))->toBe('redis')
         ->and(config('horizon.defaults.supervisor-default.queue'))->toBe(['default'])

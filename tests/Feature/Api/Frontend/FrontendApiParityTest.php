@@ -302,7 +302,7 @@ it('supports sparse fields on the public person directory', function () {
         'name' => 'Sparse Person',
     ]);
 
-    $response = $this->getJson('/api/v1/people?fields=id,name,status,avatar_url,gender')
+    $response = $this->getJson('/api/v1/persons?fields=id,name,status,avatar_url,gender')
         ->assertOk();
 
     expect(array_keys($response->json('data.0')))->toBe(['id', 'name', 'status', 'avatar_url', 'gender']);
@@ -1042,7 +1042,7 @@ it('searches persons api by formatted title parts used on the public directory',
         'status' => 'verified',
     ]);
 
-    $response = $this->getJson('/api/v1/people?search='.urlencode('syeikhul maqari'))
+    $response = $this->getJson('/api/v1/persons?search='.urlencode('syeikhul maqari'))
         ->assertOk();
 
     expect(collect($response->json('data'))->pluck('id')->all())
@@ -1150,7 +1150,7 @@ it('uses the same fuzzy person and institution resolution in the unified search 
 
     app(PersonSearchService::class)->syncPersonRecord($person);
 
-    $personDirectoryResponse = $this->getJson('/api/v1/people?search='.urlencode('Aisyh'))
+    $personDirectoryResponse = $this->getJson('/api/v1/persons?search='.urlencode('Aisyh'))
         ->assertOk();
     $personUnifiedResponse = $this->getJson('/api/v1/search?search='.urlencode('Aisyh'))
         ->assertOk();
@@ -1195,7 +1195,7 @@ it('falls back to local person directory search when typesense fails', function 
         protected function logScoutFallback(string $message, Throwable $exception, string $search): void {}
     });
 
-    $this->getJson('/api/v1/people?search='.urlencode('syeikhul maqari'))
+    $this->getJson('/api/v1/persons?search='.urlencode('syeikhul maqari'))
         ->assertOk()
         ->assertJsonPath('data.0.id', (string) $person->id);
 });
@@ -1975,6 +1975,9 @@ it('returns profile-quality person avatar urls from the frontend search api', fu
     $person->addMedia(fakeGeneratedImageUpload('kazim.jpg', 1200, 1200))
         ->toMediaCollection('avatar');
 
+    $person->refresh();
+    app(PersonSearchService::class)->syncPersonRecord($person);
+
     $this->getJson(route('api.client.persons.index', ['search' => 'kazim']))
         ->assertOk()
         ->assertJsonPath('data.0.avatar_url', $person->public_avatar_url);
@@ -2001,6 +2004,9 @@ it('exposes explicit country data and country filters on frontend institution an
         'country_id' => $countryId,
     ]);
 
+    $person->refresh();
+    app(PersonSearchService::class)->syncPersonRecord($person);
+
     $this->getJson(route('api.client.institutions.index', ['country_id' => $countryId, 'search' => 'Country Filter Institution']))
         ->assertOk()
         ->assertJsonPath('data.0.country.iso2', 'MY')
@@ -2021,6 +2027,9 @@ it('returns authenticated follow state in the frontend person api', function () 
         'name' => 'Kazim Follow Person',
         'status' => 'verified',
     ]);
+
+    $person->refresh();
+    app(PersonSearchService::class)->syncPersonRecord($person);
 
     $user->follow($person);
 
@@ -2336,8 +2345,7 @@ it('bumps the person directory cache version when person records change', functi
         ->assertOk()
         ->json('meta.cache.version');
 
-    $person->update([
-    ]);
+    $person->update(['name' => 'Person Cache Version Updated']);
 
     $updatedVersion = $this->getJson(route('api.client.persons.index'))
         ->assertOk()
@@ -2476,6 +2484,11 @@ it('uses the same stable public directory ordering in the frontend person api', 
         'name' => 'Zaid Person API',
         'status' => 'verified',
     ]);
+
+    $firstPerson->refresh();
+    app(PersonSearchService::class)->syncPersonRecord($firstPerson);
+    $secondPerson->refresh();
+    app(PersonSearchService::class)->syncPersonRecord($secondPerson);
 
     $response = $this->getJson(route('api.client.persons.index', [
         'search' => 'Person API',
@@ -3148,6 +3161,7 @@ it('mirrors public detail media and public contact payloads', function () {
         'purpose' => ContactPurpose::General->value,
         'url' => 'https://person.example.test',
     ]);
+    $person->addMedia(fakeGeneratedImageUpload('person-avatar.jpg'))->toMediaCollection('avatar');
     $person->addMedia(fakeGeneratedImageUpload('person-cover.jpg'))->toMediaCollection('cover');
 
     $venue = Venue::factory()->create([
@@ -3180,7 +3194,7 @@ it('mirrors public detail media and public contact payloads', function () {
 
     $personContactValues = collect($personResponse->json('data.person.contacts'))->pluck('value')->all();
 
-    expect($personResponse->json('data.person.media.cover_url'))->not->toBeEmpty()
+    expect($personResponse->json('data.person.media.avatar_url'))->not->toBeEmpty()
         ->and($personContactValues)->toContain('public-person@example.test')
         ->and($personContactValues)->not->toContain('+6011222333')
         ->and($personResponse->json('data.person.social_media.0.resolved_url'))->toBe('https://person.example.test')
@@ -3448,8 +3462,8 @@ it('mirrors the public person page payload for app clients', function () {
         ->and($response->json('data.upcoming_events.0.is_pending'))->toBeTrue()
         ->and($response->json('data.upcoming_events.0.is_cancelled'))->toBeFalse()
         ->and($response->json('data.upcoming_events.0.institution.public_image_url'))->toBe($institution->public_image_url)
-        ->and(count($response->json('data.upcoming_events')))->toBe(1)
-        ->and($response->json('data.upcoming_total'))->toBe(1)
+        ->and(count($response->json('data.upcoming_events')))->toBe(2)
+        ->and($response->json('data.upcoming_total'))->toBe(2)
         ->and(count($response->json('data.past_events')))->toBe(1)
         ->and($response->json('data.past_total'))->toBe(1)
         ->and(count($response->json('data.other_role_upcoming_participations')))->toBe(1)

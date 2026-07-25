@@ -54,7 +54,7 @@ it('keeps admin api and admin mcp person search results aligned', function () {
 
     $mcpResponse = AdminServer::actingAs($admin)
         ->tool(AdminListRecordsTool::class, [
-            'resource_key' => 'persons',
+            'resource_key' => 'people',
             'search' => 'syeikhul maqari',
         ])
         ->assertOk();
@@ -127,7 +127,7 @@ it('keeps admin api and admin mcp related record listings aligned', function () 
 
     $mcpResponse = AdminServer::actingAs($admin)
         ->tool(AdminListRelatedRecordsTool::class, [
-            'resource_key' => 'persons',
+            'resource_key' => 'people',
             'record_key' => (string) $person->getKey(),
             'relation' => 'events',
             'search' => $matchingEvent->title,
@@ -166,7 +166,7 @@ it('keeps admin api and admin mcp validate-only update previews aligned', functi
 
     $mcpResponse = AdminServer::actingAs($admin)
         ->tool(AdminUpdateRecordTool::class, [
-            'resource_key' => 'persons',
+            'resource_key' => 'people',
             'record_key' => (string) $person->getKey(),
             'validate_only' => true,
             'payload' => $payload,

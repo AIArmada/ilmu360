@@ -221,7 +221,7 @@ it('uses the real person avatar in public person share metadata and preview', fu
         ->assertSuccessful()
         ->assertSee('<meta property="og:image" content="'.$person->public_avatar_url.'">', false)
         ->assertSee('<meta name="twitter:image" content="'.$person->public_avatar_url.'">', false)
-        ->assertSee('src="'.$person->public_avatar_url.'"', false);
+        ->assertSee('src="'.$person->public_main_url.'"', false);
 });
 
 it('shows share actions on public series and reference pages', function () {

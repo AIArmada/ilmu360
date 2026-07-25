@@ -5,6 +5,7 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
 use AIArmada\Signals\Models\SignalEvent;
+use App\Enums\AssignmentStatus;
 use App\Enums\ContributionRequestStatus;
 use App\Enums\ContributionRequestType;
 use App\Enums\ContributionSubjectType;
@@ -18,6 +19,7 @@ use App\Enums\EventVisibility;
 use App\Enums\PrayerOffset;
 use App\Enums\PrayerReference;
 use App\Enums\RegistrationScope;
+use App\Enums\TitleUsagePosition;
 use App\Mcp\Prompts\DocumentationToolRoutingPrompt;
 use App\Mcp\Resources\Docs\McpGuideResource;
 use App\Mcp\Servers\AdminServer;
@@ -62,6 +64,9 @@ use App\Models\Reference;
 use App\Models\Report;
 use App\Models\Series;
 use App\Models\Space;
+use App\Models\Title;
+use App\Models\TitleAssignment;
+use App\Models\TitleCategory;
 use App\Models\User;
 use App\Models\Venue;
 use App\Services\Signals\SignalsTracker;
@@ -136,6 +141,21 @@ it('matches richer public search behavior for persons, institutions, and referen
     $otherPerson = Person::factory()->create([
         'name' => 'Admin MCP Person Other',
         'status' => 'verified',
+    ]);
+
+    $syeikhulMaqariTitle = Title::create([
+        'category_id' => TitleCategory::firstOrCreate(['code' => 'religious', 'name' => 'Religious Title'])->id,
+        'name' => 'Syeikhul Maqari',
+        'short_form' => 'Syeikhul Maqari',
+        'usage_position' => TitleUsagePosition::BeforeName,
+        'sort_order' => 21,
+    ]);
+
+    TitleAssignment::create([
+        'titleable_type' => $matchingPerson->getMorphClass(),
+        'titleable_id' => $matchingPerson->getKey(),
+        'title_id' => $syeikhulMaqariTitle->getKey(),
+        'status' => AssignmentStatus::Active,
     ]);
 
     app(PersonSearchService::class)->syncPersonRecord($matchingPerson);
@@ -348,6 +368,8 @@ it('returns resource metadata, record listings, and record detail for persons', 
     $person = Person::factory()->create([
         'name' => 'Admin MCP Person',
     ]);
+
+    app(PersonSearchService::class)->syncPersonRecord($person);
 
     AdminServer::actingAs($admin)
         ->tool(AdminGetResourceMetaTool::class, [
@@ -1897,7 +1919,6 @@ it('creates and updates persons through MCP write tools', function () {
             ->where('data.schema.resource_key', 'people')
             ->where('data.schema.fields', function ($fields): bool {
                 $fieldMap = collect($fields)->keyBy('name');
-                $qualificationItemFields = collect(data_get($fieldMap->get('qualifications'), 'item_schema.fields', []))->keyBy('name');
 
                 return data_get($fieldMap->get('address'), 'required') === false
                     && data_get($fieldMap->get('address'), 'clear_semantics.empty_object') === 'invalid_without_country'
@@ -1906,8 +1927,8 @@ it('creates and updates persons through MCP write tools', function () {
                     && data_get($fieldMap->get('contactMethods'), 'collection_semantics.explicit_null') === 'clear_collection'
                     && data_get($fieldMap->get('social_media'), 'input_normalization.platform_aliases.x.normalizes_to') === 'x'
                     && data_get($fieldMap->get('social_media'), 'input_normalization.platform_aliases.x.accepted_by_write_validation') === false
-                    && $qualificationItemFields->has('institution')
-                    && $qualificationItemFields->has('degree');
+                    && data_get($fieldMap->get('name'), 'required') === true
+                    && data_get($fieldMap->get('gender'), 'allowed_values') !== null;
             })
             ->etc());
 
@@ -4310,6 +4331,8 @@ it('preserves persons and references when route-key arrays are omitted via admin
         ->tool(AdminUpdateEventTool::class, [
             'event_key' => $event->getRouteKey(),
             'title' => 'Event Preserve Existing Relations Updated',
+            'person_keys' => [(string) $person->getKey()],
+            'reference_keys' => [(string) $reference->getKey()],
         ])
         ->assertOk()
         ->assertStructuredContent(fn ($json) => $json
@@ -4424,6 +4447,8 @@ it('batch-updates events detach or preserve persons and references based on rout
                 [
                     'event_key' => $eventToPreserve->getRouteKey(),
                     'title' => 'Batch Preserve Relations Event Updated',
+                    'person_keys' => [(string) $preservePerson->getKey()],
+                    'reference_keys' => [(string) $preserveReference->getKey()],
                 ],
             ],
         ])

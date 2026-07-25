@@ -1186,7 +1186,8 @@ class AdminResourceMutationService
                 'accepted_aliases' => [
                     'institutions' => (string) (new Institution)->getMorphClass(),
                     Institution::class => (string) (new Institution)->getMorphClass(),
-                    Person::class => (string) (new Person)->getMorphClass(),
+                    'person', 'persons', Person::class => (string) (new Person)->getMorphClass(),
+                    'persons' => (string) (new Person)->getMorphClass(),
                     'events' => (string) (new Event)->getMorphClass(),
                     Event::class => (string) (new Event)->getMorphClass(),
                 ],

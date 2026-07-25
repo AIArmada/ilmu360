@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\EventAgeGroup;
+use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventPrayerTime;
 use App\Enums\EventVisibility;
@@ -45,6 +46,7 @@ function submitEventMediaFormData(array $fixtures, array $overrides = []): array
         'event_date' => $fixtures['event_date'],
         'prayer_time' => EventPrayerTime::SelepasMaghrib->value,
         'event_category_ids' => [eventCategoryId('kuliah_ceramah')],
+        'event_format' => EventFormat::Physical->value,
         'gender' => EventGenderRestriction::All->value,
         'age_group' => [EventAgeGroup::AllAges->value],
         'languages' => [101],

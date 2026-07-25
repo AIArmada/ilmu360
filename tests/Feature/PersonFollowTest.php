@@ -74,7 +74,7 @@ it('redirects guest to login when trying to follow', function () {
 
     Livewire::test('pages.persons.show', ['person' => $person])
         ->call('toggleFollow')
-        ->assertRedirect(route('login', ['redirect' => route('persons.show', $person)]));
+        ->assertRedirect(route('login', ['redirect' => route('persons.show', $person, false)]));
 });
 
 it('returns correct followingPersons relationship', function () {

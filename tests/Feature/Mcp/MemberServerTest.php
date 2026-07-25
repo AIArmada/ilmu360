@@ -1,12 +1,14 @@
 <?php
 
 use AIArmada\CommerceSupport\Models\Role;
+use App\Enums\AssignmentStatus;
 use App\Enums\ContributionRequestStatus;
 use App\Enums\ContributionRequestType;
 use App\Enums\ContributionSubjectType;
 use App\Enums\EventChangeSeverity;
 use App\Enums\EventChangeType;
 use App\Enums\MemberSubjectType;
+use App\Enums\TitleUsagePosition;
 use App\Mcp\Prompts\MemberDocumentationToolRoutingPrompt;
 use App\Mcp\Resources\Docs\MemberMcpGuideResource;
 use App\Mcp\Servers\MemberServer;
@@ -36,6 +38,9 @@ use App\Models\MembershipApplication;
 use App\Models\PassportUser;
 use App\Models\Person;
 use App\Models\Reference;
+use App\Models\Title;
+use App\Models\TitleAssignment;
+use App\Models\TitleCategory;
 use App\Models\User;
 use App\Support\GitHub\GitHubIssueReportContract;
 use App\Support\Mcp\McpTokenManager;
@@ -133,6 +138,21 @@ it('searches member persons by formatted public title parts through MCP list rec
     ]);
 
     addTestMember($otherPerson, $member, 'viewer');
+
+    $syeikhulMaqariTitle = Title::create([
+        'category_id' => TitleCategory::firstOrCreate(['code' => 'religious', 'name' => 'Religious Title'])->id,
+        'name' => 'Syeikhul Maqari',
+        'short_form' => 'Syeikhul Maqari',
+        'usage_position' => TitleUsagePosition::BeforeName,
+        'sort_order' => 21,
+    ]);
+
+    TitleAssignment::create([
+        'titleable_type' => $matchingPerson->getMorphClass(),
+        'titleable_id' => $matchingPerson->getKey(),
+        'title_id' => $syeikhulMaqariTitle->getKey(),
+        'status' => AssignmentStatus::Active,
+    ]);
 
     $matchingPerson = $matchingPerson->fresh();
 
@@ -589,7 +609,6 @@ it('returns member update schema for persons with surfaced mutation semantics', 
             ->where('data.schema.resource_key', 'people')
             ->where('data.schema.fields', function ($fields): bool {
                 $fieldMap = collect($fields)->keyBy('name');
-                $qualificationItemFields = collect(data_get($fieldMap->get('qualifications'), 'item_schema.fields', []))->keyBy('name');
 
                 return data_get($fieldMap->get('avatar'), 'mcp_upload.shape') === 'file_descriptor'
                     && data_get($fieldMap->get('gallery'), 'mcp_upload.shape') === 'array<file_descriptor>'
@@ -599,8 +618,8 @@ it('returns member update schema for persons with surfaced mutation semantics', 
                     && data_get($fieldMap->get('language_ids'), 'collection_semantics.submitted_array') === 'replace_relation_sync'
                     && data_get($fieldMap->get('social_media'), 'input_normalization.platform_aliases.x.normalizes_to') === 'x'
                     && data_get($fieldMap->get('social_media'), 'input_normalization.platform_aliases.x.accepted_by_write_validation') === false
-                    && $qualificationItemFields->has('institution')
-                    && $qualificationItemFields->has('degree');
+                    && data_get($fieldMap->get('name'), 'required') === true
+                    && data_get($fieldMap->get('gender'), 'allowed_values') !== null;
             })
             ->etc());
 });

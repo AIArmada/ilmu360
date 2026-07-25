@@ -34,6 +34,9 @@ it('shows grouped event person reference and institution matches on the unified 
         'status' => 'verified',
     ]);
 
+    // afterCommit observer never fires: RefreshDatabase rolls back
+    app(PersonSearchService::class)->syncPersonRecord($person);
+
     $person->addMedia(UploadedFile::fake()->image('person.jpg', 1200, 1200))
         ->toMediaCollection('avatar');
 

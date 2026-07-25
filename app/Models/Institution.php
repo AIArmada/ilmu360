@@ -285,7 +285,9 @@ class Institution extends Model implements AuditableContract, HasMedia
      */
     public function persons(): MorphToMany
     {
-        return $this->morphToMany(Person::class, 'affiliatable', 'affiliations', 'institution_id', 'affiliatable_id');
+        return $this->morphToMany(Person::class, 'affiliatable', 'affiliations', 'institution_id', 'affiliatable_id')
+            ->withPivot(['position', 'is_primary'])
+            ->withTimestamps();
     }
 
     /**

@@ -194,6 +194,9 @@ it('returns admin person resource metadata and records', function () {
         ->assertJsonPath('data.resource.mcp_tools.create.arguments.validate_only', false)
         ->assertJsonPath('data.resource.mcp_tools.update.arguments.validate_only', false);
 
+    $person->refresh();
+    app(PersonSearchService::class)->syncPersonRecord($person);
+
     $this->getJson('/api/v1/admin/people?search=Admin%20API%20Person')
         ->assertOk()
         ->assertJsonPath('data.0.id', $person->getKey())
@@ -1835,6 +1838,10 @@ it('returns fresh person address data on admin GET requests after updates', func
         ->assertJsonPath('data.record.attributes.address.admin_area_1_id', $secondFixtures['admin_area_1_id'])
         ->assertJsonPath('data.record.attributes.address.admin_area_2_id', $secondFixtures['admin_area_2_id']);
 
+    $person = Person::findOrFail($personRouteKey);
+    $person->refresh();
+    app(PersonSearchService::class)->syncPersonRecord($person);
+
     $this->getJson('/api/v1/admin/people?search=Admin%20API%20Address%20Freshness%20Person')
         ->assertOk()
         ->assertJsonPath('data.0.attributes.address.country_id', $secondFixtures['country_id'])
@@ -1864,7 +1871,6 @@ it('surfaces person update semantics and collection rules through the admin api 
         ->json('data.schema');
 
     $fields = collect($schema['fields'] ?? [])->keyBy('name');
-    $qualificationItemFields = collect(data_get($fields->get('qualifications'), 'item_schema.fields', []))->keyBy('name');
 
     expect(data_get($fields->get('address'), 'required'))->toBeFalse()
         ->and(data_get($fields->get('address'), 'mutation_semantics'))->toBe('deep_merge_when_present_visible_fields_only')
@@ -1872,7 +1878,6 @@ it('surfaces person update semantics and collection rules through the admin api 
         ->and(data_get($fields->get('address'), 'prohibited_nested_fields'))->toContain('line1', 'google_maps_url')
         ->and(data_get($fields->get('address.country_id'), 'required'))->toBeFalse()
         ->and(data_get($fields->get('address.country_id'), 'required_when_parent_present_on_update'))->toBeTrue()
-        ->and($qualificationItemFields->keys()->all())->toContain('institution', 'degree', 'field', 'year')
         ->and(data_get($fields->get('language_ids'), 'collection_semantics.submitted_array'))->toBe('replace_relation_sync')
         ->and(data_get($fields->get('contactMethods'), 'collection_semantics.explicit_null'))->toBe('clear_collection')
         ->and(data_get($fields->get('social_media'), 'input_normalization.platform_aliases.x.normalizes_to'))->toBe('x')

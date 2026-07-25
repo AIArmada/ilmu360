@@ -400,7 +400,7 @@
     "runtime_inventory": {
         "admin_panel": {
             "source_of_truth": "Filament::getPanel('admin')->getResources()",
-            "resource_count": 66,
+            "resource_count": 68,
             "resources": [
                 {
                     "resource_key": "address-areas",
@@ -414,6 +414,28 @@
                         "create"
                     ],
                     "generic_admin_write": true
+                },
+                {
+                    "resource_key": "address-cities",
+                    "resource_class": "AIArmada\\FilamentAddressing\\Resources\\AddressCityResource",
+                    "model_class": "AIArmada\\Addressing\\Models\\AddressCity",
+                    "source": "vendor",
+                    "page_keys": [
+                        "index",
+                        "view"
+                    ],
+                    "generic_admin_write": false
+                },
+                {
+                    "resource_key": "address-states",
+                    "resource_class": "AIArmada\\FilamentAddressing\\Resources\\AddressStateResource",
+                    "model_class": "AIArmada\\Addressing\\Models\\AddressState",
+                    "source": "vendor",
+                    "page_keys": [
+                        "index",
+                        "view"
+                    ],
+                    "generic_admin_write": false
                 },
                 {
                     "resource_key": "address-countries",

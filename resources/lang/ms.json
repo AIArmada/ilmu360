@@ -1357,5 +1357,6 @@
     "No venues found": "Tiada tempat ditemui",
     "We couldn't find any venues matching your search or location filters.": "Kami tidak menemui tempat yang sepadan dengan carian atau penapis lokasi anda.",
     "Direktori Tempat": "Direktori Tempat",
-    "Jumlah tempat: :count": "Jumlah tempat: :count"
+    "Jumlah tempat: :count":     "Jumlah tempat: :count",
+    "Person": "Penceramah"
 }

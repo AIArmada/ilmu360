@@ -67,7 +67,7 @@ it('assigns the person as event person when person is the organizer', function (
         ->assertRedirect(route('submit-event.success'));
 
     $event = Event::where('title', 'Auto Select Person Event')->firstOrFail();
-    $personInvolvements = $event->involvements()->where('role_code', 'person')->get();
+    $personInvolvements = $event->involvements()->where('role_code', 'speaker')->get();
     expect($personInvolvements)->toHaveCount(1);
     expect($personInvolvements->first()->involveable_id)->toBe((string) $fixtures['person']->id);
 

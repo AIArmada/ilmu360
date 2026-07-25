@@ -169,7 +169,7 @@ Use **curated parity**, not full symmetry at any cost.
 	- Does the public or authenticated workflow API surface change?
 	- If a surface does not change, is the gap intentional and documented?
 
-## Runtime admin resource inventory (66 registered resources)
+## Runtime admin resource inventory (68 registered resources)
 
 This is the runtime admin panel inventory, not just the local `app/Filament/Resources` directory. It includes resources registered by application code and enabled plugins. The generic admin HTTP API and Admin MCP may additionally append explicit fallback resources when they are enabled outside the cached panel registration.
 
@@ -201,6 +201,8 @@ These are registered at runtime and therefore part of the admin registry surface
 | Resource key | Package family | Pages | Generic admin write |
 | --- | --- | --- | --- |
 | `address-areas` | `aiarmada/filament-addressing` | `index`, `view`, `edit`, `create` | yes |
+| `address-cities` | `aiarmada/filament-addressing` | `index`, `view` | no |
+| `address-states` | `aiarmada/filament-addressing` | `index`, `view` | no |
 | `address-countries` | `aiarmada/filament-addressing` | `index`, `view` | no |
 | `bookmark-collections` | `aiarmada/filament-engagement` | `index`, `create`, `edit` | no |
 | `bookmarks` | `aiarmada/filament-engagement` | `index`, `view` | no |
