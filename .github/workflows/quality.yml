@@ -307,18 +307,14 @@ jobs:
       - name: Run tests (Pest)
         run: |
           mkdir -p artifacts/pest-timing
-          if [[ "${{ matrix.shard }}" =~ ^(1|2|4|5|6|7|9|10)$ ]]; then
-            vendor/bin/pest --shard=${{ matrix.shard }}/10 --compact --log-junit=artifacts/pest-timing/pest.xml
-          else
-            vendor/bin/pest --parallel --shard=${{ matrix.shard }}/10 --compact --log-junit=artifacts/pest-timing/pest.xml
-          fi
+          vendor/bin/pest --parallel --shard=${{ matrix.shard }}/10 --compact --log-junit=artifacts/pest-timing/pest.xml
 
       - name: Upload Pest timing artifact
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: pest-timing-shard-${{ matrix.shard }}
-          path: artifacts/pest-timing/report.csv
+          path: artifacts/pest-timing/pest.xml
           if-no-files-found: warn
 
   pest-budget:
