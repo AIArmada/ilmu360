@@ -117,8 +117,10 @@ it('refreshes institution public submission toggle eligibility without remountin
     }, $member);
     setMembershipRole($institution, $member, 'owner');
 
-    $page->dispatch(PublicSubmissionUiEvents::REFRESH_TOGGLE)
-        ->assertFormFieldEnabled('allow_public_event_submission');
+    OwnerContext::withOwner(null, function () use ($page): void {
+        $page->dispatch(PublicSubmissionUiEvents::REFRESH_TOGGLE)
+            ->assertFormFieldEnabled('allow_public_event_submission');
+    });
 });
 
 it('dispatches an institution toggle refresh event after adding an eligible member', function () {
