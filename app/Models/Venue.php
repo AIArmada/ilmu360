@@ -9,6 +9,7 @@ use AIArmada\Events\Models\Venue as PackageVenue;
 use AIArmada\Events\Models\VenueFacility;
 use App\Enums\VenueType;
 use App\Models\Concerns\AuditsModelChanges;
+use Carbon\CarbonImmutable;
 use Database\Factories\VenueFactory;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
@@ -31,6 +32,9 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  * @property string|null $status
  * @property string|null $verified_by
  * @property string|null $visibility
+ * @property CarbonImmutable|null $verified_at
+ * @property CarbonImmutable|null $rejected_at
+ * @property CarbonImmutable|null $last_state_change_at
  * @property float|int|string|null $latitude
  * @property float|int|string|null $longitude
  * @property string|null $google_maps_url
@@ -73,7 +77,10 @@ class Venue extends PackageVenue implements AuditableContract
         'geocoded_at',
         'geocoding_source',
         'status',
+        'verified_at',
         'verified_by',
+        'rejected_at',
+        'last_state_change_at',
         'visibility',
     ];
 
@@ -82,6 +89,9 @@ class Venue extends PackageVenue implements AuditableContract
     {
         return [
             'venue_type' => VenueType::class,
+            'verified_at' => 'immutable_datetime',
+            'rejected_at' => 'immutable_datetime',
+            'last_state_change_at' => 'immutable_datetime',
         ];
     }
 
@@ -95,8 +105,19 @@ class Venue extends PackageVenue implements AuditableContract
     protected static function booted(): void
     {
         static::saving(function (self $venue): void {
-            if ($venue->isDirty('status') && (string) $venue->status === 'verified') {
-                $venue->verified_by ??= auth()->id();
+            if ($venue->isDirty('status')) {
+                $now = now();
+                $venue->last_state_change_at = $now;
+
+                match ((string) $venue->status) {
+                    'verified' => $venue->verified_at ??= $now,
+                    'rejected' => $venue->rejected_at ??= $now,
+                    default => null,
+                };
+
+                if ((string) $venue->status === 'verified') {
+                    $venue->verified_by ??= auth()->id();
+                }
             }
         });
     }

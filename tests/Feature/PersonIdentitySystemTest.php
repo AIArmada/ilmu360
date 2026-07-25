@@ -1,5 +1,6 @@
 <?php
 
+use AIArmada\Persons\Enums\AffiliationType;
 use AIArmada\Persons\Enums\AssignmentStatus;
 use AIArmada\Persons\Enums\CredentialType;
 use AIArmada\Persons\Enums\TitleUsagePosition;
@@ -10,7 +11,6 @@ use AIArmada\Persons\Models\CredentialDefinition;
 use AIArmada\Persons\Models\Title;
 use AIArmada\Persons\Models\TitleAssignment;
 use AIArmada\Persons\Models\TitleCategory;
-use AIArmada\Persons\Enums\AffiliationType;
 use App\Models\Institution;
 use App\Models\Person;
 

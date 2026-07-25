@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Frontend;
 
+use AIArmada\Persons\Enums\Gender;
 use App\Actions\Contributions\ApplyDirectContributionUpdateAction;
 use App\Actions\Contributions\ApproveContributionRequestAction;
 use App\Actions\Contributions\CancelContributionRequestAction;
@@ -17,7 +18,6 @@ use App\Actions\Contributions\ResolveReviewableContributionRequestAction;
 use App\Actions\Contributions\SubmitContributionUpdateRequestAction;
 use App\Actions\Contributions\SubmitStagedContributionCreateAction;
 use App\Enums\ContributionSubjectType;
-use AIArmada\Persons\Enums\Gender;
 use App\Enums\InstitutionType;
 use App\Filament\Resources\ContributionRequests\Support\ContributionRequestPresenter;
 use App\Forms\SharedFormSchema;

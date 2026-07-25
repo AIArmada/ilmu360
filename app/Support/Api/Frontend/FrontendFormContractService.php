@@ -3,6 +3,7 @@
 namespace App\Support\Api\Frontend;
 
 use AIArmada\Addressing\Models\AddressCountry;
+use AIArmada\Persons\Enums\Gender;
 use App\Contracts\EventCategoryCatalog;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
@@ -10,7 +11,6 @@ use App\Enums\EventGenderRestriction;
 use App\Enums\EventPrayerTime;
 use App\Enums\EventTaxonomyCode;
 use App\Enums\EventVisibility;
-use AIArmada\Persons\Enums\Gender;
 use App\Enums\InstitutionType;
 use App\Enums\MemberSubjectType;
 use App\Enums\RegistrationScope;

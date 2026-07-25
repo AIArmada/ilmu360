@@ -12,6 +12,7 @@ use App\Enums\ReferencePartType;
 use App\Enums\ReferenceType;
 use App\Models\Concerns\AuditsModelChanges;
 use BackedEnum;
+use Carbon\CarbonImmutable;
 use Database\Factories\ReferenceFactory;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
@@ -46,6 +47,10 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  * @property bool|null $is_canonical
  * @property string|null $status
  * @property string|null $verified_by
+ * @property CarbonImmutable|null $verified_at
+ * @property CarbonImmutable|null $rejected_at
+ * @property CarbonImmutable|null $published_at
+ * @property CarbonImmutable|null $last_state_change_at
  * @property string|null $url
  * @property string|null $language
  * @property array<int, mixed>|null $reference_parts
@@ -80,8 +85,20 @@ class Reference extends PackageReference implements AuditableContract
 
             $reference->normalizeReferencePartFields();
 
-            if ($reference->isDirty('status') && (string) $reference->status === 'verified') {
-                $reference->verified_by ??= auth()->id();
+            if ($reference->isDirty('status')) {
+                $now = now();
+                $reference->last_state_change_at = $now;
+
+                match ((string) $reference->status) {
+                    'verified' => $reference->verified_at ??= $now,
+                    'published' => $reference->published_at ??= $now,
+                    'rejected' => $reference->rejected_at ??= $now,
+                    default => null,
+                };
+
+                if ((string) $reference->status === 'verified') {
+                    $reference->verified_by ??= auth()->id();
+                }
             }
         });
     }
@@ -100,7 +117,11 @@ class Reference extends PackageReference implements AuditableContract
         'description',
         'is_canonical',
         'status',
+        'verified_at',
         'verified_by',
+        'rejected_at',
+        'published_at',
+        'last_state_change_at',
         'url',
         'language',
         'reference_parts',
@@ -114,6 +135,10 @@ class Reference extends PackageReference implements AuditableContract
             'year' => 'integer',
             'part_number' => 'integer',
             'is_canonical' => 'boolean',
+            'verified_at' => 'immutable_datetime',
+            'rejected_at' => 'immutable_datetime',
+            'published_at' => 'immutable_datetime',
+            'last_state_change_at' => 'immutable_datetime',
             'reference_parts' => 'array',
             'metadata' => 'array',
         ];

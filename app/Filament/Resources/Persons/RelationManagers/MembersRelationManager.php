@@ -7,7 +7,6 @@ use AIArmada\Membership\Actions\ChangeMemberRoleAction;
 use AIArmada\Membership\Actions\RemoveMemberAction;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Filament\Resources\Authz\UserResource as AuthzUserResource;
-use AIArmada\FilamentPersons\Resources\PersonResource\Pages\EditPerson;
 use App\Models\Person;
 use App\Models\User;
 use App\Support\Submission\PublicSubmissionUiEvents;

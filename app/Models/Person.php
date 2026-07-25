@@ -20,7 +20,6 @@ use App\Models\Concerns\HasDonationChannels;
 use App\Models\Concerns\HasLanguages;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
-use Database\Factories\PersonFactory;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -28,6 +27,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Laravel\Scout\Searchable;
@@ -45,23 +45,23 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  * @property CarbonImmutable|null $rejected_at
  * @property CarbonImmutable|null $inactive_at
  * @property string|null $verified_by
- * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property Carbon|null $updated_at
  */
 class Person extends \AIArmada\Persons\Models\Person implements AuditableContract, HasMedia
 {
     public const string PUBLIC_DIRECTORY_SESSION_KEY = 'public_persons_directory_seed';
 
-/** @use HasMembers<\App\Models\User> */
-use AuditsModelChanges,
-    HasAddresses,
-    HasContactMethods,
-    HasDonationChannels,
-    HasLanguages,
-    HasMembers,
-    HasSocialProfiles,
-    InteractsWithMedia,
-    KeepsDeletedModels,
-    Searchable;
+    /** @use HasMembers<User> */
+    use AuditsModelChanges,
+        HasAddresses,
+        HasContactMethods,
+        HasDonationChannels,
+        HasLanguages,
+        HasMembers,
+        HasSocialProfiles,
+        InteractsWithMedia,
+        KeepsDeletedModels,
+        Searchable;
 
     /**
      * @var list<string>
