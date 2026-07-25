@@ -1836,7 +1836,7 @@ it('returns retryable remediation details for validate-only admin update validat
         'gender' => 'male',
         'status' => 'verified',
     ]);
-    $originalGender = $person->gender;
+    $originalGender = $person->gender->value;
     $originalStatus = $person->status;
 
     AdminServer::actingAs($admin)

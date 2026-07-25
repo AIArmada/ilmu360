@@ -806,7 +806,7 @@ it('returns retryable remediation details for validate-only admin api update val
     $response
         ->assertJsonPath('error.code', 'validation_error')
         ->assertJsonPath('error.details.normalized_payload_preview.name', 'Retryable Admin API Person Updated')
-        ->assertJsonPath('error.details.normalized_payload_preview.gender', $person->gender)
+        ->assertJsonPath('error.details.normalized_payload_preview.gender', $person->gender->value)
         ->assertJsonPath('error.details.normalized_payload_preview.status', $person->status)
         ->assertJsonCount(0, 'error.details.remaining_blockers')
         ->assertJsonPath('error.details.can_retry', true);
@@ -814,7 +814,7 @@ it('returns retryable remediation details for validate-only admin api update val
     expect($fixPlan->get('gender'))->toMatchArray([
         'action' => 'set_field',
         'field' => 'gender',
-        'value' => $person->gender,
+        'value' => $person->gender->value,
         'auto_apply_safe' => true,
     ])->and($fixPlan->get('status'))->toMatchArray([
         'action' => 'set_field',
