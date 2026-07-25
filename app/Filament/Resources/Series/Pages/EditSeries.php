@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Series\Pages;
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Filament\Pages\Concerns\AuditsRelatedStateChanges;
 use App\Filament\Resources\Series\SeriesResource;
 use App\Models\Language;
@@ -17,6 +18,19 @@ class EditSeries extends EditRecord
     use AuditsRelatedStateChanges;
 
     protected static string $resource = SeriesResource::class;
+
+    public function boot(): void
+    {
+        OwnerContext::setForRequest(null);
+    }
+
+    #[\Override]
+    public function mount(int|string $record): void
+    {
+        OwnerContext::withOwner(null, function () use ($record): void {
+            parent::mount($record);
+        });
+    }
 
     #[\Override]
     protected function getHeaderActions(): array

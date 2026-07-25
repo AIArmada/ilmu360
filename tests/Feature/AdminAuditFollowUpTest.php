@@ -94,7 +94,7 @@ it('records series language syncs performed by the filament edit page', function
             'description' => $series->description,
             'visibility' => $series->visibility,
             'status' => $series->status,
-            'languages' => [(int) $english->getKey(), (int) $malay->getKey()],
+            'languages' => [$english->getKey(), $malay->getKey()],
         ])
         ->call('save')
         ->assertHasNoErrors();
@@ -107,13 +107,13 @@ it('records series language syncs performed by the filament edit page', function
     $newLanguages = $audit?->new_values['languages'] ?? [];
 
     expect($series->fresh()->languages()->pluck('languages.id')->all())
-        ->toEqualCanonicalizing([(int) $english->getKey(), (int) $malay->getKey()])
+        ->toEqualCanonicalizing([$english->getKey(), $malay->getKey()])
         ->and($audit)->not->toBeNull()
         ->and($oldLanguages)->toHaveCount(1)
-        ->and($oldLanguages[0]['id'] ?? null)->toBe((int) $english->getKey())
+        ->and($oldLanguages[0]['id'] ?? null)->toBe($english->getKey())
         ->and($oldLanguages[0]['name'] ?? null)->toBe($english->name)
         ->and($newLanguages)->toHaveCount(2)
-        ->and(collect($newLanguages)->pluck('id')->all())->toEqual([(int) $english->getKey(), (int) $malay->getKey()]);
+        ->and(collect($newLanguages)->pluck('id')->all())->toEqual([$english->getKey(), $malay->getKey()]);
 });
 
 it('records space institution syncs performed by the filament edit page', function () {
