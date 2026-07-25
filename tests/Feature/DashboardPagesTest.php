@@ -275,7 +275,7 @@ it('shows the redesigned followed-entity category cards on the dashboard', funct
         ->assertSee('My Events')
         ->assertSee('Follow')
         ->assertSee('Institution')
-        ->assertSee('Person')
+        ->assertSee('Speakers')
         ->assertSee('Saved')
         ->assertSee('Going')
         ->assertSee('Sidebar Saved Event')

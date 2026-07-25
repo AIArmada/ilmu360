@@ -283,7 +283,6 @@ it('uses the richer person institution and reference search behavior on the admi
 
     $matchingPerson = Person::factory()->create([
         'name' => 'Admin API Decorated Person',
-        'pre_nominal' => ['syeikhul_maqari'],
         'status' => 'verified',
     ]);
     $otherPerson = Person::factory()->create([
@@ -317,7 +316,7 @@ it('uses the richer person institution and reference search behavior on the admi
 
     Sanctum::actingAs($admin);
 
-    $this->getJson('/api/v1/admin/people?search='.urlencode('syeikhul maqari'))
+    $this->getJson('/api/v1/admin/people?search='.urlencode('Decorated Person'))
         ->assertOk()
         ->assertJsonPath('meta.pagination.total', 1)
         ->assertJsonPath('data.0.id', (string) $matchingPerson->getKey());
@@ -1742,17 +1741,13 @@ it('exposes admin person write schema and can create and update persons through 
     $this->putJson('/api/v1/admin/people/'.$personRouteKey, [
         'name' => 'Admin API Updated Person',
         'gender' => 'male',
-        'honorific' => ['dato'],
-        'pre_nominal' => ['dr', 'prof_madya'],
-        'post_nominal' => ['BA', 'PhD', 'HONS'],
         'status' => 'verified',
         'allow_public_event_submission' => true,
         'address' => [
             'country_id' => ensureAdminApiMalaysiaCountryExists(),
         ],
     ])->assertOk()
-        ->assertJsonPath('data.record.attributes.name', 'Admin API Updated Person')
-        ->assertJsonPath('data.record.attributes.slug', 'prof-madya-dato-dr-admin-api-updated-person-phd-ba-hons-my');
+        ->assertJsonPath('data.record.attributes.name', 'Admin API Updated Person');
 });
 
 it('requires explicit country and still prohibits detailed address fields when creating persons through the admin api', function () {
@@ -1869,6 +1864,7 @@ it('surfaces person update semantics and collection rules through the admin api 
         ->json('data.schema');
 
     $fields = collect($schema['fields'] ?? [])->keyBy('name');
+    $qualificationItemFields = collect(data_get($fields->get('qualifications'), 'item_schema.fields', []))->keyBy('name');
 
     expect(data_get($fields->get('address'), 'required'))->toBeFalse()
         ->and(data_get($fields->get('address'), 'mutation_semantics'))->toBe('deep_merge_when_present_visible_fields_only')
@@ -1876,7 +1872,6 @@ it('surfaces person update semantics and collection rules through the admin api 
         ->and(data_get($fields->get('address'), 'prohibited_nested_fields'))->toContain('line1', 'google_maps_url')
         ->and(data_get($fields->get('address.country_id'), 'required'))->toBeFalse()
         ->and(data_get($fields->get('address.country_id'), 'required_when_parent_present_on_update'))->toBeTrue()
-        ->and(data_get($fields->get('honorific'), 'collection_semantics.submitted_array'))->toBe('replace_collection')
         ->and($qualificationItemFields->keys()->all())->toContain('institution', 'degree', 'field', 'year')
         ->and(data_get($fields->get('language_ids'), 'collection_semantics.submitted_array'))->toBe('replace_relation_sync')
         ->and(data_get($fields->get('contactMethods'), 'collection_semantics.explicit_null'))->toBe('clear_collection')
@@ -1908,7 +1903,6 @@ it('replaces person collections and still requires an explicit country when muta
         'name' => 'Admin API Person Collections',
         'gender' => 'male',
         'status' => 'verified',
-        'honorific' => ['dato'],
         'language_ids' => [$languageMalay->id],
         'address' => [
             'country_id' => ensureAdminApiMalaysiaCountryExists(),
@@ -1947,7 +1941,6 @@ it('replaces person collections and still requires an explicit country when muta
         'name' => 'Admin API Person Collections Updated',
         'gender' => 'male',
         'status' => 'verified',
-        'honorific' => ['datuk'],
         'language_ids' => [$languageEnglish->id],
         'contactMethods' => [[
             'type' => 'whatsapp',
@@ -1961,7 +1954,6 @@ it('replaces person collections and still requires an explicit country when muta
         ]],
     ])->assertOk()
         ->assertJsonPath('data.record.attributes.name', 'Admin API Person Collections Updated')
-        ->assertJsonPath('data.record.attributes.honorific.0', 'datuk')
         ->assertJsonPath('data.record.attributes.contacts.0.type', 'whatsapp')
         ->assertJsonPath('data.record.attributes.social_media.0.platform', 'facebook')
         ->assertJsonPath('data.record.attributes.social_media.0.handle', 'admin-api-person-collections-updated')

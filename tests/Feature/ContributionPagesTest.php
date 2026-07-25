@@ -60,8 +60,8 @@ it('renders the dedicated institution contribution page', function () {
         ->assertSee(__('Before you submit, please check the existing institutions directory. If it already exists, submit an update instead of creating a new record.'))
         ->assertSee(__('Check Existing Institutions'))
         ->assertDontSee(__('View My Contributions'))
-        ->assertDontSee(__('Need to add a person instead?'))
-        ->assertDontSee(__('Submit Person'))
+        ->assertDontSee(__('Need to add a speaker instead?'))
+        ->assertDontSee(__('Submit Speaker'))
         ->assertDontSee(__('What happens next?'))
         ->assertDontSee(__('Submission Note'))
         ->assertDontSee('lg:grid-cols-2', false);
@@ -99,7 +99,7 @@ it('renders the dedicated person contribution page', function () {
 
     $this->get(route('contributions.submit-person'))
         ->assertOk()
-        ->assertSee(__('Add a New Person'))
+        ->assertSee(__('Add a New Speaker'))
         ->assertSee(__('Address'))
         ->assertSee(__('Check the existing directory first'))
         ->assertSee(__('Before you submit, please check the existing speakers directory. If it already exists, submit an update instead of creating a new record.'))
@@ -220,7 +220,7 @@ it('renders the person contribution submission success page', function () {
         ->get(route('contributions.submission-success', ['subjectType' => ContributionSubjectType::Person->publicRouteSegment()]))
         ->assertOk()
         ->assertSee('Ustaz Cadangan Baru')
-        ->assertSee(__('Thank you for submitting a new person.'))
+        ->assertSee(__('Thank you for submitting a new speaker.'))
         ->assertSee(__('Jejaki sumbangan anda dan statusnya.'))
         ->assertDontSee('We appreciate you taking the time to grow the ilmu360° directory. Our team will review your submission carefully.')
         ->assertDontSee(__('We will notify you once your submission has been approved or rejected.'))
@@ -1088,13 +1088,13 @@ it('renders contribution requests and event submissions without approval control
     Livewire::test(ContributionsIndex::class)
         ->assertSee(__('Submit Event'))
         ->assertSee(__('Submit Institution'))
-        ->assertSee(__('Submit Person'))
+        ->assertSee(__('Submit Speaker'))
         ->assertDontSee('xl:grid-cols-[1.15fr_0.85fr]', false)
         ->assertSee(__('Event Submissions'))
         ->assertSee(__('New Submissions'))
         ->assertSee(__('Update Submissions'))
         ->assertSee(__('Report Submissions'))
-        ->assertSee(__('Requests for new institutions and persons.'))
+        ->assertSee(__('Requests for new institutions and speakers.'))
         ->assertSee(__('Updates you submit here will appear with their status and review notes.'))
         ->assertSee(__('Reports you submit here will appear with their status and review notes.'))
         ->assertSee(__('Membership Claims'))
@@ -1467,8 +1467,8 @@ it('shows the reported person clearly on the public report page', function () {
         'name' => 'Amina binti Rashid',
         'status' => 'verified',
     ]);
-    $selectedPersonLabel = __('Selected :subject', ['subject' => strtolower(__('Person'))]);
-    $viewPersonLabel = __('View this :subject', ['subject' => strtolower(__('Person'))]);
+    $selectedPersonLabel = __('Selected :subject', ['subject' => strtolower(__('Speaker'))]);
+    $viewPersonLabel = __('View this :subject', ['subject' => strtolower(__('Speaker'))]);
 
     $this->actingAs($user);
 

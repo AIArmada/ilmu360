@@ -27,7 +27,7 @@ it('prepares advanced parent program submissions with utc timestamps and resolve
     $person = Person::factory()->create(['status' => 'verified']);
     $locationInstitution = Institution::factory()->create(['status' => 'verified']);
 
-    $user->persons()()->syncWithoutDetaching([$person->id]);
+    $user->persons()->syncWithoutDetaching([$person->id]);
     $user->institutions()->syncWithoutDetaching([$locationInstitution->id]);
 
     $prepared = app(PrepareAdvancedParentProgramSubmissionAction::class)->handle($user, [
@@ -70,7 +70,7 @@ it('publishes the advanced event contract with the primary organizer field and g
     $person = Person::factory()->create(['name' => 'Penceramah Kontrak', 'status' => 'verified']);
 
     $user->institutions()->syncWithoutDetaching([$institution->id]);
-    $user->persons()()->syncWithoutDetaching([$person->id]);
+    $user->persons()->syncWithoutDetaching([$person->id]);
 
     $contract = app(FrontendFormContractService::class)->advancedEvent($user);
 
@@ -91,7 +91,7 @@ it('resolves advanced builder membership options from active member organizers o
     $inactivePerson = Person::factory()->create(['name' => 'Person Pasif', 'status' => 'inactive']);
 
     $user->institutions()->syncWithoutDetaching([$activeInstitution->id, $inactiveInstitution->id]);
-    $user->persons()()->syncWithoutDetaching([$activePerson->id, $inactivePerson->id]);
+    $user->persons()->syncWithoutDetaching([$activePerson->id, $inactivePerson->id]);
 
     $options = app(ResolveAdvancedBuilderMembershipOptionsAction::class)->handle($user);
 
