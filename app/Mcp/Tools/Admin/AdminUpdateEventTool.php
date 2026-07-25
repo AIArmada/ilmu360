@@ -86,7 +86,7 @@ class AdminUpdateEventTool extends AbstractAdminWriteTool
                 'reference_keys' => ['sometimes', 'nullable', 'array'],
                 'reference_keys.*' => ['string'],
                 'languages' => ['sometimes', 'nullable', 'array'],
-                'languages.*' => ['integer'],
+                'languages.*' => ['uuid'],
                 'domain_tags' => ['sometimes', 'nullable', 'array'],
                 'domain_tags.*' => ['string'],
                 'discipline_tags' => ['sometimes', 'nullable', 'array'],

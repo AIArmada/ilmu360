@@ -66,7 +66,7 @@ class EventSubmissionController extends FrontendController
             'children_allowed' => ['nullable', 'boolean'],
             'is_muslim_only' => ['nullable', 'boolean'],
             'languages' => ['required', 'array', 'min:1'],
-            'languages.*' => ['integer'],
+            'languages.*' => ['uuid'],
             'domain_tags' => ['nullable', 'array'],
             'domain_tags.*' => ['string', 'max:255'],
             'discipline_tags' => ['nullable', 'array'],
