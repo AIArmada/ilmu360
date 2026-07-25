@@ -11,6 +11,7 @@ class CreatePerson extends CreateRecord
 {
     protected static string $resource = PersonResource::class;
 
+    #[\Override]
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         unset($data['address']);
