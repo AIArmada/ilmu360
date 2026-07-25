@@ -18,6 +18,7 @@ use App\Enums\EventKeyPersonRole;
 use App\Models\Concerns\AuditsModelChanges;
 use App\Models\Concerns\HasDonationChannels;
 use App\Models\Concerns\HasLanguages;
+use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Database\Factories\PersonFactory;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -37,15 +38,30 @@ use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
+/**
+ * @property bool $allow_public_event_submission
+ * @property CarbonImmutable|null $last_state_change_at
+ * @property CarbonImmutable|null $verified_at
+ * @property CarbonImmutable|null $rejected_at
+ * @property CarbonImmutable|null $inactive_at
+ * @property string|null $verified_by
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ */
 class Person extends \AIArmada\Persons\Models\Person implements AuditableContract, HasMedia
 {
     public const string PUBLIC_DIRECTORY_SESSION_KEY = 'public_persons_directory_seed';
 
-    /**
-     * @use HasFactory<PersonFactory>
-     * @use HasMembers<User>
-     */
-    use AuditsModelChanges, HasAddresses, HasContactMethods, HasDonationChannels, HasLanguages, HasMembers, HasSocialProfiles, InteractsWithMedia, KeepsDeletedModels, Searchable;
+/** @use HasMembers<\App\Models\User> */
+use AuditsModelChanges,
+    HasAddresses,
+    HasContactMethods,
+    HasDonationChannels,
+    HasLanguages,
+    HasMembers,
+    HasSocialProfiles,
+    InteractsWithMedia,
+    KeepsDeletedModels,
+    Searchable;
 
     /**
      * @var list<string>
@@ -424,12 +440,18 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
             ->format('webp');
     }
 
+    /**
+     * @param  Builder<Person>  $query
+     */
     #[Scope]
     protected function active(Builder $query): void
     {
         $query->whereIn('status', ['verified', 'pending']);
     }
 
+    /**
+     * @param  Builder<Person>  $query
+     */
     #[Scope]
     protected function publicDirectoryOrder(Builder $query, ?string $sessionSeed = null): void
     {

@@ -7,7 +7,7 @@ use AIArmada\Membership\Actions\ChangeMemberRoleAction;
 use AIArmada\Membership\Actions\RemoveMemberAction;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Filament\Resources\Authz\UserResource as AuthzUserResource;
-use App\Filament\Resources\Persons\Pages\EditPerson;
+use AIArmada\FilamentPersons\Resources\PersonResource\Pages\EditPerson;
 use App\Models\Person;
 use App\Models\User;
 use App\Support\Submission\PublicSubmissionUiEvents;
@@ -135,6 +135,6 @@ class MembersRelationManager extends RelationManager
 
     private function notifyOwnerEditPage(): void
     {
-        $this->dispatch(PublicSubmissionUiEvents::REFRESH_TOGGLE)->to(EditPerson::class);
+        $this->dispatch(PublicSubmissionUiEvents::REFRESH_TOGGLE);
     }
 }
