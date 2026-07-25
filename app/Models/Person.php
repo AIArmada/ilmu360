@@ -329,15 +329,6 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
     }
 
     /**
-     * @return MorphMany<AIArmada\Persons\Models\Affiliation, $this>
-     */
-    #[\Override]
-    public function affiliations(): MorphMany
-    {
-        return $this->morphMany(Affiliation::class, 'affiliatable');
-    }
-
-    /**
      * @return MorphToMany<Institution, $this>
      */
     public function institutions(): MorphToMany
