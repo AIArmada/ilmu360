@@ -6,7 +6,7 @@ use App\Models\Series;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use Nnjeim\World\Models\Language;
+use App\Models\Language;
 
 class SeriesSeeder extends Seeder
 {

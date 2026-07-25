@@ -20,7 +20,7 @@ use App\Models\Institution;
 use App\Models\Person;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
-use Nnjeim\World\Models\Language;
+use App\Models\Language;
 
 /**
  * @extends Factory<Person>

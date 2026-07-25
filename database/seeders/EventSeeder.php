@@ -35,7 +35,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use Nnjeim\World\Models\Language;
+use App\Models\Language;
 
 class EventSeeder extends Seeder
 {
