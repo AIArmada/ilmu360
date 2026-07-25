@@ -44,6 +44,10 @@ return new class extends Migration
             }
         });
 
+        // Raw inserts (e.g. MorphToMany::attach()) bypass the HasUuids trait,
+        // so the DB needs a default to generate UUIDs.
+        DB::statement('ALTER TABLE affiliations ALTER COLUMN id SET DEFAULT gen_random_uuid()');
+
         Schema::table('persons', function (Blueprint $table) {
             if (! Schema::hasColumn('persons', 'searchable_name')) {
                 $table->string('searchable_name', 512)->nullable()->index();

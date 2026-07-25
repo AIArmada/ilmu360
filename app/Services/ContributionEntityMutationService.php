@@ -20,7 +20,6 @@ use AIArmada\Membership\Actions\AddMemberAction;
 use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Persons\Enums\AffiliationType;
 use AIArmada\Persons\Enums\Gender;
-use AIArmada\Persons\Models\Affiliation;
 use App\Actions\Events\SyncEventClassificationsAction;
 use App\Actions\Events\SyncEventScheduleAction;
 use App\Actions\Institutions\GenerateInstitutionSlugAction;
@@ -39,6 +38,7 @@ use App\Enums\ReferencePartType;
 use App\Enums\ReferenceType;
 use App\Enums\TimingMode;
 use App\Forms\SharedFormSchema;
+use App\Models\Affiliation;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
@@ -682,7 +682,7 @@ class ContributionEntityMutationService
 
         return [
             'name' => $person->name,
-            'gender' => (string) $person->gender,
+            'gender' => $person->gender->value,
             'bio' => $person->bio,
             'language_ids' => $person->languages->pluck('id')->map(fn (mixed $id): int => (int) $id)->values()->all(),
             'institution_id' => $affiliatedInstitution?->getKey(),

@@ -36,7 +36,7 @@ class PersonListData extends Data
             id: (string) $person->id,
             slug: (string) $person->slug,
             name: (string) $person->name,
-            gender: filled($person->gender) ? (string) $person->gender : null,
+            gender: filled($person->gender) ? $person->gender->value : null,
             formatted_name: (string) $person->formatted_name,
             status: (string) $person->status,
             verified_by: $person->getAttribute('verified_by'),

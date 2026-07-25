@@ -6,6 +6,10 @@ namespace App\Filament\Resources\Persons;
 
 use AIArmada\FilamentPersons\Resources\PersonResource as PackagePersonResource;
 use App\Filament\RelationManagers\AuditsRelationManager;
+use App\Filament\Resources\Persons\Pages\CreatePerson;
+use App\Filament\Resources\Persons\Pages\EditPerson;
+use App\Filament\Resources\Persons\Pages\ListPersons;
+use App\Filament\Resources\Persons\Pages\ViewPerson;
 use App\Filament\Resources\Persons\RelationManagers\EventsRelationManager;
 use App\Filament\Resources\Persons\RelationManagers\FollowersRelationManager;
 use App\Filament\Resources\Persons\RelationManagers\MemberInvitationsRelationManager;
@@ -30,6 +34,17 @@ class PersonResource extends PackagePersonResource
     public static function table(Table $table): Table
     {
         return PersonsTable::configure($table);
+    }
+
+    #[\Override]
+    public static function getPages(): array
+    {
+        return [
+            'index' => ListPersons::route('/'),
+            'create' => CreatePerson::route('/create'),
+            'view' => ViewPerson::route('/{record}'),
+            'edit' => EditPerson::route('/{record}/edit'),
+        ];
     }
 
     #[\Override]

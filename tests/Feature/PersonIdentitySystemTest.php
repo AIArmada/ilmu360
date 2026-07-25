@@ -4,7 +4,7 @@ use AIArmada\Persons\Enums\AffiliationType;
 use AIArmada\Persons\Enums\AssignmentStatus;
 use AIArmada\Persons\Enums\CredentialType;
 use AIArmada\Persons\Enums\TitleUsagePosition;
-use AIArmada\Persons\Models\Affiliation;
+use App\Models\Affiliation;
 use AIArmada\Persons\Models\AffiliationRole;
 use AIArmada\Persons\Models\CredentialAssignment;
 use AIArmada\Persons\Models\CredentialDefinition;

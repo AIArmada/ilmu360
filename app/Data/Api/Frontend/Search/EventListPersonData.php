@@ -21,7 +21,7 @@ class EventListPersonData extends Data
         return new self(
             id: (string) $person->id,
             name: (string) $person->name,
-            gender: filled($person->gender) ? (string) $person->gender : null,
+            gender: filled($person->gender) ? $person->gender->value : null,
             formatted_name: (string) $person->formatted_name,
             slug: (string) $person->slug,
             avatar_url: (string) $person->public_avatar_url,

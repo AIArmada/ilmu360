@@ -7,7 +7,7 @@ use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\Contacting\Enums\SocialPlatform;
 use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Persons\Enums\AffiliationType;
-use AIArmada\Persons\Models\Affiliation;
+use App\Models\Affiliation;
 use App\Actions\Location\NormalizeGoogleMapsInputAction;
 use App\Enums\EventFormat;
 use App\Enums\EventKeyPersonRole;

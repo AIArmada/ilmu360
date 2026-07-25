@@ -10,7 +10,6 @@ use AIArmada\Engagement\Models\Follow;
 use AIArmada\Membership\Models\MembershipInvitation;
 use AIArmada\Membership\Traits\HasMembers;
 use AIArmada\Persons\Enums\Gender;
-use AIArmada\Persons\Models\Affiliation;
 use AIArmada\Persons\Models\CredentialAssignment;
 use AIArmada\Persons\Models\PersonName;
 use AIArmada\Persons\Models\TitleAssignment;
