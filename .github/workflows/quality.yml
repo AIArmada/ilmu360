@@ -295,7 +295,7 @@ jobs:
         run: |
           php -r '
           $pdo = new PDO("pgsql:host=".getenv("DB_HOST").";port=".getenv("DB_PORT").";dbname=".getenv("DB_DATABASE"), getenv("DB_USERNAME"), getenv("DB_PASSWORD"));
-          foreach (["test_test_1", "test_test_2"] as $database) {
+          foreach (["test_test_1", "test_test_2", "test_test_3", "test_test_4"] as $database) {
               $query = $pdo->prepare("select 1 from pg_database where datname = ?");
               $query->execute([$database]);
               if ($query->fetchColumn() === false) {
