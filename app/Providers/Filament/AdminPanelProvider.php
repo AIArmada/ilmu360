@@ -11,6 +11,7 @@ use AIArmada\FilamentEvents\FilamentEventsPlugin;
 use AIArmada\FilamentInventory\FilamentInventoryPlugin;
 use AIArmada\FilamentSeating\FilamentSeatingPlugin;
 use AIArmada\FilamentSignals\FilamentSignalsPlugin;
+use AIArmada\FilamentPersons\FilamentPersonsPlugin;
 use AIArmada\FilamentTicketing\FilamentTicketingPlugin;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Filament\Pages\AdminDashboard;
@@ -87,6 +88,7 @@ class AdminPanelProvider extends PanelProvider
                 FilamentEventsPlugin::make(),
                 FilamentInventoryPlugin::make(),
                 FilamentSeatingPlugin::make(),
+                FilamentPersonsPlugin::make(),
                 FilamentTicketingPlugin::make(),
             ])
             ->middleware([
