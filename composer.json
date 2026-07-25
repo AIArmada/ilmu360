@@ -60,7 +60,6 @@
         "livewire/blaze": "^1.0",
         "livewire/flux": "^2.15",
         "lorisleiva/laravel-actions": "^2.10",
-        "nnjeim/world": "^1.1",
         "nunomaduro/essentials": "^1.2",
         "owen-it/laravel-auditing": "^14.0",
         "spatie/eloquent-sortable": "^5.0",
