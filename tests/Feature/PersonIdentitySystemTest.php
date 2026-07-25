@@ -1,18 +1,18 @@
 <?php
 
+use AIArmada\Persons\Enums\AssignmentStatus;
+use AIArmada\Persons\Enums\CredentialType;
+use AIArmada\Persons\Enums\TitleUsagePosition;
+use AIArmada\Persons\Models\Affiliation;
+use AIArmada\Persons\Models\AffiliationRole;
+use AIArmada\Persons\Models\CredentialAssignment;
+use AIArmada\Persons\Models\CredentialDefinition;
+use AIArmada\Persons\Models\Title;
+use AIArmada\Persons\Models\TitleAssignment;
+use AIArmada\Persons\Models\TitleCategory;
 use App\Enums\AffiliationType;
-use App\Enums\AssignmentStatus;
-use App\Enums\CredentialType;
-use App\Enums\TitleUsagePosition;
-use App\Models\Affiliation;
-use App\Models\AffiliationRole;
-use App\Models\CredentialAssignment;
-use App\Models\CredentialDefinition;
 use App\Models\Institution;
 use App\Models\Person;
-use App\Models\Title;
-use App\Models\TitleAssignment;
-use App\Models\TitleCategory;
 
 it('formatted_name falls back to the bare name when no titles are assigned', function () {
     $person = Person::factory()->create([

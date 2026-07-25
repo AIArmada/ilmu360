@@ -1,13 +1,13 @@
 <?php
 
-use App\Enums\AssignmentStatus;
+use AIArmada\Persons\Enums\AssignmentStatus;
+use AIArmada\Persons\Models\Title;
+use AIArmada\Persons\Models\TitleAssignment;
 use App\Enums\ContributionSubjectType;
 use App\Livewire\Pages\Contributions\SubmitPerson;
 use App\Models\ContributionRequest;
 use App\Models\Event;
 use App\Models\Person;
-use App\Models\Title;
-use App\Models\TitleAssignment;
 use App\Models\User;
 use App\Services\EventKeyPersonSyncService;
 use App\Support\Search\PersonSearchService;

@@ -7,16 +7,17 @@ use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
+use AIArmada\Persons\Enums\AssignmentStatus;
+use AIArmada\Persons\Enums\Gender;
+use AIArmada\Persons\Enums\PersonNameType;
+use AIArmada\Persons\Models\Affiliation;
+use AIArmada\Persons\Models\PersonName;
+use AIArmada\Persons\Models\Title;
+use AIArmada\Persons\Models\TitleAssignment;
 use App\Actions\Persons\GeneratePersonSlugAction;
 use App\Enums\AffiliationType;
-use App\Enums\AssignmentStatus;
-use AIArmada\Persons\Enums\PersonNameType;
-use App\Models\Affiliation;
 use App\Models\Institution;
 use App\Models\Person;
-use AIArmada\Persons\Models\PersonName;
-use App\Models\Title;
-use App\Models\TitleAssignment;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 use Nnjeim\World\Models\Language;
@@ -74,7 +75,7 @@ class PersonFactory extends Factory
         return [
             'name' => $name,
             'family_name' => $parentName,
-            'gender' => $isFemale ? 'female' : 'male',
+            'gender' => $isFemale ? Gender::Female->value : Gender::Male->value,
             'date_of_birth' => fake()->optional(0.6)->date(max: 'now -18 years'),
             'nationality_country_id' => null,
             'slug' => (string) Str::uuid(),

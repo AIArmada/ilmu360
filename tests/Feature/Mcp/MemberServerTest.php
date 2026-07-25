@@ -1,14 +1,17 @@
 <?php
 
 use AIArmada\CommerceSupport\Models\Role;
-use App\Enums\AssignmentStatus;
+use AIArmada\Persons\Enums\AssignmentStatus;
+use AIArmada\Persons\Enums\TitleUsagePosition;
+use AIArmada\Persons\Models\Title;
+use AIArmada\Persons\Models\TitleAssignment;
+use AIArmada\Persons\Models\TitleCategory;
 use App\Enums\ContributionRequestStatus;
 use App\Enums\ContributionRequestType;
 use App\Enums\ContributionSubjectType;
 use App\Enums\EventChangeSeverity;
 use App\Enums\EventChangeType;
 use App\Enums\MemberSubjectType;
-use App\Enums\TitleUsagePosition;
 use App\Mcp\Prompts\MemberDocumentationToolRoutingPrompt;
 use App\Mcp\Resources\Docs\MemberMcpGuideResource;
 use App\Mcp\Servers\MemberServer;
@@ -38,9 +41,6 @@ use App\Models\MembershipApplication;
 use App\Models\PassportUser;
 use App\Models\Person;
 use App\Models\Reference;
-use App\Models\Title;
-use App\Models\TitleAssignment;
-use App\Models\TitleCategory;
 use App\Models\User;
 use App\Support\GitHub\GitHubIssueReportContract;
 use App\Support\Mcp\McpTokenManager;

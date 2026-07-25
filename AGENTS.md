@@ -957,7 +957,7 @@ Common implemented options:
 
 `resources/views/components/pages/submit-event/create.blade.php` includes:
 - `cover` upload for website/mobile app display, fixed to 16:9
-- `poster` upload for external/social distribution, fixed to 4:5 portrait
+- `poster` upload for external/social distribution, fixed to 3:4 portrait
 - `gallery` upload with reorder support
 - image editor + responsive images + conversion wiring
 

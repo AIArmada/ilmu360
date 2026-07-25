@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Models\TitleCategory;
+use AIArmada\Persons\Models\TitleCategory;
 use Illuminate\Database\Seeder;
 
 class TitleCategorySeeder extends Seeder

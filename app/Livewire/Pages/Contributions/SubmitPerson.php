@@ -3,6 +3,7 @@
 namespace App\Livewire\Pages\Contributions;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Persons\Enums\Gender;
 use App\Actions\Contributions\SubmitStagedContributionCreateAction;
 use App\Enums\ContributionSubjectType;
 use App\Forms\PersonContributionFormSchema;
@@ -34,7 +35,7 @@ class SubmitPerson extends Component implements HasActions, HasForms
     {
         OwnerContext::withOwner(null, function (): void {
             $this->contributionForm()->fill([
-                'gender' => 'male',
+                'gender' => Gender::Male->value,
                 'address' => [
                     'country_id' => null,
                     'state_id' => null,

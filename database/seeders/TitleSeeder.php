@@ -2,9 +2,9 @@
 
 namespace Database\Seeders;
 
-use App\Enums\TitleUsagePosition;
-use App\Models\Title;
-use App\Models\TitleCategory;
+use AIArmada\Persons\Enums\TitleUsagePosition;
+use AIArmada\Persons\Models\Title;
+use AIArmada\Persons\Models\TitleCategory;
 use Illuminate\Database\Seeder;
 
 class TitleSeeder extends Seeder

@@ -177,12 +177,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/AIArmada/commerce-support.git",
-                "reference": "00975311d63692a0425bfbdff6cb009c4b7e1a11"
+                "reference": "102fce4fba264ce176d38c7a7e5e81eff2609558"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/AIArmada/commerce-support/zipball/00975311d63692a0425bfbdff6cb009c4b7e1a11",
-                "reference": "00975311d63692a0425bfbdff6cb009c4b7e1a11",
+                "url": "https://api.github.com/repos/AIArmada/commerce-support/zipball/102fce4fba264ce176d38c7a7e5e81eff2609558",
+                "reference": "102fce4fba264ce176d38c7a7e5e81eff2609558",
                 "shasum": ""
             },
             "require": {
@@ -225,7 +225,8 @@
                     "src/helpers.php"
                 ],
                 "psr-4": {
-                    "AIArmada\\CommerceSupport\\": "src/"
+                    "AIArmada\\CommerceSupport\\": "src/",
+                    "AIArmada\\CommerceSupport\\Database\\Seeders\\": "database/seeders/"
                 }
             },
             "notification-url": "https://packagist.org/downloads/",
@@ -238,7 +239,7 @@
                 "issues": "https://github.com/aiarmada/commerce/issues",
                 "source": "https://github.com/aiarmada/commerce"
             },
-            "time": "2026-07-23T11:22:05+00:00"
+            "time": "2026-07-25T09:53:39+00:00"
         },
         {
             "name": "aiarmada/communications",
@@ -5177,16 +5178,16 @@
         },
         {
             "name": "laravel/framework",
-            "version": "v13.21.1",
+            "version": "v13.22.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/laravel/framework.git",
-                "reference": "303b5f8dc899f89e8c38c350b639b8fbd193ed16"
+                "reference": "d354afa45334cdac523fbc015f203a78d7e2f5c6"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/laravel/framework/zipball/303b5f8dc899f89e8c38c350b639b8fbd193ed16",
-                "reference": "303b5f8dc899f89e8c38c350b639b8fbd193ed16",
+                "url": "https://api.github.com/repos/laravel/framework/zipball/d354afa45334cdac523fbc015f203a78d7e2f5c6",
+                "reference": "d354afa45334cdac523fbc015f203a78d7e2f5c6",
                 "shasum": ""
             },
             "require": {
@@ -5400,7 +5401,7 @@
                 "issues": "https://github.com/laravel/framework/issues",
                 "source": "https://github.com/laravel/framework"
             },
-            "time": "2026-07-21T14:27:35+00:00"
+            "time": "2026-07-24T20:38:48+00:00"
         },
         {
             "name": "laravel/horizon",
