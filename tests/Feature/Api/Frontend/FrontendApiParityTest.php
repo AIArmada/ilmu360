@@ -28,6 +28,7 @@ use App\Models\Series;
 use App\Models\Space;
 use App\Models\User;
 use App\Models\Venue;
+use App\Support\Cache\PublicDirectoryCacheVersion;
 use App\Support\Search\InstitutionSearchService;
 use App\Support\Search\PersonSearchService;
 use App\Support\Search\ReferenceSearchService;
@@ -2350,7 +2351,7 @@ it('bumps the person directory cache version when person records change', functi
         ->json('meta.cache.version');
 
     $person->update(['name' => 'Person Cache Version Updated']);
-    app(\App\Support\Cache\PublicDirectoryCacheVersion::class)->bumpPerson();
+    app(PublicDirectoryCacheVersion::class)->bumpPerson();
 
     $updatedVersion = $this->getJson(route('api.client.persons.index'))
         ->assertOk()
