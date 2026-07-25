@@ -64,7 +64,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Laravel\Scout\Searchable;
-use Nnjeim\World\Models\Language;
+use App\Models\Language;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
 use Spatie\DeletedModels\Models\Concerns\KeepsDeletedModels;
 use Spatie\Image\Enums\Fit;
@@ -391,18 +391,18 @@ class Event extends PackageEvent implements AuditableContract
     }
 
     /**
-     * @param  array<int>|int  $languages
+     * @param  array<int, string>|string  $languages
      */
-    public function syncLanguages(array|int $languages): void
+    public function syncLanguages(array|string $languages): void
     {
         $languageIds = collect(is_array($languages) ? $languages : [$languages])
             ->filter(fn (mixed $languageId): bool => filled($languageId))
-            ->map(fn (mixed $languageId): int => (int) $languageId)
+            ->map(fn (mixed $languageId): string => (string) $languageId)
             ->values();
 
         $before = $this->resolvedLanguages()
             ->map(fn (Language $language): array => [
-                'id' => (int) $language->id,
+                'id' => (string) $language->id,
                 'name' => (string) $language->name,
                 'code' => (string) $language->code,
             ])
@@ -411,7 +411,7 @@ class Event extends PackageEvent implements AuditableContract
         $languageCodes = Language::query()
             ->whereIn('id', $languageIds->all())
             ->get(['id', 'code'])
-            ->sortBy(fn (Language $language): int => $languageIds->search((int) $language->id) ?: 0)
+            ->sortBy(fn (Language $language): int => $languageIds->search((string) $language->id) ?: 0)
             ->pluck('code')
             ->filter(fn (mixed $code): bool => is_string($code) && $code !== '')
             ->values();
@@ -427,7 +427,7 @@ class Event extends PackageEvent implements AuditableContract
                     'is_primary' => $index === 0,
                     'sort_order' => $index,
                     'metadata' => [
-                        'source' => 'world_languages',
+                        'source' => 'commerce_languages',
                     ],
                 ]);
             }
@@ -438,7 +438,7 @@ class Event extends PackageEvent implements AuditableContract
 
         $after = $this->resolvedLanguages()
             ->map(fn (Language $language): array => [
-                'id' => (int) $language->id,
+                'id' => (string) $language->id,
                 'name' => (string) $language->name,
                 'code' => (string) $language->code,
             ])
