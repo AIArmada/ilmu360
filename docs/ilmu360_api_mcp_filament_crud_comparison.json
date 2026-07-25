@@ -416,24 +416,26 @@
                     "generic_admin_write": true
                 },
                 {
-                    "resource_key": "address-cities",
+                    "resource_key": "cities",
                     "resource_class": "AIArmada\\FilamentAddressing\\Resources\\AddressCityResource",
-                    "model_class": "AIArmada\\Addressing\\Models\\AddressCity",
+                    "model_class": "AIArmada\\Addressing\\Models\\City",
                     "source": "vendor",
                     "page_keys": [
                         "index",
-                        "view"
+                        "view",
+                        "edit"
                     ],
                     "generic_admin_write": false
                 },
                 {
-                    "resource_key": "address-states",
+                    "resource_key": "states",
                     "resource_class": "AIArmada\\FilamentAddressing\\Resources\\AddressStateResource",
-                    "model_class": "AIArmada\\Addressing\\Models\\AddressState",
+                    "model_class": "AIArmada\\Addressing\\Models\\State",
                     "source": "vendor",
                     "page_keys": [
                         "index",
-                        "view"
+                        "view",
+                        "edit"
                     ],
                     "generic_admin_write": false
                 },

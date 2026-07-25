@@ -201,8 +201,8 @@ These are registered at runtime and therefore part of the admin registry surface
 | Resource key | Package family | Pages | Generic admin write |
 | --- | --- | --- | --- |
 | `address-areas` | `aiarmada/filament-addressing` | `index`, `view`, `edit`, `create` | yes |
-| `address-cities` | `aiarmada/filament-addressing` | `index`, `view` | no |
-| `address-states` | `aiarmada/filament-addressing` | `index`, `view` | no |
+| `cities` | `aiarmada/filament-addressing` | `index`, `view`, `edit` | no |
+| `states` | `aiarmada/filament-addressing` | `index`, `view`, `edit` | no |
 | `address-countries` | `aiarmada/filament-addressing` | `index`, `view` | no |
 | `bookmark-collections` | `aiarmada/filament-engagement` | `index`, `create`, `edit` | no |
 | `bookmarks` | `aiarmada/filament-engagement` | `index`, `view` | no |
