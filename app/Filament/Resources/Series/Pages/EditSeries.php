@@ -82,7 +82,7 @@ class EditSeries extends EditRecord
                 ->orderBy('languages.name')
                 ->get(['languages.id', 'languages.name'])
                 ->map(fn (Language $language): array => [
-                    'id' => (int) $language->getKey(),
+                    'id' => $language->getKey(),
                     'name' => $language->name,
                 ])
                 ->values()
