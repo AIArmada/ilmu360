@@ -32,7 +32,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
-use Nnjeim\World\Models\Language;
+use App\Models\Language;
 
 uses(RefreshDatabase::class);
 

@@ -41,7 +41,7 @@ use Database\Seeders\ScopedMemberRolesSeeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
-use Nnjeim\World\Models\Language;
+use App\Models\Language;
 use Spatie\Permission\PermissionRegistrar;
 
 beforeEach(function (): void {

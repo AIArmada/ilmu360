@@ -109,7 +109,7 @@ it('records distinct contribution request timestamps', function () {
 it('uses status for person listing instead of is_active column', function () {
     expect(Schema::hasColumn('persons', 'is_active'))->toBeFalse()
         ->and(Schema::hasColumn('persons', 'verified_at'))->toBeTrue()
-        ->and(Schema::hasColumn('persons', 'inactive_at'))->toBeTrue();
+        ->and(Schema::hasColumn('persons', 'published_at'))->toBeTrue();
 
     $verified = Person::factory()->create(['status' => 'verified']);
     $inactive = Person::factory()->create(['status' => 'inactive']);

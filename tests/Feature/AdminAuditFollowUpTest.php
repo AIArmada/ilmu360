@@ -16,7 +16,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
-use Nnjeim\World\Models\Language;
+use App\Models\Language;
 use OwenIt\Auditing\AuditableObserver;
 
 beforeEach(function () {

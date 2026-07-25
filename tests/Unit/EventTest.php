@@ -10,7 +10,7 @@ use App\States\EventStatus\Cancelled;
 use App\States\EventStatus\Draft;
 use App\States\EventStatus\Pending;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Nnjeim\World\Models\Language;
+use App\Models\Language;
 use Tests\TestCase;
 
 uses(TestCase::class, RefreshDatabase::class);
