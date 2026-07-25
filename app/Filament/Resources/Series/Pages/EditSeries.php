@@ -6,11 +6,11 @@ namespace App\Filament\Resources\Series\Pages;
 
 use App\Filament\Pages\Concerns\AuditsRelatedStateChanges;
 use App\Filament\Resources\Series\SeriesResource;
+use App\Models\Language;
 use App\Models\Series;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\Language;
 
 class EditSeries extends EditRecord
 {

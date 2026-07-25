@@ -26,6 +26,7 @@ use App\Models\Event;
 use App\Models\EventChangeAnnouncement;
 use App\Models\Inspiration;
 use App\Models\Institution;
+use App\Models\Language;
 use App\Models\MembershipApplication;
 use App\Models\ModerationReview;
 use App\Models\Person;
@@ -41,7 +42,6 @@ use Database\Seeders\ScopedMemberRolesSeeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
-use App\Models\Language;
 use Spatie\Permission\PermissionRegistrar;
 
 beforeEach(function (): void {

@@ -3,6 +3,7 @@
 use App\Enums\EventKeyPersonRole;
 use App\Models\Event;
 use App\Models\Institution;
+use App\Models\Language;
 use App\Models\Person;
 use App\Models\Venue;
 use App\States\EventStatus\Approved;
@@ -10,7 +11,6 @@ use App\States\EventStatus\Cancelled;
 use App\States\EventStatus\Draft;
 use App\States\EventStatus\Pending;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use App\Models\Language;
 use Tests\TestCase;
 
 uses(TestCase::class, RefreshDatabase::class);

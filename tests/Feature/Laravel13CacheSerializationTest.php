@@ -4,13 +4,13 @@ use App\Enums\EventAgeGroup;
 use App\Livewire\Pages\Events\Index;
 use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Event;
+use App\Models\Language;
 use App\Services\EventSearchService;
 use App\Services\PrayerTimeService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Livewire\Livewire;
-use App\Models\Language;
 
 it('hydrates the events index language cache into the current safe payload format', function () {
     config()->set('cache.default', 'database');

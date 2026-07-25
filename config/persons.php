@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 use AIArmada\Addressing\Models\AddressCountry;
+use App\Models\Person;
 
 $tablePrefix = '';
 
@@ -25,7 +26,7 @@ return [
 
     // Host application may subclass package models. Resolved through ModelResolver.
     'models' => [
-        'person' => App\Models\Person::class,
+        'person' => Person::class,
         'country' => AddressCountry::class,
         'institution' => null,
     ],

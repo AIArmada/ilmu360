@@ -14,6 +14,7 @@ use App\Enums\EventTaxonomyCode;
 use App\Enums\MemberSubjectType;
 use App\Forms\SharedFormSchema;
 use App\Models\Institution;
+use App\Models\Language;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Space;
@@ -25,7 +26,6 @@ use App\Support\Submission\EntitySubmissionAccess;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
-use App\Models\Language;
 
 class FrontendCatalogService
 {

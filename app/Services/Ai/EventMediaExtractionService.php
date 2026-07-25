@@ -12,6 +12,7 @@ use App\Enums\EventGenderRestriction;
 use App\Enums\EventPrayerTime;
 use App\Enums\EventTaxonomyCode;
 use App\Enums\EventVisibility;
+use App\Models\Language;
 use ArrayAccess;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
@@ -19,7 +20,6 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Laravel\Ai\Files\Document;
 use Laravel\Ai\Files\Image;
-use App\Models\Language;
 use RuntimeException;
 use Throwable;
 

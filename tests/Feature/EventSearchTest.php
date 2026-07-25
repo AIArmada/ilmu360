@@ -16,6 +16,7 @@ use App\Livewire\Pages\Events\AdvancedFiltersPanel;
 use App\Livewire\Pages\Events\Index;
 use App\Models\Event;
 use App\Models\Institution;
+use App\Models\Language;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Registration;
@@ -32,7 +33,6 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
-use App\Models\Language;
 
 uses(RefreshDatabase::class);
 

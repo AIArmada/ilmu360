@@ -6,10 +6,10 @@ namespace App\Filament\Resources\Series\Pages;
 
 use App\Filament\Pages\Concerns\AuditsRelatedStateChanges;
 use App\Filament\Resources\Series\SeriesResource;
+use App\Models\Language;
 use App\Models\Series;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\Language;
 
 class CreateSeries extends CreateRecord
 {

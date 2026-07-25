@@ -14,6 +14,7 @@ use App\Enums\EventPrayerTime;
 use App\Enums\TimingMode;
 use App\Forms\SharedFormSchema;
 use App\Models\Institution;
+use App\Models\Language;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Venue;
@@ -36,7 +37,6 @@ use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
 use Livewire\Component;
-use App\Models\Language;
 
 class AdvancedFiltersPanel extends Component implements HasForms
 {

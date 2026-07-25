@@ -4,6 +4,7 @@ use App\Filament\Resources\Series\Pages\EditSeries;
 use App\Filament\Resources\Spaces\Pages\EditSpace;
 use App\Models\Event;
 use App\Models\Institution;
+use App\Models\Language;
 use App\Models\Person;
 use App\Models\Series;
 use App\Models\Space;
@@ -16,7 +17,6 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
-use App\Models\Language;
 use OwenIt\Auditing\AuditableObserver;
 
 beforeEach(function () {
