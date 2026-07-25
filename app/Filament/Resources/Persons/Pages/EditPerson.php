@@ -24,4 +24,12 @@ class EditPerson extends EditRecord
             parent::mount($record);
         });
     }
+
+    #[\Override]
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        unset($data['address']);
+
+        return $data;
+    }
 }
