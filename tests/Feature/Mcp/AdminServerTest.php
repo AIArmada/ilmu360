@@ -2471,7 +2471,7 @@ it('creates a tazkirah event with person_keys via admin-create-event', function 
             'institution_key' => (string) $institution->slug,
             'person_keys' => [(string) $person->slug],
             'reference_keys' => [(string) $reference->slug],
-            'languages' => [101],
+            'languages' => [languageId('ms')],
             'registration_required' => false,
             'status' => 'pending',
             'is_featured' => false,

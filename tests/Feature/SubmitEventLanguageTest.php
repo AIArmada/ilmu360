@@ -47,7 +47,7 @@ function submitEventLanguageFormData(array $fixtures, array $overrides = []): ar
         'visibility' => EventVisibility::Public->value,
         'gender' => EventGenderRestriction::All->value,
         'age_group' => [EventAgeGroup::AllAges->value],
-        'languages' => [101],
+        'languages' => [languageId('ms')],
         'primary_organizer_id' => $fixtures['institution']->id,
         'persons' => [$fixtures['person']->id],
         'submitter_name' => 'Test User',
@@ -62,7 +62,7 @@ it('can submit event with single language', function () {
         Livewire::test(Create::class),
         submitEventLanguageFormData($fixtures, [
             'title' => 'Single Language Event',
-            'languages' => [101],
+            'languages' => [languageId('ms')],
         ]),
     )
         ->call('submit')
@@ -81,7 +81,7 @@ it('can submit event with multiple languages', function () {
         Livewire::test(Create::class),
         submitEventLanguageFormData($fixtures, [
             'title' => 'Multi Language Event',
-            'languages' => [101, 7, 40],
+            'languages' => [languageId('ms'), languageId('ar'), languageId('en')],
         ]),
     )
         ->call('submit')

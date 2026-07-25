@@ -34,7 +34,7 @@ it('extracts media data with AI and moves the wizard to review step', function (
                 'age_group' => [EventAgeGroup::Adults->value],
                 'children_allowed' => false,
                 'is_muslim_only' => true,
-                'languages' => [101, 40],
+                'languages' => [languageId('ms'), languageId('en')],
                 'domain_tags' => [$domainTag->id],
                 'source_tags' => [$sourceTag->id],
                 'discipline_tags' => [(string) $disciplineTag->id],

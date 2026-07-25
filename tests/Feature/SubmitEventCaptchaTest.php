@@ -53,7 +53,7 @@ function fillSubmitEventCaptchaForm(mixed $component, array $fixtures, string $t
         'visibility' => EventVisibility::Public->value,
         'gender' => EventGenderRestriction::All->value,
         'age_group' => [EventAgeGroup::AllAges->value],
-        'languages' => [101],
+        'languages' => [languageId('ms')],
         'primary_organizer_id' => $fixtures['institution']->id,
         'persons' => [$fixtures['person']->id],
         'submitter_name' => 'Test User',

@@ -118,7 +118,7 @@ it('clears majlis listing cache when event is submitted from public submit form'
             'visibility' => EventVisibility::Public->value,
             'gender' => EventGenderRestriction::All->value,
             'age_group' => [EventAgeGroup::AllAges->value],
-            'languages' => [101],
+            'languages' => [languageId('ms')],
             'primary_organizer_id' => $institution->id,
             'persons' => [$person->id],
             'domain_tags' => [$domainTag->id],

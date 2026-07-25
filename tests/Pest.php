@@ -142,23 +142,43 @@ pest()->extend(TestCase::class)
         }
 
         // Seed common languages for tests that use the submit event form
-        $languages = [
-            ['id' => 7, 'code' => 'ar', 'name' => 'Arabic', 'native' => 'العربية', 'dir' => 'rtl'],
-            ['id' => 30, 'code' => 'zh', 'name' => 'Chinese', 'native' => '中文', 'dir' => 'ltr'],
-            ['id' => 40, 'code' => 'en', 'name' => 'English', 'native' => 'English', 'dir' => 'ltr'],
-            ['id' => 64, 'code' => 'id', 'name' => 'Indonesian', 'native' => 'Bahasa Indonesia', 'dir' => 'ltr'],
-            ['id' => 74, 'code' => 'jv', 'name' => 'Javanese', 'native' => 'ꦧꦱꦗꦮ', 'dir' => 'ltr'],
-            ['id' => 101, 'code' => 'ms', 'name' => 'Malay', 'native' => 'bahasa Melayu', 'dir' => 'ltr'],
-            ['id' => 154, 'code' => 'ta', 'name' => 'Tamil', 'native' => 'தமிழ்', 'dir' => 'ltr'],
+        $testLanguageData = [
+            ['code' => 'ar', 'name' => 'Arabic', 'native' => 'العربية', 'dir' => 'rtl'],
+            ['code' => 'zh', 'name' => 'Chinese', 'native' => '中文', 'dir' => 'ltr'],
+            ['code' => 'en', 'name' => 'English', 'native' => 'English', 'dir' => 'ltr'],
+            ['code' => 'id', 'name' => 'Indonesian', 'native' => 'Bahasa Indonesia', 'dir' => 'ltr'],
+            ['code' => 'jv', 'name' => 'Javanese', 'native' => 'ꦧꦱꦗꦮ', 'dir' => 'ltr'],
+            ['code' => 'ms', 'name' => 'Malay', 'native' => 'bahasa Melayu', 'dir' => 'ltr'],
+            ['code' => 'ta', 'name' => 'Tamil', 'native' => 'தமிழ்', 'dir' => 'ltr'],
         ];
 
+        $now = now()->toIso8601ZuluString();
+
         try {
-            DB::table('languages')->insertOrIgnore($languages);
+            foreach ($testLanguageData as $row) {
+                DB::table('languages')->insertOrIgnore([
+                    'id' => (string) str()->uuid(),
+                    'code' => $row['code'],
+                    'name' => $row['name'],
+                    'native' => $row['native'],
+                    'dir' => $row['dir'],
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]);
+            }
         } catch (Throwable) {
             // SQLite file-lock contention in parallel — language seeding is idempotent
         }
     })
     ->in('Feature');
+
+/**
+ * Get a language UUID by its ISO 639-1 code for use in tests.
+ */
+function languageId(string $code): ?string
+{
+    return DB::table('languages')->where('code', $code)->value('id');
+}
 
 /*
 |--------------------------------------------------------------------------
