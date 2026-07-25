@@ -3,7 +3,7 @@
 namespace App\Models\Concerns;
 
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
-use Nnjeim\World\Models\Language;
+use App\Models\Language;
 
 /**
  * @method array<string, list<mixed>> auditSync(string $relationName, mixed $ids, bool $detaching = true, array<int, string> $columns = ['*'], mixed $callback = null)
