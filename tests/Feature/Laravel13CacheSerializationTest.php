@@ -17,10 +17,10 @@ it('hydrates the events index language cache into the current safe payload forma
     app('cache')->setDefaultDriver('database');
     Cache::flush();
 
-Language::firstOrCreate(
-    ['code' => 'ms'],
-    ['name' => 'Malay', 'native' => 'Bahasa Melayu', 'dir' => 'ltr'],
-);
+    Language::firstOrCreate(
+        ['code' => 'ms'],
+        ['name' => 'Malay', 'native' => 'Bahasa Melayu', 'dir' => 'ltr'],
+    );
 
     Livewire::test(Index::class)
         ->assertSee('Cari Majlis Ilmu');

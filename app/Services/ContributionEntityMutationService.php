@@ -1467,19 +1467,6 @@ class ContributionEntityMutationService
     }
 
     /**
-     * @param  iterable<int, mixed>  $values
-     * @return list<int>
-     */
-    private function normalizeIntegerArray(iterable $values): array
-    {
-        return collect($values)
-            ->map(fn (mixed $value): ?int => is_numeric($value) ? (int) $value : null)
-            ->filter(static fn (?int $value): bool => $value !== null)
-            ->values()
-            ->all();
-    }
-
-    /**
      * @return list<string>
      */
     private function enumCollectionValues(mixed $collection): array
