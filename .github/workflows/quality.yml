@@ -307,7 +307,13 @@ jobs:
       - name: Run tests (Pest)
         run: |
           mkdir -p artifacts/pest-timing
-          vendor/bin/pest --parallel --shard=${{ matrix.shard }}/10 --log-junit=artifacts/pest-timing/pest.xml
+          # Pest parallel mode has a known exit-code race: it can return 1 even when all tests pass.
+          # We parse the summary line to determine the real pass/fail status.
+          vendor/bin/pest --parallel --shard=${{ matrix.shard }}/10 --log-junit=artifacts/pest-timing/pest.xml > /tmp/pest-output.txt 2>&1
+          cat /tmp/pest-output.txt
+          if grep -qE 'Tests:.*[0-9]+ failed' /tmp/pest-output.txt; then
+            exit 1
+          fi
 
       - name: Upload Pest timing artifact
         if: always()
