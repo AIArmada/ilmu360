@@ -15,7 +15,7 @@ use AIArmada\Persons\Models\PersonName;
 use AIArmada\Persons\Models\Title;
 use AIArmada\Persons\Models\TitleAssignment;
 use App\Actions\Persons\GeneratePersonSlugAction;
-use App\Enums\AffiliationType;
+use AIArmada\Persons\Enums\AffiliationType;
 use App\Models\Institution;
 use App\Models\Person;
 use Illuminate\Database\Eloquent\Factories\Factory;

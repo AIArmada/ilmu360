@@ -8,7 +8,7 @@ use AIArmada\Contacting\Enums\SocialPlatform;
 use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Persons\Models\Affiliation;
 use App\Actions\Location\NormalizeGoogleMapsInputAction;
-use App\Enums\AffiliationType;
+use AIArmada\Persons\Enums\AffiliationType;
 use App\Enums\EventFormat;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventVisibility;
