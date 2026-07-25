@@ -2,7 +2,7 @@
 
 namespace App\Forms;
 
-use App\Enums\Gender;
+use AIArmada\Persons\Enums\Gender;
 use App\Forms\Components\Select as QuickAddSelect;
 use App\Models\Institution;
 use Filament\Forms\Components\RichEditor;

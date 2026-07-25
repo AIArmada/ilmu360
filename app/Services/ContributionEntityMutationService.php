@@ -31,7 +31,7 @@ use App\Enums\EventKeyPersonRole;
 use App\Enums\EventPrayerTime;
 use App\Enums\EventTaxonomyCode;
 use App\Enums\EventVisibility;
-use App\Enums\Gender;
+use AIArmada\Persons\Enums\Gender;
 use App\Enums\InstitutionType;
 use App\Enums\PrayerOffset;
 use App\Enums\ReferencePartType;

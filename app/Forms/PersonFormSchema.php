@@ -5,7 +5,7 @@ namespace App\Forms;
 use AIArmada\Membership\Actions\AddMemberAction;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Actions\Persons\GeneratePersonSlugAction;
-use App\Enums\Gender;
+use AIArmada\Persons\Enums\Gender;
 use App\Models\Person;
 use App\Models\User;
 use App\Services\ContributionEntityMutationService;

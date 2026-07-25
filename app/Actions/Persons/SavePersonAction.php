@@ -4,7 +4,7 @@ namespace App\Actions\Persons;
 
 use AIArmada\Membership\Actions\AddMemberAction;
 use AIArmada\Membership\Enums\MemberRole;
-use App\Enums\Gender;
+use AIArmada\Persons\Enums\Gender;
 use App\Forms\SharedFormSchema;
 use App\Models\Person;
 use App\Models\User;
