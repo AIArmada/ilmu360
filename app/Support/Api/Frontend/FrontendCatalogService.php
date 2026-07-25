@@ -209,7 +209,7 @@ class FrontendCatalogService
     }
 
     /**
-     * @return list<array{id: int, label: string}>
+     * @return list<array{id: string, label: string}>
      */
     public function languages(): array
     {
@@ -218,7 +218,7 @@ class FrontendCatalogService
 
         return $languages
             ->map(fn (Language $language): array => [
-                'id' => (int) $language->id,
+                'id' => (string) $language->id,
                 'label' => (string) $language->name,
             ])
             ->all();
