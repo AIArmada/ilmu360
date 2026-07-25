@@ -313,26 +313,9 @@ jobs:
             vendor/bin/pest --parallel --shard=${{ matrix.shard }}/10 --compact --log-junit=artifacts/pest-timing/pest.xml
           fi
 
-      - name: Publish Pest timing report
-        if: always()
-        run: |
-          if [[ "${{ matrix.shard }}" =~ ^(1|2|4|5|6|7|9|10)$ ]]; then
-            workers=1
-          else
-            workers=$(nproc)
-          fi
-          php scripts/publish_pest_timing_report.php \
-            --input-dir=artifacts/pest-timing \
-            --output=artifacts/pest-timing/report.csv \
-            --summary="$GITHUB_STEP_SUMMARY" \
-            --shard="${{ matrix.shard }}/10" \
-            --php-version="8.4" \
-            --driver="$DB_CONNECTION" \
-            --worker-count="$workers"
-
       - name: Upload Pest timing artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: pest-timing-shard-${{ matrix.shard }}
           path: artifacts/pest-timing/report.csv

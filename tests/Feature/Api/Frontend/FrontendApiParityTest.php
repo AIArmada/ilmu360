@@ -15,6 +15,8 @@ use App\Enums\InstitutionType;
 use App\Http\Controllers\Api\Frontend\SearchController;
 use App\Models\ContributionRequest;
 use App\Models\DonationChannel;
+use App\Enums\AffiliationType;
+use App\Models\Affiliation;
 use App\Models\Event;
 use App\Models\EventKeyPerson;
 use App\Models\Inspiration;
@@ -3350,10 +3352,16 @@ it('mirrors the public person page payload for app clients', function () {
         'status' => 'verified',
     ]);
     $institution->addMedia(fakeGeneratedImageUpload('institution-cover.jpg'))->toMediaCollection('cover');
-    $person->institutions()->attach($institution->id, [
-        'position' => 'Mudarris',
-        'is_primary' => true,
-    ]);
+    Affiliation::withoutEvents(function () use ($person, $institution) {
+        Affiliation::create([
+            'affiliatable_type' => $person->getMorphClass(),
+            'affiliatable_id' => $person->getKey(),
+            'institution_id' => $institution->getKey(),
+            'affiliation_type' => AffiliationType::Employee->value,
+            'position' => 'Mudarris',
+            'is_primary' => true,
+        ]);
+    });
 
     $venue = Venue::factory()->create([
         'name' => 'Dewan Seri API',
