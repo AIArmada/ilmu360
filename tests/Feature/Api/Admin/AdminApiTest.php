@@ -1968,7 +1968,7 @@ it('replaces person collections and still requires an explicit country when muta
         fn (): Person => $person->refresh()->load(['contactMethods', 'socialProfiles', 'languages']),
     );
 
-    expect($person->languages->pluck('id')->all())->toEqual([(int) $languageEnglish->id])
+    expect($person->languages->pluck('id')->all())->toEqual([$languageEnglish->id])
         ->and($person->contactMethods)->toHaveCount(1)
         ->and($person->contactMethods->first()?->getRawOriginal('type'))->toBe('whatsapp')
         ->and($person->contactMethods->first()?->getRawOriginal('purpose'))->toBe('support')

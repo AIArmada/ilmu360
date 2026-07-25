@@ -190,7 +190,7 @@ class ContributionController extends FrontendController
             'address.provider_place_id' => ['prohibited'],
             'address.waze_url' => ['prohibited'],
             'language_ids' => ['nullable', 'array'],
-            'language_ids.*' => ['integer'],
+            'language_ids.*' => ['uuid'],
             'contactMethods' => ['nullable', 'array'],
             'contacts.*.type' => ['required_with:contacts', 'string', 'max:255'],
             'contacts.*.value' => ['required_with:contacts', 'string', 'max:255'],
