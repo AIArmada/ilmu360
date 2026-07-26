@@ -109,7 +109,7 @@
     @livewireStyles
     @filamentStyles(['app'])
     @filamentStyles(['filament/filament'])
-    @include('components.analytics.signals-tracker', ['surface' => 'public'])
+    @signalsTracker(['properties' => ['surface' => 'public']])
     @stack('head')
 </head>
 

@@ -600,7 +600,7 @@ final readonly class AffiliatesShareTrackingService
 
     private function resolveGuestIdentifier(Request $request): string
     {
-        $cookieAnonymousId = trim((string) $request->cookies->get((string) config('product-signals.identity.anonymous_cookie', 'mi_signals_anonymous_id')));
+        $cookieAnonymousId = trim((string) $request->cookies->get((string) config('signals.integrations.browser.identifiers.visitor_cookie_name', 'sig_vid')));
 
         if ($cookieAnonymousId !== '') {
             return $cookieAnonymousId;
@@ -622,7 +622,7 @@ final readonly class AffiliatesShareTrackingService
 
     private function resolveSessionIdentifier(Request $request): ?string
     {
-        $cookieIdentifier = trim((string) $request->cookies->get((string) config('product-signals.identity.session_cookie', 'mi_signals_session_id')));
+        $cookieIdentifier = trim((string) $request->cookies->get((string) config('signals.integrations.browser.identifiers.session_cookie_name', 'sig_sid')));
 
         if ($cookieIdentifier !== '') {
             return $cookieIdentifier;

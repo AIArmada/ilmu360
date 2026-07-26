@@ -4,6 +4,7 @@ use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Signals\Models\SignalEvent;
+use AIArmada\Signals\Models\TrackedProperty;
 use App\Actions\Events\GenerateEventSlugAction;
 use App\Actions\Institutions\GenerateInstitutionSlugAction;
 use App\Actions\Persons\GeneratePersonSlugAction;
@@ -22,7 +23,6 @@ use App\Models\User;
 use App\Models\Venue;
 use App\Services\ContributionEntityMutationService;
 use App\Services\EventKeyPersonSyncService;
-use App\Services\Signals\SignalsTracker;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -608,7 +608,12 @@ function slugRedirectAddressPayload(array $geography): array
 
 function recordVisitedPath(string $path): void
 {
-    $trackedProperty = app(SignalsTracker::class)->defaultTrackedProperty();
+    $trackedProperty = TrackedProperty::query()
+        ->withoutOwnerScope()
+        ->whereNull('owner_type')
+        ->whereNull('owner_id')
+        ->where('slug', (string) config('signals.integrations.browser.tracked_property.slug', 'ilmu360'))
+        ->first();
 
     expect($trackedProperty)->not->toBeNull();
 

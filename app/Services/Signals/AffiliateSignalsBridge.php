@@ -14,12 +14,21 @@ class AffiliateSignalsBridge
 {
     public function __construct(
         private readonly SignalEventIngestor $ingestSignalEvent,
-        private readonly SignalsTracker $signalsTracker,
     ) {}
+
+    private function defaultTrackedProperty(): ?TrackedProperty
+    {
+        return TrackedProperty::query()
+            ->withoutOwnerScope()
+            ->whereNull('owner_type')
+            ->whereNull('owner_id')
+            ->where('slug', (string) config('signals.integrations.browser.tracked_property.slug', 'ilmu360'))
+            ->first();
+    }
 
     public function recordAffiliateAttributed(AffiliateAttribution $attribution): void
     {
-        $trackedProperty = $this->signalsTracker->trackedPropertyForSurface('public');
+        $trackedProperty = $this->defaultTrackedProperty();
 
         if (! $trackedProperty instanceof TrackedProperty) {
             return;
@@ -62,7 +71,7 @@ class AffiliateSignalsBridge
 
     public function recordAffiliateConversionRecorded(AffiliateConversion $conversion): void
     {
-        $trackedProperty = $this->signalsTracker->trackedPropertyForSurface('public');
+        $trackedProperty = $this->defaultTrackedProperty();
 
         if (! $trackedProperty instanceof TrackedProperty) {
             return;

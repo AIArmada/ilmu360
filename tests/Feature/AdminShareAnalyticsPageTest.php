@@ -7,7 +7,6 @@ use App\Filament\Pages\ProductSignals;
 use App\Filament\Pages\ShareAnalytics;
 use App\Models\Event;
 use App\Models\User;
-use App\Services\Signals\SignalsTracker;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 
@@ -188,46 +187,16 @@ it('shows threads activity on the admin share analytics page', function () {
         ->assertSee('Threads');
 });
 
-it('injects a dedicated admin tracker by default', function () {
-    $publicProperty = TrackedProperty::query()->firstOrFail();
-    $adminProperty = TrackedProperty::query()->where('slug', 'ilmu360-admin')->firstOrFail();
-    $trackerConfig = app(SignalsTracker::class)->trackerConfig('admin');
+it('resolves a single global tracked property for all surfaces', function () {
+    $property = TrackedProperty::query()->firstOrFail();
+    $default = TrackedProperty::query()
+        ->withoutOwnerScope()
+        ->whereNull('owner_type')
+        ->whereNull('owner_id')
+        ->where('slug', (string) config('signals.integrations.browser.tracked_property.slug', 'ilmu360'))
+        ->first();
 
-    expect($trackerConfig)->not->toBeNull();
-    expect(data_get($trackerConfig, 'write_key'))->toBe((string) $adminProperty->write_key);
-    expect(data_get($trackerConfig, 'write_key'))->not->toBe((string) $publicProperty->write_key);
-});
-
-it('can still disable the admin tracker surface explicitly', function () {
-    config()->set('product-signals.panels.admin.enabled', false);
-
-    $trackerConfig = app(SignalsTracker::class)->trackerConfig('admin');
-
-    expect($trackerConfig)->toBeNull();
-});
-
-it('resolves a dedicated tracker for the ahli panel', function () {
-    $publicProperty = TrackedProperty::query()->where('slug', 'ilmu360')->firstOrFail();
-    $ahliProperty = app(SignalsTracker::class)->trackedPropertyForSurface('ahli');
-    $trackerConfig = app(SignalsTracker::class)->trackerConfig('ahli');
-
-    expect($ahliProperty)->not->toBeNull();
-    expect($ahliProperty?->slug)->toBe('ilmu360-ahli');
-    expect($trackerConfig)->not->toBeNull();
-    expect(data_get($trackerConfig, 'write_key'))->toBe((string) $ahliProperty?->write_key);
-    expect(data_get($trackerConfig, 'write_key'))->not->toBe((string) $publicProperty->write_key);
-});
-
-it('can resolve a future panel surface without hardcoded support', function () {
-    config()->set('product-signals.panels.partner.enabled', true);
-    config()->set('filament-panels.domains.partner', 'partner.ilmu360.test');
-
-    $partnerProperty = app(SignalsTracker::class)->trackedPropertyForSurface('partner');
-    $trackerConfig = app(SignalsTracker::class)->trackerConfig('partner');
-
-    expect($partnerProperty)->not->toBeNull();
-    expect($partnerProperty?->slug)->toBe('ilmu360-partner');
-    expect($partnerProperty?->domain)->toBe('partner.ilmu360.test');
-    expect($trackerConfig)->not->toBeNull();
-    expect(data_get($trackerConfig, 'write_key'))->toBe((string) $partnerProperty?->write_key);
+    expect($default)->not->toBeNull();
+    expect($default?->getKey())->toBe($property->getKey());
+    expect($default?->slug)->toBe('ilmu360');
 });

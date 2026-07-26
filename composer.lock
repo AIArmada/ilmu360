@@ -1435,12 +1435,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/AIArmada/signals.git",
-                "reference": "7a694ac5d131905a95c409ade31fe2dcef0e8950"
+                "reference": "f42d8c611bdd5140516b96cc99bd662a54defe29"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/AIArmada/signals/zipball/7a694ac5d131905a95c409ade31fe2dcef0e8950",
-                "reference": "7a694ac5d131905a95c409ade31fe2dcef0e8950",
+                "url": "https://api.github.com/repos/AIArmada/signals/zipball/f42d8c611bdd5140516b96cc99bd662a54defe29",
+                "reference": "f42d8c611bdd5140516b96cc99bd662a54defe29",
                 "shasum": ""
             },
             "require": {
@@ -1487,7 +1487,7 @@
                 "issues": "https://github.com/AIArmada/signals/issues",
                 "source": "https://github.com/AIArmada/signals/tree/main"
             },
-            "time": "2026-07-18T11:57:36+00:00"
+            "time": "2026-07-26T05:29:21+00:00"
         },
         {
             "name": "aiarmada/ticketing",

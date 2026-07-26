@@ -12,7 +12,6 @@ use AIArmada\Membership\Actions\AddMemberAction;
 use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Signals\Models\TrackedProperty;
 use App\Support\Cache\PublicListingsCache;
-use App\Support\Signals\ProductSignalsSurfaceResolver;
 use Database\Seeders\AIArmada\EventTaxonomySeeder;
 use Database\Seeders\TitleCategorySeeder;
 use Database\Seeders\TitleSeeder;
@@ -85,31 +84,21 @@ pest()->extend(TestCase::class)
         }
 
         if (Schema::hasTable(config('signals.database.tables.tracked_properties', 'signal_tracked_properties'))) {
-            $surfaceResolver = app(ProductSignalsSurfaceResolver::class);
-
-            foreach (['public' => 'Website', 'admin' => 'Admin'] as $surface => $label) {
-                $slug = $surfaceResolver->slugForSurface($surface);
-
-                if (! is_string($slug) || $slug === '') {
-                    continue;
-                }
-
-                try {
-                    TrackedProperty::query()->firstOrCreate(
-                        ['slug' => $slug],
-                        [
-                            'name' => config('app.name').' '.$label,
-                            'write_key' => Str::random(40),
-                            'domain' => $surfaceResolver->domainForSurface($surface),
-                            'type' => (string) config('signals.defaults.property_type', 'website'),
-                            'timezone' => (string) config('signals.defaults.timezone', config('app.timezone', 'UTC')),
-                            'currency' => (string) config('signals.defaults.currency', 'MYR'),
-                            'is_active' => true,
-                        ],
-                    );
-                } catch (Throwable) {
-                    // SQLite file-lock contention in parallel — process already seeded
-                }
+            try {
+                TrackedProperty::query()->firstOrCreate(
+                    ['slug' => 'ilmu360'],
+                    [
+                        'name' => config('app.name').' Website',
+                        'write_key' => Str::random(40),
+                        'domain' => parse_url((string) config('app.url'), PHP_URL_HOST),
+                        'type' => (string) config('signals.defaults.property_type', 'website'),
+                        'timezone' => (string) config('signals.defaults.timezone', config('app.timezone', 'UTC')),
+                        'currency' => (string) config('signals.defaults.currency', 'MYR'),
+                        'is_active' => true,
+                    ],
+                );
+            } catch (Throwable) {
+                // SQLite file-lock contention in parallel — process already seeded
             }
         }
 

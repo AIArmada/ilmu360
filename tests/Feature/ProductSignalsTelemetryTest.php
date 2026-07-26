@@ -55,8 +55,8 @@ it('records a signals event for successful password login', function () {
 it('stitches login telemetry to browser identity cookies when present', function () {
     $user = User::factory()->create();
 
-    $this->withCookie((string) config('product-signals.identity.anonymous_cookie'), 'sig_anon_browser')
-        ->withCookie((string) config('product-signals.identity.session_cookie'), 'sig_session_browser')
+    $this->withCookie('sig_vid', 'sig_anon_browser')
+        ->withCookie('sig_sid', 'sig_session_browser')
         ->post('/login', [
             'email' => $user->email,
             'password' => 'password',

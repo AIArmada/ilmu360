@@ -7,7 +7,6 @@ namespace App\Actions\Signals;
 use AIArmada\Signals\Contracts\SignalEventIngestor;
 use AIArmada\Signals\Models\TrackedProperty;
 use App\Models\User;
-use App\Services\Signals\SignalsTracker;
 use App\Support\Signals\ProductSignalsClientContext;
 use Illuminate\Http\Request;
 use Throwable;
@@ -16,7 +15,6 @@ final readonly class RecordMobileTelemetryBatchAction
 {
     public function __construct(
         private SignalEventIngestor $ingestSignalEvent,
-        private SignalsTracker $signalsTracker,
         private ProductSignalsClientContext $clientContext,
     ) {}
 
@@ -34,7 +32,12 @@ final readonly class RecordMobileTelemetryBatchAction
     ): array {
         $receivedEvents = count($events);
         $clientProperties = $this->clientContext->properties($request);
-        $trackedProperty = $this->signalsTracker->defaultTrackedProperty();
+        $trackedProperty = TrackedProperty::query()
+            ->withoutOwnerScope()
+            ->whereNull('owner_type')
+            ->whereNull('owner_id')
+            ->where('slug', (string) config('signals.integrations.browser.tracked_property.slug', 'ilmu360'))
+            ->first();
 
         if (! $trackedProperty instanceof TrackedProperty) {
             logger()->warning('Mobile telemetry accepted without a configured tracked property.', [

@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 
 trait BuildsUniqueSlug
 {
+    private const int MAX_SLUG_LENGTH = 200;
+
     /**
      * @param  class-string<Model>  $modelClass
      * @param  list<string>  $middleSegments
@@ -45,7 +47,7 @@ trait BuildsUniqueSlug
                 $candidateParts[] = $trailingSuffix;
             }
 
-            $candidate = implode('-', $candidateParts);
+            $candidate = mb_substr(implode('-', $candidateParts), 0, self::MAX_SLUG_LENGTH);
             $sequence++;
         } while (isset($slugSet[$candidate]));
 

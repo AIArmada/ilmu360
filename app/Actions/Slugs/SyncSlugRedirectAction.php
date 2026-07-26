@@ -6,7 +6,6 @@ use AIArmada\Signals\Models\SignalEvent;
 use AIArmada\Signals\Models\TrackedProperty;
 use App\Models\Event;
 use App\Models\SlugRedirect;
-use App\Services\Signals\SignalsTracker;
 use App\Support\Slugs\PublicSlugPathResolver;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
@@ -15,7 +14,6 @@ use Illuminate\Database\Eloquent\Model;
 final readonly class SyncSlugRedirectAction
 {
     public function __construct(
-        private SignalsTracker $signalsTracker,
         private PublicSlugPathResolver $publicSlugPathResolver,
     ) {}
 
@@ -102,7 +100,12 @@ final readonly class SyncSlugRedirectAction
 
     private function firstVisitedAt(string $path): ?CarbonImmutable
     {
-        $trackedProperty = $this->signalsTracker->defaultTrackedProperty();
+        $trackedProperty = TrackedProperty::query()
+            ->withoutOwnerScope()
+            ->whereNull('owner_type')
+            ->whereNull('owner_id')
+            ->where('slug', (string) config('signals.integrations.browser.tracked_property.slug', 'ilmu360'))
+            ->first();
 
         if (! $trackedProperty instanceof TrackedProperty) {
             return null;

@@ -110,7 +110,7 @@ return [
 
     'features' => [
         'owner' => [
-            'enabled' => true,
+            'enabled' => false,
             'include_global' => false,
             'auto_assign_on_create' => true,
         ],
@@ -156,13 +156,16 @@ return [
 
     'integrations' => [
         'browser' => [
-            'enabled' => false,
+            'enabled' => true,
             'auto_register_middleware' => true,
             'middleware_group' => 'web',
-            'auto_inject' => true,
+            'auto_inject' => false,
             'interaction_tracking' => [
                 'enabled' => true,
                 'include_rules_without_selector' => false,
+                'inline_attributes' => [
+                    'enabled' => true,
+                ],
             ],
             'identifiers' => [
                 'visitor_cookie_name' => 'sig_vid',
@@ -177,8 +180,8 @@ return [
             ],
             'tracked_property' => [
                 'auto_create' => true,
-                'slug' => 'commerce-browser',
-                'name' => 'Commerce Browser',
+                'slug' => 'ilmu360',
+                'name' => 'ilmu360',
             ],
             'identify' => [
                 'enabled' => true,

@@ -10,6 +10,7 @@ use AIArmada\Persons\Models\Title;
 use AIArmada\Persons\Models\TitleAssignment;
 use AIArmada\Persons\Models\TitleCategory;
 use AIArmada\Signals\Models\SignalEvent;
+use AIArmada\Signals\Models\TrackedProperty;
 use App\Enums\ContributionRequestStatus;
 use App\Enums\ContributionRequestType;
 use App\Enums\ContributionSubjectType;
@@ -69,7 +70,6 @@ use App\Models\Series;
 use App\Models\Space;
 use App\Models\User;
 use App\Models\Venue;
-use App\Services\Signals\SignalsTracker;
 use App\Support\GitHub\GitHubIssueReportContract;
 use App\Support\Mcp\McpDocumentationPreflight;
 use App\Support\Mcp\McpTokenManager;
@@ -416,7 +416,12 @@ it('returns resource metadata, record listings, and record detail for persons', 
 
 it('redacts tracked property write keys in admin MCP payloads', function () {
     $admin = adminMcpUser('super_admin');
-    $trackedProperty = app(SignalsTracker::class)->defaultTrackedProperty();
+    $trackedProperty = TrackedProperty::query()
+        ->withoutOwnerScope()
+        ->whereNull('owner_type')
+        ->whereNull('owner_id')
+        ->where('slug', (string) config('signals.integrations.browser.tracked_property.slug', 'ilmu360'))
+        ->first();
 
     expect($trackedProperty)->not->toBeNull();
 
@@ -2287,7 +2292,12 @@ it('creates and updates events through MCP write tools', function () {
     $eventId = (string) $event->getKey();
     $oldPath = route('events.show', $event, false);
 
-    $trackedProperty = app(SignalsTracker::class)->defaultTrackedProperty();
+    $trackedProperty = TrackedProperty::query()
+        ->withoutOwnerScope()
+        ->whereNull('owner_type')
+        ->whereNull('owner_id')
+        ->where('slug', (string) config('signals.integrations.browser.tracked_property.slug', 'ilmu360'))
+        ->first();
 
     expect($trackedProperty)->not->toBeNull();
 

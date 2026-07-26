@@ -23,7 +23,7 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @fluxAppearance
     @livewireStyles
-    @include('components.analytics.signals-tracker', ['surface' => 'public'])
+    @signalsTracker(['properties' => ['surface' => 'public']])
     @stack('head')
 
     <style>

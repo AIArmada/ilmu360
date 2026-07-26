@@ -8,6 +8,7 @@ use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
 use AIArmada\Events\Models\FacilityType;
 use AIArmada\Moderation\Enums\ModerationActionType;
+use AIArmada\Signals\Models\TrackedProperty;
 use App\Enums\ContributionRequestStatus;
 use App\Enums\ContributionRequestType;
 use App\Enums\ContributionSubjectType;
@@ -36,7 +37,6 @@ use App\Models\Series;
 use App\Models\Space;
 use App\Models\User;
 use App\Models\Venue;
-use App\Services\Signals\SignalsTracker;
 use App\Support\Search\PersonSearchService;
 use Database\Seeders\ScopedMemberRolesSeeder;
 use Illuminate\Support\Carbon;
@@ -213,7 +213,12 @@ it('returns admin person resource metadata and records', function () {
 
 it('redacts tracked property write keys in admin api payloads', function () {
     $admin = adminApiUser('super_admin');
-    $trackedProperty = app(SignalsTracker::class)->defaultTrackedProperty();
+    $trackedProperty = TrackedProperty::query()
+        ->withoutOwnerScope()
+        ->whereNull('owner_type')
+        ->whereNull('owner_id')
+        ->where('slug', (string) config('signals.integrations.browser.tracked_property.slug', 'ilmu360'))
+        ->first();
 
     expect($trackedProperty)->not->toBeNull();
 

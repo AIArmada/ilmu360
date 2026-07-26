@@ -8,7 +8,6 @@ use App\Models\Event;
 use App\Models\User;
 use App\Services\ShareTrackingService;
 use App\Services\Signals\AffiliateSignalsBridge;
-use App\Services\Signals\SignalsTracker;
 use Illuminate\Http\Request;
 use Mockery\MockInterface;
 
@@ -24,30 +23,28 @@ it('registers the signals package migrations with the application', function () 
         ->and($package->discoversMigrations)->toBeTrue();
 });
 
-it('injects the signals tracker script into public layouts when a tracked property exists', function () {
+it('resolves the default tracked property', function () {
     $trackedProperty = TrackedProperty::query()->first();
 
     expect($trackedProperty)->not->toBeNull();
     expect(app('router')->has('signals.tracker.script'))->toBeTrue();
 
-    $trackerConfig = app(SignalsTracker::class)->trackerConfig('public');
+    $default = TrackedProperty::query()
+        ->withoutOwnerScope()
+        ->whereNull('owner_type')
+        ->whereNull('owner_id')
+        ->where('slug', (string) config('signals.integrations.browser.tracked_property.slug', 'ilmu360'))
+        ->first();
 
-    expect($trackerConfig)->not->toBeNull();
-    expect(data_get($trackerConfig, 'write_key'))->toBe((string) $trackedProperty?->write_key);
-    expect(data_get($trackerConfig, 'script_url'))->toContain('/api/signals/tracker.js');
-    expect(data_get($trackerConfig, 'event_endpoint'))->toContain('/api/signals/collect/browser-event');
-    expect(data_get($trackerConfig, 'identify_endpoint'))->toContain('/api/signals/collect/identify');
-    expect(data_get($trackerConfig, 'anonymous_cookie_name'))->toBe('mi_signals_anonymous_id');
-    expect(data_get($trackerConfig, 'session_cookie_name'))->toBe('mi_signals_session_id');
+    expect($default)->not->toBeNull();
+    expect($default?->write_key)->toBe((string) $trackedProperty?->write_key);
 });
 
-it('renders the centralized custom UI event tracker and discovery funnel hooks', function () {
+it('renders the inline signal event hooks used by the package tracker', function () {
     $this->get(route('home'))
         ->assertSuccessful()
-        ->assertSee('window.ilmu360.trackSignal', false)
+        ->assertSee('data-signals-tracker', false)
         ->assertSee('/api/signals/collect/browser-event', false)
-        ->assertSee("client_origin: 'web'", false)
-        ->assertSee("client_transport: 'web'", false)
         ->assertSee('data-signal-submit-event="search.submitted"', false)
         ->assertSee('data-signal-event="search.nearby_requested"', false)
         ->assertSee('data-signal-event="navigation.quick_filter_clicked"', false)
