@@ -1255,12 +1255,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/AIArmada/persons.git",
-                "reference": "eaf48b7656928e1d15f48eb7d3dcf33c388863b6"
+                "reference": "a88b7605eb0db7f790737ddb9b2c441bd5e8d57e"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/AIArmada/persons/zipball/eaf48b7656928e1d15f48eb7d3dcf33c388863b6",
-                "reference": "eaf48b7656928e1d15f48eb7d3dcf33c388863b6",
+                "url": "https://api.github.com/repos/AIArmada/persons/zipball/a88b7605eb0db7f790737ddb9b2c441bd5e8d57e",
+                "reference": "a88b7605eb0db7f790737ddb9b2c441bd5e8d57e",
                 "shasum": ""
             },
             "require": {
@@ -1315,7 +1315,7 @@
                 "issues": "https://github.com/AIArmada/persons/issues",
                 "source": "https://github.com/AIArmada/persons/tree/main"
             },
-            "time": "2026-07-25T12:49:05+00:00"
+            "time": "2026-07-26T07:04:38+00:00"
         },
         {
             "name": "aiarmada/references",
