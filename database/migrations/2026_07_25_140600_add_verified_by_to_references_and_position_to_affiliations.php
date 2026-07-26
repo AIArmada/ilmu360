@@ -48,7 +48,6 @@ return new class extends Migration
         // so the DB needs defaults for NOT NULL columns they don't provide.
         if (DB::getDriverName() === 'pgsql') {
             DB::statement('ALTER TABLE affiliations ALTER COLUMN id SET DEFAULT gen_random_uuid()');
-            DB::statement("ALTER TABLE affiliations ALTER COLUMN affiliation_type SET DEFAULT 'member'");
         }
 
         Schema::table('persons', function (Blueprint $table) {

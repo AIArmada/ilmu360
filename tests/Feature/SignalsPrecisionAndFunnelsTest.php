@@ -6,6 +6,7 @@ use AIArmada\Signals\Models\SignalGoal;
 use AIArmada\Signals\Models\SignalSession;
 use AIArmada\Signals\Models\TrackedProperty;
 use AIArmada\Signals\Services\ConversionFunnelReportService;
+use Illuminate\Support\Str;
 
 it('stores session duration in milliseconds while preserving whole seconds', function () {
     $trackedProperty = TrackedProperty::query()->firstOrFail();
@@ -136,7 +137,13 @@ it('supports goal-based funnel steps via goal slugs', function () {
 
 it('does not fall back to the starter funnel when only tracked-property-compatible goals resolve', function () {
     $trackedProperty = TrackedProperty::query()->firstOrFail();
-    $otherTrackedProperty = TrackedProperty::query()->whereKeyNot($trackedProperty->id)->firstOrFail();
+    $otherTrackedProperty = TrackedProperty::query()->create([
+        'name' => 'Other Property',
+        'slug' => 'other-'.Str::random(8),
+        'write_key' => Str::random(40),
+        'domain' => 'other.example.com',
+        'is_active' => true,
+    ]);
 
     $session = SignalSession::query()->create([
         'tracked_property_id' => $trackedProperty->id,

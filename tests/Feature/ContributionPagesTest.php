@@ -15,6 +15,7 @@ use App\Livewire\Pages\Contributions\SubmitInstitution;
 use App\Livewire\Pages\Contributions\SubmitPerson;
 use App\Livewire\Pages\Contributions\SuggestUpdate;
 use App\Livewire\Pages\Reports\Create as CreateReportPage;
+use App\Models\Affiliation;
 use App\Models\ContributionRequest;
 use App\Models\Event;
 use App\Models\EventSubmission;
@@ -515,11 +516,17 @@ it('applies direct person affiliation edits for owner maintainers from the sugge
 
     $person->institutions()->detach();
 
-    $person->institutions()->attach($currentInstitution->id, [
+    Affiliation::create([
+        'affiliatable_type' => $person->getMorphClass(),
+        'affiliatable_id' => $person->getKey(),
+        'institution_id' => $currentInstitution->id,
         'position' => 'Imam',
         'is_primary' => true,
     ]);
-    $person->institutions()->attach($secondaryInstitution->id, [
+    Affiliation::create([
+        'affiliatable_type' => $person->getMorphClass(),
+        'affiliatable_id' => $person->getKey(),
+        'institution_id' => $secondaryInstitution->id,
         'position' => 'Advisor',
         'is_primary' => false,
     ]);

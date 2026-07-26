@@ -2,6 +2,7 @@
 
 use App\Filament\Resources\Series\Pages\EditSeries;
 use App\Filament\Resources\Spaces\Pages\EditSpace;
+use App\Models\Affiliation;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Language;
@@ -210,11 +211,17 @@ it('records person affiliation sync audits on auditable subjects', function () {
 
     $person->institutions()->detach();
 
-    $person->institutions()->attach($currentInstitution->id, [
+    Affiliation::create([
+        'affiliatable_type' => $person->getMorphClass(),
+        'affiliatable_id' => $person->getKey(),
+        'institution_id' => $currentInstitution->id,
         'position' => 'Imam',
         'is_primary' => true,
     ]);
-    $person->institutions()->attach($secondaryInstitution->id, [
+    Affiliation::create([
+        'affiliatable_type' => $person->getMorphClass(),
+        'affiliatable_id' => $person->getKey(),
+        'institution_id' => $secondaryInstitution->id,
         'position' => 'Advisor',
         'is_primary' => false,
     ]);
@@ -267,7 +274,10 @@ it('records person affiliation pivot updates when the institution is already att
     $person = Person::factory()->create();
 
     $person->institutions()->detach();
-    $person->institutions()->attach($institution->id, [
+    Affiliation::create([
+        'affiliatable_type' => $person->getMorphClass(),
+        'affiliatable_id' => $person->getKey(),
+        'institution_id' => $institution->id,
         'position' => 'Imam',
         'is_primary' => true,
     ]);

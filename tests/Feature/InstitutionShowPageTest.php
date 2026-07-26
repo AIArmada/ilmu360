@@ -10,6 +10,7 @@ use App\Enums\PrayerOffset;
 use App\Enums\PrayerReference;
 use App\Enums\ReferenceType;
 use App\Enums\TimingMode;
+use App\Models\Affiliation;
 use App\Models\Event;
 use App\Models\Inspiration;
 use App\Models\Institution;
@@ -419,7 +420,10 @@ it('displays affiliated persons', function () {
         'name' => 'Ustaz Ahmad bin Abdullah',
     ]);
 
-    $institution->persons()->attach($person, [
+    Affiliation::create([
+        'affiliatable_type' => $institution->getMorphClass(),
+        'affiliatable_id' => $person->getKey(),
+        'institution_id' => $institution->getKey(),
         'position' => 'Imam Besar',
         'is_primary' => true,
     ]);
