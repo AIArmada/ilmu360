@@ -123,7 +123,7 @@ class InstitutionFactory extends Factory
             OwnerContext::withOwner(null, function () use ($institution): void {
                 $country = AddressCountry::query()->firstOrCreate(
                     ['iso2' => 'MY'],
-                    ['name' => 'Malaysia', 'iso3' => 'MYS', 'entity_type' => 'country', 'region' => 'Asia', 'subregion' => 'South-Eastern Asia', 'timezones' => ['Asia/Kuala_Lumpur'], 'phone_code' => '60'],
+                    ['name' => 'Malaysia', 'iso3' => 'MYS', 'region' => 'Asia', 'subregion' => 'South-Eastern Asia', 'phone_code' => '60'],
                 );
                 $address = Address::create([
                     'country_id' => (string) $country->getKey(),

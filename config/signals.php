@@ -257,4 +257,25 @@ return [
             'listen_for_network_conversion_recorded' => true,
         ],
     ],
+
+    'ingestion' => [
+        'browser' => [
+            'event_allowlist' => [
+                'page_view',
+                'checkout.*',
+                'product.*',
+                'cart.*',
+                'screen.*',
+                'ui.*',
+                'search.*',
+                'listing.*',
+                'filter.*',
+                'navigation.*',
+                'submission.*',
+                'engagement.*',
+                'share.*',
+                'custom.*',
+            ],
+        ],
+    ],
 ];

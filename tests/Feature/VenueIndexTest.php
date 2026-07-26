@@ -22,11 +22,9 @@ function ensureVenueIndexMalaysiaCountryExists(): AddressCountry
         'name' => 'Malaysia',
         'iso2' => 'MY',
         'iso3' => 'MYS',
-        'entity_type' => 'country',
         'phone_code' => '60',
         'region' => 'Asia',
         'subregion' => 'South-Eastern Asia',
-        'timezones' => ['Asia/Kuala_Lumpur'],
     ]);
 }
 

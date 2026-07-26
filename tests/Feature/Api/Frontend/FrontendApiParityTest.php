@@ -1862,8 +1862,6 @@ it('does not infer country defaults for frontend form contracts', function () {
         [
             'name' => 'Singapore',
             'iso3' => 'SGP',
-            'entity_type' => 'country',
-            'timezones' => ['Asia/Singapore'],
         ],
     );
 

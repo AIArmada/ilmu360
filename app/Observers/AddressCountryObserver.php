@@ -19,15 +19,6 @@ class AddressCountryObserver implements ShouldHandleEventsAfterCommit
         private readonly PublicListingsCache $publicListingsCache,
     ) {}
 
-    public function saving(AddressCountry $country): void
-    {
-        if (filled($country->entity_type)) {
-            return;
-        }
-
-        $country->entity_type = 'country';
-    }
-
     public function saved(AddressCountry $country): void
     {
         if (! $country->wasRecentlyCreated && ! $country->wasChanged()) {

@@ -14,6 +14,7 @@ use AIArmada\Persons\Models\CredentialAssignment;
 use AIArmada\Persons\Models\PersonName;
 use AIArmada\Persons\Models\TitleAssignment;
 use App\Enums\EventKeyPersonRole;
+use App\Enums\SpeakerStatus;
 use App\Models\Concerns\AuditsModelChanges;
 use App\Models\Concerns\HasDonationChannels;
 use App\Models\Concerns\HasLanguages;
@@ -80,6 +81,7 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
         'rejected_at',
         'last_state_change_at',
         'published_at',
+        'speaker_status',
         'allow_public_event_submission',
         'public_submission_locked_at',
         'public_submission_locked_by',
@@ -92,6 +94,7 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
             'verified_at' => 'immutable_datetime',
             'rejected_at' => 'immutable_datetime',
             'last_state_change_at' => 'immutable_datetime',
+            'speaker_status' => SpeakerStatus::class,
             'allow_public_event_submission' => 'boolean',
             'public_submission_locked_at' => 'datetime',
         ]);
@@ -441,6 +444,15 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
     protected function active(Builder $query): void
     {
         $query->whereIn('status', ['verified', 'pending']);
+    }
+
+    /**
+     * @param  Builder<Person>  $query
+     */
+    #[Scope]
+    protected function speakers(Builder $query): void
+    {
+        $query->whereNotNull('speaker_status');
     }
 
     /**

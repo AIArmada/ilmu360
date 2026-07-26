@@ -15,6 +15,7 @@ use AIArmada\Persons\Models\PersonName;
 use AIArmada\Persons\Models\Title;
 use AIArmada\Persons\Models\TitleAssignment;
 use App\Actions\Persons\GeneratePersonSlugAction;
+use App\Enums\SpeakerStatus;
 use App\Models\Affiliation;
 use App\Models\Institution;
 use App\Models\Language;
@@ -92,6 +93,7 @@ class PersonFactory extends Factory
                 ]
                 : null,
             'status' => 'verified',
+            'speaker_status' => SpeakerStatus::Active->value,
         ];
     }
 
@@ -102,7 +104,7 @@ class PersonFactory extends Factory
             OwnerContext::withOwner(null, function () use ($person): void {
                 $country = AddressCountry::query()->firstOrCreate(
                     ['iso2' => 'MY'],
-                    ['name' => 'Malaysia', 'iso3' => 'MYS', 'entity_type' => 'country', 'region' => 'Asia', 'subregion' => 'South-Eastern Asia', 'timezones' => ['Asia/Kuala_Lumpur'], 'phone_code' => '60'],
+                    ['name' => 'Malaysia', 'iso3' => 'MYS', 'region' => 'Asia', 'subregion' => 'South-Eastern Asia', 'phone_code' => '60'],
                 );
                 $address = Address::create([
                     'country_id' => (string) $country->getKey(),

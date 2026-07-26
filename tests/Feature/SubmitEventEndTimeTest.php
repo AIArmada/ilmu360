@@ -33,14 +33,11 @@ function submitEventEndTimeFixtures(): array
 
 function submitEventAddressCountry(string $iso2 = 'MY', string $name = 'Malaysia', array $timezones = ['Asia/Kuala_Lumpur']): AddressCountry
 {
-    return AddressCountry::query()->firstOrCreate(
-        ['iso2' => $iso2],
-        [
-            'name' => $name,
-            'iso3' => Str::upper($iso2).'S',
-            'entity_type' => 'country',
-            'timezones' => $timezones,
-        ],
+    return ensureTestAddressCountry(
+        iso2: $iso2,
+        name: $name,
+        iso3: Str::upper($iso2).'S',
+        timezones: $timezones,
     );
 }
 

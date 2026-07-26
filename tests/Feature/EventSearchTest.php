@@ -88,11 +88,9 @@ function ensureAddressCountryForTests(
         [
             'name' => $name,
             'iso3' => $iso3,
-            'entity_type' => 'country',
             'phone_code' => $phoneCode,
             'region' => 'Asia',
             'subregion' => 'South-Eastern Asia',
-            'timezones' => $timezones,
         ],
     );
 }

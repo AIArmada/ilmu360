@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Persons\Tables;
 
+use App\Enums\SpeakerStatus;
 use App\Models\Person;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -35,6 +36,11 @@ class PersonsTable
                 TextColumn::make('status')
                     ->badge()
                     ->sortable(),
+                TextColumn::make('speaker_status')
+                    ->label('Speaker')
+                    ->badge()
+                    ->sortable()
+                    ->toggleable(),
                 TextColumn::make('email')
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('phone')
@@ -52,6 +58,10 @@ class PersonsTable
                         'rejected' => 'Rejected',
                         'inactive' => 'Inactive',
                     ]),
+                SelectFilter::make('speaker_status')
+                    ->label('Speaker')
+                    ->options(SpeakerStatus::class)
+                    ->placeholder('All'),
             ])
             ->recordActions([
                 ViewAction::make(),

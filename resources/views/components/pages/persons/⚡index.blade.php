@@ -65,6 +65,7 @@ new
         {
             return Person::query()
                 ->active()
+                ->speakers()
                 ->where('status', 'verified')
                 ->withCount(['events' => function ($query) {
                     $eventsTable = $query->getModel()->getTable();

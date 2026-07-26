@@ -187,3 +187,26 @@ it('accepts native mobile telemetry even when ingestion fails and reports droppe
 
     expect(SignalEvent::query()->where('event_name', 'screen.viewed')->exists())->toBeFalse();
 });
+
+it('rejects disallowed or trusted mobile telemetry fields', function () {
+    $headers = ['X-Ilmu360-Client-Origin' => 'iosapp'];
+
+    $this->withHeaders($headers)
+        ->postJson('/api/v1/mobile/telemetry/events', [
+            'anonymous_id' => 'ios-installation-123',
+            'events' => [['event_name' => 'order.paid']],
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('event_name');
+
+    $this->withHeaders($headers)
+        ->postJson('/api/v1/mobile/telemetry/events', [
+            'anonymous_id' => 'ios-installation-123',
+            'events' => [[
+                'event_name' => 'screen.viewed',
+                'properties' => ['transaction_id' => 'txn-forbidden'],
+            ]],
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('transaction_id');
+});

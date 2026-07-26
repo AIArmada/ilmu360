@@ -84,7 +84,7 @@ class EventSeeder extends Seeder
             }
 
             $count = 0;
-            $limit = 850; // We already have ~50 from seedIlmu360Schedule
+            $limit = 50; // We already have ~50 from seedIlmu360Schedule
 
             foreach ($institutions as $institution) {
                 if ($count >= $limit) {

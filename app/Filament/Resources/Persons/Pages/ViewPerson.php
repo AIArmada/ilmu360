@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Persons\Pages;
 
+use AIArmada\FilamentPersons\Resources\PersonResource\Pages\ViewPerson as PackageViewPerson;
 use App\Filament\Resources\Persons\PersonResource;
-use Filament\Resources\Pages\ViewRecord;
 
-class ViewPerson extends ViewRecord
+class ViewPerson extends PackageViewPerson
 {
     protected static string $resource = PersonResource::class;
 }

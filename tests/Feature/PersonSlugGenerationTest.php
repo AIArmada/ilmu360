@@ -561,7 +561,6 @@ function createPersonSlugCountry(
     }
 
     return AddressCountry::query()->create([
-        'entity_type' => 'country',
         'name' => $countryName,
         'iso2' => $countryIso2,
         'iso3' => $countryIso3,
@@ -569,7 +568,6 @@ function createPersonSlugCountry(
         'phone_code' => $phoneCode,
         'region' => 'Asia',
         'subregion' => 'South-Eastern Asia',
-        'timezones' => $countryIso2 === 'MY' ? ['Asia/Kuala_Lumpur'] : ['Asia/Singapore'],
     ]);
 }
 

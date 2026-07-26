@@ -6,9 +6,11 @@ namespace App\Actions\Signals;
 
 use AIArmada\Signals\Contracts\SignalEventIngestor;
 use AIArmada\Signals\Models\TrackedProperty;
+use AIArmada\Signals\Services\SignalsIngestionRequestValidator;
 use App\Models\User;
 use App\Support\Signals\ProductSignalsClientContext;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Throwable;
 
 final readonly class RecordMobileTelemetryBatchAction
@@ -16,6 +18,7 @@ final readonly class RecordMobileTelemetryBatchAction
     public function __construct(
         private SignalEventIngestor $ingestSignalEvent,
         private ProductSignalsClientContext $clientContext,
+        private SignalsIngestionRequestValidator $requestValidator,
     ) {}
 
     /**
@@ -58,6 +61,11 @@ final readonly class RecordMobileTelemetryBatchAction
 
         foreach ($events as $index => $event) {
             try {
+                $this->requestValidator->assertUntrustedEvent(
+                    (string) $event['event_name'],
+                    $event,
+                );
+
                 $this->ingestSignalEvent->handle($trackedProperty, $this->payloadForEvent(
                     request: $request,
                     user: $user,
@@ -70,6 +78,8 @@ final readonly class RecordMobileTelemetryBatchAction
                 ), trusted: false);
 
                 $recordedEvents++;
+            } catch (ValidationException $exception) {
+                throw $exception;
             } catch (Throwable $exception) {
                 report($exception);
                 logger()->warning('Native mobile telemetry event dropped after ingestion failure.', [

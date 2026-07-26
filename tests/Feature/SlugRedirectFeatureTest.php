@@ -544,7 +544,6 @@ function createSlugRedirectCountry(
     $country = new AddressCountry;
     $country->forceFill([
         'name' => $countryName,
-        'entity_type' => 'country',
         'iso2' => $countryIso2,
         'iso3' => $countryIso3,
         'phone_code' => $phoneCode,

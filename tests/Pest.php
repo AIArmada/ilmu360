@@ -5,6 +5,7 @@ use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Addressing\Models\City;
 use AIArmada\Addressing\Models\State;
+use AIArmada\CommerceSupport\Models\Timezone;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
@@ -411,20 +412,30 @@ function ensureTestAddressCountry(
     /** @var AddressCountry|null $country */
     $country = AddressCountry::query()->where('iso2', $iso2)->first();
 
-    if ($country instanceof AddressCountry) {
-        return $country;
+    if (! $country instanceof AddressCountry) {
+        $country = AddressCountry::query()->create([
+            'name' => $name,
+            'iso2' => $iso2,
+            'iso3' => $iso3,
+            'phone_code' => $phoneCode,
+            'region' => 'Asia',
+            'subregion' => 'South-Eastern Asia',
+        ]);
     }
 
-    return AddressCountry::query()->create([
-        'entity_type' => 'country',
-        'name' => $name,
-        'iso2' => $iso2,
-        'iso3' => $iso3,
-        'phone_code' => $phoneCode,
-        'region' => 'Asia',
-        'subregion' => 'South-Eastern Asia',
-        'timezones' => $timezones,
-    ]);
+    foreach ($timezones as $timezoneName) {
+        $timezone = Timezone::query()->firstOrCreate(['name' => $timezoneName]);
+
+        DB::table(config('addressing.tables.country_timezone_links', 'country_timezone_links'))->insertOrIgnore([
+            'id' => (string) Str::uuid(),
+            'country_id' => $country->getKey(),
+            'timezone_id' => $timezone->getKey(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
+    return $country;
 }
 
 function ensureTestMalaysiaCountry(): AddressCountry

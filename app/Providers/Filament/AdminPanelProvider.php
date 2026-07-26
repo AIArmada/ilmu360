@@ -5,18 +5,19 @@ namespace App\Providers\Filament;
 use AIArmada\Filament\Communications\FilamentCommunicationsPlugin;
 use AIArmada\FilamentAddressing\FilamentAddressingPlugin;
 use AIArmada\FilamentAuthz\FilamentAuthzPlugin;
+use AIArmada\FilamentCommerceSupport\FilamentCommerceSupportPlugin;
 use AIArmada\FilamentContacting\FilamentContactingPlugin;
 use AIArmada\FilamentEngagement\FilamentEngagementPlugin;
 use AIArmada\FilamentEvents\FilamentEventsPlugin;
 use AIArmada\FilamentInventory\FilamentInventoryPlugin;
 use AIArmada\FilamentPersons\FilamentPersonsPlugin;
 use AIArmada\FilamentSeating\FilamentSeatingPlugin;
+use AIArmada\FilamentSignals\Concerns\TracksSignalsPanel;
 use AIArmada\FilamentSignals\FilamentSignalsPlugin;
 use AIArmada\FilamentTicketing\FilamentTicketingPlugin;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Filament\Pages\AdminDashboard;
 use App\Providers\Filament\Concerns\ResolvesPanelDomain;
-use App\Providers\Filament\Concerns\TracksSignalsPanel;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -86,6 +87,7 @@ class AdminPanelProvider extends PanelProvider
                 FilamentEngagementPlugin::make(),
                 FilamentCommunicationsPlugin::make(),
                 FilamentEventsPlugin::make(),
+                FilamentCommerceSupportPlugin::make(),
                 FilamentInventoryPlugin::make(),
                 FilamentSeatingPlugin::make(),
                 FilamentPersonsPlugin::make(),

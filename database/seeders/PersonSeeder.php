@@ -2,9 +2,11 @@
 
 namespace Database\Seeders;
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
 use App\Actions\Persons\GeneratePersonSlugAction;
+use App\Enums\SpeakerStatus;
 use App\Models\Person;
 use App\Models\User;
 use Illuminate\Database\Seeder;
@@ -50,40 +52,47 @@ class PersonSeeder extends Seeder
         $memberAttachments = [];
 
         foreach ($realPersons as $name) {
-            $person = Person::firstOrCreate(
-                ['name' => $name],
-                [
-                    'slug' => app(GeneratePersonSlugAction::class)->handle($name),
-                    'bio' => [
-                        'type' => 'doc',
-                        'content' => [[
-                            'type' => 'paragraph',
+            OwnerContext::withOwner(null, function () use ($name, $userIds, &$memberAttachments): void {
+                $person = Person::firstOrCreate(
+                    ['name' => $name],
+                    [
+                        'slug' => app(GeneratePersonSlugAction::class)->handle($name),
+                        'bio' => [
+                            'type' => 'doc',
                             'content' => [[
-                                'type' => 'text',
-                                'text' => fake()->paragraph(),
+                                'type' => 'paragraph',
+                                'content' => [[
+                                    'type' => 'text',
+                                    'text' => fake()->paragraph(),
+                                ]],
                             ]],
-                        ]],
-                    ],
-                    'status' => 'verified',
-                ]
-            );
+                        ],
+                        'status' => 'verified',
+                        'speaker_status' => SpeakerStatus::Active->value,
+                    ]
+                );
 
-            $person->contactMethods()->updateOrCreate(
-                ['type' => ContactMethodType::Email->value],
-                ['value' => Str::slug($name).'@example.com', 'purpose' => ContactPurpose::General->value]
-            );
+                if ($person->wasRecentlyCreated || $person->speaker_status === null) {
+                    $person->forceFill(['speaker_status' => SpeakerStatus::Active->value])->saveQuietly();
+                }
 
-            $person->contactMethods()->updateOrCreate(
-                ['type' => ContactMethodType::Phone->value],
-                ['value' => $this->deterministicPhoneNumber($name), 'purpose' => ContactPurpose::General->value]
-            );
+                $person->contactMethods()->updateOrCreate(
+                    ['type' => ContactMethodType::Email->value],
+                    ['value' => Str::slug($name).'@example.com', 'purpose' => ContactPurpose::General->value]
+                );
 
-            if (! empty($userIds)) {
-                $memberAttachments[] = [
-                    'person_id' => $person->id,
-                    'user_id' => $userIds[array_rand($userIds)],
-                ];
-            }
+                $person->contactMethods()->updateOrCreate(
+                    ['type' => ContactMethodType::Phone->value],
+                    ['value' => $this->deterministicPhoneNumber($name), 'purpose' => ContactPurpose::General->value]
+                );
+
+                if (! empty($userIds)) {
+                    $memberAttachments[] = [
+                        'person_id' => $person->id,
+                        'user_id' => $userIds[array_rand($userIds)],
+                    ];
+                }
+            });
         }
 
         $currentCount = Person::count();

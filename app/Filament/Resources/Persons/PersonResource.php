@@ -24,6 +24,8 @@ class PersonResource extends PackagePersonResource
 {
     protected static ?string $model = Person::class;
 
+    protected static ?string $slug = 'persons';
+
     #[\Override]
     public static function form(Schema $schema): Schema
     {

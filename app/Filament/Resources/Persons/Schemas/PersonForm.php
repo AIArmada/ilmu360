@@ -6,6 +6,7 @@ use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\Contacting\Enums\SocialPlatform;
 use AIArmada\Persons\Enums\Gender;
+use App\Enums\SpeakerStatus;
 use App\Forms\SharedFormSchema;
 use App\Models\Person;
 use App\Models\User;
@@ -28,28 +29,37 @@ class PersonForm
     {
         return $schema
             ->components([
-                Section::make(__('Status'))
-                    ->components([
-                        Select::make('status')
-                            ->label(__('Status'))
-                            ->options([
-                                'pending' => __('Pending'),
-                                'verified' => __('Verified'),
-                                'rejected' => __('Rejected'),
-                                'inactive' => __('Inactive'),
-                            ])
-                            ->required(),
-                        Toggle::make('allow_public_event_submission')
-                            ->label(__('Allow Public Event Submission'))
-                            ->disabled(fn (?Person $record, string $operation): bool => ! self::canManagePublicSubmissionToggle($record, $operation))
-                            ->helperText(fn (?Person $record, string $operation): string => self::publicSubmissionHelperText($record, $operation)),
-                    ])
-                    ->columns(1),
                 Tabs::make('PersonEditTabs')
                     ->id('person-edit-tabs')
                     ->persistTab()
                     ->columnSpanFull()
                     ->tabs([
+                        Tab::make(__('Status'))
+                            ->icon(Heroicon::ShieldCheck)
+                            ->schema([
+                                Section::make(__('Status'))
+                                    ->components([
+                                        Select::make('status')
+                                            ->label(__('Status'))
+                                            ->options([
+                                                'pending' => __('Pending'),
+                                                'verified' => __('Verified'),
+                                                'rejected' => __('Rejected'),
+                                                'inactive' => __('Inactive'),
+                                            ])
+                                            ->required(),
+                                        Select::make('speaker_status')
+                                            ->label(__('Speaker Status'))
+                                            ->placeholder(__('Not a speaker'))
+                                            ->options(SpeakerStatus::class)
+                                            ->helperText(__('Mark as active speaker to feature on the penceramah directory.')),
+                                        Toggle::make('allow_public_event_submission')
+                                            ->label(__('Allow Public Event Submission'))
+                                            ->disabled(fn (?Person $record, string $operation): bool => ! self::canManagePublicSubmissionToggle($record, $operation))
+                                            ->helperText(fn (?Person $record, string $operation): string => self::publicSubmissionHelperText($record, $operation)),
+                                    ])
+                                    ->columns(1),
+                            ]),
                         Tab::make(__('Profil'))
                             ->icon(Heroicon::User)
                             ->schema([
