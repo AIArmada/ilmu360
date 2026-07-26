@@ -90,8 +90,10 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event as EventFacade;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\ParallelTesting;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
@@ -379,6 +381,20 @@ class AppServiceProvider extends ServiceProvider
                 request()->attributes->set("public_slug_resolution.{$publicSlugParameter}", $resolved);
 
                 return $resolved['model'];
+            });
+        }
+
+        if ($this->app->runningUnitTests()) {
+            ParallelTesting::setUpProcess(function (int $token): void {
+                if (config('database.default') !== 'pgsql') {
+                    return;
+                }
+
+                $database = "test_test_{$token}";
+
+                config()->set('database.connections.pgsql.database', $database);
+                DB::purge('pgsql');
+                DB::reconnect('pgsql');
             });
         }
     }

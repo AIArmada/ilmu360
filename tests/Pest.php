@@ -19,7 +19,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
@@ -45,11 +44,6 @@ use Tests\TestCase;
 pest()->extend(TestCase::class)
     ->use(RefreshDatabase::class)
     ->beforeEach(function () {
-        config()->set('database.connections.sqlite.journal_mode', 'wal');
-        config()->set('database.connections.sqlite.busy_timeout', 5000);
-        DB::purge('sqlite');
-        DB::reconnect('sqlite');
-
         PreventRequestForgery::except('*');
 
         setPermissionsTeamId(null);
@@ -69,20 +63,6 @@ pest()->extend(TestCase::class)
             })->bindTo($compiler, $compiler)();
         }
 
-        if (! Schema::hasTable(config('affiliates.database.tables.affiliates', 'affiliate_affiliates'))) {
-            Artisan::call('migrate', [
-                '--path' => realpath(base_path('vendor/aiarmada/affiliates/database/migrations')),
-                '--realpath' => true,
-            ]);
-        }
-
-        if (! Schema::hasTable(config('signals.database.tables.tracked_properties', 'signal_tracked_properties'))) {
-            Artisan::call('migrate', [
-                '--path' => realpath(base_path('vendor/aiarmada/signals/database/migrations')),
-                '--realpath' => true,
-            ]);
-        }
-
         if (Schema::hasTable(config('signals.database.tables.tracked_properties', 'signal_tracked_properties'))) {
             try {
                 TrackedProperty::query()->firstOrCreate(
@@ -98,7 +78,7 @@ pest()->extend(TestCase::class)
                     ],
                 );
             } catch (Throwable) {
-                // SQLite file-lock contention in parallel — process already seeded
+                // parallel process already seeded
             }
         }
 
@@ -156,7 +136,7 @@ pest()->extend(TestCase::class)
                 ]);
             }
         } catch (Throwable) {
-            // SQLite file-lock contention in parallel — language seeding is idempotent
+            // parallel process already seeded
         }
     })
     ->in('Feature');

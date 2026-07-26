@@ -52,27 +52,6 @@ jobs:
     if: needs.changes.outputs.php == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    services:
-      postgres:
-        image: postgres:18
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres -d test"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-    env:
-      DB_CONNECTION: pgsql
-      DB_HOST: localhost
-      DB_PORT: 5432
-      DB_DATABASE: test
-      DB_USERNAME: postgres
-      DB_PASSWORD: postgres
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -102,7 +81,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           composer config --global github-oauth.github.com "$GITHUB_TOKEN"
-          composer install --no-interaction --no-progress --prefer-dist --optimize-autoloader
+          composer install --no-interaction --no-progress --prefer-dist
 
       - name: Check Rector (dry-run)
         run: vendor/bin/rector process --dry-run --ansi
@@ -113,27 +92,6 @@ jobs:
     if: needs.changes.outputs.php == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    services:
-      postgres:
-        image: postgres:18
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres -d test"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-    env:
-      DB_CONNECTION: pgsql
-      DB_HOST: localhost
-      DB_PORT: 5432
-      DB_DATABASE: test
-      DB_USERNAME: postgres
-      DB_PASSWORD: postgres
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -163,7 +121,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           composer config --global github-oauth.github.com "$GITHUB_TOKEN"
-          composer install --no-interaction --no-progress --prefer-dist --optimize-autoloader
+          composer install --no-interaction --no-progress --prefer-dist
 
       - name: Check Pint (test)
         run: vendor/bin/pint --test
@@ -174,27 +132,6 @@ jobs:
     if: needs.changes.outputs.php == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    services:
-      postgres:
-        image: postgres:18
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres -d test"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-    env:
-      DB_CONNECTION: pgsql
-      DB_HOST: localhost
-      DB_PORT: 5432
-      DB_DATABASE: test
-      DB_USERNAME: postgres
-      DB_PASSWORD: postgres
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -224,7 +161,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           composer config --global github-oauth.github.com "$GITHUB_TOKEN"
-          composer install --no-interaction --no-progress --prefer-dist --optimize-autoloader
+          composer install --no-interaction --no-progress --prefer-dist
 
       - name: Run PHPStan
         run: vendor/bin/phpstan analyse --ansi --no-progress
@@ -258,8 +195,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-    name: Pest (PHP 8.4) - Shard ${{ matrix.shard }}/10
+        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+    name: Pest (PHP 8.4) - Shard ${{ matrix.shard }}/20
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -289,7 +226,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           composer config --global github-oauth.github.com "$GITHUB_TOKEN"
-          composer install --no-interaction --no-progress --prefer-dist --optimize-autoloader
+          composer install --no-interaction --no-progress --prefer-dist
 
       - name: Prepare Pest worker databases
         run: |
@@ -305,19 +242,7 @@ jobs:
           '
 
       - name: Run tests (Pest)
-        run: |
-          mkdir -p artifacts/pest-timing
-          # Pest parallel mode has a known exit-code race: it can return 1 even when all tests pass.
-          # We parse the summary line to determine the real pass/fail status.
-          # `|| true` prevents set -e from swallowing output when Pest exits with code 2 (PHP error).
-          vendor/bin/pest --parallel --shard=${{ matrix.shard }}/10 --log-junit=artifacts/pest-timing/pest.xml > /tmp/pest-output.txt 2>&1 || true
-          cat /tmp/pest-output.txt
-          if grep -qE 'Tests:.*failed' /tmp/pest-output.txt; then
-            exit 1
-          fi
-          if ! grep -qE 'Tests:' /tmp/pest-output.txt; then
-            exit 1
-          fi
+        run: vendor/bin/pest --parallel --shard=${{ matrix.shard }}/20 --log-junit=artifacts/pest-timing/pest.xml
 
       - name: Upload Pest timing artifact
         if: always()
