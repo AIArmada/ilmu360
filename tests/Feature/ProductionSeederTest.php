@@ -95,7 +95,7 @@ it('reduces city seed data outside production while keeping production complete'
         app()['env'] = 'testing';
         $sample = $method->invoke($seeder, $cities);
 
-        $actionPath = (new ReflectionClass($cities))->getFileName();
+        $actionPath = new ReflectionClass($cities)->getFileName();
 
         expect($actionPath)->toBeString();
 

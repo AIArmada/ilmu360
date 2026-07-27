@@ -367,8 +367,6 @@ class SearchController extends FrontendController
         $areaAssignments = is_array($request->query('area_assignments')) ? $request->query('area_assignments') : [];
         $adminArea1Id = $this->searchRequestNormalizer->normalizedUuid($areaAssignments['administrative_district'] ?? null);
         $adminArea2Id = $this->searchRequestNormalizer->normalizedUuid($areaAssignments['administrative_subdivision'] ?? null);
-        $adminArea3Id = null;
-        $adminArea4Id = null;
         $gender = in_array($request->query('gender'), ['male', 'female'], true)
             ? $request->query('gender')
             : null;
@@ -380,7 +378,7 @@ class SearchController extends FrontendController
 
         $stateId = $this->searchRequestNormalizer->normalizedUuid($request->query('state_id'));
         $cityId = $this->searchRequestNormalizer->normalizedUuid($request->query('city_id'));
-        $this->applyPersonLocationScope($baseQuery, $countryId, $stateId, $cityId, $adminArea1Id, $adminArea2Id, $adminArea3Id, $adminArea4Id);
+        $this->applyPersonLocationScope($baseQuery, $countryId, $stateId, $cityId, $adminArea1Id, $adminArea2Id);
 
         if ($gender !== null) {
             $baseQuery->where('persons.gender', $gender);
@@ -1000,7 +998,7 @@ class SearchController extends FrontendController
             $query->where('institutions.type', $type->value);
         }
 
-        $this->applyInstitutionLocationScope($query, $countryId, $stateId, $cityId, $adminArea1Id, $adminArea2Id, $adminArea3Id, $adminArea4Id);
+        $this->applyInstitutionLocationScope($query, $countryId, $stateId, $cityId, $adminArea1Id, $adminArea2Id);
 
         return $query;
     }
@@ -1029,8 +1027,6 @@ class SearchController extends FrontendController
         ?string $cityId,
         ?string $adminArea1Id,
         ?string $adminArea2Id,
-        ?string $adminArea3Id,
-        ?string $adminArea4Id,
     ): void {
         $this->addressLocationScope->apply($query, new AddressLocationData(
             countryId: $countryId,
@@ -1222,8 +1218,6 @@ class SearchController extends FrontendController
         ?string $cityId,
         ?string $adminArea1Id,
         ?string $adminArea2Id,
-        ?string $adminArea3Id,
-        ?string $adminArea4Id,
     ): void {
         $this->addressLocationScope->apply($query, new AddressLocationData(
             countryId: $countryId,

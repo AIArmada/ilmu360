@@ -48,7 +48,7 @@ class AddressAreaObserver implements ShouldHandleEventsAfterCommit
         }
 
         throw ValidationException::withMessages([
-            'address_area' => $this->addressReferenceMessage($addressArea),
+            'address_area' => $this->addressReferenceMessage(),
         ]);
     }
 
@@ -81,10 +81,9 @@ class AddressAreaObserver implements ShouldHandleEventsAfterCommit
             ->exists();
     }
 
-    private function addressReferenceMessage(AddressArea $addressArea): string
+    private function addressReferenceMessage(): string
     {
         $label = 'address area';
-
         return "This {$label} is still referenced by one or more addresses.";
     }
 }

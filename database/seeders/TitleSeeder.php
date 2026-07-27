@@ -104,7 +104,7 @@ class TitleSeeder extends Seeder
         $usagePositionValue = $usagePosition instanceof TitleUsagePosition
             ? $usagePosition->value
             : (string) $usagePosition;
-        $sortOrderKey = (string) $attributes['category_id'].'|'.$usagePositionValue;
+        $sortOrderKey = $attributes['category_id'].'|'.$usagePositionValue;
         $this->nextSortOrders[$sortOrderKey] = ($this->nextSortOrders[$sortOrderKey] ?? 0) + 10;
         $attributes['sort_order'] = $this->nextSortOrders[$sortOrderKey];
 

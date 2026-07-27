@@ -1088,7 +1088,7 @@ class SharedFormSchema
     /** @param array<string, mixed> $assignments */
     public static function stateIdFromStoredAreas(array $assignments): ?string
     {
-        foreach (AddressAssignments::normalize($assignments) as $role => $areaId) {
+        foreach (AddressAssignments::normalize($assignments) as $areaId) {
             $areaId = self::normalizeLocationId($areaId);
 
             if ($areaId === null) {

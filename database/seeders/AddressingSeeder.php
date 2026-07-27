@@ -65,7 +65,7 @@ class AddressingSeeder extends Seeder
             return null;
         }
 
-        $actionPath = (new ReflectionClass($seedCities))->getFileName();
+        $actionPath = new ReflectionClass($seedCities)->getFileName();
 
         if (! is_string($actionPath)) {
             throw new RuntimeException('Unable to locate the address city seed data.');

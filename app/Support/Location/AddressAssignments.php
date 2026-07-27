@@ -10,11 +10,11 @@ use Illuminate\Database\Eloquent\Model;
 
 final class AddressAssignments
 {
-    public const POSTAL_LOCALITY = 'postal_locality';
+    public const string POSTAL_LOCALITY = 'postal_locality';
 
-    public const ADMINISTRATIVE_DISTRICT = 'administrative_district';
+    public const string ADMINISTRATIVE_DISTRICT = 'administrative_district';
 
-    public const ADMINISTRATIVE_SUBDIVISION = 'administrative_subdivision';
+    public const string ADMINISTRATIVE_SUBDIVISION = 'administrative_subdivision';
 
     /**
      * @return array<string, string>
