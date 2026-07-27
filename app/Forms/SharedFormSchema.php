@@ -6,6 +6,7 @@ use AIArmada\Addressing\Actions\SyncAddressAreaAssignmentsAction;
 use AIArmada\Addressing\Data\AddressLevelDefinition;
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressArea;
+use AIArmada\Addressing\Models\AddressAreaRelationship;
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Addressing\Models\City;
 use AIArmada\Addressing\Models\State;
@@ -1007,6 +1008,10 @@ class SharedFormSchema
     ): array {
         $countryId = self::normalizeLocationId($countryId);
 
+        if ($countryId === null && $parentId !== null) {
+            $countryId = self::resolveCountryIdForParent($parentId);
+        }
+
         if ($countryId === null) {
             return [];
         }
@@ -1039,12 +1044,15 @@ class SharedFormSchema
             if ($parentId !== null) {
                 $parentAreaId = AddressAreaStateBridge::areaIdForState($parentId, $level->hierarchyType ?? 'administrative');
                 $parentAreaId ??= $parentId;
-                $query->whereHas('ancestors', static function ($ancestorQuery) use ($parentAreaId, $level): void {
-                    $ancestorQuery
-                        ->whereKey($parentAreaId)
-                        ->wherePivot('relationship_type', 'contains')
-                        ->wherePivot('hierarchy_type', $level->hierarchyType ?? 'administrative');
-                });
+                $hierarchyType = $level->hierarchyType ?? 'administrative';
+                $query->whereIn(
+                    'id',
+                    AddressAreaRelationship::query()
+                        ->where('relationship_type', 'contains')
+                        ->where('hierarchy_type', $hierarchyType)
+                        ->where('parent_address_area_id', $parentAreaId)
+                        ->select('child_address_area_id'),
+                );
             }
         } elseif ($level->parentKey !== null) {
             return [];
@@ -1065,6 +1073,23 @@ class SharedFormSchema
         $countryId = State::query()->whereKey($stateId)->value('country_id');
 
         return is_string($countryId) ? $countryId : null;
+    }
+
+    private static function resolveCountryIdForParent(int|string $parentId): ?string
+    {
+        $parentKey = self::normalizeLocationId($parentId);
+
+        if ($parentKey === null) {
+            return null;
+        }
+
+        $countryId = AddressArea::query()->whereKey($parentKey)->value('country_id');
+
+        if (is_string($countryId) && $countryId !== '') {
+            return $countryId;
+        }
+
+        return self::countryIdForState($parentKey);
     }
 
     private static function profileLevelForRole(string $countryId, string $role): ?AddressLevelDefinition
@@ -1408,8 +1433,12 @@ class SharedFormSchema
             }
         }
 
-        $normalized['state_id'] = $stateId;
-        $normalized['city_id'] = $cityId;
+        if ($stateId !== null) {
+            $normalized['state_id'] = $stateId;
+        }
+        if ($cityId !== null) {
+            $normalized['city_id'] = $cityId;
+        }
 
         $normalized['area_assignments'] = $assignments;
 

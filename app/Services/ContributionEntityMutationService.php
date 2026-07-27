@@ -199,6 +199,7 @@ class ContributionEntityMutationService
                 'description' => ['nullable'],
                 'address' => ['sometimes', 'array'],
                 'address.country_id' => ['sometimes', 'uuid', 'exists:'.config('addressing.tables.countries', 'countries').',id'],
+                'address.state_id' => ['nullable', 'uuid', 'exists:'.config('addressing.tables.states', 'states').',id'],
                 'address.area_assignments' => ['sometimes', 'array'],
                 'address.area_assignments.*' => ['nullable', 'uuid', 'exists:address_areas,id'],
                 'address.line1' => ['nullable', 'string', 'max:255'],
@@ -227,6 +228,7 @@ class ContributionEntityMutationService
                 'institution_position' => ['nullable', 'string', 'max:255'],
                 'address' => ['sometimes', 'array'],
                 'address.country_id' => ['nullable', 'uuid', 'exists:'.config('addressing.tables.countries', 'countries').',id'],
+                'address.state_id' => ['nullable', 'uuid', 'exists:'.config('addressing.tables.states', 'states').',id'],
                 'address.area_assignments' => ['sometimes', 'array'],
                 'address.area_assignments.*' => ['nullable', 'uuid', 'exists:address_areas,id'],
                 'address.line1' => ['prohibited'],
@@ -1062,6 +1064,7 @@ class ContributionEntityMutationService
 
         $countryProvided = SharedFormSchema::countrySelectionProvided($payload);
         $payload = SharedFormSchema::prepareAddressPersistenceData($payload);
+
         $countryId = $this->normalizeUuid($payload['country_id'] ?? null);
 
         if ($countryId === null && ! $countryProvided) {

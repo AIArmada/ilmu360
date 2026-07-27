@@ -260,6 +260,18 @@ function normalizeTestAddressAttributes(array $attributes): array
         unset($attributes['administrative_subdivision_id']);
     }
 
+    if (! array_key_exists('country_code', $attributes) || $attributes['country_code'] === null) {
+        $countryId = $attributes['country_id'] ?? null;
+
+        if (is_string($countryId) && $countryId !== '') {
+            $country = AddressCountry::query()->find($countryId);
+
+            if ($country instanceof AddressCountry) {
+                $attributes['country_code'] = $country->iso2;
+            }
+        }
+    }
+
     return $attributes;
 }
 
@@ -536,7 +548,7 @@ function createTestAddressArea(
 function createTestPackageGeography(
     string $stateName = 'Selangor',
     string $districtName = 'Petaling',
-    string $subdistrictName = 'Shah Alam',
+    ?string $subdistrictName = null,
     ?string $cityName = null,
     ?AddressCountry $country = null,
 ): array {
@@ -567,9 +579,11 @@ function createTestPackageGeography(
 
     $areaTreeRoot = createTestAddressArea($stateName, 1, country: $country, type: 'state');
     $district = createTestAddressArea($districtName, 2, parent: $areaTreeRoot, country: $country, type: 'district');
-    $subdistrict = createTestAddressArea($subdistrictName, 3, parent: $district, country: $country, type: 'subdistrict');
+    $subdistrict = $subdistrictName !== null
+        ? createTestAddressArea($subdistrictName, 3, parent: $district, country: $country, type: 'subdistrict')
+        : null;
 
-    AddressAreaStateLink::query()->create([
+    $areaStateLink = AddressAreaStateLink::query()->create([
         'address_area_id' => $areaTreeRoot->getKey(),
         'state_id' => $packageState->getKey(),
         'hierarchy_type' => 'administrative',
@@ -579,6 +593,7 @@ function createTestPackageGeography(
         'country' => $country,
         'state' => $packageState,
         'city' => $city,
+        'area_state_link' => $areaStateLink,
         'area_tree_root' => $areaTreeRoot,
         'district' => $district,
         'subdistrict' => $subdistrict,
@@ -587,7 +602,7 @@ function createTestPackageGeography(
                 'state_id' => (string) $packageState->getKey(),
                 'city_id' => $city instanceof City ? (string) $city->getKey() : null,
                 'administrative_district_id' => (string) $district->getKey(),
-                'administrative_subdivision_id' => (string) $subdistrict->getKey(),
+                'administrative_subdivision_id' => $subdistrict !== null ? (string) $subdistrict->getKey() : null,
                 'state' => $stateName,
                 'city' => $cityName ?? $subdistrictName,
             ],

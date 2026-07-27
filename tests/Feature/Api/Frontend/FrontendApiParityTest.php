@@ -685,8 +685,7 @@ it('returns only region address keys in the person suggest context state', funct
     $owner = User::factory()->create();
     $countryId = ensureFrontendApiMalaysiaCountryExists();
     $country = AddressCountry::query()->findOrFail($countryId);
-    $state = createTestAddressArea('Negeri Konteks Penceramah API', 1, null, $country);
-    $district = createTestAddressArea('Daerah Konteks Penceramah API', 2, $state, $country);
+    $geo = createTestPackageGeography('Negeri Konteks Penceramah API', 'Daerah Konteks Penceramah API', null, country: $country);
 
     $person = Person::factory()->create([
         'status' => 'verified',
@@ -694,7 +693,8 @@ it('returns only region address keys in the person suggest context state', funct
 
     syncPrimaryAddressForTest($person, [
         'country_id' => $countryId,
-        'administrative_district_id' => (string) $district->getKey(),
+        'state_id' => (string) $geo['state']->getKey(),
+        'administrative_district_id' => (string) $geo['district']->getKey(),
         'administrative_subdivision_id' => null,
         'line1' => 'Jalan Lama 1',
         'line2' => 'Taman Lama',
@@ -716,8 +716,9 @@ it('returns only region address keys in the person suggest context state', funct
 
     expect($response->json('data.initial_state.address'))->toBe([
         'country_id' => $countryId,
-        'administrative_district_id' => (string) $district->getKey(),
-        'administrative_subdivision_id' => null,
+        'area_assignments' => [
+            'administrative_district' => (string) $geo['district']->getKey(),
+        ],
     ]);
 });
 
@@ -725,8 +726,7 @@ it('rejects unchanged person region-only address round trips as validation error
     $owner = User::factory()->create();
     $countryId = ensureFrontendApiMalaysiaCountryExists();
     $country = AddressCountry::query()->findOrFail($countryId);
-    $state = createTestAddressArea('Negeri Pusing Balik Penceramah API', 1, null, $country);
-    $district = createTestAddressArea('Daerah Pusing Balik Penceramah API', 2, $state, $country);
+    $geo = createTestPackageGeography('Negeri Pusing Balik Penceramah API', 'Daerah Pusing Balik Penceramah API', null, country: $country);
 
     $person = Person::factory()->create([
         'status' => 'verified',
@@ -734,7 +734,8 @@ it('rejects unchanged person region-only address round trips as validation error
 
     syncPrimaryAddressForTest($person, [
         'country_id' => $countryId,
-        'administrative_district_id' => (string) $district->getKey(),
+        'state_id' => (string) $geo['state']->getKey(),
+        'administrative_district_id' => (string) $geo['district']->getKey(),
         'administrative_subdivision_id' => null,
         'line1' => 'Alamat Warisan',
         'google_maps_url' => 'https://maps.google.com/?q=3.1390,101.6869',
@@ -749,8 +750,9 @@ it('rejects unchanged person region-only address round trips as validation error
     ]), [
         'address' => [
             'country_id' => $countryId,
-            'administrative_district_id' => (string) $district->getKey(),
-            'administrative_subdivision_id' => null,
+            'area_assignments' => [
+                'administrative_district' => (string) $geo['district']->getKey(),
+            ],
         ],
     ])->assertUnprocessable()
         ->assertJsonValidationErrors(['data']);
@@ -764,9 +766,8 @@ it('preserves hidden person address details during region-only direct updates', 
     $owner = User::factory()->create();
     $countryId = ensureFrontendApiMalaysiaCountryExists();
     $country = AddressCountry::query()->findOrFail($countryId);
-    $state = createTestAddressArea('Negeri Kekal Butiran Penceramah API', 1, null, $country);
-    $district = createTestAddressArea('Daerah Kekal Butiran Penceramah API', 2, $state, $country);
-    $updatedDistrict = createTestAddressArea('Daerah Baharu Penceramah API', 2, $state, $country);
+    $geo = createTestPackageGeography('Negeri Kekal Butiran Penceramah API', 'Daerah Kekal Butiran Penceramah API', null, country: $country);
+    $updatedDistrict = createTestAddressArea('Daerah Baharu Penceramah API', 2, $geo['area_state_link']->addressArea, $country);
 
     $person = Person::factory()->create([
         'name' => 'Penceramah Lama API',
@@ -775,7 +776,8 @@ it('preserves hidden person address details during region-only direct updates', 
 
     syncPrimaryAddressForTest($person, [
         'country_id' => $countryId,
-        'administrative_district_id' => (string) $district->getKey(),
+        'state_id' => (string) $geo['state']->getKey(),
+        'administrative_district_id' => (string) $geo['district']->getKey(),
         'administrative_subdivision_id' => null,
         'line1' => 'Alamat Warisan',
         'google_maps_url' => 'https://maps.google.com/?q=3.1390,101.6869',
@@ -791,8 +793,9 @@ it('preserves hidden person address details during region-only direct updates', 
         'name' => 'Penceramah Dikemas Kini API',
         'address' => [
             'country_id' => $countryId,
-            'administrative_district_id' => (string) $updatedDistrict->getKey(),
-            'administrative_subdivision_id' => null,
+            'area_assignments' => [
+                'administrative_district' => (string) $updatedDistrict->getKey(),
+            ],
         ],
     ])->assertOk()
         ->assertJsonPath('data.mode', 'direct_edit');
@@ -804,9 +807,8 @@ it('preserves hidden person address details during region-only direct updates', 
     ])['google_maps_url'];
 
     expect($person?->name)->toBe('Penceramah Dikemas Kini API')
-        // DO NOT CHANGE ->admin_area_1_id or ->admin_area_2_id property accesses on model instances
-        ->and($person?->primaryAddress()?->admin_area_1_id)->toBe((string) $updatedDistrict->getKey())
-        ->and($person?->primaryAddress()?->admin_area_2_id)->toBeNull()
+        ->and($person?->primaryAddress()?->areaAssignments()->where('role', 'administrative_district')->first()?->address_area_id)->toBe((string) $updatedDistrict->getKey())
+        ->and($person?->primaryAddress()?->areaAssignments()->where('role', 'administrative_subdivision')->first()?->address_area_id)->toBeNull()
         ->and($person?->primaryAddress()?->line1)->toBe('Alamat Warisan')
         ->and($person?->primaryAddress()?->google_maps_url)->toBe($expectedGoogleMapsUrl);
 });

@@ -1,21 +1,28 @@
-# CI Failures — Compilation
+# CI Run 30254354762 - All Failures
 
-## Run: 30160176993
+## 1. Pint (check) - 2 style issues
+- `app/Observers/AddressAreaObserver.php`: unary_operator_spaces, braces_position
+- `tests/Pest.php`: array_indentation, unary_operator_spaces, not_operator_with_successor_space
 
-### 1. PHPStan (1 error)
-- `app/Actions/Events/SyncEventResourceRelationsAction.php:72` — passes `array<int, int>` to `Event::syncLanguages()`, which now expects `array<int, string>|string`. Line 68 has `->map(fn (mixed $id): int => (int) $id)` — change to `(string) $id`.
+## 2. Shard 1/20 - FrontendApiParityTest (3 failures)
+- Tests\Feature\Api\Frontend\FrontendApiParityTest (lines 695, 735, 776)
+- Error: ValidationException: "The selected area must belong to the selected State / Federal Territory."
+- Area validation rejects selected district/subdistrict for the chosen state
 
-### 2. Pest (column "name_native" does not exist)
-The old nnjeim/world `languages` table had `name_native`. The new commerce-support table has `native`. All references need updating:
+## 3. Shard 6/20 - AdminApiTest (3 failures)
+- **Test: it exposes admin person write schema** (line 1725)
+  - Failed asserting that an array contains 'address.administrative_district_id'
+  - The schema catalogs field list no longer contains administrative_district_id
 
-**database/seeders/LanguageSeeder.php** — uses old integer IDs + `name_native`. Replace entirely (commerce-support's `SeedLanguagesAction` handles this).
-**tests/Pest.php:146-152** — `name_native` → `native`
-**tests/Feature/Laravel13CacheSerializationTest.php:23** — `name_native` → `native`
-**tests/Unit/EventTest.php:161,166** — `name_native` → `native`
-**tests/Feature/Api/Admin/AdminApiTest.php:1352,1893,1900,3159** — `name_native` → `native`
-**tests/Feature/AdminAuditFollowUpTest.php:77,83** — `name_native` → `native`
-**tests/Feature/EventSearchTest.php:1142,1143,1175,1176** — `name_native` → `native`
+- **Test: it returns fresh person address data** (line 1819)
+  - Failed asserting that null is identical to a UUID
+  - The response JSON path `address.administrative_district_id` is null but fixture expects UUID
 
-### 3. Pint (12 style issues)
+- **Test: it lists admin geography catalogs** (line 2669)
+  - Expected 200 but received 404
+  - Route `/api/v1/admin/catalogs/admin-area-level-1` returns 404
 
-Fix with: `vendor/bin/pint --format agent`
+## 4. Shard 12/20 - PublicPagesTest (1 failure)
+- **Test: it shows federal territory public pages correctly** (line 263)
+  - ValidationException: "The selected area requires its parent hierarchy level to be selected first."
+  - Federal territory validation requires parent hierarchy before child area
