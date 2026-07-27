@@ -62,15 +62,15 @@ class ResolveGooglePlaceSelectionAction
             $this->componentValue($components, ['administrative_area_level_3']),
         ]);
 
-        $areaTreeRoot = $this->resolveArea($stateName, $countryId, null, 1);
+        $areaTreeRoot = $this->resolveArea($stateName, $countryId, null, ['state', 'wilayah_persekutuan']);
         $countryId = $areaTreeRoot->country_id ?? $countryId;
         $stateId = $this->resolveStateId($stateName, $countryId, $areaTreeRoot);
         $areaTreeRootId = AddressAreaStateBridge::areaIdForState($stateId, 'administrative');
         $areaTreeRoot = $areaTreeRootId !== null
             ? AddressArea::query()->find($areaTreeRootId)
             : $areaTreeRoot;
-        $district = $this->resolveArea($districtName, $countryId, $areaTreeRoot?->id, 2);
-        $subdistrict = $this->resolveArea($subdistrictName, $countryId, $district->id ?? $areaTreeRoot?->id, 3);
+        $district = $this->resolveArea($districtName, $countryId, $areaTreeRoot?->id, ['district', 'minor_district']);
+        $subdistrict = $this->resolveArea($subdistrictName, $countryId, $district->id ?? $areaTreeRoot?->id, ['mukim', 'subdistrict']);
 
         $district ??= $subdistrict?->parent_id !== null
             ? AddressArea::query()->find($subdistrict->parent_id)
@@ -83,10 +83,10 @@ class ResolveGooglePlaceSelectionAction
         $stateId ??= $this->resolveStateId($stateName, $countryId, $areaTreeRoot);
         $cityId = $this->resolveCityId($cityName, $stateId, $countryId);
 
-        $districtId = $district instanceof AddressArea && (int) $district->level === 2
+        $districtId = $district instanceof AddressArea && in_array($district->type, ['district', 'minor_district'], true)
             ? $district->id
             : null;
-        $subdistrictId = $subdistrict instanceof AddressArea && (int) $subdistrict->level === 3
+        $subdistrictId = $subdistrict instanceof AddressArea && in_array($subdistrict->type, ['mukim', 'subdistrict'], true)
             ? $subdistrict->id
             : null;
 
@@ -273,7 +273,10 @@ class ResolveGooglePlaceSelectionAction
         return $matches->count() === 1 ? $matches->first() : null;
     }
 
-    private function resolveArea(?string $name, ?string $countryId, ?string $parentId, ?int $level): ?AddressArea
+    /**
+     * @param  list<string>|null  $types
+     */
+    private function resolveArea(?string $name, ?string $countryId, ?string $parentId, ?array $types): ?AddressArea
     {
         if (! filled($name)) {
             return null;
@@ -289,8 +292,8 @@ class ResolveGooglePlaceSelectionAction
             $query->where('parent_id', $parentId);
         }
 
-        if ($level !== null) {
-            $query->where('level', $level);
+        if ($types !== null && $types !== []) {
+            $query->whereIn('type', $types);
         }
 
         /** @var Collection<int, AddressArea> $matches */

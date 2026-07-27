@@ -2,7 +2,7 @@
 
 use App\Models\Institution;
 use App\Support\Institutions\GeneratedPoskodInstitutionData;
-use Database\Seeders\GeneratedFileFinalFixedPoskodSeeder;
+use Database\Seeders\MalaysiaPoskodMasjidSeeder;
 use Database\Seeders\ProductionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -31,7 +31,7 @@ it('imports a postcode csv fixture against the production geography seed', funct
 
     $this->seed(ProductionSeeder::class);
 
-    $seeder = new GeneratedFileFinalFixedPoskodSeeder($fixturePath);
+    $seeder = new MalaysiaPoskodMasjidSeeder($fixturePath);
     $seeder->run();
 
     $fixtureSlugs = slugsFromFixture($fixturePath);

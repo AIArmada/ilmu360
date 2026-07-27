@@ -14,7 +14,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 
-class MasjidSeeder extends Seeder
+class MalaysiaMasjidSeeder extends Seeder
 {
     use SeedsPackageAddresses;
 
@@ -81,7 +81,7 @@ class MasjidSeeder extends Seeder
                 if ($areaState instanceof AddressArea) {
                     $district = AddressArea::query()
                         ->where('parent_id', $areaState->getKey())
-                        ->where('level', 2)
+                        ->whereIn('type', ['district', 'minor_district'])
                         ->orderBy('name')
                         ->get()
                         ->first(fn (AddressArea $area): bool => Str::contains(strtolower($area->name), strtolower($daerah)) ||

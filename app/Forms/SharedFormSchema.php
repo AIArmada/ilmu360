@@ -1107,6 +1107,25 @@ class SharedFormSchema
         return null;
     }
 
+    private static function parentLevelForRole(string $countryId, string $role): ?AddressLevelDefinition
+    {
+        $definition = self::profileLevelForRole($countryId, $role);
+
+        if (! $definition instanceof AddressLevelDefinition || $definition->parentKey === null) {
+            return null;
+        }
+
+        foreach (app(CountryAddressProfileResolver::class)->hierarchies($countryId) as $hierarchy) {
+            foreach ($hierarchy->levels as $level) {
+                if ($level->key === $definition->parentKey) {
+                    return $level;
+                }
+            }
+        }
+
+        return null;
+    }
+
     /**
      * Resolve package State id from stored AddressArea ids through explicit package mappings.
      */
@@ -1286,7 +1305,9 @@ class SharedFormSchema
             return null;
         }
 
-        if ($definition->parentKey === 'state') {
+        $parentDefinition = self::parentLevelForRole(self::normalizeLocationId($countryId) ?? '', $role);
+
+        if ($parentDefinition?->kind === 'state') {
             return AddressAreaStateBridge::areaIdForState(
                 self::normalizeLocationId($get('state_id')),
                 $definition->hierarchyType ?? 'administrative',

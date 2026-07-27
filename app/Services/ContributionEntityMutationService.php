@@ -1189,7 +1189,7 @@ class ContributionEntityMutationService
                     break;
                 }
 
-                if ((int) $parent->level === 1) {
+                if (in_array($parent->type, ['state', 'wilayah_persekutuan'], true)) {
                     $stateName = $parent->name;
                     break 2;
                 }

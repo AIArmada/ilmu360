@@ -4,17 +4,6 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
-use Illuminate\Database\Eloquent\Model;
+use AIArmada\CommerceSupport\Models\Language as CommerceLanguage;
 
-class Language extends Model
-{
-    use HasUuids;
-
-    protected $fillable = [
-        'code',
-        'name',
-        'native',
-        'dir',
-    ];
-}
+class Language extends CommerceLanguage {}

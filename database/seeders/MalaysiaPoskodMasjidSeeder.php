@@ -20,7 +20,7 @@ use RuntimeException;
 /**
  * @phpstan-type CsvRecord array{'No.': string, 'Nama': string, 'Alamat': string, 'Negeri': string, 'Daerah': string, 'Poskod': string}
  */
-class GeneratedFileFinalFixedPoskodSeeder extends Seeder
+class MalaysiaPoskodMasjidSeeder extends Seeder
 {
     use SeedsPackageAddresses;
 
@@ -239,7 +239,7 @@ class GeneratedFileFinalFixedPoskodSeeder extends Seeder
 
             $districts = AddressArea::query()
                 ->where('parent_id', $stateId)
-                ->where('level', 2)
+                ->whereIn('type', ['district', 'minor_district'])
                 ->orderBy('name')
                 ->get();
 
@@ -250,7 +250,7 @@ class GeneratedFileFinalFixedPoskodSeeder extends Seeder
 
                 $subdistricts = AddressArea::query()
                     ->where('parent_id', $districtId)
-                    ->where('level', 3)
+                    ->whereIn('type', ['mukim', 'subdistrict'])
                     ->orderBy('name')
                     ->get();
 
@@ -261,7 +261,7 @@ class GeneratedFileFinalFixedPoskodSeeder extends Seeder
 
             $stateSubdistricts = AddressArea::query()
                 ->where('parent_id', $stateId)
-                ->where('level', 3)
+                ->whereIn('type', ['mukim', 'subdistrict'])
                 ->orderBy('name')
                 ->get();
 
@@ -557,7 +557,7 @@ class GeneratedFileFinalFixedPoskodSeeder extends Seeder
                         'parent_id' => $district->getKey(),
                         'country_code' => 'MY',
                         'type' => 'subdistrict',
-                        'level' => 3,
+                        'level' => $district->level !== null ? $district->level + 1 : 3,
                         'name' => $subdistrictName,
                         'source' => 'generated_poskod_import',
                         'source_id' => 'generated-poskod-'.strtolower($this->normalizeKey($districtName.'-'.$subdistrictName)),

@@ -16,31 +16,27 @@ use Illuminate\Validation\ValidationException;
 
 trait SeedsPackageAddresses
 {
-    protected function malaysiaCountry(): ?AddressCountry
+    // ── Generic (country-agnostic) helpers ───────────────────────────
+
+    protected function countryByIso(string $iso2): ?AddressCountry
     {
-        return AddressCountry::query()->where('iso2', 'MY')->first();
+        return AddressCountry::query()->where('iso2', strtoupper($iso2))->first();
     }
 
     /**
-     * Package State rows for Malaysia (addresses.state_id).
+     * Package State rows for a country.
      *
      * @return Collection<int, State>
      */
-    protected function malaysiaPackageStates(): Collection
+    protected function packageStatesByCountryId(string $countryId): Collection
     {
-        $country = $this->malaysiaCountry();
-
-        if (! $country instanceof AddressCountry) {
-            return collect();
-        }
-
         return State::query()
-            ->where('country_id', $country->getKey())
+            ->where('country_id', $countryId)
             ->orderBy('name')
             ->get();
     }
 
-    protected function malaysiaPackageStateByName(string $name): ?State
+    protected function packageStateByName(string $countryId, string $name): ?State
     {
         $needle = Str::lower(trim($name));
 
@@ -48,30 +44,22 @@ trait SeedsPackageAddresses
             return null;
         }
 
-        return $this->malaysiaPackageStates()
+        return $this->packageStatesByCountryId($countryId)
             ->first(function (State $state) use ($needle): bool {
-                $candidates = [
-                    Str::lower((string) $state->name),
-                ];
+                $haystack = Str::lower((string) $state->name);
 
-                foreach ($candidates as $haystack) {
-                    if ($haystack === '') {
-                        continue;
-                    }
-
-                    if (Str::contains($haystack, $needle) || Str::contains($needle, $haystack)) {
-                        return true;
-                    }
+                if ($haystack === '') {
+                    return false;
                 }
 
-                return false;
+                return Str::contains($haystack, $needle) || Str::contains($needle, $haystack);
             });
     }
 
     /**
-     * AddressArea level-1 tree node matching a package State (district parent only).
+     * AddressArea level-1 tree node matching a package State.
      */
-    protected function malaysiaAreaStateForPackageState(State $state): ?AddressArea
+    protected function areaStateForPackageState(State $state): ?AddressArea
     {
         $areaId = AddressAreaStateBridge::areaIdForState($state, 'administrative');
 
@@ -84,7 +72,7 @@ trait SeedsPackageAddresses
         return $area instanceof AddressArea ? $area : null;
     }
 
-    protected function malaysiaAreaByName(string $name, int $level, ?string $parentId = null): ?AddressArea
+    protected function areaByName(string $countryCode, string $name, int $level, ?string $parentId = null): ?AddressArea
     {
         $needle = Str::lower(trim($name));
 
@@ -93,7 +81,7 @@ trait SeedsPackageAddresses
         }
 
         return AddressArea::query()
-            ->where('country_code', 'MY')
+            ->where('country_code', strtoupper($countryCode))
             ->where('level', $level)
             ->when($parentId !== null, fn ($query) => $query->where('parent_id', $parentId))
             ->orderBy('name')
@@ -103,6 +91,48 @@ trait SeedsPackageAddresses
 
                 return Str::contains($haystack, $needle) || Str::contains($needle, $haystack);
             });
+    }
+
+    // ── Malaysia convenience wrappers ────────────────────────────────
+
+    protected function malaysiaCountry(): ?AddressCountry
+    {
+        return $this->countryByIso('MY');
+    }
+
+    /**
+     * @return Collection<int, State>
+     */
+    protected function malaysiaPackageStates(): Collection
+    {
+        $country = $this->malaysiaCountry();
+
+        if (! $country instanceof AddressCountry) {
+            return collect();
+        }
+
+        return $this->packageStatesByCountryId((string) $country->getKey());
+    }
+
+    protected function malaysiaPackageStateByName(string $name): ?State
+    {
+        $country = $this->malaysiaCountry();
+
+        if (! $country instanceof AddressCountry) {
+            return null;
+        }
+
+        return $this->packageStateByName((string) $country->getKey(), $name);
+    }
+
+    protected function malaysiaAreaStateForPackageState(State $state): ?AddressArea
+    {
+        return $this->areaStateForPackageState($state);
+    }
+
+    protected function malaysiaAreaByName(string $name, int $level, ?string $parentId = null): ?AddressArea
+    {
+        return $this->areaByName('MY', $name, $level, $parentId);
     }
 
     protected function randomDistrictForState(State $state): ?AddressArea
@@ -115,8 +145,7 @@ trait SeedsPackageAddresses
 
         return AddressArea::query()
             ->where('parent_id', $areaState->getKey())
-            ->where('level', 2)
-            ->where('type', 'district')
+            ->whereIn('type', ['district', 'minor_district'])
             ->inRandomOrder()
             ->first();
     }
@@ -129,7 +158,7 @@ trait SeedsPackageAddresses
 
         return AddressArea::query()
             ->where('parent_id', $district->getKey())
-            ->where('level', 3)
+            ->whereIn('type', ['mukim', 'subdistrict'])
             ->inRandomOrder()
             ->first();
     }

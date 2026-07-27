@@ -1,10 +1,11 @@
 <?php
 
+use AIArmada\Addressing\Database\Seeders\MalaysiaPostalCodeSeeder;
 use App\Models\User;
+use Database\Seeders\AddressingSeeder;
 use Database\Seeders\AdvancedEventSeeder;
 use Database\Seeders\AIArmada\FoundationSeeder;
 use Database\Seeders\DatabaseSeeder;
-use Database\Seeders\DistrictSeeder;
 use Database\Seeders\DonationChannelSeeder;
 use Database\Seeders\EventSeeder;
 use Database\Seeders\EventSubmissionSeeder;
@@ -12,8 +13,7 @@ use Database\Seeders\FacilityTypeSeeder;
 use Database\Seeders\InspirationSeeder;
 use Database\Seeders\InstitutionSeeder;
 use Database\Seeders\LanguageSeeder;
-use Database\Seeders\MalaysiaCitySeeder;
-use Database\Seeders\MasjidSeeder;
+use Database\Seeders\MalaysiaMasjidSeeder;
 use Database\Seeders\MediaLinkSeeder;
 use Database\Seeders\ModerationReviewSeeder;
 use Database\Seeders\PermissionSeeder;
@@ -26,10 +26,8 @@ use Database\Seeders\SavedSearchSeeder;
 use Database\Seeders\ScopedMemberRolesSeeder;
 use Database\Seeders\SeriesSeeder;
 use Database\Seeders\SpaceSeeder;
-use Database\Seeders\SubdistrictSeeder;
 use Database\Seeders\UserSeeder;
 use Database\Seeders\VenueSeeder;
-use Database\Seeders\WorldSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -48,12 +46,7 @@ it('runs the full demo seeding pipeline in the expected order', function () {
 
     $seeder->run();
 
-    expect($calledSeederBatches)->toContain([
-        WorldSeeder::class,
-        MalaysiaCitySeeder::class,
-        DistrictSeeder::class,
-        SubdistrictSeeder::class,
-    ]);
+    expect($calledSeederBatches)->toContain([AddressingSeeder::class, MalaysiaPostalCodeSeeder::class]);
 
     expect($calledSeederBatches)->toContain([
         PermissionSeeder::class,
@@ -87,7 +80,7 @@ it('runs the full demo seeding pipeline in the expected order', function () {
         RegistrationSeeder::class,
     ]);
 
-    expect($calledSeederBatches)->not()->toContain([MasjidSeeder::class]);
+    expect($calledSeederBatches)->not()->toContain([MalaysiaMasjidSeeder::class]);
 });
 
 it('optionally includes the masjid directory seeder when enabled', function () {
@@ -104,7 +97,7 @@ it('optionally includes the masjid directory seeder when enabled', function () {
 
     $seeder->run();
 
-    expect($calledSeederBatches)->toContain([MasjidSeeder::class]);
+    expect($calledSeederBatches)->toContain([MalaysiaMasjidSeeder::class]);
 });
 
 it('tops up demo users without duplicating on subsequent runs', function () {

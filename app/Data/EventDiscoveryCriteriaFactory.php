@@ -78,8 +78,6 @@ final class EventDiscoveryCriteriaFactory
             }
         }
 
-        unset($normalized['admin_area_1_id'], $normalized['admin_area_2_id']);
-
         foreach (['country_id', 'state_id', 'city_id', 'institution_id', 'venue_id'] as $key) {
             if (array_key_exists($key, $normalized)) {
                 $normalized[$key] = $this->uuid($normalized[$key]);

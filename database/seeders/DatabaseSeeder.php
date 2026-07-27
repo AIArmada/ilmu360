@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use AIArmada\Addressing\Database\Seeders\MalaysiaPostalCodeSeeder;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Models\Institution;
 use App\Models\Person;
@@ -36,12 +37,7 @@ class DatabaseSeeder extends Seeder
 
     private function seedGeography(): void
     {
-        $this->call([
-            WorldSeeder::class,
-            MalaysiaCitySeeder::class,
-            DistrictSeeder::class,
-            SubdistrictSeeder::class,
-        ]);
+        $this->call([AddressingSeeder::class, MalaysiaPostalCodeSeeder::class]);
     }
 
     private function seedAuthAndTaxonomy(): void
@@ -74,7 +70,7 @@ class DatabaseSeeder extends Seeder
 
         // Optional national masjid directory import.
         if ($this->shouldSeedMasjidDirectory()) {
-            $this->call([MasjidSeeder::class]);
+            $this->call([MalaysiaMasjidSeeder::class]);
         }
 
         $this->call([

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
+use AIArmada\Addressing\Database\Seeders\MalaysiaPostalCodeSeeder;
 use Illuminate\Database\Seeder;
 
 class ProductionSeeder extends Seeder
@@ -13,10 +14,8 @@ class ProductionSeeder extends Seeder
      */
     public function run(): void
     {
-        $this->call([WorldSeeder::class]);
-        $this->call([MalaysiaCitySeeder::class]);
-        $this->call([DistrictSeeder::class]);
-        $this->call([SubdistrictSeeder::class]);
+        $this->call([AddressingSeeder::class]);
+        $this->call([MalaysiaPostalCodeSeeder::class]);
         $this->call([
             PermissionSeeder::class,
             RoleSeeder::class,

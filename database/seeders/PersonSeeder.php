@@ -2,8 +2,7 @@
 
 namespace Database\Seeders;
 
-use AIArmada\Addressing\Models\Address;
-use AIArmada\Addressing\Models\AddressCountry;
+use AIArmada\Addressing\Models\State;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
@@ -13,12 +12,15 @@ use App\Actions\Persons\GeneratePersonSlugAction;
 use App\Enums\SpeakerStatus;
 use App\Models\Person;
 use App\Models\User;
+use Database\Seeders\Concerns\SeedsPackageAddresses;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class PersonSeeder extends Seeder
 {
+    use SeedsPackageAddresses;
+
     public function run(): void
     {
         Person::unsetEventDispatcher();
@@ -34,16 +36,8 @@ class PersonSeeder extends Seeder
 
     private function seedPersons(): void
     {
-        $malaysia = AddressCountry::query()->firstOrCreate(
-            ['iso2' => 'MY'],
-            [
-                'name' => 'Malaysia',
-                'iso3' => 'MYS',
-                'region' => 'Asia',
-                'subregion' => 'South-Eastern Asia',
-                'phone_code' => '60',
-            ],
-        );
+        $malaysia = $this->malaysiaCountry();
+        $states = $this->malaysiaPackageStates();
 
         $realPersons = [
             ['name' => 'Azhar Idrus', 'titles' => ['Ustaz']],
@@ -67,7 +61,7 @@ class PersonSeeder extends Seeder
         $memberAttachments = [];
 
         foreach ($realPersons as $personData) {
-            OwnerContext::withOwner(null, function () use ($personData, $userIds, $malaysia, &$memberAttachments): void {
+            OwnerContext::withOwner(null, function () use ($personData, $userIds, $malaysia, $states, &$memberAttachments): void {
                 $name = $personData['name'];
                 $person = Person::firstOrCreate(
                     ['name' => $name],
@@ -93,11 +87,13 @@ class PersonSeeder extends Seeder
                 }
 
                 if ($person->wasRecentlyCreated) {
-                    $person->attachAddress(Address::query()->create([
-                        'country_id' => $malaysia->getKey(),
-                        'country_code' => 'MY',
-                        'country' => 'Malaysia',
-                    ]), 'primary', true);
+                    $state = $states->isNotEmpty() ? $states->random() : null;
+                    $district = $state instanceof State ? $this->randomDistrictForState($state) : null;
+                    $subdistrict = $this->randomSubdistrictForDistrict($district);
+
+                    $this->seedPrimaryPackageAddress($person, $this->packageAddressAttributes([
+                        'country_id' => $malaysia?->getKey(),
+                    ], $state, $district, $subdistrict));
                 }
 
                 foreach ($personData['titles'] as $titleName) {

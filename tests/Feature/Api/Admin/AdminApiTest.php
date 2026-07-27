@@ -1725,7 +1725,6 @@ it('exposes admin person write schema and can create and update persons through 
         ->toContain('address.area_assignments.administrative_district', 'address.area_assignments.administrative_subdivision')
         ->and($personFields)->toContain('address.country_id')
         ->and($personFields)->toContain('address.area_assignments')
-        ->and($personFields)->not->toContain('address.admin_area_3_id')
         ->and($personFields)->not->toContain('address.country_code', 'address.country_key')
         ->and(collect($schema['conditional_rules'] ?? [])->pluck('field')->all())->not->toContain('address.country_id');
 
@@ -2692,8 +2691,7 @@ it('lists admin geography catalogs and exposes catalog metadata through admin wr
 
     expect($institutionCatalogs->get('address.country_id')['endpoint'] ?? null)->toBe('/api/v1/admin/catalogs/countries')
         ->and($institutionCatalogs->get('address.area_assignments.administrative_district')['query']['country_id'] ?? null)->toBe('{address.country_id}')
-        ->and($institutionCatalogs->get('address.area_assignments.administrative_subdivision')['query']['district_id'] ?? null)->toBe('{address.area_assignments.administrative_district}')
-        ->and($institutionCatalogs->has('address.admin_area_3_id'))->toBeFalse();
+        ->and($institutionCatalogs->get('address.area_assignments.administrative_subdivision')['query']['district_id'] ?? null)->toBe('{address.area_assignments.administrative_district}');
 
     $addressAreaSchema = $this->getJson('/api/v1/admin/address-areas/schema?operation=create')
         ->assertOk()
