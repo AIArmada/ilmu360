@@ -84,6 +84,7 @@ class AddressAreaObserver implements ShouldHandleEventsAfterCommit
     private function addressReferenceMessage(): string
     {
         $label = 'address area';
+
         return "This {$label} is still referenced by one or more addresses.";
     }
 }
