@@ -1722,9 +1722,9 @@ it('exposes admin person write schema and can create and update persons through 
 
     expect(collect($schema['catalogs'] ?? [])->pluck('field')->all())
         ->toContain('address.country_id')
-        ->toContain('address.admin_area_1_id', 'address.admin_area_2_id')
+        ->toContain('address.administrative_district_id', 'address.administrative_subdivision_id')
         ->and($personFields)->toContain('address.country_id')
-        ->and($personFields)->toContain('address.admin_area_1_id', 'address.admin_area_2_id')
+        ->and($personFields)->toContain('address.administrative_district_id', 'address.administrative_subdivision_id')
         ->and($personFields)->not->toContain('address.admin_area_3_id')
         ->and($personFields)->not->toContain('address.country_code', 'address.country_key')
         ->and(collect($schema['conditional_rules'] ?? [])->pluck('field')->all())->not->toContain('address.country_id');
@@ -1804,8 +1804,8 @@ it('returns fresh person address data on admin GET requests after updates', func
         'status' => 'verified',
         'address' => [
             'country_id' => $firstFixtures['country_id'],
-            'admin_area_1_id' => $firstFixtures['admin_area_1_id'],
-            'admin_area_2_id' => $firstFixtures['admin_area_2_id'],
+            'administrative_district_id' => $firstFixtures['administrative_district_id'],
+            'administrative_subdivision_id' => $firstFixtures['administrative_subdivision_id'],
         ],
     ])->assertCreated();
 
@@ -1816,8 +1816,8 @@ it('returns fresh person address data on admin GET requests after updates', func
         ->assertJsonPath('data.record.attributes.address.country_id', $firstFixtures['country_id'])
         ->assertJsonMissingPath('data.record.attributes.address.line1')
         ->assertJsonMissingPath('data.record.attributes.address.google_maps_url')
-        ->assertJsonPath('data.record.attributes.address.admin_area_1_id', $firstFixtures['admin_area_1_id'])
-        ->assertJsonPath('data.record.attributes.address.admin_area_2_id', $firstFixtures['admin_area_2_id']);
+        ->assertJsonPath('data.record.attributes.address.administrative_district_id', $firstFixtures['administrative_district_id'])
+        ->assertJsonPath('data.record.attributes.address.administrative_subdivision_id', $firstFixtures['administrative_subdivision_id']);
 
     $this->putJson('/api/v1/admin/people/'.$personRouteKey, [
         'name' => 'Admin API Address Freshness Person',
@@ -1825,23 +1825,23 @@ it('returns fresh person address data on admin GET requests after updates', func
         'status' => 'verified',
         'address' => [
             'country_id' => $secondFixtures['country_id'],
-            'admin_area_1_id' => $secondFixtures['admin_area_1_id'],
-            'admin_area_2_id' => $secondFixtures['admin_area_2_id'],
+            'administrative_district_id' => $secondFixtures['administrative_district_id'],
+            'administrative_subdivision_id' => $secondFixtures['administrative_subdivision_id'],
         ],
     ])->assertOk()
         ->assertJsonPath('data.record.attributes.address.country_id', $secondFixtures['country_id'])
         ->assertJsonMissingPath('data.record.attributes.address.line1')
         ->assertJsonMissingPath('data.record.attributes.address.google_maps_url')
-        ->assertJsonPath('data.record.attributes.address.admin_area_1_id', $secondFixtures['admin_area_1_id'])
-        ->assertJsonPath('data.record.attributes.address.admin_area_2_id', $secondFixtures['admin_area_2_id']);
+        ->assertJsonPath('data.record.attributes.address.administrative_district_id', $secondFixtures['administrative_district_id'])
+        ->assertJsonPath('data.record.attributes.address.administrative_subdivision_id', $secondFixtures['administrative_subdivision_id']);
 
     $this->getJson('/api/v1/admin/people/'.$personRouteKey)
         ->assertOk()
         ->assertJsonPath('data.record.attributes.address.country_id', $secondFixtures['country_id'])
         ->assertJsonMissingPath('data.record.attributes.address.line1')
         ->assertJsonMissingPath('data.record.attributes.address.google_maps_url')
-        ->assertJsonPath('data.record.attributes.address.admin_area_1_id', $secondFixtures['admin_area_1_id'])
-        ->assertJsonPath('data.record.attributes.address.admin_area_2_id', $secondFixtures['admin_area_2_id']);
+        ->assertJsonPath('data.record.attributes.address.administrative_district_id', $secondFixtures['administrative_district_id'])
+        ->assertJsonPath('data.record.attributes.address.administrative_subdivision_id', $secondFixtures['administrative_subdivision_id']);
 
     $person = Person::findOrFail($personRouteKey);
     $person->refresh();
@@ -1852,8 +1852,8 @@ it('returns fresh person address data on admin GET requests after updates', func
         ->assertJsonPath('data.0.attributes.address.country_id', $secondFixtures['country_id'])
         ->assertJsonMissingPath('data.0.attributes.address.line1')
         ->assertJsonMissingPath('data.0.attributes.address.google_maps_url')
-        ->assertJsonPath('data.0.attributes.address.admin_area_1_id', $secondFixtures['admin_area_1_id'])
-        ->assertJsonPath('data.0.attributes.address.admin_area_2_id', $secondFixtures['admin_area_2_id']);
+        ->assertJsonPath('data.0.attributes.address.administrative_district_id', $secondFixtures['administrative_district_id'])
+        ->assertJsonPath('data.0.attributes.address.administrative_subdivision_id', $secondFixtures['administrative_subdivision_id']);
 });
 
 it('surfaces person update semantics and collection rules through the admin api schema', function () {
@@ -2668,13 +2668,13 @@ it('lists admin geography catalogs and exposes catalog metadata through admin wr
     $this->getJson('/api/v1/admin/catalogs/admin-area-level-1?state_id='.$fixtures['state_id'])
         ->assertOk()
         ->assertJsonFragment([
-            'id' => $fixtures['admin_area_1_id'],
+            'id' => $fixtures['administrative_district_id'],
         ]);
 
-    $this->getJson('/api/v1/admin/catalogs/admin-area-level-2?admin_area_1_id='.$fixtures['admin_area_1_id'])
+    $this->getJson('/api/v1/admin/catalogs/admin-area-level-2?administrative_district_id='.$fixtures['administrative_district_id'])
         ->assertOk()
         ->assertJsonFragment([
-            'id' => $fixtures['admin_area_2_id'],
+            'id' => $fixtures['administrative_subdivision_id'],
             'label' => $fixtures['subdistrict_name'],
         ]);
 
@@ -2685,8 +2685,8 @@ it('lists admin geography catalogs and exposes catalog metadata through admin wr
     $institutionCatalogs = collect(is_array($institutionSchema) ? $institutionSchema : [])->keyBy('field');
 
     expect($institutionCatalogs->get('address.country_id')['endpoint'] ?? null)->toBe('/api/v1/admin/catalogs/countries')
-        ->and($institutionCatalogs->get('address.admin_area_1_id')['query']['country_id'] ?? null)->toBe('{address.country_id}')
-        ->and($institutionCatalogs->get('address.admin_area_2_id')['query']['admin_area_1_id'] ?? null)->toBe('{address.admin_area_1_id}')
+        ->and($institutionCatalogs->get('address.administrative_district_id')['query']['country_id'] ?? null)->toBe('{address.country_id}')
+        ->and($institutionCatalogs->get('address.administrative_subdivision_id')['query']['administrative_district_id'] ?? null)->toBe('{address.administrative_district_id}')
         ->and($institutionCatalogs->has('address.admin_area_3_id'))->toBeFalse();
 
     $addressAreaSchema = $this->getJson('/api/v1/admin/address-areas/schema?operation=create')
@@ -2924,7 +2924,7 @@ it('exposes admin address-area write schema and can create and update address ar
 
     $createResponse = $this->postJson('/api/v1/admin/address-areas', [
         'country_id' => $fixtures['country_id'],
-        'parent_id' => $fixtures['admin_area_1_id'],
+        'parent_id' => $fixtures['administrative_district_id'],
         'type' => 'subdistrict',
         'level' => 3,
         'name' => '  Admin API Created Address Area  ',
@@ -2937,7 +2937,7 @@ it('exposes admin address-area write schema and can create and update address ar
         ->assertJsonPath('data.schema.method', 'PUT')
         ->assertJsonPath('data.schema.endpoint', '/api/v1/admin/address-areas/'.$addressAreaRouteKey)
         ->assertJsonPath('data.schema.defaults.country_id', $fixtures['country_id'])
-        ->assertJsonPath('data.schema.defaults.parent_id', $fixtures['admin_area_1_id'])
+        ->assertJsonPath('data.schema.defaults.parent_id', $fixtures['administrative_district_id'])
         ->assertJsonPath('data.schema.defaults.type', 'subdistrict')
         ->assertJsonPath('data.schema.defaults.level', 3)
         ->assertJsonPath('data.schema.defaults.name', 'Admin API Created Address Area');
@@ -2963,7 +2963,7 @@ it('surfaces address-area update semantics through the admin api schema', functi
 
     $createResponse = $this->postJson('/api/v1/admin/address-areas', [
         'country_id' => $fixtures['country_id'],
-        'parent_id' => $fixtures['admin_area_1_id'],
+        'parent_id' => $fixtures['administrative_district_id'],
         'type' => 'subdistrict',
         'level' => 3,
         'name' => 'Admin API Schema Address Area',
@@ -3414,8 +3414,8 @@ function ensureAdminApiMalaysiaCountryExists(): string
  * @return array{
  *     country_id: string,
  *     state_id: string,
- *     admin_area_1_id: string,
- *     admin_area_2_id: string,
+ *     administrative_district_id: string,
+ *     administrative_subdivision_id: string,
  *     subdistrict_name: string
  * }
  */
@@ -3437,8 +3437,8 @@ function ensureAdminApiSubdistrictFixtures(): array
     return [
         'country_id' => (string) $geo['country']->getKey(),
         'state_id' => (string) $geo['state']->getKey(),
-        'admin_area_1_id' => (string) $geo['district']->getKey(),
-        'admin_area_2_id' => (string) $geo['subdistrict']->getKey(),
+        'administrative_district_id' => (string) $geo['district']->getKey(),
+        'administrative_subdivision_id' => (string) $geo['subdistrict']->getKey(),
         'subdistrict_name' => $subdistrictName,
         'area_tree_root_id' => (string) $geo['area_tree_root']->getKey(),
     ];

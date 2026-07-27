@@ -694,10 +694,8 @@ it('returns only region address keys in the person suggest context state', funct
 
     syncPrimaryAddressForTest($person, [
         'country_id' => $countryId,
-        'admin_area_1_id' => (string) $district->getKey(),
-        'admin_area_2_id' => null,
-        'admin_area_3_id' => null,
-        'admin_area_4_id' => null,
+        'administrative_district_id' => (string) $district->getKey(),
+        'administrative_subdivision_id' => null,
         'line1' => 'Jalan Lama 1',
         'line2' => 'Taman Lama',
         'postcode' => '50000',
@@ -718,8 +716,8 @@ it('returns only region address keys in the person suggest context state', funct
 
     expect($response->json('data.initial_state.address'))->toBe([
         'country_id' => $countryId,
-        'admin_area_1_id' => (string) $district->getKey(),
-        'admin_area_2_id' => null,
+        'administrative_district_id' => (string) $district->getKey(),
+        'administrative_subdivision_id' => null,
     ]);
 });
 
@@ -736,10 +734,8 @@ it('rejects unchanged person region-only address round trips as validation error
 
     syncPrimaryAddressForTest($person, [
         'country_id' => $countryId,
-        'admin_area_1_id' => (string) $district->getKey(),
-        'admin_area_2_id' => null,
-        'admin_area_3_id' => null,
-        'admin_area_4_id' => null,
+        'administrative_district_id' => (string) $district->getKey(),
+        'administrative_subdivision_id' => null,
         'line1' => 'Alamat Warisan',
         'google_maps_url' => 'https://maps.google.com/?q=3.1390,101.6869',
     ]);
@@ -753,8 +749,8 @@ it('rejects unchanged person region-only address round trips as validation error
     ]), [
         'address' => [
             'country_id' => $countryId,
-            'admin_area_1_id' => (string) $district->getKey(),
-            'admin_area_2_id' => null,
+            'administrative_district_id' => (string) $district->getKey(),
+            'administrative_subdivision_id' => null,
         ],
     ])->assertUnprocessable()
         ->assertJsonValidationErrors(['data']);
@@ -779,10 +775,8 @@ it('preserves hidden person address details during region-only direct updates', 
 
     syncPrimaryAddressForTest($person, [
         'country_id' => $countryId,
-        'admin_area_1_id' => (string) $district->getKey(),
-        'admin_area_2_id' => null,
-        'admin_area_3_id' => null,
-        'admin_area_4_id' => null,
+        'administrative_district_id' => (string) $district->getKey(),
+        'administrative_subdivision_id' => null,
         'line1' => 'Alamat Warisan',
         'google_maps_url' => 'https://maps.google.com/?q=3.1390,101.6869',
     ]);
@@ -797,8 +791,8 @@ it('preserves hidden person address details during region-only direct updates', 
         'name' => 'Penceramah Dikemas Kini API',
         'address' => [
             'country_id' => $countryId,
-            'admin_area_1_id' => (string) $updatedDistrict->getKey(),
-            'admin_area_2_id' => null,
+            'administrative_district_id' => (string) $updatedDistrict->getKey(),
+            'administrative_subdivision_id' => null,
         ],
     ])->assertOk()
         ->assertJsonPath('data.mode', 'direct_edit');
@@ -810,6 +804,7 @@ it('preserves hidden person address details during region-only direct updates', 
     ])['google_maps_url'];
 
     expect($person?->name)->toBe('Penceramah Dikemas Kini API')
+        // DO NOT CHANGE ->admin_area_1_id or ->admin_area_2_id property accesses on model instances
         ->and($person?->primaryAddress()?->admin_area_1_id)->toBe((string) $updatedDistrict->getKey())
         ->and($person?->primaryAddress()?->admin_area_2_id)->toBeNull()
         ->and($person?->primaryAddress()?->line1)->toBe('Alamat Warisan')
@@ -2399,8 +2394,8 @@ it('bumps the person directory cache version when person addresses change', func
     syncPrimaryAddressForTest($person, [
         'country_id' => $countryId,
         'state_id' => null,
-        'admin_area_1_id' => null,
-        'admin_area_2_id' => null,
+        'administrative_district_id' => null,
+        'administrative_subdivision_id' => null,
     ]);
 
     $updatedVersion = $this->getJson(route('api.client.persons.index'))
@@ -3369,7 +3364,7 @@ it('mirrors the public person page payload for app clients', function () {
     $venueSubdistrict = createTestAddressArea('Mentakab', 3, parent: $personGeo['district'], country: $country);
     syncPrimaryAddressForTest($venue, [
         ...$personGeo['address'],
-        'admin_area_2_id' => (string) $venueSubdistrict->getKey(),
+        'administrative_subdivision_id' => (string) $venueSubdistrict->getKey(),
         'city' => 'Mentakab',
     ]);
 

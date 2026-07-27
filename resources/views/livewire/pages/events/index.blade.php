@@ -48,9 +48,9 @@
     $events = $this->events;
     $search = $this->search;
     $countryId = $this->country_id;
-    $stateId = $this->admin_area_1_id;
-    $adminArea1Id = $this->admin_area_1_id;
-    $adminArea2Id = $this->admin_area_2_id;
+    $stateId = $this->state_id;
+    $adminArea1Id = $this->administrative_district_id;
+    $adminArea2Id = $this->administrative_subdivision_id;
     $institutionId = $this->institution_id;
     $venueId = $this->venue_id;
     $gender = $this->gender;
@@ -158,8 +158,8 @@
         'search' => $search,
         'country_id' => $countryId,
         'state_id' => $stateId,
-        'admin_area_1_id' => $adminArea1Id,
-        'admin_area_2_id' => $adminArea2Id,
+        'administrative_district_id' => $adminArea1Id,
+        'administrative_subdivision_id' => $adminArea2Id,
         'institution_id' => $institutionId,
         'venue_id' => $venueId,
         'person_ids' => $selectedPersonIds,
@@ -555,7 +555,7 @@
 
                             <label class="block">
                                 <span class="mb-1.5 block text-xs font-semibold text-slate-600">{{ __('Daerah') }}</span>
-                                <select wire:model.live="filterData.admin_area_1_id" data-signal-control="admin_area_1_id" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10" @disabled(! filled($stateId))>
+                                <select wire:model.live="filterData.administrative_district_id" data-signal-control="administrative_district_id" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10" @disabled(! filled($stateId))>
                                     <option value="">{{ __('Pilih daerah') }}</option>
                                     @foreach($districts as $district)
                                         <option value="{{ $district->id }}">{{ $district->name }}</option>
@@ -566,7 +566,7 @@
                             @if(filled($stateId))
                                 <label class="block">
                                     <span class="mb-1.5 block text-xs font-semibold text-slate-600">{{ __('Bandar / Mukim / Zon') }}</span>
-                                    <select wire:model.live="filterData.admin_area_2_id" data-signal-control="admin_area_2_id" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10">
+                                    <select wire:model.live="filterData.administrative_subdivision_id" data-signal-control="administrative_subdivision_id" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10">
                                         <option value="">{{ __('Semua kawasan') }}</option>
                                         @foreach($subdistricts as $subdistrict)
                                             <option value="{{ $subdistrict->id }}">{{ $subdistrict->name }}</option>

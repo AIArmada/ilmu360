@@ -72,10 +72,10 @@ class Index extends Component implements HasForms
     public ?string $city_id = null;
 
     #[Url]
-    public ?string $admin_area_1_id = null;
+    public ?string $administrative_district_id = null;
 
     #[Url]
-    public ?string $admin_area_2_id = null;
+    public ?string $administrative_subdivision_id = null;
 
     /**
      * @var list<string>
@@ -365,8 +365,8 @@ class Index extends Component implements HasForms
                             ->searchable()
                             ->getSearchResultsUsing(fn (Get $get, string $search): array => $this->searchInstitutionOptions(
                                 countryId: $this->normalizeNullableString($get('country_id')),
-                                adminArea1Id: $this->normalizeNullableString($get('admin_area_1_id')),
-                                adminArea2Id: $this->normalizeNullableString($get('admin_area_2_id')),
+                                adminArea1Id: $this->normalizeNullableString($get('area_assignments.administrative_district')),
+                                adminArea2Id: $this->normalizeNullableString($get('area_assignments.administrative_subdivision')),
                                 search: $search,
                             ))
                             ->getOptionLabelUsing(fn (string $value): ?string => $this->institutionOptionLabel($value))
@@ -379,8 +379,8 @@ class Index extends Component implements HasForms
                             ->searchable()
                             ->getSearchResultsUsing(fn (Get $get, string $search): array => $this->searchVenueOptions(
                                 countryId: $this->normalizeNullableString($get('country_id')),
-                                adminArea1Id: $this->normalizeNullableString($get('admin_area_1_id')),
-                                adminArea2Id: $this->normalizeNullableString($get('admin_area_2_id')),
+                                adminArea1Id: $this->normalizeNullableString($get('area_assignments.administrative_district')),
+                                adminArea2Id: $this->normalizeNullableString($get('area_assignments.administrative_subdivision')),
                                 search: $search,
                             ))
                             ->getOptionLabelUsing(fn (string $value): ?string => $this->venueOptionLabel($value))
@@ -802,10 +802,10 @@ class Index extends Component implements HasForms
     #[Computed]
     public function subdistricts(): Collection
     {
-        if (filled($this->admin_area_1_id)) {
+        if (filled($this->administrative_district_id)) {
             $options = SharedFormSchema::subdistrictOptionsForSelection(
                 $this->state_id,
-                $this->admin_area_1_id,
+                $this->administrative_district_id,
                 $this->country_id,
             );
 
@@ -1428,6 +1428,8 @@ class Index extends Component implements HasForms
             'state_id' => null,
             'city_id' => null,
             'area_assignments' => [],
+            'administrative_district_id' => null,
+            'administrative_subdivision_id' => null,
             'language_codes' => [],
             'event_category_ids' => [],
             'gender' => null,
@@ -1491,9 +1493,11 @@ class Index extends Component implements HasForms
             'country_id' => filled($this->country_id) ? $this->country_id : null,
             'state_id' => filled($this->state_id) ? $this->state_id : null,
             'city_id' => filled($this->city_id) ? $this->city_id : null,
+            'administrative_district_id' => filled($this->administrative_district_id) ? $this->administrative_district_id : null,
+            'administrative_subdivision_id' => filled($this->administrative_subdivision_id) ? $this->administrative_subdivision_id : null,
             'area_assignments' => array_filter([
-                'administrative_district' => filled($this->admin_area_1_id) ? $this->admin_area_1_id : null,
-                'administrative_subdivision' => filled($this->admin_area_2_id) ? $this->admin_area_2_id : null,
+                'administrative_district' => filled($this->administrative_district_id) ? $this->administrative_district_id : null,
+                'administrative_subdivision' => filled($this->administrative_subdivision_id) ? $this->administrative_subdivision_id : null,
             ]),
             'language_codes' => $languageCodes,
             'event_category_ids' => $this->normalizeStringArray($this->event_category_ids),
@@ -1549,8 +1553,8 @@ class Index extends Component implements HasForms
         $this->country_id = $filters['country_id'];
         $this->state_id = $filters['state_id'] ?? null;
         $this->city_id = $filters['city_id'] ?? null;
-        $this->admin_area_1_id = $filters['area_assignments']['administrative_district'] ?? null;
-        $this->admin_area_2_id = $filters['area_assignments']['administrative_subdivision'] ?? null;
+        $this->administrative_district_id = $filters['administrative_district_id'] ?? $filters['area_assignments']['administrative_district'] ?? null;
+        $this->administrative_subdivision_id = $filters['administrative_subdivision_id'] ?? $filters['area_assignments']['administrative_subdivision'] ?? null;
         $this->language_codes = $filters['language_codes'];
         $this->event_category_ids = $filters['event_category_ids'];
         $this->gender = $filters['gender'];
@@ -1641,9 +1645,11 @@ class Index extends Component implements HasForms
             'country_id' => filled($normalized['country_id']) ? (string) $normalized['country_id'] : null,
             'state_id' => filled($normalized['state_id'] ?? null) ? (string) $normalized['state_id'] : null,
             'city_id' => filled($normalized['city_id'] ?? null) ? (string) $normalized['city_id'] : null,
+            'administrative_district_id' => filled($normalized['administrative_district_id'] ?? $normalized['area_assignments']['administrative_district'] ?? null) ? (string) ($normalized['administrative_district_id'] ?? $normalized['area_assignments']['administrative_district']) : null,
+            'administrative_subdivision_id' => filled($normalized['administrative_subdivision_id'] ?? $normalized['area_assignments']['administrative_subdivision'] ?? null) ? (string) ($normalized['administrative_subdivision_id'] ?? $normalized['area_assignments']['administrative_subdivision']) : null,
             'area_assignments' => array_filter([
-                'administrative_district' => filled($normalized['admin_area_1_id'] ?? null) ? (string) $normalized['admin_area_1_id'] : null,
-                'administrative_subdivision' => filled($normalized['admin_area_2_id'] ?? null) ? (string) $normalized['admin_area_2_id'] : null,
+                'administrative_district' => filled($normalized['administrative_district_id'] ?? $normalized['area_assignments']['administrative_district'] ?? null) ? (string) ($normalized['administrative_district_id'] ?? $normalized['area_assignments']['administrative_district']) : null,
+                'administrative_subdivision' => filled($normalized['administrative_subdivision_id'] ?? $normalized['area_assignments']['administrative_subdivision'] ?? null) ? (string) ($normalized['administrative_subdivision_id'] ?? $normalized['area_assignments']['administrative_subdivision']) : null,
             ]),
             'language_codes' => $languageCodes,
             'event_category_ids' => $this->normalizeStringArray($normalized['event_category_ids'] ?? []),

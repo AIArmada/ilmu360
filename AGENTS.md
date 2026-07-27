@@ -161,6 +161,7 @@ Enter plan mode for ANY non-trivial task (3+ steps or architectural decisions)
 - Diff behavior between main and your changes when relevant
 - Ask yourself: "Would a staff engineer approve this?"
 - Run tests, check logs, demonstrate correctness
+- **Run tests once**: A single test run must gather ALL info needed to start debugging. Never re-run the same test suite just to parse output you missed — use the first run, inspect logs, or save output to a file. If a test run is expensive, capture its full output the first time.
 
 ### 5. UI Tracking Review
 

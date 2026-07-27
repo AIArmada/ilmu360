@@ -43,10 +43,10 @@ class extends Component
     public ?string $city_id = null;
 
     #[Url]
-    public ?string $admin_area_1_id = null;
+    public ?string $administrative_district_id = null;
 
     #[Url]
-    public ?string $admin_area_2_id = null;
+    public ?string $administrative_subdivision_id = null;
 
     #[Computed]
     public function institutions(): LengthAwarePaginatorContract
@@ -227,7 +227,7 @@ class extends Component
     #[Computed]
     public function subdistricts(): array
     {
-        return SharedFormSchema::subdistrictOptionsForSelection($this->state_id, $this->admin_area_1_id, $this->country_id);
+        return SharedFormSchema::subdistrictOptionsForSelection($this->state_id, $this->administrative_district_id, $this->country_id);
     }
 
     public function stateLabel(): string
@@ -271,26 +271,26 @@ class extends Component
     {
         $this->state_id = null;
         $this->city_id = null;
-        $this->admin_area_1_id = null;
-        $this->admin_area_2_id = null;
+        $this->administrative_district_id = null;
+        $this->administrative_subdivision_id = null;
         $this->resetPage();
     }
 
     public function updatedStateId(): void
     {
         $this->city_id = null;
-        $this->admin_area_1_id = null;
-        $this->admin_area_2_id = null;
+        $this->administrative_district_id = null;
+        $this->administrative_subdivision_id = null;
         $this->resetPage();
     }
 
-    public function updatedAdminArea1Id(): void
+    public function updatedAdministrativeDistrictId(): void
     {
-        $this->admin_area_2_id = null;
+        $this->administrative_subdivision_id = null;
         $this->resetPage();
     }
 
-    public function updatedAdminArea2Id(): void
+    public function updatedAdministrativeSubdivisionId(): void
     {
         $this->resetPage();
     }
@@ -307,8 +307,8 @@ class extends Component
         $this->country_id = null;
         $this->state_id = null;
         $this->city_id = null;
-        $this->admin_area_1_id = null;
-        $this->admin_area_2_id = null;
+        $this->administrative_district_id = null;
+        $this->administrative_subdivision_id = null;
         $this->resetPage();
     }
 
@@ -317,8 +317,8 @@ class extends Component
         $countryId = $this->normalizedLocationId($this->country_id);
         $stateId = $this->normalizedLocationId($this->state_id);
         $cityId = $this->normalizedLocationId($this->city_id);
-        $adminArea1Id = $this->normalizedLocationId($this->admin_area_1_id);
-        $adminArea2Id = $this->normalizedLocationId($this->admin_area_2_id);
+        $adminArea1Id = $this->normalizedLocationId($this->administrative_district_id);
+        $adminArea2Id = $this->normalizedLocationId($this->administrative_subdivision_id);
 
         if ($countryId === null && $stateId === null && $cityId === null && $adminArea1Id === null && $adminArea2Id === null) {
             return $query;
@@ -394,13 +394,14 @@ class extends Component
     $countryId = $this->country_id;
     $stateId = $this->state_id;
     $cityId = $this->city_id;
-    $adminArea1Id = $this->admin_area_1_id;
-    $adminArea2Id = $this->admin_area_2_id;
+    $adminArea1Id = $this->administrative_district_id;
+    $adminArea2Id = $this->administrative_subdivision_id;
     $isParentlessAreaProfile = $this->isParentlessAreaProfileSelection();
     $stateLabel = $this->stateLabel();
     $districtLabel = $this->districtLabel();
     $subdistrictLabel = $this->subdistrictLabel();
     $hasScopedFilters = filled($countryId) || filled($stateId) || filled($cityId) || filled($adminArea1Id) || filled($adminArea2Id);
+    $institutionLoadingTarget = 'search,country_id,state_id,city_id,administrative_district_id,administrative_subdivision_id,clearSearch,clearFilters';
     $submitInstitutionUrl = route('contributions.submit-institution');
     $institutionTotal = $institutions->total();
     $formatInstitutionLocation = static function ($addressModel): string {
@@ -520,7 +521,7 @@ class extends Component
                                 </label>
                                 <flux:select
                                     id="institution-district-filter"
-                                    wire:model.live="admin_area_1_id"
+                                    wire:model.live="administrative_district_id"
                                     :disabled="! filled($stateId)"
                                     size="sm"
                                     class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 shadow-sm transition-[border-color,box-shadow,background-color] hover:border-emerald-300 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
@@ -540,7 +541,7 @@ class extends Component
                             </label>
                             <flux:select
                                 id="institution-subdistrict-filter"
-                                wire:model.live="admin_area_2_id"
+                                wire:model.live="administrative_subdivision_id"
                                 :disabled="$isParentlessAreaProfile ? ! filled($stateId) : ! filled($adminArea1Id)"
                                 size="sm"
                                 class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 shadow-sm transition-[border-color,box-shadow,background-color] hover:border-emerald-300 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
@@ -572,10 +573,6 @@ class extends Component
 		        </div>
 
 	        <div class="container mx-auto px-6 lg:px-12 mt-12">
-                @php
-                    $institutionLoadingTarget = 'search,country_id,state_id,city_id,admin_area_1_id,admin_area_2_id,clearSearch,clearFilters';
-                @endphp
-
 	                <div wire:loading.delay.short wire:target="{{ $institutionLoadingTarget }}">
 	                    <x-ui.skeleton.institution-card-grid />
 	                </div>

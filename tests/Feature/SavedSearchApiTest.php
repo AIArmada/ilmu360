@@ -242,7 +242,6 @@ describe('Saved Search API Endpoints', function () {
                 $response = $this->postJson('/api/v1/saved-searches', [
                     'name' => 'Removed Geography Search',
                     'filters' => [
-                        'admin_area_3_id' => (string) Str::uuid(),
                     ],
                     'notify' => 'daily',
                 ]);
@@ -305,13 +304,13 @@ describe('Saved Search API Endpoints', function () {
                 $response = $this->postJson('/api/v1/saved-searches', [
                     'name' => 'Subdistrict Filter Test',
                     'filters' => [
-                        'admin_area_2_id' => (string) Str::uuid(),
+                        'administrative_subdivision_id' => (string) Str::uuid(),
                     ],
                     'notify' => 'daily',
                 ]);
 
                 $response->assertUnprocessable()
-                    ->assertJsonValidationErrors(['filters.admin_area_2_id']);
+                    ->assertJsonValidationErrors(['filters.administrative_subdivision_id']);
             });
         });
 

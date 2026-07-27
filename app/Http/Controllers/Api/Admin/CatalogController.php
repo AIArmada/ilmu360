@@ -13,7 +13,7 @@ use Illuminate\Http\Request;
 #[Group(
     'Admin Catalog',
     'Authenticated catalog endpoints for schema-driven admin writes. '
-    .'Use these lookups for package-native geography: country_id, optional state_id, city_id, and country-profile-defined admin_area_1_id through admin_area_4_id.',
+    .'Use these lookups for package-native geography: country_id, optional state_id, city_id, and area_assignments (administrative_district / administrative_subdivision).',
 )]
 class CatalogController extends Controller
 {
@@ -66,7 +66,7 @@ class CatalogController extends Controller
     #[QueryParameter('state_id', 'Optional package State UUID or country-profile parent for the first administrative-area level.', required: false, type: 'string', infer: false)]
     #[Endpoint(
         title: 'List admin districts catalog',
-        description: 'Returns the country profile\'s first administrative-area options for product `admin_area_1_id`.',
+        description: 'Returns the district (administrative level-1) options for product location filtering.',
     )]
     public function administrativeDistricts(Request $request): JsonResponse
     {
@@ -83,7 +83,7 @@ class CatalogController extends Controller
     #[QueryParameter('country_id', 'Optional address country UUID for country-scoped listing without a parent.', required: false, type: 'string', infer: false)]
     #[Endpoint(
         title: 'List admin subdistricts catalog',
-        description: 'Returns the next country-profile administrative-area options for product `admin_area_2_id`.',
+        description: 'Returns the subdistrict (administrative level-2) options for product location filtering.',
     )]
     public function administrativeSubdivisions(Request $request): JsonResponse
     {

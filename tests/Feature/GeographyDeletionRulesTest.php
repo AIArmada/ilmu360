@@ -44,8 +44,8 @@ it('blocks deleting a subdistrict that is still referenced by an address', funct
     syncPrimaryAddressForTest($institution, [
         'country_id' => (string) $country->getKey(),
         'state_id' => (string) $state->getKey(),
-        'admin_area_1_id' => (string) $district->getKey(),
-        'admin_area_2_id' => (string) $subdistrict->getKey(),
+        'administrative_district_id' => (string) $district->getKey(),
+        'administrative_subdivision_id' => (string) $subdistrict->getKey(),
     ]);
 
     expect(fn () => $subdistrict->delete())

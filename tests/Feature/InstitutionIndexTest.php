@@ -181,8 +181,8 @@ it('rejects duplicate institution submissions when name and locality all match',
         ->set('data.type', 'masjid')
         ->set('data.address.country_id', $geo['address']['country_id'])
         ->set('data.address.state_id', $geo['address']['state_id'])
-        ->set('data.address.admin_area_1_id', $geo['address']['admin_area_1_id'])
-        ->set('data.address.admin_area_2_id', $geo['address']['admin_area_2_id'])
+        ->set('data.address.administrative_district_id', $geo['address']['administrative_district_id'])
+        ->set('data.address.administrative_subdivision_id', $geo['address']['administrative_subdivision_id'])
         ->set('data.address.google_maps_url', 'https://maps.google.com/?q=3.1390,101.6869')
         ->set('data.address.provider_place_id', 'place_duplicate_institution')
         ->set('data.address.latitude', 3.1390)
@@ -400,8 +400,8 @@ it('does not infer the institution country from an unencrypted browser timezone 
         ->assertSet('country_id', ensureTestMalaysiaCountry()->getKey())
         ->assertSet('state_id', null)
         ->assertSet('city_id', null)
-        ->assertSet('admin_area_1_id', null)
-        ->assertSet('admin_area_2_id', null);
+        ->assertSet('administrative_district_id', null)
+        ->assertSet('administrative_subdivision_id', null);
 });
 
 it('allows the institution directory to clear the country scope for international search', function () {
@@ -410,8 +410,8 @@ it('allows the institution directory to clear the country scope for internationa
         ->assertSet('country_id', null)
         ->assertSet('state_id', null)
         ->assertSet('city_id', null)
-        ->assertSet('admin_area_1_id', null)
-        ->assertSet('admin_area_2_id', null)
+        ->assertSet('administrative_district_id', null)
+        ->assertSet('administrative_subdivision_id', null)
         ->assertDontSee('institution-state-filter')
         ->assertDontSee('institution-city-filter')
         ->assertDontSee('institution-district-filter')
@@ -460,8 +460,8 @@ it('filters institutions by negeri, daerah, and subdistrict scopes', function ()
     ]);
     syncPrimaryAddressForTest($institutionA2, [
         ...$geoA['address'],
-        'admin_area_1_id' => (string) $districtA2->getKey(),
-        'admin_area_2_id' => (string) $subdistrictA2->getKey(),
+        'administrative_district_id' => (string) $districtA2->getKey(),
+        'administrative_subdivision_id' => (string) $subdistrictA2->getKey(),
     ]);
 
     $institutionB = Institution::factory()->create([
@@ -476,13 +476,13 @@ it('filters institutions by negeri, daerah, and subdistrict scopes', function ()
         ->assertSee('Institusi Scope A2')
         ->assertDontSee('Institusi Scope B');
 
-    get('/institusi?state_id='.$geoA['state']->getKey().'&admin_area_1_id='.$geoA['district']->getKey())
+    get('/institusi?state_id='.$geoA['state']->getKey().'&administrative_district_id='.$geoA['district']->getKey())
         ->assertSuccessful()
         ->assertSee('Institusi Scope A')
         ->assertDontSee('Institusi Scope A2')
         ->assertDontSee('Institusi Scope B');
 
-    get('/institusi?state_id='.$geoA['state']->getKey().'&admin_area_1_id='.$geoA['district']->getKey().'&admin_area_2_id='.$geoA['subdistrict']->getKey())
+    get('/institusi?state_id='.$geoA['state']->getKey().'&administrative_district_id='.$geoA['district']->getKey().'&administrative_subdivision_id='.$geoA['subdistrict']->getKey())
         ->assertSuccessful()
         ->assertSee('Institusi Scope A')
         ->assertDontSee('Institusi Scope A2')

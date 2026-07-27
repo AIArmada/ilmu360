@@ -162,10 +162,8 @@ it('recomputes institution slugs when the institution locality changes', functio
     $institution->primaryAddress()?->update([
         'country_id' => (string) $secondaryGeography['country']->getKey(),
         'state_id' => (string) $secondaryGeography['state']->getKey(),
-        'admin_area_1_id' => (string) $secondaryGeography['district']->getKey(),
-        'admin_area_2_id' => (string) $secondaryGeography['subdistrict']->getKey(),
-        'admin_area_3_id' => null,
-        'admin_area_4_id' => null,
+        'administrative_district_id' => (string) $secondaryGeography['district']->getKey(),
+        'administrative_subdivision_id' => (string) $secondaryGeography['subdistrict']->getKey(),
         'state' => (string) $secondaryGeography['state']->name,
         'city' => (string) $secondaryGeography['subdistrict']->name,
     ]);
@@ -304,7 +302,7 @@ it('skips null locality segments when generating institution slugs', function ()
         ->and($generator->handle('Masjid Lengkap Sebahagian', [
             'country_id' => (string) $geo['country']->getKey(),
             'state_id' => (string) $geo['state']->getKey(),
-            'admin_area_1_id' => (string) $geo['district']->getKey(),
+            'administrative_district_id' => (string) $geo['district']->getKey(),
         ]))->toBe('masjid-lengkap-sebahagian-petaling-selangor-my')
         ->and($generator->handle('Masjid Tanpa Lokasi'))->toBe('masjid-tanpa-lokasi');
 });
@@ -359,10 +357,8 @@ function geographyAddressPayload(array $geography): array
     return [
         'country_id' => (string) $geography['country']->getKey(),
         'state_id' => (string) $geography['state']->getKey(),
-        'admin_area_1_id' => (string) $geography['district']->getKey(),
-        'admin_area_2_id' => (string) $geography['subdistrict']->getKey(),
-        'admin_area_3_id' => null,
-        'admin_area_4_id' => null,
+        'administrative_district_id' => (string) $geography['district']->getKey(),
+        'administrative_subdivision_id' => (string) $geography['subdistrict']->getKey(),
         'line1' => 'Persiaran Masjid',
         'google_maps_url' => 'https://maps.google.com/?q=3.0738,101.5183',
     ];
@@ -404,10 +400,8 @@ function attachInstitutionSlugAddress(Institution $institution, array $geography
     $address = Address::query()->create([
         'country_id' => (string) $geography['country']->getKey(),
         'state_id' => (string) $geography['state']->getKey(),
-        'admin_area_1_id' => (string) $geography['district']->getKey(),
-        'admin_area_2_id' => (string) $geography['subdistrict']->getKey(),
-        'admin_area_3_id' => null,
-        'admin_area_4_id' => null,
+        'administrative_district_id' => (string) $geography['district']->getKey(),
+        'administrative_subdivision_id' => (string) $geography['subdistrict']->getKey(),
         'state' => (string) $geography['state']->name,
         'city' => (string) $geography['subdistrict']->name,
         'line1' => 'Persiaran Masjid',

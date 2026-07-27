@@ -101,7 +101,7 @@ class FrontendCatalogService
     }
 
     /**
-     * First configured administrative-area options for admin_area_1_id.
+     * First configured administrative-area options for administrative_district.
      *
      * @return list<array{id: string, label: string, type: string, level: int|null}>
      */
@@ -119,7 +119,7 @@ class FrontendCatalogService
     }
 
     /**
-     * Next configured administrative-area options under admin_area_1_id.
+     * Next configured administrative-area options under the selected district.
      *
      * @return list<array{id: string, label: string, type: string, level: int|null}>
      */

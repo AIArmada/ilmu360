@@ -74,10 +74,10 @@ test('typesense filters include subdistrict constraint when provided', function 
     $discovery = exposedTypesenseDiscovery();
 
     $filters = $discovery->exposedBuildTypesenseFilterParts([
-        'admin_area_2_id' => 321,
+        'administrative_subdivision_id' => 321,
     ]);
 
-    expect($filters)->toContain('admin_area_2_id:=321');
+    expect($filters)->toContain('administrative_subdivision_id:=321');
 });
 
 test('typesense filters include country constraint when provided', function () {

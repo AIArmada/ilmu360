@@ -57,7 +57,7 @@ it('lists package cities for a state_id', function () {
         ->toContain((string) $city->getKey());
 });
 
-it('requires an explicit admin_area_1_id or country for public admin-area level-2 catalog options', function () {
+it('requires an explicit administrative_district_id or country for public admin-area level-2 catalog options', function () {
     $malaysia = ensureTestMalaysiaCountry();
     $indonesia = ensureTestAddressCountry('ID', 'Indonesia', 'IDN', ['Asia/Jakarta'], '62');
 
@@ -70,7 +70,7 @@ it('requires an explicit admin_area_1_id or country for public admin-area level-
     $omittedResponse = $this->getJson(route('api.client.catalogs.admin-area-level-2'))
         ->assertOk();
 
-    $explicitResponse = $this->getJson(route('api.client.catalogs.admin-area-level-2', ['admin_area_1_id' => $indonesiaArea1->getKey()]))
+    $explicitResponse = $this->getJson(route('api.client.catalogs.admin-area-level-2', ['administrative_district_id' => $indonesiaArea1->getKey()]))
         ->assertOk();
 
     expect($omittedResponse->json('data'))->toBe([])

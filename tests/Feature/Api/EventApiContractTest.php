@@ -217,7 +217,7 @@ it('rejects unsupported sparse fields on the public event index', function () {
         ->assertJsonValidationErrors('fields');
 });
 
-it('filters events by admin_area_1_id and admin_area_2_id', function () {
+it('filters events by administrative_district_id and administrative_subdivision_id', function () {
     $geo = createTestPackageGeography('Selangor', 'API District '.uniqid(), 'API Subdistrict A '.uniqid());
     $subdistrictB = createTestAddressArea('API Subdistrict B '.uniqid(), 3, parent: $geo['district'], country: $geo['country']);
     $district = $geo['district'];
@@ -229,7 +229,7 @@ it('filters events by admin_area_1_id and admin_area_2_id', function () {
     $venueB = Venue::factory()->create();
     syncPrimaryAddressForTest($venueB, [
         ...$geo['address'],
-        'admin_area_2_id' => (string) $subdistrictB->getKey(),
+        'administrative_subdivision_id' => (string) $subdistrictB->getKey(),
     ]);
 
     $districtMatch = Event::factory()->for($venueA)->create([
@@ -244,7 +244,7 @@ it('filters events by admin_area_1_id and admin_area_2_id', function () {
         'published_at' => now()->subMinute(),
     ]);
 
-    $districtResponse = $this->getJson('/api/v1/events?filter[admin_area_1_id]='.$district->getKey());
+    $districtResponse = $this->getJson('/api/v1/events?filter[administrative_district_id]='.$district->getKey());
 
     $districtResponse->assertOk();
 
@@ -254,7 +254,7 @@ it('filters events by admin_area_1_id and admin_area_2_id', function () {
         ->toContain($districtMatch->id)
         ->toContain($subdistrictNonMatch->id);
 
-    $subdistrictResponse = $this->getJson('/api/v1/events?filter[admin_area_2_id]='.$subdistrictA->getKey());
+    $subdistrictResponse = $this->getJson('/api/v1/events?filter[administrative_subdivision_id]='.$subdistrictA->getKey());
 
     $subdistrictResponse->assertOk();
 

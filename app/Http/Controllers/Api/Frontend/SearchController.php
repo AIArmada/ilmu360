@@ -219,10 +219,8 @@ class SearchController extends FrontendController
     #[QueryParameter('country_id', 'Optional package address country UUID filter.', required: false, type: 'string', infer: false, example: '019d0000-0000-7000-8000-000000000000')]
     #[QueryParameter('state_id', 'Optional package addressing states.id filter (addresses.state_id).', required: false, type: 'string', infer: false, example: '019d0000-0000-7000-8000-000000000001')]
     #[QueryParameter('city_id', 'Optional package addressing cities.id filter (addresses.city_id).', required: false, type: 'string', infer: false, example: '019d0000-0000-7000-8000-0000000000ab')]
-    #[QueryParameter('admin_area_1_id', 'Optional district UUID filter (addresses.admin_area_1_id).', required: false, type: 'string', infer: false, example: '019d0000-0000-7000-8000-000000000001')]
-    #[QueryParameter('admin_area_2_id', 'Optional package address area level-2 UUID filter.', required: false, type: 'string', infer: false, example: '019d0000-0000-7000-8000-000000000002')]
-    #[QueryParameter('admin_area_3_id', 'Optional country-profile administrative-area UUID filter.', required: false, type: 'string', infer: false)]
-    #[QueryParameter('admin_area_4_id', 'Optional country-profile administrative-area UUID filter.', required: false, type: 'string', infer: false)]
+    #[QueryParameter('area_assignments[administrative_district]', 'Optional district UUID filter. Use the area_assignments[administrative_district] syntax.', required: false, type: 'string', infer: false, example: '019d0000-0000-7000-8000-000000000001')]
+    #[QueryParameter('area_assignments[administrative_subdivision]', 'Optional subdistrict UUID filter. Use the area_assignments[administrative_subdivision] syntax.', required: false, type: 'string', infer: false, example: '019d0000-0000-7000-8000-000000000002')]
     #[QueryParameter('following', 'When authenticated, restrict results to institutions followed by the current user.', required: false, type: 'boolean', infer: false, example: false)]
     #[QueryParameter('page', 'Pagination page number.', required: false, type: 'integer', infer: false, default: 1, example: 1)]
     #[QueryParameter('per_page', 'Pagination page size. Values are clamped to the server-supported maximum.', required: false, type: 'integer', infer: false, default: 12, example: 12)]
@@ -348,8 +346,8 @@ class SearchController extends FrontendController
         title: 'List public persons',
         description: 'Returns the public person directory with search, location, gender, and follow-state filters.',
     )]
-    #[QueryParameter('admin_area_3_id', 'Optional country-profile administrative-area UUID filter.', required: false, type: 'string', infer: false)]
-    #[QueryParameter('admin_area_4_id', 'Optional country-profile administrative-area UUID filter.', required: false, type: 'string', infer: false)]
+    #[QueryParameter('area_assignments[administrative_district]', 'Optional district UUID filter. Use the area_assignments[administrative_district] syntax.', required: false, type: 'string', infer: false, example: '019d0000-0000-7000-8000-000000000001')]
+    #[QueryParameter('area_assignments[administrative_subdivision]', 'Optional subdistrict UUID filter. Use the area_assignments[administrative_subdivision] syntax.', required: false, type: 'string', infer: false, example: '019d0000-0000-7000-8000-000000000002')]
     #[QueryParameter('fields', 'Optional comma-separated top-level list fields to return. Supported fields: id, slug, name, gender, formatted_name, status, events_count, avatar_url, country, is_following.', required: false, type: 'string', infer: false, example: 'id,name,avatar_url')]
     #[Response(
         status: 200,

@@ -28,10 +28,10 @@ new
         public ?string $state_id = null;
 
         #[Url]
-        public ?string $admin_area_1_id = null;
+        public ?string $administrative_district_id = null;
 
         #[Url]
-        public ?string $admin_area_2_id = null;
+        public ?string $administrative_subdivision_id = null;
 
         #[Computed]
         public function venues(): LengthAwarePaginatorContract
@@ -66,7 +66,7 @@ new
         #[Computed]
         public function subdistricts(): array
         {
-            return SharedFormSchema::subdistrictOptionsForSelection($this->state_id, $this->admin_area_1_id, $this->country_id);
+            return SharedFormSchema::subdistrictOptionsForSelection($this->state_id, $this->administrative_district_id, $this->country_id);
         }
 
         public function isParentlessAreaProfileSelection(): bool
@@ -83,25 +83,25 @@ new
         public function updatedCountryId(): void
         {
             $this->state_id = null;
-            $this->admin_area_1_id = null;
-            $this->admin_area_2_id = null;
+            $this->administrative_district_id = null;
+            $this->administrative_subdivision_id = null;
             $this->resetPage();
         }
 
         public function updatedStateId(): void
         {
-            $this->admin_area_1_id = null;
-            $this->admin_area_2_id = null;
+            $this->administrative_district_id = null;
+            $this->administrative_subdivision_id = null;
             $this->resetPage();
         }
 
-        public function updatedDistrictId(): void
+        public function updatedAdministrativeDistrictId(): void
         {
-            $this->admin_area_2_id = null;
+            $this->administrative_subdivision_id = null;
             $this->resetPage();
         }
 
-        public function updatedSubdistrictId(): void
+        public function updatedAdministrativeSubdivisionId(): void
         {
             $this->resetPage();
         }
@@ -117,8 +117,8 @@ new
             $this->search = null;
             $this->country_id = null;
             $this->state_id = null;
-            $this->admin_area_1_id = null;
-            $this->admin_area_2_id = null;
+            $this->administrative_district_id = null;
+            $this->administrative_subdivision_id = null;
             $this->resetPage();
         }
 
@@ -167,8 +167,8 @@ new
         {
             $countryId = $this->normalizedLocationId($this->country_id);
             $stateId = $this->normalizedLocationId($this->state_id);
-            $adminArea1Id = $this->normalizedLocationId($this->admin_area_1_id);
-            $adminArea2Id = $this->normalizedLocationId($this->admin_area_2_id);
+            $adminArea1Id = $this->normalizedLocationId($this->administrative_district_id);
+            $adminArea2Id = $this->normalizedLocationId($this->administrative_subdivision_id);
 
             if ($countryId === null && $stateId === null && $adminArea1Id === null && $adminArea2Id === null) {
                 return $query;
@@ -240,12 +240,12 @@ new
     $subdistricts = $this->subdistricts;
     $countryId = $this->country_id;
     $stateId = $this->state_id;
-    $adminArea1Id = $this->admin_area_1_id;
-    $adminArea2Id = $this->admin_area_2_id;
+    $adminArea1Id = $this->administrative_district_id;
+    $adminArea2Id = $this->administrative_subdivision_id;
     $isParentlessAreaProfile = $this->isParentlessAreaProfileSelection();
     $hasScopedFilters = filled($countryId) || filled($stateId) || filled($adminArea1Id) || filled($adminArea2Id);
     $venueTotal = $venues->total();
-    $venueLoadingTarget = 'search,country_id,state_id,admin_area_1_id,admin_area_2_id,clearSearch,clearFilters';
+    $venueLoadingTarget = 'search,country_id,state_id,administrative_district_id,administrative_subdivision_id,clearSearch,clearFilters';
     $formatVenueLocation = static function ($addressModel): string {
         $parts = \App\Support\Location\AddressHierarchyFormatter::parts($addressModel);
 
@@ -321,7 +321,7 @@ new
                             </label>
                             <select
                                 id="venue-district-filter"
-                                wire:model.live="admin_area_1_id"
+                                    wire:model.live="administrative_district_id"
                                 @disabled(! filled($stateId))
                                 class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/10 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
                             >
@@ -339,7 +339,7 @@ new
                         </label>
                         <select
                             id="venue-subdistrict-filter"
-                            wire:model.live="admin_area_2_id"
+                            wire:model.live="administrative_subdivision_id"
                             @disabled($isParentlessAreaProfile ? ! filled($stateId) : ! filled($adminArea1Id))
                             class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/10 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
                         >

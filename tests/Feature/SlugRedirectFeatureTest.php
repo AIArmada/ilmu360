@@ -600,8 +600,8 @@ function slugRedirectAddressPayload(array $geography): array
     return [
         'country_id' => (string) $geography['country']->getKey(),
         'state_id' => (string) $geography['state']->getKey(),
-        'admin_area_1_id' => (string) $geography['district']->getKey(),
-        'admin_area_2_id' => (string) $geography['subdistrict']->getKey(),
+        'administrative_district_id' => (string) $geography['district']->getKey(),
+        'administrative_subdivision_id' => (string) $geography['subdistrict']->getKey(),
     ];
 }
 

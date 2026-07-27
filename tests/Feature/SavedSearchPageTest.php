@@ -177,13 +177,13 @@ it('prefills subdistrict filter from query string when saving searches', functio
     Livewire::withQueryParams([
         'search' => 'fiqh',
         'state_id' => (string) $packageState->getKey(),
-        'admin_area_1_id' => (string) $district->getKey(),
-        'admin_area_2_id' => (string) $subdistrict->getKey(),
+        'administrative_district_id' => (string) $district->getKey(),
+        'administrative_subdivision_id' => (string) $subdistrict->getKey(),
     ])->test(SavedSearchesIndex::class)
         ->assertSet('query', 'fiqh')
         ->assertSet('filters.state_id', (string) $packageState->getKey())
-        ->assertSet('filters.admin_area_1_id', (string) $district->getKey())
-        ->assertSet('filters.admin_area_2_id', (string) $subdistrict->getKey());
+        ->assertSet('filters.administrative_district_id', (string) $district->getKey())
+        ->assertSet('filters.administrative_subdivision_id', (string) $subdistrict->getKey());
 });
 
 it('prefills country filter from query string when saving searches', function () {

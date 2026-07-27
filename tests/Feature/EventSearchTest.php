@@ -155,17 +155,7 @@ function ensureMalaysiaStateForTests(string $name = 'Selangor'): AddressArea
 
 function updatePrimaryAddressForSearch(mixed $model, array $attributes): void
 {
-    $address = $model->primaryAddress();
-
-    if (! $address instanceof Address) {
-        $address = Address::create([
-            'country_code' => (string) ($attributes['country_code'] ?? 'MY'),
-        ]);
-
-        $model->attachAddress($address, 'primary', true);
-    }
-
-    $address->update($attributes);
+    syncPrimaryAddressForTest($model, $attributes);
 }
 
 function hiddenAttributeRegexForTestId(string $testId): string
@@ -1407,8 +1397,8 @@ describe('Event Search Filters', function () {
         updatePrimaryAddressForSearch($venueB, [
             ...$geoA['address'],
             'country_code' => 'MY',
-            'admin_area_1_id' => (string) $districtB->getKey(),
-            'admin_area_2_id' => (string) $subdistrictB->getKey(),
+            'administrative_district_id' => (string) $districtB->getKey(),
+            'administrative_subdivision_id' => (string) $subdistrictB->getKey(),
             'city' => 'District B City',
             'state' => 'Selangor',
         ]);
@@ -1429,13 +1419,19 @@ describe('Event Search Filters', function () {
             'starts_at' => now()->addDays(2),
         ]);
 
-        $response = $this->get(eventsIndexUrl([
-            'admin_area_1_id' => $geoA['district']->getKey(),
-        ]));
+        $component = Livewire::withQueryParams([
+            'administrative_district_id' => $geoA['district']->getKey(),
+        ])->test(Index::class);
 
-        $response->assertOk()
-            ->assertSee('District Filter Match')
-            ->assertDontSee('District Filter Non Match');
+        $eventTitles = $component->instance()
+            ->events
+            ->getCollection()
+            ->pluck('title')
+            ->all();
+
+        expect($eventTitles)
+            ->toContain('District Filter Match')
+            ->not->toContain('District Filter Non Match');
     });
 
     it('filters events by country', function () {
@@ -1462,6 +1458,8 @@ describe('Event Search Filters', function () {
         updatePrimaryAddressForSearch($indonesiaVenue, [
             ...$indonesiaGeo['address'],
             'country_code' => 'ID',
+            'administrative_district_id' => null,
+            'administrative_subdivision_id' => null,
         ]);
 
         $indonesiaInstitution = Institution::factory()->create([
@@ -1470,6 +1468,8 @@ describe('Event Search Filters', function () {
         updatePrimaryAddressForSearch($indonesiaInstitution, [
             ...$indonesiaGeo['address'],
             'country_code' => 'ID',
+            'administrative_district_id' => null,
+            'administrative_subdivision_id' => null,
         ]);
 
         Event::factory()->for($malaysiaVenue)->for($malaysiaInstitution)->create([
@@ -1536,7 +1536,7 @@ describe('Event Search Filters', function () {
         updatePrimaryAddressForSearch($venueB, [
             ...$geo['address'],
             'country_code' => 'MY',
-            'admin_area_2_id' => (string) $subdistrictB->getKey(),
+            'administrative_subdivision_id' => (string) $subdistrictB->getKey(),
             'city' => 'Subdistrict B City',
             'state' => 'Selangor',
         ]);
@@ -1558,7 +1558,7 @@ describe('Event Search Filters', function () {
         ]);
 
         $response = $this->get(eventsIndexUrl([
-            'admin_area_2_id' => $geo['subdistrict']->getKey(),
+            'administrative_subdivision_id' => $geo['subdistrict']->getKey(),
         ]));
 
         $response->assertOk()
@@ -1577,10 +1577,8 @@ describe('Event Search Filters', function () {
             'country_id' => (string) $country->getKey(),
             'country_code' => 'MY',
             'state_id' => (string) $geo['state']->getKey(),
-            'admin_area_1_id' => null,
-            'admin_area_2_id' => (string) $subdistrictA->getKey(),
-            'admin_area_3_id' => null,
-            'admin_area_4_id' => null,
+            'administrative_district_id' => null,
+            'administrative_subdivision_id' => (string) $subdistrictA->getKey(),
             'city' => 'Setiawangsa',
             'state' => 'Kuala Lumpur',
         ]);
@@ -1590,10 +1588,8 @@ describe('Event Search Filters', function () {
             'country_id' => (string) $country->getKey(),
             'country_code' => 'MY',
             'state_id' => (string) $geo['state']->getKey(),
-            'admin_area_1_id' => null,
-            'admin_area_2_id' => (string) $subdistrictB->getKey(),
-            'admin_area_3_id' => null,
-            'admin_area_4_id' => null,
+            'administrative_district_id' => null,
+            'administrative_subdivision_id' => (string) $subdistrictB->getKey(),
             'city' => 'Segambut',
             'state' => 'Kuala Lumpur',
         ]);
@@ -1616,7 +1612,7 @@ describe('Event Search Filters', function () {
 
         $response = $this->get(eventsIndexUrl([
             'state_id' => $geo['state']->getKey(),
-            'admin_area_2_id' => $subdistrictA->getKey(),
+            'administrative_subdivision_id' => $subdistrictA->getKey(),
         ]));
 
         $response->assertOk()

@@ -210,8 +210,8 @@ it('renders institution event cards with localized prayer timing stacked person 
 
     syncPrimaryAddressForTest($institution, [
         'state_id' => (string) $state->getKey(),
-        'admin_area_1_id' => (string) $district->getKey(),
-        'admin_area_2_id' => (string) $subdistrict->getKey(),
+        'administrative_district_id' => (string) $district->getKey(),
+        'administrative_subdivision_id' => (string) $subdistrict->getKey(),
     ]);
 
     try {
@@ -755,8 +755,8 @@ it('hides duplicated state for kuala lumpur putrajaya and labuan in institution 
 
     syncPrimaryAddressForTest($venue, [
         'state_id' => (string) $geography['state']->getKey(),
-        'admin_area_1_id' => null,
-        'admin_area_2_id' => (string) $geography['subdistrict']->getKey(),
+        'administrative_district_id' => null,
+        'administrative_subdivision_id' => (string) $geography['subdistrict']->getKey(),
         'city' => 'Setiawangsa',
         'state' => 'Kuala Lumpur',
     ]);

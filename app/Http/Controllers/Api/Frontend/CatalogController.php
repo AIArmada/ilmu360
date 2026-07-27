@@ -63,7 +63,7 @@ class CatalogController extends FrontendController
     #[QueryParameter('state_id', 'Optional package State UUID or country-profile parent for the first administrative-area level.', required: false, type: 'string', infer: false)]
     #[Endpoint(
         title: 'List public districts catalog',
-        description: 'Returns the country profile\'s first administrative-area options for product `admin_area_1_id`.',
+        description: 'Returns the district (administrative level-1) options for product location filtering.',
     )]
     public function administrativeDistricts(Request $request): JsonResponse
     {
@@ -80,7 +80,7 @@ class CatalogController extends FrontendController
     #[QueryParameter('country_id', 'Optional address country UUID when listing without a parent.', required: false, type: 'string', infer: false)]
     #[Endpoint(
         title: 'List public subdistricts catalog',
-        description: 'Returns the next country-profile administrative-area options for product `admin_area_2_id`.',
+        description: 'Returns the subdistrict (administrative level-2) options for product location filtering.',
     )]
     public function administrativeSubdivisions(Request $request): JsonResponse
     {

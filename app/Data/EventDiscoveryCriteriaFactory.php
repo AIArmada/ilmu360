@@ -71,19 +71,14 @@ final class EventDiscoveryCriteriaFactory
         $normalized = [];
 
         foreach ($filters as $key => $value) {
-            $normalized[$key] = $this->normalizeValue($value);
+            if ($key === 'area_assignments') {
+                $normalized[$key] = is_array($value) ? $value : [];
+            } else {
+                $normalized[$key] = $this->normalizeValue($value);
+            }
         }
 
-        $legacyAssignments = array_filter([
-            'administrative_district' => $normalized['admin_area_1_id'] ?? null,
-            'administrative_subdivision' => $normalized['admin_area_2_id'] ?? null,
-        ]);
-
-        if ($legacyAssignments !== []) {
-            $normalized['area_assignments'] = array_merge((array) ($normalized['area_assignments'] ?? []), $legacyAssignments);
-        }
-
-        unset($normalized['admin_area_1_id'], $normalized['admin_area_2_id'], $normalized['admin_area_3_id'], $normalized['admin_area_4_id']);
+        unset($normalized['admin_area_1_id'], $normalized['admin_area_2_id']);
 
         foreach (['country_id', 'state_id', 'city_id', 'institution_id', 'venue_id'] as $key) {
             if (array_key_exists($key, $normalized)) {

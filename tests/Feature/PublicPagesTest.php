@@ -263,10 +263,8 @@ it('shows federal territory event cards on series pages with subdistrict and sta
     syncPrimaryAddressForTest($venue, [
         'country_id' => (string) $country->getKey(),
         'state_id' => (string) $geo['state']->getKey(),
-        'admin_area_1_id' => null,
-        'admin_area_2_id' => (string) $subdistrict->getKey(),
-        'admin_area_3_id' => null,
-        'admin_area_4_id' => null,
+        'administrative_district_id' => null,
+        'administrative_subdivision_id' => (string) $subdistrict->getKey(),
         'city' => null,
         'state' => 'Kuala Lumpur',
     ]);

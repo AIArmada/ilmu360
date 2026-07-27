@@ -246,17 +246,19 @@ function normalizeTestAddressAttributes(array $attributes): array
 {
     $attributes['area_assignments'] ??= [];
 
-    if (isset($attributes['admin_area_1_id'])) {
-        $attributes['area_assignments']['administrative_district'] = $attributes['admin_area_1_id'];
-        unset($attributes['admin_area_1_id']);
+    if (array_key_exists('administrative_district_id', $attributes)) {
+        if ($attributes['administrative_district_id'] !== null && $attributes['administrative_district_id'] !== '') {
+            $attributes['area_assignments']['administrative_district'] = $attributes['administrative_district_id'];
+        }
+        unset($attributes['administrative_district_id']);
     }
 
-    if (isset($attributes['admin_area_2_id'])) {
-        $attributes['area_assignments']['administrative_subdivision'] = $attributes['admin_area_2_id'];
-        unset($attributes['admin_area_2_id']);
+    if (array_key_exists('administrative_subdivision_id', $attributes)) {
+        if ($attributes['administrative_subdivision_id'] !== null && $attributes['administrative_subdivision_id'] !== '') {
+            $attributes['area_assignments']['administrative_subdivision'] = $attributes['administrative_subdivision_id'];
+        }
+        unset($attributes['administrative_subdivision_id']);
     }
-
-    unset($attributes['admin_area_3_id'], $attributes['admin_area_4_id']);
 
     return $attributes;
 }
@@ -489,7 +491,7 @@ function createTestAddressArea(
         default => 'area',
     };
 
-    return AddressArea::query()->create([
+    $area = AddressArea::query()->create([
         'country_id' => (string) $country->getKey(),
         'parent_id' => $parent?->getKey(),
         'country_code' => $country->iso2,
@@ -501,6 +503,18 @@ function createTestAddressArea(
         'source_id' => (string) Str::ulid(),
         'parent_source_id' => $parent?->source_id,
     ]);
+
+    if ($parent instanceof AddressArea) {
+        AddressAreaRelationship::query()->create([
+            'parent_address_area_id' => $parent->getKey(),
+            'child_address_area_id' => $area->getKey(),
+            'relationship_type' => 'contains',
+            'hierarchy_type' => 'administrative',
+            'source' => 'tests',
+        ]);
+    }
+
+    return $area;
 }
 
 /**
@@ -561,16 +575,6 @@ function createTestPackageGeography(
         'hierarchy_type' => 'administrative',
     ]);
 
-    foreach ([[$areaTreeRoot, $district], [$district, $subdistrict]] as [$parentArea, $childArea]) {
-        AddressAreaRelationship::query()->create([
-            'parent_address_area_id' => $parentArea->getKey(),
-            'child_address_area_id' => $childArea->getKey(),
-            'relationship_type' => 'contains',
-            'hierarchy_type' => 'administrative',
-            'source' => 'tests',
-        ]);
-    }
-
     return [
         'country' => $country,
         'state' => $packageState,
@@ -578,16 +582,14 @@ function createTestPackageGeography(
         'area_tree_root' => $areaTreeRoot,
         'district' => $district,
         'subdistrict' => $subdistrict,
-        'address' => [
-            'country_id' => (string) $country->getKey(),
-            'state_id' => (string) $packageState->getKey(),
-            'city_id' => $city instanceof City ? (string) $city->getKey() : null,
-            'admin_area_1_id' => (string) $district->getKey(),
-            'admin_area_2_id' => (string) $subdistrict->getKey(),
-            'admin_area_3_id' => null,
-            'admin_area_4_id' => null,
-            'state' => $stateName,
-            'city' => $cityName ?? $subdistrictName,
-        ],
+            'address' => [
+                'country_id' => (string) $country->getKey(),
+                'state_id' => (string) $packageState->getKey(),
+                'city_id' => $city instanceof City ? (string) $city->getKey() : null,
+                'administrative_district_id' => (string) $district->getKey(),
+                'administrative_subdivision_id' => (string) $subdistrict->getKey(),
+                'state' => $stateName,
+                'city' => $cityName ?? $subdistrictName,
+            ],
     ];
 }
