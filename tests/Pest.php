@@ -582,14 +582,14 @@ function createTestPackageGeography(
         'area_tree_root' => $areaTreeRoot,
         'district' => $district,
         'subdistrict' => $subdistrict,
-            'address' => [
-                'country_id' => (string) $country->getKey(),
-                'state_id' => (string) $packageState->getKey(),
-                'city_id' => $city instanceof City ? (string) $city->getKey() : null,
-                'administrative_district_id' => (string) $district->getKey(),
-                'administrative_subdivision_id' => (string) $subdistrict->getKey(),
-                'state' => $stateName,
-                'city' => $cityName ?? $subdistrictName,
-            ],
+        'address' => [
+            'country_id' => (string) $country->getKey(),
+            'state_id' => (string) $packageState->getKey(),
+            'city_id' => $city instanceof City ? (string) $city->getKey() : null,
+            'administrative_district_id' => (string) $district->getKey(),
+            'administrative_subdivision_id' => (string) $subdistrict->getKey(),
+            'state' => $stateName,
+            'city' => $cityName ?? $subdistrictName,
+        ],
     ];
 }
