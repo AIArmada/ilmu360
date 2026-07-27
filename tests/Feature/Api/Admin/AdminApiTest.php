@@ -2656,8 +2656,6 @@ it('lists admin geography catalogs and exposes catalog metadata through admin wr
 
     $fixtures = ensureAdminApiSubdistrictFixtures();
 
-
-
     $this->getJson('/api/v1/admin/catalogs/countries')
         ->assertOk()
         ->assertJsonFragment([
