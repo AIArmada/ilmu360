@@ -1,11 +1,13 @@
 <?php
 
 use AIArmada\Addressing\Models\AddressArea;
+use AIArmada\Addressing\Models\AddressAreaRelationship;
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Addressing\Models\State;
 use App\Actions\Location\ResolveGooglePlaceSelectionAction;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 uses(TestCase::class, RefreshDatabase::class);
@@ -109,9 +111,31 @@ it('maps a google place selection into local geography ids and address fields', 
 
 it('leaves ambiguous geography ids empty instead of guessing', function () {
     $state = ensureMalaysiaStateForPlaceResolution();
+    $country = ensureCountryForPlaceResolution('MY', 'Malaysia');
 
-    createTestAddressArea('Petaling', 2, parent: $state['area'], country: ensureCountryForPlaceResolution('MY', 'Malaysia'), type: 'district');
-    createTestAddressArea('Petaling', 2, parent: $state['area'], country: ensureCountryForPlaceResolution('MY', 'Malaysia'), type: 'district');
+    createTestAddressArea('Petaling', 2, parent: $state['area'], country: $country, type: 'district');
+
+    // ponytail: firstOrCreate deduplicates; raw create for truly distinct duplicate
+    $duplicate = AddressArea::query()->create([
+        'country_id' => (string) $country->getKey(),
+        'parent_id' => $state['area']->getKey(),
+        'country_code' => $country->iso2,
+        'type' => 'district',
+        'level' => 2,
+        'name' => 'Petaling',
+        'slug' => Str::slug('Petaling-district-'.strtolower(Str::random(6))),
+        'source' => 'tests',
+        'source_id' => (string) Str::ulid(),
+        'parent_source_id' => $state['area']->source_id,
+    ]);
+
+    AddressAreaRelationship::query()->create([
+        'parent_address_area_id' => $state['area']->getKey(),
+        'child_address_area_id' => $duplicate->getKey(),
+        'relationship_type' => 'contains',
+        'hierarchy_type' => 'administrative',
+        'source' => 'tests',
+    ]);
 
     $payload = app(ResolveGooglePlaceSelectionAction::class)->handle([
         'location' => [
