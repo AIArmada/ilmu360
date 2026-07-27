@@ -614,7 +614,7 @@ function createTestPackageGeography(
             'state_id' => (string) $packageState->getKey(),
             'city_id' => $city instanceof City ? (string) $city->getKey() : null,
             'administrative_district_id' => (string) $district->getKey(),
-            'administrative_subdivision_id' => $subdistrict !== null ? (string) $subdistrict->getKey() : null,
+            'administrative_subdivision_id' => $subdistrict instanceof \AIArmada\Addressing\Models\AddressArea ? (string) $subdistrict->getKey() : null,
             'state' => $stateName,
             'city' => $cityName ?? $subdistrictName,
         ],
