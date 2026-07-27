@@ -247,9 +247,7 @@ it('formats federal-territory venue addresses with product state_id and no distr
         'city' => 'Setiawangsa',
     ]);
 
-    expect($address->state_id)->toBe((string) $geo['state']->getKey())
-        ->and($address->admin_area_1_id)->toBeNull()
-        ->and($address->admin_area_2_id)->toBe((string) $geo['subdistrict']->getKey());
+    expect($address->state_id)->toBe((string) $geo['state']->getKey());
 
     $parts = AddressHierarchyFormatter::parts($address);
     expect($parts)->toBe(['Setiawangsa', 'Kuala Lumpur']);

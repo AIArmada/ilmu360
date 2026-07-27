@@ -199,9 +199,7 @@ it('renders institution event cards with localized prayer timing stacked person 
     app()->setLocale('en');
 
     $malaysia = ensureTestMalaysiaCountry();
-    $state = createTestAddressArea('Selangor', 1, country: $malaysia);
-    $district = createTestAddressArea('Petaling', 2, parent: $state, country: $malaysia);
-    $subdistrict = createTestAddressArea('Shah Alam', 3, parent: $district, country: $malaysia);
+    $geo = createTestPackageGeography('Selangor', 'Petaling', 'Shah Alam', country: $malaysia);
 
     $institution = Institution::factory()->create([
         'name' => 'Masjid Sultan Salahuddin Abdul Aziz Shah',
@@ -209,9 +207,10 @@ it('renders institution event cards with localized prayer timing stacked person 
     ]);
 
     syncPrimaryAddressForTest($institution, [
-        'state_id' => (string) $state->getKey(),
-        'administrative_district_id' => (string) $district->getKey(),
-        'administrative_subdivision_id' => (string) $subdistrict->getKey(),
+        'country_id' => (string) $malaysia->getKey(),
+        'state_id' => (string) $geo['state']->getKey(),
+        'administrative_district_id' => (string) $geo['district']->getKey(),
+        'administrative_subdivision_id' => (string) $geo['subdistrict']->getKey(),
     ]);
 
     try {

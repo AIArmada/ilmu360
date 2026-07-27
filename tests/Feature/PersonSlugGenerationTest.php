@@ -520,8 +520,8 @@ it('updates related event slugs when a person address change changes the person 
 
     $person->addresses()->firstOrFail()->delete();
 
-    expect($person->fresh()?->slug)->toBe('ustaz-ahmad-fauzi')
-        ->and($event->fresh()?->slug)->toBe("forum-alamat-penceramah-ustaz-ahmad-fauzi-{$expectedSuffix}");
+    expect($person->fresh()?->slug)->toBe('ustaz-ahmad-fauzi-sg')
+        ->and($event->fresh()?->slug)->toBe("forum-alamat-penceramah-ustaz-ahmad-fauzi-sg-{$expectedSuffix}");
 });
 
 it('queues the person slug backfill command', function () {

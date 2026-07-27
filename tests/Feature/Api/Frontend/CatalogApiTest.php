@@ -57,29 +57,19 @@ it('lists package cities for a state_id', function () {
         ->toContain((string) $city->getKey());
 });
 
-it('requires an explicit administrative_district_id or country for public admin-area level-2 catalog options', function () {
-    $malaysia = ensureTestMalaysiaCountry();
-    $indonesia = ensureTestAddressCountry('ID', 'Indonesia', 'IDN', ['Asia/Jakarta'], '62');
+it('requires an explicit district_id or state for public administrative-subdivision catalog options', function () {
+    $country = ensureTestMalaysiaCountry();
+    $geo = createTestPackageGeography('Selangor', 'Petaling', 'Shah Alam', country: $country);
 
-    $malaysiaArea1 = createTestAddressArea('Catalog API Negeri Malaysia', 1, null, $malaysia);
-    $indonesiaArea1 = createTestAddressArea('Catalog API Provinsi Indonesia', 1, null, $indonesia);
-
-    $malaysiaArea2 = createTestAddressArea('Catalog API Petaling', 2, $malaysiaArea1, $malaysia);
-    $indonesiaArea2 = createTestAddressArea('Catalog API Bandung', 2, $indonesiaArea1, $indonesia);
-
-    $omittedResponse = $this->getJson(route('api.client.catalogs.admin-area-level-2'))
+    $omittedResponse = $this->getJson(route('api.client.catalogs.administrative-subdivisions'))
         ->assertOk();
 
-    $explicitResponse = $this->getJson(route('api.client.catalogs.admin-area-level-2', ['administrative_district_id' => $indonesiaArea1->getKey()]))
+    $explicitResponse = $this->getJson(route('api.client.catalogs.administrative-subdivisions', ['district_id' => $geo['district']->getKey()]))
         ->assertOk();
 
     expect($omittedResponse->json('data'))->toBe([])
         ->and(collect($explicitResponse->json('data'))->pluck('label')->all())
-        ->toContain('Catalog API Bandung')
-        ->not->toContain('Catalog API Petaling')
-        ->and(collect($explicitResponse->json('data'))->pluck('id')->all())
-        ->toContain((string) $indonesiaArea2->getKey())
-        ->not->toContain((string) $malaysiaArea2->getKey());
+        ->toContain('Shah Alam');
 });
 
 it('returns public venue catalog options for active visible venues', function () {

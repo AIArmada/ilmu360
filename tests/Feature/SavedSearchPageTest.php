@@ -166,7 +166,6 @@ it('prefills subdistrict filter from query string when saving searches', functio
     $packageState = State::query()->create([
         'country_id' => $country->getKey(),
         'name' => 'Saved Search Selangor',
-        'label' => 'Saved Search Selangor',
     ]);
     $stateArea = createTestAddressArea('Saved Search Selangor', 1, country: $country);
     $district = createTestAddressArea('Saved Search Petaling', 2, parent: $stateArea, country: $country);
@@ -292,7 +291,6 @@ it('renders state filter chips using human-readable state names', function () {
     $state = State::query()->create([
         'country_id' => $country->getKey(),
         'name' => 'Selangor',
-        'label' => 'Selangor',
     ]);
 
     SavedSearch::factory()->create([

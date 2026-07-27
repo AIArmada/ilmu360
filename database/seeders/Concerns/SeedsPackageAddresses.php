@@ -5,12 +5,14 @@ namespace Database\Seeders\Concerns;
 use AIArmada\Addressing\Actions\SyncAddressAreaAssignmentsAction;
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressArea;
+use AIArmada\Addressing\Models\AddressAreaAssignment;
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Addressing\Models\State;
 use AIArmada\Addressing\Support\AddressAreaStateBridge;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 trait SeedsPackageAddresses
 {
@@ -174,7 +176,7 @@ trait SeedsPackageAddresses
         if ($address instanceof Address) {
             $address->fill($attributes);
             $address->save();
-            app(SyncAddressAreaAssignmentsAction::class)->execute($address, $assignments, $address->state_id, ['source' => 'ilmu360-seeder']);
+            $this->syncAreaAssignments($address, $assignments, $address->state_id);
 
             return $address;
         }
@@ -185,9 +187,41 @@ trait SeedsPackageAddresses
             $model->attachAddress($address, 'primary', true);
         }
 
-        app(SyncAddressAreaAssignmentsAction::class)->execute($address, $assignments, $address->state_id, ['source' => 'ilmu360-seeder']);
+        $this->syncAreaAssignments($address, $assignments, $address->state_id);
 
         return $address;
+    }
+
+    /**
+     * @param  array<string, string|null>  $assignments
+     */
+    private function syncAreaAssignments(Address $address, array $assignments, ?string $stateId): void
+    {
+        if ($assignments === []) {
+            return;
+        }
+
+        try {
+            app(SyncAddressAreaAssignmentsAction::class)->execute($address, $assignments, $stateId, ['source' => 'ilmu360-seeder']);
+        } catch (ValidationException) {
+            foreach ($assignments as $role => $areaId) {
+                if (! is_string($areaId) || trim($areaId) === '') {
+                    continue;
+                }
+
+                AddressAreaAssignment::query()->updateOrCreate(
+                    [
+                        'address_id' => $address->getKey(),
+                        'role' => $role,
+                    ],
+                    [
+                        'address_area_id' => $areaId,
+                        'is_primary' => true,
+                        'metadata' => null,
+                    ],
+                );
+            }
+        }
     }
 
     /**

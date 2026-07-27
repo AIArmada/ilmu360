@@ -2,7 +2,6 @@
 
 use App\Models\Institution;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Validation\ValidationException;
 
 uses(RefreshDatabase::class);
 
@@ -14,42 +13,46 @@ it('allows deleting an unused country record', function () {
     $this->assertModelMissing($country);
 });
 
-it('blocks deleting a state that still has districts', function () {
-    $country = ensureTestAddressCountry('TL', 'Testland', 'TST', ['UTC'], '999');
-    $state = createTestAddressArea('Central State', 1, country: $country);
-    createTestAddressArea('Main District', 2, parent: $state, country: $country);
-
-    expect(fn () => $state->delete())
-        ->toThrow(ValidationException::class, 'Delete or reassign this address area\'s child areas before deleting it.');
-});
-
-it('blocks deleting a district that still has subdistricts', function () {
+it('allows deleting a state and orphans its child districts', function () {
     $country = ensureTestAddressCountry('TL', 'Testland', 'TST', ['UTC'], '999');
     $state = createTestAddressArea('Central State', 1, country: $country);
     $district = createTestAddressArea('Main District', 2, parent: $state, country: $country);
-    createTestAddressArea('Mukim One', 3, parent: $district, country: $country);
 
-    expect(fn () => $district->delete())
-        ->toThrow(ValidationException::class, 'Delete or reassign this address area\'s child areas before deleting it.');
+    $state->delete();
+
+    $this->assertModelMissing($state);
+    expect($district->fresh()?->parent_id)->toBeNull();
 });
 
-it('blocks deleting a subdistrict that is still referenced by an address', function () {
+it('allows deleting a district and orphans its child subdistricts', function () {
     $country = ensureTestAddressCountry('TL', 'Testland', 'TST', ['UTC'], '999');
     $state = createTestAddressArea('Central State', 1, country: $country);
     $district = createTestAddressArea('Main District', 2, parent: $state, country: $country);
     $subdistrict = createTestAddressArea('Mukim One', 3, parent: $district, country: $country);
 
+    $district->delete();
+
+    $this->assertModelMissing($district);
+    expect($subdistrict->fresh()?->parent_id)->toBeNull();
+});
+
+it('allows deleting a subdistrict that is still referenced by an address and cascades cleanup', function () {
+    $country = ensureTestMalaysiaCountry();
+    $geo = createTestPackageGeography('Selangor', 'Petaling', 'Shah Alam', country: $country);
+
     $institution = Institution::factory()->create();
 
     syncPrimaryAddressForTest($institution, [
         'country_id' => (string) $country->getKey(),
-        'state_id' => (string) $state->getKey(),
-        'administrative_district_id' => (string) $district->getKey(),
-        'administrative_subdivision_id' => (string) $subdistrict->getKey(),
+        'state_id' => (string) $geo['state']->getKey(),
+        'administrative_district_id' => (string) $geo['district']->getKey(),
+        'administrative_subdivision_id' => (string) $geo['subdistrict']->getKey(),
     ]);
 
-    expect(fn () => $subdistrict->delete())
-        ->toThrow(ValidationException::class, 'This address area is still referenced by one or more addresses.');
+    $subdistrict = $geo['subdistrict'];
+    $subdistrict->delete();
+
+    $this->assertModelMissing($subdistrict);
 });
 
 it('allows deleting an unused subdistrict', function () {

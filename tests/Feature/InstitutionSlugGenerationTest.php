@@ -1,5 +1,6 @@
 <?php
 
+use AIArmada\Addressing\Actions\SyncAddressAreaAssignmentsAction;
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressCountry;
@@ -162,8 +163,6 @@ it('recomputes institution slugs when the institution locality changes', functio
     $institution->primaryAddress()?->update([
         'country_id' => (string) $secondaryGeography['country']->getKey(),
         'state_id' => (string) $secondaryGeography['state']->getKey(),
-        'administrative_district_id' => (string) $secondaryGeography['district']->getKey(),
-        'administrative_subdivision_id' => (string) $secondaryGeography['subdistrict']->getKey(),
         'state' => (string) $secondaryGeography['state']->name,
         'city' => (string) $secondaryGeography['subdistrict']->name,
     ]);
@@ -239,7 +238,13 @@ it('uses the generated geographic slug when admins create institutions in filame
             'status' => 'verified',
             'contactMethods' => [],
             'socialProfiles' => [],
-            'address' => geographyAddressPayload($geography),
+            'address.country_id' => (string) $geography['country']->getKey(),
+            'address.state_id' => (string) $geography['state']->getKey(),
+            'address.country_code' => (string) $geography['country']->iso2,
+            'address.area_assignments.administrative_district' => (string) $geography['district']->getKey(),
+            'address.area_assignments.administrative_subdivision' => (string) $geography['subdistrict']->getKey(),
+            'address.line1' => 'Persiaran Masjid',
+            'address.google_maps_url' => 'https://maps.google.com/?q=3.0738,101.5183',
         ])
         ->call('create')
         ->assertHasNoErrors();
@@ -248,7 +253,7 @@ it('uses the generated geographic slug when admins create institutions in filame
         ->where('name', 'Masjid Sultan Salahudin Abdul Aziz Shah')
         ->firstOrFail();
 
-    expect($institution->slug)->toBe('masjid-sultan-salahudin-abdul-aziz-shah-shah-alam-petaling-selangor-my');
+    expect($institution->slug)->toBe('masjid-sultan-salahudin-abdul-aziz-shah-shah-alam-selangor-my');
 });
 
 it('backfills existing institution slugs through the queued job logic', function () {
@@ -302,7 +307,9 @@ it('skips null locality segments when generating institution slugs', function ()
         ->and($generator->handle('Masjid Lengkap Sebahagian', [
             'country_id' => (string) $geo['country']->getKey(),
             'state_id' => (string) $geo['state']->getKey(),
-            'administrative_district_id' => (string) $geo['district']->getKey(),
+            'area_assignments' => [
+                'administrative_district' => (string) $geo['district']->getKey(),
+            ],
         ]))->toBe('masjid-lengkap-sebahagian-petaling-selangor-my')
         ->and($generator->handle('Masjid Tanpa Lokasi'))->toBe('masjid-tanpa-lokasi');
 });
@@ -357,8 +364,11 @@ function geographyAddressPayload(array $geography): array
     return [
         'country_id' => (string) $geography['country']->getKey(),
         'state_id' => (string) $geography['state']->getKey(),
-        'administrative_district_id' => (string) $geography['district']->getKey(),
-        'administrative_subdivision_id' => (string) $geography['subdistrict']->getKey(),
+        'country_code' => (string) $geography['country']->iso2,
+        'area_assignments' => [
+            'administrative_district' => (string) $geography['district']->getKey(),
+            'administrative_subdivision' => (string) $geography['subdistrict']->getKey(),
+        ],
         'line1' => 'Persiaran Masjid',
         'google_maps_url' => 'https://maps.google.com/?q=3.0738,101.5183',
     ];
@@ -400,13 +410,17 @@ function attachInstitutionSlugAddress(Institution $institution, array $geography
     $address = Address::query()->create([
         'country_id' => (string) $geography['country']->getKey(),
         'state_id' => (string) $geography['state']->getKey(),
-        'administrative_district_id' => (string) $geography['district']->getKey(),
-        'administrative_subdivision_id' => (string) $geography['subdistrict']->getKey(),
+        'country_code' => (string) $geography['country']->iso2,
         'state' => (string) $geography['state']->name,
         'city' => (string) $geography['subdistrict']->name,
         'line1' => 'Persiaran Masjid',
         'google_maps_url' => 'https://maps.google.com/?q=3.0738,101.5183',
     ]);
+
+    app(SyncAddressAreaAssignmentsAction::class)->execute($address, [
+        'administrative_district' => (string) $geography['district']->getKey(),
+        'administrative_subdivision' => (string) $geography['subdistrict']->getKey(),
+    ], (string) $geography['state']->getKey());
 
     $institution->attachAddress($address, type: 'primary', isPrimary: true);
 }

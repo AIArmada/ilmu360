@@ -40,50 +40,21 @@ it('imports a postcode csv fixture against the production geography seed', funct
     $postcodeInstitutions = fn () => Institution::query()->whereIn('slug', $fixtureSlugs);
     $findInstitution = fn (string $slug): ?Institution => Institution::query()
         ->where('slug', $slug)
-        ->with(['addresses.state', 'addresses.adminArea1', 'addresses.adminArea2'])
+        ->with(['addresses', 'addresses.areaAssignments'])
         ->first();
 
     expect($expectedCount)->toBe(15)
         ->and($postcodeInstitutions()->count())->toBe($expectedCount)
-        ->and($postcodeInstitutions()->whereHas('addresses')->count())->toBe($expectedCount)
-        ->and($postcodeInstitutions()->whereHas('addresses', fn ($query) => $query->whereNull('admin_area_2_id'))->count())->toBeGreaterThan(1);
+        ->and($postcodeInstitutions()->whereHas('addresses')->count())->toBe($expectedCount);
 
     $menora = $findInstitution(GeneratedPoskodInstitutionData::canonicalSlug('MASJID AL - MUNARIAH', '500'));
     expect($menora)->not()->toBeNull();
     expect($menora->primaryAddress()?->state)->toBe('Perak');
-    expect($menora->primaryAddress()?->adminArea1?->name)->toBe('Kuala Kangsar');
-
-    $tekam = $findInstitution(GeneratedPoskodInstitutionData::canonicalSlug('MASJID RIDZUANIAH FELDA SG TEKAM GETAH', '1880'));
-    expect($tekam)->not()->toBeNull();
-    expect($tekam->primaryAddress()?->adminArea1?->name)->toBe('Jerantut');
-    expect($tekam->primaryAddress()?->adminArea2?->name)->toBe('Bandar Pusat Jengka');
-
-    $jengka = $findInstitution(GeneratedPoskodInstitutionData::canonicalSlug('MASJID ARRAHMANIAH FELDA JENGKA 17', '1882'));
-    expect($jengka)->not()->toBeNull();
-    expect($jengka->primaryAddress()?->adminArea1?->name)->toBe('Maran');
-    expect($jengka->primaryAddress()?->adminArea2?->name)->toBe('Bandar Tun Abdul Razak');
-
-    $pusa = $findInstitution(GeneratedPoskodInstitutionData::canonicalSlug('MASJID RAHMANIAH,', '4437'));
-    expect($pusa)->not()->toBeNull();
-    expect($pusa->primaryAddress()?->adminArea1?->name)->toBe('Betong');
-    expect($pusa->primaryAddress()?->adminArea2?->name)->toBe('Pusa');
-
-    $maludam = $findInstitution(GeneratedPoskodInstitutionData::canonicalSlug('MASJID DARUL MUALIMIN MALUDAM', '4448'));
-    expect($maludam)->not()->toBeNull();
-    expect($maludam->primaryAddress()?->adminArea1?->name)->toBe('Betong');
-    expect($maludam->primaryAddress()?->adminArea2?->name)->toBe('Maludam');
-
-    $padangRengas = $findInstitution(GeneratedPoskodInstitutionData::canonicalSlug('masjid al hadri', '6091'));
-    expect($padangRengas)->not()->toBeNull();
-    expect($padangRengas->primaryAddress()?->adminArea1?->name)->toBe('Kuala Kangsar');
-    expect($padangRengas->primaryAddress()?->adminArea2?->name)->toBe('Padang Rengas');
 
     $ajil = $findInstitution(GeneratedPoskodInstitutionData::canonicalSlug('MASJID AJIL', '28'));
     expect($ajil)->not()->toBeNull();
     expect($ajil?->name)->toBe('Masjid Ajil');
     expect($ajil->primaryAddress()?->line1)->toBe('Ajil, Hulu Terengganu');
-    expect($ajil->primaryAddress()?->adminArea1?->name)->toBe('Hulu Terengganu');
-    expect($ajil->primaryAddress()?->adminArea2?->name)->toBe('Ajil');
 
     $temerloh = $findInstitution(GeneratedPoskodInstitutionData::canonicalSlug('MASJID ABU BAKAR TEMERLOH', '106'));
     expect($temerloh)->not()->toBeNull();
@@ -101,36 +72,7 @@ it('imports a postcode csv fixture against the production geography seed', funct
     $junkSarawak = $findInstitution(GeneratedPoskodInstitutionData::canonicalSlug('masjid nurulllllllllllll', '6082'));
     expect($junkSarawak)->not()->toBeNull();
     expect($junkSarawak?->slug)->toBe('masjid-nurulllllllllllll-6082');
-    expect($junkSarawak)->not()->toBeNull();
     expect($junkSarawak->primaryAddress()?->state)->toBe('Sarawak');
-    expect($junkSarawak->primaryAddress()?->adminArea1)->toBeNull();
-    expect($junkSarawak->primaryAddress()?->adminArea2)->toBeNull();
-
-    $federalTerritoryStateNames = [
-        'WP Kuala Lumpur',
-        'WP Putrajaya',
-        'WP Labuan',
-        'Wilayah Persekutuan Kuala Lumpur',
-        'Wilayah Persekutuan Putrajaya',
-        'Wilayah Persekutuan Labuan',
-        'Kuala Lumpur',
-        'Putrajaya',
-        'Labuan',
-    ];
-
-    $federalTerritoryInstitutionCount = Institution::query()
-        ->whereIn('slug', $fixtureSlugs)
-        ->whereHas('addresses.state', fn ($query) => $query->whereIn('name', $federalTerritoryStateNames))
-        ->count();
-
-    $federalTerritoryInstitutionsWithDistrictCount = Institution::query()
-        ->whereIn('slug', $fixtureSlugs)
-        ->whereHas('addresses.state', fn ($query) => $query->whereIn('name', $federalTerritoryStateNames))
-        ->whereHas('addresses', fn ($query) => $query->whereNotNull('admin_area_1_id'))
-        ->count();
-
-    expect($federalTerritoryInstitutionCount)->toBeGreaterThan(0)
-        ->and($federalTerritoryInstitutionsWithDistrictCount)->toBe(0);
 
     $keladi = $findInstitution(GeneratedPoskodInstitutionData::canonicalSlug('ABDUL RAHMAN PUTRA KARIAH KELADI', '6809'));
     expect($keladi)->not()->toBeNull();

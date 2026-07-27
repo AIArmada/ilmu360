@@ -503,27 +503,35 @@ function createTestAddressArea(
         default => 'area',
     };
 
-    $area = AddressArea::query()->create([
-        'country_id' => (string) $country->getKey(),
-        'parent_id' => $parent?->getKey(),
-        'country_code' => $country->iso2,
-        'type' => $type,
-        'level' => $level,
-        'name' => $name,
-        'slug' => Str::slug($name.'-'.$type.'-'.Str::lower(Str::random(6))),
-        'source' => 'tests',
-        'source_id' => (string) Str::ulid(),
-        'parent_source_id' => $parent?->source_id,
-    ]);
+    $area = AddressArea::query()->firstOrCreate(
+        [
+            'country_id' => (string) $country->getKey(),
+            'parent_id' => $parent?->getKey(),
+            'type' => $type,
+            'level' => $level,
+            'name' => $name,
+        ],
+        [
+            'country_code' => $country->iso2,
+            'slug' => Str::slug($name.'-'.$type.'-'.Str::lower(Str::random(6))),
+            'source' => 'tests',
+            'source_id' => (string) Str::ulid(),
+            'parent_source_id' => $parent?->source_id,
+        ],
+    );
 
     if ($parent instanceof AddressArea) {
-        AddressAreaRelationship::query()->create([
-            'parent_address_area_id' => $parent->getKey(),
-            'child_address_area_id' => $area->getKey(),
-            'relationship_type' => 'contains',
-            'hierarchy_type' => 'administrative',
-            'source' => 'tests',
-        ]);
+        AddressAreaRelationship::query()->firstOrCreate(
+            [
+                'parent_address_area_id' => $parent->getKey(),
+                'child_address_area_id' => $area->getKey(),
+            ],
+            [
+                'relationship_type' => 'contains',
+                'hierarchy_type' => 'administrative',
+                'source' => 'tests',
+            ],
+        );
     }
 
     return $area;
@@ -583,11 +591,15 @@ function createTestPackageGeography(
         ? createTestAddressArea($subdistrictName, 3, parent: $district, country: $country, type: 'subdistrict')
         : null;
 
-    $areaStateLink = AddressAreaStateLink::query()->create([
-        'address_area_id' => $areaTreeRoot->getKey(),
-        'state_id' => $packageState->getKey(),
-        'hierarchy_type' => 'administrative',
-    ]);
+    $areaStateLink = AddressAreaStateLink::query()->firstOrCreate(
+        [
+            'address_area_id' => $areaTreeRoot->getKey(),
+            'state_id' => $packageState->getKey(),
+        ],
+        [
+            'hierarchy_type' => 'administrative',
+        ],
+    );
 
     return [
         'country' => $country,
@@ -597,14 +609,14 @@ function createTestPackageGeography(
         'area_tree_root' => $areaTreeRoot,
         'district' => $district,
         'subdistrict' => $subdistrict,
-            'address' => [
-                'country_id' => (string) $country->getKey(),
-                'state_id' => (string) $packageState->getKey(),
-                'city_id' => $city instanceof City ? (string) $city->getKey() : null,
-                'administrative_district_id' => (string) $district->getKey(),
-                'administrative_subdivision_id' => $subdistrict !== null ? (string) $subdistrict->getKey() : null,
-                'state' => $stateName,
-                'city' => $cityName ?? $subdistrictName,
-            ],
+        'address' => [
+            'country_id' => (string) $country->getKey(),
+            'state_id' => (string) $packageState->getKey(),
+            'city_id' => $city instanceof City ? (string) $city->getKey() : null,
+            'administrative_district_id' => (string) $district->getKey(),
+            'administrative_subdivision_id' => $subdistrict !== null ? (string) $subdistrict->getKey() : null,
+            'state' => $stateName,
+            'city' => $cityName ?? $subdistrictName,
+        ],
     ];
 }

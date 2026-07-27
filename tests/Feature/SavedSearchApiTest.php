@@ -238,16 +238,15 @@ describe('Saved Search API Endpoints', function () {
                     ->assertJsonValidationErrors(['filters.starts_on_local_date']);
             });
 
-            it('rejects removed geography filter keys instead of silently dropping them', function () {
+            it('accepts empty filters when creating saved searches', function () {
                 $response = $this->postJson('/api/v1/saved-searches', [
-                    'name' => 'Removed Geography Search',
+                    'name' => 'Empty Filter Search',
                     'filters' => [
                     ],
                     'notify' => 'daily',
                 ]);
 
-                $response->assertUnprocessable()
-                    ->assertJsonValidationErrors(['filters']);
+                $response->assertCreated();
             });
 
             it('enforces max 10 saved searches per user', function () {
@@ -300,9 +299,9 @@ describe('Saved Search API Endpoints', function () {
                     ->assertJsonValidationErrors(['filters.state_id']);
             });
 
-            it('rejects non-numeric subdistrict filter ids', function () {
+            it('rejects unknown geography filter keys', function () {
                 $response = $this->postJson('/api/v1/saved-searches', [
-                    'name' => 'Subdistrict Filter Test',
+                    'name' => 'Unknown Filter Key Test',
                     'filters' => [
                         'administrative_subdivision_id' => (string) Str::uuid(),
                     ],
@@ -310,7 +309,7 @@ describe('Saved Search API Endpoints', function () {
                 ]);
 
                 $response->assertUnprocessable()
-                    ->assertJsonValidationErrors(['filters.administrative_subdivision_id']);
+                    ->assertJsonValidationErrors(['filters']);
             });
         });
 
