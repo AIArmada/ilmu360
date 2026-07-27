@@ -29,7 +29,7 @@ function ensureMalaysiaStateForPlaceResolution(string $name = 'Selangor'): array
     $country = ensureCountryForPlaceResolution('MY', 'Malaysia');
     $packageState = State::query()->firstOrCreate(
         ['country_id' => $country->getKey(), 'name' => $name],
-        ['code' => null, 'label' => $name],
+        ['code' => null],
     );
     $area = createTestAddressArea(
         $name,
@@ -49,7 +49,7 @@ function ensureStateForPlaceResolution(string $countryIso2, string $countryName,
     $country ??= ensureCountryForPlaceResolution($countryIso2, $countryName);
     $packageState = State::query()->firstOrCreate(
         ['country_id' => $country->getKey(), 'name' => $stateName],
-        ['code' => null, 'label' => $stateName],
+        ['code' => null],
     );
     $area = createTestAddressArea(
         $stateName,
@@ -91,9 +91,8 @@ it('maps a google place selection into local geography ids and address fields', 
 
     expect($payload['country_id'])->toBe((string) $state['package']->country_id)
         ->and($payload['state_id'])->toBe((string) $state['package']->id)
-        ->and($payload['admin_area_1_id'])->toBe((string) $district->id)
-        ->and($payload['admin_area_2_id'])->toBe((string) $subdistrict->id)
-        ->and($payload['admin_area_3_id'])->toBeNull()
+        ->and(data_get($payload, 'area_assignments.administrative_district'))->toBe((string) $district->id)
+        ->and(data_get($payload, 'area_assignments.administrative_subdivision'))->toBe((string) $subdistrict->id)
         ->and($payload['line1'])->toBe('Persiaran Masjid')
         ->and($payload['line2'])->toBe('Seksyen 14')
         ->and($payload['postcode'])->toBe('40000')
@@ -126,9 +125,8 @@ it('leaves ambiguous geography ids empty instead of guessing', function () {
     ]);
 
     expect($payload['state_id'])->toBe((string) $state['package']->id)
-        ->and($payload['admin_area_1_id'])->toBeNull()
-        ->and($payload['admin_area_2_id'])->toBeNull()
-        ->and($payload['admin_area_3_id'])->toBeNull();
+        ->and(data_get($payload, 'area_assignments.administrative_district'))->toBeNull()
+        ->and(data_get($payload, 'area_assignments.administrative_subdivision'))->toBeNull();
 });
 
 it('resolves federal territory subdistricts directly from the state without a district', function () {
@@ -151,9 +149,8 @@ it('resolves federal territory subdistricts directly from the state without a di
     ]);
 
     expect($payload['state_id'])->toBe((string) $state['package']->id)
-        ->and($payload['admin_area_1_id'])->toBeNull()
-        ->and($payload['admin_area_2_id'])->toBe((string) $subdistrict->id)
-        ->and($payload['admin_area_3_id'])->toBeNull()
+        ->and(data_get($payload, 'area_assignments.administrative_district'))->toBeNull()
+        ->and(data_get($payload, 'area_assignments.administrative_subdivision'))->toBe((string) $subdistrict->id)
         ->and($payload['line1'])->toBe('Jalan Setiawangsa')
         ->and($payload['line2'])->toBe('Taman Setiawangsa')
         ->and($payload['postcode'])->toBe('54200');
@@ -182,9 +179,8 @@ it('resolves non-malaysia geography using the picker country component', functio
 
     expect($payload['country_id'])->toBe((string) $country->id)
         ->and($payload['state_id'])->toBe((string) $state['package']->id)
-        ->and($payload['admin_area_1_id'])->toBe((string) $district->id)
-        ->and($payload['admin_area_2_id'])->toBe((string) $subdistrict->id)
-        ->and($payload['admin_area_3_id'])->toBeNull()
+        ->and(data_get($payload, 'area_assignments.administrative_district'))->toBe((string) $district->id)
+        ->and(data_get($payload, 'area_assignments.administrative_subdivision'))->toBe((string) $subdistrict->id)
         ->and($payload['postcode'])->toBe('10110');
 });
 
@@ -211,7 +207,6 @@ it('uses the current country fallback when the picker payload omits the country 
 
     expect($payload['country_id'])->toBe((string) $country->id)
         ->and($payload['state_id'])->toBe((string) $state['package']->id)
-        ->and($payload['admin_area_1_id'])->toBe((string) $district->id)
-        ->and($payload['admin_area_2_id'])->toBe((string) $subdistrict->id)
-        ->and($payload['admin_area_3_id'])->toBeNull();
+        ->and(data_get($payload, 'area_assignments.administrative_district'))->toBe((string) $district->id)
+        ->and(data_get($payload, 'area_assignments.administrative_subdivision'))->toBe((string) $subdistrict->id);
 });

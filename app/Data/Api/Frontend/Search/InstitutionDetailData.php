@@ -11,7 +11,7 @@ use Spatie\LaravelData\Data;
 class InstitutionDetailData extends Data
 {
     /**
-     * @param  array{country_id: ?string, admin_area_1_id: ?string, admin_area_2_id: ?string}|null  $address
+     * @param  array{country_id: ?string, state_id: ?string, city_id: ?string, area_assignments: array<string, string>}|null  $address
      * @param  array{id: string, name: string, iso2: string, key: ?string}|null  $country
      * @param  array{public_image_url: string, logo_url: string, cover_url: ?string}  $media
      * @param  list<array<string, mixed>>  $contacts
@@ -46,7 +46,7 @@ class InstitutionDetailData extends Data
     ) {}
 
     /**
-     * @param  array{country_id: ?string, admin_area_1_id: ?string, admin_area_2_id: ?string}|null  $address
+     * @param  array{country_id: ?string, state_id: ?string, city_id: ?string, area_assignments: array<string, string>}|null  $address
      * @param  array{id: string, name: string, iso2: string, key: ?string}|null  $country
      * @param  array{public_image_url: string, logo_url: string, cover_url: ?string}  $media
      * @param  list<array<string, mixed>>  $contacts

@@ -127,7 +127,7 @@ class MasjidSeeder extends Seeder
                 }
             }
 
-            // Create address (state_id + district as admin_area_1; no subdistrict from CSV).
+            // Create address with the administrative district assignment when available.
             try {
                 $this->seedPrimaryPackageAddress($inst, $this->packageAddressAttributes([
                     'line1' => $alamat ?: null,
@@ -185,11 +185,10 @@ class MasjidSeeder extends Seeder
 
         return $states->first(function (State $state) use ($searchName, $negeri): bool {
             $stateLower = strtolower((string) $state->name);
-            $labelLower = strtolower((string) ($state->label ?? ''));
             $searchLower = strtolower($searchName);
             $negeriLower = strtolower($negeri);
 
-            foreach ([$stateLower, $labelLower] as $haystack) {
+            foreach ([$stateLower] as $haystack) {
                 if ($haystack === '') {
                     continue;
                 }

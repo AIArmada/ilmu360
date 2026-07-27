@@ -149,16 +149,10 @@ class PersonForm
                                     ->statePath('address')
                                     ->components(SharedFormSchema::regionAddressFields(
                                         includeCountryField: true,
-                                        showCountryField: false,
-                                        requireCountryField: false,
+                                        showCountryField: true,
+                                        requireCountryField: true,
                                     ))
                                     ->columns(2),
-                            ]),
-                        Tab::make(__('Pendidikan'))
-                            ->icon(Heroicon::AcademicCap)
-                            ->schema([
-                                Section::make(__('Education'))
-                                    ->description(__('Education history is managed via the institution relation manager.')),
                             ]),
                         Tab::make(__('Hubungan'))
                             ->icon(Heroicon::ChatBubbleLeftRight)

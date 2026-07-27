@@ -216,24 +216,24 @@ class EventController extends Controller
                     $addressQuery->whereIn('city_id', $cityIds);
                 });
             }),
-            AllowedFilter::callback('admin_area_1_id', function (Builder $query, mixed $value): void {
-                $adminArea1Ids = $this->normalizeArrayFilter($value);
-                if ($adminArea1Ids === []) {
+            AllowedFilter::callback('administrative_district_id', function (Builder $query, mixed $value): void {
+                $areaIds = $this->normalizeArrayFilter($value);
+                if ($areaIds === []) {
                     return;
                 }
 
-                $query->whereHas('venue.addresses', function (Builder $addressQuery) use ($adminArea1Ids): void {
-                    $addressQuery->whereIn('admin_area_1_id', $adminArea1Ids);
+                $query->whereHas('venue.addresses.areaAssignments', function (Builder $assignmentQuery) use ($areaIds): void {
+                    $assignmentQuery->where('role', 'administrative_district')->whereIn('address_area_id', $areaIds);
                 });
             }),
-            AllowedFilter::callback('admin_area_2_id', function (Builder $query, mixed $value): void {
-                $adminArea2Ids = $this->normalizeArrayFilter($value);
-                if ($adminArea2Ids === []) {
+            AllowedFilter::callback('administrative_subdivision_id', function (Builder $query, mixed $value): void {
+                $areaIds = $this->normalizeArrayFilter($value);
+                if ($areaIds === []) {
                     return;
                 }
 
-                $query->whereHas('venue.addresses', function (Builder $addressQuery) use ($adminArea2Ids): void {
-                    $addressQuery->whereIn('admin_area_2_id', $adminArea2Ids);
+                $query->whereHas('venue.addresses.areaAssignments', function (Builder $assignmentQuery) use ($areaIds): void {
+                    $assignmentQuery->where('role', 'administrative_subdivision')->whereIn('address_area_id', $areaIds);
                 });
             }),
             AllowedFilter::callback('person', function (Builder $query, mixed $value): void {

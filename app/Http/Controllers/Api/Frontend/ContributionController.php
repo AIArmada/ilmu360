@@ -99,8 +99,8 @@ class ContributionController extends FrontendController
             'description' => ['nullable'],
             'address' => ['present', 'array'],
             'address.country_id' => ['required', 'uuid', 'exists:'.config('addressing.tables.countries', 'countries').',id'],
-            'address.admin_area_1_id' => ['nullable', 'uuid', 'exists:address_areas,id'],
-            'address.admin_area_2_id' => ['nullable', 'uuid', 'exists:address_areas,id'],
+            'address.area_assignments' => ['sometimes', 'array'],
+            'address.area_assignments.*' => ['nullable', 'uuid', 'exists:address_areas,id'],
             'address.line1' => ['nullable', 'string', 'max:255'],
             'address.line2' => ['nullable', 'string', 'max:255'],
             'address.postcode' => ['nullable', 'string', 'max:16'],
@@ -179,8 +179,8 @@ class ContributionController extends FrontendController
             'institution_position' => ['nullable', 'string', 'max:255'],
             'address' => ['required', 'array'],
             'address.country_id' => ['required', 'uuid', 'exists:'.config('addressing.tables.countries', 'countries').',id'],
-            'address.admin_area_1_id' => ['nullable', 'uuid', 'exists:address_areas,id'],
-            'address.admin_area_2_id' => ['nullable', 'uuid', 'exists:address_areas,id'],
+            'address.area_assignments' => ['sometimes', 'array'],
+            'address.area_assignments.*' => ['nullable', 'uuid', 'exists:address_areas,id'],
             'address.line1' => ['prohibited'],
             'address.line2' => ['prohibited'],
             'address.postcode' => ['prohibited'],
@@ -577,8 +577,7 @@ class ContributionController extends FrontendController
 
         $initialState['address'] = [
             'country_id' => $personAddress['country_id'] ?? null,
-            'admin_area_1_id' => $personAddress['admin_area_1_id'] ?? null,
-            'admin_area_2_id' => $personAddress['admin_area_2_id'] ?? null,
+            'area_assignments' => $personAddress['area_assignments'] ?? [],
         ];
 
         return $initialState;

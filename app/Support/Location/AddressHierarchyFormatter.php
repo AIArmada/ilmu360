@@ -5,61 +5,42 @@ namespace App\Support\Location;
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\State;
-use AIArmada\Addressing\Support\AddressAreaStateBridge;
 
-class AddressHierarchyFormatter
+final class AddressHierarchyFormatter
 {
     /**
-     * @param  list<'city'|'district'|'subdistrict'|'state'|'area_1'|'area_2'|'area_3'|'area_4'>  $order
+     * @param  list<'city'|'district'|'subdistrict'|'locality'|'state'>  $order
      * @return list<string>
      */
     public static function parts(
         ?Address $address,
-        array $order = ['city', 'area_4', 'area_3', 'area_2', 'area_1', 'state'],
+        array $order = ['city', 'locality', 'subdistrict', 'district', 'state'],
     ): array {
-        $areaNames = [];
+        $assignments = AddressAssignments::forAddress($address);
+        $areas = [];
 
-        foreach (range(1, 4) as $slot) {
-            $areaNames[$slot] = self::areaName($address?->getAttribute("admin_area_{$slot}_id"));
+        foreach ($assignments as $role => $areaId) {
+            $areas[$role] = $address?->relationLoaded('areaAssignments')
+                ? self::loadedAreaName($address, $role)
+                : self::areaName($areaId);
         }
 
-        $stateName = self::normalizePart($address?->state);
+        $stateName = self::textAttribute($address, 'state');
 
-        if ($stateName === null && is_string($address?->state_id) && $address->state_id !== '') {
+        if ($stateName === null && $address?->relationLoaded('state')) {
+            $stateName = self::normalizePart($address->getRelation('state')?->name);
+        }
+
+        if ($stateName === null && is_string($address?->state_id)) {
             $state = State::query()->find($address->state_id);
             $stateName = $state instanceof State ? self::normalizePart($state->name) : null;
         }
 
-        if ($stateName === null) {
-            foreach (array_reverse($areaNames, true) as $slot => $areaName) {
-                if ($areaName === null) {
-                    continue;
-                }
-
-                $areaId = $address?->getAttribute("admin_area_{$slot}_id");
-                $stateId = AddressAreaStateBridge::stateIdForArea(is_string($areaId) ? $areaId : null);
-
-                if ($stateId !== null) {
-                    $state = State::query()->find($stateId);
-                    $stateName = $state instanceof State ? self::normalizePart($state->name) : null;
-                }
-
-                if ($stateName !== null) {
-                    break;
-                }
-            }
-        }
-
-        $cityName = self::normalizePart($address?->city);
-
         $availableParts = [
-            'city' => $cityName,
-            'district' => $areaNames[1],
-            'subdistrict' => $areaNames[2],
-            'area_1' => $areaNames[1],
-            'area_2' => $areaNames[2],
-            'area_3' => $areaNames[3],
-            'area_4' => $areaNames[4],
+            'city' => self::textAttribute($address, 'city'),
+            'locality' => $areas[AddressAssignments::POSTAL_LOCALITY] ?? null,
+            'subdistrict' => $areas[AddressAssignments::ADMINISTRATIVE_SUBDIVISION] ?? null,
+            'district' => $areas[AddressAssignments::ADMINISTRATIVE_DISTRICT] ?? null,
             'state' => $stateName,
         ];
 
@@ -72,10 +53,9 @@ class AddressHierarchyFormatter
                 continue;
             }
 
-            $lastKey = array_key_last($parts);
-            $previousPart = $lastKey !== null ? $parts[$lastKey] : null;
+            $previous = $parts[array_key_last($parts)] ?? null;
 
-            if (is_string($previousPart) && mb_strtolower($previousPart) === mb_strtolower($part)) {
+            if (is_string($previous) && mb_strtolower($previous) === mb_strtolower($part)) {
                 continue;
             }
 
@@ -85,72 +65,64 @@ class AddressHierarchyFormatter
         return $parts;
     }
 
-    /**
-     * @return array{street: ?string, locality: ?string, regional: ?string}
-     */
+    /** @return array{street: ?string, locality: ?string, regional: ?string} */
     public static function displayLines(?Address $address): array
     {
         if (! $address instanceof Address) {
-            return [
-                'street' => null,
-                'locality' => null,
-                'regional' => null,
-            ];
+            return ['street' => null, 'locality' => null, 'regional' => null];
         }
 
         $parts = self::parts($address);
-        $streetAddressLine = implode(', ', array_filter([
-            $address->line1,
-            $address->line2,
-        ]));
-
-        if ($parts !== []) {
-            $localityAddressLine = implode(', ', array_filter([
-                $parts[0] ?? null,
-                $address->postcode,
-            ]));
-            $regionalAddressLine = count($parts) > 1 ? implode(', ', array_slice($parts, 1)) : '';
-        } else {
-            $localityAddressLine = implode(', ', array_filter([
-                $address->city,
-                $address->postcode,
-            ]));
-            $regionalAddressLine = filled($address->state) ? (string) $address->state : '';
-        }
+        $street = implode(', ', array_filter([$address->line1, $address->line2]));
+        $locality = implode(', ', array_filter([$parts[0] ?? self::textAttribute($address, 'city'), $address->postcode]));
+        $regional = count($parts) > 1 ? implode(', ', array_slice($parts, 1)) : (self::textAttribute($address, 'state') ?? '');
 
         return [
-            'street' => $streetAddressLine !== '' ? $streetAddressLine : null,
-            'locality' => $localityAddressLine !== '' ? $localityAddressLine : null,
-            'regional' => $regionalAddressLine !== '' ? $regionalAddressLine : null,
+            'street' => $street !== '' ? $street : null,
+            'locality' => $locality !== '' ? $locality : null,
+            'regional' => $regional !== '' ? $regional : null,
         ];
     }
 
-    /**
-     * @param  list<'city'|'district'|'subdistrict'|'state'|'area_1'|'area_2'|'area_3'|'area_4'>  $order
-     */
-    public static function format(
-        ?Address $address,
-        array $order = ['city', 'area_4', 'area_3', 'area_2', 'area_1', 'state'],
-        string $separator = ', ',
-    ): string {
+    /** @param list<'city'|'district'|'subdistrict'|'locality'|'state'> $order */
+    public static function format(?Address $address, array $order = ['city', 'locality', 'subdistrict', 'district', 'state'], string $separator = ', '): string
+    {
         return implode($separator, self::parts($address, $order));
+    }
+
+    private static function loadedAreaName(Address $address, string $role): ?string
+    {
+        foreach ($address->getRelation('areaAssignments') as $assignment) {
+            if ($assignment->role === $role) {
+                return self::normalizePart($assignment->getRelation('area')?->name);
+            }
+        }
+
+        return null;
+    }
+
+    private static function areaName(string $areaId): ?string
+    {
+        $area = AddressArea::query()->find($areaId);
+
+        return $area instanceof AddressArea ? self::normalizePart($area->name) : null;
     }
 
     private static function normalizePart(?string $value): ?string
     {
-        $trimmed = trim((string) $value);
+        $value = trim((string) $value);
 
-        return $trimmed === '' ? null : $trimmed;
+        return $value === '' ? null : $value;
     }
 
-    private static function areaName(?string $areaId): ?string
+    private static function textAttribute(?Address $address, string $attribute): ?string
     {
-        if (! is_string($areaId) || $areaId === '') {
+        if (! $address instanceof Address) {
             return null;
         }
 
-        $area = AddressArea::query()->find($areaId);
+        $value = $address->getRawOriginal($attribute);
 
-        return $area instanceof AddressArea ? self::normalizePart($area->name) : null;
+        return is_string($value) ? self::normalizePart($value) : self::normalizePart($address->getAttribute($attribute));
     }
 }

@@ -173,8 +173,7 @@ class ModerationService
             'prayer_offset',
             'registration_required',
             'capacity',
-            'admin_area_1_id',
-            'admin_area_2_id',
+            'area_assignments',
             'latitude',
             'longitude',
         ];

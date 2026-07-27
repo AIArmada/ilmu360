@@ -107,8 +107,7 @@ class EditInstitution extends EditRecord
 
         return SharedFormSchema::hydrateAddressFormState([
             'country_id' => $countryId,
-            'admin_area_1_id' => $address?->admin_area_1_id,
-            'admin_area_2_id' => $address?->admin_area_2_id,
+            'area_assignments' => $address?->areaAssignments()->pluck('address_area_id', 'role')->all() ?? [],
             'line1' => $address?->line1,
             'line2' => $address?->line2,
             'postcode' => $address?->postcode,

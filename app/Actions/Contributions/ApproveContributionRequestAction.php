@@ -182,8 +182,7 @@ class ApproveContributionRequestAction
 
         $addressKeys = [
             'country_id',
-            'admin_area_1_id',
-            'admin_area_2_id',
+            'area_assignments',
             'line1',
             'line2',
             'postcode',

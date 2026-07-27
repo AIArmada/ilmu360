@@ -171,10 +171,10 @@ class GeneratedFileFinalFixedPoskodSeeder extends Seeder
                     'country_id' => (string) $this->malaysia->getKey(),
                     'state_id' => $packageStateId,
                     // Product: area_1 = district, area_2 = subdistrict.
-                    'admin_area_1_id' => $district?->getKey(),
-                    'admin_area_2_id' => $subdistrict?->getKey(),
-                    'admin_area_3_id' => null,
-                    'admin_area_4_id' => null,
+                    'area_assignments' => array_filter([
+                        'administrative_district' => $district?->getKey(),
+                        'administrative_subdivision' => $subdistrict?->getKey(),
+                    ]),
                 ]);
             });
 

@@ -2,6 +2,7 @@
 
 namespace Database\Seeders\Concerns;
 
+use AIArmada\Addressing\Actions\SyncAddressAreaAssignmentsAction;
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressCountry;
@@ -49,7 +50,6 @@ trait SeedsPackageAddresses
             ->first(function (State $state) use ($needle): bool {
                 $candidates = [
                     Str::lower((string) $state->name),
-                    Str::lower((string) ($state->label ?? '')),
                 ];
 
                 foreach ($candidates as $haystack) {
@@ -71,7 +71,7 @@ trait SeedsPackageAddresses
      */
     protected function malaysiaAreaStateForPackageState(State $state): ?AddressArea
     {
-        $areaId = AddressAreaStateBridge::areaIdForState($state);
+        $areaId = AddressAreaStateBridge::areaIdForState($state, 'administrative');
 
         if ($areaId === null) {
             return null;
@@ -114,6 +114,7 @@ trait SeedsPackageAddresses
         return AddressArea::query()
             ->where('parent_id', $areaState->getKey())
             ->where('level', 2)
+            ->where('type', 'district')
             ->inRandomOrder()
             ->first();
     }
@@ -150,15 +151,12 @@ trait SeedsPackageAddresses
         }
 
         if ($district instanceof AddressArea) {
-            $attributes['admin_area_1_id'] = (string) $district->getKey();
+            $attributes['area_assignments']['administrative_district'] = (string) $district->getKey();
         }
 
         if ($subdistrict instanceof AddressArea) {
-            $attributes['admin_area_2_id'] = (string) $subdistrict->getKey();
+            $attributes['area_assignments']['administrative_subdivision'] = (string) $subdistrict->getKey();
         }
-
-        $attributes['admin_area_3_id'] = null;
-        $attributes['admin_area_4_id'] = null;
 
         return $attributes;
     }
@@ -169,11 +167,14 @@ trait SeedsPackageAddresses
     protected function seedPrimaryPackageAddress(Model $model, array $attributes): Address
     {
         $attributes = $this->normalizePackageAddressAttributes($attributes);
+        $assignments = (array) ($attributes['area_assignments'] ?? []);
+        unset($attributes['area_assignments']);
         $address = method_exists($model, 'primaryAddress') ? $model->primaryAddress() : null;
 
         if ($address instanceof Address) {
             $address->fill($attributes);
             $address->save();
+            app(SyncAddressAreaAssignmentsAction::class)->execute($address, $assignments, $address->state_id, ['source' => 'ilmu360-seeder']);
 
             return $address;
         }
@@ -183,6 +184,8 @@ trait SeedsPackageAddresses
         if (method_exists($model, 'attachAddress')) {
             $model->attachAddress($address, 'primary', true);
         }
+
+        app(SyncAddressAreaAssignmentsAction::class)->execute($address, $assignments, $address->state_id, ['source' => 'ilmu360-seeder']);
 
         return $address;
     }
@@ -201,12 +204,15 @@ trait SeedsPackageAddresses
             ? State::query()->find($attributes['state_id'])
             : null;
 
-        $adminArea1 = isset($attributes['admin_area_1_id']) && is_string($attributes['admin_area_1_id'])
-            ? AddressArea::query()->find($attributes['admin_area_1_id'])
+        $assignments = (array) ($attributes['area_assignments'] ?? []);
+        $districtId = $assignments['administrative_district'] ?? null;
+        $subdistrictId = $assignments['administrative_subdivision'] ?? null;
+        $adminArea1 = is_string($districtId)
+            ? AddressArea::query()->find($districtId)
             : null;
 
-        $adminArea2 = isset($attributes['admin_area_2_id']) && is_string($attributes['admin_area_2_id'])
-            ? AddressArea::query()->find($attributes['admin_area_2_id'])
+        $adminArea2 = is_string($subdistrictId)
+            ? AddressArea::query()->find($subdistrictId)
             : null;
 
         // Recover package state_id when only district/subdistrict were provided.
@@ -239,8 +245,6 @@ trait SeedsPackageAddresses
         $attributes['city'] ??= is_object($adminArea2)
             ? $adminArea2->name
             : (is_object($adminArea1) ? $adminArea1->name : ($attributes['state'] ?? $attributes['country'] ?? ''));
-        $attributes['admin_area_3_id'] = null;
-        $attributes['admin_area_4_id'] = null;
 
         $attributes['formatted_address'] ??= collect([
             $attributes['line1'] ?? null,

@@ -45,6 +45,7 @@ use App\Models\Concerns\HasDonationChannels;
 use App\States\EventStatus\EventStatus;
 use App\States\EventStatus\Pending;
 use App\Support\Authz\MemberPermissionGate;
+use App\Support\Location\AddressAssignments;
 use App\Support\Timezone\UserDateTimeFormatter;
 use BackedEnum;
 use Database\Factories\EventFactory;
@@ -1221,7 +1222,7 @@ class Event extends PackageEvent implements AuditableContract
             return $this->toScoutDatabaseSearchableArray();
         }
 
-        $this->loadMissing(['institution', 'institution.addresses', 'venue', 'venue.addresses', 'persons', 'keyPeople.person', 'references', 'classifications', 'primaryOccurrence', 'timeExpressions']);
+        $this->loadMissing(['institution', 'institution.addresses.areaAssignments.area', 'venue', 'venue.addresses.areaAssignments.area', 'persons', 'keyPeople.person', 'references', 'classifications', 'primaryOccurrence', 'timeExpressions']);
         $venueAddress = $this->venue?->primaryAddress();
         $institutionAddress = $this->institution?->primaryAddress();
         $institution = $this->institution;
@@ -1396,8 +1397,12 @@ class Event extends PackageEvent implements AuditableContract
             'country_id' => $venueAddress->country_id ?? $institutionAddress?->country_id,
             'state_id' => $venueAddress->state_id ?? $institutionAddress?->state_id,
             'city_id' => $venueAddress->city_id ?? $institutionAddress?->city_id,
-            'admin_area_1_id' => $venueAddress->admin_area_1_id ?? $institutionAddress?->admin_area_1_id,
-            'admin_area_2_id' => $venueAddress->admin_area_2_id ?? $institutionAddress?->admin_area_2_id,
+            'administrative_district_id' => AddressAssignments::id($venueAddress, AddressAssignments::ADMINISTRATIVE_DISTRICT)
+                ?? AddressAssignments::id($institutionAddress, AddressAssignments::ADMINISTRATIVE_DISTRICT),
+            'administrative_subdivision_id' => AddressAssignments::id($venueAddress, AddressAssignments::ADMINISTRATIVE_SUBDIVISION)
+                ?? AddressAssignments::id($institutionAddress, AddressAssignments::ADMINISTRATIVE_SUBDIVISION),
+            'postal_locality_id' => AddressAssignments::id($venueAddress, AddressAssignments::POSTAL_LOCALITY)
+                ?? AddressAssignments::id($institutionAddress, AddressAssignments::POSTAL_LOCALITY),
             'city' => $venueAddress->city ?? $institutionAddress?->city,
             'state' => $venueAddress->state ?? $institutionAddress?->state,
             'postcode' => $venueAddress->postcode ?? $institutionAddress?->postcode,

@@ -19,7 +19,7 @@ canonical package relations and columns described in
 - [x] 1. Update EventKeyPersonSyncService: use display_name consistently (already done ✓)
 - [x] 2. Delete HasEventInvolvementRole trait
 - [x] 3. Update EventKeyPerson model: replace metadata name with display_name
-- [x] 4. Replace metadata->name search with metadata->display_name in EventSearchService + EventController
+- [x] 4. Replace metadata->name search with display_name in EventSearchService + EventController
 - [x] 5. Eager-load involveable/speaker
 
 ---
@@ -51,3 +51,54 @@ the final commit and Quality workflow confirmation.
 - [x] Re-run the affected app tests: Admin API (85 passed / 1,160 assertions) plus the remaining CI-failure files (293 passed / 2,337 assertions before the final five; the final five now pass).
 - [x] Run Pint, Rector dry-run, PHPStan level 6, and `git diff --check`.
 - [x] Confirm app production/test scans have no forbidden geography, metadata, or Event alias references.
+# Person location country + speaker seeder
+
+- [x] Locate the person edit location schema and speaker seeder.
+- [x] Make country required in the location tab and ensure the saved path validates it.
+- [x] Make speaker seeding assign Malaysia to every speaker.
+- [x] Add or update focused tests and run formatting/static checks relevant to the change.
+
+## Review
+
+The Location tab now shows Country first and marks it required. `PersonSeeder`
+assigns a primary Malaysia address when creating each seeded speaker; it does
+not backfill existing records. The person edit page now hydrates and persists
+the address state. Focused seeder tests pass.
+
+# Non-production city seed reduction
+
+- [x] Keep production city seeding unchanged.
+- [x] Seed all Malaysian cities and a deterministic 10% sample for other countries outside production.
+- [x] Verify the addressing seeder and production seeder behavior.
+
+# Fix person institution attach selector
+
+## Plan
+- [x] Reproduce the Filament inverse-relationship failure from the reported stack trace.
+- [x] Add a regression assertion for the explicit institution/person inverse relation.
+- [x] Configure the relation manager and verify focused tests plus static checks.
+
+## Review
+
+Filament inferred `Person`'s inverse relation as `people`, but the application
+model exposes the canonical inverse as `Institution::persons()`. The person
+institution relation manager now declares `inverseRelationship = 'persons'`,
+and the regression test passes.
+
+Verification: focused Pest tests passed (2 tests / 10 assertions), Pint passed,
+PHPStan passed for the changed PHP files, and `git diff --check` passed.
+
+# Remove legacy person education tab
+
+## Plan
+- [x] Remove the obsolete Pendidikan tab from the person edit schema.
+- [x] Add a regression assertion that the tab is absent while credentials remain in the profile flow.
+- [x] Run focused tests, formatting, and static analysis.
+
+## Review
+
+The legacy Pendidikan tab was removed from the person edit form. The existing
+Titles & Credentials section remains in Profil as the supported workflow.
+
+Verification: focused Pest test passed (1 test / 2 assertions), Pint passed,
+PHPStan passed for the changed PHP files, and `git diff --check` passed.

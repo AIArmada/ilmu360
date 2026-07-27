@@ -332,8 +332,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
 
         $initialState['address'] = SharedFormSchema::expandStoredAreasForForm([
             'country_id' => SharedFormSchema::normalizeLocationId($personAddress['country_id'] ?? null),
-            'admin_area_1_id' => SharedFormSchema::normalizeLocationId($personAddress['admin_area_1_id'] ?? null),
-            'admin_area_2_id' => SharedFormSchema::normalizeLocationId($personAddress['admin_area_2_id'] ?? null),
+            'area_assignments' => (array) ($personAddress['area_assignments'] ?? []),
         ]);
 
         if (($initialState['bio'] ?? null) === null) {

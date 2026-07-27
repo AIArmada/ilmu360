@@ -82,8 +82,8 @@ Route::prefix('v1')->group(function () {
             Route::get('/countries', [CatalogController::class, 'countries'])->name('countries');
             Route::get('/states', [CatalogController::class, 'states'])->name('states');
             Route::get('/cities', [CatalogController::class, 'cities'])->name('cities');
-            Route::get('/admin-area-level-1', [CatalogController::class, 'adminAreaLevel1'])->name('admin-area-level-1');
-            Route::get('/admin-area-level-2', [CatalogController::class, 'adminAreaLevel2'])->name('admin-area-level-2');
+            Route::get('/administrative-districts', [CatalogController::class, 'administrativeDistricts'])->name('administrative-districts');
+            Route::get('/administrative-subdivisions', [CatalogController::class, 'administrativeSubdivisions'])->name('administrative-subdivisions');
             Route::get('/languages', [CatalogController::class, 'languages'])->name('languages');
             Route::get('/taxonomy-terms/{type}', [CatalogController::class, 'taxonomyTerms'])->name('taxonomy-terms');
             Route::get('/tags/{type}', [CatalogController::class, 'tags'])->name('tags');
@@ -140,8 +140,8 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
                 Route::get('/countries', [AdminCatalogController::class, 'countries'])->name('countries');
                 Route::get('/states', [AdminCatalogController::class, 'states'])->name('states');
                 Route::get('/cities', [AdminCatalogController::class, 'cities'])->name('cities');
-                Route::get('/admin-area-level-1', [AdminCatalogController::class, 'adminAreaLevel1'])->name('admin-area-level-1');
-                Route::get('/admin-area-level-2', [AdminCatalogController::class, 'adminAreaLevel2'])->name('admin-area-level-2');
+                Route::get('/administrative-districts', [AdminCatalogController::class, 'administrativeDistricts'])->name('administrative-districts');
+                Route::get('/administrative-subdivisions', [AdminCatalogController::class, 'administrativeSubdivisions'])->name('administrative-subdivisions');
             });
             Route::get('/events/search', [EventSearchController::class, 'search'])->name('events.search');
             Route::get('/{resourceKey}', [AdminResourceController::class, 'indexRecords'])->name('resources.index');

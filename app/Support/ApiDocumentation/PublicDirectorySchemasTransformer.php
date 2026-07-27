@@ -68,18 +68,12 @@ final class PublicDirectorySchemasTransformer implements DocumentTransformer
                 ->addProperty('country_id', (new StringType)->nullable(true))
                 ->addProperty('state_id', (new StringType)->nullable(true))
                 ->addProperty('city_id', (new StringType)->nullable(true))
-                ->addProperty('admin_area_1_id', (new StringType)->nullable(true))
-                ->addProperty('admin_area_2_id', (new StringType)->nullable(true))
-                ->addProperty('admin_area_3_id', (new StringType)->nullable(true))
-                ->addProperty('admin_area_4_id', (new StringType)->nullable(true))
+                ->addProperty('area_assignments', (new ObjectType)->additionalProperties((new StringType)->nullable(true)))
                 ->setRequired([
                     'country_id',
                     'state_id',
                     'city_id',
-                    'admin_area_1_id',
-                    'admin_area_2_id',
-                    'admin_area_3_id',
-                    'admin_area_4_id',
+                    'area_assignments',
                 ]),
         );
     }

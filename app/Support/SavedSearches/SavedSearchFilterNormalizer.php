@@ -26,8 +26,17 @@ final class SavedSearchFilterNormalizer
 
         $normalizedFilters = Arr::only($filters, $this->allowedFilterKeys());
 
-        foreach (['country_id', 'state_id', 'city_id', 'admin_area_1_id', 'admin_area_2_id', 'institution_id', 'venue_id'] as $uuidFilter) {
+        foreach (['country_id', 'state_id', 'city_id', 'institution_id', 'venue_id'] as $uuidFilter) {
             $this->normalizeUuidScalarFilter($normalizedFilters, $uuidFilter);
+        }
+
+        if (is_array($normalizedFilters['area_assignments'] ?? null)) {
+            foreach ($normalizedFilters['area_assignments'] as $role => $areaId) {
+                if (is_string($role)) {
+                    $normalizedFilters['area_assignments'][$role] = Str::isUuid((string) $areaId) ? (string) $areaId : null;
+                }
+            }
+            $normalizedFilters['area_assignments'] = array_filter($normalizedFilters['area_assignments']);
         }
 
         foreach ([
@@ -79,8 +88,7 @@ final class SavedSearchFilterNormalizer
             'country_id',
             'state_id',
             'city_id',
-            'admin_area_1_id',
-            'admin_area_2_id',
+            'area_assignments',
             'institution_id',
             'venue_id',
             'person_ids',

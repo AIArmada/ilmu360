@@ -40,8 +40,7 @@ class SubmitPerson extends Component implements HasActions, HasForms
                     'country_id' => null,
                     'state_id' => null,
                     'city_id' => null,
-                    'admin_area_1_id' => null,
-                    'admin_area_2_id' => null,
+                    'area_assignments' => [],
                     'cascade_reset_guard' => 0,
                 ],
             ]);

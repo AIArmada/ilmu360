@@ -940,9 +940,10 @@
                                             ->filter()
                                             ->values();
                                         $personText = $personNames->isNotEmpty() ? $personNames->implode(', ') : __('Penceramah akan diumumkan');
-                                        $languageChips = collect($event->getAttribute('languages'))
+                                        $languageChips = $event->languageRecords
+                                            ->pluck('language_code')
                                             ->take(1)
-                                            ->map(fn (\App\Models\Language $language): string => (string) ($language->code === 'ms' ? 'BM' : strtoupper((string) $language->code)))
+                                            ->map(fn (mixed $code): string => (string) ($code === 'ms' ? 'BM' : strtoupper((string) $code)))
                                             ->filter()
                                             ->values();
                                         $tagChips = $event->classifications

@@ -1,7 +1,10 @@
 <?php
 
+use AIArmada\Addressing\Actions\SyncAddressAreaAssignmentsAction;
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressArea;
+use AIArmada\Addressing\Models\AddressAreaRelationship;
+use AIArmada\Addressing\Models\AddressAreaStateLink;
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Addressing\Models\City;
 use AIArmada\Addressing\Models\State;
@@ -105,6 +108,7 @@ pest()->extend(TestCase::class)
 
         // Seed title categories and titles for tests
         try {
+            ensureTestMalaysiaCountry();
             app(TitleCategorySeeder::class)->run();
             app(TitleSeeder::class)->run();
         } catch (Throwable) {
@@ -211,12 +215,15 @@ function syncPrimaryAddressForTest(mixed $model, array $attributes): Address
     }
 
     $normalizedAttributes = normalizeTestAddressAttributes($attributes);
+    $assignments = $normalizedAttributes['area_assignments'] ?? [];
+    unset($normalizedAttributes['area_assignments']);
 
     /** @var Address|null $existingAddress */
     $existingAddress = $model->primaryAddress();
 
     if ($existingAddress instanceof Address) {
         $existingAddress->fill($normalizedAttributes)->save();
+        app(SyncAddressAreaAssignmentsAction::class)->execute($existingAddress, $assignments, $existingAddress->state_id);
         $model->refresh();
 
         return $existingAddress->fresh() ?? $existingAddress;
@@ -225,6 +232,7 @@ function syncPrimaryAddressForTest(mixed $model, array $attributes): Address
     $address = Address::query()->create($normalizedAttributes);
 
     $model->attachAddress($address, type: 'primary', isPrimary: true);
+    app(SyncAddressAreaAssignmentsAction::class)->execute($address, $assignments, $address->state_id);
     $model->refresh();
 
     return $address;
@@ -236,8 +244,19 @@ function syncPrimaryAddressForTest(mixed $model, array $attributes): Address
  */
 function normalizeTestAddressAttributes(array $attributes): array
 {
-    $attributes['admin_area_3_id'] = null;
-    $attributes['admin_area_4_id'] = null;
+    $attributes['area_assignments'] ??= [];
+
+    if (isset($attributes['admin_area_1_id'])) {
+        $attributes['area_assignments']['administrative_district'] = $attributes['admin_area_1_id'];
+        unset($attributes['admin_area_1_id']);
+    }
+
+    if (isset($attributes['admin_area_2_id'])) {
+        $attributes['area_assignments']['administrative_subdivision'] = $attributes['admin_area_2_id'];
+        unset($attributes['admin_area_2_id']);
+    }
+
+    unset($attributes['admin_area_3_id'], $attributes['admin_area_4_id']);
 
     return $attributes;
 }
@@ -516,7 +535,6 @@ function createTestPackageGeography(
         ],
         [
             'code' => null,
-            'label' => $stateName,
         ],
     );
 
@@ -529,7 +547,6 @@ function createTestPackageGeography(
             ],
             [
                 'country_id' => (string) $country->getKey(),
-                'label' => $cityName,
             ],
         );
     }
@@ -537,6 +554,22 @@ function createTestPackageGeography(
     $areaTreeRoot = createTestAddressArea($stateName, 1, country: $country, type: 'state');
     $district = createTestAddressArea($districtName, 2, parent: $areaTreeRoot, country: $country, type: 'district');
     $subdistrict = createTestAddressArea($subdistrictName, 3, parent: $district, country: $country, type: 'subdistrict');
+
+    AddressAreaStateLink::query()->create([
+        'address_area_id' => $areaTreeRoot->getKey(),
+        'state_id' => $packageState->getKey(),
+        'hierarchy_type' => 'administrative',
+    ]);
+
+    foreach ([[$areaTreeRoot, $district], [$district, $subdistrict]] as [$parentArea, $childArea]) {
+        AddressAreaRelationship::query()->create([
+            'parent_address_area_id' => $parentArea->getKey(),
+            'child_address_area_id' => $childArea->getKey(),
+            'relationship_type' => 'contains',
+            'hierarchy_type' => 'administrative',
+            'source' => 'tests',
+        ]);
+    }
 
     return [
         'country' => $country,

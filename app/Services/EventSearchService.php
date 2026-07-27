@@ -45,11 +45,19 @@ class EventSearchService
             'persons.media' => fn ($query) => $query
                 ->where('collection_name', 'avatar')
                 ->ordered(),
+            'persons.titleAssignments.title.category',
+            'languageRecords',
             'institution.media' => fn ($query) => $query
                 ->where('collection_name', 'logo')
                 ->ordered(),
             'institution.addresses.country',
+            'institution.addresses.state',
+            'institution.addresses.city',
+            'institution.addresses.areaAssignments.area',
             'venue.addresses.country',
+            'venue.addresses.state',
+            'venue.addresses.city',
+            'venue.addresses.areaAssignments.area',
             'latestPublishedChangeAnnouncement',
             'primaryOccurrence',
             'timeExpressions',

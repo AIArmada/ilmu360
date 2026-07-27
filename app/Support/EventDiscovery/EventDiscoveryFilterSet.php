@@ -21,20 +21,18 @@ final class EventDiscoveryFilterSet
     {
         $locationFilters = [];
 
-        foreach ([
-            'country_id',
-            'state_id',
-            'city_id',
-            'admin_area_1_id',
-            'admin_area_2_id',
-            'admin_area_3_id',
-            'admin_area_4_id',
-        ] as $column) {
+        foreach (['country_id', 'state_id', 'city_id'] as $column) {
             $value = $filters[$column] ?? null;
 
             if (is_string($value) || is_int($value)) {
                 $locationFilters[$column] = (string) $value;
             }
+        }
+
+        $assignments = $filters['area_assignments'] ?? [];
+
+        if (is_array($assignments)) {
+            $locationFilters['area_assignments'] = $assignments;
         }
 
         return AddressLocationData::fromArray($locationFilters);
@@ -43,10 +41,16 @@ final class EventDiscoveryFilterSet
     /** @return list<string> */
     public function typesenseLocationFilterParts(AddressLocationData $location): array
     {
-        return array_map(
+        $parts = array_map(
             static fn (string $column, string $value): string => "{$column}:={$value}",
             array_keys($location->criteria()),
             array_values($location->criteria()),
         );
+
+        foreach ($location->assignments() as $role => $areaId) {
+            $parts[] = "{$role}_id:={$areaId}";
+        }
+
+        return $parts;
     }
 }

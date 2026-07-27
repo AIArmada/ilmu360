@@ -24,6 +24,8 @@ class InstitutionsRelationManager extends RelationManager
 {
     protected static string $relationship = 'institutions';
 
+    protected static ?string $inverseRelationship = 'persons';
+
     #[\Override]
     public function form(Schema $schema): Schema
     {

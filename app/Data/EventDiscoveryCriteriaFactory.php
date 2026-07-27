@@ -38,8 +38,7 @@ final class EventDiscoveryCriteriaFactory
             countryId: $this->uuid($normalizedFilters['country_id'] ?? null),
             stateId: $this->uuid($normalizedFilters['state_id'] ?? null),
             cityId: $this->uuid($normalizedFilters['city_id'] ?? null),
-            adminArea1Id: $this->uuid($normalizedFilters['admin_area_1_id'] ?? null),
-            adminArea2Id: $this->uuid($normalizedFilters['admin_area_2_id'] ?? null),
+            areaAssignments: $this->normalizeAssignments($normalizedFilters['area_assignments'] ?? []),
             eventFilters: $this->select($normalizedFilters, [
                 'status', 'visibility', 'event_format', 'event_category_ids', 'gender', 'age_group',
                 'children_allowed', 'time_scope', 'timing_mode', 'prayer_time', 'starts_after',
@@ -48,7 +47,7 @@ final class EventDiscoveryCriteriaFactory
                 'search_include_institutions', 'search_include_persons', 'search_include_references',
             ]),
             relationFilters: $this->select($normalizedFilters, [
-                'country_id', 'state_id', 'city_id', 'admin_area_1_id', 'admin_area_2_id',
+                'country_id', 'state_id', 'city_id', 'area_assignments',
                 'institution_id', 'venue_id', 'person_ids', 'reference_ids', 'language_codes',
                 'person_in_charge_ids', 'person_in_charge_search', 'domain_tag_ids', 'discipline_tag_ids',
                 'source_tag_ids', 'issue_tag_ids', 'event_category_ids',
@@ -75,7 +74,18 @@ final class EventDiscoveryCriteriaFactory
             $normalized[$key] = $this->normalizeValue($value);
         }
 
-        foreach (['country_id', 'state_id', 'city_id', 'admin_area_1_id', 'admin_area_2_id', 'institution_id', 'venue_id'] as $key) {
+        $legacyAssignments = array_filter([
+            'administrative_district' => $normalized['admin_area_1_id'] ?? null,
+            'administrative_subdivision' => $normalized['admin_area_2_id'] ?? null,
+        ]);
+
+        if ($legacyAssignments !== []) {
+            $normalized['area_assignments'] = array_merge((array) ($normalized['area_assignments'] ?? []), $legacyAssignments);
+        }
+
+        unset($normalized['admin_area_1_id'], $normalized['admin_area_2_id'], $normalized['admin_area_3_id'], $normalized['admin_area_4_id']);
+
+        foreach (['country_id', 'state_id', 'city_id', 'institution_id', 'venue_id'] as $key) {
             if (array_key_exists($key, $normalized)) {
                 $normalized[$key] = $this->uuid($normalized[$key]);
             }
@@ -88,6 +98,24 @@ final class EventDiscoveryCriteriaFactory
         }
 
         return array_filter($normalized, static fn (mixed $value): bool => $value !== null && $value !== []);
+    }
+
+    /** @return array<string, string> */
+    private function normalizeAssignments(mixed $value): array
+    {
+        if (! is_array($value)) {
+            return [];
+        }
+
+        $assignments = [];
+
+        foreach ($value as $role => $areaId) {
+            if (is_string($role) && is_string($areaId) && Str::isUuid($areaId)) {
+                $assignments[$role] = $areaId;
+            }
+        }
+
+        return $assignments;
     }
 
     private function normalizeValue(mixed $value): mixed

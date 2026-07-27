@@ -122,11 +122,19 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
             'persons.media' => fn ($query) => $query
                 ->where('collection_name', 'avatar')
                 ->ordered(),
+            'persons.titleAssignments.title.category',
+            'languageRecords',
             'institution.media' => fn ($query) => $query
                 ->where('collection_name', 'logo')
                 ->ordered(),
             'institution.addresses.country',
+            'institution.addresses.state',
+            'institution.addresses.city',
+            'institution.addresses.areaAssignments.area',
             'venue.addresses.country',
+            'venue.addresses.state',
+            'venue.addresses.city',
+            'venue.addresses.areaAssignments.area',
             'latestPublishedChangeAnnouncement',
             'primaryOccurrence',
             'timeExpressions',
@@ -741,6 +749,40 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
         foreach ($location->criteria() as $column => $value) {
             $this->applyLocationAddressCriterion($queryBuilder, $column, $value);
         }
+
+        foreach ($location->assignments() as $role => $areaId) {
+            $this->applyLocationAddressAssignmentCriterion($queryBuilder, $role, $areaId);
+        }
+    }
+
+    protected function applyLocationAddressAssignmentCriterion(EventBuilder $queryBuilder, string $role, string $areaId): void
+    {
+        $addressesTable = config('addressing.tables.addresses', 'addresses');
+        $addressablesTable = config('addressing.tables.addressables', 'addressables');
+        $assignmentsTable = config('addressing.tables.address_area_assignments', 'address_area_assignments');
+        $venueMorphType = (new Venue)->getMorphClass();
+        $institutionMorphType = (new Institution)->getMorphClass();
+
+        $queryBuilder->where(function (Builder $locationQuery) use ($addressesTable, $addressablesTable, $assignmentsTable, $venueMorphType, $institutionMorphType, $role, $areaId): void {
+            foreach ([
+                ['events.default_venue_id', $venueMorphType],
+                ['events.institution_id', $institutionMorphType],
+            ] as [$ownerColumn, $morphType]) {
+                $locationQuery->{($ownerColumn === 'events.default_venue_id' ? 'whereExists' : 'orWhereExists')}(function ($addressQuery) use ($addressesTable, $addressablesTable, $assignmentsTable, $ownerColumn, $morphType, $role, $areaId): void {
+                    $addressQuery
+                        ->select(DB::raw(1))
+                        ->from($addressesTable)
+                        ->join($addressablesTable, "{$addressesTable}.id", '=', "{$addressablesTable}.address_id")
+                        ->join($assignmentsTable, "{$assignmentsTable}.address_id", '=', "{$addressesTable}.id")
+                        ->whereRaw("{$addressablesTable}.addressable_id = {$ownerColumn}")
+                        ->where("{$addressablesTable}.addressable_type", $morphType)
+                        ->where("{$addressablesTable}.is_primary", true)
+                        ->where("{$assignmentsTable}.role", $role)
+                        ->where("{$assignmentsTable}.address_area_id", $areaId)
+                        ->where("{$assignmentsTable}.is_primary", true);
+                });
+            }
+        });
     }
 
     protected function applyLocationAddressCriterion(EventBuilder $queryBuilder, string $column, string $value): void

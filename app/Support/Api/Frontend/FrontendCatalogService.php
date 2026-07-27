@@ -105,17 +105,17 @@ class FrontendCatalogService
      *
      * @return list<array{id: string, label: string, type: string, level: int|null}>
      */
-    public function adminAreaLevel1(?string $countryId, ?string $stateId = null): array
+    public function administrativeDistricts(?string $countryId, ?string $stateId = null): array
     {
         if (is_string($stateId) && $stateId !== '') {
-            return $this->storageAreaOptions(
+            return $this->roleAreaOptions(
                 $countryId ?? $this->countryIdForState($stateId),
-                'admin_area_1_id',
+                'administrative_district',
                 $stateId,
             );
         }
 
-        return $this->storageAreaOptions($countryId, 'admin_area_1_id');
+        return $this->roleAreaOptions($countryId, 'administrative_district');
     }
 
     /**
@@ -123,22 +123,22 @@ class FrontendCatalogService
      *
      * @return list<array{id: string, label: string, type: string, level: int|null}>
      */
-    public function adminAreaLevel2(?string $adminArea1Id, ?string $countryId = null, ?string $stateId = null): array
+    public function administrativeSubdivisions(?string $districtId, ?string $countryId = null, ?string $stateId = null): array
     {
-        if (is_string($adminArea1Id) && $adminArea1Id !== '') {
-            return $this->addressAreas(countryId: $countryId, parentId: $adminArea1Id);
+        if (is_string($districtId) && $districtId !== '') {
+            return $this->roleAreaOptions($countryId, 'administrative_subdivision', $districtId);
         }
 
         if (is_string($stateId) && $stateId !== '') {
-            return $this->storageAreaOptions(
+            return $this->roleAreaOptions(
                 $countryId ?? $this->countryIdForState($stateId),
-                'admin_area_2_id',
+                'administrative_subdivision',
                 $stateId,
             );
         }
 
         if (is_string($countryId) && $countryId !== '') {
-            return $this->storageAreaOptions($countryId, 'admin_area_2_id');
+            return $this->roleAreaOptions($countryId, 'administrative_subdivision');
         }
 
         return [];
@@ -180,9 +180,9 @@ class FrontendCatalogService
     /**
      * @return list<array{id: string, label: string, type: string, level: int|null}>
      */
-    private function storageAreaOptions(?string $countryId, string $storageColumn, ?string $parentId = null): array
+    private function roleAreaOptions(?string $countryId, string $role, ?string $parentId = null): array
     {
-        $options = SharedFormSchema::areaOptionsForStorage($countryId, $storageColumn, $parentId);
+        $options = SharedFormSchema::areaOptionsForRole($countryId, $role, $parentId);
 
         if ($options === []) {
             return [];

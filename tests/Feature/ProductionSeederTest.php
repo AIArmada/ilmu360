@@ -1,6 +1,8 @@
 <?php
 
+use AIArmada\Addressing\Actions\SeedAddressCitiesAction;
 use App\Models\Space;
+use Database\Seeders\AddressingSeeder;
 use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\DistrictSeeder;
 use Database\Seeders\FacilityTypeSeeder;
@@ -81,6 +83,39 @@ it('production seeder only calls deterministic bootstrap seeders', function () {
         SpaceSeeder::class,
         InspirationSeeder::class,
     ]);
+});
+
+it('reduces city seed data outside production while keeping production complete', function () {
+    $method = new ReflectionMethod(AddressingSeeder::class, 'citySeedRows');
+    $seeder = new AddressingSeeder;
+    $cities = app(SeedAddressCitiesAction::class);
+    $originalEnvironment = app()->environment();
+
+    try {
+        app()['env'] = 'testing';
+        $sample = $method->invoke($seeder, $cities);
+
+        $actionPath = (new ReflectionClass($cities))->getFileName();
+
+        expect($actionPath)->toBeString();
+
+        $allCities = json_decode(
+            file_get_contents(dirname((string) $actionPath, 3).'/resources/data/cities.json'),
+            true,
+            512,
+            JSON_THROW_ON_ERROR,
+        );
+
+        expect($sample)->toBeArray()->not->toBeEmpty()
+            ->and(collect($sample)->where('country_code', 'MY')->count())
+            ->toBe(collect($allCities)->where('country_code', 'MY')->count());
+
+        app()['env'] = 'production';
+
+        expect($method->invoke($seeder, $cities))->toBeNull();
+    } finally {
+        app()['env'] = $originalEnvironment;
+    }
 });
 
 it('seeds common spaces deterministically without factories', function () {

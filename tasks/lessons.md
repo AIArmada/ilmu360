@@ -365,3 +365,5 @@
 - When a CI style job can push a follow-up commit, monitor the workflow head SHA and fetch/rebase before pushing app fixes so the final Quality run contains both the formatter output and functional changes.
 - When model events are intentionally disabled during seeders, UUID-generating `creating` hooks do not run; assign the UUID explicitly on the model instance before saving instead of relying on mass-assignment of a guarded `id` field.
 - Package relation migrations can change a serialized collection from a legacy boolean map to related rows; update app state serializers and persistence semantics together, including explicit `null` collection clearing.
+
+- When a package-owned Filament resource needs a field already modeled by the package, implement the display and relation in the package behind its existing resolver seam; do not replace the resource in the consuming app unless the app is adding genuinely product-specific behavior.

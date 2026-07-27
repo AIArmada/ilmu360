@@ -139,14 +139,8 @@ class Show extends Component
                     ->where('events.visibility', EventVisibility::Public)
                     ->whereNotNull('events.published_at');
             })
-            ->with([
-                'event' => fn ($q) => $q->with([
-                    'institution.addresses',
-                    'venue.addresses',
-                    'references',
-                    'media',
-                ]),
-            ])
+            // The profile only renders the event title and role here.
+            ->with('event')
             ->get()
             ->sortBy(function (EventKeyPerson $keyPerson): int {
                 $event = $keyPerson->event;
@@ -168,13 +162,11 @@ class Show extends Component
     private function loadPersonRelations(): void
     {
         OwnerContext::withOwner(null, function (): void {
-            $this->person->load([
+            $this->person->loadMissing([
                 'media',
-                'contactMethods',
                 'socialProfiles',
                 'addresses',
-                'institutions' => fn ($query) => $query->orderByPivot('is_primary', 'desc')->limit(3),
-                'institutions.media',
+                'titleAssignments',
             ]);
         });
     }
@@ -194,7 +186,8 @@ class Show extends Component
                 'institution.addresses',
                 'venue.addresses',
                 'references',
-                'media',
+                'primaryOccurrence',
+                'timeExpressions',
             ]);
     }
 }

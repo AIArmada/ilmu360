@@ -68,29 +68,29 @@ class CatalogController extends Controller
         title: 'List admin districts catalog',
         description: 'Returns the country profile\'s first administrative-area options for product `admin_area_1_id`.',
     )]
-    public function adminAreaLevel1(Request $request): JsonResponse
+    public function administrativeDistricts(Request $request): JsonResponse
     {
         return response()->json([
-            'data' => $this->catalogs->adminAreaLevel1(
+            'data' => $this->catalogs->administrativeDistricts(
                 $request->filled('country_id') ? $request->string('country_id')->toString() : null,
                 $request->filled('state_id') ? $request->string('state_id')->toString() : null,
             ),
         ]);
     }
 
-    #[QueryParameter('admin_area_1_id', 'Optional first administrative-area UUID used as the parent for the next configured level.', required: false, type: 'string', infer: false)]
+    #[QueryParameter('district_id', 'Optional administrative district UUID used as the parent.', required: false, type: 'string', infer: false)]
     #[QueryParameter('state_id', 'Optional package State UUID or country-profile parent when the previous area is not selected.', required: false, type: 'string', infer: false)]
     #[QueryParameter('country_id', 'Optional address country UUID for country-scoped listing without a parent.', required: false, type: 'string', infer: false)]
     #[Endpoint(
         title: 'List admin subdistricts catalog',
         description: 'Returns the next country-profile administrative-area options for product `admin_area_2_id`.',
     )]
-    public function adminAreaLevel2(Request $request): JsonResponse
+    public function administrativeSubdivisions(Request $request): JsonResponse
     {
         return response()->json([
-            'data' => $this->catalogs->adminAreaLevel2(
-                $request->filled('admin_area_1_id')
-                    ? $request->string('admin_area_1_id')->toString()
+            'data' => $this->catalogs->administrativeSubdivisions(
+                $request->filled('district_id')
+                    ? $request->string('district_id')->toString()
                     : null,
                 $request->filled('country_id')
                     ? $request->string('country_id')->toString()

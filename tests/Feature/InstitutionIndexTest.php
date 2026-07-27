@@ -352,13 +352,14 @@ it('deduplicates matching district and subdistrict labels on institution cards',
         ->assertDontSee('Temerloh, Temerloh, Pahang');
 });
 
-it('shows location scope controls on institution index without a country selector', function () {
+it('defaults the institution location scope to the application country', function () {
     get('/institusi')
         ->assertSuccessful()
-        ->assertDontSeeHtml('id="institution-country-filter"')
-        ->assertSee(__('Semua Negeri'))
-        ->assertSee(__('Semua Daerah'))
-        ->assertSee(__('Semua Bandar / Mukim / Zon'));
+        ->assertSee('id="institution-country-filter"', false)
+        ->assertSee(__('All countries'));
+
+    Livewire::test('pages.institutions.index')
+        ->assertSet('country_id', ensureTestMalaysiaCountry()->getKey());
 });
 
 it('filters institutions by country', function () {
@@ -393,13 +394,52 @@ it('filters institutions by country', function () {
         ->assertDontSee('Institusi Indonesia');
 });
 
-it('does not default the institutions country filter from an unencrypted browser timezone cookie', function () {
+it('does not infer the institution country from an unencrypted browser timezone cookie', function () {
     Livewire::withCookie('user_timezone', 'Asia/Jakarta')
         ->test('pages.institutions.index')
-        ->assertSet('country_id', null)
+        ->assertSet('country_id', ensureTestMalaysiaCountry()->getKey())
         ->assertSet('state_id', null)
+        ->assertSet('city_id', null)
         ->assertSet('admin_area_1_id', null)
         ->assertSet('admin_area_2_id', null);
+});
+
+it('allows the institution directory to clear the country scope for international search', function () {
+    Livewire::test('pages.institutions.index')
+        ->call('clearFilters')
+        ->assertSet('country_id', null)
+        ->assertSet('state_id', null)
+        ->assertSet('city_id', null)
+        ->assertSet('admin_area_1_id', null)
+        ->assertSet('admin_area_2_id', null)
+        ->assertDontSee('institution-state-filter')
+        ->assertDontSee('institution-city-filter')
+        ->assertDontSee('institution-district-filter')
+        ->assertDontSee('institution-subdistrict-filter');
+});
+
+it('filters institutions by the package city level', function () {
+    $geo = createTestPackageGeography('Negeri City Filter', 'Daerah City Filter', 'Mukim City Filter', 'Bandar City Filter');
+
+    $matching = Institution::factory()->create([
+        'name' => 'Institusi Bandar City Filter',
+        'status' => 'verified',
+    ]);
+    syncPrimaryAddressForTest($matching, $geo['address']);
+
+    $other = Institution::factory()->create([
+        'name' => 'Institusi Negeri City Filter',
+        'status' => 'verified',
+    ]);
+    syncPrimaryAddressForTest($other, [
+        ...$geo['address'],
+        'city_id' => null,
+    ]);
+
+    get('/institusi?state_id='.$geo['state']->getKey().'&city_id='.$geo['city']->getKey())
+        ->assertSuccessful()
+        ->assertSee('Institusi Bandar City Filter')
+        ->assertDontSee('Institusi Negeri City Filter');
 });
 
 it('filters institutions by negeri, daerah, and subdistrict scopes', function () {

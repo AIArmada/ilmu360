@@ -26,9 +26,7 @@ class ResolveGooglePlaceSelectionAction
      *     country_id: string|null,
      *     state_id: string|null,
      *     city_id: string|null,
-     *     admin_area_1_id: string|null,
-     *     admin_area_2_id: string|null,
-     *     admin_area_3_id: string|null,
+     *     area_assignments: array<string, string>,
      *     line1: string|null,
      *     line2: string|null,
      *     postcode: string|null,
@@ -67,7 +65,7 @@ class ResolveGooglePlaceSelectionAction
         $areaTreeRoot = $this->resolveArea($stateName, $countryId, null, 1);
         $countryId = $areaTreeRoot->country_id ?? $countryId;
         $stateId = $this->resolveStateId($stateName, $countryId, $areaTreeRoot);
-        $areaTreeRootId = AddressAreaStateBridge::areaIdForState($stateId);
+        $areaTreeRootId = AddressAreaStateBridge::areaIdForState($stateId, 'administrative');
         $areaTreeRoot = $areaTreeRootId !== null
             ? AddressArea::query()->find($areaTreeRootId)
             : $areaTreeRoot;
@@ -108,9 +106,10 @@ class ResolveGooglePlaceSelectionAction
             'country_id' => $countryId,
             'state_id' => $stateId,
             'city_id' => $cityId,
-            'admin_area_1_id' => $districtId,
-            'admin_area_2_id' => $subdistrictId,
-            'admin_area_3_id' => null,
+            'area_assignments' => array_filter([
+                'administrative_district' => $districtId,
+                'administrative_subdivision' => $subdistrictId,
+            ]),
             'line1' => $this->resolveLine1($components),
             'line2' => $this->resolveLine2($components),
             'postcode' => $this->componentValue($components, ['postal_code']),
@@ -324,8 +323,7 @@ class ResolveGooglePlaceSelectionAction
             ->filter(function (State $state) use ($stateName): bool {
                 $normalized = $this->normalizeLocationName($stateName);
 
-                return $this->normalizeLocationName($state->name) === $normalized
-                    || $this->normalizeLocationName($state->label) === $normalized;
+                return $this->normalizeLocationName($state->name) === $normalized;
             })
             ->values();
 

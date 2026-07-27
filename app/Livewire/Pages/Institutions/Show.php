@@ -131,11 +131,17 @@ class Show extends Component
             ->active()
             ->with([
                 'venue.media',
-                'venue.addresses',
+                'venue.addresses.state',
+                'venue.addresses.city',
+                'venue.addresses.areaAssignments.area',
                 'persons.media',
+                'persons.titleAssignments.title.category',
                 'keyPeople.person',
                 'references',
                 'media',
+                'primaryOccurrence',
+                'timeExpressions',
+                'links',
             ]);
     }
 
@@ -149,14 +155,17 @@ class Show extends Component
     private function loadInstitutionRelations(): void
     {
         OwnerContext::withOwner(null, function (): void {
-            $this->institution->load([
+            $this->institution->loadMissing([
                 'media',
-                'addresses',
+                'addresses.state',
+                'addresses.city',
+                'addresses.areaAssignments.area',
                 'contactMethods',
                 'socialProfiles',
                 'donationChannels.media',
                 'persons',
                 'persons.media',
+                'persons.titleAssignments.title.category',
                 'spaces' => fn ($query) => $query->where('status', 'active'),
                 'languages',
             ]);

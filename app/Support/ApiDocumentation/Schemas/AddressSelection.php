@@ -8,9 +8,9 @@ use Dedoc\Scramble\Attributes\SchemaName;
 use Illuminate\Contracts\Support\Arrayable;
 
 /**
- * Product address selection using the package's country-scoped address columns.
+ * Product address selection using country-profile-defined address assignments.
  *
- * @phpstan-type AddressSelectionArray array{country_id: ?string, state_id: ?string, city_id: ?string, admin_area_1_id: ?string, admin_area_2_id: ?string, admin_area_3_id: ?string, admin_area_4_id: ?string}
+ * @phpstan-type AddressSelectionArray array{country_id: ?string, state_id: ?string, city_id: ?string, area_assignments: array<string, string>}
  *
  * @implements Arrayable<string, mixed>
  */
@@ -21,10 +21,8 @@ final readonly class AddressSelection implements Arrayable
         public ?string $country_id,
         public ?string $state_id,
         public ?string $city_id,
-        public ?string $admin_area_1_id,
-        public ?string $admin_area_2_id,
-        public ?string $admin_area_3_id,
-        public ?string $admin_area_4_id,
+        /** @var array<string, string> */
+        public array $area_assignments = [],
     ) {}
 
     /** @return AddressSelectionArray */
@@ -34,10 +32,7 @@ final readonly class AddressSelection implements Arrayable
             'country_id' => $this->country_id,
             'state_id' => $this->state_id,
             'city_id' => $this->city_id,
-            'admin_area_1_id' => $this->admin_area_1_id,
-            'admin_area_2_id' => $this->admin_area_2_id,
-            'admin_area_3_id' => $this->admin_area_3_id,
-            'admin_area_4_id' => $this->admin_area_4_id,
+            'area_assignments' => $this->area_assignments,
         ];
     }
 }

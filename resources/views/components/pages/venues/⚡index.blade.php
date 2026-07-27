@@ -184,11 +184,13 @@ new
                 }
 
                 if ($adminArea1Id !== null) {
-                    $addressQuery->where('admin_area_1_id', $adminArea1Id);
+                    $addressQuery->whereHas('areaAssignments', fn (Builder $assignmentQuery) => $assignmentQuery
+                        ->where('role', 'administrative_district')->where('address_area_id', $adminArea1Id));
                 }
 
                 if ($adminArea2Id !== null) {
-                    $addressQuery->where('admin_area_2_id', $adminArea2Id);
+                    $addressQuery->whereHas('areaAssignments', fn (Builder $assignmentQuery) => $assignmentQuery
+                        ->where('role', 'administrative_subdivision')->where('address_area_id', $adminArea2Id));
                 }
             });
         }

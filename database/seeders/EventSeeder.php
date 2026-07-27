@@ -269,10 +269,7 @@ class EventSeeder extends Seeder
                 'country_id' => $institutionAddress->country_id ?? $malaysia?->id,
                 'state_id' => $institutionAddress?->state_id,
                 'city_id' => $institutionAddress?->city_id,
-                'admin_area_1_id' => $institutionAddress?->admin_area_1_id,
-                'admin_area_2_id' => $institutionAddress?->admin_area_2_id,
-                'admin_area_3_id' => null,
-                'admin_area_4_id' => null,
+                'area_assignments' => $institutionAddress?->areaAssignments()->pluck('address_area_id', 'role')->all() ?? [],
                 'latitude' => $institutionAddress?->latitude,
                 'longitude' => $institutionAddress?->longitude,
             ]);

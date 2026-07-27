@@ -21,6 +21,7 @@ use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
 use App\Models\Venue;
+use App\Support\Location\AddressAssignments;
 use Filament\Facades\Filament;
 use Filament\Resources\Resource;
 use Illuminate\Contracts\Support\Htmlable;
@@ -797,9 +798,10 @@ class AdminResourceRegistry
             if ($record instanceof Person && is_array($attributes['address'])) {
                 $attributes['address'] = Arr::only($attributes['address'], [
                     'country_id',
-                    'admin_area_1_id',
-                    'admin_area_2_id',
+                    'state_id',
+                    'city_id',
                 ]);
+                $attributes['address']['area_assignments'] = AddressAssignments::forAddress($address);
             }
         }
 

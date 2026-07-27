@@ -22,8 +22,8 @@ final readonly class EventDiscoveryCriteria
         public ?string $countryId,
         public ?string $stateId,
         public ?string $cityId,
-        public ?string $adminArea1Id,
-        public ?string $adminArea2Id,
+        /** @var array<string, string> */
+        public array $areaAssignments,
         public array $eventFilters,
         public array $relationFilters,
         public ?float $latitude,

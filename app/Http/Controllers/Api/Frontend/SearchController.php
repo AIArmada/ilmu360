@@ -240,10 +240,11 @@ class SearchController extends FrontendController
         $countryId = $this->searchRequestNormalizer->requestedCountryId($request);
         $stateId = $this->searchRequestNormalizer->normalizedUuid($request->query('state_id'));
         $cityId = $this->searchRequestNormalizer->normalizedUuid($request->query('city_id'));
-        $adminArea1Id = $this->searchRequestNormalizer->normalizedUuid($request->query('admin_area_1_id'));
-        $adminArea2Id = $this->searchRequestNormalizer->normalizedUuid($request->query('admin_area_2_id'));
-        $adminArea3Id = $this->searchRequestNormalizer->normalizedUuid($request->query('admin_area_3_id'));
-        $adminArea4Id = $this->searchRequestNormalizer->normalizedUuid($request->query('admin_area_4_id'));
+        $areaAssignments = is_array($request->query('area_assignments')) ? $request->query('area_assignments') : [];
+        $adminArea1Id = $this->searchRequestNormalizer->normalizedUuid($areaAssignments['administrative_district'] ?? null);
+        $adminArea2Id = $this->searchRequestNormalizer->normalizedUuid($areaAssignments['administrative_subdivision'] ?? null);
+        $adminArea3Id = null;
+        $adminArea4Id = null;
         $coordinates = $this->searchRequestNormalizer->resolvedNearbyCoordinates($request);
         $lat = $coordinates['lat'];
         $lng = $coordinates['lng'];
@@ -363,10 +364,11 @@ class SearchController extends FrontendController
         $directorySeed = $this->searchRequestNormalizer->normalizedString($request->query('directory_seed'));
         $perPage = ApiPagination::normalizePerPage($request->integer('per_page', 12), default: 12, max: 50);
         $countryId = $this->searchRequestNormalizer->requestedCountryId($request);
-        $adminArea1Id = $this->searchRequestNormalizer->normalizedUuid($request->query('admin_area_1_id'));
-        $adminArea2Id = $this->searchRequestNormalizer->normalizedUuid($request->query('admin_area_2_id'));
-        $adminArea3Id = $this->searchRequestNormalizer->normalizedUuid($request->query('admin_area_3_id'));
-        $adminArea4Id = $this->searchRequestNormalizer->normalizedUuid($request->query('admin_area_4_id'));
+        $areaAssignments = is_array($request->query('area_assignments')) ? $request->query('area_assignments') : [];
+        $adminArea1Id = $this->searchRequestNormalizer->normalizedUuid($areaAssignments['administrative_district'] ?? null);
+        $adminArea2Id = $this->searchRequestNormalizer->normalizedUuid($areaAssignments['administrative_subdivision'] ?? null);
+        $adminArea3Id = null;
+        $adminArea4Id = null;
         $gender = in_array($request->query('gender'), ['male', 'female'], true)
             ? $request->query('gender')
             : null;
@@ -1034,10 +1036,10 @@ class SearchController extends FrontendController
             countryId: $countryId,
             stateId: $stateId,
             cityId: $cityId,
-            adminArea1Id: $adminArea1Id,
-            adminArea2Id: $adminArea2Id,
-            adminArea3Id: $adminArea3Id,
-            adminArea4Id: $adminArea4Id,
+            areaAssignments: array_filter([
+                'administrative_district' => $adminArea1Id,
+                'administrative_subdivision' => $adminArea2Id,
+            ]),
         ));
     }
 
@@ -1227,10 +1229,10 @@ class SearchController extends FrontendController
             countryId: $countryId,
             stateId: $stateId,
             cityId: $cityId,
-            adminArea1Id: $adminArea1Id,
-            adminArea2Id: $adminArea2Id,
-            adminArea3Id: $adminArea3Id,
-            adminArea4Id: $adminArea4Id,
+            areaAssignments: array_filter([
+                'administrative_district' => $adminArea1Id,
+                'administrative_subdivision' => $adminArea2Id,
+            ]),
         ));
     }
 

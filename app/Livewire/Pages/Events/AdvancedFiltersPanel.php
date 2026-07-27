@@ -655,8 +655,7 @@ class AdvancedFiltersPanel extends Component implements HasForms
             'country_id' => null,
             'state_id' => null,
             'city_id' => null,
-            'admin_area_1_id' => null,
-            'admin_area_2_id' => null,
+            'area_assignments' => [],
             'language_codes' => [],
             'event_category_ids' => [],
             'gender' => null,
@@ -740,8 +739,10 @@ class AdvancedFiltersPanel extends Component implements HasForms
             'country_id' => filled($normalized['country_id']) ? (string) $normalized['country_id'] : null,
             'state_id' => filled($normalized['state_id'] ?? null) ? (string) $normalized['state_id'] : null,
             'city_id' => filled($normalized['city_id'] ?? null) ? (string) $normalized['city_id'] : null,
-            'admin_area_1_id' => filled($normalized['admin_area_1_id']) ? (string) $normalized['admin_area_1_id'] : null,
-            'admin_area_2_id' => filled($normalized['admin_area_2_id']) ? (string) $normalized['admin_area_2_id'] : null,
+            'area_assignments' => array_filter([
+                'administrative_district' => filled($normalized['admin_area_1_id'] ?? null) ? (string) $normalized['admin_area_1_id'] : null,
+                'administrative_subdivision' => filled($normalized['admin_area_2_id'] ?? null) ? (string) $normalized['admin_area_2_id'] : null,
+            ]),
             'language_codes' => $languageCodes,
             'event_category_ids' => $this->normalizeStringArray($normalized['event_category_ids'] ?? []),
             'gender' => filled($normalized['gender']) ? (string) $normalized['gender'] : null,
@@ -1050,11 +1051,13 @@ class AdvancedFiltersPanel extends Component implements HasForms
             }
 
             if (filled($adminArea1Id)) {
-                $addressQuery->where('admin_area_1_id', $adminArea1Id);
+                $addressQuery->whereHas('areaAssignments', fn (Builder $assignmentQuery) => $assignmentQuery
+                    ->where('role', 'administrative_district')->where('address_area_id', $adminArea1Id));
             }
 
             if (filled($adminArea2Id)) {
-                $addressQuery->where('admin_area_2_id', $adminArea2Id);
+                $addressQuery->whereHas('areaAssignments', fn (Builder $assignmentQuery) => $assignmentQuery
+                    ->where('role', 'administrative_subdivision')->where('address_area_id', $adminArea2Id));
             }
         });
     }

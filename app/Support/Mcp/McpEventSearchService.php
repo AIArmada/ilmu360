@@ -46,10 +46,7 @@ class McpEventSearchService
         'country_id',
         'state_id',
         'city_id',
-        'admin_area_1_id',
-        'admin_area_2_id',
-        'admin_area_3_id',
-        'admin_area_4_id',
+        'area_assignments',
         'language_codes',
         'event_category_ids',
         'gender',
@@ -193,10 +190,8 @@ class McpEventSearchService
             'country_id' => ['sometimes', 'nullable'],
             'state_id' => ['sometimes', 'nullable'],
             'city_id' => ['sometimes', 'nullable'],
-            'admin_area_1_id' => ['sometimes', 'nullable'],
-            'admin_area_2_id' => ['sometimes', 'nullable'],
-            'admin_area_3_id' => ['sometimes', 'nullable'],
-            'admin_area_4_id' => ['sometimes', 'nullable'],
+            'area_assignments' => ['sometimes', 'nullable', 'array'],
+            'area_assignments.*' => ['nullable', 'uuid'],
             'language_codes' => ['sometimes', 'nullable', 'array'],
             'language_codes.*' => ['string'],
             'event_category_ids' => ['sometimes', 'nullable', 'array'],
@@ -287,17 +282,8 @@ class McpEventSearchService
             'city_id' => $schema->string()->nullable()->description(
                 'UUID of package addressing cities.id (real addresses.city_id column). Use catalogs.cities.'
             ),
-            'admin_area_1_id' => $schema->string()->nullable()->description(
-                'UUID of package address_areas level 1. Use catalogs.admin-area-level-1.'
-            ),
-            'admin_area_2_id' => $schema->string()->nullable()->description(
-                'UUID of the selected second-level address area within the first-level area.'
-            ),
-            'admin_area_3_id' => $schema->string()->nullable()->description(
-                'UUID of the selected third configured administrative area.'
-            ),
-            'admin_area_4_id' => $schema->string()->nullable()->description(
-                'UUID of the selected fourth configured administrative area.'
+            'area_assignments' => $schema->object()->nullable()->description(
+                'Role-keyed address areas, for example administrative_district and administrative_subdivision.'
             ),
             'language_codes' => $stringArray->description(
                 'Array of BCP-47 language codes. Example: ["ms", "en", "ar"]. Events that are conducted in any of the given languages will be returned.'

@@ -2,9 +2,13 @@
 
 namespace Database\Seeders;
 
+use AIArmada\Addressing\Models\Address;
+use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
+use AIArmada\Persons\Enums\AssignmentStatus;
+use AIArmada\Persons\Models\Title;
 use App\Actions\Persons\GeneratePersonSlugAction;
 use App\Enums\SpeakerStatus;
 use App\Models\Person;
@@ -30,29 +34,41 @@ class PersonSeeder extends Seeder
 
     private function seedPersons(): void
     {
+        $malaysia = AddressCountry::query()->firstOrCreate(
+            ['iso2' => 'MY'],
+            [
+                'name' => 'Malaysia',
+                'iso3' => 'MYS',
+                'region' => 'Asia',
+                'subregion' => 'South-Eastern Asia',
+                'phone_code' => '60',
+            ],
+        );
+
         $realPersons = [
-            'Ustaz Azhar Idrus',
-            'Dr. MAZA (Dr. Mohd Asri Zainul Abidin)',
-            'Ustaz Wadi Annuar',
-            'Ustaz Don Daniyal',
-            'Habib Ali Zaenal Abidin',
-            'Ustaz Kazim Elias',
-            'Ustaz Ebit Lew',
-            'Dr. Rozaimi Ramle',
-            'Ustaz Auni Mohamed',
-            'Ustaz Fawwaz Mat Jan',
-            'Ustaz Jafri Abu Bakar',
-            'Ustaz Abdullah Khairi',
-            'Ustaz Haslin Baharim (Bollywood)',
-            'Ustaz Syamsul Debat',
-            'Prof. Dr. Muhaya Mohamad',
+            ['name' => 'Azhar Idrus', 'titles' => ['Ustaz']],
+            ['name' => 'Mohd Asri Zainul Abidin', 'titles' => ['Dr.']],
+            ['name' => 'Wadi Annuar', 'titles' => ['Ustaz']],
+            ['name' => 'Don Daniyal', 'titles' => ['Ustaz']],
+            ['name' => 'Ali Zaenal Abidin', 'titles' => ['Habib']],
+            ['name' => 'Kazim Elias', 'titles' => ['Ustaz']],
+            ['name' => 'Ebit Lew', 'titles' => ['Ustaz']],
+            ['name' => 'Rozaimi Ramle', 'titles' => ['Dr.']],
+            ['name' => 'Auni Mohamed', 'titles' => ['Ustaz']],
+            ['name' => 'Fawwaz Mat Jan', 'titles' => ['Ustaz']],
+            ['name' => 'Jafri Abu Bakar', 'titles' => ['Ustaz']],
+            ['name' => 'Abdullah Khairi', 'titles' => ['Ustaz']],
+            ['name' => 'Haslin Baharim (Bollywood)', 'titles' => ['Ustaz']],
+            ['name' => 'Syamsul Debat', 'titles' => ['Ustaz']],
+            ['name' => 'Muhaya Mohamad', 'titles' => ['Profesor', 'Dr.']],
         ];
 
         $userIds = User::query()->pluck('id')->toArray();
         $memberAttachments = [];
 
-        foreach ($realPersons as $name) {
-            OwnerContext::withOwner(null, function () use ($name, $userIds, &$memberAttachments): void {
+        foreach ($realPersons as $personData) {
+            OwnerContext::withOwner(null, function () use ($personData, $userIds, $malaysia, &$memberAttachments): void {
+                $name = $personData['name'];
                 $person = Person::firstOrCreate(
                     ['name' => $name],
                     [
@@ -72,8 +88,25 @@ class PersonSeeder extends Seeder
                     ]
                 );
 
-                if ($person->wasRecentlyCreated || $person->speaker_status === null) {
+                if ($person->wasRecentlyCreated || $person->getAttribute('speaker_status') === null) {
                     $person->forceFill(['speaker_status' => SpeakerStatus::Active->value])->saveQuietly();
+                }
+
+                if ($person->wasRecentlyCreated) {
+                    $person->attachAddress(Address::query()->create([
+                        'country_id' => $malaysia->getKey(),
+                        'country_code' => 'MY',
+                        'country' => 'Malaysia',
+                    ]), 'primary', true);
+                }
+
+                foreach ($personData['titles'] as $titleName) {
+                    $title = Title::query()->where('name', $titleName)->firstOrFail();
+
+                    $person->titleAssignments()->firstOrCreate(
+                        ['title_id' => $title->id],
+                        ['status' => AssignmentStatus::Active],
+                    );
                 }
 
                 $person->contactMethods()->updateOrCreate(

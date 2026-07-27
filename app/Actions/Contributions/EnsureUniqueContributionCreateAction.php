@@ -6,6 +6,7 @@ use App\Enums\ContributionSubjectType;
 use App\Forms\SharedFormSchema;
 use App\Models\Institution;
 use App\Models\Person;
+use App\Support\Location\AddressAssignments;
 use BackedEnum;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Str;
@@ -78,23 +79,26 @@ final readonly class EnsureUniqueContributionCreateAction
         $countryId = $this->normalizeNullableUuid($address['country_id'] ?? null);
         $stateId = $this->normalizeNullableUuid($address['state_id'] ?? null);
         $cityId = $this->normalizeNullableUuid($address['city_id'] ?? null);
-        $adminArea1Id = $this->normalizeNullableUuid($address['admin_area_1_id'] ?? null);
-        $adminArea2Id = $this->normalizeNullableUuid($address['admin_area_2_id'] ?? null);
+        $assignments = AddressAssignments::normalize((array) ($address['area_assignments'] ?? []));
 
         return Institution::query()
             ->whereIn('status', ['verified', 'pending'])
-            ->whereHas('addresses', function (Builder $query) use ($countryId, $stateId, $cityId, $adminArea1Id, $adminArea2Id): void {
+            ->whereHas('addresses', function (Builder $query) use ($countryId, $stateId, $cityId, $assignments): void {
                 $query->where('country_id', $countryId);
 
                 foreach ([
                     'state_id' => $stateId,
                     'city_id' => $cityId,
-                    'admin_area_1_id' => $adminArea1Id,
-                    'admin_area_2_id' => $adminArea2Id,
                 ] as $column => $value) {
                     if ($value !== null) {
                         $query->where($column, $value);
                     }
+                }
+
+                foreach ($assignments as $role => $areaId) {
+                    $query->whereHas('areaAssignments', static function (Builder $assignmentQuery) use ($role, $areaId): void {
+                        $assignmentQuery->where('role', $role)->where('address_area_id', $areaId)->where('is_primary', true);
+                    });
                 }
             })
             ->get(['id', 'name'])

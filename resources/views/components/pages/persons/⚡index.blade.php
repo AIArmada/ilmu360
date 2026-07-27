@@ -1,5 +1,7 @@
 <?php
 
+use App\Enums\EventVisibility;
+use App\Models\Event;
 use App\Models\Person;
 use App\Support\Search\PersonSearchService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator as LengthAwarePaginatorContract;
@@ -69,12 +71,15 @@ new
                 ->where('status', 'verified')
                 ->withCount(['events' => function ($query) {
                     $eventsTable = $query->getModel()->getTable();
-                    $query->whereIn("{$eventsTable}.status", \App\Models\Event::PUBLIC_STATUSES)
-                        ->where("{$eventsTable}.visibility", \App\Enums\EventVisibility::Public)
+                    $query->whereIn("{$eventsTable}.status", Event::PUBLIC_STATUSES)
+                        ->where("{$eventsTable}.visibility", EventVisibility::Public)
                         ->whereNotNull("{$eventsTable}.published_at")
                         ->where('starts_at', '>=', now());
                 }])
-                ->with('media');
+                ->with([
+                    'media',
+                    'titleAssignments.title.category',
+                ]);
         }
 
         private function directSearch(string $search): LengthAwarePaginatorContract

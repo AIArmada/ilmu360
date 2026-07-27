@@ -99,10 +99,10 @@ function sampleAddressSelectionSchema(): AddressSelection
         country_id: 1,
         state_id: 10,
         city_id: 15,
-        admin_area_1_id: 20,
-        admin_area_2_id: 30,
-        admin_area_3_id: null,
-        admin_area_4_id: null,
+        area_assignments: [
+            'administrative_district' => '20',
+            'administrative_subdivision' => '30',
+        ],
     );
 }
 

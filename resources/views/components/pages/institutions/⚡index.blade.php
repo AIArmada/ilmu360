@@ -5,6 +5,8 @@ use App\Forms\SharedFormSchema;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Support\Search\InstitutionSearchService;
+use AIArmada\Addressing\Models\AddressCountry;
+use AIArmada\Addressing\Support\AddressCountryResolver;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator as LengthAwarePaginatorContract;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -21,6 +23,13 @@ class extends Component
 {
     use WithPagination;
 
+    public function mount(): void
+    {
+        if ($this->country_id === null) {
+            $this->country_id = $this->defaultCountryId();
+        }
+    }
+
     #[Url]
     public ?string $search = null;
 
@@ -29,6 +38,9 @@ class extends Component
 
     #[Url]
     public ?string $state_id = null;
+
+    #[Url]
+    public ?string $city_id = null;
 
     #[Url]
     public ?string $admin_area_1_id = null;
@@ -65,7 +77,12 @@ class extends Component
             ->active()
             ->where('status', 'verified')
             ->selectSub($this->publicEventCountSubquery(), 'events_count')
-            ->with(['addresses', 'media']);
+            ->with([
+                'addresses.state',
+                'addresses.city',
+                'addresses.areaAssignments.area',
+                'media',
+            ]);
 
         return $this->applyLocationScope($query);
     }
@@ -179,6 +196,15 @@ class extends Component
     }
 
     #[Computed]
+    public function countries(): array
+    {
+        return AddressCountry::query()
+            ->orderBy('name')
+            ->pluck('name', 'id')
+            ->all();
+    }
+
+    #[Computed]
     public function states(): array
     {
         $countryId = $this->normalizedLocationId($this->country_id);
@@ -193,9 +219,30 @@ class extends Component
     }
 
     #[Computed]
+    public function cities(): array
+    {
+        return SharedFormSchema::cityOptionsForState($this->state_id, $this->country_id);
+    }
+
+    #[Computed]
     public function subdistricts(): array
     {
         return SharedFormSchema::subdistrictOptionsForSelection($this->state_id, $this->admin_area_1_id, $this->country_id);
+    }
+
+    public function stateLabel(): string
+    {
+        return SharedFormSchema::locationLevelLabel($this->country_id, 'state_id', __('State / Region'));
+    }
+
+    public function districtLabel(): string
+    {
+        return SharedFormSchema::locationLevelLabel($this->country_id, 'administrative_district', __('District'));
+    }
+
+    public function subdistrictLabel(): string
+    {
+        return SharedFormSchema::locationLevelLabel($this->country_id, 'administrative_subdivision', __('Subdivision'));
     }
 
     public function isParentlessAreaProfileSelection(): bool
@@ -223,6 +270,7 @@ class extends Component
     public function updatedCountryId(): void
     {
         $this->state_id = null;
+        $this->city_id = null;
         $this->admin_area_1_id = null;
         $this->admin_area_2_id = null;
         $this->resetPage();
@@ -230,18 +278,19 @@ class extends Component
 
     public function updatedStateId(): void
     {
+        $this->city_id = null;
         $this->admin_area_1_id = null;
         $this->admin_area_2_id = null;
         $this->resetPage();
     }
 
-    public function updatedDistrictId(): void
+    public function updatedAdminArea1Id(): void
     {
         $this->admin_area_2_id = null;
         $this->resetPage();
     }
 
-    public function updatedSubdistrictId(): void
+    public function updatedAdminArea2Id(): void
     {
         $this->resetPage();
     }
@@ -257,6 +306,7 @@ class extends Component
         $this->search = null;
         $this->country_id = null;
         $this->state_id = null;
+        $this->city_id = null;
         $this->admin_area_1_id = null;
         $this->admin_area_2_id = null;
         $this->resetPage();
@@ -266,14 +316,15 @@ class extends Component
     {
         $countryId = $this->normalizedLocationId($this->country_id);
         $stateId = $this->normalizedLocationId($this->state_id);
+        $cityId = $this->normalizedLocationId($this->city_id);
         $adminArea1Id = $this->normalizedLocationId($this->admin_area_1_id);
         $adminArea2Id = $this->normalizedLocationId($this->admin_area_2_id);
 
-        if ($countryId === null && $stateId === null && $adminArea1Id === null && $adminArea2Id === null) {
+        if ($countryId === null && $stateId === null && $cityId === null && $adminArea1Id === null && $adminArea2Id === null) {
             return $query;
         }
 
-        return $query->whereHas('addresses', function (Builder $addressQuery) use ($countryId, $stateId, $adminArea1Id, $adminArea2Id): void {
+        return $query->whereHas('addresses', function (Builder $addressQuery) use ($countryId, $stateId, $cityId, $adminArea1Id, $adminArea2Id): void {
             if ($countryId !== null) {
                 $addressQuery->where('country_id', $countryId);
             }
@@ -282,12 +333,18 @@ class extends Component
                 $addressQuery->where('state_id', $stateId);
             }
 
+            if ($cityId !== null) {
+                $addressQuery->where('city_id', $cityId);
+            }
+
             if ($adminArea1Id !== null) {
-                $addressQuery->where('admin_area_1_id', $adminArea1Id);
+                $addressQuery->whereHas('areaAssignments', fn (Builder $assignmentQuery) => $assignmentQuery
+                    ->where('role', 'administrative_district')->where('address_area_id', $adminArea1Id));
             }
 
             if ($adminArea2Id !== null) {
-                $addressQuery->where('admin_area_2_id', $adminArea2Id);
+                $addressQuery->whereHas('areaAssignments', fn (Builder $assignmentQuery) => $assignmentQuery
+                    ->where('role', 'administrative_subdivision')->where('address_area_id', $adminArea2Id));
             }
         });
     }
@@ -306,6 +363,15 @@ class extends Component
 
         return $normalized;
     }
+
+    private function defaultCountryId(): ?string
+    {
+        $countryId = app(AddressCountryResolver::class)->resolveId(
+            config('contacting.defaults.country_code', 'MY'),
+        );
+
+        return is_string($countryId) ? $countryId : null;
+    }
 };
 ?>
 
@@ -320,15 +386,21 @@ class extends Component
 @php
     $institutions = $this->institutions;
     $search = $this->search;
+    $countries = $this->countries;
     $states = $this->states;
+    $cities = $this->cities;
     $districts = $this->districts;
     $subdistricts = $this->subdistricts;
     $countryId = $this->country_id;
     $stateId = $this->state_id;
+    $cityId = $this->city_id;
     $adminArea1Id = $this->admin_area_1_id;
     $adminArea2Id = $this->admin_area_2_id;
     $isParentlessAreaProfile = $this->isParentlessAreaProfileSelection();
-    $hasScopedFilters = filled($countryId) || filled($stateId) || filled($adminArea1Id) || filled($adminArea2Id);
+    $stateLabel = $this->stateLabel();
+    $districtLabel = $this->districtLabel();
+    $subdistrictLabel = $this->subdistrictLabel();
+    $hasScopedFilters = filled($countryId) || filled($stateId) || filled($cityId) || filled($adminArea1Id) || filled($adminArea2Id);
     $submitInstitutionUrl = route('contributions.submit-institution');
     $institutionTotal = $institutions->total();
     $formatInstitutionLocation = static function ($addressModel): string {
@@ -378,58 +450,108 @@ class extends Component
                         @endif
                     </div>
 
-                    <div class="mt-4 grid grid-cols-1 gap-3 text-left md:grid-cols-2 xl:grid-cols-3">
+                    <div class="mt-5 rounded-[1.5rem] border border-emerald-100/90 bg-white/95 p-4 text-left shadow-[0_18px_45px_-28px_rgba(6,78,59,0.65)] ring-1 ring-emerald-950/5 backdrop-blur sm:p-5">
+                        <div class="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-emerald-800/70">
+                            <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                            {{ __('Filter by location') }}
+                        </div>
+                        <div class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
                         <div>
-                            <label for="institution-state-filter" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                {{ __('Negeri') }}
+                            <label for="institution-country-filter" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                {{ __('Country') }}
                             </label>
-                            <select
-                                id="institution-state-filter"
-                                wire:model.live="state_id"
-                                @disabled(! filled($countryId))
-                                class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/10 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                            <flux:select
+                                id="institution-country-filter"
+                                wire:model.live="country_id"
+                                size="sm"
+                                class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 shadow-sm transition-[border-color,box-shadow,background-color] hover:border-emerald-300 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
                             >
-                                <option value="">{{ __('Semua Negeri') }}</option>
-                                @foreach($states as $id => $name)
-                                    <option value="{{ $id }}">{{ $name }}</option>
+                                <flux:select.option value="" :selected="$countryId === null">{{ __('All countries') }}</flux:select.option>
+                                @foreach($countries as $id => $name)
+                                    <flux:select.option value="{{ $id }}" :selected="(string) $id === $countryId">{{ $name }}</flux:select.option>
                                 @endforeach
-                            </select>
+                            </flux:select>
                         </div>
 
-                    @unless($isParentlessAreaProfile)
+                        @if($states !== [])
+                        <div>
+                            <label for="institution-state-filter" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                {{ $stateLabel }}
+                            </label>
+                            <flux:select
+                                id="institution-state-filter"
+                                wire:model.live="state_id"
+                                :disabled="! filled($countryId)"
+                                size="sm"
+                                class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 shadow-sm transition-[border-color,box-shadow,background-color] hover:border-emerald-300 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+                            >
+                                <flux:select.option value="">{{ __('All :level', ['level' => $stateLabel]) }}</flux:select.option>
+                                @foreach($states as $id => $name)
+                                    <flux:select.option value="{{ $id }}">{{ $name }}</flux:select.option>
+                                @endforeach
+                            </flux:select>
+                        </div>
+                        @endif
+
+                        @if($cities !== [])
+                        <div>
+                            <label for="institution-city-filter" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                {{ __('City') }}
+                            </label>
+                            <flux:select
+                                id="institution-city-filter"
+                                wire:model.live="city_id"
+                                :disabled="! filled($stateId)"
+                                size="sm"
+                                class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 shadow-sm transition-[border-color,box-shadow,background-color] hover:border-emerald-300 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+                            >
+                                <flux:select.option value="">{{ __('All cities') }}</flux:select.option>
+                                @foreach($cities as $id => $name)
+                                    <flux:select.option value="{{ $id }}">{{ $name }}</flux:select.option>
+                                @endforeach
+                            </flux:select>
+                        </div>
+                        @endif
+
+                    @if($districts !== [] && ! $isParentlessAreaProfile)
                             <div>
                                 <label for="institution-district-filter" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                    {{ __('Daerah') }}
+                                    {{ $districtLabel }}
                                 </label>
-                                <select
+                                <flux:select
                                     id="institution-district-filter"
                                     wire:model.live="admin_area_1_id"
-                                    @disabled(! filled($stateId))
-                                    class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/10 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                                    :disabled="! filled($stateId)"
+                                    size="sm"
+                                    class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 shadow-sm transition-[border-color,box-shadow,background-color] hover:border-emerald-300 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
                                 >
-                                    <option value="">{{ __('Semua Daerah') }}</option>
+                                    <flux:select.option value="">{{ __('All :level', ['level' => $districtLabel]) }}</flux:select.option>
                                     @foreach($districts as $id => $name)
-                                        <option value="{{ $id }}">{{ $name }}</option>
+                                        <flux:select.option value="{{ $id }}">{{ $name }}</flux:select.option>
                                     @endforeach
-                                </select>
+                                </flux:select>
                             </div>
-                        @endunless
+                        @endif
 
+                        @if($subdistricts !== [])
                         <div>
                             <label for="institution-subdistrict-filter" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                {{ __('Bandar / Mukim / Zon') }}
+                                {{ $subdistrictLabel }}
                             </label>
-                            <select
+                            <flux:select
                                 id="institution-subdistrict-filter"
                                 wire:model.live="admin_area_2_id"
-                            @disabled($isParentlessAreaProfile ? ! filled($stateId) : ! filled($adminArea1Id))
-                                class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/10 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                                :disabled="$isParentlessAreaProfile ? ! filled($stateId) : ! filled($adminArea1Id)"
+                                size="sm"
+                                class="w-full rounded-xl border-slate-300 bg-white text-sm text-slate-800 shadow-sm transition-[border-color,box-shadow,background-color] hover:border-emerald-300 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
                             >
-                                <option value="">{{ __('Semua Bandar / Mukim / Zon') }}</option>
+                                <flux:select.option value="">{{ __('All :level', ['level' => $subdistrictLabel]) }}</flux:select.option>
                                 @foreach($subdistricts as $id => $name)
-                                    <option value="{{ $id }}">{{ $name }}</option>
+                                    <flux:select.option value="{{ $id }}">{{ $name }}</flux:select.option>
                                 @endforeach
-                            </select>
+                            </flux:select>
+                        </div>
+                        @endif
                         </div>
                     </div>
 
@@ -451,7 +573,7 @@ class extends Component
 
 	        <div class="container mx-auto px-6 lg:px-12 mt-12">
                 @php
-                    $institutionLoadingTarget = 'search,country_id,state_id,admin_area_1_id,admin_area_2_id,clearSearch,clearFilters';
+                    $institutionLoadingTarget = 'search,country_id,state_id,city_id,admin_area_1_id,admin_area_2_id,clearSearch,clearFilters';
                 @endphp
 
 	                <div wire:loading.delay.short wire:target="{{ $institutionLoadingTarget }}">

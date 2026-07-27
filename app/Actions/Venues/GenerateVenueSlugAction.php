@@ -7,6 +7,7 @@ use App\Actions\Slugs\Concerns\InteractsWithOrderedSlugModels;
 use App\Actions\Slugs\Concerns\ResolvesLocationSuffix;
 use App\Actions\Slugs\SyncCanonicalSlugAction;
 use App\Models\Venue;
+use App\Support\Location\AddressAssignments;
 use Illuminate\Support\Str;
 use Lorisleiva\Actions\Concerns\AsAction;
 
@@ -80,8 +81,7 @@ class GenerateVenueSlugAction
                 'country_code' => $address?->country_code,
                 'state' => $address?->state,
                 'city' => $address?->city,
-                'admin_area_1_id' => $address?->admin_area_1_id,
-                'admin_area_2_id' => $address?->admin_area_2_id,
+                'area_assignments' => AddressAssignments::forAddress($address),
             ],
             (string) $venue->getKey(),
         );
@@ -92,15 +92,14 @@ class GenerateVenueSlugAction
      */
     private function locationSuffix(array $address): string
     {
+        $assignments = (array) ($address['area_assignments'] ?? []);
         $city = $this->firstFilled([
             $address['city'] ?? null,
-            $address['admin_area_2_name'] ?? null,
-            $this->areaName($address['admin_area_2_id'] ?? null),
+            $this->areaName($assignments[AddressAssignments::ADMINISTRATIVE_SUBDIVISION] ?? null),
         ]);
         $state = $this->firstFilled([
             $address['state'] ?? null,
-            $address['admin_area_1_name'] ?? null,
-            $this->areaName($address['admin_area_1_id'] ?? null),
+            $this->areaName($assignments[AddressAssignments::ADMINISTRATIVE_DISTRICT] ?? null),
         ]);
         $countryCode = $this->resolveCountryCode($address, true);
 

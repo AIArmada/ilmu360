@@ -17,6 +17,7 @@ use App\Filament\Resources\MembershipApplications\MembershipApplicationResource;
 use App\Filament\Resources\Persons\PersonResource;
 use App\Filament\Resources\Persons\RelationManagers\EventsRelationManager as PersonEventsRelationManager;
 use App\Filament\Resources\Persons\RelationManagers\FollowersRelationManager as PersonFollowersRelationManager;
+use App\Filament\Resources\Persons\RelationManagers\InstitutionsRelationManager as PersonInstitutionsRelationManager;
 use App\Filament\Resources\Persons\RelationManagers\MemberInvitationsRelationManager as PersonMemberInvitationsRelationManager;
 use App\Filament\Resources\References\ReferenceResource;
 use App\Filament\Resources\References\RelationManagers\EventsRelationManager as ReferenceEventsRelationManager;
@@ -97,4 +98,10 @@ it('registers expected relation managers on core admin resources', function () {
     expect(ReferenceResource::getRelations())->toContain(ReferenceMemberInvitationsRelationManager::class);
     expect(InstitutionResource::getRelations())->toContain(InstitutionDonationChannelsRelationManager::class);
     expect(InstitutionResource::getRelations())->toContain(InstitutionMemberInvitationsRelationManager::class);
+});
+
+it('configures the person institution relation manager with the app inverse relation name', function () {
+    $property = new ReflectionProperty(PersonInstitutionsRelationManager::class, 'inverseRelationship');
+
+    expect($property->getValue())->toBe('persons');
 });

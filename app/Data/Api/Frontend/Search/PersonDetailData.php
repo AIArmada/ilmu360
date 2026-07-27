@@ -10,7 +10,7 @@ class PersonDetailData extends Data
 {
     /**
      * @param  array<string, mixed>|string|null  $bio
-     * @param  array{country_id: ?string, admin_area_1_id: ?string, admin_area_2_id: ?string}|null  $address
+     * @param  array{country_id: ?string, state_id: ?string, city_id: ?string, area_assignments: array<string, string>}|null  $address
      * @param  array{id: string, name: string, iso2: string, key: ?string}|null  $country
      * @param  array{avatar_url: string, cover_url: string, share_image_url: string}  $media
      * @param  list<array{id: string, name: string, url: string, thumb_url: string}>  $gallery
@@ -40,7 +40,7 @@ class PersonDetailData extends Data
     ) {}
 
     /**
-     * @param  array{country_id: ?string, admin_area_1_id: ?string, admin_area_2_id: ?string}|null  $address
+     * @param  array{country_id: ?string, state_id: ?string, city_id: ?string, area_assignments: array<string, string>}|null  $address
      * @param  array{id: string, name: string, iso2: string, key: ?string}|null  $country
      * @param  array<string, string>  $media
      * @param  list<array<string, string>>  $gallery

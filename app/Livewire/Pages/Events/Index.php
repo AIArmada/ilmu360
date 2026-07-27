@@ -253,6 +253,11 @@ class Index extends Component implements HasForms
      */
     public array $filterData = [];
 
+    /**
+     * @var array<string, Collection<int, string>>
+     */
+    private array $activeTaxonomyIdCache = [];
+
     public function boot(): void
     {
         OwnerContext::setForRequest(null);
@@ -1045,7 +1050,7 @@ class Index extends Component implements HasForms
      */
     private function activeTaxonomyIds(string $code): Collection
     {
-        return EventTaxonomy::query()
+        return $this->activeTaxonomyIdCache[$code] ??= EventTaxonomy::query()
             ->where('code', $code)
             ->where('is_active', true)
             ->pluck('id');
@@ -1256,8 +1261,10 @@ class Index extends Component implements HasForms
             countryId: filled($countryId) ? $countryId : null,
             stateId: filled($stateId) ? $stateId : null,
             cityId: filled($cityId) ? $cityId : null,
-            adminArea1Id: filled($adminArea1Id) ? $adminArea1Id : null,
-            adminArea2Id: filled($adminArea2Id) ? $adminArea2Id : null,
+            areaAssignments: array_filter([
+                'administrative_district' => filled($adminArea1Id) ? $adminArea1Id : null,
+                'administrative_subdivision' => filled($adminArea2Id) ? $adminArea2Id : null,
+            ]),
         ));
     }
 
@@ -1291,8 +1298,7 @@ class Index extends Component implements HasForms
             'country_id' => $filters['country_id'],
             'state_id' => $filters['state_id'] ?? null,
             'city_id' => $filters['city_id'] ?? null,
-            'admin_area_1_id' => $filters['admin_area_1_id'],
-            'admin_area_2_id' => $filters['admin_area_2_id'],
+            'area_assignments' => $filters['area_assignments'] ?? [],
             'language_codes' => $filters['language_codes'],
             'event_category_ids' => $filters['event_category_ids'],
             'gender' => $filters['gender'],
@@ -1421,8 +1427,7 @@ class Index extends Component implements HasForms
             'country_id' => null,
             'state_id' => null,
             'city_id' => null,
-            'admin_area_1_id' => null,
-            'admin_area_2_id' => null,
+            'area_assignments' => [],
             'language_codes' => [],
             'event_category_ids' => [],
             'gender' => null,
@@ -1486,8 +1491,10 @@ class Index extends Component implements HasForms
             'country_id' => filled($this->country_id) ? $this->country_id : null,
             'state_id' => filled($this->state_id) ? $this->state_id : null,
             'city_id' => filled($this->city_id) ? $this->city_id : null,
-            'admin_area_1_id' => filled($this->admin_area_1_id) ? $this->admin_area_1_id : null,
-            'admin_area_2_id' => filled($this->admin_area_2_id) ? $this->admin_area_2_id : null,
+            'area_assignments' => array_filter([
+                'administrative_district' => filled($this->admin_area_1_id) ? $this->admin_area_1_id : null,
+                'administrative_subdivision' => filled($this->admin_area_2_id) ? $this->admin_area_2_id : null,
+            ]),
             'language_codes' => $languageCodes,
             'event_category_ids' => $this->normalizeStringArray($this->event_category_ids),
             'gender' => filled($this->gender) ? $this->gender : null,
@@ -1542,8 +1549,8 @@ class Index extends Component implements HasForms
         $this->country_id = $filters['country_id'];
         $this->state_id = $filters['state_id'] ?? null;
         $this->city_id = $filters['city_id'] ?? null;
-        $this->admin_area_1_id = $filters['admin_area_1_id'];
-        $this->admin_area_2_id = $filters['admin_area_2_id'];
+        $this->admin_area_1_id = $filters['area_assignments']['administrative_district'] ?? null;
+        $this->admin_area_2_id = $filters['area_assignments']['administrative_subdivision'] ?? null;
         $this->language_codes = $filters['language_codes'];
         $this->event_category_ids = $filters['event_category_ids'];
         $this->gender = $filters['gender'];
@@ -1634,8 +1641,10 @@ class Index extends Component implements HasForms
             'country_id' => filled($normalized['country_id']) ? (string) $normalized['country_id'] : null,
             'state_id' => filled($normalized['state_id'] ?? null) ? (string) $normalized['state_id'] : null,
             'city_id' => filled($normalized['city_id'] ?? null) ? (string) $normalized['city_id'] : null,
-            'admin_area_1_id' => filled($normalized['admin_area_1_id']) ? (string) $normalized['admin_area_1_id'] : null,
-            'admin_area_2_id' => filled($normalized['admin_area_2_id']) ? (string) $normalized['admin_area_2_id'] : null,
+            'area_assignments' => array_filter([
+                'administrative_district' => filled($normalized['admin_area_1_id'] ?? null) ? (string) $normalized['admin_area_1_id'] : null,
+                'administrative_subdivision' => filled($normalized['admin_area_2_id'] ?? null) ? (string) $normalized['admin_area_2_id'] : null,
+            ]),
             'language_codes' => $languageCodes,
             'event_category_ids' => $this->normalizeStringArray($normalized['event_category_ids'] ?? []),
             'gender' => filled($normalized['gender']) ? (string) $normalized['gender'] : null,

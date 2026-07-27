@@ -121,8 +121,8 @@ class AdminResourceService
                     'countries' => route('api.admin.catalogs.countries'),
                     'states' => route('api.admin.catalogs.states'),
                     'cities' => route('api.admin.catalogs.cities'),
-                    'admin_area_level_1' => route('api.admin.catalogs.admin-area-level-1'),
-                    'admin_area_level_2' => route('api.admin.catalogs.admin-area-level-2'),
+                    'administrative_district' => route('api.admin.catalogs.administrative-districts'),
+                    'administrative_subdivision' => route('api.admin.catalogs.administrative-subdivisions'),
                 ],
                 'resources' => array_values(array_map(
                     fn (array $resource): array => $compact ? $this->summarizeResource($resource) : $resource,

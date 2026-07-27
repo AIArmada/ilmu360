@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use AIArmada\Addressing\Actions\SyncAddressAreaAssignmentsAction;
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressCountry;
@@ -46,6 +47,7 @@ use App\Models\Reference;
 use App\Models\Series;
 use App\Models\User;
 use App\Models\Venue;
+use App\Support\Location\AddressAssignments;
 use BackedEnum;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
@@ -197,8 +199,8 @@ class ContributionEntityMutationService
                 'description' => ['nullable'],
                 'address' => ['sometimes', 'array'],
                 'address.country_id' => ['sometimes', 'uuid', 'exists:'.config('addressing.tables.countries', 'countries').',id'],
-                'address.admin_area_1_id' => ['nullable', 'uuid', 'exists:address_areas,id'],
-                'address.admin_area_2_id' => ['nullable', 'uuid', 'exists:address_areas,id'],
+                'address.area_assignments' => ['sometimes', 'array'],
+                'address.area_assignments.*' => ['nullable', 'uuid', 'exists:address_areas,id'],
                 'address.line1' => ['nullable', 'string', 'max:255'],
                 'address.line2' => ['nullable', 'string', 'max:255'],
                 'address.postcode' => ['nullable', 'string', 'max:16'],
@@ -225,8 +227,8 @@ class ContributionEntityMutationService
                 'institution_position' => ['nullable', 'string', 'max:255'],
                 'address' => ['sometimes', 'array'],
                 'address.country_id' => ['nullable', 'uuid', 'exists:'.config('addressing.tables.countries', 'countries').',id'],
-                'address.admin_area_1_id' => ['nullable', 'uuid', 'exists:address_areas,id'],
-                'address.admin_area_2_id' => ['nullable', 'uuid', 'exists:address_areas,id'],
+                'address.area_assignments' => ['sometimes', 'array'],
+                'address.area_assignments.*' => ['nullable', 'uuid', 'exists:address_areas,id'],
                 'address.line1' => ['prohibited'],
                 'address.line2' => ['prohibited'],
                 'address.postcode' => ['prohibited'],
@@ -1037,8 +1039,7 @@ class ContributionEntityMutationService
             $payload['line1'] ?? null,
             $payload['line2'] ?? null,
             $payload['postcode'] ?? null,
-            $payload['admin_area_1_id'] ?? null,
-            $payload['admin_area_2_id'] ?? null,
+            $payload['area_assignments'] ?? [],
             $payload['latitude'] ?? null,
             $payload['longitude'] ?? null,
             $payload['google_maps_url'] ?? null,
@@ -1083,10 +1084,6 @@ class ContributionEntityMutationService
                 'postcode',
                 'state_id',
                 'city_id',
-                'admin_area_1_id',
-                'admin_area_2_id',
-                'admin_area_3_id',
-                'admin_area_4_id',
                 'state',
                 'city',
                 'latitude',
@@ -1101,29 +1098,19 @@ class ContributionEntityMutationService
             }
         }
 
-        $adminArea1Id = $this->normalizeUuid($payload['admin_area_1_id'] ?? null);
-        $adminArea2Id = $this->normalizeUuid($payload['admin_area_2_id'] ?? null);
-        $adminArea3Id = $this->normalizeUuid($payload['admin_area_3_id'] ?? null);
-        $adminArea4Id = $this->normalizeUuid($payload['admin_area_4_id'] ?? null);
+        $assignments = AddressAssignments::normalize((array) ($payload['area_assignments'] ?? []));
         $latitude = $payload['latitude'] ?? null;
         $longitude = $payload['longitude'] ?? null;
         $providerPlaceId = $payload['provider_place_id'] ?? null;
         $addressMetadata = $this->resolveAddressMetadata(
             $countryId,
-            $adminArea1Id,
-            $adminArea2Id,
-            $adminArea3Id,
-            $adminArea4Id,
+            $assignments,
         );
 
         $attributes = [
             'country_id' => $countryId,
             'state_id' => $this->normalizeUuid($payload['state_id'] ?? null),
             'city_id' => $this->normalizeUuid($payload['city_id'] ?? null),
-            'admin_area_1_id' => $adminArea1Id,
-            'admin_area_2_id' => $adminArea2Id,
-            'admin_area_3_id' => $adminArea3Id,
-            'admin_area_4_id' => $adminArea4Id,
             'line1' => $payload['line1'] ?? null,
             'line2' => $payload['line2'] ?? null,
             'postcode' => $payload['postcode'] ?? null,
@@ -1142,30 +1129,31 @@ class ContributionEntityMutationService
         if ($existingAddress instanceof Address) {
             $existingAddress->fill($attributes)->save();
 
+            app(SyncAddressAreaAssignmentsAction::class)->execute($existingAddress, $assignments, $attributes['state_id'], ['source' => 'ilmu360']);
+
             return;
         }
 
         $address = Address::query()->create($attributes);
 
         $model->attachAddress($address, type: 'primary', isPrimary: true);
+        app(SyncAddressAreaAssignmentsAction::class)->execute($address, $assignments, $attributes['state_id'], ['source' => 'ilmu360']);
     }
 
     /**
+     * @param  array<string, string>  $assignments
      * @return array{country: ?string, country_code: ?string, state: ?string, city: ?string}
      */
     private function resolveAddressMetadata(
         ?string $countryId,
-        ?string $adminArea1Id,
-        ?string $adminArea2Id,
-        ?string $adminArea3Id,
-        ?string $adminArea4Id,
+        array $assignments,
     ): array {
         $country = $countryId !== null
             ? AddressCountry::query()->find($countryId)
             : null;
         $areas = [];
 
-        foreach ([$adminArea1Id, $adminArea2Id, $adminArea3Id, $adminArea4Id] as $areaId) {
+        foreach ($assignments as $areaId) {
             if ($areaId !== null) {
                 $area = AddressArea::query()->find($areaId);
 
@@ -1229,8 +1217,7 @@ class ContributionEntityMutationService
             'country_id',
             'country_code',
             'country_key',
-            'admin_area_1_id',
-            'admin_area_2_id',
+            'area_assignments',
             'line1',
             'line2',
             'postcode',
@@ -1530,10 +1517,7 @@ class ContributionEntityMutationService
         if (! $address instanceof Address) {
             return SharedFormSchema::hydrateAddressFormState([
                 'country_id' => null,
-                'admin_area_1_id' => null,
-                'admin_area_2_id' => null,
-                'admin_area_3_id' => null,
-                'admin_area_4_id' => null,
+                'area_assignments' => [],
                 'line1' => null,
                 'line2' => null,
                 'postcode' => null,
@@ -1547,10 +1531,7 @@ class ContributionEntityMutationService
 
         return SharedFormSchema::hydrateAddressFormState([
             'country_id' => $address->country_id ?? $this->addressingCountryResolver->resolveId($address->country_code),
-            'admin_area_1_id' => $address->admin_area_1_id,
-            'admin_area_2_id' => $address->admin_area_2_id,
-            'admin_area_3_id' => $address->admin_area_3_id,
-            'admin_area_4_id' => $address->admin_area_4_id,
+            'area_assignments' => AddressAssignments::forAddress($address),
             'line1' => $address->line1,
             'line2' => $address->line2,
             'postcode' => $address->postcode,

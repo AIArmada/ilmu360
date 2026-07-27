@@ -20,7 +20,7 @@ class TitleCategorySeeder extends Seeder
         ];
 
         foreach ($categories as $category) {
-            TitleCategory::firstOrCreate(
+            TitleCategory::updateOrCreate(
                 ['code' => $category['code']],
                 $category
             );

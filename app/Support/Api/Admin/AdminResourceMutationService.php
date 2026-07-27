@@ -1101,8 +1101,7 @@ class AdminResourceMutationService
                     'explicit_null' => 'invalid_without_existing_country',
                 ],
             ]),
-            $this->field('address.admin_area_1_id', 'uuid', required: false),
-            $this->field('address.admin_area_2_id', 'uuid', required: false),
+            $this->field('address.area_assignments', 'array<object>', required: false),
             $this->field('contactMethods', 'array<object>', required: false, meta: $this->contactCollectionMeta()),
             $this->field('social_media', 'array<object>', required: false, meta: $this->socialMediaCollectionMeta()),
             $this->field('logo', 'file', required: false, acceptedMimeTypes: $this->logoMimeTypes(), maxFileSizeKb: $this->maxUploadSizeKb()),
@@ -1300,8 +1299,7 @@ class AdminResourceMutationService
                     'explicit_null' => 'invalid_without_country',
                 ],
             ]),
-            $this->field('address.admin_area_1_id', 'uuid', required: false),
-            $this->field('address.admin_area_2_id', 'uuid', required: false),
+            $this->field('address.area_assignments', 'array<object>', required: false),
             $this->field('contactMethods', 'array<object>', required: false, meta: $this->contactCollectionMeta()),
             $this->field('social_media', 'array<object>', required: false, meta: $this->socialMediaCollectionMeta()),
             $this->field('avatar', 'file', required: false, acceptedMimeTypes: $this->imageMimeTypes(), maxFileSizeKb: $this->maxUploadSizeKb()),
@@ -1472,8 +1470,7 @@ class AdminResourceMutationService
                     'explicit_null' => 'invalid_country_selection',
                 ],
             ]),
-            $this->field('address.admin_area_1_id', 'uuid', required: false),
-            $this->field('address.admin_area_2_id', 'uuid', required: false),
+            $this->field('address.area_assignments', 'array<object>', required: false),
             $this->field('contactMethods', 'array<object>', required: false, meta: $this->contactCollectionMeta()),
             $this->field('social_media', 'array<object>', required: false, meta: $this->socialMediaCollectionMeta()),
             $this->field('main', 'file', required: false, acceptedMimeTypes: $this->imageMimeTypes(), maxFileSizeKb: $this->maxUploadSizeKb(), meta: $this->singleMediaFieldMutationMeta('clear_main')),
@@ -1968,8 +1965,8 @@ class AdminResourceMutationService
             'address.country_id' => $updating
                 ? ['nullable', 'uuid', 'exists:'.config('addressing.tables.countries', 'countries').',id']
                 : ['required', 'uuid', 'exists:'.config('addressing.tables.countries', 'countries').',id'],
-            'address.admin_area_1_id' => ['nullable', 'uuid', 'exists:'.config('addressing.tables.areas', 'address_areas').',id'],
-            'address.admin_area_2_id' => ['nullable', 'uuid', 'exists:'.config('addressing.tables.areas', 'address_areas').',id'],
+            'address.area_assignments' => ['sometimes', 'array'],
+            'address.area_assignments.*' => ['nullable', 'uuid', 'exists:'.config('addressing.tables.areas', 'address_areas').',id'],
             'address.line1' => ['nullable', 'string', 'max:255'],
             'address.line2' => ['nullable', 'string', 'max:255'],
             'address.postcode' => ['nullable', 'string', 'max:16'],
@@ -2282,8 +2279,8 @@ class AdminResourceMutationService
             'address.country_id' => $updating
                 ? ['nullable', 'uuid', 'exists:'.config('addressing.tables.countries', 'countries').',id']
                 : ['required', 'uuid', 'exists:'.config('addressing.tables.countries', 'countries').',id'],
-            'address.admin_area_1_id' => ['nullable', 'uuid', 'exists:'.config('addressing.tables.areas', 'address_areas').',id'],
-            'address.admin_area_2_id' => ['nullable', 'uuid', 'exists:'.config('addressing.tables.areas', 'address_areas').',id'],
+            'address.area_assignments' => ['sometimes', 'array'],
+            'address.area_assignments.*' => ['nullable', 'uuid', 'exists:'.config('addressing.tables.areas', 'address_areas').',id'],
             'address.line1' => ['prohibited'],
             'address.line2' => ['prohibited'],
             'address.postcode' => ['prohibited'],
@@ -2353,8 +2350,8 @@ class AdminResourceMutationService
                 'uuid',
                 'exists:'.config('addressing.tables.countries', 'countries').',id',
             ],
-            'address.admin_area_1_id' => ['nullable', 'uuid', 'exists:'.config('addressing.tables.areas', 'address_areas').',id'],
-            'address.admin_area_2_id' => ['nullable', 'uuid', 'exists:'.config('addressing.tables.areas', 'address_areas').',id'],
+            'address.area_assignments' => ['sometimes', 'array'],
+            'address.area_assignments.*' => ['nullable', 'uuid', 'exists:'.config('addressing.tables.areas', 'address_areas').',id'],
             'address.line1' => ['nullable', 'string', 'max:255'],
             'address.line2' => ['nullable', 'string', 'max:255'],
             'address.postcode' => ['nullable', 'string', 'max:16'],
@@ -2415,14 +2412,14 @@ class AdminResourceMutationService
         return [
             $this->catalog($prefix.'.country_id', route('api.admin.catalogs.countries', [], false)),
             $this->catalog(
-                $prefix.'.admin_area_1_id',
-                route('api.admin.catalogs.admin-area-level-1', [], false),
+                $prefix.'.area_assignments.administrative_district',
+                route('api.admin.catalogs.administrative-districts', [], false),
                 ['country_id' => '{'.$prefix.'.country_id}'],
             ),
             $this->catalog(
-                $prefix.'.admin_area_2_id',
-                route('api.admin.catalogs.admin-area-level-2', [], false),
-                ['admin_area_1_id' => '{'.$prefix.'.admin_area_1_id}'],
+                $prefix.'.area_assignments.administrative_subdivision',
+                route('api.admin.catalogs.administrative-subdivisions', [], false),
+                ['district_id' => '{'.$prefix.'.area_assignments.administrative_district}'],
             ),
         ];
     }

@@ -31,7 +31,7 @@ function ensureMalaysiaStateForLocationPicker(string $name = 'Selangor'): array
     $country = ensureCountryForLocationPicker('MY', 'Malaysia');
     $packageState = State::query()->firstOrCreate(
         ['country_id' => $country->getKey(), 'name' => $name],
-        ['code' => null, 'label' => $name],
+        ['code' => null],
     );
     $area = createTestAddressArea(
         $name,
@@ -195,9 +195,8 @@ it('applies a google place selection into the nested institution address state',
         ->assertSet('data.address.line2', 'Seksyen 14')
         ->assertSet('data.address.postcode', '40000')
         ->assertSet('data.address.state_id', (string) $state['package']->id)
-        ->assertSet('data.address.admin_area_1_id', (string) $district->id)
-        ->assertSet('data.address.admin_area_2_id', (string) $subdistrict->id)
-        ->assertSet('data.address.admin_area_3_id', null)
+        ->assertSet('data.address.area_assignments.administrative_district', (string) $district->id)
+        ->assertSet('data.address.area_assignments.administrative_subdivision', (string) $subdistrict->id)
         ->assertSet('data.address.provider_place_id', 'place_abc123')
         ->assertSet('data.address.google_maps_url', 'https://www.google.com/maps/search/?api=1&query=3.07853%2C101.52073&query_place_id=place_abc123')
         ->assertSet('data.address.google_resolution_source', 'picker')
