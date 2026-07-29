@@ -53,7 +53,8 @@ final class AddressHierarchyFormatter
                 continue;
             }
 
-            $previous = $parts[array_key_last($parts)] ?? null;
+            $lastPartKey = array_key_last($parts);
+            $previous = $lastPartKey !== null ? $parts[$lastPartKey] : null;
 
             if (is_string($previous) && mb_strtolower($previous) === mb_strtolower($part)) {
                 continue;
@@ -94,7 +95,10 @@ final class AddressHierarchyFormatter
     {
         foreach ($address->getRelation('areaAssignments') as $assignment) {
             if ($assignment->role === $role) {
-                return self::normalizePart($assignment->getRelation('area')?->name);
+                $areaName = ($assignment->relationLoaded('area') ? $assignment->getRelation('area')?->name : null)
+                    ?? $assignment->getAttribute('hierarchy_area_name');
+
+                return self::normalizePart(is_string($areaName) ? $areaName : null);
             }
         }
 
@@ -122,6 +126,10 @@ final class AddressHierarchyFormatter
         }
 
         $value = $address->getRawOriginal($attribute);
+
+        if ($value === null && $attribute === 'state') {
+            $value = $address->getRawOriginal('hierarchy_state_name');
+        }
 
         return is_string($value) ? self::normalizePart($value) : self::normalizePart($address->getAttribute($attribute));
     }

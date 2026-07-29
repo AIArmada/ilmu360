@@ -74,7 +74,7 @@ it('resolves handle-only social profiles on person show page', function () {
         ->assertSee('https://www.instagram.com/ustazwadiannuar', false);
 });
 
-it('shows a scrollable biodata region for long person biodata', function () {
+it('shows a scrollable biodata region in the hero for long person biodata', function () {
     $person = Person::factory()->create([
         'status' => 'verified',
         'bio' => [
@@ -93,7 +93,8 @@ it('shows a scrollable biodata region for long person biodata', function () {
         ->assertSuccessful()
         ->assertSee('Biodata')
         ->assertSee(__('Skrol untuk membaca'))
-        ->assertSee('max-h-[26rem]', false)
+        ->assertSee('h-24 max-h-24', false)
+        ->assertDontSee('Ringkasan Profil')
         ->assertSee('[scrollbar-width:thin]', false);
 });
 
@@ -115,5 +116,17 @@ it('does not show the long-biodata scroll cue for short person biodata', functio
     $this->get(route('persons.show', $person))
         ->assertSuccessful()
         ->assertSee('Biodata')
+        ->assertDontSee('Skrol untuk membaca');
+});
+
+it('hides the biodata section when no biodata is available', function () {
+    $person = Person::factory()->create([
+        'status' => 'verified',
+        'bio' => null,
+    ]);
+
+    $this->get(route('persons.show', $person))
+        ->assertSuccessful()
+        ->assertDontSee('Biodata')
         ->assertDontSee('Skrol untuk membaca');
 });

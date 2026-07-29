@@ -1,143 +1,147 @@
 <?php
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use App\Enums\DawahShareOutcomeType;
+use App\Livewire\Concerns\LoadsEventPageData;
+use App\Models\Event;
 use App\Models\Series;
+use App\Services\ShareTrackingService;
 use App\Support\Auth\IntendedRedirect;
-use Illuminate\Support\Str;
-use Livewire\Component;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
+use Livewire\Component;
 
 new
     #[Layout('layouts.app')]
     #[Title('Siri')]
-    class extends Component {
-    public Series $series;
-
-    public bool $isFollowing = false;
-
-    public int $upcomingPerPage = 10;
-
-    public int $pastPerPage = 10;
-
-    public function boot(): void
+    class extends Component
     {
-        OwnerContext::setForRequest(null);
-    }
+        use LoadsEventPageData;
 
-    public function mount(Series $series): void
-    {
-        if ($series->visibility !== 'public' && (!auth()->user()?->hasAnyRole(['super_admin', 'moderator']))) {
-            abort(404);
+        public Series $series;
+
+        public bool $isFollowing = false;
+
+        public int $upcomingPerPage = 10;
+
+        public int $pastPerPage = 10;
+
+        public function boot(): void
+        {
+            OwnerContext::setForRequest(null);
         }
 
-        $series->load(['media']);
+        public function mount(Series $series): void
+        {
+            if ($series->visibility !== 'public' && (! auth()->user()?->hasAnyRole(['super_admin', 'moderator']))) {
+                abort(404);
+            }
 
-        $this->series = $series;
-        $this->isFollowing = Auth::user()?->isFollowing($series) ?? false;
-    }
+            $series->load(['media']);
 
-    /**
-     * @return \Illuminate\Database\Eloquent\Collection<int, \App\Models\Event>
-     */
-    public function toggleFollow(): void
-    {
-        $user = Auth::user();
-
-        if (! $user) {
-            $this->redirect(IntendedRedirect::loginUrl(route('series.show', $this->series)), navigate: true);
-
-            return;
+            $this->series = $series;
+            $this->isFollowing = Auth::user()?->isFollowing($series) ?? false;
         }
 
-        if ($this->isFollowing) {
-            $user->unfollow($this->series);
-            $this->isFollowing = false;
-        } else {
-            $user->follow($this->series);
-            $this->isFollowing = true;
-            app(\App\Services\ShareTrackingService::class)->recordOutcome(
-                type: \App\Enums\DawahShareOutcomeType::SeriesFollow,
-                outcomeKey: 'series_follow:user:'.$user->id.':series:'.$this->series->id,
-                subject: $this->series,
-                actor: $user,
-                request: request(),
-                metadata: [
-                    'series_id' => $this->series->id,
-                ],
-            );
-        }
-    }
+        /**
+         * @return Collection<int, Event>
+         */
+        public function toggleFollow(): void
+        {
+            $user = Auth::user();
 
-    public function getUpcomingEventsProperty(): \Illuminate\Database\Eloquent\Collection
-    {
-        return $this->series->events()
-            ->active()
-            ->where('starts_at', '>=', now())
-            ->with([
+            if (! $user) {
+                $this->redirect(IntendedRedirect::loginUrl(route('series.show', $this->series)), navigate: true);
+
+                return;
+            }
+
+            if ($this->isFollowing) {
+                $user->unfollow($this->series);
+                $this->isFollowing = false;
+            } else {
+                $user->follow($this->series);
+                $this->isFollowing = true;
+                app(ShareTrackingService::class)->recordOutcome(
+                    type: DawahShareOutcomeType::SeriesFollow,
+                    outcomeKey: 'series_follow:user:'.$user->id.':series:'.$this->series->id,
+                    subject: $this->series,
+                    actor: $user,
+                    request: request(),
+                    metadata: [
+                        'series_id' => $this->series->id,
+                    ],
+                );
+            }
+        }
+
+        public function getUpcomingEventsProperty(): Collection
+        {
+            return $this->eventPageData()['upcoming'];
+        }
+
+        public function getUpcomingTotalProperty(): int
+        {
+            return $this->eventPageData()['upcoming_total'];
+        }
+
+        /**
+         * @return Collection<int, Event>
+         */
+        public function getPastEventsProperty(): Collection
+        {
+            return $this->eventPageData()['past'];
+        }
+
+        public function getPastTotalProperty(): int
+        {
+            return $this->eventPageData()['past_total'];
+        }
+
+        protected function eventPageBaseQuery(): Builder
+        {
+            return $this->series->events()->getQuery()->active();
+        }
+
+        protected function eventPageEagerLoads(): array
+        {
+            return [
                 'references',
                 'institution',
                 'institution.addresses.country',
                 'venue.addresses.country',
                 'media',
-            ])
-            ->orderBy('starts_at', 'asc')
-            ->take($this->upcomingPerPage)
-            ->get();
-    }
+            ];
+        }
 
-    public function getUpcomingTotalProperty(): int
-    {
-        return $this->series->events()
-            ->active()
-            ->where('starts_at', '>=', now())
-            ->count();
-    }
+        protected function eventPageUpcomingLimit(): int
+        {
+            return $this->upcomingPerPage;
+        }
 
-    /**
-     * @return \Illuminate\Database\Eloquent\Collection<int, \App\Models\Event>
-     */
-    public function getPastEventsProperty(): \Illuminate\Database\Eloquent\Collection
-    {
-        return $this->series->events()
-            ->active()
-            ->where('starts_at', '<', now())
-            ->with([
-                'references',
-                'institution',
-                'institution.addresses.country',
-                'venue.addresses.country',
-                'media',
-            ])
-            ->orderBy('starts_at', 'desc')
-            ->take($this->pastPerPage)
-            ->get();
-    }
+        protected function eventPagePastLimit(): int
+        {
+            return $this->pastPerPage;
+        }
 
-    public function getPastTotalProperty(): int
-    {
-        return $this->series->events()
-            ->active()
-            ->where('starts_at', '<', now())
-            ->count();
-    }
+        public function loadMoreUpcoming(): void
+        {
+            $this->upcomingPerPage += 10;
+        }
 
-    public function loadMoreUpcoming(): void
-    {
-        $this->upcomingPerPage += 10;
-    }
+        public function loadMorePast(): void
+        {
+            $this->pastPerPage += 10;
+        }
 
-    public function loadMorePast(): void
-    {
-        $this->pastPerPage += 10;
-    }
-
-    public function rendering($view): void
-    {
-        $view->title($this->series->title . ' - ' . config('app.name'));
-    }
-};
+        public function rendering($view): void
+        {
+            $view->title($this->series->title.' - '.config('app.name'));
+        }
+    };
 ?>
 
 @section('title', $this->series->title . ' - ' . config('app.name'))

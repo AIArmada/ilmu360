@@ -4,11 +4,13 @@ namespace App\Livewire\Pages\Institutions;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Enums\DawahShareOutcomeType;
+use App\Livewire\Concerns\LoadsEventPageData;
 use App\Models\Builders\EventBuilder;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Services\ShareTrackingService;
 use App\Support\Auth\IntendedRedirect;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\View\View;
 use Livewire\Attributes\Layout;
@@ -17,6 +19,8 @@ use Livewire\Component;
 #[Layout('layouts.app')]
 class Show extends Component
 {
+    use LoadsEventPageData;
+
     public Institution $institution;
 
     public int $upcomingPerPage = 6;
@@ -92,18 +96,12 @@ class Show extends Component
      */
     public function getUpcomingEventsProperty(): EloquentCollection
     {
-        return $this->eventQuery()
-            ->where('starts_at', '>=', now())
-            ->orderBy('starts_at', 'asc')
-            ->take($this->upcomingPerPage)
-            ->get();
+        return $this->eventPageData()['upcoming'];
     }
 
     public function getUpcomingTotalProperty(): int
     {
-        return $this->eventQuery()
-            ->where('starts_at', '>=', now())
-            ->count();
+        return $this->eventPageData()['upcoming_total'];
     }
 
     /**
@@ -111,18 +109,12 @@ class Show extends Component
      */
     public function getPastEventsProperty(): EloquentCollection
     {
-        return $this->eventQuery()
-            ->where('starts_at', '<', now())
-            ->orderBy('starts_at', 'desc')
-            ->take($this->pastPerPage)
-            ->get();
+        return $this->eventPageData()['past'];
     }
 
     public function getPastTotalProperty(): int
     {
-        return $this->eventQuery()
-            ->where('starts_at', '<', now())
-            ->count();
+        return $this->eventPageData()['past_total'];
     }
 
     private function eventQuery(): EventBuilder
@@ -143,6 +135,40 @@ class Show extends Component
                 'timeExpressions',
                 'links',
             ]);
+    }
+
+    /** @return Builder<Event> */
+    protected function eventPageBaseQuery(): Builder
+    {
+        return $this->eventQuery();
+    }
+
+    protected function eventPageEagerLoads(): array
+    {
+        return [
+            'venue.media',
+            'venue.addresses.state',
+            'venue.addresses.city',
+            'venue.addresses.areaAssignments.area',
+            'persons.media',
+            'persons.titleAssignments.title.category',
+            'keyPeople.person',
+            'references',
+            'media',
+            'primaryOccurrence',
+            'timeExpressions',
+            'links',
+        ];
+    }
+
+    protected function eventPageUpcomingLimit(): int
+    {
+        return $this->upcomingPerPage;
+    }
+
+    protected function eventPagePastLimit(): int
+    {
+        return $this->pastPerPage;
     }
 
     public function render(): View

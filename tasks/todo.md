@@ -201,20 +201,156 @@ passed (1 test / 19 assertions), the contribution workflow regression passed
 repositories passed `git diff --check`. The live Wadi Annuar record now resolves
 YouTube to `https://www.youtube.com/UstazWadiAnnuarOfficial`.
 
-# Refine speaker profile information layout
+# Move profile overview into hero
 
 ## Plan
 
 - [x] Inspect the speaker view and identify the hero, biodata, summary, contact, and social blocks.
 - [x] Keep contact and social media in their existing sidebar sections.
-- [x] Add contained scrolling for long biodata in its original section.
+- [x] Move biodata and future/past event totals into the hero; remove the separate biodata and Ringkasan Profil sections.
 - [x] Verify the corrected speaker view layout and final diff.
 
 ## Review
 
-The speaker profile keeps contact and social media in the existing sidebar,
-while the original biodata section now uses a contained scroll region for long
-content. The Ringkasan Profil card continues to organize speaker location and
-future/past event counts.
-Verification: Blade cache, focused speaker coverage (5 tests / 21 assertions),
-and `git diff --check` passed.
+The speaker profile keeps contact and social media in the existing sidebar.
+Biodata and future/past event totals are displayed within the hero, with long
+biodata contained in a scroll region. Wadi Annuar's local biodata was expanded
+to 1,146 characters for visual verification. Verification: Blade cache, focused
+speaker coverage (5 tests / 22 assertions), and `git diff --check` passed.
+
+# Keep hero biodata compact
+
+- [x] Set a fixed compact biodata viewport so long content scrolls without increasing hero height.
+- [x] Verify view compilation, diff checks, and focused speaker coverage.
+
+Verification: fixed `h-48 max-h-48` biodata viewport, Blade cache, 5 focused
+tests / 22 assertions, and `git diff --check` passed.
+
+# Conditional biodata display
+
+- [x] Hide the biodata block when no biodata exists.
+- [x] Show the scroll hint only when biodata exceeds the scroll threshold.
+- [x] Verify the empty, short, and long biodata states.
+
+Verification: Blade cache, 6 focused tests / 25 assertions, and `git diff --check` passed.
+
+# Reduce hero height
+
+- [x] Tighten image minimum height, spacing, and biodata viewport while preserving scrolling.
+- [x] Verify Blade compilation, focused speaker coverage, and diff checks.
+
+Verification: compact `h-24 max-h-24` biodata viewport, 24rem desktop image
+minimum, Blade cache, 5 focused tests / 22 assertions, and `git diff --check` passed.
+
+# Optimize speaker page loading
+
+- [x] Measure the route timing and SQL profile for a real speaker page.
+- [x] Avoid eager-loading unused title assignments and keep count queries free of event relations.
+- [x] Batch event classifications needed by the category presenter.
+- [x] Verify successful warm requests, focused tests, Blade cache, and diff checks.
+
+Review: the speaker route now returns successfully with warm repeated requests
+measured around 0.6–0.8s locally, compared with the earlier 9–19s baseline.
+Focused coverage passes (6 tests / 25 assertions).
+
+# Investigate Wadi Annuar speaker performance
+
+- [x] Profile Wadi Annuar against another speaker and identify the multi-event N+1 path.
+- [x] Batch-load address area assignments and state data for event locations.
+- [x] Remove repeated address formatter deprecation warnings.
+- [x] Verify Wadi returns HTTP 200 with warm requests around 1.5–1.7s and 6 focused tests pass.
+
+Review: Wadi’s multi-event profile was triggering repeated address hierarchy
+lookups while rendering event locations. The page now measures about 0.66s in a
+warm direct application request with 80 queries and 145ms SQL time; browser
+requests include local Herd warm-up overhead.
+
+# Deep speaker-page query optimization
+
+- [x] Trace repeated relationship accessors and global page query families.
+- [x] Eager-load active title assignments and title categories used by `formatted_name`.
+- [x] Consolidate upcoming and past event totals into one conditional aggregate query.
+- [x] Verify query-count reduction, focused speaker coverage, and diff checks.
+
+Review: the Wadi Annuar page dropped from 76 to 48–49 application queries. The
+repeated title-assignment queries dropped from 10 to 1, and the two event count
+queries now share one aggregate query. HTTP timing remains variable because
+global session, signals, address, and random inspiration queries sometimes have
+high local PostgreSQL latency; the application-side duplicate query paths are
+now removed.
+
+# Further reduce speaker-page query count
+
+- [x] Batch-load primary occurrences for other-role events used in sorting.
+- [x] Memoize event taxonomy paths for the current request only.
+- [x] Verify unchanged successful rendering, query inventory, tests, PHPStan,
+  formatting, Blade cache, and diff checks.
+
+Review: the Wadi Annuar page now completes with 39 in-process queries in the
+same request profile. The other-role event occurrence N+1 path was replaced by
+one eager-load query, and repeated event taxonomy loading was reduced to one
+query pair per request. Session, Signals, random inspiration, contact, and
+social-media queries remain intentionally intact because they provide page
+behavior or tracking results.
+
+# Exhaustive speaker query consolidation
+
+- [x] Inventory every speaker request query and map it to rendering behavior.
+- [x] Share one eager-load graph across upcoming, past, and other-role event
+  data without loading full card relations for other-role cards.
+- [x] Join address state and area display names into the required address loads
+  while preserving hierarchy formatting and missing-data fallbacks.
+- [x] Skip an empty upcoming/past event-page query when the exact aggregate
+  total is already zero.
+- [x] Sort other-role events by the primary occurrence in SQL and remove their
+  standalone occurrence eager-load query.
+- [x] Verify Wadi and Rozaimi responses, focused tests, PHPStan, Pint, Blade
+  cache, and diff checks.
+
+Review: Wadi now returns HTTP 200 with 33 in-process queries (Rozaimi: 29 in
+the same profile). The inventory is now: speaker core (person, media,
+contacts, socials, active titles, addresses), one event total aggregate, only
+the non-empty event list queries, one shared event-card relation graph, one
+other-role participation query plus its minimal event titles, one taxonomy
+pair, random inspiration plus media, two Signals configuration queries, and
+session lifecycle queries. The shared middleware queries remain because
+removing them would change session, tracking, inspiration, or authentication
+behavior rather than merely remove duplication.
+
+# Route-map optimization and package ownership audit
+
+- [x] Review the complete public web/API route map for the same event-list and
+  relation-loading patterns found on speaker pages.
+- [x] Audit whether the speaker optimizations belong in `aiarmada/events` or
+  `aiarmada/addressing`; keep product-specific status, visibility, occurrence,
+  and presentation logic in the application.
+- [x] Apply shared event-page totals/list loading to institution, venue, and
+  series detail pages.
+- [x] Remove the extra API detail count query by carrying the exact total in a
+  window value on the bounded event result query.
+- [x] Verify web/API route responses, focused tests, PHPStan, Pint, Blade cache,
+  and diff checks.
+
+Review: the reusable part is application-owned because the page queries depend
+on ilmu360's public event statuses, visibility policy, occurrence-backed date
+mapping, and card payloads. The package audit found no safe extraction into
+`aiarmada/events` or `aiarmada/addressing` without making those packages aware
+of product policy. Institution, venue, and series web detail routes now use
+one upcoming/past totals query and skip empty list queries; the five public
+API entity-detail families use one bounded event query per section instead of
+an additional count query. All sampled web/API routes returned HTTP 200.
+
+# Seed speaker history and verify past-event performance
+
+- [x] Add deterministic approved/public historical events for Wadi Annuar and
+  Rozaimi Ramle through a dedicated speaker event seeder.
+- [x] Register the seeder after the main event seeder.
+- [x] Run `php artisan migrate:fresh --seed`.
+- [x] Verify past-event rows and profile query behavior for both speakers.
+- [x] Invalidate the speaker event-page cache when load-more limits change.
+
+Review: the fresh seed creates four guaranteed past events for each target
+speaker. Wadi has 4 past and 1 upcoming event; Rozaimi has 4 past and 2
+upcoming events. Both speaker pages render with 28 in-process queries, and the
+existing combined totals/shared eager-load path covers the populated past
+branch without an additional per-event query.

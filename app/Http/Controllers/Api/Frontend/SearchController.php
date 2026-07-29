@@ -918,6 +918,8 @@ class SearchController extends FrontendController
     {
         /** @var Collection<int, Event> $limitedEvents */
         $limitedEvents = (clone $query)
+            ->select('events.*')
+            ->addSelect(DB::raw('COUNT(*) OVER () AS __total_count'))
             ->take($perPage + 1)
             ->get();
 
@@ -930,16 +932,9 @@ class SearchController extends FrontendController
             ->map(fn (Event $event): array => $this->eventListData($event))
             ->all();
 
-        if ($limitedEvents->count() <= $perPage) {
-            return [
-                'items' => $items,
-                'total' => $visibleEvents->count(),
-            ];
-        }
-
         return [
             'items' => $items,
-            'total' => (clone $query)->count(),
+            'total' => (int) ($limitedEvents->first()?->getAttribute('__total_count') ?? 0),
         ];
     }
 

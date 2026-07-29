@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Support\Location;
 
 use AIArmada\Addressing\Models\Address;
+use AIArmada\Addressing\Models\AddressAreaAssignment;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 
 final class AddressAssignments
@@ -23,6 +25,18 @@ final class AddressAssignments
     {
         if (! $address instanceof Address) {
             return [];
+        }
+
+        if ($address->relationLoaded('areaAssignments')) {
+            /** @var Collection<int, AddressAreaAssignment> $assignments */
+            $assignments = $address->getRelation('areaAssignments');
+
+            return $assignments
+                ->where('is_primary', true)
+                ->mapWithKeys(static fn (AddressAreaAssignment $assignment): array => [
+                    (string) $assignment->getAttribute('role') => (string) $assignment->getAttribute('address_area_id'),
+                ])
+                ->all();
         }
 
         return $address->areaAssignments()

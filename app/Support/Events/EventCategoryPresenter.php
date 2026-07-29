@@ -6,6 +6,7 @@ namespace App\Support\Events;
 
 use App\Contracts\EventCategoryCatalog;
 use App\Models\Event;
+use Illuminate\Http\Request;
 
 final readonly class EventCategoryPresenter
 {
@@ -15,7 +16,7 @@ final readonly class EventCategoryPresenter
     public function forEvent(Event $event): array
     {
         $event->loadMissing(['classifications.term']);
-        $paths = $this->paths($this->catalog->tree());
+        $paths = $this->pathsForCurrentRequest();
 
         return $event->classifications
             ->where('taxonomy_code', EventCategoryCatalog::TAXONOMY_CODE)
@@ -55,6 +56,30 @@ final readonly class EventCategoryPresenter
                 $paths += $this->paths($node['children']);
             }
         }
+
+        return $paths;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function pathsForCurrentRequest(): array
+    {
+        $request = app('request');
+
+        if (! $request instanceof Request) {
+            return $this->paths($this->catalog->tree());
+        }
+
+        /** @var array<string, string>|null $cachedPaths */
+        $cachedPaths = $request->attributes->get('event-category-presenter.paths');
+
+        if (is_array($cachedPaths)) {
+            return $cachedPaths;
+        }
+
+        $paths = $this->paths($this->catalog->tree());
+        $request->attributes->set('event-category-presenter.paths', $paths);
 
         return $paths;
     }

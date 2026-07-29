@@ -1,13 +1,16 @@
 <?php
 
+use App\Livewire\Concerns\LoadsEventPageData;
 use App\Models\Event;
 use App\Models\Venue;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Support\Str;
 use Livewire\Component;
 
 new class extends Component
 {
+    use LoadsEventPageData;
+
     public Venue $venue;
 
     public int $upcomingPerPage = 8;
@@ -45,27 +48,12 @@ new class extends Component
      */
     public function getUpcomingEventsProperty(): Collection
     {
-        return $this->venue->events()
-            ->active()
-            ->where('starts_at', '>=', now())
-            ->with([
-                'institution.media',
-                'institution.addresses.country',
-                'persons.media',
-                'keyPeople.person.media',
-                'media',
-            ])
-            ->orderBy('starts_at')
-            ->take($this->upcomingPerPage)
-            ->get();
+        return $this->eventPageData()['upcoming'];
     }
 
     public function getUpcomingTotalProperty(): int
     {
-        return $this->venue->events()
-            ->active()
-            ->where('starts_at', '>=', now())
-            ->count();
+        return $this->eventPageData()['upcoming_total'];
     }
 
     /**
@@ -73,27 +61,38 @@ new class extends Component
      */
     public function getPastEventsProperty(): Collection
     {
-        return $this->venue->events()
-            ->active()
-            ->where('starts_at', '<', now())
-            ->with([
-                'institution.media',
-                'institution.addresses.country',
-                'persons.media',
-                'keyPeople.person.media',
-                'media',
-            ])
-            ->orderByDesc('starts_at')
-            ->take($this->pastPerPage)
-            ->get();
+        return $this->eventPageData()['past'];
     }
 
     public function getPastTotalProperty(): int
     {
-        return $this->venue->events()
-            ->active()
-            ->where('starts_at', '<', now())
-            ->count();
+        return $this->eventPageData()['past_total'];
+    }
+
+    protected function eventPageBaseQuery(): Builder
+    {
+        return $this->venue->events()->getQuery()->active();
+    }
+
+    protected function eventPageEagerLoads(): array
+    {
+        return [
+            'institution.media',
+            'institution.addresses.country',
+            'persons.media',
+            'keyPeople.person.media',
+            'media',
+        ];
+    }
+
+    protected function eventPageUpcomingLimit(): int
+    {
+        return $this->upcomingPerPage;
+    }
+
+    protected function eventPagePastLimit(): int
+    {
+        return $this->pastPerPage;
     }
 
     public function rendering($view): void

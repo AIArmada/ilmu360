@@ -158,7 +158,7 @@
 
             <div class="mt-6 overflow-hidden rounded-[2rem] border border-white/80 bg-white/82 shadow-[0_30px_90px_-42px_rgba(6,78,59,0.42)] backdrop-blur-xl">
                 <div class="grid lg:grid-cols-[20rem_minmax(0,1fr)]">
-                    <div class="relative min-h-[22rem] overflow-hidden bg-gradient-to-br from-emerald-100 via-[#f4efe4] to-amber-100 lg:min-h-[30rem]">
+                    <div class="relative min-h-[20rem] overflow-hidden bg-gradient-to-br from-emerald-100 via-[#f4efe4] to-amber-100 lg:min-h-[24rem]">
                         <div class="absolute inset-0 opacity-40" style="background-image: radial-gradient(circle at 1px 1px, rgba(7,91,72,.2) 1px, transparent 0); background-size: 20px 20px;"></div>
                         <img
                             src="{{ $person->public_main_url }}"
@@ -184,7 +184,7 @@
                         </div>
                     </div>
 
-                    <div class="flex flex-col p-6 sm:p-8 lg:p-10">
+                    <div class="flex flex-col p-6 sm:p-8 lg:p-8">
                         <div class="flex flex-1 flex-col">
                             <div>
                                 <p class="text-[11px] font-black uppercase tracking-[0.24em] text-amber-700">
@@ -206,17 +206,32 @@
                                 @endif
 
                                 @if($bioText !== '')
-                                    <p class="mt-5 max-w-3xl text-base leading-7 text-slate-600">
-                                        {{ \Illuminate\Support\Str::limit($bioText, 220) }}
-                                    </p>
-                                @else
-                                    <p class="mt-5 max-w-3xl text-base leading-7 text-slate-500">
-                                        {{ __('Temui jadual majlis, rekod penglibatan dan saluran rasmi penceramah ini.') }}
-                                    </p>
+                                    <div class="mt-4">
+                                        <div class="flex items-center justify-between gap-4">
+                                            <p class="text-[10px] font-black uppercase tracking-[0.22em] text-amber-700">{{ __('Biodata') }}</p>
+                                            @if($shouldCollapseBio)
+                                                <span class="shrink-0 text-[11px] font-semibold text-slate-500">{{ __('Skrol untuk membaca') }}</span>
+                                            @endif
+                                        </div>
+                                        <div class="mt-2 h-24 max-h-24 overflow-y-auto overscroll-contain pr-4 [scrollbar-color:#a7d5c7_transparent] [scrollbar-width:thin] prose prose-slate max-w-none leading-8 prose-headings:font-heading prose-headings:text-emerald-950 prose-a:text-emerald-700 prose-strong:text-slate-900">
+                                            {!! $bioHtml !!}
+                                        </div>
+                                    </div>
                                 @endif
+
+                                <div class="mt-4 grid grid-cols-2 gap-3 border-t border-emerald-950/10 pt-4 sm:max-w-md">
+                                    <div class="rounded-2xl border border-emerald-100 bg-emerald-50/70 p-3 text-center">
+                                        <p class="font-heading text-2xl font-bold text-emerald-950">{{ number_format($upcomingTotal) }}</p>
+                                        <p class="mt-1 text-[10px] font-semibold text-emerald-700">{{ __('Majlis akan datang') }}</p>
+                                    </div>
+                                    <div class="rounded-2xl border border-slate-200 bg-slate-50/80 p-3 text-center">
+                                        <p class="font-heading text-2xl font-bold text-emerald-950">{{ number_format($pastTotal) }}</p>
+                                        <p class="mt-1 text-[10px] font-semibold text-slate-500">{{ __('Majlis lepas') }}</p>
+                                    </div>
+                                </div>
                             </div>
 
-                            <div class="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                            <div class="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                                 <button
                                     type="button"
                                     wire:click="toggleFollow"
@@ -271,31 +286,6 @@
     <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
         <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
             <main class="min-w-0 space-y-8">
-                <section class="scroll-reveal reveal-up revealed overflow-hidden rounded-[1.75rem] border border-slate-200/90 bg-white shadow-sm">
-                    <div class="border-b border-slate-100 px-6 py-5 sm:px-8">
-                        <p class="text-[10px] font-black uppercase tracking-[0.22em] text-amber-700">{{ __('Tentang Penceramah') }}</p>
-                        <h2 class="mt-1 font-heading text-2xl font-bold text-emerald-950 sm:text-3xl">{{ __('Biodata') }}</h2>
-                    </div>
-
-                    <div class="p-6 sm:p-8">
-                        @if($bioText !== '')
-                            <div class="flex items-center justify-between gap-4">
-                                <p class="text-xs font-semibold text-slate-400">{{ __('Tentang latar belakang penceramah') }}</p>
-                                @if($shouldCollapseBio)
-                                    <span class="shrink-0 text-[11px] font-semibold text-slate-400">{{ __('Skrol untuk membaca') }}</span>
-                                @endif
-                            </div>
-                            <div class="mt-4 max-h-[26rem] overflow-y-auto overscroll-contain pr-4 [scrollbar-color:#a7d5c7_transparent] [scrollbar-width:thin] prose prose-slate max-w-none leading-8 prose-headings:font-heading prose-headings:text-emerald-950 prose-a:text-emerald-700 prose-strong:text-slate-900">
-                                {!! $bioHtml !!}
-                            </div>
-                        @else
-                            <div class="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center">
-                                <p class="text-sm text-slate-500">{{ __('Biodata penceramah ini belum tersedia buat masa ini.') }}</p>
-                            </div>
-                        @endif
-                    </div>
-                </section>
-
                 <section class="scroll-reveal reveal-up revealed">
                     <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                         <div>
@@ -535,34 +525,6 @@
             </main>
 
             <aside class="space-y-6 lg:sticky lg:top-24 lg:self-start">
-                <section class="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
-                    <p class="text-[10px] font-black uppercase tracking-[0.22em] text-amber-700">{{ __('Ringkasan Profil') }}</p>
-                    <h2 class="mt-1 font-heading text-xl font-bold text-emerald-950">{{ $person->formatted_name }}</h2>
-
-                    <div class="mt-5 space-y-3">
-                        @if($person->status === 'verified')
-                            <div class="flex items-center gap-3 rounded-xl bg-emerald-50 p-3">
-                                <span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-emerald-700 text-white">
-                                    <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.051l-7.5 9.75a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.897 3.896 6.976-9.07a.75.75 0 0 1 1.051-.142Z" clip-rule="evenodd" /></svg>
-                                </span>
-                                <div><p class="text-xs font-bold text-emerald-900">{{ __('Profil Disahkan') }}</p><p class="mt-0.5 text-[11px] text-emerald-700">{{ __('Maklumat telah melalui semakan.') }}</p></div>
-                            </div>
-                        @endif
-
-                        @if($locationString !== '')
-                            <div class="flex items-start gap-3 rounded-xl bg-slate-50 p-3">
-                                <span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white text-amber-700 shadow-sm"><svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" /></svg></span>
-                                <div class="min-w-0"><p class="text-[10px] font-bold uppercase tracking-wide text-slate-400">{{ __('Lokasi') }}</p><p class="mt-1 text-xs font-semibold leading-5 text-slate-700">{{ $locationString }}</p></div>
-                            </div>
-                        @endif
-
-                        <div class="grid grid-cols-2 gap-2">
-                            <div class="rounded-xl border border-slate-100 bg-slate-50 p-3 text-center"><p class="font-heading text-xl font-bold text-emerald-950">{{ number_format($upcomingTotal) }}</p><p class="mt-1 text-[10px] font-semibold text-slate-400">{{ __('Akan datang') }}</p></div>
-                            <div class="rounded-xl border border-slate-100 bg-slate-50 p-3 text-center"><p class="font-heading text-xl font-bold text-emerald-950">{{ number_format($pastTotal) }}</p><p class="mt-1 text-[10px] font-semibold text-slate-400">{{ __('Majlis lepas') }}</p></div>
-                        </div>
-                    </div>
-                </section>
-
                 @if($publicContacts->isNotEmpty())
                     <section class="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
                         <p class="text-[10px] font-black uppercase tracking-[0.22em] text-amber-700">{{ __('Hubungi Penceramah') }}</p>

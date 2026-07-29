@@ -372,6 +372,10 @@
 - When model events are intentionally disabled during seeders, UUID-generating `creating` hooks do not run; assign the UUID explicitly on the model instance before saving instead of relying on mass-assignment of a guarded `id` field.
 - Package relation migrations can change a serialized collection from a legacy boolean map to related rows; update app state serializers and persistence semantics together, including explicit `null` collection clearing.
 
+- Before removing an eager-loaded relationship, inspect accessors on the hydrated model; `formatted_name` can query `titleAssignments` implicitly, so an apparently unused relation may be required to prevent repeated accessor queries.
+
 - When a package-owned Filament resource needs a field already modeled by the package, implement the display and relation in the package behind its existing resolver seam; do not replace the resource in the consuming app unless the app is adding genuinely product-specific behavior.
 
 - When a user narrows a UI consolidation request, preserve the sections they explicitly excluded and change only the requested interaction; do not move adjacent contact or social content for visual convenience.
+- When PHPStan sees a Filament relation-manager owner as the generic Eloquent model, narrow the owner with the resource's concrete model class before calling model-specific relations; keep a safe default for unexpected owner types.
+- For a page with multiple related collections, fetch the collections first and eager-load the unique shared models as one graph; when a relation is only used for ordering, push that ordering into the existing query instead of eager-loading a second graph.
