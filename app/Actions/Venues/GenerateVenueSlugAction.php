@@ -70,7 +70,8 @@ class GenerateVenueSlugAction
 
     public function forVenue(Venue $venue): string
     {
-        $venue->loadMissing(['addresses']);
+        $venue->unsetRelation('addresses');
+        $venue->load(['addresses']);
 
         $address = $venue->primaryAddress();
 
@@ -95,10 +96,12 @@ class GenerateVenueSlugAction
         $assignments = (array) ($address['area_assignments'] ?? []);
         $city = $this->firstFilled([
             $address['city'] ?? null,
+            $this->canonicalCityName($address['city_id'] ?? null),
             $this->areaName($assignments[AddressAssignments::ADMINISTRATIVE_SUBDIVISION] ?? null),
         ]);
         $state = $this->firstFilled([
             $address['state'] ?? null,
+            $this->canonicalStateName($address['state_id'] ?? null),
             $this->areaName($assignments[AddressAssignments::ADMINISTRATIVE_DISTRICT] ?? null),
         ]);
         $countryCode = $this->resolveCountryCode($address, true);

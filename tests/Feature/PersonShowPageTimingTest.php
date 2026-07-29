@@ -1,5 +1,6 @@
 <?php
 
+use AIArmada\Addressing\Models\Address;
 use App\Enums\EventFormat;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\PrayerOffset;
@@ -259,6 +260,33 @@ it('formats federal-territory venue addresses with product state_id and no distr
 
     expect($eventLocation)->toBe('Dewan Utama Test, Setiawangsa, Kuala Lumpur')
         ->and($eventLocation)->not->toBe('Dewan Utama Test, Kuala Lumpur, Kuala Lumpur');
+});
+
+it('shows the country in a person location when no regional selection exists', function () {
+    $person = Person::factory()->create([
+        'status' => 'verified',
+        'slug' => 'country-only-person',
+    ]);
+    $country = ensureTestMalaysiaCountry();
+    $address = Address::query()->create([
+        'country_id' => $country->getKey(),
+        'country' => 'Malaysia',
+        'country_code' => 'MY',
+        'state_id' => null,
+        'city_id' => null,
+        'state' => null,
+        'city' => null,
+    ]);
+    $person->attachAddress($address, type: 'primary', isPrimary: true);
+
+    expect(AddressHierarchyFormatter::parts($person->primaryAddress()))
+        ->toBe(['Malaysia']);
+
+    $person->refresh();
+
+    $this->get(route('persons.show', $person))
+        ->assertSuccessful()
+        ->assertSee('Malaysia');
 });
 
 it('deduplicates matching person subdistrict and district labels in the person location badge', function () {

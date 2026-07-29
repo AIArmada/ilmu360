@@ -48,6 +48,35 @@ it('generates country-based slugs for person quick-create flows', function () {
         ->and($person->primaryAddress()?->country_id)->toBe((string) $country->getKey());
 });
 
+it('keeps text-only regions during person address persistence', function () {
+    $proposer = User::factory()->create();
+    $country = createPersonSlugCountry();
+
+    $person = app(ContributionEntityMutationService::class)->createPerson([
+        'name' => 'Penceramah Text Lokasi',
+        'gender' => 'male',
+        'address' => [
+            'country_id' => (string) $country->getKey(),
+            'state' => 'Johor',
+            'city' => 'Kota Tinggi',
+        ],
+    ], $proposer);
+
+    expect($person->primaryAddress()?->state)->toBe('Johor')
+        ->and($person->primaryAddress()?->city)->toBe('Kota Tinggi')
+        ->and($person->slug)->toBe('penceramah-text-lokasi-kota-tinggi-johor-my');
+});
+
+it('uses canonical state and city names when person slug text is absent', function () {
+    $geography = createTestPackageGeography(cityName: 'Shah Alam');
+
+    expect(app(GeneratePersonSlugAction::class)->handle('Penceramah Canonical Lokasi', [
+        'country_id' => (string) $geography['country']->getKey(),
+        'state_id' => (string) $geography['state']->getKey(),
+        'city_id' => (string) $geography['city']->getKey(),
+    ]))->toBe('penceramah-canonical-lokasi-shah-alam-selangor-my');
+});
+
 it('generates slugs based on name only (titles no longer assigned on create)', function () {
     $proposer = User::factory()->create();
     $country = createPersonSlugCountry();

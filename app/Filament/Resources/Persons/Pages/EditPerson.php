@@ -50,6 +50,17 @@ class EditPerson extends EditRecord
         $address = $data['address'] ?? null;
         unset($data['address']);
 
+        if (is_array($address)) {
+            $address['state_id'] ??= null;
+            $address['city_id'] ??= null;
+
+            if ($address['state_id'] === null) {
+                $address['state'] = null;
+                $address['city_id'] = null;
+                $address['city'] = null;
+            }
+        }
+
         $record = parent::handleRecordUpdate($record, $data);
 
         if ($record instanceof Person && is_array($address)) {
@@ -71,6 +82,10 @@ class EditPerson extends EditRecord
 
         return SharedFormSchema::hydrateAddressFormState([
             'country_id' => $countryId,
+            'state_id' => $address?->state_id,
+            'city_id' => $address?->city_id,
+            'state' => $address?->state,
+            'city' => $address?->city,
             'area_assignments' => array_merge(
                 ['administrative_district' => null, 'administrative_subdivision' => null, 'postal_locality' => null],
                 $address?->areaAssignments()->pluck('address_area_id', 'role')->all() ?? [],

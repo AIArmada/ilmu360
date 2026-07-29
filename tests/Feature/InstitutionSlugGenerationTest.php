@@ -314,6 +314,16 @@ it('skips null locality segments when generating institution slugs', function ()
         ->and($generator->handle('Masjid Tanpa Lokasi'))->toBe('masjid-tanpa-lokasi');
 });
 
+it('uses the canonical city when institution slug text is absent', function () {
+    $geography = createTestPackageGeography(cityName: 'Shah Alam');
+
+    expect(app(GenerateInstitutionSlugAction::class)->handle('Masjid Canonical Bandar', [
+        'country_id' => (string) $geography['country']->getKey(),
+        'state_id' => (string) $geography['state']->getKey(),
+        'city_id' => (string) $geography['city']->getKey(),
+    ]))->toBe('masjid-canonical-bandar-shah-alam-selangor-my');
+});
+
 /**
  * @return array{
  *     country: AddressCountry,

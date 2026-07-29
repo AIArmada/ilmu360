@@ -4,6 +4,7 @@ namespace App\Support\Location;
 
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressArea;
+use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Addressing\Models\State;
 
 final class AddressHierarchyFormatter
@@ -61,6 +62,23 @@ final class AddressHierarchyFormatter
             }
 
             $parts[] = $part;
+        }
+
+        if ($parts === []) {
+            $countryName = self::textAttribute($address, 'country');
+
+            if ($countryName === null && $address?->relationLoaded('country')) {
+                $countryName = self::normalizePart($address->getRelation('country')?->name);
+            }
+
+            if ($countryName === null && is_string($address?->country_id)) {
+                $country = AddressCountry::query()->find($address->country_id);
+                $countryName = $country instanceof AddressCountry ? self::normalizePart($country->name) : null;
+            }
+
+            if ($countryName !== null) {
+                $parts[] = $countryName;
+            }
         }
 
         return $parts;

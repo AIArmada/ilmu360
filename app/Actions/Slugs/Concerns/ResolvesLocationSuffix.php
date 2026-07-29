@@ -6,6 +6,8 @@ namespace App\Actions\Slugs\Concerns;
 
 use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressCountry;
+use AIArmada\Addressing\Models\City;
+use AIArmada\Addressing\Models\State;
 use Illuminate\Support\Str;
 
 trait ResolvesLocationSuffix
@@ -66,6 +68,32 @@ trait ResolvesLocationSuffix
         }
 
         $resolved = AddressArea::query()->whereKey($areaId)->value('name');
+
+        return is_string($resolved) && trim($resolved) !== '' ? $resolved : null;
+    }
+
+    private function canonicalCityName(mixed $cityId): ?string
+    {
+        $cityId = $this->uuidValue($cityId);
+
+        if ($cityId === null) {
+            return null;
+        }
+
+        $resolved = City::query()->whereKey($cityId)->value('name');
+
+        return is_string($resolved) && trim($resolved) !== '' ? $resolved : null;
+    }
+
+    private function canonicalStateName(mixed $stateId): ?string
+    {
+        $stateId = $this->uuidValue($stateId);
+
+        if ($stateId === null) {
+            return null;
+        }
+
+        $resolved = State::query()->whereKey($stateId)->value('name');
 
         return is_string($resolved) && trim($resolved) !== '' ? $resolved : null;
     }

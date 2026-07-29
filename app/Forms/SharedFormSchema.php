@@ -662,7 +662,7 @@ class SharedFormSchema
 
         $payload['area_assignments'] = AddressAssignments::normalize((array) ($normalized['area_assignments'] ?? $data['area_assignments'] ?? []));
 
-        foreach (['line1', 'line2', 'postcode', 'waze_url'] as $field) {
+        foreach (['line1', 'line2', 'postcode', 'state', 'city', 'waze_url'] as $field) {
             if (array_key_exists($field, $data)) {
                 $payload[$field] = $normalized[$field] ?? null;
             }
@@ -1182,6 +1182,32 @@ class SharedFormSchema
         $stateId = self::normalizeLocationId($data['state_id'] ?? null)
             ?? self::stateIdFromStoredAreas($assignments);
         $cityId = self::normalizeLocationId($data['city_id'] ?? null);
+
+        $countryId = self::normalizeLocationId($data['country_id'] ?? null);
+
+        if ($stateId === null && is_string($data['state'] ?? null) && trim($data['state']) !== '') {
+            $stateQuery = State::query()->whereRaw('LOWER(name) = LOWER(?)', [trim($data['state'])]);
+
+            if ($countryId !== null) {
+                $stateQuery->where('country_id', $countryId);
+            }
+
+            $stateId = self::normalizeLocationId($stateQuery->value('id'));
+        }
+
+        if ($cityId === null && is_string($data['city'] ?? null) && trim($data['city']) !== '') {
+            $cityQuery = City::query()->whereRaw('LOWER(name) = LOWER(?)', [trim($data['city'])]);
+
+            if ($stateId !== null) {
+                $cityQuery->where('state_id', $stateId);
+            }
+
+            if ($countryId !== null) {
+                $cityQuery->where('country_id', $countryId);
+            }
+
+            $cityId = self::normalizeLocationId($cityQuery->value('id'));
+        }
 
         if ($cityId !== null && ! City::query()->whereKey($cityId)->exists()) {
             $cityId = null;

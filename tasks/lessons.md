@@ -379,3 +379,7 @@
 - When a user narrows a UI consolidation request, preserve the sections they explicitly excluded and change only the requested interaction; do not move adjacent contact or social content for visual convenience.
 - When PHPStan sees a Filament relation-manager owner as the generic Eloquent model, narrow the owner with the resource's concrete model class before calling model-specific relations; keep a safe default for unexpected owner types.
 - For a page with multiple related collections, fetch the collections first and eager-load the unique shared models as one graph; when a relation is only used for ordering, push that ordering into the existing query instead of eager-loading a second graph.
+
+- When a form selection is backed by both canonical IDs and denormalized text, verify the save path as well as hydration; stale text can survive a valid ID update and continue driving slugs and public fallbacks.
+- Nullable Filament location selections may be omitted from dehydrated state when cleared; admin edit handlers must make cleared parent IDs explicit before relation synchronization, including clearing dependent child IDs and text.
+- Public location formatters must include a country-only fallback; otherwise saving a valid country without regional selections produces an apparently empty hero location.

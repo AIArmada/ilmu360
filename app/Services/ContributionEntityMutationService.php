@@ -6,6 +6,7 @@ use AIArmada\Addressing\Actions\SyncAddressAreaAssignmentsAction;
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressCountry;
+use AIArmada\Addressing\Models\City;
 use AIArmada\Addressing\Models\State;
 use AIArmada\Addressing\Support\AddressAreaStateBridge;
 use AIArmada\Addressing\Support\AddressCountryResolver;
@@ -1098,6 +1099,8 @@ class ContributionEntityMutationService
         $countryProvided = SharedFormSchema::countrySelectionProvided($payload);
         $payload = SharedFormSchema::prepareAddressPersistenceData($payload);
 
+        $payload = $this->syncCanonicalRegionText($payload);
+
         $countryId = $this->normalizeUuid($payload['country_id'] ?? null);
 
         if ($countryId === null && ! $countryProvided) {
@@ -1111,6 +1114,15 @@ class ContributionEntityMutationService
                     ? __('The selected country is invalid.')
                     : __('The address country is required.'),
             ]);
+        }
+
+        $stateChanged = $existingAddress instanceof Address
+            && $this->normalizeUuid($payload['state_id'] ?? null) !== null
+            && $this->normalizeUuid($payload['state_id'] ?? null) !== $this->normalizeUuid($existingAddress->state_id);
+
+        if ($stateChanged && ! array_key_exists('city_id', $payload)) {
+            $payload['city_id'] = null;
+            $payload['city'] = null;
         }
 
         if ($existingAddress instanceof Address) {
@@ -1132,6 +1144,7 @@ class ContributionEntityMutationService
                     $payload[$field] = $existingAddress->{$field};
                 }
             }
+
         }
 
         $assignments = AddressAssignments::normalize((array) ($payload['area_assignments'] ?? []));
@@ -1237,6 +1250,39 @@ class ContributionEntityMutationService
             'state' => is_string($stateName) && $stateName !== '' ? $stateName : null,
             'city' => $locality?->name,
         ];
+    }
+
+    /**
+     * Keep denormalized region text aligned with canonical form selections.
+     *
+     * A select can submit a new state/city ID while the legacy text inputs are
+     * hidden and therefore absent from the payload. Never retain stale text in
+     * that case because it is also used by public slugs and fallbacks.
+     *
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private function syncCanonicalRegionText(array $payload): array
+    {
+        $stateId = $this->normalizeUuid($payload['state_id'] ?? null);
+        $cityId = $this->normalizeUuid($payload['city_id'] ?? null);
+
+        if ($stateId !== null) {
+            $payload['state'] = State::query()->whereKey($stateId)->value('name');
+
+            if ($cityId !== null) {
+                $payload['city'] = City::query()
+                    ->whereKey($cityId)
+                    ->where('state_id', $stateId)
+                    ->value('name');
+            } else {
+                $payload['city'] = null;
+            }
+        } elseif ($cityId !== null) {
+            $payload['city'] = City::query()->whereKey($cityId)->value('name');
+        }
+
+        return $payload;
     }
 
     /**
@@ -1567,6 +1613,10 @@ class ContributionEntityMutationService
 
         return SharedFormSchema::hydrateAddressFormState([
             'country_id' => $address->country_id ?? $this->addressingCountryResolver->resolveId($address->country_code),
+            'state_id' => $address->state_id,
+            'city_id' => $address->city_id,
+            'state' => $address->state,
+            'city' => $address->city,
             'area_assignments' => AddressAssignments::forAddress($address),
             'line1' => $address->line1,
             'line2' => $address->line2,

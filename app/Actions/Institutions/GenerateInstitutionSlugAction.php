@@ -71,7 +71,8 @@ class GenerateInstitutionSlugAction
 
     public function forInstitution(Institution $institution): string
     {
-        $institution->loadMissing(['addresses']);
+        $institution->unsetRelation('addresses');
+        $institution->load(['addresses']);
 
         $address = $institution->primaryAddress();
 
@@ -97,6 +98,7 @@ class GenerateInstitutionSlugAction
         $assignments = (array) ($address['area_assignments'] ?? []);
         $city = $this->firstFilled([
             $address['city'] ?? null,
+            $this->canonicalCityName($address['city_id'] ?? null),
             $this->areaName($assignments[AddressAssignments::ADMINISTRATIVE_SUBDIVISION] ?? null),
         ]);
         $district = $this->firstFilled([
@@ -104,8 +106,7 @@ class GenerateInstitutionSlugAction
         ]);
         $state = $this->firstFilled([
             $address['state'] ?? null,
-            $this->stateName($address['state_id'] ?? null),
-            $this->stateName($address['state_id'] ?? null),
+            $this->canonicalStateName($address['state_id'] ?? null),
         ]);
         $countryCode = $this->resolveCountryCode($address);
         $segments = [];
@@ -130,7 +131,7 @@ class GenerateInstitutionSlugAction
         return implode('-', $segments);
     }
 
-    private function stateName(mixed $stateId): ?string
+    private function canonicalStateName(mixed $stateId): ?string
     {
         $stateId = $this->uuidValue($stateId);
 

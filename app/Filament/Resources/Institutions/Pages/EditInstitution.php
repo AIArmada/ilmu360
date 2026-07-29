@@ -62,6 +62,17 @@ class EditInstitution extends EditRecord
             abort(403);
         }
 
+        if (array_key_exists('address', $data) && is_array($data['address'])) {
+            $data['address']['state_id'] ??= null;
+            $data['address']['city_id'] ??= null;
+
+            if ($data['address']['state_id'] === null) {
+                $data['address']['state'] = null;
+                $data['address']['city_id'] = null;
+                $data['address']['city'] = null;
+            }
+        }
+
         return OwnerContext::withOwner(null, fn (): Institution => app(SaveInstitutionAction::class)->handle(
             $data,
             $actor,
@@ -107,6 +118,10 @@ class EditInstitution extends EditRecord
 
         return SharedFormSchema::hydrateAddressFormState([
             'country_id' => $countryId,
+            'state_id' => $address?->state_id,
+            'city_id' => $address?->city_id,
+            'state' => $address?->state,
+            'city' => $address?->city,
             'area_assignments' => $address?->areaAssignments()->pluck('address_area_id', 'role')->all() ?? [],
             'line1' => $address?->line1,
             'line2' => $address?->line2,

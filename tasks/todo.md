@@ -354,3 +354,58 @@ speaker. Wadi has 4 past and 1 upcoming event; Rozaimi has 4 past and 2
 upcoming events. Both speaker pages render with 28 in-process queries, and the
 existing combined totals/shared eager-load path covers the populated past
 branch without an additional per-event query.
+
+# Restore canonical person location selections in admin
+
+- [x] Trace Rozaimi Ramle's stored address and admin edit-form hydration.
+- [x] Hydrate state/city IDs and preserve text fields for person and institution
+  address edit forms.
+- [x] Resolve exact text-only state/city locations within the stored country.
+- [x] Add a regression test for a text-only address containing Johor and Kota
+  Tinggi.
+- [x] Verify the real Rozaimi record resolves to canonical selections.
+
+Review: Rozaimi's address contains `state = Johor` and `city = Kota Tinggi`,
+but its canonical IDs are null. The shared hydration path now resolves those
+values to the matching package State and City records, so the admin selects
+the correct options without changing the public location fallback. The save
+path also derives denormalized text from canonical selections and clears a
+stale city when the admin saves with no city selected, allowing person slugs
+to drop obsolete city segments.
+
+State-clear follow-up: admin edit handlers now explicitly persist a cleared
+state and clear dependent city values/text instead of allowing omitted null
+fields to restore the previous address.
+
+# Show country-only person locations in the public hero
+
+- [x] Trace the public hero location formatter for country-only addresses.
+- [x] Add country fallback when no city, area, or state is available.
+- [x] Add a public person-page regression test for Malaysia-only location data.
+- [x] Verify focused person-page tests and static checks.
+
+Review: public location formatting now displays the canonical country name when
+an address contains only a country, while regional addresses retain their
+existing city/area/state output.
+
+Follow-up audit: all 21 formatter consumers inherit this country-only fallback,
+including person, institution, venue, event, series, search, API, and MCP
+location displays. The venue-specific detail view already includes the shared
+hierarchy and an explicit country fallback.
+
+# Audit canonical location and slug synchronization across entities
+
+- [x] Inventory person, institution, venue, contribution, and admin address
+  persistence paths.
+- [x] Preserve text-only state/city values through shared address preparation.
+- [x] Add canonical state/city fallbacks to person, institution, and venue
+  slug builders.
+- [x] Force fresh address relations before direct slug regeneration.
+- [x] Add regression coverage for text-only persistence and canonical-ID slug
+  generation.
+- [x] Run focused slug/admin tests, Pint, PHPStan, Blade cache, and diff checks.
+
+Review: the same stale-location risk was present in shared create/update
+preparation and in slug builders that depended only on denormalized text. The
+address observer already refreshes person, institution, and venue slugs after
+address changes; the audit now makes its inputs canonical-safe as well.

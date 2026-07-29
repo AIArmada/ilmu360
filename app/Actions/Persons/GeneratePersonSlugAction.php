@@ -70,7 +70,8 @@ class GeneratePersonSlugAction
 
     public function forPerson(Person $person): string
     {
-        $person->loadMissing(['addresses']);
+        $person->unsetRelation('addresses');
+        $person->load(['addresses']);
 
         $address = $person->primaryAddress();
 
@@ -95,8 +96,14 @@ class GeneratePersonSlugAction
         $segments = [];
 
         foreach ([
-            $this->slugSegment($payload['city'] ?? null),
-            $this->slugSegment($payload['state'] ?? null),
+            $this->slugSegment($this->firstFilled([
+                $payload['city'] ?? null,
+                $this->canonicalCityName($payload['city_id'] ?? null),
+            ])),
+            $this->slugSegment($this->firstFilled([
+                $payload['state'] ?? null,
+                $this->canonicalStateName($payload['state_id'] ?? null),
+            ])),
             $this->countryCodeSegment($countryCode),
         ] as $segment) {
             if ($segment === null) {
