@@ -383,3 +383,17 @@
 - When a form selection is backed by both canonical IDs and denormalized text, verify the save path as well as hydration; stale text can survive a valid ID update and continue driving slugs and public fallbacks.
 - Nullable Filament location selections may be omitted from dehydrated state when cleared; admin edit handlers must make cleared parent IDs explicit before relation synchronization, including clearing dependent child IDs and text.
 - Public location formatters must include a country-only fallback; otherwise saving a valid country without regional selections produces an apparently empty hero location.
+
+- Loading indicators must have a hidden fallback class; `wire:loading` is inert until Livewire initializes, so an unhidden status element can appear stuck during the initial page render.
+
+- When a Flux control is rendered on a light public surface, verify the browser's dark-mode preference in the actual page; use the component's segmented radio pattern and explicit light brand contrast instead of relying on automatic appearance styles.
+
+- Filters for a content section should sit between that section's heading and its results; putting them in the heading's side column creates an unnecessary visual split and can make responsive widths feel detached from the content they control.
+
+- Keep persistent section metadata, such as an active-result count, in the section header; the filter control can occupy the content transition below it without displacing that metadata.
+
+- For custom date filtering, use user-local date inputs and convert both boundaries to UTC before querying; make the end boundary the start of the following local day when the database predicate is exclusive.
+
+- When a custom range is an occasional action, keep it out of the primary preset tabs; a centered calendar-icon trigger with an active state reduces tab crowding while preserving discoverability.
+
+- Verify loading visuals while a request is actually in flight; a spinner that only looks acceptable in a static DOM snapshot can still appear frozen at the interaction speed users experience.

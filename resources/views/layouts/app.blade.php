@@ -486,6 +486,7 @@
 
         @stack('prelivewire-scripts')
     @livewireScripts
+    @fluxScripts
     @filamentScripts(['app'])
     @filamentScripts(['filament/support', 'filament/schemas', 'filament/forms', 'filament/actions', 'filament/notifications'])
     @stack('scripts')

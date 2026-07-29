@@ -17,6 +17,9 @@ use App\Models\EventKeyPersonPivot;
 use App\Models\Person;
 use App\Services\ShareTrackingService;
 use App\Support\Auth\IntendedRedirect;
+use App\Support\Timezone\UserDateTimeFormatter;
+use Carbon\Carbon;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -38,12 +41,25 @@ class Show extends Component
 
     public int $pastPerPage = 10;
 
+    public string $upcomingDateFilter = 'all';
+
+    public string $customStartDate = '';
+
+    public string $customEndDate = '';
+
+    public bool $showCustomDateRange = false;
+
     public bool $isFollowing = false;
 
     /**
      * @var array{upcoming: EloquentCollection<int, Event>, past: EloquentCollection<int, Event>, other: Collection<int, EventKeyPerson>}|null
      */
     private ?array $eventPageData = null;
+
+    /**
+     * @var array{upcoming: int, past: int}|null
+     */
+    private ?array $eventTotals = null;
 
     public function boot(): void
     {
@@ -108,6 +124,51 @@ class Show extends Component
         $this->eventPageData = null;
     }
 
+    public function filterUpcomingEvents(): void
+    {
+        $this->upcomingPerPage = 10;
+        $this->eventPageData = null;
+        $this->eventTotals = null;
+    }
+
+    public function updatedUpcomingDateFilter(): void
+    {
+        if ($this->upcomingDateFilter === 'custom') {
+            $this->resetValidation('customDateRange');
+
+            return;
+        }
+
+        $this->filterUpcomingEvents();
+    }
+
+    public function applyCustomDateRange(): void
+    {
+        $from = UserDateTimeFormatter::parseUserDateToUtc($this->customStartDate);
+        $to = UserDateTimeFormatter::parseUserDateToUtc($this->customEndDate);
+
+        if ($from === null || $to === null || $from->greaterThan($to)) {
+            $this->addError('customDateRange', __('Sila pilih julat tarikh yang sah.'));
+
+            return;
+        }
+
+        $this->resetValidation('customDateRange');
+        $this->upcomingDateFilter = 'custom';
+        $this->showCustomDateRange = false;
+        $this->filterUpcomingEvents();
+    }
+
+    public function clearUpcomingDateFilter(): void
+    {
+        $this->upcomingDateFilter = 'all';
+        $this->customStartDate = '';
+        $this->customEndDate = '';
+        $this->showCustomDateRange = false;
+        $this->resetValidation('customDateRange');
+        $this->filterUpcomingEvents();
+    }
+
     /**
      * @return EloquentCollection<int, Event>
      */
@@ -159,9 +220,18 @@ class Show extends Component
         }
 
         $totals = $this->eventTotals();
+        $upcomingQuery = $this->personEventQuery()
+            ->where('starts_at', '>=', now());
+        $upcomingRange = $this->upcomingDateRange();
+
+        if ($upcomingRange !== null) {
+            $upcomingQuery
+                ->where('starts_at', '>=', $upcomingRange['from'])
+                ->where('starts_at', '<', $upcomingRange['to']);
+        }
+
         $upcoming = $totals['upcoming'] > 0
-            ? $this->personEventQuery()
-                ->where('starts_at', '>=', now())
+            ? $upcomingQuery
                 ->orderBy('starts_at', 'asc')
                 ->take($this->upcomingPerPage)
                 ->get()
@@ -282,7 +352,11 @@ class Show extends Component
      */
     private function eventTotals(): array
     {
-        return once(function (): array {
+        if ($this->eventTotals !== null) {
+            return $this->eventTotals;
+        }
+
+        $this->eventTotals = (function (): array {
             $eventsTable = (new Event)->getTable();
             $involvementsTable = (new EventKeyPerson)->getTable();
             $occurrencesTable = (new EventOccurrence)->getTable();
@@ -295,6 +369,13 @@ class Show extends Component
                 ->orderBy("{$occurrencesTable}.id")
                 ->limit(1);
 
+            $upcomingRange = $this->upcomingDateRange();
+            $upcomingFrom = $upcomingRange['from'] ?? $now;
+            $upcomingTo = $upcomingRange['to'] ?? null;
+            $upcomingSql = $upcomingTo === null
+                ? '('.$primaryOccurrence->toSql().') >= ?'
+                : '('.$primaryOccurrence->toSql().') >= ? AND ('.$primaryOccurrence->toSql().') < ?';
+
             $totals = Event::query()
                 ->join($involvementsTable, "{$eventsTable}.id", '=', "{$involvementsTable}.event_id")
                 ->where("{$involvementsTable}.involveable_id", $this->person->getKey())
@@ -304,9 +385,11 @@ class Show extends Component
                 ->where("{$eventsTable}.visibility", EventVisibility::Public)
                 ->whereNotNull("{$eventsTable}.published_at")
                 ->selectRaw(
-                    'SUM(CASE WHEN ('.$primaryOccurrence->toSql().') >= ? THEN 1 ELSE 0 END) as upcoming_total, '.
+                    'SUM(CASE WHEN '.$upcomingSql.' THEN 1 ELSE 0 END) as upcoming_total, '.
                     'SUM(CASE WHEN ('.$primaryOccurrence->toSql().') < ? THEN 1 ELSE 0 END) as past_total',
-                    [$now, $now],
+                    $upcomingTo === null
+                        ? [$upcomingFrom, $now]
+                        : [$upcomingFrom, $upcomingTo, $now],
                 )
                 ->toBase()
                 ->first();
@@ -315,7 +398,68 @@ class Show extends Component
                 'upcoming' => (int) ($totals->upcoming_total ?? 0),
                 'past' => (int) ($totals->past_total ?? 0),
             ];
-        });
+        })();
+
+        return $this->eventTotals;
+    }
+
+    /**
+     * @return array{from: CarbonInterface, to: CarbonInterface}|null
+     */
+    private function upcomingDateRange(): ?array
+    {
+        if ($this->upcomingDateFilter === 'custom') {
+            $from = UserDateTimeFormatter::parseUserDateToUtc($this->customStartDate);
+            $to = UserDateTimeFormatter::parseUserDateToUtc($this->customEndDate)?->addDay();
+
+            if ($from === null || $to === null || $from->greaterThanOrEqualTo($to)) {
+                return null;
+            }
+
+            return [
+                'from' => $from,
+                'to' => $to,
+            ];
+        }
+
+        $today = UserDateTimeFormatter::userNow()->startOfDay();
+
+        [$from, $to] = match ($this->upcomingDateFilter) {
+            'today' => [$today, $today->copy()->addDay()],
+            'tomorrow' => [$today->copy()->addDay(), $today->copy()->addDays(2)],
+            'this_week' => [$today, $today->copy()->startOfWeek()->addWeek()],
+            'this_weekend' => $this->weekendDateRange($today),
+            'next_week' => [
+                $today->copy()->startOfWeek()->addWeek(),
+                $today->copy()->startOfWeek()->addWeeks(2),
+            ],
+            'next_month' => [
+                $today->copy()->startOfMonth()->addMonth(),
+                $today->copy()->startOfMonth()->addMonths(2),
+            ],
+            default => [null, null],
+        };
+
+        if ($from === null || $to === null) {
+            return null;
+        }
+
+        return [
+            'from' => $from->utc(),
+            'to' => $to->utc(),
+        ];
+    }
+
+    /**
+     * @return array{0: CarbonInterface, 1: CarbonInterface}
+     */
+    private function weekendDateRange(CarbonInterface $today): array
+    {
+        $weekendStart = $today->isSaturday() || $today->isSunday()
+            ? $today->copy()
+            : $today->copy()->next(Carbon::SATURDAY);
+
+        return [$weekendStart, $weekendStart->copy()->addDays(2)->startOfDay()];
     }
 
     /**

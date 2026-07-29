@@ -287,22 +287,132 @@
         <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
             <main class="min-w-0 space-y-8">
                 <section class="scroll-reveal reveal-up revealed">
-                    <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-                        <div>
-                            <p class="text-[10px] font-black uppercase tracking-[0.22em] text-amber-700">{{ __('Jadual Penceramah') }}</p>
-                            <h2 class="mt-1 font-heading text-3xl font-bold text-emerald-950">{{ __('Majlis Akan Datang') }}</h2>
-                            <p class="mt-2 text-sm leading-6 text-slate-500">{{ __('Majlis yang dijadualkan menampilkan penceramah ini.') }}</p>
+                    <div class="flex flex-col gap-5">
+                        <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                            <div>
+                                <p class="text-[10px] font-black uppercase tracking-[0.22em] text-amber-700">{{ __('Jadual Penceramah') }}</p>
+                                <h2 class="mt-1 font-heading text-3xl font-bold text-emerald-950">{{ __('Majlis Akan Datang') }}</h2>
+                                <p class="mt-2 text-sm leading-6 text-slate-500">{{ __('Majlis yang dijadualkan menampilkan penceramah ini.') }}</p>
+                            </div>
+
+                            @if($upcomingEvents->isNotEmpty())
+                                <span class="inline-flex w-fit shrink-0 items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-800">
+                                    <span class="relative flex h-2 w-2">
+                                        <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+                                        <span class="relative inline-flex h-2 w-2 rounded-full bg-emerald-600"></span>
+                                    </span>
+                                    {{ trans_choice(
+                                        $upcomingDateFilter === 'all' ? ':count majlis aktif' : ':count majlis dipaparkan',
+                                        $upcomingTotal,
+                                        ['count' => number_format($upcomingTotal)]
+                                    ) }}
+                                </span>
+                            @endif
                         </div>
 
-                        @if($upcomingEvents->isNotEmpty())
-                            <span class="inline-flex w-fit items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-800">
-                                <span class="relative flex h-2 w-2">
-                                    <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
-                                    <span class="relative inline-flex h-2 w-2 rounded-full bg-emerald-600"></span>
+                        <div class="flex w-full justify-center">
+                            <div class="flex max-w-full flex-wrap items-center justify-center gap-3">
+                                <div class="max-w-full overflow-x-auto">
+                                    <flux:radio.group
+                                        variant="segmented"
+                                        size="sm"
+                                        wire:model.live="upcomingDateFilter"
+                                        wire:loading.attr="disabled"
+                                        wire:target="upcomingDateFilter,applyCustomDateRange,clearUpcomingDateFilter"
+                                        aria-label="{{ __('Tapis majlis akan datang') }}"
+                                        data-signal-event="navigation.upcoming_date_filter_changed"
+                                        data-signal-component="person_detail_upcoming_events"
+                                        data-signal-control="date_filter"
+                                        class="w-max"
+                                    >
+                                        @foreach([
+                                            'all' => __('Semua'),
+                                            'today' => __('Hari ini'),
+                                            'tomorrow' => __('Esok'),
+                                            'this_week' => __('Minggu ini'),
+                                            'this_weekend' => __('Hujung minggu'),
+                                            'next_week' => __('Minggu depan'),
+                                            'next_month' => __('Bulan depan'),
+                                        ] as $filter => $label)
+                                            <flux:radio
+                                                value="{{ $filter }}"
+                                                class="!text-emerald-950 hover:!text-emerald-800 dark:!text-emerald-950 dark:hover:!text-emerald-800 data-checked:!bg-emerald-700 data-checked:!text-white dark:data-checked:!bg-emerald-700 dark:data-checked:!text-white"
+                                            >
+                                                {{ $label }}
+                                            </flux:radio>
+                                        @endforeach
+                                    </flux:radio.group>
+                                </div>
+
+                                <flux:modal.trigger name="custom-date-range">
+                                    <flux:button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        square
+                                        icon="calendar-days"
+                                        aria-label="{{ __('Pilih julat tarikh') }}"
+                                        aria-pressed="{{ $upcomingDateFilter === 'custom' ? 'true' : 'false' }}"
+                                        class="shrink-0 rounded-full! {{ $upcomingDateFilter === 'custom' ? 'bg-emerald-100! text-emerald-800! ring-1 ring-emerald-200!' : 'text-emerald-700! hover:bg-emerald-50!' }}"
+                                    />
+                                </flux:modal.trigger>
+
+                                <span
+                                    class="flex size-7 shrink-0 items-center justify-center"
+                                    role="status"
+                                    aria-live="polite"
+                                    aria-atomic="true"
+                                >
+                                    <span
+                                        wire:loading.class.remove="hidden"
+                                        wire:target="upcomingDateFilter,applyCustomDateRange,clearUpcomingDateFilter"
+                                        class="hidden size-4 animate-spin rounded-full border-2 border-emerald-200 border-t-emerald-700"
+                                        style="animation-duration: 700ms"
+                                        aria-label="{{ __('Menapis...') }}"
+                                    ></span>
                                 </span>
-                                {{ trans_choice(':count majlis aktif', $upcomingTotal, ['count' => number_format($upcomingTotal)]) }}
-                            </span>
-                        @endif
+                            </div>
+                        </div>
+
+                        <flux:modal wire:model="showCustomDateRange" name="custom-date-range" class="max-w-xl">
+                            <div class="space-y-6">
+                                <div>
+                                    <flux:heading size="lg">{{ __('Pilih julat tarikh') }}</flux:heading>
+                                    <flux:subheading>{{ __('Pilih tarikh mula dan tarikh akhir untuk menapis majlis akan datang.') }}</flux:subheading>
+                                </div>
+
+                                <div class="grid gap-4 sm:grid-cols-2">
+                                    <flux:field>
+                                        <flux:label>{{ __('Tarikh mula') }}</flux:label>
+                                        <flux:input type="date" wire:model="customStartDate" />
+                                    </flux:field>
+
+                                    <flux:field>
+                                        <flux:label>{{ __('Tarikh akhir') }}</flux:label>
+                                        <flux:input type="date" wire:model="customEndDate" min="{{ $customStartDate }}" />
+                                    </flux:field>
+                                </div>
+
+                                @error('customDateRange')
+                                    <p class="text-xs font-semibold text-red-600">{{ $message }}</p>
+                                @enderror
+
+                                <div class="flex justify-end gap-2">
+                                    <flux:modal.close>
+                                        <flux:button type="button" variant="ghost">{{ __('Batal') }}</flux:button>
+                                    </flux:modal.close>
+                                    <flux:button
+                                        type="button"
+                                        variant="primary"
+                                        wire:click="applyCustomDateRange"
+                                        wire:loading.attr="disabled"
+                                        wire:target="applyCustomDateRange"
+                                    >
+                                        {{ __('Tapis tarikh') }}
+                                    </flux:button>
+                                </div>
+                            </div>
+                        </flux:modal>
                     </div>
 
                     <div class="mt-5">
@@ -312,7 +422,12 @@
                         />
                     </div>
 
-                    <div class="mt-5 space-y-4">
+                    <div
+                        class="mt-5 space-y-4"
+                        wire:loading.class="opacity-60"
+                        wire:loading.attr="aria-busy"
+                        wire:target="upcomingDateFilter,applyCustomDateRange,clearUpcomingDateFilter"
+                    >
                         @foreach($upcomingEvents as $event)
                             @php
                                 $eventTypeLabel = $resolveEventCategoryLabel($event);
@@ -422,10 +537,26 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3.75 8.25h16.5m-16.5 0V19.5A1.5 1.5 0 0 0 5.25 21h13.5a1.5 1.5 0 0 0 1.5-1.5V8.25m-16.5 0V6.75a1.5 1.5 0 0 1 1.5-1.5h13.5a1.5 1.5 0 0 1 1.5 1.5v1.5" />
                                     </svg>
                                 </span>
-                                <h3 class="mt-4 font-heading text-xl font-bold text-emerald-950">{{ __('Belum ada majlis akan datang') }}</h3>
+                                <h3 class="mt-4 font-heading text-xl font-bold text-emerald-950">
+                                    {{ $upcomingDateFilter === 'all' ? __('Belum ada majlis akan datang') : __('Tiada majlis untuk tempoh ini') }}
+                                </h3>
                                 <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
-                                    {{ __('Ikuti penceramah ini untuk mengetahui apabila jadual majlis baharu diterbitkan.') }}
+                                    {{ $upcomingDateFilter === 'all'
+                                        ? __('Ikuti penceramah ini untuk mengetahui apabila jadual majlis baharu diterbitkan.')
+                                        : __('Cuba tempoh lain atau paparkan semua majlis akan datang.') }}
                                 </p>
+
+                                @if($upcomingDateFilter !== 'all')
+                                    <button
+                                        type="button"
+                                        wire:click="clearUpcomingDateFilter"
+                                        wire:loading.attr="disabled"
+                                        wire:target="upcomingDateFilter,applyCustomDateRange,clearUpcomingDateFilter"
+                                        class="mt-5 inline-flex items-center justify-center rounded-xl bg-emerald-700 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-emerald-600 disabled:cursor-wait disabled:opacity-60"
+                                    >
+                                        {{ __('Tunjukkan semua majlis') }}
+                                    </button>
+                                @endif
                             </div>
                         @endif
                     </div>

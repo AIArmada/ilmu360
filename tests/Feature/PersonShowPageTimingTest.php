@@ -7,6 +7,7 @@ use App\Enums\PrayerOffset;
 use App\Enums\PrayerReference;
 use App\Enums\ReferenceType;
 use App\Enums\TimingMode;
+use App\Livewire\Pages\Persons\Show;
 use App\Models\Event;
 use App\Models\EventKeyPerson;
 use App\Models\Institution;
@@ -52,6 +53,49 @@ it('shows prayer-relative timing text on person page instead of absolute time', 
         ->assertSeeText('Selepas Asar')
         ->assertSeeText((string) $expectedEndTime)
         ->assertDontSeeText((string) $event->starts_at?->format('h:i A'));
+});
+
+it('filters upcoming person events by friendly date ranges', function () {
+    Carbon::setTestNow(Carbon::create(2026, 7, 30, 10, 0, 0, 'UTC'));
+
+    $person = Person::factory()->create(['status' => 'verified']);
+
+    $today = Event::factory()->create([
+        'title' => 'Majlis Hari Ini',
+        'status' => 'approved',
+        'visibility' => 'public',
+        'starts_at' => Carbon::create(2026, 7, 30, 12, 0, 0, 'UTC'),
+    ]);
+    $nextMonth = Event::factory()->create([
+        'title' => 'Majlis Bulan Depan',
+        'status' => 'approved',
+        'visibility' => 'public',
+        'starts_at' => Carbon::create(2026, 8, 3, 12, 0, 0, 'UTC'),
+    ]);
+
+    linkPersonEvent($person, $today);
+    linkPersonEvent($person, $nextMonth);
+
+    try {
+        Livewire::withCookie('user_timezone', 'Asia/Kuala_Lumpur')
+            ->test(Show::class, ['person' => $person])
+            ->set('upcomingDateFilter', 'today')
+            ->assertSee('Majlis Hari Ini')
+            ->assertDontSee('Majlis Bulan Depan')
+            ->set('upcomingDateFilter', 'next_month')
+            ->assertSee('Majlis Bulan Depan')
+            ->assertDontSee('Majlis Hari Ini')
+            ->set('upcomingDateFilter', 'tomorrow')
+            ->assertSee('Tiada majlis untuk tempoh ini')
+            ->assertSee('Tunjukkan semua majlis')
+            ->set('customStartDate', '2026-08-01')
+            ->set('customEndDate', '2026-08-31')
+            ->call('applyCustomDateRange')
+            ->assertSee('Majlis Bulan Depan')
+            ->assertDontSee('Majlis Hari Ini');
+    } finally {
+        Carbon::setTestNow();
+    }
 });
 
 it('uses the localized tarawih label instead of the generic isha offset text', function () {

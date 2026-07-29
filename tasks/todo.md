@@ -409,3 +409,70 @@ Review: the same stale-location risk was present in shared create/update
 preparation and in slug builders that depended only on denormalized text. The
 address observer already refreshes person, institution, and venue slugs after
 address changes; the audit now makes its inputs canonical-safe as well.
+
+## Speaker upcoming-event filter loading fix
+
+- [x] Add a hidden fallback to the filter loading status.
+- [x] Verify initial render and filter interaction in Chrome.
+- [x] Run focused regression checks.
+
+Review: Chrome confirmed the loading badge was visible on first render because
+the raw `wire:loading` element had no fallback visibility state. The status now
+starts hidden and is only shown during an active filter request.
+
+## Upcoming-event filter interaction refinement
+
+- [x] Replace the select with a stable segmented button filter.
+- [x] Keep loading and result-count slots from changing the header layout.
+- [x] Verify the selected state and empty result state in Chrome.
+
+Review: the filter now uses Flux's segmented radio group in a contained,
+horizontally scrollable panel, with a reserved loading slot and stable result
+count so changing ranges does not move the surrounding header content.
+
+## Upcoming-event filter placement refinement
+
+- [x] Move the filter below the schedule heading.
+- [x] Keep the filter directly above the event results.
+- [x] Verify vertical spacing and filtering in Chrome.
+
+Review: the filter now sits in the schedule flow between the heading and the
+event content, with a responsive inline layout on larger screens and a clean
+stack on smaller screens.
+
+## Header count and filter label refinement
+
+- [x] Remove the redundant “Paparkan:” label.
+- [x] Restore the active-count badge to the schedule header row.
+- [x] Verify the final hierarchy and filter behavior in Chrome.
+
+Review: the header now owns the schedule title and active count, while the
+segmented date filter remains directly above the event results.
+
+## Custom upcoming-event date range
+
+- [x] Align the active-count badge to the bottom edge of the header.
+- [x] Add a Flux segmented “Tarikh pilihan” option.
+- [x] Add start/end calendar inputs and apply the range with timezone-aware boundaries.
+- [x] Verify custom range filtering in Chrome and regression tests.
+
+Review: custom ranges now open inline calendar inputs beneath the segmented
+filter and apply only after the user confirms the selected start and end dates.
+
+## Calendar trigger and centered filter refinement
+
+- [x] Replace the custom-range segmented option with a calendar icon trigger.
+- [x] Open the range inputs in a Flux modal and retain an active icon state.
+- [x] Center the preset filter row and verify modal/application behavior in Chrome.
+
+Review: preset filters remain the centered primary control, while custom ranges
+are available through a compact calendar action with a clear selected state.
+
+## Loading and calendar icon polish
+
+- [x] Replace the visually weak loader with a clearly animated border spinner.
+- [x] Redesign the calendar trigger as a circular ghost icon button.
+- [x] Verify the in-flight spinner state and final filter behavior in Chrome.
+
+Review: the loading state now visibly animates during the request, and the
+calendar action has a lighter circular treatment with clear active contrast.
