@@ -4,6 +4,7 @@ namespace App\Data\Api\Frontend\Search;
 
 use App\Enums\InstitutionType;
 use App\Models\Institution;
+use App\Models\InstitutionName;
 use App\Models\User;
 use App\Support\Location\AddressHierarchyFormatter;
 use Spatie\LaravelData\Data;
@@ -12,13 +13,15 @@ class InstitutionListData extends Data
 {
     /**
      * @param  array{id: int, name: string, iso2: string, key: ?string}|null  $country
+     * @param  list<array{name_type: string, full_name: string, language_code: string, is_primary: bool}>  $names
      */
     public function __construct(
         public string $id,
         public string $slug,
         public string $name,
         public ?string $type,
-        public ?string $nickname,
+        public ?string $primary_nickname,
+        public array $names,
         public string $display_name,
         public int $events_count,
         public string $public_image_url,
@@ -57,7 +60,13 @@ class InstitutionListData extends Data
             slug: (string) $institution->slug,
             name: (string) $institution->name,
             type: $institutionType,
-            nickname: $institution->nickname,
+            primary_nickname: $institution->primaryNickname,
+            names: $institution->names->map(fn (InstitutionName $name): array => [
+                'name_type' => $name->name_type->value,
+                'full_name' => $name->full_name,
+                'language_code' => $name->language_code,
+                'is_primary' => $name->is_primary,
+            ])->values()->all(),
             display_name: (string) $institution->display_name,
             events_count: $eventsCount,
             public_image_url: $publicImageUrl,

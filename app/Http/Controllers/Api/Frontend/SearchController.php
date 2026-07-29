@@ -70,7 +70,7 @@ class SearchController extends FrontendController
         'slug',
         'name',
         'type',
-        'nickname',
+        'names',
         'display_name',
         'events_count',
         'public_image_url',
@@ -214,7 +214,7 @@ class SearchController extends FrontendController
     #[QueryParameter('lat', 'Current device latitude. Provide with `lng` to filter institutions within `radius_km`.', required: false, type: 'number', infer: false, example: 3.139)]
     #[QueryParameter('lng', 'Current device longitude. Provide with `lat` to filter institutions within `radius_km`.', required: false, type: 'number', infer: false, example: 101.6869)]
     #[QueryParameter('radius_km', 'Nearby search radius in kilometers. Values are clamped from 1 to 100 and default to 15 when `lat` and `lng` are present.', required: false, type: 'integer', infer: false, default: 15, example: 15)]
-    #[QueryParameter('fields', 'Optional comma-separated top-level list fields to return. Supported fields: id, slug, name, type, nickname, display_name, events_count, public_image_url, logo_url, cover_url, country, location, distance_km, is_following.', required: false, type: 'string', infer: false, example: 'id,name,location')]
+    #[QueryParameter('fields', 'Optional comma-separated top-level list fields to return. Supported fields: id, slug, name, type, names, display_name, events_count, public_image_url, logo_url, cover_url, country, location, distance_km, is_following.', required: false, type: 'string', infer: false, example: 'id,name,location')]
     #[QueryParameter('type', 'Optional institution type filter.', required: false, type: 'string', infer: false, example: 'masjid')]
     #[QueryParameter('country_id', 'Optional package address country UUID filter.', required: false, type: 'string', infer: false, example: '019d0000-0000-7000-8000-000000000000')]
     #[QueryParameter('state_id', 'Optional package addressing states.id filter (addresses.state_id).', required: false, type: 'string', infer: false, example: '019d0000-0000-7000-8000-000000000001')]
@@ -463,6 +463,7 @@ class SearchController extends FrontendController
         $now = now();
         $record = Institution::query()
             ->with([
+                'names',
                 'media',
                 'addresses.country',
                 'contactMethods',
@@ -953,7 +954,7 @@ class SearchController extends FrontendController
             ->active()
             ->where('status', 'verified')
             ->selectSub($this->institutionPublicEventCountSubquery(upcomingOnly: true), 'events_count')
-            ->with(['addresses', 'media']);
+            ->with(['addresses', 'media', 'names']);
 
         if ($institutionIds !== []) {
             $query->whereIn('institutions.id', $institutionIds);
@@ -990,7 +991,7 @@ class SearchController extends FrontendController
             ->active()
             ->where('status', 'verified')
             ->selectSub($this->institutionPublicEventCountSubquery(), 'events_count')
-            ->with(['addresses', 'media']);
+            ->with(['addresses', 'media', 'names']);
 
         if ($type instanceof InstitutionType) {
             $query->where('institutions.type', $type->value);

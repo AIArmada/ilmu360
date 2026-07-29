@@ -4,6 +4,7 @@ use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventVisibility;
+use App\Enums\InstitutionNameType;
 use App\Livewire\Pages\Events\Index;
 use App\Livewire\Pages\SubmitEvent\Create;
 use App\Models\Event;
@@ -160,11 +161,18 @@ it('allows institution organizer to choose a different location', function () {
         ->and($event->default_venue_id)->toBe($otherVenue->id);
 });
 
-it('includes institution nicknames in submit-event option labels', function () {
-    $institution = Institution::factory()->create([
-        'name' => 'Masjid Sultan Salahuddin Abdul Aziz Shah',
-        'nickname' => 'Masjid Biru',
-        'status' => 'verified',
+it('includes institution alternative names in submit-event option labels', function () {
+    $institution = Institution::factory()
+        ->create([
+            'name' => 'Masjid Sultan Salahuddin Abdul Aziz Shah',
+            'status' => 'verified',
+        ]);
+
+    $institution->names()->create([
+        'name_type' => InstitutionNameType::Nickname,
+        'full_name' => 'Masjid Biru',
+        'language_code' => 'ms',
+        'is_primary' => true,
     ]);
 
     $component = Livewire::test(Create::class);
@@ -175,11 +183,18 @@ it('includes institution nicknames in submit-event option labels', function () {
     expect($options)->toHaveKey($institution->id, $institution->display_name);
 });
 
-it('matches institution nicknames in event filter search options', function () {
-    $institution = Institution::factory()->create([
-        'name' => 'Masjid Sultan Salahuddin Abdul Aziz Shah',
-        'nickname' => 'Masjid Biru',
-        'status' => 'verified',
+it('matches institution alternative names in event filter search options', function () {
+    $institution = Institution::factory()
+        ->create([
+            'name' => 'Masjid Sultan Salahuddin Abdul Aziz Shah',
+            'status' => 'verified',
+        ]);
+
+    $institution->names()->create([
+        'name_type' => InstitutionNameType::Nickname,
+        'full_name' => 'Masjid Biru',
+        'language_code' => 'ms',
+        'is_primary' => true,
     ]);
 
     $component = Livewire::test(Index::class);

@@ -4,6 +4,7 @@ namespace App\Actions\Institutions;
 
 use AIArmada\Membership\Actions\AddMemberAction;
 use AIArmada\Membership\Enums\MemberRole;
+use App\Enums\InstitutionNameType;
 use App\Forms\SharedFormSchema;
 use App\Models\Institution;
 use App\Models\User;
@@ -66,7 +67,6 @@ final readonly class SaveInstitutionAction
         $attributes = [
             'type' => $this->institutionTypeValue($data['type'] ?? null) ?: $this->institutionTypeValue($institution),
             'name' => $this->normalizeRequiredString($data['name'] ?? $institution->name, 'Institution'),
-            'nickname' => $this->normalizeOptionalString($data['nickname'] ?? $institution->nickname),
             'description' => $data['description'] ?? $institution->description,
             'status' => array_key_exists('status', $data) ? (string) $data['status'] : ($creating ? 'pending' : (string) $institution->status),
         ];
@@ -80,6 +80,10 @@ final readonly class SaveInstitutionAction
         } else {
             $institution->fill($attributes);
             $institution->save();
+        }
+
+        if (array_key_exists('names', $data) && is_array($data['names'])) {
+            $this->syncNames($institution, $data['names']);
         }
 
         $this->contributionEntityMutationService->syncInstitutionRelations($institution, Arr::only($data, ['address', 'contactMethods', 'social_media']));
@@ -162,6 +166,25 @@ final readonly class SaveInstitutionAction
             'gallery',
             replace: is_array($gallery),
         );
+    }
+
+    /**
+     * @param  list<array{full_name: string, name_type?: string, language_code?: string, is_primary?: bool}>  $names
+     */
+    private function syncNames(Institution $institution, array $names): void
+    {
+        $institution->names()->delete();
+
+        foreach ($names as $i => $name) {
+            $institution->names()->create([
+                'name_type' => $name['name_type'] ?? InstitutionNameType::Nickname,
+                'full_name' => trim((string) ($name['full_name'] ?? '')),
+                'language_code' => $name['language_code'] ?? 'ms',
+                'is_primary' => (bool) ($name['is_primary'] ?? $i === 0),
+            ]);
+        }
+
+        $institution->unsetRelation('names');
     }
 
     private function normalizeOptionalString(mixed $value): ?string

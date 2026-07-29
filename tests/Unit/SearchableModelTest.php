@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\InstitutionNameType;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
@@ -62,15 +63,22 @@ it('only indexes active verified or pending persons', function () {
     });
 });
 
-it('builds the institution searchable payload with nickname description and geography facets', function () {
+it('builds the institution searchable payload with alternative name description and geography facets', function () {
     withGlobalOwnerContext(function (): void {
         $country = ensureTestMalaysiaCountry();
 
-        $institution = Institution::factory()->create([
-            'name' => 'Masjid Sultan Salahuddin Abdul Aziz Shah',
-            'nickname' => 'Masjid Biru',
-            'description' => '<p>Pusat komuniti dan kuliah.</p>',
-            'status' => 'pending',
+        $institution = Institution::factory()
+            ->create([
+                'name' => 'Masjid Sultan Salahuddin Abdul Aziz Shah',
+                'description' => '<p>Pusat komuniti dan kuliah.</p>',
+                'status' => 'pending',
+            ]);
+
+        $institution->names()->create([
+            'name_type' => InstitutionNameType::Nickname,
+            'full_name' => 'Masjid Biru',
+            'language_code' => 'ms',
+            'is_primary' => true,
         ]);
 
         syncPrimaryAddressForTest($institution, [
@@ -84,7 +92,7 @@ it('builds the institution searchable payload with nickname description and geog
         $payload = $institution->fresh()->toSearchableArray();
 
         expect($institution->fresh()->shouldBeSearchable())->toBeTrue()
-            ->and($payload)->toHaveKey('display_name', Institution::formatDisplayName($institution->name, $institution->nickname))
+            ->and($payload)->toHaveKey('display_name', Institution::formatDisplayName($institution->name, $institution->primaryNickname))
             ->and($payload)->toHaveKey('description', 'Pusat komuniti dan kuliah.')
             ->and($payload['search_text'])->toContain('Masjid Biru')
             ->and($payload['search_text'])->toContain('Pusat komuniti dan kuliah.')

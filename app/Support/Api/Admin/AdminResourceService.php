@@ -330,8 +330,8 @@ class AdminResourceService
 
         if ($record instanceof Event) {
             $data['card_image_url'] = $record->card_image_url;
-            $data['poster_url'] = $record->getFirstMediaUrl('poster', 'card') ?: ($record->getFirstMediaUrl('poster', 'thumb') ?: $record->getFirstMediaUrl('poster'));
-            $data['cover_url'] = $record->getFirstMediaUrl('cover', 'card') ?: ($record->getFirstMediaUrl('cover', 'thumb') ?: $record->getFirstMediaUrl('cover'));
+            $data['poster_url'] = $record->getFirstMediaUrl('poster', 'poster_thumb') ?: $record->getFirstMediaUrl('poster');
+            $data['cover_url'] = $record->getFirstMediaUrl('cover', 'thumb') ?: $record->getFirstMediaUrl('cover');
         }
 
         return ['data' => $data];

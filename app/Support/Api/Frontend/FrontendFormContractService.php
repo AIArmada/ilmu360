@@ -398,7 +398,7 @@ class FrontendFormContractService
                     'media_role' => 'website_app_cover',
                 ]),
                 $this->field('poster', 'file', required: false, acceptedMimeTypes: $this->imageMimeTypes(), maxFileSizeKb: $this->maxUploadSizeKb(), meta: [
-                    'required_aspect_ratio' => '4:5',
+                    'required_aspect_ratio' => '3:4',
                     'media_role' => 'external_distribution_poster',
                 ]),
                 $this->field('gallery', 'array<file>', required: false, acceptedMimeTypes: $this->imageMimeTypes(), maxFileSizeKb: $this->maxUploadSizeKb(), maxFiles: 10),
@@ -441,7 +441,17 @@ class FrontendFormContractService
             ],
             'fields' => [
                 $this->field('name', 'string', required: true, maxLength: 255),
-                $this->field('nickname', 'string', required: false, maxLength: 255),
+                $this->field('names', 'array', required: false, meta: [
+                    'item_schema' => [
+                        'type' => 'object',
+                        'fields' => [
+                            ['name' => 'full_name', 'type' => 'string', 'required' => true, 'max_length' => 255],
+                            ['name' => 'name_type', 'type' => 'string', 'required' => false, 'allowed_values' => ['official', 'nickname', 'abbreviation', 'local', 'historical']],
+                            ['name' => 'language_code', 'type' => 'string', 'required' => false],
+                            ['name' => 'is_primary', 'type' => 'boolean', 'required' => false],
+                        ],
+                    ],
+                ]),
                 $this->field('type', 'string', required: true, default: InstitutionType::Masjid->value, allowedValues: $this->enumValues(InstitutionType::class)),
                 $this->field('description', 'rich_text', required: false),
                 $this->field('address', 'object', required: true),

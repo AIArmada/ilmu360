@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace App\Filament\Resources\Persons;
 
 use AIArmada\FilamentPersons\Resources\PersonResource as PackagePersonResource;
+use AIArmada\FilamentPersons\Resources\PersonResource\RelationManagers\AffiliationsRelationManager as PackageAffiliationsRelationManager;
+use AIArmada\FilamentPersons\Resources\PersonResource\RelationManagers\CredentialAssignmentsRelationManager;
+use AIArmada\FilamentPersons\Resources\PersonResource\RelationManagers\TitleAssignmentsRelationManager;
 use App\Filament\RelationManagers\AuditsRelationManager;
 use App\Filament\Resources\Persons\Pages\CreatePerson;
 use App\Filament\Resources\Persons\Pages\EditPerson;
@@ -53,11 +56,15 @@ class PersonResource extends PackagePersonResource
     public static function getRelations(): array
     {
         return [
-            ...parent::getRelations(),
+            ...array_filter(parent::getRelations(), fn (string $class): bool => ! in_array($class, [
+                TitleAssignmentsRelationManager::class,
+                CredentialAssignmentsRelationManager::class,
+                PackageAffiliationsRelationManager::class,
+            ], true)),
             MembersRelationManager::class,
             MemberInvitationsRelationManager::class,
             FollowersRelationManager::class,
-            RelationManagers\InstitutionsRelationManager::class,
+            RelationManagers\AffiliationsRelationManager::class,
             EventsRelationManager::class,
             AuditsRelationManager::class,
         ];

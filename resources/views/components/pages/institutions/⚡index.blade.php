@@ -232,7 +232,7 @@ class extends Component
 
     public function stateLabel(): string
     {
-        return SharedFormSchema::locationLevelLabel($this->country_id, 'state_id', __('State / Region'));
+        return SharedFormSchema::locationLevelLabel($this->country_id, 'state_id', __('State / Federal Territory'));
     }
 
     public function districtLabel(): string

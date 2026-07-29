@@ -95,6 +95,10 @@ class ReferenceContributionFormSchema
                             ->collection('front_cover')
                             ->image()
                             ->imageEditor()
+                            ->imageAspectRatio('3:4')
+                            ->automaticallyOpenImageEditorForAspectRatio()
+                            ->imageEditorAspectRatioOptions(['3:4'])
+                            ->automaticallyCropImagesToAspectRatio()
                             ->conversion('thumb')
                             ->responsiveImages(),
                         SpatieMediaLibraryFileUpload::make('back_cover')
@@ -102,6 +106,10 @@ class ReferenceContributionFormSchema
                             ->collection('back_cover')
                             ->image()
                             ->imageEditor()
+                            ->imageAspectRatio('3:4')
+                            ->automaticallyOpenImageEditorForAspectRatio()
+                            ->imageEditorAspectRatioOptions(['3:4'])
+                            ->automaticallyCropImagesToAspectRatio()
                             ->conversion('thumb')
                             ->responsiveImages(),
                         SpatieMediaLibraryFileUpload::make('gallery')

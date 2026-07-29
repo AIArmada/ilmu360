@@ -191,29 +191,29 @@
                 <span>{{ __('Or share via') }}</span>
             </p>
             <div class="grid grid-cols-4 gap-3">
-                <a href="{{ $shareLinks['whatsapp'] ?? '#' }}" target="_blank" rel="noopener" title="WhatsApp" class="inline-flex h-12 items-center justify-center rounded-2xl border border-slate-200/60 bg-slate-50 transition hover:-translate-y-1 hover:border-[#25D366] hover:bg-[#25D366]/10">
-                    <img src="{{ asset('storage/social-media-icons/whatsapp.svg') }}" alt="WhatsApp" class="h-6 w-6" loading="lazy">
+                <a href="{{ $shareLinks['whatsapp'] ?? '#' }}" target="_blank" rel="noopener" title="WhatsApp" aria-label="WhatsApp" class="group inline-flex h-14 items-center justify-center rounded-2xl p-1 transition hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#25D366]/20">
+                    <img src="{{ asset('storage/social-media-icons/whatsapp.svg') }}" alt="" class="h-9 w-9 object-contain transition duration-200 group-hover:scale-110 sm:h-10 sm:w-10" loading="lazy">
                 </a>
-                <a href="{{ $shareLinks['telegram'] ?? '#' }}" target="_blank" rel="noopener" title="Telegram" class="inline-flex h-12 items-center justify-center rounded-2xl border border-slate-200/60 bg-slate-50 transition hover:-translate-y-1 hover:border-[#0088cc] hover:bg-[#0088cc]/10">
-                    <img src="{{ asset('storage/social-media-icons/telegram.svg') }}" alt="Telegram" class="h-6 w-6" loading="lazy">
+                <a href="{{ $shareLinks['telegram'] ?? '#' }}" target="_blank" rel="noopener" title="Telegram" aria-label="Telegram" class="group inline-flex h-14 items-center justify-center rounded-2xl p-1 transition hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#0088cc]/20">
+                    <img src="{{ asset('storage/social-media-icons/telegram.svg') }}" alt="" class="h-9 w-9 object-contain transition duration-200 group-hover:scale-110 sm:h-10 sm:w-10" loading="lazy">
                 </a>
-                <a href="{{ $shareLinks['threads'] ?? '#' }}" target="_blank" rel="noopener" title="Threads" class="inline-flex h-12 items-center justify-center rounded-2xl border border-slate-200/60 bg-slate-50 transition hover:-translate-y-1 hover:border-black hover:bg-black/10">
-                    <img src="{{ asset('storage/social-media-icons/threads.svg') }}" alt="Threads" class="h-6 w-6" loading="lazy">
+                <a href="{{ $shareLinks['threads'] ?? '#' }}" target="_blank" rel="noopener" title="Threads" aria-label="Threads" class="group inline-flex h-14 items-center justify-center rounded-2xl p-1 transition hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-slate-900/15">
+                    <img src="{{ asset('storage/social-media-icons/threads.svg') }}" alt="" class="h-9 w-9 object-contain transition duration-200 group-hover:scale-110 sm:h-10 sm:w-10" loading="lazy">
                 </a>
-                <a href="{{ $shareLinks['facebook'] ?? '#' }}" target="_blank" rel="noopener" title="Facebook" class="inline-flex h-12 items-center justify-center rounded-2xl border border-slate-200/60 bg-slate-50 transition hover:-translate-y-1 hover:border-[#1877F2] hover:bg-[#1877F2]/10">
-                    <img src="{{ asset('storage/social-media-icons/facebook.svg') }}" alt="Facebook" class="h-6 w-6" loading="lazy">
+                <a href="{{ $shareLinks['facebook'] ?? '#' }}" target="_blank" rel="noopener" title="Facebook" aria-label="Facebook" class="group inline-flex h-14 items-center justify-center rounded-2xl p-1 transition hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#1877F2]/20">
+                    <img src="{{ asset('storage/social-media-icons/facebook.svg') }}" alt="" class="h-9 w-9 object-contain transition duration-200 group-hover:scale-110 sm:h-10 sm:w-10" loading="lazy">
                 </a>
-                <a href="{{ $shareLinks['x'] ?? '#' }}" target="_blank" rel="noopener" title="X" class="inline-flex h-12 items-center justify-center rounded-2xl border border-slate-200/60 bg-slate-50 transition hover:-translate-y-1 hover:border-slate-900 hover:bg-slate-900/10">
-                    <img src="{{ asset('storage/social-media-icons/x.svg') }}" alt="X" class="h-6 w-6" loading="lazy">
+                <a href="{{ $shareLinks['x'] ?? '#' }}" target="_blank" rel="noopener" title="X" aria-label="X" class="group inline-flex h-14 items-center justify-center rounded-2xl p-1 transition hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-slate-900/15">
+                    <img src="{{ asset('storage/social-media-icons/x.svg') }}" alt="" class="h-9 w-9 object-contain transition duration-200 group-hover:scale-110 sm:h-10 sm:w-10" loading="lazy">
                 </a>
-                <a href="{{ $shareLinks['instagram'] ?? '#' }}" target="_blank" rel="noopener" @click="copyLink(false, 'instagram')" title="Instagram" class="inline-flex h-12 items-center justify-center rounded-2xl border border-slate-200/60 bg-slate-50 transition hover:-translate-y-1 hover:border-[#E4405F] hover:bg-[#E4405F]/10">
-                    <img src="{{ asset('storage/social-media-icons/instagram.svg') }}" alt="Instagram" class="h-6 w-6" loading="lazy">
+                <a href="{{ $shareLinks['instagram'] ?? '#' }}" target="_blank" rel="noopener" @click="copyLink(false, 'instagram')" title="Instagram" aria-label="Instagram" class="group inline-flex h-14 items-center justify-center rounded-2xl p-1 transition hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#E4405F]/20">
+                    <img src="{{ asset('storage/social-media-icons/instagram.svg') }}" alt="" class="h-9 w-9 object-contain transition duration-200 group-hover:scale-110 sm:h-10 sm:w-10" loading="lazy">
                 </a>
-                <a href="{{ $shareLinks['tiktok'] ?? '#' }}" target="_blank" rel="noopener" @click="copyLink(false, 'tiktok')" title="TikTok" class="inline-flex h-12 items-center justify-center rounded-2xl border border-slate-200/60 bg-slate-50 transition hover:-translate-y-1 hover:border-black hover:bg-black/10">
-                    <img src="{{ asset('storage/social-media-icons/tiktok.svg') }}" alt="TikTok" class="h-6 w-6" loading="lazy">
+                <a href="{{ $shareLinks['tiktok'] ?? '#' }}" target="_blank" rel="noopener" @click="copyLink(false, 'tiktok')" title="TikTok" aria-label="TikTok" class="group inline-flex h-14 items-center justify-center rounded-2xl p-1 transition hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-slate-900/15">
+                    <img src="{{ asset('storage/social-media-icons/tiktok.svg') }}" alt="" class="h-9 w-9 object-contain transition duration-200 group-hover:scale-110 sm:h-10 sm:w-10" loading="lazy">
                 </a>
-                <a href="{{ $shareLinks['email'] ?? '#' }}" title="Email" class="inline-flex h-12 items-center justify-center rounded-2xl border border-slate-200/60 bg-slate-50 transition hover:-translate-y-1 hover:border-emerald-500 hover:bg-emerald-500/10">
-                    <img src="{{ asset('storage/social-media-icons/email.svg') }}" alt="Email" class="h-6 w-6" loading="lazy">
+                <a href="{{ $shareLinks['email'] ?? '#' }}" title="Email" aria-label="Email" class="group inline-flex h-14 items-center justify-center rounded-2xl p-1 transition hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/15">
+                    <img src="{{ asset('storage/social-media-icons/email.svg') }}" alt="" class="h-9 w-9 object-contain transition duration-200 group-hover:scale-110 sm:h-10 sm:w-10" loading="lazy">
                 </a>
             </div>
         </div>

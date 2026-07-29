@@ -301,10 +301,17 @@ it('uses the richer person institution and reference search behavior on the admi
     app(PersonSearchService::class)->syncPersonRecord($matchingPerson);
     app(PersonSearchService::class)->syncPersonRecord($otherPerson);
 
-    $matchingInstitution = Institution::factory()->create([
-        'name' => 'Masjid Sultan Salahuddin Abdul Aziz Shah',
-        'nickname' => 'Masjid Biru',
-        'status' => 'verified',
+    $matchingInstitution = Institution::factory()
+        ->create([
+            'name' => 'Masjid Sultan Salahuddin Abdul Aziz Shah',
+            'status' => 'verified',
+        ]);
+
+    $matchingInstitution->names()->create([
+        'name_type' => InstitutionNameType::Nickname,
+        'full_name' => 'Masjid Biru',
+        'language_code' => 'ms',
+        'is_primary' => true,
     ]);
     Institution::factory()->create([
         'name' => 'Pusat Pengajian An-Nur',
@@ -2060,7 +2067,6 @@ it('exposes admin institution write schema and can create and update institution
 
     $createResponse = $this->postJson('/api/v1/admin/institutions', [
         'name' => 'Admin API Institution',
-        'nickname' => 'API Surau',
         'type' => 'masjid',
         'status' => 'verified',
         'address' => [
@@ -2071,13 +2077,12 @@ it('exposes admin institution write schema and can create and update institution
     $institutionRouteKey = (string) $createResponse->json('data.record.route_key');
     $institution = Institution::query()->findOrFail($institutionRouteKey);
 
-    expect($institution->display_name)->toBe('Admin API Institution (API Surau)')
+    expect($institution->display_name)->toBe('Admin API Institution')
         ->and($institution->status)->toBe('verified')
         ->and($institution->allow_public_event_submission)->toBeTrue();
 
     $this->putJson('/api/v1/admin/institutions/'.$institutionRouteKey, [
         'name' => 'Admin API Institution Updated',
-        'nickname' => 'API Masjid',
         'type' => 'masjid',
         'status' => 'pending',
         'allow_public_event_submission' => true,
@@ -2085,8 +2090,7 @@ it('exposes admin institution write schema and can create and update institution
             'country_id' => ensureAdminApiMalaysiaCountryExists(),
         ],
     ])->assertOk()
-        ->assertJsonPath('data.record.attributes.name', 'Admin API Institution Updated')
-        ->assertJsonPath('data.record.attributes.nickname', 'API Masjid');
+        ->assertJsonPath('data.record.attributes.name', 'Admin API Institution Updated');
 });
 
 it('preserves institution address line1 when sparse map fields are updated through the admin api', function () {
@@ -2139,7 +2143,6 @@ it('surfaces institution update semantics and nested item schemas through the ad
 
     $createResponse = $this->postJson('/api/v1/admin/institutions', [
         'name' => 'Admin API Institution Schema Surface',
-        'nickname' => 'Schema Surface',
         'type' => 'masjid',
         'status' => 'verified',
         'address' => [
@@ -2160,8 +2163,6 @@ it('surfaces institution update semantics and nested item schemas through the ad
         ->and(data_get($fields->get('address'), 'clear_semantics.empty_object'))->toBe('preserve_existing_when_record_has_address')
         ->and(data_get($fields->get('address.country_id'), 'required'))->toBeFalse()
         ->and(data_get($fields->get('address.country_id'), 'required_on_update'))->toBeFalse()
-        ->and(data_get($fields->get('nickname'), 'clear_semantics.explicit_null'))->toBe('preserve_existing')
-        ->and(data_get($fields->get('nickname'), 'normalization.empty_string_at_mutation_layer'))->toBe('null')
         ->and(data_get($fields->get('contactMethods'), 'collection_semantics.explicit_null'))->toBe('clear_collection')
         ->and(data_get($fields->get('contactMethods'), 'collection_semantics.submitted_array'))->toBe('replace_collection')
         ->and($contactItemFields->keys()->all())->toContain('type', 'value', 'purpose', 'is_public', 'sort_order')
@@ -2172,45 +2173,6 @@ it('surfaces institution update semantics and nested item schemas through the ad
         ->and(data_get($fields->get('social_media'), 'input_normalization.canonical_storage.identifier_field'))->toBe('handle')
         ->and($socialMediaItemFields->keys()->all())->toContain('platform', 'handle', 'url', 'sort_order')
         ->and(data_get($fields->get('social_media'), 'item_schema.at_least_one_of'))->toBe(['handle', 'url']);
-});
-
-it('preserves institution nickname on null-like input through the admin api', function () {
-    ensureAdminApiMalaysiaCountryExists();
-
-    $admin = adminApiUser('super_admin');
-    Sanctum::actingAs($admin);
-
-    $createResponse = $this->postJson('/api/v1/admin/institutions', [
-        'name' => 'Admin API Institution Nickname',
-        'nickname' => 'API Surau',
-        'type' => 'masjid',
-        'status' => 'verified',
-        'address' => [
-            'country_id' => ensureAdminApiMalaysiaCountryExists(),
-        ],
-    ])->assertCreated();
-
-    $institutionRouteKey = (string) $createResponse->json('data.record.route_key');
-
-    $this->putJson('/api/v1/admin/institutions/'.$institutionRouteKey, [
-        'name' => 'Admin API Institution Nickname',
-        'nickname' => null,
-        'type' => 'masjid',
-        'status' => 'verified',
-    ])->assertOk()
-        ->assertJsonPath('data.record.attributes.nickname', 'API Surau');
-
-    expect(Institution::query()->findOrFail($institutionRouteKey)->nickname)->toBe('API Surau');
-
-    $this->putJson('/api/v1/admin/institutions/'.$institutionRouteKey, [
-        'name' => 'Admin API Institution Nickname',
-        'nickname' => '',
-        'type' => 'masjid',
-        'status' => 'verified',
-    ])->assertOk()
-        ->assertJsonPath('data.record.attributes.nickname', 'API Surau');
-
-    expect(Institution::query()->findOrFail($institutionRouteKey)->nickname)->toBe('API Surau');
 });
 
 it('treats empty institution address objects as a no-op when the record already has an address', function () {
@@ -2868,7 +2830,7 @@ it('clears normalized reference scalars and replaces canonicalized social media 
         'status' => 'verified',
         'social_media' => [[
             'platform' => 'youtube',
-            'url' => 'https://youtube.com/@admin-api-reference-collections-updated',
+            'url' => 'https://youtube.com/admin-api-reference-collections-updated',
         ]],
     ])->assertOk()
         ->assertJsonPath('data.record.attributes.title', 'Admin API Reference Collections Updated')
@@ -2877,7 +2839,7 @@ it('clears normalized reference scalars and replaces canonicalized social media 
         ->assertJsonPath('data.record.attributes.publisher', null)
         ->assertJsonPath('data.record.attributes.social_media.0.platform', 'youtube')
         ->assertJsonPath('data.record.attributes.social_media.0.handle', 'admin-api-reference-collections-updated')
-        ->assertJsonPath('data.record.attributes.social_media.0.url', 'https://youtube.com/@admin-api-reference-collections-updated');
+        ->assertJsonPath('data.record.attributes.social_media.0.url', 'https://youtube.com/admin-api-reference-collections-updated');
 
     $reference = withGlobalOwnerContext(
         fn (): Reference => $reference->refresh()->load('socialProfiles'),
@@ -2891,7 +2853,7 @@ it('clears normalized reference scalars and replaces canonicalized social media 
         ->and($reference->socialProfiles)->toHaveCount(1)
         ->and($reference->socialProfiles->first()?->getRawOriginal('platform'))->toBe('youtube')
         ->and($reference->socialProfiles->first()?->handle)->toBe('admin-api-reference-collections-updated')
-        ->and($reference->socialProfiles->first()?->url)->toBe('https://youtube.com/@admin-api-reference-collections-updated')
+        ->and($reference->socialProfiles->first()?->url)->toBe('https://youtube.com/admin-api-reference-collections-updated')
         ->and(collect($reference->socialProfiles->modelKeys())->intersect($originalSocialMediaIds)->all())->toBe([]);
 
     $this->putJson('/api/v1/admin/references/'.$updatedReferenceRouteKey, [

@@ -42,6 +42,10 @@ class VenueFormSchema
                 ->collection('main')
                 ->image()
                 ->imageEditor()
+                ->imageAspectRatio('1:1')
+                ->automaticallyOpenImageEditorForAspectRatio()
+                ->imageEditorAspectRatioOptions(['1:1'])
+                ->automaticallyCropImagesToAspectRatio()
                 ->responsiveImages()
                 ->conversion('banner')
                 ->helperText(__('Primary venue photo — shown prominently on the venue profile page.')),
@@ -65,7 +69,7 @@ class VenueFormSchema
                 ->multiple()
                 ->image()
                 ->imageEditor()
-                ->conversion('thumb')
+                ->conversion('gallery_thumb')
                 ->responsiveImages()
                 ->maxFiles(10)
                 ->helperText(__('Sehingga 10 gambar lokasi')),

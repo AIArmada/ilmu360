@@ -4,6 +4,7 @@ namespace App\Data\Api\Frontend\Search;
 
 use App\Enums\InstitutionType;
 use App\Models\Institution;
+use App\Models\InstitutionName;
 use App\Models\User;
 use Filament\Support\Contracts\HasLabel;
 use Spatie\LaravelData\Data;
@@ -17,12 +18,14 @@ class InstitutionDetailData extends Data
      * @param  list<array<string, mixed>>  $contacts
      * @param  list<array<string, mixed>>  $social_media
      * @param  list<array<string, mixed>>  $donation_channels
+     * @param  list<array{name_type: string, full_name: string, language_code: string, is_primary: bool}>  $names
      */
     public function __construct(
         public string $id,
         public string $slug,
         public string $name,
-        public ?string $nickname,
+        public ?string $primary_nickname,
+        public array $names,
         public string $display_name,
         public ?string $description,
         public string $status,
@@ -74,7 +77,13 @@ class InstitutionDetailData extends Data
             id: (string) $institution->id,
             slug: (string) $institution->slug,
             name: (string) $institution->name,
-            nickname: $institution->nickname,
+            primary_nickname: $institution->primaryNickname,
+            names: $institution->names->map(fn (InstitutionName $name): array => [
+                'name_type' => $name->name_type->value,
+                'full_name' => $name->full_name,
+                'language_code' => $name->language_code,
+                'is_primary' => $name->is_primary,
+            ])->values()->all(),
             display_name: (string) $institution->display_name,
             description: $institution->description,
             status: (string) $institution->status,

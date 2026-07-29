@@ -3,9 +3,11 @@
 namespace App\Filament\Resources\References\Schemas;
 
 use AIArmada\Contacting\Enums\SocialPlatform;
+use AIArmada\Contacting\Support\SocialProfileConfig;
 use App\Enums\ReferencePartType;
 use App\Enums\ReferenceType;
 use App\Models\Reference;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
@@ -14,6 +16,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 
 class ReferenceForm
@@ -90,6 +93,10 @@ class ReferenceForm
                             ->collection('front_cover')
                             ->image()
                             ->imageEditor()
+                            ->imageAspectRatio('3:4')
+                            ->automaticallyOpenImageEditorForAspectRatio()
+                            ->imageEditorAspectRatioOptions(['3:4'])
+                            ->automaticallyCropImagesToAspectRatio()
                             ->conversion('thumb')
                             ->responsiveImages(),
                         SpatieMediaLibraryFileUpload::make('back_cover')
@@ -97,6 +104,10 @@ class ReferenceForm
                             ->collection('back_cover')
                             ->image()
                             ->imageEditor()
+                            ->imageAspectRatio('3:4')
+                            ->automaticallyOpenImageEditorForAspectRatio()
+                            ->imageEditorAspectRatioOptions(['3:4'])
+                            ->automaticallyCropImagesToAspectRatio()
                             ->conversion('thumb')
                             ->responsiveImages(),
                         SpatieMediaLibraryFileUpload::make('gallery')
@@ -119,17 +130,74 @@ class ReferenceForm
                                     ->options(SocialPlatform::options())
                                     ->searchable()
                                     ->required()
+                                    ->live()
                                     ->columnSpan(1),
                                 TextInput::make('handle')
-                                    ->label('Handle')
-                                    ->requiredWithout('url')
-                                    ->placeholder('@username / https://...')
-                                    ->columnSpan(1),
+                                    ->label('Username / Handle')
+                                    ->required()
+                                    ->placeholder('username or https://...')
+                                    ->live()
+                                    ->afterStateUpdated(function (Get $get, Set $set, ?string $state): void {
+                                        if ($state === null || $state === '' || ! str_contains($state, '://')) {
+                                            return;
+                                        }
+                                        $platform = $get('platform');
+                                        if ($platform === null || $platform === '') {
+                                            return;
+                                        }
+                                        $platformValue = $platform instanceof SocialPlatform ? $platform->value : $platform;
+                                        $extracted = app(SocialProfileConfig::class)->extractHandle($platformValue, $state);
+                                        if ($extracted !== null) {
+                                            $set('handle', $extracted);
+                                        }
+                                    })
+                                    ->columnSpan(1)
+                                    ->visible(function (Get $get): bool {
+                                        $platform = $get('platform');
+                                        if ($platform === null || $platform === '') {
+                                            return false;
+                                        }
+                                        $value = $platform instanceof SocialPlatform ? $platform->value : $platform;
+
+                                        return $value !== SocialPlatform::Website->value && $value !== SocialPlatform::Other->value;
+                                    }),
+                                Placeholder::make('profile_url')
+                                    ->label('Profile URL')
+                                    ->content(function (Get $get): ?string {
+                                        $platform = $get('platform');
+                                        $handle = $get('handle');
+                                        if (! is_string($handle) || $handle === '') {
+                                            return null;
+                                        }
+                                        $value = $platform instanceof SocialPlatform ? $platform->value : $platform;
+
+                                        return app(SocialProfileConfig::class)->buildUrl($value, $handle);
+                                    })
+                                    ->columnSpanFull()
+                                    ->visible(function (Get $get): bool {
+                                        $platform = $get('platform');
+                                        if ($platform === null || $platform === '') {
+                                            return false;
+                                        }
+                                        $value = $platform instanceof SocialPlatform ? $platform->value : $platform;
+
+                                        return $value !== SocialPlatform::Website->value && $value !== SocialPlatform::Other->value;
+                                    }),
                                 TextInput::make('url')
                                     ->label('URL')
-                                    ->requiredWithout('handle')
+                                    ->required()
                                     ->url()
-                                    ->columnSpanFull(),
+                                    ->maxLength(255)
+                                    ->columnSpanFull()
+                                    ->visible(function (Get $get): bool {
+                                        $platform = $get('platform');
+                                        if ($platform === null || $platform === '') {
+                                            return false;
+                                        }
+                                        $value = $platform instanceof SocialPlatform ? $platform->value : $platform;
+
+                                        return $value === SocialPlatform::Website->value || $value === SocialPlatform::Other->value;
+                                    }),
                             ])
                             ->columns(2)
                             ->orderColumn('order_column')

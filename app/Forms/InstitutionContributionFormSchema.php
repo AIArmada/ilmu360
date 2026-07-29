@@ -2,12 +2,15 @@
 
 namespace App\Forms;
 
+use App\Enums\InstitutionNameType;
 use App\Enums\InstitutionType;
 use App\Support\Location\GooglePlacesConfiguration;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\View;
@@ -36,10 +39,24 @@ class InstitutionContributionFormSchema
                         ->label(__('Institution Name'))
                         ->required()
                         ->maxLength(255),
-                    TextInput::make('nickname')
-                        ->label(__('Nickname'))
-                        ->maxLength(255)
-                        ->helperText(__('Optional nickname, e.g. Masjid Biru')),
+                    Repeater::make('names')
+                        ->label(__('Alternative Names'))
+                        ->schema([
+                            Select::make('name_type')
+                                ->options(InstitutionNameType::class)
+                                ->required(),
+                            TextInput::make('full_name')
+                                ->required()
+                                ->maxLength(255),
+                            TextInput::make('language_code')
+                                ->maxLength(10)
+                                ->default('ms'),
+                            Toggle::make('is_primary')
+                                ->default(false),
+                        ])
+                        ->columns(2)
+                        ->defaultItems(0)
+                        ->addActionLabel(__('Add name')),
                     RichEditor::make('description')
                         ->label(__('Description'))
                         ->columnSpanFull(),
@@ -92,6 +109,13 @@ class InstitutionContributionFormSchema
             array_splice($components, 2, 0, [
                 Section::make(__('Media'))
                     ->schema([
+                        SpatieMediaLibraryFileUpload::make('logo')
+                            ->label(__('Logo'))
+                            ->collection('logo')
+                            ->image()
+                            ->imageEditor()
+                            ->conversion('thumb')
+                            ->columnSpanFull(),
                         SpatieMediaLibraryFileUpload::make('cover')
                             ->label(__('Cover Image'))
                             ->collection('cover')
@@ -149,6 +173,17 @@ class InstitutionContributionFormSchema
     public static function directEditMediaSection(array $mediaFields): Section
     {
         $components = [];
+
+        if (in_array('logo', $mediaFields, true)) {
+            $components[] = SpatieMediaLibraryFileUpload::make('logo')
+                ->label(__('Logo'))
+                ->collection('logo')
+                ->image()
+                ->imageEditor()
+                ->conversion('thumb')
+                ->deletable(false)
+                ->columnSpanFull();
+        }
 
         if (in_array('cover', $mediaFields, true)) {
             $components[] = SpatieMediaLibraryFileUpload::make('cover')

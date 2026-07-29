@@ -1007,8 +1007,8 @@ Features:
 ## Event Aspect Ratio Contract
 
 - Event `cover` is the primary website/mobile-app visual and must be 16:9 on public submit forms, contribution update forms, admin forms, frontend/admin APIs, and MCP-generated images.
-- Event `poster` is the shareable external-distribution flyer and must be 4:5 portrait on public submit forms, contribution update forms, admin forms, frontend/admin APIs, and MCP-generated images.
-- MCP exposes separate event image tools: cover tools write the `cover` collection at 16:9; poster tools write the `poster` collection at 4:5. Do not add a generic ratio selector for event media generation.
+- Event `poster` is the shareable external-distribution flyer and must be 3:4 portrait on public submit forms, contribution update forms, admin forms, frontend/admin APIs, and MCP-generated images.
+- MCP exposes separate event image tools: cover tools write the `cover` collection at 16:9; poster tools write the `poster` collection at 3:4. Do not add a generic ratio selector for event media generation.
 
 Use this accessor for cards, previews, and social image fallback behavior.
 

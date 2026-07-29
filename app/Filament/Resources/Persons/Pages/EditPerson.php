@@ -71,7 +71,10 @@ class EditPerson extends EditRecord
 
         return SharedFormSchema::hydrateAddressFormState([
             'country_id' => $countryId,
-            'area_assignments' => $address?->areaAssignments()->pluck('address_area_id', 'role')->all() ?? [],
+            'area_assignments' => array_merge(
+                ['administrative_district' => null, 'administrative_subdivision' => null, 'postal_locality' => null],
+                $address?->areaAssignments()->pluck('address_area_id', 'role')->all() ?? [],
+            ),
             'line1' => $address?->line1,
             'line2' => $address?->line2,
             'postcode' => $address?->postcode,

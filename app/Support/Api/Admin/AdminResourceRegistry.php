@@ -846,6 +846,10 @@ class AdminResourceRegistry
             $relations[] = 'socialProfiles';
         }
 
+        if (method_exists($model, 'names')) {
+            $relations[] = 'names';
+        }
+
         return $relations;
     }
 

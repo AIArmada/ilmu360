@@ -4,6 +4,7 @@ namespace App\Support\Search;
 
 use App\Contracts\PublicDiscoveryAdapter;
 use App\Models\Institution;
+use App\Models\InstitutionName;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -218,20 +219,21 @@ class InstitutionSearchService implements PublicDiscoveryAdapter
         return Institution::query()
             ->active()
             ->where('status', 'verified')
-            ->select(['id', 'name', 'nickname'])
+            ->with('names')
+            ->select(['id', 'name'])
             ->tap(fn (Builder $query): Builder => $this->applyFuzzyCandidateFilter($query, $normalizedSearch))
             ->tap(fn (Builder $query): Builder => $this->applyFuzzyCandidateOrdering($query, $normalizedSearch))
             ->limit($this->typesenseResultLimit())
             ->get()
             ->map(function (Institution $institution) use ($normalizedSearch): array {
-                $candidates = array_values(array_filter([
+                $nameCandidates = array_values(array_filter([
                     $this->normalizeText((string) $institution->name),
-                    $this->normalizeText((string) $institution->nickname),
+                    ...$institution->names->map(fn ($n) => $this->normalizeText((string) $n->full_name))->all(),
                 ], static fn (string $candidate): bool => $candidate !== ''));
 
                 $scoreCandidates = [];
 
-                foreach ($candidates as $candidate) {
+                foreach ($nameCandidates as $candidate) {
                     $scoreCandidates[] = $this->fuzzyScore($normalizedSearch, $candidate);
 
                     $tokens = array_values(array_filter(
@@ -269,21 +271,21 @@ class InstitutionSearchService implements PublicDiscoveryAdapter
             ->select([
                 $model->qualifyColumn($model->getKeyName()),
                 $model->qualifyColumn('name'),
-                $model->qualifyColumn('nickname'),
             ])
+            ->with(['names'])
             ->tap(fn (Builder $builder): Builder => $this->applyFuzzyCandidateFilter($builder, $normalizedSearch))
             ->tap(fn (Builder $builder): Builder => $this->applyFuzzyCandidateOrdering($builder, $normalizedSearch))
             ->limit($this->typesenseResultLimit())
             ->get()
             ->map(function (Institution $institution) use ($normalizedSearch): array {
-                $candidates = array_values(array_filter([
+                $nameCandidates = array_values(array_filter([
                     $this->normalizeText((string) $institution->name),
-                    $this->normalizeText((string) $institution->nickname),
+                    ...$institution->names->map(fn ($n) => $this->normalizeText((string) $n->full_name))->all(),
                 ], static fn (string $candidate): bool => $candidate !== ''));
 
                 $scoreCandidates = [];
 
-                foreach ($candidates as $candidate) {
+                foreach ($nameCandidates as $candidate) {
                     $scoreCandidates[] = $this->fuzzyScore($normalizedSearch, $candidate);
 
                     $tokens = array_values(array_filter(
@@ -326,7 +328,7 @@ class InstitutionSearchService implements PublicDiscoveryAdapter
             foreach ($patterns as $pattern) {
                 $candidateQuery
                     ->orWhere('institutions.name', $operator, $pattern)
-                    ->orWhere('institutions.nickname', $operator, $pattern);
+                    ->orWhereHas('names', fn (Builder $nameQuery) => $nameQuery->where('full_name', $operator, $pattern));
             }
         });
     }
@@ -337,9 +339,15 @@ class InstitutionSearchService implements PublicDiscoveryAdapter
      */
     private function applyFuzzyCandidateOrdering(Builder $query, string $normalizedSearch): Builder
     {
+        $nameQuery = InstitutionName::query()
+            ->select('full_name')
+            ->whereColumn('institution_id', 'institutions.id')
+            ->where('is_primary', true)
+            ->limit(1);
+
         return $query
             ->orderByRaw(
-                "case when lower(coalesce(institutions.name, '')) = ? or lower(coalesce(institutions.nickname, '')) = ? then 0 when lower(coalesce(institutions.name, '')) like ? or lower(coalesce(institutions.nickname, '')) like ? then 1 else 2 end",
+                "case when lower(coalesce(institutions.name, '')) = ? or lower(coalesce(({$nameQuery->toSql()}), '')) = ? then 0 when lower(coalesce(institutions.name, '')) like ? or lower(coalesce(({$nameQuery->toSql()}), '')) like ? then 1 else 2 end",
                 [$normalizedSearch, $normalizedSearch, $normalizedSearch.'%', $normalizedSearch.'%']
             )
             ->orderByRaw("length(coalesce(institutions.name, ''))")
@@ -472,7 +480,7 @@ class InstitutionSearchService implements PublicDiscoveryAdapter
 
         $rawResults = Institution::search($search)
             ->options([
-                'query_by' => 'display_name,name,nickname,search_text',
+                'query_by' => 'display_name,name,nicknames,search_text',
                 'per_page' => $this->typesenseResultLimit(),
                 ...$options,
             ])

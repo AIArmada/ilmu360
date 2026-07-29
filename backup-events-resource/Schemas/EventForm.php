@@ -482,14 +482,14 @@ class EventForm
                                             ->collection('poster')
                                             ->image()
                                             ->imageEditor()
-                                            ->imageAspectRatio('4:5')
+                                            ->imageAspectRatio('3:4')
                                             ->automaticallyOpenImageEditorForAspectRatio()
-                                            ->imageEditorAspectRatioOptions(['4:5', null])
+                                            ->imageEditorAspectRatioOptions(['3:4', null])
                                             ->automaticallyCropImagesToAspectRatio()
-                                            ->rules(['dimensions:ratio=4/5'])
+                                            ->rules(['dimensions:ratio=3/4'])
                                             ->conversion('thumb')
                                             ->responsiveImages()
-                                            ->helperText('Untuk hebahan WhatsApp, Instagram, Facebook, dan saluran luar. Wajib portrait 4:5 dan boleh mengandungi maklumat penuh.'),
+                                            ->helperText('Untuk hebahan WhatsApp, Instagram, Facebook, dan saluran luar. Wajib portrait 3:4 dan boleh mengandungi maklumat penuh.'),
                                         SpatieMediaLibraryFileUpload::make('gallery')
                                             ->label('Galeri')
                                             ->collection('gallery')

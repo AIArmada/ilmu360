@@ -119,7 +119,7 @@ new class extends Component
     $pastTotal = $this->pastTotal;
     $mainUrl = $venue->public_main_url;
     $coverUrl = $venue->getFirstMediaUrl('cover', 'banner') ?: asset('images/placeholders/venue.png');
-    $thumbUrl = $venue->getFirstMediaUrl('cover', 'thumb') ?: asset('images/placeholders/venue.png');
+    $thumbUrl = $venue->getFirstMediaUrl('cover', 'banner') ?: asset('images/placeholders/venue.png');
     $address = $venue->primaryAddress();
     $addressHierarchyParts = \App\Support\Location\AddressHierarchyFormatter::parts($address);
     $addressParts = array_values(array_filter([

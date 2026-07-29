@@ -767,7 +767,8 @@ class EventContributionFormSchema
         return Institution::query()
             ->whereIn('status', ['verified', 'pending'])
             ->orderBy('name')
-            ->get(['id', 'name', 'nickname'])
+            ->with('names')
+            ->get(['id', 'name'])
             ->mapWithKeys(fn (Institution $institution): array => [(string) $institution->id => $institution->display_name])
             ->all();
     }

@@ -278,7 +278,7 @@ class Index extends Component implements HasForms
                 ->with(['addresses'])
                 ->orderBy('name')
                 ->limit(50)
-                ->get(['id', 'slug', 'name', 'nickname'])
+                ->with('names')->get(['id', 'slug', 'name'])
                 ->mapWithKeys(fn (Institution $institution): array => [(string) $institution->getKey() => $this->institutionMembershipApplicationLabel($institution)])
                 ->all(),
             MemberSubjectType::Person => Person::query()
@@ -367,7 +367,7 @@ class Index extends Component implements HasForms
             ->whereIn('status', ['verified', 'pending'])
             ->whereKey($subjectId)
             ->with(['addresses'])
-            ->first(['id', 'name', 'nickname']);
+            ->with('names')->first(['id', 'name']);
 
         if (! $institution instanceof Institution) {
             return null;

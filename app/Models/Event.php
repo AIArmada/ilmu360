@@ -1895,19 +1895,20 @@ class Event extends PackageEvent implements AuditableContract
     public function registerMediaConversions(?Media $media = null): void
     {
         $this->addMediaConversion('thumb')
-            ->performOnCollections('cover', 'gallery')
-            ->fit(Fit::Crop, 1920, 1080)
+            ->performOnCollections('cover')
+            ->fit(Fit::Max, 1920, 1080)
             ->sharpen(10)
             ->format('webp');
 
-        $this->addMediaConversion('card')
-            ->performOnCollections('cover', 'poster')
-            ->fit(Fit::Max, 1920, 1080)
+        $this->addMediaConversion('poster_thumb')
+            ->performOnCollections('poster')
+            ->fit(Fit::Max, 1080, 1440)
             ->format('webp');
 
-        $this->addMediaConversion('preview')
-            ->performOnCollections('cover', 'poster')
-            ->fit(Fit::Max, 1920, 1080)
+        $this->addMediaConversion('gallery_thumb')
+            ->performOnCollections('gallery')
+            ->fit(Fit::Max, 1080, 1080)
+            ->sharpen(10)
             ->format('webp');
     }
 
@@ -2077,7 +2078,7 @@ class Event extends PackageEvent implements AuditableContract
      */
     public function getRecommendationImageUrlAttribute(): string
     {
-        $coverUrl = $this->preferredMediaUrl($this->getFirstMedia('cover'), ['card', 'preview', 'thumb']);
+        $coverUrl = $this->preferredMediaUrl($this->getFirstMedia('cover'), ['thumb']);
 
         return $coverUrl ?? asset('images/placeholders/event.png');
     }
@@ -2088,13 +2089,13 @@ class Event extends PackageEvent implements AuditableContract
      */
     public function getCardImageUrlAttribute(): string
     {
-        $coverUrl = $this->preferredMediaUrl($this->getFirstMedia('cover'), ['card', 'preview', 'thumb']);
+        $coverUrl = $this->preferredMediaUrl($this->getFirstMedia('cover'), ['thumb']);
 
         if ($coverUrl !== null) {
             return $coverUrl;
         }
 
-        $posterUrl = $this->preferredMediaUrl($this->getFirstMedia('poster'), ['card', 'preview', 'thumb']);
+        $posterUrl = $this->preferredMediaUrl($this->getFirstMedia('poster'), ['poster_thumb']);
 
         if ($posterUrl !== null) {
             return $posterUrl;
@@ -2143,7 +2144,7 @@ class Event extends PackageEvent implements AuditableContract
 
         $ratio = $width / $height;
         $supportedRatios = [
-            '4:5' => 4 / 5,
+            '3:4' => 3 / 4,
             '16:9' => 16 / 9,
         ];
 

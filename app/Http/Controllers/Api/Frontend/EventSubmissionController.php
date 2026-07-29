@@ -35,7 +35,7 @@ class EventSubmissionController extends FrontendController
             .'This route is create-only; use the contribution suggestion endpoints for later event updates. '
             .'Clients must provide an explicit AIArmada AddressCountry UUID using `submission_country_id`. '
             .'Fetch `GET /forms/submit-event` first to resolve required versus optional fields, conditional rules, catalogs, and guest-contact requirements. '
-            .'Event media roles are strict: `cover` is the 16:9 website/app image, while `poster` is the 4:5 external flyer image.',
+            .'Event media roles are strict: `cover` is the 16:9 website/app image, while `poster` is the 3:4 external flyer image.',
     )]
     public function store(
         Request $request,
@@ -99,7 +99,7 @@ class EventSubmissionController extends FrontendController
             'notes' => ['nullable', 'string', 'max:1000'],
             'captcha_token' => ['nullable', 'string'],
             'cover' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'dimensions:ratio=16/9', "max:{$maxUploadSizeKb}"],
-            'poster' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'dimensions:ratio=4/5', "max:{$maxUploadSizeKb}"],
+            'poster' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'dimensions:ratio=3/4', "max:{$maxUploadSizeKb}"],
             'gallery' => ['nullable', 'array', 'max:10'],
             'gallery.*' => ['image', 'mimes:jpg,jpeg,png,webp', "max:{$maxUploadSizeKb}"],
         ]);

@@ -164,6 +164,7 @@ class Show extends Component
         OwnerContext::withOwner(null, function (): void {
             $this->person->loadMissing([
                 'media',
+                'contactMethods',
                 'socialProfiles',
                 'addresses',
                 'titleAssignments',

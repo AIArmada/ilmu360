@@ -20,7 +20,7 @@ use Laravel\Mcp\Server\Prompts\Argument;
 
 #[Name('member-event-poster-image-prompt')]
 #[Title('Event Poster Image Prompt')]
-#[Description('Builds a 4:5 portrait poster prompt for an accessible Ahli event with the event data and brand reference images attached. Use the returned prompt and images with ChatGPT image generation, then upload the result with member-upload-event-poster-image.')]
+#[Description('Builds a 3:4 portrait poster prompt for an accessible Ahli event with the event data and brand reference images attached. Use the returned prompt and images with ChatGPT image generation, then upload the result with member-upload-event-poster-image.')]
 class MemberEventPosterImagePrompt extends Prompt
 {
     use BuildsEventImagePrompt;

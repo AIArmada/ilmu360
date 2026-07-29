@@ -898,7 +898,7 @@
                                 @foreach($events as $event)
                                     @php
                                         $coverMedia = $event->getFirstMedia('cover');
-                                        $eventCardImageUrl = $coverMedia?->getAvailableUrl(['card', 'preview', 'thumb']) ?: $event->card_image_url;
+                                        $eventCardImageUrl = $coverMedia?->getAvailableUrl(['thumb']) ?: $event->card_image_url;
                                         $eventChangeBadgeLabel = $event->public_change_badge_label;
                                         $eventCategory = $event->classifications
                                             ->where('taxonomy_code', 'event_category')

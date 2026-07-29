@@ -390,7 +390,7 @@ new
                 <div class="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
                     @foreach($venues as $venue)
                         @php
-                            $coverUrl = $venue->getFirstMediaUrl('cover', 'thumb') ?: asset('images/placeholders/venue.png');
+                            $coverUrl = $venue->getFirstMediaUrl('cover', 'banner') ?: asset('images/placeholders/venue.png');
                             $address = $venue->primaryAddress();
                             $locationDisplay = $formatVenueLocation($address);
                             $venueType = $venue->venue_type;

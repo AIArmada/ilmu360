@@ -13,7 +13,6 @@ return new class extends Migration
 
             $table->string('type')->nullable();
             $table->string('name');
-            $table->string('nickname')->nullable();
             $table->string('slug')->unique();
 
             $table->text('description')->nullable();

@@ -1,5 +1,7 @@
 # Lessons
 
+- When media conversion names or dimensions are changed in uncommitted model/form work, audit those canonical registrations before updating MCP upload metadata; do not infer a new conversion key from a duplicate-map warning.
+
 - Cross-repository Commerce audits must read and follow `/Users/Saiffil/Herd/commerce/AGENTS.md` in full before package discovery or edits; the package monorepo has stricter per-package context, ownership, PHP, testing, and verification rules than the application.
 
 - When auditing an app-to-package hard cut, answer the package-boundary question separately from implementation completeness: generic caller-provided extension points are safe, while app literals, app namespaces, product-specific relations, and app policy inside packages are the actual coupling risks.
@@ -216,6 +218,10 @@
 - In dedicated moderation queues, remove generic record-status columns when the active queue context already conveys that state; keep only columns that add distinct review signal.
 - For public About/marketing pages, keep informational links like `About` out of the primary top navigation unless the user explicitly wants them there; default them to lower navigation/footer placement and anchor the copy to the strongest real-world product insight rather than generic mission language.
 - For multilingual marketing pages, do not treat copy as a direct translation exercise; rewrite each locale as native marketing writing in its own rhythm and vocabulary, especially for Bahasa Melayu where literal phrasing sounds immediately unnatural.
+- For public social profiles, use the package's `profileUrl()` resolver for handle-only records; do not read a non-persisted `resolved_url` attribute, or valid profiles with null URL columns will disappear from the page.
+- When brand icons are the visual focus, avoid placing them inside a second colored icon container; render the source mark directly at a larger size and reserve color treatment for the surrounding interaction state.
+- Apply the direct-brand-icon treatment to shared share controls as well as profile links, so repeated public surfaces do not regress to smaller boxed social marks.
+- For profile correction actions, pair each label with a semantic action icon (edit for suggest-update, flag for report) and preserve the text label for clarity and accessibility.
 - When refining multilingual marketing pages, audit the Blade template for hard-coded English headings, quotes, and alt text; native locale files alone are not enough if the rendered page still falls back to English mid-section.
 - When a field must be unavailable in a specific Filament panel, enforce that at schema visibility level, not only in the save hook; backend payload stripping alone still leaves misleading controls visible.
 - For moderation-only metadata on shared Filament forms, pair panel-specific visibility with payload sanitization in restricted panels; hiding `escalated_at` or similar fields in ahli should also unset crafted values before save.
@@ -367,3 +373,5 @@
 - Package relation migrations can change a serialized collection from a legacy boolean map to related rows; update app state serializers and persistence semantics together, including explicit `null` collection clearing.
 
 - When a package-owned Filament resource needs a field already modeled by the package, implement the display and relation in the package behind its existing resolver seam; do not replace the resource in the consuming app unless the app is adding genuinely product-specific behavior.
+
+- When a user narrows a UI consolidation request, preserve the sections they explicitly excluded and change only the requested interaction; do not move adjacent contact or social content for visual convenience.

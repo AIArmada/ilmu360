@@ -61,23 +61,23 @@
     $copyPrompt = __('Copy this link:');
     $eventHasPoster = $event->hasMedia('poster');
     $eventPosterDisplayAspectRatio = $eventHasPoster ? $event->poster_display_aspect_ratio : '16:9';
-    $eventPosterIsPortrait = $eventHasPoster && $eventPosterDisplayAspectRatio === '4:5';
+    $eventPosterIsPortrait = $eventHasPoster && $eventPosterDisplayAspectRatio === '3:4';
     $eventPosterFrameAspectClass = match ($eventPosterDisplayAspectRatio) {
-        '4:5' => 'aspect-[4/5]',
+        '3:4' => 'aspect-[3/4]',
         '16:9' => 'aspect-[16/9]',
         default => 'aspect-[16/9]',
     };
     $eventPosterCardMaxWidthClass = match ($eventPosterDisplayAspectRatio) {
-        '4:5' => 'max-w-[260px] sm:max-w-[300px] lg:max-w-[360px]',
+        '3:4' => 'max-w-[260px] sm:max-w-[300px] lg:max-w-[360px]',
         '16:9' => 'max-w-[420px] sm:max-w-[540px] lg:max-w-[640px]',
         default => 'max-w-[420px] sm:max-w-[540px] lg:max-w-[640px]',
     };
-    $eventPosterPreviewUrl = $eventHasPoster ? $event->getFirstMedia('poster')?->getAvailableUrl(['preview', 'card', 'thumb']) : null;
+    $eventPosterPreviewUrl = $eventHasPoster ? $event->getFirstMedia('poster')?->getAvailableUrl(['poster_thumb', 'card']) : null;
     $eventPosterOriginalUrl = $eventHasPoster ? $event->getFirstMediaUrl('poster') : null;
     // Hero atmospheric background:
     // event cover -> institution cover -> venue cover/main -> organizer institution cover -> gradient fallback.
     // The event poster is NEVER used as background — it is a factual flyer and must be displayed clearly.
-    $heroImage = $event->getFirstMedia('cover')?->getAvailableUrl(['banner', 'card', 'preview', 'thumb']) ?? '';
+    $heroImage = $event->getFirstMedia('cover')?->getAvailableUrl(['banner', 'thumb']) ?? '';
     if (!$heroImage) {
         $heroImage = $event->institution?->getFirstMedia('cover')?->getAvailableUrl(['banner']) ?? '';
     }
@@ -1783,7 +1783,7 @@
                 {{-- Location --}}
                 <div class="flex items-start gap-4">
                     @php
-                        $sidebarVenueThumb = $event->venue?->getFirstMediaUrl('cover', 'thumb');
+                        $sidebarVenueThumb = $event->venue?->getFirstMediaUrl('cover', 'banner');
                         $sidebarInstCover = $event->institution?->getFirstMediaUrl('cover', 'thumb');
                         $sidebarInstLogo = $event->institution?->getFirstMediaUrl('logo', 'thumb');
                         $sidebarLocationThumb = $sidebarVenueThumb ?: $sidebarInstCover ?: $sidebarInstLogo;

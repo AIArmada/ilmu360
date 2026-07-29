@@ -61,6 +61,32 @@ it('builds canonical facebook links from handles', function () {
         ->and($social->profileUrl())->toBe('https://www.facebook.com/nurul');
 });
 
+it('builds youtube links without a leading at-sign', function () {
+    $person = Person::factory()->create();
+
+    $social = $person->socialProfiles()->create([
+        'platform' => SocialPlatform::Youtube->value,
+        'handle' => '@ExampleChannel',
+    ])->fresh();
+
+    expect($social->handle)->toBe('ExampleChannel')
+        ->and($social->url)->toBe('https://www.youtube.com/ExampleChannel')
+        ->and($social->profileUrl())->toBe('https://www.youtube.com/ExampleChannel');
+});
+
+it('extracts youtube handles from current profile urls', function () {
+    $person = Person::factory()->create();
+
+    $social = $person->socialProfiles()->create([
+        'platform' => SocialPlatform::Youtube->value,
+        'url' => 'https://youtube.com/ExampleChannel',
+    ])->fresh();
+
+    expect($social->handle)->toBe('ExampleChannel')
+        ->and($social->url)->toBe('https://youtube.com/ExampleChannel')
+        ->and($social->profileUrl())->toBe('https://www.youtube.com/ExampleChannel');
+});
+
 it('normalizes website urls when given as direct links', function () {
     $institution = Institution::factory()->create();
 

@@ -558,7 +558,7 @@ class Show extends Component
      */
     protected function buildGalleryImagePayload(Media $media, string $fallbackAlt): array
     {
-        $fullImageUrl = $media->getAvailableUrl(['preview', 'thumb']);
+        $fullImageUrl = $media->getAvailableUrl(['thumb']);
         $thumbnailUrl = $media->getAvailableUrl(['thumb']);
 
         return [

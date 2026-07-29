@@ -2005,7 +2005,6 @@ it('creates and updates institutions through MCP write tools', function () {
             'resource_key' => 'institutions',
             'payload' => [
                 'name' => 'Admin MCP Institution',
-                'nickname' => 'MCP Surau',
                 'type' => 'masjid',
                 'status' => 'verified',
                 'address' => [
@@ -2021,7 +2020,7 @@ it('creates and updates institutions through MCP write tools', function () {
     $originalLat = $originalAddress?->lat;
     $originalLng = $originalAddress?->lng;
 
-    expect($institution->display_name)->toBe('Admin MCP Institution (MCP Surau)')
+    expect($institution->display_name)->toBe('Admin MCP Institution')
         ->and($institution->status)->toBe('verified')
         ->and($institution->allow_public_event_submission)->toBeTrue();
 
@@ -2043,7 +2042,7 @@ it('creates and updates institutions through MCP write tools', function () {
 
                 return data_get($fieldMap->get('address'), 'required') === false
                     && data_get($fieldMap->get('address.country_id'), 'required') === false
-                    && data_get($fieldMap->get('nickname'), 'clear_semantics.explicit_null') === 'preserve_existing'
+                    && data_get($fieldMap->get('names'), 'mutation_semantics') === 'replace_collection'
                     && data_get($fieldMap->get('contactMethods'), 'collection_semantics.explicit_null') === 'clear_collection'
                     && $contactItemFields->has('type')
                     && $contactItemFields->has('value')
@@ -2058,7 +2057,6 @@ it('creates and updates institutions through MCP write tools', function () {
             'record_key' => $institutionId,
             'payload' => [
                 'name' => 'Admin MCP Institution Updated',
-                'nickname' => 'MCP Masjid',
                 'type' => 'masjid',
                 'status' => 'pending',
                 'allow_public_event_submission' => true,
@@ -2071,60 +2069,11 @@ it('creates and updates institutions through MCP write tools', function () {
         ->assertOk()
         ->assertStructuredContent(fn ($json) => $json
             ->where('data.record.attributes.name', 'Admin MCP Institution Updated')
-            ->where('data.record.attributes.nickname', 'MCP Masjid')
             ->etc());
 
     expect($institution->fresh()?->slug)->not->toBe('attempted-admin-institution-injection')
         ->and(abs(((float) $institution->fresh()?->primaryAddress()?->lat) - (float) $originalLat))->toBeLessThan(0.000001)
         ->and(abs(((float) $institution->fresh()?->primaryAddress()?->lng) - (float) $originalLng))->toBeLessThan(0.000001);
-});
-
-it('preserves institution nickname on null and clears it on empty string through admin MCP write tools', function () {
-    ensureMcpMalaysiaCountryExists();
-
-    $admin = adminMcpUser('super_admin');
-    $institution = Institution::factory()->create([
-        'name' => 'Admin MCP Institution Nickname',
-        'nickname' => 'MCP Surau',
-        'type' => 'masjid',
-        'status' => 'verified',
-    ]);
-
-    AdminServer::actingAs($admin)
-        ->tool(AdminUpdateRecordTool::class, [
-            'resource_key' => 'institutions',
-            'record_key' => $institution->getKey(),
-            'payload' => [
-                'name' => 'Admin MCP Institution Nickname',
-                'nickname' => null,
-                'type' => 'masjid',
-                'status' => 'verified',
-            ],
-        ])
-        ->assertOk()
-        ->assertStructuredContent(fn ($json) => $json
-            ->where('data.record.attributes.nickname', 'MCP Surau')
-            ->etc());
-
-    expect($institution->fresh()?->nickname)->toBe('MCP Surau');
-
-    AdminServer::actingAs($admin)
-        ->tool(AdminUpdateRecordTool::class, [
-            'resource_key' => 'institutions',
-            'record_key' => $institution->getKey(),
-            'payload' => [
-                'name' => 'Admin MCP Institution Nickname',
-                'nickname' => '',
-                'type' => 'masjid',
-                'status' => 'verified',
-            ],
-        ])
-        ->assertOk()
-        ->assertStructuredContent(fn ($json) => $json
-            ->where('data.record.attributes.nickname', null)
-            ->etc());
-
-    expect($institution->fresh()?->nickname)->toBeNull();
 });
 
 it('surfaces venue and reference update semantics through admin MCP write schemas', function () {

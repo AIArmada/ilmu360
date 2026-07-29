@@ -541,7 +541,7 @@ it('returns member update schema and updates institutions through member MCP wri
                 return data_get($fieldMap->get('logo'), 'mcp_upload.shape') === 'file_descriptor'
                     && data_get($fieldMap->get('gallery'), 'mcp_upload.shape') === 'array<file_descriptor>'
                     && data_get($fieldMap->get('address'), 'required') === false
-                    && data_get($fieldMap->get('nickname'), 'normalization.empty_string_at_mutation_layer') === 'null'
+                    && data_get($fieldMap->get('names'), 'mutation_semantics') === 'replace_collection'
                     && data_get($fieldMap->get('contactMethods'), 'collection_semantics.explicit_null') === 'clear_collection'
                     && $contactItemFields->has('type')
                     && $contactItemFields->has('value')
@@ -556,7 +556,6 @@ it('returns member update schema and updates institutions through member MCP wri
             'record_key' => $institution->getKey(),
             'payload' => [
                 'name' => 'Member MCP Institution Updated',
-                'nickname' => 'Member MCP Masjid',
                 'type' => 'masjid',
                 'status' => 'pending',
                 'allow_public_event_submission' => true,
@@ -573,11 +572,9 @@ it('returns member update schema and updates institutions through member MCP wri
         ->assertOk()
         ->assertStructuredContent(fn ($json) => $json
             ->where('data.record.attributes.name', 'Member MCP Institution Updated')
-            ->where('data.record.attributes.nickname', 'Member MCP Masjid')
             ->etc());
 
     expect($institution->fresh()?->name)->toBe('Member MCP Institution Updated')
-        ->and($institution->fresh()?->nickname)->toBe('Member MCP Masjid')
         ->and($institution->fresh()?->slug)->not->toBe('attempted-member-institution-injection')
         ->and($institution->fresh()?->getMedia('cover'))->toHaveCount(1)
         ->and($institution->fresh()?->getMedia('gallery'))->toHaveCount(1)
@@ -726,7 +723,6 @@ it('previews member institution updates without persisting the record', function
             'validate_only' => true,
             'payload' => [
                 'name' => 'Previewed Member MCP Institution',
-                'nickname' => 'Previewed Masjid',
                 'type' => 'masjid',
                 'status' => 'pending',
                 'allow_public_event_submission' => true,

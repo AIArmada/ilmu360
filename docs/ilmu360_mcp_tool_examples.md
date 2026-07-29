@@ -62,7 +62,7 @@ Then upload the generated result:
 }
 ```
 
-The upload tool saves the image as a 16:9 `cover` in the Event media collection. Use `admin-event-poster-image-prompt` and `admin-upload-event-poster-image` when the intended asset is the 4:5 external-distribution poster.
+The upload tool saves the image as a 16:9 `cover` in the Event media collection. Use `admin-event-poster-image-prompt` and `admin-upload-event-poster-image` when the intended asset is the 3:4 external-distribution poster.
 
 When reference media is enabled, speaker context selection follows this fallback order: speaker `cover`, then speaker `avatar`, then organizer institution media from `event->organizer`.
 
@@ -115,7 +115,7 @@ Use the returned prompt and reference images with ChatGPT native image generatio
 }
 ```
 
-The upload tool saves the image as a 4:5 `poster` in the Event media collection.
+The upload tool saves the image as a 3:4 `poster` in the Event media collection.
 
 When reference media is enabled, speaker context selection follows this fallback order: speaker `cover`, then speaker `avatar`, then organizer institution media from `event->organizer`.
 
@@ -247,7 +247,7 @@ Keyword `query` expands to related institution, speaker/key-person, and referenc
 
 Fetch the write schema first and follow the field-specific `mcp_upload`, `accepted_mime_types`, `max_file_size_kb`, and `max_files` metadata. Single-file fields use one descriptor object. Multi-file fields use an array of descriptor objects. Descriptors support `content_base64`, `content_url`, or ChatGPT `download_url` / `file_id` parameters.
 
-For event media writes, ratio checks are server-enforced on every write surface: `cover` must be `16:9` and `poster` must be `4:5`.
+For event media writes, ratio checks are server-enforced on every write surface: `cover` must be `16:9` and `poster` must be `3:4`.
 
 **Example with base64:**
 
@@ -589,7 +589,7 @@ Use the returned prompt and reference images with ChatGPT native image generatio
 }
 ```
 
-The upload tool saves the image as a 4:5 `poster` in the accessible Event media collection. Use `member-event-cover-image-prompt` and `member-upload-event-cover-image` when the intended asset is the 16:9 website/app cover.
+The upload tool saves the image as a 3:4 `poster` in the accessible Event media collection. Use `member-event-cover-image-prompt` and `member-upload-event-cover-image` when the intended asset is the 16:9 website/app cover.
 
 When reference media is enabled, speaker context selection follows this fallback order: speaker `cover`, then speaker `avatar`, then organizer institution media from `event->organizer`.
 

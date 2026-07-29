@@ -41,7 +41,7 @@ ilmu360° addresses this with structured event listings, moderation workflows, a
 ## What Makes It Interesting?
 - Prayer-time-aware scheduling support (e.g. "Selepas Maghrib", "Selepas Subuh").
 - Public and admin workflows in one coherent system.
-- Rich media support (16:9 cover for web/app, 4:5 poster for social distribution, gallery, profile images).
+- Rich media support (16:9 cover for web/app, 3:4 poster for social distribution, gallery, profile images).
 - Speaker profiles support rich biography content and featured profile images.
 - Search with geolocation and filtering capabilities (state, district, subdistrict, language, format, audience, topic).
 - Built-in moderation lifecycle (pending, approved, needs changes, rejected) with change-notice and replacement-event chains.

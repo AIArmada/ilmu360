@@ -3,6 +3,7 @@
 namespace App\Forms;
 
 use AIArmada\Addressing\Actions\SyncAddressAreaAssignmentsAction;
+use AIArmada\Addressing\Data\AddressHierarchyDefinition;
 use AIArmada\Addressing\Data\AddressLevelDefinition;
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressArea;
@@ -22,6 +23,7 @@ use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Venue;
 use App\Support\Location\AddressAssignments;
+use Closure;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
@@ -38,6 +40,9 @@ use Ysfkaya\FilamentPhoneInput\PhoneInputNumberType;
 
 class SharedFormSchema
 {
+    /** @var array<string, list<AddressHierarchyDefinition>> */
+    private static array $countryHierarchies = [];
+
     /**
      * Address fields (line1, line2, postcode, regional cascade, maps URLs).
      *
@@ -246,7 +251,7 @@ class SharedFormSchema
                     ->label(__('Handle'))
                     ->requiredWithout('url')
                     ->maxLength(255)
-                    ->placeholder(__('@username / https://...')),
+                    ->placeholder(__('username / https://...')),
                 TextInput::make('url')
                     ->label(__('URL'))
                     ->requiredWithout('handle')
@@ -1094,7 +1099,7 @@ class SharedFormSchema
 
     private static function profileLevelForRole(string $countryId, string $role): ?AddressLevelDefinition
     {
-        foreach (app(CountryAddressProfileResolver::class)->hierarchies($countryId) as $hierarchy) {
+        foreach (self::countryHierarchies($countryId) as $hierarchy) {
             foreach ($hierarchy->levels as $level) {
                 $assignmentRole = $level->assignmentRole ?? "{$hierarchy->key}_{$level->key}";
 
@@ -1105,6 +1110,22 @@ class SharedFormSchema
         }
 
         return null;
+    }
+
+    /**
+     * Cache country profile resolution for the lifetime of this request.
+     *
+     * Filament evaluates location labels, visibility, and options closures
+     * repeatedly while hydrating a form. The resolver itself performs a
+     * country lookup on every call, so repeating it can exhaust the request
+     * timeout on a slow database connection.
+     *
+     * @return list<AddressHierarchyDefinition>
+     */
+    private static function countryHierarchies(string $countryId): array
+    {
+        return self::$countryHierarchies[$countryId]
+            ??= app(CountryAddressProfileResolver::class)->hierarchies($countryId);
     }
 
     private static function parentLevelForRole(string $countryId, string $role): ?AddressLevelDefinition
@@ -1218,7 +1239,7 @@ class SharedFormSchema
                 ->label(fn (Get $get): string => self::levelLabel(
                     $includeCountryField ? $get('country_id') : $defaultCountryId,
                     'state_id',
-                    __('State / Region'),
+                    __('State / Federal Territory'),
                 ))
                 ->options(fn (Get $get): array => self::stateOptionsForCountry(
                     $includeCountryField ? $get('country_id') : $defaultCountryId,
@@ -1230,34 +1251,19 @@ class SharedFormSchema
                 ->visible(fn (Get $get): bool => self::stateOptionsForCountry(
                     $includeCountryField ? $get('country_id') : $defaultCountryId,
                 ) !== [])
-                ->afterStateUpdatedJs(self::stateCascadeResetScript()),
+                ->afterStateUpdated(function (Set $set, ?string $state): void {
+                    $set('city_id', null);
+                    $set('area_assignments', [
+                        'administrative_district' => null,
+                        'administrative_subdivision' => null,
+                        'postal_locality' => null,
+                    ]);
+                }),
 
             TextInput::make('state')
-                ->label(__('State / Region'))
+                ->label(__('State / Federal Territory'))
                 ->maxLength(255)
                 ->visible(fn (Get $get): bool => self::stateOptionsForCountry(
-                    $includeCountryField ? $get('country_id') : $defaultCountryId,
-                ) === []),
-
-            Select::make('city_id')
-                ->label(__('City'))
-                ->options(fn (Get $get): array => self::cityOptionsForState(
-                    $get('state_id'),
-                    $includeCountryField ? $get('country_id') : $defaultCountryId,
-                ))
-                ->searchable()
-                ->live()
-                ->visible(fn (Get $get): bool => self::cityOptionsForState(
-                    $get('state_id'),
-                    $includeCountryField ? $get('country_id') : $defaultCountryId,
-                ) !== [])
-                ->afterStateUpdatedJs(self::cityCascadeResetScript()),
-
-            TextInput::make('city')
-                ->label(__('City'))
-                ->maxLength(255)
-                ->visible(fn (Get $get): bool => self::cityOptionsForState(
-                    $get('state_id'),
                     $includeCountryField ? $get('country_id') : $defaultCountryId,
                 ) === []),
 
@@ -1282,23 +1288,113 @@ class SharedFormSchema
                 ))
                 ->searchable()
                 ->live()
-                ->visible(fn (Get $get): bool => self::areaOptionsForRole(
+                ->visible(fn (Get $get): bool => self::areaVisible(
+                    $get,
                     $includeCountryField ? $get('country_id') : $defaultCountryId,
                     $role,
-                    self::areaParentIdForRole(
-                        $get,
-                        $includeCountryField ? $get('country_id') : $defaultCountryId,
-                        $role,
-                    ),
-                ) !== [])
+                ))
                 ->afterStateUpdatedJs(self::areaCascadeResetScript($role));
         }
+
+        $fields = array_merge($fields, [
+            Select::make('city_id')
+                ->label(__('City'))
+                ->options(fn (Get $get): array => self::cityOptionsForState(
+                    $get('state_id'),
+                    $includeCountryField ? $get('country_id') : $defaultCountryId,
+                ))
+                ->searchable()
+                ->live()
+                ->dehydrated(true)
+                ->visible(self::cityVisibleClosure(
+                    includeCountryField: $includeCountryField,
+                    defaultCountryId: $defaultCountryId,
+                    isSelect: true,
+                ))
+                ->afterStateUpdatedJs(self::cityCascadeResetScript()),
+
+            TextInput::make('city')
+                ->label(__('City'))
+                ->maxLength(255)
+                ->visible(self::cityVisibleClosure(
+                    includeCountryField: $includeCountryField,
+                    defaultCountryId: $defaultCountryId,
+                    isSelect: false,
+                )),
+        ]);
 
         return $fields;
     }
 
+    private static function isFederalTerritory(?string $stateId): bool
+    {
+        if ($stateId === null) {
+            return false;
+        }
+
+        return in_array(
+            State::query()->whereKey($stateId)->value('code'),
+            ['14', '15', '16'],
+            true,
+        );
+    }
+
+    private static function cityVisibleClosure(
+        bool $includeCountryField,
+        ?string $defaultCountryId,
+        bool $isSelect,
+    ): Closure {
+        return function (Get $get) use ($includeCountryField, $defaultCountryId, $isSelect): bool {
+            $stateId = $get('state_id');
+
+            if (! filled($stateId)) {
+                return false;
+            }
+
+            if (self::isFederalTerritory($stateId)) {
+                return false;
+            }
+
+            $countryId = $includeCountryField ? $get('country_id') : $defaultCountryId;
+
+            // City is redundant when district/subdistrict hierarchy exists
+            if (self::shouldShowDistrictField($stateId, $countryId)) {
+                return false;
+            }
+
+            $hasCityOptions = self::cityOptionsForState($stateId, $countryId) !== [];
+
+            return $isSelect ? $hasCityOptions : ! $hasCityOptions;
+        };
+    }
+
+    private static function areaVisible(Get $get, mixed $countryId, string $role): bool
+    {
+        if (
+            $role === 'administrative_subdivision'
+            && self::shouldShowDistrictField($get('state_id'), $countryId)
+            && ! filled($get('area_assignments.administrative_district'))
+        ) {
+            return false;
+        }
+
+        return self::areaOptionsForRole(
+            $countryId,
+            $role,
+            self::areaParentIdForRole($get, $countryId, $role),
+        ) !== [];
+    }
+
     private static function areaParentIdForRole(Get $get, mixed $countryId, string $role): mixed
     {
+        if ($role === 'administrative_subdivision') {
+            $districtId = $get('area_assignments.administrative_district');
+
+            if (filled($districtId)) {
+                return $districtId;
+            }
+        }
+
         $definition = self::profileLevelForRole(self::normalizeLocationId($countryId) ?? '', $role);
 
         if (! $definition instanceof AddressLevelDefinition || $definition->parentKey === null) {
@@ -1358,20 +1454,6 @@ class SharedFormSchema
                 $set('cascade_reset_guard', guard - 1)
             } else {
                 $set('state_id', null)
-                $set('city_id', null)
-                $set('area_assignments', [])
-            }
-            JS;
-    }
-
-    private static function stateCascadeResetScript(): string
-    {
-        return <<<'JS'
-            const guard = Number($get('cascade_reset_guard') ?? 0)
-
-            if (guard > 0) {
-                $set('cascade_reset_guard', guard - 1)
-            } else {
                 $set('city_id', null)
                 $set('area_assignments', [])
             }

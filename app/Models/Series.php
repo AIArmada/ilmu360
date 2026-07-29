@@ -122,8 +122,14 @@ class Series extends PackageEventSeries implements AuditableContract, HasMedia
     public function registerMediaConversions(?Media $media = null): void
     {
         $this->addMediaConversion('thumb')
-            ->performOnCollections('cover', 'gallery')
-            ->fit(Fit::Crop, 1920, 1080)
+            ->performOnCollections('cover')
+            ->fit(Fit::Max, 1920, 1080)
+            ->sharpen(10)
+            ->format('webp');
+
+        $this->addMediaConversion('gallery_thumb')
+            ->performOnCollections('gallery')
+            ->fit(Fit::Max, 1080, 1080)
             ->sharpen(10)
             ->format('webp');
     }

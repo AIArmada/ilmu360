@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\ContributionSubjectType;
+use App\Enums\InstitutionNameType;
 use App\Livewire\Pages\Contributions\SubmitInstitution;
 use App\Models\ContributionRequest;
 use App\Models\Event;
@@ -231,11 +232,18 @@ it('shows the empty state when institution search only has unrelated fuzzy candi
         ->assertDontSee('Jumlah institusi:');
 });
 
-it('matches institution nicknames on the institution index search', function () {
-    Institution::factory()->create([
-        'name' => 'Masjid Sultan Salahuddin Abdul Aziz Shah',
-        'nickname' => 'Masjid Biru',
-        'status' => 'verified',
+it('matches institution alternative names on the institution index search', function () {
+    $institution = Institution::factory()
+        ->create([
+            'name' => 'Masjid Sultan Salahuddin Abdul Aziz Shah',
+            'status' => 'verified',
+        ]);
+
+    $institution->names()->create([
+        'name_type' => InstitutionNameType::Nickname,
+        'full_name' => 'Masjid Biru',
+        'language_code' => 'ms',
+        'is_primary' => true,
     ]);
 
     Institution::factory()->create([
@@ -291,18 +299,27 @@ it('updates institution results live when search changes', function () {
 
 it('refreshes cached institution search results after institution updates', function () {
     $searchService = app(InstitutionSearchService::class);
-    $institution = Institution::factory()->create([
-        'name' => 'Masjid Sultan Salahuddin Abdul Aziz Shah',
-        'nickname' => 'Masjid Biru',
-        'status' => 'verified',
+    $institution = Institution::factory()
+        ->create([
+            'name' => 'Masjid Sultan Salahuddin Abdul Aziz Shah',
+            'status' => 'verified',
+        ]);
+
+    $institution->names()->create([
+        'name_type' => InstitutionNameType::Nickname,
+        'full_name' => 'Masjid Biru',
+        'language_code' => 'ms',
+        'is_primary' => true,
     ]);
 
     expect($searchService->publicSearchIds('biru'))
         ->toContain((string) $institution->id);
 
-    $institution->update([
-        'nickname' => 'Masjid Hijau',
-    ]);
+    $institution->names()->updateOrCreate(
+        ['name_type' => InstitutionNameType::Nickname],
+        ['full_name' => 'Masjid Hijau', 'language_code' => 'ms', 'is_primary' => true]
+    );
+    $institution->touch();
 
     expect($searchService->publicSearchIds('biru'))
         ->not->toContain((string) $institution->id)

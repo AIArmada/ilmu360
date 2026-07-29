@@ -319,7 +319,7 @@ class AdminCreateEventTool extends AbstractAdminWriteTool
                 'content_base64' => $schema->string()->nullable(),
                 'content_url' => $schema->string()->nullable(),
                 'mime_type' => $schema->string()->nullable(),
-            ])->nullable()->description('Optional event poster image descriptor (4:5). Pass {content_base64, filename} or {content_url, filename}.'),
+            ])->nullable()->description('Optional event poster image descriptor (3:4). Pass {content_base64, filename} or {content_url, filename}.'),
             'gallery' => $schema->array()->items(
                 $schema->object([
                     'filename' => $schema->string()->required(),

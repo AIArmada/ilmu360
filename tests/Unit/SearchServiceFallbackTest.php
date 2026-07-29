@@ -1,6 +1,7 @@
 <?php
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use App\Enums\InstitutionNameType;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
@@ -148,11 +149,18 @@ it('keeps exact person fuzzy matches inside the capped fallback candidate set', 
 });
 
 it('falls back to database institution search when typesense lookup fails', function () {
-    $institution = Institution::factory()->create([
-        'name' => 'Masjid Sultan Salahuddin Abdul Aziz Shah',
-        'nickname' => 'Masjid Biru',
-        'description' => 'Pusat komuniti',
-        'status' => 'verified',
+    $institution = Institution::factory()
+        ->create([
+            'name' => 'Masjid Sultan Salahuddin Abdul Aziz Shah',
+            'description' => 'Pusat komuniti',
+            'status' => 'verified',
+        ]);
+
+    $institution->names()->create([
+        'name_type' => InstitutionNameType::Nickname,
+        'full_name' => 'Masjid Biru',
+        'language_code' => 'ms',
+        'is_primary' => true,
     ]);
 
     $service = new class extends InstitutionSearchService
@@ -325,18 +333,32 @@ it('keeps local fuzzy person search when the database driver is configured', fun
 it('uses scout database search for institutions when the database driver is configured', function () {
     config()->set('scout.driver', 'database');
 
-    $institution = Institution::factory()->create([
-        'name' => 'Masjid Sultan Salahuddin Abdul Aziz Shah',
-        'nickname' => 'Masjid Biru',
-        'description' => 'Pusat komuniti',
-        'status' => 'verified',
+    $institution = Institution::factory()
+        ->create([
+            'name' => 'Masjid Sultan Salahuddin Abdul Aziz Shah',
+            'description' => 'Pusat komuniti',
+            'status' => 'verified',
+        ]);
+
+    $institution->names()->create([
+        'name_type' => InstitutionNameType::Nickname,
+        'full_name' => 'Masjid Biru',
+        'language_code' => 'ms',
+        'is_primary' => true,
     ]);
 
-    $hiddenInstitution = Institution::factory()->create([
-        'name' => 'Masjid Sultan Salahuddin Hidden',
-        'nickname' => 'Masjid Biru',
-        'description' => 'Pusat komuniti',
-        'status' => 'rejected',
+    $hiddenInstitution = Institution::factory()
+        ->create([
+            'name' => 'Masjid Sultan Salahuddin Hidden',
+            'description' => 'Pusat komuniti',
+            'status' => 'rejected',
+        ]);
+
+    $hiddenInstitution->names()->create([
+        'name_type' => InstitutionNameType::Nickname,
+        'full_name' => 'Masjid Biru',
+        'language_code' => 'ms',
+        'is_primary' => true,
     ]);
 
     $service = app(InstitutionSearchService::class);
@@ -350,7 +372,6 @@ it('keeps split-token institution search when the database driver is configured'
 
     $institution = Institution::factory()->create([
         'name' => 'Masjid Sultan Salahuddin Abdul Aziz Shah',
-        'nickname' => null,
         'description' => 'Pusat komuniti',
         'status' => 'verified',
     ]);

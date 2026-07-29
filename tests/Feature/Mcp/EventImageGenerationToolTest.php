@@ -91,7 +91,7 @@ it('uploads and stores an admin 16:9 event cover image via base64 descriptor', f
             ->etc());
 });
 
-it('uploads and stores a member 4:5 event poster only for accessible events', function (): void {
+it('uploads and stores a member 3:4 event poster only for accessible events', function (): void {
     [$member, $institution] = eventImageGenerationMemberContext();
     [$event] = eventImageGenerationEventFixture($institution);
 
@@ -292,7 +292,7 @@ it('formats cover prompt text as a strict 16:9 request and exposes fallback asse
         'prompt' => 'Create an editorial event visual.',
         'target' => [
             'collection' => 'poster',
-            'aspect_ratio' => '4:5',
+            'aspect_ratio' => '3:4',
             'output_width' => 1200,
             'output_height' => 1500,
         ],
@@ -320,7 +320,7 @@ it('formats cover prompt text as a strict 16:9 request and exposes fallback asse
         ->toContain('Target collection: `cover`')
         ->toContain('Aspect ratio: **16:9**')
         ->toContain('strict cover request')
-        ->toContain('4:5 portrait poster/flyer')
+        ->toContain('3:4 portrait poster/flyer')
         ->toContain('fallback reference assets')
         ->toContain('https://example.test/storage/events/cover.webp');
 });
@@ -362,6 +362,26 @@ it('keeps listed prompt assets aligned with the attached reference media limit',
         ->and($firstMessage['type'] ?? null)->toBe('text')
         ->and($firstMessage['text'] ?? '')->toContain($expectedFirstAssetUrl)
         ->and($unexpectedSecondAssetUrl === '' || ! str_contains((string) ($firstMessage['text'] ?? ''), $unexpectedSecondAssetUrl))->toBeTrue();
+});
+
+it('uses the configured Event media conversion name and dimensions in upload specs', function (): void {
+    [$event] = eventImageGenerationEventFixture();
+
+    $coverSpec = data_get(app(EventCoverPromptBuilder::class)->build($event, [
+        'target_collection' => 'cover',
+    ]), 'payload.upload_spec.conversions');
+    $posterPayload = app(EventCoverPromptBuilder::class)->build($event, [
+        'target_collection' => 'poster',
+    ]);
+    $posterSpec = data_get($posterPayload, 'payload.upload_spec.conversions');
+
+    expect($coverSpec)->toBe(['thumb' => 'max 1920x1080 webp, sharpened'])
+        ->and($posterSpec)->toBe(['poster_thumb' => 'max 1080x1440 webp'])
+        ->and(data_get($posterPayload, 'payload.target.aspect_ratio'))->toBe('3:4')
+        ->and(data_get($posterPayload, 'payload.target.ratio_width'))->toBe(3)
+        ->and(data_get($posterPayload, 'payload.target.ratio_height'))->toBe(4)
+        ->and(data_get($posterPayload, 'payload.target.output_width'))->toBe(1080)
+        ->and(data_get($posterPayload, 'payload.target.output_height'))->toBe(1440);
 });
 
 it('embeds reference urls and title-driven ambience guidance in generated prompt text', function (): void {

@@ -33,6 +33,7 @@ use App\Enums\EventKeyPersonRole;
 use App\Enums\EventPrayerTime;
 use App\Enums\EventTaxonomyCode;
 use App\Enums\EventVisibility;
+use App\Enums\InstitutionNameType;
 use App\Enums\InstitutionType;
 use App\Enums\PrayerOffset;
 use App\Enums\ReferencePartType;
@@ -42,6 +43,7 @@ use App\Forms\SharedFormSchema;
 use App\Models\Affiliation;
 use App\Models\Event;
 use App\Models\Institution;
+use App\Models\InstitutionName;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Series;
@@ -96,7 +98,7 @@ class ContributionEntityMutationService
                 'accepts_partial_updates' => true,
                 'fields' => [
                     $this->field('name', 'string', maxLength: 255),
-                    $this->field('nickname', 'string', maxLength: 255),
+                    $this->field('names', 'array'),
                     $this->field('type', 'string', allowedValues: $this->enumValues(InstitutionType::class)),
                     $this->field('description', 'rich_text'),
                     $this->field('address', 'object'),
@@ -194,7 +196,7 @@ class ContributionEntityMutationService
         return match (true) {
             $entity instanceof Institution => [
                 'name' => ['sometimes', 'string', 'max:255'],
-                'nickname' => ['nullable', 'string', 'max:255'],
+                'names' => ['nullable', 'array'],
                 'type' => ['sometimes', Rule::in($this->enumValues(InstitutionType::class))],
                 'description' => ['nullable'],
                 'address' => ['sometimes', 'array'],
@@ -327,7 +329,6 @@ class ContributionEntityMutationService
     {
         $institution = Institution::create([
             'name' => (string) ($payload['name'] ?? 'Institution'),
-            'nickname' => $this->normalizeOptionalString($payload['nickname'] ?? null),
             'slug' => $this->generateInstitutionSlugAction->handle(
                 (string) ($payload['name'] ?? 'Institution'),
                 is_array($payload['address'] ?? null) ? $payload['address'] : [],
@@ -338,6 +339,7 @@ class ContributionEntityMutationService
             'allow_public_event_submission' => true,
         ]);
 
+        $this->syncInstitutionNames($institution, $payload);
         $this->syncInstitutionRelations($institution, $payload);
         $this->generateInstitutionSlugAction->syncInstitutionSlug($institution);
 
@@ -392,9 +394,6 @@ class ContributionEntityMutationService
     {
         $institution->fill([
             'name' => $payload['name'] ?? $institution->name,
-            'nickname' => array_key_exists('nickname', $payload)
-                ? $this->normalizeOptionalString($payload['nickname'])
-                : $institution->nickname,
             'type' => array_key_exists('type', $payload)
                 ? $this->normalizeInstitutionType($payload['type'])
                 : ($institution->type instanceof BackedEnum ? $institution->type->value : $institution->type),
@@ -404,6 +403,7 @@ class ContributionEntityMutationService
         $dirty = $institution->getDirty();
         $institution->save();
 
+        $this->syncInstitutionNames($institution, $payload);
         $this->syncInstitutionRelations($institution, $payload);
         $this->generateInstitutionSlugAction->syncInstitutionSlug($institution);
 
@@ -662,11 +662,16 @@ class ContributionEntityMutationService
      */
     private function institutionState(Institution $institution): array
     {
-        $institution->loadMissing(['addresses', 'contactMethods', 'socialProfiles']);
+        $institution->loadMissing(['addresses', 'contactMethods', 'socialProfiles', 'names']);
 
         return [
             'name' => $institution->name,
-            'nickname' => $institution->nickname,
+            'names' => $institution->names->map(fn (InstitutionName $n): array => [
+                'full_name' => $n->full_name,
+                'name_type' => $n->name_type instanceof InstitutionNameType ? $n->name_type->value : (string) $n->name_type,
+                'language_code' => $n->language_code,
+                'is_primary' => (bool) $n->is_primary,
+            ])->values()->all(),
             'type' => $institution->type instanceof BackedEnum ? $institution->type->value : (string) $institution->type,
             'description' => $institution->description,
             'address' => $this->addressState($institution->primaryAddress()),
@@ -809,6 +814,34 @@ class ContributionEntityMutationService
             'contactMethods' => $this->contactMethodsState($venue->contactMethods),
             'social_media' => $this->socialMediaState($venue->socialProfiles),
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    public function syncInstitutionNames(Institution $institution, array $payload): void
+    {
+        $names = $payload['names'] ?? null;
+
+        if ($names === null || ! is_array($names)) {
+            return;
+        }
+
+        $institution->names()->delete();
+
+        foreach ($names as $i => $name) {
+            $institution->names()->create([
+                'name_type' => $name['name_type'] ?? InstitutionNameType::Nickname,
+                'full_name' => trim((string) ($name['full_name'] ?? '')),
+                'language_code' => $name['language_code'] ?? 'ms',
+                'is_primary' => (bool) ($name['is_primary'] ?? $i === 0),
+            ]);
+        }
+
+        $institution->unsetRelation('names');
     }
 
     /**

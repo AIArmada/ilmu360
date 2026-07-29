@@ -5,21 +5,26 @@ namespace App\Filament\Resources\Persons\Schemas;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\Contacting\Enums\SocialPlatform;
+use AIArmada\Contacting\Support\SocialProfileConfig;
 use AIArmada\Persons\Enums\Gender;
 use App\Enums\SpeakerStatus;
 use App\Forms\SharedFormSchema;
 use App\Models\Person;
 use App\Models\User;
 use App\Support\Submission\PublicSubmissionLockService;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 
@@ -34,32 +39,6 @@ class PersonForm
                     ->persistTab()
                     ->columnSpanFull()
                     ->tabs([
-                        Tab::make(__('Status'))
-                            ->icon(Heroicon::ShieldCheck)
-                            ->schema([
-                                Section::make(__('Status'))
-                                    ->components([
-                                        Select::make('status')
-                                            ->label(__('Status'))
-                                            ->options([
-                                                'pending' => __('Pending'),
-                                                'verified' => __('Verified'),
-                                                'rejected' => __('Rejected'),
-                                                'inactive' => __('Inactive'),
-                                            ])
-                                            ->required(),
-                                        Select::make('speaker_status')
-                                            ->label(__('Speaker Status'))
-                                            ->placeholder(__('Not a speaker'))
-                                            ->options(SpeakerStatus::class)
-                                            ->helperText(__('Mark as active speaker to feature on the penceramah directory.')),
-                                        Toggle::make('allow_public_event_submission')
-                                            ->label(__('Allow Public Event Submission'))
-                                            ->disabled(fn (?Person $record, string $operation): bool => ! self::canManagePublicSubmissionToggle($record, $operation))
-                                            ->helperText(fn (?Person $record, string $operation): string => self::publicSubmissionHelperText($record, $operation)),
-                                    ])
-                                    ->columns(1),
-                            ]),
                         Tab::make(__('Profil'))
                             ->icon(Heroicon::User)
                             ->schema([
@@ -74,9 +53,13 @@ class PersonForm
                                             ->options(Gender::class)
                                             ->default(Gender::Male->value)
                                             ->required(),
-                                        Section::make(__('Titles & Credentials'))
-                                            ->description(__('Titles, credentials, and affiliations are managed via the institution relation manager. Add a person to an institution with the appropriate position and role.'))
-                                            ->compact(),
+                                        Placeholder::make('titles_summary')
+                                            ->label(__('Titles'))
+                                            ->content(fn (?Person $record): string => $record?->titleAssignments()
+                                                ->with('title')
+                                                ->get()
+                                                ->pluck('title.name')
+                                                ->implode(', ') ?: __('No titles assigned')),
                                         RichEditor::make('bio')
                                             ->label(__('Biography'))
                                             ->json()
@@ -111,13 +94,25 @@ class PersonForm
                                             ->collection('main')
                                             ->image()
                                             ->imageEditor()
+                                            ->imageAspectRatio('1:1')
+                                            ->automaticallyOpenImageEditorForAspectRatio()
+                                            ->imageEditorAspectRatioOptions(['1:1'])
+                                            ->automaticallyCropImagesToAspectRatio()
+                                            ->responsiveImages()
+                                            ->conversion('thumb')
+                                            ->helperText(__('Primary portrait (1:1 ratio).')),
+                                        SpatieMediaLibraryFileUpload::make('profile')
+                                            ->label(__('Profile Photo'))
+                                            ->collection('profile')
+                                            ->image()
+                                            ->imageEditor()
                                             ->imageAspectRatio('3:4')
                                             ->automaticallyOpenImageEditorForAspectRatio()
                                             ->imageEditorAspectRatioOptions(['3:4'])
                                             ->automaticallyCropImagesToAspectRatio()
                                             ->responsiveImages()
-                                            ->conversion('card')
-                                            ->helperText(__('Primary portrait (3:4 ratio).')),
+                                            ->conversion('profile_thumb')
+                                            ->helperText(__('Speaker portrait (3:4 ratio).')),
                                         SpatieMediaLibraryFileUpload::make('cover')
                                             ->collection('cover')
                                             ->label(__('Cover Image'))
@@ -164,22 +159,32 @@ class PersonForm
                                             ->relationship()
                                             ->default([])
                                             ->schema([
-                                                Select::make('type')
-                                                    ->label(__('Type'))
-                                                    ->options(ContactMethodType::options())
-                                                    ->required()
-                                                    ->live(),
+                                                Grid::make(4)->schema([
+                                                    Select::make('type')
+                                                        ->label(__('Type'))
+                                                        ->options(ContactMethodType::options())
+                                                        ->required()
+                                                        ->live(),
+                                                    TextInput::make('label')
+                                                        ->label(__('Label'))
+                                                        ->maxLength(255)
+                                                        ->placeholder(__('Admin, Office, Support')),
+                                                    Select::make('purpose')
+                                                        ->label(__('Purpose'))
+                                                        ->options(ContactPurpose::options())
+                                                        ->default(ContactPurpose::General->value)
+                                                        ->required(),
+                                                    Toggle::make('is_primary')
+                                                        ->label(__('Primary'))
+                                                        ->fixIndistinctState(),
+                                                ]),
                                                 ...SharedFormSchema::contactValueFields(),
-                                                Select::make('purpose')
-                                                    ->label(__('Purpose'))
-                                                    ->options(ContactPurpose::options())
-                                                    ->default(ContactPurpose::General->value)
-                                                    ->required(),
-                                                Toggle::make('is_public')
-                                                    ->label(__('Public'))
-                                                    ->default(true),
+                                                Grid::make(2)->schema([
+                                                    Toggle::make('is_public')
+                                                        ->label(__('Public'))
+                                                        ->default(true),
+                                                ]),
                                             ])
-                                            ->columns(4)
                                             ->orderColumn('sort_order')
                                             ->mutateRelationshipDataBeforeFillUsing(fn (array $data): array => SharedFormSchema::normalizeContactRowsForFill($data))
                                             ->mutateRelationshipDataBeforeCreateUsing(fn (array $data): array => SharedFormSchema::normalizeContactRowsForSave($data))
@@ -193,26 +198,93 @@ class PersonForm
                                             ->relationship()
                                             ->default([])
                                             ->schema([
-                                                Select::make('platform')
-                                                    ->label(__('Platform'))
-                                                    ->options(SocialPlatform::options())
-                                                    ->searchable()
-                                                    ->required()
-                                                    ->columnSpan(1),
+                                                Grid::make(2)->schema([
+                                                    Select::make('platform')
+                                                        ->label(__('Platform'))
+                                                        ->options(SocialPlatform::options())
+                                                        ->searchable()
+                                                        ->required()
+                                                        ->live(),
+                                                    TextInput::make('label')
+                                                        ->label(__('Label'))
+                                                        ->maxLength(255)
+                                                        ->placeholder(__('Main page, Official channel')),
+                                                ]),
                                                 TextInput::make('handle')
-                                                    ->label(__('Handle'))
-                                                    ->requiredWithout('url')
+                                                    ->label(__('Username / Handle'))
+                                                    ->required()
                                                     ->maxLength(255)
-                                                    ->placeholder(__('@username / https://...'))
-                                                    ->columnSpan(1),
+                                                    ->placeholder(__('username or https://...'))
+                                                    ->live()
+                                                    ->afterStateUpdated(function (Get $get, Set $set, ?string $state): void {
+                                                        if ($state === null || $state === '' || ! str_contains($state, '://')) {
+                                                            return;
+                                                        }
+                                                        $platform = $get('platform');
+                                                        if ($platform === null || $platform === '') {
+                                                            return;
+                                                        }
+                                                        $platformValue = $platform instanceof SocialPlatform ? $platform->value : $platform;
+                                                        $extracted = app(SocialProfileConfig::class)->extractHandle($platformValue, $state);
+                                                        if ($extracted !== null) {
+                                                            $set('handle', $extracted);
+                                                        }
+                                                    })
+                                                    ->visible(function (Get $get): bool {
+                                                        $platform = $get('platform');
+                                                        if ($platform === null || $platform === '') {
+                                                            return false;
+                                                        }
+                                                        $value = $platform instanceof SocialPlatform ? $platform->value : $platform;
+
+                                                        return $value !== SocialPlatform::Website->value && $value !== SocialPlatform::Other->value;
+                                                    }),
+                                                Placeholder::make('profile_url')
+                                                    ->label(__('Profile URL'))
+                                                    ->content(function (Get $get): ?string {
+                                                        $platform = $get('platform');
+                                                        $handle = $get('handle');
+                                                        if (! is_string($handle) || $handle === '') {
+                                                            return null;
+                                                        }
+                                                        $value = $platform instanceof SocialPlatform ? $platform->value : $platform;
+
+                                                        return app(SocialProfileConfig::class)->buildUrl($value, $handle);
+                                                    })
+                                                    ->columnSpanFull()
+                                                    ->visible(function (Get $get): bool {
+                                                        $platform = $get('platform');
+                                                        if ($platform === null || $platform === '') {
+                                                            return false;
+                                                        }
+                                                        $value = $platform instanceof SocialPlatform ? $platform->value : $platform;
+
+                                                        return $value !== SocialPlatform::Website->value && $value !== SocialPlatform::Other->value;
+                                                    }),
                                                 TextInput::make('url')
                                                     ->label(__('URL'))
-                                                    ->requiredWithout('handle')
+                                                    ->required()
                                                     ->url()
                                                     ->maxLength(255)
-                                                    ->columnSpanFull(),
+                                                    ->columnSpanFull()
+                                                    ->visible(function (Get $get): bool {
+                                                        $platform = $get('platform');
+                                                        if ($platform === null || $platform === '') {
+                                                            return false;
+                                                        }
+                                                        $value = $platform instanceof SocialPlatform ? $platform->value : $platform;
+
+                                                        return $value === SocialPlatform::Website->value || $value === SocialPlatform::Other->value;
+                                                    }),
+                                                Grid::make(2)->schema([
+                                                    Toggle::make('is_primary')
+                                                        ->label(__('Primary'))
+                                                        ->fixIndistinctState(),
+                                                    Toggle::make('is_public')
+                                                        ->label(__('Public'))
+                                                        ->default(true),
+                                                ]),
                                             ])
-                                            ->columns(2)
                                             ->orderColumn('sort_order')
                                             ->itemLabel(function (array $state): ?string {
                                                 $platform = $state['platform'] ?? null;
@@ -228,6 +300,32 @@ class PersonForm
                                                 return null;
                                             }),
                                     ]),
+                            ]),
+                        Tab::make(__('Status'))
+                            ->icon(Heroicon::ShieldCheck)
+                            ->schema([
+                                Section::make(__('Status'))
+                                    ->components([
+                                        Select::make('status')
+                                            ->label(__('Status'))
+                                            ->options([
+                                                'pending' => __('Pending'),
+                                                'verified' => __('Verified'),
+                                                'rejected' => __('Rejected'),
+                                                'inactive' => __('Inactive'),
+                                            ])
+                                            ->required(),
+                                        Select::make('speaker_status')
+                                            ->label(__('Speaker Status'))
+                                            ->placeholder(__('Not a speaker'))
+                                            ->options(SpeakerStatus::class)
+                                            ->helperText(__('Mark as active speaker to feature on the penceramah directory.')),
+                                        Toggle::make('allow_public_event_submission')
+                                            ->label(__('Allow Public Event Submission'))
+                                            ->disabled(fn (?Person $record, string $operation): bool => ! self::canManagePublicSubmissionToggle($record, $operation))
+                                            ->helperText(fn (?Person $record, string $operation): string => self::publicSubmissionHelperText($record, $operation)),
+                                    ])
+                                    ->columns(1),
                             ]),
                     ]),
             ]);

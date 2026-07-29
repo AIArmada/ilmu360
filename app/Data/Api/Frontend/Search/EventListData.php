@@ -156,7 +156,7 @@ class EventListData extends Data
             return null;
         }
 
-        return $poster->getAvailableUrl(['preview', 'thumb']) ?: $poster->getUrl();
+        return $poster->getAvailableUrl(['poster_thumb']) ?: $poster->getUrl();
     }
 
     private static function optionalDateTimeString(mixed $value): ?string

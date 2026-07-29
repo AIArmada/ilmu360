@@ -363,7 +363,7 @@ new
                                         ->implode('');
                                 @endphp
 
-                                @if($person->hasMedia('main'))
+                                @if($person->hasMedia('profile'))
                                     <img
                                         src="{{ $person->public_main_url }}"
                                         alt="{{ $person->formatted_name }}"

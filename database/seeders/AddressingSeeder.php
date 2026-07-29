@@ -125,33 +125,34 @@ class AddressingSeeder extends Seeder
         }
 
         $dataPath = dirname($actionPath, 3).'/resources/data/cities.json';
-        $contents = file_get_contents($dataPath);
+        $gzPath = $dataPath.'.gz';
+        $handle = file_exists($gzPath) ? gzopen($gzPath, 'r') : null;
 
-        if ($contents === false) {
-            throw new RuntimeException('Unable to read the address city seed data.');
+        if ($handle === null) {
+            $contents = file_get_contents($dataPath);
+
+            if ($contents === false) {
+                throw new RuntimeException('Unable to read the address city seed data.');
+            }
+        } else {
+            $contents = '';
+            while (! gzeof($handle)) {
+                $contents .= gzgets($handle);
+            }
+            gzclose($handle);
         }
 
         /** @var array<int, array<string, mixed>> $cities */
         $cities = json_decode($contents, true, 512, JSON_THROW_ON_ERROR);
-        $citiesByCountry = [];
+        unset($contents);
 
-        foreach ($cities as $city) {
-            $countryCode = $city['country_code'] ?? null;
+        // Seed only MY cities (100 %) to keep memory manageable in non-production.
+        $myCities = array_values(array_filter(
+            $cities,
+            static fn (array $city): bool => ($city['country_code'] ?? null) === 'MY',
+        ));
+        unset($cities);
 
-            if (is_string($countryCode) && $countryCode !== '') {
-                $citiesByCountry[$countryCode][] = $city;
-            }
-        }
-
-        $sample = [];
-
-        foreach ($citiesByCountry as $countryCode => $countryCities) {
-            $sampleSize = in_array($countryCode, self::FULL_CITY_COUNTRIES, true)
-                ? count($countryCities)
-                : max(1, (int) ceil(count($countryCities) * 0.1));
-            array_push($sample, ...array_slice($countryCities, 0, $sampleSize));
-        }
-
-        return $sample;
+        return $myCities;
     }
 }

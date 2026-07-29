@@ -649,7 +649,7 @@ class Reference extends PackageReference implements AuditableContract
 
         $this->addMediaConversion('gallery_thumb')
             ->performOnCollections('gallery')
-            ->fit(Fit::Crop, 1920, 1080)
+            ->fit(Fit::Max, 1080, 1080)
             ->sharpen(10)
             ->format('webp');
     }

@@ -1074,9 +1074,18 @@ class AdminResourceMutationService
     {
         $fields = [
             $this->field('name', 'string', required: true, maxLength: 255),
-            $this->field('nickname', 'string', required: false, maxLength: 255, meta: $this->trimmedStringMutationMeta(
-                explicitNull: 'preserve_existing',
-            )),
+            $this->field('names', 'array', required: false, meta: [
+                'mutation_semantics' => 'replace_collection',
+                'item_schema' => [
+                    'type' => 'object',
+                    'fields' => [
+                        ['name' => 'full_name', 'type' => 'string', 'required' => true, 'max_length' => 255],
+                        ['name' => 'name_type', 'type' => 'string', 'required' => false, 'allowed_values' => ['official', 'nickname', 'abbreviation', 'local', 'historical']],
+                        ['name' => 'language_code', 'type' => 'string', 'required' => false, 'default' => 'ms'],
+                        ['name' => 'is_primary', 'type' => 'boolean', 'required' => false, 'default' => false],
+                    ],
+                ],
+            ]),
             $this->field('type', 'string', required: true, default: InstitutionType::Masjid->value, allowedValues: $this->enumValues(InstitutionType::class)),
             $this->field('description', 'string', required: false),
             $this->field('status', 'string', required: true, allowedValues: ['unverified', 'pending', 'verified', 'rejected', 'inactive']),
@@ -1644,7 +1653,7 @@ class AdminResourceMutationService
             ]),
             $this->field('poster', 'file', required: false, acceptedMimeTypes: $this->imageMimeTypes(), maxFileSizeKb: $this->maxUploadSizeKb(), meta: [
                 ...$this->singleMediaFieldMutationMeta('clear_poster'),
-                'required_aspect_ratio' => '4:5',
+                'required_aspect_ratio' => '3:4',
                 'media_role' => 'external_distribution_poster',
             ]),
             $this->field('gallery', 'array<file>', required: false, acceptedMimeTypes: $this->imageMimeTypes(), maxFileSizeKb: $this->maxUploadSizeKb(), maxFiles: 10),
@@ -1956,8 +1965,8 @@ class AdminResourceMutationService
 
         return [
             'name' => ['required', 'string', 'max:255'],
-            'nickname' => ['nullable', 'string', 'max:255'],
             'type' => ['required', Rule::enum(InstitutionType::class)],
+            'names' => ['nullable', 'array'],
             'description' => ['nullable', 'string'],
             'status' => ['required', Rule::in(['unverified', 'pending', 'verified', 'rejected', 'inactive'])],
             'allow_public_event_submission' => $updating ? ['sometimes', 'boolean'] : ['prohibited'],
@@ -2147,7 +2156,7 @@ class AdminResourceMutationService
             'other_key_people.*.visibility' => ['sometimes', Rule::in(['public', 'private'])],
             'other_key_people.*.notes' => ['nullable', 'string', 'max:500'],
             'cover' => ['nullable', 'file', 'mimetypes:image/jpeg,image/png,image/webp', 'dimensions:ratio=16/9', $maxUploadSize],
-            'poster' => ['nullable', 'file', 'mimetypes:image/jpeg,image/png,image/webp', 'dimensions:ratio=4/5', $maxUploadSize],
+            'poster' => ['nullable', 'file', 'mimetypes:image/jpeg,image/png,image/webp', 'dimensions:ratio=3/4', $maxUploadSize],
             'gallery' => ['nullable', 'array', 'max:10'],
             'gallery.*' => ['file', 'mimetypes:image/jpeg,image/png,image/webp', $maxUploadSize],
             'clear_cover' => ['sometimes', 'boolean'],

@@ -11,8 +11,9 @@ use Illuminate\Contracts\Support\Arrayable;
  * @phpstan-import-type AddressSelectionArray from AddressSelection
  * @phpstan-import-type CountryArray from Country
  *
+ * @phpstan-type InstitutionNameArray array{name_type: string, full_name: string, language_code: string, is_primary: bool}
  * @phpstan-type InstitutionMediaArray array{public_image_url: string, logo_url: string, cover_url: ?string}
- * @phpstan-type InstitutionArray array{id: string, slug: string, name: string, nickname: ?string, display_name: string, description: ?string, status: string, verified_by: ?string, type: string|null, type_label: ?string, address_line: ?string, address: AddressSelectionArray|null, country: CountryArray|null, map_url: ?string, followers_count: int, person_count: int, is_following: bool, media: InstitutionMediaArray, contacts: list<array<string, mixed>>, social_media: list<array<string, mixed>>, waze_url: ?string, donation_channels: list<array<string, mixed>>}
+ * @phpstan-type InstitutionArray array{id: string, slug: string, name: string, names: list<InstitutionNameArray>, display_name: string, description: ?string, status: string, verified_by: ?string, type: string|null, type_label: ?string, address_line: ?string, address: AddressSelectionArray|null, country: CountryArray|null, map_url: ?string, followers_count: int, person_count: int, is_following: bool, media: InstitutionMediaArray, contacts: list<array<string, mixed>>, social_media: list<array<string, mixed>>, waze_url: ?string, donation_channels: list<array<string, mixed>>}
  *
  * @implements Arrayable<string, mixed>
  */
@@ -24,12 +25,13 @@ final readonly class Institution implements Arrayable
      * @param  list<array<string, mixed>>  $contacts
      * @param  list<array<string, mixed>>  $social_media
      * @param  list<array<string, mixed>>  $donation_channels
+     * @param  list<InstitutionNameArray>  $names
      */
     public function __construct(
         public string $id,
         public string $slug,
         public string $name,
-        public ?string $nickname,
+        public array $names,
         public string $display_name,
         public ?string $description,
         public string $status,
@@ -57,7 +59,7 @@ final readonly class Institution implements Arrayable
             'id' => $this->id,
             'slug' => $this->slug,
             'name' => $this->name,
-            'nickname' => $this->nickname,
+            'names' => $this->names,
             'display_name' => $this->display_name,
             'description' => $this->description,
             'status' => $this->status,

@@ -12,6 +12,7 @@ use App\Enums\EventFormat;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventVisibility;
 use App\Enums\InspirationCategory;
+use App\Enums\InstitutionNameType;
 use App\Enums\InstitutionType;
 use App\Http\Controllers\Api\Frontend\SearchController;
 use App\Models\Affiliation;
@@ -1203,10 +1204,17 @@ it('falls back to local person directory search when typesense fails', function 
 });
 
 it('falls back to database institution directory search when typesense fails', function () {
-    $institution = Institution::factory()->create([
-        'name' => 'Masjid Sultan Salahuddin Abdul Aziz Shah',
-        'nickname' => 'Masjid Biru',
-        'status' => 'verified',
+    $institution = Institution::factory()
+        ->create([
+            'name' => 'Masjid Sultan Salahuddin Abdul Aziz Shah',
+            'status' => 'verified',
+        ]);
+
+    $institution->names()->create([
+        'name_type' => InstitutionNameType::Nickname,
+        'full_name' => 'Masjid Biru',
+        'language_code' => 'ms',
+        'is_primary' => true,
     ]);
 
     config()->set('scout.driver', 'typesense');
@@ -1470,19 +1478,28 @@ it('returns enum-backed institution type filters and supports server-side type f
 });
 
 it('bumps the institution directory cache version when institution records change', function () {
-    $institution = Institution::factory()->create([
-        'name' => 'Institution Cache Version',
-        'nickname' => 'ICV',
-        'status' => 'verified',
+    $institution = Institution::factory()
+        ->create([
+            'name' => 'Institution Cache Version',
+            'status' => 'verified',
+        ]);
+
+    $institution->names()->create([
+        'name_type' => InstitutionNameType::Nickname,
+        'full_name' => 'ICV',
+        'language_code' => 'ms',
+        'is_primary' => true,
     ]);
 
     $initialVersion = $this->getJson(route('api.client.institutions.index'))
         ->assertOk()
         ->json('meta.cache.version');
 
-    $institution->update([
-        'nickname' => 'ICV Updated',
-    ]);
+    $institution->names()->updateOrCreate(
+        ['name_type' => InstitutionNameType::Nickname],
+        ['full_name' => 'ICV Updated', 'language_code' => 'ms', 'is_primary' => true]
+    );
+    $institution->touch();
 
     $updatedVersion = $this->getJson(route('api.client.institutions.index'))
         ->assertOk()
@@ -1888,7 +1905,6 @@ it('creates institution contribution requests through the frontend api', functio
     $this->postJson(route('api.client.contributions.institutions.store'), [
         'type' => 'masjid',
         'name' => 'Masjid API',
-        'nickname' => 'API',
         'description' => '<p>Institution description</p>',
         'address' => [
             'country_id' => $countryId,

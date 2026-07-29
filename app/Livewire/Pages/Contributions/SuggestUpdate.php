@@ -427,6 +427,38 @@ class SuggestUpdate extends Component implements HasActions, HasForms
                 ->helperText(__('Recommended: a clear square image, at least 400x400px.'));
         }
 
+        if (in_array('main', $this->directEditMediaFields, true)) {
+            $components[] = SpatieMediaLibraryFileUpload::make('main')
+                ->label(__('Main Photo'))
+                ->collection('main')
+                ->image()
+                ->imageEditor()
+                ->imageAspectRatio('1:1')
+                ->automaticallyOpenImageEditorForAspectRatio()
+                ->imageEditorAspectRatioOptions(['1:1'])
+                ->automaticallyCropImagesToAspectRatio()
+                ->responsiveImages()
+                ->conversion('thumb')
+                ->deletable(false)
+                ->helperText(__('Primary speaker portrait (1:1 ratio).'));
+        }
+
+        if (in_array('profile', $this->directEditMediaFields, true)) {
+            $components[] = SpatieMediaLibraryFileUpload::make('profile')
+                ->label(__('Profile Photo'))
+                ->collection('profile')
+                ->image()
+                ->imageEditor()
+                ->imageAspectRatio('3:4')
+                ->automaticallyOpenImageEditorForAspectRatio()
+                ->imageEditorAspectRatioOptions(['3:4'])
+                ->automaticallyCropImagesToAspectRatio()
+                ->responsiveImages()
+                ->conversion('profile_thumb')
+                ->deletable(false)
+                ->helperText(__('Speaker portrait (3:4 ratio).'));
+        }
+
         if (in_array('cover', $this->directEditMediaFields, true)) {
             $components[] = SpatieMediaLibraryFileUpload::make('cover')
                 ->label(__('Cover Image'))
@@ -475,7 +507,6 @@ class SuggestUpdate extends Component implements HasActions, HasForms
                 ->automaticallyOpenImageEditorForAspectRatio()
                 ->imageEditorAspectRatioOptions(['16:9', null])
                 ->automaticallyCropImagesToAspectRatio()
-                ->rules(['dimensions:ratio=16/9'])
                 ->conversion('thumb')
                 ->responsiveImages()
                 ->deletable(false)
@@ -493,7 +524,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
                 ->imageEditorAspectRatioOptions(['3:4', null])
                 ->automaticallyCropImagesToAspectRatio()
                 ->rules(['dimensions:ratio=3/4'])
-                ->conversion('thumb')
+                ->conversion('poster_thumb')
                 ->responsiveImages()
                 ->deletable(false)
                 ->helperText(__('Untuk hebahan WhatsApp, Instagram, Facebook, dan saluran luar. Wajib portrait 3:4 dan boleh mengandungi maklumat penuh.'));
@@ -508,7 +539,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
                 ->maxFiles(10)
                 ->image()
                 ->imageEditor()
-                ->conversion('thumb')
+                ->conversion('gallery_thumb')
                 ->responsiveImages()
                 ->helperText(__('Gambar tambahan untuk galeri majlis.'));
         }

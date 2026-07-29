@@ -228,7 +228,7 @@ it('applies structured institution updates through approval', function () {
                 'url' => 'https://facebook.com/masjidhikmah',
             ], [
                 'platform' => 'youtube',
-                'url' => 'https://youtube.com/@masjidhikmah',
+                'url' => 'https://youtube.com/masjidhikmah',
             ]],
         ],
     );

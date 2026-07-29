@@ -154,8 +154,8 @@ class AdvancedFiltersPanel extends Component implements HasForms
                                 Hidden::make('country_id'),
 
                                 Select::make('state_id')
-                                    ->label(__('State / Region'))
-                                    ->placeholder(__('All States / Regions'))
+                                    ->label(__('State / Federal Territory'))
+                                    ->placeholder(__('All States / Federal Territories'))
                                     ->options(fn (): array => $this->states()
                                         ->pluck('name', 'id')
                                         ->mapWithKeys(fn (string $name, mixed $id): array => [(string) $id => $name])
@@ -631,7 +631,7 @@ class AdvancedFiltersPanel extends Component implements HasForms
             ->whereIn('status', ['verified', 'pending'])
             ->whereIn('status', ['verified', 'pending'])
             ->whereKey($value)
-            ->first(['id', 'name', 'nickname'])
+            ->with('names')->first(['id', 'name'])
             ?->display_name;
     }
 
@@ -992,8 +992,9 @@ class AdvancedFiltersPanel extends Component implements HasForms
     {
         /** @var Collection<int, Institution> $institutions */
         $institutions = $query
+            ->with('names')
             ->limit($limit)
-            ->get(['id', 'name', 'nickname']);
+            ->get(['id', 'name']);
 
         return $institutions
             ->mapWithKeys(fn (Institution $institution): array => [(string) $institution->id => $institution->display_name])

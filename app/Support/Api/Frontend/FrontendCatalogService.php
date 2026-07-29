@@ -319,7 +319,8 @@ class FrontendCatalogService
 
         return $query
             ->limit($limit)
-            ->get(['institutions.id', 'institutions.name', 'institutions.nickname'])
+            ->with('names')
+            ->get(['institutions.id', 'institutions.name'])
             ->map(fn (Institution $institution): array => [
                 'id' => (string) $institution->id,
                 'label' => $institution->display_name,
@@ -418,8 +419,9 @@ class FrontendCatalogService
                 ->whereIn('status', ['verified', 'pending'])
                 ->tap(fn (Builder $query): Builder => $this->applyInstitutionSearch($query, $search))
                 ->orderBy('name')
+                ->with('names')
                 ->limit(50)
-                ->get(['id', 'slug', 'name', 'nickname'])
+                ->get(['id', 'slug', 'name'])
                 ->map(fn (Institution $institution): array => [
                     'id' => (string) $institution->id,
                     'slug' => (string) $institution->slug,
@@ -460,8 +462,9 @@ class FrontendCatalogService
         }
 
         return $query
+            ->with('names')
             ->limit(50)
-            ->get(['id', 'name', 'nickname'])
+            ->get(['id', 'name'])
             ->map(fn (Institution $institution): array => [
                 'id' => (string) $institution->id,
                 'label' => $institution->display_name,

@@ -5,14 +5,17 @@ namespace App\Forms;
 use AIArmada\Membership\Actions\AddMemberAction;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Actions\Institutions\GenerateInstitutionSlugAction;
+use App\Enums\InstitutionNameType;
 use App\Enums\InstitutionType;
 use App\Models\Institution;
 use App\Models\User;
 use App\Support\Location\GooglePlacesConfiguration;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\View;
@@ -34,16 +37,38 @@ class InstitutionFormSchema
                 ->maxLength(255)
                 ->placeholder(__('e.g., Masjid Al-Falah, Surau An-Nur')),
 
-            TextInput::make('nickname')
-                ->label(__('Nickname'))
-                ->maxLength(255)
-                ->helperText(__('Optional nickname, e.g. Masjid Biru')),
+            Repeater::make('names')
+                ->label(__('Alternative Names'))
+                ->schema([
+                    Select::make('name_type')
+                        ->options(InstitutionNameType::class)
+                        ->required(),
+                    TextInput::make('full_name')
+                        ->required()
+                        ->maxLength(255),
+                    TextInput::make('language_code')
+                        ->maxLength(10)
+                        ->default('ms'),
+                    Toggle::make('is_primary')
+                        ->default(false),
+                ])
+                ->columns(2)
+                ->defaultItems(0)
+                ->addActionLabel(__('Add name')),
 
             Select::make('type')
                 ->label(__('Institution Type'))
                 ->required()
                 ->options(InstitutionType::class)
                 ->placeholder(__('Select type...')),
+
+            SpatieMediaLibraryFileUpload::make('logo')
+                ->label(__('Logo'))
+                ->collection('logo')
+                ->image()
+                ->imageEditor()
+                ->conversion('thumb')
+                ->helperText(__('Institution logo')),
 
             RichEditor::make('description')
                 ->label(__('Description')),
@@ -91,14 +116,22 @@ class InstitutionFormSchema
 
         $institution = Institution::create([
             'name' => $data['name'],
-            'nickname' => is_string($data['nickname'] ?? null) && trim($data['nickname']) !== ''
-                ? trim($data['nickname'])
-                : null,
             'slug' => app(GenerateInstitutionSlugAction::class)->handle((string) $data['name'], $addressData),
             'type' => $data['type'],
             'description' => $data['description'] ?? null,
             'status' => 'pending',
         ]);
+
+        $names = is_array($data['names'] ?? null) ? $data['names'] : [];
+
+        foreach ($names as $name) {
+            $institution->names()->create([
+                'name_type' => $name['name_type'] ?? InstitutionNameType::Nickname,
+                'full_name' => trim((string) ($name['full_name'] ?? '')),
+                'language_code' => $name['language_code'] ?? 'ms',
+                'is_primary' => (bool) ($name['is_primary'] ?? true),
+            ]);
+        }
 
         $creator = auth()->user();
 

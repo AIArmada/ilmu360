@@ -401,7 +401,7 @@ class Create extends Component implements HasActions, HasForms
         if (str_starts_with($mimeType, 'image/')) {
             $sourceRatio = $this->uploadedImageAspectRatio($file);
 
-            if ($sourceRatio === '4:5' && blank($mergedState['poster'] ?? null)) {
+            if ($sourceRatio === '3:4' && blank($mergedState['poster'] ?? null)) {
                 $mergedState['poster'] = $file;
             }
 
@@ -451,7 +451,7 @@ class Create extends Component implements HasActions, HasForms
 
         return match (true) {
             $width > 0 && $height > 0 && abs(($width / $height) - (16 / 9)) < 0.01 => '16:9',
-            $width > 0 && $height > 0 && abs(($width / $height) - (4 / 5)) < 0.01 => '4:5',
+            $width > 0 && $height > 0 && abs(($width / $height) - (3 / 4)) < 0.01 => '3:4',
             default => null,
         };
     }
@@ -1503,7 +1503,6 @@ class Create extends Component implements HasActions, HasForms
                         ->automaticallyOpenImageEditorForAspectRatio()
                         ->imageEditorAspectRatioOptions(['16:9', null])
                         ->automaticallyCropImagesToAspectRatio()
-                        ->rules(['dimensions:ratio=16/9'])
                         ->conversion('thumb')
                         ->responsiveImages()
                         ->helperText(__('Untuk paparan laman web dan aplikasi. Wajib 16:9, tanpa maklumat yang terlalu padat.')),
@@ -1512,14 +1511,14 @@ class Create extends Component implements HasActions, HasForms
                         ->collection('poster')
                         ->image()
                         ->imageEditor()
-                        ->imageAspectRatio('4:5')
+                        ->imageAspectRatio('3:4')
                         ->automaticallyOpenImageEditorForAspectRatio()
-                        ->imageEditorAspectRatioOptions(['4:5', null])
+                        ->imageEditorAspectRatioOptions(['3:4', null])
                         ->automaticallyCropImagesToAspectRatio()
-                        ->rules(['dimensions:ratio=4/5'])
-                        ->conversion('thumb')
+                        ->rules(['dimensions:ratio=3/4'])
+                        ->conversion('poster_thumb')
                         ->responsiveImages()
-                        ->helperText(__('Untuk hebahan WhatsApp, Instagram, Facebook, dan saluran luar. Wajib portrait 4:5 dan boleh mengandungi maklumat penuh.')),
+                        ->helperText(__('Untuk hebahan WhatsApp, Instagram, Facebook, dan saluran luar. Wajib portrait 3:4 dan boleh mengandungi maklumat penuh.')),
                     SpatieMediaLibraryFileUpload::make('gallery')
                         ->label(__('Galeri'))
                         ->collection('gallery')
@@ -1528,7 +1527,7 @@ class Create extends Component implements HasActions, HasForms
                         ->maxFiles(10)
                         ->image()
                         ->imageEditor()
-                        ->conversion('thumb')
+                        ->conversion('gallery_thumb')
                         ->responsiveImages()
                         ->helperText(__('Gambar tambahan untuk galeri majlis.')),
                 ])
@@ -2158,14 +2157,14 @@ class Create extends Component implements HasActions, HasForms
         if (! $submitter instanceof User) {
             return Cache::remember('submit_institutions', 60, fn (): array => $access->institutionQueryForSubmitter(null)
                 ->orderBy('name')
-                ->get(['institutions.id', 'institutions.name', 'institutions.nickname'])
+                ->with('names')->get(['institutions.id', 'institutions.name'])
                 ->mapWithKeys(fn (Institution $institution): array => [(string) $institution->id => $institution->display_name])
                 ->all());
         }
 
         return $access->institutionQueryForSubmitter($submitter)
             ->orderBy('name')
-            ->get(['institutions.id', 'institutions.name', 'institutions.nickname'])
+            ->with('names')->get(['institutions.id', 'institutions.name'])
             ->mapWithKeys(fn (Institution $institution): array => [(string) $institution->id => $institution->display_name])
             ->all();
     }

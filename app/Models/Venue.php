@@ -145,7 +145,7 @@ class Venue extends PackageVenue implements AuditableContract
             $mainMedia = $this->getFirstMedia('main');
 
             if ($mainMedia instanceof Media) {
-                return $mainMedia->getAvailableUrl(['banner', 'thumb']) ?: $mainMedia->getUrl();
+                return $mainMedia->getAvailableUrl(['thumb']) ?: $mainMedia->getUrl();
             }
         }
 
@@ -184,14 +184,20 @@ class Venue extends PackageVenue implements AuditableContract
     public function registerMediaConversions(?Media $media = null): void
     {
         $this->addMediaConversion('thumb')
-            ->performOnCollections('main', 'cover', 'gallery')
-            ->fit(Fit::Crop, 1920, 1080)
+            ->performOnCollections('main')
+            ->fit(Fit::Max, 1920, 1080)
             ->sharpen(10)
             ->format('webp');
 
         $this->addMediaConversion('banner')
-            ->performOnCollections('main', 'cover')
+            ->performOnCollections('cover')
             ->fit(Fit::Crop, 1920, 1080)
+            ->format('webp');
+
+        $this->addMediaConversion('gallery_thumb')
+            ->performOnCollections('gallery')
+            ->fit(Fit::Max, 1080, 1080)
+            ->sharpen(10)
             ->format('webp');
     }
 

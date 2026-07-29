@@ -283,7 +283,7 @@ return [
                         ['name' => 'type', 'type' => 'string', 'optional' => true, 'facet' => true],
                         ['name' => 'name', 'type' => 'string'],
                         ['name' => 'display_name', 'type' => 'string'],
-                        ['name' => 'nickname', 'type' => 'string', 'optional' => true],
+                        ['name' => 'nicknames', 'type' => 'string[]', 'optional' => true],
                         ['name' => 'description', 'type' => 'string', 'optional' => true],
                         ['name' => 'search_text', 'type' => 'string'],
                         ['name' => 'slug', 'type' => 'string'],
@@ -298,7 +298,7 @@ return [
                     'default_sorting_field' => 'updated_at',
                 ],
                 'search-parameters' => [
-                    'query_by' => 'display_name,name,nickname,description,search_text',
+                    'query_by' => 'display_name,name,nicknames,description,search_text',
                 ],
             ],
             Reference::class => [

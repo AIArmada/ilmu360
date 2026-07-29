@@ -182,7 +182,7 @@ it('renders public event poster containers using the poster aspect ratio', funct
 
     $this->get(route('events.show', $portraitEvent))
         ->assertSuccessful()
-        ->assertSee('data-poster-aspect="4:5"', false);
+        ->assertSee('data-poster-aspect="3:4"', false);
 });
 
 it('uses a 16:9 placeholder aspect ratio for public events index cards without posters', function () {

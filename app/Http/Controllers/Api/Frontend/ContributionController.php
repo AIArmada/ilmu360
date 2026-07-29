@@ -95,7 +95,11 @@ class ContributionController extends FrontendController
         $validated = $request->validate([
             'type' => ['required', Rule::in(array_column(InstitutionType::cases(), 'value'))],
             'name' => ['required', 'string', 'max:255'],
-            'nickname' => ['nullable', 'string', 'max:255'],
+            'names' => ['nullable', 'array'],
+            'names.*.name_type' => ['required_with:names', 'string', 'max:255'],
+            'names.*.full_name' => ['required_with:names', 'string', 'max:255'],
+            'names.*.language_code' => ['required_with:names', 'string', 'max:10'],
+            'names.*.is_primary' => ['nullable', 'boolean'],
             'description' => ['nullable'],
             'address' => ['present', 'array'],
             'address.country_id' => ['required', 'uuid', 'exists:'.config('addressing.tables.countries', 'countries').',id'],
@@ -649,7 +653,7 @@ class ContributionController extends FrontendController
         }
 
         if (in_array('poster', $directEditMediaFields, true)) {
-            $rules['poster'] = ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'dimensions:ratio=4/5', "max:{$maxUploadSizeKb}"];
+            $rules['poster'] = ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'dimensions:ratio=3/4', "max:{$maxUploadSizeKb}"];
         }
 
         if (in_array('gallery', $directEditMediaFields, true)) {
@@ -681,7 +685,7 @@ class ContributionController extends FrontendController
             }
 
             if ($entity instanceof Event && $field === 'poster') {
-                $contract[$field]['required_aspect_ratio'] = '4:5';
+                $contract[$field]['required_aspect_ratio'] = '3:4';
                 $contract[$field]['media_role'] = 'external_distribution_poster';
             }
 
@@ -816,7 +820,7 @@ class ContributionController extends FrontendController
             $state[$field] = $this->singleDirectEditMediaData($entity->getFirstMedia($field), match ($field) {
                 'avatar' => ['profile', 'thumb'],
                 'cover' => ['banner'],
-                'poster' => ['preview', 'thumb'],
+                'poster' => ['poster_thumb'],
                 default => ['thumb'],
             });
         }

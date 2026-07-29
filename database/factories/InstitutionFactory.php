@@ -109,7 +109,6 @@ class InstitutionFactory extends Factory
         return [
             'type' => $type,
             'name' => $name,
-            'nickname' => null,
             'slug' => Str::slug($name).'-'.Str::lower(Str::random(7)),
             'description' => fake()->optional()->paragraph(),
             'status' => 'verified',

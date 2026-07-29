@@ -421,7 +421,7 @@ class AccountSettings extends Component implements HasForms
         return $query
             ->orderBy('name')
             ->limit(50)
-            ->get(['id', 'name', 'nickname'])
+            ->with('names')->get(['id', 'name'])
             ->mapWithKeys(fn (Institution $institution): array => [(string) $institution->id => $institution->display_name])
             ->all();
     }
@@ -436,7 +436,7 @@ class AccountSettings extends Component implements HasForms
 
         return Institution::query()
             ->whereKey($institutionId)
-            ->first(['id', 'name', 'nickname'])
+            ->with('names')->first(['id', 'name'])
             ?->display_name;
     }
 

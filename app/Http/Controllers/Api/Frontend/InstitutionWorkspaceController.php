@@ -36,7 +36,6 @@ class InstitutionWorkspaceController extends FrontendController
             ->select([
                 'institutions.id',
                 'institutions.name',
-                'institutions.nickname',
             ])
             ->selectSub($this->institutionEventCountSubquery(), 'events_count')
             ->selectSub($this->institutionEventCountSubquery(publicOnly: true), 'public_events_count')

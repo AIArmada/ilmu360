@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
+use Spatie\Image\Enums\Fit;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
@@ -123,8 +124,7 @@ class Report extends BaseReport implements AuditableContract, HasMedia
     {
         $this->addMediaConversion('thumb')
             ->performOnCollections('evidence')
-            ->width(1080)
-            ->height(1080)
+            ->fit(Fit::Max, 1080, 1080)
             ->format('webp');
     }
 

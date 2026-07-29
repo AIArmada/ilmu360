@@ -1528,16 +1528,16 @@
         },
         {
             "name": "aws/aws-sdk-php",
-            "version": "3.389.0",
+            "version": "3.389.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/aws/aws-sdk-php.git",
-                "reference": "e6e6649e58826c7edaa9f546f444461a25a22719"
+                "reference": "98506321be0157d78a2c44424a8fce3a4842081d"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/aws/aws-sdk-php/zipball/e6e6649e58826c7edaa9f546f444461a25a22719",
-                "reference": "e6e6649e58826c7edaa9f546f444461a25a22719",
+                "url": "https://api.github.com/repos/aws/aws-sdk-php/zipball/98506321be0157d78a2c44424a8fce3a4842081d",
+                "reference": "98506321be0157d78a2c44424a8fce3a4842081d",
                 "shasum": ""
             },
             "require": {
@@ -1619,9 +1619,9 @@
             "support": {
                 "forum": "https://github.com/aws/aws-sdk-php/discussions",
                 "issues": "https://github.com/aws/aws-sdk-php/issues",
-                "source": "https://github.com/aws/aws-sdk-php/tree/3.389.0"
+                "source": "https://github.com/aws/aws-sdk-php/tree/3.389.1"
             },
-            "time": "2026-07-24T18:05:53+00:00"
+            "time": "2026-07-27T18:09:06+00:00"
         },
         {
             "name": "bacon/bacon-qr-code",
@@ -2505,16 +2505,16 @@
         },
         {
             "name": "dedoc/scramble",
-            "version": "v0.13.35",
+            "version": "v0.13.36",
             "source": {
                 "type": "git",
                 "url": "https://github.com/dedoc/scramble.git",
-                "reference": "c072f731e060972134b6916ca6899609bacc0dd2"
+                "reference": "9acdb5e54f808c5bd506369f8e84322d322cc6c9"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/dedoc/scramble/zipball/c072f731e060972134b6916ca6899609bacc0dd2",
-                "reference": "c072f731e060972134b6916ca6899609bacc0dd2",
+                "url": "https://api.github.com/repos/dedoc/scramble/zipball/9acdb5e54f808c5bd506369f8e84322d322cc6c9",
+                "reference": "9acdb5e54f808c5bd506369f8e84322d322cc6c9",
                 "shasum": ""
             },
             "require": {
@@ -2574,7 +2574,7 @@
             ],
             "support": {
                 "issues": "https://github.com/dedoc/scramble/issues",
-                "source": "https://github.com/dedoc/scramble/tree/v0.13.35"
+                "source": "https://github.com/dedoc/scramble/tree/v0.13.36"
             },
             "funding": [
                 {
@@ -2582,7 +2582,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-07-15T13:21:15+00:00"
+            "time": "2026-07-27T09:42:22+00:00"
         },
         {
             "name": "defuse/php-encryption",
@@ -4849,16 +4849,16 @@
         },
         {
             "name": "laravel/framework",
-            "version": "v13.22.0",
+            "version": "v13.23.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/laravel/framework.git",
-                "reference": "d354afa45334cdac523fbc015f203a78d7e2f5c6"
+                "reference": "92a707229148e57f08a249211c8a5a194159c619"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/laravel/framework/zipball/d354afa45334cdac523fbc015f203a78d7e2f5c6",
-                "reference": "d354afa45334cdac523fbc015f203a78d7e2f5c6",
+                "url": "https://api.github.com/repos/laravel/framework/zipball/92a707229148e57f08a249211c8a5a194159c619",
+                "reference": "92a707229148e57f08a249211c8a5a194159c619",
                 "shasum": ""
             },
             "require": {
@@ -4884,7 +4884,7 @@
                 "league/flysystem": "^3.25.1",
                 "league/flysystem-local": "^3.25.1",
                 "league/uri": "^7.5.1",
-                "monolog/monolog": "^3.0",
+                "monolog/monolog": "^3.10",
                 "nesbot/carbon": "^3.8.4",
                 "nunomaduro/termwind": "^2.0",
                 "php": "^8.3",
@@ -5072,7 +5072,7 @@
                 "issues": "https://github.com/laravel/framework/issues",
                 "source": "https://github.com/laravel/framework"
             },
-            "time": "2026-07-24T20:38:48+00:00"
+            "time": "2026-07-27T14:48:58+00:00"
         },
         {
             "name": "laravel/horizon",
@@ -7016,16 +7016,16 @@
         },
         {
             "name": "livewire/blaze",
-            "version": "v1.0.12",
+            "version": "v1.0.13",
             "source": {
                 "type": "git",
                 "url": "https://github.com/livewire/blaze.git",
-                "reference": "6f7d21aac44e542261590c744aa959129c9a04ed"
+                "reference": "f0ad52cde415050739431142a519e1470cb2dd19"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/livewire/blaze/zipball/6f7d21aac44e542261590c744aa959129c9a04ed",
-                "reference": "6f7d21aac44e542261590c744aa959129c9a04ed",
+                "url": "https://api.github.com/repos/livewire/blaze/zipball/f0ad52cde415050739431142a519e1470cb2dd19",
+                "reference": "f0ad52cde415050739431142a519e1470cb2dd19",
                 "shasum": ""
             },
             "require": {
@@ -7068,9 +7068,9 @@
             "description": "A tool for optimizing Blade component performance by folding them into parent templates",
             "support": {
                 "issues": "https://github.com/livewire/blaze/issues",
-                "source": "https://github.com/livewire/blaze/tree/v1.0.12"
+                "source": "https://github.com/livewire/blaze/tree/v1.0.13"
             },
-            "time": "2026-04-06T09:24:26+00:00"
+            "time": "2026-07-27T11:04:03+00:00"
         },
         {
             "name": "livewire/flux",

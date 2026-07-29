@@ -97,7 +97,14 @@ final class PublicDirectorySchemasTransformer implements DocumentTransformer
             ->addProperty('slug', new StringType)
             ->addProperty('name', new StringType)
             ->addProperty('type', (new StringType)->nullable(true))
-            ->addProperty('nickname', (new StringType)->nullable(true))
+            ->addProperty('names', (new ArrayType)->setItems(
+                (new ObjectType)
+                    ->addProperty('name_type', new StringType)
+                    ->addProperty('full_name', new StringType)
+                    ->addProperty('language_code', new StringType)
+                    ->addProperty('is_primary', new BooleanType)
+                    ->setRequired(['name_type', 'full_name', 'language_code', 'is_primary']),
+            ))
             ->addProperty('display_name', new StringType)
             ->addProperty('events_count', new IntegerType)
             ->addProperty('public_image_url', new StringType)
@@ -115,7 +122,7 @@ final class PublicDirectorySchemasTransformer implements DocumentTransformer
                 'slug',
                 'name',
                 'type',
-                'nickname',
+                'names',
                 'display_name',
                 'events_count',
                 'public_image_url',
@@ -207,7 +214,14 @@ final class PublicDirectorySchemasTransformer implements DocumentTransformer
                 ->addProperty('id', new StringType)
                 ->addProperty('slug', new StringType)
                 ->addProperty('name', new StringType)
-                ->addProperty('nickname', (new StringType)->nullable(true))
+                ->addProperty('names', (new ArrayType)->setItems(
+                    (new ObjectType)
+                        ->addProperty('name_type', new StringType)
+                        ->addProperty('full_name', new StringType)
+                        ->addProperty('language_code', new StringType)
+                        ->addProperty('is_primary', new BooleanType)
+                        ->setRequired(['name_type', 'full_name', 'language_code', 'is_primary']),
+                ))
                 ->addProperty('display_name', new StringType)
                 ->addProperty('description', (new StringType)->nullable(true))
                 ->addProperty('status', new StringType)
@@ -231,7 +245,7 @@ final class PublicDirectorySchemasTransformer implements DocumentTransformer
                     'id',
                     'slug',
                     'name',
-                    'nickname',
+                    'names',
                     'display_name',
                     'description',
                     'status',

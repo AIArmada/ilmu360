@@ -205,7 +205,7 @@ final readonly class AdminRecordActionService
                 'key' => 'generate_event_poster_image',
                 'label' => 'Upload event poster image',
                 'category' => 'creative_asset',
-                'description' => 'Use the admin-event-poster-image-prompt prompt to get the engineered prompt and reference images, generate with ChatGPT image generation, then upload the 4:5 result here.',
+                'description' => 'Use the admin-event-poster-image-prompt prompt to get the engineered prompt and reference images, generate with ChatGPT image generation, then upload the 3:4 result here.',
                 'tool' => 'admin-upload-event-poster-image',
                 'arguments' => [
                     'event_key' => $recordKey,
@@ -510,7 +510,7 @@ final readonly class AdminRecordActionService
         }
 
         if ($this->hasAction($actions, 'generate_event_cover_image') || $this->hasAction($actions, 'generate_event_poster_image')) {
-            $notes[] = 'For event image generation, use the cover tool for 16:9 website/app covers and the poster tool for 4:5 external distribution posters.';
+            $notes[] = 'For event image generation, use the cover tool for 16:9 website/app covers and the poster tool for 3:4 external distribution posters.';
         }
 
         if ($this->hasWorkflowSchemaAction($actions)) {

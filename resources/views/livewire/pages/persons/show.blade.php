@@ -23,7 +23,6 @@
     $pastTotal = $this->pastTotal;
     $otherRoleParticipations = $this->otherRoleParticipations;
     $personUrl = route('persons.show', $person);
-    $personRedirectUrl = route('persons.show', $person, absolute: false);
     $shareText = trim($person->formatted_name . ' - ' . config('app.name'));
     $shareLinks = app(\App\Services\ShareTrackingService::class)->redirectLinks(
         $personUrl,
@@ -39,13 +38,66 @@
         'fallbackTitle' => $person->formatted_name,
         'payloadEndpoint' => route('dawah-share.payload'),
     ];
+    $publicContacts = $person->contactMethods
+        ->where('is_public', true)
+        ->values();
+    $formatContactHref = static function ($contact): ?string {
+        return match ((string) $contact->type) {
+            'phone', 'mobile' => 'tel:' . preg_replace('/\D+/', '', (string) $contact->value),
+            'whatsapp' => 'https://wa.me/' . preg_replace('/\D+/', '', (string) $contact->value),
+            'email' => 'mailto:' . (string) $contact->value,
+            default => null,
+        };
+    };
     $socialLinks = $person->socialProfiles
         ->filter(function ($social): bool {
-            $resolvedUrl = $social->resolved_url ?? $social->url;
+            $resolvedUrl = $social->profileUrl() ?? $social->url;
 
             return filled($social->platform) && filled($resolvedUrl);
         })
         ->values();
+    $socialPresentation = [
+        'facebook' => [
+            'label' => 'Facebook',
+            'icon' => 'facebook.svg',
+            'border' => 'group-hover:border-[#1877F2]/35',
+        ],
+        'instagram' => [
+            'label' => 'Instagram',
+            'icon' => 'instagram.svg',
+            'border' => 'group-hover:border-[#E4405F]/35',
+        ],
+        'youtube' => [
+            'label' => 'YouTube',
+            'icon' => 'youtube.svg',
+            'border' => 'group-hover:border-[#FF0000]/35',
+        ],
+        'tiktok' => [
+            'label' => 'TikTok',
+            'icon' => 'tiktok.svg',
+            'border' => 'group-hover:border-slate-400',
+        ],
+        'telegram' => [
+            'label' => 'Telegram',
+            'icon' => 'telegram.svg',
+            'border' => 'group-hover:border-[#229ED9]/35',
+        ],
+        'whatsapp' => [
+            'label' => 'WhatsApp',
+            'icon' => 'whatsapp.svg',
+            'border' => 'group-hover:border-[#25D366]/35',
+        ],
+        'x' => [
+            'label' => 'X',
+            'icon' => 'x.svg',
+            'border' => 'group-hover:border-slate-400',
+        ],
+        'linkedin' => [
+            'label' => 'LinkedIn',
+            'icon' => 'linkedin.svg',
+            'border' => 'group-hover:border-[#0A66C2]/35',
+        ],
+    ];
     $showPendingEventStatusNotice = $upcomingEvents->concat($pastEvents)->contains(
         fn (\App\Models\Event $event): bool => (string) $event->status === 'pending'
     );
@@ -165,36 +217,24 @@
                             </div>
 
                             <div class="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-                                @auth
-                                    <button
-                                        type="button"
-                                        wire:click="toggleFollow"
-                                        wire:loading.attr="disabled"
-                                        class="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-emerald-800 px-6 text-sm font-bold text-white shadow-lg shadow-emerald-900/15 transition hover:-translate-y-0.5 hover:bg-emerald-700 disabled:cursor-wait disabled:opacity-70"
-                                    >
-                                        <svg class="h-5 w-5" fill="{{ $this->isFollowing ? 'currentColor' : 'none' }}" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185v15.065L12 16.197l-7.5 4.375V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z" />
-                                        </svg>
-                                        <span wire:loading.remove wire:target="toggleFollow">
-                                            @if($this->isFollowing)
-                                                {{ __('Mengikuti Penceramah') }}
-                                            @else
-                                                {{ __('Ikuti Penceramah') }}
-                                            @endif
-                                        </span>
-                                        <span wire:loading wire:target="toggleFollow">{{ __('Memproses...') }}</span>
-                                    </button>
-                                @else
-                                    <a
-                                        href="{{ \App\Support\Auth\IntendedRedirect::loginUrl($personRedirectUrl) }}"
-                                        class="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-emerald-800 px-6 text-sm font-bold text-white shadow-lg shadow-emerald-900/15 transition hover:-translate-y-0.5 hover:bg-emerald-700"
-                                    >
-                                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185v15.065L12 16.197l-7.5 4.375V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z" />
-                                        </svg>
-                                        {{ __('Log masuk untuk ikuti') }}
-                                    </a>
-                                @endauth
+                                <button
+                                    type="button"
+                                    wire:click="toggleFollow"
+                                    wire:loading.attr="disabled"
+                                    class="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-emerald-800 px-6 text-sm font-bold text-white shadow-lg shadow-emerald-900/15 transition hover:-translate-y-0.5 hover:bg-emerald-700 disabled:cursor-wait disabled:opacity-70"
+                                >
+                                    <svg class="h-5 w-5" fill="{{ $this->isFollowing ? 'currentColor' : 'none' }}" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185v15.065L12 16.197l-7.5 4.375V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z" />
+                                    </svg>
+                                    <span wire:loading.remove wire:target="toggleFollow">
+                                        @if($this->isFollowing)
+                                            {{ __('Mengikuti Penceramah') }}
+                                        @else
+                                            {{ __('Ikuti Penceramah') }}
+                                        @endif
+                                    </span>
+                                    <span wire:loading wire:target="toggleFollow">{{ __('Memproses...') }}</span>
+                                </button>
 
                                 <a
                                     href="#person-share-panel"
@@ -219,6 +259,7 @@
                                     </a>
                                 @endif
                             </div>
+
                         </div>
                     </div>
                 </div>
@@ -238,30 +279,14 @@
 
                     <div class="p-6 sm:p-8">
                         @if($bioText !== '')
-                            <div x-data="{ expanded: false }">
-                                <div
-                                    class="{{ $shouldCollapseBio ? 'max-h-[26rem] overflow-hidden' : '' }} prose prose-slate max-w-none leading-8 prose-headings:font-heading prose-headings:text-emerald-950 prose-a:text-emerald-700 prose-strong:text-slate-900"
-                                    :class="{ 'max-h-[26rem] overflow-hidden': {{ $shouldCollapseBio ? 'true' : 'false' }} && ! expanded }"
-                                >
-                                    {!! $bioHtml !!}
-                                </div>
-
+                            <div class="flex items-center justify-between gap-4">
+                                <p class="text-xs font-semibold text-slate-400">{{ __('Tentang latar belakang penceramah') }}</p>
                                 @if($shouldCollapseBio)
-                                    <div class="relative mt-5">
-                                        <div x-show="! expanded" class="pointer-events-none absolute -top-24 inset-x-0 h-24 bg-gradient-to-t from-white to-transparent"></div>
-                                        <button
-                                            type="button"
-                                            x-on:click="expanded = ! expanded"
-                                            class="inline-flex h-11 items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 text-sm font-bold text-emerald-800 transition hover:border-emerald-300 hover:bg-emerald-100"
-                                        >
-                                            <span x-show="! expanded">{{ __('Baca biodata penuh') }}</span>
-                                            <span x-show="expanded">{{ __('Ringkaskan biodata') }}</span>
-                                            <svg class="h-4 w-4 transition" :class="{ 'rotate-180': expanded }" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-                                            </svg>
-                                        </button>
-                                    </div>
+                                    <span class="shrink-0 text-[11px] font-semibold text-slate-400">{{ __('Skrol untuk membaca') }}</span>
                                 @endif
+                            </div>
+                            <div class="mt-4 max-h-[26rem] overflow-y-auto overscroll-contain pr-4 [scrollbar-color:#a7d5c7_transparent] [scrollbar-width:thin] prose prose-slate max-w-none leading-8 prose-headings:font-heading prose-headings:text-emerald-950 prose-a:text-emerald-700 prose-strong:text-slate-900">
+                                {!! $bioHtml !!}
                             </div>
                         @else
                             <div class="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center">
@@ -518,63 +543,47 @@
                         @if($person->status === 'verified')
                             <div class="flex items-center gap-3 rounded-xl bg-emerald-50 p-3">
                                 <span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-emerald-700 text-white">
-                                    <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.051l-7.5 9.75a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.897 3.896 6.976-9.07a.75.75 0 0 1 1.051-.142Z" clip-rule="evenodd" />
-                                    </svg>
+                                    <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.051l-7.5 9.75a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.897 3.896 6.976-9.07a.75.75 0 0 1 1.051-.142Z" clip-rule="evenodd" /></svg>
                                 </span>
-                                <div>
-                                    <p class="text-xs font-bold text-emerald-900">{{ __('Profil Disahkan') }}</p>
-                                    <p class="mt-0.5 text-[11px] text-emerald-700">{{ __('Maklumat telah melalui semakan.') }}</p>
-                                </div>
+                                <div><p class="text-xs font-bold text-emerald-900">{{ __('Profil Disahkan') }}</p><p class="mt-0.5 text-[11px] text-emerald-700">{{ __('Maklumat telah melalui semakan.') }}</p></div>
                             </div>
                         @endif
 
                         @if($locationString !== '')
                             <div class="flex items-start gap-3 rounded-xl bg-slate-50 p-3">
-                                <span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white text-amber-700 shadow-sm">
-                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
-                                    </svg>
-                                </span>
-                                <div class="min-w-0">
-                                    <p class="text-[10px] font-bold uppercase tracking-wide text-slate-400">{{ __('Lokasi') }}</p>
-                                    <p class="mt-1 text-xs font-semibold leading-5 text-slate-700">{{ $locationString }}</p>
-                                </div>
+                                <span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white text-amber-700 shadow-sm"><svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" /></svg></span>
+                                <div class="min-w-0"><p class="text-[10px] font-bold uppercase tracking-wide text-slate-400">{{ __('Lokasi') }}</p><p class="mt-1 text-xs font-semibold leading-5 text-slate-700">{{ $locationString }}</p></div>
                             </div>
                         @endif
 
                         <div class="grid grid-cols-2 gap-2">
-                            <div class="rounded-xl border border-slate-100 bg-slate-50 p-3 text-center">
-                                <p class="font-heading text-xl font-bold text-emerald-950">{{ number_format($upcomingTotal) }}</p>
-                                <p class="mt-1 text-[10px] font-semibold text-slate-400">{{ __('Akan datang') }}</p>
-                            </div>
-                            <div class="rounded-xl border border-slate-100 bg-slate-50 p-3 text-center">
-                                <p class="font-heading text-xl font-bold text-emerald-950">{{ number_format($pastTotal) }}</p>
-                                <p class="mt-1 text-[10px] font-semibold text-slate-400">{{ __('Majlis lepas') }}</p>
-                            </div>
+                            <div class="rounded-xl border border-slate-100 bg-slate-50 p-3 text-center"><p class="font-heading text-xl font-bold text-emerald-950">{{ number_format($upcomingTotal) }}</p><p class="mt-1 text-[10px] font-semibold text-slate-400">{{ __('Akan datang') }}</p></div>
+                            <div class="rounded-xl border border-slate-100 bg-slate-50 p-3 text-center"><p class="font-heading text-xl font-bold text-emerald-950">{{ number_format($pastTotal) }}</p><p class="mt-1 text-[10px] font-semibold text-slate-400">{{ __('Majlis lepas') }}</p></div>
                         </div>
                     </div>
                 </section>
 
-                @if($socialLinks->isNotEmpty())
+                @if($publicContacts->isNotEmpty())
                     <section class="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
+                        <p class="text-[10px] font-black uppercase tracking-[0.22em] text-amber-700">{{ __('Hubungi Penceramah') }}</p>
+                        <h2 class="mt-1 font-heading text-xl font-bold text-emerald-950">{{ __('Maklumat Hubungan') }}</h2>
+                        <div class="mt-4 space-y-2">
+                            @foreach($publicContacts as $contact)
+                                @php $contactHref = $formatContactHref($contact); @endphp
+                                <div class="rounded-xl border border-slate-200 px-4 py-3"><p class="text-[10px] font-bold uppercase tracking-wide text-slate-400">{{ \Illuminate\Support\Str::headline((string) $contact->type) }}</p>@if($contactHref)<a href="{{ $contactHref }}" class="mt-1 block break-all text-sm font-semibold text-slate-700 transition hover:text-emerald-800">{{ $contact->value }}</a>@else<p class="mt-1 break-all text-sm font-semibold text-slate-700">{{ $contact->value }}</p>@endif</div>
+                            @endforeach
+                        </div>
+                    </section>
+                @endif
+
+                @if($socialLinks->isNotEmpty())
+                    <section class="rounded-[1.5rem] border border-emerald-100 bg-white p-5 shadow-sm">
                         <p class="text-[10px] font-black uppercase tracking-[0.22em] text-amber-700">{{ __('Pautan Penceramah') }}</p>
                         <h2 class="mt-1 font-heading text-xl font-bold text-emerald-950">{{ __('Media Sosial Rasmi') }}</h2>
-
-                        <div class="mt-4 space-y-2">
+                        <div class="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
                             @foreach($socialLinks as $social)
-                                <a
-                                    href="{{ $social->resolved_url ?? $social->url }}"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    class="group flex items-center justify-between gap-3 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800"
-                                >
-                                    <span>{{ \Illuminate\Support\Str::headline((string) $social->platform) }}</span>
-                                    <svg class="h-4 w-4 text-slate-300 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H18m0 0v4.5M18 6l-7.5 7.5M9 7.5H6.75A1.5 1.5 0 0 0 5.25 9v8.25a1.5 1.5 0 0 0 1.5 1.5H15a1.5 1.5 0 0 0 1.5-1.5V15" />
-                                    </svg>
-                                </a>
+                                @php $platform = strtolower((string) $social->platform); $presentation = $socialPresentation[$platform] ?? ['label' => \Illuminate\Support\Str::headline($platform), 'icon' => 'link.svg', 'border' => 'group-hover:border-emerald-300']; $handle = trim((string) ($social->handle ?? '')); $handleLabel = $handle !== '' ? (str_starts_with($handle, '@') ? $handle : '@'.$handle) : __('Lihat profil rasmi'); @endphp
+                                <a href="{{ $social->profileUrl() ?? $social->url }}" target="_blank" rel="noopener noreferrer" class="group flex min-w-0 items-center gap-3 rounded-2xl border border-slate-200/90 bg-slate-50/45 px-3 py-3 transition hover:bg-white hover:text-emerald-800 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/10 {{ $presentation['border'] }}"><img src="{{ asset('storage/social-media-icons/'.$presentation['icon']) }}" alt="" class="h-10 w-10 shrink-0 object-contain" loading="lazy"><span class="min-w-0 flex-1"><span class="block truncate text-sm font-bold text-slate-800 group-hover:text-emerald-800">{{ $presentation['label'] }}</span><span class="mt-0.5 block truncate text-xs text-slate-500">{{ $handleLabel }}</span></span></a>
                             @endforeach
                         </div>
                     </section>
@@ -600,15 +609,22 @@
                         <a
                             href="{{ route('contributions.suggest-update', ['subjectType' => $personRouteSegment, 'subjectId' => $person->slug]) }}"
                             wire:navigate
-                            class="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-sky-200 bg-sky-50 px-4 text-xs font-bold text-sky-800 transition hover:border-sky-300 hover:bg-sky-100"
+                            class="group inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-sky-200 bg-sky-50 px-4 text-xs font-bold text-sky-800 transition hover:-translate-y-0.5 hover:border-sky-300 hover:bg-sky-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-600/10"
                         >
+                            <svg class="h-4 w-4 shrink-0 transition-transform group-hover:-rotate-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 2.652 2.652M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+                            </svg>
                             {{ __('Cadangkan Kemaskini') }}
                         </a>
                         <a
                             href="{{ route('reports.create', ['subjectType' => $personRouteSegment, 'subjectId' => $person->slug]) }}"
                             wire:navigate
-                            class="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 text-xs font-bold text-rose-800 transition hover:border-rose-300 hover:bg-rose-100"
+                            class="group inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 text-xs font-bold text-rose-800 transition hover:-translate-y-0.5 hover:border-rose-300 hover:bg-rose-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-rose-600/10"
                         >
+                            <svg class="h-4 w-4 shrink-0 transition-transform group-hover:-rotate-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 3v18m0-16.5c5.25-3 10.5 3 15.75 0v9c-5.25 3-10.5-3-15.75 0" />
+                            </svg>
                             {{ __('Laporkan Profil') }}
                         </a>
                     </div>

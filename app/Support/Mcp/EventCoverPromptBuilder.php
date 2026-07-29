@@ -49,8 +49,8 @@ class EventCoverPromptBuilder
      */
     private const array MEDIA_COLLECTIONS = [
         Event::class => [
-            'cover' => ['preview', 'card', 'thumb'],
-            'poster' => ['preview', 'card', 'thumb'],
+            'cover' => ['thumb'],
+            'poster' => ['poster_thumb'],
             'gallery' => ['thumb'],
         ],
         Institution::class => [
@@ -198,12 +198,12 @@ class EventCoverPromptBuilder
             return [
                 'collection' => 'poster',
                 'label' => 'Event Poster Image',
-                'aspect_ratio' => '4:5',
-                'ratio_width' => 4,
-                'ratio_height' => 5,
+                'aspect_ratio' => '3:4',
+                'ratio_width' => 3,
+                'ratio_height' => 4,
                 'ai_size' => '2:3',
-                'output_width' => 1600,
-                'output_height' => 2000,
+                'output_width' => 1080,
+                'output_height' => 1440,
             ];
         }
 
@@ -245,11 +245,9 @@ class EventCoverPromptBuilder
             'allowed_aspect_ratios' => [$target['aspect_ratio']],
             'output_width' => $target['output_width'],
             'output_height' => $target['output_height'],
-            'conversions' => [
-                'thumb' => '600x400 cropped webp, sharpened',
-                'card' => 'max 960x1200 webp',
-                'preview' => 'max 1400x1800 webp',
-            ],
+            'conversions' => $target['collection'] === 'poster'
+                ? ['poster_thumb' => 'max 1080x1440 webp']
+                : ['thumb' => 'max 1920x1080 webp, sharpened'],
             'storage_filename_pattern' => '<event-slug-or-title>-<8-char-ulid>.<ext>',
         ];
     }
@@ -268,15 +266,15 @@ class EventCoverPromptBuilder
                 ? 'Use for continuity with the current event cover. Improve composition without copying artifacts.'
                 : 'Use for continuity with the current event poster. Improve it; do not copy low-quality text artifacts.';
 
-            $this->pushMediaCandidates($selected, $seen, $event, $targetCollection, ['preview', 'card', 'thumb'], $existingRole, $existingReason, 1);
+            $this->pushMediaCandidates($selected, $seen, $event, $targetCollection, ['thumb'], $existingRole, $existingReason, 1);
         }
 
         if ($targetCollection === 'cover') {
-            $this->pushMediaCandidates($selected, $seen, $event, 'poster', ['preview', 'card', 'thumb'], 'event_poster_reference', 'Use only for factual and visual continuity; do not import cluttered flyer layout into the cover.', 1);
+            $this->pushMediaCandidates($selected, $seen, $event, 'poster', ['poster_thumb'], 'event_poster_reference', 'Use only for factual and visual continuity; do not import cluttered flyer layout into the cover.', 1);
         }
 
         if ($targetCollection === 'poster') {
-            $this->pushMediaCandidates($selected, $seen, $event, 'cover', ['preview', 'card', 'thumb'], 'event_cover_reference', 'Use for visual continuity with the website/app cover while making the poster information-rich.', 1);
+            $this->pushMediaCandidates($selected, $seen, $event, 'cover', ['thumb'], 'event_cover_reference', 'Use for visual continuity with the website/app cover while making the poster information-rich.', 1);
         }
 
         $this->pushMediaCandidates($selected, $seen, $event, 'gallery', ['thumb'], 'event_gallery', 'Use as real event/location atmosphere if visually helpful.', 3);

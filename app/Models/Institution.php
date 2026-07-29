@@ -58,7 +58,6 @@ class Institution extends Model implements AuditableContract, HasMedia
     protected $fillable = [
         'type',
         'name',
-        'nickname',
         'slug',
         'description',
 
@@ -119,7 +118,6 @@ class Institution extends Model implements AuditableContract, HasMedia
         return $this->wasRecentlyCreated || $this->wasChanged([
             'type',
             'name',
-            'nickname',
             'description',
             'slug',
             'status',
@@ -154,7 +152,7 @@ class Institution extends Model implements AuditableContract, HasMedia
             'type' => $type instanceof InstitutionType ? $type->value : (is_string($type) ? $type : null),
             'name' => (string) $this->name,
             'display_name' => $this->display_name,
-            'nickname' => filled($this->nickname) ? (string) $this->nickname : null,
+            'nicknames' => $this->names->map(fn (InstitutionName $n): string => $n->full_name)->values()->all(),
             'description' => $this->searchableDescriptionText(),
             'search_text' => $this->searchableText(),
             'slug' => (string) $this->slug,
@@ -174,7 +172,7 @@ class Institution extends Model implements AuditableContract, HasMedia
     {
         return array_filter([
             'name' => (string) $this->name,
-            'nickname' => filled($this->nickname) ? (string) $this->nickname : null,
+            'names' => $this->names->map(fn (InstitutionName $n): string => $n->full_name)->values()->all(),
             'description' => filled($this->description) ? (string) $this->description : null,
             'slug' => (string) $this->slug,
         ], static fn (mixed $value): bool => is_string($value) && $value !== '');
@@ -187,7 +185,18 @@ class Institution extends Model implements AuditableContract, HasMedia
 
     public function getDisplayNameAttribute(): string
     {
-        return self::formatDisplayName($this->name, $this->nickname);
+        return self::formatDisplayName($this->name, $this->primaryNickname);
+    }
+
+    public function getPrimaryNicknameAttribute(): ?string
+    {
+        $primary = $this->names->firstWhere('is_primary', true);
+
+        if ($primary instanceof InstitutionName) {
+            return $primary->full_name;
+        }
+
+        return $this->names->first()?->full_name;
     }
 
     public static function formatDisplayName(?string $name, ?string $nickname): string
@@ -209,7 +218,7 @@ class Institution extends Model implements AuditableContract, HasMedia
         return trim(implode(' ', array_filter([
             trim($this->display_name),
             trim((string) $this->name),
-            trim((string) $this->nickname),
+            ...$this->names->pluck('full_name')->all(),
             $this->searchableDescriptionText(),
         ])));
     }
@@ -284,6 +293,14 @@ class Institution extends Model implements AuditableContract, HasMedia
     }
 
     /**
+     * @return HasMany<InstitutionName, $this>
+     */
+    public function names(): HasMany
+    {
+        return $this->hasMany(InstitutionName::class, 'institution_id');
+    }
+
+    /**
      * @return MorphToMany<Person, $this>
      */
     public function persons(): MorphToMany
@@ -349,8 +366,7 @@ class Institution extends Model implements AuditableContract, HasMedia
     {
         $this->addMediaConversion('thumb')
             ->performOnCollections('logo')
-            ->width(1080)
-            ->height(1080)
+            ->fit(Fit::Max, 1080, 1080)
             ->sharpen(10)
             ->format('webp');
 
@@ -361,7 +377,7 @@ class Institution extends Model implements AuditableContract, HasMedia
 
         $this->addMediaConversion('gallery_thumb')
             ->performOnCollections('gallery')
-            ->fit(Fit::Crop, 1920, 1080)
+            ->fit(Fit::Max, 1080, 1080)
             ->sharpen(10)
             ->format('webp');
     }
@@ -395,9 +411,10 @@ class Institution extends Model implements AuditableContract, HasMedia
             $innerQuery
                 ->where('institutions.name', $operator, "%{$normalizedSearch}%")
                 ->orWhere('institutions.name', $operator, $wildcardSearch);
-            $innerQuery
-                ->orWhere('institutions.nickname', $operator, "%{$normalizedSearch}%")
-                ->orWhere('institutions.nickname', $operator, $wildcardSearch);
+
+            $innerQuery->orWhereHas('names', fn (Builder $nameQuery): Builder => $nameQuery
+                ->where('full_name', $operator, "%{$normalizedSearch}%")
+                ->orWhere('full_name', $operator, $wildcardSearch));
         });
     }
 

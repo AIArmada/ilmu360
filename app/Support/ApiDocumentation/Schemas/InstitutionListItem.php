@@ -10,19 +10,23 @@ use Illuminate\Contracts\Support\Arrayable;
 /**
  * @phpstan-import-type CountryArray from Country
  *
- * @phpstan-type InstitutionListItemArray array{id: string, slug: string, name: string, type: string|null, nickname: ?string, display_name: string, events_count: int, public_image_url: string, logo_url: string, cover_url: ?string, country: CountryArray|null, location: ?string, distance_km: ?float, is_following: bool, verified_by: ?string}
+ * @phpstan-type InstitutionNameArray array{name_type: string, full_name: string, language_code: string, is_primary: bool}
+ * @phpstan-type InstitutionListItemArray array{id: string, slug: string, name: string, type: string|null, names: list<InstitutionNameArray>, display_name: string, events_count: int, public_image_url: string, logo_url: string, cover_url: ?string, country: CountryArray|null, location: ?string, distance_km: ?float, is_following: bool, verified_by: ?string}
  *
  * @implements Arrayable<string, mixed>
  */
 #[SchemaName('InstitutionListItem')]
 final readonly class InstitutionListItem implements Arrayable
 {
+    /**
+     * @param  list<InstitutionNameArray>  $names
+     */
     public function __construct(
         public string $id,
         public string $slug,
         public string $name,
         public ?string $type,
-        public ?string $nickname,
+        public array $names,
         public string $display_name,
         public int $events_count,
         public string $public_image_url,
@@ -43,7 +47,7 @@ final readonly class InstitutionListItem implements Arrayable
             'slug' => $this->slug,
             'name' => $this->name,
             'type' => $this->type,
-            'nickname' => $this->nickname,
+            'names' => $this->names,
             'display_name' => $this->display_name,
             'events_count' => $this->events_count,
             'public_image_url' => $this->public_image_url,

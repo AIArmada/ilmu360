@@ -80,7 +80,7 @@ it('stores cover, poster, and gallery uploads when submitting an event', functio
     $component
         ->fillForm([
             'cover' => submitEventMediaUpload('cover.png'),
-            'poster' => submitEventMediaUpload('poster.png', 1200, 1500),
+            'poster' => submitEventMediaUpload('poster.png', 1200, 1600),
             'gallery' => [
                 submitEventMediaUpload('gallery-1.png'),
                 submitEventMediaUpload('gallery-2.png'),
@@ -104,7 +104,7 @@ it('stores cover, poster, and gallery uploads when submitting an event', functio
             implode('-', $personSlugSegments),
             $expectedSuffix,
         ))
-        ->and($event->poster_display_aspect_ratio)->toBe('4:5');
+        ->and($event->poster_display_aspect_ratio)->toBe('3:4');
 });
 
 it('uses fixed cover and poster ratios on the public submit-event form', function () {
@@ -124,9 +124,9 @@ it('uses fixed cover and poster ratios on the public submit-event form', functio
             $aspectRatioOptions = array_keys($upload->getImageEditorAspectRatioOptionsForJs());
 
             expect($upload->getImageAspectRatio())
-                ->toBe('4:5')
+                ->toBe('3:4')
                 ->and($aspectRatioOptions)
-                ->toContain('4:5')
+                ->toContain('3:4')
                 ->toHaveCount(2);
 
             return true;

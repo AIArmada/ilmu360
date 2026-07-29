@@ -11,13 +11,13 @@ test('person seeder keeps real person contacts idempotent across reruns', functi
     $this->seed(PersonSeeder::class);
 
     $person = Person::query()
-        ->where('name', 'Azhar Idrus')
+        ->where('name', 'Fawwaz Mat Jan')
         ->firstOrFail();
 
     expect($person->contactMethods()->where('type', ContactMethodType::Email->value)->count())->toBe(1)
         ->and($person->contactMethods()->where('type', ContactMethodType::Phone->value)->count())->toBe(1)
-        ->and($person->name)->toBe('Azhar Idrus')
-        ->and($person->formatted_name)->toBe('Ustaz Azhar Idrus')
+        ->and($person->name)->toBe('Fawwaz Mat Jan')
+        ->and($person->formatted_name)->toBe('Ustaz Fawwaz Mat Jan')
         ->and($person->titleAssignments)->toHaveCount(1)
         ->and($person->primaryAddress()?->country_code)->toBe('MY');
 

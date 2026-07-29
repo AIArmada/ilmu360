@@ -920,7 +920,7 @@ class Index extends Component implements HasForms
                 ->whereIn('status', ['verified', 'pending'])
                 ->orderBy('name')
                 ->limit(400)
-                ->select(['id', 'name', 'nickname']),
+                ->with('names')->select(['id', 'name']),
         );
     }
 
@@ -1178,7 +1178,7 @@ class Index extends Component implements HasForms
             ->whereIn('status', ['verified', 'pending'])
             ->whereIn('status', ['verified', 'pending'])
             ->whereKey($value)
-            ->first(['id', 'name', 'nickname'])
+            ->with('names')->first(['id', 'name'])
             ?->display_name;
     }
 
@@ -1214,8 +1214,9 @@ class Index extends Component implements HasForms
     {
         /** @var Collection<int, Institution> $institutions */
         $institutions = $query
+            ->with('names')
             ->limit($limit)
-            ->get(['id', 'name', 'nickname']);
+            ->get(['id', 'name']);
 
         return $institutions
             ->mapWithKeys(fn (Institution $institution): array => [(string) $institution->id => $institution->display_name])

@@ -577,7 +577,6 @@ it('applies direct institution edits for owner maintainers from the suggest upda
     $user = User::factory()->create();
     $institution = Institution::factory()->create([
         'name' => 'Masjid Lama',
-        'nickname' => null,
         'status' => 'verified',
     ]);
     withGlobalOwnerContext(fn () => $institution->contactMethods()->delete());
@@ -590,12 +589,10 @@ it('applies direct institution edits for owner maintainers from the suggest upda
         'subjectId' => $institution->slug,
     ])
         ->set('data.name', 'Masjid Baru')
-        ->set('data.nickname', 'Masjid Segar')
         ->call('submit')
         ->assertHasNoErrors();
 
     expect($institution->fresh()->name)->toBe('Masjid Baru')
-        ->and($institution->fresh()->nickname)->toBe('Masjid Segar')
         ->and(ContributionRequest::query()->count())->toBe(0);
 });
 
@@ -603,7 +600,6 @@ it('applies direct institution edits when an existing phone contact is present o
     $user = User::factory()->create();
     $institution = Institution::factory()->create([
         'name' => 'Masjid Lama',
-        'nickname' => null,
         'status' => 'verified',
     ]);
     withGlobalOwnerContext(function () use ($institution): void {
@@ -623,12 +619,10 @@ it('applies direct institution edits when an existing phone contact is present o
         'subjectType' => 'institution',
         'subjectId' => $institution->slug,
     ])
-        ->set('data.nickname', 'Masjid Telefon')
         ->call('submit')
         ->assertHasNoErrors();
 
-    expect($institution->fresh()->nickname)->toBe('Masjid Telefon')
-        ->and(withGlobalOwnerContext(fn () => $institution->fresh()->contactMethods()->where('type', ContactMethodType::Phone->value)->value('value')))
+    expect(withGlobalOwnerContext(fn () => $institution->fresh()->contactMethods()->where('type', ContactMethodType::Phone->value)->value('value')))
         ->not->toBeNull()
         ->not->toBeEmpty()
         ->and(ContributionRequest::query()->count())->toBe(0);
@@ -1145,7 +1139,6 @@ it('formats institution membership claim options with the location hierarchy', f
     $user = User::factory()->create();
     $institution = Institution::factory()->create([
         'name' => 'Masjid Payung',
-        'nickname' => null,
         'status' => 'verified',
     ]);
     $geo = createTestPackageGeography('Selangor', 'Petaling', 'Shah Alam');

@@ -125,9 +125,6 @@ class ApproveContributionRequestAction
 
         $institution = Institution::create([
             'name' => (string) ($payload['name'] ?? 'Institution'),
-            'nickname' => is_string($payload['nickname'] ?? null) && trim($payload['nickname']) !== ''
-                ? trim($payload['nickname'])
-                : null,
             'slug' => $this->generateInstitutionSlugAction->handle(
                 (string) ($payload['name'] ?? 'Institution'),
                 $address,

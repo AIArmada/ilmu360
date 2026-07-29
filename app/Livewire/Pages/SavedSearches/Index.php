@@ -473,7 +473,7 @@ class Index extends Component
     {
         return match ($filterKey) {
             'country_id' => __('Country'),
-            'state_id' => __('State / Region'),
+            'state_id' => __('State / Federal Territory'),
             'city_id' => __('City'),
             'administrative_district_id' => __('District'),
             'administrative_subdivision_id' => __('Subdistrict / Local Area'),
@@ -624,7 +624,7 @@ class Index extends Component
         if (! array_key_exists($id, $this->institutionNames)) {
             $this->institutionNames[$id] = Institution::query()
                 ->whereKey($id)
-                ->first(['id', 'name', 'nickname'])
+                ->with('names')->first(['id', 'name'])
                 ?->display_name;
         }
 

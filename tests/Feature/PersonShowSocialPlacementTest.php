@@ -1,8 +1,11 @@
 <?php
 
+use AIArmada\Contacting\Enums\ContactMethodType;
+use AIArmada\Contacting\Enums\ContactPurpose;
+use AIArmada\Contacting\Enums\SocialPlatform;
 use App\Models\Person;
 
-it('renders social media section below biodata on person show page', function () {
+it('renders social media inside the consolidated profile panel on person show page', function () {
     $person = Person::factory()->create([
         'status' => 'verified',
         'bio' => [
@@ -27,10 +30,51 @@ it('renders social media section below biodata on person show page', function ()
         ->assertSuccessful()
         ->assertSee('Biodata')
         ->assertSee('Media Sosial')
+        ->assertSee('storage/social-media-icons/facebook.svg', false)
         ->assertSeeInOrder(['Biodata', 'Media Sosial']);
 });
 
-it('shows a reveal control for long person biodata', function () {
+it('displays public contacts and hides private contacts on person show page', function () {
+    $person = Person::factory()->create(['status' => 'verified']);
+
+    $person->contactMethods()->createMany([
+        [
+            'type' => ContactMethodType::Phone->value,
+            'purpose' => ContactPurpose::General->value,
+            'value' => '03-12345678',
+            'is_public' => true,
+        ],
+        [
+            'type' => ContactMethodType::Email->value,
+            'purpose' => ContactPurpose::General->value,
+            'value' => 'private@example.com',
+            'is_public' => false,
+        ],
+    ]);
+
+    $this->get(route('persons.show', $person))
+        ->assertSuccessful()
+        ->assertSee('Maklumat Hubungan')
+        ->assertSee('href="tel:0312345678"', false)
+        ->assertSee('03-12345678')
+        ->assertDontSee('private@example.com');
+});
+
+it('resolves handle-only social profiles on person show page', function () {
+    $person = Person::factory()->create(['status' => 'verified']);
+
+    $person->socialProfiles()->create([
+        'platform' => SocialPlatform::Instagram->value,
+        'handle' => 'ustazwadiannuar',
+    ]);
+
+    $this->get(route('persons.show', $person))
+        ->assertSuccessful()
+        ->assertSee('Media Sosial Rasmi')
+        ->assertSee('https://www.instagram.com/ustazwadiannuar', false);
+});
+
+it('shows a scrollable biodata region for long person biodata', function () {
     $person = Person::factory()->create([
         'status' => 'verified',
         'bio' => [
@@ -48,11 +92,12 @@ it('shows a reveal control for long person biodata', function () {
     $this->get(route('persons.show', $person))
         ->assertSuccessful()
         ->assertSee('Biodata')
-        ->assertSee(__('Baca biodata penuh'))
-        ->assertSee('max-h-[26rem] overflow-hidden', false);
+        ->assertSee(__('Skrol untuk membaca'))
+        ->assertSee('max-h-[26rem]', false)
+        ->assertSee('[scrollbar-width:thin]', false);
 });
 
-it('does not show the biodata reveal control for short person biodata', function () {
+it('does not show the long-biodata scroll cue for short person biodata', function () {
     $person = Person::factory()->create([
         'status' => 'verified',
         'bio' => [
@@ -70,5 +115,5 @@ it('does not show the biodata reveal control for short person biodata', function
     $this->get(route('persons.show', $person))
         ->assertSuccessful()
         ->assertSee('Biodata')
-        ->assertDontSee('Lihat biodata penuh');
+        ->assertDontSee('Skrol untuk membaca');
 });

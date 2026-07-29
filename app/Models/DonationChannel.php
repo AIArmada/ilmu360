@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use OwenIt\Auditing\Contracts\Auditable as AuditableContract;
+use Spatie\Image\Enums\Fit;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
@@ -165,8 +166,7 @@ class DonationChannel extends Model implements AuditableContract, HasMedia
     {
         $this->addMediaConversion('thumb')
             ->performOnCollections('qr')
-            ->width(1080)
-            ->height(1080)
+            ->fit(Fit::Max, 1080, 1080)
             ->format('webp');
     }
 }

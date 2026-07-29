@@ -211,7 +211,7 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
             $avatarMedia = $this->getFirstMedia('avatar');
 
             if ($avatarMedia instanceof Media) {
-                return $avatarMedia->getAvailableUrl(['profile', 'thumb']) ?: $avatarMedia->getUrl();
+                return $avatarMedia->getAvailableUrl(['thumb']) ?: $avatarMedia->getUrl();
             }
         }
 
@@ -220,11 +220,11 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
 
     public function getPublicMainUrlAttribute(): string
     {
-        if ($this->hasMedia('main')) {
-            $mainMedia = $this->getFirstMedia('main');
+        if ($this->hasMedia('profile')) {
+            $profileMedia = $this->getFirstMedia('profile');
 
-            if ($mainMedia instanceof Media) {
-                return $mainMedia->getAvailableUrl(['card', 'main_thumb']) ?: $mainMedia->getUrl();
+            if ($profileMedia instanceof Media) {
+                return $profileMedia->getAvailableUrl(['profile_thumb']) ?: $profileMedia->getUrl();
             }
         }
 
@@ -388,6 +388,13 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
             ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp'])
             ->withResponsiveImages();
 
+        $this->addMediaCollection('profile')
+            ->useDisk(config('media-library.disk_name'))
+            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp'])
+            ->useFallbackUrl(asset('images/placeholders/person.png'))
+            ->withResponsiveImages()
+            ->singleFile();
+
         $this->addMediaCollection('documents')
             ->useDisk(config('media-library.disk_name'))
             ->acceptsMimeTypes(['application/pdf', 'image/jpeg', 'image/png', 'image/webp']);
@@ -406,19 +413,12 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
             ->sharpen(10)
             ->format('webp');
 
-        $this->addMediaConversion('profile')
-            ->performOnCollections('avatar')
-            ->width(1080)
-            ->height(1080)
+        $this->addMediaConversion('profile_thumb')
+            ->performOnCollections('profile')
+            ->fit(Fit::Crop, 1080, 1440)
             ->format('webp');
 
-        $this->addMediaConversion('card')
-            ->performOnCollections('main')
-            ->width(640)
-            ->height(853)
-            ->format('webp');
-
-        $this->addMediaConversion('main_thumb')
+        $this->addMediaConversion('thumb')
             ->performOnCollections('main')
             ->width(1080)
             ->height(1080)
@@ -432,7 +432,7 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
 
         $this->addMediaConversion('gallery_thumb')
             ->performOnCollections('gallery')
-            ->fit(Fit::Crop, 1920, 1080)
+            ->fit(Fit::Max, 1080, 1080)
             ->sharpen(10)
             ->format('webp');
     }

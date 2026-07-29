@@ -21,7 +21,7 @@ If you are building an AI client, use this read order:
 4. Before any write, fetch the exact contract first: `GET /forms/*` for public flows, or `GET /admin/{resourceKey}/schema` for admin writes.
 5. Use the admin record `route_key` returned by admin collection or detail payloads for record-specific schema and mutation paths.
 6. Send raw timestamp fields in UTC. For date-only filters, send the user's local calendar date together with timezone context so the server can convert it to UTC boundaries.
-7. For any file field, read `accepted_mime_types`, `max_file_size_kb`, and `max_files` from the form/schema response before uploading. For event media, also honor `required_aspect_ratio`: `cover` is `16:9` and `poster` is `4:5`.
+7. For any file field, read `accepted_mime_types`, `max_file_size_kb`, and `max_files` from the form/schema response before uploading. For event media, also honor `required_aspect_ratio`: `cover` is `16:9` and `poster` is `3:4`.
 8. Treat `error.code` as the machine-readable failure classifier and `meta.request_id` as the trace identifier for retries and support.
 
 If you are evaluating the MCP connector rather than the raw HTTP admin API, switch to `docs/ilmu360_mcp_guide.md`. The MCP server is intentionally sanitized and uses its own write-schema surface; when it advertises media/file fields, clients send JSON base64 file descriptors instead of multipart files.
@@ -29,7 +29,7 @@ If you are evaluating the MCP connector rather than the raw HTTP admin API, swit
 Event image generation over MCP is target-specific (not ratio-selectable). The workflow uses 3 steps: call the image prompt, generate with ChatGPT, then upload with the upload tool:
 
 - `*-upload-event-cover-image` (preceded by `*-event-cover-image-prompt`) writes the Event `cover` collection at `16:9`.
-- `*-upload-event-poster-image` (preceded by `*-event-poster-image-prompt`) writes the Event `poster` collection at `4:5`.
+- `*-upload-event-poster-image` (preceded by `*-event-poster-image-prompt`) writes the Event `poster` collection at `3:4`.
 
 ---
 
@@ -120,7 +120,7 @@ The `search` parameter on public and admin surfaces queries different record sco
 
 This is intentional. The admin surface mirrors Filament's resource query, which does not apply visibility filters. A person that returns zero results on the public surface may appear on the admin surface because it is inactive or has `status = 'pending'`.
 
-For `persons`, `institutions`, and `references`, the admin HTTP API now reuses the same specialized search services that also back the public directory endpoints and the admin/member MCP `*list-records` tools. That means decorated person-title matching, institution nickname or typo-tolerant matching, and reference descriptive-text matching behave similarly across those surfaces; the main difference is which records each surface is allowed to return.
+For `persons`, `institutions`, and `references`, the admin HTTP API now reuses the same specialized search services that also back the public directory endpoints and the admin/member MCP `*list-records` tools. That means decorated person-title matching, institution name-or-alias matching across the `institution_names` table, and reference descriptive-text matching behave similarly across those surfaces; the main difference is which records each surface is allowed to return.
 
 Public event discovery follows the same principle: use `filter[search]` for event title/description text matching and `filter[person]` when you need an exact person UUID match.
 
@@ -561,7 +561,7 @@ Notes:
 
 Event media upload contract:
 - `cover` is the website/mobile-app image and must be 16:9.
-- `poster` is the external-distribution image and must be 4:5 portrait.
+- `poster` is the external-distribution image and must be 3:4 portrait.
 - `gallery` accepts normal image uploads without a fixed aspect-ratio requirement.
 | `DELETE` | `/follows/{type}/{subject}` | Unfollow a record |
 | `GET` | `/institution-workspace` | Institution dashboard payload for events, members, and role options |
@@ -752,7 +752,7 @@ Public upload metadata:
 
 - Public event submissions accept `cover`, `poster`, and `gallery`.
 - Event `cover` uploads are validated as `16:9`.
-- Event `poster` uploads are validated as `4:5`.
+- Event `poster` uploads are validated as `3:4`.
 - Membership claims accept `evidence` files.
 - Reports accept `evidence` files.
 - Image upload fields accept `image/jpeg`, `image/png`, and `image/webp`.
@@ -936,7 +936,7 @@ Institution-specific update rules:
 - `address` is **optional on update**. If you send it, omitted nested keys preserve the existing institution address values.
 - `address.country_id` is **required on create**, but on update it may be omitted when the institution already has an address with a stored country.
 - For institutions that already have an address, `address = {}` is effectively a no-op because the existing country is reused during normalization before persistence.
-- `nickname` is merge-preserving on update: omitting it or sending `null` preserves the current stored nickname. On the raw HTTP admin API, empty strings may also be normalized to `null` before validation, so do not rely on `null` or `""` as a top-level clear operation.
+- `nickname` has been replaced by the `names` array. Use `names: [{full_name: "...", name_type: "nickname", ...}]` for alternative names.
 - `contacts` and `social_media` are destructive replacement collections on institution writes: omit the field to preserve the existing collection, send `null` or `[]` to clear it, and send the **full modified array** when you want to keep some existing items.
 - Submitted `contacts` and `social_media` arrays recreate rows rather than patching items in place, so item ids are not stable across updates.
 - When `order_column` is omitted, contact/social ordering follows payload order.
@@ -979,7 +979,7 @@ Nested collection item contracts for institutions:
 - Event `PUT` is sparse on the raw admin API. Core fields such as `title`, `event_date`, `prayer_time`, `timezone`, `event_format`, `visibility`, `gender`, `age_group`, and `event_category_ids` are required on create, but they may be omitted on update.
 - Admin event writes accept `status` values `draft`, `pending`, and `approved`. When omitted on create, the default is `draft`. `approved` sets `published_at`, while `draft` and `pending` clear it.
 - Event enum write values must use backing values from the schema. Do not submit display labels for `event_category_ids`, `age_group`, `timing_mode`, `prayer_reference`, or `prayer_offset`.
-- Event `cover` uploads are validated as `16:9`, and event `poster` uploads are validated as `4:5` on admin write paths.
+- Event `cover` uploads are validated as `16:9`, and event `poster` uploads are validated as `3:4` on admin write paths.
 - Event media clear flags (`clear_cover`, `clear_poster`, `clear_gallery`) remove existing media when truthy (`true`, `1`, `"1"`, `"true"`). Poster clears are reflected immediately in the update response (`has_poster=false`, `poster_url=null`) and in update schema `current_media.poster`.
 - Optional URL scalars like `event_url`, `live_url`, and `recording_url` preserve the current value when omitted and clear to `null` when you send `null` or `""`.
 - The relation arrays `languages`, `references`, `series`, `domain_tags`, `discipline_tags`, `source_tags`, and `issue_tags` use server-merged replacement semantics on update: omit to preserve the current set, send `null` or `[]` to clear, and send the full replacement list when changing them.

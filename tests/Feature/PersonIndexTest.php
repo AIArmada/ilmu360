@@ -412,7 +412,7 @@ it('renders profile-quality avatar URLs on the person index cards', function () 
     app(PersonSearchService::class)->syncPersonRecord($person);
 
     $person->addMedia(UploadedFile::fake()->image('kazim.jpg', 1200, 1200))
-        ->toMediaCollection('main');
+        ->toMediaCollection('profile');
 
     get('/penceramah?search=kazim')
         ->assertSuccessful()

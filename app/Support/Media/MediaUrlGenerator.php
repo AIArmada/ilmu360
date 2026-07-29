@@ -2,6 +2,7 @@
 
 namespace App\Support\Media;
 
+use Illuminate\Http\Request;
 use Spatie\MediaLibrary\Support\UrlGenerator\DefaultUrlGenerator;
 use Throwable;
 
@@ -15,16 +16,49 @@ class MediaUrlGenerator extends DefaultUrlGenerator
         }
 
         if (! $this->shouldUseTemporaryUrl()) {
-            return parent::getUrl();
+            $url = parent::getUrl();
+        } else {
+            try {
+                $url = $this->getTemporaryUrl(
+                    now()->addMinutes((int) config('media-library.temporary_url_default_lifetime', 5)),
+                );
+            } catch (Throwable) {
+                $url = parent::getUrl();
+            }
         }
 
-        try {
-            return $this->getTemporaryUrl(
-                now()->addMinutes((int) config('media-library.temporary_url_default_lifetime', 5)),
-            );
-        } catch (Throwable) {
-            return parent::getUrl();
+        return $this->normalizeUrl($url);
+    }
+
+    private function normalizeUrl(string $url): string
+    {
+        if ($this->getDiskName() === 's3') {
+            return $url;
         }
+
+        $request = request();
+
+        if (! $request instanceof Request) {
+            return $url;
+        }
+
+        $parsed = parse_url($url);
+
+        if (! isset($parsed['host'])) {
+            return $url;
+        }
+
+        $currentHost = $request->getHttpHost();
+
+        if ($parsed['host'] === $currentHost) {
+            return $url;
+        }
+
+        $scheme = $request->getScheme();
+        $path = $parsed['path'] ?? '/';
+        $query = isset($parsed['query']) ? '?'.$parsed['query'] : '';
+
+        return "{$scheme}://{$currentHost}{$path}{$query}";
     }
 
     protected function shouldUseTemporaryUrl(): bool

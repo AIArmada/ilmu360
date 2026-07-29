@@ -60,7 +60,6 @@ it('ignores hidden institution slug injections and preserves coordinates across 
             'record_key' => $adminInstitution->getKey(),
             'payload' => [
                 'name' => 'Security Checklist Admin Institution Updated',
-                'nickname' => 'Security Checklist Masjid',
                 'type' => 'masjid',
                 'status' => 'pending',
                 'allow_public_event_submission' => true,
@@ -87,7 +86,6 @@ it('ignores hidden institution slug injections and preserves coordinates across 
             'record_key' => $memberInstitution->getKey(),
             'payload' => [
                 'name' => 'Security Checklist Member Institution Updated',
-                'nickname' => 'Security Checklist Member Masjid',
                 'type' => 'masjid',
                 'status' => 'pending',
                 'allow_public_event_submission' => true,

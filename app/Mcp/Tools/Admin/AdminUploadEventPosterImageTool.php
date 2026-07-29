@@ -31,7 +31,7 @@ class AdminUploadEventPosterImageTool extends AbstractAdminTool
 
     protected string $title = 'Upload Event Poster Image';
 
-    protected string $description = 'Upload and save a 4:5 portrait marketing poster for an admin-accessible event. Accepts image descriptors via {content_base64} or {content_url}. Use the admin-event-poster-image-prompt to get the recommended prompt and reference images before generating.';
+    protected string $description = 'Upload and save a 3:4 portrait marketing poster for an admin-accessible event. Accepts image descriptors via {content_base64} or {content_url}. Use the admin-event-poster-image-prompt to get the recommended prompt and reference images before generating.';
 
     public function __construct(
         private readonly AdminResourceRegistry $registry,
@@ -40,7 +40,7 @@ class AdminUploadEventPosterImageTool extends AbstractAdminTool
         $this->setMeta([
             'openai/toolInvocation/invoking' => 'Uploading event poster image...',
             'openai/toolInvocation/invoked' => 'Event poster image uploaded.',
-            'openai/note' => 'Pass {content_base64, filename} or {content_url, filename}. Required aspect ratio: 4:5 portrait.',
+            'openai/note' => 'Pass {content_base64, filename} or {content_url, filename}. Required aspect ratio: 3:4 portrait.',
         ]);
     }
 

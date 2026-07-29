@@ -104,8 +104,8 @@ trait BuildsEventImagePrompt
         $eventTitle = is_string($event['title'] ?? null) ? $event['title'] : '';
         $eventKey = is_string($event['route_key'] ?? null) ? $event['route_key'] : '';
 
-        $collectionLabel = $targetCollection === 'poster' ? 'marketing poster (4:5 portrait)' : 'website/mobile cover (16:9 landscape)';
-        $forbiddenShape = $targetCollection === 'poster' ? '16:9 landscape cover' : '4:5 portrait poster/flyer';
+        $collectionLabel = $targetCollection === 'poster' ? 'marketing poster (3:4 portrait)' : 'website/mobile cover (16:9 landscape)';
+        $forbiddenShape = $targetCollection === 'poster' ? '16:9 landscape cover' : '3:4 portrait poster/flyer';
         $uploadTool = $targetCollection === 'poster' ? 'upload-event-poster-image' : 'upload-event-cover-image';
 
         $safetyNotes = is_array($payload['usage']['safety_notes'] ?? null)
@@ -145,7 +145,7 @@ trait BuildsEventImagePrompt
         if ($targetCollection === 'poster') {
             return [
                 'collection' => 'poster',
-                'aspect_ratio' => '4:5',
+                'aspect_ratio' => '3:4',
                 'output_width' => 1600,
                 'output_height' => 2000,
             ];

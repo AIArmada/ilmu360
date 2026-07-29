@@ -5,11 +5,14 @@ namespace App\Filament\Resources\Institutions\Schemas;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\Contacting\Enums\SocialPlatform;
+use AIArmada\Contacting\Support\SocialProfileConfig;
+use App\Enums\InstitutionNameType;
 use App\Enums\InstitutionType;
 use App\Forms\SharedFormSchema;
 use App\Models\Institution;
 use App\Models\User;
 use App\Support\Submission\PublicSubmissionLockService;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
@@ -17,6 +20,8 @@ use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 
 class InstitutionForm
@@ -33,9 +38,25 @@ class InstitutionForm
                         TextInput::make('name')
                             ->required()
                             ->maxLength(255),
-                        TextInput::make('nickname')
-                            ->maxLength(255)
-                            ->helperText('Optional nickname, e.g. Masjid Biru'),
+                        Repeater::make('names')
+                            ->relationship()
+                            ->schema([
+                                Select::make('name_type')
+                                    ->options(InstitutionNameType::class)
+                                    ->required()
+                                    ->live(),
+                                TextInput::make('full_name')
+                                    ->required()
+                                    ->maxLength(255),
+                                TextInput::make('language_code')
+                                    ->maxLength(10)
+                                    ->default('ms'),
+                                Toggle::make('is_primary')
+                                    ->default(false),
+                            ])
+                            ->columns(2)
+                            ->defaultItems(0)
+                            ->addActionLabel('Add alternative name'),
                         TextInput::make('slug')
                             ->required(fn (string $operation): bool => $operation !== 'create')
                             ->hidden(fn (string $operation): bool => $operation === 'create')
@@ -137,17 +158,74 @@ class InstitutionForm
                                     ->options(SocialPlatform::options())
                                     ->searchable()
                                     ->required()
+                                    ->live()
                                     ->columnSpan(1),
                                 TextInput::make('handle')
-                                    ->label('Handle')
-                                    ->requiredWithout('url')
-                                    ->placeholder('@username / https://...')
-                                    ->columnSpan(1),
+                                    ->label('Username / Handle')
+                                    ->required()
+                                    ->placeholder('username or https://...')
+                                    ->live()
+                                    ->afterStateUpdated(function (Get $get, Set $set, ?string $state): void {
+                                        if ($state === null || $state === '' || ! str_contains($state, '://')) {
+                                            return;
+                                        }
+                                        $platform = $get('platform');
+                                        if ($platform === null || $platform === '') {
+                                            return;
+                                        }
+                                        $platformValue = $platform instanceof SocialPlatform ? $platform->value : $platform;
+                                        $extracted = app(SocialProfileConfig::class)->extractHandle($platformValue, $state);
+                                        if ($extracted !== null) {
+                                            $set('handle', $extracted);
+                                        }
+                                    })
+                                    ->columnSpan(1)
+                                    ->visible(function (Get $get): bool {
+                                        $platform = $get('platform');
+                                        if ($platform === null || $platform === '') {
+                                            return false;
+                                        }
+                                        $value = $platform instanceof SocialPlatform ? $platform->value : $platform;
+
+                                        return $value !== SocialPlatform::Website->value && $value !== SocialPlatform::Other->value;
+                                    }),
+                                Placeholder::make('profile_url')
+                                    ->label('Profile URL')
+                                    ->content(function (Get $get): ?string {
+                                        $platform = $get('platform');
+                                        $handle = $get('handle');
+                                        if (! is_string($handle) || $handle === '') {
+                                            return null;
+                                        }
+                                        $value = $platform instanceof SocialPlatform ? $platform->value : $platform;
+
+                                        return app(SocialProfileConfig::class)->buildUrl($value, $handle);
+                                    })
+                                    ->columnSpanFull()
+                                    ->visible(function (Get $get): bool {
+                                        $platform = $get('platform');
+                                        if ($platform === null || $platform === '') {
+                                            return false;
+                                        }
+                                        $value = $platform instanceof SocialPlatform ? $platform->value : $platform;
+
+                                        return $value !== SocialPlatform::Website->value && $value !== SocialPlatform::Other->value;
+                                    }),
                                 TextInput::make('url')
                                     ->label('URL')
-                                    ->requiredWithout('handle')
+                                    ->required()
                                     ->url()
-                                    ->columnSpanFull(),
+                                    ->maxLength(255)
+                                    ->columnSpanFull()
+                                    ->visible(function (Get $get): bool {
+                                        $platform = $get('platform');
+                                        if ($platform === null || $platform === '') {
+                                            return false;
+                                        }
+                                        $value = $platform instanceof SocialPlatform ? $platform->value : $platform;
+
+                                        return $value === SocialPlatform::Website->value || $value === SocialPlatform::Other->value;
+                                    }),
                             ])
                             ->columns(2)
                             ->orderColumn('sort_order')

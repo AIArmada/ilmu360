@@ -68,7 +68,7 @@ class EventPayloadData extends Data
             'is_muslim_only' => $event->is_muslim_only,
             'reference_study_subtitle' => $event->reference_study_subtitle,
             'card_image_url' => $event->card_image_url,
-            'poster_url' => self::preferredMediaUrl($event->getFirstMedia('poster'), ['preview', 'card', 'thumb']),
+            'poster_url' => self::preferredMediaUrl($event->getFirstMedia('poster'), ['poster_thumb']),
             'has_poster' => $event->hasMedia('poster'),
             'starts_at_local' => self::localDateTimeString($event->starts_at),
             'starts_on_local_date' => self::localDateString($event->starts_at),
@@ -362,7 +362,7 @@ class EventPayloadData extends Data
                 : null,
             'visibility' => (string) $event->getRawOriginal('visibility'),
             'status' => (string) $event->getRawOriginal('status'),
-            'poster_url' => self::preferredMediaUrl($event->getFirstMedia('poster'), ['preview', 'card', 'thumb']),
+            'poster_url' => self::preferredMediaUrl($event->getFirstMedia('poster'), ['poster_thumb']),
             'card_image_url' => $event->card_image_url,
         ];
     }

@@ -45,13 +45,8 @@ it('registers media conversions for Event model', function () {
 
     $coverConversions = $coverMedia->getMediaConversionNames();
     expect($coverConversions)->toContain('thumb');
-    expect($coverConversions)->toContain('card');
-    expect($coverConversions)->toContain('preview');
-
     $conversions = $media->getMediaConversionNames();
-    expect($conversions)->toContain('thumb');
-    expect($conversions)->toContain('card');
-    expect($conversions)->toContain('preview');
+    expect($conversions)->toContain('poster_thumb');
 });
 
 it('detects portrait poster orientation', function () {
@@ -85,7 +80,7 @@ it('maps poster display aspect ratios to the closest supported event ratios', fu
     $wideLandscapeEvent->addMedia(fakeGeneratedImageUpload('poster-wide.png', 1600, 900))
         ->toMediaCollection('poster');
 
-    expect($portraitEvent->poster_display_aspect_ratio)->toBe('4:5')
+    expect($portraitEvent->poster_display_aspect_ratio)->toBe('3:4')
         ->and($standardLandscapeEvent->poster_display_aspect_ratio)->toBe('16:9')
         ->and($wideLandscapeEvent->poster_display_aspect_ratio)->toBe('16:9');
 });
@@ -281,28 +276,33 @@ it('registers media conversions for Person model', function () {
     $person->addMedia(fakeGeneratedImageUpload('avatar.png', 500, 500))
         ->toMediaCollection('avatar');
 
-    $media = $person->getFirstMedia('avatar');
+    $avatarMedia = $person->getFirstMedia('avatar');
 
-    expect($media)->not->toBeNull();
-    expect($media->getMediaConversionNames())->toContain('thumb');
-    expect($media->getMediaConversionNames())->toContain('profile');
+    expect($avatarMedia)->not->toBeNull();
+    expect($avatarMedia->getMediaConversionNames())->toContain('thumb');
+    expect($avatarMedia->getMediaConversionNames())->not->toContain('profile');
 });
 
-it('registers media conversions for Person cover and gallery collections', function () {
+it('registers media conversions for Person cover, gallery, and profile collections', function () {
     $person = Person::factory()->create();
 
     $person->addMedia(fakeGeneratedImageUpload('cover.png', 100, 100))
         ->toMediaCollection('cover');
     $person->addMedia(fakeGeneratedImageUpload('gallery.png', 100, 100))
         ->toMediaCollection('gallery');
+    $person->addMedia(fakeGeneratedImageUpload('profile.png', 800, 1200))
+        ->toMediaCollection('profile');
 
     $coverMedia = $person->getFirstMedia('cover');
     $galleryMedia = $person->getFirstMedia('gallery');
+    $profileMedia = $person->getFirstMedia('profile');
 
     expect($coverMedia)->not->toBeNull();
     expect($galleryMedia)->not->toBeNull();
+    expect($profileMedia)->not->toBeNull();
     expect($coverMedia->getMediaConversionNames())->toContain('banner');
     expect($galleryMedia->getMediaConversionNames())->toContain('gallery_thumb');
+    expect($profileMedia->getMediaConversionNames())->toContain('profile_thumb');
 });
 
 it('returns fallback URL when Person has no avatar', function () {
@@ -325,7 +325,7 @@ it('returns avatar_url using thumb conversion when media exists', function () {
     expect($avatarUrl)->toContain('avatar');
 });
 
-it('returns public_avatar_url using the higher-resolution profile conversion when media exists', function () {
+it('returns public_avatar_url using the thumb conversion when media exists', function () {
     $person = Person::factory()->create();
 
     $person->addMedia(fakeGeneratedImageUpload('avatar.png', 500, 500))
@@ -335,24 +335,22 @@ it('returns public_avatar_url using the higher-resolution profile conversion whe
 
     expect($publicAvatarUrl)->not->toBeNull()
         ->and($publicAvatarUrl)->toContain('conversions')
-        ->and($publicAvatarUrl)->toContain('profile');
+        ->and($publicAvatarUrl)->toContain('thumb');
 });
 
-it('registers main media collection for Person model', function () {
+it('registers profile media collection for Person model', function () {
     $person = Person::factory()->create();
 
-    $person->addMedia(fakeGeneratedImageUpload('main.png', 600, 800))
-        ->toMediaCollection('main');
+    $person->addMedia(fakeGeneratedImageUpload('profile.png', 600, 800))
+        ->toMediaCollection('profile');
 
-    $media = $person->getFirstMedia('main');
+    $media = $person->getFirstMedia('profile');
 
     expect($media)->not->toBeNull();
-    expect($person->hasMedia('main'))->toBeTrue();
-    expect($media->getMediaConversionNames())->toContain('main_thumb');
-    expect($media->getMediaConversionNames())->toContain('card');
+    expect($media->getMediaConversionNames())->toContain('profile_thumb');
 });
 
-it('returns public_main_url fallback when Person has no main photo', function () {
+it('returns public_main_url fallback when Person has no profile photo', function () {
     $person = Person::factory()->create();
 
     $mainUrl = $person->public_main_url;

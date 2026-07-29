@@ -99,7 +99,7 @@ final readonly class MemberRecordActionService
                 'key' => 'generate_event_poster_image',
                 'label' => 'Upload event poster image',
                 'category' => 'creative_asset',
-                'description' => 'Use the member-event-poster-image-prompt prompt to get the engineered prompt and reference images, generate with ChatGPT image generation, then upload the 4:5 result here.',
+                'description' => 'Use the member-event-poster-image-prompt prompt to get the engineered prompt and reference images, generate with ChatGPT image generation, then upload the 3:4 result here.',
                 'tool' => 'member-upload-event-poster-image',
                 'arguments' => [
                     'event_key' => $recordKey,
@@ -199,7 +199,7 @@ final readonly class MemberRecordActionService
         }
 
         if ($this->hasAction($actions, 'generate_event_cover_image') || $this->hasAction($actions, 'generate_event_poster_image')) {
-            $notes[] = 'For event image generation, use the cover tool for 16:9 website/app covers and the poster tool for 4:5 external distribution posters.';
+            $notes[] = 'For event image generation, use the cover tool for 16:9 website/app covers and the poster tool for 3:4 external distribution posters.';
         }
 
         return $notes;
