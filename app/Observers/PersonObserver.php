@@ -47,6 +47,8 @@ class PersonObserver implements ShouldHandleEventsAfterCommit
                     fn (string $name): bool => $this->generateEventSlugAction->syncEventSlugsForPersonName($name),
                 );
             });
+        } elseif ($person->wasChanged('status')) {
+            $this->personSearchService->bustPublicSearchCache();
         }
 
         $this->publicListingsCache->bustHomepageStats();

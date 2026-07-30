@@ -72,9 +72,16 @@ it('filters upcoming person events by friendly date ranges', function () {
         'visibility' => 'public',
         'starts_at' => Carbon::create(2026, 8, 3, 12, 0, 0, 'UTC'),
     ]);
+    $thisMonth = Event::factory()->create([
+        'title' => 'Majlis Bulan Ini',
+        'status' => 'approved',
+        'visibility' => 'public',
+        'starts_at' => Carbon::create(2026, 7, 30, 14, 0, 0, 'UTC'),
+    ]);
 
     linkPersonEvent($person, $today);
     linkPersonEvent($person, $nextMonth);
+    linkPersonEvent($person, $thisMonth);
 
     try {
         Livewire::withCookie('user_timezone', 'Asia/Kuala_Lumpur')
@@ -85,6 +92,10 @@ it('filters upcoming person events by friendly date ranges', function () {
             ->set('upcomingDateFilter', 'next_month')
             ->assertSee('Majlis Bulan Depan')
             ->assertDontSee('Majlis Hari Ini')
+            ->set('upcomingDateFilter', 'this_month')
+            ->assertSee('Majlis Hari Ini')
+            ->assertSee('Majlis Bulan Ini')
+            ->assertDontSee('Majlis Bulan Depan')
             ->set('upcomingDateFilter', 'tomorrow')
             ->assertSee('Tiada majlis untuk tempoh ini')
             ->assertSee('Tunjukkan semua majlis')

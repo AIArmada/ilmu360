@@ -3,6 +3,9 @@
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\Membership\Enums\MemberRole;
+use AIArmada\Persons\Enums\AssignmentStatus;
+use AIArmada\Persons\Enums\PersonNameType;
+use AIArmada\Persons\Models\Title;
 use AIArmada\Signals\Models\SignalEvent;
 use App\Enums\ContributionRequestStatus;
 use App\Enums\ContributionRequestType;
@@ -25,6 +28,7 @@ use App\Models\Reference;
 use App\Models\Report;
 use App\Models\User;
 use App\Models\Venue;
+use App\Services\ContributionEntityMutationService;
 use Database\Seeders\PermissionSeeder;
 use Filament\Forms\Components\FileUpload;
 use Illuminate\Http\UploadedFile;
@@ -281,6 +285,26 @@ it('keeps reviewer context fields on update suggestion pages', function () {
         ->assertSee(__('Optional: add context that helps maintainers review your update faster.'));
 });
 
+it('uses the admin person form sections on the public person update page', function () {
+    $user = User::factory()->create();
+    $person = Person::factory()->create([
+        'status' => 'verified',
+    ]);
+
+    $this->actingAs($user);
+
+    $this->get(route('contributions.suggest-update', [
+        'subjectType' => ContributionSubjectType::Person->publicRouteSegment(),
+        'subjectId' => $person->slug,
+    ]))
+        ->assertOk()
+        ->assertSee(__('Profil'))
+        ->assertSee(__('Media'))
+        ->assertSee(__('Lokasi'))
+        ->assertSee(__('Hubungan'))
+        ->assertDontSee(__('Pendidikan'));
+});
+
 it('hides reviewer context fields for direct institution edits', function () {
     $user = User::factory()->create();
     $institution = Institution::factory()->create([
@@ -499,6 +523,53 @@ it('shows the person media uploads on the suggest update page only for maintaine
         ->assertSee(__('Gallery'));
 });
 
+it('hydrates the selected person institution label even when the institution is not public', function () {
+    $user = User::factory()->create();
+    $institution = Institution::factory()->create([
+        'status' => 'unverified',
+    ]);
+    $person = Person::factory()->create([
+        'status' => 'verified',
+    ]);
+
+    Affiliation::create([
+        'affiliatable_type' => $person->getMorphClass(),
+        'affiliatable_id' => $person->getKey(),
+        'institution_id' => $institution->getKey(),
+        'position' => 'Professor',
+        'is_primary' => true,
+    ]);
+
+    Livewire::actingAs($user)
+        ->test(SuggestUpdate::class, [
+            'subjectType' => ContributionSubjectType::Person->publicRouteSegment(),
+            'subjectId' => $person->slug,
+        ])
+        ->assertSet('data.institution_id', $institution->getKey())
+        ->assertSet('data.institution_position', 'Professor')
+        ->assertSee($institution->display_name);
+});
+
+it('searches affiliated institutions without case-sensitive matching', function () {
+    $user = User::factory()->create();
+    $institution = Institution::factory()->create([
+        'name' => 'Masjid Al-Hikmah',
+        'status' => 'verified',
+    ]);
+    $person = Person::factory()->create([
+        'status' => 'verified',
+    ]);
+
+    $component = Livewire::actingAs($user)->test(SuggestUpdate::class, [
+        'subjectType' => ContributionSubjectType::Person->publicRouteSegment(),
+        'subjectId' => $person->slug,
+    ]);
+
+    $field = $component->instance()->getForm('form')->getFlatFields()['institution_id'];
+
+    expect($field->getSearchResults('masjid'))->toHaveKey($institution->getKey());
+});
+
 it('applies direct person affiliation edits for owner maintainers from the suggest update page', function () {
     $user = User::factory()->create();
     $currentInstitution = Institution::factory()->create([
@@ -553,6 +624,92 @@ it('applies direct person affiliation edits for owner maintainers from the sugge
         ->and($newAffiliation?->pivot?->position)->toBe('Mudir')
         ->and((bool) $newAffiliation?->pivot?->is_primary)->toBeTrue()
         ->and((bool) $secondaryAffiliation?->pivot?->is_primary)->toBeFalse()
+        ->and(ContributionRequest::query()->count())->toBe(0);
+});
+
+it('syncs person titles from the public update form without exposing alternate names', function () {
+    $user = User::factory()->create();
+    $person = Person::factory()->create([
+        'status' => 'verified',
+    ]);
+    $person->names()->delete();
+    $person->titleAssignments()->delete();
+
+    $person->names()->create([
+        'name_type' => PersonNameType::Display,
+        'full_name' => 'Nama Lama',
+        'language_code' => 'ms',
+        'is_primary' => true,
+    ]);
+    $firstTitle = Title::query()->where('short_form', 'Syeikhul Maqari')->firstOrFail();
+    $secondTitle = Title::query()->where('id', '!=', $firstTitle->getKey())->firstOrFail();
+    $oldAssignment = $person->titleAssignments()->create([
+        'title_id' => $firstTitle->getKey(),
+        'status' => AssignmentStatus::Active,
+    ]);
+
+    assignPersonOwner($user, $person);
+
+    Livewire::actingAs($user)
+        ->test(SuggestUpdate::class, [
+            'subjectType' => ContributionSubjectType::Person->publicRouteSegment(),
+            'subjectId' => $person->slug,
+        ])
+        ->assertDontSee(__('Alternative Names'))
+        ->assertDontSee(__('Date Awarded'))
+        ->assertDontSee(__('Date Expired'))
+        ->assertSee(__('Titles'))
+        ->set('data.title_ids', [$firstTitle->getKey(), $secondTitle->getKey()])
+        ->call('submit')
+        ->assertHasNoErrors();
+
+    $person->refresh();
+
+    expect($person->names()->pluck('full_name')->all())
+        ->toBe(['Nama Lama'])
+        ->and($person->titleAssignments()->count())->toBe(2)
+        ->and($person->titleAssignments()->pluck('title_id')->all())
+        ->toContain($firstTitle->getKey(), $secondTitle->getKey())
+        ->and($person->titleAssignments()->findOrFail($oldAssignment->getKey())->status)
+        ->toBe(AssignmentStatus::Active)
+        ->and(ContributionRequest::query()->count())->toBe(0);
+});
+
+it('syncs person media collections when a maintainer updates them publicly', function () {
+    Storage::fake('public');
+    config()->set('media-library.disk_name', 'public');
+
+    $user = User::factory()->create();
+    $person = Person::factory()->create([
+        'status' => 'verified',
+    ]);
+    $person->addMedia(UploadedFile::fake()->image('old-cover.jpg'))
+        ->toMediaCollection('cover');
+    $person->addMedia(UploadedFile::fake()->image('old-gallery.jpg'))
+        ->toMediaCollection('gallery');
+    $oldCoverUuid = $person->getFirstMedia('cover')?->uuid;
+    $oldGalleryUuid = $person->getFirstMedia('gallery')?->uuid;
+
+    assignPersonOwner($user, $person);
+
+    Livewire::actingAs($user)
+        ->test(SuggestUpdate::class, [
+            'subjectType' => ContributionSubjectType::Person->publicRouteSegment(),
+            'subjectId' => $person->slug,
+        ])
+        ->fillForm([
+            'cover' => UploadedFile::fake()->image('new-cover.jpg', 1600, 900),
+            'gallery' => [UploadedFile::fake()->image('new-gallery.jpg')],
+        ])
+        ->call('submit')
+        ->assertHasNoErrors();
+
+    $person = $person->fresh();
+
+    expect($person->getMedia('cover'))->toHaveCount(1)
+        ->and($person->getFirstMedia('cover')?->uuid)->not->toBe($oldCoverUuid)
+        ->and($person->getMedia('gallery'))->toHaveCount(1)
+        ->and($person->getFirstMedia('gallery')?->uuid)->not->toBe($oldGalleryUuid)
         ->and(ContributionRequest::query()->count())->toBe(0);
 });
 
@@ -1360,6 +1517,55 @@ it('resolves person slugs on the update suggestion page without uuid casting err
         'subjectType' => ContributionSubjectType::Person->publicRouteSegment(),
         'subjectId' => $person->slug,
     ])->assertSet('subjectType', 'person');
+});
+
+it('hydrates the family name on the person update form', function () {
+    $user = User::factory()->create();
+    $person = Person::factory()->create([
+        'name' => 'Maszlee',
+        'family_name' => 'Malik',
+        'status' => 'verified',
+    ]);
+
+    Livewire::actingAs($user)
+        ->test(SuggestUpdate::class, [
+            'subjectType' => ContributionSubjectType::Person->publicRouteSegment(),
+            'subjectId' => $person->slug,
+        ])
+        ->assertSet('data.family_name', 'Malik');
+});
+
+it('hydrates primary and public flags for person contacts and social media', function () {
+    $person = Person::factory()->create(['status' => 'verified']);
+
+    withGlobalOwnerContext(function () use ($person): void {
+        $person->contactMethods()->create([
+            'type' => ContactMethodType::Email->value,
+            'purpose' => ContactPurpose::General->value,
+            'value' => 'speaker@example.test',
+            'is_primary' => true,
+            'is_public' => false,
+        ]);
+        $person->socialProfiles()->create([
+            'platform' => 'facebook',
+            'handle' => 'speaker',
+            'is_primary' => true,
+            'is_public' => false,
+        ]);
+    });
+
+    $state = app(ContributionEntityMutationService::class)->stateFor($person->fresh());
+
+    $contact = collect($state['contactMethods'])->firstWhere('value', 'speaker@example.test');
+    $social = collect($state['social_media'])->firstWhere('handle', 'speaker');
+
+    expect($contact)->toMatchArray([
+        'is_primary' => true,
+        'is_public' => false,
+    ])->and($social)->toMatchArray([
+        'is_primary' => true,
+        'is_public' => false,
+    ]);
 });
 
 it('keeps person update suggestions on a region-only address form', function () {

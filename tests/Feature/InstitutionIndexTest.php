@@ -31,6 +31,15 @@ it('shows an icon clear button when the institution search has a query', functio
         ->assertSee('M6 6l8 8M14 6l-8 8', false);
 });
 
+it('keeps the default country neutral and the filter copy minimal', function () {
+    get('/institusi')
+        ->assertSuccessful()
+        ->assertSee('institution-search-hint', false)
+        ->assertDontSee(__('Narrow the directory by area.'))
+        ->assertDontSee(__('Start with a state or city to narrow the results.'))
+        ->assertDontSee(__('Clear Location Scope'));
+});
+
 it('renders translated no-result copy on institution index', function () {
     app()->setLocale('ms');
 
@@ -70,7 +79,7 @@ it('centers the institution card majlis counter without a view details label', f
     get('/institusi?search='.urlencode('Institusi Kad Tanpa Butiran'))
         ->assertSuccessful()
         ->assertSee('Institusi Kad Tanpa Butiran')
-        ->assertSee('aspect-video bg-slate-50', false)
+        ->assertSee('institution-card-media aspect-video', false)
         ->assertSee('border-t border-slate-100 flex items-center justify-center', false)
         ->assertDontSee(__('View Details'));
 });
@@ -377,6 +386,16 @@ it('defaults the institution location scope to the application country', functio
 
     Livewire::test('pages.institutions.index')
         ->assertSet('country_id', ensureTestMalaysiaCountry()->getKey());
+});
+
+it('follows the Malaysia geography cascade without exposing a city filter', function () {
+    $geo = createTestPackageGeography('Selangor Cascade', 'Petaling Cascade', 'Subang Cascade');
+
+    Livewire::test('pages.institutions.index')
+        ->assertDontSee('institution-city-filter', false)
+        ->set('state_id', $geo['state']->getKey())
+        ->assertSee('institution-district-filter', false)
+        ->assertDontSee('institution-city-filter', false);
 });
 
 it('filters institutions by country', function () {

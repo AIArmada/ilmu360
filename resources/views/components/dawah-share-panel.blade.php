@@ -139,7 +139,9 @@
     <div class="flex flex-col gap-5">
         <div>
             <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">{{ $heading }}</p>
-            <p class="mt-2 text-sm leading-6 text-slate-600">{{ $description }}</p>
+            @if(filled($description))
+                <p class="mt-2 text-sm leading-6 text-slate-600">{{ $description }}</p>
+            @endif
         </div>
 
         @if(filled($previewTitle) || filled($previewSubtitle))

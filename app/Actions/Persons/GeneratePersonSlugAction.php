@@ -50,7 +50,11 @@ class GeneratePersonSlugAction
     public function handle(string $name, array $payload = [], ?string $ignorePersonId = null): string
     {
         $normalizedName = trim($name);
-        $displayName = $this->displayName($normalizedName);
+        $displayName = $this->displayName(
+            $normalizedName,
+            $payload['middle_name'] ?? null,
+            $payload['family_name'] ?? null,
+        );
         $nameSlug = Str::slug($displayName !== '' ? $displayName : $normalizedName);
 
         if ($nameSlug === '') {
@@ -82,6 +86,8 @@ class GeneratePersonSlugAction
                 'state' => $address?->state,
                 'country_id' => $address?->country_id,
                 'country_code' => $address?->country_code,
+                'family_name' => $person->family_name,
+                'middle_name' => $person->middle_name,
             ],
             (string) $person->getKey(),
         );
@@ -120,8 +126,12 @@ class GeneratePersonSlugAction
         return implode('-', $segments);
     }
 
-    private function displayName(string $name): string
+    private function displayName(string $name, mixed $middleName = null, mixed $familyName = null): string
     {
-        return Person::formatDisplayedName($name);
+        return Person::formatDisplayedName(
+            $name,
+            is_string($middleName) ? $middleName : null,
+            is_string($familyName) ? $familyName : null,
+        );
     }
 }

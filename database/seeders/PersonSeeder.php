@@ -556,11 +556,21 @@ class PersonSeeder extends Seeder
 
         foreach ($realPersons as $personData) {
             OwnerContext::withOwner(null, function () use ($personData, $userIds, $malaysia, &$memberAttachments): void {
-                $name = $personData['name'];
+                $nameParts = array_values(array_filter(preg_split('/\s+/u', trim($personData['name'])) ?: []));
+                $familyName = array_pop($nameParts) ?: null;
+                $name = array_shift($nameParts) ?: trim($personData['name']);
+                $middleName = $nameParts !== [] ? implode(' ', $nameParts) : null;
                 $person = Person::firstOrCreate(
-                    ['name' => $name],
                     [
-                        'slug' => app(GeneratePersonSlugAction::class)->handle($name),
+                        'name' => $name,
+                        'middle_name' => $middleName,
+                        'family_name' => $familyName,
+                    ],
+                    [
+                        'slug' => app(GeneratePersonSlugAction::class)->handle($name, [
+                            'middle_name' => $middleName,
+                            'family_name' => $familyName,
+                        ]),
                         'gender' => $personData['gender'],
                         'bio' => [
                             'type' => 'doc',
@@ -576,6 +586,13 @@ class PersonSeeder extends Seeder
                         'speaker_status' => SpeakerStatus::Active->value,
                     ]
                 );
+
+                if ($person->middle_name !== $middleName || $person->family_name !== $familyName) {
+                    $person->forceFill([
+                        'middle_name' => $middleName,
+                        'family_name' => $familyName,
+                    ])->saveQuietly();
+                }
 
                 if ($person->wasRecentlyCreated || $person->getAttribute('speaker_status') === null) {
                     $person->forceFill(['speaker_status' => SpeakerStatus::Active->value])->saveQuietly();

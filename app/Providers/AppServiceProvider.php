@@ -20,6 +20,9 @@ use AIArmada\Events\Models\EventTimeExpression;
 use AIArmada\FilamentSignals\Policies\TrackedPropertyPolicy;
 use AIArmada\Membership\Contracts\MembershipApplicationNotifier;
 use AIArmada\Membership\Contracts\MembershipHook;
+use AIArmada\Persons\Models\PersonName;
+use AIArmada\Persons\Models\Title;
+use AIArmada\Persons\Models\TitleAssignment;
 use AIArmada\Signals\Models\TrackedProperty;
 use App\Actions\Slugs\ResolvePublicSlugAction;
 use App\Ai\Listeners\RecordAiUsage;
@@ -62,7 +65,9 @@ use App\Observers\EventOccurrenceObserver;
 use App\Observers\EventTermObserver;
 use App\Observers\EventTimeExpressionObserver;
 use App\Observers\InstitutionObserver;
+use App\Observers\PersonNameObserver;
 use App\Observers\PersonObserver;
+use App\Observers\PersonTitleObserver;
 use App\Observers\ReferenceObserver;
 use App\Observers\VenueObserver;
 use App\Policies\AddressAreaPolicy;
@@ -87,9 +92,11 @@ use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Support\Assets\Js;
 use Filament\Support\Facades\FilamentAsset;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event as EventFacade;
 use Illuminate\Support\Facades\Gate;
@@ -109,6 +116,8 @@ use Laravel\Mcp\Server\Http\Controllers\OAuthRegisterController as McpOAuthRegis
 use Laravel\Passport\Passport;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use PhpParser\PrettyPrinter;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -311,6 +320,35 @@ class AppServiceProvider extends ServiceProvider
                         'CacheControl' => 'public, max-age=31536000, immutable',
                     ]);
 
+                // The package default uses load('media') for every upload field.
+                // A form with several collections then reloads the same relation
+                // once per field. Keep the relation request-local and already
+                // loaded for the preview URL resolver as well.
+                $upload->loadStateFromRelationshipsUsing(
+                    static function (SpatieMediaLibraryFileUpload $component, HasMedia $record): void {
+                        /** @var Model&HasMedia $record */
+                        $record->loadMissing('media');
+
+                        $media = $record->getMedia($component->getCollection() ?? 'default')
+                            ->when(
+                                $component->hasMediaFilter(),
+                                fn (Collection $media) => $component->filterMedia($media),
+                            )
+                            ->when(
+                                ! $component->isMultiple(),
+                                fn (Collection $media): Collection => $media->take(1),
+                            )
+                            ->mapWithKeys(function (Media $media): array {
+                                $uuid = $media->getAttributeValue('uuid');
+
+                                return [$uuid => $uuid];
+                            })
+                            ->toArray();
+
+                        $component->rawState($media);
+                    },
+                );
+
                 $upload->getUploadedFileNameForStorageUsing(
                     static function (SpatieMediaLibraryFileUpload $component, TemporaryUploadedFile $file): string {
                         $record = $component->getRecord();
@@ -362,6 +400,9 @@ class AppServiceProvider extends ServiceProvider
         EventTimeExpression::observe(EventTimeExpressionObserver::class);
         Institution::observe(InstitutionObserver::class);
         Person::observe(PersonObserver::class);
+        PersonName::observe(PersonNameObserver::class);
+        Title::observe(PersonTitleObserver::class);
+        TitleAssignment::observe(PersonTitleObserver::class);
         Reference::observe(ReferenceObserver::class);
         Venue::observe(VenueObserver::class);
 

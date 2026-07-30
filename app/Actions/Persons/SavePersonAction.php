@@ -64,6 +64,8 @@ final readonly class SavePersonAction
             : (array_key_exists('allow_public_event_submission', $data) ? (bool) $data['allow_public_event_submission'] : $currentPublicSubmission);
         $attributes = [
             'name' => $this->normalizeRequiredString($data['name'] ?? $person->name, 'Person'),
+            'middle_name' => $this->normalizeOptionalString($data['middle_name'] ?? $person->middle_name),
+            'family_name' => $this->normalizeOptionalString($data['family_name'] ?? $person->family_name),
             'gender' => $this->normalizeGender($data['gender'] ?? $person->gender ?? null),
             'bio' => array_key_exists('bio', $data) ? $data['bio'] : $person->bio,
             'status' => array_key_exists('status', $data) ? (string) $data['status'] : ($creating ? 'pending' : (string) $person->status),

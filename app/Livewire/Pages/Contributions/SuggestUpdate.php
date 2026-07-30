@@ -270,6 +270,8 @@ class SuggestUpdate extends Component implements HasActions, HasForms
             includeMedia: false,
             addressStatePath: 'address',
             regionOnlyAddress: true,
+            includeAlternativeNames: false,
+            useTitleMultiSelect: true,
         );
 
         // PersonContributionFormSchema::components(includeMedia: false) returns:
@@ -297,12 +299,9 @@ class SuggestUpdate extends Component implements HasActions, HasForms
                     Tab::make(__('Lokasi'))
                         ->icon(Heroicon::MapPin)
                         ->schema([$sections[1]]),
-                    Tab::make(__('Pendidikan'))
-                        ->icon(Heroicon::AcademicCap)
-                        ->schema([$sections[3]]),
-                    Tab::make(__('Sosial'))
+                    Tab::make(__('Hubungan'))
                         ->icon(Heroicon::ChatBubbleLeftRight)
-                        ->schema([$sections[4]]),
+                        ->schema([$sections[3], $sections[4]]),
                 ]),
         ];
     }
@@ -423,7 +422,6 @@ class SuggestUpdate extends Component implements HasActions, HasForms
                 ->circleCropper()
                 ->avatar()
                 ->conversion('thumb')
-                ->deletable(false)
                 ->helperText(__('Recommended: a clear square image, at least 400x400px.'));
         }
 
@@ -439,7 +437,6 @@ class SuggestUpdate extends Component implements HasActions, HasForms
                 ->automaticallyCropImagesToAspectRatio()
                 ->responsiveImages()
                 ->conversion('thumb')
-                ->deletable(false)
                 ->helperText(__('Primary speaker portrait (1:1 ratio).'));
         }
 
@@ -455,7 +452,6 @@ class SuggestUpdate extends Component implements HasActions, HasForms
                 ->automaticallyCropImagesToAspectRatio()
                 ->responsiveImages()
                 ->conversion('profile_thumb')
-                ->deletable(false)
                 ->helperText(__('Speaker portrait (3:4 ratio).'));
         }
 
@@ -465,13 +461,12 @@ class SuggestUpdate extends Component implements HasActions, HasForms
                 ->collection('cover')
                 ->image()
                 ->imageEditor()
-                ->imageAspectRatio('3:4')
+                ->imageAspectRatio('16:9')
                 ->automaticallyOpenImageEditorForAspectRatio()
-                ->imageEditorAspectRatioOptions(['3:4'])
+                ->imageEditorAspectRatioOptions(['16:9'])
                 ->automaticallyCropImagesToAspectRatio()
                 ->responsiveImages()
                 ->conversion('banner')
-                ->deletable(false)
                 ->helperText(__('Cover image for person profile'));
         }
 
@@ -594,7 +589,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
         }
 
         return $this->entity
-            ->load('media')
+            ->loadMissing('media')
             ->getMedia($field)
             ->mapWithKeys(static fn ($media): array => [$media->uuid => $media->uuid])
             ->all();
@@ -602,7 +597,24 @@ class SuggestUpdate extends Component implements HasActions, HasForms
 
     private function saveDirectEditMediaChanges(): void
     {
+        $mediaIdsBeforeSave = collect($this->directEditMediaFields)
+            ->mapWithKeys(fn (string $field): array => [$field => $this->currentDirectEditMediaState($field)])
+            ->all();
+
         $this->contributionForm()->model($this->entity)->saveRelationships();
+
+        foreach ($mediaIdsBeforeSave as $field => $mediaIds) {
+            $mediaField = $this->directEditMediaField($field);
+            if (! $mediaField instanceof SpatieMediaLibraryFileUpload) {
+                continue;
+            }
+
+            $submittedIds = array_keys(is_array($mediaField->getRawState()) ? $mediaField->getRawState() : []);
+
+            $this->entity->getMedia($field)
+                ->filter(fn ($media): bool => isset($mediaIds[$media->uuid]) && ! in_array($media->uuid, $submittedIds, true))
+                ->each->delete();
+        }
     }
 
     /**

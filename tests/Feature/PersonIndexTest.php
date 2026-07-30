@@ -1,6 +1,8 @@
 <?php
 
 use AIArmada\Persons\Enums\AssignmentStatus;
+use AIArmada\Persons\Enums\PersonNameType;
+use AIArmada\Persons\Models\PersonName;
 use AIArmada\Persons\Models\Title;
 use AIArmada\Persons\Models\TitleAssignment;
 use App\Enums\ContributionSubjectType;
@@ -72,6 +74,35 @@ it('can search persons by formatted honorific and prenominal titles', function (
         ->assertSuccessful()
         ->assertSee('Aisyah Binti Hassan')
         ->assertDontSee('Fatimah Binti Omar');
+});
+
+it('can search persons by alternate names and refreshes when they change', function () {
+    $person = Person::factory()->create([
+        'name' => 'Muhammad Zaid Hassan',
+        'status' => 'verified',
+    ]);
+
+    $alternateName = PersonName::query()->create([
+        'person_id' => $person->getKey(),
+        'name_type' => PersonNameType::Display,
+        'full_name' => 'Ustaz Lama',
+        'language_code' => 'ms',
+        'is_primary' => false,
+    ]);
+
+    get('/penceramah?search='.urlencode('Lama'))
+        ->assertSuccessful()
+        ->assertSee('Muhammad Zaid Hassan');
+
+    $alternateName->update(['full_name' => 'Ustaz Baharu']);
+
+    get('/penceramah?search='.urlencode('Baharu'))
+        ->assertSuccessful()
+        ->assertSee('Muhammad Zaid Hassan');
+
+    get('/penceramah?search='.urlencode('Lama'))
+        ->assertSuccessful()
+        ->assertDontSee('Muhammad Zaid Hassan');
 });
 
 it('filters by active status on public person index', function () {
@@ -296,6 +327,44 @@ it('refreshes cached person title search results after person updates', function
         ->persons;
 
     expect(collect($updatedSearchResults->items())->pluck('id')->all())
+        ->toContain((string) $person->id);
+});
+
+it('reindexes person search when a title assignment changes', function () {
+    $person = Person::factory()->create([
+        'name' => 'Aisyah Binti Hassan',
+        'status' => 'verified',
+    ]);
+
+    $title = Title::query()->where('short_form', 'Syeikhul Maqari')->firstOrFail();
+
+    expect(app(PersonSearchService::class)->publicSearchIds('syeikhul maqari'))
+        ->not->toContain((string) $person->id);
+
+    TitleAssignment::query()->create([
+        'titleable_type' => $person->getMorphClass(),
+        'titleable_id' => $person->getKey(),
+        'title_id' => $title->getKey(),
+        'status' => AssignmentStatus::Active,
+    ]);
+
+    expect(app(PersonSearchService::class)->publicSearchIds('syeikhul maqari'))
+        ->toContain((string) $person->id);
+});
+
+it('refreshes cached person search results when a person becomes verified', function () {
+    $person = Person::factory()->create([
+        'name' => 'Person Menunggu Pengesahan',
+        'status' => 'pending',
+    ]);
+    $searchService = app(PersonSearchService::class);
+
+    expect($searchService->publicSearchIds('menunggu pengesahan'))
+        ->not->toContain((string) $person->id);
+
+    $person->update(['status' => 'verified']);
+
+    expect($searchService->publicSearchIds('menunggu pengesahan'))
         ->toContain((string) $person->id);
 });
 

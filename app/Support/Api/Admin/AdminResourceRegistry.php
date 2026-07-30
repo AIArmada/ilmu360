@@ -630,6 +630,8 @@ class AdminResourceRegistry
             $resourceClass::getRecordTitleAttribute(),
             $model->getRouteKeyName(),
             'name',
+            'middle_name',
+            'family_name',
             'title',
             'slug',
             'email',

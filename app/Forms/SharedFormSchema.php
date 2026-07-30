@@ -16,6 +16,7 @@ use AIArmada\Addressing\Support\CountryAddressProfileResolver;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\Contacting\Enums\SocialPlatform;
+use AIArmada\Contacting\Support\SocialProfileConfig;
 use App\Actions\Location\NormalizeGoogleMapsInputAction;
 use App\Models\Event;
 use App\Models\Institution;
@@ -25,11 +26,13 @@ use App\Models\Venue;
 use App\Support\Location\AddressAssignments;
 use Closure;
 use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Component;
+use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
@@ -242,27 +245,97 @@ class SharedFormSchema
         return Repeater::make('social_media')
             ->label(__('Social Media'))
             ->schema([
-                Select::make('platform')
-                    ->label(__('Platform'))
-                    ->required()
-                    ->options(SocialPlatform::options())
-                    ->searchable(),
+                Grid::make(2)->schema([
+                    Select::make('platform')
+                        ->label(__('Platform'))
+                        ->required()
+                        ->options(SocialPlatform::options())
+                        ->searchable()
+                        ->live(),
+                    TextInput::make('label')
+                        ->label(__('Label'))
+                        ->maxLength(255)
+                        ->placeholder(__('Main page, Official channel')),
+                ]),
                 TextInput::make('handle')
                     ->label(__('Handle'))
-                    ->requiredWithout('url')
+                    ->required()
                     ->maxLength(255)
-                    ->placeholder(__('username / https://...')),
+                    ->placeholder(__('username / https://...'))
+                    ->live()
+                    ->afterStateUpdated(function (Get $get, Set $set, ?string $state): void {
+                        if ($state === null || $state === '' || ! str_contains($state, '://')) {
+                            return;
+                        }
+
+                        $platform = $get('platform');
+                        if ($platform === null || $platform === '') {
+                            return;
+                        }
+
+                        $platformValue = $platform instanceof SocialPlatform ? $platform->value : $platform;
+                        $extracted = app(SocialProfileConfig::class)->extractHandle($platformValue, $state);
+
+                        if ($extracted !== null) {
+                            $set('handle', $extracted);
+                        }
+                    })
+                    ->visible(fn (Get $get): bool => self::socialHandleVisible($get)),
+                Placeholder::make('profile_url')
+                    ->label(__('Profile URL'))
+                    ->content(function (Get $get): ?string {
+                        $platform = $get('platform');
+                        $handle = $get('handle');
+
+                        if (! is_string($handle) || $handle === '') {
+                            return null;
+                        }
+
+                        $platformValue = $platform instanceof SocialPlatform ? $platform->value : (string) $platform;
+
+                        return app(SocialProfileConfig::class)->buildUrl($platformValue, $handle);
+                    })
+                    ->columnSpanFull()
+                    ->visible(fn (Get $get): bool => self::socialHandleVisible($get)),
                 TextInput::make('url')
                     ->label(__('URL'))
-                    ->requiredWithout('handle')
+                    ->required()
                     ->url()
                     ->maxLength(255)
-                    ->placeholder(__('https://...')),
+                    ->placeholder(__('https://...'))
+                    ->columnSpanFull()
+                    ->visible(fn (Get $get): bool => self::socialUrlVisible($get)),
+                Grid::make(2)->schema([
+                    Toggle::make('is_primary')
+                        ->label(__('Primary'))
+                        ->fixIndistinctState(),
+                    Toggle::make('is_public')
+                        ->label(__('Public'))
+                        ->default(true),
+                ])->columnSpanFull(),
             ])
             ->collapsible()
             ->defaultItems(0)
             ->addActionLabel(__('Add Social Media'))
             ->helperText(__($helperText));
+    }
+
+    private static function socialHandleVisible(Get $get): bool
+    {
+        $platform = $get('platform');
+        $value = $platform instanceof SocialPlatform ? $platform->value : $platform;
+
+        return is_string($value)
+            && $value !== SocialPlatform::Website->value
+            && $value !== SocialPlatform::Other->value;
+    }
+
+    private static function socialUrlVisible(Get $get): bool
+    {
+        $platform = $get('platform');
+        $value = $platform instanceof SocialPlatform ? $platform->value : $platform;
+
+        return $value === SocialPlatform::Website->value || $value === SocialPlatform::Other->value;
     }
 
     public static function contactsRepeater(?string $helperText = null): Repeater
@@ -282,9 +355,14 @@ class SharedFormSchema
                     ->options(ContactPurpose::options())
                     ->default(ContactPurpose::General->value)
                     ->required(),
-                Toggle::make('is_public')
-                    ->label(__('Public'))
-                    ->default(true),
+                Grid::make(2)->schema([
+                    Toggle::make('is_primary')
+                        ->label(__('Primary'))
+                        ->fixIndistinctState(),
+                    Toggle::make('is_public')
+                        ->label(__('Public'))
+                        ->default(true),
+                ])->columnSpanFull(),
             ])
             ->columns(4)
             ->mutateRelationshipDataBeforeFillUsing(fn (array $data): array => self::normalizeContactRowsForFill($data))

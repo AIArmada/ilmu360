@@ -69,6 +69,8 @@ class SearchController extends FrontendController
         'id',
         'slug',
         'name',
+        'middle_name',
+        'family_name',
         'type',
         'names',
         'display_name',
@@ -348,7 +350,7 @@ class SearchController extends FrontendController
     )]
     #[QueryParameter('area_assignments[administrative_district]', 'Optional district UUID filter. Use the area_assignments[administrative_district] syntax.', required: false, type: 'string', infer: false, example: '019d0000-0000-7000-8000-000000000001')]
     #[QueryParameter('area_assignments[administrative_subdivision]', 'Optional subdistrict UUID filter. Use the area_assignments[administrative_subdivision] syntax.', required: false, type: 'string', infer: false, example: '019d0000-0000-7000-8000-000000000002')]
-    #[QueryParameter('fields', 'Optional comma-separated top-level list fields to return. Supported fields: id, slug, name, gender, formatted_name, status, events_count, avatar_url, country, is_following.', required: false, type: 'string', infer: false, example: 'id,name,avatar_url')]
+    #[QueryParameter('fields', 'Optional comma-separated top-level list fields to return. Supported fields: id, slug, name, middle_name, family_name, gender, formatted_name, status, events_count, avatar_url, country, is_following.', required: false, type: 'string', infer: false, example: 'id,middle_name,family_name,avatar_url')]
     #[Response(
         status: 200,
         description: 'Person directory response.',

@@ -10,6 +10,8 @@ class EventListPersonData extends Data
     public function __construct(
         public string $id,
         public string $name,
+        public ?string $middle_name,
+        public ?string $family_name,
         public ?string $gender,
         public string $formatted_name,
         public string $slug,
@@ -21,6 +23,8 @@ class EventListPersonData extends Data
         return new self(
             id: (string) $person->id,
             name: (string) $person->name,
+            middle_name: $person->middle_name,
+            family_name: $person->family_name,
             gender: $person->gender instanceof \BackedEnum ? $person->gender->value : null,
             formatted_name: (string) $person->formatted_name,
             slug: (string) $person->slug,

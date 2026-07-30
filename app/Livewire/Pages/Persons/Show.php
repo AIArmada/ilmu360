@@ -429,6 +429,7 @@ class Show extends Component
             'tomorrow' => [$today->copy()->addDay(), $today->copy()->addDays(2)],
             'this_week' => [$today, $today->copy()->startOfWeek()->addWeek()],
             'this_weekend' => $this->weekendDateRange($today),
+            'this_month' => [$today->copy()->startOfMonth(), $today->copy()->startOfMonth()->addMonth()],
             'next_week' => [
                 $today->copy()->startOfWeek()->addWeek(),
                 $today->copy()->startOfWeek()->addWeeks(2),

@@ -376,6 +376,8 @@ class MemberResourceService
         $candidates = [
             'title',
             'name',
+            'middle_name',
+            'family_name',
             'label',
             'slug',
             'email',
@@ -429,6 +431,8 @@ class MemberResourceService
     {
         $table = $model->getTable();
         $candidates = [
+            'family_name',
+            'middle_name',
             'name',
             'title',
             'label',
@@ -463,6 +467,8 @@ class MemberResourceService
         $candidates = [
             'title',
             'name',
+            'middle_name',
+            'family_name',
             'label',
             'slug',
             'email',

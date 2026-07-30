@@ -10,6 +10,8 @@ class EventPersonData extends Data
     public function __construct(
         public string $id,
         public string $name,
+        public ?string $middle_name,
+        public ?string $family_name,
         public string $formatted_name,
         public string $slug,
         public string $avatar_url,
@@ -20,6 +22,8 @@ class EventPersonData extends Data
         return new self(
             id: (string) $person->id,
             name: (string) $person->name,
+            middle_name: $person->middle_name,
+            family_name: $person->family_name,
             formatted_name: (string) $person->formatted_name,
             slug: (string) $person->slug,
             avatar_url: (string) $person->public_avatar_url,

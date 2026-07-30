@@ -1074,6 +1074,8 @@ class AdminResourceMutationService
     {
         $fields = [
             $this->field('name', 'string', required: true, maxLength: 255),
+            $this->field('middle_name', 'string', required: false, maxLength: 100),
+            $this->field('family_name', 'string', required: false, maxLength: 100),
             $this->field('names', 'array', required: false, meta: [
                 'mutation_semantics' => 'replace_collection',
                 'item_schema' => [
@@ -1965,6 +1967,8 @@ class AdminResourceMutationService
 
         return [
             'name' => ['required', 'string', 'max:255'],
+            'middle_name' => ['nullable', 'string', 'max:100'],
+            'family_name' => ['nullable', 'string', 'max:100'],
             'type' => ['required', Rule::enum(InstitutionType::class)],
             'names' => ['nullable', 'array'],
             'description' => ['nullable', 'string'],

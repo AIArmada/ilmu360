@@ -552,6 +552,8 @@ class EventSeeder extends Seeder
 
         $createdPerson = Person::query()->create([
             'name' => $personName,
+            'middle_name' => null,
+            'family_name' => null,
             'slug' => app(GeneratePersonSlugAction::class)->handle($personName),
             'status' => 'verified',
         ]);

@@ -48,6 +48,13 @@ class PersonForm
                                             ->label(__('Name'))
                                             ->required()
                                             ->maxLength(255),
+                                        TextInput::make('family_name')
+                                            ->label(__('Family name'))
+                                            ->maxLength(100)
+                                            ->helperText(__('Surname / family name used for sorting.')),
+                                        TextInput::make('middle_name')
+                                            ->label(__('Middle name'))
+                                            ->maxLength(100),
                                         Select::make('gender')
                                             ->label(__('Gender'))
                                             ->options(Gender::class)

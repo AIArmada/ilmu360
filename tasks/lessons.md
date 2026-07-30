@@ -397,3 +397,29 @@
 - When a custom range is an occasional action, keep it out of the primary preset tabs; a centered calendar-icon trigger with an active state reduces tab crowding while preserving discoverability.
 
 - Verify loading visuals while a request is actually in flight; a spinner that only looks acceptable in a static DOM snapshot can still appear frozen at the interaction speed users experience.
+
+- Flux input classes can land on the component wrapper rather than the native
+  control; use the `class:input` attribute when a themed date or text input
+  needs its actual background, text, border, or placeholder styles overridden.
+
+- When a page already establishes an entity's identity and location in its
+  hero, omit those same fields from its share panel preview so the panel stays
+  focused on the sharing action.
+
+- When a shared component has optional supporting copy, conditionally render
+  the paragraph itself so removing the copy also removes its spacing footprint.
+
+- Keep page-specific share-panel labels in the page's established locale; do
+  not introduce English copy into an otherwise Malay public surface.
+
+- Add friendly date presets at both boundaries: a visible filter option and a
+  user-local, half-open date range in the Livewire query logic, with a focused
+  regression event inside the selected period and another just outside it.
+
+- When extending date-filter fixtures, check the configured viewer timezone so
+  the new event does not accidentally belong to a neighboring preset under
+  test.
+
+- For public filter UI, verify the rendered hierarchy in the browser—not only the utility classes: a misplaced closing wrapper can detach helper actions from the card, and pale native/Flux select affordances can make enabled controls look disabled.
+- For geography cascades, guard dependent option lists on the parent selection first; a country-scoped city query can otherwise populate a City field before State is selected, even when the admin form intentionally hides it.
+- When embedding a query builder subquery with `toSql()` inside `orderByRaw()`, merge that subquery's bindings once for every interpolation and preserve the SQL placeholder order; otherwise PostgreSQL can reject the prepared statement even though the generated SQL looks valid.

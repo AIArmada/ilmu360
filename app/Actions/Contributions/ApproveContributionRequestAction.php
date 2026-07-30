@@ -152,6 +152,8 @@ class ApproveContributionRequestAction
 
         $person = Person::create([
             'name' => (string) ($payload['name'] ?? 'Person'),
+            'middle_name' => $payload['middle_name'] ?? null,
+            'family_name' => $payload['family_name'] ?? null,
             'gender' => (string) ($payload['gender'] ?? 'male'),
             'bio' => $payload['bio'] ?? null,
             'slug' => $this->generatePersonSlugAction->handle((string) ($payload['name'] ?? 'Person'), $payload),

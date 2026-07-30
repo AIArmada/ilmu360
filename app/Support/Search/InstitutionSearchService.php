@@ -345,10 +345,20 @@ class InstitutionSearchService implements PublicDiscoveryAdapter
             ->where('is_primary', true)
             ->limit(1);
 
+        $nameQuerySql = $nameQuery->toSql();
+        $nameQueryBindings = $nameQuery->getBindings();
+
         return $query
             ->orderByRaw(
-                "case when lower(coalesce(institutions.name, '')) = ? or lower(coalesce(({$nameQuery->toSql()}), '')) = ? then 0 when lower(coalesce(institutions.name, '')) like ? or lower(coalesce(({$nameQuery->toSql()}), '')) like ? then 1 else 2 end",
-                [$normalizedSearch, $normalizedSearch, $normalizedSearch.'%', $normalizedSearch.'%']
+                "case when lower(coalesce(institutions.name, '')) = ? or lower(coalesce(({$nameQuerySql}), '')) = ? then 0 when lower(coalesce(institutions.name, '')) like ? or lower(coalesce(({$nameQuerySql}), '')) like ? then 1 else 2 end",
+                [
+                    $normalizedSearch,
+                    ...$nameQueryBindings,
+                    $normalizedSearch,
+                    $normalizedSearch.'%',
+                    ...$nameQueryBindings,
+                    $normalizedSearch.'%',
+                ]
             )
             ->orderByRaw("length(coalesce(institutions.name, ''))")
             ->orderBy('institutions.name')

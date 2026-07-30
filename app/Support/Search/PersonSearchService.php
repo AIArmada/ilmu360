@@ -28,6 +28,18 @@ class PersonSearchService implements PublicDiscoveryAdapter
         ])));
     }
 
+    public function buildSearchableText(Person $person): string
+    {
+        $alternativeNames = $person->relationLoaded('names')
+            ? $person->getRelation('names')->pluck('full_name')->all()
+            : $person->names()->pluck('full_name')->all();
+
+        return $this->buildSearchableName(implode(' ', array_filter([
+            $person->formatted_name,
+            ...$alternativeNames,
+        ])));
+    }
+
     /**
      * @return list<string>
      */
@@ -220,6 +232,7 @@ class PersonSearchService implements PublicDiscoveryAdapter
                 ->where('status', 'verified')
                 ->select('persons.id')
                 ->tap(fn (Builder $query): Builder => $this->applyDatabaseNameSearch($query, $normalizedSearch))
+                ->orderBy('family_name')
                 ->orderBy('name')
                 ->pluck('persons.id')
                 ->map(static fn (mixed $id): string => (string) $id)
@@ -232,6 +245,7 @@ class PersonSearchService implements PublicDiscoveryAdapter
             ->where('status', 'verified')
             ->select('persons.id')
             ->tap(fn (Builder $query): Builder => $this->applyIndexedSearchWithLocalIndex($query, $normalizedSearch))
+            ->orderBy('family_name')
             ->orderBy('name')
             ->pluck('persons.id')
             ->map(static fn (mixed $id): string => (string) $id)
@@ -400,8 +414,8 @@ class PersonSearchService implements PublicDiscoveryAdapter
 
         $operator = DB::connection($query->getModel()->getConnectionName())->getDriverName() === 'pgsql' ? 'ILIKE' : 'LIKE';
         $columns = $this->hasSearchableNameColumn()
-            ? ['persons.searchable_name']
-            : ['persons.name'];
+            ? ['persons.searchable_name', 'persons.name', 'persons.family_name']
+            : ['persons.name', 'persons.family_name'];
 
         return $query->where(function (Builder $candidateQuery) use ($columns, $operator, $patterns): void {
             foreach ($patterns as $pattern) {
@@ -524,7 +538,7 @@ class PersonSearchService implements PublicDiscoveryAdapter
             ->delete();
 
         $terms = $this->buildSearchTerms(
-            $person->formatted_name,
+            $this->buildSearchableText($person),
         );
 
         if ($terms === []) {
@@ -552,9 +566,9 @@ class PersonSearchService implements PublicDiscoveryAdapter
         $processed = 0;
 
         Person::query()
+            ->with(['names', 'titleAssignments.title.category'])
             ->select(['id', 'name'])
-            ->orderBy('id')
-            ->chunk(max(1, $chunkSize), function ($persons) use (&$processed): void {
+            ->chunkById(max(1, $chunkSize), function ($persons) use (&$processed): void {
                 foreach ($persons as $person) {
                     $this->syncPersonRecordWithOptions($person, false);
                     $processed++;
@@ -577,9 +591,7 @@ class PersonSearchService implements PublicDiscoveryAdapter
             DB::table('persons')
                 ->where('id', $person->getKey())
                 ->update([
-                    'searchable_name' => $this->buildSearchableName(
-                        $person->formatted_name,
-                    ),
+                    'searchable_name' => $this->buildSearchableText($person),
                 ]);
         }
 
@@ -667,15 +679,19 @@ class PersonSearchService implements PublicDiscoveryAdapter
         $searchTokens = array_values(array_filter(explode(' ', $collapsedSearch), static fn (string $token): bool => $token !== ''));
 
         return $query->where(function (Builder $personQuery) use ($operator, $collapsedSearch, $collapsedWildcardSearch, $searchTokens): void {
-            $personQuery->where('name', $operator, "%{$collapsedSearch}%")
-                ->orWhere('name', $operator, $collapsedWildcardSearch);
+            $personQuery->where(function (Builder $nameQuery) use ($operator, $collapsedSearch, $collapsedWildcardSearch): void {
+                $nameQuery->where('name', $operator, "%{$collapsedSearch}%")
+                    ->orWhere('family_name', $operator, "%{$collapsedSearch}%")
+                    ->orWhereRaw("concat(coalesce(name, ''), ' ', coalesce(family_name, '')) {$operator} ?", [$collapsedWildcardSearch]);
+            });
 
             foreach ($searchTokens as $token) {
                 if (mb_strlen($token) < 2) {
                     continue;
                 }
 
-                $personQuery->orWhere('name', $operator, "%{$token}%");
+                $personQuery->orWhere('name', $operator, "%{$token}%")
+                    ->orWhere('family_name', $operator, "%{$token}%");
             }
         });
     }

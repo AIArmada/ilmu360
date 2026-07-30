@@ -144,6 +144,8 @@ final class PublicDirectorySchemasTransformer implements DocumentTransformer
             ->addProperty('id', new StringType)
             ->addProperty('slug', new StringType)
             ->addProperty('name', new StringType)
+            ->addProperty('middle_name', (new StringType)->nullable(true))
+            ->addProperty('family_name', (new StringType)->nullable(true))
             ->addProperty('gender', (new StringType)->nullable(true))
             ->addProperty('formatted_name', new StringType)
             ->addProperty('status', new StringType)
@@ -154,7 +156,7 @@ final class PublicDirectorySchemasTransformer implements DocumentTransformer
             ->addProperty('verified_by', (new StringType)->nullable(true));
 
         if (! $sparse) {
-            $type->setRequired(['id', 'slug', 'name', 'gender', 'formatted_name', 'status', 'events_count', 'avatar_url', 'country', 'is_following']);
+            $type->setRequired(['id', 'slug', 'name', 'middle_name', 'family_name', 'gender', 'formatted_name', 'status', 'events_count', 'avatar_url', 'country', 'is_following']);
         }
 
         return Schema::fromType($type);
@@ -276,6 +278,8 @@ final class PublicDirectorySchemasTransformer implements DocumentTransformer
                 ->addProperty('id', new StringType)
                 ->addProperty('slug', new StringType)
                 ->addProperty('name', new StringType)
+                ->addProperty('middle_name', (new StringType)->nullable(true))
+                ->addProperty('family_name', (new StringType)->nullable(true))
                 ->addProperty('gender', (new StringType)->nullable(true))
                 ->addProperty('formatted_name', new StringType)
                 ->addProperty('bio', (new StringType)->nullable(true))
@@ -293,6 +297,8 @@ final class PublicDirectorySchemasTransformer implements DocumentTransformer
                     'id',
                     'slug',
                     'name',
+                    'middle_name',
+                    'family_name',
                     'gender',
                     'formatted_name',
                     'bio',
@@ -717,6 +723,8 @@ final class PublicDirectorySchemasTransformer implements DocumentTransformer
         return (new ObjectType)
             ->addProperty('id', new StringType)
             ->addProperty('name', new StringType)
+            ->addProperty('middle_name', (new StringType)->nullable(true))
+            ->addProperty('family_name', (new StringType)->nullable(true))
             ->addProperty('gender', (new StringType)->nullable(true))
             ->addProperty('formatted_name', new StringType)
             ->addProperty('slug', new StringType)

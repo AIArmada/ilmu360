@@ -12,7 +12,7 @@ use Illuminate\Contracts\Support\Arrayable;
  * @phpstan-import-type CountryArray from Country
  *
  * @phpstan-type PersonMediaArray array{avatar_url: string, cover_url: ?string, share_image_url: ?string}
- * @phpstan-type PersonArray array{id: string, slug: string, name: string, gender: string|null, formatted_name: string, bio: ?string, address: AddressSelectionArray|null, country: CountryArray|null, location: ?string, status: string, verified_by: ?string, is_following: bool, media: PersonMediaArray, gallery: list<array<string, mixed>>, institutions: list<array<string, mixed>>, contacts: list<array<string, mixed>>, social_media: list<array<string, mixed>>}
+ * @phpstan-type PersonArray array{id: string, slug: string, name: string, middle_name: string|null, family_name: string|null, gender: string|null, formatted_name: string, bio: ?string, address: AddressSelectionArray|null, country: CountryArray|null, location: ?string, status: string, verified_by: ?string, is_following: bool, media: PersonMediaArray, gallery: list<array<string, mixed>>, institutions: list<array<string, mixed>>, contacts: list<array<string, mixed>>, social_media: list<array<string, mixed>>}
  *
  * @implements Arrayable<string, mixed>
  */
@@ -30,6 +30,8 @@ final readonly class Person implements Arrayable
         public string $id,
         public string $slug,
         public string $name,
+        public ?string $middle_name,
+        public ?string $family_name,
         public ?string $gender,
         public string $formatted_name,
         public ?string $bio,
@@ -53,6 +55,8 @@ final readonly class Person implements Arrayable
             'id' => $this->id,
             'slug' => $this->slug,
             'name' => $this->name,
+            'middle_name' => $this->middle_name,
+            'family_name' => $this->family_name,
             'gender' => $this->gender,
             'formatted_name' => $this->formatted_name,
             'bio' => $this->bio,

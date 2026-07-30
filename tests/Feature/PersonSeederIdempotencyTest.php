@@ -11,12 +11,14 @@ test('person seeder keeps real person contacts idempotent across reruns', functi
     $this->seed(PersonSeeder::class);
 
     $person = Person::query()
-        ->where('name', 'Fawwaz Mat Jan')
+        ->where('name', 'Fawwaz')
         ->firstOrFail();
 
     expect($person->contactMethods()->where('type', ContactMethodType::Email->value)->count())->toBe(1)
         ->and($person->contactMethods()->where('type', ContactMethodType::Phone->value)->count())->toBe(1)
-        ->and($person->name)->toBe('Fawwaz Mat Jan')
+        ->and($person->name)->toBe('Fawwaz')
+        ->and($person->middle_name)->toBe('Mat')
+        ->and($person->family_name)->toBe('Jan')
         ->and($person->formatted_name)->toBe('Ustaz Fawwaz Mat Jan')
         ->and($person->titleAssignments)->toHaveCount(1)
         ->and($person->primaryAddress()?->country_code)->toBe('MY');
@@ -36,10 +38,11 @@ test('person seeder assigns multiple titles through the persons package', functi
     $this->seed(PersonSeeder::class);
 
     $person = Person::query()
-        ->where('name', 'Muhaya Mohamad')
+        ->where('name', 'Muhaya')
         ->firstOrFail();
 
-    expect($person->formatted_name)->toBe('Prof Dr. Muhaya Mohamad')
+    expect($person->family_name)->toBe('Mohamad')
+        ->and($person->formatted_name)->toBe('Prof Dr. Muhaya Mohamad')
         ->and($person->titleAssignments)->toHaveCount(2)
         ->and($person->primaryAddress()?->country_code)->toBe('MY');
 });

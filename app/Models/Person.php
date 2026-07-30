@@ -18,6 +18,7 @@ use App\Enums\SpeakerStatus;
 use App\Models\Concerns\AuditsModelChanges;
 use App\Models\Concerns\HasDonationChannels;
 use App\Models\Concerns\HasLanguages;
+use App\Support\Search\PersonSearchService;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -100,9 +101,38 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
         ]);
     }
 
-    public static function formatDisplayedName(string $name): string
+    public static function formatDisplayedName(
+        string $name,
+        ?string $middleName = null,
+        ?string $familyName = null,
+    ): string {
+        return trim(implode(' ', array_filter([
+            trim($name),
+            trim((string) $middleName),
+            trim((string) $familyName),
+        ])));
+    }
+
+    public function getFormattedNameAttribute(): string
     {
-        return trim($name);
+        $formattedName = parent::getFormattedNameAttribute();
+        $middleName = trim((string) $this->middle_name);
+        $familyName = trim((string) $this->family_name);
+
+        if ($middleName === '' && $familyName === '') {
+            return $formattedName;
+        }
+
+        $nameWithoutPostNominals = trim(Str::before($formattedName, ','));
+        $formattedBase = trim(implode(' ', array_filter([
+            $nameWithoutPostNominals,
+            $middleName,
+            $familyName,
+        ])));
+
+        return Str::contains($formattedName, ',')
+            ? $formattedBase.', '.Str::after($formattedName, ', ')
+            : $formattedBase;
     }
 
     public function shouldBeSearchable(): bool
@@ -114,6 +144,8 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
     {
         return $this->wasRecentlyCreated || $this->wasChanged([
             'name',
+            'middle_name',
+            'family_name',
             'slug',
             'status',
             'gender',
@@ -139,13 +171,22 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
             return $this->toScoutDatabaseSearchableArray();
         }
 
+        $alternativeNames = $this->relationLoaded('names')
+            ? $this->getRelation('names')->pluck('full_name')->all()
+            : $this->names()->pluck('full_name')->all();
+        $searchableText = app(PersonSearchService::class)
+            ->buildSearchableText($this);
         $address = $this->primaryAddress();
         $updatedAt = $this->updated_at ?? now();
 
         return [
             'id' => (string) $this->getKey(),
             'name' => (string) $this->name,
+            'middle_name' => $this->middle_name,
+            'family_name' => $this->family_name,
             'formatted_name' => $this->formatted_name,
+            'person_names' => implode(' ', $alternativeNames),
+            'search_text' => $searchableText,
             'slug' => (string) $this->slug,
             'status' => (string) $this->status,
             'gender' => $this->gender instanceof Gender ? $this->gender->value : $this->gender,
@@ -164,7 +205,8 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
     {
         return array_filter([
             'name' => (string) $this->name,
-            'searchable_name' => filled($this->searchable_name) ? (string) $this->searchable_name : null,
+            'searchable_name' => app(PersonSearchService::class)
+                ->buildSearchableText($this),
             'slug' => (string) $this->slug,
         ], static fn (mixed $value): bool => is_string($value) && $value !== '');
     }

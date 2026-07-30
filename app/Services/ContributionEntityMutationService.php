@@ -21,7 +21,11 @@ use AIArmada\Events\Models\VenueFacility;
 use AIArmada\Membership\Actions\AddMemberAction;
 use AIArmada\Membership\Enums\MemberRole;
 use AIArmada\Persons\Enums\AffiliationType;
+use AIArmada\Persons\Enums\AssignmentStatus;
 use AIArmada\Persons\Enums\Gender;
+use AIArmada\Persons\Enums\PersonNameType;
+use AIArmada\Persons\Models\PersonName;
+use AIArmada\Persons\Models\TitleAssignment;
 use App\Actions\Events\SyncEventClassificationsAction;
 use App\Actions\Events\SyncEventScheduleAction;
 use App\Actions\Institutions\GenerateInstitutionSlugAction;
@@ -114,6 +118,10 @@ class ContributionEntityMutationService
                 'accepts_partial_updates' => true,
                 'fields' => [
                     $this->field('name', 'string', maxLength: 255),
+                    $this->field('family_name', 'string', maxLength: 100),
+                    $this->field('names', 'array'),
+                    $this->field('title_assignments', 'array'),
+                    $this->field('title_ids', 'array<int>'),
                     $this->field('gender', 'string', allowedValues: $this->enumValues(Gender::class)),
                     $this->field('bio', 'rich_text'),
                     $this->field('language_ids', 'array<int>', catalog: route('api.client.catalogs.languages')),
@@ -125,7 +133,7 @@ class ContributionEntityMutationService
                     $this->field('social_media', 'array<object>'),
                 ],
                 'conditional_rules' => [],
-                'direct_edit_media_fields' => ['avatar', 'cover', 'gallery'],
+                'direct_edit_media_fields' => ['avatar', 'main', 'profile', 'cover', 'gallery'],
             ],
             $entity instanceof Reference => [
                 'accepts_partial_updates' => true,
@@ -225,6 +233,21 @@ class ContributionEntityMutationService
             ],
             $entity instanceof Person => [
                 'name' => ['sometimes', 'string', 'max:255'],
+                'family_name' => ['sometimes', 'nullable', 'string', 'max:100'],
+                'names' => ['nullable', 'array'],
+                'names.*.id' => ['nullable', 'uuid'],
+                'names.*.name_type' => ['required', Rule::in($this->enumValues(PersonNameType::class))],
+                'names.*.full_name' => ['required', 'string', 'max:255'],
+                'names.*.language_code' => ['nullable', 'string', 'max:10'],
+                'names.*.is_primary' => ['nullable', 'boolean'],
+                'title_ids' => ['nullable', 'array'],
+                'title_ids.*' => ['uuid', 'exists:'.config('persons.database.tables.titles', 'titles').',id'],
+                'title_assignments' => ['nullable', 'array'],
+                'title_assignments.*.id' => ['nullable', 'uuid'],
+                'title_assignments.*.title_id' => ['required', 'uuid', 'exists:'.config('persons.database.tables.titles', 'titles').',id'],
+                'title_assignments.*.date_awarded' => ['nullable', 'date'],
+                'title_assignments.*.date_expired' => ['nullable', 'date'],
+                'title_assignments.*.status' => ['required', Rule::in($this->enumValues(AssignmentStatus::class))],
                 'gender' => ['sometimes', Rule::in($this->enumValues(Gender::class))],
                 'bio' => ['nullable'],
                 'institution_id' => ['nullable', 'uuid', 'exists:institutions,id'],
@@ -354,6 +377,8 @@ class ContributionEntityMutationService
     {
         $person = Person::create([
             'name' => (string) ($payload['name'] ?? 'Person'),
+            'middle_name' => $payload['middle_name'] ?? null,
+            'family_name' => $payload['family_name'] ?? null,
             'gender' => $this->normalizeGender($payload['gender'] ?? null),
             'bio' => $payload['bio'] ?? null,
             'slug' => $this->generatePersonSlugAction->handle(
@@ -419,6 +444,8 @@ class ContributionEntityMutationService
     {
         $person->fill([
             'name' => $payload['name'] ?? $person->name,
+            'middle_name' => array_key_exists('middle_name', $payload) ? $payload['middle_name'] : $person->middle_name,
+            'family_name' => array_key_exists('family_name', $payload) ? $payload['family_name'] : $person->family_name,
             'gender' => array_key_exists('gender', $payload)
                 ? $this->normalizeGender($payload['gender'])
                 : $person->gender,
@@ -686,12 +713,35 @@ class ContributionEntityMutationService
      */
     private function personState(Person $person): array
     {
-        $person->loadMissing(['addresses', 'contactMethods', 'socialProfiles', 'languages']);
+        $person->loadMissing([
+            'addresses',
+            'contactMethods',
+            'socialProfiles',
+            'languages',
+            'names',
+            'titleAssignments',
+        ]);
 
         $affiliatedInstitution = $this->currentPersonAffiliation($person);
 
         return [
             'name' => $person->name,
+            'family_name' => $person->family_name,
+            'names' => $person->names->map(fn (PersonName $name): array => [
+                'id' => (string) $name->getKey(),
+                'name_type' => $name->name_type instanceof PersonNameType ? $name->name_type->value : (string) $name->name_type,
+                'full_name' => $name->full_name,
+                'language_code' => $name->language_code,
+                'is_primary' => (bool) $name->is_primary,
+            ])->values()->all(),
+            'title_assignments' => $person->titleAssignments->map(fn (TitleAssignment $assignment): array => [
+                'id' => (string) $assignment->getKey(),
+                'title_id' => (string) $assignment->title_id,
+                'date_awarded' => $assignment->date_awarded?->format('Y-m-d'),
+                'date_expired' => $assignment->date_expired?->format('Y-m-d'),
+                'status' => $assignment->status instanceof AssignmentStatus ? $assignment->status->value : (string) $assignment->status,
+            ])->values()->all(),
+            'title_ids' => $person->titleAssignments->pluck('title_id')->map(fn (mixed $id): string => (string) $id)->values()->all(),
             'gender' => $person->gender instanceof BackedEnum ? $person->gender->value : '',
             'bio' => $person->bio,
             'language_ids' => $person->languages->pluck('id')->map(fn (mixed $id): string => (string) $id)->values()->all(),
@@ -868,6 +918,16 @@ class ContributionEntityMutationService
      */
     public function syncPersonRelations(Person $person, array $payload): void
     {
+        if (array_key_exists('names', $payload)) {
+            $this->syncPersonNames($person, $payload['names']);
+        }
+
+        if (array_key_exists('title_ids', $payload)) {
+            $this->syncPersonTitleIds($person, $payload['title_ids']);
+        } elseif (array_key_exists('title_assignments', $payload)) {
+            $this->syncPersonTitleAssignments($person, $payload['title_assignments']);
+        }
+
         $addressPayload = $this->personAddressPayload($payload);
 
         if (is_array($addressPayload)) {
@@ -890,6 +950,109 @@ class ContributionEntityMutationService
         }
 
         $this->syncPersonAffiliation($person, $payload);
+    }
+
+    public function syncPersonNames(Person $person, mixed $namesPayload): void
+    {
+        $existing = $person->names()->get()->keyBy(fn (PersonName $name): string => (string) $name->getKey());
+        $retainedIds = [];
+
+        foreach (is_array($namesPayload) ? $namesPayload : [] as $namePayload) {
+            if (! is_array($namePayload)) {
+                continue;
+            }
+
+            $fullName = trim((string) ($namePayload['full_name'] ?? ''));
+            if ($fullName === '') {
+                continue;
+            }
+
+            $nameType = $namePayload['name_type'] ?? PersonNameType::Display->value;
+            $nameType = $nameType instanceof PersonNameType
+                ? $nameType->value
+                : (string) $nameType;
+            $attributes = [
+                'name_type' => $nameType,
+                'full_name' => $fullName,
+                'language_code' => trim((string) ($namePayload['language_code'] ?? 'ms')) ?: 'ms',
+                'is_primary' => (bool) ($namePayload['is_primary'] ?? false),
+            ];
+            $nameId = is_string($namePayload['id'] ?? null) ? $namePayload['id'] : null;
+            $name = $nameId !== null ? $existing->get($nameId) : null;
+
+            if ($name instanceof PersonName) {
+                $name->update($attributes);
+                $retainedIds[] = (string) $name->getKey();
+            } else {
+                $created = $person->names()->create($attributes);
+                $retainedIds[] = (string) $created->getKey();
+            }
+        }
+
+        $existing->reject(fn (PersonName $name): bool => in_array((string) $name->getKey(), $retainedIds, true))
+            ->each->delete();
+    }
+
+    public function syncPersonTitleAssignments(Person $person, mixed $assignmentsPayload): void
+    {
+        $existing = $person->titleAssignments()->get()->keyBy(fn (TitleAssignment $assignment): string => (string) $assignment->getKey());
+        $retainedIds = [];
+
+        foreach (is_array($assignmentsPayload) ? $assignmentsPayload : [] as $assignmentPayload) {
+            if (! is_array($assignmentPayload)) {
+                continue;
+            }
+
+            $titleId = is_string($assignmentPayload['title_id'] ?? null) ? $assignmentPayload['title_id'] : null;
+            if ($titleId === null || $titleId === '') {
+                continue;
+            }
+
+            $status = $assignmentPayload['status'] ?? AssignmentStatus::Active->value;
+            $status = $status instanceof AssignmentStatus ? $status->value : (string) $status;
+            $attributes = [
+                'title_id' => $titleId,
+                'date_awarded' => $assignmentPayload['date_awarded'] ?? null,
+                'date_expired' => $assignmentPayload['date_expired'] ?? null,
+                'status' => $status,
+            ];
+            $assignmentId = is_string($assignmentPayload['id'] ?? null) ? $assignmentPayload['id'] : null;
+            $assignment = $assignmentId !== null ? $existing->get($assignmentId) : null;
+
+            if ($assignment instanceof TitleAssignment) {
+                $assignment->update($attributes);
+                $retainedIds[] = (string) $assignment->getKey();
+            } else {
+                $created = $person->titleAssignments()->create($attributes);
+                $retainedIds[] = (string) $created->getKey();
+            }
+        }
+
+        $existing->reject(fn (TitleAssignment $assignment): bool => in_array((string) $assignment->getKey(), $retainedIds, true))
+            ->each->delete();
+    }
+
+    /**
+     * @param  list<mixed>|mixed  $titleIds
+     */
+    private function syncPersonTitleIds(Person $person, mixed $titleIds): void
+    {
+        $existingByTitleId = $person->titleAssignments()
+            ->get()
+            ->keyBy(fn (TitleAssignment $assignment): string => (string) $assignment->title_id);
+        $assignments = is_array($titleIds)
+            ? array_map(function (mixed $titleId) use ($existingByTitleId): array {
+                $titleId = (string) $titleId;
+                $assignment = $existingByTitleId->get($titleId);
+
+                return [
+                    'id' => $assignment instanceof TitleAssignment ? (string) $assignment->getKey() : null,
+                    'title_id' => $titleId,
+                ];
+            }, $titleIds)
+            : [];
+
+        $this->syncPersonTitleAssignments($person, $assignments);
     }
 
     /**
@@ -1437,6 +1600,7 @@ class ContributionEntityMutationService
                     'type' => $type->value,
                     'purpose' => $purpose->value,
                     'value' => $value,
+                    'is_primary' => (bool) ($contact['is_primary'] ?? false),
                     'is_public' => (bool) ($contact['is_public'] ?? true),
                     'sort_order' => is_numeric($contact['sort_order'] ?? $contact['order_column'] ?? null)
                         ? (int) ($contact['sort_order'] ?? $contact['order_column'])
@@ -1503,6 +1667,8 @@ class ContributionEntityMutationService
                     'purpose' => ContactPurpose::General->value,
                     'handle' => $handle !== '' ? $handle : null,
                     'url' => $url !== '' ? $url : null,
+                    'is_primary' => (bool) ($entry['is_primary'] ?? false),
+                    'is_public' => (bool) ($entry['is_public'] ?? true),
                     'sort_order' => is_numeric($entry['sort_order'] ?? $entry['order_column'] ?? null)
                         ? (int) ($entry['sort_order'] ?? $entry['order_column'])
                         : $index + 1,
@@ -1641,6 +1807,7 @@ class ContributionEntityMutationService
                 'type' => $contact->type instanceof BackedEnum ? $contact->type->value : (string) $contact->type,
                 'purpose' => $contact->purpose instanceof BackedEnum ? $contact->purpose->value : (string) $contact->purpose,
                 'value' => $contact->value,
+                'is_primary' => (bool) $contact->is_primary,
                 'is_public' => (bool) $contact->is_public,
             ])
             ->values()
@@ -1659,6 +1826,8 @@ class ContributionEntityMutationService
                 'platform' => $entry->platform instanceof BackedEnum ? $entry->platform->value : (string) $entry->platform,
                 'handle' => $entry->handle,
                 'url' => $entry->url,
+                'is_primary' => (bool) $entry->is_primary,
+                'is_public' => (bool) $entry->is_public,
             ])
             ->values()
             ->all();

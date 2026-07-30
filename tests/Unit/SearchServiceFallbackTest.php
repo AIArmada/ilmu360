@@ -213,6 +213,24 @@ it('falls back to database institution fuzzy search when typesense lookup fails'
     expect($service->publicFuzzySearchIds('Hidayh'))->toContain((string) $institution->id);
 });
 
+it('binds all institution name ordering parameters for multi-word fuzzy searches', function () {
+    $institution = Institution::factory()->create([
+        'name' => 'Batu Pahat',
+        'status' => 'verified',
+    ]);
+
+    $service = new class extends InstitutionSearchService
+    {
+        protected function shouldUseTypesenseSearch(): bool
+        {
+            return false;
+        }
+    };
+
+    expect($service->publicFuzzySearchIds('batu pahat'))
+        ->toContain((string) $institution->id);
+});
+
 it('keeps transposed institution typos reachable through fallback candidate filtering', function () {
     $institution = Institution::factory()->create([
         'name' => 'Pusat Ahmad',

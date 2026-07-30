@@ -28,7 +28,7 @@ new
         private function applySort(Builder $query): Builder
         {
             return match ($this->sort) {
-                'name' => $query->orderBy('persons.name'),
+                'name' => $query->orderBy('persons.family_name')->orderBy('persons.name'),
                 default => $query->publicDirectoryOrder(),
             };
         }
@@ -53,6 +53,11 @@ new
         }
 
         public function updatedSearch(): void
+        {
+            $this->resetPage();
+        }
+
+        public function updatedSort(): void
         {
             $this->resetPage();
         }
@@ -228,7 +233,7 @@ new
                                     wire:keydown.escape="clearSearch"
                                     placeholder="{{ __('Cari nama penceramah…') }}"
                                     autocomplete="off"
-                                    class="h-12 min-w-0 flex-1 border-0 bg-transparent px-0 text-base font-medium text-slate-900 placeholder:text-slate-400 focus:ring-0"
+                                    class="person-search-input h-12 min-w-0 flex-1 appearance-none border-0 bg-transparent px-0 text-base font-medium text-slate-900 placeholder:text-slate-400 focus:border-transparent focus:outline-none focus:ring-0 focus-visible:outline-none"
                                 >
 
                                 @if(filled($search))

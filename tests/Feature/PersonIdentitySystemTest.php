@@ -22,6 +22,25 @@ it('formatted_name falls back to the bare name when no titles are assigned', fun
     expect($person->formatted_name)->toBe('Ahmad Fauzi');
 });
 
+it('formats the family name after the given name and before post-nominal titles', function () {
+    $person = Person::factory()->create([
+        'name' => 'Ahmad',
+        'family_name' => 'Rahman',
+    ]);
+
+    expect($person->formatted_name)->toBe('Ahmad Rahman');
+});
+
+it('formats the middle name between the given and family names', function () {
+    $person = Person::factory()->create([
+        'name' => 'Ahmad',
+        'middle_name' => 'Fauzi',
+        'family_name' => 'Rahman',
+    ]);
+
+    expect($person->formatted_name)->toBe('Ahmad Fauzi Rahman');
+});
+
 it('assigns a title to a person and returns it through the titleAssignments relationship', function () {
     $person = Person::factory()->create([
         'name' => 'Ahmad Fauzi',

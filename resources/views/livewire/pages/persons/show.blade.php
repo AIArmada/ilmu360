@@ -331,6 +331,7 @@
                                             'tomorrow' => __('Esok'),
                                             'this_week' => __('Minggu ini'),
                                             'this_weekend' => __('Hujung minggu'),
+                                            'this_month' => __('Bulan ini'),
                                             'next_week' => __('Minggu depan'),
                                             'next_month' => __('Bulan depan'),
                                         ] as $filter => $label)
@@ -374,22 +375,39 @@
                             </div>
                         </div>
 
-                        <flux:modal wire:model="showCustomDateRange" name="custom-date-range" class="max-w-xl">
-                            <div class="space-y-6">
+                        <flux:modal
+                            wire:model="showCustomDateRange"
+                            name="custom-date-range"
+                            class="max-w-xl bg-white! text-emerald-950! ring-emerald-100! shadow-[0_24px_70px_-35px_rgba(6,78,59,0.35)]!"
+                        >
+                            <div class="space-y-6 text-emerald-950">
                                 <div>
-                                    <flux:heading size="lg">{{ __('Pilih julat tarikh') }}</flux:heading>
-                                    <flux:subheading>{{ __('Pilih tarikh mula dan tarikh akhir untuk menapis majlis akan datang.') }}</flux:subheading>
+                                    <flux:heading size="lg" class="text-emerald-950!">{{ __('Pilih julat tarikh') }}</flux:heading>
+                                    <flux:subheading class="text-slate-500!">{{ __('Pilih tarikh mula dan tarikh akhir untuk menapis majlis akan datang.') }}</flux:subheading>
                                 </div>
 
                                 <div class="grid gap-4 sm:grid-cols-2">
                                     <flux:field>
-                                        <flux:label>{{ __('Tarikh mula') }}</flux:label>
-                                        <flux:input type="date" wire:model="customStartDate" />
+                                        <flux:label class="text-slate-700!">{{ __('Tarikh mula') }}</flux:label>
+                                        <flux:input
+                                            type="date"
+                                            wire:model="customStartDate"
+                                            class:input="bg-white! text-emerald-950! border-slate-200! border-b-slate-300! dark:bg-white! dark:text-emerald-950! dark:border-slate-200! dark:border-b-slate-300! placeholder:text-slate-400! dark:placeholder:text-slate-400!"
+                                            class="bg-white! text-emerald-950! ring-slate-200! dark:bg-white! dark:text-emerald-950! dark:ring-slate-200!"
+                                            style="color-scheme: light"
+                                        />
                                     </flux:field>
 
                                     <flux:field>
-                                        <flux:label>{{ __('Tarikh akhir') }}</flux:label>
-                                        <flux:input type="date" wire:model="customEndDate" min="{{ $customStartDate }}" />
+                                        <flux:label class="text-slate-700!">{{ __('Tarikh akhir') }}</flux:label>
+                                        <flux:input
+                                            type="date"
+                                            wire:model="customEndDate"
+                                            min="{{ $customStartDate }}"
+                                            class:input="bg-white! text-emerald-950! border-slate-200! border-b-slate-300! dark:bg-white! dark:text-emerald-950! dark:border-slate-200! dark:border-b-slate-300! placeholder:text-slate-400! dark:placeholder:text-slate-400!"
+                                            class="bg-white! text-emerald-950! ring-slate-200! dark:bg-white! dark:text-emerald-950! dark:ring-slate-200!"
+                                            style="color-scheme: light"
+                                        />
                                     </flux:field>
                                 </div>
 
@@ -399,14 +417,16 @@
 
                                 <div class="flex justify-end gap-2">
                                     <flux:modal.close>
-                                        <flux:button type="button" variant="ghost">{{ __('Batal') }}</flux:button>
+                                        <flux:button type="button" variant="ghost" class="text-emerald-700! hover:bg-emerald-50! dark:text-emerald-700!">{{ __('Batal') }}</flux:button>
                                     </flux:modal.close>
                                     <flux:button
                                         type="button"
                                         variant="primary"
+                                        color="emerald"
                                         wire:click="applyCustomDateRange"
                                         wire:loading.attr="disabled"
                                         wire:target="applyCustomDateRange"
+                                        class="bg-emerald-600! text-white! hover:bg-emerald-700!"
                                     >
                                         {{ __('Tapis tarikh') }}
                                     </flux:button>
@@ -684,8 +704,8 @@
 
                 <section id="person-share-panel" class="scroll-reveal reveal-right revealed">
                     <x-dawah-share-panel
-                        :preview-title="$person->formatted_name"
-                        :preview-subtitle="$locationString !== '' ? $locationString : null"
+                        :heading="__('Kongsi Penceramah')"
+                        description=""
                         :share-data="$shareData"
                         :share-links="$shareLinks"
                     />

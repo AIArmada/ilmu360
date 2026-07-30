@@ -441,6 +441,8 @@ class FrontendFormContractService
             ],
             'fields' => [
                 $this->field('name', 'string', required: true, maxLength: 255),
+                $this->field('middle_name', 'string', required: false, maxLength: 100),
+                $this->field('family_name', 'string', required: false, maxLength: 100),
                 $this->field('names', 'array', required: false, meta: [
                     'item_schema' => [
                         'type' => 'object',

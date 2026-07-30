@@ -221,6 +221,23 @@ class extends Component
     #[Computed]
     public function cities(): array
     {
+        // A city is never a valid first step in the cascade. The admin form
+        // only exposes it after a state is selected, and Malaysia does not
+        // expose it at all once its district/local-area profile applies.
+        if (! filled($this->state_id)) {
+            return [];
+        }
+
+        // Follow the admin address form: once a country's profile exposes
+        // district/local-area hierarchy, City is redundant and must not be
+        // offered as a parallel filter. Malaysia uses this path.
+        if (
+            SharedFormSchema::shouldShowDistrictField($this->state_id, $this->country_id)
+            || SharedFormSchema::shouldShowSubdistrictField($this->state_id, null, $this->country_id)
+        ) {
+            return [];
+        }
+
         return SharedFormSchema::cityOptionsForState($this->state_id, $this->country_id);
     }
 
@@ -400,7 +417,15 @@ class extends Component
     $stateLabel = $this->stateLabel();
     $districtLabel = $this->districtLabel();
     $subdistrictLabel = $this->subdistrictLabel();
-    $hasScopedFilters = filled($countryId) || filled($stateId) || filled($cityId) || filled($adminArea1Id) || filled($adminArea2Id);
+    $defaultCountryId = $this->defaultCountryId();
+    $hasScopedFilters = ($countryId !== $defaultCountryId && filled($countryId)) || filled($stateId) || filled($cityId) || filled($adminArea1Id) || filled($adminArea2Id);
+    $activeLocationFilterCount = collect([
+        $countryId !== $defaultCountryId ? $countryId : null,
+        $stateId,
+        $cityId,
+        $adminArea1Id,
+        $adminArea2Id,
+    ])->filter(static fn (mixed $value): bool => filled($value))->count();
     $institutionLoadingTarget = 'search,country_id,state_id,city_id,administrative_district_id,administrative_subdivision_id,clearSearch,clearFilters';
     $submitInstitutionUrl = route('contributions.submit-institution');
     $institutionTotal = $institutions->total();
@@ -426,17 +451,23 @@ class extends Component
                     {{ __('Connect with the mosques, suraus, and educational centers hosting Majlis Ilmu and nurturing our community.') }}
                 </p>
                 
-                 <!-- Search Box -->
-                 <div class="max-w-xl mx-auto mt-8">
-                    <div class="relative group">
-                        <label for="institution-search" class="sr-only">{{ __('Search institutions') }}</label>
+                 <!-- Search and filter controls -->
+                 <div class="mx-auto mt-8 max-w-5xl">
+                    <div class="mx-auto max-w-2xl">
+                        <div class="mb-2 flex items-center justify-between px-1 text-left">
+                            <label for="institution-search" class="text-sm font-semibold text-slate-700">{{ __('Search institutions') }}</label>
+                            <span class="text-xs font-medium text-slate-500">{{ number_format($institutionTotal) }} {{ __('institutions') }}</span>
+                        </div>
+                        <div class="relative group">
                         <input 
-                            type="text" 
+                            type="search"
                             id="institution-search"
                             wire:model.live.debounce.300ms="search"
                             wire:keydown.escape="clearSearch"
                             placeholder="{{ __('Search institutions...') }}" 
-                            class="w-full h-14 pl-12 pr-4 rounded-2xl border-2 border-slate-200 bg-white shadow-lg shadow-slate-200/60 font-medium text-slate-900 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 focus:outline-none transition-all placeholder:text-slate-400"
+                            autocomplete="off"
+                            aria-describedby="institution-search-hint"
+                            class="h-14 w-full rounded-2xl border-2 border-slate-200 bg-white pl-12 pr-14 font-medium text-slate-900 shadow-lg shadow-slate-200/60 transition-all placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-4 focus:ring-emerald-500/10"
                         >
                         <svg class="absolute left-4 top-1/2 -translate-y-1/2 h-6 w-6 text-slate-400 group-focus-within:text-emerald-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                         @if(filled($search))
@@ -449,14 +480,25 @@ class extends Component
                                 <span class="sr-only">{{ __('Clear search') }}</span>
                             </button>
                         @endif
+                        </div>
+                        <p id="institution-search-hint" class="sr-only">{{ __('Search by institution name or location.') }}</p>
                     </div>
 
-                    <div class="mt-5 rounded-[1.5rem] border border-emerald-100/90 bg-white/95 p-4 text-left shadow-[0_18px_45px_-28px_rgba(6,78,59,0.65)] ring-1 ring-emerald-950/5 backdrop-blur sm:p-5">
-                        <div class="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-emerald-800/70">
-                            <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
-                            {{ __('Filter by location') }}
+                    <div data-institution-filters class="mx-auto mt-8 max-w-4xl border-t border-emerald-200/80 pt-5 text-left sm:pt-6">
+                        <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+                            <div class="flex items-center gap-2">
+                                <span class="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100">
+                                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 21a9 9 0 100-18 9 9 0 000 18Zm0 0c2.25-2.15 3.5-5.15 3.5-9S14.25 5.15 12 3m0 18c-2.25-2.15-3.5-5.15-3.5-9S9.75 5.15 12 3m-8.5 9h17" /></svg>
+                                </span>
+                                <div>
+                                    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-800/70">{{ __('Filter by location') }}</p>
+                                </div>
+                            </div>
+                            @if($activeLocationFilterCount > 0)
+                                <span class="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700 ring-1 ring-emerald-100">{{ $activeLocationFilterCount }} {{ __('active') }}</span>
+                            @endif
                         </div>
-                        <div class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+                        <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
                         <div>
                             <label for="institution-country-filter" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
                                 {{ __('Country') }}
@@ -554,19 +596,20 @@ class extends Component
                         </div>
                         @endif
                         </div>
-                    </div>
 
-	                    @if($hasScopedFilters)
-	                        <div class="mt-3 flex justify-end">
+	                    <div class="mt-5 flex justify-end border-t border-slate-200/80 pt-4">
+	                        @if($hasScopedFilters)
 	                            <button
 	                                type="button"
 	                                wire:click="clearFilters"
-                                class="text-xs font-bold text-red-500 hover:underline"
+	                                class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-bold text-red-500 transition hover:bg-red-50 hover:text-red-600 focus:outline-none focus:ring-4 focus:ring-red-500/10"
 	                            >
+	                                <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" d="M6 6l8 8M14 6l-8 8" /></svg>
 	                                {{ __('Clear Location Scope') }}
 	                            </button>
-	                        </div>
-	                    @endif
+	                        @endif
+	                    </div>
+	                    </div>
 
 		                 </div>
 		            </div>
@@ -599,7 +642,7 @@ class extends Component
                         @endphp
                         <a href="{{ route('institutions.show', $institution) }}" wire:navigate class="group relative bg-white rounded-3xl border border-slate-200 shadow-md hover:shadow-xl hover:shadow-emerald-900/8 hover:-translate-y-1 transition-all duration-300 flex flex-col overflow-hidden">
                             <!-- Banner Area (16:9, cover-first) -->
-                            <div class="aspect-video bg-slate-50 relative overflow-hidden">
+                            <div class="institution-card-media aspect-video bg-slate-50 relative overflow-hidden">
                                 @if($cardInstitutionImageUrl)
                                     <img src="{{ $cardInstitutionImageUrl }}" alt="{{ $institution->name }}" class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy">
                                     <div class="absolute inset-0 bg-gradient-to-t from-slate-900/50 via-slate-900/15 to-transparent"></div>

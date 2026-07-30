@@ -775,6 +775,8 @@ class AdminResourceService
         $candidates = [
             'title',
             'name',
+            'middle_name',
+            'family_name',
             'label',
             'slug',
             'email',
@@ -828,6 +830,8 @@ class AdminResourceService
     {
         $table = $model->getTable();
         $candidates = [
+            'family_name',
+            'middle_name',
             'name',
             'title',
             'label',

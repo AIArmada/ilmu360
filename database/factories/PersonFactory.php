@@ -71,11 +71,12 @@ class PersonFactory extends Factory
         $givenName = trim(implode(' ', array_filter([$firstName, $secondName])));
         $connector = $isFemale ? 'binti' : 'bin';
         $parentName = fake()->randomElement($parentNames);
-        $name = $givenName.' '.$connector.' '.$parentName;
+        $name = $givenName.' '.$connector;
 
         return [
             'name' => $name,
-            'family_name' => $parentName,
+            'middle_name' => null,
+            'family_name' => null,
             'gender' => $isFemale ? Gender::Female->value : Gender::Male->value,
             'date_of_birth' => fake()->optional(0.6)->date(max: 'now -18 years'),
             'nationality_country_id' => null,

@@ -258,6 +258,7 @@ return [
                         ['name' => 'id', 'type' => 'string'],
                         ['name' => 'name', 'type' => 'string'],
                         ['name' => 'formatted_name', 'type' => 'string'],
+                        ['name' => 'person_names', 'type' => 'string', 'optional' => true],
                         ['name' => 'search_text', 'type' => 'string'],
                         ['name' => 'job_title', 'type' => 'string', 'optional' => true],
                         ['name' => 'slug', 'type' => 'string'],
@@ -273,7 +274,7 @@ return [
                     'default_sorting_field' => 'updated_at',
                 ],
                 'search-parameters' => [
-                    'query_by' => 'formatted_name,search_text,name,job_title',
+                    'query_by' => 'formatted_name,person_names,search_text,name,job_title',
                 ],
             ],
             Institution::class => [

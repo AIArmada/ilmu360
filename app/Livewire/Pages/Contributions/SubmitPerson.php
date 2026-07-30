@@ -57,6 +57,8 @@ class SubmitPerson extends Component implements HasActions, HasForms
                 addressStatePath: 'address',
                 regionOnlyAddress: true,
                 showCountryField: false,
+                includeAlternativeNames: false,
+                useTitleMultiSelect: true,
             ));
     }
 
