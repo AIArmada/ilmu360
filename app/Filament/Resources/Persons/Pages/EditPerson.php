@@ -37,7 +37,15 @@ class EditPerson extends EditRecord
         $record = $this->getRecord();
 
         if ($record instanceof Person) {
-            $record->loadMissing(['addresses']);
+            $record->loadMissing([
+                'addresses',
+                'languages',
+                'media',
+                'contactMethods',
+                'socialProfiles',
+                'titleAssignments.title',
+                'members',
+            ]);
             $data['address'] = $this->addressFormState($record->primaryAddress());
         }
 

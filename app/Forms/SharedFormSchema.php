@@ -23,6 +23,7 @@ use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Venue;
+use App\Support\Cache\SelectionCatalogCache;
 use App\Support\Location\AddressAssignments;
 use Closure;
 use Filament\Forms\Components\Hidden;
@@ -43,8 +44,46 @@ use Ysfkaya\FilamentPhoneInput\PhoneInputNumberType;
 
 class SharedFormSchema
 {
+    private static ?string $cacheScope = null;
+
     /** @var array<string, list<AddressHierarchyDefinition>> */
     private static array $countryHierarchies = [];
+
+    /** @var array<string, array<int|string, string>> */
+    private static array $countryOptions = [];
+
+    /** @var array<string, array<int|string, string>> */
+    private static array $stateOptions = [];
+
+    /** @var array<string, array<int|string, string>> */
+    private static array $cityOptions = [];
+
+    /** @var array<string, array<int|string, string>> */
+    private static array $areaOptions = [];
+
+    /** @var array<string, string|null> */
+    private static array $countryIdsByState = [];
+
+    /** @var array<string, string|null> */
+    private static array $countryIdsByParent = [];
+
+    private static function ensureCacheScope(): void
+    {
+        $scope = spl_object_hash(app()).':'.(app()->bound('request') ? spl_object_hash(request()) : 'console');
+
+        if (self::$cacheScope === $scope) {
+            return;
+        }
+
+        self::$cacheScope = $scope;
+        self::$countryHierarchies = [];
+        self::$countryOptions = [];
+        self::$stateOptions = [];
+        self::$cityOptions = [];
+        self::$areaOptions = [];
+        self::$countryIdsByState = [];
+        self::$countryIdsByParent = [];
+    }
 
     /**
      * Address fields (line1, line2, postcode, regional cascade, maps URLs).
@@ -991,17 +1030,19 @@ class SharedFormSchema
      */
     public static function stateOptionsForCountry(int|string|null $countryId): array
     {
+        self::ensureCacheScope();
         $countryId = self::normalizeLocationId($countryId);
 
         if ($countryId === null) {
             return [];
         }
 
-        return State::query()
-            ->where('country_id', $countryId)
-            ->orderBy('name')
-            ->pluck('name', 'id')
-            ->all();
+        return self::$stateOptions[$countryId] ??= app(SelectionCatalogCache::class)
+            ->rememberAddressOptions("states:{$countryId}", static fn (): array => State::query()
+                ->where('country_id', $countryId)
+                ->orderBy('name')
+                ->pluck('name', 'id')
+                ->all());
     }
 
     /**
@@ -1011,11 +1052,18 @@ class SharedFormSchema
      */
     public static function cityOptionsForState(int|string|null $stateId, int|string|null $countryId = null): array
     {
+        self::ensureCacheScope();
         $stateId = self::normalizeLocationId($stateId);
         $countryId = self::normalizeLocationId($countryId);
 
         if ($stateId === null && $countryId === null) {
             return [];
+        }
+
+        $cacheKey = ($stateId ?? 'any').':'.($countryId ?? 'any');
+
+        if (array_key_exists($cacheKey, self::$cityOptions)) {
+            return self::$cityOptions[$cacheKey];
         }
 
         $query = City::query();
@@ -1028,10 +1076,11 @@ class SharedFormSchema
             $query->where('country_id', $countryId);
         }
 
-        return $query
-            ->orderBy('name')
-            ->pluck('name', 'id')
-            ->all();
+        return self::$cityOptions[$cacheKey] = app(SelectionCatalogCache::class)
+            ->rememberAddressOptions("cities:{$cacheKey}", static fn (): array => $query
+                ->orderBy('name')
+                ->pluck('name', 'id')
+                ->all());
     }
 
     /** @return array<int|string, string> */
@@ -1089,6 +1138,7 @@ class SharedFormSchema
         string $role,
         int|string|null $parentId = null,
     ): array {
+        self::ensureCacheScope();
         $countryId = self::normalizeLocationId($countryId);
 
         if ($countryId === null && $parentId !== null) {
@@ -1097,6 +1147,13 @@ class SharedFormSchema
 
         if ($countryId === null) {
             return [];
+        }
+
+        $parentId = self::normalizeLocationId($parentId);
+        $cacheKey = "{$countryId}:{$role}:".($parentId ?? 'root');
+
+        if (array_key_exists($cacheKey, self::$areaOptions)) {
+            return self::$areaOptions[$cacheKey];
         }
 
         $level = self::profileLevelForRole($countryId, $role);
@@ -1122,29 +1179,26 @@ class SharedFormSchema
         }
 
         if ($parentId !== null) {
-            $parentId = self::normalizeLocationId($parentId);
-
-            if ($parentId !== null) {
-                $parentAreaId = AddressAreaStateBridge::areaIdForState($parentId, $level->hierarchyType ?? 'administrative');
-                $parentAreaId ??= $parentId;
-                $hierarchyType = $level->hierarchyType ?? 'administrative';
-                $query->whereIn(
-                    'id',
-                    AddressAreaRelationship::query()
-                        ->where('relationship_type', 'contains')
-                        ->where('hierarchy_type', $hierarchyType)
-                        ->where('parent_address_area_id', $parentAreaId)
-                        ->select('child_address_area_id'),
-                );
-            }
+            $parentAreaId = AddressAreaStateBridge::areaIdForState($parentId, $level->hierarchyType ?? 'administrative');
+            $parentAreaId ??= $parentId;
+            $hierarchyType = $level->hierarchyType ?? 'administrative';
+            $query->whereIn(
+                'id',
+                AddressAreaRelationship::query()
+                    ->where('relationship_type', 'contains')
+                    ->where('hierarchy_type', $hierarchyType)
+                    ->where('parent_address_area_id', $parentAreaId)
+                    ->select('child_address_area_id'),
+            );
         } elseif ($level->parentKey !== null) {
             return [];
         }
 
-        return $query
-            ->orderBy('name')
-            ->pluck('name', 'id')
-            ->all();
+        return self::$areaOptions[$cacheKey] = app(SelectionCatalogCache::class)
+            ->rememberAddressOptions("areas:{$cacheKey}", static fn (): array => $query
+                ->orderBy('name')
+                ->pluck('name', 'id')
+                ->all());
     }
 
     private static function countryIdForState(?string $stateId): ?string
@@ -1153,9 +1207,18 @@ class SharedFormSchema
             return null;
         }
 
-        $countryId = State::query()->whereKey($stateId)->value('country_id');
+        self::ensureCacheScope();
 
-        return is_string($countryId) ? $countryId : null;
+        if (array_key_exists($stateId, self::$countryIdsByState)) {
+            return self::$countryIdsByState[$stateId];
+        }
+
+        $countryId = app(SelectionCatalogCache::class)->rememberAddressValue(
+            "country-for-state:{$stateId}",
+            static fn (): ?string => State::query()->whereKey($stateId)->value('country_id'),
+        );
+
+        return self::$countryIdsByState[$stateId] = is_string($countryId) ? $countryId : null;
     }
 
     private static function resolveCountryIdForParent(int|string $parentId): ?string
@@ -1166,13 +1229,22 @@ class SharedFormSchema
             return null;
         }
 
-        $countryId = AddressArea::query()->whereKey($parentKey)->value('country_id');
+        self::ensureCacheScope();
 
-        if (is_string($countryId) && $countryId !== '') {
-            return $countryId;
+        if (array_key_exists($parentKey, self::$countryIdsByParent)) {
+            return self::$countryIdsByParent[$parentKey];
         }
 
-        return self::countryIdForState($parentKey);
+        $countryId = app(SelectionCatalogCache::class)->rememberAddressValue(
+            "country-for-parent:{$parentKey}",
+            static fn (): ?string => AddressArea::query()->whereKey($parentKey)->value('country_id'),
+        );
+
+        if (is_string($countryId) && $countryId !== '') {
+            return self::$countryIdsByParent[$parentKey] = $countryId;
+        }
+
+        return self::$countryIdsByParent[$parentKey] = self::countryIdForState($parentKey);
     }
 
     private static function profileLevelForRole(string $countryId, string $role): ?AddressLevelDefinition
@@ -1202,6 +1274,8 @@ class SharedFormSchema
      */
     private static function countryHierarchies(string $countryId): array
     {
+        self::ensureCacheScope();
+
         return self::$countryHierarchies[$countryId]
             ??= app(CountryAddressProfileResolver::class)->hierarchies($countryId);
     }
@@ -1214,7 +1288,7 @@ class SharedFormSchema
             return null;
         }
 
-        foreach (app(CountryAddressProfileResolver::class)->hierarchies($countryId) as $hierarchy) {
+        foreach (self::countryHierarchies($countryId) as $hierarchy) {
             foreach ($hierarchy->levels as $level) {
                 if ($level->key === $definition->parentKey) {
                     return $level;
@@ -1264,7 +1338,7 @@ class SharedFormSchema
         $countryId = self::normalizeLocationId($data['country_id'] ?? null);
 
         if ($stateId === null && is_string($data['state'] ?? null) && trim($data['state']) !== '') {
-            $stateQuery = State::query()->whereRaw('LOWER(name) = LOWER(?)', [trim($data['state'])]);
+            $stateQuery = State::query()->whereLike('name', trim($data['state']));
 
             if ($countryId !== null) {
                 $stateQuery->where('country_id', $countryId);
@@ -1274,7 +1348,7 @@ class SharedFormSchema
         }
 
         if ($cityId === null && is_string($data['city'] ?? null) && trim($data['city']) !== '') {
-            $cityQuery = City::query()->whereRaw('LOWER(name) = LOWER(?)', [trim($data['city'])]);
+            $cityQuery = City::query()->whereLike('name', trim($data['city']));
 
             if ($stateId !== null) {
                 $cityQuery->where('state_id', $stateId);
@@ -1323,7 +1397,7 @@ class SharedFormSchema
         return [
             Select::make('country_id')
                 ->label(__('Country'))
-                ->options(fn (): array => AddressCountry::query()->orderBy('name')->pluck('name', 'id')->all())
+                ->options(fn (): array => self::countryOptions())
                 ->searchable()
                 ->preload()
                 ->live()
@@ -1331,6 +1405,23 @@ class SharedFormSchema
                 ->default($defaultCountryId)
                 ->afterStateUpdatedJs(self::countryCascadeResetScript()),
         ];
+    }
+
+    /**
+     * Filament evaluates options closures more than once during hydration.
+     * Countries are a static catalog, so avoid repeating the same query.
+     *
+     * @return array<int|string, string>
+     */
+    private static function countryOptions(): array
+    {
+        self::ensureCacheScope();
+
+        return self::$countryOptions['all'] ??= app(SelectionCatalogCache::class)
+            ->rememberAddressOptions('countries', static fn (): array => AddressCountry::query()
+                ->orderBy('name')
+                ->pluck('name', 'id')
+                ->all());
     }
 
     /**

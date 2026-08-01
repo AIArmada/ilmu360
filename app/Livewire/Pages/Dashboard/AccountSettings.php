@@ -469,11 +469,6 @@ class AccountSettings extends Component implements HasForms
             ->where('status', 'verified');
     }
 
-    protected function databaseLikeOperator(): string
-    {
-        return config('database.default') === 'pgsql' ? 'ILIKE' : 'LIKE';
-    }
-
     protected function normalizeOptionalString(mixed $value): ?string
     {
         if (! is_string($value)) {

@@ -23,7 +23,7 @@ trait BuildsUniqueSlug
     ): string {
         $slugSet = array_flip($modelClass::query()
             ->where('slug', $baseSlug)
-            ->orWhere('slug', 'like', $baseSlug.'-%')
+            ->orWhereLike('slug', $baseSlug.'-%')
             ->when($ignoreId, fn ($q) => $q->where('id', '!=', $ignoreId))
             ->pluck('slug')
             ->toArray());

@@ -16,6 +16,8 @@ use Filament\Forms\Components\Select;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Relations\Pivot;
 
 class MembersRelationManager extends RelationManager
 {
@@ -115,9 +117,21 @@ class MembersRelationManager extends RelationManager
 
     private function getMemberRoleId(User $user): ?string
     {
-        $member = $this->getInstitutionOwner()->members()->whereKey($user->getKey())->first();
+        $institution = $this->getInstitutionOwner();
+        /** @var Collection<int, User> $members */
+        $members = $institution->relationLoaded('members')
+            ? $institution->members
+            : $institution->members()->get();
 
-        return $member?->pivot->getAttribute('role');
+        if (! $institution->relationLoaded('members')) {
+            $institution->setRelation('members', $members);
+        }
+
+        $member = $members->first(fn (User $member): bool => (string) $member->getKey() === (string) $user->getKey());
+
+        $pivot = $member?->getRelation('pivot');
+
+        return $pivot instanceof Pivot ? $pivot->getAttribute('role') : null;
     }
 
     private function makeRoleSelect(): Select

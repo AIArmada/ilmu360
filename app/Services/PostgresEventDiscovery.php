@@ -305,18 +305,16 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
         $personInChargeSearch = $this->normalizeTextFilter($filters['person_in_charge_search'] ?? null);
 
         if ($personInChargeSearch !== null) {
-            $operator = $this->databaseLikeOperator();
-
-            $queryBuilder->whereHas('keyPeople', function (Builder $keyPersonQuery) use ($operator, $personInChargeSearch): void {
+            $queryBuilder->whereHas('keyPeople', function (Builder $keyPersonQuery) use ($personInChargeSearch): void {
                 $keyPersonQuery
                     ->where('role_code', EventKeyPersonRole::PersonInCharge->value)
-                    ->where(function (Builder $personInChargeQuery) use ($operator, $personInChargeSearch): void {
+                    ->where(function (Builder $personInChargeQuery) use ($personInChargeSearch): void {
                         $personInChargeQuery
-                            ->where('event_involvements.display_name', $operator, "%{$personInChargeSearch}%")
-                            ->orWhereHas('person', function (Builder $personQuery) use ($operator, $personInChargeSearch): void {
+                            ->whereLike('event_involvements.display_name', "%{$personInChargeSearch}%")
+                            ->orWhereHas('person', function (Builder $personQuery) use ($personInChargeSearch): void {
                                 $personQuery
-                                    ->where('persons.name', $operator, "%{$personInChargeSearch}%")
-                                    ->orWhere('persons.searchable_name', $operator, "%{$personInChargeSearch}%");
+                                    ->whereLike('persons.name', "%{$personInChargeSearch}%")
+                                    ->orWhereLike('persons.searchable_name', "%{$personInChargeSearch}%");
                             });
                     });
             });
@@ -382,7 +380,7 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
                     $prayerQuery->where('anchor_type', 'prayer');
 
                     $prayerQuery->where(function (Builder $inner) use ($prayerTime): void {
-                        $inner->where('display_label', $this->databaseLikeOperator(), "%{$prayerTime}%");
+                        $inner->whereLike('display_label', "%{$prayerTime}%");
 
                         if (($prayerReference = $this->resolvePrayerReferenceFromFilter($prayerTime)) instanceof PrayerReference) {
                             $inner->orWhere('anchor_code', $prayerReference->value);
@@ -449,7 +447,6 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
             return;
         }
 
-        $operator = strtolower($this->databaseLikeOperator());
         $collapsedSearch = preg_replace('/\s+/u', ' ', $normalizedSearch) ?? '';
         $collapsedWildcardSearch = '%'.str_replace(' ', '%', $collapsedSearch).'%';
 
@@ -463,18 +460,18 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
         $institutionIds = $includeInstitutions ? $this->institutionSearch->publicSearchIds($normalizedSearch) : [];
         $referenceIds = $includeReferences ? $this->referenceSearch->publicSearchIds($normalizedSearch) : [];
 
-        $queryBuilder->where(function (Builder $nestedQuery) use ($normalizedSearch, $operator, $collapsedWildcardSearch, $searchTokens, $personIds, $institutionIds, $referenceIds, $includePersons): void {
-            $nestedQuery->where(function (Builder $titleQuery) use ($normalizedSearch, $operator, $collapsedWildcardSearch, $searchTokens): void {
+        $queryBuilder->where(function (Builder $nestedQuery) use ($normalizedSearch, $collapsedWildcardSearch, $searchTokens, $personIds, $institutionIds, $referenceIds, $includePersons): void {
+            $nestedQuery->where(function (Builder $titleQuery) use ($normalizedSearch, $collapsedWildcardSearch, $searchTokens): void {
                 $titleQuery
-                    ->where('title', $operator, "%{$normalizedSearch}%")
-                    ->orWhere('title', $operator, $collapsedWildcardSearch);
+                    ->whereLike('title', "%{$normalizedSearch}%")
+                    ->orWhereLike('title', $collapsedWildcardSearch);
 
                 foreach ($searchTokens as $token) {
                     if (mb_strlen($token) < 3) {
                         continue;
                     }
 
-                    $titleQuery->orWhere('title', $operator, "%{$token}%");
+                    $titleQuery->orWhereLike('title', "%{$token}%");
                 }
             });
 
@@ -495,13 +492,13 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
             }
 
             if ($includePersons) {
-                $nestedQuery->orWhereHas('keyPeople', function (Builder $keyPeopleQuery) use ($personIds, $normalizedSearch, $operator): void {
-                    $keyPeopleQuery->where(function (Builder $inner) use ($personIds, $normalizedSearch, $operator): void {
+                $nestedQuery->orWhereHas('keyPeople', function (Builder $keyPeopleQuery) use ($personIds, $normalizedSearch): void {
+                    $keyPeopleQuery->where(function (Builder $inner) use ($personIds, $normalizedSearch): void {
                         $inner
-                            ->where('event_involvements.display_name', $operator, "%{$normalizedSearch}%")
+                            ->whereLike('event_involvements.display_name', "%{$normalizedSearch}%")
                             ->orWhereHas('person', fn (Builder $personQuery) => $personQuery
-                                ->where('name', $operator, "%{$normalizedSearch}%")
-                                ->orWhere('searchable_name', $operator, "%{$normalizedSearch}%")
+                                ->whereLike('name', "%{$normalizedSearch}%")
+                                ->orWhereLike('searchable_name', "%{$normalizedSearch}%")
                             );
 
                         if ($personIds !== []) {

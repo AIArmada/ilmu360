@@ -55,33 +55,35 @@ class ResolveReportCategoryOptionsAction
     {
         return match ($subjectType) {
             'event' => [
-                'wrong_info' => __('Wrong information'),
-                'cancelled_not_updated' => __('Cancelled but not updated'),
-                'inappropriate_content' => __('Inappropriate content'),
-                'other' => __('Other'),
+                'wrong_info' => __('Maklumat tidak tepat'),
+                'cancelled_not_updated' => __('Dibatalkan tetapi belum dikemas kini'),
+                'inappropriate_content' => __('Kandungan tidak sesuai'),
+                'other' => __('Lain-lain'),
             ],
             'institution' => [
-                'wrong_info' => __('Wrong information'),
-                'fake_institution' => __('Fake institution'),
-                'other' => __('Other'),
+                'wrong_info' => __('Maklumat tidak tepat'),
+                'fake_institution' => __('Institusi palsu'),
+                'other' => __('Lain-lain'),
             ],
             'person' => [
-                'wrong_info' => __('Wrong information'),
-                'fake_person' => __('Fake person'),
-                'other' => __('Other'),
+                'wrong_info' => __('Maklumat tidak tepat'),
+                'duplicate_person' => __('Profil pendua'),
+                'impersonation_or_scam' => __('Penyamaran atau penipuan'),
+                'fake_person' => __('Penceramah palsu'),
+                'other' => __('Lain-lain'),
             ],
             'reference' => [
-                'wrong_info' => __('Wrong information'),
-                'fake_reference' => __('Fake reference'),
-                'other' => __('Other'),
+                'wrong_info' => __('Maklumat tidak tepat'),
+                'fake_reference' => __('Rujukan palsu'),
+                'other' => __('Lain-lain'),
             ],
             'donation_channel' => [
-                'wrong_info' => __('Wrong information'),
-                'donation_scam' => __('Donation channel scam'),
-                'other' => __('Other'),
+                'wrong_info' => __('Maklumat tidak tepat'),
+                'donation_scam' => __('Penipuan saluran derma'),
+                'other' => __('Lain-lain'),
             ],
             default => [
-                'other' => __('Other'),
+                'other' => __('Lain-lain'),
             ],
         };
     }

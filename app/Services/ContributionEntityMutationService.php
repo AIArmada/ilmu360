@@ -551,10 +551,9 @@ class ContributionEntityMutationService
      */
     private function applyEvent(Event $event, array $payload): array
     {
+        $event->loadMissing(['primaryOccurrence', 'timeExpressions', 'locations']);
         $currentOccurrence = $event->primaryOccurrence;
-        $currentExpression = $event->timeExpressions()
-            ->where('anchor_type', 'prayer')
-            ->first();
+        $currentExpression = $event->timeExpressions->firstWhere('anchor_type', 'prayer');
 
         $event->forceFill([
             'title' => $payload['title'] ?? $event->title,
@@ -577,11 +576,10 @@ class ContributionEntityMutationService
         if (array_key_exists('space_ids', $payload)) {
             $spaceIds = is_array($payload['space_ids']) ? array_values(array_filter($payload['space_ids'], is_string(...))) : [];
         } else {
-            $existing = $event->locations()
+            $existing = $event->locations
                 ->whereNull('event_occurrence_id')
                 ->whereNull('event_session_id')
-                ->orderBy('sort_order')
-                ->get();
+                ->sortBy('sort_order');
             $spaceIds = $existing->pluck('venue_space_id')->filter()->map(strval(...))->values()->all();
         }
 
@@ -589,7 +587,6 @@ class ContributionEntityMutationService
 
         $dirty = $event->getDirty();
         $event->save();
-        $event->syncLocation($event->default_venue_id, $spaceIds);
 
         $scheduleKind = $payload['schedule_kind'] ?? $event->schedule_kind;
         $scheduleKind = $scheduleKind instanceof ScheduleKind
@@ -788,7 +785,19 @@ class ContributionEntityMutationService
      */
     private function eventState(Event $event): array
     {
-        $event->loadMissing(['references', 'series', 'classifications', 'keyPeople.person', 'languages:id,event_id']);
+        $event->loadMissing([
+            'references',
+            'series',
+            'classifications',
+            'keyPeople.person',
+            'languages:id,event_id',
+            'primaryOccurrence',
+            'primaryOrganizerInvolvement',
+            'primaryLocation',
+            'audiences',
+            'audienceProfiles',
+            'links',
+        ]);
 
         $tags = $event->classifications->groupBy('taxonomy_code');
 
@@ -891,12 +900,20 @@ class ContributionEntityMutationService
 
         $institution->names()->delete();
 
+        $primarySelected = false;
+
         foreach ($names as $i => $name) {
+            $isPrimary = (bool) ($name['is_primary'] ?? $i === 0) && ! $primarySelected;
+
+            if ($isPrimary) {
+                $primarySelected = true;
+            }
+
             $institution->names()->create([
                 'name_type' => $name['name_type'] ?? InstitutionNameType::Nickname,
                 'full_name' => trim((string) ($name['full_name'] ?? '')),
                 'language_code' => $name['language_code'] ?? 'ms',
-                'is_primary' => (bool) ($name['is_primary'] ?? $i === 0),
+                'is_primary' => $isPrimary,
             ]);
         }
 
@@ -970,6 +987,7 @@ class ContributionEntityMutationService
     {
         $existing = $person->names()->get()->keyBy(fn (PersonName $name): string => (string) $name->getKey());
         $retainedIds = [];
+        $primarySelected = false;
 
         foreach (is_array($namesPayload) ? $namesPayload : [] as $namePayload) {
             if (! is_array($namePayload)) {
@@ -985,11 +1003,17 @@ class ContributionEntityMutationService
             $nameType = $nameType instanceof PersonNameType
                 ? $nameType->value
                 : (string) $nameType;
+            $isPrimary = (bool) ($namePayload['is_primary'] ?? false) && ! $primarySelected;
+
+            if ($isPrimary) {
+                $primarySelected = true;
+            }
+
             $attributes = [
                 'name_type' => $nameType,
                 'full_name' => $fullName,
                 'language_code' => trim((string) ($namePayload['language_code'] ?? 'ms')) ?: 'ms',
-                'is_primary' => (bool) ($namePayload['is_primary'] ?? false),
+                'is_primary' => $isPrimary,
             ];
             $nameId = is_string($namePayload['id'] ?? null) ? $namePayload['id'] : null;
             $name = $nameId !== null ? $existing->get($nameId) : null;
@@ -1455,26 +1479,53 @@ class ContributionEntityMutationService
         $country = $countryId !== null
             ? AddressCountry::query()->find($countryId)
             : null;
-        $areas = [];
+        $areaIds = array_values(array_unique(array_filter($assignments, is_string(...))));
+        $areasById = $areaIds === []
+            ? collect()
+            : AddressArea::query()->whereIn('id', $areaIds)->get()->keyBy(fn (AddressArea $area): string => (string) $area->getKey());
 
-        foreach ($assignments as $areaId) {
-            if ($areaId !== null) {
-                $area = AddressArea::query()->find($areaId);
+        // Resolve the legacy parent chain in batches. The bridge below still
+        // handles provider relationship trees, while this avoids one query per
+        // selected area for the common parent_id hierarchy.
+        while (true) {
+            $pendingParentIds = $areasById
+                ->pluck('parent_id')
+                ->filter(fn (mixed $id): bool => is_string($id) && $id !== '')
+                ->unique()
+                ->values()
+                ->all();
+            $missingParentIds = array_values(array_diff($pendingParentIds, $areasById->keys()->all()));
 
-                if ($area instanceof AddressArea) {
-                    $areas[] = $area;
-                }
+            if ($missingParentIds === []) {
+                break;
             }
+
+            $parents = AddressArea::query()->whereIn('id', $missingParentIds)->get();
+
+            if ($parents->isEmpty()) {
+                break;
+            }
+
+            $areasById = $areasById->union($parents->keyBy(fn (AddressArea $area): string => (string) $area->getKey()));
         }
 
-        $stateName = null;
+        $areas = collect($areaIds)
+            ->map(fn (string $areaId): ?AddressArea => $areasById->get($areaId))
+            ->filter(fn (?AddressArea $area): bool => $area instanceof AddressArea)
+            ->values();
 
-        foreach (array_reverse($areas) as $area) {
+        $stateName = null;
+        $stateNames = [];
+
+        foreach ($areas->reverse() as $area) {
             $stateId = AddressAreaStateBridge::stateIdForArea((string) $area->getKey());
 
             if ($stateId !== null) {
-                $state = State::query()->find($stateId);
-                $stateName = $state instanceof State ? $state->name : null;
+                if (! array_key_exists($stateId, $stateNames)) {
+                    $stateNames[$stateId] = State::query()->whereKey($stateId)->value('name');
+                }
+
+                $stateName = is_string($stateNames[$stateId] ?? null) ? $stateNames[$stateId] : null;
 
                 if ($stateName !== null && $stateName !== '') {
                     break;
@@ -1484,7 +1535,7 @@ class ContributionEntityMutationService
             $parent = $area;
 
             while (is_string($parent->parent_id) && $parent->parent_id !== '') {
-                $parent = AddressArea::query()->find($parent->parent_id);
+                $parent = $areasById->get($parent->parent_id);
 
                 if (! $parent instanceof AddressArea) {
                     break;
@@ -1497,7 +1548,7 @@ class ContributionEntityMutationService
             }
         }
 
-        $locality = array_reverse($areas)[0] ?? null;
+        $locality = $areas->reverse()->first();
 
         return [
             'country' => $country?->name,

@@ -291,7 +291,7 @@
     {{-- Person-specific profile content --}}
     <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
         <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
-            <main class="min-w-0 space-y-8">
+            <div class="min-w-0 space-y-8">
                 <section class="scroll-reveal reveal-up revealed">
                     <div class="flex flex-col gap-5">
                         <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -316,9 +316,8 @@
                             @endif
                         </div>
 
-                        <div class="flex w-full justify-center">
-                            <div class="flex max-w-full flex-wrap items-center justify-center gap-3">
-                                <div class="max-w-full overflow-x-auto">
+                        <div class="flex w-full min-w-0 items-center justify-center gap-2 sm:gap-3">
+                            <div class="min-w-0 flex-1 overflow-x-auto overscroll-x-contain pb-1 [scrollbar-color:#86bfae_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-track]:bg-emerald-50 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-emerald-300">
                                     <flux:radio.group
                                         variant="segmented"
                                         size="sm"
@@ -329,7 +328,7 @@
                                         data-signal-event="navigation.upcoming_date_filter_changed"
                                         data-signal-component="person_detail_upcoming_events"
                                         data-signal-control="date_filter"
-                                        class="w-max"
+                                        class="w-max min-w-max"
                                     >
                                         @foreach([
                                             'all' => __('Semua'),
@@ -349,8 +348,9 @@
                                             </flux:radio>
                                         @endforeach
                                     </flux:radio.group>
-                                </div>
+                            </div>
 
+                            <div class="shrink-0">
                                 <flux:modal.trigger name="custom-date-range">
                                     <flux:button
                                         type="button"
@@ -363,9 +363,12 @@
                                         class="shrink-0 rounded-full! {{ $upcomingDateFilter === 'custom' ? 'bg-emerald-100! text-emerald-800! ring-1 ring-emerald-200!' : 'text-emerald-700! hover:bg-emerald-50!' }}"
                                     />
                                 </flux:modal.trigger>
+                            </div>
 
                                 <span
-                                    class="flex size-7 shrink-0 items-center justify-center"
+                                    class="hidden size-7 shrink-0 items-center justify-center"
+                                    wire:loading.class.remove="hidden"
+                                    wire:target="upcomingDateFilter,applyCustomDateRange,clearUpcomingDateFilter"
                                     role="status"
                                     aria-live="polite"
                                     aria-atomic="true"
@@ -439,7 +442,6 @@
                                 </div>
                             </div>
                         </flux:modal>
-                    </div>
 
                     <div class="mt-5">
                         <x-public.moderation-status-note
@@ -679,7 +681,7 @@
                         </div>
                     </section>
                 @endif
-            </main>
+            </div>
 
             <aside class="space-y-6 lg:sticky lg:top-24 lg:self-start">
                 @if($publicContacts->isNotEmpty())

@@ -325,12 +325,7 @@ class Index extends Component implements HasForms
             return $query;
         }
 
-        return $query->where($column, $this->databaseLikeOperator(), "%{$normalizedSearch}%");
-    }
-
-    private function databaseLikeOperator(): string
-    {
-        return config('database.default') === 'pgsql' ? 'ILIKE' : 'LIKE';
+        return $query->whereLike($column, "%{$normalizedSearch}%");
     }
 
     private function normalizeNullableString(mixed $value): ?string

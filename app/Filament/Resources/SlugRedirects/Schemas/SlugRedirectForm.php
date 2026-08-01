@@ -113,23 +113,23 @@ class SlugRedirectForm
             match ($type) {
                 'event' => $query->where(function ($query) use ($term): void {
                     $query
-                        ->where('title', 'like', "%{$term}%")
-                        ->orWhere('slug', 'like', "%{$term}%");
+                        ->whereLike('title', "%{$term}%")
+                        ->orWhereLike('slug', "%{$term}%");
                 }),
                 'reference' => $query->where(function ($query) use ($term): void {
                     $query
-                        ->where('title', 'like', "%{$term}%")
-                        ->orWhere('slug', 'like', "%{$term}%");
+                        ->whereLike('title', "%{$term}%")
+                        ->orWhereLike('slug', "%{$term}%");
                 }),
                 'person' => $query->where(function ($query) use ($term): void {
                     $query
-                        ->where('name', 'like', "%{$term}%")
-                        ->orWhere('slug', 'like', "%{$term}%");
+                        ->whereLike('name', "%{$term}%")
+                        ->orWhereLike('slug', "%{$term}%");
                 }),
                 default => $query->where(function ($query) use ($term): void {
                     $query
-                        ->where('name', 'like', "%{$term}%")
-                        ->orWhere('slug', 'like', "%{$term}%");
+                        ->whereLike('name', "%{$term}%")
+                        ->orWhereLike('slug', "%{$term}%");
                 }),
             };
         }

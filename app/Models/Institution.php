@@ -404,17 +404,14 @@ class Institution extends Model implements AuditableContract, HasMedia
         }
 
         $wildcardSearch = '%'.str_replace(' ', '%', $normalizedSearch).'%';
-        $driverName = DB::connection($query->getModel()->getConnectionName())->getDriverName();
-        $operator = $driverName === 'pgsql' ? 'ilike' : 'like';
-
-        $query->where(function (Builder $innerQuery) use ($normalizedSearch, $wildcardSearch, $operator): void {
+        $query->where(function (Builder $innerQuery) use ($normalizedSearch, $wildcardSearch): void {
             $innerQuery
-                ->where('institutions.name', $operator, "%{$normalizedSearch}%")
-                ->orWhere('institutions.name', $operator, $wildcardSearch);
+                ->whereLike('institutions.name', "%{$normalizedSearch}%")
+                ->orWhereLike('institutions.name', $wildcardSearch);
 
             $innerQuery->orWhereHas('names', fn (Builder $nameQuery): Builder => $nameQuery
-                ->where('full_name', $operator, "%{$normalizedSearch}%")
-                ->orWhere('full_name', $operator, $wildcardSearch));
+                ->whereLike('full_name', "%{$normalizedSearch}%")
+                ->orWhereLike('full_name', $wildcardSearch));
         });
     }
 

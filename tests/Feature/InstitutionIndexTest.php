@@ -9,6 +9,7 @@ use App\Models\Institution;
 use App\Models\User;
 use App\Support\Search\InstitutionSearchService;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 
@@ -306,6 +307,36 @@ it('updates institution results live when search changes', function () {
         ->assertDontSee('Pusat Pengajian An-Nur');
 });
 
+it('paginates direct institution search results without a second count query', function () {
+    $institutionName = 'Institution Search '.fake()->unique()->numerify('#####');
+
+    Institution::factory()->create([
+        'name' => $institutionName,
+        'status' => 'verified',
+    ]);
+
+    DB::enableQueryLog();
+
+    Livewire::test('pages.institutions.index', ['search' => $institutionName])
+        ->assertSee($institutionName);
+
+    $queries = collect(DB::getQueryLog())->pluck('query');
+
+    expect($queries->filter(
+        static fn (string $query): bool => str_contains($query, 'count(*) as "aggregate"'),
+    ))->toBeEmpty();
+
+    $institutionIdQueries = $queries->filter(
+        static fn (string $query): bool => str_contains($query, 'select "institutions"."id"'),
+    );
+
+    expect($institutionIdQueries)->not->toBeEmpty()
+        ->and($institutionIdQueries)->toHaveCount(1)
+        ->and($institutionIdQueries->every(
+            static fn (string $query): bool => ! str_contains($query, 'from "events"'),
+        ))->toBeTrue();
+});
+
 it('refreshes cached institution search results after institution updates', function () {
     $searchService = app(InstitutionSearchService::class);
     $institution = Institution::factory()
@@ -395,6 +426,9 @@ it('follows the Malaysia geography cascade without exposing a city filter', func
         ->assertDontSee('institution-city-filter', false)
         ->set('state_id', $geo['state']->getKey())
         ->assertSee('institution-district-filter', false)
+        ->assertDontSee('institution-subdistrict-filter', false)
+        ->set('administrative_district_id', $geo['district']->getKey())
+        ->assertSee('institution-subdistrict-filter', false)
         ->assertDontSee('institution-city-filter', false);
 });
 

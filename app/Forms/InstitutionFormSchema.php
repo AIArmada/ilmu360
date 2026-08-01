@@ -9,8 +9,8 @@ use App\Actions\Institutions\GenerateInstitutionSlugAction;
 use App\Enums\InstitutionNameType;
 use App\Enums\InstitutionType;
 use App\Models\Institution;
-use App\Models\Language;
 use App\Models\User;
+use App\Support\Cache\SelectionCatalogCache;
 use App\Support\Location\GooglePlacesConfiguration;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\RichEditor;
@@ -49,13 +49,14 @@ class InstitutionFormSchema
                         ->required()
                         ->maxLength(255),
                     Select::make('language_code')
-                        ->options(fn (): array => Language::query()->orderBy('name')->pluck('name', 'code')->all())
+                        ->options(fn (): array => app(SelectionCatalogCache::class)->languageOptions('code'))
                         ->searchable()
                         ->preload()
                         ->required()
                         ->default('ms'),
                     Toggle::make('is_primary')
-                        ->default(false),
+                        ->default(false)
+                        ->fixIndistinctState(),
                 ])
                 ->columns(2)
                 ->defaultItems(0)
@@ -129,12 +130,20 @@ class InstitutionFormSchema
 
         $names = is_array($data['names'] ?? null) ? $data['names'] : [];
 
+        $primarySelected = false;
+
         foreach ($names as $name) {
+            $isPrimary = (bool) ($name['is_primary'] ?? true) && ! $primarySelected;
+
+            if ($isPrimary) {
+                $primarySelected = true;
+            }
+
             $institution->names()->create([
                 'name_type' => $name['name_type'] ?? InstitutionNameType::Nickname,
                 'full_name' => trim((string) ($name['full_name'] ?? '')),
                 'language_code' => $name['language_code'] ?? 'ms',
-                'is_primary' => (bool) ($name['is_primary'] ?? true),
+                'is_primary' => $isPrimary,
             ]);
         }
 

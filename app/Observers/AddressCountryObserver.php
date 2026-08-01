@@ -9,6 +9,7 @@ use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressCountry;
 use App\Support\Cache\PublicDirectoryCacheVersion;
 use App\Support\Cache\PublicListingsCache;
+use App\Support\Cache\SelectionCatalogCache;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 use Illuminate\Validation\ValidationException;
 
@@ -17,6 +18,7 @@ class AddressCountryObserver implements ShouldHandleEventsAfterCommit
     public function __construct(
         private readonly PublicDirectoryCacheVersion $publicDirectoryCacheVersion,
         private readonly PublicListingsCache $publicListingsCache,
+        private readonly SelectionCatalogCache $selectionCatalogCache,
     ) {}
 
     public function saved(AddressCountry $country): void
@@ -51,5 +53,6 @@ class AddressCountryObserver implements ShouldHandleEventsAfterCommit
     {
         $this->publicDirectoryCacheVersion->bumpAll();
         $this->publicListingsCache->bustMajlisListing();
+        $this->selectionCatalogCache->bustAddress();
     }
 }

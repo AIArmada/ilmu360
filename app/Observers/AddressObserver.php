@@ -14,9 +14,10 @@ use App\Models\Person;
 use App\Models\Venue;
 use App\Support\Cache\PublicDirectoryCacheVersion;
 use App\Support\Cache\PublicListingsCache;
+use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
-class AddressObserver
+class AddressObserver implements ShouldHandleEventsAfterCommit
 {
     public function __construct(
         protected GenerateEventSlugAction $generateEventSlugAction,

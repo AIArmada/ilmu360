@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources\Persons\RelationManagers;
 
 use App\Filament\Resources\Institutions\InstitutionResource;
+use App\Models\Person;
 use Filament\Actions\AttachAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -19,6 +20,8 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class InstitutionsRelationManager extends RelationManager
 {
@@ -72,7 +75,15 @@ class InstitutionsRelationManager extends RelationManager
                             ->label('Primary Affiliation'),
                         DatePicker::make('joined_at')
                             ->label('Joined At'),
-                    ]),
+                    ])
+                    ->mutateDataUsing(static function (array $data): array {
+                        $data['id'] ??= (string) Str::uuid();
+
+                        return $data;
+                    })
+                    ->after(function (AttachAction $action): void {
+                        $this->clearOtherPrimaryAffiliations($action->getRecord(), $action->getData());
+                    }),
             ])
             ->recordActions([
                 EditAction::make()
@@ -80,7 +91,10 @@ class InstitutionsRelationManager extends RelationManager
                         TextInput::make('position'),
                         Toggle::make('is_primary'),
                         DatePicker::make('joined_at'),
-                    ]),
+                    ])
+                    ->after(function (EditAction $action): void {
+                        $this->clearOtherPrimaryAffiliations($action->getRecord(), $action->getData());
+                    }),
                 DetachAction::make(),
             ])
             ->toolbarActions([
@@ -88,6 +102,36 @@ class InstitutionsRelationManager extends RelationManager
                     DetachBulkAction::make(),
                     DeleteBulkAction::make(),
                 ]),
+            ]);
+    }
+
+    /**
+     * Filament updates belongs-to-many pivot rows directly, so the affiliation
+     * model observer cannot enforce this invariant for these actions.
+     *
+     * @param  Model|array<string, mixed>|null  $record
+     * @param  array<string, mixed>  $data
+     */
+    private function clearOtherPrimaryAffiliations(Model|array|null $record, array $data): void
+    {
+        if (! (bool) ($data['is_primary'] ?? false) || ! $record instanceof Model) {
+            return;
+        }
+
+        $owner = $this->getOwnerRecord();
+
+        if (! $owner instanceof Person) {
+            return;
+        }
+
+        $owner->institutions()
+            ->newPivotStatement()
+            ->where('affiliatable_id', $owner->getKey())
+            ->where('affiliatable_type', $owner->getMorphClass())
+            ->where('institution_id', '!=', $record->getKey())
+            ->update([
+                'is_primary' => false,
+                'updated_at' => now(),
             ]);
     }
 }

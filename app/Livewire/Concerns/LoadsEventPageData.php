@@ -19,7 +19,7 @@ trait LoadsEventPageData
     abstract protected function eventPageBaseQuery(): Builder;
 
     /**
-     * @return array<int, string|array<string, mixed>|\Closure>
+     * @return array<int|string, string|array<string, mixed>|\Closure>
      */
     abstract protected function eventPageEagerLoads(): array;
 

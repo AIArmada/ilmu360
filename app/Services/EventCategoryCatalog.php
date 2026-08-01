@@ -7,6 +7,7 @@ namespace App\Services;
 use AIArmada\Events\Contracts\EventTaxonomyHierarchy;
 use AIArmada\Events\Models\EventTerm;
 use App\Contracts\EventCategoryCatalog as EventCategoryCatalogContract;
+use App\Support\Cache\SelectionCatalogCache;
 
 final readonly class EventCategoryCatalog implements EventCategoryCatalogContract
 {
@@ -29,7 +30,7 @@ final readonly class EventCategoryCatalog implements EventCategoryCatalogContrac
     /** @return array<string, string> */
     public function options(): array
     {
-        return $this->hierarchy->options(self::TAXONOMY_CODE);
+        return app(SelectionCatalogCache::class)->eventCategoryOptions();
     }
 
     /**

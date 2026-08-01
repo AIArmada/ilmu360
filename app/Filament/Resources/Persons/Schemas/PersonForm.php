@@ -62,11 +62,19 @@ class PersonForm
                                             ->required(),
                                         Placeholder::make('titles_summary')
                                             ->label(__('Titles'))
-                                            ->content(fn (?Person $record): string => $record?->titleAssignments()
-                                                ->with('title')
-                                                ->get()
-                                                ->pluck('title.name')
-                                                ->implode(', ') ?: __('No titles assigned')),
+                                            ->content(function (?Person $record): string {
+                                                if (! $record instanceof Person) {
+                                                    return __('No titles assigned');
+                                                }
+
+                                                $assignments = $record->relationLoaded('titleAssignments')
+                                                    ? $record->titleAssignments
+                                                    : $record->titleAssignments()->with('title')->get();
+
+                                                $assignments->loadMissing('title');
+
+                                                return $assignments->pluck('title.name')->implode(', ') ?: __('No titles assigned');
+                                            }),
                                         RichEditor::make('bio')
                                             ->label(__('Biography'))
                                             ->json()
@@ -127,7 +135,7 @@ class PersonForm
                                             ->imageEditor()
                                             ->imageAspectRatio('16:9')
                                             ->automaticallyOpenImageEditorForAspectRatio()
-                                            ->imageEditorAspectRatioOptions(['16:9'])
+                                            ->imageEditorAspectRatioOptions(['16:9', null])
                                             ->automaticallyCropImagesToAspectRatio()
                                             ->responsiveImages()
                                             ->conversion('banner')

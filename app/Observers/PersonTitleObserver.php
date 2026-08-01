@@ -7,6 +7,7 @@ namespace App\Observers;
 use AIArmada\Persons\Models\Title;
 use AIArmada\Persons\Models\TitleAssignment;
 use App\Models\Person;
+use App\Support\Cache\SelectionCatalogCache;
 use App\Support\Search\PersonSearchService;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
@@ -14,11 +15,13 @@ final readonly class PersonTitleObserver implements ShouldHandleEventsAfterCommi
 {
     public function __construct(
         private PersonSearchService $personSearchService,
+        private SelectionCatalogCache $selectionCatalogCache,
     ) {}
 
     public function saved(Title|TitleAssignment $model): void
     {
         if ($model instanceof Title) {
+            $this->selectionCatalogCache->bustTitles();
             $this->syncTitle($model);
 
             return;
@@ -30,6 +33,7 @@ final readonly class PersonTitleObserver implements ShouldHandleEventsAfterCommi
     public function deleted(Title|TitleAssignment $model): void
     {
         if ($model instanceof Title) {
+            $this->selectionCatalogCache->bustTitles();
             $this->syncTitle($model);
 
             return;

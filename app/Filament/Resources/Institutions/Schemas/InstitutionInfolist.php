@@ -187,19 +187,25 @@ class InstitutionInfolist
                                     ->schema([
                                         TextEntry::make('events_count')
                                             ->label('Jumlah Majlis')
-                                            ->state(fn ($record) => $record->events()->count())
+                                            ->state(function ($record): int {
+                                                if (! array_key_exists('events_count', $record->getAttributes())) {
+                                                    $record->loadCount(['events', 'members', 'persons', 'followers']);
+                                                }
+
+                                                return (int) $record->getAttribute('events_count');
+                                            })
                                             ->numeric(),
                                         TextEntry::make('members_count')
                                             ->label('Jumlah Ahli')
-                                            ->state(fn ($record) => $record->members()->count())
+                                            ->state(fn ($record): int => (int) $record->getAttribute('members_count'))
                                             ->numeric(),
                                         TextEntry::make('persons_count')
                                             ->label('Jumlah Penceramah')
-                                            ->state(fn ($record) => $record->persons()->count())
+                                            ->state(fn ($record): int => (int) $record->getAttribute('persons_count'))
                                             ->numeric(),
                                         TextEntry::make('followers_count')
                                             ->label('Jumlah Pengikut')
-                                            ->state(fn ($record) => $record->followers()->count())
+                                            ->state(fn ($record): int => (int) $record->getAttribute('followers_count'))
                                             ->numeric(),
                                     ])
                                     ->columns(4),

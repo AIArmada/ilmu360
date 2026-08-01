@@ -26,7 +26,8 @@ class ResolveReportFormContextAction
      *     subject_title: string,
      *     category_options: array<string, string>,
      *     redirect_url: string,
-     *     default_category: string
+     *     default_category: string,
+     *     profile_image_url: string|null
      * }
      */
     public function handle(string $subjectType, Event|Institution|Reference|Person $entity): array
@@ -40,6 +41,11 @@ class ResolveReportFormContextAction
             'category_options' => $categoryOptions,
             'redirect_url' => $presentation['redirect_url'],
             'default_category' => (string) array_key_first($categoryOptions),
+            'profile_image_url' => $entity instanceof Person
+                ? ($entity->hasMedia('profile')
+                    ? $entity->public_main_url
+                    : ($entity->hasMedia('avatar') ? $entity->public_avatar_url : null))
+                : null,
         ];
     }
 }

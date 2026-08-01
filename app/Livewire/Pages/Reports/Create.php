@@ -36,13 +36,14 @@ class Create extends Component implements HasForms
     /** @var array<string, mixed>|null */
     public ?array $data = [];
 
-    /** @var array{subject_label: string, subject_title: string, category_options: array<string, string>, redirect_url: string, default_category: string} */
+    /** @var array{subject_label: string, subject_title: string, category_options: array<string, string>, redirect_url: string, default_category: string, profile_image_url: string|null} */
     public array $context = [
         'subject_label' => '',
         'subject_title' => '',
         'category_options' => [],
         'redirect_url' => '',
         'default_category' => '',
+        'profile_image_url' => null,
     ];
 
     public function mount(
@@ -86,18 +87,18 @@ class Create extends Component implements HasForms
         return $schema
             ->statePath('data')
             ->components([
-                Section::make(__('Report this :subject', ['subject' => strtolower($this->context['subject_label'])]))
-                    ->description(__('Use this when the record is fake, inaccurate, unsafe, or misleading. Reports go to moderation review.'))
+                Section::make(__('Laporkan :subject ini', ['subject' => strtolower($this->context['subject_label'])]))
+                    ->description(__('Gunakan borang ini jika rekod palsu, tidak tepat, tidak selamat, atau mengelirukan. Laporan akan disemak oleh penyemak.'))
                     ->schema([
                         Select::make('category')
-                            ->label(__('Issue Type'))
+                            ->label(__('Jenis Isu'))
                             ->options($this->context['category_options'])
                             ->required(),
                         Textarea::make('description')
-                            ->label(__('Details'))
+                            ->label(__('Butiran'))
                             ->rows(6)
                             ->maxLength(2000)
-                            ->helperText(__('Add context if the issue is not obvious.'))
+                            ->helperText(__('Tambah konteks jika isu tidak jelas.'))
                             ->columnSpanFull(),
                     ]),
             ]);
@@ -118,7 +119,7 @@ class Create extends Component implements HasForms
         $state = $this->reportForm()->getState();
 
         if (($state['category'] ?? null) === 'other' && blank($state['description'] ?? null)) {
-            $this->addError('data.description', __('Please describe the issue so moderators know what to verify.'));
+            $this->addError('data.description', __('Sila terangkan isu supaya penyemak tahu perkara yang perlu disahkan.'));
 
             return;
         }
@@ -138,7 +139,7 @@ class Create extends Component implements HasForms
                 throw $exception;
             }
 
-            $this->addError('data.category', __('You already reported this record within the last 24 hours.'));
+            $this->addError('data.category', __('Anda sudah melaporkan rekod ini dalam tempoh 24 jam terakhir.'));
 
             return;
         }
@@ -149,7 +150,7 @@ class Create extends Component implements HasForms
     public function rendering(object $view): void
     {
         if (method_exists($view, 'title')) {
-            $view->title(__('Report :subject', ['subject' => $this->context['subject_label']]).' - '.config('app.name'));
+            $view->title(__('Laporkan :subject', ['subject' => $this->context['subject_label']]).' - '.config('app.name'));
         }
     }
 

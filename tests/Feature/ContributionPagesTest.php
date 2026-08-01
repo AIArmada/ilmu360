@@ -288,7 +288,7 @@ it('keeps reviewer context fields on update suggestion pages', function () {
         ->assertSee(__('Optional: add context that helps maintainers review your update faster.'));
 });
 
-it('uses the admin person form sections on the public person update page', function () {
+it('uses organized person form tabs on the public person update page', function () {
     $user = User::factory()->create();
     $person = Person::factory()->create([
         'status' => 'verified',
@@ -301,7 +301,9 @@ it('uses the admin person form sections on the public person update page', funct
         'subjectId' => $person->slug,
     ]))
         ->assertOk()
-        ->assertSee(__('Profil'))
+        ->assertSee(__('Maklumat Utama'))
+        ->assertSee(__('Maklumat Tambahan'))
+        ->assertSee(__('Afiliasi'))
         ->assertSee(__('Media'))
         ->assertSee(__('Lokasi'))
         ->assertSee(__('Hubungan'))
@@ -492,7 +494,7 @@ it('uses the institution location picker on the suggest update page when google 
         ->assertSee(__('Search for an institution or address'));
 });
 
-it('shows the person media uploads on the suggest update page only for maintainers', function () {
+it('shows the person media uploads on the suggest update page for public contributors', function () {
     $owner = User::factory()->create();
     $visitor = User::factory()->create();
     $person = Person::factory()->create([
@@ -508,9 +510,9 @@ it('shows the person media uploads on the suggest update page only for maintaine
     ]))
         ->assertOk()
         ->assertDontSee(__('View My Contributions'))
-        ->assertDontSee(__('Avatar'))
-        ->assertDontSee(__('Cover Image'))
-        ->assertDontSee(__('Gallery'));
+        ->assertSee(__('Avatar'))
+        ->assertSee(__('Cover Image'))
+        ->assertSee(__('Gallery'));
 
     assignPersonOwner($owner, $person);
     $this->actingAs($owner);
@@ -729,6 +731,30 @@ it('syncs person media collections when a maintainer updates them publicly', fun
         ->and($person->getMedia('gallery'))->toHaveCount(1)
         ->and($person->getFirstMedia('gallery')?->uuid)->not->toBe($oldGalleryUuid)
         ->and(ContributionRequest::query()->count())->toBe(0);
+});
+
+it('allows public contributors to submit person media', function () {
+    Storage::fake('public');
+    config()->set('media-library.disk_name', 'public');
+
+    $user = User::factory()->create();
+    $person = Person::factory()->create([
+        'status' => 'verified',
+    ]);
+
+    Livewire::actingAs($user)
+        ->test(SuggestUpdate::class, [
+            'subjectType' => ContributionSubjectType::Person->publicRouteSegment(),
+            'subjectId' => $person->slug,
+        ])
+        ->fillForm([
+            'cover' => UploadedFile::fake()->image('public-cover.jpg', 1600, 900),
+        ])
+        ->call('submit')
+        ->assertHasNoErrors();
+
+    expect($person->fresh()->getMedia('cover'))->toHaveCount(1)
+        ->and($person->fresh()->getFirstMedia('cover'))->not->toBeNull();
 });
 
 it('exposes Filament action handlers required by public contribution media uploads', function () {
@@ -981,6 +1007,21 @@ it('shows visible aspect ratio options for direct event media edits on the kemas
                 ->toBe('3:4')
                 ->and($aspectRatioOptions)
                 ->toContain('3:4')
+                ->toHaveCount(2);
+
+            return true;
+        });
+});
+
+it('uses the canonical 16:9 cover ratio on the public speaker form', function () {
+    Livewire::test(SubmitPerson::class)
+        ->assertFormFieldExists('cover', function (FileUpload $upload): bool {
+            $aspectRatioOptions = array_keys($upload->getImageEditorAspectRatioOptionsForJs());
+
+            expect($upload->getImageAspectRatio())
+                ->toBe('16:9')
+                ->and($aspectRatioOptions)
+                ->toContain('16:9')
                 ->toHaveCount(2);
 
             return true;
@@ -1704,6 +1745,26 @@ it('shows the reported person clearly on the public report page', function () {
         ->assertSeeText($selectedPersonLabel)
         ->assertSeeText($person->formatted_name)
         ->assertSeeText($viewPersonLabel);
+});
+
+it('shows the reported person profile image when available', function () {
+    $user = User::factory()->create();
+    $person = Person::factory()->create([
+        'name' => 'Zaharuddin Abdul Rahman',
+        'status' => 'verified',
+    ]);
+    $person->addMedia(UploadedFile::fake()->image('zaharuddin.jpg', 1200, 1200))
+        ->toMediaCollection('profile');
+
+    $this->actingAs($user);
+
+    $this->get(route('reports.create', [
+        'subjectType' => ContributionSubjectType::Person->publicRouteSegment(),
+        'subjectId' => $person->slug,
+    ]))
+        ->assertOk()
+        ->assertSee('src="'.$person->fresh()->public_main_url.'"', false)
+        ->assertSee('alt="Gambar profil '.$person->formatted_name.'"', false);
 });
 
 it('shows the reported event clearly on the public report page', function () {

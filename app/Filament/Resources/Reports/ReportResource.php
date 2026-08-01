@@ -18,6 +18,10 @@ use UnitEnum;
 
 class ReportResource extends Resource
 {
+    private static ?string $navigationBadgeScope = null;
+
+    private static ?int $openNavigationCount = null;
+
     protected static ?string $model = Report::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedFlag;
@@ -29,7 +33,14 @@ class ReportResource extends Resource
     #[\Override]
     public static function getNavigationBadge(): ?string
     {
-        $count = static::getModel()::query()->where('status', 'open')->count();
+        $scope = app()->bound('request') ? spl_object_hash(request()) : 'console';
+
+        if (self::$navigationBadgeScope !== $scope) {
+            self::$navigationBadgeScope = $scope;
+            self::$openNavigationCount = static::getModel()::query()->where('status', 'open')->count();
+        }
+
+        $count = self::$openNavigationCount ?? 0;
 
         return $count > 0 ? (string) $count : null;
     }

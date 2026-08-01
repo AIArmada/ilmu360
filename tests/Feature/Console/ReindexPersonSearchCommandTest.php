@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\DB;
 it('rebuilds stale person search rows and searchable names', function () {
     $person = Person::factory()->create([
         'name' => 'Nurul Akma',
+        'middle_name' => 'Ibn',
+        'family_name' => 'Rahman',
         'status' => 'verified',
     ]);
 

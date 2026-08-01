@@ -17,7 +17,13 @@ final readonly class PublicSubmissionLockService
     public function institutionEligibility(Institution $institution): SubmissionLockEligibilityResult
     {
         /** @var Collection<int, User> $members */
-        $members = $institution->members()->get();
+        $members = $institution->relationLoaded('members')
+            ? $institution->getRelation('members')
+            : $institution->members()->get();
+
+        if (! $institution->relationLoaded('members')) {
+            $institution->setRelation('members', $members);
+        }
 
         return $this->resolveEligibility(
             $members,
@@ -30,7 +36,13 @@ final readonly class PublicSubmissionLockService
     public function personEligibility(Person $person): SubmissionLockEligibilityResult
     {
         /** @var Collection<int, User> $members */
-        $members = $person->members()->get();
+        $members = $person->relationLoaded('members')
+            ? $person->getRelation('members')
+            : $person->members()->get();
+
+        if (! $person->relationLoaded('members')) {
+            $person->setRelation('members', $members);
+        }
 
         return $this->resolveEligibility(
             $members,

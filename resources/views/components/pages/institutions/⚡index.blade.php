@@ -1,12 +1,12 @@
 <?php
 
+use AIArmada\Addressing\Support\AddressCountryResolver;
 use App\Enums\EventVisibility;
 use App\Forms\SharedFormSchema;
 use App\Models\Event;
 use App\Models\Institution;
+use App\Support\Cache\SelectionCatalogCache;
 use App\Support\Search\InstitutionSearchService;
-use AIArmada\Addressing\Models\AddressCountry;
-use AIArmada\Addressing\Support\AddressCountryResolver;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator as LengthAwarePaginatorContract;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -22,6 +22,10 @@ new
 class extends Component
 {
     use WithPagination;
+
+    private bool $defaultCountryIdResolved = false;
+
+    private ?string $resolvedDefaultCountryId = null;
 
     public function mount(): void
     {
@@ -72,10 +76,8 @@ class extends Component
 
     private function baseInstitutionsQuery(): Builder
     {
-        $query = Institution::query()
+        return $this->scopedInstitutionsQuery()
             ->select('institutions.*')
-            ->active()
-            ->where('status', 'verified')
             ->selectSub($this->publicEventCountSubquery(), 'events_count')
             ->with([
                 'addresses.state',
@@ -83,8 +85,14 @@ class extends Component
                 'addresses.areaAssignments.area',
                 'media',
             ]);
+    }
 
-        return $this->applyLocationScope($query);
+    private function scopedInstitutionsQuery(): Builder
+    {
+        return $this->applyLocationScope(
+            Institution::query()
+                ->where('status', 'verified'),
+        );
     }
 
     /**
@@ -108,11 +116,7 @@ class extends Component
             return $this->emptyPaginator();
         }
 
-        return $this->baseInstitutionsQuery()
-            ->whereIn('institutions.id', $matchingIds)
-            ->publicDirectoryOrder()
-            ->paginate(12)
-            ->withQueryString();
+        return $this->paginateDirectMatches($matchingIds);
     }
 
     private function fuzzySearch(string $search): LengthAwarePaginatorContract
@@ -121,48 +125,35 @@ class extends Component
             $this->institutionSearchService()->publicFuzzySearchIds($search),
         );
 
-        $currentPage = max(1, (int) $this->getPage());
-        $perPage = 12;
-        $paginationMeta = $this->paginationMeta();
-
         if ($orderedIds === []) {
             return $this->emptyPaginator();
         }
 
-        $paginatedIds = array_slice($orderedIds, ($currentPage - 1) * $perPage, $perPage);
-
-        if ($paginatedIds === []) {
-            return new LengthAwarePaginator(collect(), count($orderedIds), $perPage, $currentPage, $paginationMeta);
-        }
-
-        $institutions = $this->baseInstitutionsQuery()
-            ->whereIn('id', $paginatedIds)
-            ->get()
-            ->sortBy(static function (Institution $institution) use ($paginatedIds): int {
-                $position = array_search($institution->id, $paginatedIds, true);
-
-                return is_int($position) ? $position : PHP_INT_MAX;
-            })
-            ->values();
-
-        return new LengthAwarePaginator($institutions, count($orderedIds), $perPage, $currentPage, $paginationMeta);
+        return $this->orderedIdPaginator($orderedIds);
     }
 
     /**
      * @param  list<string>  $orderedIds
      * @return list<string>
      */
-    private function filterSearchIdsToCurrentScope(array $orderedIds): array
+    private function filterSearchIdsToCurrentScope(array $orderedIds, bool $useDirectoryOrder = false): array
     {
         if ($orderedIds === []) {
             return [];
         }
 
-        $scopedIds = $this->baseInstitutionsQuery()
+        $scopedQuery = $this->scopedInstitutionsQuery()
             ->whereIn('institutions.id', $orderedIds)
+            ->when($useDirectoryOrder, fn (Builder $query): Builder => $query->publicDirectoryOrder());
+
+        $scopedIds = $scopedQuery
             ->pluck('institutions.id')
             ->map(static fn (mixed $id): string => (string) $id)
             ->all();
+
+        if ($useDirectoryOrder) {
+            return $scopedIds;
+        }
 
         return collect($scopedIds)
             ->sortBy(static function (string $id) use ($orderedIds): int {
@@ -172,6 +163,80 @@ class extends Component
             })
             ->values()
             ->all();
+    }
+
+    /**
+     * @param  list<string>  $orderedIds
+     */
+    private function orderedIdPaginator(array $orderedIds): LengthAwarePaginatorContract
+    {
+        $currentPage = max(1, (int) $this->getPage());
+        $perPage = 12;
+        $paginationMeta = $this->paginationMeta();
+        $paginatedIds = array_slice($orderedIds, ($currentPage - 1) * $perPage, $perPage);
+
+        if ($paginatedIds === []) {
+            return new LengthAwarePaginator(collect(), count($orderedIds), $perPage, $currentPage, $paginationMeta);
+        }
+
+        return $this->hydrateOrderedIds($paginatedIds, count($orderedIds), $currentPage, $paginationMeta);
+    }
+
+    /**
+     * Apply the current directory scope, ordering, pagination, and total in
+     * one database query. The search service already resolved the candidate
+     * IDs, so a separate scoped-ID query only repeats the location work.
+     *
+     * @param  list<string>  $matchingIds
+     */
+    private function paginateDirectMatches(array $matchingIds): LengthAwarePaginatorContract
+    {
+        $currentPage = max(1, (int) $this->getPage());
+        $perPage = 12;
+        $paginationMeta = $this->paginationMeta();
+
+        $institutions = $this->baseInstitutionsQuery()
+            ->whereIn('institutions.id', $matchingIds)
+            ->publicDirectoryOrder()
+            ->selectRaw('count(*) over () as matching_total')
+            ->forPage($currentPage, $perPage)
+            ->get();
+
+        $firstInstitution = $institutions->first();
+        $total = $firstInstitution instanceof Institution
+            ? (int) $firstInstitution->getAttribute('matching_total')
+            : 0;
+
+        // A page beyond the end has no row from which to read the window
+        // total. This is rare and keeps pagination totals correct without
+        // adding a count query to the normal request path.
+        if ($institutions->isEmpty() && $currentPage > 1) {
+            $total = $this->scopedInstitutionsQuery()
+                ->whereIn('institutions.id', $matchingIds)
+                ->count();
+        }
+
+        $institutions->each(static fn (Institution $institution): Institution => $institution->makeHidden('matching_total'));
+
+        return new LengthAwarePaginator($institutions, $total, $perPage, $currentPage, $paginationMeta);
+    }
+
+    /**
+     * @param  list<string>  $orderedIds
+     */
+    private function hydrateOrderedIds(array $orderedIds, int $total, int $currentPage, array $paginationMeta): LengthAwarePaginatorContract
+    {
+        $institutions = $this->baseInstitutionsQuery()
+            ->whereIn('institutions.id', $orderedIds)
+            ->get()
+            ->sortBy(static function (Institution $institution) use ($orderedIds): int {
+                $position = array_search((string) $institution->id, $orderedIds, true);
+
+                return is_int($position) ? $position : PHP_INT_MAX;
+            })
+            ->values();
+
+        return new LengthAwarePaginator($institutions, $total, 12, $currentPage, $paginationMeta);
     }
 
     private function emptyPaginator(): LengthAwarePaginatorContract
@@ -198,10 +263,7 @@ class extends Component
     #[Computed]
     public function countries(): array
     {
-        return AddressCountry::query()
-            ->orderBy('name')
-            ->pluck('name', 'id')
-            ->all();
+        return app(SelectionCatalogCache::class)->countryOptions();
     }
 
     #[Computed]
@@ -244,6 +306,21 @@ class extends Component
     #[Computed]
     public function subdistricts(): array
     {
+        if (! filled($this->state_id)) {
+            return [];
+        }
+
+        // For states with a district hierarchy, mukim is the child filter and
+        // must not be offered until a district has been selected. Federal
+        // territories intentionally skip district and expose local areas
+        // directly under the selected state.
+        if (
+            SharedFormSchema::shouldShowDistrictField($this->state_id, $this->country_id)
+            && ! filled($this->administrative_district_id)
+        ) {
+            return [];
+        }
+
         return SharedFormSchema::subdistrictOptionsForSelection($this->state_id, $this->administrative_district_id, $this->country_id);
     }
 
@@ -383,11 +460,18 @@ class extends Component
 
     private function defaultCountryId(): ?string
     {
-        $countryId = app(AddressCountryResolver::class)->resolveId(
-            config('contacting.defaults.country_code', 'MY'),
+        if ($this->defaultCountryIdResolved) {
+            return $this->resolvedDefaultCountryId;
+        }
+
+        $this->defaultCountryIdResolved = true;
+        $countryCode = (string) config('contacting.defaults.country_code', 'MY');
+        $countryId = app(SelectionCatalogCache::class)->rememberAddressValue(
+            "default-country:{$countryCode}",
+            fn (): ?string => app(AddressCountryResolver::class)->resolveId($countryCode),
         );
 
-        return is_string($countryId) ? $countryId : null;
+        return $this->resolvedDefaultCountryId = is_string($countryId) ? $countryId : null;
     }
 };
 ?>
@@ -713,7 +797,7 @@ class extends Component
                                     <a
                                         href="{{ $submitInstitutionUrl }}"
                                         wire:navigate
-                                        class="group inline-flex min-w-[18rem] items-center justify-between gap-4 rounded-[1.5rem] bg-white px-5 py-4 text-left text-emerald-700 shadow-xl shadow-emerald-950/20 transition duration-200 hover:-translate-y-0.5 hover:bg-emerald-50"
+                                        class="group inline-flex w-full min-w-0 items-center justify-between gap-4 rounded-[1.5rem] bg-white px-5 py-4 text-left text-emerald-700 shadow-xl shadow-emerald-950/20 transition duration-200 hover:-translate-y-0.5 hover:bg-emerald-50 sm:w-auto sm:min-w-[18rem]"
                                     >
                                         <span class="block">
                                             <span class="block text-[11px] font-black uppercase tracking-[0.2em] text-emerald-500">{{ __('Tambah ke direktori') }}</span>

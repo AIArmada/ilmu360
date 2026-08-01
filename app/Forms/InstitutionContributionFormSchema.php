@@ -52,7 +52,8 @@ class InstitutionContributionFormSchema
                                 ->maxLength(10)
                                 ->default('ms'),
                             Toggle::make('is_primary')
-                                ->default(false),
+                                ->default(false)
+                                ->fixIndistinctState(),
                         ])
                         ->columns(2)
                         ->defaultItems(0)

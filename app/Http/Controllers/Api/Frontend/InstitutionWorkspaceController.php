@@ -155,7 +155,7 @@ class InstitutionWorkspaceController extends FrontendController
         ]);
 
         $member = User::query()
-            ->whereRaw('LOWER(email) = ?', [mb_strtolower(trim((string) $validated['email']))])
+            ->whereLike('email', trim((string) $validated['email']))
             ->first();
 
         if (! $member instanceof User) {
@@ -372,12 +372,12 @@ class InstitutionWorkspaceController extends FrontendController
             ->withCount(['registrations as workspace_registrations_count']);
 
         if ($eventSearch !== '') {
-            $search = '%'.mb_strtolower(trim($eventSearch)).'%';
+            $search = '%'.trim($eventSearch).'%';
 
             $query->where(function (Builder $builder) use ($search): void {
                 $builder
-                    ->whereRaw('LOWER(title) LIKE ?', [$search])
-                    ->orWhereHas('venue', fn (Builder $venueQuery) => $venueQuery->whereRaw('LOWER(name) LIKE ?', [$search]));
+                    ->whereLike('title', $search)
+                    ->orWhereHas('venue', fn (Builder $venueQuery) => $venueQuery->whereLike('name', $search));
             });
         }
 

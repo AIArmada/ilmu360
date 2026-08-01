@@ -6,7 +6,6 @@ namespace App\Support\EventDiscovery;
 
 use App\Models\Event;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Query\Grammars\PostgresGrammar;
 use Illuminate\Support\Str;
 
 final class FuzzyEventMatcher
@@ -33,13 +32,15 @@ final class FuzzyEventMatcher
             return $queryBuilder->limit($this->fuzzyCandidateLimit());
         }
 
-        $operator = $this->databaseLikeOperator();
-
-        $queryBuilder->where(function (Builder $candidateQuery) use ($operator, $patterns): void {
+        $queryBuilder->where(function (Builder $candidateQuery) use ($patterns): void {
             foreach ($patterns as $index => $pattern) {
-                $method = $index === 0 ? 'where' : 'orWhere';
+                if ($index === 0) {
+                    $candidateQuery->whereLike('events.title', $pattern);
 
-                $candidateQuery->{$method}('events.title', $operator, $pattern);
+                    continue;
+                }
+
+                $candidateQuery->orWhereLike('events.title', $pattern);
             }
         });
 
@@ -192,10 +193,5 @@ final class FuzzyEventMatcher
         }
 
         return max($scoreCandidates);
-    }
-
-    private function databaseLikeOperator(): string
-    {
-        return Event::query()->getGrammar() instanceof PostgresGrammar ? 'ILIKE' : 'LIKE';
     }
 }

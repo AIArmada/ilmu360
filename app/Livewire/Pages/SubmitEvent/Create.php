@@ -44,6 +44,7 @@ use App\States\EventStatus\Approved;
 use App\States\EventStatus\Cancelled;
 use App\States\EventStatus\EventStatus;
 use App\States\EventStatus\Pending;
+use App\Support\Cache\SelectionCatalogCache;
 use App\Support\Submission\EntitySubmissionAccess;
 use BackedEnum;
 use Carbon\CarbonInterface;
@@ -283,18 +284,7 @@ class Create extends Component implements HasActions, HasForms
             'jv' => 'Bahasa Jawa',
         ];
 
-        return Cache::remember($this->submitCacheKey('submit_languages'), 3600, fn (): array => Language::query()
-            ->whereIn('code', $preferredOrder)
-            ->get()
-            ->sortBy(fn (Language $language): int|false => array_search((string) $language->code, $preferredOrder, true))
-            ->mapWithKeys(function (Language $language) use ($preferredLabels): array {
-                $code = (string) $language->code;
-                $label = $preferredLabels[$code]
-                    ?? (string) ($language->name ?? Str::upper($code));
-
-                return [$language->id => $label];
-            })
-            ->all());
+        return app(SelectionCatalogCache::class)->languageOptionsForCodes($preferredOrder, $preferredLabels);
     }
 
     /**
@@ -546,13 +536,13 @@ class Create extends Component implements HasActions, HasForms
                     }
 
                     $results = Event::query()
-                        ->whereRaw('LOWER(title) LIKE ?', ['%'.strtolower($search).'%'])
+                        ->whereLike('title', "%{$search}%")
                         ->where('status', 'approved')
                         ->limit(10)
                         ->pluck('title', 'title')
                         ->toArray();
 
-                    $exactMatch = collect($results)->contains(fn ($value) => strtolower($value) === strtolower($search));
+                    $exactMatch = collect($results)->contains(fn ($value) => mb_strtolower($value) === mb_strtolower($search));
 
                     if (! $exactMatch) {
                         $results = ["__quick_add__{$search}" => "<span class='text-primary-600'>+ ".__('Tambah')." '{$search}'</span>"] + $results;
@@ -630,10 +620,13 @@ class Create extends Component implements HasActions, HasForms
                     Select::make('submission_country_id')
                         ->label(__('Country'))
                         ->required()
-                        ->options(fn (): array => AddressCountry::query()
-                            ->orderBy('name')
-                            ->pluck('name', 'id')
-                            ->all())
+                        ->options(fn (): array => app(SelectionCatalogCache::class)->rememberAddressOptions(
+                            'countries',
+                            static fn (): array => AddressCountry::query()
+                                ->orderBy('name')
+                                ->pluck('name', 'id')
+                                ->all(),
+                        ))
                         ->searchable()
                         ->preload()
                         ->live()
@@ -1014,7 +1007,7 @@ class Create extends Component implements HasActions, HasForms
                             $results = EventTerm::query()
                                 ->where('event_taxonomy_id', $taxonomyId)
                                 ->where('is_active', true)
-                                ->where('name', 'like', "%{$search}%")
+                                ->whereLike('name', "%{$search}%")
                                 ->orderBy('sort_order')
                                 ->limit(20)
                                 ->pluck('name', 'id')
@@ -1114,7 +1107,7 @@ class Create extends Component implements HasActions, HasForms
                             $results = EventTerm::query()
                                 ->where('event_taxonomy_id', $taxonomyId)
                                 ->where('is_active', true)
-                                ->where('name', 'like', "%{$search}%")
+                                ->whereLike('name', "%{$search}%")
                                 ->orderBy('sort_order')
                                 ->limit(20)
                                 ->pluck('name', 'id')

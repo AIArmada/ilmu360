@@ -5,7 +5,6 @@ namespace App\Support\Search;
 use App\Contracts\PublicDiscoveryAdapter;
 use App\Models\Reference;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
@@ -258,39 +257,38 @@ class ReferenceSearchService implements PublicDiscoveryAdapter
      */
     private function applyDatabaseSearch(Builder $query, string $normalizedSearch): Builder
     {
-        $operator = DB::connection($query->getModel()->getConnectionName())->getDriverName() === 'pgsql' ? 'ILIKE' : 'LIKE';
         $collapsedWildcardSearch = '%'.str_replace(' ', '%', $normalizedSearch).'%';
         $searchTokens = array_values(array_filter(
             explode(' ', $normalizedSearch),
             static fn (string $token): bool => $token !== '' && (mb_strlen($token) >= 2 || ctype_digit($token))
         ));
 
-        return $query->where(function (Builder $innerQuery) use ($normalizedSearch, $operator, $collapsedWildcardSearch, $searchTokens): void {
+        return $query->where(function (Builder $innerQuery) use ($normalizedSearch, $collapsedWildcardSearch, $searchTokens): void {
             $innerQuery
-                ->where('references.title', $operator, "%{$normalizedSearch}%")
-                ->orWhere('references.title', $operator, $collapsedWildcardSearch)
-                ->orWhere('references.author', $operator, "%{$normalizedSearch}%")
-                ->orWhere('references.publisher', $operator, "%{$normalizedSearch}%")
-                ->orWhere('references.description', $operator, "%{$normalizedSearch}%")
-                ->orWhere('references.part_type', $operator, "%{$normalizedSearch}%")
-                ->orWhere('references.part_label', $operator, "%{$normalizedSearch}%")
-                ->orWhere('references.part_number', $operator, "%{$normalizedSearch}%");
+                ->whereLike('references.title', "%{$normalizedSearch}%")
+                ->orWhereLike('references.title', $collapsedWildcardSearch)
+                ->orWhereLike('references.author', "%{$normalizedSearch}%")
+                ->orWhereLike('references.publisher', "%{$normalizedSearch}%")
+                ->orWhereLike('references.description', "%{$normalizedSearch}%")
+                ->orWhereLike('references.part_type', "%{$normalizedSearch}%")
+                ->orWhereLike('references.part_label', "%{$normalizedSearch}%")
+                ->orWhereLike('references.part_number', "%{$normalizedSearch}%");
 
             if (count($searchTokens) < 2) {
                 return;
             }
 
-            $innerQuery->orWhere(function (Builder $tokenQuery) use ($searchTokens, $operator): void {
+            $innerQuery->orWhere(function (Builder $tokenQuery) use ($searchTokens): void {
                 foreach ($searchTokens as $token) {
-                    $tokenQuery->where(function (Builder $singleTokenQuery) use ($token, $operator): void {
+                    $tokenQuery->where(function (Builder $singleTokenQuery) use ($token): void {
                         $singleTokenQuery
-                            ->where('references.title', $operator, "%{$token}%")
-                            ->orWhere('references.author', $operator, "%{$token}%")
-                            ->orWhere('references.publisher', $operator, "%{$token}%")
-                            ->orWhere('references.description', $operator, "%{$token}%")
-                            ->orWhere('references.part_type', $operator, "%{$token}%")
-                            ->orWhere('references.part_label', $operator, "%{$token}%")
-                            ->orWhere('references.part_number', $operator, "%{$token}%");
+                            ->whereLike('references.title', "%{$token}%")
+                            ->orWhereLike('references.author', "%{$token}%")
+                            ->orWhereLike('references.publisher', "%{$token}%")
+                            ->orWhereLike('references.description', "%{$token}%")
+                            ->orWhereLike('references.part_type', "%{$token}%")
+                            ->orWhereLike('references.part_label', "%{$token}%")
+                            ->orWhereLike('references.part_number', "%{$token}%");
                     });
                 }
             });
@@ -309,13 +307,11 @@ class ReferenceSearchService implements PublicDiscoveryAdapter
             return $query;
         }
 
-        $operator = DB::connection($query->getModel()->getConnectionName())->getDriverName() === 'pgsql' ? 'ILIKE' : 'LIKE';
-
-        return $query->where(function (Builder $candidateQuery) use ($operator, $patterns): void {
+        return $query->where(function (Builder $candidateQuery) use ($patterns): void {
             foreach ($patterns as $pattern) {
                 $candidateQuery
-                    ->orWhere('references.title', $operator, $pattern)
-                    ->orWhere('references.author', $operator, $pattern);
+                    ->orWhereLike('references.title', $pattern)
+                    ->orWhereLike('references.author', $pattern);
             }
         });
     }

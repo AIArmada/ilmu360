@@ -17,12 +17,12 @@ use App\Enums\EventVisibility;
 use App\Enums\ReferenceType;
 use App\Forms\Components\Select;
 use App\Models\Institution;
-use App\Models\Language;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Series;
 use App\Models\Space;
 use App\Models\Venue;
+use App\Support\Cache\SelectionCatalogCache;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Radio;
@@ -44,6 +44,35 @@ use Illuminate\Support\Str;
 
 class EventContributionFormSchema
 {
+    private static ?string $cacheScope = null;
+
+    /** @var array<string, string>|null */
+    private static ?array $languageOptionsCache = null;
+
+    /** @var array<string, string>|null */
+    private static ?array $personOptionsCache = null;
+
+    /** @var array<string, string>|null */
+    private static ?array $institutionOptionsCache = null;
+
+    /** @var array<string, array<string, string>> */
+    private static array $tagOptionsCache = [];
+
+    private static function ensureCacheScope(): void
+    {
+        $scope = spl_object_hash(app());
+
+        if (self::$cacheScope === $scope) {
+            return;
+        }
+
+        self::$cacheScope = $scope;
+        self::$languageOptionsCache = null;
+        self::$personOptionsCache = null;
+        self::$institutionOptionsCache = null;
+        self::$tagOptionsCache = [];
+    }
+
     /**
      * @return array<int, Component>
      */
@@ -169,7 +198,7 @@ class EventContributionFormSchema
                         ->default(false),
                     Select::make('language_ids')
                         ->label(__('Bahasa'))
-                        ->options(fn (): array => Language::query()->orderBy('name')->pluck('name', 'id')->all())
+                        ->options(fn (): array => self::languageOptions())
                         ->multiple()
                         ->searchable()
                         ->preload()
@@ -538,12 +567,7 @@ class EventContributionFormSchema
                 ->schema([
                     Select::make('person_ids')
                         ->label(__('Pilih Penceramah'))
-                        ->options(fn (): array => Person::query()
-                            ->whereIn('status', ['verified', 'pending'])
-                            ->orderBy('name')
-                            ->get()
-                            ->mapWithKeys(fn (Person $person): array => [(string) $person->id => $person->formatted_name])
-                            ->all())
+                        ->options(fn (): array => self::personOptions())
                         ->required(fn (Get $get): bool => self::requiresPersonsForCategories($get('event_category_ids')))
                         ->multiple()
                         ->closeOnSelect()
@@ -565,12 +589,7 @@ class EventContributionFormSchema
                                 ->required(),
                             Select::make('involveable_id')
                                 ->label(__('Pautkan Profil Penceramah'))
-                                ->options(fn (): array => Person::query()
-                                    ->whereIn('status', ['verified', 'pending'])
-                                    ->orderBy('name')
-                                    ->get()
-                                    ->mapWithKeys(fn (Person $person): array => [(string) $person->id => $person->formatted_name])
-                                    ->all())
+                                ->options(fn (): array => self::personOptions())
                                 ->searchable()
                                 ->preload()
                                 ->live()
@@ -675,16 +694,22 @@ class EventContributionFormSchema
      */
     private static function tagOptions(EventTaxonomyCode $type): array
     {
+        self::ensureCacheScope();
+
+        if (array_key_exists($type->value, self::$tagOptionsCache)) {
+            return self::$tagOptionsCache[$type->value];
+        }
+
         $taxonomy = EventTaxonomy::query()
             ->where('code', $type->value)
             ->where('is_active', true)
             ->first();
 
         if ($taxonomy === null) {
-            return [];
+            return self::$tagOptionsCache[$type->value] = [];
         }
 
-        return EventTerm::query()
+        return self::$tagOptionsCache[$type->value] = EventTerm::query()
             ->where('event_taxonomy_id', $taxonomy->getKey())
             ->where('is_active', true)
             ->orderBy('sort_order')
@@ -738,7 +763,6 @@ class EventContributionFormSchema
     {
         return Venue::query()
             ->whereIn('status', ['verified', 'pending'])
-            ->whereIn('status', ['verified', 'pending'])
             ->orderBy('name')
             ->pluck('name', 'id')
             ->all();
@@ -764,7 +788,9 @@ class EventContributionFormSchema
      */
     private static function institutionOptions(): array
     {
-        return Institution::query()
+        self::ensureCacheScope();
+
+        return self::$institutionOptionsCache ??= Institution::query()
             ->whereIn('status', ['verified', 'pending'])
             ->orderBy('name')
             ->with('names')
@@ -778,12 +804,25 @@ class EventContributionFormSchema
      */
     private static function personOptions(): array
     {
-        return Person::query()
+        self::ensureCacheScope();
+
+        return self::$personOptionsCache ??= Person::query()
             ->whereIn('status', ['verified', 'pending'])
             ->orderBy('name')
+            ->with('titleAssignments.title.category')
             ->get()
             ->mapWithKeys(fn (Person $person): array => [(string) $person->id => $person->formatted_name])
             ->all();
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private static function languageOptions(): array
+    {
+        self::ensureCacheScope();
+
+        return self::$languageOptionsCache ??= app(SelectionCatalogCache::class)->languageOptions('id');
     }
 
     /**

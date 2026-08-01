@@ -292,18 +292,16 @@ class EventController extends Controller
                     return;
                 }
 
-                $operator = $this->databaseLikeOperator();
-
-                $query->whereHas('keyPeople', function (Builder $keyPersonQuery) use ($operator, $searchTerm): void {
+                $query->whereHas('keyPeople', function (Builder $keyPersonQuery) use ($searchTerm): void {
                     $keyPersonQuery
                         ->where('role_code', EventKeyPersonRole::PersonInCharge->value)
-                        ->where(function (Builder $personInChargeQuery) use ($operator, $searchTerm): void {
+                        ->where(function (Builder $personInChargeQuery) use ($searchTerm): void {
                             $personInChargeQuery
-                                ->where('event_involvements.display_name', $operator, "%{$searchTerm}%")
-                                ->orWhereHas('person', function (Builder $personQuery) use ($operator, $searchTerm): void {
+                                ->whereLike('event_involvements.display_name', "%{$searchTerm}%")
+                                ->orWhereHas('person', function (Builder $personQuery) use ($searchTerm): void {
                                     $personQuery
-                                        ->where('persons.name', $operator, "%{$searchTerm}%")
-                                        ->orWhere('persons.searchable_name', $operator, "%{$searchTerm}%");
+                                        ->whereLike('persons.name', "%{$searchTerm}%")
+                                        ->orWhereLike('persons.searchable_name', "%{$searchTerm}%");
                                 });
                         });
                 });
@@ -386,7 +384,7 @@ class EventController extends Controller
                 $operator = $this->databaseLikeOperator();
                 $query->where(function (Builder $searchQuery) use ($searchTerm, $operator): void {
                     $searchQuery
-                        ->where('title', $operator, "%{$searchTerm}%")
+                        ->whereLike('title', "%{$searchTerm}%")
                         ->orWhereRaw($this->descriptionSearchSql($operator), ["%{$searchTerm}%"]);
                 });
             }),
@@ -412,15 +410,13 @@ class EventController extends Controller
                 }
 
                 $normalized = Str::lower($prayerTime);
-                $operator = $this->databaseLikeOperator();
-
                 $query
-                    ->whereHas('timeExpressions', function (Builder $prayerQuery) use ($normalized, $operator): void {
+                    ->whereHas('timeExpressions', function (Builder $prayerQuery) use ($normalized): void {
                         $prayerQuery->where('time_mode', 'prayer_relative');
                         $prayerQuery->where('anchor_type', 'prayer');
 
-                        $prayerQuery->where(function (Builder $inner) use ($normalized, $operator): void {
-                            $inner->where('display_label', $operator, "%{$normalized}%");
+                        $prayerQuery->where(function (Builder $inner) use ($normalized): void {
+                            $inner->whereLike('display_label', "%{$normalized}%");
 
                             $reference = $this->resolvePrayerReference($normalized);
 
@@ -807,22 +803,20 @@ class EventController extends Controller
      */
     private function applyPrayerReferenceOrLabelFilter(Builder $query, PrayerReference $reference, array $terms): void
     {
-        $operator = $this->databaseLikeOperator();
-
-        $query->whereHas('timeExpressions', function (Builder $prayerQuery) use ($reference, $terms, $operator): void {
+        $query->whereHas('timeExpressions', function (Builder $prayerQuery) use ($reference, $terms): void {
             $prayerQuery->where('anchor_type', 'prayer');
 
-            $prayerQuery->where(function (Builder $inner) use ($reference, $terms, $operator): void {
+            $prayerQuery->where(function (Builder $inner) use ($reference, $terms): void {
                 $inner->where('anchor_code', $reference->value)
-                    ->orWhere(function (Builder $labelQuery) use ($terms, $operator): void {
+                    ->orWhere(function (Builder $labelQuery) use ($terms): void {
                         foreach ($terms as $index => $term) {
                             if ($index === 0) {
-                                $labelQuery->where('display_label', $operator, "%{$term}%");
+                                $labelQuery->whereLike('display_label', "%{$term}%");
 
                                 continue;
                             }
 
-                            $labelQuery->orWhere('display_label', $operator, "%{$term}%");
+                            $labelQuery->orWhereLike('display_label', "%{$term}%");
                         }
                     });
             });
@@ -834,21 +828,20 @@ class EventController extends Controller
      */
     private function applyDhuhaPrayerTimeFilter(Builder $query, Request $request): void
     {
-        $operator = $this->databaseLikeOperator();
         $startsAtUserTimeSql = $this->startsAtUserTimeSqlExpression($this->userUtcOffsetMinutes($request));
 
-        $query->where(function (Builder $dhuhaQuery) use ($operator, $startsAtUserTimeSql): void {
+        $query->where(function (Builder $dhuhaQuery) use ($startsAtUserTimeSql): void {
             $dhuhaQuery
-                ->where(function (Builder $relativeQuery) use ($operator): void {
+                ->where(function (Builder $relativeQuery): void {
                     $relativeQuery
-                        ->whereHas('timeExpressions', function (Builder $labelQuery) use ($operator): void {
+                        ->whereHas('timeExpressions', function (Builder $labelQuery): void {
                             $labelQuery->where('time_mode', TimingMode::PrayerRelative->value);
                             $labelQuery->where('anchor_type', 'prayer');
 
-                            $labelQuery->where(function (Builder $inner) use ($operator): void {
-                                $inner->where('display_label', $operator, '%dhuha%')
-                                    ->orWhere('display_label', $operator, '%pagi%')
-                                    ->orWhere('display_label', $operator, '%morning%');
+                            $labelQuery->where(function (Builder $inner): void {
+                                $inner->whereLike('display_label', '%dhuha%')
+                                    ->orWhereLike('display_label', '%pagi%')
+                                    ->orWhereLike('display_label', '%morning%');
                             });
                         })
                         ->where(function (Builder $excludeQuery): void {

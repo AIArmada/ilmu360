@@ -7,7 +7,6 @@ use App\Models\Institution;
 use App\Models\InstitutionName;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
@@ -322,13 +321,11 @@ class InstitutionSearchService implements PublicDiscoveryAdapter
             return $query;
         }
 
-        $operator = DB::connection($query->getModel()->getConnectionName())->getDriverName() === 'pgsql' ? 'ILIKE' : 'LIKE';
-
-        return $query->where(function (Builder $candidateQuery) use ($operator, $patterns): void {
+        return $query->where(function (Builder $candidateQuery) use ($patterns): void {
             foreach ($patterns as $pattern) {
                 $candidateQuery
-                    ->orWhere('institutions.name', $operator, $pattern)
-                    ->orWhereHas('names', fn (Builder $nameQuery) => $nameQuery->where('full_name', $operator, $pattern));
+                    ->orWhereLike('institutions.name', $pattern)
+                    ->orWhereHas('names', fn (Builder $nameQuery) => $nameQuery->whereLike('full_name', $pattern));
             }
         });
     }

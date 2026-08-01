@@ -30,6 +30,20 @@ class InstitutionName extends Model
         'is_primary',
     ];
 
+    protected static function booted(): void
+    {
+        static::saved(function (InstitutionName $name): void {
+            if (! $name->is_primary) {
+                return;
+            }
+
+            static::query()
+                ->where('institution_id', $name->institution_id)
+                ->whereKeyNot($name->getKey())
+                ->update(['is_primary' => false]);
+        });
+    }
+
     protected function casts(): array
     {
         return [

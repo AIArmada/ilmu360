@@ -8,8 +8,10 @@ use App\Models\Reference;
 use App\Support\Search\InstitutionSearchService;
 use App\Support\Search\PersonSearchService;
 use App\Support\Search\ReferenceSearchService;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 uses(TestCase::class, RefreshDatabase::class);
@@ -80,6 +82,74 @@ it('falls back to local person fuzzy search when typesense lookup fails', functi
     };
 
     expect($service->publicFuzzySearchIds('Smad'))->toContain((string) $person->id);
+});
+
+it('normalizes a combined person search name only once', function () {
+    expect(app(PersonSearchService::class)->buildSearchableName('Ustaz Ahmad, PhD Ahmad'))
+        ->toBe('ustaz ahmad phd ahmad');
+});
+
+it('refreshes the person search index when middle or family names change', function () {
+    $person = Person::factory()->create([
+        'name' => 'Ahmad',
+        'middle_name' => null,
+        'family_name' => null,
+        'status' => 'verified',
+    ]);
+
+    DB::table('persons')->where('id', $person->getKey())->update(['searchable_name' => 'stale value']);
+
+    $person = Person::query()->findOrFail($person->getKey());
+
+    $person->update([
+        'middle_name' => 'Ibn',
+        'family_name' => 'Rahman',
+    ]);
+
+    expect(DB::table('persons')->where('id', $person->getKey())->value('searchable_name'))
+        ->toBe('ahmad ibn rahman ahmad');
+
+    expect(DB::table('person_search_terms')
+        ->where('person_id', $person->getKey())
+        ->pluck('term')
+        ->all())
+        ->toEqualCanonicalizing(['ahmad', 'ibn', 'rahman']);
+});
+
+it('can score a person when the local searchable name is empty', function () {
+    $person = Person::factory()->create([
+        'name' => 'Amin Idris',
+        'family_name' => 'Hassan',
+        'middle_name' => 'Abu',
+        'status' => 'verified',
+    ]);
+
+    DB::table('persons')->where('id', $person->getKey())->update(['searchable_name' => null]);
+
+    $service = new class extends PersonSearchService
+    {
+        protected function shouldUseTypesenseSearch(): bool
+        {
+            return true;
+        }
+
+        protected function searchIdsWithScout(string $search, array $options = []): array
+        {
+            throw new RuntimeException('Typesense unavailable');
+        }
+
+        protected function logScoutFallback(string $message, Throwable $exception, string $search): void {}
+    };
+
+    $service->bustPublicSearchCache();
+
+    Model::preventAccessingMissingAttributes();
+
+    try {
+        expect($service->publicFuzzySearchIds('Amin'))->toContain((string) $person->id);
+    } finally {
+        Model::preventAccessingMissingAttributes(false);
+    }
 });
 
 it('keeps transposed person typos reachable through fallback candidate filtering', function () {

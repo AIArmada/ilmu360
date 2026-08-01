@@ -5,10 +5,9 @@ namespace App\Forms;
 use AIArmada\Persons\Enums\AssignmentStatus;
 use AIArmada\Persons\Enums\Gender;
 use AIArmada\Persons\Enums\PersonNameType;
-use AIArmada\Persons\Models\Title;
 use App\Forms\Components\Select as QuickAddSelect;
 use App\Models\Institution;
-use App\Models\Language;
+use App\Support\Cache\SelectionCatalogCache;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
@@ -35,101 +34,113 @@ class PersonContributionFormSchema
         bool $includeAlternativeNames = true,
         bool $useTitleMultiSelect = false,
         bool $useInstitutionRepeater = false,
+        bool $splitProfileSections = false,
     ): array {
         $showCountryField ??= true;
 
-        $components = [
-            Section::make(__('Profil Penceramah'))
-                ->schema([
-                    TextInput::make('name')
-                        ->label(__('Speaker Name'))
-                        ->required()
-                        ->maxLength(255),
-                    TextInput::make('family_name')
-                        ->label(__('Family name'))
-                        ->maxLength(100)
-                        ->helperText(__('Surname / family name used for sorting.')),
-                    TextInput::make('middle_name')
-                        ->label(__('Middle name'))
-                        ->maxLength(100),
-                    ...($includeAlternativeNames ? [
-                        Repeater::make('names')
-                            ->label(__('Alternative Names'))
-                            ->schema([
-                                Hidden::make('id'),
-                                Select::make('name_type')
-                                    ->options(PersonNameType::class)
-                                    ->required(),
-                                TextInput::make('full_name')
-                                    ->required()
-                                    ->maxLength(255),
-                                Select::make('language_code')
-                                    ->options(fn (): array => Language::query()->orderBy('name')->pluck('name', 'code')->all())
-                                    ->searchable()
-                                    ->preload()
-                                    ->required()
-                                    ->default('ms'),
-                                Toggle::make('is_primary')
-                                    ->default(false),
-                            ])
-                            ->columns(2)
-                            ->defaultItems(0)
-                            ->addActionLabel(__('Add name'))
-                            ->columnSpanFull(),
-                    ] : []),
-                    ...($useTitleMultiSelect ? [
-                        Select::make('title_ids')
-                            ->label(__('Titles'))
-                            ->multiple()
+        $profileCoreFields = [
+            TextInput::make('name')
+                ->label(__('Speaker Name'))
+                ->required()
+                ->maxLength(255),
+            TextInput::make('family_name')
+                ->label(__('Family name'))
+                ->maxLength(100)
+                ->helperText(__('Surname / family name used for sorting.')),
+            TextInput::make('middle_name')
+                ->label(__('Middle name'))
+                ->maxLength(100),
+            Select::make('gender')
+                ->label(__('Gender'))
+                ->options(Gender::class)
+                ->default(Gender::Male->value)
+                ->required(),
+        ];
+
+        $profileOptionalFields = [
+            ...($includeAlternativeNames ? [
+                Repeater::make('names')
+                    ->label(__('Alternative Names'))
+                    ->schema([
+                        Hidden::make('id'),
+                        Select::make('name_type')
+                            ->options(PersonNameType::class)
+                            ->required(),
+                        TextInput::make('full_name')
+                            ->required()
+                            ->maxLength(255),
+                        Select::make('language_code')
+                            ->options(fn (): array => self::languageOptions('code'))
                             ->searchable()
-                            ->options(fn (): array => self::titleSearchOptions(''))
                             ->preload()
-                            ->getSearchResultsUsing(fn (string $search): array => self::titleSearchOptions($search))
-                            ->getOptionLabelUsing(fn (string $value): ?string => self::titleLabels([$value])[$value] ?? null)
-                            ->getOptionLabelsUsing(fn (array $values): array => self::titleLabels($values))
-                            ->columnSpanFull(),
-                    ] : [
-                        Repeater::make('title_assignments')
-                            ->label(__('Titles'))
-                            ->schema([
-                                Hidden::make('id'),
-                                Select::make('title_id')
-                                    ->label(__('Title'))
-                                    ->options(self::titleOptions())
-                                    ->searchable()
-                                    ->preload()
-                                    ->required(),
-                                DatePicker::make('date_awarded')
-                                    ->label(__('Date Awarded')),
-                                DatePicker::make('date_expired')
-                                    ->label(__('Date Expired')),
-                                Select::make('status')
-                                    ->options(AssignmentStatus::class)
-                                    ->default(AssignmentStatus::Active->value)
-                                    ->required(),
-                            ])
-                            ->columns(2)
-                            ->defaultItems(0)
-                            ->addActionLabel(__('Add title'))
-                            ->columnSpanFull(),
-                    ]),
-                    Select::make('gender')
-                        ->label(__('Gender'))
-                        ->options(Gender::class)
-                        ->default(Gender::Male->value)
-                        ->required(),
-                    RichEditor::make('bio')
-                        ->label(__('Biography'))
-                        ->json()
-                        ->columnSpanFull(),
-                    Select::make('language_ids')
-                        ->label(__('Languages'))
-                        ->options(fn (): array => Language::query()->orderBy('name')->pluck('name', 'id')->all())
-                        ->multiple()
-                        ->searchable()
-                        ->preload(),
-                ])
+                            ->required()
+                            ->default('ms'),
+                        Toggle::make('is_primary')
+                            ->fixIndistinctState()
+                            ->default(false),
+                    ])
+                    ->columns(2)
+                    ->defaultItems(0)
+                    ->addActionLabel(__('Add name'))
+                    ->columnSpanFull(),
+            ] : []),
+            ...($useTitleMultiSelect ? [
+                Select::make('title_ids')
+                    ->label(__('Titles'))
+                    ->multiple()
+                    ->searchable()
+                    ->options(fn (): array => self::titleOptions())
+                    ->preload()
+                    ->getSearchResultsUsing(fn (string $search): array => self::titleSearchOptions($search))
+                    ->getOptionLabelUsing(fn (string $value): ?string => self::titleLabels([$value])[$value] ?? null)
+                    ->getOptionLabelsUsing(fn (array $values): array => self::titleLabels($values))
+                    ->columnSpanFull(),
+            ] : [
+                Repeater::make('title_assignments')
+                    ->label(__('Titles'))
+                    ->schema([
+                        Hidden::make('id'),
+                        Select::make('title_id')
+                            ->label(__('Title'))
+                            ->options(self::titleOptions())
+                            ->searchable()
+                            ->preload()
+                            ->required(),
+                        DatePicker::make('date_awarded')
+                            ->label(__('Date Awarded')),
+                        DatePicker::make('date_expired')
+                            ->label(__('Date Expired')),
+                        Select::make('status')
+                            ->options(AssignmentStatus::class)
+                            ->default(AssignmentStatus::Active->value)
+                            ->required(),
+                    ])
+                    ->columns(2)
+                    ->defaultItems(0)
+                    ->addActionLabel(__('Add title'))
+                    ->columnSpanFull(),
+            ]),
+            RichEditor::make('bio')
+                ->label(__('Biography'))
+                ->json()
+                ->columnSpanFull(),
+            Select::make('language_ids')
+                ->label(__('Languages'))
+                ->options(fn (): array => self::languageOptions('id'))
+                ->multiple()
+                ->searchable()
+                ->preload(),
+        ];
+
+        $components = [
+            Section::make($splitProfileSections ? __('Maklumat Utama') : __('Profil Penceramah'))
+                ->schema($splitProfileSections ? $profileCoreFields : [...$profileCoreFields, ...$profileOptionalFields])
                 ->columns(2),
+            ...($splitProfileSections ? [
+                Section::make(__('Maklumat Tambahan'))
+                    ->schema($profileOptionalFields)
+                    ->columns(2),
+            ] : []),
             Section::make($regionOnlyAddress ? __('Address') : __('Location / Base'))
                 ->schema([
                     ...($regionOnlyAddress
@@ -212,9 +223,9 @@ class PersonContributionFormSchema
                             ->collection('cover')
                             ->image()
                             ->imageEditor()
-                            ->imageAspectRatio('3:4')
+                            ->imageAspectRatio('16:9')
                             ->automaticallyOpenImageEditorForAspectRatio()
-                            ->imageEditorAspectRatioOptions(['3:4'])
+                            ->imageEditorAspectRatioOptions(['16:9', null])
                             ->automaticallyCropImagesToAspectRatio()
                             ->responsiveImages()
                             ->conversion('banner')
@@ -248,7 +259,7 @@ class PersonContributionFormSchema
                             ->getSearchResultsUsing(fn (string $search): array => self::institutionSearchOptions($search))
                             ->getOptionLabelUsing(fn (string $value): ?string => self::institutionLabels([$value])[$value] ?? null)
                             ->getOptionLabelsUsing(fn (array $values): array => self::institutionLabels($values))
-                            ->createOptionForm(InstitutionFormSchema::createOptionForm(includeLocationPicker: true))
+                            ->createOptionForm(fn (): array => InstitutionFormSchema::createOptionForm(includeLocationPicker: true))
                             ->createOptionUsing(fn (array $data, ?Schema $schema = null): string => InstitutionFormSchema::createOptionUsing($data, $schema))
                             ->required(),
                         TextInput::make('position')
@@ -257,6 +268,7 @@ class PersonContributionFormSchema
                             ->placeholder(__('e.g., Imam, Mudir, Committee Member')),
                         Toggle::make('is_primary')
                             ->label(__('Primary'))
+                            ->fixIndistinctState()
                             ->default(false),
                     ])
                     ->columns(2)
@@ -278,7 +290,7 @@ class PersonContributionFormSchema
                     ->getOptionLabelsUsing(fn (array $values): array => self::institutionLabels($values))
                     ->live()
                     ->closeOnSelect()
-                    ->createOptionForm(InstitutionFormSchema::createOptionForm(includeLocationPicker: true))
+                    ->createOptionForm(fn (): array => InstitutionFormSchema::createOptionForm(includeLocationPicker: true))
                     ->createOptionUsing(fn (array $data, ?Schema $schema = null): string => InstitutionFormSchema::createOptionUsing($data, $schema)),
                 TextInput::make('institution_position')
                     ->label(__('Position'))
@@ -301,16 +313,15 @@ class PersonContributionFormSchema
      */
     private static function titleOptions(): array
     {
-        return Title::query()
-            ->with('category')
-            ->get()
-            ->sortBy(fn (Title $title): array => [
-                $title->category->sort_order,
-                $title->sort_order,
-                $title->name,
-            ])
-            ->mapWithKeys(fn (Title $title): array => [(string) $title->getKey() => $title->name])
-            ->all();
+        return app(SelectionCatalogCache::class)->titleOptions();
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private static function languageOptions(string $key): array
+    {
+        return app(SelectionCatalogCache::class)->languageOptions($key);
     }
 
     /**
@@ -318,23 +329,7 @@ class PersonContributionFormSchema
      */
     private static function titleSearchOptions(string $search): array
     {
-        $search = trim($search);
-
-        return Title::query()
-            ->with('category')
-            ->when($search !== '', fn ($query) => $query->where(function ($query) use ($search): void {
-                $query->where('name', 'like', "%{$search}%")
-                    ->orWhere('short_form', 'like', "%{$search}%");
-            }))
-            ->limit(50)
-            ->get()
-            ->sortBy(fn (Title $title): array => [
-                $title->category->sort_order,
-                $title->sort_order,
-                $title->name,
-            ])
-            ->mapWithKeys(fn (Title $title): array => [(string) $title->getKey() => $title->name])
-            ->all();
+        return app(SelectionCatalogCache::class)->titleSearchOptions($search);
     }
 
     /**
@@ -343,24 +338,20 @@ class PersonContributionFormSchema
      */
     private static function titleLabels(array $values): array
     {
-        return Title::query()
-            ->whereKey(array_map(static fn (mixed $value): string => (string) $value, $values))
-            ->pluck('name', 'id')
-            ->mapWithKeys(static fn (mixed $label, mixed $id): array => [(string) $id => (string) $label])
-            ->all();
+        return app(SelectionCatalogCache::class)->titleLabels($values);
     }
 
     /** @return array<string, string> */
     private static function institutionSearchOptions(string $search): array
     {
         $search = trim($search);
-        $searchPattern = '%'.mb_strtolower($search, 'UTF-8').'%';
+        $searchPattern = "%{$search}%";
 
         return Institution::query()
             ->whereIn('status', ['verified', 'pending'])
             ->where(function ($query) use ($searchPattern): void {
-                $query->whereRaw('LOWER(name) LIKE ?', [$searchPattern])
-                    ->orWhereHas('names', fn ($query) => $query->whereRaw('LOWER(full_name) LIKE ?', [$searchPattern]));
+                $query->whereLike('name', $searchPattern)
+                    ->orWhereHas('names', fn ($query) => $query->whereLike('full_name', $searchPattern));
             })
             ->with('names:id,institution_id,full_name,is_primary')
             ->orderBy('name')

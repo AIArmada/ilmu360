@@ -1102,7 +1102,7 @@ class Index extends Component implements HasForms
         $normalizedSearch = trim($search);
 
         if ($normalizedSearch !== '') {
-            $query->where('author', $this->databaseLikeOperator(), "%{$normalizedSearch}%");
+            $query->whereLike('author', "%{$normalizedSearch}%");
         }
 
         return $query
@@ -1162,13 +1162,11 @@ class Index extends Component implements HasForms
             return $query;
         }
 
-        $operator = $this->databaseLikeOperator();
-
-        return $query->where(function (Builder $referenceQuery) use ($operator, $normalizedSearch): void {
+        return $query->where(function (Builder $referenceQuery) use ($normalizedSearch): void {
             $referenceQuery
-                ->where('title', $operator, "%{$normalizedSearch}%")
-                ->orWhere('part_label', $operator, "%{$normalizedSearch}%")
-                ->orWhere('part_number', $operator, "%{$normalizedSearch}%");
+                ->whereLike('title', "%{$normalizedSearch}%")
+                ->orWhereLike('part_label', "%{$normalizedSearch}%")
+                ->orWhereLike('part_number', "%{$normalizedSearch}%");
         });
     }
 
@@ -1237,12 +1235,7 @@ class Index extends Component implements HasForms
             return $query;
         }
 
-        return $query->where($column, $this->databaseLikeOperator(), "%{$normalizedSearch}%");
-    }
-
-    private function databaseLikeOperator(): string
-    {
-        return config('database.default') === 'pgsql' ? 'ILIKE' : 'LIKE';
+        return $query->whereLike($column, "%{$normalizedSearch}%");
     }
 
     /**

@@ -450,12 +450,30 @@ it('counts only upcoming public events on the person index cards', function () {
         'starts_at' => now()->subDays(3),
     ]);
 
+    $pastAndUpcomingEvent = Event::factory()->create([
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now()->subHour(),
+        'starts_at' => now()->subDays(2),
+    ]);
+
+    $pastAndUpcomingEvent->occurrences()->create([
+        'starts_at' => now()->addDays(4),
+        'ends_at' => now()->addDays(4)->addHours(2),
+        'status' => 'scheduled',
+        'visibility' => 'public',
+    ]);
+
     app(EventKeyPersonSyncService::class)->sync(
         $upcomingEvent,
         [(string) $person->getKey()],
     );
     app(EventKeyPersonSyncService::class)->sync(
         $pastEvent,
+        [(string) $person->getKey()],
+    );
+    app(EventKeyPersonSyncService::class)->sync(
+        $pastAndUpcomingEvent,
         [(string) $person->getKey()],
     );
 

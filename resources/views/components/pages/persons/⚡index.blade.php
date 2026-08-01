@@ -2,11 +2,15 @@
 
 use App\Enums\EventVisibility;
 use App\Models\Event;
+use App\Models\EventKeyPerson;
 use App\Models\Person;
 use App\Support\Search\PersonSearchService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator as LengthAwarePaginatorContract;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
@@ -39,8 +43,9 @@ new
             $search = $this->normalizedSearch();
 
             if ($search === null) {
-                return $this->applySort($this->basePersonsQuery())
-                    ->paginate(12);
+                return $this->attachUpcomingEventCountsToPaginator(
+                    $this->applySort($this->basePersonsQuery())->paginate(12),
+                );
             }
 
             $directMatches = $this->directSearch($search);
@@ -74,15 +79,10 @@ new
                 ->active()
                 ->speakers()
                 ->where('status', 'verified')
-                ->withCount(['events' => function ($query) {
-                    $eventsTable = $query->getModel()->getTable();
-                    $query->whereIn("{$eventsTable}.status", Event::PUBLIC_STATUSES)
-                        ->where("{$eventsTable}.visibility", EventVisibility::Public)
-                        ->whereNotNull("{$eventsTable}.published_at")
-                        ->where('starts_at', '>=', now());
-                }])
                 ->with([
-                    'media',
+                    'media' => function (MorphMany $relation): void {
+                        $relation->where('collection_name', 'profile');
+                    },
                     'titleAssignments.title.category',
                 ]);
         }
@@ -95,9 +95,10 @@ new
                 return $this->emptyPaginator();
             }
 
-            return $this->applySort($this->basePersonsQuery()
-                ->whereIn('persons.id', $matchingIds))
-                ->paginate(12);
+            return $this->attachUpcomingEventCountsToPaginator(
+                $this->applySort($this->basePersonsQuery()->whereIn('persons.id', $matchingIds))
+                    ->paginate(12),
+            );
         }
 
         private function fuzzySearch(string $search): LengthAwarePaginatorContract
@@ -127,7 +128,58 @@ new
                 })
                 ->values();
 
+            $this->attachUpcomingEventCountsToPersons($persons);
+
             return new LengthAwarePaginator($persons, count($orderedIds), $perPage, $currentPage, $paginationMeta);
+        }
+
+        private function attachUpcomingEventCountsToPaginator(LengthAwarePaginator $paginator): LengthAwarePaginator
+        {
+            $this->attachUpcomingEventCountsToPersons($paginator->getCollection());
+
+            return $paginator;
+        }
+
+        /**
+         * @param  Collection<int, Person>  $persons
+         */
+        private function attachUpcomingEventCountsToPersons(Collection $persons): void
+        {
+            $personIds = $persons
+                ->map(static fn (Person $person): string => (string) $person->getKey())
+                ->filter(static fn (string $id): bool => $id !== '')
+                ->values();
+
+            if ($personIds->isEmpty()) {
+                return;
+            }
+
+            $eventsTable = (new Event)->getTable();
+            $eventInvolvementsTable = (new EventKeyPerson)->getTable();
+            $occurrencesTable = config('events.database.tables.event_occurrences', 'event_occurrences');
+            $now = now();
+            $upcomingEvents = DB::table($occurrencesTable)
+                ->select('event_id')
+                ->groupBy('event_id')
+                // MIN(starts_at) is the same earliest-occurrence value used by
+                // EventBuilder, including the past-plus-future case.
+                ->havingRaw('min(starts_at) >= ?', [$now]);
+
+            $counts = DB::table("{$eventInvolvementsTable} as event_involvements")
+                ->join("{$eventsTable} as events", 'events.id', '=', 'event_involvements.event_id')
+                ->joinSub($upcomingEvents, 'upcoming_events', 'upcoming_events.event_id', '=', 'events.id')
+                ->where('event_involvements.involveable_type', (new Person)->getMorphClass())
+                ->whereIn('event_involvements.involveable_id', $personIds->all())
+                ->whereIn('events.status', Event::PUBLIC_STATUSES)
+                ->where('events.visibility', EventVisibility::Public)
+                ->whereNotNull('events.published_at')
+                ->selectRaw('event_involvements.involveable_id, count(*) as events_count')
+                ->groupBy('event_involvements.involveable_id')
+                ->pluck('events_count', 'event_involvements.involveable_id');
+
+            foreach ($persons as $person) {
+                $person->setAttribute('events_count', (int) ($counts->get((string) $person->getKey()) ?? 0));
+            }
         }
 
         private function emptyPaginator(): LengthAwarePaginatorContract
@@ -313,7 +365,7 @@ new
                 </div>
             @else
                 <!-- Results Header -->
-                <div class="mb-8 flex items-end justify-between gap-4 border-b border-slate-200/70 pb-6">
+                <div class="mb-8 flex flex-col items-stretch gap-4 border-b border-slate-200/70 pb-6 sm:flex-row sm:items-end sm:justify-between">
                     <div>
                         <h2 class="font-heading text-2xl font-bold tracking-tight text-emerald-950 sm:text-3xl">
                             @if(filled($search))
@@ -328,7 +380,7 @@ new
                     </div>
 
                     @unless(filled($search))
-                        <div class="flex shrink-0 items-center gap-1 rounded-xl border border-slate-200/80 bg-white p-0.5 shadow-sm">
+                        <div class="flex w-fit shrink-0 self-end items-center gap-1 rounded-xl border border-slate-200/80 bg-white p-0.5 shadow-sm sm:self-auto">
                             <button
                                 type="button"
                                 wire:click="$set('sort', null)"

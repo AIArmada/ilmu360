@@ -382,7 +382,7 @@ class Person extends \AIArmada\Persons\Models\Person implements AuditableContrac
     public function institutions(): MorphToMany
     {
         return $this->morphToMany(Institution::class, 'affiliatable', 'affiliations')
-            ->withPivot(['position', 'is_primary'])
+            ->withPivot(['id', 'position', 'is_primary', 'joined_at'])
             ->withTimestamps();
     }
 

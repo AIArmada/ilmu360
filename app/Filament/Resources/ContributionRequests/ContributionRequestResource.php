@@ -18,6 +18,10 @@ use UnitEnum;
 
 class ContributionRequestResource extends Resource
 {
+    private static ?string $navigationBadgeScope = null;
+
+    private static ?int $pendingNavigationCount = null;
+
     protected static ?string $model = ContributionRequest::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
@@ -71,9 +75,16 @@ class ContributionRequestResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        $count = ContributionRequest::query()
-            ->where('status', 'pending')
-            ->count();
+        $scope = app()->bound('request') ? spl_object_hash(request()) : 'console';
+
+        if (self::$navigationBadgeScope !== $scope) {
+            self::$navigationBadgeScope = $scope;
+            self::$pendingNavigationCount = ContributionRequest::query()
+                ->where('status', 'pending')
+                ->count();
+        }
+
+        $count = self::$pendingNavigationCount ?? 0;
 
         return $count > 0 ? (string) $count : null;
     }

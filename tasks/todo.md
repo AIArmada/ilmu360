@@ -119,3 +119,26 @@ no console errors. Institution-focused contribution coverage passed 21 tests /
 
 Chrome now shows the first 50 institutions immediately on click and successfully
 selects an institution without requiring prior text entry.
+
+## Institution search latency
+
+- [x] Trace `/institusi?search=shah+alam` from route to search service, SQL, eager loads, and render.
+- [x] Capture baseline query count, timings, and PostgreSQL query plan.
+- [x] Remove the redundant scoped-ID round trip from direct search pagination.
+- [x] Cache the country catalog and default country lookup through the existing selection catalog cache.
+- [x] Add focused query-count regression coverage and verify the Livewire page.
+- [x] Review Livewire deferred/island loading behavior against official documentation.
+
+## Review
+
+The direct institution search now applies the current location scope, directory ordering, page slice, and total in one hydration query. The total is read from
+`COUNT(*) OVER ()`; only an out-of-range page falls back to a count query. The
+country selector and default country resolution reuse the existing address
+catalog cache. A deferred Livewire island remains a UX option, but it would
+move the full result query into a second request rather than make the query
+itself faster, and must be synchronized carefully with live search state.
+
+Baseline: cold local `/institusi?search=shah+alam` was 16 SQL queries / ~57 ms
+reported DB time; the optimized path is 15 SQL queries with one institution-ID
+scope query removed. Focused InstitutionIndex coverage passed 29 tests / 126
+assertions; targeted PHPStan passed.

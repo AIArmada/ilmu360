@@ -175,12 +175,20 @@ final readonly class SaveInstitutionAction
     {
         $institution->names()->delete();
 
+        $primarySelected = false;
+
         foreach ($names as $i => $name) {
+            $isPrimary = (bool) ($name['is_primary'] ?? $i === 0) && ! $primarySelected;
+
+            if ($isPrimary) {
+                $primarySelected = true;
+            }
+
             $institution->names()->create([
                 'name_type' => $name['name_type'] ?? InstitutionNameType::Nickname,
                 'full_name' => trim((string) ($name['full_name'] ?? '')),
                 'language_code' => $name['language_code'] ?? 'ms',
-                'is_primary' => (bool) ($name['is_primary'] ?? $i === 0),
+                'is_primary' => $isPrimary,
             ]);
         }
 

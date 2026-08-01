@@ -34,6 +34,8 @@ class PersonObserver implements ShouldHandleEventsAfterCommit
 
         $searchableNameChanged = $person->wasRecentlyCreated || $person->wasChanged([
             'name',
+            'middle_name',
+            'family_name',
         ]);
 
         if ($searchableNameChanged) {

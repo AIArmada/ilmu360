@@ -2,6 +2,9 @@
 
 namespace App\Livewire\Pages\Institutions;
 
+use AIArmada\Addressing\Models\Address;
+use AIArmada\Addressing\Models\AddressAreaAssignment;
+use AIArmada\Addressing\Models\State;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use App\Enums\DawahShareOutcomeType;
 use App\Livewire\Concerns\LoadsEventPageData;
@@ -12,6 +15,10 @@ use App\Services\ShareTrackingService;
 use App\Support\Auth\IntendedRedirect;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
+use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\View\View;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -119,13 +126,18 @@ class Show extends Component
 
     private function eventQuery(): EventBuilder
     {
+        /** @var array<string, string|\Closure> $addressRelations */
+        $addressRelations = [
+            'venue.media',
+            'venue.addresses' => fn (MorphToMany $relation): MorphToMany => $this->joinAddressStateName($relation),
+            'venue.addresses.city',
+            'venue.addresses.areaAssignments' => fn (HasMany $relation): HasMany => $this->joinAreaName($relation),
+        ];
+
         return $this->institution->events()
             ->active()
             ->with([
-                'venue.media',
-                'venue.addresses.state',
-                'venue.addresses.city',
-                'venue.addresses.areaAssignments.area',
+                ...$addressRelations,
                 'persons.media',
                 'persons.titleAssignments.title.category',
                 'keyPeople.person',
@@ -143,13 +155,14 @@ class Show extends Component
         return $this->eventQuery();
     }
 
+    /** @return array<string|int, string|array<string, mixed>|\Closure> */
     protected function eventPageEagerLoads(): array
     {
         return [
             'venue.media',
-            'venue.addresses.state',
+            'venue.addresses' => fn (MorphToMany $relation): MorphToMany => $this->joinAddressStateName($relation),
             'venue.addresses.city',
-            'venue.addresses.areaAssignments.area',
+            'venue.addresses.areaAssignments' => fn (HasMany $relation): HasMany => $this->joinAreaName($relation),
             'persons.media',
             'persons.titleAssignments.title.category',
             'keyPeople.person',
@@ -183,9 +196,9 @@ class Show extends Component
         OwnerContext::withOwner(null, function (): void {
             $this->institution->loadMissing([
                 'media',
-                'addresses.state',
+                'addresses' => fn (MorphToMany $relation): MorphToMany => $this->joinAddressStateName($relation),
                 'addresses.city',
-                'addresses.areaAssignments.area',
+                'addresses.areaAssignments' => fn (HasMany $relation): HasMany => $this->joinAreaName($relation),
                 'contactMethods',
                 'socialProfiles',
                 'donationChannels.media',
@@ -196,5 +209,35 @@ class Show extends Component
                 'languages',
             ]);
         });
+    }
+
+    /**
+     * @param  MorphToMany<Address, Model, Pivot, 'pivot'>  $relation
+     * @return MorphToMany<Address, Model, Pivot, 'pivot'>
+     */
+    private function joinAddressStateName(MorphToMany $relation): MorphToMany
+    {
+        $addressesTable = (new Address)->getTable();
+        $statesTable = (new State)->getTable();
+
+        return $relation
+            ->addSelect("{$addressesTable}.*")
+            ->leftJoin($statesTable, "{$addressesTable}.state_id", '=', "{$statesTable}.id")
+            ->addSelect("{$statesTable}.name as hierarchy_state_name");
+    }
+
+    /**
+     * @param  HasMany<AddressAreaAssignment, Address>  $relation
+     * @return HasMany<AddressAreaAssignment, Address>
+     */
+    private function joinAreaName(HasMany $relation): HasMany
+    {
+        $assignmentsTable = (new AddressAreaAssignment)->getTable();
+        $areasTable = config('addressing.tables.address_areas', 'address_areas');
+
+        return $relation
+            ->addSelect("{$assignmentsTable}.*")
+            ->leftJoin($areasTable, "{$assignmentsTable}.address_area_id", '=', "{$areasTable}.id")
+            ->addSelect("{$areasTable}.name as hierarchy_area_name");
     }
 }

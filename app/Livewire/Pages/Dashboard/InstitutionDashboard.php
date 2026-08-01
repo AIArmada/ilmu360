@@ -194,7 +194,7 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
 
         $email = mb_strtolower(trim((string) $validated['newMemberEmail']));
         $member = User::query()
-            ->whereRaw('LOWER(email) = ?', [$email])
+            ->whereLike('email', $email)
             ->first();
 
         if (! $member instanceof User) {
@@ -582,12 +582,12 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
                 TextColumn::make('title')
                     ->label(__('Title'))
                     ->searchable(query: function (Builder $query, string $search): Builder {
-                        $search = '%'.mb_strtolower(trim($search)).'%';
+                        $search = '%'.trim($search).'%';
 
                         return $query->where(function (Builder $builder) use ($search): void {
                             $builder
-                                ->whereRaw('LOWER(title) LIKE ?', [$search])
-                                ->orWhereHas('venue', fn (Builder $venueQuery) => $venueQuery->whereRaw('LOWER(name) LIKE ?', [$search]));
+                                ->whereLike('title', $search)
+                                ->orWhereHas('venue', fn (Builder $venueQuery) => $venueQuery->whereLike('name', $search));
                         });
                     })
                     ->sortable()
@@ -744,15 +744,15 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
      */
     protected function applyDashboardEventFilters(Builder $query): Builder
     {
-        $search = mb_strtolower(trim($this->eventSearch));
+        $search = trim($this->eventSearch);
 
         if ($search !== '') {
             $search = '%'.$search.'%';
 
             $query->where(function (Builder $builder) use ($search): void {
                 $builder
-                    ->whereRaw('LOWER(title) LIKE ?', [$search])
-                    ->orWhereHas('venue', fn (Builder $venueQuery) => $venueQuery->whereRaw('LOWER(name) LIKE ?', [$search]));
+                    ->whereLike('title', $search)
+                    ->orWhereHas('venue', fn (Builder $venueQuery) => $venueQuery->whereLike('name', $search));
             });
         }
 

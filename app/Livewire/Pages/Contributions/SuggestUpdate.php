@@ -64,6 +64,8 @@ class SuggestUpdate extends Component implements HasActions, HasForms
     /** @var list<string> */
     public array $directEditMediaFields = [];
 
+    private ?bool $directEditPermission = null;
+
     /** @var array{subject_label: string, redirect_url: string} */
     public array $subjectPresentation = [
         'subject_label' => '',
@@ -104,7 +106,9 @@ class SuggestUpdate extends Component implements HasActions, HasForms
             abort_unless($user instanceof User, 403);
             abort_unless($user->can('view', $this->entity), 403);
 
-            $this->directEditMediaFields = $user->can('update', $this->entity)
+            $canDirectEdit = $this->canDirectEdit();
+
+            $this->directEditMediaFields = $this->entity instanceof Person || $canDirectEdit
                 ? array_values(array_filter(
                     $context['contract']['direct_edit_media_fields'] ?? [],
                     static fn (string $field): bool => $field !== '',
@@ -138,9 +142,13 @@ class SuggestUpdate extends Component implements HasActions, HasForms
     #[Computed]
     public function canDirectEdit(): bool
     {
+        if ($this->directEditPermission !== null) {
+            return $this->directEditPermission;
+        }
+
         $user = auth()->user();
 
-        return $user instanceof User && $user->can('update', $this->entity);
+        return $this->directEditPermission = $user instanceof User && $user->can('update', $this->entity);
     }
 
     #[Computed]
@@ -194,7 +202,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
             $submissionState = $resolveContributionSubmissionStateAction->handle($this->contributionForm()->getState());
             $state = $this->normalizeSubmissionState($submissionState['state']);
             $changes = $resolveContributionChangedPayloadAction->handle($state, $this->originalData);
-            $hasDirectEditMediaChange = $this->canDirectEdit() && $this->hasDirectEditMediaChange();
+            $hasDirectEditMediaChange = $this->hasDirectEditMediaChange();
 
             if ($changes === [] && ! $hasDirectEditMediaChange) {
                 $this->addError('data', __('Make at least one change before continuing.'));
@@ -211,6 +219,18 @@ class SuggestUpdate extends Component implements HasActions, HasForms
                     $this->saveDirectEditMediaChanges();
                 }
 
+                $this->redirect($this->subjectPresentation['redirect_url'], navigate: true);
+
+                return;
+            }
+
+            if ($hasDirectEditMediaChange) {
+                // Media uploads use the existing relationship save path. Ordinary
+                // profile fields still go through the pending contribution request.
+                $this->saveDirectEditMediaChanges();
+            }
+
+            if ($changes === []) {
                 $this->redirect($this->subjectPresentation['redirect_url'], navigate: true);
 
                 return;
@@ -273,11 +293,12 @@ class SuggestUpdate extends Component implements HasActions, HasForms
             includeAlternativeNames: true,
             useTitleMultiSelect: true,
             useInstitutionRepeater: true,
+            splitProfileSections: true,
         );
 
         // PersonContributionFormSchema::components(includeMedia: false) returns:
-        // 0: Profil Penceramah, 1: Address, 2: Affiliated Institutions,
-        // 3: Contact, 4: Social Media
+        // 0: Core profile, 1: Optional profile, 2: Address,
+        // 3: Affiliated Institutions, 4: Contact, 5: Social Media
 
         $mediaSchema = $this->shouldShowDirectEditMediaSection()
             ? [$this->personDirectEditMediaSection()]
@@ -289,20 +310,26 @@ class SuggestUpdate extends Component implements HasActions, HasForms
                 ->persistTab()
                 ->columnSpanFull()
                 ->tabs([
-                    Tab::make(__('Profil'))
+                    Tab::make(__('Maklumat Utama'))
                         ->icon(Heroicon::User)
-                        ->schema([$sections[0], $sections[2]]),
+                        ->schema([$sections[0]]),
+                    Tab::make(__('Maklumat Tambahan'))
+                        ->icon(Heroicon::AcademicCap)
+                        ->schema([$sections[1]]),
+                    Tab::make(__('Afiliasi'))
+                        ->icon(Heroicon::BuildingOffice)
+                        ->schema([$sections[3]]),
+                    Tab::make(__('Lokasi'))
+                        ->icon(Heroicon::MapPin)
+                        ->schema([$sections[2]]),
+                    Tab::make(__('Hubungan'))
+                        ->icon(Heroicon::ChatBubbleLeftRight)
+                        ->schema([$sections[4], $sections[5]]),
                     ...($mediaSchema !== [] ? [
                         Tab::make(__('Media'))
                             ->icon(Heroicon::Photo)
                             ->schema($mediaSchema),
                     ] : []),
-                    Tab::make(__('Lokasi'))
-                        ->icon(Heroicon::MapPin)
-                        ->schema([$sections[1]]),
-                    Tab::make(__('Hubungan'))
-                        ->icon(Heroicon::ChatBubbleLeftRight)
-                        ->schema([$sections[3], $sections[4]]),
                 ]),
         ];
     }
@@ -407,7 +434,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
 
     private function shouldShowDirectEditMediaSection(): bool
     {
-        return $this->canDirectEdit() && $this->directEditMediaFields !== [];
+        return $this->directEditMediaFields !== [];
     }
 
     private function personDirectEditMediaSection(): Section
@@ -464,7 +491,7 @@ class SuggestUpdate extends Component implements HasActions, HasForms
                 ->imageEditor()
                 ->imageAspectRatio('16:9')
                 ->automaticallyOpenImageEditorForAspectRatio()
-                ->imageEditorAspectRatioOptions(['16:9'])
+                ->imageEditorAspectRatioOptions(['16:9', null])
                 ->automaticallyCropImagesToAspectRatio()
                 ->responsiveImages()
                 ->conversion('banner')

@@ -20,12 +20,7 @@ class PersonSearchService implements PublicDiscoveryAdapter
     public function buildSearchableName(
         ?string $name,
     ): string {
-        $formattedName = Person::formatDisplayedName($name);
-
-        return $this->normalizeText(implode(' ', array_filter([
-            trim($formattedName),
-            trim((string) $name),
-        ])));
+        return $this->normalizeText(Person::formatDisplayedName($name));
     }
 
     public function buildSearchableText(Person $person): string
@@ -140,7 +135,7 @@ class PersonSearchService implements PublicDiscoveryAdapter
                     $termQuery->selectRaw('1')
                         ->from('person_search_terms')
                         ->whereColumn('person_search_terms.person_id', $qualifiedPersonId)
-                        ->where('person_search_terms.term', 'like', '%'.$token.'%');
+                        ->whereLike('person_search_terms.term', '%'.$token.'%');
                 });
             }
         });
@@ -286,7 +281,7 @@ class PersonSearchService implements PublicDiscoveryAdapter
             $personQuery = Person::query()
                 ->active()
                 ->where('status', 'verified')
-                ->select(['id'])
+                ->select(['id', 'name', 'middle_name', 'family_name'])
                 ->tap(fn (Builder $query): Builder => $this->applyFuzzyCandidateFilter($query, $normalizedSearch))
                 ->tap(fn (Builder $query): Builder => $this->applyFuzzyCandidateOrdering($query, $normalizedSearch))
                 ->limit($this->typesenseResultLimit());
@@ -349,7 +344,12 @@ class PersonSearchService implements PublicDiscoveryAdapter
 
         $personQuery = (clone $query)
             ->reorder()
-            ->select([$keyColumn])
+            ->select([
+                $keyColumn,
+                $model->qualifyColumn('name'),
+                $model->qualifyColumn('middle_name'),
+                $model->qualifyColumn('family_name'),
+            ])
             ->tap(fn (Builder $builder): Builder => $this->applyFuzzyCandidateFilter($builder, $normalizedSearch))
             ->tap(fn (Builder $builder): Builder => $this->applyFuzzyCandidateOrdering($builder, $normalizedSearch))
             ->limit($this->typesenseResultLimit());
@@ -412,15 +412,14 @@ class PersonSearchService implements PublicDiscoveryAdapter
             return $query;
         }
 
-        $operator = DB::connection($query->getModel()->getConnectionName())->getDriverName() === 'pgsql' ? 'ILIKE' : 'LIKE';
         $columns = $this->hasSearchableNameColumn()
             ? ['persons.searchable_name', 'persons.name', 'persons.family_name']
             : ['persons.name', 'persons.family_name'];
 
-        return $query->where(function (Builder $candidateQuery) use ($columns, $operator, $patterns): void {
+        return $query->where(function (Builder $candidateQuery) use ($columns, $patterns): void {
             foreach ($patterns as $pattern) {
                 foreach ($columns as $column) {
-                    $candidateQuery->orWhere($column, $operator, $pattern);
+                    $candidateQuery->orWhereLike($column, $pattern);
                 }
             }
         });
@@ -567,7 +566,7 @@ class PersonSearchService implements PublicDiscoveryAdapter
 
         Person::query()
             ->with(['names', 'titleAssignments.title.category'])
-            ->select(['id', 'name'])
+            ->select(['id', 'name', 'middle_name', 'family_name'])
             ->chunkById(max(1, $chunkSize), function ($persons) use (&$processed): void {
                 foreach ($persons as $person) {
                     $this->syncPersonRecordWithOptions($person, false);
@@ -673,16 +672,15 @@ class PersonSearchService implements PublicDiscoveryAdapter
             return $query;
         }
 
-        $operator = DB::connection($query->getModel()->getConnectionName())->getDriverName() === 'pgsql' ? 'ILIKE' : 'LIKE';
         $collapsedSearch = preg_replace('/\s+/u', ' ', $normalizedSearch) ?? '';
         $collapsedWildcardSearch = '%'.str_replace(' ', '%', $collapsedSearch).'%';
         $searchTokens = array_values(array_filter(explode(' ', $collapsedSearch), static fn (string $token): bool => $token !== ''));
 
-        return $query->where(function (Builder $personQuery) use ($operator, $collapsedSearch, $collapsedWildcardSearch, $searchTokens): void {
-            $personQuery->where(function (Builder $nameQuery) use ($operator, $collapsedSearch, $collapsedWildcardSearch): void {
-                $nameQuery->where('name', $operator, "%{$collapsedSearch}%")
-                    ->orWhere('family_name', $operator, "%{$collapsedSearch}%")
-                    ->orWhereRaw("concat(coalesce(name, ''), ' ', coalesce(family_name, '')) {$operator} ?", [$collapsedWildcardSearch]);
+        return $query->where(function (Builder $personQuery) use ($collapsedSearch, $collapsedWildcardSearch, $searchTokens): void {
+            $personQuery->where(function (Builder $nameQuery) use ($collapsedSearch, $collapsedWildcardSearch): void {
+                $nameQuery->whereLike('name', "%{$collapsedSearch}%")
+                    ->orWhereLike('family_name', "%{$collapsedSearch}%")
+                    ->orWhereLike(DB::raw("concat(coalesce(name, ''), ' ', coalesce(family_name, ''))"), $collapsedWildcardSearch);
             });
 
             foreach ($searchTokens as $token) {
@@ -690,8 +688,8 @@ class PersonSearchService implements PublicDiscoveryAdapter
                     continue;
                 }
 
-                $personQuery->orWhere('name', $operator, "%{$token}%")
-                    ->orWhere('family_name', $operator, "%{$token}%");
+                $personQuery->orWhereLike('name', "%{$token}%")
+                    ->orWhereLike('family_name', "%{$token}%");
             }
         });
     }

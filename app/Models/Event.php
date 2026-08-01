@@ -568,11 +568,9 @@ class Event extends PackageEvent implements AuditableContract
 
     private function getLinkUrl(string $linkType): ?string
     {
-        if ($this->relationLoaded('links')) {
-            return $this->links->firstWhere('link_type', $linkType)?->url;
-        }
+        $this->loadMissing('links');
 
-        return $this->links()->where('link_type', $linkType)->value('url');
+        return $this->links->firstWhere('link_type', $linkType)?->url;
     }
 
     public function syncUrlLinks(): void
@@ -640,11 +638,9 @@ class Event extends PackageEvent implements AuditableContract
 
     private function prayerExpression(): ?EventTimeExpression
     {
-        if ($this->relationLoaded('timeExpressions')) {
-            return $this->timeExpressions->first(fn (EventTimeExpression $e) => $e->anchor_type === 'prayer');
-        }
+        $this->loadMissing('timeExpressions');
 
-        return $this->timeExpressions()->where('anchor_type', 'prayer')->first();
+        return $this->timeExpressions->first(fn (EventTimeExpression $expression): bool => $expression->anchor_type === 'prayer');
     }
 
     // ─── Audience (EventAudience + EventAudienceProfile) ────────────────────
@@ -655,11 +651,9 @@ class Event extends PackageEvent implements AuditableContract
             return $this->pendingAudienceWrites['gender'];
         }
 
-        if ($this->relationLoaded('audiences')) {
-            return $this->audiences->firstWhere('audience_type', 'gender')?->value;
-        }
+        $this->loadMissing('audiences');
 
-        return $this->audiences()->where('audience_type', 'gender')->value('value');
+        return $this->audiences->firstWhere('audience_type', 'gender')?->value;
     }
 
     /** @return list<string>|null */
@@ -669,9 +663,13 @@ class Event extends PackageEvent implements AuditableContract
             return $this->pendingAudienceWrites['age_group'];
         }
 
-        $values = $this->relationLoaded('audiences')
-            ? $this->audiences->where('audience_type', 'age_group')->sortBy('sort_order')->pluck('value')->toArray()
-            : $this->audiences()->where('audience_type', 'age_group')->orderBy('sort_order')->pluck('value')->toArray();
+        $this->loadMissing('audiences');
+
+        $values = $this->audiences
+            ->where('audience_type', 'age_group')
+            ->sortBy('sort_order')
+            ->pluck('value')
+            ->toArray();
 
         return $values !== [] ? $values : null;
     }
@@ -682,11 +680,9 @@ class Event extends PackageEvent implements AuditableContract
             return $this->pendingAudienceProfileWrites['children_allowed'] ?? null;
         }
 
-        if ($this->relationLoaded('audienceProfiles')) {
-            return $this->audienceProfiles->first()?->is_child_friendly;
-        }
+        $this->loadMissing('audienceProfiles');
 
-        return $this->audienceProfiles()->value('is_child_friendly');
+        return $this->audienceProfiles->first()?->is_child_friendly;
     }
 
     public function getIsMuslimOnlyAttribute(mixed $value): ?bool
@@ -695,9 +691,9 @@ class Event extends PackageEvent implements AuditableContract
             return $this->pendingAudienceWrites['is_muslim_only'];
         }
 
-        $val = $this->relationLoaded('audiences')
-            ? $this->audiences->firstWhere('audience_type', 'religion')?->value
-            : $this->audiences()->where('audience_type', 'religion')->value('value');
+        $this->loadMissing('audiences');
+
+        $val = $this->audiences->firstWhere('audience_type', 'religion')?->value;
 
         return $val === null ? null : $val === 'muslim_only';
     }
@@ -1917,15 +1913,11 @@ class Event extends PackageEvent implements AuditableContract
      */
     public function isPrayerRelative(): bool
     {
-        if ($this->relationLoaded('timeExpressions')) {
-            return $this->timeExpressions->contains(
-                fn (EventTimeExpression $expression): bool => $expression->time_mode === 'prayer_relative',
-            );
-        }
+        $this->loadMissing('timeExpressions');
 
-        return $this->timeExpressions()
-            ->where('time_mode', 'prayer_relative')
-            ->exists();
+        return $this->timeExpressions->contains(
+            fn (EventTimeExpression $expression): bool => $expression->time_mode === 'prayer_relative',
+        );
     }
 
     /**
