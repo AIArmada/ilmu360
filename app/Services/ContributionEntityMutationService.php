@@ -127,6 +127,7 @@ class ContributionEntityMutationService
                     $this->field('language_ids', 'array<int>', catalog: route('api.client.catalogs.languages')),
                     $this->field('institution_id', 'uuid', catalog: route('api.client.catalogs.submit-institutions')),
                     $this->field('institution_position', 'string', maxLength: 255),
+                    $this->field('institutions', 'array<object>', catalog: route('api.client.catalogs.submit-institutions')),
                     $this->field('address', 'object'),
                     $this->field('address.country_id', 'uuid', catalog: route('api.client.catalogs.countries')),
                     $this->field('contactMethods', 'array<object>'),
@@ -240,6 +241,10 @@ class ContributionEntityMutationService
                 'names.*.full_name' => ['required', 'string', 'max:255'],
                 'names.*.language_code' => ['nullable', 'string', 'max:10'],
                 'names.*.is_primary' => ['nullable', 'boolean'],
+                'institutions' => ['nullable', 'array'],
+                'institutions.*.institution_id' => ['required', 'uuid', 'exists:institutions,id'],
+                'institutions.*.position' => ['nullable', 'string', 'max:255'],
+                'institutions.*.is_primary' => ['nullable', 'boolean'],
                 'title_ids' => ['nullable', 'array'],
                 'title_ids.*' => ['uuid', 'exists:'.config('persons.database.tables.titles', 'titles').',id'],
                 'title_assignments' => ['nullable', 'array'],
@@ -720,9 +725,8 @@ class ContributionEntityMutationService
             'languages',
             'names',
             'titleAssignments',
+            'institutions',
         ]);
-
-        $affiliatedInstitution = $this->currentPersonAffiliation($person);
 
         return [
             'name' => $person->name,
@@ -745,8 +749,12 @@ class ContributionEntityMutationService
             'gender' => $person->gender instanceof BackedEnum ? $person->gender->value : '',
             'bio' => $person->bio,
             'language_ids' => $person->languages->pluck('id')->map(fn (mixed $id): string => (string) $id)->values()->all(),
-            'institution_id' => $affiliatedInstitution?->getKey(),
-            'institution_position' => self::institutionPivotPosition($affiliatedInstitution),
+            'institutions' => $person->institutions->map(fn (Institution $institution): array => [
+                'institution_id' => (string) $institution->getKey(),
+                'institution_name' => $institution->name,
+                'position' => self::institutionPivotPosition($institution),
+                'is_primary' => self::institutionPivotIsPrimary($institution),
+            ])->values()->all(),
             'address' => $this->addressState($person->primaryAddress()),
             'contactMethods' => $this->contactMethodsState($person->contactMethods),
             'social_media' => $this->socialMediaState($person->socialProfiles),
@@ -922,6 +930,12 @@ class ContributionEntityMutationService
             $this->syncPersonNames($person, $payload['names']);
         }
 
+        if (array_key_exists('institutions', $payload)) {
+            $this->syncPersonAffiliations($person, $payload['institutions']);
+        } elseif (array_key_exists('institution_id', $payload) || array_key_exists('institution_position', $payload)) {
+            $this->syncPersonAffiliation($person, $payload);
+        }
+
         if (array_key_exists('title_ids', $payload)) {
             $this->syncPersonTitleIds($person, $payload['title_ids']);
         } elseif (array_key_exists('title_assignments', $payload)) {
@@ -991,6 +1005,84 @@ class ContributionEntityMutationService
 
         $existing->reject(fn (PersonName $name): bool => in_array((string) $name->getKey(), $retainedIds, true))
             ->each->delete();
+    }
+
+    public function syncPersonAffiliations(Person $person, mixed $institutionsPayload): void
+    {
+        $beforeAffiliations = $this->personAffiliationAuditState($person);
+        $current = $person->institutions()->get()->keyBy(fn (Institution $institution): string => (string) $institution->getKey());
+        $currentIds = $current->keys()->all();
+        $rows = is_array($institutionsPayload) ? $institutionsPayload : [];
+        $requestedIds = collect($rows)
+            ->filter(static fn (mixed $row): bool => is_array($row))
+            ->map(fn (array $row): ?string => $this->normalizeOptionalString($row['institution_id'] ?? null))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        $current = $current->union(
+            Institution::query()->whereKey($requestedIds)->get()->keyBy(fn (Institution $institution): string => (string) $institution->getKey()),
+        );
+        $retainedIds = [];
+        $primaryId = null;
+
+        $pivot = $person->institutions()->newPivotStatement()
+            ->where('affiliatable_id', $person->getKey())
+            ->where('affiliatable_type', $person->getMorphClass());
+
+        $pivot->update(['is_primary' => false, 'updated_at' => now()]);
+
+        foreach ($rows as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $institutionId = $this->normalizeOptionalString($row['institution_id'] ?? null);
+            if ($institutionId === null || $current->get($institutionId) === null) {
+                continue;
+            }
+
+            $retainedIds[] = $institutionId;
+            if ($primaryId === null && (bool) ($row['is_primary'] ?? false)) {
+                $primaryId = $institutionId;
+            }
+
+            $position = $this->normalizeOptionalString($row['position'] ?? null);
+
+            if (in_array($institutionId, $currentIds, true)) {
+                $person->institutions()->updateExistingPivot($institutionId, ['position' => $position]);
+            } else {
+                Affiliation::query()->create([
+                    'affiliatable_type' => $person->getMorphClass(),
+                    'affiliatable_id' => $person->getKey(),
+                    'institution_id' => $institutionId,
+                    'affiliation_type' => AffiliationType::Member,
+                    'position' => $position,
+                    'is_primary' => false,
+                ]);
+            }
+        }
+
+        if ($primaryId === null && $retainedIds !== []) {
+            $primaryId = $retainedIds[0];
+        }
+
+        if ($primaryId !== null) {
+            $person->institutions()->updateExistingPivot($primaryId, ['is_primary' => true]);
+        }
+
+        $delete = $person->institutions()->newPivotStatement()
+            ->where('affiliatable_id', $person->getKey())
+            ->where('affiliatable_type', $person->getMorphClass());
+
+        if ($retainedIds === []) {
+            $delete->delete();
+        } else {
+            $delete->whereNotIn('institution_id', $retainedIds)->delete();
+        }
+
+        $this->recordPersonAffiliationAudit($person, $beforeAffiliations);
     }
 
     public function syncPersonTitleAssignments(Person $person, mixed $assignmentsPayload): void

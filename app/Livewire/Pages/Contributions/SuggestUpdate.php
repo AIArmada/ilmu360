@@ -270,12 +270,13 @@ class SuggestUpdate extends Component implements HasActions, HasForms
             includeMedia: false,
             addressStatePath: 'address',
             regionOnlyAddress: true,
-            includeAlternativeNames: false,
+            includeAlternativeNames: true,
             useTitleMultiSelect: true,
+            useInstitutionRepeater: true,
         );
 
         // PersonContributionFormSchema::components(includeMedia: false) returns:
-        // 0: Profil Penceramah, 1: Address, 2: Affiliated Institution,
+        // 0: Profil Penceramah, 1: Address, 2: Affiliated Institutions,
         // 3: Contact, 4: Social Media
 
         $mediaSchema = $this->shouldShowDirectEditMediaSection()

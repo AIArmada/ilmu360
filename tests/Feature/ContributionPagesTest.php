@@ -161,9 +161,12 @@ it('shows person affiliation fields on the dedicated create and update forms', f
         'subjectType' => ContributionSubjectType::Person->publicRouteSegment(),
         'subjectId' => $person->slug,
     ])
-        ->assertFormFieldVisible('institution_id')
-        ->set('data.institution_id', $institution->id)
-        ->assertFormFieldVisible('institution_position');
+        ->assertFormFieldVisible('institutions')
+        ->set('data.institutions', [[
+            'institution_id' => $institution->id,
+            'position' => 'Mudir',
+            'is_primary' => true,
+        ]]);
 });
 
 it('stores person affiliations from the dedicated person contribution page', function () {
@@ -545,8 +548,8 @@ it('hydrates the selected person institution label even when the institution is 
             'subjectType' => ContributionSubjectType::Person->publicRouteSegment(),
             'subjectId' => $person->slug,
         ])
-        ->assertSet('data.institution_id', $institution->getKey())
-        ->assertSet('data.institution_position', 'Professor')
+        ->assertSet('data.institutions', fn (array $institutions): bool => collect($institutions)->contains(fn (array $row): bool => ($row['institution_id'] ?? null) === $institution->getKey()
+            && ($row['position'] ?? null) === 'Professor'))
         ->assertSee($institution->display_name);
 });
 
@@ -565,9 +568,17 @@ it('searches affiliated institutions without case-sensitive matching', function 
         'subjectId' => $person->slug,
     ]);
 
-    $field = $component->instance()->getForm('form')->getFlatFields()['institution_id'];
+    $component->set('data.institutions', [[
+        'institution_id' => null,
+        'position' => null,
+        'is_primary' => false,
+    ]]);
 
-    expect($field->getSearchResults('masjid'))->toHaveKey($institution->getKey());
+    $fields = $component->instance()->getForm('form')->getFlatFields();
+    $institutionField = collect($fields)->first(fn (mixed $field): bool => method_exists($field, 'getName') && $field->getName() === 'institution_id');
+
+    expect($institutionField)->not->toBeNull()
+        ->and($institutionField->getSearchResults('masjid'))->toHaveKey($institution->getKey());
 });
 
 it('applies direct person affiliation edits for owner maintainers from the suggest update page', function () {
@@ -609,8 +620,15 @@ it('applies direct person affiliation edits for owner maintainers from the sugge
         'subjectType' => ContributionSubjectType::Person->publicRouteSegment(),
         'subjectId' => $person->slug,
     ])
-        ->set('data.institution_id', $newInstitution->id)
-        ->set('data.institution_position', 'Mudir')
+        ->set('data.institutions', [[
+            'institution_id' => $newInstitution->id,
+            'position' => 'Mudir',
+            'is_primary' => true,
+        ], [
+            'institution_id' => $secondaryInstitution->id,
+            'position' => 'Advisor',
+            'is_primary' => false,
+        ]])
         ->call('submit')
         ->assertHasNoErrors();
 
@@ -655,7 +673,7 @@ it('syncs person titles from the public update form without exposing alternate n
             'subjectType' => ContributionSubjectType::Person->publicRouteSegment(),
             'subjectId' => $person->slug,
         ])
-        ->assertDontSee(__('Alternative Names'))
+        ->assertSee(__('Alternative Names'))
         ->assertDontSee(__('Date Awarded'))
         ->assertDontSee(__('Date Expired'))
         ->assertSee(__('Titles'))

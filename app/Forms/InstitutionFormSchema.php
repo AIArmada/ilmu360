@@ -2,12 +2,14 @@
 
 namespace App\Forms;
 
+use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Membership\Actions\AddMemberAction;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Actions\Institutions\GenerateInstitutionSlugAction;
 use App\Enums\InstitutionNameType;
 use App\Enums\InstitutionType;
 use App\Models\Institution;
+use App\Models\Language;
 use App\Models\User;
 use App\Support\Location\GooglePlacesConfiguration;
 use Filament\Forms\Components\Repeater;
@@ -46,8 +48,11 @@ class InstitutionFormSchema
                     TextInput::make('full_name')
                         ->required()
                         ->maxLength(255),
-                    TextInput::make('language_code')
-                        ->maxLength(10)
+                    Select::make('language_code')
+                        ->options(fn (): array => Language::query()->orderBy('name')->pluck('name', 'code')->all())
+                        ->searchable()
+                        ->preload()
+                        ->required()
                         ->default('ms'),
                     Toggle::make('is_primary')
                         ->default(false),
@@ -155,11 +160,14 @@ class InstitutionFormSchema
      */
     private static function addressSchema(bool $includeLocationPicker): array
     {
+        $defaultCountryId = self::malaysiaCountryId();
+
         if (! $includeLocationPicker) {
             return SharedFormSchema::addressFields(
                 requireGoogleMaps: true,
                 includeCountryField: true,
-                showCountryField: false,
+                showCountryField: true,
+                defaultCountryId: $defaultCountryId,
                 requireCountryField: true,
             );
         }
@@ -185,12 +193,22 @@ class InstitutionFormSchema
                     enableGoogleMapsNormalization: true,
                     enableGoogleMapsRemoteLookup: $shouldRenderLocationPicker,
                     includeCountryField: true,
-                    showCountryField: false,
+                    showCountryField: true,
+                    defaultCountryId: $defaultCountryId,
                     requireCountryField: true,
                 ),
             ])
                 ->statePath('address')
                 ->columns(2),
         ];
+    }
+
+    private static function malaysiaCountryId(): ?string
+    {
+        $countryId = AddressCountry::query()
+            ->where('iso2', 'MY')
+            ->value('id');
+
+        return $countryId === null ? null : (string) $countryId;
     }
 }

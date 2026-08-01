@@ -89,6 +89,8 @@ final readonly class SavePersonAction
             'contactMethods',
             'social_media',
             'language_ids',
+            'names',
+            'institutions',
         ]));
         $this->syncMedia($person, $data);
 
@@ -101,6 +103,8 @@ final readonly class SavePersonAction
             'contactMethods',
             'socialProfiles',
             'languages',
+            'names',
+            'institutions',
             'media',
         ]) ?? $person;
     }
