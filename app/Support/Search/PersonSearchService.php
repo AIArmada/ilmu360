@@ -223,7 +223,6 @@ class PersonSearchService implements PublicDiscoveryAdapter
     {
         if (! $this->hasPersonSearchTermsTable()) {
             return Person::query()
-                ->active()
                 ->where('status', 'verified')
                 ->select('persons.id')
                 ->tap(fn (Builder $query): Builder => $this->applyDatabaseNameSearch($query, $normalizedSearch))
@@ -236,7 +235,6 @@ class PersonSearchService implements PublicDiscoveryAdapter
         }
 
         return Person::query()
-            ->active()
             ->where('status', 'verified')
             ->select('persons.id')
             ->tap(fn (Builder $query): Builder => $this->applyIndexedSearchWithLocalIndex($query, $normalizedSearch))
@@ -279,7 +277,6 @@ class PersonSearchService implements PublicDiscoveryAdapter
             }
 
             $personQuery = Person::query()
-                ->active()
                 ->where('status', 'verified')
                 ->select(['id', 'name', 'middle_name', 'family_name'])
                 ->tap(fn (Builder $query): Builder => $this->applyFuzzyCandidateFilter($query, $normalizedSearch))

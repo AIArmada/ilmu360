@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Services\EventKeyPersonSyncService;
 use App\Support\Search\PersonSearchService;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 
@@ -281,6 +282,34 @@ it('updates search results live when query changes', function () {
         ->set('search', 'Smad')
         ->assertSee('Samad')
         ->assertDontSee('Ahmad');
+});
+
+it('does not repeat the public verified status predicate for person search', function () {
+    $person = Person::factory()->create([
+        'name' => 'Public Search Predicate Person',
+        'status' => 'verified',
+    ]);
+
+    $searchService = app(PersonSearchService::class);
+    $searchService->syncPersonRecord($person);
+    $searchService->bustPublicSearchCache();
+
+    $queries = [];
+    DB::listen(function ($query) use (&$queries): void {
+        $queries[] = $query->toRawSql();
+    });
+
+    get('/penceramah?search='.urlencode('Public Search Predicate Person'))
+        ->assertSuccessful()
+        ->assertSee('Public Search Predicate Person');
+
+    $personQueries = collect($queries)
+        ->filter(static fn (string $query): bool => str_contains($query, 'from "persons"'));
+
+    expect($personQueries)->not->toBeEmpty()
+        ->and($personQueries->every(
+            static fn (string $query): bool => ! str_contains($query, 'status" in'),
+        ))->toBeTrue();
 });
 
 it('refreshes cached person title search results after person updates', function () {

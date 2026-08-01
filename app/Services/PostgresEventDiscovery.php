@@ -118,7 +118,7 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
                 ->whereIn('collection_name', ['cover', 'poster'])
                 ->ordered(),
             'references',
-            'classifications',
+            'classifications.term',
             'persons.media' => fn ($query) => $query
                 ->where('collection_name', 'avatar')
                 ->ordered(),

@@ -30,6 +30,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
@@ -223,6 +224,33 @@ describe('Event Search Filters', function () {
 
         expect(Cache::get('default_events_search_v2'))
             ->toBeNull();
+    });
+
+    it('reuses the computed event paginator when resolving saved event ids', function () {
+        config()->set('cache.default', 'array');
+        app('cache')->setDefaultDriver('array');
+        Cache::flush();
+
+        Event::factory()->create([
+            'status' => 'approved',
+            'visibility' => 'public',
+            'published_at' => now(),
+            'starts_at' => now()->addDay(),
+        ]);
+
+        $queries = [];
+        DB::listen(function ($query) use (&$queries): void {
+            $queries[] = $query->toRawSql();
+        });
+
+        Livewire::actingAs(User::factory()->create())
+            ->test(Index::class)
+            ->assertSee('Circle of');
+
+        $eventHydrationQueries = collect($queries)
+            ->filter(static fn (string $query): bool => str_contains($query, 'select * from "events"'));
+
+        expect($eventHydrationQueries)->toHaveCount(1);
     });
 
     it('returns uncached default results when the cache store fails', function () {

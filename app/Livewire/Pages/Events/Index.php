@@ -258,6 +258,9 @@ class Index extends Component implements HasForms
      */
     private array $activeTaxonomyIdCache = [];
 
+    /** @var LengthAwarePaginator<int, Event>|null */
+    private ?LengthAwarePaginator $eventsForRequest = null;
+
     public function boot(): void
     {
         OwnerContext::setForRequest(null);
@@ -1286,6 +1289,10 @@ class Index extends Component implements HasForms
     #[Computed]
     public function events(): LengthAwarePaginator
     {
+        if ($this->eventsForRequest instanceof LengthAwarePaginator) {
+            return $this->eventsForRequest;
+        }
+
         $filters = $this->normalizedUrlState();
 
         $searchFilters = [
@@ -1352,7 +1359,7 @@ class Index extends Component implements HasForms
         $searchService = app(EventSearchService::class);
 
         if ($filters['lat'] !== null && $filters['lng'] !== null) {
-            return $searchService->searchNearby(
+            return $this->eventsForRequest = $searchService->searchNearby(
                 lat: (float) $filters['lat'],
                 lng: (float) $filters['lng'],
                 radiusKm: $filters['radius_km'],
@@ -1361,7 +1368,7 @@ class Index extends Component implements HasForms
             );
         }
 
-        return $searchService->search(
+        return $this->eventsForRequest = $searchService->search(
             query: $filters['search'],
             filters: $searchFilters,
             perPage: 12,

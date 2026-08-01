@@ -1582,8 +1582,6 @@ class Event extends PackageEvent implements AuditableContract
     {
         return $this->belongsToMany(Person::class, 'event_involvements', 'event_id', 'involveable_id')
             ->using(EventKeyPersonPivot::class)
-            ->wherePivot('involveable_type', 'person')
-            ->wherePivot('role_code', EventKeyPersonRole::Speaker->value)
             ->withPivotValue('involveable_type', 'person')
             ->withPivotValue('role_code', EventKeyPersonRole::Speaker->value)
             ->withPivot(['id', 'involveable_type', 'role_code', 'sort_order', 'notes'])
@@ -1605,7 +1603,6 @@ class Event extends PackageEvent implements AuditableContract
             'referenceable_id',
         )
             ->using(EventReferencePivot::class)
-            ->wherePivot('referenceable_type', 'reference')
             ->withPivotValue('referenceable_type', 'reference')
             ->withPivotValue('visibility', 'public')
             ->withPivotValue('reference_type', 'book')

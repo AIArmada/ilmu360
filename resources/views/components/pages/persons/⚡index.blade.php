@@ -76,7 +76,6 @@ new
         private function basePersonsQuery(): Builder
         {
             return Person::query()
-                ->active()
                 ->speakers()
                 ->where('status', 'verified')
                 ->with([
@@ -225,11 +224,8 @@ new
 @section('og_image_height', '1024')
 
 @php
-    $persons = $this->persons;
     $search = $this->search;
-    $personLoadingTarget = 'search,clearSearch';
     $submitPersonUrl = route('contributions.submit-person');
-    $personTotal = $persons->total();
 @endphp
 
 <div class="relative min-h-screen overflow-x-clip bg-[#fafaf7] text-slate-800">
@@ -311,12 +307,22 @@ new
 
     <!-- Main Content -->
     <div class="mx-auto max-w-7xl px-5 py-10 sm:px-6 lg:px-8 lg:py-12">
-        <!-- Loading Skeleton -->
-        <div wire:loading.delay.short wire:target="{{ $personLoadingTarget }}">
-            <x-ui.skeleton.person-card-grid />
-        </div>
+        @island(name: 'person-results', always: true)
+            @php
+                $persons = $this->persons;
+                $search = $this->search;
+                $personLoadingTarget = 'search,sort,clearSearch,gotoPage,setPage';
+                $submitPersonUrl = route('contributions.submit-person');
+                $personTotal = $persons->total();
+            @endphp
 
-        <div wire:loading.remove wire:target="{{ $personLoadingTarget }}">
+            <div class="min-h-[32rem]" wire:transition="person-results">
+                <!-- Loading Skeleton -->
+                <div wire:loading.delay.short wire:target="{{ $personLoadingTarget }}">
+                    <x-ui.skeleton.person-card-grid />
+                </div>
+
+                <div wire:loading.remove wire:target="{{ $personLoadingTarget }}">
             <!-- Empty State -->
             @if($persons->isEmpty())
                 <div class="flex min-h-[26rem] items-center justify-center">
@@ -524,7 +530,9 @@ new
                     </div>
                 </div>
             </section>
-        </div>
+                </div>
+            </div>
+        @endisland
     </div>
 
     <x-filament-actions::modals />

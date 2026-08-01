@@ -216,9 +216,6 @@
         ]
         : null;
     $showsGeolocationControls = $this->showsGeolocationControls();
-    $savedEventIds = $this->savedEventIds;
-    $showPendingStatusNote = $events->contains(fn (\App\Models\Event $event): bool => $event->status instanceof \App\States\EventStatus\Pending);
-    $showCancelledStatusNote = $events->contains(fn (\App\Models\Event $event): bool => $event->status instanceof \App\States\EventStatus\Cancelled);
 @endphp
 
 <div
@@ -846,7 +843,16 @@
                     @endif
                 </div>
 
-                <div class="mt-5">
+                @island(name: 'event-results', always: true)
+                    @php
+                        $events = $this->events;
+                        $savedEventIds = $this->savedEventIds;
+                        $showPendingStatusNote = $events->contains(fn (\App\Models\Event $event): bool => $event->status instanceof \App\States\EventStatus\Pending);
+                        $showCancelledStatusNote = $events->contains(fn (\App\Models\Event $event): bool => $event->status instanceof \App\States\EventStatus\Cancelled);
+                        $eventLoadingTarget = 'filterData,setLocation,clearLocation,clearAllFilters,setSort,toggleSave,gotoPage,setPage';
+                    @endphp
+
+                <div class="mt-5 min-h-[42rem]" wire:transition="event-results">
                     @if($showPendingStatusNote || $showCancelledStatusNote)
                         <x-public.moderation-status-note
                             :show-pending="$showPendingStatusNote"
@@ -855,7 +861,7 @@
                         />
                     @endif
 
-                    <div wire:loading.delay.short wire:target="filterData,setLocation,clearLocation,clearAllFilters,setSort,toggleSave" class="space-y-4">
+                    <div wire:loading.delay.short wire:target="{{ $eventLoadingTarget }}" class="space-y-4">
                         @foreach(range(1, 4) as $index)
                             <article class="animate-pulse rounded-2xl border border-slate-200 bg-white p-3 sm:p-4">
                                 <div class="grid items-start gap-4 md:grid-cols-[16rem_minmax(0,1fr)] lg:grid-cols-[18rem_minmax(0,1fr)_8.5rem] xl:grid-cols-[21rem_minmax(0,1fr)_9rem] 2xl:grid-cols-[24rem_minmax(0,1fr)_9rem]">
@@ -874,7 +880,7 @@
                         @endforeach
                     </div>
 
-                    <div wire:loading.remove wire:target="filterData,setLocation,clearLocation,clearAllFilters,setSort,toggleSave">
+                    <div wire:loading.remove wire:target="{{ $eventLoadingTarget }}">
                         @if($events->isEmpty())
                             <div class="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center">
                                 <div class="mx-auto flex size-20 items-center justify-center rounded-full bg-slate-50">
@@ -947,7 +953,6 @@
                                             ->filter()
                                             ->values();
                                         $tagChips = $event->classifications
-                                            ->loadMissing('term')
                                             ->take(2)
                                             ->map(fn ($classification): string => (string) ($classification->term?->name ?? $classification->term_code))
                                             ->filter()
@@ -972,7 +977,7 @@
                                         $isSaved = in_array((string) $event->getKey(), $savedEventIds, true);
                                     @endphp
 
-                                    <article class="group rounded-2xl border border-slate-200 bg-white p-3 shadow-sm transition hover:border-emerald-100 hover:shadow-[0_20px_55px_-38px_rgba(6,95,70,0.55)] sm:p-4">
+                                    <article wire:key="event-{{ $event->id }}" class="group rounded-2xl border border-slate-200 bg-white p-3 shadow-sm transition hover:border-emerald-100 hover:shadow-[0_20px_55px_-38px_rgba(6,95,70,0.55)] sm:p-4">
                                         <div class="grid items-start gap-4 md:grid-cols-[16rem_minmax(0,1fr)] lg:grid-cols-[18rem_minmax(0,1fr)_8.5rem] xl:grid-cols-[21rem_minmax(0,1fr)_9rem] 2xl:grid-cols-[24rem_minmax(0,1fr)_9rem]">
                                             <a href="{{ $eventUrl }}" wire:navigate
                                                 data-signal-event="navigation.result_clicked"
@@ -1126,6 +1131,7 @@
                         @endif
                     </div>
                 </div>
+                @endisland
 
                 <section id="majlis-map-preview" class="mt-6 overflow-hidden rounded-2xl border border-amber-100 bg-white shadow-sm">
                     <div class="grid gap-0 lg:grid-cols-[18rem_minmax(0,1fr)]">

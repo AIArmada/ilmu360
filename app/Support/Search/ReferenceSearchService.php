@@ -142,7 +142,6 @@ class ReferenceSearchService implements PublicDiscoveryAdapter
     private function publicSearchIdsFromDatabase(string $normalizedSearch): array
     {
         return Reference::query()
-            ->active()
             ->where('status', 'verified')
             ->select('references.id')
             ->tap(fn (Builder $query): Builder => $this->applyDatabaseSearch($query, $normalizedSearch))
@@ -159,7 +158,6 @@ class ReferenceSearchService implements PublicDiscoveryAdapter
     private function publicFuzzySearchIdsFromDatabase(string $normalizedSearch, float $minimumScore): array
     {
         return Reference::query()
-            ->active()
             ->where('status', 'verified')
             ->select(['id', 'title', 'author'])
             ->tap(fn (Builder $query): Builder => $this->applyFuzzyCandidateFilter($query, $normalizedSearch))
