@@ -142,3 +142,18 @@ Baseline: cold local `/institusi?search=shah+alam` was 16 SQL queries / ~57 ms
 reported DB time; the optimized path is 15 SQL queries with one institution-ID
 scope query removed. Focused InstitutionIndex coverage passed 29 tests / 126
 assertions; targeted PHPStan passed.
+
+## Institution search interaction pass
+
+- [x] Create a checkpoint commit before continuing; no stashes were present.
+- [x] Validate a deferred results island against the existing public-page contract.
+- [x] Keep initial result HTML server-rendered while isolating subsequent result updates in one island.
+- [x] Add stable institution card keys and a persistent result wrapper for Livewire morphing.
+- [x] Remove the redundant `active()` status predicate from verified public search queries.
+- [x] Verify institution rendering, fallback search, Blade compilation, formatting, and PHPStan.
+
+The full deferred island was not retained: it replaced the initial public result
+HTML with a skeleton and broke the directory's server-rendered result contract.
+The retained design keeps the batched hydration query and existing loading
+skeleton, while `always` island updates, stable keys, and a transition improve
+search/filter interactions without sacrificing SEO or first-response content.

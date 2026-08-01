@@ -161,7 +161,6 @@ class InstitutionSearchService implements PublicDiscoveryAdapter
     private function publicSearchIdsFromDatabase(string $normalizedSearch): array
     {
         return Institution::query()
-            ->active()
             ->where('status', 'verified')
             ->select('institutions.id')
             ->tap(fn (Builder $query): Builder => $this->applyDatabaseSearch($query, $normalizedSearch))
@@ -216,7 +215,6 @@ class InstitutionSearchService implements PublicDiscoveryAdapter
     private function publicFuzzySearchIdsFromDatabase(string $normalizedSearch, float $minimumScore): array
     {
         return Institution::query()
-            ->active()
             ->where('status', 'verified')
             ->with('names')
             ->select(['id', 'name'])

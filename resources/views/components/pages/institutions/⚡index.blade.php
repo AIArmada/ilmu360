@@ -510,14 +510,8 @@ class extends Component
         $adminArea1Id,
         $adminArea2Id,
     ])->filter(static fn (mixed $value): bool => filled($value))->count();
-    $institutionLoadingTarget = 'search,country_id,state_id,city_id,administrative_district_id,administrative_subdivision_id,clearSearch,clearFilters';
     $submitInstitutionUrl = route('contributions.submit-institution');
     $institutionTotal = $institutions->total();
-    $formatInstitutionLocation = static function ($addressModel): string {
-        $parts = \App\Support\Location\AddressHierarchyFormatter::parts($addressModel);
-
-        return $parts === [] ? '-' : implode(', ', $parts);
-    };
 @endphp
 
 <div class="relative min-h-screen">
@@ -699,13 +693,25 @@ class extends Component
 		            </div>
 		        </div>
 
-	        <div class="container mx-auto px-6 lg:px-12 mt-12">
-	                <div wire:loading.delay.short wire:target="{{ $institutionLoadingTarget }}">
-	                    <x-ui.skeleton.institution-card-grid />
-	                </div>
+	        <div class="container mx-auto mt-12 px-6 lg:px-12">
+            @island(name: 'institution-results', always: true)
+                @php
+                    $institutions = $this->institutions;
+                    $institutionLoadingTarget = 'search,country_id,state_id,city_id,administrative_district_id,administrative_subdivision_id,clearSearch,clearFilters';
+                    $formatInstitutionLocation = static function ($addressModel): string {
+                        $parts = \App\Support\Location\AddressHierarchyFormatter::parts($addressModel);
 
-	            <div wire:loading.remove wire:target="{{ $institutionLoadingTarget }}">
-	            @if($institutions->isEmpty())
+                        return $parts === [] ? '-' : implode(', ', $parts);
+                    };
+                @endphp
+
+                <div class="min-h-[32rem]" wire:transition="institution-results">
+                    <div wire:loading.delay.short wire:target="{{ $institutionLoadingTarget }}">
+                        <x-ui.skeleton.institution-card-grid />
+                    </div>
+
+                    <div wire:loading.remove wire:target="{{ $institutionLoadingTarget }}">
+            @if($institutions->isEmpty())
 	                <div class="text-center py-24 rounded-3xl bg-slate-50/50 border border-dashed border-slate-200">
 	                    <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-white text-slate-300 shadow-sm mb-6">
                         <svg class="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
@@ -719,12 +725,12 @@ class extends Component
 	                        </div>
 		                </div>
 		            @else
-                <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
                     @foreach($institutions as $institution)
                         @php
                             $cardInstitutionImageUrl = $institution->public_image_url;
                         @endphp
-                        <a href="{{ route('institutions.show', $institution) }}" wire:navigate class="group relative bg-white rounded-3xl border border-slate-200 shadow-md hover:shadow-xl hover:shadow-emerald-900/8 hover:-translate-y-1 transition-all duration-300 flex flex-col overflow-hidden">
+                        <a wire:key="institution-{{ $institution->id }}" href="{{ route('institutions.show', $institution) }}" wire:navigate class="group relative flex flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-md transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-emerald-900/8">
                             <!-- Banner Area (16:9, cover-first) -->
                             <div class="institution-card-media aspect-video bg-slate-50 relative overflow-hidden">
                                 @if($cardInstitutionImageUrl)
@@ -770,10 +776,14 @@ class extends Component
                         <div class="mt-6 rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-4 text-center shadow-sm">
                             <p class="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">{{ __('Direktori Institusi') }}</p>
                             <p class="mt-2 text-sm font-semibold text-slate-600">
-                                {{ __('Jumlah institusi: :count', ['count' => number_format($institutionTotal)]) }}
+                                {{ __('Jumlah institusi: :count', ['count' => number_format($institutions->total())]) }}
                             </p>
                         </div>
-		            @endif
+	            @endif
+
+                    </div>
+                </div>
+            @endisland
 
                     <section class="mt-16">
                         <div class="relative overflow-hidden rounded-[2rem] border border-emerald-200/70 bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-600 px-6 py-8 text-white shadow-[0_30px_90px_-40px_rgba(5,150,105,0.85)] md:px-10 md:py-10">

@@ -333,6 +333,9 @@ it('paginates direct institution search results without a second count query', f
     expect($institutionIdQueries)->not->toBeEmpty()
         ->and($institutionIdQueries)->toHaveCount(1)
         ->and($institutionIdQueries->every(
+            static fn (string $query): bool => ! str_contains($query, 'status" in'),
+        ))->toBeTrue()
+        ->and($institutionIdQueries->every(
             static fn (string $query): bool => ! str_contains($query, 'from "events"'),
         ))->toBeTrue();
 });
