@@ -6,6 +6,7 @@ use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Addressing\Models\City;
 use AIArmada\Addressing\Models\State;
+use AIArmada\Addressing\Support\AddressAreaHierarchyResolver;
 use AIArmada\Addressing\Support\AddressAreaStateBridge;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Arr;
@@ -18,6 +19,7 @@ class ResolveGooglePlaceSelectionAction
 
     public function __construct(
         private readonly NormalizeGoogleMapsInputAction $normalizeGoogleMapsInputAction,
+        private readonly AddressAreaHierarchyResolver $addressAreaHierarchyResolver,
     ) {}
 
     /**
@@ -61,6 +63,14 @@ class ResolveGooglePlaceSelectionAction
             $this->componentValue($components, ['postal_town']),
             $this->componentValue($components, ['administrative_area_level_3']),
         ]);
+        $postalLocalityName = $this->firstFilled([
+            $this->componentValue($components, ['locality']),
+            $this->componentValue($components, ['postal_town']),
+            $this->componentValue($components, ['sublocality_level_1']),
+            $this->componentValue($components, ['sublocality_level_2']),
+            $this->componentValue($components, ['sublocality']),
+            $this->componentValue($components, ['neighborhood']),
+        ]);
 
         $areaTreeRoot = $this->resolveArea($stateName, $countryId, null, ['state', 'wilayah_persekutuan']);
         $countryId = $areaTreeRoot->country_id ?? $countryId;
@@ -71,13 +81,41 @@ class ResolveGooglePlaceSelectionAction
             : $areaTreeRoot;
         $district = $this->resolveArea($districtName, $countryId, $areaTreeRoot?->id, ['district', 'minor_district']);
         $subdistrict = $this->resolveArea($subdistrictName, $countryId, $district->id ?? $areaTreeRoot?->id, ['mukim', 'subdistrict']);
+        $postalLocality = null;
 
-        $district ??= $subdistrict?->parent_id !== null
-            ? AddressArea::query()->find($subdistrict->parent_id)
-            : null;
-        $areaTreeRoot ??= $district?->parent_id !== null
-            ? AddressArea::query()->find($district->parent_id)
-            : null;
+        // Google may return a subdivision without the administrative district.
+        // Resolve that incomplete provider response within the state's administrative
+        // hierarchy, then recover the district from the matched area's ancestors.
+        if ($subdistrict === null && $district === null) {
+            $subdistrict = $this->addressAreaHierarchyResolver->resolveWithinHierarchy(
+                $subdistrictName,
+                $countryId,
+                $areaTreeRoot?->id,
+                'administrative',
+                ['city', 'municipality', 'mukim', 'subdistrict'],
+            );
+
+            if ($subdistrict === null && $areaTreeRoot?->type === 'wilayah_persekutuan') {
+                $postalLocality = $this->addressAreaHierarchyResolver->resolveRoleWithinHierarchy(
+                    $postalLocalityName,
+                    $countryId,
+                    $areaTreeRoot->id,
+                    'postal',
+                    'postal_locality',
+                );
+            }
+        }
+
+        $district ??= $this->addressAreaHierarchyResolver->ancestorOfTypes(
+            $subdistrict,
+            ['district', 'minor_district'],
+            'administrative',
+        );
+        $areaTreeRoot ??= $this->addressAreaHierarchyResolver->ancestorOfTypes(
+            $district,
+            ['state', 'wilayah_persekutuan'],
+            'administrative',
+        );
         $countryId = $areaTreeRoot->country_id ?? $district->country_id ?? $subdistrict->country_id ?? $countryId;
 
         $stateId ??= $this->resolveStateId($stateName, $countryId, $areaTreeRoot);
@@ -89,6 +127,7 @@ class ResolveGooglePlaceSelectionAction
         $subdistrictId = $subdistrict instanceof AddressArea && in_array($subdistrict->type, ['mukim', 'subdistrict'], true)
             ? $subdistrict->id
             : null;
+        $postalLocalityId = $postalLocality?->id;
 
         $lat = $this->numericValue(Arr::get($payload, 'location.lat'));
         $lng = $this->numericValue(Arr::get($payload, 'location.lng'));
@@ -109,6 +148,7 @@ class ResolveGooglePlaceSelectionAction
             'area_assignments' => array_filter([
                 'administrative_district' => $districtId,
                 'administrative_subdivision' => $subdistrictId,
+                'postal_locality' => $postalLocalityId,
             ]),
             'line1' => $this->resolveLine1($components),
             'line2' => $this->resolveLine2($components),

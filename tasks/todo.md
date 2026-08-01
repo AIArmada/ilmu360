@@ -1,5 +1,27 @@
 # Task: Optimize penceramah edit loading
 
+## Current Task: Tolerate incomplete Google geography
+
+- [x] Resolve Google subdivisions through the provider hierarchy when the district is omitted.
+- [x] Recover the district ancestor and keep normal form hierarchy strict.
+- [x] Add focused regression coverage and run verification.
+
+## Review
+
+The generic hierarchy traversal now lives in
+`aiarmada/addressing` as `AddressAreaHierarchyResolver`. It supports arbitrary
+provider-defined depth through `ancestorsOf()` and typed ancestor selection
+through `ancestorOfTypes()`. Provider roles can also resolve non-administrative
+branches such as Federal Territory `postal_locality` nodes. The Google place
+resolver only supplies provider-derived names/types/roles and consumes the
+package result. The normal provider-backed form cascade remains strict and
+unchanged.
+
+Verification: `vendor/bin/pest --parallel
+tests/Unit/ResolveGooglePlaceSelectionActionTest.php` (8 tests / 46
+assertions), Pint, application PHPStan, package PHPStan for the new resolver,
+and `git diff --check` passed.
+
 ## Current Task: Speaker profile repeaters
 
 - [x] Add alternate-name repeater to the speaker update form.
