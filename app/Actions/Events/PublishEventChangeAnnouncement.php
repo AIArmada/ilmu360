@@ -13,6 +13,7 @@ use App\Models\Reference;
 use App\Models\User;
 use App\Services\Notifications\EventNotificationService;
 use App\States\EventStatus\Cancelled;
+use App\Support\Spaces\SpaceLocationPresenter;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use DateTimeInterface;
@@ -387,7 +388,7 @@ class PublishEventChangeAnnouncement
             ],
             'space' => $event->primaryLocation?->venueSpace === null ? null : [
                 'id' => (string) $event->primaryLocation->venueSpace->getKey(),
-                'name' => $event->primaryLocation->venueSpace->name,
+                'name' => SpaceLocationPresenter::name($event->primaryLocation),
             ],
             'persons' => $event->personKeyPeople
                 ->map(fn (EventKeyPerson $keyPerson): array => [

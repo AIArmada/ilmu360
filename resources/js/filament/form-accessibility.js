@@ -145,7 +145,6 @@
         const hasAddedElement = mutations.some((mutation) =>
             [...mutation.addedNodes].some((node) => node instanceof HTMLElement),
         );
-
         if (!hasAddedElement) {
             return;
         }

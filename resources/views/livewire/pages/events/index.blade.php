@@ -45,12 +45,13 @@
 @endonce
 
 @php
-    $events = $this->events;
+    $events = $this->scheduleItems;
     $search = $this->search;
     $countryId = $this->country_id;
     $stateId = $this->state_id;
-    $adminArea1Id = $this->administrative_district_id;
-    $adminArea2Id = $this->administrative_subdivision_id;
+    $areaAssignments = $this->area_assignments;
+    $districtAreaId = $areaAssignments['administrative_district'] ?? null;
+    $subdivisionAreaId = $areaAssignments['administrative_subdivision'] ?? null;
     $institutionId = $this->institution_id;
     $venueId = $this->venue_id;
     $gender = $this->gender;
@@ -66,12 +67,16 @@
     $lat = $this->lat;
     $lng = $this->lng;
     $sort = $this->sort;
+    $countries = $this->countries;
     $states = $this->states;
+    $cities = $this->cities;
+    $divisions = $this->divisions;
+    $postalLocalities = $this->postalLocalities;
     $districts = $this->districts;
     $subdistricts = $this->subdistricts;
     $languageOptions = $this->languageOptions();
     $selectedAgeGroups = array_values(array_filter((array) $this->age_group));
-    $selectedTopicIds = array_values(array_filter((array) $this->topic_ids));
+    $selectedDisciplineTagIds = array_values(array_filter((array) $this->discipline_tag_ids));
     $selectedDomainTagIds = array_values(array_filter((array) $this->domain_tag_ids));
     $selectedSourceTagIds = array_values(array_filter((array) $this->source_tag_ids));
     $selectedIssueTagIds = array_values(array_filter((array) $this->issue_tag_ids));
@@ -118,8 +123,11 @@
         filled($search),
         filled($countryId),
         filled($stateId),
-        filled($adminArea1Id),
-        filled($adminArea2Id),
+        filled($this->city_id),
+        filled($areaAssignments['administrative_division'] ?? null),
+        filled($districtAreaId),
+        filled($subdivisionAreaId),
+        filled($areaAssignments['postal_locality'] ?? null),
         filled($institutionId),
         filled($venueId),
         count($selectedLanguageCodes) > 0,
@@ -137,7 +145,7 @@
         count($selectedImamIds) > 0,
         count($selectedKhatibIds) > 0,
         count($selectedBilalIds) > 0,
-        count($selectedTopicIds) > 0,
+        count($selectedDisciplineTagIds) > 0,
         count($selectedDomainTagIds) > 0,
         count($selectedSourceTagIds) > 0,
         count($selectedIssueTagIds) > 0,
@@ -150,6 +158,7 @@
         filled($startsTimeUntil),
         $this->has_event_url !== null,
         $this->has_live_url !== null,
+        $this->has_end_time !== null,
         $timeScope !== 'upcoming',
         filled($lat),
     ])->filter()->count();
@@ -158,8 +167,8 @@
         'search' => $search,
         'country_id' => $countryId,
         'state_id' => $stateId,
-        'administrative_district_id' => $adminArea1Id,
-        'administrative_subdivision_id' => $adminArea2Id,
+        'city_id' => $this->city_id,
+        'area_assignments' => $areaAssignments,
         'institution_id' => $institutionId,
         'venue_id' => $venueId,
         'person_ids' => $selectedPersonIds,
@@ -185,7 +194,8 @@
         'starts_time_until' => $startsTimeUntil,
         'has_event_url' => $this->has_event_url,
         'has_live_url' => $this->has_live_url,
-        'topic_ids' => $selectedTopicIds,
+        'has_end_time' => $this->has_end_time,
+        'discipline_tag_ids' => $selectedDisciplineTagIds,
         'domain_tag_ids' => $selectedDomainTagIds,
         'source_tag_ids' => $selectedSourceTagIds,
         'issue_tag_ids' => $selectedIssueTagIds,
@@ -541,6 +551,16 @@
 
                         <div class="mt-4 space-y-3">
                             <label class="block">
+                                <span class="mb-1.5 block text-xs font-semibold text-slate-600">{{ __('Country') }}</span>
+                                <select wire:model.live="filterData.country_id" data-signal-control="country_id" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10">
+                                    <option value="">{{ __('Any Country') }}</option>
+                                    @foreach($countries as $country)
+                                        <option value="{{ $country->id }}">{{ $country->name }}</option>
+                                    @endforeach
+                                </select>
+                            </label>
+
+                            <label class="block">
                                 <span class="mb-1.5 block text-xs font-semibold text-slate-600">{{ __('Negeri') }}</span>
                                 <select wire:model.live="filterData.state_id" data-signal-control="state_id" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10">
                                     <option value="">{{ __('Pilih negeri') }}</option>
@@ -551,19 +571,55 @@
                             </label>
 
                             <label class="block">
-                                <span class="mb-1.5 block text-xs font-semibold text-slate-600">{{ __('Daerah') }}</span>
-                                <select wire:model.live="filterData.administrative_district_id" data-signal-control="administrative_district_id" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10" @disabled(! filled($stateId))>
-                                    <option value="">{{ __('Pilih daerah') }}</option>
-                                    @foreach($districts as $district)
-                                        <option value="{{ $district->id }}">{{ $district->name }}</option>
+                                <span class="mb-1.5 block text-xs font-semibold text-slate-600">{{ __('City') }}</span>
+                                <select wire:model.live="filterData.city_id" data-signal-control="city_id" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10" @disabled(! filled($countryId))>
+                                    <option value="">{{ __('Any City') }}</option>
+                                    @foreach($cities as $city)
+                                        <option value="{{ $city->id }}">{{ $city->name }}</option>
                                     @endforeach
                                 </select>
                             </label>
 
-                            @if(filled($stateId))
+                            @if($divisions->isNotEmpty())
+                                <label class="block">
+                                    <span class="mb-1.5 block text-xs font-semibold text-slate-600">{{ __('Division / Bahagian') }}</span>
+                                    <select wire:model.live="filterData.area_assignments.administrative_division" data-signal-control="area_assignments.administrative_division" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10">
+                                        <option value="">{{ __('Any Division') }}</option>
+                                        @foreach($divisions as $division)
+                                            <option value="{{ $division->id }}">{{ $division->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </label>
+                            @endif
+
+                            @if($postalLocalities->isNotEmpty())
+                                <label class="block">
+                                    <span class="mb-1.5 block text-xs font-semibold text-slate-600">{{ __('Locality / Kampung') }}</span>
+                                    <select wire:model.live="filterData.area_assignments.postal_locality" data-signal-control="area_assignments.postal_locality" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10">
+                                        <option value="">{{ __('Any Locality') }}</option>
+                                        @foreach($postalLocalities as $locality)
+                                            <option value="{{ $locality->id }}">{{ $locality->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </label>
+                            @endif
+
+                            @if($districts->isNotEmpty())
+                                <label class="block">
+                                    <span class="mb-1.5 block text-xs font-semibold text-slate-600">{{ __('Daerah') }}</span>
+                                    <select wire:model.live="filterData.area_assignments.administrative_district" data-signal-control="area_assignments.administrative_district" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10">
+                                        <option value="">{{ __('Pilih daerah') }}</option>
+                                        @foreach($districts as $district)
+                                            <option value="{{ $district->id }}">{{ $district->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </label>
+                            @endif
+
+                            @if($subdistricts->isNotEmpty())
                                 <label class="block">
                                     <span class="mb-1.5 block text-xs font-semibold text-slate-600">{{ __('Bandar / Mukim / Zon') }}</span>
-                                    <select wire:model.live="filterData.administrative_subdivision_id" data-signal-control="administrative_subdivision_id" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10">
+                                    <select wire:model.live="filterData.area_assignments.administrative_subdivision" data-signal-control="area_assignments.administrative_subdivision" class="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10">
                                         <option value="">{{ __('Semua kawasan') }}</option>
                                         @foreach($subdistricts as $subdistrict)
                                             <option value="{{ $subdistrict->id }}">{{ $subdistrict->name }}</option>
@@ -585,7 +641,7 @@
                                         <span>{{ __('Radius') }}</span>
                                         <span>{{ $this->radius_km }} km</span>
                                     </span>
-                                    <input type="range" min="1" max="1000" step="1" wire:model.live="filterData.radius_km" data-signal-control="radius_km" class="w-full accent-emerald-700">
+                                    <input type="range" min="1" max="1000" step="1" wire:model.live.debounce.500ms="filterData.radius_km" data-signal-control="radius_km" class="w-full accent-emerald-700">
                                 </label>
                             @endif
                         </div>
@@ -743,11 +799,26 @@
                             @if($lat)
                                 <span class="inline-flex items-center gap-1 rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800">{{ __('Dekat saya') }} · {{ $this->radius_km }} km</span>
                             @endif
+                            @if($countryId)
+                                <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ $countries->firstWhere('id', $countryId)?->name ?? __('Country') }}</span>
+                            @endif
                             @if($stateId)
                                 <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ $states->firstWhere('id', $stateId)?->name ?? __('State') }}</span>
                             @endif
-                            @if($adminArea1Id)
-                                <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ $districts->firstWhere('id', $adminArea1Id)?->name ?? __('District') }}</span>
+                            @if($this->city_id)
+                                <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ $cities->firstWhere('id', $this->city_id)?->name ?? __('City') }}</span>
+                            @endif
+                            @if($areaAssignments['administrative_division'] ?? null)
+                                <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ $divisions->firstWhere('id', $areaAssignments['administrative_division'])?->name ?? __('Division / Bahagian') }}</span>
+                            @endif
+                            @if($areaAssignments['postal_locality'] ?? null)
+                                <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ $postalLocalities->firstWhere('id', $areaAssignments['postal_locality'])?->name ?? __('Locality / Kampung') }}</span>
+                            @endif
+                            @if($districtAreaId)
+                                <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ $districts->firstWhere('id', $districtAreaId)?->name ?? __('District') }}</span>
+                            @endif
+                            @if($subdivisionAreaId)
+                                <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ $subdistricts->firstWhere('id', $subdivisionAreaId)?->name ?? __('Subdistrict / Local Area') }}</span>
                             @endif
                             @foreach($selectedEventCategories as $categoryId)
                                 <span class="inline-flex items-center rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800">{{ $eventCategoryLabels[$categoryId] ?? $categoryId }}</span>
@@ -757,6 +828,9 @@
                             @endforeach
                             @foreach($selectedLanguageCodes as $languageCode)
                                 <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ $languageOptions[$languageCode] ?? strtoupper((string) $languageCode) }}</span>
+                            @endforeach
+                            @foreach($selectedDisciplineTagIds as $disciplineTagId)
+                                <span class="inline-flex items-center rounded-full border border-violet-100 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-800">{{ __('Bidang Ilmu') }}: {{ $this->termOptionLabels('discipline', [$disciplineTagId])[$disciplineTagId] ?? $disciplineTagId }}</span>
                             @endforeach
                             @if($gender)
                                 <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ $genderLabels[$gender] ?? str((string) $gender)->replace('_', ' ')->headline() }}</span>
@@ -781,6 +855,9 @@
                             @endif
                             @if($this->has_live_url !== null)
                                 <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ $this->has_live_url ? __('Has Live URL') : __('No Live URL') }}</span>
+                            @endif
+                            @if($this->has_end_time !== null)
+                                <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ $this->has_end_time ? __('Has End Time') : __('No End Time') }}</span>
                             @endif
                             @if($startsAfter)
                                 <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700">{{ __('Held from') }} {{ \Illuminate\Support\Carbon::make($startsAfter)?->format('d M Y') ?? $startsAfter }}</span>
@@ -845,10 +922,10 @@
 
                 @island(name: 'event-results', always: true)
                     @php
-                        $events = $this->events;
+                        $events = $this->scheduleItems;
                         $savedEventIds = $this->savedEventIds;
-                        $showPendingStatusNote = $events->contains(fn (\App\Models\Event $event): bool => $event->status instanceof \App\States\EventStatus\Pending);
-                        $showCancelledStatusNote = $events->contains(fn (\App\Models\Event $event): bool => $event->status instanceof \App\States\EventStatus\Cancelled);
+                        $showPendingStatusNote = $events->contains(fn (\App\Data\PublicScheduleLeaf $leaf): bool => $leaf->event->status instanceof \App\States\EventStatus\Pending);
+                        $showCancelledStatusNote = $events->contains(fn (\App\Data\PublicScheduleLeaf $leaf): bool => $leaf->event->status instanceof \App\States\EventStatus\Cancelled);
                         $eventLoadingTarget = 'filterData,setLocation,clearLocation,clearAllFilters,setSort,toggleSave,gotoPage,setPage';
                     @endphp
 
@@ -901,9 +978,15 @@
                             </div>
                         @else
                             <div class="space-y-4">
-                                @foreach($events as $event)
+                                @foreach($events as $scheduleLeaf)
                                     @php
-                                        $coverMedia = $event->getFirstMedia('cover');
+                                        $event = $scheduleLeaf->event;
+                                        $primaryOccurrence = $scheduleLeaf->occurrence;
+                                        $primarySession = $scheduleLeaf->session;
+                                        $scheduleTitle = $scheduleLeaf->title();
+                                        $coverMedia = $primarySession?->getFirstMedia('cover')
+                                            ?? $primaryOccurrence->getFirstMedia('cover')
+                                            ?? $event->getFirstMedia('cover');
                                         $eventCardImageUrl = $coverMedia?->getAvailableUrl(['thumb']) ?: $event->card_image_url;
                                         $eventChangeBadgeLabel = $event->public_change_badge_label;
                                         $eventCategory = $event->classifications
@@ -921,8 +1004,22 @@
                                             \App\Enums\EventFormat::Hybrid->value => 'bg-teal-700 text-white',
                                             default => 'bg-emerald-800 text-white',
                                         };
-                                        $primaryLocationName = $event->venue?->name ?? $event->institution?->name;
-                                        $addressModel = $event->venue?->primaryAddress() ?? $event->institution?->primaryAddress();
+                                        $scheduleLocation = $primarySession?->locations->first()
+                                            ?? $primaryOccurrence->locations->first()
+                                            ?? $event->primaryLocation;
+                                        $primaryLocationName = $scheduleLocation?->venue?->name
+                                            ?? $scheduleLocation?->label
+                                            ?? $event->institution?->name
+                                            ?? $event->venue?->name;
+                                        $locationSpaceName = \App\Support\Spaces\SpaceLocationPresenter::name($scheduleLocation);
+                                        $addressModel = $scheduleLocation?->venue?->primaryAddress()
+                                            ?? $event->institution?->primaryAddress()
+                                            ?? $event->venue?->primaryAddress();
+                                        if (is_string($locationSpaceName) && trim($locationSpaceName) !== '') {
+                                            $primaryLocationName = collect([$primaryLocationName, $locationSpaceName])
+                                                ->filter(fn (mixed $value): bool => is_string($value) && trim($value) !== '')
+                                                ->implode(' · ');
+                                        }
                                         $locationPrimaryText = is_string($primaryLocationName) && $primaryLocationName !== '' ? $primaryLocationName : null;
                                         $explicitCity = trim((string) ($addressModel?->city ?? ''));
                                         $stateText = \App\Support\Location\AddressHierarchyFormatter::format($addressModel, ['state']);
@@ -940,12 +1037,28 @@
                                             $locationPrimaryText = $formatValue === \App\Enums\EventFormat::Online->value ? __('Online') : __('Location pending');
                                         }
 
-                                        $personNames = $event->persons
-                                            ->take(2)
-                                            ->map(fn (\App\Models\Person $person): string => (string) ($person->formatted_name ?? $person->name))
+                                        $schedulePersonNames = $primarySession?->involvements
+                                            ?->map(fn ($involvement): string => $involvement->involveable instanceof \App\Models\Person
+                                                ? (string) ($involvement->involveable->formatted_name ?? $involvement->involveable->name)
+                                                : (string) ($involvement->display_name ?? ''))
                                             ->filter()
-                                            ->values();
-                                        $personText = $personNames->isNotEmpty() ? $personNames->implode(', ') : __('Penceramah akan diumumkan');
+                                            ->values() ?? collect();
+                                        $personText = $schedulePersonNames->isNotEmpty()
+                                            ? $schedulePersonNames->take(2)->implode(', ')
+                                            : $event->persons
+                                                ->take(2)
+                                                ->map(fn (\App\Models\Person $person): string => (string) ($person->formatted_name ?? $person->name))
+                                                ->filter()
+                                                ->implode(', ');
+                                        $personText = $personText !== '' ? $personText : __('Penceramah akan diumumkan');
+                                        $cardStart = $scheduleLeaf->startsAt();
+                                        $cardTimingExpression = $primarySession?->timeExpressions->firstWhere('anchor_type', 'prayer')
+                                            ?? $primaryOccurrence?->timeExpressions->firstWhere('anchor_type', 'prayer')
+                                            ?? $event->timeExpressions->firstWhere('anchor_type', 'prayer');
+                                        $cardTimingText = $cardTimingExpression?->display_label
+                                            ?: (($primarySession === null && $event->isPrayerRelative())
+                                                ? (string) $event->timing_display
+                                                : ($cardStart ? \App\Support\Timezone\UserDateTimeFormatter::format($cardStart, 'g:i A') : __('TBC')));
                                         $languageChips = $event->languageRecords
                                             ->pluck('language_code')
                                             ->take(1)
@@ -957,38 +1070,42 @@
                                             ->map(fn ($classification): string => (string) ($classification->term?->name ?? $classification->term_code))
                                             ->filter()
                                             ->values();
+                                        $scheduleStatus = $primarySession?->status ?? $primaryOccurrence->status;
                                         $statusBadgeLabel = $event->status instanceof \App\States\EventStatus\Pending
                                             ? __('Menunggu Kelulusan')
                                             : ($eventChangeBadgeLabel ?? __('Confirmed'));
                                         $statusBadgeClass = $event->status instanceof \App\States\EventStatus\Pending
                                             ? 'border-amber-100 bg-amber-50 text-amber-700'
-                                            : (($event->primaryOccurrence && in_array((string) $event->primaryOccurrence->status, ['postponed', 'rescheduled'], true)) || $event->status instanceof \App\States\EventStatus\Cancelled
+                                            : (in_array((string) $scheduleStatus, ['postponed', 'rescheduled'], true) || $event->status instanceof \App\States\EventStatus\Cancelled
                                                 ? 'border-rose-100 bg-rose-50 text-rose-700'
                                                 : ($eventChangeBadgeLabel ? 'border-sky-100 bg-sky-50 text-sky-700' : 'border-emerald-100 bg-emerald-50 text-emerald-700'));
                                         $statusTimeLabel = $eventChangeBadgeLabel
                                             ? $event->updated_at?->diffForHumans()
-                                            : $event->published_at?->diffForHumans();
+                                            : ($primarySession?->published_at?->diffForHumans() ?? $primaryOccurrence->published_at?->diffForHumans() ?? $event->published_at?->diffForHumans());
                                         $mapUrl = filled($addressModel?->google_maps_url)
                                             ? (string) $addressModel->google_maps_url
                                             : (filled($addressModel?->latitude) && filled($addressModel?->longitude)
                                                 ? 'https://www.google.com/maps/dir/?api=1&destination='.$addressModel->latitude.','.$addressModel->longitude
                                                 : null);
-                                        $eventUrl = route('events.show', $event);
+                                        $eventUrl = $scheduleLeaf->url();
+                                        $programmeUrl = route('events.show', $event);
+                                        $signalEntityType = $scheduleLeaf->entityType();
+                                        $signalEntityId = $scheduleLeaf->id();
                                         $isSaved = in_array((string) $event->getKey(), $savedEventIds, true);
                                     @endphp
 
-                                    <article wire:key="event-{{ $event->id }}" class="group rounded-2xl border border-slate-200 bg-white p-3 shadow-sm transition hover:border-emerald-100 hover:shadow-[0_20px_55px_-38px_rgba(6,95,70,0.55)] sm:p-4">
+                                    <article wire:key="schedule-{{ $signalEntityType }}-{{ $signalEntityId }}" class="group rounded-2xl border border-slate-200 bg-white p-3 shadow-sm transition hover:border-emerald-100 hover:shadow-[0_20px_55px_-38px_rgba(6,95,70,0.55)] sm:p-4">
                                         <div class="grid items-start gap-4 md:grid-cols-[16rem_minmax(0,1fr)] lg:grid-cols-[18rem_minmax(0,1fr)_8.5rem] xl:grid-cols-[21rem_minmax(0,1fr)_9rem] 2xl:grid-cols-[24rem_minmax(0,1fr)_9rem]">
                                             <a href="{{ $eventUrl }}" wire:navigate
                                                 data-signal-event="navigation.result_clicked"
                                                 data-signal-category="navigation"
                                                 data-signal-component="events_index_results"
                                                 data-signal-control="event_card_image"
-                                                data-signal-entity-type="event"
-                                                data-signal-entity-id="{{ $event->id }}"
+                                                data-signal-entity-type="{{ $signalEntityType }}"
+                                                data-signal-entity-id="{{ $signalEntityId }}"
                                                 class="relative block aspect-[16/9] w-full overflow-hidden rounded-xl bg-slate-100 shadow-sm ring-1 ring-slate-900/5"
                                                 data-cover-aspect="16:9">
-                                                <img src="{{ $eventCardImageUrl }}" alt="{{ $event->title }}" loading="lazy" class="h-full w-full object-cover transition duration-500 group-hover:scale-105">
+                                                <img src="{{ $eventCardImageUrl }}" alt="{{ $scheduleTitle }}" loading="lazy" class="h-full w-full object-cover transition duration-500 group-hover:scale-105">
                                                 <span class="absolute bottom-3 left-3 rounded-lg px-2.5 py-1.5 text-[11px] font-bold shadow-sm {{ $formatBadgeClass }}">{{ $formatLabel }}</span>
                                                 @if(isset($event->distance_km))
                                                     <span class="absolute right-3 top-3 rounded-full bg-white/90 px-2.5 py-1 text-xs font-bold text-emerald-800 shadow-sm backdrop-blur">{{ number_format($event->distance_km, 1) }} km</span>
@@ -1001,20 +1118,24 @@
                                                         {{ $eventCategoryLabel }}
                                                     </span>
                                                     <span class="inline-flex items-center rounded-full border border-amber-100 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-800" data-testid="event-card-date-badge">
-                                                        {{ \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($event->starts_at, 'j M') }}
+                                                        {{ $cardStart ? \App\Support\Timezone\UserDateTimeFormatter::translatedFormat($cardStart, 'j M') : __('TBC') }}
                                                     </span>
                                                 </div>
+
+                                                <p class="mb-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
+                                                    <a href="{{ $programmeUrl }}" wire:navigate class="transition hover:text-emerald-800">{{ __('Program') }} · {{ $event->title }}</a>
+                                                </p>
 
                                                 <a href="{{ $eventUrl }}" wire:navigate
                                                     data-signal-event="navigation.result_clicked"
                                                     data-signal-category="navigation"
                                                     data-signal-component="events_index_results"
                                                     data-signal-control="event_card_title"
-                                                    data-signal-entity-type="event"
-                                                    data-signal-entity-id="{{ $event->id }}"
+                                                    data-signal-entity-type="{{ $signalEntityType }}"
+                                                    data-signal-entity-id="{{ $signalEntityId }}"
                                                     class="block" data-testid="event-card-title-link">
                                                     <h3 class="font-heading text-xl font-bold leading-tight text-emerald-950 transition group-hover:text-emerald-800 lg:text-[1.35rem]">
-                                                        {{ $event->title }}
+                                                        {{ $scheduleTitle }}
                                                     </h3>
                                                 </a>
 
@@ -1050,7 +1171,7 @@
                                                                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2m5-2a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                                                             </svg>
                                                         </dt>
-                                                        <dd>{{ $event->timing_display }}</dd>
+                                                        <dd>{{ $cardTimingText }}</dd>
                                                     </div>
                                                 </dl>
 
@@ -1075,6 +1196,9 @@
                                                     <a href="{{ $eventUrl }}" wire:navigate class="inline-flex h-9 items-center justify-center rounded-xl border border-emerald-700 bg-white px-2 text-[11px] font-bold leading-tight text-emerald-800 transition hover:bg-emerald-50 lg:w-full">
                                                         {{ __('Lihat Detail') }}
                                                     </a>
+                                                    <a href="{{ $programmeUrl }}" wire:navigate class="inline-flex h-9 items-center justify-center rounded-xl border border-slate-200 bg-white px-2 text-[11px] font-semibold leading-tight text-slate-600 transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-800 lg:w-full">
+                                                        {{ __('Program') }}
+                                                    </a>
                                                     <button type="button" wire:click="toggleSave('{{ $event->getKey() }}')"
                                                         data-signal-event="engagement.event_save_clicked"
                                                         data-signal-category="engagement"
@@ -1089,18 +1213,18 @@
                                                         </svg>
                                                         {{ $isSaved ? __('Disimpan') : __('Simpan') }}
                                                     </button>
-                                                    <button type="button" @click="shareEvent(@js((string) $event->getKey()), @js($eventUrl), @js($event->title))"
+                                                    <button type="button" @click="shareEvent(@js($signalEntityId), @js($eventUrl), @js($scheduleTitle))"
                                                         data-signal-event="share.event_clicked"
                                                         data-signal-category="share"
                                                         data-signal-component="events_index_results"
                                                         data-signal-control="share_event"
-                                                        data-signal-entity-type="event"
-                                                        data-signal-entity-id="{{ $event->id }}"
+                                                        data-signal-entity-type="{{ $signalEntityType }}"
+                                                        data-signal-entity-id="{{ $signalEntityId }}"
                                                         class="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2 text-[11px] font-semibold leading-tight text-slate-600 transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-800 lg:w-full">
                                                         <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                                             <path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186 9.566-5.314m-9.566 7.5 9.566 5.314" />
                                                         </svg>
-                                                        <span x-text="copiedEventId === @js((string) $event->getKey()) ? '{{ __('Disalin') }}' : '{{ __('Kongsi') }}'"></span>
+                                                        <span x-text="copiedEventId === @js($signalEntityId) ? '{{ __('Disalin') }}' : '{{ __('Kongsi') }}'"></span>
                                                     </button>
                                                     @if($mapUrl)
                                                         <a href="{{ $mapUrl }}" target="_blank" rel="noopener noreferrer"
@@ -1108,8 +1232,8 @@
                                                             data-signal-category="navigation"
                                                             data-signal-component="events_index_results"
                                                             data-signal-control="open_maps"
-                                                            data-signal-entity-type="event"
-                                                            data-signal-entity-id="{{ $event->id }}"
+                                                            data-signal-entity-type="{{ $signalEntityType }}"
+                                                            data-signal-entity-id="{{ $signalEntityId }}"
                                                             class="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2 text-[11px] font-semibold leading-tight text-slate-600 transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-800 lg:w-full">
                                                             <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                                                 <path stroke-linecap="round" stroke-linejoin="round" d="m12 19.5 7.5-4.125V4.875L12 9 4.5 4.875v10.5L12 19.5Zm0 0V9" />

@@ -2,11 +2,11 @@
 
 namespace App\Support\Search;
 
+use AIArmada\CommerceSupport\Support\StringSimilarity;
 use App\Contracts\PublicDiscoveryAdapter;
 use App\Models\Reference;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 
 class ReferenceSearchService implements PublicDiscoveryAdapter
 {
@@ -166,8 +166,8 @@ class ReferenceSearchService implements PublicDiscoveryAdapter
             ->get()
             ->map(function (Reference $reference) use ($normalizedSearch): array {
                 $candidates = array_values(array_filter([
-                    $this->normalizeText((string) $reference->title),
-                    $this->normalizeText((string) ($reference->author ?? '')),
+                    StringSimilarity::normalize((string) $reference->title),
+                    StringSimilarity::normalize((string) ($reference->author ?? '')),
                 ], static fn (string $candidate): bool => $candidate !== ''));
 
                 $scoreCandidates = [];
@@ -218,8 +218,8 @@ class ReferenceSearchService implements PublicDiscoveryAdapter
             ->get()
             ->map(function (Reference $reference) use ($normalizedSearch): array {
                 $candidates = array_values(array_filter([
-                    $this->normalizeText((string) $reference->title),
-                    $this->normalizeText((string) ($reference->author ?? '')),
+                    StringSimilarity::normalize((string) $reference->title),
+                    StringSimilarity::normalize((string) ($reference->author ?? '')),
                 ], static fn (string $candidate): bool => $candidate !== ''));
 
                 $scoreCandidates = [];
@@ -415,7 +415,7 @@ class ReferenceSearchService implements PublicDiscoveryAdapter
 
     public function normalizedSearch(string $search): ?string
     {
-        $normalized = $this->normalizeText($search);
+        $normalized = StringSimilarity::normalize($search);
 
         return $normalized === '' ? null : $normalized;
     }
@@ -502,24 +502,11 @@ class ReferenceSearchService implements PublicDiscoveryAdapter
 
     private function fuzzyScore(string $search, string $candidate): float
     {
-        if (! $this->fuzzyComparable($search, $candidate)) {
+        if (! FuzzySearchPolicy::isComparable($search, $candidate, $this->maximumFuzzyDistance($search))) {
             return 0.0;
         }
 
-        return $this->similarityScore($search, $candidate);
-    }
-
-    private function fuzzyComparable(string $search, string $candidate): bool
-    {
-        if ($search === '' || $candidate === '') {
-            return false;
-        }
-
-        if (mb_substr($search, 0, 1) !== mb_substr($candidate, 0, 1)) {
-            return false;
-        }
-
-        return levenshtein($search, $candidate) <= $this->maximumFuzzyDistance($search);
+        return StringSimilarity::score($search, $candidate);
     }
 
     private function minimumFuzzyScore(string $search): float
@@ -530,31 +517,5 @@ class ReferenceSearchService implements PublicDiscoveryAdapter
     private function maximumFuzzyDistance(string $search): int
     {
         return mb_strlen($search) >= 5 ? 2 : 1;
-    }
-
-    private function normalizeText(string $value): string
-    {
-        return (string) Str::of($value)
-            ->lower()
-            ->ascii()
-            ->replaceMatches('/[^a-z0-9\s]+/u', ' ')
-            ->replaceMatches('/\s+/u', ' ')
-            ->trim();
-    }
-
-    private function similarityScore(string $search, string $candidate): float
-    {
-        if ($search === '' || $candidate === '') {
-            return 0.0;
-        }
-
-        $distance = levenshtein($search, $candidate);
-        $maxLength = max(mb_strlen($search), mb_strlen($candidate));
-        $distanceScore = $maxLength > 0 ? 1 - ($distance / $maxLength) : 0.0;
-
-        similar_text($search, $candidate, $similarityPercent);
-        $similarityScore = $similarityPercent / 100;
-
-        return max($distanceScore, $similarityScore);
     }
 }

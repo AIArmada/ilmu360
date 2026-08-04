@@ -24,6 +24,7 @@ use AIArmada\Events\Models\EventReference;
 use AIArmada\Events\Models\EventRole;
 use AIArmada\Events\Models\EventSeriesItemPivot;
 use AIArmada\Events\Models\EventTimeExpression;
+use AIArmada\Events\Models\VenueSpaceType;
 use AIArmada\Membership\Traits\HasMembers;
 use App\Contracts\EventCategoryCatalog;
 use App\Enums\EventAgeGroup;
@@ -139,6 +140,28 @@ class Event extends PackageEvent implements AuditableContract
     public const array PUBLIC_STATUSES = ['approved', 'pending', 'cancelled'];
 
     /**
+     * Schedule records that may be rendered on a publicly reachable event page.
+     * Draft and archived records remain available to administrative workflows only.
+     *
+     * @var list<string>
+     */
+    public const array PUBLIC_SCHEDULE_STATUSES = [
+        'scheduled',
+        'published',
+        'live',
+        'delayed',
+        'postponed',
+        'rescheduled',
+        'cancelled',
+        'completed',
+    ];
+
+    /**
+     * @var list<string>
+     */
+    public const array PUBLIC_SCHEDULE_VISIBILITIES = ['public', 'unlisted'];
+
+    /**
      * Statuses that still allow engagement actions (save/going).
      *
      * @var list<string>
@@ -147,7 +170,7 @@ class Event extends PackageEvent implements AuditableContract
 
     public function isRegistrationAvailable(): bool
     {
-        if (! in_array((string) $this->status, self::ENGAGEABLE_STATUSES, true)) {
+        if (! $this->hasOccurrences() || ! in_array((string) $this->status, self::ENGAGEABLE_STATUSES, true)) {
             return false;
         }
 
@@ -831,6 +854,24 @@ class Event extends PackageEvent implements AuditableContract
      */
     public function syncLocation(?string $venueId = null, array $spaceIds = []): void
     {
+        $existingSnapshots = EventLocation::query()
+            ->where('event_id', $this->id)
+            ->whereNull('event_occurrence_id')
+            ->whereNull('event_session_id')
+            ->whereNotNull('venue_space_id')
+            ->pluck('space_name_snapshot', 'venue_space_id')
+            ->all();
+
+        $spaces = Space::query()
+            ->whereKey($spaceIds)
+            ->get(['id', 'name', 'space_type'])
+            ->keyBy(fn (Space $space): string => (string) $space->getKey());
+
+        $spaceTypeIds = VenueSpaceType::query()
+            ->whereIn('code', $spaces->pluck('space_type')->filter()->unique()->values())
+            ->pluck('id', 'code')
+            ->all();
+
         EventLocation::query()
             ->where('event_id', $this->id)
             ->whereNull('event_occurrence_id')
@@ -852,6 +893,12 @@ class Event extends PackageEvent implements AuditableContract
                     'location_role' => $first ? 'primary' : 'additional',
                     'venue_id' => $first ? $venueId : null,
                     'venue_space_id' => $spaceId,
+                    'venue_space_type_id' => isset($spaces[(string) $spaceId])
+                        ? ($spaceTypeIds[(string) $spaces[(string) $spaceId]->space_type] ?? null)
+                        : null,
+                    'space_name_snapshot' => array_key_exists($spaceId, $existingSnapshots)
+                        ? $existingSnapshots[$spaceId]
+                        : ($spaces[(string) $spaceId]->name ?? null),
                     'visibility' => 'public',
                     'status' => 'active',
                     'sort_order' => $i,
@@ -1016,7 +1063,8 @@ class Event extends PackageEvent implements AuditableContract
 
         $query->whereIn("{$table}.status", self::PUBLIC_STATUSES)
             ->where("{$table}.visibility", EventVisibility::Public)
-            ->whereNotNull("{$table}.published_at");
+            ->whereNotNull("{$table}.published_at")
+            ->whereHas('occurrences');
     }
 
     /**
@@ -1041,15 +1089,14 @@ class Event extends PackageEvent implements AuditableContract
     }
 
     /**
-     * Scope a query to public event containers. Scheduling lives in occurrences
-     * and sessions, so every event remains discoverable at the event level.
+     * Scope a query to event containers that have at least one occurrence.
      *
      * @param  Builder<self>  $query
      */
     #[Scope]
     protected function discoverable(Builder $query): void
     {
-        // Kept as a named scope for callers; there is no legacy event hierarchy.
+        $query->whereHas('occurrences');
     }
 
     public function bookReference(): ?Reference
@@ -1095,7 +1142,8 @@ class Event extends PackageEvent implements AuditableContract
     {
         return $this->published_at !== null
             && in_array((string) $this->status, self::PUBLIC_STATUSES, true)
-            && $this->visibility === EventVisibility::Public;
+            && $this->visibility === EventVisibility::Public
+            && $this->hasOccurrences();
     }
 
     public function isPubliclyReachable(): bool
@@ -1107,7 +1155,17 @@ class Event extends PackageEvent implements AuditableContract
 
         return $this->published_at !== null
             && $visibleByLink
-            && in_array((string) $this->status, self::PUBLIC_STATUSES, true);
+            && in_array((string) $this->status, self::PUBLIC_STATUSES, true)
+            && $this->hasOccurrences();
+    }
+
+    public function hasOccurrences(): bool
+    {
+        if ($this->relationLoaded('occurrences')) {
+            return $this->getRelation('occurrences')->isNotEmpty();
+        }
+
+        return $this->occurrences()->exists();
     }
 
     public function replacementLinkTarget(): ?self
@@ -1168,6 +1226,7 @@ class Event extends PackageEvent implements AuditableContract
             'status',
             'visibility',
             'institution_id',
+            'default_venue_id',
             'published_at',
         ]);
     }
@@ -1203,7 +1262,8 @@ class Event extends PackageEvent implements AuditableContract
             ->with(['institution', 'institution.addresses', 'venue', 'venue.addresses', 'persons', 'keyPeople.person', 'references', 'classifications', 'primaryOccurrence', 'timeExpressions'])
             ->whereNotNull('events.published_at')
             ->whereIn('events.status', self::PUBLIC_STATUSES)
-            ->where('events.visibility', EventVisibility::Public);
+            ->where('events.visibility', EventVisibility::Public)
+            ->whereHas('occurrences');
     }
 
     /**
@@ -1219,8 +1279,7 @@ class Event extends PackageEvent implements AuditableContract
         }
 
         $this->loadMissing(['institution', 'institution.addresses.areaAssignments.area', 'venue', 'venue.addresses.areaAssignments.area', 'persons', 'keyPeople.person', 'references', 'classifications', 'primaryOccurrence', 'timeExpressions']);
-        $venueAddress = $this->venue?->primaryAddress();
-        $institutionAddress = $this->institution?->primaryAddress();
+        $locationAddress = $this->resolvedLocationAddress();
         $institution = $this->institution;
         $venue = $this->venue;
         $gender = $this->gender;
@@ -1255,11 +1314,8 @@ class Event extends PackageEvent implements AuditableContract
             ? $this->classifications
             : $this->classifications()->get();
 
-        $topicIds = $classifications
-            ->filter(fn (EventClassification $classification): bool => in_array($classification->taxonomy_code, [
-                EventTaxonomyCode::Discipline->value,
-                EventTaxonomyCode::Issue->value,
-            ], true))
+        $disciplineTagIds = $classifications
+            ->filter(fn (EventClassification $classification): bool => $classification->taxonomy_code === EventTaxonomyCode::Discipline->value)
             ->pluck('event_term_id')
             ->filter(fn (mixed $id): bool => is_string($id) && $id !== '')
             ->unique()
@@ -1389,19 +1445,17 @@ class Event extends PackageEvent implements AuditableContract
             'institution_name' => $institution instanceof Institution ? $institution->name : '',
             'venue_id' => $this->default_venue_id,
             'venue_name' => $venue instanceof Venue ? $venue->name : '',
-            'country_code' => $venueAddress->country_code ?? $institutionAddress?->country_code,
-            'country_id' => $venueAddress->country_id ?? $institutionAddress?->country_id,
-            'state_id' => $venueAddress->state_id ?? $institutionAddress?->state_id,
-            'city_id' => $venueAddress->city_id ?? $institutionAddress?->city_id,
-            'administrative_district_id' => AddressAssignments::id($venueAddress, AddressAssignments::ADMINISTRATIVE_DISTRICT)
-                ?? AddressAssignments::id($institutionAddress, AddressAssignments::ADMINISTRATIVE_DISTRICT),
-            'administrative_subdivision_id' => AddressAssignments::id($venueAddress, AddressAssignments::ADMINISTRATIVE_SUBDIVISION)
-                ?? AddressAssignments::id($institutionAddress, AddressAssignments::ADMINISTRATIVE_SUBDIVISION),
-            'postal_locality_id' => AddressAssignments::id($venueAddress, AddressAssignments::POSTAL_LOCALITY)
-                ?? AddressAssignments::id($institutionAddress, AddressAssignments::POSTAL_LOCALITY),
-            'city' => $venueAddress->city ?? $institutionAddress?->city,
-            'state' => $venueAddress->state ?? $institutionAddress?->state,
-            'postcode' => $venueAddress->postcode ?? $institutionAddress?->postcode,
+            'country_code' => $locationAddress?->country_code,
+            'country_id' => $locationAddress?->country_id,
+            'state_id' => $locationAddress?->state_id,
+            'city_id' => $locationAddress?->city_id,
+            'administrative_division' => AddressAssignments::id($locationAddress, AddressAssignments::ADMINISTRATIVE_DIVISION),
+            'administrative_district' => AddressAssignments::id($locationAddress, AddressAssignments::ADMINISTRATIVE_DISTRICT),
+            'administrative_subdivision' => AddressAssignments::id($locationAddress, AddressAssignments::ADMINISTRATIVE_SUBDIVISION),
+            'postal_locality' => AddressAssignments::id($locationAddress, AddressAssignments::POSTAL_LOCALITY),
+            'city' => $locationAddress?->city,
+            'state' => $locationAddress?->state,
+            'postcode' => $locationAddress?->postcode,
             'language_codes' => $languageCodes,
             'gender' => $gender instanceof EventGenderRestriction ? $gender->value : ((is_string($gender) && $gender !== '') ? $gender : 'all'),
             'age_group' => $ageGroupValues,
@@ -1411,7 +1465,7 @@ class Event extends PackageEvent implements AuditableContract
             'visibility' => $visibility instanceof EventVisibility ? $visibility->value : ((is_string($visibility) && $visibility !== '') ? $visibility : 'public'),
             'occurrence_status' => $occurrenceStatus instanceof BackedEnum ? $occurrenceStatus->value : ((is_string($occurrenceStatus) && $occurrenceStatus !== '') ? $occurrenceStatus : null),
             'timing_mode' => $timingMode,
-            'topic_ids' => $topicIds,
+            'discipline_tag_ids' => $disciplineTagIds,
             'domain_tag_ids' => $domainTagIds,
             'source_tag_ids' => $sourceTagIds,
             'issue_tag_ids' => $issueTagIds,
@@ -1437,10 +1491,8 @@ class Event extends PackageEvent implements AuditableContract
             'registrations_count' => $this->registrations_count ?? 0,
         ];
 
-        if ($venueAddress instanceof Address && $venueAddress->latitude !== null && $venueAddress->longitude !== null) {
-            $array['location'] = [(float) $venueAddress->latitude, (float) $venueAddress->longitude];
-        } elseif ($institutionAddress instanceof Address && $institutionAddress->latitude !== null && $institutionAddress->longitude !== null) {
-            $array['location'] = [(float) $institutionAddress->latitude, (float) $institutionAddress->longitude];
+        if ($locationAddress instanceof Address && $locationAddress->latitude !== null && $locationAddress->longitude !== null) {
+            $array['location'] = [(float) $locationAddress->latitude, (float) $locationAddress->longitude];
         }
 
         return $array;
@@ -1488,6 +1540,19 @@ class Event extends PackageEvent implements AuditableContract
     public function venue(): BelongsTo
     {
         return $this->belongsTo(Venue::class, 'default_venue_id');
+    }
+
+    public function resolvedLocationAddress(): ?Address
+    {
+        if (filled($this->institution_id)) {
+            return $this->institution?->primaryAddress();
+        }
+
+        if (filled($this->default_venue_id)) {
+            return $this->venue?->primaryAddress();
+        }
+
+        return null;
     }
 
     /**
@@ -1957,19 +2022,18 @@ class Event extends PackageEvent implements AuditableContract
     }
 
     /**
-     * Get coordinates for prayer time calculation.
-     * Falls back to venue coordinates if specific coords not set.
+     * Get coordinates for prayer time calculation from the event's location owner.
      *
      * @return array{lat: float, lng: float}|null
      */
     public function getPrayerCoordinatesAttribute(): ?array
     {
-        $venueAddress = $this->venue?->primaryAddress();
+        $locationAddress = $this->resolvedLocationAddress();
 
-        if ($venueAddress instanceof Address && $venueAddress->latitude !== null && $venueAddress->longitude !== null) {
+        if ($locationAddress instanceof Address && $locationAddress->latitude !== null && $locationAddress->longitude !== null) {
             return [
-                'lat' => (float) $venueAddress->latitude,
-                'lng' => (float) $venueAddress->longitude,
+                'lat' => (float) $locationAddress->latitude,
+                'lng' => (float) $locationAddress->longitude,
             ];
         }
 

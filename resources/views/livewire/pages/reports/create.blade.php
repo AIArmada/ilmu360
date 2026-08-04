@@ -21,7 +21,7 @@
 
             <div class="mt-6 rounded-3xl border border-rose-200 bg-rose-50 p-4 sm:p-5">
                 <p class="text-xs font-bold uppercase tracking-[0.22em] text-rose-700">{{ __('Laporan') }}</p>
-                <p class="mt-3 text-sm font-medium text-slate-600">{{ __('Rekod dipilih: :subject', ['subject' => $subjectLabel]) }}</p>
+                <p class="mt-3 text-sm font-medium text-slate-600">{{ __('Selected :subject', ['subject' => $subjectLabel]) }}</p>
                 @if (filled($this->context['profile_image_url']))
                     <img src="{{ $this->context['profile_image_url'] }}" alt="{{ __('Gambar profil :name', ['name' => $this->context['subject_title']]) }}" class="mt-4 aspect-[3/4] w-36 rounded-2xl border border-rose-200 object-cover object-top shadow-sm" loading="lazy">
                 @endif
@@ -31,7 +31,7 @@
                 </p>
                 <a href="{{ $this->context['redirect_url'] }}"
                     class="mt-4 inline-flex w-full items-center justify-center rounded-xl border border-rose-200 bg-white px-4 py-3 text-sm font-semibold text-rose-700 transition hover:border-rose-300 hover:text-rose-800 sm:w-auto">
-                    {{ __('Lihat :subject ini', ['subject' => $subjectLabel]) }}
+                    {{ __('View this :subject', ['subject' => $subjectLabel]) }}
                 </a>
             </div>
 

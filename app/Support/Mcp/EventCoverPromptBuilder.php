@@ -25,6 +25,7 @@ use App\Models\Series;
 use App\Models\Venue;
 use App\Support\Events\EventCategoryPresenter;
 use App\Support\Location\AddressHierarchyFormatter;
+use App\Support\Spaces\SpaceLocationPresenter;
 use BackedEnum;
 use Carbon\Carbon;
 use DateTimeInterface;
@@ -539,7 +540,12 @@ class EventCoverPromptBuilder
                 'address' => $this->addressPayload($event->primaryAddress()),
                 'institution' => $event->institution instanceof Institution ? $this->modelPayload($event->institution) : null,
                 'venue' => $event->venue instanceof Venue ? $this->modelPayload($event->venue) : null,
-                'space' => $event->primaryLocation?->venueSpace instanceof Model ? $this->modelPayload($event->primaryLocation->venueSpace) : null,
+                'space' => $event->primaryLocation?->venueSpace instanceof Model
+                    ? array_replace(
+                        $this->modelPayload($event->primaryLocation->venueSpace),
+                        ['name' => SpaceLocationPresenter::name($event->primaryLocation)],
+                    )
+                    : null,
                 'organizer' => $event->organizer instanceof Model ? $this->modelPayload($event->organizer) : null,
                 'key_people' => $event->keyPeople->map(fn (EventKeyPerson $keyPerson): array => $this->keyPersonPayload($keyPerson))->values()->all(),
                 'persons' => $event->persons->map(fn (Person $person): array => $this->modelPayload($person))->values()->all(),
@@ -863,7 +869,7 @@ class EventCoverPromptBuilder
         }
 
         if ($event->primaryLocation?->venueSpace !== null) {
-            $parts[] = (string) $event->primaryLocation->venueSpace->name;
+            $parts[] = (string) SpaceLocationPresenter::name($event->primaryLocation);
         }
 
         $address = null;

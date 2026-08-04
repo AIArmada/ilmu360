@@ -44,6 +44,7 @@ class SeriesForm
                             ->default('active')
                             ->required(),
                         Select::make('languages')
+                            ->placeholder(__('Pilih bahasa'))
                             ->relationship('languages', 'name')
                             ->multiple()
                             ->preload()

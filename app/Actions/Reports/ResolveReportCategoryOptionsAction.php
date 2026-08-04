@@ -62,13 +62,13 @@ class ResolveReportCategoryOptionsAction
             ],
             'institution' => [
                 'wrong_info' => __('Maklumat tidak tepat'),
+                'duplicate_institution' => __('Institusi pendua'),
                 'fake_institution' => __('Institusi palsu'),
                 'other' => __('Lain-lain'),
             ],
             'person' => [
                 'wrong_info' => __('Maklumat tidak tepat'),
                 'duplicate_person' => __('Profil pendua'),
-                'impersonation_or_scam' => __('Penyamaran atau penipuan'),
                 'fake_person' => __('Penceramah palsu'),
                 'other' => __('Lain-lain'),
             ],

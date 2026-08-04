@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Services;
 
 use AIArmada\Addressing\Data\AddressLocationData;
+use AIArmada\CommerceSupport\Support\StringSimilarity;
+use AIArmada\Events\Contracts\EventSearchRelationProvider;
 use AIArmada\Events\Models\EventLanguage;
 use App\Contracts\EventCategoryCatalog;
 use App\Contracts\EventDiscoveryAdapter;
@@ -31,7 +33,6 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Connection;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator as Paginator;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Throwable;
 
@@ -44,6 +45,7 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
         private InstitutionSearchService $institutionSearch,
         private ReferenceSearchService $referenceSearch,
         private EventCategoryCatalog $categoryCatalog,
+        private EventSearchRelationProvider $relationProvider,
     ) {}
 
     /** @return LengthAwarePaginator<int, Event> */
@@ -56,7 +58,7 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
 
         if ($query === null) {
             $queryBuilder = $this->buildDatabaseQuery(null, $filters)
-                ->with($this->cardRelationships());
+                ->with($this->relationProvider->relations());
 
             $this->applyDatabaseOrdering($queryBuilder, $sort, null);
 
@@ -64,7 +66,7 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
         }
 
         $directQuery = $this->buildDatabaseQuery(null, $filters)
-            ->with($this->cardRelationships());
+            ->with($this->relationProvider->relations());
         $this->applyDirectSearch(
             $directQuery,
             $query,
@@ -109,36 +111,16 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
     }
 
     /**
-     * @return array<int|string, mixed>
+     * Build the public parent-event query used by schedule-unit discovery.
+     *
+     * The caller can remove parent-projected time filters before hydration and
+     * apply them to the effective occurrence/session timestamp instead.
+     *
+     * @param  array<string, mixed>  $filters
      */
-    protected function cardRelationships(): array
+    public function publicEventQuery(?string $query, array $filters): EventBuilder
     {
-        return [
-            'media' => fn ($query) => $query
-                ->whereIn('collection_name', ['cover', 'poster'])
-                ->ordered(),
-            'references',
-            'classifications.term',
-            'persons.media' => fn ($query) => $query
-                ->where('collection_name', 'avatar')
-                ->ordered(),
-            'persons.titleAssignments.title.category',
-            'languageRecords',
-            'institution.media' => fn ($query) => $query
-                ->where('collection_name', 'logo')
-                ->ordered(),
-            'institution.addresses.country',
-            'institution.addresses.state',
-            'institution.addresses.city',
-            'institution.addresses.areaAssignments.area',
-            'venue.addresses.country',
-            'venue.addresses.state',
-            'venue.addresses.city',
-            'venue.addresses.areaAssignments.area',
-            'latestPublishedChangeAnnouncement',
-            'primaryOccurrence',
-            'timeExpressions',
-        ];
+        return $this->buildDatabaseQuery($this->normalizeSearchQuery($query), $filters);
     }
 
     /**
@@ -150,22 +132,25 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
 
         $queryBuilder = Event::query();
         $table = $queryBuilder->getModel()->getTable();
+        $startsAtColumn = PrimaryOccurrenceSql::column('starts_at', $table);
+        $endsAtColumn = PrimaryOccurrenceSql::column('ends_at', $table);
 
         $queryBuilder
             ->whereIn("{$table}.status", Event::PUBLIC_STATUSES)
             ->where("{$table}.visibility", EventVisibility::Public->value)
-            ->whereNotNull("{$table}.published_at");
+            ->whereNotNull("{$table}.published_at")
+            ->whereHas('occurrences');
 
         $startsAfter = $this->startsAfterDateTime($filters, $timeScope);
 
         if ($startsAfter instanceof CarbonInterface) {
-            $queryBuilder->where(function (Builder $heldAfterQuery) use ($startsAfter, $table): void {
+            $queryBuilder->where(function (Builder $heldAfterQuery) use ($startsAfter, $endsAtColumn, $startsAtColumn): void {
                 $heldAfterQuery
-                    ->where("{$table}.ends_at", '>=', $startsAfter)
-                    ->orWhere(function (Builder $openEndedQuery) use ($startsAfter, $table): void {
+                    ->whereRaw($endsAtColumn.' >= ?', [$startsAfter])
+                    ->orWhere(function (Builder $openEndedQuery) use ($startsAfter, $endsAtColumn, $startsAtColumn): void {
                         $openEndedQuery
-                            ->whereNull("{$table}.ends_at")
-                            ->where("{$table}.starts_at", '>=', $startsAfter);
+                            ->whereRaw($endsAtColumn.' is null')
+                            ->whereRaw($startsAtColumn.' >= ?', [$startsAfter]);
                     });
             });
         }
@@ -173,7 +158,7 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
         $startsBefore = $this->startsBeforeDateTime($filters, $timeScope);
 
         if ($startsBefore instanceof CarbonInterface) {
-            $queryBuilder->where("{$table}.starts_at", '<=', $startsBefore);
+            $queryBuilder->whereRaw($startsAtColumn.' <= ?', [$startsBefore]);
         }
 
         $startsOnLocalDateRange = $this->startsOnLocalDateRange($filters);
@@ -181,7 +166,7 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
         if ($startsOnLocalDateRange !== null) {
             [$startsOnLocalDateStart, $startsOnLocalDateEnd] = $startsOnLocalDateRange;
 
-            $queryBuilder->whereBetween("{$table}.starts_at", [$startsOnLocalDateStart, $startsOnLocalDateEnd]);
+            $queryBuilder->whereRaw($startsAtColumn.' between ? and ?', [$startsOnLocalDateStart, $startsOnLocalDateEnd]);
         }
 
         if (filled($query)) {
@@ -228,7 +213,11 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
         }
 
         if (! empty($filters['gender'])) {
-            $queryBuilder->where('gender', $filters['gender']);
+            $queryBuilder->whereHas('audiences', function (Builder $genderQuery) use ($filters): void {
+                $genderQuery
+                    ->where('audience_type', 'gender')
+                    ->where('value', $filters['gender']);
+            });
         }
 
         $ageGroups = $this->normalizeArrayFilter($filters['age_group'] ?? null);
@@ -320,13 +309,13 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
             });
         }
 
-        $topicIds = $this->normalizeArrayFilter($filters['topic_ids'] ?? null);
+        $disciplineTagIds = $this->normalizeArrayFilter($filters['discipline_tag_ids'] ?? null);
 
-        if ($topicIds !== []) {
-            $queryBuilder->whereHas('classifications', function (Builder $classificationQuery) use ($topicIds): void {
+        if ($disciplineTagIds !== []) {
+            $queryBuilder->whereHas('classifications', function (Builder $classificationQuery) use ($disciplineTagIds): void {
                 $classificationQuery
-                    ->whereIn('event_term_id', $topicIds)
-                    ->whereIn('taxonomy_code', ['discipline', 'issue']);
+                    ->whereIn('event_term_id', $disciplineTagIds)
+                    ->where('taxonomy_code', 'discipline');
             });
         }
 
@@ -426,9 +415,9 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
         $hasEndTime = $this->normalizeBooleanFilter($filters['has_end_time'] ?? null);
 
         if ($hasEndTime === true) {
-            $queryBuilder->whereNotNull('ends_at');
+            $queryBuilder->whereRaw($endsAtColumn.' is not null');
         } elseif ($hasEndTime === false) {
-            $queryBuilder->whereNull('ends_at');
+            $queryBuilder->whereRaw($endsAtColumn.' is null');
         }
 
         return $queryBuilder;
@@ -473,6 +462,45 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
 
                     $titleQuery->orWhereLike('title', "%{$token}%");
                 }
+            });
+
+            $nestedQuery->orWhereHas('occurrences', function (Builder $occurrenceQuery) use ($normalizedSearch, $collapsedWildcardSearch, $searchTokens): void {
+                $occurrenceQuery
+                    ->whereIn('status', Event::PUBLIC_SCHEDULE_STATUSES)
+                    ->whereIn('visibility', Event::PUBLIC_SCHEDULE_VISIBILITIES)
+                    ->where(function (Builder $scheduleQuery) use ($normalizedSearch, $collapsedWildcardSearch, $searchTokens): void {
+                        $scheduleQuery->where(function (Builder $titleQuery) use ($normalizedSearch, $collapsedWildcardSearch, $searchTokens): void {
+                            $titleQuery
+                                ->whereLike('title', "%{$normalizedSearch}%")
+                                ->orWhereLike('title', $collapsedWildcardSearch);
+
+                            foreach ($searchTokens as $token) {
+                                if (mb_strlen($token) < 3) {
+                                    continue;
+                                }
+
+                                $titleQuery->orWhereLike('title', "%{$token}%");
+                            }
+                        })
+                            ->orWhereHas('sessions', function (Builder $sessionQuery) use ($normalizedSearch, $collapsedWildcardSearch, $searchTokens): void {
+                                $sessionQuery
+                                    ->whereIn('status', Event::PUBLIC_SCHEDULE_STATUSES)
+                                    ->whereIn('visibility', Event::PUBLIC_SCHEDULE_VISIBILITIES)
+                                    ->where(function (Builder $titleQuery) use ($normalizedSearch, $collapsedWildcardSearch, $searchTokens): void {
+                                        $titleQuery
+                                            ->whereLike('title', "%{$normalizedSearch}%")
+                                            ->orWhereLike('title', $collapsedWildcardSearch);
+
+                                        foreach ($searchTokens as $token) {
+                                            if (mb_strlen($token) < 3) {
+                                                continue;
+                                            }
+
+                                            $titleQuery->orWhereLike('title', "%{$token}%");
+                                        }
+                                    });
+                            });
+                    });
             });
 
             if ($institutionIds !== []) {
@@ -521,6 +549,8 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
      */
     protected function applyDatabaseOrdering(Builder $queryBuilder, string $sort, ?string $query): void
     {
+        $startsAtColumn = PrimaryOccurrenceSql::column('starts_at', $queryBuilder->getModel()->getTable());
+
         if ($sort === 'relevance' && is_string($query) && $query !== '') {
             $operator = $this->databaseLikeOperator();
 
@@ -532,12 +562,12 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
                     END",
                     ["%{$query}%"]
                 )
-                ->orderBy('starts_at');
+                ->orderByRaw("{$startsAtColumn} asc");
 
             return;
         }
 
-        $queryBuilder->orderBy('starts_at', 'asc');
+        $queryBuilder->orderByRaw("{$startsAtColumn} asc");
     }
 
     /**
@@ -546,12 +576,12 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
      */
     protected function fuzzySearchWithDatabase(array $filters, string $search, int $perPage): LengthAwarePaginator
     {
-        $normalizedSearch = $this->fuzzyMatcher->normalizeForSimilarity($search);
+        $normalizedSearch = StringSimilarity::normalize($search);
 
         if ($normalizedSearch === '') {
             $queryBuilder = $this->buildDatabaseQuery(null, $filters)
-                ->with($this->cardRelationships())
-                ->orderBy('starts_at', 'asc');
+                ->with($this->relationProvider->relations())
+                ->orderByRaw(PrimaryOccurrenceSql::column('starts_at', (new Event)->getTable()).' asc');
 
             return $queryBuilder->paginate($perPage);
         }
@@ -590,7 +620,7 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
         }
 
         $events = $this->buildDatabaseQuery(null, $filters)
-            ->with($this->cardRelationships())
+            ->with($this->relationProvider->relations())
             ->whereIn('events.id', $paginatedIds)
             ->get()
             ->sortBy(static function (Event $event) use ($paginatedIds): int {
@@ -617,8 +647,8 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
         $addressablesTable = config('addressing.tables.addressables', 'addressables');
         $addressesTable = config('addressing.tables.addresses', 'addresses');
         $institutionIdExpression = 'events.institution_id';
-        $latitudeExpression = 'coalesce(venue_addresses.latitude, institution_addresses.latitude)';
-        $longitudeExpression = 'coalesce(venue_addresses.longitude, institution_addresses.longitude)';
+        $latitudeExpression = 'case when events.institution_id is not null then institution_addresses.latitude else venue_addresses.latitude end';
+        $longitudeExpression = 'case when events.institution_id is not null then institution_addresses.longitude else venue_addresses.longitude end';
         $distanceSql = "(6371 * acos(cos(radians(?)) * cos(radians({$latitudeExpression})) * cos(radians({$longitudeExpression}) - radians(?)) + sin(radians(?)) * sin(radians({$latitudeExpression}))))";
         $venueMorphType = (new Venue)->getMorphClass();
         $institutionMorphType = (new Institution)->getMorphClass();
@@ -641,9 +671,9 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
             ->select('events.*')
             ->selectRaw("{$distanceSql} as distance_km", [$lat, $lng, $lat])
             ->whereRaw("{$distanceSql} <= ?", [$lat, $lng, $lat, $radiusKm])
-            ->with($this->cardRelationships())
+            ->with($this->relationProvider->relations())
             ->orderBy('distance_km', 'asc')
-            ->orderBy('starts_at', 'asc');
+            ->orderByRaw(PrimaryOccurrenceSql::column('starts_at', (new Event)->getTable()).' asc');
 
         return $queryBuilder->paginate($perPage);
     }
@@ -663,8 +693,8 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
         $addressablesTable = config('addressing.tables.addressables', 'addressables');
         $addressesTable = config('addressing.tables.addresses', 'addresses');
         $institutionIdExpression = 'events.institution_id';
-        $latitudeExpression = 'coalesce(venue_addresses.latitude, institution_addresses.latitude)';
-        $longitudeExpression = 'coalesce(venue_addresses.longitude, institution_addresses.longitude)';
+        $latitudeExpression = 'case when events.institution_id is not null then institution_addresses.latitude else venue_addresses.latitude end';
+        $longitudeExpression = 'case when events.institution_id is not null then institution_addresses.longitude else venue_addresses.longitude end';
         $distanceSql = "(6371 * acos(cos(radians(?)) * cos(radians({$latitudeExpression})) * cos(radians({$longitudeExpression}) - radians(?)) + sin(radians(?)) * sin(radians({$latitudeExpression}))))";
         $venueMorphType = (new Venue)->getMorphClass();
         $institutionMorphType = (new Institution)->getMorphClass();
@@ -694,9 +724,9 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
             ->select('events.*')
             ->selectRaw("{$distanceSql} as distance_km", [$lat, $lng, $lat])
             ->whereRaw("{$distanceSql} <= ?", [$lat, $lng, $lat, $radiusKm])
-            ->with($this->cardRelationships())
+            ->with($this->relationProvider->relations())
             ->orderBy('distance_km', 'asc')
-            ->orderBy('starts_at', 'asc');
+            ->orderByRaw(PrimaryOccurrenceSql::column('starts_at', (new Event)->getTable()).' asc');
 
         return $queryBuilder->paginate($perPage);
     }
@@ -743,83 +773,58 @@ final readonly class PostgresEventDiscovery implements EventDiscoveryAdapter
 
     protected function applyLocationAddressFilter(EventBuilder $queryBuilder, AddressLocationData $location): void
     {
-        foreach ($location->criteria() as $column => $value) {
-            $this->applyLocationAddressCriterion($queryBuilder, $column, $value);
+        $criteria = $location->criteria();
+        $assignments = $location->assignments();
+
+        if ($criteria === [] && $assignments === []) {
+            return;
         }
 
-        foreach ($location->assignments() as $role => $areaId) {
-            $this->applyLocationAddressAssignmentCriterion($queryBuilder, $role, $areaId);
-        }
-    }
-
-    protected function applyLocationAddressAssignmentCriterion(EventBuilder $queryBuilder, string $role, string $areaId): void
-    {
         $addressesTable = config('addressing.tables.addresses', 'addresses');
         $addressablesTable = config('addressing.tables.addressables', 'addressables');
         $assignmentsTable = config('addressing.tables.address_area_assignments', 'address_area_assignments');
         $venueMorphType = (new Venue)->getMorphClass();
         $institutionMorphType = (new Institution)->getMorphClass();
 
-        $queryBuilder->where(function (Builder $locationQuery) use ($addressesTable, $addressablesTable, $assignmentsTable, $venueMorphType, $institutionMorphType, $role, $areaId): void {
-            foreach ([
-                ['events.default_venue_id', $venueMorphType],
-                ['events.institution_id', $institutionMorphType],
-            ] as [$ownerColumn, $morphType]) {
-                $locationQuery->{($ownerColumn === 'events.default_venue_id' ? 'whereExists' : 'orWhereExists')}(function ($addressQuery) use ($addressesTable, $addressablesTable, $assignmentsTable, $ownerColumn, $morphType, $role, $areaId): void {
-                    $addressQuery
-                        ->select(DB::raw(1))
-                        ->from($addressesTable)
-                        ->join($addressablesTable, "{$addressesTable}.id", '=', "{$addressablesTable}.address_id")
-                        ->join($assignmentsTable, "{$assignmentsTable}.address_id", '=', "{$addressesTable}.id")
-                        ->whereRaw("{$addressablesTable}.addressable_id = {$ownerColumn}")
-                        ->where("{$addressablesTable}.addressable_type", $morphType)
-                        ->where("{$addressablesTable}.is_primary", true)
-                        ->where("{$assignmentsTable}.role", $role)
-                        ->where("{$assignmentsTable}.address_area_id", $areaId)
-                        ->where("{$assignmentsTable}.is_primary", true);
-                });
-            }
-        });
-    }
+        $matchesOwnerAddress = static function (Builder $ownerQuery, string $ownerColumn, string $morphType) use ($addressesTable, $addressablesTable, $assignmentsTable, $criteria, $assignments): void {
+            $ownerQuery->whereExists(function ($addressQuery) use ($addressesTable, $addressablesTable, $assignmentsTable, $ownerColumn, $morphType, $criteria, $assignments): void {
+                $addressQuery
+                    ->selectRaw('1')
+                    ->from($addressesTable)
+                    ->join($addressablesTable, "{$addressesTable}.id", '=', "{$addressablesTable}.address_id")
+                    ->whereRaw("{$addressablesTable}.addressable_id = {$ownerColumn}")
+                    ->where("{$addressablesTable}.addressable_type", $morphType)
+                    ->where("{$addressablesTable}.is_primary", true);
 
-    protected function applyLocationAddressCriterion(EventBuilder $queryBuilder, string $column, string $value): void
-    {
-        $addressColumn = $column;
-        $addressesTable = config('addressing.tables.addresses', 'addresses');
-        $addressablesTable = config('addressing.tables.addressables', 'addressables');
-        $institutionIdExpression = 'events.institution_id';
-        $venueMorphType = (new Venue)->getMorphClass();
-        $institutionMorphType = (new Institution)->getMorphClass();
+                foreach ($criteria as $column => $value) {
+                    $addressQuery->where("{$addressesTable}.{$column}", $value);
+                }
 
-        $queryBuilder->where(function (Builder $locationQuery) use (
-            $addressColumn,
-            $value,
-            $addressesTable,
-            $addressablesTable,
-            $institutionIdExpression,
-            $venueMorphType,
-            $institutionMorphType,
-        ): void {
+                foreach ($assignments as $role => $areaId) {
+                    $addressQuery->whereExists(function ($assignmentQuery) use ($assignmentsTable, $addressesTable, $role, $areaId): void {
+                        $assignmentQuery
+                            ->selectRaw('1')
+                            ->from($assignmentsTable)
+                            ->whereColumn("{$assignmentsTable}.address_id", "{$addressesTable}.id")
+                            ->where("{$assignmentsTable}.role", $role)
+                            ->where("{$assignmentsTable}.address_area_id", $areaId)
+                            ->where("{$assignmentsTable}.is_primary", true);
+                    });
+                }
+            });
+        };
+
+        $queryBuilder->where(function (Builder $locationQuery) use ($matchesOwnerAddress, $venueMorphType, $institutionMorphType): void {
             $locationQuery
-                ->whereExists(function ($addressQuery) use ($addressColumn, $value, $addressesTable, $addressablesTable, $venueMorphType): void {
-                    $addressQuery
-                        ->select(DB::raw(1))
-                        ->from($addressesTable)
-                        ->join($addressablesTable, "{$addressesTable}.id", '=', "{$addressablesTable}.address_id")
-                        ->whereColumn("{$addressablesTable}.addressable_id", 'events.default_venue_id')
-                        ->where("{$addressablesTable}.addressable_type", $venueMorphType)
-                        ->where("{$addressablesTable}.is_primary", true)
-                        ->where("{$addressesTable}.{$addressColumn}", $value);
+                ->where(function (Builder $institutionQuery) use ($matchesOwnerAddress, $institutionMorphType): void {
+                    $institutionQuery->whereNotNull('events.institution_id');
+                    $matchesOwnerAddress($institutionQuery, 'events.institution_id', $institutionMorphType);
                 })
-                ->orWhereExists(function ($addressQuery) use ($addressColumn, $value, $addressesTable, $addressablesTable, $institutionIdExpression, $institutionMorphType): void {
-                    $addressQuery
-                        ->select(DB::raw(1))
-                        ->from($addressesTable)
-                        ->join($addressablesTable, "{$addressesTable}.id", '=', "{$addressablesTable}.address_id")
-                        ->whereRaw("{$addressablesTable}.addressable_id = {$institutionIdExpression}")
-                        ->where("{$addressablesTable}.addressable_type", $institutionMorphType)
-                        ->where("{$addressablesTable}.is_primary", true)
-                        ->where("{$addressesTable}.{$addressColumn}", $value);
+                ->orWhere(function (Builder $venueQuery) use ($matchesOwnerAddress, $venueMorphType): void {
+                    $venueQuery
+                        ->whereNull('events.institution_id')
+                        ->whereNotNull('events.default_venue_id');
+                    $matchesOwnerAddress($venueQuery, 'events.default_venue_id', $venueMorphType);
                 });
         });
     }

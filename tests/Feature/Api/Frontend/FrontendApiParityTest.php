@@ -14,6 +14,7 @@ use App\Enums\EventVisibility;
 use App\Enums\InspirationCategory;
 use App\Enums\InstitutionNameType;
 use App\Enums\InstitutionType;
+use App\Enums\TimingMode;
 use App\Http\Controllers\Api\Frontend\SearchController;
 use App\Models\Affiliation;
 use App\Models\ContributionRequest;
@@ -650,7 +651,7 @@ it('exposes person avatar direct edit media support for authorized public update
     expect($visitorResponse->json('data.can_direct_edit'))->toBeFalse()
         ->and($visitorResponse->json('data.direct_edit_media_fields'))->toBe([])
         ->and($ownerResponse->json('data.can_direct_edit'))->toBeTrue()
-        ->and($ownerResponse->json('data.direct_edit_media_fields'))->toBe(['avatar', 'cover', 'gallery'])
+        ->and($ownerResponse->json('data.direct_edit_media_fields'))->toBe(['avatar', 'main', 'profile', 'cover', 'gallery'])
         ->and($ownerResponse->json('data.current_media.avatar.0.url'))->not->toBeNull()
         ->and($ownerResponse->json('data.current_media.cover.0.url'))->not->toBeNull()
         ->and($ownerResponse->json('data.current_media.gallery.0.thumb_url'))->not->toBeNull();
@@ -935,6 +936,9 @@ it('maps public event organizer values back to persistence classes during direct
         'starts_at' => now()->setTimezone('Asia/Kuala_Lumpur')->startOfDay()->addHours(10)->utc(),
         'ends_at' => now()->setTimezone('Asia/Kuala_Lumpur')->startOfDay()->addHours(12)->utc(),
         'timezone' => 'Asia/Kuala_Lumpur',
+        'timing_mode' => TimingMode::Absolute->value,
+        'prayer_reference' => null,
+        'prayer_offset' => null,
         'live_url' => 'https://live.example.test/watch',
         'event_category_ids' => [eventCategoryId('kuliah_ceramah')],
         'gender' => 'all',
@@ -985,7 +989,7 @@ it('allows direct event cover, poster, and gallery uploads on public contributio
         'subject' => $event->slug,
     ]), [
         'cover' => fakeGeneratedImageUpload('event-cover.jpg', 1600, 900),
-        'poster' => fakeGeneratedImageUpload('event-poster.jpg', 1200, 1500),
+        'poster' => fakeGeneratedImageUpload('event-poster.jpg', 1200, 1600),
         'gallery' => [fakeGeneratedImageUpload('event-gallery.jpg', 1200, 800)],
     ], [
         'Accept' => 'application/json',
@@ -2775,7 +2779,7 @@ it('allows institution member management over bearer tokens for admins without t
     expect($institution->members()->whereKey($newMember->getKey())->exists())->toBeTrue();
 });
 
-it('scopes the spaces catalog to global spaces unless an institution is selected', function () {
+it('scopes the spaces catalog to catalog rows and institution-linked rows', function () {
     $institution = Institution::factory()->create();
     $otherInstitution = Institution::factory()->create();
 
@@ -2791,6 +2795,11 @@ it('scopes the spaces catalog to global spaces unless an institution is selected
         'name' => 'Other Institution Space Catalog',
         'status' => 'active',
     ]);
+    $venueOwnedSpace = Space::factory()->create([
+        'name' => 'Venue-owned Space',
+        'venue_id' => (string) Str::uuid(),
+        'status' => 'active',
+    ]);
 
     $institutionSpace->institutions()->attach($institution);
     $otherInstitutionSpace->institutions()->attach($otherInstitution);
@@ -2801,8 +2810,9 @@ it('scopes the spaces catalog to global spaces unless an institution is selected
 
     expect(collect($globalResponse)->pluck('id')->all())
         ->toContain((string) $globalSpace->getKey())
-        ->not->toContain((string) $institutionSpace->getKey())
-        ->not->toContain((string) $otherInstitutionSpace->getKey());
+        ->toContain((string) $institutionSpace->getKey())
+        ->toContain((string) $otherInstitutionSpace->getKey())
+        ->not->toContain((string) $venueOwnedSpace->getKey());
 
     $scopedResponse = $this->getJson(route('api.client.catalogs.spaces', [
         'institution_id' => $institution->getKey(),
@@ -2813,7 +2823,8 @@ it('scopes the spaces catalog to global spaces unless an institution is selected
     expect(collect($scopedResponse)->pluck('id')->all())
         ->toContain((string) $globalSpace->getKey())
         ->toContain((string) $institutionSpace->getKey())
-        ->not->toContain((string) $otherInstitutionSpace->getKey());
+        ->not->toContain((string) $otherInstitutionSpace->getKey())
+        ->not->toContain((string) $venueOwnedSpace->getKey());
 });
 
 it('keeps public catalog selectors label-based', function () {
@@ -2924,7 +2935,7 @@ it('submits events with media through the frontend api', function () {
         'persons' => [$person->getKey()],
         'submission_country_id' => ensureFrontendApiMalaysiaCountryExists(),
         'cover' => fakeGeneratedImageUpload('cover.jpg', 1600, 900),
-        'poster' => fakeGeneratedImageUpload('poster.jpg', 1200, 1500),
+        'poster' => fakeGeneratedImageUpload('poster.jpg', 1200, 1600),
         'gallery' => [fakeGeneratedImageUpload('gallery.jpg')],
     ], [
         'Accept' => 'application/json',

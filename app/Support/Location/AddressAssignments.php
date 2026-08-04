@@ -16,6 +16,8 @@ final class AddressAssignments
 
     public const string ADMINISTRATIVE_DISTRICT = 'administrative_district';
 
+    public const string ADMINISTRATIVE_DIVISION = 'administrative_division';
+
     public const string ADMINISTRATIVE_SUBDIVISION = 'administrative_subdivision';
 
     /**
@@ -77,11 +79,6 @@ final class AddressAssignments
         return $normalized;
     }
 
-    /**
-     * Apply role-based address assignments to a relation query.
-     *
-     * @param  array<string, string>  $assignments
-     */
     /**
      * @param  Builder<Model>  $query
      * @param  array<string, string>  $assignments

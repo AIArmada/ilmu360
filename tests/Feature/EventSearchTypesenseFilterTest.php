@@ -1,5 +1,6 @@
 <?php
 
+use AIArmada\Events\Contracts\EventSearchRelationProvider;
 use App\Contracts\EventCategoryCatalog;
 use App\Data\EventDiscoveryCriteriaFactory;
 use App\Services\TypesenseEventDiscovery;
@@ -7,13 +8,14 @@ use App\Support\EventDiscovery\EventDiscoveryFilterSet;
 use Illuminate\Support\Str;
 
 /**
- * @return array{0: EventDiscoveryFilterSet, 1: EventCategoryCatalog}
+ * @return array{0: EventDiscoveryFilterSet, 1: EventCategoryCatalog, 2: EventSearchRelationProvider}
  */
 function typesenseDiscoveryDependencies(): array
 {
     return [
         new EventDiscoveryFilterSet,
         app(EventCategoryCatalog::class),
+        app(EventSearchRelationProvider::class),
     ];
 }
 
@@ -79,7 +81,7 @@ test('typesense filters include subdistrict constraint when provided', function 
         ],
     ]);
 
-    expect($filters)->toContain('administrative_subdivision_id:=321');
+    expect($filters)->toContain('administrative_subdivision:=321');
 });
 
 test('typesense filters include country constraint when provided', function () {

@@ -6,7 +6,6 @@ namespace App\Filament\Resources\Persons;
 
 use AIArmada\FilamentPersons\Resources\PersonResource as PackagePersonResource;
 use AIArmada\FilamentPersons\Resources\PersonResource\RelationManagers\AffiliationsRelationManager as PackageAffiliationsRelationManager;
-use AIArmada\FilamentPersons\Resources\PersonResource\RelationManagers\CredentialAssignmentsRelationManager;
 use App\Filament\RelationManagers\AuditsRelationManager;
 use App\Filament\Resources\Persons\Pages\CreatePerson;
 use App\Filament\Resources\Persons\Pages\EditPerson;
@@ -17,6 +16,7 @@ use App\Filament\Resources\Persons\RelationManagers\FollowersRelationManager;
 use App\Filament\Resources\Persons\RelationManagers\MemberInvitationsRelationManager;
 use App\Filament\Resources\Persons\RelationManagers\MembersRelationManager;
 use App\Filament\Resources\Persons\Schemas\PersonForm;
+use App\Filament\Resources\Persons\Schemas\PersonInfolist;
 use App\Filament\Resources\Persons\Tables\PersonsTable;
 use App\Models\Person;
 use Filament\Schemas\Schema;
@@ -41,6 +41,12 @@ class PersonResource extends PackagePersonResource
     }
 
     #[\Override]
+    public static function infolist(Schema $schema): Schema
+    {
+        return PersonInfolist::configure($schema);
+    }
+
+    #[\Override]
     public static function getPages(): array
     {
         return [
@@ -56,7 +62,6 @@ class PersonResource extends PackagePersonResource
     {
         return [
             ...array_filter(parent::getRelations(), fn (string $class): bool => ! in_array($class, [
-                CredentialAssignmentsRelationManager::class,
                 PackageAffiliationsRelationManager::class,
             ], true)),
             MembersRelationManager::class,

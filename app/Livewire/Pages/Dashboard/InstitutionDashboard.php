@@ -12,6 +12,7 @@ use App\Livewire\Concerns\InteractsWithToasts;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\User;
+use App\Support\Spaces\SpaceLocationPresenter;
 use App\Support\Submission\EntitySubmissionAccess;
 use App\Support\Timezone\UserDateTimeFormatter;
 use BackedEnum;
@@ -312,7 +313,8 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
                     $query
                         ->whereNotNull('events.published_at')
                         ->whereIn('events.status', Event::PUBLIC_STATUSES)
-                        ->where('events.visibility', EventVisibility::Public->value);
+                        ->where('events.visibility', EventVisibility::Public->value)
+                        ->whereHas('occurrences');
                 }),
                 'upcoming_events_count' => $this->institutionEventCountSubquery(function (Builder $query): void {
                     $query
@@ -653,8 +655,9 @@ class InstitutionDashboard extends Component implements HasForms, HasTable
                         ->filter(fn (mixed $title): bool => is_string($title) && trim($title) !== '')
                         ->map(fn (string $title): string => trim($title))
                         ->implode(', ') ?: null),
-                TextColumn::make('primaryLocation.venueSpace.name')
+                TextColumn::make('location_label')
                     ->label(__('Location'))
+                    ->state(fn (Event $record): ?string => SpaceLocationPresenter::name($record->primaryLocation))
                     ->placeholder('-')
                     ->wrap(),
                 TextColumn::make('dashboard_registrations_count')

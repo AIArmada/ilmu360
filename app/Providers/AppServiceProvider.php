@@ -19,6 +19,7 @@ use AIArmada\Contacting\Models\SocialProfile;
 use AIArmada\Events\Models\EventAccessPolicy;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventRegistrationParticipant;
+use AIArmada\Events\Models\EventSession;
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
 use AIArmada\Events\Models\EventTimeExpression;
@@ -39,6 +40,7 @@ use App\Contracts\GitHubIssueReporterContract;
 use App\Contracts\NullCaptchaVerifier;
 use App\Contracts\NullGitHubIssueReporter;
 use App\Contracts\ShareTrackingContract;
+use App\Contracts\SpaceEligibilityResolver;
 use App\Http\Controllers\Mcp\OAuthRegisterController;
 use App\Models\AiModelPricing;
 use App\Models\Audit as FilamentAudit;
@@ -91,6 +93,7 @@ use App\Services\EventCategoryCatalog as DefaultEventCategoryCatalog;
 use App\Services\EventCategoryPolicy;
 use App\Services\GitHub\GitHubIssueReporter;
 use App\Services\ShareTrackingService;
+use App\Services\Spaces\DefaultSpaceEligibilityResolver;
 use App\Support\Communications\AppConsentResolver;
 use App\Support\Communications\AppPreferenceResolver;
 use App\Support\Communications\AppQuietHoursResolver;
@@ -147,6 +150,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->singleton(EventCategoryCatalog::class, DefaultEventCategoryCatalog::class);
         $this->app->singleton(EventCategoryPolicyResolver::class, EventCategoryPolicy::class);
+        $this->app->singleton(SpaceEligibilityResolver::class, DefaultSpaceEligibilityResolver::class);
 
         $this->app->singleton(PrettyPrinter::class, PrettyPrinter\Standard::class);
         $this->app->bind(McpOAuthRegisterController::class, OAuthRegisterController::class);
@@ -286,7 +290,9 @@ class AppServiceProvider extends ServiceProvider
             'event' => Event::class,
             'event_access_policy' => EventAccessPolicy::class,
             'event_key_person' => EventKeyPerson::class,
+            'event_occurrence' => EventOccurrence::class,
             'event_submission' => EventSubmission::class,
+            'event_session' => EventSession::class,
             'contribution_request' => ContributionRequest::class,
             'event_registration_participant' => EventRegistrationParticipant::class,
             'membership_application' => MembershipApplication::class,

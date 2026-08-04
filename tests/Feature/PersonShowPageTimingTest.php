@@ -40,6 +40,8 @@ it('shows prayer-relative timing text on person page instead of absolute time', 
         'starts_at' => now()->addDay()->setTime(17, 45),
         'ends_at' => now()->addDay()->setTime(19, 15),
         'timing_mode' => TimingMode::PrayerRelative,
+        'prayer_reference' => PrayerReference::Asr,
+        'prayer_offset' => PrayerOffset::Immediately,
         'prayer_display_text' => 'Selepas Asar',
     ]);
 
@@ -214,6 +216,8 @@ it('renders event end time in event timezone on person page', function () {
         'starts_at' => Carbon::parse('2026-02-18 09:00:00', 'UTC'),
         'ends_at' => Carbon::parse('2026-02-18 12:40:00', 'UTC'),
         'timing_mode' => TimingMode::PrayerRelative,
+        'prayer_reference' => PrayerReference::Asr,
+        'prayer_offset' => PrayerOffset::Immediately,
         'prayer_display_text' => 'Selepas Asar',
     ]);
 
@@ -248,6 +252,8 @@ it('shows dedicated venue name for event location on person page when available'
         'starts_at' => now()->addDay()->setTime(17, 45),
         'ends_at' => now()->addDay()->setTime(19, 15),
         'timing_mode' => TimingMode::PrayerRelative,
+        'prayer_reference' => PrayerReference::Asr,
+        'prayer_offset' => PrayerOffset::Immediately,
         'prayer_display_text' => 'Selepas Asar',
     ]);
 
@@ -277,6 +283,8 @@ it('falls back to institution name for event location on person page when venue 
         'starts_at' => now()->addDay()->setTime(17, 45),
         'ends_at' => now()->addDay()->setTime(19, 15),
         'timing_mode' => TimingMode::PrayerRelative,
+        'prayer_reference' => PrayerReference::Asr,
+        'prayer_offset' => PrayerOffset::Immediately,
         'prayer_display_text' => 'Selepas Asar',
     ]);
 

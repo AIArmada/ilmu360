@@ -11,6 +11,7 @@ use App\States\EventStatus\Cancelled;
 use App\States\EventStatus\Draft;
 use App\States\EventStatus\Pending;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 uses(TestCase::class, RefreshDatabase::class);
@@ -92,8 +93,8 @@ it('searchable payload includes status and product-native address geography fiel
             ->and($payload)->toHaveKey('state', 'Selangor')
             ->and($payload)->toHaveKey('city', 'Shah Alam')
             ->and($payload['state_id'])->toBe((string) $geo['state']->getKey())
-            ->and($payload['administrative_district_id'])->toBe((string) $geo['district']->getKey())
-            ->and($payload['administrative_subdivision_id'])->toBe((string) $geo['subdistrict']->getKey());
+            ->and($payload['administrative_district'])->toBe((string) $geo['district']->getKey())
+            ->and($payload['administrative_subdivision'])->toBe((string) $geo['subdistrict']->getKey());
     });
 });
 
@@ -104,6 +105,32 @@ it('searchable payload includes the institution location ID for filtering', func
 
         expect($event->fresh()->toSearchableArray())
             ->toHaveKey('institution_id', (string) $institution->getKey());
+    });
+
+    it('uses the package venue column and does not add a duplicate venue_id column to events', function () {
+        expect(Schema::hasColumn('events', 'institution_id'))->toBeTrue()
+            ->and(Schema::hasColumn('events', 'default_venue_id'))->toBeTrue()
+            ->and(Schema::hasColumn('events', 'venue_id'))->toBeFalse();
+    });
+
+    it('resolves prayer coordinates from an institution-owned event location', function () {
+        withGlobalOwnerContext(function (): void {
+            $institution = Institution::factory()->create();
+            syncPrimaryAddressForTest($institution, [
+                'latitude' => 3.1390,
+                'longitude' => 101.6869,
+            ]);
+
+            $event = Event::factory()->create([
+                'institution_id' => $institution->getKey(),
+                'default_venue_id' => null,
+            ]);
+
+            expect($event->fresh()->prayer_coordinates)->toBe([
+                'lat' => 3.139,
+                'lng' => 101.6869,
+            ]);
+        });
     });
 });
 

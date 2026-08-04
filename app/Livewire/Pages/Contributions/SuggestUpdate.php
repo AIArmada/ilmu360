@@ -297,8 +297,8 @@ class SuggestUpdate extends Component implements HasActions, HasForms
         );
 
         // PersonContributionFormSchema::components(includeMedia: false) returns:
-        // 0: Core profile, 1: Optional profile, 2: Address,
-        // 3: Affiliated Institutions, 4: Contact, 5: Social Media
+        // 0: Core profile, 1: Optional profile, 2: Affiliated Institutions,
+        // 3: Address, 4: Contact, 5: Social Media
 
         $mediaSchema = $this->shouldShowDirectEditMediaSection()
             ? [$this->personDirectEditMediaSection()]
@@ -307,7 +307,6 @@ class SuggestUpdate extends Component implements HasActions, HasForms
         return [
             Tabs::make('PersonUpdateTabs')
                 ->id('person-update-tabs')
-                ->persistTab()
                 ->columnSpanFull()
                 ->tabs([
                     Tab::make(__('Maklumat Utama'))
@@ -318,10 +317,10 @@ class SuggestUpdate extends Component implements HasActions, HasForms
                         ->schema([$sections[1]]),
                     Tab::make(__('Afiliasi'))
                         ->icon(Heroicon::BuildingOffice)
-                        ->schema([$sections[3]]),
+                        ->schema([$sections[2]]),
                     Tab::make(__('Lokasi'))
                         ->icon(Heroicon::MapPin)
-                        ->schema([$sections[2]]),
+                        ->schema([$sections[3]]),
                     Tab::make(__('Hubungan'))
                         ->icon(Heroicon::ChatBubbleLeftRight)
                         ->schema([$sections[4], $sections[5]]),

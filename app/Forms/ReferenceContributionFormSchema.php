@@ -82,7 +82,12 @@ class ReferenceContributionFormSchema
                 ->columns(2),
             Section::make(__('Links'))
                 ->schema([
-                    SharedFormSchema::socialMediaRepeater('Add relevant links for this reference (e.g. YouTube video, Blog article, etc.)'),
+                    TextInput::make('url')
+                        ->label(__('URL'))
+                        ->helperText(__('Primary source link for this reference.'))
+                        ->url()
+                        ->maxLength(255),
+                    SharedFormSchema::socialMediaRepeater('Add additional links for this reference (e.g. YouTube video, Blog article, etc.)'),
                 ]),
         ];
 

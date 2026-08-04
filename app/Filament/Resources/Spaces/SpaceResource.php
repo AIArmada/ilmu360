@@ -18,6 +18,7 @@ use App\Filament\Resources\Spaces\Tables\SpacesTable;
 use App\Models\Space;
 use Filament\Schemas\Schema;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class SpaceResource extends VenueSpaceResource
 {
@@ -25,7 +26,20 @@ class SpaceResource extends VenueSpaceResource
 
     protected static ?string $recordTitleAttribute = 'name';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Directory';
+    public static function getNavigationGroup(): string
+    {
+        return 'Directory';
+    }
+
+    /**
+     * The standalone resource is the shared catalog; venue-owned spaces are managed from a venue.
+     *
+     * @return Builder<Space>
+     */
+    public static function getEloquentQuery(): Builder
+    {
+        return Space::query()->whereNull('venue_id');
+    }
 
     #[\Override]
     public static function form(Schema $schema): Schema

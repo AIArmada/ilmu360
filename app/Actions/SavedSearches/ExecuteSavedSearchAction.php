@@ -113,7 +113,7 @@ final readonly class ExecuteSavedSearchAction
             'khatib_ids',
             'bilal_ids',
             'domain_tag_ids',
-            'topic_ids',
+            'discipline_tag_ids',
             'source_tag_ids',
             'issue_tag_ids',
             'reference_ids',

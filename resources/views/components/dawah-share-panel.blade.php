@@ -1,8 +1,4 @@
 @props([
-    'heading' => __('Share This Page'),
-    'description' => __('Send this page to someone else and keep the impact on one tracked link.'),
-    'previewTitle' => null,
-    'previewSubtitle' => null,
     'shareData' => [],
     'shareLinks' => [],
     'copyMessage' => __('Link copied to clipboard!'),
@@ -137,31 +133,13 @@
     class="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm"
 >
     <div class="flex flex-col gap-5">
-        <div>
-            <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">{{ $heading }}</p>
-            @if(filled($description))
-                <p class="mt-2 text-sm leading-6 text-slate-600">{{ $description }}</p>
-            @endif
-        </div>
-
-        @if(filled($previewTitle) || filled($previewSubtitle))
-            <div class="rounded-3xl border border-slate-200 bg-slate-50/80 p-4">
-                @if(filled($previewTitle))
-                    <p class="text-sm font-semibold text-slate-900">{{ $previewTitle }}</p>
-                @endif
-                @if(filled($previewSubtitle))
-                    <p class="mt-1 text-sm text-slate-500">{{ $previewSubtitle }}</p>
-                @endif
-            </div>
-        @endif
-
-        <div class="grid gap-3 sm:grid-cols-2">
+        <div class="grid grid-cols-2 gap-3">
             <button
                 type="button"
                 @click="nativeShare()"
                 class="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-emerald-700"
             >
-                {{ __('Share Now') }}
+                {{ __('Share') }}
             </button>
             <button
                 type="button"

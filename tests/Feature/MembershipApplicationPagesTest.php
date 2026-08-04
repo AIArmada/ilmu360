@@ -1,5 +1,6 @@
 <?php
 
+use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Membership\Enums\ApplicationStatus;
 use App\Enums\MemberSubjectType;
 use App\Livewire\Pages\Contributions\Index as ContributionsIndex;
@@ -62,7 +63,7 @@ it('requires justification and evidence on the public claim form', function () {
     Livewire::actingAs($user)
         ->test(CreateMembershipApplicationPage::class, [
             'subjectType' => MemberSubjectType::Person->publicRouteSegment(),
-            'subjectId' => $person->getKey(),
+            'subjectId' => $person->slug,
         ])
         ->call('submit')
         ->assertHasErrors([
@@ -83,7 +84,7 @@ it('renders the public membership claim page in Malay without a side-by-side lay
 
     $this->get(route('membership-applications.create', [
         'subjectType' => MemberSubjectType::Person->publicRouteSegment(),
-        'subjectId' => $person->getKey(),
+        'subjectId' => $person->slug,
     ]))
         ->assertOk()
         ->assertSee('Pengurusan')
@@ -102,6 +103,26 @@ it('renders the public membership claim page in Malay without a side-by-side lay
         ->assertDontSee('Use this form when you belong to this record and need access to help maintain it. Claims are reviewed by moderators before membership is granted.')
         ->assertDontSee('Review notes')
         ->assertDontSee('lg:grid-cols-[1.1fr_0.9fr]', false);
+});
+
+it('shows a speaker profile image on the membership claim page when available', function () {
+    $user = User::factory()->create();
+    $person = Person::factory()->create([
+        'name' => 'Zaharuddin Abdul Rahman',
+        'status' => 'verified',
+    ]);
+    $person->addMedia(fakeGeneratedImageUpload('zaharuddin.jpg', 1200, 1200))
+        ->toMediaCollection('profile');
+
+    $this->actingAs($user);
+
+    $this->get(route('membership-applications.create', [
+        'subjectType' => MemberSubjectType::Person->publicRouteSegment(),
+        'subjectId' => $person->slug,
+    ]))
+        ->assertOk()
+        ->assertSee('src="'.$person->fresh()->public_main_url.'"', false)
+        ->assertSee('alt="Gambar profil '.$person->formatted_name.'"', false);
 });
 
 it('lets claimants cancel pending claims from the history page', function () {
@@ -132,17 +153,16 @@ it('starts a membership claim from the contributions page search form', function
         ->test(ContributionsIndex::class)
         ->fillForm([
             'subject_type' => MemberSubjectType::Person->value,
-            'subject_slug' => $person->getKey(),
+            'subject_slug' => $person->slug,
         ])
         ->call('startMembershipApplication')
         ->assertRedirect(route('membership-applications.create', [
             'subjectType' => MemberSubjectType::Person->publicRouteSegment(),
-            'subjectId' => $person->getKey(),
+            'subjectId' => $person->slug,
         ]));
 });
 
-it('does not show membership claim call to action on public institution and person pages', function () {
-    $user = User::factory()->create();
+it('shows membership claim call to action on unclaimed public person pages', function () {
     $institution = Institution::factory()->create([
         'status' => 'verified',
     ]);
@@ -156,17 +176,58 @@ it('does not show membership claim call to action on public institution and pers
     ]);
     $personClaimUrl = route('membership-applications.create', [
         'subjectType' => MemberSubjectType::Person->publicRouteSegment(),
-        'subjectId' => $person->getKey(),
+        'subjectId' => $person->slug,
     ]);
 
-    $this->actingAs($user)
-        ->get(route('institutions.show', $institution))
+    $this->get(route('institutions.show', $institution))
         ->assertSuccessful()
         ->assertDontSee($institutionClaimUrl, false)
         ->assertDontSee('Tuntut Pengurusan');
 
-    $this->actingAs($user)
-        ->get(route('persons.show', $person))
+    $this->get(route('persons.show', $person))
+        ->assertSuccessful()
+        ->assertSee($personClaimUrl, false)
+        ->assertSee('Tuntut Pengurusan');
+});
+
+it('keeps the person membership claim call to action visible while claims are unresolved', function () {
+    foreach ([ApplicationStatus::Pending, ApplicationStatus::Rejected, ApplicationStatus::Cancelled] as $status) {
+        $person = Person::factory()->create([
+            'status' => 'verified',
+        ]);
+
+        OwnerContext::withOwner(null, function () use ($person, $status): void {
+            MembershipApplication::factory()
+                ->for($person, 'subject')
+                ->create(['status' => $status]);
+        });
+
+        $personClaimUrl = route('membership-applications.create', [
+            'subjectType' => MemberSubjectType::Person->publicRouteSegment(),
+            'subjectId' => $person->slug,
+        ]);
+
+        $this->get(route('persons.show', $person))
+            ->assertSuccessful()
+            ->assertSee($personClaimUrl, false)
+            ->assertSee('Tuntut Pengurusan');
+    }
+});
+
+it('hides the person membership claim call to action when a package member exists', function () {
+    $member = User::factory()->create();
+    $person = Person::factory()->create([
+        'status' => 'verified',
+    ]);
+
+    OwnerContext::withOwner(null, fn (): mixed => $person->members()->syncWithoutDetaching([$member->getKey()]));
+
+    $personClaimUrl = route('membership-applications.create', [
+        'subjectType' => MemberSubjectType::Person->publicRouteSegment(),
+        'subjectId' => $person->slug,
+    ]);
+
+    $this->get(route('persons.show', $person))
         ->assertSuccessful()
         ->assertDontSee($personClaimUrl, false)
         ->assertDontSee('Tuntut Pengurusan');

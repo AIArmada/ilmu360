@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use AIArmada\Events\Models\EventRole;
 use App\Enums\EventFormat;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventVisibility;
@@ -9,13 +10,18 @@ use App\Models\Event;
 use App\Models\EventKeyPerson;
 use App\Models\Institution;
 use App\Models\Person;
+use Database\Seeders\Concerns\SeedsEventLocations;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 
 final class SpeakerEventSeeder extends Seeder
 {
+    use SeedsEventLocations;
+
     public function run(): void
     {
+        $this->seedEventSpaces();
+
         $institution = Institution::query()->where('status', 'verified')->orderBy('id')->first();
 
         if (! $institution instanceof Institution) {
@@ -62,7 +68,11 @@ final class SpeakerEventSeeder extends Seeder
                     ]);
                 }
 
-                EventKeyPerson::query()->firstOrCreate(
+                $event = Event::query()->findOrFail($event->getKey());
+
+                $this->syncSeededEventLocation($event, institution: $institution);
+
+                EventKeyPerson::query()->updateOrCreate(
                     [
                         'event_id' => $event->getKey(),
                         'involveable_type' => $speaker->getMorphClass(),
@@ -70,6 +80,7 @@ final class SpeakerEventSeeder extends Seeder
                         'role_code' => EventKeyPersonRole::Speaker->value,
                     ],
                     [
+                        'event_role_id' => EventRole::query()->where('code', EventKeyPersonRole::Speaker->value)->value('id'),
                         'status' => 'active',
                         'visibility' => 'public',
                         'prominence' => '0',

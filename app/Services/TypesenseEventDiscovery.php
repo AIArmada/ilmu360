@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use AIArmada\Events\Contracts\EventSearchRelationProvider;
 use App\Contracts\EventCategoryCatalog;
 use App\Contracts\EventDiscoveryAdapter;
 use App\Data\EventDiscoveryCriteria;
@@ -21,6 +22,7 @@ class TypesenseEventDiscovery implements EventDiscoveryAdapter
     public function __construct(
         private readonly EventDiscoveryFilterSet $filterSet,
         private readonly EventCategoryCatalog $categoryCatalog,
+        private readonly EventSearchRelationProvider $relationProvider,
     ) {}
 
     /** @return LengthAwarePaginator<int, Event> */
@@ -49,39 +51,6 @@ class TypesenseEventDiscovery implements EventDiscoveryAdapter
     }
 
     /**
-     * @return array<int|string, mixed>
-     */
-    protected function cardRelationships(): array
-    {
-        return [
-            'media' => fn ($query) => $query
-                ->whereIn('collection_name', ['cover', 'poster'])
-                ->ordered(),
-            'references',
-            'classifications',
-            'persons.media' => fn ($query) => $query
-                ->where('collection_name', 'avatar')
-                ->ordered(),
-            'persons.titleAssignments.title.category',
-            'languageRecords',
-            'institution.media' => fn ($query) => $query
-                ->where('collection_name', 'logo')
-                ->ordered(),
-            'institution.addresses.country',
-            'institution.addresses.state',
-            'institution.addresses.city',
-            'institution.addresses.areaAssignments.area',
-            'venue.addresses.country',
-            'venue.addresses.state',
-            'venue.addresses.city',
-            'venue.addresses.areaAssignments.area',
-            'latestPublishedChangeAnnouncement',
-            'primaryOccurrence',
-            'timeExpressions',
-        ];
-    }
-
-    /**
      * @param  array<string, mixed>  $filters
      * @return LengthAwarePaginator<int, Event>
      */
@@ -92,7 +61,9 @@ class TypesenseEventDiscovery implements EventDiscoveryAdapter
         string $sort
     ): LengthAwarePaginator {
         $search = Event::search($query ?? '')
-            ->query(fn (Builder $builder) => $builder->with($this->cardRelationships()));
+            ->query(fn (Builder $builder) => $builder
+                ->whereHas('occurrences')
+                ->with($this->relationProvider->relations()));
 
         $sortBy = match ($sort) {
             'relevance' => '_text_match:desc,starts_at:asc',
@@ -119,7 +90,9 @@ class TypesenseEventDiscovery implements EventDiscoveryAdapter
         $radiusKm = $criteria->radiusKm ?? 0.0;
         $search = Event::search('');
 
-        $search->query(fn (Builder $builder) => $builder->with($this->cardRelationships()));
+        $search->query(fn (Builder $builder) => $builder
+            ->whereHas('occurrences')
+            ->with($this->relationProvider->relations()));
         $search->options([
             'filter_by' => implode(' && ', [
                 "location:({$lat}, {$lng}, {$radiusKm} km)",
@@ -144,7 +117,9 @@ class TypesenseEventDiscovery implements EventDiscoveryAdapter
         int $perPage
     ): LengthAwarePaginator {
         $search = Event::search($query)
-            ->query(fn (Builder $builder) => $builder->with($this->cardRelationships()));
+            ->query(fn (Builder $builder) => $builder
+                ->whereHas('occurrences')
+                ->with($this->relationProvider->relations()));
 
         $filterBy = implode(' && ', [
             "location:({$lat}, {$lng}, {$radiusKm} km)",
@@ -273,11 +248,11 @@ class TypesenseEventDiscovery implements EventDiscoveryAdapter
             }
         }
 
-        if (! empty($filters['topic_ids'])) {
-            $topicIds = $this->normalizeArrayFilter($filters['topic_ids']);
+        if (! empty($filters['discipline_tag_ids'])) {
+            $disciplineTagIds = $this->normalizeArrayFilter($filters['discipline_tag_ids']);
 
-            if ($topicIds !== []) {
-                $filterParts[] = 'topic_ids:['.implode(',', $topicIds).']';
+            if ($disciplineTagIds !== []) {
+                $filterParts[] = 'discipline_tag_ids:['.implode(',', $disciplineTagIds).']';
             }
         }
 

@@ -142,6 +142,15 @@ class EventFactory extends PackageEventFactory
             EventFormat::Hybrid,
         ]);
 
+        // Timing mix: 70% prayer-relative, 30% absolute
+        $isPrayerRelative = fake()->boolean(70);
+        $prayerReference = $isPrayerRelative ? fake()->randomElement(PrayerReference::cases()) : null;
+        $prayerOffset = $isPrayerRelative ? fake()->randomElement([
+            PrayerOffset::Immediately,
+            PrayerOffset::After15,
+            PrayerOffset::After30,
+        ]) : null;
+
         return [
             'institution_id' => function (array $attributes) {
                 $eventFormat = $this->eventFormatFromAttributes($attributes);
@@ -161,8 +170,14 @@ class EventFactory extends PackageEventFactory
             'slug' => Str::slug($title).'-'.Str::lower(Str::random(7)),
             'description' => fake()->optional()->paragraphs(2, true),
             'starts_at' => $startsAt,
-            'ends_at' => $endsAt,
+            'ends_at' => $isPrayerRelative ? null : $endsAt,
             'timezone' => $eventTimezone,
+            'timing_mode' => $isPrayerRelative ? TimingMode::PrayerRelative->value : TimingMode::Absolute->value,
+            'prayer_reference' => $prayerReference?->value,
+            'prayer_offset' => $prayerOffset?->value,
+            'prayer_display_text' => $prayerOffset instanceof PrayerOffset && $prayerReference instanceof PrayerReference
+                ? $prayerOffset->displayText($prayerReference)
+                : null,
 
             'gender' => fake()->randomElement(EventGenderRestriction::cases()),
             'age_group' => [fake()->randomElement(EventAgeGroup::cases())],

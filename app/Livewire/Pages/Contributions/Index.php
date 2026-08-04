@@ -288,7 +288,7 @@ class Index extends Component implements HasForms
                 ->orderBy('name')
                 ->limit(50)
                 ->get()
-                ->mapWithKeys(fn (Person $person): array => [(string) $person->getKey() => $person->formatted_name])
+                ->mapWithKeys(fn (Person $person): array => [(string) $person->slug => $person->formatted_name])
                 ->all(),
             default => [],
         };
@@ -305,7 +305,7 @@ class Index extends Component implements HasForms
             MemberSubjectType::Person => Person::query()
                 ->where('status', 'verified')
                 ->whereIn('status', ['verified', 'pending'])
-                ->whereKey($subjectSlug)
+                ->where('slug', $subjectSlug)
                 ->first()?->formatted_name,
             default => null,
         };

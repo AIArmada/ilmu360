@@ -128,31 +128,101 @@ class AddressingSeeder extends Seeder
         $gzPath = $dataPath.'.gz';
         $handle = file_exists($gzPath) ? gzopen($gzPath, 'r') : null;
 
-        if ($handle === null) {
-            $contents = file_get_contents($dataPath);
-
-            if ($contents === false) {
-                throw new RuntimeException('Unable to read the address city seed data.');
-            }
-        } else {
-            $contents = '';
-            while (! gzeof($handle)) {
-                $contents .= gzgets($handle);
-            }
-            gzclose($handle);
+        if ($handle !== null) {
+            return $this->readCityRows($handle, true);
         }
 
-        /** @var array<int, array<string, mixed>> $cities */
-        $cities = json_decode($contents, true, 512, JSON_THROW_ON_ERROR);
-        unset($contents);
+        $plainHandle = fopen($dataPath, 'rb');
 
-        // Seed only MY cities (100 %) to keep memory manageable in non-production.
-        $myCities = array_values(array_filter(
-            $cities,
-            static fn (array $city): bool => ($city['country_code'] ?? null) === 'MY',
-        ));
-        unset($cities);
+        if ($plainHandle === false) {
+            throw new RuntimeException('Unable to read the address city seed data.');
+        }
 
-        return $myCities;
+        return $this->readCityRows($plainHandle, false);
+    }
+
+    /**
+     * Read only Malaysian city objects from the top-level JSON array.
+     *
+     * @param  resource  $handle
+     * @return list<array<string, mixed>>
+     */
+    private function readCityRows($handle, bool $gzip): array
+    {
+        $cities = [];
+        $object = '';
+        $depth = 0;
+        $inString = false;
+        $escaped = false;
+
+        while (true) {
+            $chunk = $gzip ? gzread($handle, 8192) : fread($handle, 8192);
+
+            if ($chunk === false || $chunk === '') {
+                break;
+            }
+
+            $length = strlen($chunk);
+
+            for ($index = 0; $index < $length; $index++) {
+                $character = $chunk[$index];
+
+                if ($object === '') {
+                    if ($character !== '{') {
+                        continue;
+                    }
+
+                    $object = '{';
+                    $depth = 1;
+                    $inString = false;
+                    $escaped = false;
+
+                    continue;
+                }
+
+                $object .= $character;
+
+                if ($inString) {
+                    if ($escaped) {
+                        $escaped = false;
+                    } elseif ($character === '\\') {
+                        $escaped = true;
+                    } elseif ($character === '"') {
+                        $inString = false;
+                    }
+
+                    continue;
+                }
+
+                if ($character === '"') {
+                    $inString = true;
+                } elseif ($character === '{') {
+                    $depth++;
+                } elseif ($character === '}') {
+                    $depth--;
+                }
+
+                if ($depth !== 0) {
+                    continue;
+                }
+
+                /** @var array<string, mixed> $city */
+                $city = json_decode($object, true, 512, JSON_THROW_ON_ERROR);
+
+                if (($city['country_code'] ?? null) === 'MY') {
+                    $cities[] = $city;
+                }
+
+                $object = '';
+            }
+        }
+
+        if ($gzip) {
+            gzclose($handle);
+        } else {
+            fclose($handle);
+        }
+
+        return $cities;
     }
 }

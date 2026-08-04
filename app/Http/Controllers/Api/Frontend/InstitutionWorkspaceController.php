@@ -423,7 +423,8 @@ class InstitutionWorkspaceController extends FrontendController
         return $query
             ->whereNotNull('events.published_at')
             ->whereIn('events.status', Event::PUBLIC_STATUSES)
-            ->where('events.visibility', EventVisibility::Public);
+            ->where('events.visibility', EventVisibility::Public)
+            ->whereHas('occurrences');
     }
 
     /**

@@ -13,6 +13,7 @@ use Database\Seeders\RoleSeeder;
 use Database\Seeders\ScopedMemberRolesSeeder;
 use Database\Seeders\SpaceSeeder;
 use Database\Seeders\UserSeeder;
+use Database\Seeders\VenueSpaceTypeSeeder;
 use Illuminate\Support\Arr;
 
 it('delegates default seeding to the production seeder in production', function () {
@@ -75,6 +76,7 @@ it('production seeder only calls deterministic bootstrap seeders', function () {
         ScopedMemberRolesSeeder::class,
         UserSeeder::class,
         FacilityTypeSeeder::class,
+        VenueSpaceTypeSeeder::class,
         SpaceSeeder::class,
         InspirationSeeder::class,
     ]);
@@ -94,16 +96,9 @@ it('reduces city seed data outside production while keeping production complete'
 
         expect($actionPath)->toBeString();
 
-        $allCities = json_decode(
-            file_get_contents(dirname((string) $actionPath, 3).'/resources/data/cities.json'),
-            true,
-            512,
-            JSON_THROW_ON_ERROR,
-        );
-
         expect($sample)->toBeArray()->not->toBeEmpty()
-            ->and(collect($sample)->where('country_code', 'MY')->count())
-            ->toBe(collect($allCities)->where('country_code', 'MY')->count());
+            ->and(collect($sample)->every(fn (array $city): bool => ($city['country_code'] ?? null) === 'MY'))
+            ->toBeTrue();
 
         app()['env'] = 'production';
 

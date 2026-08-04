@@ -3,16 +3,20 @@
 use AIArmada\Addressing\Models\Address;
 use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressCountry;
+use AIArmada\Events\Actions\CreateEventOccurrenceAction;
+use AIArmada\Events\Actions\CreateEventSessionAction;
 use AIArmada\Events\Models\EventAccessPolicy;
 use AIArmada\Events\Models\EventClassification;
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
+use AIArmada\Events\Models\EventTimeExpression;
+use App\Data\EventDiscoveryCriteriaFactory;
 use App\Enums\EventFormat;
+use App\Enums\EventGenderRestriction;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventPrayerTime;
 use App\Enums\PrayerReference;
 use App\Enums\TimingMode;
-use App\Livewire\Pages\Events\AdvancedFiltersPanel;
 use App\Livewire\Pages\Events\Index;
 use App\Models\Event;
 use App\Models\Institution;
@@ -20,9 +24,11 @@ use App\Models\Language;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Registration;
+use App\Models\Space;
 use App\Models\User;
 use App\Models\Venue;
 use App\Services\EventSearchService;
+use App\Services\TypesenseEventDiscovery;
 use App\Support\Location\PublicGeolocationPermission;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
@@ -199,12 +205,56 @@ describe('Event Search Filters', function () {
             ->assertSee('Circle of')
             ->assertSee('Penceramah & kandungan')
             ->assertDontSee('Advanced Filters')
-            ->assertDontSee('/flux/flux.js', false)
             ->assertSee('/js/filament/schemas/schemas.js', false)
             ->assertSee('/js/filament/support/support.js', false)
             ->assertSee('/js/filament/notifications/notifications.js', false)
             ->assertSee('/js/filament/actions/actions.js', false)
             ->assertDontSee('/js/filament/tables/tables.js', false);
+    });
+
+    it('uses the first session timing expression on event cards', function (): void {
+        config(['scout.driver' => 'database']);
+
+        $event = createVisibleEventForSearch([
+            'title' => 'Majlis Dengan Sesi Berjadual',
+            'status' => 'approved',
+            'visibility' => 'public',
+            'published_at' => now()->subDay(),
+        ]);
+        $occurrence = app(CreateEventOccurrenceAction::class)->handle($event, [
+            'title' => $event->title,
+            'starts_at' => now()->addDay()->setTime(19, 0),
+            'ends_at' => now()->addDay()->setTime(22, 0),
+            'timezone' => 'Asia/Kuala_Lumpur',
+            'status' => 'published',
+            'visibility' => 'public',
+            'delivery_mode' => 'physical',
+        ]);
+        $session = app(CreateEventSessionAction::class)->handle($occurrence, [
+            'title' => 'Sesi Utama',
+            'starts_at' => now()->addDay()->setTime(20, 15),
+            'ends_at' => now()->addDay()->setTime(21, 45),
+            'timezone' => 'Asia/Kuala_Lumpur',
+            'status' => 'published',
+            'visibility' => 'public',
+            'delivery_mode' => 'physical',
+        ]);
+        EventTimeExpression::query()->create([
+            'event_id' => $event->id,
+            'event_occurrence_id' => $occurrence->id,
+            'event_session_id' => $session->id,
+            'time_mode' => 'prayer_relative',
+            'anchor_type' => 'prayer',
+            'anchor_code' => 'isha',
+            'relation' => 'after',
+            'offset_minutes' => 15,
+            'display_label' => '15 minit selepas Isyak',
+        ]);
+
+        $this->get(eventsIndexUrl())
+            ->assertOk()
+            ->assertSee('Majlis Dengan Sesi Berjadual')
+            ->assertSee('15 minit selepas Isyak');
     });
 
     it('does not prime the global default events search cache when the implicit country filter is active', function () {
@@ -272,6 +322,38 @@ describe('Event Search Filters', function () {
 
         expect(collect($results->items())->pluck('id')->all())
             ->toContain($event->id);
+    });
+
+    it('hydrates package and application relations through the configured provider', function () {
+        config()->set('scout.driver', 'database');
+
+        $event = createVisibleEventForSearch([
+            'title' => 'Configured Relation Provider Event',
+            'status' => 'approved',
+            'visibility' => 'public',
+            'published_at' => now(),
+            'starts_at' => now()->addDay(),
+        ]);
+        $taxonomy = EventTaxonomy::factory()->create(['code' => 'relation-provider']);
+        $term = EventTerm::factory()->create([
+            'event_taxonomy_id' => $taxonomy->id,
+            'name' => 'Relation Provider Term',
+        ]);
+        attachTermToEventForTest($event, $term);
+
+        $criteria = app(EventDiscoveryCriteriaFactory::class)->fromSearch(null, [], 20, 'time');
+        $postgresResults = app(EventSearchService::class)->search(null, [], 20, 'time');
+        $typesenseResults = app(TypesenseEventDiscovery::class)->search($criteria);
+
+        foreach ([$postgresResults, $typesenseResults] as $results) {
+            $hydratedEvent = collect($results->items())->firstWhere('id', $event->id);
+
+            expect($hydratedEvent)->toBeInstanceOf(Event::class)
+                ->and($hydratedEvent->relationLoaded('classifications'))->toBeTrue()
+                ->and($hydratedEvent->classifications->first()->relationLoaded('term'))->toBeTrue()
+                ->and($hydratedEvent->relationLoaded('institution'))->toBeTrue()
+                ->and($hydratedEvent->institution->relationLoaded('media'))->toBeTrue();
+        }
     });
 
     it('shows search placeholder on events index', function () {
@@ -375,25 +457,21 @@ describe('Event Search Filters', function () {
         expect($grantedResponse->getContent())->not->toMatch(hiddenAttributeRegexForTestId('nearby-radius-inline'));
     });
 
-    it('hides the advanced nearby radius until geolocation permission is granted', function () {
-        $defaultHtml = Livewire::test(AdvancedFiltersPanel::class, [
-            'filters' => [
-                'lat' => '3.1390',
-                'lng' => '101.6869',
-            ],
+    it('hides the nearby radius until geolocation permission is granted', function () {
+        $defaultHtml = Livewire::test(Index::class, [
+            'lat' => '3.1390',
+            'lng' => '101.6869',
         ])->html();
 
-        expect($defaultHtml)->toMatch(hiddenAttributeRegexForTestId('advanced-nearby-radius'));
+        expect($defaultHtml)->toMatch(hiddenAttributeRegexForTestId('nearby-radius-inline'));
 
         $grantedHtml = Livewire::withCookie(PublicGeolocationPermission::COOKIE_NAME, '1')
-            ->test(AdvancedFiltersPanel::class, [
-                'filters' => [
-                    'lat' => '3.1390',
-                    'lng' => '101.6869',
-                ],
+            ->test(Index::class, [
+                'lat' => '3.1390',
+                'lng' => '101.6869',
             ])->html();
 
-        expect($grantedHtml)->not->toMatch(hiddenAttributeRegexForTestId('advanced-nearby-radius'));
+        expect($grantedHtml)->not->toMatch(hiddenAttributeRegexForTestId('nearby-radius-inline'));
     });
 
     it('sets default nearby radius to 15 km when location is detected', function () {
@@ -1284,6 +1362,32 @@ describe('Event Search Filters', function () {
             ->assertDontSee('Open Event');
     });
 
+    it('filters gender through the package audience relation', function () {
+        createVisibleEventForSearch([
+            'title' => 'Women Only Audience Event',
+            'gender' => EventGenderRestriction::WomenOnly,
+            'status' => 'approved',
+            'published_at' => now(),
+            'starts_at' => now()->addDay(),
+        ]);
+
+        createVisibleEventForSearch([
+            'title' => 'Men Only Audience Event',
+            'gender' => EventGenderRestriction::MenOnly,
+            'status' => 'approved',
+            'published_at' => now(),
+            'starts_at' => now()->addDay(),
+        ]);
+
+        $response = $this->get(eventsIndexUrl([
+            'gender' => EventGenderRestriction::WomenOnly->value,
+        ]));
+
+        $response->assertOk()
+            ->assertSee('Women Only Audience Event')
+            ->assertDontSee('Men Only Audience Event');
+    });
+
     it('filters events by link presence and timing mode', function () {
         createVisibleEventForSearch([
             'title' => 'Absolute With Links Event',
@@ -1425,8 +1529,10 @@ describe('Event Search Filters', function () {
         updatePrimaryAddressForSearch($venueB, [
             ...$geoA['address'],
             'country_code' => 'MY',
-            'administrative_district_id' => (string) $districtB->getKey(),
-            'administrative_subdivision_id' => (string) $subdistrictB->getKey(),
+            'area_assignments' => [
+                'administrative_district' => (string) $districtB->getKey(),
+                'administrative_subdivision' => (string) $subdistrictB->getKey(),
+            ],
             'city' => 'District B City',
             'state' => 'Selangor',
         ]);
@@ -1448,7 +1554,7 @@ describe('Event Search Filters', function () {
         ]);
 
         $component = Livewire::withQueryParams([
-            'administrative_district_id' => $geoA['district']->getKey(),
+            'area_assignments' => ['administrative_district' => $geoA['district']->getKey()],
         ])->test(Index::class);
 
         $eventTitles = $component->instance()
@@ -1486,8 +1592,7 @@ describe('Event Search Filters', function () {
         updatePrimaryAddressForSearch($indonesiaVenue, [
             ...$indonesiaGeo['address'],
             'country_code' => 'ID',
-            'administrative_district_id' => null,
-            'administrative_subdivision_id' => null,
+            'area_assignments' => [],
         ]);
 
         $indonesiaInstitution = Institution::factory()->create([
@@ -1496,8 +1601,7 @@ describe('Event Search Filters', function () {
         updatePrimaryAddressForSearch($indonesiaInstitution, [
             ...$indonesiaGeo['address'],
             'country_code' => 'ID',
-            'administrative_district_id' => null,
-            'administrative_subdivision_id' => null,
+            'area_assignments' => [],
         ]);
 
         Event::factory()->for($malaysiaVenue)->for($malaysiaInstitution)->create([
@@ -1544,8 +1648,128 @@ describe('Event Search Filters', function () {
             ->assertSet('country_id', null)
             ->assertSet('state_id', null);
 
-        Livewire::test(AdvancedFiltersPanel::class)
-            ->assertDontSee('Country');
+        Livewire::test(Index::class)
+            ->assertSee('Country');
+    });
+
+    it('filters events by the package city_id address column', function () {
+        $country = ensureMalaysiaCountryForTests();
+        $petaling = createTestPackageGeography('Selangor', 'Petaling '.uniqid(), 'Petaling City', country: $country, cityName: 'Petaling Jaya');
+        $shahAlam = createTestPackageGeography('Selangor', 'Shah Alam '.uniqid(), 'Shah Alam City', country: $country, cityName: 'Shah Alam');
+
+        $petalingVenue = Venue::factory()->create();
+        updatePrimaryAddressForSearch($petalingVenue, [
+            ...$petaling['address'],
+            'city_id' => (string) $petaling['city']->getKey(),
+        ]);
+
+        $shahAlamVenue = Venue::factory()->create();
+        updatePrimaryAddressForSearch($shahAlamVenue, [
+            ...$shahAlam['address'],
+            'city_id' => (string) $shahAlam['city']->getKey(),
+        ]);
+
+        Event::factory()->for($petalingVenue)->create([
+            'title' => 'Petaling City Filter Match',
+            'status' => 'approved',
+            'visibility' => 'public',
+            'published_at' => now(),
+            'starts_at' => now()->addDays(2),
+        ]);
+
+        Event::factory()->for($shahAlamVenue)->create([
+            'title' => 'Shah Alam City Filter Non Match',
+            'status' => 'approved',
+            'visibility' => 'public',
+            'published_at' => now(),
+            'starts_at' => now()->addDays(2),
+        ]);
+
+        $response = $this->get(eventsIndexUrl([
+            'country_id' => (string) $country->getKey(),
+            'state_id' => (string) $petaling['state']->getKey(),
+            'city_id' => (string) $petaling['city']->getKey(),
+        ]));
+
+        $response->assertOk()
+            ->assertSee('Petaling City Filter Match')
+            ->assertDontSee('Shah Alam City Filter Non Match');
+    });
+
+    it('requires combined location filters to match the same package address', function () {
+        $country = ensureMalaysiaCountryForTests();
+        $venueGeography = createTestPackageGeography('Selangor', 'Petaling '.uniqid(), 'Petaling City', country: $country, cityName: 'Petaling Jaya');
+        $institutionGeography = createTestPackageGeography('Johor', 'Johor Bahru '.uniqid(), 'Johor Bahru City', country: $country, cityName: 'Johor Bahru');
+
+        $venue = Venue::factory()->create();
+        updatePrimaryAddressForSearch($venue, [
+            ...$venueGeography['address'],
+            'city_id' => (string) $venueGeography['city']->getKey(),
+        ]);
+
+        $institution = Institution::factory()->create(['status' => 'verified']);
+        updatePrimaryAddressForSearch($institution, [
+            ...$institutionGeography['address'],
+            'city_id' => (string) $institutionGeography['city']->getKey(),
+        ]);
+
+        Event::factory()->for($venue)->for($institution)->create([
+            'title' => 'Mixed Location Filter Event',
+            'status' => 'approved',
+            'visibility' => 'public',
+            'published_at' => now(),
+            'starts_at' => now()->addDays(2),
+        ]);
+
+        $response = $this->get(eventsIndexUrl([
+            'country_id' => (string) $country->getKey(),
+            'state_id' => (string) $venueGeography['state']->getKey(),
+            'city_id' => (string) $institutionGeography['city']->getKey(),
+        ]));
+
+        $response->assertOk()->assertDontSee('Mixed Location Filter Event');
+    });
+
+    it('uses the institution address for an institution event with a specific venue space', function () {
+        $country = ensureMalaysiaCountryForTests();
+        $institutionGeography = createTestPackageGeography('Selangor', 'Petaling '.uniqid(), 'Shah Alam Place', country: $country, cityName: 'Shah Alam');
+        $venueGeography = createTestPackageGeography('Johor', 'Johor Bahru '.uniqid(), 'Johor Place', country: $country, cityName: 'Johor Bahru');
+
+        $institution = Institution::factory()->create(['status' => 'verified']);
+        updatePrimaryAddressForSearch($institution, $institutionGeography['address']);
+
+        $venue = Venue::factory()->create(['status' => 'verified']);
+        updatePrimaryAddressForSearch($venue, $venueGeography['address']);
+
+        $space = Space::factory()->create(['venue_id' => $venue->getKey()]);
+        $institution->spaces()->attach($space->getKey());
+
+        $event = Event::factory()->create([
+            'title' => 'Institution Space Location Event',
+            'institution_id' => $institution->getKey(),
+            'default_venue_id' => null,
+            'status' => 'approved',
+            'visibility' => 'public',
+            'published_at' => now(),
+            'starts_at' => now()->addDays(2),
+        ]);
+        $event->syncLocation(null, [$space->getKey()]);
+
+        $response = $this->get(eventsIndexUrl([
+            'country_id' => (string) $country->getKey(),
+            'state_id' => (string) $institutionGeography['state']->getKey(),
+            'city_id' => (string) $institutionGeography['city']->getKey(),
+        ]));
+
+        $response->assertOk()
+            ->assertSee('Institution Space Location Event');
+
+        $payload = $event->fresh()->toSearchableArray();
+
+        expect($payload['state_id'])->toBe((string) $institutionGeography['state']->getKey())
+            ->and($payload['city_id'])->toBe((string) $institutionGeography['city']->getKey())
+            ->and($payload['administrative_district'])->toBe((string) $institutionGeography['district']->getKey())
+            ->and($payload['venue_id'])->toBeNull();
     });
 
     it('filters events by subdistrict', function () {
@@ -1564,7 +1788,7 @@ describe('Event Search Filters', function () {
         updatePrimaryAddressForSearch($venueB, [
             ...$geo['address'],
             'country_code' => 'MY',
-            'administrative_subdivision_id' => (string) $subdistrictB->getKey(),
+            'area_assignments' => ['administrative_subdivision' => (string) $subdistrictB->getKey()],
             'city' => 'Subdistrict B City',
             'state' => 'Selangor',
         ]);
@@ -1586,7 +1810,7 @@ describe('Event Search Filters', function () {
         ]);
 
         $response = $this->get(eventsIndexUrl([
-            'administrative_subdivision_id' => $geo['subdistrict']->getKey(),
+            'area_assignments' => ['administrative_subdivision' => $geo['subdistrict']->getKey()],
         ]));
 
         $response->assertOk()
@@ -1605,8 +1829,7 @@ describe('Event Search Filters', function () {
             'country_id' => (string) $country->getKey(),
             'country_code' => 'MY',
             'state_id' => (string) $geo['state']->getKey(),
-            'administrative_district_id' => null,
-            'administrative_subdivision_id' => (string) $subdistrictA->getKey(),
+            'area_assignments' => ['administrative_subdivision' => (string) $subdistrictA->getKey()],
             'city' => 'Setiawangsa',
             'state' => 'Kuala Lumpur',
         ]);
@@ -1616,8 +1839,7 @@ describe('Event Search Filters', function () {
             'country_id' => (string) $country->getKey(),
             'country_code' => 'MY',
             'state_id' => (string) $geo['state']->getKey(),
-            'administrative_district_id' => null,
-            'administrative_subdivision_id' => (string) $subdistrictB->getKey(),
+            'area_assignments' => ['administrative_subdivision' => (string) $subdistrictB->getKey()],
             'city' => 'Segambut',
             'state' => 'Kuala Lumpur',
         ]);
@@ -1640,7 +1862,7 @@ describe('Event Search Filters', function () {
 
         $response = $this->get(eventsIndexUrl([
             'state_id' => $geo['state']->getKey(),
-            'administrative_subdivision_id' => $subdistrictA->getKey(),
+            'area_assignments' => ['administrative_subdivision' => $subdistrictA->getKey()],
         ]));
 
         $response->assertOk()
@@ -1698,7 +1920,7 @@ describe('Event Search Filters', function () {
         ]);
         attachTermToEventForTest($fiqhEvent, $fiqhTag);
 
-        $query = http_build_query(['topic_ids' => [$tafsirTag->id]]);
+        $query = http_build_query(['discipline_tag_ids' => [$tafsirTag->id]]);
 
         $response = $this->get(eventsIndexUrl($query));
 
@@ -2384,16 +2606,18 @@ describe('Event Search Filters', function () {
             'lng' => 101.8600,
         ]);
 
-        Event::factory()->for($nearInstitution)->for($nearVenue)->create([
+        Event::factory()->for($nearVenue)->create([
             'title' => 'Nearby Event',
+            'institution_id' => null,
             'status' => 'approved',
             'visibility' => 'public',
             'published_at' => now(),
             'starts_at' => now()->addDays(4),
         ]);
 
-        Event::factory()->for($farInstitution)->for($farVenue)->create([
+        Event::factory()->for($farVenue)->create([
             'title' => 'Far Event',
+            'institution_id' => null,
             'status' => 'approved',
             'visibility' => 'public',
             'published_at' => now(),

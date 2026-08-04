@@ -20,6 +20,7 @@ use App\Enums\EventGenderRestriction;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventPrayerTime;
 use App\Enums\EventVisibility;
+use App\Enums\InstitutionNameType;
 use App\Enums\RegistrationScope;
 use App\Models\ContributionRequest;
 use App\Models\DonationChannel;
@@ -1462,7 +1463,7 @@ it('surfaces space update semantics through the admin api schema', function () {
 
     $fields = collect($schema['fields'] ?? [])->keyBy('name');
 
-    expect(data_get($fields->get('slug'), 'uniqueness_scope'))->toBe('spaces.slug')
+    expect(data_get($fields->get('slug'), 'uniqueness_scope'))->toBe('venue_spaces.slug:venue_id')
         ->and(data_get($fields->get('capacity'), 'clear_semantics.explicit_null'))->toBe('clear_to_null')
         ->and(data_get($fields->get('capacity'), 'normalization.empty_string_at_mutation_layer'))->toBe('null')
         ->and(data_get($fields->get('institutions'), 'relation'))->toBe('institutions')
@@ -3221,7 +3222,7 @@ it('clears event poster when clear_poster is submitted as a form-style boolean',
         'domain_tag' => $domainTag,
         'discipline_tag' => $disciplineTag,
     ], [
-        'poster' => fakeGeneratedImageUpload('admin-api-event-poster.png', 1200, 1500),
+        'poster' => fakeGeneratedImageUpload('admin-api-event-poster.png', 1200, 1600),
     ]))->assertCreated()
         ->assertJsonPath('data.record.attributes.has_poster', true);
 

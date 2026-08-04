@@ -2,11 +2,11 @@
 
 namespace App\Filament\Widgets;
 
-use AIArmada\FilamentEvents\Resources\VenueResource;
 use App\Filament\Pages\ModerationQueue;
 use App\Filament\Resources\Institutions\InstitutionResource;
 use App\Filament\Resources\Persons\PersonResource;
 use App\Filament\Resources\References\ReferenceResource;
+use App\Filament\Resources\Venues\VenueResource;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;

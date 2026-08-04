@@ -34,12 +34,14 @@ use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\QueryParameter;
 use Illuminate\Database\Connection;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Spatie\QueryBuilder\AllowedFilter;
+use Spatie\QueryBuilder\AllowedSort;
 use Spatie\QueryBuilder\QueryBuilder;
 
 class EventController extends Controller
@@ -143,27 +145,27 @@ class EventController extends Controller
             AllowedFilter::callback('starts_after', function (Builder $query, mixed $value): void {
                 $startsAfter = $this->parseDate($value, false);
                 if ($startsAfter instanceof Carbon) {
-                    $query->where('starts_at', '>=', $startsAfter);
+                    $query->whereRaw(PrimaryOccurrenceSql::column('starts_at', $query->getModel()->getTable()).' >= ?', [$startsAfter]);
                 }
             }),
             AllowedFilter::callback('starts_before', function (Builder $query, mixed $value): void {
                 $startsBefore = $this->parseDate($value, true);
                 if ($startsBefore instanceof Carbon) {
-                    $query->where('starts_at', '<=', $startsBefore);
+                    $query->whereRaw(PrimaryOccurrenceSql::column('starts_at', $query->getModel()->getTable()).' <= ?', [$startsBefore]);
                 }
             }),
             AllowedFilter::callback('starts_at_after', function (Builder $query, mixed $value) use ($request): void {
                 $startsAtAfter = $this->parseDateTime($value, $request);
 
                 if ($startsAtAfter instanceof Carbon) {
-                    $query->where('starts_at', '>=', $startsAtAfter);
+                    $query->whereRaw(PrimaryOccurrenceSql::column('starts_at', $query->getModel()->getTable()).' >= ?', [$startsAtAfter]);
                 }
             }),
             AllowedFilter::callback('starts_at_before', function (Builder $query, mixed $value) use ($request): void {
                 $startsAtBefore = $this->parseDateTime($value, $request);
 
                 if ($startsAtBefore instanceof Carbon) {
-                    $query->where('starts_at', '<=', $startsAtBefore);
+                    $query->whereRaw(PrimaryOccurrenceSql::column('starts_at', $query->getModel()->getTable()).' <= ?', [$startsAtBefore]);
                 }
             }),
             AllowedFilter::callback('starts_on_local_date', function (Builder $query, mixed $value): void {
@@ -171,70 +173,54 @@ class EventController extends Controller
                 $startsOnLocalDateEnd = $this->parseDate($value, true);
 
                 if ($startsOnLocalDateStart instanceof Carbon && $startsOnLocalDateEnd instanceof Carbon) {
-                    $query->whereBetween('starts_at', [$startsOnLocalDateStart, $startsOnLocalDateEnd]);
+                    $query->whereRaw(
+                        PrimaryOccurrenceSql::column('starts_at', $query->getModel()->getTable()).' between ? and ?',
+                        [$startsOnLocalDateStart, $startsOnLocalDateEnd],
+                    );
                 }
             }),
             AllowedFilter::callback('ends_after', function (Builder $query, mixed $value): void {
                 $endsAfter = $this->parseDate($value, false);
                 if ($endsAfter instanceof Carbon) {
-                    $query->where('ends_at', '>=', $endsAfter);
+                    $query->whereRaw(PrimaryOccurrenceSql::column('ends_at', $query->getModel()->getTable()).' >= ?', [$endsAfter]);
                 }
             }),
             AllowedFilter::callback('ends_before', function (Builder $query, mixed $value): void {
                 $endsBefore = $this->parseDate($value, true);
                 if ($endsBefore instanceof Carbon) {
-                    $query->where('ends_at', '<=', $endsBefore);
+                    $query->whereRaw(PrimaryOccurrenceSql::column('ends_at', $query->getModel()->getTable()).' <= ?', [$endsBefore]);
                 }
             }),
-            AllowedFilter::callback('country_id', function (Builder $query, mixed $value): void {
+            AllowedFilter::callback('country_id', function (Builder $query, mixed $value) use ($request): void {
                 $countryIds = $this->normalizeArrayFilter($value);
                 if ($countryIds === []) {
                     return;
                 }
 
-                $query->whereHas('venue.addresses', function (Builder $addressQuery) use ($countryIds): void {
-                    $addressQuery->whereIn('country_id', $countryIds);
-                });
+                $this->applyEventAddressFilterFromRequest($query, $request);
             }),
-            AllowedFilter::callback('state_id', function (Builder $query, mixed $value): void {
+            AllowedFilter::callback('state_id', function (Builder $query, mixed $value) use ($request): void {
                 $stateIds = $this->normalizeArrayFilter($value);
                 if ($stateIds === []) {
                     return;
                 }
 
-                $query->whereHas('venue.addresses', function (Builder $addressQuery) use ($stateIds): void {
-                    $addressQuery->whereIn('state_id', $stateIds);
-                });
+                $this->applyEventAddressFilterFromRequest($query, $request);
             }),
-            AllowedFilter::callback('city_id', function (Builder $query, mixed $value): void {
+            AllowedFilter::callback('city_id', function (Builder $query, mixed $value) use ($request): void {
                 $cityIds = $this->normalizeArrayFilter($value);
                 if ($cityIds === []) {
                     return;
                 }
 
-                $query->whereHas('venue.addresses', function (Builder $addressQuery) use ($cityIds): void {
-                    $addressQuery->whereIn('city_id', $cityIds);
-                });
+                $this->applyEventAddressFilterFromRequest($query, $request);
             }),
-            AllowedFilter::callback('administrative_district_id', function (Builder $query, mixed $value): void {
-                $areaIds = $this->normalizeArrayFilter($value);
-                if ($areaIds === []) {
-                    return;
-                }
+            AllowedFilter::callback('area_assignments', function (Builder $query, mixed $value) use ($request): void {
+                $assignments = $this->normalizeAreaAssignments($value);
 
-                $query->whereHas('venue.addresses.areaAssignments', function (Builder $assignmentQuery) use ($areaIds): void {
-                    $assignmentQuery->where('role', 'administrative_district')->whereIn('address_area_id', $areaIds);
-                });
-            }),
-            AllowedFilter::callback('administrative_subdivision_id', function (Builder $query, mixed $value): void {
-                $areaIds = $this->normalizeArrayFilter($value);
-                if ($areaIds === []) {
-                    return;
+                if ($assignments !== []) {
+                    $this->applyEventAddressFilterFromRequest($query, $request);
                 }
-
-                $query->whereHas('venue.addresses.areaAssignments', function (Builder $assignmentQuery) use ($areaIds): void {
-                    $assignmentQuery->where('role', 'administrative_subdivision')->whereIn('address_area_id', $areaIds);
-                });
             }),
             AllowedFilter::callback('person', function (Builder $query, mixed $value): void {
                 $personIds = $this->normalizeArrayFilter($value);
@@ -445,11 +431,19 @@ class EventController extends Controller
             'addresses',
             'addresses.country',
         ];
-        /** @var list<string> $allowedSorts */
+        /** @var list<AllowedSort|string> $allowedSorts */
         $allowedSorts = [
             'title',
-            'starts_at',
-            'ends_at',
+            AllowedSort::callback('starts_at', function (Builder $query, bool $descending): void {
+                $direction = $descending ? 'desc' : 'asc';
+
+                $query->orderByRaw(PrimaryOccurrenceSql::column('starts_at', $query->getModel()->getTable())." {$direction}");
+            }),
+            AllowedSort::callback('ends_at', function (Builder $query, bool $descending): void {
+                $direction = $descending ? 'desc' : 'asc';
+
+                $query->orderByRaw(PrimaryOccurrenceSql::column('ends_at', $query->getModel()->getTable())." {$direction}");
+            }),
             'created_at',
             'updated_at',
         ];
@@ -469,6 +463,7 @@ class EventController extends Controller
             ->whereNotNull('published_at')
             ->whereIn('status', self::PUBLIC_STATUSES)
             ->where('visibility', 'public')
+            ->whereHas('occurrences')
             ->paginate(ApiPagination::normalizePerPage($request->integer('per_page', 20), default: 20, max: 50))
             ->appends($request->query());
 
@@ -626,7 +621,8 @@ class EventController extends Controller
         abort_unless(
             $event->published_at !== null
                 && in_array($status, self::PUBLIC_STATUSES, true)
-                && in_array($visibility, [EventVisibility::Public->value, EventVisibility::Unlisted->value], true),
+                && in_array($visibility, [EventVisibility::Public->value, EventVisibility::Unlisted->value], true)
+                && $event->hasOccurrences(),
             404,
         );
     }
@@ -639,7 +635,8 @@ class EventController extends Controller
         abort_unless(
             $event->published_at !== null
                 && in_array($status, self::PUBLIC_STATUSES, true)
-                && in_array($visibility, [EventVisibility::Public->value, EventVisibility::Unlisted->value], true),
+                && in_array($visibility, [EventVisibility::Public->value, EventVisibility::Unlisted->value], true)
+                && $event->hasOccurrences(),
             404,
         );
     }
@@ -889,6 +886,93 @@ class EventController extends Controller
             array_map(static fn (mixed $item): string => (string) $item, $values),
             static fn (string $item): bool => $item !== ''
         ));
+    }
+
+    /**
+     * Apply all location criteria to one package address, allowing either the
+     * event venue or its institution to satisfy the complete filter.
+     *
+     * @param  Builder<Event>  $query
+     */
+    private function applyEventAddressFilterFromRequest(Builder $query, Request $request): void
+    {
+        $rawFilters = $request->query('filter', []);
+        $rawFilters = is_array($rawFilters) ? $rawFilters : [];
+        $criteria = [];
+
+        foreach (['country_id', 'state_id', 'city_id'] as $column) {
+            $values = $this->normalizeArrayFilter($rawFilters[$column] ?? null);
+
+            if ($values !== []) {
+                $criteria[$column] = $values;
+            }
+        }
+
+        $assignments = $this->normalizeAreaAssignments($rawFilters['area_assignments'] ?? null);
+
+        if ($criteria === [] && $assignments === []) {
+            return;
+        }
+
+        $query->where(function (Builder $locationQuery) use ($criteria, $assignments): void {
+            $locationQuery->whereHas('venue.addresses', function (Builder $addressQuery) use ($criteria, $assignments): void {
+                $this->applyAddressCriteria($addressQuery, $criteria, $assignments);
+            });
+
+            $locationQuery->orWhereHas('institution.addresses', function (Builder $addressQuery) use ($criteria, $assignments): void {
+                $this->applyAddressCriteria($addressQuery, $criteria, $assignments);
+            });
+        });
+    }
+
+    /**
+     * @template TModel of Model
+     *
+     * @param  Builder<TModel>  $addressQuery
+     * @param  array<string, list<string>>  $criteria
+     * @param  array<string, string>  $assignments
+     */
+    private function applyAddressCriteria(Builder $addressQuery, array $criteria, array $assignments): void
+    {
+        foreach ($criteria as $column => $values) {
+            $addressQuery->whereIn($column, $values);
+        }
+
+        foreach ($assignments as $role => $areaId) {
+            $addressQuery->whereHas('areaAssignments', function (Builder $assignmentQuery) use ($role, $areaId): void {
+                $assignmentQuery
+                    ->where('role', $role)
+                    ->where('address_area_id', $areaId)
+                    ->where('is_primary', true);
+            });
+        }
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function normalizeAreaAssignments(mixed $value): array
+    {
+        if (! is_array($value)) {
+            return [];
+        }
+
+        $assignments = [];
+
+        foreach ($value as $role => $areaId) {
+            if (! is_string($role) || ! is_scalar($areaId)) {
+                continue;
+            }
+
+            $role = trim($role);
+            $areaId = trim((string) $areaId);
+
+            if ($role !== '' && $areaId !== '') {
+                $assignments[$role] = $areaId;
+            }
+        }
+
+        return $assignments;
     }
 
     /**

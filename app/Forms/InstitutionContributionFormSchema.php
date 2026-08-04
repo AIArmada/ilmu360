@@ -56,6 +56,7 @@ class InstitutionContributionFormSchema
                                 ->fixIndistinctState(),
                         ])
                         ->columns(2)
+                        ->columnSpanFull()
                         ->defaultItems(0)
                         ->addActionLabel(__('Add name')),
                     RichEditor::make('description')
@@ -69,6 +70,7 @@ class InstitutionContributionFormSchema
                         ? [
                             View::make('filament.schemas.components.institution-location-picker')
                                 ->statePath($addressStatePath)
+                                ->columnSpanFull()
                                 ->viewData([
                                     'mapsApiKey' => GooglePlacesConfiguration::apiKey(),
                                 ]),

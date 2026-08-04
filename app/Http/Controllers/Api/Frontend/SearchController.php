@@ -547,6 +547,7 @@ class SearchController extends FrontendController
                     ->whereNotNull('events.published_at')
                     ->whereIn('events.status', Event::PUBLIC_STATUSES)
                     ->where('events.visibility', EventVisibility::Public)
+                    ->whereHas('occurrences')
                     ->where('starts_at', '>=', $now);
             })
             ->get();
@@ -579,6 +580,7 @@ class SearchController extends FrontendController
                     ->whereNotNull('events.published_at')
                     ->whereIn('events.status', Event::PUBLIC_STATUSES)
                     ->where('events.visibility', EventVisibility::Public)
+                    ->whereHas('occurrences')
                     ->where('starts_at', '<', $now);
             })
             ->get();
@@ -1083,7 +1085,8 @@ class SearchController extends FrontendController
             ->whereColumn('events.institution_id', 'institutions.id')
             ->whereNotNull('events.published_at')
             ->whereIn('events.status', Event::PUBLIC_STATUSES)
-            ->where('events.visibility', EventVisibility::Public);
+            ->where('events.visibility', EventVisibility::Public)
+            ->whereHas('occurrences');
 
         if ($upcomingOnly) {
             $query->where('events.starts_at', '>=', now());
@@ -1182,6 +1185,7 @@ class SearchController extends FrontendController
                     ->whereNotNull('events.published_at')
                     ->whereIn('events.status', Event::PUBLIC_STATUSES)
                     ->where('events.visibility', EventVisibility::Public)
+                    ->whereHas('occurrences')
                     ->where('events.starts_at', '>=', now());
             }])
             ->with(['media', 'addresses']);
@@ -1316,7 +1320,8 @@ class SearchController extends FrontendController
                 $query
                     ->whereNotNull('events.published_at')
                     ->whereIn('events.status', Event::PUBLIC_STATUSES)
-                    ->where('events.visibility', EventVisibility::Public);
+                    ->where('events.visibility', EventVisibility::Public)
+                    ->whereHas('occurrences');
             }])
             ->with(['media']);
     }

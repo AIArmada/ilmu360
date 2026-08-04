@@ -2,6 +2,7 @@
 
 namespace App\Support\Search;
 
+use AIArmada\CommerceSupport\Support\StringSimilarity;
 use App\Contracts\PublicDiscoveryAdapter;
 use App\Models\Person;
 use Illuminate\Database\Eloquent\Builder;
@@ -20,7 +21,7 @@ class PersonSearchService implements PublicDiscoveryAdapter
     public function buildSearchableName(
         ?string $name,
     ): string {
-        return $this->normalizeText(Person::formatDisplayedName($name));
+        return StringSimilarity::normalize(Person::formatDisplayedName($name));
     }
 
     public function buildSearchableText(Person $person): string
@@ -299,8 +300,8 @@ class PersonSearchService implements PublicDiscoveryAdapter
                     }
 
                     $scoreCandidates = [
-                        $this->fuzzyComparable($normalizedSearch, $candidate)
-                            ? $this->similarityScore($normalizedSearch, $candidate)
+                        FuzzySearchPolicy::isComparable($normalizedSearch, $candidate)
+                            ? StringSimilarity::score($normalizedSearch, $candidate)
                             : 0.0,
                     ];
 
@@ -310,8 +311,8 @@ class PersonSearchService implements PublicDiscoveryAdapter
                     ));
 
                     foreach ($candidateTokens as $token) {
-                        $scoreCandidates[] = $this->fuzzyComparable($normalizedSearch, $token)
-                            ? $this->similarityScore($normalizedSearch, $token)
+                        $scoreCandidates[] = FuzzySearchPolicy::isComparable($normalizedSearch, $token)
+                            ? StringSimilarity::score($normalizedSearch, $token)
                             : 0.0;
                     }
 
@@ -369,8 +370,8 @@ class PersonSearchService implements PublicDiscoveryAdapter
                 }
 
                 $scoreCandidates = [
-                    $this->fuzzyComparable($normalizedSearch, $candidate)
-                        ? $this->similarityScore($normalizedSearch, $candidate)
+                    FuzzySearchPolicy::isComparable($normalizedSearch, $candidate)
+                        ? StringSimilarity::score($normalizedSearch, $candidate)
                         : 0.0,
                 ];
 
@@ -380,8 +381,8 @@ class PersonSearchService implements PublicDiscoveryAdapter
                 ));
 
                 foreach ($candidateTokens as $token) {
-                    $scoreCandidates[] = $this->fuzzyComparable($normalizedSearch, $token)
-                        ? $this->similarityScore($normalizedSearch, $token)
+                    $scoreCandidates[] = FuzzySearchPolicy::isComparable($normalizedSearch, $token)
+                        ? StringSimilarity::score($normalizedSearch, $token)
                         : 0.0;
                 }
 
@@ -626,7 +627,7 @@ class PersonSearchService implements PublicDiscoveryAdapter
 
     public function normalizedSearch(string $search): ?string
     {
-        $normalized = $this->normalizeText($search);
+        $normalized = StringSimilarity::normalize($search);
 
         return $normalized === '' ? null : $normalized;
     }
@@ -702,41 +703,6 @@ class PersonSearchService implements PublicDiscoveryAdapter
         return $this->buildSearchableName(
             $person->formatted_name,
         );
-    }
-
-    private function fuzzyComparable(string $search, string $candidate): bool
-    {
-        if ($search === '' || $candidate === '') {
-            return false;
-        }
-
-        return mb_substr($search, 0, 1) === mb_substr($candidate, 0, 1);
-    }
-
-    private function normalizeText(string $value): string
-    {
-        return (string) Str::of($value)
-            ->lower()
-            ->ascii()
-            ->replaceMatches('/[^a-z0-9\s]+/u', ' ')
-            ->replaceMatches('/\s+/u', ' ')
-            ->trim();
-    }
-
-    private function similarityScore(string $search, string $candidate): float
-    {
-        if ($search === '' || $candidate === '') {
-            return 0.0;
-        }
-
-        $distance = levenshtein($search, $candidate);
-        $maxLength = max(mb_strlen($search), mb_strlen($candidate));
-        $distanceScore = $maxLength > 0 ? 1 - ($distance / $maxLength) : 0.0;
-
-        similar_text($search, $candidate, $similarityPercent);
-        $similarityScore = $similarityPercent / 100;
-
-        return max($distanceScore, $similarityScore);
     }
 
     /**

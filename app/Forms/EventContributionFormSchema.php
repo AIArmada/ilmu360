@@ -7,6 +7,7 @@ use AIArmada\Events\Models\EventTerm;
 use App\Actions\References\GenerateReferenceSlugAction;
 use App\Contracts\EventCategoryCatalog;
 use App\Contracts\EventCategoryPolicyResolver;
+use App\Contracts\SpaceEligibilityResolver;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
@@ -20,7 +21,6 @@ use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Reference;
 use App\Models\Series;
-use App\Models\Space;
 use App\Models\Venue;
 use App\Support\Cache\SelectionCatalogCache;
 use Filament\Forms\Components\DatePicker;
@@ -87,6 +87,7 @@ class EventContributionFormSchema
                         ->maxLength(255),
                     Select::make('event_category_ids')
                         ->label(__('Jenis Majlis'))
+                        ->placeholder(__('Pilih kategori…'))
                         ->options(self::eventCategoryOptions())
                         ->multiple()
                         ->closeOnSelect()
@@ -166,6 +167,7 @@ class EventContributionFormSchema
                         ->required(),
                     Select::make('age_group')
                         ->label(__('Peringkat Umur'))
+                        ->placeholder(__('Pilih peringkat umur'))
                         ->options(EventAgeGroup::class)
                         ->multiple()
                         ->closeOnSelect()
@@ -198,6 +200,7 @@ class EventContributionFormSchema
                         ->default(false),
                     Select::make('language_ids')
                         ->label(__('Bahasa'))
+                        ->placeholder(__('Pilih bahasa'))
                         ->options(fn (): array => self::languageOptions())
                         ->multiple()
                         ->searchable()
@@ -209,6 +212,7 @@ class EventContributionFormSchema
                 ->schema([
                     Select::make('domain_tags')
                         ->label(__('Kategori'))
+                        ->placeholder(__('Pilih kategori…'))
                         ->options(fn (): array => self::tagOptions(EventTaxonomyCode::Domain))
                         ->multiple()
                         ->searchable()
@@ -216,6 +220,7 @@ class EventContributionFormSchema
                         ->closeOnSelect(),
                     Select::make('discipline_tags')
                         ->label(__('Bidang Ilmu'))
+                        ->placeholder(__('Pilih atau taip untuk tambah bidang…'))
                         ->options(fn (): array => self::tagOptions(EventTaxonomyCode::Discipline))
                         ->multiple()
                         ->searchable()
@@ -230,6 +235,7 @@ class EventContributionFormSchema
                         ->createOptionUsing(fn (array $data): string => self::createPendingTag($data, EventTaxonomyCode::Discipline)),
                     Select::make('source_tags')
                         ->label(__('Sumber Utama'))
+                        ->placeholder(__('Pilih sumber…'))
                         ->options(fn (): array => self::tagOptions(EventTaxonomyCode::Source))
                         ->multiple()
                         ->searchable()
@@ -237,6 +243,7 @@ class EventContributionFormSchema
                         ->closeOnSelect(),
                     Select::make('issue_tags')
                         ->label(__('Tema / Isu'))
+                        ->placeholder(__('Pilih atau taip untuk tambah tema…'))
                         ->options(fn (): array => self::tagOptions(EventTaxonomyCode::Issue))
                         ->multiple()
                         ->searchable()
@@ -251,6 +258,7 @@ class EventContributionFormSchema
                         ->createOptionUsing(fn (array $data): string => self::createPendingTag($data, EventTaxonomyCode::Issue)),
                     Select::make('reference_ids')
                         ->label(__('Rujukan Kitab / Buku'))
+                        ->placeholder(__('Cari atau pilih rujukan…'))
                         ->options(fn (): array => Reference::query()
                             ->orderBy('title')
                             ->get(['id', 'title', 'parent_id', 'metadata'])
@@ -432,6 +440,7 @@ class EventContributionFormSchema
                                 ->createOptionUsing(fn (array $data, ?Schema $schema = null): string => PersonFormSchema::createOptionUsing($data, $schema)),
                             Select::make('series_ids')
                                 ->label(__('Siri'))
+                                ->placeholder(__('Pilih siri'))
                                 ->options(fn (): array => Series::query()->orderBy('title')->pluck('title', 'id')->all())
                                 ->multiple()
                                 ->searchable()
@@ -541,25 +550,48 @@ class EventContributionFormSchema
                             Select::make('space_ids')
                                 ->label(__('Ruang'))
                                 ->helperText(__('Pilih satu atau lebih ruang (cth: Dewan Utama, Ruang Solat).'))
+                                ->placeholder(__('Pilih ruang…'))
                                 ->multiple()
                                 ->searchable()
                                 ->preload()
-                                ->options(fn (Get $get): array => self::spaceOptionsForInstitution(self::resolvedLocationInstitutionId(
-                                    self::selectedPrimaryOrganizerKind($get('primary_organizer_kind'), $get('primary_organizer_id')),
-                                    $get('primary_organizer_id'),
-                                    $get('primary_organizer_institution_id'),
-                                    $get('location_same_as_institution'),
-                                    $get('location_type'),
-                                    $get('location_institution_id'),
-                                )))
-                                ->visible(fn (Get $get): bool => self::resolvedLocationInstitutionId(
-                                    self::selectedPrimaryOrganizerKind($get('primary_organizer_kind'), $get('primary_organizer_id')),
-                                    $get('primary_organizer_id'),
-                                    $get('primary_organizer_institution_id'),
-                                    $get('location_same_as_institution'),
-                                    $get('location_type'),
-                                    $get('location_institution_id'),
-                                ) !== null),
+                                ->options(function (Get $get): array {
+                                    $locationType = self::resolvedLocationType(
+                                        self::selectedPrimaryOrganizerKind($get('primary_organizer_kind'), $get('primary_organizer_id')),
+                                        $get('location_same_as_institution'),
+                                        $get('location_type'),
+                                    );
+
+                                    if ($locationType === 'venue') {
+                                        return self::spaceOptionsForVenue(self::normalizedString($get('location_venue_id')));
+                                    }
+
+                                    return self::spaceOptionsForInstitution(self::resolvedLocationInstitutionId(
+                                        self::selectedPrimaryOrganizerKind($get('primary_organizer_kind'), $get('primary_organizer_id')),
+                                        $get('primary_organizer_id'),
+                                        $get('primary_organizer_institution_id'),
+                                        $get('location_same_as_institution'),
+                                        $get('location_type'),
+                                        $get('location_institution_id'),
+                                    ));
+                                })
+                                ->visible(function (Get $get): bool {
+                                    $locationType = self::resolvedLocationType(
+                                        self::selectedPrimaryOrganizerKind($get('primary_organizer_kind'), $get('primary_organizer_id')),
+                                        $get('location_same_as_institution'),
+                                        $get('location_type'),
+                                    );
+
+                                    return $locationType === 'venue'
+                                        ? self::normalizedString($get('location_venue_id')) !== null
+                                        : self::resolvedLocationInstitutionId(
+                                            self::selectedPrimaryOrganizerKind($get('primary_organizer_kind'), $get('primary_organizer_id')),
+                                            $get('primary_organizer_id'),
+                                            $get('primary_organizer_institution_id'),
+                                            $get('location_same_as_institution'),
+                                            $get('location_type'),
+                                            $get('location_institution_id'),
+                                        ) !== null;
+                                }),
                         ]),
                 ])
                 ->columns(['default' => 1, 'sm' => 2]),
@@ -567,6 +599,7 @@ class EventContributionFormSchema
                 ->schema([
                     Select::make('person_ids')
                         ->label(__('Pilih Penceramah'))
+                        ->placeholder(__('Pilih Penceramah'))
                         ->options(fn (): array => self::personOptions())
                         ->required(fn (Get $get): bool => self::requiresPersonsForCategories($get('event_category_ids')))
                         ->multiple()
@@ -834,13 +867,24 @@ class EventContributionFormSchema
             return [];
         }
 
-        return Space::query()
+        return app(SpaceEligibilityResolver::class)->institutionQuery($institutionId)
             ->where('status', 'active')
-            ->where(function ($query) use ($institutionId): void {
-                $query
-                    ->whereHas('institutions', fn ($relatedQuery) => $relatedQuery->where('institutions.id', $institutionId))
-                    ->orWhereDoesntHave('institutions');
-            })
+            ->orderBy('name')
+            ->pluck('name', 'id')
+            ->all();
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private static function spaceOptionsForVenue(?string $venueId): array
+    {
+        if ($venueId === null) {
+            return [];
+        }
+
+        return app(SpaceEligibilityResolver::class)->venueQuery($venueId)
+            ->where('status', 'active')
             ->orderBy('name')
             ->pluck('name', 'id')
             ->all();

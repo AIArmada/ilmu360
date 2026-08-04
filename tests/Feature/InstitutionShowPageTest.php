@@ -2,6 +2,7 @@
 
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
+use AIArmada\Contacting\Enums\SocialPlatform;
 use App\Enums\EventFormat;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventVisibility;
@@ -10,6 +11,7 @@ use App\Enums\PrayerOffset;
 use App\Enums\PrayerReference;
 use App\Enums\ReferenceType;
 use App\Enums\TimingMode;
+use App\Filament\Resources\Institutions\InstitutionResource;
 use App\Models\Affiliation;
 use App\Models\Event;
 use App\Models\Inspiration;
@@ -65,7 +67,33 @@ it('allows super_admin to view unverified institution', function () {
         ->assertSee($institution->name);
 });
 
-it('displays institution type badge', function () {
+it('shows the institution edit action to admins', function () {
+    config(['permission.teams' => false]);
+    app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+    $roleClass = app(PermissionRegistrar::class)->getRoleClass();
+    if (! $roleClass::where('name', 'admin')->exists()) {
+        $roleClass::create(['name' => 'admin', 'guard_name' => 'web']);
+    }
+
+    $admin = User::factory()->create();
+    $admin->assignRole('admin');
+
+    $institution = Institution::factory()->create(['status' => 'verified']);
+    $editUrl = InstitutionResource::getUrl(
+        'edit',
+        ['record' => $institution],
+        panel: 'admin',
+    );
+
+    $this->actingAs($admin)
+        ->get(route('institutions.show', $institution))
+        ->assertSuccessful()
+        ->assertSee($editUrl, false)
+        ->assertSee(__('Edit'));
+});
+
+it('keeps the institution title free of redundant badges', function () {
     $institution = Institution::factory()->create([
         'status' => 'verified',
         'type' => InstitutionType::Masjid,
@@ -73,7 +101,9 @@ it('displays institution type badge', function () {
 
     $this->get(route('institutions.show', $institution))
         ->assertSuccessful()
-        ->assertSee(InstitutionType::Masjid->getLabel());
+        ->assertSee($institution->name)
+        ->assertDontSee('>Masjid<', false)
+        ->assertDontSee(__('Institusi Disahkan'));
 });
 
 it('uses the institution logo as the public preview image when no cover exists', function () {
@@ -189,6 +219,56 @@ it('displays upcoming events for the institution', function () {
         ->assertSuccessful()
         ->assertSee('Kuliah Maghrib Akan Datang')
         ->assertSee('Kuliah Subuh Lalu');
+});
+
+it('filters upcoming institution events by friendly date ranges', function () {
+    Carbon::setTestNow(Carbon::create(2026, 7, 30, 10, 0, 0, 'UTC'));
+
+    $institution = Institution::factory()->create(['status' => 'verified']);
+
+    Event::factory()->for($institution)->create([
+        'title' => 'Majlis Hari Ini',
+        'status' => 'approved',
+        'visibility' => EventVisibility::Public,
+        'starts_at' => Carbon::create(2026, 7, 30, 12, 0, 0, 'UTC'),
+    ]);
+    Event::factory()->for($institution)->create([
+        'title' => 'Majlis Bulan Depan',
+        'status' => 'approved',
+        'visibility' => EventVisibility::Public,
+        'starts_at' => Carbon::create(2026, 8, 3, 12, 0, 0, 'UTC'),
+    ]);
+    Event::factory()->for($institution)->create([
+        'title' => 'Majlis Bulan Ini',
+        'status' => 'approved',
+        'visibility' => EventVisibility::Public,
+        'starts_at' => Carbon::create(2026, 7, 30, 14, 0, 0, 'UTC'),
+    ]);
+
+    try {
+        Livewire::withCookie('user_timezone', 'Asia/Kuala_Lumpur')
+            ->test('pages.institutions.show', ['institution' => $institution])
+            ->set('upcomingDateFilter', 'today')
+            ->assertSee('Majlis Hari Ini')
+            ->assertDontSee('Majlis Bulan Depan')
+            ->set('upcomingDateFilter', 'next_month')
+            ->assertSee('Majlis Bulan Depan')
+            ->assertDontSee('Majlis Hari Ini')
+            ->set('upcomingDateFilter', 'this_month')
+            ->assertSee('Majlis Hari Ini')
+            ->assertSee('Majlis Bulan Ini')
+            ->assertDontSee('Majlis Bulan Depan')
+            ->set('upcomingDateFilter', 'tomorrow')
+            ->assertSee('Tiada majlis untuk tempoh ini')
+            ->assertSee('Tunjukkan semua majlis')
+            ->set('customStartDate', '2026-08-01')
+            ->set('customEndDate', '2026-08-31')
+            ->call('applyCustomDateRange')
+            ->assertSee('Majlis Bulan Depan')
+            ->assertDontSee('Majlis Hari Ini');
+    } finally {
+        Carbon::setTestNow();
+    }
 });
 
 it('renders institution event cards with localized prayer timing stacked person avatars and no institution fallback location', function () {
@@ -527,6 +607,27 @@ it('displays public contacts', function () {
         ->assertDontSee('private@test.com');
 });
 
+it('hides private social profiles', function () {
+    $institution = Institution::factory()->create(['status' => 'verified']);
+
+    $publicProfile = $institution->socialProfiles()->create([
+        'platform' => SocialPlatform::Facebook->value,
+        'url' => 'https://facebook.com/public-institution',
+        'is_public' => true,
+    ]);
+
+    $privateProfile = $institution->socialProfiles()->create([
+        'platform' => SocialPlatform::Instagram->value,
+        'url' => 'https://instagram.com/private-institution',
+        'is_public' => false,
+    ]);
+
+    $this->get(route('institutions.show', $institution))
+        ->assertSuccessful()
+        ->assertSee((string) $publicProfile->fresh()->profileUrl(), false)
+        ->assertDontSee((string) $privateProfile->fresh()->profileUrl(), false);
+});
+
 it('loads more upcoming events via Livewire', function () {
     $institution = Institution::factory()->create(['status' => 'verified']);
 
@@ -696,7 +797,7 @@ it('preserves the institution url in guest auth links', function () {
         ->assertDontSee('href="'.route('login').'"', false);
 });
 
-it('does not render breadcrumb and removed hero/page summary actions', function () {
+it('renders a breadcrumb and omits removed hero/page summary actions', function () {
     $institution = Institution::factory()->create([
         'status' => 'verified',
         'name' => 'Institusi Ujian',
@@ -712,8 +813,8 @@ it('does not render breadcrumb and removed hero/page summary actions', function 
 
     $this->get(route('institutions.show', $institution))
         ->assertSuccessful()
+        ->assertSee('data-ui="public-breadcrumbs"', false)
         ->assertDontSee('Lihat Semua Majlis')
-        ->assertDontSee('2 majlis')
         ->assertDontSee('3 penceramah')
         ->assertDontSee('<nav class="animate-fade-in-up flex items-center gap-2 text-sm" style="animation-delay: 100ms; opacity: 0;">', false);
 });
@@ -730,6 +831,8 @@ it('renders prayer-relative start time and event timezone end time in institutio
             'starts_at' => Carbon::parse('2026-02-18 09:00:00', 'UTC'),
             'ends_at' => Carbon::parse('2026-02-18 12:40:00', 'UTC'),
             'timing_mode' => TimingMode::PrayerRelative,
+            'prayer_reference' => PrayerReference::Asr,
+            'prayer_offset' => PrayerOffset::Immediately,
             'prayer_display_text' => 'Selepas Asar',
             'title' => 'Kuliah Khas Timing',
         ]);

@@ -3,6 +3,9 @@
 namespace App\Filament\Resources\Institutions\Schemas;
 
 use AIArmada\Contacting\Enums\SocialPlatform;
+use App\Models\Institution;
+use App\Support\Location\AddressAssignments;
+use App\Support\Location\AddressHierarchyFormatter;
 use Filament\Infolists\Components\IconEntry;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\SpatieMediaLibraryImageEntry;
@@ -38,6 +41,8 @@ class InstitutionInfolist
                                             ->schema([
                                                 TextEntry::make('name')
                                                     ->label('Nama Institusi'),
+                                                TextEntry::make('display_name')
+                                                    ->label('Nama Paparan'),
                                                 TextEntry::make('slug')
                                                     ->label('Slug'),
                                                 TextEntry::make('type')
@@ -57,6 +62,13 @@ class InstitutionInfolist
                                                     ->label('Penerangan')
                                                     ->columnSpanFull()
                                                     ->html()
+                                                    ->placeholder('-'),
+                                                TextEntry::make('languages.name')
+                                                    ->label('Bahasa')
+                                                    ->placeholder('-'),
+                                                TextEntry::make('names.full_name')
+                                                    ->label('Nama Alternatif')
+                                                    ->listWithLineBreaks()
                                                     ->placeholder('-'),
                                             ]),
                                     ])
@@ -83,21 +95,35 @@ class InstitutionInfolist
                                     ->schema([
                                         TextEntry::make('address.line1')
                                             ->label('Alamat 1')
+                                            ->state(fn (?Institution $record): ?string => $record?->primaryAddress()?->line1)
                                             ->placeholder('-'),
                                         TextEntry::make('address.line2')
                                             ->label('Alamat 2')
+                                            ->state(fn (?Institution $record): ?string => $record?->primaryAddress()?->line2)
                                             ->placeholder('-'),
                                         TextEntry::make('address.postcode')
                                             ->label('Poskod')
+                                            ->state(fn (?Institution $record): ?string => $record?->primaryAddress()?->postcode)
                                             ->placeholder('-'),
                                         TextEntry::make('address.city')
                                             ->label('Bandar / Kawasan')
+                                            ->state(fn (?Institution $record): ?string => $record?->primaryAddress()?->city)
                                             ->placeholder('-'),
-                                        TextEntry::make('addresses.state')
+                                        TextEntry::make('address.district')
+                                            ->label('Daerah')
+                                            ->state(fn (?Institution $record): ?string => AddressHierarchyFormatter::roleAreaName($record?->primaryAddress(), AddressAssignments::ADMINISTRATIVE_DISTRICT))
+                                            ->placeholder('-'),
+                                        TextEntry::make('address.subdistrict')
+                                            ->label('Mukim / Kawasan')
+                                            ->state(fn (?Institution $record): ?string => AddressHierarchyFormatter::subdivisionOrLocalityName($record?->primaryAddress()))
+                                            ->placeholder('-'),
+                                        TextEntry::make('address.state')
                                             ->label('Negeri')
+                                            ->state(fn (?Institution $record): ?string => $record?->primaryAddress()?->state)
                                             ->placeholder('-'),
                                         TextEntry::make('address.country')
                                             ->label('Negara')
+                                            ->state(fn (?Institution $record): ?string => $record?->primaryAddress()?->country)
                                             ->placeholder('-'),
                                     ])
                                     ->columns(2),
@@ -105,17 +131,21 @@ class InstitutionInfolist
                                     ->schema([
                                         TextEntry::make('address.latitude')
                                             ->label('Latitud')
+                                            ->state(fn (?Institution $record): mixed => $record?->primaryAddress()?->latitude)
                                             ->placeholder('-'),
                                         TextEntry::make('address.longitude')
                                             ->label('Longitud')
+                                            ->state(fn (?Institution $record): mixed => $record?->primaryAddress()?->longitude)
                                             ->placeholder('-'),
                                         TextEntry::make('address.google_maps_url')
                                             ->label('Pautan Google Maps')
+                                            ->state(fn (?Institution $record): ?string => $record?->primaryAddress()?->google_maps_url)
                                             ->placeholder('-')
                                             ->url(fn (?string $state): ?string => filled($state) ? $state : null)
                                             ->openUrlInNewTab(),
                                         TextEntry::make('address.waze_url')
                                             ->label('Pautan Waze')
+                                            ->state(fn (?Institution $record): ?string => $record?->primaryAddress()?->waze_url)
                                             ->placeholder('-')
                                             ->url(fn (?string $state): ?string => filled($state) ? $state : null)
                                             ->openUrlInNewTab(),
@@ -180,6 +210,56 @@ class InstitutionInfolist
                                             ->placeholder('Tiada media sosial'),
                                     ]),
                             ]),
+                        Tab::make('Status')
+                            ->icon('heroicon-m-shield-check')
+                            ->schema([
+                                Section::make('Status & Kelulusan')
+                                    ->schema([
+                                        TextEntry::make('status')
+                                            ->label('Status')
+                                            ->badge()
+                                            ->color(fn (string $state): string => match ($state) {
+                                                'pending' => 'warning',
+                                                'verified' => 'success',
+                                                'rejected' => 'danger',
+                                                'inactive' => 'gray',
+                                                default => 'gray',
+                                            }),
+                                        IconEntry::make('allow_public_event_submission')
+                                            ->label('Terima Penghantaran Majlis Awam')
+                                            ->boolean(),
+                                        TextEntry::make('verified_at')
+                                            ->label('Disahkan Pada')
+                                            ->dateTime()
+                                            ->placeholder('-'),
+                                        TextEntry::make('verifier.name')
+                                            ->label('Disahkan Oleh')
+                                            ->placeholder('-'),
+                                        TextEntry::make('rejected_at')
+                                            ->label('Ditolak Pada')
+                                            ->dateTime()
+                                            ->placeholder('-'),
+                                        TextEntry::make('last_state_change_at')
+                                            ->label('Perubahan Status Terakhir')
+                                            ->dateTime()
+                                            ->placeholder('-'),
+                                        TextEntry::make('published_at')
+                                            ->label('Diterbitkan Pada')
+                                            ->dateTime()
+                                            ->placeholder('-'),
+                                        TextEntry::make('public_submission_locked_at')
+                                            ->label('Penghantaran Awam Dikunci Pada')
+                                            ->dateTime()
+                                            ->placeholder('-'),
+                                        TextEntry::make('created_at')
+                                            ->label('Dicipta Pada')
+                                            ->dateTime(),
+                                        TextEntry::make('updated_at')
+                                            ->label('Dikemas Kini Pada')
+                                            ->dateTime(),
+                                    ])
+                                    ->columns(2),
+                            ]),
                         Tab::make('Statistik')
                             ->icon('heroicon-m-chart-bar')
                             ->schema([
@@ -189,7 +269,7 @@ class InstitutionInfolist
                                             ->label('Jumlah Majlis')
                                             ->state(function ($record): int {
                                                 if (! array_key_exists('events_count', $record->getAttributes())) {
-                                                    $record->loadCount(['events', 'members', 'persons', 'followers']);
+                                                    $record->loadCount(['events', 'members', 'persons', 'followers', 'reports']);
                                                 }
 
                                                 return (int) $record->getAttribute('events_count');
@@ -207,18 +287,12 @@ class InstitutionInfolist
                                             ->label('Jumlah Pengikut')
                                             ->state(fn ($record): int => (int) $record->getAttribute('followers_count'))
                                             ->numeric(),
+                                        TextEntry::make('reports_count')
+                                            ->label('Jumlah Laporan')
+                                            ->state(fn ($record): int => (int) $record->getAttribute('reports_count'))
+                                            ->numeric(),
                                     ])
-                                    ->columns(4),
-                                Section::make('Maklumat Rekod')
-                                    ->schema([
-                                        TextEntry::make('created_at')
-                                            ->label('Dicipta Pada')
-                                            ->dateTime(),
-                                        TextEntry::make('updated_at')
-                                            ->label('Dikemas Kini Pada')
-                                            ->dateTime(),
-                                    ])
-                                    ->columns(2),
+                                    ->columns(5),
                             ]),
                     ])
                     ->persistTabInQueryString(),

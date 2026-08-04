@@ -2,8 +2,10 @@
 
 use AIArmada\Addressing\Models\AddressArea;
 use AIArmada\Addressing\Models\AddressCountry;
+use AIArmada\Addressing\Models\City;
 use AIArmada\Addressing\Models\State;
 use App\Livewire\Pages\Contributions\SubmitInstitution;
+use App\Livewire\Pages\Contributions\SubmitPerson;
 use App\Models\Institution;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -206,4 +208,101 @@ it('applies a google place selection into the nested institution address state',
         ->assertDontSee(__('Paste the full Google Maps link from your browser'));
 
     Http::assertNothingSent();
+});
+
+it('applies a google place selection from the person contribution institution picker', function () {
+    $country = ensureCountryForLocationPicker('MY', 'Malaysia');
+    $user = User::factory()->create();
+
+    Livewire::actingAs($user)
+        ->test(SubmitPerson::class)
+        ->set('data.address.country_id', (string) $country->getKey())
+        ->call('applyLocationPickerSelection', 'data.address', [
+            'placeId' => 'person_place_123',
+            'googleMapsURI' => 'https://www.google.com/maps/place/?q=place_id:person_place_123',
+            'displayName' => 'Masjid Ilmu',
+            'location' => [
+                'lat' => 3.139,
+                'lng' => 101.6869,
+            ],
+            'addressComponents' => [
+                ['longText' => 'Jalan Ilmu', 'shortText' => 'Jalan Ilmu', 'types' => ['route']],
+                ['longText' => '50000', 'shortText' => '50000', 'types' => ['postal_code']],
+            ],
+        ])
+        ->assertSet('data.address.country_id', (string) $country->getKey())
+        ->assertSet('data.address.line1', 'Jalan Ilmu')
+        ->assertSet('data.address.postcode', '50000')
+        ->assertSet('data.address.provider_place_id', 'person_place_123')
+        ->assertSet('data.address.google_resolution_source', 'picker')
+        ->assertSet('data.address.latitude', 3.139)
+        ->assertSet('data.address.longitude', 101.6869);
+});
+
+it('keeps the area assignment keys present when a place resolves no areas', function () {
+    $country = ensureCountryForLocationPicker('MY', 'Malaysia');
+    $user = User::factory()->create();
+
+    Livewire::actingAs($user)
+        ->test(SubmitInstitution::class)
+        ->set('data.address.country_id', (string) $country->getKey())
+        ->call('applyPlaceSelection', [
+            'placeId' => 'place_no_areas',
+            'googleMapsURI' => 'https://www.google.com/maps/place/?q=place_id:place_no_areas',
+            'location' => [
+                'lat' => 3.139,
+                'lng' => 101.6869,
+            ],
+            'addressComponents' => [
+                ['longText' => 'Jalan Test', 'shortText' => 'Jalan Test', 'types' => ['route']],
+            ],
+        ])
+        ->assertSet('data.address.area_assignments', [
+            'administrative_district' => null,
+            'administrative_subdivision' => null,
+            'postal_locality' => null,
+        ]);
+});
+
+it('persists the resolved city id when the city field is hidden', function () {
+    $country = ensureCountryForLocationPicker('MY', 'Malaysia');
+    $state = ensureMalaysiaStateForLocationPicker('Wilayah Persekutuan');
+    $state['package']->update(['code' => '14']);
+
+    $city = City::query()->create([
+        'country_id' => $country->getKey(),
+        'state_id' => $state['package']->getKey(),
+        'name' => 'Kuala Lumpur',
+    ]);
+
+    $user = User::factory()->create();
+
+    Livewire::actingAs($user)
+        ->test(SubmitInstitution::class)
+        ->set('data.name', 'Hidden City Persistence Institution')
+        ->set('data.type', 'masjid')
+        ->call('applyPlaceSelection', [
+            'placeId' => 'place_city_only',
+            'googleMapsURI' => 'https://www.google.com/maps/place/?q=place_id:place_city_only',
+            'location' => [
+                'lat' => 3.139,
+                'lng' => 101.6869,
+            ],
+            'addressComponents' => [
+                ['longText' => 'Kuala Lumpur', 'shortText' => 'Kuala Lumpur', 'types' => ['locality', 'political']],
+                ['longText' => 'Wilayah Persekutuan', 'shortText' => 'Wilayah Persekutuan', 'types' => ['administrative_area_level_1', 'political']],
+            ],
+        ])
+        ->assertSet('data.address.city_id', (string) $city->getKey())
+        ->call('submit')
+        ->assertHasNoErrors();
+
+    $institution = Institution::query()
+        ->with('addresses')
+        ->where('name', 'Hidden City Persistence Institution')
+        ->first();
+
+    expect($institution)->not->toBeNull()
+        ->and($institution?->primaryAddress()?->city_id)->toBe((string) $city->getKey())
+        ->and($institution?->primaryAddress()?->state_id)->toBe((string) $state['package']->getKey());
 });

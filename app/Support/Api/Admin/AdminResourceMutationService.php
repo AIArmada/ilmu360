@@ -10,9 +10,9 @@ use AIArmada\Contacting\Enums\ContactPurpose;
 use AIArmada\Contacting\Enums\SocialPlatform;
 use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
+use AIArmada\Events\Models\VenueSpaceType;
 use AIArmada\FilamentAddressing\Resources\AddressAreaResource;
 use AIArmada\FilamentEvents\Resources\EventResource;
-use AIArmada\FilamentEvents\Resources\VenueResource;
 use AIArmada\Persons\Enums\Gender;
 use App\Actions\DonationChannels\SaveDonationChannelAction;
 use App\Actions\Events\SaveAdminEventAction;
@@ -48,6 +48,7 @@ use App\Filament\Resources\References\ReferenceResource;
 use App\Filament\Resources\Reports\ReportResource;
 use App\Filament\Resources\Series\SeriesResource;
 use App\Filament\Resources\Spaces\SpaceResource;
+use App\Filament\Resources\Venues\VenueResource;
 use App\Forms\SharedFormSchema;
 use App\Models\DonationChannel;
 use App\Models\Event;
@@ -63,6 +64,7 @@ use App\Models\Venue;
 use App\Services\ContributionEntityMutationService;
 use BackedEnum;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -565,9 +567,17 @@ class AdminResourceMutationService
             SpaceResource::class => [
                 'name' => '',
                 'slug' => '',
+                'code' => null,
+                'space_type' => null,
                 'capacity' => null,
                 'status' => 'active',
+                'visibility' => 'public',
+                'level' => null,
+                'unit_no' => null,
+                'block' => null,
+                'wing' => null,
                 'institutions' => [],
+                'institution_space_overrides' => [],
             ],
             default => [],
         };
@@ -725,10 +735,27 @@ class AdminResourceMutationService
             $defaults = [
                 'name' => $record->name,
                 'slug' => is_string($slug) ? $slug : '',
+                'code' => $record->code,
+                'space_type' => $record->space_type,
                 'capacity' => $record->capacity,
                 'status' => (string) $record->status,
                 'visibility' => (string) ($record->visibility ?? 'public'),
+                'level' => $record->level,
+                'unit_no' => $record->unit_no,
+                'block' => $record->block,
+                'wing' => $record->wing,
                 'institutions' => $record->institutions()->pluck('institutions.id')->map(fn (mixed $id): string => (string) $id)->values()->all(),
+                'institution_space_overrides' => $record->institutions()
+                    ->get()
+                    ->map(fn (Institution $institution): array => [
+                        'institution_id' => (string) $institution->getKey(),
+                        'capacity' => ($pivot = $institution->getRelationValue('pivot')) instanceof Pivot
+                            ? $pivot->getAttribute('capacity')
+                            : null,
+                    ])
+                    ->filter(fn (array $override): bool => $override['capacity'] !== null)
+                    ->values()
+                    ->all(),
             ];
         }
 
@@ -1427,8 +1454,10 @@ class AdminResourceMutationService
             $this->field('slug', 'string', required: true, maxLength: 255, meta: [
                 'mutation_semantics' => 'replace_scalar',
                 'normalization' => ['trim' => true],
-                'uniqueness_scope' => 'spaces.slug',
+                'uniqueness_scope' => 'venue_spaces.slug:venue_id',
             ]),
+            $this->field('code', 'string', required: false, maxLength: 255),
+            $this->field('space_type', 'string', required: false, allowedValues: VenueSpaceType::query()->where('is_active', true)->pluck('code')->all()),
             $this->field('capacity', 'integer', required: false, meta: [
                 'mutation_semantics' => 'replace_scalar',
                 'clear_semantics' => [
@@ -1441,6 +1470,10 @@ class AdminResourceMutationService
                     'minimum' => 1,
                 ],
             ]),
+            $this->field('level', 'string', required: false, maxLength: 255),
+            $this->field('unit_no', 'string', required: false, maxLength: 255),
+            $this->field('block', 'string', required: false, maxLength: 255),
+            $this->field('wing', 'string', required: false, maxLength: 255),
             $this->field('status', 'string', required: false, default: 'active', allowedValues: ['active', 'inactive']),
             $this->field('visibility', 'string', required: false, default: 'public', allowedValues: ['public', 'unlisted', 'private']),
             $this->field('institutions', 'array<string>', required: false, meta: $this->relationCollectionMeta(
@@ -1448,6 +1481,17 @@ class AdminResourceMutationService
                 submittedArray: 'replace_relation_sync',
                 safeClientStrategy: 'omit_field_to_preserve_or_send_full_institution_ids',
             )),
+            $this->field('institution_space_overrides', 'array<object>', required: false, meta: [
+                'mutation_semantics' => 'replace_relation_pivot_payload',
+                'clear_semantics' => [
+                    'omitted' => 'preserve_existing',
+                    'empty_array' => 'clear_all_overrides',
+                ],
+                'item_shape' => [
+                    'institution_id' => 'uuid',
+                    'capacity' => 'integer|null',
+                ],
+            ]),
         ];
     }
 
@@ -2335,11 +2379,20 @@ class AdminResourceMutationService
         return [
             'name' => [$required, 'string', 'max:255'],
             'slug' => [$required, 'string', 'max:255'],
+            'code' => ['nullable', 'string', 'max:255'],
+            'space_type' => ['nullable', Rule::exists((new VenueSpaceType)->getTable(), 'code')->where('is_active', true)],
             'capacity' => ['nullable', 'integer', 'min:1'],
             'status' => ['sometimes', Rule::in(['active', 'inactive'])],
             'visibility' => ['sometimes', Rule::in(['public', 'unlisted', 'private'])],
+            'level' => ['nullable', 'string', 'max:255'],
+            'unit_no' => ['nullable', 'string', 'max:255'],
+            'block' => ['nullable', 'string', 'max:255'],
+            'wing' => ['nullable', 'string', 'max:255'],
             'institutions' => ['nullable', 'array'],
             'institutions.*' => ['uuid', 'exists:institutions,id'],
+            'institution_space_overrides' => ['nullable', 'array'],
+            'institution_space_overrides.*.institution_id' => ['required', 'uuid', 'exists:institutions,id'],
+            'institution_space_overrides.*.capacity' => ['nullable', 'integer', 'min:1'],
         ];
     }
 

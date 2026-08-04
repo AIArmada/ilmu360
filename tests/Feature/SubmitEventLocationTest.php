@@ -202,10 +202,41 @@ it('matches institution alternative names in event filter search options', funct
     /** @var array<string, string> $results */
     $results = (fn (): array => $this->searchInstitutionOptions(
         countryId: null,
-        adminArea1Id: null,
-        adminArea2Id: null,
+        stateId: null,
+        cityId: null,
+        areaAssignments: [],
         search: 'Masjid Biru',
     ))->call($component->instance());
 
     expect($results)->toHaveKey($institution->id, $institution->display_name);
+});
+
+it('keeps picker area assignment keys present for nested event locations', function () {
+    $country = ensureTestAddressCountry(
+        iso2: 'MY',
+        name: 'Malaysia',
+        iso3: 'MYS',
+        timezones: ['Asia/Kuala_Lumpur'],
+        phoneCode: '60',
+    );
+
+    Livewire::actingAs($this->user)
+        ->test(Create::class)
+        ->set('data.address.country_id', (string) $country->getKey())
+        ->call('applyLocationPickerSelection', 'data.address', [
+            'placeId' => 'event_place_no_areas',
+            'googleMapsURI' => 'https://www.google.com/maps/place/?q=place_id:event_place_no_areas',
+            'location' => [
+                'lat' => 3.139,
+                'lng' => 101.6869,
+            ],
+            'addressComponents' => [
+                ['longText' => 'Jalan Event', 'shortText' => 'Jalan Event', 'types' => ['route']],
+            ],
+        ])
+        ->assertSet('data.address.area_assignments', [
+            'administrative_district' => null,
+            'administrative_subdivision' => null,
+            'postal_locality' => null,
+        ]);
 });

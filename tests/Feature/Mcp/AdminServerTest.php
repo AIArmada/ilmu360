@@ -1552,7 +1552,7 @@ it('surfaces space report and inspiration update semantics through admin MCP wri
             ->where('data.schema.fields', function ($fields): bool {
                 $fieldMap = collect($fields)->keyBy('name');
 
-                return data_get($fieldMap->get('slug'), 'uniqueness_scope') === 'spaces.slug'
+                return data_get($fieldMap->get('slug'), 'uniqueness_scope') === 'venue_spaces.slug:venue_id'
                     && data_get($fieldMap->get('capacity'), 'clear_semantics.explicit_null') === 'clear_to_null'
                     && data_get($fieldMap->get('institutions'), 'collection_semantics.submitted_array') === 'replace_relation_sync';
             })

@@ -134,7 +134,10 @@ class Show extends Component
             'venue.addresses.areaAssignments' => fn (HasMany $relation): HasMany => $this->joinAreaName($relation),
         ];
 
-        return $this->institution->events()
+        /** @var EventBuilder $query */
+        $query = $this->institution->events()->getQuery();
+
+        return $query
             ->active()
             ->with([
                 ...$addressRelations,
@@ -200,7 +203,7 @@ class Show extends Component
                 'addresses.city',
                 'addresses.areaAssignments' => fn (HasMany $relation): HasMany => $this->joinAreaName($relation),
                 'contactMethods',
-                'socialProfiles',
+                'publicSocialProfiles',
                 'donationChannels.media',
                 'persons',
                 'persons.media',

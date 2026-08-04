@@ -8,6 +8,7 @@ use AIArmada\Events\Actions\CreateEventSessionAction;
 use AIArmada\Events\Enums\ScheduleKind;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
+use App\Contracts\SpaceEligibilityResolver;
 use App\Data\Events\ValidatedEventSubmission;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
@@ -17,7 +18,6 @@ use App\Enums\EventVisibility;
 use App\Enums\TimingMode;
 use App\Models\Event;
 use App\Models\EventSubmission;
-use App\Models\Institution;
 use App\Services\EventKeyPersonSyncService;
 use Illuminate\Validation\ValidationException;
 
@@ -29,6 +29,7 @@ final readonly class PersistValidatedEventSubmissionAction
         private EventKeyPersonSyncService $eventKeyPersonSync,
         private SyncEventClassificationsAction $syncClassifications,
         private SyncEventScheduleAction $syncSchedule,
+        private SpaceEligibilityResolver $spaceEligibilityResolver,
     ) {}
 
     /**
@@ -38,6 +39,15 @@ final readonly class PersistValidatedEventSubmissionAction
     public function handle(ValidatedEventSubmission $submission, ?callable $persistRelationships = null): array
     {
         $state = $submission->state;
+        $spaceIds = is_array($state['space_ids'] ?? null) ? array_values(array_filter($state['space_ids'], is_string(...))) : [];
+
+        if ($spaceIds !== [] && $submission->targetVenueId !== null) {
+            $this->spaceEligibilityResolver->validateVenueSelection($submission->targetVenueId, $spaceIds);
+        }
+
+        if ($spaceIds !== [] && $submission->targetInstitutionId !== null) {
+            $this->spaceEligibilityResolver->validateInstitutionSelection($submission->targetInstitutionId, $spaceIds);
+        }
         $event = $submission->eventContainer ?? Event::query()->create(array_merge([
             'title' => $state['title'],
             'slug' => $this->generateEventSlug->handle(
@@ -64,7 +74,7 @@ final readonly class PersistValidatedEventSubmissionAction
         if (! $submission->eventContainer instanceof Event) {
             $event->syncLocation(
                 $submission->targetVenueId,
-                is_array($state['space_ids'] ?? null) ? array_values(array_filter($state['space_ids'], is_string(...))) : [],
+                $spaceIds,
             );
 
             $this->syncSchedule->execute(
@@ -114,23 +124,6 @@ final readonly class PersistValidatedEventSubmissionAction
         }
 
         $event->setPrimaryOrganizer($submission->primaryOrganizer);
-
-        $spaceIds = is_array($state['space_ids'] ?? null) ? array_values(array_filter($state['space_ids'], is_string(...))) : [];
-
-        if ($spaceIds !== [] && ! empty($event->institution_id)) {
-            $institution = Institution::query()->find($event->institution_id);
-
-            if ($institution instanceof Institution) {
-                $validIds = $institution->spaces()->pluck('spaces.id')->map(strval(...))->all();
-                $invalidIds = array_diff($spaceIds, $validIds);
-
-                if ($invalidIds !== []) {
-                    throw ValidationException::withMessages([
-                        'space_ids' => __('Ruang yang dipilih tidak tersedia untuk institusi ini.'),
-                    ]);
-                }
-            }
-        }
 
         $this->eventKeyPersonSync->sync($event, $state['persons'] ?? [], $this->canonicalKeyPeople($state['other_key_people'] ?? []));
 

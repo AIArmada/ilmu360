@@ -1,5 +1,16 @@
 # Lessons
 
+- When event seeders can be invoked independently of the aggregate database seeder, make their canonical space/taxonomy dependency explicit and idempotent; do not rely only on pipeline ordering.
+- For media tests that exercise real conversion jobs, use valid generated image files for direct model/API uploads, keep Livewire's fake upload objects for `fillForm`, and isolate the media conversion temporary directory by parallel worker token.
+- When a large compressed JSON fixture is filtered to one country, stream top-level objects instead of decoding the complete global dataset in both the seeder and its test.
+- When a test changes the cache store after global test setup has resolved the Cache facade, clear resolved cache instances before exercising file-backed cache behavior; otherwise mocked/documentation caches silently continue using the array store.
+
+- When a user asks to consolidate new package migrations into the canonical table migrations, remove the forward-only files and move both schema and index creation into the original create migrations; do not leave duplicate migration paths behind.
+- When a user explicitly requires no backward compatibility during a package migration, make the new package contract authoritative: remove legacy filter names and duplicate UI paths, then update callers/tests to the canonical shape instead of retaining aliases.
+- Do not infer package filter keys from persisted application guidelines. Verify the installed package models, DTOs, migrations, and query APIs first; the package contract may represent administrative areas as `area_assignments` rather than `admin_area_*_id` columns.
+
+- When a reusable form schema inserts a section into an indexed component array, update every consumer's positional mapping and add a test for field ownership; labels-only tests will not catch tabs displaying the right data under the wrong heading.
+
 - When media conversion names or dimensions are changed in uncommitted model/form work, audit those canonical registrations before updating MCP upload metadata; do not infer a new conversion key from a duplicate-map warning.
 
 - Cross-repository Commerce audits must read and follow `/Users/Saiffil/Herd/commerce/AGENTS.md` in full before package discovery or edits; the package monorepo has stricter per-package context, ownership, PHP, testing, and verification rules than the application.
@@ -16,6 +27,9 @@
 
 - When a user describes a desktop width as "between the logo and Daftar", measure the header's inner content edges and align the page grid to those exact edges instead of substituting a generic `max-w-*` cap.
 - When applying that same header-width rule to other public/auth pages, remove local `max-w-[100vw]` container overrides before judging the visual width; those overrides can silently defeat the shared Tailwind container cap.
+
+- For a compact detail breadcrumb, keep the home affordance as an icon, expose the collection parent as a text link when requested, and omit redundant current-record icons.
+- Apply the compact detail breadcrumb convention consistently across every public view page, not only the initially reported speaker profile.
 - When a public media field has conflicting display and distribution jobs, model those jobs as distinct named collections instead of asking one upload to satisfy incompatible aspect-ratio and information-density needs.
 - When adding secondary public directory links, avoid promoting them into the primary header by default; keep lower-priority discovery links in the footer/bottom menu unless the user explicitly asks for top navigation placement.
 - On PostgreSQL, do not rely on `ofMany()` tie-breaks for UUID primary keys at all; even an added `orderByDesc('id')` can still be folded back into `MAX(id)`. Use a UUID-safe latest-row strategy such as excluding newer candidates by timestamp and id instead.
@@ -67,6 +81,8 @@
 - When a user reports a local runtime error on a newly added schema-backed feature, verify the real database migration state first before assuming the code path is wrong; a pending migration can be the direct root cause.
 - When a user explicitly asks for Chrome MCP verification, check tool availability before promising browser-level verification; if Chrome MCP is unavailable in the current session, say that plainly and use the closest runtime fallback instead.
 - When a package already exposes a static config flag for the exact behavior the app needs, do not keep a local clone of the package plugin just to avoid a runtime config mutation; use the official plugin with static config and avoid drift.
+
+- When a Livewire action fix unlocks a deeper provider-backed workflow, re-run the real hierarchy fallback path; the first missing-method exception can mask a separate package contract/type failure immediately after it.
 - When a user explicitly asks for an upstream-docs pass before finalizing an infrastructure fix, read the upstream docs first and then re-evaluate the local patch set against those documented lifecycles before keeping custom code.
 - When a user explicitly asks for proof on the current live local database, do not retreat to an isolated sandbox run; use the configured connection with disposable records, verify the real queue/job path there, and clean the proof data up afterward.
 - When a wording change is explicitly scoped to mobile only, do not rename the shared desktop label or translation key globally; patch the mobile-specific template branch and add coverage for that exact surface.
@@ -434,3 +450,25 @@
 - When widening contribution-form visibility, scope the permission change to the requested subject type; a shared media gate can accidentally expose institution or event uploads.
 - When placing a Livewire loading indicator beside mobile controls, hide the indicator wrapper—not only its spinner—until the targeted request is active, otherwise the empty wrapper still consumes layout space.
 - Do not nest a page-level `<main>` landmark inside the application layout's existing `<main>`; browser parsing can eject sibling layout content such as a sidebar from its intended grid.
+- When a third-party uploader is inside a hidden tab, verify its visibility/lifecycle timing in the browser. A later viewport resize can be evidence that the component's `ResizeObserver` missed the tab activation, not that the media asset is unreliable.
+- For a global Filament compatibility hook, use the shared `commerce-support` integration seam that every adapter already depends on; do not make unrelated `filament-*` packages depend on the feature-specific `filament-commerce-support` plugin.
+- When reviewing a workaround, distinguish the removed application duplicate from the intentionally retained shared package asset; also audit Filament's inherited field defaults for semantic mismatches such as a singular placeholder on a multi-select.
+- For institution detail heroes, use the cover media accessor explicitly and enforce the cover's 16:9 ratio in the media wrapper; keep the public image fallback for records that do not yet have cover media.
+- For visual UI changes, inspect the full page in Chrome at desktop and mobile widths; a local viewport check can miss desktop-only alignment gaps and duplicate hero actions.
+- When adding admin-only public detail actions, mirror the sibling entity page's role gate and destination pattern instead of inventing a parallel authorization path.
+- When a public entity name can be long, give it a full-width title band before the media/detail grid; this keeps identity readable while allowing the image and actions to share a balanced row.
+- If a title band still feels cramped inside a visual hero card, separate it from the card entirely and let the card begin with the media/detail relationship.
+- When the page already communicates context through the institution name and supporting details, remove redundant classification and verification badges from the primary title area.
+## Breadcrumb scope and density
+
+- When a user narrows a navigation request from listing pages to view pages, remove the broader placements rather than retaining redundant context.
+- For compact mobile breadcrumbs, keep only icon controls in the visual layer and preserve the destination labels through `aria-label` and `title` attributes.
+- When combining address and map details, keep the address above the map in a single vertical flow unless the user explicitly requests a split layout.
+- When extracting a shared public feedback section, keep its copy and action labels inside the component; per-record overrides allow institution and speaker pages to drift again.
+- For compact public feedback actions, keep the two primary buttons side by side on mobile and desktop when the user explicitly requests a fixed two-column layout.
+- When a share panel already contains obvious share actions, omit repeated record titles and type labels from the panel body; keep any surrounding modal/page title as the contextual label.
+- For map-provider links, use the provider's real branded icon assets inside accessible labeled buttons rather than generic text-only pills.
+- When using branded icons in compact action buttons, let the icon occupy the button directly instead of nesting it inside a same-purpose decorative frame.
+- Event location ownership is distinct from the specific place: resolve an event's address from its institution owner or canonical `default_venue_id`, while resolving a hall/kitchen/etc. through `event_locations.venue_space_id`; do not add a duplicate `events.venue_id` column.
+- When a user explicitly asks for a real Chrome MCP test, backend tests and HTTP checks are not sufficient: exercise the visible controls, verify URL/result changes, inspect console errors, and record UI-only findings such as ambiguous duplicate option labels.
+- Seeders must create or attach `VenueSpace` records after their institution or venue owners exist; setting only `institution_id` or `default_venue_id` leaves `event_locations.venue_space_id` empty and hides the specific hall/room from the public event display.

@@ -40,6 +40,8 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  * @property string|null $google_maps_url
  * @property string|null $map_url
  * @property array<string, mixed>|null $metadata
+ *
+ * @extends PackageVenue<Space>
  */
 class Venue extends PackageVenue implements AuditableContract
 {
@@ -128,6 +130,14 @@ class Venue extends PackageVenue implements AuditableContract
     public function events(): HasMany
     {
         return $this->hasMany(Event::class, 'default_venue_id');
+    }
+
+    /**
+     * @return HasMany<Space, $this>
+     */
+    public function spaces(): HasMany
+    {
+        return $this->hasMany(Space::class, 'venue_id');
     }
 
     /**

@@ -40,12 +40,13 @@ class Create extends Component implements HasForms
     /** @var array<string, mixed>|null */
     public ?array $data = [];
 
-    /** @var array{subject_label: string, subject_title: string, redirect_url: string, admin_url: string} */
+    /** @var array{subject_label: string, subject_title: string, redirect_url: string, admin_url: string, profile_image_url: string|null} */
     public array $context = [
         'subject_label' => '',
         'subject_title' => '',
         'redirect_url' => '',
         'admin_url' => '',
+        'profile_image_url' => null,
     ];
 
     public function mount(
@@ -161,7 +162,9 @@ class Create extends Component implements HasForms
 
     private function canonicalSubjectId(): string
     {
-        return (string) $this->subject->getKey();
+        return $this->subject instanceof Person
+            ? (string) $this->subject->slug
+            : (string) $this->subject->getKey();
     }
 
     private function resolveSubject(string $subjectType, string $subjectId): Institution|Person
@@ -170,11 +173,13 @@ class Create extends Component implements HasForms
 
         abort_unless($resolvedSubjectType instanceof MemberSubjectType, 404);
 
-        return $resolvedSubjectType->resolveSubject($subjectId);
+        return $resolvedSubjectType === MemberSubjectType::Person
+            ? Person::query()->where('slug', $subjectId)->firstOrFail()
+            : Institution::query()->findOrFail($subjectId);
     }
 
     /**
-     * @return array{subject_label: string, subject_title: string, redirect_url: string, admin_url: string}
+     * @return array{subject_label: string, subject_title: string, redirect_url: string, admin_url: string, profile_image_url: string|null}
      */
     private function resolveSubjectPresentation(Institution|Person $subject): array
     {
@@ -187,6 +192,11 @@ class Create extends Component implements HasForms
                 ? route('institutions.show', $subject)
                 : route('persons.show', $subject),
             'admin_url' => '',
+            'profile_image_url' => $subject instanceof Person
+                ? ($subject->hasMedia('profile')
+                    ? $subject->public_main_url
+                    : ($subject->hasMedia('avatar') ? $subject->public_avatar_url : null))
+                : null,
         ];
     }
 

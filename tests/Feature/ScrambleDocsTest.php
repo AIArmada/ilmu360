@@ -19,6 +19,11 @@ use function Pest\Laravel\mock;
 // keeping the lock and stale-cache paths real.
 beforeEach(function (): void {
     config()->set('cache.default', 'file');
+    Cache::clearResolvedInstances();
+
+    if (function_exists('set_time_limit')) {
+        @set_time_limit(0);
+    }
 });
 
 it('serves scramble docs only on the api host', function () {

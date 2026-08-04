@@ -487,7 +487,7 @@
         @stack('prelivewire-scripts')
     @livewireScripts
     @fluxScripts
-    @filamentScripts(['app'])
+    @filamentScripts(['app', 'aiarmada/commerce-support'])
     @filamentScripts(['filament/support', 'filament/schemas', 'filament/forms', 'filament/actions', 'filament/notifications'])
     @stack('scripts')
 </body>

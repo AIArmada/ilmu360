@@ -31,6 +31,7 @@ use App\Actions\Events\SyncEventScheduleAction;
 use App\Actions\Institutions\GenerateInstitutionSlugAction;
 use App\Actions\Persons\GeneratePersonSlugAction;
 use App\Contracts\EventCategoryCatalog;
+use App\Contracts\SpaceEligibilityResolver;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
@@ -73,6 +74,7 @@ class ContributionEntityMutationService
         private readonly GenerateInstitutionSlugAction $generateInstitutionSlugAction,
         private readonly GeneratePersonSlugAction $generatePersonSlugAction,
         private readonly AddressCountryResolver $addressingCountryResolver,
+        private readonly SpaceEligibilityResolver $spaceEligibilityResolver,
     ) {}
 
     /** @return array<string, mixed> */
@@ -145,6 +147,7 @@ class ContributionEntityMutationService
                     $this->field('publication_year', 'string', maxLength: 255),
                     $this->field('publisher', 'string', maxLength: 255),
                     $this->field('description', 'string'),
+                    $this->field('url', 'url'),
                     $this->field('social_media', 'array<object>'),
                 ],
                 'conditional_rules' => [],
@@ -293,6 +296,7 @@ class ContributionEntityMutationService
                 'publication_year' => ['nullable', 'string', 'max:255'],
                 'publisher' => ['nullable', 'string', 'max:255'],
                 'description' => ['nullable', 'string'],
+                'url' => ['nullable', 'url', 'max:255'],
                 'social_media' => ['sometimes', 'array'],
                 'social_media.*.platform' => ['required_with:social_media.*.handle,social_media.*.url', Rule::in($this->enumValues(SocialPlatform::class))],
                 'social_media.*.handle' => ['nullable', 'string', 'max:255', 'required_without:social_media.*.url'],
@@ -533,6 +537,7 @@ class ContributionEntityMutationService
             'year' => array_key_exists('publication_year', $payload) ? $this->normalizeOptionalString($payload['publication_year']) : $reference->year,
             'publisher' => array_key_exists('publisher', $payload) ? $this->normalizeOptionalString($payload['publisher']) : $reference->publisher,
             'description' => array_key_exists('description', $payload) ? $payload['description'] : $reference->description,
+            'url' => array_key_exists('url', $payload) ? $this->normalizeOptionalString($payload['url']) : $reference->url,
         ]);
 
         $dirty = $reference->getDirty();
@@ -581,6 +586,18 @@ class ContributionEntityMutationService
                 ->whereNull('event_session_id')
                 ->sortBy('sort_order');
             $spaceIds = $existing->pluck('venue_space_id')->filter()->map(strval(...))->values()->all();
+        }
+
+        if ($spaceIds !== []) {
+            if ($event->default_venue_id !== null) {
+                $this->spaceEligibilityResolver->validateVenueSelection((string) $event->default_venue_id, $spaceIds);
+            } elseif ($event->institution_id !== null) {
+                $this->spaceEligibilityResolver->validateInstitutionSelection((string) $event->institution_id, $spaceIds);
+            } else {
+                throw ValidationException::withMessages([
+                    'space_ids' => __('Ruang memerlukan institusi atau venue.'),
+                ]);
+            }
         }
 
         $event->syncLocation($event->default_venue_id, $spaceIds);
@@ -776,6 +793,7 @@ class ContributionEntityMutationService
             'publication_year' => $reference->year,
             'publisher' => $reference->publisher,
             'description' => $reference->description,
+            'url' => $reference->url,
             'social_media' => $this->socialMediaState($reference->socialProfiles),
         ];
     }

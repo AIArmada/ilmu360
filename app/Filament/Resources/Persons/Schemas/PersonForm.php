@@ -57,7 +57,9 @@ class PersonForm
                                             ->maxLength(100),
                                         Select::make('gender')
                                             ->label(__('Gender'))
-                                            ->options(Gender::class)
+                                            ->options(fn (): array => collect(Gender::cases())->mapWithKeys(
+                                                fn (Gender $gender): array => [$gender->value => __($gender->label())]
+                                            )->all())
                                             ->default(Gender::Male->value)
                                             ->required(),
                                         Placeholder::make('titles_summary')
@@ -83,6 +85,7 @@ class PersonForm
 
                                         Select::make('languages')
                                             ->label(__('Languages'))
+                                            ->placeholder(__('Pilih bahasa'))
                                             ->relationship('languages', 'name')
                                             ->multiple()
                                             ->preload()

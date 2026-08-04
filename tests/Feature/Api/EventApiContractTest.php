@@ -217,7 +217,7 @@ it('rejects unsupported sparse fields on the public event index', function () {
         ->assertJsonValidationErrors('fields');
 });
 
-it('filters events by administrative_district_id and administrative_subdivision_id', function () {
+it('filters events by package area assignments', function () {
     $geo = createTestPackageGeography('Selangor', 'API District '.uniqid(), 'API Subdistrict A '.uniqid());
     $subdistrictB = createTestAddressArea('API Subdistrict B '.uniqid(), 3, parent: $geo['district'], country: $geo['country']);
     $district = $geo['district'];
@@ -229,7 +229,10 @@ it('filters events by administrative_district_id and administrative_subdivision_
     $venueB = Venue::factory()->create();
     syncPrimaryAddressForTest($venueB, [
         ...$geo['address'],
-        'administrative_subdivision_id' => (string) $subdistrictB->getKey(),
+        'area_assignments' => [
+            'administrative_district' => (string) $district->getKey(),
+            'administrative_subdivision' => (string) $subdistrictB->getKey(),
+        ],
     ]);
 
     $districtMatch = Event::factory()->for($venueA)->create([
@@ -244,7 +247,7 @@ it('filters events by administrative_district_id and administrative_subdivision_
         'published_at' => now()->subMinute(),
     ]);
 
-    $districtResponse = $this->getJson('/api/v1/events?filter[administrative_district_id]='.$district->getKey());
+    $districtResponse = $this->getJson('/api/v1/events?filter[area_assignments][administrative_district]='.$district->getKey());
 
     $districtResponse->assertOk();
 
@@ -254,7 +257,7 @@ it('filters events by administrative_district_id and administrative_subdivision_
         ->toContain($districtMatch->id)
         ->toContain($subdistrictNonMatch->id);
 
-    $subdistrictResponse = $this->getJson('/api/v1/events?filter[administrative_subdivision_id]='.$subdistrictA->getKey());
+    $subdistrictResponse = $this->getJson('/api/v1/events?filter[area_assignments][administrative_subdivision]='.$subdistrictA->getKey());
 
     $subdistrictResponse->assertOk();
 

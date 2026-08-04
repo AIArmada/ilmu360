@@ -172,6 +172,12 @@ new
                 ->whereIn('events.status', Event::PUBLIC_STATUSES)
                 ->where('events.visibility', EventVisibility::Public)
                 ->whereNotNull('events.published_at')
+                ->whereExists(function ($occurrenceQuery) use ($occurrencesTable): void {
+                    $occurrenceQuery
+                        ->selectRaw('1')
+                        ->from("{$occurrencesTable} as occurrences")
+                        ->whereColumn('occurrences.event_id', 'events.id');
+                })
                 ->selectRaw('event_involvements.involveable_id, count(*) as events_count')
                 ->groupBy('event_involvements.involveable_id')
                 ->pluck('events_count', 'event_involvements.involveable_id');
@@ -236,15 +242,6 @@ new
 
         <div class="relative mx-auto max-w-7xl px-5 py-14 sm:px-6 sm:py-20 lg:px-8 lg:py-24">
             <div class="max-w-3xl scroll-reveal reveal-left revealed" x-intersect.once="$el.classList.add('revealed')" style="--reveal-d: 80ms">
-                    <!-- Eyebrow -->
-                    <div class="inline-flex items-center gap-2.5 rounded-full border border-emerald-200/60 bg-emerald-50/80 px-3.5 py-1.5 text-[11px] font-black uppercase tracking-[0.20em] text-emerald-700 shadow-sm backdrop-blur-sm">
-                        <span class="relative flex h-2 w-2">
-                            <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400/60"></span>
-                            <span class="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
-                        </span>
-                        {{ __('Direktori Disahkan') }}
-                    </div>
-
                     <h1 class="mt-6 max-w-3xl font-heading text-4xl font-bold leading-[1.06] tracking-[-0.035em] text-emerald-950 sm:text-5xl lg:text-6xl">
                         {{ __('Temui penceramah yang') }}
                         <span class="relative inline-block text-emerald-700">

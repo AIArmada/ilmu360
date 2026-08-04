@@ -57,6 +57,7 @@ class SubmitFrontendEventAction
         $validated = $this->normalizeEnumState(
             $this->normalizeScopedInstitutionState($state, $scopedInstitution, $validationKeyPrefix),
         );
+        $validated = $this->normalizeSpaceSelection($validated);
         $this->assertCaptchaIsValid($request, $validated['captcha_token'] ?? null, $validationKeyPrefix);
         $this->assertConditionalRequirements($validated, $validationKeyPrefix);
         $this->assertValidSubmissionCountryId($validated, $validationKeyPrefix);
@@ -597,6 +598,44 @@ class SubmitFrontendEventAction
         $validated['age_group'] = $this->normalizeEnumList($validated['age_group'] ?? []);
 
         return $validated;
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     * @return array<string, mixed>
+     */
+    private function normalizeSpaceSelection(array $validated): array
+    {
+        $spaceIds = [];
+
+        if (is_array($validated['space_ids'] ?? null)) {
+            foreach ($validated['space_ids'] as $value) {
+                if (is_string($value) && trim($value) !== '') {
+                    $spaceIds[] = trim($value);
+                }
+            }
+        }
+
+        $spaceId = $this->normalizeOptionalString($validated['space_id'] ?? null);
+
+        if ($spaceId !== null) {
+            $spaceIds[] = $spaceId;
+        }
+
+        $validated['space_ids'] = array_values(array_unique($spaceIds));
+
+        return $validated;
+    }
+
+    private function normalizeOptionalString(mixed $value): ?string
+    {
+        if (! is_scalar($value)) {
+            return null;
+        }
+
+        $normalized = trim((string) $value);
+
+        return $normalized !== '' ? $normalized : null;
     }
 
     private function normalizeEnumValue(mixed $value, string $default = ''): string

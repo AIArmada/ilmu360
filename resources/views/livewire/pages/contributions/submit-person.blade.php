@@ -39,37 +39,40 @@
     @endpush
 @endonce
 
-<div class="min-h-screen bg-slate-50 py-6 pb-24 sm:py-10 sm:pb-28">
-    <div class="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <section class="rounded-3xl border border-slate-200/80 bg-white px-4 py-5 shadow-none sm:rounded-4xl sm:p-6 sm:shadow-sm md:p-8 lg:p-10">
+<div class="bg-white pb-0">
+    <div class="mx-auto flex w-full max-w-5xl flex-col gap-2 px-4 py-2 sm:gap-3 sm:px-6 sm:py-4 lg:px-8 lg:py-6">
+        <header class="space-y-2 sm:space-y-3">
             <p class="text-xs font-bold uppercase tracking-[0.22em] text-emerald-600">{{ __('Community Contribution') }}</p>
-            <h1 class="mt-3 font-heading text-2xl font-bold text-slate-900 sm:text-3xl md:text-4xl">{{ __('Add a New Speaker') }}</h1>
-            <p class="mt-3 w-full text-sm leading-6 text-slate-600 md:text-base">
+            <h1 class="font-heading text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl lg:text-5xl">{{ __('Add a New Speaker') }}</h1>
+            <p class="w-full text-sm leading-6 text-slate-600 md:text-base">
                 {{ __('Submit a new speaker record for the ilmu360° directory. We will notify you if it is approved or rejected.') }}
             </p>
-            <div class="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-slate-700">
-                <p class="font-semibold text-slate-900">{{ __('Check the existing directory first') }}</p>
-                <p class="mt-2 w-full leading-6">
-                    {{ __('Before you submit, please check the existing speakers directory. If it already exists, submit an update instead of creating a new record.') }}
-                </p>
-                <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-                    <a href="{{ route('persons.index') }}" wire:navigate
-                        class="inline-flex w-full items-center justify-center rounded-xl border border-amber-300 bg-white px-4 py-2.5 text-sm font-semibold text-amber-900 transition hover:border-amber-400 hover:bg-amber-100 sm:w-auto">
-                        {{ __('Check Existing Speakers') }}
-                    </a>
-                </div>
+        </header>
+
+        <section class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 shadow-sm sm:rounded-3xl sm:px-5 sm:py-5">
+            <p class="text-xs font-bold uppercase tracking-[0.22em] text-amber-700">{{ __('Check the existing directory first') }}</p>
+            <p class="mt-2 text-sm leading-6 text-amber-900">
+                {{ __('Before you submit, please check the existing speakers directory. If it already exists, submit an update instead of creating a new record.') }}
+            </p>
+            <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                <a href="{{ route('persons.index') }}" wire:navigate
+                    class="inline-flex w-full items-center justify-center rounded-xl border border-amber-300 bg-white px-4 py-2.5 text-sm font-semibold text-amber-900 transition hover:border-amber-400 hover:bg-amber-100 sm:w-auto">
+                    {{ __('Check Existing Speakers') }}
+                </a>
             </div>
-
-            <form wire:submit="submit" class="mi-submit-person-form mt-6 space-y-5 sm:mt-8 sm:space-y-6">
-                {{ $this->form }}
-
-                <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-                    <button type="submit"
-                        class="inline-flex w-full items-center justify-center rounded-xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 sm:w-auto">
-                        {{ __('Submit Speaker') }}
-                    </button>
-                </div>
-            </form>
         </section>
+
+        <form wire:submit="submit" class="mi-submit-person-form space-y-2 sm:space-y-3">
+            {{ $this->form }}
+
+            <div class="flex flex-col gap-3 pt-0 sm:flex-row sm:items-center">
+                <button type="submit"
+                    class="inline-flex w-full items-center justify-center rounded-xl bg-emerald-600 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-emerald-700 sm:w-auto">
+                    {{ __('Submit Speaker') }}
+                </button>
+            </div>
+        </form>
+
+        <x-filament-actions::modals />
     </div>
 </div>

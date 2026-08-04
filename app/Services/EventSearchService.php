@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use AIArmada\Events\Contracts\EventSearchRelationProvider;
 use App\Contracts\EventCategoryCatalog;
 use App\Data\EventDiscoveryCriteria;
 use App\Data\EventDiscoveryCriteriaFactory;
@@ -26,43 +27,11 @@ class EventSearchService
         private readonly InstitutionSearchService $institutionSearch,
         private readonly ReferenceSearchService $referenceSearch,
         private readonly EventCategoryCatalog $categoryCatalog,
+        private readonly EventSearchRelationProvider $relationProvider,
         private readonly FuzzyEventMatcher $fuzzyMatcher = new FuzzyEventMatcher,
         private readonly EventDiscoveryCriteriaFactory $criteriaFactory = new EventDiscoveryCriteriaFactory,
         private readonly EventDiscoveryFilterSet $filterSet = new EventDiscoveryFilterSet,
     ) {}
-
-    /**
-     * @return array<int|string, mixed>
-     */
-    protected function cardRelationships(): array
-    {
-        return [
-            'media' => fn ($query) => $query
-                ->whereIn('collection_name', ['cover', 'poster'])
-                ->ordered(),
-            'references',
-            'classifications.term',
-            'persons.media' => fn ($query) => $query
-                ->where('collection_name', 'avatar')
-                ->ordered(),
-            'persons.titleAssignments.title.category',
-            'languageRecords',
-            'institution.media' => fn ($query) => $query
-                ->where('collection_name', 'logo')
-                ->ordered(),
-            'institution.addresses.country',
-            'institution.addresses.state',
-            'institution.addresses.city',
-            'institution.addresses.areaAssignments.area',
-            'venue.addresses.country',
-            'venue.addresses.state',
-            'venue.addresses.city',
-            'venue.addresses.areaAssignments.area',
-            'latestPublishedChangeAnnouncement',
-            'primaryOccurrence',
-            'timeExpressions',
-        ];
-    }
 
     /**
      * Search events using Typesense if available, otherwise fallback to database.
@@ -114,6 +83,7 @@ class EventSearchService
             institutionSearch: $this->institutionSearch,
             referenceSearch: $this->referenceSearch,
             categoryCatalog: $this->categoryCatalog,
+            relationProvider: $this->relationProvider,
         );
     }
 
@@ -122,6 +92,7 @@ class EventSearchService
         return new TypesenseEventDiscovery(
             filterSet: $this->filterSet,
             categoryCatalog: $this->categoryCatalog,
+            relationProvider: $this->relationProvider,
         );
     }
 
@@ -178,7 +149,8 @@ class EventSearchService
         }
 
         $events = Event::query()
-            ->with($this->cardRelationships())
+            ->with($this->relationProvider->relations())
+            ->whereHas('occurrences')
             ->whereKey($payload['ids'])
             ->get()
             ->keyBy('id');

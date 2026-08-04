@@ -36,7 +36,7 @@ class SpacePolicy
 
     public function delete(User $user, Space $space): bool
     {
-        return $user->hasRole('super_admin');
+        return $user->hasRole('super_admin') && ! $space->eventLocations()->exists();
     }
 
     public function restore(User $user, Space $space): bool
@@ -46,6 +46,6 @@ class SpacePolicy
 
     public function forceDelete(User $user, Space $space): bool
     {
-        return $user->hasRole('super_admin');
+        return $user->hasRole('super_admin') && ! $space->eventLocations()->exists();
     }
 }

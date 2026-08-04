@@ -31,7 +31,12 @@ it('seeds references using submit-event compatible fields and links', function (
 
     expect($reference)->not->toBeNull()
         ->and((string) $reference?->status)->toBeIn(['verified', 'pending'])
-        ->and($reference?->socialProfiles()->where('platform', 'website')->exists())->toBeTrue();
+        ->and($reference?->url)->toBe('https://sunnah.com/riyadussalihin')
+        ->and($reference?->year)->toBeInt()
+        ->and($reference?->language)->toBe('ar')
+        ->and($reference?->slug)->not->toBeNull()
+        ->and($reference?->socialProfiles()->count())->toBe(2)
+        ->and($reference?->socialProfiles()->where('platform', 'youtube')->exists())->toBeTrue();
 });
 
 it('attaches seeded references to approved events via event_reference pivot', function () {

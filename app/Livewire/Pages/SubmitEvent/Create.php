@@ -11,10 +11,10 @@ use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
 use AIArmada\FilamentEvents\Resources\EventResource;
 use App\Actions\Events\SubmitFrontendEventAction;
-use App\Actions\Location\ResolveGooglePlaceSelectionAction;
 use App\Actions\References\GenerateReferenceSlugAction;
 use App\Contracts\EventCategoryCatalog;
 use App\Contracts\EventCategoryPolicyResolver;
+use App\Contracts\SpaceEligibilityResolver;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
@@ -28,6 +28,7 @@ use App\Forms\InstitutionFormSchema;
 use App\Forms\PersonFormSchema;
 use App\Forms\SharedFormSchema;
 use App\Forms\VenueFormSchema;
+use App\Livewire\Concerns\InteractsWithLocationPickerSelection;
 use App\Models\Event;
 use App\Models\EventKeyPerson;
 use App\Models\EventSubmission;
@@ -35,7 +36,6 @@ use App\Models\Institution;
 use App\Models\Language;
 use App\Models\Person;
 use App\Models\Reference;
-use App\Models\Space;
 use App\Models\User;
 use App\Models\Venue;
 use App\Services\Ai\EventMediaExtractionService;
@@ -97,6 +97,7 @@ class Create extends Component implements HasActions, HasForms
 {
     use InteractsWithActions;
     use InteractsWithForms;
+    use InteractsWithLocationPickerSelection;
     use WithFileUploads;
 
     private const string REVIEW_STEP_ID = 'form.semak-sebelum-hantar::data::wizard-step';
@@ -239,28 +240,6 @@ class Create extends Component implements HasActions, HasForms
             'location_venue_id' => null,
             'space_id' => null,
         ];
-    }
-
-    /**
-     * @param  array<string, mixed>  $selection
-     * @return array<string, mixed>
-     */
-    public function applyLocationPickerSelection(
-        string $statePath,
-        array $selection,
-        ResolveGooglePlaceSelectionAction $resolveGooglePlaceSelectionAction,
-    ): array {
-        $currentAddress = data_get($this, $statePath);
-        $currentAddress = is_array($currentAddress) ? $currentAddress : [];
-        $resolvedAddress = $resolveGooglePlaceSelectionAction->handle(array_merge($selection, [
-            'fallbackCountryId' => $currentAddress['country_id'] ?? null,
-        ]));
-
-        data_set($this, $statePath, array_merge($currentAddress, $resolvedAddress, [
-            'cascade_reset_guard' => SharedFormSchema::publicLocationPickerCascadeResetGuard(),
-        ]));
-
-        return $resolvedAddress;
     }
 
     protected function submitCacheKey(string $key): string
@@ -512,6 +491,7 @@ class Create extends Component implements HasActions, HasForms
         return [
             Select::make('event_category_ids')
                 ->label(__('Jenis Majlis'))
+                ->placeholder(__('Pilih kategori…'))
                 ->required()
                 ->multiple()
                 ->closeOnSelect()
@@ -865,6 +845,7 @@ class Create extends Component implements HasActions, HasForms
 
                     Select::make('age_group')
                         ->label(__('Peringkat Umur'))
+                        ->placeholder(__('Pilih peringkat umur'))
                         ->required()
                         ->options(EventAgeGroup::class)
                         ->closeOnSelect()
@@ -902,7 +883,7 @@ class Create extends Component implements HasActions, HasForms
                     Select::make('languages')
                         ->label(__('Bahasa'))
                         ->helperText(__('Bahasa yang akan digunakan dalam majlis.'))
-                        ->placeholder(__('Pilih bahasa…'))
+                        ->placeholder(__('Pilih bahasa'))
                         ->closeOnSelect()
                         ->multiple()
                         ->required()
@@ -1392,14 +1373,37 @@ class Create extends Component implements HasActions, HasForms
                         ->searchable()
                         ->preload()
                         ->multiple()
-                        ->visibleJs("({$hasScopedInstitutionJs} && (\$get('location_same_as_institution') !== false)) || (\$get('primary_organizer_kind') === 'institution' && (\$get('location_same_as_institution') !== false)) || ((\$get('primary_organizer_kind') === 'person' || !\$get('location_same_as_institution')) && \$get('location_type') === 'institution')")
-                        ->options(
-                            fn (): array => Space::query()
+                        ->visibleJs("({$hasScopedInstitutionJs} && (\$get('location_same_as_institution') !== false)) || (\$get('primary_organizer_kind') === 'institution' && (\$get('location_same_as_institution') !== false)) || ((\$get('primary_organizer_kind') === 'person' || !\$get('location_same_as_institution')) && (\$get('location_type') === 'institution' || (\$get('location_type') === 'venue' && \$get('location_venue_id'))))")
+                        ->options(function (Get $get): array {
+                            $venueId = is_scalar($get('location_venue_id')) ? trim((string) $get('location_venue_id')) : '';
+
+                            if (
+                                $venueId !== ''
+                                && $get('location_type') === 'venue'
+                            ) {
+                                return app(SpaceEligibilityResolver::class)->venueQuery($venueId)
+                                    ->where('status', 'active')
+                                    ->orderBy('name')
+                                    ->pluck('name', 'id')
+                                    ->toArray();
+                            }
+
+                            $institutionId = $get('location_institution_id');
+
+                            if (! is_scalar($institutionId) || trim((string) $institutionId) === '') {
+                                $institutionId = $this->resolvedPrimaryOrganizerInstitutionId($get('primary_organizer_id'));
+                            }
+
+                            $query = is_scalar($institutionId) && trim((string) $institutionId) !== ''
+                                ? app(SpaceEligibilityResolver::class)->institutionQuery(trim((string) $institutionId))
+                                : app(SpaceEligibilityResolver::class)->catalogQuery();
+
+                            return $query
                                 ->where('status', 'active')
                                 ->orderBy('name')
                                 ->pluck('name', 'id')
-                                ->toArray()
-                        ),
+                                ->toArray();
+                        }),
                 ]),
         ];
     }
@@ -1421,6 +1425,7 @@ class Create extends Component implements HasActions, HasForms
                 ->schema([
                     Select::make('persons')
                         ->label(__('Pilih Penceramah'))
+                        ->placeholder(__('Pilih Penceramah'))
                         ->required(fn (Get $get): bool => $this->categoriesRequirePersons($get('event_category_ids')))
                         ->multiple()
                         ->closeOnSelect()

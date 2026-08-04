@@ -31,7 +31,7 @@ class McpEventSearchService
         'imam_ids',
         'khatib_ids',
         'bilal_ids',
-        'topic_ids',
+        'discipline_tag_ids',
         'domain_tag_ids',
         'source_tag_ids',
         'issue_tag_ids',
@@ -63,7 +63,7 @@ class McpEventSearchService
         'imam_ids',
         'khatib_ids',
         'bilal_ids',
-        'topic_ids',
+        'discipline_tag_ids',
         'domain_tag_ids',
         'source_tag_ids',
         'issue_tag_ids',
@@ -218,8 +218,8 @@ class McpEventSearchService
             'khatib_ids.*' => ['string'],
             'bilal_ids' => ['sometimes', 'nullable', 'array'],
             'bilal_ids.*' => ['string'],
-            'topic_ids' => ['sometimes', 'nullable', 'array'],
-            'topic_ids.*' => ['string'],
+            'discipline_tag_ids' => ['sometimes', 'nullable', 'array'],
+            'discipline_tag_ids.*' => ['string'],
             'domain_tag_ids' => ['sometimes', 'nullable', 'array'],
             'domain_tag_ids.*' => ['string'],
             'source_tag_ids' => ['sometimes', 'nullable', 'array'],
@@ -325,7 +325,7 @@ class McpEventSearchService
             'imam_ids' => $stringArray->description('Array of person UUIDs who are the event imam(s).'),
             'khatib_ids' => $stringArray->description('Array of person UUIDs who are the event khatib(s).'),
             'bilal_ids' => $stringArray->description('Array of person UUIDs who are the event bilal(s).'),
-            'topic_ids' => $stringArray->description(
+            'discipline_tag_ids' => $stringArray->description(
                 'Array of topic UUIDs. Returns events tagged with any of the given topics.'
             ),
             'domain_tag_ids' => $stringArray->description(

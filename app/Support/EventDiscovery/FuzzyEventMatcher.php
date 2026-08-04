@@ -4,22 +4,12 @@ declare(strict_types=1);
 
 namespace App\Support\EventDiscovery;
 
+use AIArmada\CommerceSupport\Support\StringSimilarity;
 use App\Models\Event;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Str;
 
 final class FuzzyEventMatcher
 {
-    public function normalizeForSimilarity(string $value): string
-    {
-        return (string) Str::of($value)
-            ->lower()
-            ->ascii()
-            ->replaceMatches('/[^a-z0-9\s]+/u', ' ')
-            ->replaceMatches('/\s+/u', ' ')
-            ->trim();
-    }
-
     /**
      * @param  Builder<Event>  $queryBuilder
      * @return Builder<Event>
@@ -149,22 +139,6 @@ final class FuzzyEventMatcher
         return 250;
     }
 
-    public function similarityScore(string $search, string $candidate): float
-    {
-        if ($search === '' || $candidate === '') {
-            return 0.0;
-        }
-
-        $distance = levenshtein($search, $candidate);
-        $maxLength = max(mb_strlen($search), mb_strlen($candidate));
-        $distanceScore = $maxLength > 0 ? 1 - ($distance / $maxLength) : 0.0;
-
-        similar_text($search, $candidate, $similarityPercent);
-        $similarityScore = $similarityPercent / 100;
-
-        return max($distanceScore, $similarityScore);
-    }
-
     public function eventSimilarityScore(string $normalizedSearch, Event $event): float
     {
         $title = trim((string) $event->title);
@@ -173,14 +147,14 @@ final class FuzzyEventMatcher
             return 0.0;
         }
 
-        $normalizedCandidate = $this->normalizeForSimilarity($title);
+        $normalizedCandidate = StringSimilarity::normalize($title);
 
         if ($normalizedCandidate === '') {
             return 0.0;
         }
 
         $scoreCandidates = [];
-        $scoreCandidates[] = $this->similarityScore($normalizedSearch, $normalizedCandidate);
+        $scoreCandidates[] = StringSimilarity::score($normalizedSearch, $normalizedCandidate);
 
         /** @var list<string> $candidateTokens */
         $candidateTokens = array_values(array_filter(
@@ -189,7 +163,7 @@ final class FuzzyEventMatcher
         ));
 
         foreach ($candidateTokens as $token) {
-            $scoreCandidates[] = $this->similarityScore($normalizedSearch, $token);
+            $scoreCandidates[] = StringSimilarity::score($normalizedSearch, $token);
         }
 
         return max($scoreCandidates);

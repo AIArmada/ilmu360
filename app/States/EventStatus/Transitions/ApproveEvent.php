@@ -18,6 +18,7 @@ use Filament\Support\Contracts\HasIcon;
 use Filament\Support\Contracts\HasLabel;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 use Spatie\ModelStates\Transition;
 
 class ApproveEvent extends Transition implements HasColor, HasIcon, HasLabel
@@ -31,6 +32,12 @@ class ApproveEvent extends Transition implements HasColor, HasIcon, HasLabel
     public function handle(): Event
     {
         return DB::transaction(function () {
+            if (! $this->event->occurrences()->exists()) {
+                throw ValidationException::withMessages([
+                    'occurrences' => __('An event must have at least one occurrence before it can be published.'),
+                ]);
+            }
+
             // Create review record
             OwnerContext::withOwner(null, fn () => ModerationReview::create([
                 'actionable_type' => Event::class,

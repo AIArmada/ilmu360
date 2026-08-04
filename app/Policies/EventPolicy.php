@@ -25,16 +25,12 @@ class EventPolicy
     public function view(?User $user, Event $event): bool
     {
         // Public events are viewable by anyone
-        if (
-            $event->published_at !== null
-            && $event->visibility === EventVisibility::Public
-            && in_array((string) $event->status, Event::PUBLIC_STATUSES, true)
-        ) {
+        if ($event->visibility === EventVisibility::Public && $event->isPubliclyReachable()) {
             return true;
         }
 
         // Unlisted events are viewable by direct link
-        if ($event->visibility === EventVisibility::Unlisted) {
+        if ($event->visibility === EventVisibility::Unlisted && $event->isPubliclyReachable()) {
             return true;
         }
 

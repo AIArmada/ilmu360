@@ -55,9 +55,12 @@ pest()->extend(TestCase::class)
         OwnerContext::setForRequest(null);
 
         $compiledViewPath = storage_path('framework/views/testing_'.ParallelTesting::token());
+        $mediaTemporaryPath = storage_path('media-library/temp/testing_'.ParallelTesting::token());
 
         File::ensureDirectoryExists($compiledViewPath);
+        File::ensureDirectoryExists($mediaTemporaryPath);
         config()->set('view.compiled', $compiledViewPath);
+        config()->set('media-library.temporary_directory_path', $mediaTemporaryPath);
 
         if (app()->resolved('blade.compiler')) {
             $compiler = app('blade.compiler');
@@ -540,7 +543,7 @@ function createTestAddressArea(
 /**
  * Canonical MY product geography fixture:
  * - package State/City tables for state_id/city_id
- * - AddressArea tree for district (admin_area_1) + subdistrict (admin_area_2)
+ * - AddressArea tree for administrative district + subdivision assignments
  * - area_tree_root is AddressArea level-1 used only as parent for district nodes (never address FK)
  *
  * @return array{
@@ -613,8 +616,10 @@ function createTestPackageGeography(
             'country_id' => (string) $country->getKey(),
             'state_id' => (string) $packageState->getKey(),
             'city_id' => $city instanceof City ? (string) $city->getKey() : null,
-            'administrative_district_id' => (string) $district->getKey(),
-            'administrative_subdivision_id' => $subdistrict instanceof AddressArea ? (string) $subdistrict->getKey() : null,
+            'area_assignments' => array_filter([
+                'administrative_district' => (string) $district->getKey(),
+                'administrative_subdivision' => $subdistrict instanceof AddressArea ? (string) $subdistrict->getKey() : null,
+            ]),
             'state' => $stateName,
             'city' => $cityName ?? $subdistrictName,
         ],

@@ -82,7 +82,7 @@
                                 id="unified-search"
                                 type="text"
                                 name="search"
-                                wire:model.live.debounce.300ms="search"
+                                wire:model.live.debounce.500ms="search"
                                 placeholder="{{ __('Search majlis, speakers, references, or institutions...') }}"
                                 class="h-16 w-full rounded-[1.75rem] border-2 border-slate-200 bg-white pl-14 pr-14 text-base font-medium text-slate-900 shadow-lg shadow-slate-200/70 transition focus:border-emerald-500 focus:outline-none focus:ring-4 focus:ring-emerald-500/10 placeholder:text-slate-400"
                             >

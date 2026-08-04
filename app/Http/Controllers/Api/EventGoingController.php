@@ -68,7 +68,8 @@ class EventGoingController extends Controller
     {
         $isPostponed = $event->primaryOccurrence && in_array((string) $event->primaryOccurrence->status, ['postponed', 'rescheduled'], true);
 
-        if ($event->published_at === null
+        if (! $event->hasOccurrences()
+            || $event->published_at === null
             || ! in_array((string) $event->status, Event::ENGAGEABLE_STATUSES, true)
             || $event->visibility !== EventVisibility::Public
             || $isPostponed) {

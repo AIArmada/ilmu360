@@ -74,6 +74,9 @@ Route::livewire('/majlis/{event:slug}', 'pages.events.show')
 Route::get('/majlis/{event:slug}/kalendar.ics', [EventsController::class, 'calendar'])
     ->middleware(ResolvePublicSlugRedirect::class)
     ->name('events.calendar');
+Route::livewire('/majlis/{event:slug}/{occurrenceSlug}', 'pages.events.occurrence')
+    ->middleware(ResolvePublicSlugRedirect::class)
+    ->name('events.occurrence');
 
 // Event Submission (Public)
 Route::livewire('/tambah-majlis', 'pages.submit-event.landing')
@@ -134,6 +137,9 @@ Route::post('/majlis/{event:slug}/daftar', [EventsController::class, 'register']
 Route::middleware('auth')->get('/majlis/{event:slug}/pas/{pass}', EventPassController::class)
     ->middleware(ResolvePublicSlugRedirect::class)
     ->name('events.pass');
+Route::livewire('/majlis/{event:slug}/{occurrenceSlug}/{sessionSlug}', 'pages.events.session')
+    ->middleware(ResolvePublicSlugRedirect::class)
+    ->name('events.session');
 
 // Institutions (with search rate limiting)
 Route::livewire('/institusi', 'pages.institutions.index')

@@ -16,6 +16,9 @@
             <div class="mt-6 rounded-3xl border border-emerald-200 bg-emerald-50 p-5">
                 <p class="text-xs font-bold uppercase tracking-[0.22em] text-emerald-700">{{ __('Selected Record') }}</p>
                 <p class="mt-3 text-sm font-medium text-slate-600">{{ __('Claiming access for this :subject', ['subject' => strtolower($this->context['subject_label'])]) }}</p>
+                @if (filled($this->context['profile_image_url']))
+                    <img src="{{ $this->context['profile_image_url'] }}" alt="{{ __('Gambar profil :name', ['name' => $this->context['subject_title']]) }}" class="mt-4 aspect-[3/4] w-36 rounded-2xl border border-emerald-200 object-cover object-top shadow-sm" loading="lazy">
+                @endif
                 <p class="mt-1 text-xl font-semibold text-slate-950">{{ $this->context['subject_title'] }}</p>
                 <p class="mt-3 text-sm leading-6 text-slate-600">
                     {{ __('Please confirm this is the :subject you want to claim before submitting.', ['subject' => strtolower($this->context['subject_label'])]) }}

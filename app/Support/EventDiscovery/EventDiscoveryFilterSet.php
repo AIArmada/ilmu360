@@ -48,7 +48,7 @@ final class EventDiscoveryFilterSet
         );
 
         foreach ($location->assignments() as $role => $areaId) {
-            $parts[] = "{$role}_id:={$areaId}";
+            $parts[] = "{$role}:={$areaId}";
         }
 
         return $parts;

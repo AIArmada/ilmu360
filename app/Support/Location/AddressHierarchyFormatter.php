@@ -109,6 +109,24 @@ final class AddressHierarchyFormatter
         return implode($separator, self::parts($address, $order));
     }
 
+    public static function roleAreaName(?Address $address, string $role): ?string
+    {
+        if (! $address instanceof Address) {
+            return null;
+        }
+
+        return $address->areaAssignments()
+            ->with('area')
+            ->get()
+            ->firstWhere('role', $role)?->area?->name;
+    }
+
+    public static function subdivisionOrLocalityName(?Address $address): ?string
+    {
+        return self::roleAreaName($address, AddressAssignments::ADMINISTRATIVE_SUBDIVISION)
+            ?? self::roleAreaName($address, AddressAssignments::POSTAL_LOCALITY);
+    }
+
     private static function loadedAreaName(Address $address, string $role): ?string
     {
         foreach ($address->getRelation('areaAssignments') as $assignment) {

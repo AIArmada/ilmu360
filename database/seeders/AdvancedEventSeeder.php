@@ -3,8 +3,12 @@
 namespace Database\Seeders;
 
 use AIArmada\CommerceSupport\Support\OwnerContext;
+use AIArmada\Events\Actions\CreateEventSessionAction;
 use AIArmada\Events\Enums\ScheduleKind;
+use AIArmada\Events\Models\EventInvolvement;
+use AIArmada\Events\Models\EventRole;
 use AIArmada\Events\Models\EventSession;
+use AIArmada\Events\Models\EventTimeExpression;
 use App\Actions\Events\SyncEventClassificationsAction;
 use App\Actions\Events\SyncEventScheduleAction;
 use App\Contracts\EventCategoryCatalog;
@@ -13,20 +17,28 @@ use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
 use App\Enums\EventKeyPersonRole;
 use App\Enums\EventVisibility;
+use App\Enums\PrayerOffset;
+use App\Enums\PrayerReference;
 use App\Enums\TimingMode;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Services\EventKeyPersonSyncService;
+use App\Services\PrayerTimeExpressionResolver;
 use Carbon\CarbonInterface;
+use Database\Seeders\Concerns\SeedsEventLocations;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
 class AdvancedEventSeeder extends Seeder
 {
+    use SeedsEventLocations;
+
     public function run(): void
     {
+        $this->seedEventSpaces();
+
         $institution = Institution::query()
             ->where('status', 'verified')
             ->inRandomOrder()
@@ -67,9 +79,9 @@ class AdvancedEventSeeder extends Seeder
             endsAt: $firstFriday->copy()->addWeeks(4)->utc(),
         );
 
-        $this->createSession($parent, 'Minggu 1: Pengenalan Hadis', $firstFriday->copy(), $firstFriday->copy()->addHours(2));
-        $this->createSession($parent, 'Minggu 2: Hadis Niat', $firstFriday->copy()->addWeek(), $firstFriday->copy()->addWeek()->addHours(2));
-        $this->createSession($parent, 'Minggu 3: Hadis Ihsan', $firstFriday->copy()->addWeeks(2), $firstFriday->copy()->addWeeks(2)->addHours(2));
+        $this->createSession($parent, 'Minggu 1: Pengenalan Hadis', $firstFriday->copy(), $firstFriday->copy()->addHours(2), $personIds);
+        $this->createSession($parent, 'Minggu 2: Hadis Niat', $firstFriday->copy()->addWeek(), $firstFriday->copy()->addWeek()->addHours(2), $personIds);
+        $this->createSession($parent, 'Minggu 3: Hadis Ihsan', $firstFriday->copy()->addWeeks(2), $firstFriday->copy()->addWeeks(2)->addHours(2), $personIds);
     }
 
     /**
@@ -91,9 +103,33 @@ class AdvancedEventSeeder extends Seeder
             endsAt: $nightOne->copy()->addDays(14)->utc(),
         );
 
-        $this->createSession($parent, 'Malam 1: Tadabbur Selepas Tarawih', $nightOne->copy(), $nightOne->copy()->addHours(1)->addMinutes(30));
-        $this->createSession($parent, 'Malam 2: Qiyam & Muhasabah', $nightOne->copy()->addDays(3), $nightOne->copy()->addDays(3)->addHours(1)->addMinutes(15));
-        $this->createSession($parent, 'Hujung Minggu: Tadabbur Keluarga', $nightOne->copy()->addDays(6)->setTime(10, 0), $nightOne->copy()->addDays(6)->setTime(12, 0));
+        $this->createSession(
+            $parent,
+            'Malam 1: Tadabbur Selepas Tarawih',
+            $nightOne->copy(),
+            $nightOne->copy()->addHours(1)->addMinutes(30),
+            $personIds,
+            PrayerReference::Isha,
+            PrayerOffset::After60,
+            'Selepas Tarawih',
+        );
+        $this->createSession(
+            $parent,
+            'Malam 2: Qiyam & Muhasabah',
+            $nightOne->copy()->addDays(3),
+            $nightOne->copy()->addDays(3)->addHours(1)->addMinutes(15),
+            $personIds,
+            PrayerReference::Isha,
+            PrayerOffset::After15,
+            '15 minit selepas Isyak',
+        );
+        $this->createSession(
+            $parent,
+            'Hujung Minggu: Tadabbur Keluarga',
+            $nightOne->copy()->addDays(6)->setTime(10, 0),
+            $nightOne->copy()->addDays(6)->setTime(12, 0),
+            $personIds,
+        );
     }
 
     /**
@@ -115,10 +151,10 @@ class AdvancedEventSeeder extends Seeder
             endsAt: $friday->copy()->addDays(2)->utc(),
         );
 
-        $this->createSession($parent, 'Sesi 1: Pengantar Kitab', $friday->copy(), $friday->copy()->addHours(2));
-        $this->createSession($parent, 'Sesi 2: Fiqh Taharah', $friday->copy()->addDay()->setTime(9, 0), $friday->copy()->addDay()->setTime(12, 0));
-        $this->createSession($parent, 'Sesi 3: Fiqh Solat', $friday->copy()->addDay()->setTime(14, 0), $friday->copy()->addDay()->setTime(17, 0));
-        $this->createSession($parent, 'Penutup & Soal Jawab', $friday->copy()->addDays(2)->setTime(9, 30), $friday->copy()->addDays(2)->setTime(11, 30));
+        $this->createSession($parent, 'Sesi 1: Pengantar Kitab', $friday->copy(), $friday->copy()->addHours(2), $personIds);
+        $this->createSession($parent, 'Sesi 2: Fiqh Taharah', $friday->copy()->addDay()->setTime(9, 0), $friday->copy()->addDay()->setTime(12, 0), $personIds);
+        $this->createSession($parent, 'Sesi 3: Fiqh Solat', $friday->copy()->addDay()->setTime(14, 0), $friday->copy()->addDay()->setTime(17, 0), $personIds);
+        $this->createSession($parent, 'Penutup & Soal Jawab', $friday->copy()->addDays(2)->setTime(9, 30), $friday->copy()->addDays(2)->setTime(11, 30), $personIds);
     }
 
     /**
@@ -161,29 +197,99 @@ class AdvancedEventSeeder extends Seeder
         );
     }
 
-    private function createSession(Event $event, string $title, CarbonInterface $startsAt, CarbonInterface $endsAt): EventSession
-    {
+    /**
+     * @param  list<string>  $personIds
+     */
+    private function createSession(
+        Event $event,
+        string $title,
+        CarbonInterface $startsAt,
+        CarbonInterface $endsAt,
+        array $personIds,
+        ?PrayerReference $prayerReference = null,
+        ?PrayerOffset $prayerOffset = null,
+        ?string $prayerDisplayText = null,
+    ): EventSession {
         $occurrence = $event->primaryOccurrence;
 
         if ($occurrence === null) {
             throw new \RuntimeException('A seeded event must have a primary occurrence before sessions are added.');
         }
 
-        return EventSession::query()->create([
-            'id' => (string) Str::uuid(),
-            'event_id' => $event->id,
-            'event_occurrence_id' => $occurrence->id,
+        $session = app(CreateEventSessionAction::class)->handle($occurrence, [
             'title' => $title,
-            'slug' => Str::slug($title).'-'.Str::lower(Str::random(6)),
-            'description' => 'Session in the event occurrence.',
+            'summary' => 'Sesi dalam occurrence majlis.',
+            'description' => 'Sesi dalam occurrence majlis.',
             'starts_at' => $startsAt->copy()->utc(),
             'ends_at' => $endsAt->copy()->utc(),
             'timezone' => $event->timezone ?: 'Asia/Kuala_Lumpur',
             'status' => 'published',
             'visibility' => EventVisibility::Public->value,
             'delivery_mode' => EventFormat::Physical->value,
-            'sort_order' => (int) $occurrence->sessions()->max('sort_order') + 1,
         ]);
+
+        $session->forceFill([
+            'published_at' => $event->published_at ?? now(),
+        ])->save();
+
+        $this->seedSessionInvolvements($session, $personIds);
+
+        if ($prayerReference instanceof PrayerReference && $prayerOffset instanceof PrayerOffset) {
+            EventTimeExpression::query()->updateOrCreate(
+                [
+                    'event_id' => $event->id,
+                    'event_occurrence_id' => $session->event_occurrence_id,
+                    'event_session_id' => $session->id,
+                    'anchor_type' => 'prayer',
+                ],
+                [
+                    'time_mode' => 'prayer_relative',
+                    'anchor_code' => $prayerReference->value,
+                    'relation' => $prayerOffset->minutes() < 0 ? 'before' : 'after',
+                    'offset_minutes' => abs($prayerOffset->minutes()),
+                    'display_label' => $prayerDisplayText ?? $prayerOffset->displayText($prayerReference),
+                    'resolver_class' => PrayerTimeExpressionResolver::class,
+                ],
+            );
+        }
+
+        return $session;
+    }
+
+    /**
+     * @param  list<string>  $personIds
+     */
+    private function seedSessionInvolvements(EventSession $session, array $personIds): void
+    {
+        $roleIds = EventRole::query()
+            ->whereIn('code', [EventKeyPersonRole::Speaker->value, EventKeyPersonRole::Moderator->value])
+            ->pluck('id', 'code');
+
+        foreach (array_values(array_unique(array_slice($personIds, 0, 2))) as $index => $personId) {
+            $roleCode = $index === 0
+                ? EventKeyPersonRole::Speaker->value
+                : EventKeyPersonRole::Moderator->value;
+
+            EventInvolvement::query()->updateOrCreate(
+                [
+                    'event_id' => $session->event_id,
+                    'event_occurrence_id' => $session->event_occurrence_id,
+                    'event_session_id' => $session->id,
+                    'involveable_type' => 'person',
+                    'involveable_id' => $personId,
+                    'role_code' => $roleCode,
+                ],
+                [
+                    'event_role_id' => $roleIds->get($roleCode),
+                    'status' => 'active',
+                    'visibility' => 'public',
+                    'prominence' => $index === 0 ? 100 : 50,
+                    'is_featured' => $index === 0,
+                    'is_primary' => $index === 0,
+                    'sort_order' => $index + 1,
+                ],
+            );
+        }
     }
 
     /**
@@ -220,6 +326,8 @@ class AdvancedEventSeeder extends Seeder
             'published_at' => now()->subDay(),
             'schedule_kind' => $scheduleKind->value,
         ]);
+
+        $this->syncSeededEventLocation($event, institution: $institution);
 
         if ($categoryId = array_key_first(app(EventCategoryCatalog::class)->options())) {
             app(SyncEventClassificationsAction::class)->handle($event, ['event_category_ids' => [$categoryId]]);

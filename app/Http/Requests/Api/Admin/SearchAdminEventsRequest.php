@@ -24,7 +24,7 @@ class SearchAdminEventsRequest extends FormRequest
         'imam_ids',
         'khatib_ids',
         'bilal_ids',
-        'topic_ids',
+        'discipline_tag_ids',
         'domain_tag_ids',
         'source_tag_ids',
         'issue_tag_ids',

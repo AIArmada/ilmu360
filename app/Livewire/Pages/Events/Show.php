@@ -33,6 +33,8 @@ use App\Support\Auth\IntendedRedirect;
 use Carbon\CarbonInterface;
 use Filament\Notifications\Notification as FilamentNotification;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
@@ -88,6 +90,16 @@ class Show extends Component
         }
 
         OwnerContext::withOwner(null, function () use ($event): void {
+            $publicScheduleScope = function (Relation $query) use ($event): void {
+                if ($this->isEventOwner($event)) {
+                    return;
+                }
+
+                $query
+                    ->whereIn('status', Event::PUBLIC_SCHEDULE_STATUSES)
+                    ->whereIn('visibility', Event::PUBLIC_SCHEDULE_VISIBILITIES);
+            };
+
             $event->loadCount('registrations');
             $this->registrationsCount = $event->registrations_count;
             $event->load([
@@ -104,6 +116,7 @@ class Show extends Component
                 'venue.addresses.state',
                 'venue.addresses.city',
                 'venue.addresses.areaAssignments.area',
+                'venue.contactMethods',
                 'persons.media',
                 'persons.titleAssignments.title.category',
                 'keyPeople.person.media',
@@ -118,15 +131,43 @@ class Show extends Component
                 'audienceProfiles',
                 'locations.venueSpace',
                 'primaryLocation.venueSpace',
-                'occurrences.sessions',
-                'occurrences.locations.venueSpace',
-                'occurrences.links',
-                'occurrences.languages',
-                'occurrences.audiences',
-                'occurrences.audienceProfiles',
+                'primaryOccurrence' => $publicScheduleScope,
+                'occurrences' => $publicScheduleScope,
+                'occurrences.media',
+                'occurrences.sessions' => function (Relation $query) use ($publicScheduleScope): void {
+                    $publicScheduleScope($query);
+                    $query
+                        ->orderBy('sort_order')
+                        ->orderBy('starts_at')
+                        ->orderBy('created_at')
+                        ->orderBy('id');
+                },
+                'occurrences.sessions.media',
+                'occurrences.sessions.involvements' => function (Relation $query) use ($event, $publicScheduleScope): void {
+                    $publicScheduleScope($query);
+
+                    if (! $this->isEventOwner($event)) {
+                        $query->where('status', 'active');
+                    }
+                },
+                'occurrences.sessions.involvements.involveable',
+                'occurrences.sessions.timeExpressions',
                 'occurrences.timeExpressions',
                 'languages',
                 'timeExpressions',
+                'ticketTypes' => function (Relation $relation): void {
+                    $relation->getQuery()
+                        ->where('visibility', 'public')
+                        ->orderBy('sort_order')
+                        ->orderBy('name');
+                },
+                'ticketTypes.seatingOptions.section',
+                'seatMaps' => function (Relation $relation): void {
+                    $relation->getQuery()
+                        ->where('status', 'active')
+                        ->orderBy('name');
+                },
+                'seatMaps.sections',
                 'latestPublishedChangeAnnouncement.replacementEvent.media',
                 'latestPublishedChangeAnnouncement.replacementEvent.institution.media',
                 'latestPublishedChangeAnnouncement.replacementEvent.persons.media',
@@ -311,6 +352,65 @@ class Show extends Component
     {
         return $this->descriptionHtml() !== ''
             || $this->event->classifications()->exists();
+    }
+
+    /**
+     * Find a small set of public events that share the event's institution or
+     * taxonomy terms. This keeps recommendations tied to actual event graph
+     * relationships instead of using an opaque search-only similarity score.
+     *
+     * @return Collection<int, Event>
+     */
+    #[Computed]
+    public function relatedEvents(): Collection
+    {
+        $institutionId = $this->event->institution_id;
+        $termIds = $this->event->classifications
+            ->pluck('event_term_id')
+            ->filter(fn (mixed $id): bool => is_string($id) && $id !== '')
+            ->unique()
+            ->values();
+
+        if (! filled($institutionId) && $termIds->isEmpty()) {
+            return collect();
+        }
+
+        $query = Event::query()
+            ->whereKeyNot($this->event->getKey())
+            ->where('status', 'approved')
+            ->where('visibility', EventVisibility::Public->value)
+            ->whereNotNull('published_at')
+            ->whereHas('occurrences')
+            ->with([
+                'media',
+                'institution',
+                'venue',
+                'primaryOccurrence',
+            ])
+            ->when(
+                filled($institutionId),
+                fn (Builder $query): Builder => $query->orderByRaw(
+                    'CASE WHEN institution_id = ? THEN 0 ELSE 1 END',
+                    [$institutionId],
+                ),
+            )
+            ->orderBy('starts_at')
+            ->limit(6);
+
+        $query->where(function (Builder $query) use ($institutionId, $termIds): void {
+            if (filled($institutionId)) {
+                $query->where('institution_id', $institutionId);
+            }
+
+            if ($termIds->isNotEmpty()) {
+                $query->orWhereHas(
+                    'classifications',
+                    fn (Builder $classificationQuery): Builder => $classificationQuery->whereIn('event_term_id', $termIds->all()),
+                );
+            }
+        });
+
+        return $query->get();
     }
 
     private function hasRenderableHtmlContent(string $html): bool
@@ -599,7 +699,7 @@ class Show extends Component
 
     protected function isSearchIndexable(Event $event): bool
     {
-        if ($event->published_at === null || $event->visibility !== EventVisibility::Public) {
+        if ($event->published_at === null || $event->visibility !== EventVisibility::Public || ! $event->hasOccurrences()) {
             return false;
         }
 

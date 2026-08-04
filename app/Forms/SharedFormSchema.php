@@ -1501,6 +1501,7 @@ class SharedFormSchema
                 ->searchable()
                 ->live()
                 ->dehydrated(true)
+                ->dehydratedWhenHidden(true)
                 ->visible(self::cityVisibleClosure(
                     includeCountryField: $includeCountryField,
                     defaultCountryId: $defaultCountryId,

@@ -60,7 +60,7 @@ class DatabaseSeeder extends Seeder
     private function seedPrimaryEntities(): void
     {
         // Shared entities used by institution/event forms.
-        $this->call([FacilityTypeSeeder::class, SpaceSeeder::class]);
+        $this->call([FacilityTypeSeeder::class, VenueSpaceTypeSeeder::class, SpaceSeeder::class]);
 
         // Guard non-idempotent seeders.
         $this->seedWhenEmpty(Institution::class, InstitutionSeeder::class);

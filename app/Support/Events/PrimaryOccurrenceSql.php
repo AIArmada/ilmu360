@@ -27,7 +27,7 @@ class PrimaryOccurrenceSql
         $occurrencesTable = config('events.database.tables.event_occurrences', 'event_occurrences');
         $eventsTable ??= (new Event)->getTable();
 
-        return "(select {$occurrencesTable}.{$column} from {$occurrencesTable} where {$occurrencesTable}.event_id = {$eventsTable}.id order by {$occurrencesTable}.starts_at asc, {$occurrencesTable}.created_at asc limit 1)";
+        return "(select {$occurrencesTable}.{$column} from {$occurrencesTable} where {$occurrencesTable}.event_id = {$eventsTable}.id order by {$occurrencesTable}.starts_at asc, {$occurrencesTable}.created_at asc, {$occurrencesTable}.id asc limit 1)";
     }
 
     public static function startsAtUserTimeExpression(int $offsetMinutes, ?string $eventsTable = null): string

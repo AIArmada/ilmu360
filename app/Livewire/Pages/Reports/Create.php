@@ -87,7 +87,7 @@ class Create extends Component implements HasForms
         return $schema
             ->statePath('data')
             ->components([
-                Section::make(__('Laporkan :subject ini', ['subject' => strtolower($this->context['subject_label'])]))
+                Section::make(__('Report this :subject', ['subject' => strtolower($this->context['subject_label'])]))
                     ->description(__('Gunakan borang ini jika rekod palsu, tidak tepat, tidak selamat, atau mengelirukan. Laporan akan disemak oleh penyemak.'))
                     ->schema([
                         Select::make('category')

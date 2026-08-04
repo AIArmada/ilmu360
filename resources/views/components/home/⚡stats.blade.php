@@ -37,11 +37,9 @@ new class extends Component {
         return Cache::remember('home.stats.institutions.upcoming', 300, function () {
             return Event::active()
                 ->where('starts_at', '>=', now())
-                ->get()
-                ->pluck('institution_id')
-                ->filter()
-                ->unique()
-                ->count();
+                ->whereNotNull('institution_id')
+                ->distinct()
+                ->count('institution_id');
         });
     }
 };

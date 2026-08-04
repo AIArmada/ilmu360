@@ -20,6 +20,7 @@ use App\Support\Auth\IntendedRedirect;
 use App\Support\Timezone\UserDateTimeFormatter;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -203,6 +204,11 @@ class Show extends Component
         return $this->eventPageData()['other'];
     }
 
+    public function getHasApprovedMemberProperty(): bool
+    {
+        return OwnerContext::withOwner(null, fn (): bool => $this->person->members()->exists());
+    }
+
     public function render(): View
     {
         $this->loadPersonRelations();
@@ -256,10 +262,11 @@ class Show extends Component
         $primaryOccurrenceSql = $primaryOccurrence->toSql();
 
         $other = $this->person->nonSpeakerEventKeyPeople()
-            ->whereHas('event', function ($query): void {
+            ->whereHas('event', function (Builder $query): void {
                 $query->whereIn('events.status', Event::PUBLIC_STATUSES)
                     ->where('events.visibility', EventVisibility::Public)
-                    ->whereNotNull('events.published_at');
+                    ->whereNotNull('events.published_at')
+                    ->whereHas('occurrences');
             })
             // The profile only renders the event title and role here.
             ->with('event:id,title,slug')
@@ -473,7 +480,8 @@ class Show extends Component
         $query = $this->person->personEvents()
             ->whereIn("{$eventsTable}.status", Event::PUBLIC_STATUSES)
             ->where("{$eventsTable}.visibility", EventVisibility::Public)
-            ->whereNotNull("{$eventsTable}.published_at");
+            ->whereNotNull("{$eventsTable}.published_at")
+            ->whereHas('occurrences');
 
         return $query;
     }

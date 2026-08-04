@@ -10,6 +10,7 @@ use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
 use AIArmada\Membership\Enums\MemberRole;
 use App\Actions\Events\ResolveAdvancedBuilderContextAction;
+use App\Contracts\SpaceEligibilityResolver;
 use App\Enums\EventTaxonomyCode;
 use App\Enums\MemberSubjectType;
 use App\Forms\SharedFormSchema;
@@ -32,6 +33,7 @@ class FrontendCatalogService
     public function __construct(
         private readonly InstitutionSearchService $institutionSearchService,
         private readonly PersonSearchService $personSearchService,
+        private readonly SpaceEligibilityResolver $spaceEligibilityResolver,
     ) {}
 
     /**
@@ -382,19 +384,13 @@ class FrontendCatalogService
      */
     public function spaces(?string $institutionId = null): array
     {
-        $query = Space::query()
+        $query = is_string($institutionId) && $institutionId !== ''
+            ? $this->spaceEligibilityResolver->institutionQuery($institutionId)
+            : $this->spaceEligibilityResolver->catalogQuery();
+
+        $query
             ->where('status', 'active')
             ->orderBy('name');
-
-        if (is_string($institutionId) && $institutionId !== '') {
-            $query->where(function (Builder $spaceQuery) use ($institutionId): void {
-                $spaceQuery
-                    ->whereDoesntHave('institutions')
-                    ->orWhereHas('institutions', fn (Builder $institutionQuery) => $institutionQuery->whereKey($institutionId));
-            });
-        } else {
-            $query->whereDoesntHave('institutions');
-        }
 
         return $query
             ->get(['id', 'name'])

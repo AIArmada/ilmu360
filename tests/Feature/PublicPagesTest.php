@@ -236,13 +236,11 @@ it('shows share actions on public series and reference pages', function () {
 
     $this->get(route('series.show', $series))
         ->assertSuccessful()
-        ->assertSee('Kongsi')
-        ->assertSee('Kongsi Siri');
+        ->assertSee('Kongsi');
 
     $this->get(route('references.show', $reference))
         ->assertSuccessful()
-        ->assertSee('Kongsi')
-        ->assertSee('Kongsi Rujukan');
+        ->assertSee('Kongsi');
 });
 
 it('shows federal territory event cards on series pages with subdistrict and state', function () {
@@ -620,6 +618,14 @@ it('renders optimized seo metadata on public listing pages', function () {
         ->assertSuccessful()
         ->assertSee('<title>Direktori Penceramah Islam - '.config('app.name').'</title>', false)
         ->assertSee('Cari profil penceramah, ustaz, dan pendakwah serta semak majlis ilmu mereka yang akan datang di seluruh Malaysia.', false);
+});
+
+it('keeps breadcrumbs off public directory pages', function () {
+    foreach (['events.index', 'institutions.index', 'persons.index', 'references.index', 'venues.index'] as $routeName) {
+        $this->get(route($routeName))
+            ->assertSuccessful()
+            ->assertDontSee('data-ui="public-breadcrumbs"', false);
+    }
 });
 
 it('renders optimized seo metadata on public detail pages', function () {

@@ -7,6 +7,7 @@ use AIArmada\Events\Enums\ScheduleKind;
 use AIArmada\Seating\Models\SeatMap;
 use App\Contracts\EventCategoryCatalog;
 use App\Contracts\EventCategoryPolicyResolver;
+use App\Contracts\SpaceEligibilityResolver;
 use App\Enums\EventAgeGroup;
 use App\Enums\EventFormat;
 use App\Enums\EventGenderRestriction;
@@ -19,7 +20,6 @@ use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\Series;
-use App\Models\Space;
 use App\Models\User;
 use App\Services\ModerationService;
 use App\Support\Events\AdminEventTimeMapper;
@@ -40,6 +40,7 @@ final readonly class SaveAdminEventAction
         private ModelMediaSyncService $mediaSyncService,
         private SyncEventResourceRelationsAction $syncEventResourceRelationsAction,
         private ModerationService $moderationService,
+        private SpaceEligibilityResolver $spaceEligibilityResolver,
     ) {}
 
     /**
@@ -374,27 +375,18 @@ final readonly class SaveAdminEventAction
         }
 
         if ($spaceIds !== [] && $institutionId !== null) {
-            foreach ($spaceIds as $sid) {
-                $space = Space::query()->find($sid);
-
-                if ($space instanceof Space) {
-                    $linkedInstitutionsExist = $space->institutions()->exists();
-                    $isLinkedToInstitution = $space->institutions()
-                        ->where('institutions.id', $institutionId)
-                        ->exists();
-
-                    if ($linkedInstitutionsExist && ! $isLinkedToInstitution) {
-                        $errors['space_ids'][] = __('Ruang yang dipilih tidak tersedia untuk institusi ini.');
-                    }
-                }
+            try {
+                $this->spaceEligibilityResolver->validateInstitutionSelection($institutionId, $spaceIds);
+            } catch (ValidationException $exception) {
+                $errors = array_merge_recursive($errors, $exception->errors());
             }
         }
 
         if ($spaceIds !== [] && $venueId !== null) {
-            $space = Space::query()->find($spaceIds[0]);
-
-            if ($space instanceof Space && $space->venue_id !== null && (string) $space->venue_id !== $venueId) {
-                $errors['space_ids'][] = __('Ruang yang dipilih tidak tersedia untuk venue ini.');
+            try {
+                $this->spaceEligibilityResolver->validateVenueSelection($venueId, $spaceIds);
+            } catch (ValidationException $exception) {
+                $errors = array_merge_recursive($errors, $exception->errors());
             }
         }
 

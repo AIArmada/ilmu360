@@ -30,7 +30,9 @@ class EventsController extends Controller
      */
     public function calendar(Event $event): Response
     {
-        if ((! in_array((string) $event->status, Event::ENGAGEABLE_STATUSES, true))
+        if (! $event->hasOccurrences()
+            || $event->published_at === null
+            || (! in_array((string) $event->status, Event::ENGAGEABLE_STATUSES, true))
             || $event->visibility !== EventVisibility::Public
             || ($event->primaryOccurrence && in_array((string) $event->primaryOccurrence->status, ['postponed', 'rescheduled'], true))) {
             abort(404);

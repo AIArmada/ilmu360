@@ -9,7 +9,6 @@ use AIArmada\Engagement\Models\Follow;
 use AIArmada\Membership\Traits\HasMembers;
 use App\Enums\InstitutionType;
 use App\Enums\MemberSubjectType;
-use App\Models\Builders\EventBuilder;
 use App\Models\Concerns\AuditsModelChanges;
 use App\Models\Concerns\HasDonationChannels;
 use App\Models\Concerns\HasLanguages;
@@ -281,15 +280,16 @@ class Institution extends Model implements AuditableContract, HasMedia
     public function spaces(): BelongsToMany
     {
         return $this->belongsToMany(Space::class, 'institution_space')
+            ->withPivot('capacity')
             ->withTimestamps();
     }
 
     /**
-     * Event query for events held at this institution.
+     * @return HasMany<Event, $this>
      */
-    public function events(): EventBuilder
+    public function events(): HasMany
     {
-        return Event::query()->where('institution_id', (string) $this->getKey());
+        return $this->hasMany(Event::class);
     }
 
     /**

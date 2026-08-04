@@ -4,7 +4,14 @@ use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Engagement\Contracts\EngagementCounterService;
 use AIArmada\Events\Enums\ScheduleKind;
+use AIArmada\Events\Models\EventInvolvement;
+use AIArmada\Events\Models\EventOccurrence;
+use AIArmada\Events\Models\EventRole;
+use AIArmada\Events\Models\EventSession;
+use AIArmada\Events\Models\EventTimeExpression;
+use AIArmada\FilamentEvents\Resources\EventResource;
 use App\Actions\Events\SyncEventScheduleAction;
+use App\Enums\EventKeyPersonRole;
 use App\Enums\TimingMode;
 use App\Livewire\Pages\Events\Show;
 use App\Models\Event;
@@ -17,6 +24,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
+use Spatie\Permission\PermissionRegistrar;
 
 describe('Event Show Page Going Feature', function () {
     afterEach(function () {
@@ -293,6 +301,270 @@ describe('Event Show Page Going Feature', function () {
     });
 });
 
+it('shows the event edit action to admins', function (): void {
+    config(['permission.teams' => false]);
+    app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+    $roleClass = app(PermissionRegistrar::class)->getRoleClass();
+    if (! $roleClass::where('name', 'admin')->exists()) {
+        $roleClass::create(['name' => 'admin', 'guard_name' => 'web']);
+    }
+
+    $admin = User::factory()->create();
+    $admin->assignRole('admin');
+    $event = Event::factory()->create([
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now()->subDay(),
+        'starts_at' => now()->addDay(),
+    ]);
+    $editUrl = EventResource::getUrl('edit', ['record' => $event], panel: 'admin');
+
+    $this->actingAs($admin)
+        ->get(route('events.show', $event))
+        ->assertSuccessful()
+        ->assertSee('data-testid="event-admin-edit-button"', false)
+        ->assertSee($editUrl, false)
+        ->assertSee(__('Edit'));
+});
+
+it('does not show the event edit action to non-admin viewers', function (): void {
+    $viewer = User::factory()->create();
+    $event = Event::factory()->create([
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now()->subDay(),
+        'starts_at' => now()->addDay(),
+    ]);
+
+    $this->actingAs($viewer)
+        ->get(route('events.show', $event))
+        ->assertSuccessful()
+        ->assertDontSee('data-testid="event-admin-edit-button"', false)
+        ->assertDontSee(EventResource::getUrl('edit', ['record' => $event], panel: 'admin'), false);
+});
+
+it('renders occurrence sessions with session timing expressions and roles', function (): void {
+    $event = Event::factory()->create([
+        'title' => 'Program Berlapis Ujian',
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now()->subDay(),
+        'starts_at' => now()->addDay()->setTime(20, 0),
+        'ends_at' => now()->addDay()->setTime(23, 0),
+    ]);
+    $occurrence = $event->primaryOccurrence;
+    $person = Person::factory()->create(['name' => 'Ustaz Sesi Ujian', 'status' => 'verified']);
+
+    expect($occurrence)->not->toBeNull();
+
+    if ($occurrence === null) {
+        return;
+    }
+
+    $session = EventSession::query()->create([
+        'event_id' => $event->id,
+        'event_occurrence_id' => $occurrence->id,
+        'title' => 'Sesi Selepas Maghrib',
+        'slug' => 'sesi-selepas-maghrib',
+        'summary' => 'Sesi yang dipaparkan di bawah occurrence.',
+        'starts_at' => now()->addDay()->setTime(20, 15),
+        'ends_at' => now()->addDay()->setTime(21, 45),
+        'timezone' => 'Asia/Kuala_Lumpur',
+        'status' => 'published',
+        'visibility' => 'public',
+        'delivery_mode' => 'physical',
+        'sort_order' => 1,
+    ]);
+    $role = EventRole::factory()->create([
+        'code' => EventKeyPersonRole::Speaker->value,
+        'name' => EventKeyPersonRole::Speaker->getLabel(),
+    ]);
+
+    EventInvolvement::query()->create([
+        'event_id' => $event->id,
+        'event_occurrence_id' => $occurrence->id,
+        'event_session_id' => $session->id,
+        'involveable_type' => 'person',
+        'involveable_id' => $person->id,
+        'event_role_id' => $role->id,
+        'role_code' => EventKeyPersonRole::Speaker->value,
+        'status' => 'active',
+        'visibility' => 'public',
+        'sort_order' => 1,
+    ]);
+
+    EventTimeExpression::query()->create([
+        'event_id' => $event->id,
+        'event_occurrence_id' => $occurrence->id,
+        'event_session_id' => $session->id,
+        'time_mode' => 'prayer_relative',
+        'anchor_type' => 'prayer',
+        'anchor_code' => 'maghrib',
+        'relation' => 'after',
+        'offset_minutes' => 5,
+        'display_label' => 'Selepas Maghrib',
+    ]);
+
+    $this->get(route('events.show', $event))
+        ->assertOk()
+        ->assertSee('data-testid="event-schedule-section"', false)
+        ->assertSee('Program Berlapis Ujian')
+        ->assertSee('Sesi Selepas Maghrib')
+        ->assertSee('Selepas Maghrib')
+        ->assertSee('Ustaz Sesi Ujian')
+        ->assertSee(__('Event Schedule'));
+});
+
+it('renders every public occurrence and session with hierarchical cover media', function (): void {
+    Storage::fake('public');
+    config()->set('media-library.disk_name', 'public');
+
+    $event = Event::factory()->create([
+        'title' => 'Majlis Pelbagai Tarikh',
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now()->subDay(),
+        'starts_at' => now()->addDay()->setTime(20, 0),
+        'ends_at' => now()->addDay()->setTime(23, 0),
+    ]);
+    $event->addMedia(fakeGeneratedImageUpload('event-cover.jpg', 1600, 900))
+        ->toMediaCollection('cover');
+
+    $firstOccurrence = $event->primaryOccurrence;
+
+    expect($firstOccurrence)->not->toBeNull();
+
+    if ($firstOccurrence === null) {
+        return;
+    }
+
+    $firstOccurrence->addMedia(fakeGeneratedImageUpload('occurrence-cover.jpg', 1600, 900))
+        ->toMediaCollection('cover');
+
+    $firstSession = EventSession::query()->create([
+        'event_id' => $event->id,
+        'event_occurrence_id' => $firstOccurrence->id,
+        'title' => 'Sesi Dengan Imej Sendiri',
+        'slug' => 'sesi-dengan-imej-sendiri',
+        'starts_at' => now()->addDay()->setTime(20, 15),
+        'ends_at' => now()->addDay()->setTime(21, 0),
+        'timezone' => 'Asia/Kuala_Lumpur',
+        'status' => EventSession::PUBLISHED,
+        'visibility' => 'public',
+        'delivery_mode' => 'physical',
+        'sort_order' => 1,
+    ]);
+    $firstSession->addMedia(fakeGeneratedImageUpload('session-cover.jpg', 1200, 800))
+        ->toMediaCollection('cover');
+
+    $secondOccurrence = EventOccurrence::query()->create([
+        'event_id' => $event->id,
+        'title' => 'Tarikh Kedua Tanpa Imej',
+        'slug' => 'tarikh-kedua-tanpa-imej',
+        'starts_at' => now()->addDays(2)->setTime(20, 0),
+        'ends_at' => now()->addDays(2)->setTime(22, 0),
+        'timezone' => 'Asia/Kuala_Lumpur',
+        'status' => EventOccurrence::PUBLISHED,
+        'visibility' => 'public',
+        'delivery_mode' => 'physical',
+    ]);
+    EventSession::query()->create([
+        'event_id' => $event->id,
+        'event_occurrence_id' => $secondOccurrence->id,
+        'title' => 'Sesi Kedua Mewarisi Imej Acara',
+        'slug' => 'sesi-kedua-mewarisi-imej-acara',
+        'starts_at' => now()->addDays(2)->setTime(20, 15),
+        'ends_at' => now()->addDays(2)->setTime(21, 0),
+        'timezone' => 'Asia/Kuala_Lumpur',
+        'status' => EventSession::PUBLISHED,
+        'visibility' => 'public',
+        'delivery_mode' => 'physical',
+        'sort_order' => 1,
+    ]);
+
+    expect($firstOccurrence->getMedia('cover'))->toHaveCount(1)
+        ->and($firstSession->getMedia('cover'))->toHaveCount(1);
+
+    $response = $this->get(route('events.show', $event));
+
+    $response->assertOk()
+        ->assertSee('data-testid="event-occurrence-'.$firstOccurrence->id.'"', false)
+        ->assertSee('data-testid="event-occurrence-'.$secondOccurrence->id.'"', false)
+        ->assertSee('data-testid="event-session-'.$firstSession->id.'"', false)
+        ->assertSee('Sesi Dengan Imej Sendiri')
+        ->assertSee('Tarikh Kedua Tanpa Imej')
+        ->assertSee('Sesi Kedua Mewarisi Imej Acara')
+        ->assertSee($firstOccurrence->getFirstMedia('cover')?->getAvailableUrl(['banner', 'thumb']), false)
+        ->assertSee($firstSession->getFirstMedia('cover')?->getAvailableUrl(['banner', 'thumb']), false)
+        ->assertSee($event->getFirstMedia('cover')?->getAvailableUrl(['banner', 'thumb']), false);
+});
+
+it('does not render private or draft schedule records on public event pages', function (): void {
+    $event = Event::factory()->create([
+        'title' => 'Jadual Awam Sahaja',
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now()->subDay(),
+        'starts_at' => now()->addDay()->setTime(20, 0),
+        'ends_at' => now()->addDay()->setTime(22, 0),
+        'timing_mode' => TimingMode::Absolute->value,
+    ]);
+    $occurrence = $event->primaryOccurrence;
+
+    expect($occurrence)->not->toBeNull();
+
+    if ($occurrence === null) {
+        return;
+    }
+
+    EventSession::query()->create([
+        'event_id' => $event->id,
+        'event_occurrence_id' => $occurrence->id,
+        'title' => 'Sesi Awam',
+        'slug' => 'sesi-awam',
+        'starts_at' => now()->addDay()->setTime(20, 0),
+        'ends_at' => now()->addDay()->setTime(21, 0),
+        'timezone' => 'Asia/Kuala_Lumpur',
+        'status' => EventSession::PUBLISHED,
+        'visibility' => 'public',
+        'delivery_mode' => 'physical',
+        'sort_order' => 1,
+    ]);
+
+    EventSession::query()->create([
+        'event_id' => $event->id,
+        'event_occurrence_id' => $occurrence->id,
+        'title' => 'Sesi Rahsia',
+        'slug' => 'sesi-rahsia',
+        'starts_at' => now()->addDay()->setTime(21, 0),
+        'ends_at' => now()->addDay()->setTime(22, 0),
+        'timezone' => 'Asia/Kuala_Lumpur',
+        'status' => EventSession::DRAFT,
+        'visibility' => 'private',
+        'delivery_mode' => 'physical',
+        'sort_order' => 2,
+    ]);
+
+    EventOccurrence::query()->create([
+        'event_id' => $event->id,
+        'title' => 'Occurrence Rahsia',
+        'slug' => 'occurrence-rahsia',
+        'starts_at' => now()->addDays(2)->setTime(20, 0),
+        'ends_at' => now()->addDays(2)->setTime(22, 0),
+        'timezone' => 'Asia/Kuala_Lumpur',
+        'status' => EventOccurrence::DRAFT,
+        'visibility' => 'private',
+        'delivery_mode' => 'physical',
+    ]);
+
+    $this->get(route('events.show', $event))
+        ->assertOk()
+        ->assertSee('Sesi Awam')
+        ->assertDontSee('Sesi Rahsia')
+        ->assertDontSee('Occurrence Rahsia');
+});
+
 describe('Event Show Page Location & Contact Info', function () {
     it('hides the about section when the event has no description or tags', function () {
         $event = Event::factory()->create([
@@ -432,13 +704,13 @@ describe('Event Show Page Location & Contact Info', function () {
             'default_venue_id' => null,
         ]);
 
-        $event->addMedia(UploadedFile::fake()->image('event-cover-hero.jpg', 1600, 900))
+        $event->addMedia(fakeGeneratedImageUpload('event-cover-hero.jpg', 1600, 900))
             ->toMediaCollection('cover');
 
         $this->get(route('events.show', $event))
             ->assertOk()
             ->assertSee('class="size-full object-cover opacity-65"', false)
-            ->assertSee('/cover/', false);
+            ->assertSee($event->getFirstMedia('cover')?->getAvailableUrl(['banner', 'thumb']), false);
     });
 
     it('displays full venue address on the event page', function () {

@@ -12,6 +12,7 @@
     $referenceRedirectUrl = route('references.show', $reference, absolute: false);
     $frontCoverUrl = $reference->getFirstMediaUrl('front_cover', 'thumb') ?: ($reference->getFirstMediaUrl('front_cover') ?: asset('images/default-mosque-hero.png'));
     $backCoverUrl = $reference->getFirstMediaUrl('back_cover', 'thumb') ?: $reference->getFirstMediaUrl('back_cover');
+    $referenceUrlExternal = trim((string) $reference->url);
     $socialLinks = $reference->socialProfiles
         ->filter(function ($social): bool {
             $resolvedUrl = $social->resolved_url ?? $social->url;
@@ -47,6 +48,13 @@
 
 <div class="min-h-screen bg-slate-50/90">
     <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <x-ui.breadcrumbs
+            class="mb-6"
+            :items="[
+                ['label' => __('Laman Utama'), 'url' => route('home'), 'icon' => 'home'],
+                ['label' => __('Rujukan'), 'url' => route('references.index'), 'icon' => 'book', 'show_label' => true],
+            ]"
+        />
         <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
             <div class="space-y-8">
                 <section class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
@@ -175,10 +183,20 @@
                     </section>
                 @endif
 
-                @if($socialLinks->isNotEmpty())
+                @if($referenceUrlExternal !== '' || $socialLinks->isNotEmpty())
                     <section class="scroll-reveal reveal-up revealed rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                        <h2 class="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">{{ __('Media Sosial') }}</h2>
+                        <h2 class="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">{{ __('Pautan') }}</h2>
                         <div class="mt-4 grid gap-3 sm:grid-cols-2">
+                            @if($referenceUrlExternal !== '')
+                                <a
+                                    href="{{ $referenceUrlExternal }}"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:border-emerald-300 hover:text-emerald-700"
+                                >
+                                    {{ __('Sumber Rujukan') }}
+                                </a>
+                            @endif
                             @foreach($socialLinks as $social)
                                 <a
                                     href="{{ $social->resolved_url ?? $social->url }}"
@@ -237,9 +255,6 @@
 
                 <section id="reference-share-panel" class="scroll-reveal reveal-right revealed">
                     <x-dawah-share-panel
-                        heading="{{ __('Kongsi Rujukan') }}"
-                        :preview-title="$referenceTitle"
-                        :preview-subtitle="$referenceTypeLabel !== '' ? $referenceTypeLabel : null"
                         :share-data="$shareData"
                         :share-links="$shareLinks"
                     />

@@ -337,8 +337,6 @@ class Index extends Component
             'state_id',
             'city_id',
             'area_assignments',
-            'administrative_district_id',
-            'administrative_subdivision_id',
             'event_category_ids',
             'event_format',
             'gender',
@@ -378,10 +376,10 @@ class Index extends Component
             $filters['age_group'] = $ageGroups;
         }
 
-        $topicIds = array_values(array_filter((array) request()->input('topic_ids', [])));
+        $disciplineTagIds = array_values(array_filter((array) request()->input('discipline_tag_ids', [])));
 
-        if ($topicIds !== []) {
-            $filters['topic_ids'] = $topicIds;
+        if ($disciplineTagIds !== []) {
+            $filters['discipline_tag_ids'] = $disciplineTagIds;
         }
 
         $domainTagIds = array_values(array_filter((array) request()->input('domain_tag_ids', [])));
@@ -475,8 +473,7 @@ class Index extends Component
             'country_id' => __('Country'),
             'state_id' => __('State / Federal Territory'),
             'city_id' => __('City'),
-            'administrative_district_id' => __('District'),
-            'administrative_subdivision_id' => __('Subdistrict / Local Area'),
+            'area_assignments' => __('Administrative Areas'),
             'institution_id' => __('Institution'),
             'venue_id' => __('Venue'),
             'person_ids' => __('Speaker'),
@@ -488,7 +485,7 @@ class Index extends Component
             'khatib_ids' => __('Khatib'),
             'bilal_ids' => __('Bilal'),
             'domain_tag_ids' => __('Kategori'),
-            'topic_ids' => __('Discipline'),
+            'discipline_tag_ids' => __('Discipline'),
             'source_tag_ids' => __('Primary Sources'),
             'issue_tag_ids' => __('Themes / Issues'),
             'reference_ids' => __('References'),
@@ -515,6 +512,27 @@ class Index extends Component
 
     private function capturedFilterValue(string $filterKey, mixed $filterValue): ?string
     {
+        if ($filterKey === 'area_assignments' && is_array($filterValue)) {
+            $values = [];
+
+            foreach ($filterValue as $role => $areaId) {
+                if (! is_string($role) || ! is_scalar($areaId)) {
+                    continue;
+                }
+
+                $label = match ($role) {
+                    'administrative_division' => __('Division / Bahagian'),
+                    'administrative_district' => __('District'),
+                    'administrative_subdivision' => __('Subdistrict / Local Area'),
+                    'postal_locality' => __('Postal Locality'),
+                    default => str($role)->replace('_', ' ')->headline()->toString(),
+                };
+                $values[] = $label.': '.($this->adminAreaName((string) $areaId) ?? (string) $areaId);
+            }
+
+            return $values === [] ? null : implode(', ', $values);
+        }
+
         if (is_array($filterValue)) {
             $values = array_values(array_filter(
                 array_map(fn (mixed $value): ?string => $this->capturedFilterValue($filterKey, $value), $filterValue),
@@ -534,14 +552,12 @@ class Index extends Component
             'country_id' => $this->countryName($value) ?? $value,
             'state_id' => $this->stateName($value) ?? $value,
             'city_id' => $this->cityName($value) ?? $value,
-            'administrative_district_id' => $this->adminAreaName($value) ?? $value,
-            'administrative_subdivision_id' => $this->adminAreaName($value) ?? $value,
             'institution_id' => $this->institutionName($value) ?? $value,
             'venue_id' => $this->venueName($value) ?? $value,
             'person_ids' => $this->personName($value) ?? $value,
             'key_person_roles' => EventKeyPersonRole::tryFrom($value)?->getLabel() ?? $value,
             'person_in_charge_ids', 'moderator_ids', 'imam_ids', 'khatib_ids', 'bilal_ids' => $this->personName($value) ?? $value,
-            'domain_tag_ids', 'topic_ids', 'source_tag_ids', 'issue_tag_ids' => $this->tagName($value) ?? $value,
+            'domain_tag_ids', 'discipline_tag_ids', 'source_tag_ids', 'issue_tag_ids' => $this->tagName($value) ?? $value,
             'reference_ids' => $this->referenceTitle($value) ?? $value,
             'language_codes' => $this->languageLabel($value) ?? $value,
             'event_category_ids' => app(EventCategoryCatalog::class)->options()[$value] ?? $value,

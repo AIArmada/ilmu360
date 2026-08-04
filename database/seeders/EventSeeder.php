@@ -7,7 +7,9 @@ use AIArmada\Addressing\Models\State;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Contacting\Enums\ContactMethodType;
 use AIArmada\Contacting\Enums\ContactPurpose;
+use AIArmada\Contacting\Enums\SocialPlatform;
 use AIArmada\Events\Enums\ScheduleKind;
+use AIArmada\Events\Models\EventRole;
 use App\Actions\Events\GenerateEventSlugAction;
 use App\Actions\Events\SyncEventClassificationsAction;
 use App\Actions\Events\SyncEventScheduleAction;
@@ -30,6 +32,7 @@ use App\Models\Person;
 use App\Models\Series;
 use App\Models\Venue;
 use App\Services\EventKeyPersonSyncService;
+use Database\Seeders\Concerns\SeedsEventLocations;
 use Database\Seeders\Concerns\SeedsPackageAddresses;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
@@ -39,6 +42,7 @@ use Illuminate\Support\Str;
 
 class EventSeeder extends Seeder
 {
+    use SeedsEventLocations;
     use SeedsPackageAddresses;
 
     /**
@@ -55,6 +59,8 @@ class EventSeeder extends Seeder
      */
     public function run(): void
     {
+        $this->seedEventSpaces();
+
         OwnerContext::withOwner(null, function (): void {
             $hadEvents = Event::query()->exists();
 
@@ -77,7 +83,8 @@ class EventSeeder extends Seeder
                 ->get();
             $seriesIds = Series::query()->pluck('id')->toArray();
             $personIds = Person::query()->pluck('id')->toArray();
-            $venueIds = Venue::query()->pluck('id')->toArray();
+            $venues = Venue::query()->get();
+            $speakerRoleId = EventRole::query()->where('code', EventKeyPersonRole::Speaker->value)->value('id');
 
             if ($institutions->isEmpty()) {
                 return;
@@ -92,7 +99,7 @@ class EventSeeder extends Seeder
                 }
 
                 $randomSeriesId = empty($seriesIds) ? null : $seriesIds[array_rand($seriesIds)];
-                $randomVenueId = empty($venueIds) ? null : $venueIds[array_rand($venueIds)];
+                $randomVenue = $venues->isEmpty() ? null : $venues->random();
 
                 // Create 10 events per institution
                 // Start with no location, then assign exactly one location per event.
@@ -111,22 +118,25 @@ class EventSeeder extends Seeder
                             'institution_id' => null,
                             'default_venue_id' => null,
                         ]);
+                        $this->syncSeededEventLocation($event);
 
                         continue;
                     }
 
-                    $useVenueLocation = $randomVenueId !== null && random_int(0, 1) === 1;
+                    $useVenueLocation = $randomVenue instanceof Venue && random_int(0, 1) === 1;
 
                     if ($useVenueLocation) {
                         $event->update([
                             'institution_id' => null,
-                            'default_venue_id' => $randomVenueId,
+                            'default_venue_id' => $randomVenue->getKey(),
                         ]);
+                        $this->syncSeededEventLocation($event, venue: $randomVenue);
                     } else {
                         $event->update([
                             'institution_id' => $institution->id,
                             'default_venue_id' => null,
                         ]);
+                        $this->syncSeededEventLocation($event, institution: $institution);
                     }
 
                     $this->seedKeyPeopleForEvent($event, $personIds);
@@ -169,6 +179,7 @@ class EventSeeder extends Seeder
                                 'event_id' => $event->id,
                                 'involveable_type' => 'person',
                                 'involveable_id' => $personId,
+                                'event_role_id' => $speakerRoleId,
                                 'role_code' => EventKeyPersonRole::Speaker->value,
                                 'sort_order' => $index + 1,
                                 'notes' => null,
@@ -207,21 +218,42 @@ class EventSeeder extends Seeder
                 'type' => 'masjid',
                 'name' => 'Masjid Tengku Ampuan Jemaah Bukit Jelutong',
                 'slug' => 'masjid-tengku-ampuan-jemaah-bukit-jelutong',
-                'description' => 'Jadual kuliah Januari 2026.',
+                'description' => '<p>Masjid Tengku Ampuan Jemaah Bukit Jelutong ialah pusat ibadah dan pembelajaran Islam untuk komuniti setempat.</p><p>Masjid ini menganjurkan solat berjemaah, kuliah mingguan, program al-Quran, serta aktiviti kekeluargaan dan kemasyarakatan.</p>',
                 'status' => 'verified',
+            ]);
+        } elseif (blank($institution->description) || $institution->description === 'Jadual kuliah Januari 2026.') {
+            $institution->update([
+                'description' => '<p>Masjid Tengku Ampuan Jemaah Bukit Jelutong ialah pusat ibadah dan pembelajaran Islam untuk komuniti setempat.</p><p>Masjid ini menganjurkan solat berjemaah, kuliah mingguan, program al-Quran, serta aktiviti kekeluargaan dan kemasyarakatan.</p>',
             ]);
         }
 
         OwnerContext::withOwner($institution, function () use ($institution): void {
             $institution->contactMethods()->firstOrCreate(
                 ['type' => ContactMethodType::Email->value],
-                ['value' => 'mtajbj@gmail.com', 'purpose' => ContactPurpose::General->value]
+                ['value' => 'mtajbj@gmail.com', 'purpose' => ContactPurpose::General->value, 'is_public' => true]
             );
 
             $institution->contactMethods()->firstOrCreate(
                 ['type' => ContactMethodType::Phone->value],
-                ['value' => '03-78313641', 'purpose' => ContactPurpose::General->value]
+                ['value' => '03-78313641', 'purpose' => ContactPurpose::General->value, 'is_public' => true]
             );
+
+            $institution->contactMethods()->firstOrCreate(
+                ['type' => ContactMethodType::Whatsapp->value],
+                ['value' => '601278313641', 'purpose' => ContactPurpose::General->value, 'is_public' => true]
+            );
+
+            foreach ([
+                [SocialPlatform::Facebook, 'masjid.tajbj', 'https://www.facebook.com/masjid.tajbj'],
+                [SocialPlatform::Instagram, 'masjid.tajbj', 'https://www.instagram.com/masjid.tajbj'],
+                [SocialPlatform::Youtube, 'MasjidTAJBJ', 'https://www.youtube.com/@MasjidTAJBJ'],
+                [SocialPlatform::Telegram, 'masjid_tajbj', 'https://t.me/masjid_tajbj'],
+            ] as [$platform, $handle, $url]) {
+                $institution->socialProfiles()->firstOrCreate(
+                    ['platform' => $platform->value],
+                    ['handle' => $handle, 'url' => $url]
+                );
+            }
         });
 
         if (! $institution->primaryAddress()) {
@@ -242,38 +274,15 @@ class EventSeeder extends Seeder
                 'country_id' => $malaysia?->id,
                 'latitude' => 3.0991666,
                 'longitude' => 101.529892,
+                'google_maps_url' => 'https://www.google.com/maps/search/?api=1&query=3.0991666%2C101.529892',
+                'waze_url' => 'https://www.waze.com/ul?ll=3.0991666%2C101.529892&navigate=yes',
             ], $state, $district, $subdistrict));
         }
 
-        $venue = Venue::query()
-            ->whereIn('slug', ['dewan-solat-utama-mtaj', 'dewan-solat-utama'])
-            ->orWhere('name', 'Dewan Solat Utama')
-            ->first();
-
-        if (! $venue instanceof Venue) {
-            $venue = Venue::query()->create([
-                'name' => 'Dewan Solat Utama',
-                'slug' => 'dewan-solat-utama-mtaj',
-                'venue_type' => 'dewan',
-                'status' => 'verified',
-                'visibility' => 'public',
-            ]);
-        }
-
-        if (! $venue->primaryAddress()) {
-            $institutionAddress = $institution->primaryAddress();
-
-            $this->seedPrimaryPackageAddress($venue, [
-                'line1' => $institutionAddress?->line1,
-                'city' => $institutionAddress?->city,
-                'country_id' => $institutionAddress->country_id ?? $malaysia?->id,
-                'state_id' => $institutionAddress?->state_id,
-                'city_id' => $institutionAddress?->city_id,
-                'area_assignments' => $institutionAddress?->areaAssignments()->pluck('address_area_id', 'role')->all() ?? [],
-                'latitude' => $institutionAddress?->latitude,
-                'longitude' => $institutionAddress?->longitude,
-            ]);
-        }
+        $institution->primaryAddress()?->update([
+            'google_maps_url' => 'https://www.google.com/maps/search/?api=1&query=3.0991666%2C101.529892',
+            'waze_url' => 'https://www.waze.com/ul?ll=3.0991666%2C101.529892&navigate=yes',
+        ]);
 
         $schedule = [
             ['date' => '2026-01-05', 'slot' => 'Dhuha', 'time' => '10:30', 'person' => 'Ust Mukhlisur Riyadus', 'topic' => 'Adab Iman'],
@@ -400,9 +409,13 @@ class EventSeeder extends Seeder
                 $prayerDisplayText = 'Selepas Zohor';
             }
 
+            if ($timingMode === TimingMode::PrayerRelative->value) {
+                $endsAt = null;
+            }
+
             $eventAttributes = [
-                'institution_id' => null,
-                'default_venue_id' => $venue->id,
+                'institution_id' => $institution->id,
+                'default_venue_id' => null,
                 'title' => $title,
                 'description' => $descriptionParts !== [] ? implode(' | ', $descriptionParts) : null,
                 'starts_at' => $startsAt,
@@ -450,6 +463,8 @@ class EventSeeder extends Seeder
             } else {
                 $event = Event::query()->create($persistedEventAttributes);
             }
+
+            $this->syncSeededEventLocation($event, institution: $institution);
 
             app(SyncEventScheduleAction::class)->execute(
                 event: $event,
@@ -715,6 +730,7 @@ class EventSeeder extends Seeder
                 'persons:id',
                 'classifications',
                 'primaryOrganizerInvolvement',
+                'primaryLocation.venueSpace',
             ])
             ->chunk(200, function (Collection $events): void {
                 foreach ($events as $event) {
@@ -752,9 +768,6 @@ class EventSeeder extends Seeder
                             // Default conflict resolution: keep venue location.
                             $updates['institution_id'] = null;
                         }
-                    } elseif ($hasVenueLocation && $hasSpace) {
-                        // Space is only valid for institution-based locations.
-                        $spaceId = null;
                     }
 
                     if ($event->primaryOrganizerInvolvement === null) {
@@ -773,6 +786,20 @@ class EventSeeder extends Seeder
 
                     if ($updates !== []) {
                         $event->fill($updates)->save();
+                    }
+
+                    if (! $isOnlineEvent && $spaceId === null) {
+                        if (is_string($event->institution_id) && $event->institution_id !== '') {
+                            $institution = Institution::query()->find($event->institution_id);
+                            $spaceId = $institution instanceof Institution
+                                ? (string) $this->seededInstitutionEventSpace($institution)->getKey()
+                                : null;
+                        } elseif (is_string($event->default_venue_id) && $event->default_venue_id !== '') {
+                            $venue = Venue::query()->find($event->default_venue_id);
+                            $spaceId = $venue instanceof Venue
+                                ? (string) $this->seededVenueEventSpace($venue)->getKey()
+                                : null;
+                        }
                     }
 
                     $event->syncLocation($event->default_venue_id, $spaceId !== null ? [$spaceId] : []);

@@ -2,6 +2,7 @@
 
 namespace App\Forms;
 
+use AIArmada\Addressing\Models\AddressCountry;
 use AIArmada\Persons\Enums\AssignmentStatus;
 use AIArmada\Persons\Enums\Gender;
 use AIArmada\Persons\Enums\PersonNameType;
@@ -35,8 +36,10 @@ class PersonContributionFormSchema
         bool $useTitleMultiSelect = false,
         bool $useInstitutionRepeater = false,
         bool $splitProfileSections = false,
+        ?string $defaultCountryId = null,
     ): array {
         $showCountryField ??= true;
+        $defaultCountryId ??= AddressCountry::query()->where('iso2', 'MY')->value('id');
 
         $profileCoreFields = [
             TextInput::make('name')
@@ -52,7 +55,9 @@ class PersonContributionFormSchema
                 ->maxLength(100),
             Select::make('gender')
                 ->label(__('Gender'))
-                ->options(Gender::class)
+                ->options(fn (): array => collect(Gender::cases())->mapWithKeys(
+                    fn (Gender $gender): array => [$gender->value => __($gender->label())]
+                )->all())
                 ->default(Gender::Male->value)
                 ->required(),
         ];
@@ -87,6 +92,7 @@ class PersonContributionFormSchema
             ...($useTitleMultiSelect ? [
                 Select::make('title_ids')
                     ->label(__('Titles'))
+                    ->placeholder(__('Select honorifics'))
                     ->multiple()
                     ->searchable()
                     ->options(fn (): array => self::titleOptions())
@@ -126,6 +132,7 @@ class PersonContributionFormSchema
                 ->columnSpanFull(),
             Select::make('language_ids')
                 ->label(__('Languages'))
+                ->placeholder(__('Pilih bahasa'))
                 ->options(fn (): array => self::languageOptions('id'))
                 ->multiple()
                 ->searchable()
@@ -148,24 +155,28 @@ class PersonContributionFormSchema
                             ? SharedFormSchema::regionAddressFields(
                                 includeCountryField: true,
                                 showCountryField: $showCountryField,
+                                defaultCountryId: $defaultCountryId,
                                 requireCountryField: false,
                             )
                             : [SharedFormSchema::regionAddressGroup(
                                 statePath: $addressStatePath,
                                 includeCountryField: true,
                                 showCountryField: $showCountryField,
+                                defaultCountryId: $defaultCountryId,
                                 requireCountryField: false,
                             )])
                         : ($addressStatePath === null
                             ? SharedFormSchema::addressFields(
                                 includeCountryField: true,
                                 showCountryField: $showCountryField,
+                                defaultCountryId: $defaultCountryId,
                                 requireCountryField: false,
                             )
                             : [SharedFormSchema::addressGroup(
                                 statePath: $addressStatePath,
                                 includeCountryField: true,
                                 showCountryField: $showCountryField,
+                                defaultCountryId: $defaultCountryId,
                                 requireCountryField: false,
                             )])),
                 ])

@@ -26,8 +26,10 @@ use Database\Seeders\SavedSearchSeeder;
 use Database\Seeders\ScopedMemberRolesSeeder;
 use Database\Seeders\SeriesSeeder;
 use Database\Seeders\SpaceSeeder;
+use Database\Seeders\SpeakerEventSeeder;
 use Database\Seeders\UserSeeder;
 use Database\Seeders\VenueSeeder;
+use Database\Seeders\VenueSpaceTypeSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -57,7 +59,7 @@ it('runs the full demo seeding pipeline in the expected order', function () {
         UserSeeder::class,
     ]);
 
-    expect($calledSeederBatches)->toContain([FacilityTypeSeeder::class, SpaceSeeder::class]);
+    expect($calledSeederBatches)->toContain([FacilityTypeSeeder::class, VenueSpaceTypeSeeder::class, SpaceSeeder::class]);
     expect($calledSeederBatches)->toContain([InstitutionSeeder::class]);
     expect($calledSeederBatches)->toContain([VenueSeeder::class]);
     expect($calledSeederBatches)->toContain([PersonSeeder::class]);
@@ -65,6 +67,7 @@ it('runs the full demo seeding pipeline in the expected order', function () {
     expect($calledSeederBatches)->toContain([
         SeriesSeeder::class,
         EventSeeder::class,
+        SpeakerEventSeeder::class,
         AdvancedEventSeeder::class,
         ReferenceSeeder::class,
         InspirationSeeder::class,

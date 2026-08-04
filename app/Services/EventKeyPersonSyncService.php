@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use AIArmada\Events\Models\EventRole;
 use App\Actions\Events\GenerateEventSlugAction;
 use App\Enums\EventKeyPersonRole;
 use App\Models\Event;
@@ -26,6 +27,7 @@ class EventKeyPersonSyncService
         $order = 1;
 
         $base = ['status' => 'active', 'visibility' => 'public'];
+        $roleIds = EventRole::query()->pluck('id', 'code');
 
         foreach ($this->normalizePersonIds($personIds) as $personId) {
             EventKeyPerson::query()->forceCreate($base + [
@@ -33,6 +35,7 @@ class EventKeyPersonSyncService
                 'event_id' => $event->id,
                 'involveable_type' => 'person',
                 'involveable_id' => $personId,
+                'event_role_id' => $roleIds->get(EventKeyPersonRole::Speaker->value),
                 'role_code' => EventKeyPersonRole::Speaker->value,
                 'sort_order' => $order++,
             ]);
@@ -44,6 +47,7 @@ class EventKeyPersonSyncService
                 'event_id' => $event->id,
                 'involveable_type' => $keyPerson['involveable_type'],
                 'involveable_id' => $keyPerson['involveable_id'],
+                'event_role_id' => $roleIds->get($keyPerson['role_code']),
                 'role_code' => $keyPerson['role_code'],
                 'sort_order' => $order++,
                 'visibility' => $keyPerson['visibility'],

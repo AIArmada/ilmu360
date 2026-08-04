@@ -15,6 +15,7 @@ use App\Models\Person;
 use App\Models\Reference;
 use App\Support\Events\EventCategoryPresenter;
 use App\Support\Location\AddressHierarchyFormatter;
+use App\Support\Spaces\SpaceLocationPresenter;
 use App\Support\Timezone\UserDateTimeFormatter;
 use BackedEnum;
 use Carbon\CarbonInterface;
@@ -98,19 +99,24 @@ class EventPayloadData extends Data
             ->all();
         $payload['replacement_event'] = self::serializeReplacementEventPreview($event->replacementLinkTarget());
 
-        if ($event->relationLoaded('institution') && $event->institution instanceof Institution) {
+        if (
+            $event->default_venue_id === null
+            && $event->relationLoaded('institution')
+            && $event->institution instanceof Institution
+        ) {
             $payload['institution'] = self::serializeInstitutionPayload(
                 $event->institution,
                 is_array($payload['institution'] ?? null) ? $payload['institution'] : [],
             );
 
-            $space = $event->primaryLocation?->venueSpace;
+            $location = $event->primaryLocation;
+            $space = $location?->venueSpace;
 
             if ($space instanceof VenueSpace) {
                 $payload['institution_space'] = [
                     'id' => (string) $space->getKey(),
-                    'name' => $space->name,
-                    'capacity' => $space->capacity,
+                    'name' => SpaceLocationPresenter::name($location),
+                    'capacity' => SpaceLocationPresenter::effectiveCapacity($location, (string) $event->institution_id),
                 ];
             } else {
                 $payload['institution_space'] = null;
@@ -130,8 +136,8 @@ class EventPayloadData extends Data
             $space = $event->primaryLocation->venueSpace;
             $payload['venue_space'] = [
                 'id' => (string) $space->getKey(),
-                'name' => $space->name,
-                'capacity' => $space->capacity,
+                'name' => SpaceLocationPresenter::name($event->primaryLocation),
+                'capacity' => SpaceLocationPresenter::effectiveCapacity($event->primaryLocation),
             ];
         } else {
             $payload['venue_space'] = null;

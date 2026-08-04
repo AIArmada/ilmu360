@@ -13,6 +13,7 @@ use App\Enums\ContributionSubjectType;
 use App\Enums\EventFormat;
 use App\Enums\EventPrayerTime;
 use App\Enums\MemberSubjectType;
+use App\Enums\TimingMode;
 use App\Livewire\Pages\Contributions\Index as ContributionsIndex;
 use App\Livewire\Pages\Contributions\SubmitInstitution;
 use App\Livewire\Pages\Contributions\SubmitPerson;
@@ -31,6 +32,7 @@ use App\Models\Venue;
 use App\Services\ContributionEntityMutationService;
 use Database\Seeders\PermissionSeeder;
 use Filament\Forms\Components\FileUpload;
+use Filament\Schemas\Components\Tabs;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
@@ -130,8 +132,8 @@ it('renders the person contribution page with translated copy when the locale ch
         ->assertSee('Hantar rekod penceramah baru untuk direktori ilmu360°.')
         ->assertDontSee('Tambah Penceramah Baharu')
         ->assertDontSee('Penyemak akan menilainya sebelum diterbitkan.')
-        ->assertSee('Profil Penceramah')
-        ->assertSee('Maklumat Perhubungan')
+        ->assertSee('Maklumat Utama')
+        ->assertSee('Hubungi')
         ->assertSee('Semak direktori sedia ada dahulu')
         ->assertSee('Semak Penceramah Sedia Ada')
         ->assertSee('rekod baru')
@@ -153,9 +155,12 @@ it('shows person affiliation fields on the dedicated create and update forms', f
     $this->actingAs($user);
 
     Livewire::test(SubmitPerson::class)
-        ->assertFormFieldVisible('institution_id')
-        ->set('data.institution_id', $institution->id)
-        ->assertFormFieldVisible('institution_position');
+        ->assertFormFieldVisible('institutions')
+        ->set('data.institutions', [[
+            'institution_id' => $institution->id,
+            'position' => 'Mudir',
+            'is_primary' => true,
+        ]]);
 
     Livewire::test(SuggestUpdate::class, [
         'subjectType' => ContributionSubjectType::Person->publicRouteSegment(),
@@ -181,8 +186,11 @@ it('stores person affiliations from the dedicated person contribution page', fun
         ->fillForm([
             'name' => 'Ustaz Pautan Institusi',
             'gender' => 'male',
-            'institution_id' => $institution->id,
-            'institution_position' => 'Mudir',
+            'institutions' => [[
+                'institution_id' => $institution->id,
+                'position' => 'Mudir',
+                'is_primary' => true,
+            ]],
         ])
         ->call('submit')
         ->assertHasNoErrors();
@@ -308,6 +316,65 @@ it('uses organized person form tabs on the public person update page', function 
         ->assertSee(__('Lokasi'))
         ->assertSee(__('Hubungan'))
         ->assertDontSee(__('Pendidikan'));
+});
+
+it('keeps person update tab content aligned with its labels', function () {
+    $user = User::factory()->create();
+    $person = Person::factory()->create([
+        'status' => 'verified',
+    ]);
+
+    $component = Livewire::actingAs($user)->test(SuggestUpdate::class, [
+        'subjectType' => ContributionSubjectType::Person->publicRouteSegment(),
+        'subjectId' => $person->slug,
+    ]);
+
+    $tabs = $component->instance()->getForm('form')->getComponents()[0];
+
+    expect($tabs)->toBeInstanceOf(Tabs::class);
+
+    $tabsByLabel = collect($tabs->getChildComponents())
+        ->keyBy(fn (object $tab): string => (string) $tab->getLabel());
+
+    $sectionLabels = static fn (object $tab): array => collect($tab->getChildComponents())
+        ->map(fn (object $section): string => (string) $section->getHeading())
+        ->all();
+
+    expect($sectionLabels($tabsByLabel->get(__('Afiliasi'))))
+        ->toContain(__('Institusi Berafiliasi'))
+        ->and($sectionLabels($tabsByLabel->get(__('Lokasi'))))
+        ->toContain(__('Address'));
+});
+
+it('uses the update form tab structure for new person contributions', function () {
+    $user = User::factory()->create();
+
+    $component = Livewire::actingAs($user)->test(SubmitPerson::class);
+
+    $tabs = $component->instance()->getForm('form')->getComponents()[0];
+
+    expect($tabs)->toBeInstanceOf(Tabs::class);
+
+    $tabsByLabel = collect($tabs->getChildComponents())
+        ->keyBy(fn (object $tab): string => (string) $tab->getLabel());
+
+    $sectionLabels = static fn (object $tab): array => collect($tab->getChildComponents())
+        ->map(fn (object $section): string => (string) $section->getHeading())
+        ->all();
+
+    expect($sectionLabels($tabsByLabel->get(__('Maklumat Utama'))))
+        ->toContain(__('Maklumat Utama'))
+        ->and($sectionLabels($tabsByLabel->get(__('Maklumat Tambahan'))))
+        ->toContain(__('Maklumat Tambahan'))
+        ->and($sectionLabels($tabsByLabel->get(__('Afiliasi'))))
+        ->toContain(__('Institusi Berafiliasi'))
+        ->and($sectionLabels($tabsByLabel->get(__('Lokasi'))))
+        ->toContain(__('Address'))
+        ->and($sectionLabels($tabsByLabel->get(__('Hubungan'))))
+        ->toContain(__('Contact'))
+        ->toContain(__('Social Media'))
+        ->and($sectionLabels($tabsByLabel->get(__('Media'))))
+        ->toContain(__('Profile Photo & Media'));
 });
 
 it('hides reviewer context fields for direct institution edits', function () {
@@ -703,9 +770,9 @@ it('syncs person media collections when a maintainer updates them publicly', fun
     $person = Person::factory()->create([
         'status' => 'verified',
     ]);
-    $person->addMedia(UploadedFile::fake()->image('old-cover.jpg'))
+    $person->addMedia(fakeGeneratedImageUpload('old-cover.jpg'))
         ->toMediaCollection('cover');
-    $person->addMedia(UploadedFile::fake()->image('old-gallery.jpg'))
+    $person->addMedia(fakeGeneratedImageUpload('old-gallery.jpg'))
         ->toMediaCollection('gallery');
     $oldCoverUuid = $person->getFirstMedia('cover')?->uuid;
     $oldGalleryUuid = $person->getFirstMedia('gallery')?->uuid;
@@ -1039,6 +1106,7 @@ it('renders the submit-style waktu field on the event update page', function () 
         'event_category_ids' => [eventCategoryId('iftar')],
         'institution_id' => $institution->id,
         'starts_at' => now()->addDays(3)->setTime(20, 0),
+        'timing_mode' => TimingMode::Absolute->value,
     ]);
     $event->setPrimaryOrganizer($institution);
 
@@ -1753,7 +1821,7 @@ it('shows the reported person profile image when available', function () {
         'name' => 'Zaharuddin Abdul Rahman',
         'status' => 'verified',
     ]);
-    $person->addMedia(UploadedFile::fake()->image('zaharuddin.jpg', 1200, 1200))
+    $person->addMedia(fakeGeneratedImageUpload('zaharuddin.jpg', 1200, 1200))
         ->toMediaCollection('profile');
 
     $this->actingAs($user);

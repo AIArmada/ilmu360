@@ -1,13 +1,13 @@
 <?php
 
 use AIArmada\FilamentEvents\Resources\EventResource\Pages\EditEvent;
-use AIArmada\FilamentEvents\Resources\VenueResource;
 use App\Enums\EventVisibility;
 use App\Filament\Pages\AdminDashboard;
 use App\Filament\Pages\ModerationQueue;
 use App\Filament\Resources\Institutions\InstitutionResource;
 use App\Filament\Resources\Persons\PersonResource;
 use App\Filament\Resources\References\ReferenceResource;
+use App\Filament\Resources\Venues\VenueResource;
 use App\Filament\Widgets\EventInventoryOverview;
 use App\Filament\Widgets\StatsOverview;
 use App\Models\Event;

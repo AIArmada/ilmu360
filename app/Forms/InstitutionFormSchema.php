@@ -188,6 +188,7 @@ class InstitutionFormSchema
                 ...($shouldRenderLocationPicker
                     ? [
                         View::make('filament.schemas.components.institution-location-picker')
+                            ->columnSpanFull()
                             ->viewData([
                                 'mapsApiKey' => GooglePlacesConfiguration::apiKey(),
                                 'title' => __('Find the institution location'),

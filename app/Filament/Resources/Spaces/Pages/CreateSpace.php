@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Spaces\Pages;
 
+use App\Actions\Spaces\SaveSpaceAction;
 use App\Filament\Pages\Concerns\AuditsRelatedStateChanges;
 use App\Filament\Resources\Spaces\SpaceResource;
 use App\Models\Institution;
@@ -16,6 +17,11 @@ class CreateSpace extends CreateRecord
     use AuditsRelatedStateChanges;
 
     protected static string $resource = SpaceResource::class;
+
+    protected function handleRecordCreation(array $data): Model
+    {
+        return app(SaveSpaceAction::class)->handle($data);
+    }
 
     protected function afterCreate(): void
     {

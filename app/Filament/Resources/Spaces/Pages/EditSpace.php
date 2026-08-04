@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Spaces\Pages;
 
+use App\Actions\Spaces\SaveSpaceAction;
 use App\Filament\Pages\Concerns\AuditsRelatedStateChanges;
 use App\Filament\Resources\Spaces\SpaceResource;
 use App\Models\Institution;
@@ -17,6 +18,15 @@ class EditSpace extends EditRecord
     use AuditsRelatedStateChanges;
 
     protected static string $resource = SpaceResource::class;
+
+    protected function handleRecordUpdate(Model $record, array $data): Model
+    {
+        if (! $record instanceof Space) {
+            throw new \RuntimeException('Expected Filament record to be a Space instance.');
+        }
+
+        return app(SaveSpaceAction::class)->handle($data, $record);
+    }
 
     #[\Override]
     protected function getHeaderActions(): array

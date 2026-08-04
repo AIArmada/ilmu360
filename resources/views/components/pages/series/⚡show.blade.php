@@ -206,6 +206,13 @@ new
 @endphp
 
 <div class="min-h-screen bg-slate-50/80" x-data="{ shareModalOpen: false }">
+    <x-ui.breadcrumbs
+        class="relative z-10 mx-auto max-w-7xl px-4 pt-6 sm:px-6 lg:px-8"
+        :items="[
+            ['label' => __('Laman Utama'), 'url' => route('home'), 'icon' => 'home'],
+            ['label' => __('Majlis Ilmu'), 'url' => route('events.index'), 'icon' => 'calendar', 'show_label' => true],
+        ]"
+    />
 
 
     {{-- ═══ HERO ═══ --}}
@@ -868,10 +875,6 @@ new
 
                 <div class="p-6 sm:p-8">
                     <x-dawah-share-panel
-                        :heading="__('Share This Series')"
-                        :description="__('Share this series with others and keep every visit and response on one tracked link.')"
-                        :preview-title="$series->title"
-                        :preview-subtitle="Str::limit((string) $series->description, 110)"
                         :share-data="$seriesShareData"
                         :share-links="$seriesShareLinks"
                     />

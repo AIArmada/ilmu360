@@ -104,7 +104,10 @@ class ApiDocumentationDocumentResolver
      */
     private function generateDocument(string $cacheKey): array
     {
-        if (function_exists('set_time_limit')) {
+        // Scramble's full route graph can exceed the production request budget in
+        // a cold test process. CLI test workers have no request timeout, so keep
+        // that environment uncapped while retaining the production safeguard.
+        if (function_exists('set_time_limit') && ! app()->runningInConsole()) {
             @set_time_limit(120);
         }
 

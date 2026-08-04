@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\Event;
 use App\Models\EventCheckin;
 use App\Models\Registration;
+use App\Support\EventDiscovery\EventCardRelationshipProvider;
 
 $appName = env('APP_NAME', 'Laravel');
 
@@ -64,5 +65,9 @@ return [
             'event_name' => env('EVENTS_TICKET_EVENT_NAME', $appName),
             'brand_name' => env('EVENTS_TICKET_BRAND_NAME', $appName),
         ],
+    ],
+
+    'search' => [
+        'relation_provider' => EventCardRelationshipProvider::class,
     ],
 ];

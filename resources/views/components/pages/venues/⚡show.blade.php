@@ -167,6 +167,13 @@ new class extends Component
 @endphp
 
 <div class="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.12),_transparent_35%),linear-gradient(180deg,#f8fafc_0%,#eefbf5_45%,#f8fafc_100%)] pb-24">
+    <x-ui.breadcrumbs
+        class="mx-auto max-w-7xl px-4 pt-6 sm:px-6 lg:px-8"
+        :items="[
+            ['label' => __('Laman Utama'), 'url' => route('home'), 'icon' => 'home'],
+            ['label' => __('Tempat'), 'url' => route('venues.index'), 'icon' => 'map-pin', 'show_label' => true],
+        ]"
+    />
     <section class="relative overflow-hidden border-b border-emerald-100/70 bg-white/80 backdrop-blur">
         <div class="mx-auto flex max-w-7xl flex-col gap-8 px-4 py-10 sm:px-6 lg:flex-row lg:items-end lg:px-8 lg:py-14">
             <div class="w-full lg:max-w-2xl">

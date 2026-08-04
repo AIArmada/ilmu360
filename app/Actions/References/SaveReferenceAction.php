@@ -43,6 +43,7 @@ final readonly class SaveReferenceAction
                 : $reference->year,
             'publisher' => array_key_exists('publisher', $data) ? $this->normalizeOptionalString($data['publisher']) : $reference->publisher,
             'description' => array_key_exists('description', $data) ? $data['description'] : $reference->description,
+            'url' => array_key_exists('url', $data) ? $this->normalizeOptionalString($data['url']) : $reference->url,
             'is_canonical' => array_key_exists('is_canonical', $data)
                 ? (bool) $data['is_canonical']
                 : ($creating ? false : (bool) $reference->is_canonical),

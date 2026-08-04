@@ -151,16 +151,13 @@
         <div class="absolute -right-8 -top-12 -z-10 h-72 w-72 rounded-full border border-amber-700/10"></div>
 
         <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
-            <a
-                href="{{ route('persons.index') }}"
-                wire:navigate
-                class="inline-flex items-center gap-2 text-sm font-semibold text-emerald-800 transition hover:text-emerald-600"
-            >
-                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="m15 18-6-6 6-6" />
-                </svg>
-                {{ __('Kembali ke Direktori Penceramah') }}
-            </a>
+            <x-ui.breadcrumbs
+                class="mb-6"
+                :items="[
+                    ['label' => __('Laman Utama'), 'url' => route('home'), 'icon' => 'home'],
+                    ['label' => __('Penceramah'), 'url' => route('persons.index'), 'icon' => 'person', 'show_label' => true],
+                ]"
+            />
 
             <div class="mt-6 overflow-hidden rounded-[2rem] border border-white/80 bg-white/82 shadow-[0_30px_90px_-42px_rgba(6,78,59,0.42)] backdrop-blur-xl">
                 <div class="grid lg:grid-cols-[20rem_minmax(0,1fr)]">
@@ -173,21 +170,6 @@
                             loading="eager"
                         >
                         <div class="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-emerald-950/80 via-emerald-950/25 to-transparent"></div>
-
-                        <div class="absolute inset-x-5 bottom-5 flex items-center justify-between gap-3">
-                            @if($person->status === 'verified')
-                                <span class="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/92 px-3 py-1.5 text-xs font-bold text-emerald-800 shadow-lg backdrop-blur">
-                                    <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.051l-7.5 9.75a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.897 3.896 6.976-9.07a.75.75 0 0 1 1.051-.142Z" clip-rule="evenodd" />
-                                    </svg>
-                                    {{ __('Profil Disahkan') }}
-                                </span>
-                            @else
-                                <span class="inline-flex items-center rounded-full border border-white/20 bg-slate-950/45 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur">
-                                    {{ __('Profil Penceramah') }}
-                                </span>
-                            @endif
-                        </div>
                     </div>
 
                     <div class="flex flex-col p-6 sm:p-8 lg:p-8">
@@ -214,7 +196,6 @@
                                 @if($bioText !== '')
                                     <div class="mt-4">
                                         <div class="flex items-center justify-between gap-4">
-                                            <p class="text-[10px] font-black uppercase tracking-[0.22em] text-amber-700">{{ __('Biodata') }}</p>
                                             @if($shouldCollapseBio)
                                                 <span class="shrink-0 text-[11px] font-semibold text-slate-500">{{ __('Skrol untuk membaca') }}</span>
                                             @endif
@@ -237,21 +218,23 @@
                                 </div>
                             </div>
 
-                            <div class="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                            <div class="mt-6 flex flex-row flex-wrap gap-3">
                                 <button
                                     type="button"
                                     wire:click="toggleFollow"
                                     wire:loading.attr="disabled"
-                                    class="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-emerald-800 px-6 text-sm font-bold text-white shadow-lg shadow-emerald-900/15 transition hover:-translate-y-0.5 hover:bg-emerald-700 disabled:cursor-wait disabled:opacity-70"
+                                    class="inline-flex h-12 min-w-0 flex-1 items-center justify-center gap-2 rounded-2xl bg-emerald-800 px-6 text-sm font-bold text-white shadow-lg shadow-emerald-900/15 transition hover:-translate-y-0.5 hover:bg-emerald-700 disabled:cursor-wait disabled:opacity-70 sm:flex-none"
                                 >
                                     <svg class="h-5 w-5" fill="{{ $this->isFollowing ? 'currentColor' : 'none' }}" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185v15.065L12 16.197l-7.5 4.375V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z" />
                                     </svg>
                                     <span wire:loading.remove wire:target="toggleFollow">
                                         @if($this->isFollowing)
-                                            {{ __('Mengikuti Penceramah') }}
+                                            <span class="sm:hidden">{{ __('Mengikuti') }}</span>
+                                            <span class="hidden sm:inline">{{ __('Mengikuti Penceramah') }}</span>
                                         @else
-                                            {{ __('Ikuti Penceramah') }}
+                                            <span class="sm:hidden">{{ __('Ikuti') }}</span>
+                                            <span class="hidden sm:inline">{{ __('Ikuti Penceramah') }}</span>
                                         @endif
                                     </span>
                                     <span wire:loading wire:target="toggleFollow">{{ __('Memproses...') }}</span>
@@ -259,12 +242,13 @@
 
                                 <a
                                     href="#person-share-panel"
-                                    class="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-emerald-200 bg-white px-6 text-sm font-bold text-emerald-800 transition hover:-translate-y-0.5 hover:border-emerald-300 hover:bg-emerald-50"
+                                    class="inline-flex h-12 min-w-0 flex-1 items-center justify-center gap-2 rounded-2xl border border-emerald-200 bg-white px-6 text-sm font-bold text-emerald-800 transition hover:-translate-y-0.5 hover:border-emerald-300 hover:bg-emerald-50 sm:flex-none"
                                 >
                                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 1 0 0-4.5 2.25 2.25 0 0 0 0 4.5Zm9.566-3.75a2.25 2.25 0 1 0 0-4.5 2.25 2.25 0 0 0 0 4.5Zm0 14.25a2.25 2.25 0 1 0 0-4.5 2.25 2.25 0 0 0 0 4.5ZM9.164 8.197l5.672-3.144m-5.672 5.75 5.672 3.144" />
                                     </svg>
-                                    {{ __('Kongsi Profil') }}
+                                    <span class="sm:hidden">{{ __('Kongsi') }}</span>
+                                    <span class="hidden sm:inline">{{ __('Kongsi Profil') }}</span>
                                 </a>
 
                                 @if(auth()->user()?->hasAnyRole(['super_admin', 'admin']))
@@ -736,46 +720,36 @@
                     </section>
                 @endif
 
-                <section id="person-share-panel" class="scroll-reveal reveal-right revealed">
-                    <x-dawah-share-panel
-                        :heading="__('Kongsi Penceramah')"
-                        description=""
-                        :share-data="$shareData"
-                        :share-links="$shareLinks"
-                    />
-                </section>
-
-                <section class="scroll-reveal reveal-right revealed rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
-                    <p class="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">{{ __('Ketepatan Maklumat') }}</p>
-                    <h2 class="mt-1 font-heading text-lg font-bold text-emerald-950">{{ __('Bantu Semak Profil Ini') }}</h2>
-                    <p class="mt-2 text-sm leading-6 text-slate-500">
-                        {{ __('Nampak maklumat yang tidak tepat atau profil yang meragukan? Bantu komuniti dengan memaklumkan kepada kami.') }}
-                    </p>
-
-                    <div class="mt-4 grid gap-2">
+                @if(! $this->hasApprovedMember)
+                    <section class="rounded-[1.5rem] border border-amber-200 bg-gradient-to-br from-amber-50 via-white to-emerald-50/60 p-5 shadow-sm">
+                        <p class="text-[10px] font-black uppercase tracking-[0.22em] text-amber-700">{{ __('Membership') }}</p>
+                        <h2 class="mt-1 font-heading text-xl font-bold text-emerald-950">{{ __('Claim Membership') }}</h2>
+                        <p class="mt-2 text-sm leading-6 text-slate-600">
+                            {{ __('Claim membership for this :subject', ['subject' => \Illuminate\Support\Str::lower(__('Person'))]) }}
+                        </p>
+                        <p class="mt-3 text-xs leading-5 text-slate-500">
+                            {{ __('Your proof is reviewed first. Access is only added after an admin or moderator approves the claim.') }}
+                        </p>
                         <a
-                            href="{{ route('contributions.suggest-update', ['subjectType' => $personRouteSegment, 'subjectId' => $person->slug]) }}"
+                            href="{{ route('membership-applications.create', ['subjectType' => \App\Enums\MemberSubjectType::Person->publicRouteSegment(), 'subjectId' => $person->slug]) }}"
                             wire:navigate
-                            class="group inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-sky-200 bg-sky-50 px-4 text-xs font-bold text-sky-800 transition hover:-translate-y-0.5 hover:border-sky-300 hover:bg-sky-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-600/10"
+                            class="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-emerald-800 px-4 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/15"
                         >
-                            <svg class="h-4 w-4 shrink-0 transition-transform group-hover:-rotate-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Z" />
-                                <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 2.652 2.652M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+                            {{ __('Claim Membership') }}
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-5-5 5 5-5 5" />
                             </svg>
-                            {{ __('Cadangkan Kemaskini') }}
                         </a>
-                        <a
-                            href="{{ route('reports.create', ['subjectType' => $personRouteSegment, 'subjectId' => $person->slug]) }}"
-                            wire:navigate
-                            class="group inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 text-xs font-bold text-rose-800 transition hover:-translate-y-0.5 hover:border-rose-300 hover:bg-rose-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-rose-600/10"
-                        >
-                            <svg class="h-4 w-4 shrink-0 transition-transform group-hover:-rotate-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 3v18m0-16.5c5.25-3 10.5 3 15.75 0v9c-5.25 3-10.5-3-15.75 0" />
-                            </svg>
-                            {{ __('Laporkan Profil') }}
-                        </a>
-                    </div>
-                </section>
+                    </section>
+                @endif
+
+                <x-public-record-feedback
+                    share-panel-id="person-share-panel"
+                    :subject-type="$personRouteSegment"
+                    :subject-id="$person->slug"
+                    :share-data="$shareData"
+                    :share-links="$shareLinks"
+                />
 
                 <x-sidebar-inspiration />
             </aside>

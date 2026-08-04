@@ -105,7 +105,8 @@ class extends Component
             ->whereColumn('events.institution_id', 'institutions.id')
             ->whereNotNull('events.published_at')
             ->whereIn('events.status', Event::PUBLIC_STATUSES)
-            ->where('events.visibility', EventVisibility::Public->value);
+            ->where('events.visibility', EventVisibility::Public->value)
+            ->whereHas('occurrences');
     }
 
     private function directSearch(string $search): LengthAwarePaginatorContract
