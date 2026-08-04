@@ -1012,8 +1012,11 @@
                                             ?? $event->institution?->name
                                             ?? $event->venue?->name;
                                         $locationSpaceName = \App\Support\Spaces\SpaceLocationPresenter::name($scheduleLocation);
-                                        $addressModel = $scheduleLocation?->venue?->primaryAddress()
-                                            ?? $event->institution?->primaryAddress()
+                                        $scheduleVenue = $scheduleLocation?->venue;
+                                        $addressModel = $scheduleVenue instanceof \App\Models\Venue
+                                            ? $scheduleVenue->primaryAddress()
+                                            : null;
+                                        $addressModel ??= $event->institution?->primaryAddress()
                                             ?? $event->venue?->primaryAddress();
                                         if (is_string($locationSpaceName) && trim($locationSpaceName) !== '') {
                                             $primaryLocationName = collect([$primaryLocationName, $locationSpaceName])

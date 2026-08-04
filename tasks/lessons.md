@@ -1,5 +1,6 @@
 # Lessons
 
+- When package event-location relations hydrate a base Venue model, normalize those venues to the application subclass at the discovery boundary before rendering address-dependent cards; calling app-only address methods on the package model can also bypass the app morph map.
 - When event seeders can be invoked independently of the aggregate database seeder, make their canonical space/taxonomy dependency explicit and idempotent; do not rely only on pipeline ordering.
 - For media tests that exercise real conversion jobs, use valid generated image files for direct model/API uploads, keep Livewire's fake upload objects for `fillForm`, and isolate the media conversion temporary directory by parallel worker token.
 - When a large compressed JSON fixture is filtered to one country, stream top-level objects instead of decoding the complete global dataset in both the seeder and its test.

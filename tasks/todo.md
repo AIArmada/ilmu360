@@ -1,3 +1,26 @@
+# Fix /majlis package Venue address lookup
+
+## Plan
+
+- [x] Reproduce the undefined `primaryAddress()` call through the public event index.
+- [x] Add regression coverage for schedule-location venues rendered by `/majlis`.
+- [x] Use the canonical address contract for both app and package venue models.
+- [x] Run focused tests, view compilation, static analysis, and diff checks.
+
+## Review
+
+The public schedule discovery boundary now bulk-resolves package event-location
+venue IDs through `App\Models\Venue`, preserving the application's address
+relations and morph-map behavior for public cards. The Blade card only calls
+`primaryAddress()` on the application subclass, while event-level and
+schedule-level venue relations remain available for display.
+
+Verification: `tests/Feature/PublicScheduleDiscoveryTest.php` passed 4 tests /
+27 assertions; PHPStan passed on changed services; Pint, Blade view cache,
+syntax checks, and `git diff --check` passed. The adjacent `PublicPagesTest`
+had 28 passing tests and 3 unrelated pre-existing failures in poster aspect,
+Threads icon, and contribution-link assertions.
+
 # Event occurrence publication invariant
 
 ## Plan

@@ -4,6 +4,7 @@ use AIArmada\Events\Actions\CreateEventOccurrenceAction;
 use AIArmada\Events\Actions\CreateEventSessionAction;
 use App\Livewire\Pages\Events\Index;
 use App\Models\Event;
+use App\Models\Venue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 
@@ -71,6 +72,33 @@ it('lists meaningful sessions and otherwise falls back to occurrences', function
     $component = Livewire::test(Index::class);
 
     expect($component->instance()->scheduleItems->total())->toBe(3);
+});
+
+it('renders schedule locations whose venue is the package model', function (): void {
+    $venue = Venue::factory()->create([
+        'name' => 'Package Venue Card',
+        'status' => 'verified',
+    ]);
+    $venue->primaryAddress()?->update([
+        'city' => 'Package Venue City',
+        'state' => 'Package Venue State',
+    ]);
+    $event = Event::factory()->create([
+        'title' => 'Package Venue Programme',
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now()->subDay(),
+        'starts_at' => now()->addDays(2),
+        'institution_id' => null,
+        'default_venue_id' => null,
+    ]);
+    $event->syncLocation($venue->getKey());
+
+    $this->get(route('events.index', ['search' => 'Package Venue Programme']))
+        ->assertOk()
+        ->assertSee('Package Venue Programme')
+        ->assertSee('Package Venue Card')
+        ->assertSee('Package Venue City');
 });
 
 it('renders scoped occurrence and session pages while preserving the programme hub', function (): void {

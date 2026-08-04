@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace App\Services;
 
 use AIArmada\Events\Contracts\EventSearchRelationProvider;
+use AIArmada\Events\Models\EventLocation;
 use AIArmada\Events\Models\EventOccurrence;
 use AIArmada\Events\Models\EventSession;
 use App\Data\EventDiscoveryCriteriaFactory;
 use App\Data\PublicScheduleLeaf;
 use App\Enums\EventPrayerTime;
 use App\Models\Event;
+use App\Models\Venue;
 use App\Support\Events\PublicSchedulePolicy;
 use App\Support\Events\PublicScheduleSlug;
 use App\Support\Timezone\UserDateTimeFormatter;
@@ -107,6 +109,8 @@ final class PublicScheduleDiscoveryService
             }
         }
 
+        $this->hydrateApplicationVenues($events);
+
         $leaves = $this->flatten($events)
             ->filter(fn (PublicScheduleLeaf $leaf): bool => $this->matchesFilters($leaf, $criteria->filters))
             ->values();
@@ -198,6 +202,7 @@ final class PublicScheduleDiscoveryService
 
         return [
             ...$this->relationProvider->relations(),
+            'primaryLocation.venue',
             'occurrences' => function (Relation $query) use ($publicScheduleScope): void {
                 $publicScheduleScope($query);
                 $query
@@ -226,6 +231,66 @@ final class PublicScheduleDiscoveryService
                 ->where('visibility', 'public'),
             'occurrences.sessions.involvements.involveable',
         ];
+    }
+
+    /**
+     * Package event-location relations hydrate the package Venue class directly.
+     * Public cards use the application Venue subclass because it owns address behavior.
+     *
+     * @param  EloquentCollection<int, Event>  $events
+     */
+    private function hydrateApplicationVenues(EloquentCollection $events): void
+    {
+        /** @var Collection<int, EventLocation> $locations */
+        $locations = collect();
+
+        foreach ($events as $event) {
+            if ($event->relationLoaded('primaryLocation')) {
+                $primaryLocation = $event->getRelation('primaryLocation');
+
+                if ($primaryLocation instanceof EventLocation) {
+                    $locations->push($primaryLocation);
+                }
+            }
+
+            foreach ($event->occurrences as $occurrence) {
+                foreach ($occurrence->locations as $location) {
+                    $locations->push($location);
+                }
+
+                foreach ($occurrence->sessions as $session) {
+                    foreach ($session->locations as $location) {
+                        $locations->push($location);
+                    }
+                }
+            }
+        }
+
+        $venueIds = $locations
+            ->map(fn (EventLocation $location): mixed => $location->getAttribute('venue_id'))
+            ->filter(fn (mixed $venueId): bool => is_string($venueId) && $venueId !== '')
+            ->unique()
+            ->values();
+
+        if ($venueIds->isEmpty()) {
+            return;
+        }
+
+        $venues = Venue::query()
+            ->with('addresses.areaAssignments.area')
+            ->whereKey($venueIds->all())
+            ->get()
+            ->keyBy(fn (Venue $venue): string => (string) $venue->getKey());
+
+        foreach ($locations as $location) {
+            $venueId = $location->getAttribute('venue_id');
+
+            if (! is_string($venueId) || $venueId === '') {
+                continue;
+            }
+
+            $location->setRelation('venue', $venues->get($venueId));
+        }
     }
 
     /**
