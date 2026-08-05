@@ -1,5 +1,7 @@
 {
-  "description": "Impeccable design detector: runs after Edit/Write/MultiEdit on UI files and surfaces findings as system reminders.",
+  "enabledMcpjsonServers": [
+    "laravel-boost"
+  ],
   "hooks": {
     "PostToolUse": [
       {
@@ -14,5 +16,7 @@
         ]
       }
     ]
-  }
+  },
+  "description": "Impeccable design detector: runs after Edit/Write/MultiEdit on UI files and surfaces findings as system reminders.",
+  "enableAllProjectMcpServers": true
 }

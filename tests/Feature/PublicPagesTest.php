@@ -38,7 +38,7 @@ it('loads public index pages', function () {
         ->assertSee('Tambah Majlis')
         ->assertSee('Ada majlis ilmu')
         ->assertSee('yang patut orang tahu?')
-        ->assertSee(route('submit-event.create'), false);
+        ->assertSee('href="'.route('submit-event.create').'"', false);
     $this->get(route('submit-event.create'))->assertSuccessful()->assertSee('Hantar Majlis');
     $this->get(route('submit-event.success'))->assertSuccessful()->assertSee(__('Event Submitted!'));
 
@@ -93,6 +93,22 @@ it('renders accessible labels on the public submit-event form', function () {
         ->assertSee('aria-label="Fizikal"', false)
         ->assertSee('aria-label="Dalam talian"', false)
         ->assertSee('aria-label="Hibrid"', false);
+});
+
+it('uses the clean submit-event route for the manual entry point', function () {
+    $manualForm = $this->get(route('submit-event.create'))
+        ->assertSuccessful()
+        ->assertSee('Ada poster? Biar kami bantu isi.')
+        ->assertSee('Ekstrak Dengan AI')
+        ->assertSee('data-signal-event="submission.poster_extraction_started"', false)
+        ->getOriginalContent();
+
+    expect($manualForm)->toContain('Hantar Majlis Ilmu');
+
+    $this->get(route('submit-event.create', ['mode' => 'manual']))
+        ->assertSuccessful()
+        ->assertSee('Hantar Majlis Ilmu')
+        ->assertSee('Ada poster? Biar kami bantu isi.');
 });
 
 it('renders the submit-event upload copy in the selected locale', function () {

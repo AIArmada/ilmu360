@@ -10,6 +10,7 @@ use AIArmada\FilamentContacting\FilamentContactingPlugin;
 use AIArmada\FilamentEngagement\FilamentEngagementPlugin;
 use AIArmada\FilamentEvents\FilamentEventsPlugin;
 use AIArmada\FilamentInventory\FilamentInventoryPlugin;
+use AIArmada\FilamentOrganizations\FilamentOrganizationsPlugin;
 use AIArmada\FilamentPersons\FilamentPersonsPlugin;
 use AIArmada\FilamentSeating\FilamentSeatingPlugin;
 use AIArmada\FilamentSignals\Concerns\TracksSignalsPanel;
@@ -87,6 +88,7 @@ class AdminPanelProvider extends PanelProvider
                 FilamentEngagementPlugin::make(),
                 FilamentCommunicationsPlugin::make(),
                 FilamentEventsPlugin::make(),
+                FilamentOrganizationsPlugin::make(),
                 FilamentCommerceSupportPlugin::make(),
                 FilamentInventoryPlugin::make(),
                 FilamentSeatingPlugin::make(),

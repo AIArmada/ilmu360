@@ -16,6 +16,12 @@ return [
         'attendance' => EventCheckin::class,
     ],
 
+    'database' => [
+        'tables' => [
+            'event_organizers' => env('EVENTS_TABLE_EVENT_ORGANIZERS', 'event_organizers'),
+        ],
+    ],
+
     'features' => [
         'auto_issue_passes' => env('EVENTS_AUTO_ISSUE_PASSES', true),
         'auto_allocate_seats' => env('EVENTS_AUTO_ALLOCATE_SEATS', true),

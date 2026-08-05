@@ -24,13 +24,18 @@ use AIArmada\Events\Models\EventTaxonomy;
 use AIArmada\Events\Models\EventTerm;
 use AIArmada\Events\Models\EventTimeExpression;
 use AIArmada\FilamentSignals\Policies\TrackedPropertyPolicy;
+use AIArmada\Inventory\Models\InventoryLevel;
+use AIArmada\Inventory\Models\InventoryLocation;
 use AIArmada\Membership\Contracts\MembershipApplicationNotifier;
 use AIArmada\Membership\Contracts\MembershipHook;
+use AIArmada\Organizations\Contracts\CurrentOrganizationResolver;
+use AIArmada\Organizations\Models\Organization;
 use AIArmada\Persons\Models\PersonName;
 use AIArmada\Persons\Models\Title;
 use AIArmada\Persons\Models\TitleAssignment;
 use AIArmada\Persons\Models\TitleCategory;
 use AIArmada\Signals\Models\TrackedProperty;
+use AIArmada\Ticketing\Models\TicketType;
 use App\Actions\Slugs\ResolvePublicSlugAction;
 use App\Ai\Listeners\RecordAiUsage;
 use App\Contracts\CaptchaVerifier;
@@ -84,6 +89,7 @@ use App\Observers\PersonTitleObserver;
 use App\Observers\ReferenceObserver;
 use App\Observers\TitleCategoryObserver;
 use App\Observers\VenueObserver;
+use App\Organizations\CurrentOrganizationResolver as AppCurrentOrganizationResolver;
 use App\Policies\AddressAreaPolicy;
 use App\Policies\AddressCountryPolicy;
 use App\Policies\EventPolicy;
@@ -109,6 +115,7 @@ use Filament\Support\Facades\FilamentAsset;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -183,6 +190,7 @@ class AppServiceProvider extends ServiceProvider
 
         $this->app->singleton(MembershipHook::class, AppMembershipHook::class);
         $this->app->singleton(MembershipApplicationNotifier::class, AppMembershipApplicationNotifier::class);
+        $this->app->singleton(CurrentOrganizationResolver::class, AppCurrentOrganizationResolver::class);
 
         $this->app->bind(
             function ($app): CaptchaVerifier {
@@ -254,6 +262,13 @@ class AppServiceProvider extends ServiceProvider
 
         $this->registerModelObservers();
 
+        // Event ownership is an application projection of the reusable
+        // organization aggregate; the organizations package remains event-agnostic.
+        Organization::resolveRelationUsing(
+            'events',
+            static fn (Organization $organization): MorphMany => $organization->morphMany(Event::class, 'owner'),
+        );
+
         if (! app()->bound('ai.usage.listeners.registered')) {
             EventFacade::listen(AgentPrompted::class, [RecordAiUsage::class, 'handle']);
             EventFacade::listen(AgentStreamed::class, [RecordAiUsage::class, 'handle']);
@@ -310,6 +325,10 @@ class AppServiceProvider extends ServiceProvider
             'reference' => Reference::class,
             'report' => Report::class,
             'inspiration' => Inspiration::class,
+            'organization' => Organization::class,
+            'inventory_location' => InventoryLocation::class,
+            'inventory_level' => InventoryLevel::class,
+            'ticket_type' => TicketType::class,
         ]);
 
         Gate::policy(FilamentAudit::class, FilamentAuditPolicy::class);

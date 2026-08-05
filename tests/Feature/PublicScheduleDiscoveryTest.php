@@ -148,6 +148,56 @@ it('renders scoped occurrence and session pages while preserving the programme h
         ->assertSee($session->title);
 });
 
+it('renders occurrence and session pages when the location points at a venue', function (): void {
+    $venue = Venue::factory()->create([
+        'name' => 'Venue With Address',
+        'status' => 'verified',
+    ]);
+    $venue->primaryAddress()?->update([
+        'city' => 'Location Venue City',
+        'state' => 'Location Venue State',
+    ]);
+    $event = Event::factory()->create([
+        'title' => 'Venue Location Programme',
+        'status' => 'approved',
+        'visibility' => 'public',
+        'published_at' => now()->subDay(),
+        'starts_at' => now()->addDays(2),
+        'institution_id' => null,
+        'default_venue_id' => null,
+    ]);
+    $event->syncLocation($venue->getKey());
+    $occurrence = $event->occurrences()->firstOrFail();
+    $occurrence->update([
+        'slug' => 'venue-location-day',
+    ]);
+    $session = app(CreateEventSessionAction::class)->handle($occurrence, [
+        'title' => 'Venue Location Session',
+        'slug' => 'venue-location-session',
+        'starts_at' => now()->addDays(2)->addHour(),
+        'ends_at' => now()->addDays(2)->addHours(2),
+        'status' => 'published',
+        'visibility' => 'public',
+    ]);
+
+    $this->get(route('events.occurrence', [
+        'event' => $event,
+        'occurrenceSlug' => 'venue-location-day',
+    ]))
+        ->assertOk()
+        ->assertSee('Venue With Address')
+        ->assertSee('Location Venue City');
+
+    $this->get(route('events.session', [
+        'event' => $event,
+        'occurrenceSlug' => 'venue-location-day',
+        'sessionSlug' => $session->slug,
+    ]))
+        ->assertOk()
+        ->assertSee('Venue With Address')
+        ->assertSee('Location Venue City');
+});
+
 it('does not expose private child schedules or allow cross-parent slug traversal', function (): void {
     $event = Event::factory()->create([
         'title' => 'Public Programme',

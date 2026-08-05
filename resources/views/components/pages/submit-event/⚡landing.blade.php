@@ -11,7 +11,7 @@ new class extends Component {};
 @php
     $submitUrl = route('submit-event.create');
     $posterSubmitUrl = route('submit-event.create', ['mode' => 'poster']);
-    $manualSubmitUrl = route('submit-event.create', ['mode' => 'manual']);
+    $manualSubmitUrl = route('submit-event.create');
     $institutionSubmitUrl = route('submit-event.create', ['mode' => 'institution']);
 
     $entryCards = [

@@ -1905,3 +1905,32 @@ it('redirects uuid-based reference contribution and report pages to the canonica
             'subjectId' => $reference->slug,
         ]));
 });
+
+it('captures middle name changes in a non-owner person update request', function () {
+    $user = User::factory()->create();
+    $person = Person::factory()->create([
+        'status' => 'verified',
+    ]);
+
+    $this->actingAs($user);
+
+    Livewire::test(SuggestUpdate::class, [
+        'subjectType' => ContributionSubjectType::Person->publicRouteSegment(),
+        'subjectId' => $person->slug,
+    ])
+        ->set('data.middle_name', 'Ustaz')
+        ->set('data.proposer_note', 'Ujian e2e: tambah nama tengah Ustaz.')
+        ->call('submit')
+        ->assertHasNoErrors();
+
+    $request = ContributionRequest::query()
+        ->where('subject_type', ContributionSubjectType::Person->value)
+        ->latest()
+        ->first();
+
+    expect($request)->not->toBeNull()
+        ->and($request->type)->toBe(ContributionRequestType::Update)
+        ->and($request->status)->toBe(ContributionRequestStatus::Pending)
+        ->and($request->proposer_note)->toBe('Ujian e2e: tambah nama tengah Ustaz.')
+        ->and(data_get($request->proposed_data, 'middle_name'))->toBe('Ustaz');
+});

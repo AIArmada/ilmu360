@@ -5,6 +5,7 @@ namespace App\Livewire\Pages\Membership;
 use AIArmada\CommerceSupport\Support\OwnerContext;
 use AIArmada\Membership\Actions\AcceptInvitationAction;
 use AIArmada\Membership\Enums\MemberRole;
+use AIArmada\Organizations\Models\Organization;
 use App\Enums\MemberSubjectType;
 use App\Livewire\Concerns\InteractsWithToasts;
 use App\Models\Event;
@@ -26,7 +27,7 @@ class ShowInvitation extends Component
 
     public MemberInvitation $invitation;
 
-    public Event|Institution|Reference|Person $subject;
+    public Event|Institution|Reference|Person|Organization $subject;
 
     /** @var array{subject_label: string, redirect_url: string} */
     public array $subjectPresentation = [
@@ -166,11 +167,12 @@ class ShowInvitation extends Component
         return null;
     }
 
-    private function resolveSubjectName(Event|Institution|Reference|Person $subject): string
+    private function resolveSubjectName(Event|Institution|Reference|Person|Organization $subject): string
     {
         return match (true) {
             $subject instanceof Event => $subject->title,
             $subject instanceof Reference => $subject->title,
+            $subject instanceof Organization => $subject->name,
             default => $subject->name,
         };
     }
@@ -189,7 +191,7 @@ class ShowInvitation extends Component
     /**
      * @return array{subject_label: string, redirect_url: string}
      */
-    private function resolveSubjectPresentation(Event|Institution|Reference|Person $subject): array
+    private function resolveSubjectPresentation(Event|Institution|Reference|Person|Organization $subject): array
     {
         return [
             'subject_label' => match (true) {
@@ -197,12 +199,14 @@ class ShowInvitation extends Component
                 $subject instanceof Institution => __('Institution'),
                 $subject instanceof Person => __('Speaker'),
                 $subject instanceof Reference => __('Reference'),
+                $subject instanceof Organization => __('Organization'),
             },
             'redirect_url' => match (true) {
                 $subject instanceof Event => route('events.show', $subject),
                 $subject instanceof Institution => route('institutions.show', $subject),
                 $subject instanceof Person => route('persons.show', $subject),
                 $subject instanceof Reference => route('references.show', $subject),
+                $subject instanceof Organization => route('dashboard.organizations.show', $subject),
             },
         ];
     }
@@ -214,6 +218,7 @@ class ShowInvitation extends Component
             MemberSubjectType::Person => __('Speaker'),
             MemberSubjectType::Reference => __('Reference'),
             MemberSubjectType::Event => __('Event'),
+            MemberSubjectType::Organization => __('Organization'),
         };
     }
 }

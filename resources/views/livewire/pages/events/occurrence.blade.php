@@ -11,7 +11,8 @@
         $locationName = $location?->venue?->name ?? $event->institution?->name ?? $event->venue?->name;
         $spaceName = \App\Support\Spaces\SpaceLocationPresenter::name($location);
         $locationLabel = collect([$locationName, $spaceName])->filter(fn (mixed $value): bool => is_string($value) && trim($value) !== '')->implode(' · ');
-        $addressModel = $location?->venue?->primaryAddress() ?? $event->institution?->primaryAddress() ?? $event->venue?->primaryAddress();
+        $locationVenue = $location?->venue_id !== null ? \App\Models\Venue::query()->find($location->venue_id) : null;
+        $addressModel = $locationVenue?->primaryAddress() ?? $event->institution?->primaryAddress() ?? $event->venue?->primaryAddress();
         $mapUrl = filled($addressModel?->google_maps_url)
             ? (string) $addressModel->google_maps_url
             : (filled($addressModel?->latitude) && filled($addressModel?->longitude)

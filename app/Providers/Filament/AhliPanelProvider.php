@@ -6,6 +6,7 @@ namespace App\Providers\Filament;
 
 use AIArmada\FilamentEngagement\FilamentEngagementPlugin;
 use AIArmada\FilamentEvents\FilamentEventsPlugin;
+use AIArmada\FilamentOrganizations\FilamentOrganizationsPlugin;
 use AIArmada\FilamentPersons\FilamentPersonsPlugin;
 use AIArmada\FilamentSignals\Concerns\TracksSignalsPanel;
 use App\Filament\Pages\AhliDashboard;
@@ -51,6 +52,7 @@ class AhliPanelProvider extends PanelProvider
             ->discoverWidgets(in: app_path('Filament/Ahli/Widgets'), for: 'App\Filament\Ahli\Widgets')
             ->plugins([
                 FilamentEventsPlugin::make(),
+                FilamentOrganizationsPlugin::make(),
                 FilamentPersonsPlugin::make(),
                 FilamentEngagementPlugin::make(),
             ])

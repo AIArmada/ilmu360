@@ -745,6 +745,7 @@ class ContributionEntityMutationService
         return [
             'name' => $person->name,
             'family_name' => $person->family_name,
+            'middle_name' => $person->middle_name,
             'names' => $person->names->map(fn (PersonName $name): array => [
                 'id' => (string) $name->getKey(),
                 'name_type' => $name->name_type instanceof PersonNameType ? $name->name_type->value : (string) $name->name_type,

@@ -3,6 +3,7 @@
 use App\Enums\EventFormat;
 use App\Enums\EventVisibility;
 use App\Enums\RegistrationScope;
+use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
 use App\Models\User;
@@ -40,8 +41,13 @@ it('creates an advanced event with an institution primary organizer', function (
             'meta' => ['request_id'],
         ]);
 
+    $event = Event::query()->findOrFail($response->json('data.event.id'));
+
     expect($response->json('data.event.title'))->toBe('Kuliah Maghrib Ramadan')
         ->and($response->json('data.event.status'))->toBe('draft');
+
+    expect($event->created_by_type)->toBe($user->getMorphClass())
+        ->and($event->created_by_id)->toBe($user->getKey());
 });
 
 it('creates an advanced event with a person primary organizer', function () {

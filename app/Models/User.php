@@ -14,6 +14,7 @@ use AIArmada\Engagement\Traits\CanBookmark;
 use AIArmada\Engagement\Traits\CanFollow;
 use AIArmada\Engagement\Traits\CanRespond;
 use AIArmada\FilamentAuthz\Facades\Authz;
+use AIArmada\Organizations\Models\Organization;
 use App\Enums\NotificationChannel;
 use App\Models\Concerns\AuditsModelChanges;
 use App\Models\Concerns\HasUserRestoration;
@@ -490,6 +491,19 @@ class User extends Authenticatable implements AuditableContract, FilamentUser, H
             ->where("{$responsesTable}.respondable_type", (new Event)->getMorphClass())
             ->where("{$responsesTable}.response_type", 'going')
             ->where("{$responsesTable}.status", 'active');
+    }
+
+    /**
+     * @return BelongsToMany<Organization, $this>
+     */
+    public function organizations(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Organization::class,
+            (string) config('organizations.database.tables.members', 'organization_members'),
+            'user_id',
+            'organization_id',
+        )->withPivot(['role', 'joined_at'])->withTimestamps();
     }
 
     /**

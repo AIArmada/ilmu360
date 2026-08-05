@@ -79,6 +79,8 @@ use Spatie\ModelStates\HasStates;
  * form attributes and written to their canonical package relations.
  *
  * @property string $id
+ * @property string|null $created_by_type
+ * @property string|null $created_by_id
  * @property string|null $institution_id
  * @property string|null $default_venue_id
  * @property string $title
@@ -222,6 +224,15 @@ class Event extends PackageEvent implements AuditableContract
     #[\Override]
     protected static function booted(): void
     {
+        static::creating(function (Event $event): void {
+            $creator = auth()->user();
+
+            if ($creator instanceof Model) {
+                $event->created_by_type ??= $creator->getMorphClass();
+                $event->created_by_id ??= $creator->getKey();
+            }
+        });
+
         static::saved(function (Event $event): void {
             $event->syncUrlLinks();
             $event->syncAudiences();
@@ -267,6 +278,8 @@ class Event extends PackageEvent implements AuditableContract
     protected $fillable = [
         'owner_type',
         'owner_id',
+        'created_by_type',
+        'created_by_id',
         'institution_id',
 
         'title',

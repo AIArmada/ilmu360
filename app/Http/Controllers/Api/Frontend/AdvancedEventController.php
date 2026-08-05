@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Frontend;
 
+use AIArmada\Organizations\Models\Organization;
 use App\Actions\Events\CreateAdvancedEventAction;
 use App\Actions\Events\PrepareAdvancedParentProgramSubmissionAction;
 use App\Contracts\EventCategoryCatalog;
@@ -10,6 +11,7 @@ use App\Enums\EventVisibility;
 use App\Enums\RegistrationScope;
 use Dedoc\Scramble\Attributes\Endpoint;
 use Dedoc\Scramble\Attributes\Group;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -41,6 +43,7 @@ class AdvancedEventController extends FrontendController
             'program_starts_at' => ['required', 'date'],
             'program_ends_at' => ['required', 'date'],
             'primary_organizer_id' => ['required', 'uuid'],
+            'organization_id' => ['nullable', 'uuid'],
             'location_institution_id' => ['nullable', 'uuid'],
             'default_event_category_ids' => ['required', 'array', 'min:1'],
             'default_event_category_ids.*' => ['uuid', Rule::in(app(EventCategoryCatalog::class)->validTermIds((array) $request->input('default_event_category_ids', [])))],
@@ -51,6 +54,15 @@ class AdvancedEventController extends FrontendController
         ]);
 
         $preparedSubmission = $prepareAdvancedParentProgramSubmissionAction->handle($user, $validated);
+        $organization = null;
+
+        if (filled($validated['organization_id'] ?? null)) {
+            $organization = Organization::query()
+                ->whereKey($validated['organization_id'])
+                ->whereHas('members', fn (Builder $query): Builder => $query->whereKey($user->getKey()))
+                ->firstOrFail();
+        }
+
         $event = $createAdvancedEventAction->handle(
             $user,
             $validated,
@@ -59,6 +71,7 @@ class AdvancedEventController extends FrontendController
             $preparedSubmission['timezone'],
             $preparedSubmission['primary_organizer'],
             $preparedSubmission['location_institution_id'],
+            $organization,
         );
 
         return response()->json([

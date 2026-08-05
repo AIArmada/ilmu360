@@ -1,5 +1,41 @@
 # Fix /majlis package Venue address lookup
 
+# Reusable organizations tenancy
+
+## Plan
+
+- [x] Create and wire `aiarmada/organizations` core package.
+- [x] Create and wire `aiarmada/filament-organizations` adapter.
+- [x] Hard-cut event organizer naming and table boundary.
+- [x] Integrate the package Organization model into ilmu360 without a duplicate app model.
+- [x] Add focused package and application tests.
+- [x] Run formatting, static analysis, migration linting, Composer audit, and focused parallel tests.
+
+## Review
+
+Implemented reusable organization tenancy, the Filament v5 adapter, the hard-cut
+event-organizer rename, application API/workspace integration, and ownership-safe
+membership mutation guards. This is a clean-schema cutover: no backfill,
+one-time data migration, legacy table rename, runtime alias, or fallback was
+added. The audit also corrected event creator mass-assignment, panel-specific
+Filament authentication, configurable membership pivot resolution, workspace
+context errors and query counts, lifecycle-history retention, fail-closed owner
+transfer behavior, idempotent organization migrations, model defaults, and the
+required package documentation structure.
+
+Verification:
+
+- Organizations package: 6 parallel tests / 20 assertions.
+- Filament adapter: 2 parallel tests / 3 assertions.
+- ilmu360 organization API: 5 parallel tests / 14 assertions.
+- Advanced event API: 4 parallel tests / 17 assertions, including creator metadata.
+- Event rename and migration lint checks: 5 parallel tests / 360 assertions;
+  no data migration is included.
+- Commerce PHPStan targeted scope: no errors.
+- ilmu360 PHPStan (988 files): no errors.
+- Pint, Composer validate/audit, package discovery, legacy-reference scans, and
+  `git diff --check`: passed.
+
 ## Plan
 
 - [x] Reproduce the undefined `primaryAddress()` call through the public event index.
@@ -135,6 +171,73 @@ now pass (3 tests / 22 assertions). A cold full Scramble generation remains
 CPU-bound in this environment and was not allowed to continue concurrently.
 
 # Task: Optimize penceramah edit loading
+
+# Organization frontend and ticketed events
+
+## Plan
+
+- [x] Add frontend organization creation and workspace routing.
+- [x] Add organization invitations, role management, ownership transfer, and lifecycle controls.
+- [x] Add organization-owned event creation with free/paid ticket types and inventory.
+- [x] Add optional assigned/general seating setup to the event builder.
+- [x] Add focused Livewire and workflow tests, then run formatting and static analysis.
+
+## Review
+
+Added the authenticated organization workspace at `/dashboard/organisasi`: users
+can create organizations, invite members by email, change non-owner roles,
+remove members, transfer ownership, revoke invitations, and apply visibility or
+lifecycle actions. Organization membership is checked on every workspace read
+and mutation, and non-members receive a forbidden response.
+
+Added the organization event builder at
+`/dashboard/organisasi/{organization}/majlis/cipta`. It creates an
+organization-owned draft with UTC-normalized schedule data, free or paid ticket
+types, ticket inventory, per-order limits, registration mode, and optional
+general-admission, assigned, or hybrid seating maps. General-admission tickets
+are connected to their seat sections, while assigned/hybrid maps generate
+owner-scoped seats. Paid events cannot disable registration/ticketing, and
+seating capacity is validated in the action boundary as well as the form.
+
+The membership subject guard was corrected so global Organization aggregates do
+not require an unrelated owner context, while owner-scoped models remain
+protected. Required inventory and ticket morph-map entries were also registered
+for the ticketing workflow.
+
+Verification: frontend organization suite passed 7 tests / 25 assertions;
+organization tenancy passed 5 / 14; advanced event API passed 4 / 17; invitation
+UI passed 8 / 22; invitation actions passed 10 / 20; Commerce membership actions
+passed 8 / 15; owner isolation passed 2 / 7; organization actions passed 6 / 20;
+Pint, Blade view cache, application PHPStan, and Commerce PHPStan passed.
+
+Chrome verification initially exposed the three pending additive package
+migrations in the local PostgreSQL database. After applying them, the
+authenticated organization index and create form rendered successfully at
+`/dashboard/organisasi` and `/dashboard/organisasi/cipta`, with no browser
+console errors. No backfill or data migration was run.
+
+## Follow-up: expose organization creation in navigation
+
+- [x] Show the organization creation link to authenticated users before they have an organization.
+- [x] Keep organization management navigation conditional on existing membership.
+- [x] Add a regression test for the dashboard navigation and verify the rendered link in Chrome.
+
+Review: the original header incorrectly gated the entire organization menu on
+`organizations()->exists()`, which made the first-organization workflow
+undiscoverable. The create link is now always rendered in desktop and mobile
+authenticated navigation, while the management link remains membership-aware.
+
+Chrome end-to-end testing then exposed an omitted `owner` entry in the
+application membership role mapping. The owner pivot was created correctly but
+could not be resolved during workspace authorization; the mapping and a
+frontend create-to-workspace regression assertion were corrected.
+
+The final Chrome pass also covered the live Filament admin resource after
+clearing package metadata and restarting Herd services: Organizations appeared
+in navigation, the list and record pages loaded, the owner row rendered, the
+Members and Invitations relation managers opened, and Make public / Make
+private completed through confirmation dialogs. The test organization was
+restored to private and Chrome reported no console errors.
 
 ## Current Task: Tolerate incomplete Google geography
 
@@ -531,3 +634,16 @@ Verification:
 Verified the three reported fixes against the resolver, Filament state dehydration, and address persistence paths. Found and fixed an additional gap in `SubmitEvent/Create`: its duplicate picker handler omitted the area-assignment defaults even though nested event location forms use the shared area fields. It now reuses `InteractsWithLocationPickerSelection`, with a regression test covering the missing-key state.
 
 Focused location suites passed: event location 8 tests / 24 assertions, institution picker 9 / 56, admin infolists 7 / 29, and resolver unit coverage 8 / 46. PHPStan, targeted Pint, Blade view cache, and `git diff --check` passed. A fresh full parallel run was attempted but one worker remained CPU-bound without progress for approximately 27 minutes; it was stopped, so that run has no final consolidated result. The report was corrected in `docs/location-picker-fix-review.md`.
+
+# Follow-up: simpler free-event submission entry point
+
+## Plan
+
+- [x] Keep the existing manual Livewire form and AI extraction workflow as the implementation seam.
+- [x] Make `/hantar-majlis` the canonical destination for manual submissions instead of linking with `mode=manual`.
+- [x] Improve the form header, poster-assisted extraction card, stepper treatment, loading states, and submission tracking markup.
+- [ ] Run focused tests, Blade/static checks, and browser verification.
+
+## Review
+
+The clean `/hantar-majlis` route now opens the same manual submission form previously reached with `?mode=manual`. The form keeps the existing validation, moderation review, media uploads, and AI poster extraction behavior while making the free-submission purpose clearer and the upload path easier to discover.

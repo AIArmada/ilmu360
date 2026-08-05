@@ -176,3 +176,47 @@ The new regression test reproduces the previously missing-key state and passes a
 - `php artisan view:cache` and `git diff --check` passed.
 
 A fresh full parallel suite was attempted, but one worker remained CPU-bound with no progress for approximately 27 minutes and no timeout configured. It was stopped to avoid leaving an unbounded process running; the location-specific suites above are the authoritative regression result. Browser E2E was not independently rerun because the available browser context was unauthenticated.
+
+---
+
+# Addendum 2 — Full Form-Surface E2E (2026-08-05)
+
+Discovered and tested every public frontend submission route. Results:
+
+| Form | Route | Result |
+|---|---|---|
+| Submit speaker | `/sumbangan/penceramah/baru` | PASS (verified earlier session) |
+| Submit institution | `/sumbangan/institusi/baru` | PASS (verified earlier session + fixes) |
+| **Submit event** | `/hantar-majlis` | **BLOCKED — pre-existing JS defect (see §8)** |
+| Suggest update | `/sumbangan/{person}/kemas-kini` | PASS **after new fix (see §9)** |
+| Report | `/lapor/{institution}` | PASS |
+| Membership claim | `/pohon-keahlian/{person}` | PASS |
+
+## 8. NEW DEFECT (pre-existing, blocks event submission)
+
+On `/hantar-majlis` (5-step Filament wizard), every searchable/multi Filament select fails to render options and fails to sync selections, and file uploads never commit — for real users.
+
+Evidence:
+- Console: `Error fetching option label: TypeError: Cannot read properties of undefined (reading 'memo')` ×6, `Error fetching options: …` , `Uncaught (in promise)` ×3.
+- Stack: `getOptionLabelUsing/getOptionsUsing/getUploadedFilesUsing` → `Livewire.fireAction($wire.__instance, 'callSchemaComponentMethod'/'getUploadedFiles', …)` → `fireActionInstance` → `findScopedPendingMessage` → `isAsync()` at `vendor/livewire/livewire/dist/livewire.js:5106` → `this.component.snapshot.memo?.async` where `component.snapshot` is undefined.
+- Same `Livewire.fireAction(wire.__instance, …)` invoked manually from the page scope **works** — the failure is scoped to the select/file-upload Alpine components (x-load + wire:ignore inside the wizard).
+- The same selects on `/sumbangan/penceramah/baru` **work** (50 options render) — defect is page/wizard-specific.
+- Server pipeline is healthy: `$wire.$set()` accepted every field (categories, tags, references, organizer, speakers); wizard steps navigated; only the JS interaction layer fails.
+
+Not fixed (out of scope for this session); needs a dependency/asset-level investigation (Filament 5.7.5 select/file-upload JS vs Livewire 4.3.4 served bundle).
+
+## 9. NEW FIX — `middle_name` dropped from person update requests
+
+The public suggest-update form (`/sumbangan/penceramah/{slug}/kemas-kini`) silently discarded `middle_name` changes: `ContributionEntityMutationService::personState()` omitted `middle_name`, and `ResolveContributionChangedPayloadAction` only diffs keys present in the baseline (`array_key_exists` guard), so the update request's `proposed_data` never contained it.
+
+- Fix: added `'middle_name' => $person->middle_name,` to `personState()` (1 line).
+- Regression test: `it('captures middle name changes in a non-owner person update request')` in `tests/Feature/ContributionPagesTest.php` — PASS.
+- E2E verified: request now contains `middle_name: "Ustaz"`.
+- Institution/Reference/Event/Venue states audited — complete (no other missing form keys).
+
+## 10. Verified records left in DB (test data)
+
+- 3 × pending update contribution requests for person Azhar (2 pre-fix, 1 post-fix).
+- 1 × open report (`fake_institution`) for Pusat Islam Petaling Jaya.
+- 1 × pending membership application for person Azhar (with evidence media).
+- All visible in admin (Reports 2, Contribution Requests 3, Membership Applications 1 badges).

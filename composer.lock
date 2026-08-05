@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "9df1a8be6efc0133be9404c7569a59a0",
+    "content-hash": "5061a5020d4629e9da6c7fac88c39d56",
     "packages": [
         {
             "name": "aiarmada/addressing",
@@ -715,12 +715,13 @@
             "dist": {
                 "type": "path",
                 "url": "../commerce/packages/filament-events",
-                "reference": "2bb91d9768441dc862dc1912a31408a0a310ea18"
+                "reference": "cbec8df729ec2053ab7bdd197a0e7a6b24407b2f"
             },
             "require": {
                 "aiarmada/commerce-support": "self.version",
                 "aiarmada/events": "self.version",
                 "filament/filament": "^5.6.7",
+                "filament/spatie-laravel-media-library-plugin": "^5.6.7",
                 "php": "^8.4"
             },
             "suggest": {
@@ -785,6 +786,55 @@
                 "issues": "https://github.com/aiarmada/commerce/issues",
                 "source": "https://github.com/aiarmada/commerce"
             },
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "aiarmada/filament-organizations",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "../commerce/packages/filament-organizations",
+                "reference": "fb0062849cfdb1519d18fed492d84561d49c8d7f"
+            },
+            "require": {
+                "aiarmada/membership": "self.version",
+                "aiarmada/organizations": "self.version",
+                "filament/filament": "^5.6.7",
+                "php": "^8.4",
+                "spatie/laravel-package-tools": "^1.16"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "AIArmada\\FilamentOrganizations\\FilamentOrganizationsServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "AIArmada\\FilamentOrganizations\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "AIArmada",
+                    "email": "dev@aiarmada.com"
+                }
+            ],
+            "description": "Filament v5 administration for reusable AIArmada organizations tenancy.",
+            "keywords": [
+                "filament",
+                "laravel",
+                "organizations",
+                "tenancy"
+            ],
             "transport-options": {
                 "symlink": true,
                 "relative": true
@@ -1070,6 +1120,55 @@
                 "MIT"
             ],
             "description": "Generic moderation, blocking, and ban management for Laravel applications",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "aiarmada/organizations",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "../commerce/packages/organizations",
+                "reference": "54211034b329fe023ecede3978e5eb1bc38a1567"
+            },
+            "require": {
+                "aiarmada/commerce-support": "self.version",
+                "aiarmada/membership": "self.version",
+                "php": "^8.4",
+                "spatie/laravel-package-tools": "^1.16"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "AIArmada\\Organizations\\OrganizationsServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "AIArmada\\Organizations\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "AIArmada",
+                    "email": "dev@aiarmada.com"
+                }
+            ],
+            "description": "Reusable organization tenancy aggregate, membership ownership, and lifecycle workflows.",
+            "keywords": [
+                "laravel",
+                "membership",
+                "multitenancy",
+                "organizations",
+                "tenancy"
+            ],
             "transport-options": {
                 "symlink": true,
                 "relative": true
@@ -20145,6 +20244,7 @@
         "aiarmada/filament-engagement": 20,
         "aiarmada/filament-events": 20,
         "aiarmada/filament-inventory": 20,
+        "aiarmada/filament-organizations": 20,
         "aiarmada/filament-persons": 20,
         "aiarmada/filament-seating": 20,
         "aiarmada/filament-signals": 20,
@@ -20152,6 +20252,7 @@
         "aiarmada/inventory": 20,
         "aiarmada/membership": 20,
         "aiarmada/moderation": 20,
+        "aiarmada/organizations": 20,
         "aiarmada/persons": 20,
         "aiarmada/references": 20,
         "aiarmada/seating": 20,

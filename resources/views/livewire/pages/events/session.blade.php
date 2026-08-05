@@ -9,7 +9,8 @@
         $locationName = $location?->venue?->name ?? $event->institution?->name ?? $event->venue?->name;
         $spaceName = \App\Support\Spaces\SpaceLocationPresenter::name($location);
         $locationLabel = collect([$locationName, $spaceName])->filter(fn (mixed $value): bool => is_string($value) && trim($value) !== '')->implode(' · ');
-        $addressModel = $location?->venue?->primaryAddress() ?? $event->institution?->primaryAddress() ?? $event->venue?->primaryAddress();
+        $locationVenue = $location?->venue_id !== null ? \App\Models\Venue::query()->find($location->venue_id) : null;
+        $addressModel = $locationVenue?->primaryAddress() ?? $event->institution?->primaryAddress() ?? $event->venue?->primaryAddress();
         $speakers = $session->involvements
             ->map(fn ($involvement): string => $involvement->involveable instanceof \App\Models\Person
                 ? (string) ($involvement->involveable->formatted_name ?? $involvement->involveable->name)

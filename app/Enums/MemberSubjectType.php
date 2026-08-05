@@ -2,6 +2,7 @@
 
 namespace App\Enums;
 
+use AIArmada\Organizations\Models\Organization;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
@@ -14,6 +15,7 @@ enum MemberSubjectType: string
     case Person = 'person';
     case Event = 'event';
     case Reference = 'reference';
+    case Organization = 'organization';
 
     public function label(): string
     {
@@ -22,6 +24,7 @@ enum MemberSubjectType: string
             self::Person => __('Person'),
             self::Event => __('Event'),
             self::Reference => __('Reference'),
+            self::Organization => __('Organization'),
         };
     }
 
@@ -32,6 +35,7 @@ enum MemberSubjectType: string
             self::Person => 'penceramah',
             self::Event => 'majlis',
             self::Reference => 'rujukan',
+            self::Organization => 'organisasi',
         };
     }
 
@@ -42,6 +46,7 @@ enum MemberSubjectType: string
             'person', 'penceramah' => self::Person,
             'event', 'majlis' => self::Event,
             'reference', 'rujukan' => self::Reference,
+            'organization', 'organisasi' => self::Organization,
             default => null,
         };
     }
@@ -80,13 +85,14 @@ enum MemberSubjectType: string
             self::Person => Person::class,
             self::Event => Event::class,
             self::Reference => Reference::class,
+            self::Organization => Organization::class,
         };
     }
 
     /**
      * @throws ModelNotFoundException
      */
-    public function resolveSubject(string $subjectId): Institution|Person|Event|Reference
+    public function resolveSubject(string $subjectId): Institution|Person|Event|Reference|Organization
     {
         $modelClass = $this->modelClass();
         $subject = $modelClass::query()->findOrFail($subjectId);
@@ -96,6 +102,7 @@ enum MemberSubjectType: string
             ! $subject instanceof Person &&
             ! $subject instanceof Event &&
             ! $subject instanceof Reference
+            && ! $subject instanceof Organization
         ) {
             throw (new ModelNotFoundException)->setModel($modelClass, [$subjectId]);
         }

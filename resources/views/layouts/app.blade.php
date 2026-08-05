@@ -140,6 +140,7 @@
                 $currentLocale = app()->getLocale();
                 $authenticatedUser = auth()->user();
                 $hasInstitutionDashboardAccess = $authenticatedUser?->institutions()->exists() ?? false;
+                $hasOrganizationDashboardAccess = $authenticatedUser?->organizations()->exists() ?? false;
                 $notificationUnreadCount = $authenticatedUser
                     ? $authenticatedUser
                         ->notificationInboxes()
@@ -155,6 +156,8 @@
                 $contributionsMenuLabel = __('My Contributions');
                 $settingsMenuLabel = __('Settings');
                 $institutionDashboardMenuLabel = __('Manage Institution');
+                $organizationDashboardMenuLabel = __('Manage Organizations');
+                $organizationCreateMenuLabel = __('Create organization');
             @endphp
 
             <!-- Premium Header -->
@@ -269,6 +272,16 @@
                                                 {{ $institutionDashboardMenuLabel }}
                                             </a>
                                         @endif
+                                        <a href="{{ route('dashboard.organizations.create') }}" wire:navigate
+                                            class="block rounded-lg px-3 py-2 text-sm text-slate-700 transition-colors hover:bg-slate-50">
+                                            {{ $organizationCreateMenuLabel }}
+                                        </a>
+                                        @if($hasOrganizationDashboardAccess)
+                                            <a href="{{ route('dashboard.organizations.index') }}" wire:navigate
+                                                class="block rounded-lg px-3 py-2 text-sm text-slate-700 transition-colors hover:bg-slate-50">
+                                                {{ $organizationDashboardMenuLabel }}
+                                            </a>
+                                        @endif
                                     </div>
                                     <div class="pt-1">
                                         <p class="px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">{{ $accountMenuHeading }}</p>
@@ -366,6 +379,16 @@
                                             <a href="{{ route('dashboard.institutions') }}" wire:navigate
                                                 class="block rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700">
                                                 {{ $institutionDashboardMenuLabel }}
+                                            </a>
+                                        @endif
+                                        <a href="{{ route('dashboard.organizations.create') }}" wire:navigate
+                                            class="block rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700">
+                                            {{ $organizationCreateMenuLabel }}
+                                        </a>
+                                        @if($hasOrganizationDashboardAccess)
+                                            <a href="{{ route('dashboard.organizations.index') }}" wire:navigate
+                                                class="block rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700">
+                                                {{ $organizationDashboardMenuLabel }}
                                             </a>
                                         @endif
                                     </div>

@@ -4,6 +4,8 @@ namespace App\Actions\Events;
 
 use AIArmada\Events\Enums\RegistrationMode;
 use AIArmada\Events\Enums\ScheduleKind;
+use AIArmada\Organizations\Contracts\OrganizationAuthorization;
+use AIArmada\Organizations\Models\Organization;
 use App\Enums\TimingMode;
 use App\Models\Event;
 use App\Models\Institution;
@@ -32,17 +34,26 @@ class CreateAdvancedEventAction
         Carbon $startsAt,
         Carbon $endsAt,
         string $timezone,
-        Institution|Person $primaryOrganizer,
+        Institution|Person|null $primaryOrganizer,
         ?string $locationInstitutionId,
+        ?Organization $organization = null,
     ): Event {
-        return DB::transaction(function () use ($user, $form, $startsAt, $endsAt, $timezone, $primaryOrganizer, $locationInstitutionId): Event {
+        return DB::transaction(function () use ($user, $form, $startsAt, $endsAt, $timezone, $primaryOrganizer, $locationInstitutionId, $organization): Event {
+            if ($organization instanceof Organization) {
+                app(OrganizationAuthorization::class)->authorize($user, $organization, 'organization.update');
+            }
+
+            $owner = $organization ?? $user;
+
             $personSlugSegments = $primaryOrganizer instanceof Person
                 ? app(GenerateEventSlugAction::class)->personSlugSegmentsForPersonIds([(string) $primaryOrganizer->getKey()])
                 : [];
 
             $event = Event::query()->create([
-                'owner_type' => $user->getMorphClass(),
-                'owner_id' => $user->id,
+                'owner_type' => $owner->getMorphClass(),
+                'owner_id' => $owner->getKey(),
+                'created_by_type' => $user->getMorphClass(),
+                'created_by_id' => $user->getKey(),
                 'title' => (string) $form['title'],
                 'slug' => app(GenerateEventSlugAction::class)->handle(
                     (string) $form['title'],

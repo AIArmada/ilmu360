@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use AIArmada\CommerceSupport\Exceptions\NoCurrentOwnerException;
+use AIArmada\Organizations\Http\Middleware\CurrentOrganizationMiddleware;
 use App\Http\Middleware\NormalizeApiJsonResponse;
 use App\Http\Middleware\SetFilamentTimezone;
 use App\Http\Middleware\SetLocale;
@@ -13,6 +15,7 @@ use App\Support\Location\PublicGeolocationPermission;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -26,6 +29,9 @@ return Application::configure(basePath: dirname(__DIR__))
         __DIR__.'/../app/Console/Commands',
     ])
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->alias([
+            'current.organization' => CurrentOrganizationMiddleware::class,
+        ]);
         $middleware->encryptCookies(except: [
             'user_timezone',
             PublicGeolocationPermission::COOKIE_NAME,
@@ -46,6 +52,16 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(static fn (Request $request): bool => ApiResponseFactory::isApiRequest($request) || $request->expectsJson());
+
+        $exceptions->render(static function (NoCurrentOwnerException $exception): JsonResponse {
+            return response()->json([
+                'message' => $exception->getMessage(),
+                'error' => [
+                    'code' => 'forbidden',
+                    'message' => $exception->getMessage(),
+                ],
+            ], 403);
+        });
 
         $exceptions->respond(static fn ($response, Throwable $exception, Request $request) => app(ApiJsonResponseNormalizer::class)->normalize($request, $response));
     })->create();
