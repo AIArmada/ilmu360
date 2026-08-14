@@ -452,19 +452,26 @@ class Index extends Component implements HasForms
                             ->getSearchResultsUsing(fn (string $search): array => $this->searchPersonOptions($search))
                             ->getOptionLabelsUsing(fn (array $values): array => $this->personOptionLabels($values))
                             ->live(),
+                    ]),
 
+                Section::make(__('Topik & rujukan'))
+                    ->extraAttributes(['class' => 'mi-advanced-filter-group'])
+                    ->schema([
                         Select::make('domain_tag_ids')
-                            ->label(__('Kategori'))
-                            ->placeholder(__('Any Category'))
+                            ->label(__('Topik / bidang'))
+                            ->placeholder(__('Pilih topik…'))
                             ->searchable()
+                            ->preload()
                             ->multiple()
-                            ->getSearchResultsUsing(fn (string $search): array => $this->searchTermOptions('domain', $search))
+                            ->options(fn (): array => $this->domains()
+                                ->mapWithKeys(fn (EventTerm $term): array => [(string) $term->getKey() => (string) $term->name])
+                                ->all())
                             ->getOptionLabelsUsing(fn (array $values): array => $this->termOptionLabels('domain', $values))
                             ->live(),
 
                         Select::make('discipline_tag_ids')
-                            ->label(__('Bidang Ilmu'))
-                            ->placeholder(__('Any Knowledge Field'))
+                            ->label(__('Topik lebih khusus'))
+                            ->placeholder(__('Pilih topik khusus…'))
                             ->searchable()
                             ->multiple()
                             ->getSearchResultsUsing(fn (string $search): array => $this->searchTermOptions('discipline', $search))
@@ -903,7 +910,7 @@ class Index extends Component implements HasForms
     public function domains(): Collection
     {
         return app(SafeModelCache::class)->rememberCollection(
-            key: 'events_domains_'.app()->getLocale().'_v3',
+            key: 'events_domains_'.app()->getLocale().'_v4',
             ttl: 300,
             query: EventTerm::query()
                 ->whereIn('event_taxonomy_id', $this->activeTaxonomyIds('domain'))

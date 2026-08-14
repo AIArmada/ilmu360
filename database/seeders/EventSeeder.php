@@ -667,7 +667,7 @@ class EventSeeder extends Seeder
     {
         $haystack = mb_strtolower(trim($title.' '.($topic ?? '')));
 
-        $domainSlug = 'syariah';
+        $domainSlug = 'agama_kerohanian';
         $disciplineSlug = 'hadith_studies';
         $sourceSlug = 'hadith';
         $issueSlug = null;
@@ -678,7 +678,6 @@ class EventSeeder extends Seeder
             str_contains($haystack, 'qur\'an') ||
             str_contains($haystack, 'tadabbur')
         ) {
-            $domainSlug = 'aqidah';
             $disciplineSlug = str_contains($haystack, 'tadabbur') ? 'tadabbur' : 'tafsir';
             $sourceSlug = 'quran';
         } elseif (
@@ -687,11 +686,9 @@ class EventSeeder extends Seeder
             str_contains($haystack, 'tazkiyah') ||
             str_contains($haystack, 'hikam')
         ) {
-            $domainSlug = 'akhlak';
             $disciplineSlug = str_contains($haystack, 'tazkiyah') ? 'tazkiyah' : 'adab_akhlaq';
             $sourceSlug = 'turath';
         } elseif (str_contains($haystack, 'sirah')) {
-            $domainSlug = 'aqidah';
             $disciplineSlug = 'sirah';
             $sourceSlug = 'hadith';
             $issueSlug = 'kepimpinan';
@@ -701,7 +698,6 @@ class EventSeeder extends Seeder
             str_contains($haystack, 'zakat') ||
             str_contains($haystack, 'puasa')
         ) {
-            $domainSlug = 'syariah';
             $disciplineSlug = 'ibadah';
             $sourceSlug = 'hadith';
         }
@@ -818,7 +814,7 @@ class EventSeeder extends Seeder
                     }
 
                     app(SyncEventClassificationsAction::class)->handle($event, [
-                        'domain_tags' => ['syariah'],
+                        'domain_tags' => ['agama_kerohanian'],
                         'discipline_tags' => ['hadith_studies'],
                         'source_tags' => ['hadith'],
                     ]);
@@ -843,7 +839,7 @@ class EventSeeder extends Seeder
 
         $otherKeyPeople = [];
 
-        if ($categoryTerms->contains('code', 'forum')) {
+        if ($categoryTerms->contains('code', 'forum_diskusi')) {
             $moderatorPersonId = $selectedPersonIds[0] ?? ($personIds[0] ?? null);
 
             if (is_string($moderatorPersonId)) {
@@ -857,7 +853,7 @@ class EventSeeder extends Seeder
             }
         }
 
-        if ($categoryTerms->whereIn('code', ['tahlil', 'solat_hajat', 'qiamullail'])->isNotEmpty()) {
+        if ($categoryTerms->contains('code', 'aktiviti_keagamaan')) {
             $imamPersonId = $personIds[0] ?? null;
 
             $otherKeyPeople[] = [
@@ -865,33 +861,6 @@ class EventSeeder extends Seeder
                 'involveable_type' => is_string($imamPersonId) ? 'person' : null,
                 'involveable_id' => is_string($imamPersonId) ? $imamPersonId : null,
                 'display_name' => is_string($imamPersonId) ? null : fake()->name(),
-                'visibility' => 'public',
-            ];
-        }
-
-        if ($categoryTerms->contains('code', 'khutbah_jumaat')) {
-            $khatibPersonId = $personIds[0] ?? null;
-            $imamPersonId = $personIds[1] ?? $khatibPersonId;
-
-            $otherKeyPeople[] = [
-                'role_code' => EventKeyPersonRole::Khatib->value,
-                'involveable_type' => is_string($khatibPersonId) ? 'person' : null,
-                'involveable_id' => is_string($khatibPersonId) ? $khatibPersonId : null,
-                'display_name' => is_string($khatibPersonId) ? null : fake()->name(),
-                'visibility' => 'public',
-            ];
-            $otherKeyPeople[] = [
-                'role_code' => EventKeyPersonRole::Imam->value,
-                'involveable_type' => is_string($imamPersonId) ? 'person' : null,
-                'involveable_id' => is_string($imamPersonId) ? $imamPersonId : null,
-                'display_name' => is_string($imamPersonId) ? null : fake()->name(),
-                'visibility' => 'public',
-            ];
-            $otherKeyPeople[] = [
-                'role_code' => EventKeyPersonRole::Bilal->value,
-                'involveable_type' => null,
-                'involveable_id' => null,
-                'display_name' => fake()->name(),
                 'visibility' => 'public',
             ];
         }

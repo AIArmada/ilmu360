@@ -301,7 +301,7 @@ it('rejects non-physical format for community event types', function () {
         Livewire::test(Create::class),
         submitEventEndTimeFormData($fixtures, [
             'title' => 'Community Online Invalid',
-            'event_category_ids' => [eventCategoryId('iftar')],
+            'event_category_ids' => [eventCategoryId('komuniti_kebajikan')],
             'event_format' => EventFormat::Online->value,
         ]),
     )

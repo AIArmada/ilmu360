@@ -13,6 +13,7 @@ class FoundationSeeder extends Seeder
         $this->call([
             EventRoleSeeder::class,
             EventTaxonomySeeder::class,
+            EventTopicSeeder::class,
         ]);
     }
 }

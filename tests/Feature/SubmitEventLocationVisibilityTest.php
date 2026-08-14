@@ -35,7 +35,7 @@ test('live url is not required on the public submit-event form', function () {
 test('community event type forces physical format', function () {
     Livewire::test(Create::class)
         ->set('data.event_format', EventFormat::Online->value)
-        ->set('data.event_category_ids', [eventCategoryId('iftar')])
+        ->set('data.event_category_ids', [eventCategoryId('komuniti_kebajikan')])
         ->assertSet('data.event_format', EventFormat::Physical->value);
 });
 

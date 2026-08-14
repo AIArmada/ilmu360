@@ -188,10 +188,10 @@ Glow shadows use emerald-tinted rgba (e.g. `rgba(6,78,59,0.40)`) at high blur va
 
 ### Shadow Vocabulary
 
-- **Card Rest** (`box-shadow: 0 8px 30px -20px rgba(15,23,42,0.35)`): Default card state. Barely visible — establishes the card as a surface without decoration.
+- **Card Rest** (`box-shadow: none; border: 1px solid rgba(224,229,235,0.80)`): Repeated cards stay flat and legible. Elevation is earned through focus or hover, not default decoration.
 - **Card Hover Glow** (`box-shadow: 0 22px 50px -28px rgba(6,78,59,0.40)`): The signature hover state. Emerald-tinted halo, card lifts -translate-y-1.5. This is the luminous depth in action.
-- **Hero Search Glow** (`box-shadow: 0 20px 60px -28px rgba(6,78,59,0.40), 0 4px 12px -2px rgba(0,0,0,0.04)`): The primary search container. Layered: warm emerald halo + crisp base shadow for definition.
-- **Stats Card Glow** (`box-shadow: 0 20px 70px -35px rgba(6,78,59,0.40)`): Trust card in hero. Wider blur, lower opacity — ambient rather than focused.
+- **Hero Search Veil** (`background: rgba(255,255,255,0.80); backdrop-filter: blur(18px)`): The primary search material. An emerald-tinted hairline and inset highlight define the control; focus may intensify the emerald halo.
+- **Editorial Folio Glow** (`box-shadow: 0 30px 80px -42px rgba(0,25,11,0.88)`): The single directory signature surface. Deep, quiet, and architectural — never repeated as a card treatment.
 - **CTA Deep Glow** (`box-shadow: 0 28px 80px -38px rgba(6,78,59,0.85)`): The emerald-950 CTA section. Maximum glow intensity — the section feels anchored and luminous against the warm paper body.
 
 ### Named Rules
@@ -219,11 +219,11 @@ Glow shadows use emerald-tinted rgba (e.g. `rgba(6,78,59,0.40)`) at high blur va
 - **Shadow Strategy:** Card Rest at default → Card Hover Glow on hover. Card lifts -translate-y-1.5. Border shifts to emerald-300/80. Title color shifts emerald-950 → emerald-700.
 - **Internal Padding:** 1.25rem (20px) on content area. Image fills its container edge-to-edge.
 - **Image Treatment:** Object-cover, object-top (portraits). Dot pattern overlay at 35% opacity behind image for fallback. Gradient fade (emerald-950/80 → transparent) at bottom over image. Verified badge top-left, "Penceramah" label bottom-left, arrow bottom-right.
-- **Hover Micro-interactions:** Image scales 1.04 over 500ms ease-out. Arrow icons translate-x-1 over 300ms. Title color transitions over 200ms. Staggered across the grid via scroll-reveal with --reveal-d delays.
+- **Hover Micro-interactions:** Portraits remain stable to preserve the folio identity. Arrow icons translate-x-1 over 300ms; title color transitions over 200ms; card lift and glow are the primary reward. Staggering is optional and must not delay readable content.
 
 ### Inputs / Search
 
-- **Style:** Pill container (1.5rem radius), white/90 background, hairline white/80 border, backdrop-blur-xl. Icon container: emerald-50 background, emerald-700 icon, 2xl radius (1rem).
+- **Style:** Use the `.living-majlis-veil` material for the pill container: high-alpha white veil (approximately 0.78–0.92), emerald-tinted hairline rule, restrained 18px blur, and an opaque fallback. The icon container remains emerald-50 with an emerald-700 icon and 2xl radius (1rem).
 - **Focus:** Scale 1.01 + border emerald-300 + 4px emerald-600/10 ring + intensified glow shadow. The entire container breathes on focus.
 - **Clear Button:** 10×10 (2.5rem) circular, slate-200 border, slate-400 icon. Hover: rose-50 background + rose-600 icon. Appears only when search is filled.
 
@@ -238,9 +238,9 @@ Glow shadows use emerald-tinted rgba (e.g. `rgba(6,78,59,0.40)`) at high blur va
 - **Verified Chip:** emerald-50/80 background, emerald-800 text, full pill, 0.5rem 0.875rem padding, 0.75rem (12px) font-weight 700 uppercase 0.20em tracking. Lead with checkmark icon. Appears top-left on speaker card images.
 - **Live Pulse Indicator:** Small emerald dot (1.5–2px) with animate-ping ring. Used in "Direktori Disahkan" eyebrow and "Semua profil disahkan" badge. Signals active curation.
 
-### Signature Component: The Trust Stats Card
+### Signature Component: The Editorial Folio
 
-The hero's right-column stats card is the signature surface. It carries: emerald icon container with ring, large count number (font-heading 3xl bold emerald-950), two feature items with emerald/amber icon dots. Decorative amber and emerald blur blobs bleed off the corners. The card lifts on hover (-translate-y-1) with intensified glow — the luminous depth in concentrated form. This pattern repeats wherever trust signals need emphasis.
+The hero's right-column folio is the signature surface. It carries a real portrait or editorial asset, an emerald field, a restrained gold rule, and one concise trust message. It creates a sense of a curated register without turning the directory into a statistics dashboard. The folio may use a single ambient emerald halo because it is the page's architectural anchor; the repeated speaker grid remains flat at rest.
 
 ## 6. Do's and Don'ts
 
@@ -271,3 +271,37 @@ The hero's right-column stats card is the signature surface. It carries: emerald
 - **Don't** use diagonal stripe backgrounds (repeating-linear-gradient) or decorative grid overlays as default decoration.
 - **Don't** use dark patterns or urgency tricks. The trust is earned through verification, not manufactured through pressure.
 - **Don't** introduce a second typeface. Outfit is the single family; hierarchy comes from weight and tracking alone.
+
+## 7. Living Majlis Extension
+
+The Golden Directory becomes more distinctive when it behaves like a living archive rather than a collection of SaaS panels. The **Living Majlis** layer gives pages an editorial rhythm: a folio to establish trust, a clear index to support discovery, and gathering signals that invite the next step.
+
+### The signature: the editorial folio
+
+- Use one substantial folio per directory hero as the page's memorable visual anchor.
+- The folio may combine a real portrait/asset, an emerald field, a restrained gold rule, and compact metadata.
+- The folio is not a statistics card. Trust is communicated through visible verification and evidence, not inflated numbers.
+- Do not repeat the folio treatment on every card; repetition turns a signature into decoration.
+
+### Translucency is an instrument
+
+- Use translucent surfaces only for controls or intentional editorial overlays: search, filters, sorting, navigation rails, and similar interaction layers.
+- Keep speaker and event cards opaque (`#ffffff` or a clearly opaque theme surface) so names, dates, and trust signals remain legible.
+- The canonical control material uses a high-alpha white veil (approximately 0.78–0.92), an emerald-tinted rule, and restrained blur (approximately 18px).
+- Every translucent surface must have an opaque fallback for unsupported `backdrop-filter`, `prefers-reduced-transparency`, forced-colors mode, and low-power/mobile contexts.
+- The generic `.glass` and `.glass-dark` utilities are legacy conveniences, not the canonical Living Majlis material.
+
+### Editorial rhythm and motion
+
+- Prefer one strong composition over a stack of identical glass panels: folio → search/filter → index → contribution invitation.
+- Use hairline rules, image crops, and whitespace to create the feeling of a curated register; do not add numbered decoration or repeated uppercase kickers.
+- Motion is a single quiet reward: a folio reveal, a card lift, or a focused control glow. It must never delay content or shift layout bounds.
+- `prefers-reduced-motion: reduce` removes transforms, blur transitions, and ambient animation while preserving state and hierarchy.
+
+### Accessibility and material safeguards
+
+- Maintain visible `:focus-visible` rings and at least 44px interactive targets for controls.
+- Never rely on translucency, color, blur, or gold alone to communicate verification, selection, or availability.
+- Forced-colors mode replaces decorative gradients, noise, blur, and shadows with system Canvas/CanvasText surfaces and explicit borders.
+- The repeated-card rule remains: use a hairline border **or** an ambient shadow at rest, never a gray ghost-card combination. A single folio or CTA may use a subtle hairline plus emerald halo as an intentional compositional anchor, but that pairing must not spread to the grid.
+- Keep gold below 10% of a screen and reserve it for annotation, verified accents, and interaction rewards.

@@ -1,5 +1,92 @@
 # Fix /majlis package Venue address lookup
 
+# Event submission category vocabulary
+
+## Plan
+
+- [x] Replace the Islamic-specific hierarchical event categories with a flat, activity-first vocabulary.
+- [x] Update affected category fixtures and taxonomy tests without retaining legacy category codes.
+- [x] Reseed the local taxonomy, clear the category catalog cache, and verify the submission form and focused tests.
+
+## Review
+
+The event category taxonomy is now a flat eight-option activity vocabulary. `Kuliah / Ceramah` is the primary talk category for subjects including Islamic studies, mathematics, science, technology, and IT. The manual form and poster extraction each accept one primary activity type, while the moderation workflow remains responsible for rejecting harmful submissions.
+
+Legacy category terms and their event classifications are removed by the reseeder; no compatibility aliases are retained. The local database was reseeded and the event-category selection cache was busted.
+
+Verification:
+
+- AIArmada taxonomy tests: 10 passed / 30 assertions.
+- Poster extraction tests: 2 passed / 23 assertions.
+- Public page suite: 30 passed / 213 assertions; 3 unrelated pre-existing failures remain for poster aspect, Threads icon, and contribution-link assertions.
+- Targeted PHPStan: passed with no errors.
+- PHP syntax and `git diff --check`: passed.
+- Pint: the new seeder import order passes; the existing `Create.php` still reports its pre-existing unrelated fixers.
+
+Seeder audit: only `EventSeeder` required category-code behavior updates. `AdvancedEventSeeder` consumes the catalog dynamically, and no other seeder contains legacy event-category codes.
+
+# Optional event topics and fields
+
+## Plan
+
+- [x] Add the broad optional topic vocabulary without conflating it with activity type.
+- [x] Update seeded demo event topic defaults and the submission form/extraction labels.
+- [x] Reseed topics and verify topic options, free-text detail support, and focused tests.
+
+## Review
+
+Added eight optional broad topics to the existing domain taxonomy: Agama & Kerohanian, Pendidikan, Sains & Matematik, Teknologi & IT, Kerjaya & Kemahiran, Kesihatan, Keluarga & Masyarakat, and Lain-lain / Tulis sendiri. The activity type remains a separate single-choice field, while the existing optional specific-topic field provides free-text detail such as Machine Learning or Matematik.
+
+Updated seeded event defaults, submission-form labels, review copy, and extraction-backed options. Reseeded the Foundation taxonomy and cleared the application cache.
+
+Verification:
+
+- Foundation taxonomy tests — 11 passed (32 assertions).
+- Submit-event form coverage — 5 passed (32 assertions).
+- AI extraction coverage — 2 passed (23 assertions).
+- Advanced event seeder coverage — 2 passed (20 assertions).
+- PHPStan targeted analysis, Pint, PHP syntax checks, and `git diff --check` passed.
+
+# Surface topics on public submission and listing filters
+
+## Plan
+
+- [x] Map the shared domain taxonomy through `/hantar-majlis` and `/majlis`.
+- [x] Make broad topics visible immediately in both public filter controls.
+- [x] Add focused Livewire/listing coverage and verify the filter query path.
+
+## Review
+
+The public `/hantar-majlis` topic field now uses a versioned option cache and explicitly preloads its dynamic option list, and the `/majlis` sidebar has a dedicated `Topik & rujukan` section. Its `Topik / bidang` filter preloads the same eight broad topics, while `Topik lebih khusus` remains searchable for detailed fields. The existing `domain_tag_ids` URL/query contract remains the shared backend filter path.
+
+Verification:
+
+- Public event filter coverage — 3 passed (16 assertions).
+- Submit-event topic coverage — 3 passed (18 assertions).
+- PHP syntax checks passed; the filter changes use the existing taxonomy cache and search service seams.
+- Chrome verified all eight choices in both public controls and successfully applied `Pendidikan` on `/majlis`; no new console errors appeared during the filter interaction.
+
+# Reorder submit wizard topic placement
+
+## Plan
+
+- [x] Place the broad topic immediately after `Jenis Majlis` in the first wizard step.
+- [x] Keep specific topics and references in the follow-up step.
+- [x] Verify the rendered order in Livewire tests and Chrome.
+
+## Review
+
+The submission wizard now follows the natural sequence `Jenis Majlis → Topik / bidang → Tajuk Majlis`. The broad topic selector is optional and visible early, while detailed topics, sources, issues, and book references remain in `Topik & Rujukan`.
+
+Verification:
+
+- Wizard-order regression — 1 passed (1 assertion).
+- AI extraction coverage — 2 passed (23 assertions).
+- Targeted PHPStan and syntax checks passed.
+- Chrome confirmed the rendered field order.
+- The broader PublicPages run had an intermittent existing `mkdir(): File exists` parallel-test setup collision; the isolated order test passed.
+
+
 # Reusable organizations tenancy
 
 ## Plan
@@ -642,8 +729,17 @@ Focused location suites passed: event location 8 tests / 24 assertions, institut
 - [x] Keep the existing manual Livewire form and AI extraction workflow as the implementation seam.
 - [x] Make `/hantar-majlis` the canonical destination for manual submissions instead of linking with `mode=manual`.
 - [x] Improve the form header, poster-assisted extraction card, stepper treatment, loading states, and submission tracking markup.
-- [ ] Run focused tests, Blade/static checks, and browser verification.
+- [x] Run focused tests, Blade/static checks, and browser verification.
 
 ## Review
 
 The clean `/hantar-majlis` route now opens the same manual submission form previously reached with `?mode=manual`. The form keeps the existing validation, moderation review, media uploads, and AI poster extraction behavior while making the free-submission purpose clearer and the upload path easier to discover.
+
+Verification:
+
+- `vendor/bin/pest --parallel tests/Feature/SubmitEventAiExtractionTest.php --compact` — 2 passed (23 assertions).
+- `vendor/bin/pest --parallel tests/Feature/SubmitEventReviewPreviewTest.php --compact` — 4 passed (15 assertions).
+- The selected-locale upload-copy test — 1 passed (8 assertions).
+- `php artisan view:cache`, targeted PHPStan for `Create.php`, Pint, translation JSON validation, and `git diff --check` passed.
+- Browser verification confirmed one form and matching poster-assist UI at both `/hantar-majlis` and `/hantar-majlis?mode=manual`; desktop rendering was reviewed visually.
+- The broader public-page and media suites still report unrelated existing failures outside this change: 3 public detail assertions and 1 poster-ratio assertion. They do not touch the updated submit-event view, route entry link, or translation keys.

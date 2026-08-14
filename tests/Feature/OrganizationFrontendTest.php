@@ -128,7 +128,7 @@ it('lets an invited organization member accept a frontend invitation', function 
 it('creates a free organization event with a ticket type', function (): void {
     $owner = User::factory()->create();
     $organization = CreateOrganizationAction::make()->handle($owner, ['name' => 'Free Events']);
-    $category = eventCategoryId('other');
+    $category = eventCategoryId('lain_lain');
 
     Livewire::actingAs($owner)
         ->test(CreateEvent::class, ['organization' => $organization])
@@ -149,7 +149,7 @@ it('creates a free organization event with a ticket type', function (): void {
 it('creates paid assigned-seat ticketing with an owner-scoped seat map', function (): void {
     $owner = User::factory()->create();
     $organization = CreateOrganizationAction::make()->handle($owner, ['name' => 'Paid Events']);
-    $category = eventCategoryId('other');
+    $category = eventCategoryId('lain_lain');
 
     Livewire::actingAs($owner)
         ->test(CreateEvent::class, ['organization' => $organization])

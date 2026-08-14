@@ -1,9 +1,13 @@
 <?php
 
+use AIArmada\Addressing\Support\AddressCountryResolver;
+use AIArmada\Persons\Enums\AssignmentStatus;
 use App\Enums\EventVisibility;
+use App\Forms\SharedFormSchema;
 use App\Models\Event;
 use App\Models\EventKeyPerson;
 use App\Models\Person;
+use App\Support\Cache\SelectionCatalogCache;
 use App\Support\Search\PersonSearchService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator as LengthAwarePaginatorContract;
 use Illuminate\Database\Eloquent\Builder;
@@ -11,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
@@ -29,6 +34,19 @@ new
         #[Url]
         public ?string $sort = null;
 
+        #[Url]
+        public ?string $title_id = null;
+
+        #[Url]
+        public ?string $language_id = null;
+
+        #[Url]
+        public ?string $state_id = null;
+
+        private bool $defaultCountryIdResolved = false;
+
+        private ?string $resolvedDefaultCountryId = null;
+
         private function applySort(Builder $query): Builder
         {
             return match ($this->sort) {
@@ -44,7 +62,7 @@ new
 
             if ($search === null) {
                 return $this->attachUpcomingEventCountsToPaginator(
-                    $this->applySort($this->basePersonsQuery())->paginate(12),
+                    $this->applySort($this->basePersonsQuery())->paginate(12)->appends($this->directoryQueryString()),
                 );
             }
 
@@ -67,6 +85,47 @@ new
             $this->resetPage();
         }
 
+        public function updatedTitleId(): void
+        {
+            $this->resetPage();
+        }
+
+        public function updatedLanguageId(): void
+        {
+            $this->resetPage();
+        }
+
+        public function updatedStateId(): void
+        {
+            $this->resetPage();
+        }
+
+        #[Computed]
+        public function titles(): array
+        {
+            return app(SelectionCatalogCache::class)->titleOptions();
+        }
+
+        #[Computed]
+        public function languages(): array
+        {
+            return app(SelectionCatalogCache::class)->languageOptions('id');
+        }
+
+        #[Computed]
+        public function states(): array
+        {
+            return SharedFormSchema::stateOptionsForCountry($this->defaultCountryId());
+        }
+
+        public function clearFilters(): void
+        {
+            $this->title_id = null;
+            $this->language_id = null;
+            $this->state_id = null;
+            $this->resetPage();
+        }
+
         public function clearSearch(): void
         {
             $this->search = null;
@@ -75,15 +134,71 @@ new
 
         private function basePersonsQuery(): Builder
         {
-            return Person::query()
-                ->speakers()
-                ->where('status', 'verified')
-                ->with([
-                    'media' => function (MorphMany $relation): void {
-                        $relation->where('collection_name', 'profile');
-                    },
-                    'titleAssignments.title.category',
-                ]);
+            return $this->applyDirectoryFilters(
+                Person::query()
+                    ->speakers()
+                    ->where('status', 'verified'),
+            )->with([
+                'media' => function (MorphMany $relation): void {
+                    $relation->where('collection_name', 'profile');
+                },
+                'titleAssignments' => function (MorphMany $relation): void {
+                    $relation
+                        ->where('status', AssignmentStatus::Active)
+                        ->with('title.category');
+                },
+                'addresses.state',
+            ]);
+        }
+
+        private function applyDirectoryFilters(Builder $query): Builder
+        {
+            $titleId = $this->normalizedFilterId($this->title_id);
+            $languageId = $this->normalizedFilterId($this->language_id);
+            $stateId = $this->normalizedFilterId($this->state_id);
+
+            return $query
+                ->when($titleId !== null, function (Builder $query) use ($titleId): void {
+                    $query->whereHas('titleAssignments', function (Builder $titleQuery) use ($titleId): void {
+                        $titleQuery
+                            ->where('title_id', $titleId)
+                            ->where('status', AssignmentStatus::Active);
+                    });
+                })
+                ->when($languageId !== null, function (Builder $query) use ($languageId): void {
+                    $query->whereHas('languages', function (Builder $languageQuery) use ($languageId): void {
+                        $languageQuery->where('languages.id', $languageId);
+                    });
+                })
+                ->when($stateId !== null, function (Builder $query) use ($stateId): void {
+                    $query->whereHas('addresses', function (Builder $addressQuery) use ($stateId): void {
+                        $addressQuery->where('state_id', $stateId);
+                    });
+                });
+        }
+
+        private function normalizedFilterId(?string $value): ?string
+        {
+            if (! is_string($value)) {
+                return null;
+            }
+
+            $value = trim($value);
+
+            return Str::isUuid($value) ? $value : null;
+        }
+
+        private function defaultCountryId(): ?string
+        {
+            if ($this->defaultCountryIdResolved) {
+                return $this->resolvedDefaultCountryId;
+            }
+
+            $this->defaultCountryIdResolved = true;
+            $countryCode = (string) config('contacting.defaults.country_code', 'MY');
+            $countryId = app(AddressCountryResolver::class)->resolveId($countryCode);
+
+            return $this->resolvedDefaultCountryId = is_string($countryId) ? $countryId : null;
         }
 
         private function directSearch(string $search): LengthAwarePaginatorContract
@@ -94,18 +209,41 @@ new
                 return $this->emptyPaginator();
             }
 
-            return $this->attachUpcomingEventCountsToPaginator(
-                $this->applySort($this->basePersonsQuery()->whereIn('persons.id', $matchingIds))
-                    ->paginate(12),
-            );
+            if ($this->sort === 'name') {
+                return $this->attachUpcomingEventCountsToPaginator(
+                    $this->applySort($this->basePersonsQuery()->whereIn('persons.id', $matchingIds))
+                        ->paginate(12)
+                        ->withQueryString(),
+                );
+            }
+
+            return $this->orderedIdPaginator($matchingIds);
         }
 
         private function fuzzySearch(string $search): LengthAwarePaginatorContract
         {
-            $orderedIds = $this->personSearchService()->publicFuzzySearchIds($search);
+            return $this->orderedIdPaginator(
+                $this->personSearchService()->publicFuzzySearchIds($search),
+            );
+        }
+
+        /**
+         * @param  list<string>  $orderedIds
+         */
+        private function orderedIdPaginator(array $orderedIds): LengthAwarePaginatorContract
+        {
+            $orderedIds = $this->scopeOrderedIds($orderedIds);
 
             if ($orderedIds === []) {
                 return $this->emptyPaginator();
+            }
+
+            if ($this->sort === 'name') {
+                return $this->attachUpcomingEventCountsToPaginator(
+                    $this->applySort($this->basePersonsQuery()->whereIn('persons.id', $orderedIds))
+                        ->paginate(12)
+                        ->withQueryString(),
+                );
             }
 
             $currentPage = max(1, (int) $this->getPage());
@@ -118,10 +256,10 @@ new
             }
 
             $persons = $this->basePersonsQuery()
-                ->whereIn('id', $paginatedIds)
+                ->whereIn('persons.id', $paginatedIds)
                 ->get()
                 ->sortBy(static function (Person $person) use ($paginatedIds): int {
-                    $position = array_search($person->id, $paginatedIds, true);
+                    $position = array_search((string) $person->id, $paginatedIds, true);
 
                     return is_int($position) ? $position : PHP_INT_MAX;
                 })
@@ -130,6 +268,32 @@ new
             $this->attachUpcomingEventCountsToPersons($persons);
 
             return new LengthAwarePaginator($persons, count($orderedIds), $perPage, $currentPage, $paginationMeta);
+        }
+
+        /**
+         * @param  list<string>  $orderedIds
+         * @return list<string>
+         */
+        private function scopeOrderedIds(array $orderedIds): array
+        {
+            if ($orderedIds === []) {
+                return [];
+            }
+
+            $scopedIds = $this->basePersonsQuery()
+                ->whereIn('persons.id', $orderedIds)
+                ->pluck('persons.id')
+                ->map(static fn (mixed $id): string => (string) $id)
+                ->all();
+
+            return collect($scopedIds)
+                ->sortBy(static function (string $id) use ($orderedIds): int {
+                    $position = array_search($id, $orderedIds, true);
+
+                    return is_int($position) ? $position : PHP_INT_MAX;
+                })
+                ->values()
+                ->all();
         }
 
         private function attachUpcomingEventCountsToPaginator(LengthAwarePaginator $paginator): LengthAwarePaginator
@@ -204,13 +368,30 @@ new
         }
 
         /**
+         * @return array<string, string>
+         */
+        private function directoryQueryString(): array
+        {
+            return collect([
+                'search' => $this->normalizedSearch(),
+                'sort' => $this->sort,
+                'title_id' => $this->normalizedFilterId($this->title_id),
+                'language_id' => $this->normalizedFilterId($this->language_id),
+                'state_id' => $this->normalizedFilterId($this->state_id),
+            ])
+                ->filter(static fn (mixed $value): bool => filled($value))
+                ->map(static fn (mixed $value): string => (string) $value)
+                ->all();
+        }
+
+        /**
          * @return array{path: string, query: array<string, mixed>}
          */
         private function paginationMeta(): array
         {
             return [
                 'path' => request()->url(),
-                'query' => request()->query(),
+                'query' => array_merge(request()->query(), $this->directoryQueryString()),
             ];
         }
 
@@ -221,31 +402,40 @@ new
     };
 ?>
 
-@section('title', __('Direktori Penceramah Islam') . ' - ' . config('app.name'))
-@section('meta_description', __('Cari profil penceramah, ustaz, dan pendakwah serta semak majlis ilmu mereka yang akan datang di seluruh Malaysia.'))
+@section('title', __('Islamic speaker directory') . ' - ' . config('app.name'))
+@section('meta_description', __('Find trusted speaker profiles, upcoming Islamic learning events, and talks across Malaysia.'))
 @section('og_url', route('persons.index'))
 @section('og_image', asset('images/placeholders/person.png'))
-@section('og_image_alt', __('Direktori penceramah Islam'))
+@section('og_image_alt', __('Islamic speaker directory'))
 @section('og_image_width', '1024')
 @section('og_image_height', '1024')
 
 @php
     $search = $this->search;
     $submitPersonUrl = route('contributions.submit-person');
+    $titles = $this->titles;
+    $languages = $this->languages;
+    $states = $this->states;
+    $titleId = $this->title_id;
+    $languageId = $this->language_id;
+    $stateId = $this->state_id;
+    $activeFilterCount = collect([$titleId, $languageId, $stateId])
+        ->filter(static fn (mixed $value): bool => filled($value))
+        ->count();
 @endphp
 
-<div class="relative min-h-screen overflow-x-clip bg-[#fafaf7] text-slate-800">
+<div data-art-direction="living-majlis" class="living-majlis-field relative min-h-screen overflow-x-clip text-slate-800">
     <!-- Hero Section -->
     <div class="relative overflow-hidden border-b border-emerald-900/[0.06]">
         <!-- Background layers -->
-        <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_18%_28%,rgba(5,101,82,0.10)_0%,transparent_42%),radial-gradient(ellipse_at_82%_18%,rgba(217,119,6,0.06)_0%,transparent_36%),linear-gradient(178deg,#fafaf7_0%,#f4f1e8_54%,#e7eee8_100%)]"></div>
+        <div data-material="hero-field" class="absolute inset-0 bg-[radial-gradient(ellipse_at_18%_28%,rgba(5,101,82,0.10)_0%,transparent_42%),radial-gradient(ellipse_at_82%_18%,rgba(217,119,6,0.06)_0%,transparent_36%),linear-gradient(178deg,#fafaf7_0%,#f4f1e8_54%,#e7eee8_100%)]"></div>
 
-        <div class="relative mx-auto max-w-7xl px-5 py-14 sm:px-6 sm:py-20 lg:px-8 lg:py-24">
-            <div class="max-w-3xl scroll-reveal reveal-left revealed" x-intersect.once="$el.classList.add('revealed')" style="--reveal-d: 80ms">
+        <div class="relative mx-auto grid max-w-7xl gap-12 px-5 py-14 sm:px-6 sm:py-20 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-center lg:px-8 lg:py-24">
+            <div class="max-w-3xl">
                     <h1 class="mt-6 max-w-3xl font-heading text-4xl font-bold leading-[1.06] tracking-[-0.035em] text-emerald-950 sm:text-5xl lg:text-6xl">
-                        {{ __('Temui penceramah yang') }}
+                        {{ __('Meet speakers who are') }}
                         <span class="relative inline-block text-emerald-700">
-                            {{ __('diyakini dan berilmu') }}
+                            {{ __('trusted and knowledgeable') }}
                             <svg class="absolute -bottom-2 left-0 h-3.5 w-full text-amber-500/80" viewBox="0 0 320 18" preserveAspectRatio="none" aria-hidden="true">
                                 <path d="M4 13C79 5 218 4 316 10" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" />
                             </svg>
@@ -253,17 +443,17 @@ new
                     </h1>
 
                     <p class="mt-6 max-w-xl text-base leading-7 text-slate-600 sm:mt-7 sm:text-lg">
-                        {{ __('Cari ustaz, ustazah dan pendakwah daripada seluruh Malaysia. Kenali mereka, lihat majlis akan datang dan teruskan perjalanan menuntut ilmu.') }}
+                        {{ __('Find ustaz, ustazah, and preachers across Malaysia. Learn about their work, see upcoming majlis, and continue your learning journey.') }}
                     </p>
 
                     <p class="mt-3 text-sm font-medium text-emerald-700">
-                        {{ __('Setiap profil disemak sebelum diterbitkan.') }}
+                        {{ __('Every public profile is reviewed before it is published.') }}
                     </p>
 
                     <!-- Search Box - refined pill -->
                     <div class="mt-9 max-w-xl">
-                        <div class="group relative rounded-[1.5rem] border border-white/80 bg-white/90 p-1.5 shadow-[0_20px_60px_-28px_rgba(6,78,59,0.40),0_4px_12px_-2px_rgba(0,0,0,0.04)] backdrop-blur-xl transition-all duration-300 focus-within:scale-[1.01] focus-within:border-emerald-300 focus-within:ring-4 focus-within:ring-emerald-600/10 focus-within:shadow-[0_28px_70px_-30px_rgba(6,78,59,0.50)]">
-                            <label for="person-search" class="sr-only">{{ __('Cari penceramah') }}</label>
+                        <div data-material="translucent-control" class="living-majlis-veil group relative rounded-[1.5rem] p-1.5 transition-all duration-300 focus-within:scale-[1.01] focus-within:border-emerald-300 focus-within:ring-4 focus-within:ring-emerald-600/10 focus-within:shadow-[0_28px_70px_-30px_rgba(6,78,59,0.50)]">
+                            <label for="person-search" class="sr-only">{{ __('Search speakers') }}</label>
                             <div class="flex items-center gap-3">
                                 <span class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-emerald-50 text-emerald-700 transition-colors duration-300 group-focus-within:bg-emerald-100">
                                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
@@ -274,9 +464,11 @@ new
                                 <input
                                     type="search"
                                     id="person-search"
+                                    aria-describedby="person-search-hint"
+                                    aria-controls="person-results"
                                     wire:model.live.debounce.300ms="search"
                                     wire:keydown.escape="clearSearch"
-                                    placeholder="{{ __('Cari nama penceramah…') }}"
+                                    placeholder="{{ __('Search speaker name…') }}"
                                     autocomplete="off"
                                     class="person-search-input h-12 min-w-0 flex-1 appearance-none border-0 bg-transparent px-0 text-base font-medium text-slate-900 placeholder:text-slate-400 focus:border-transparent focus:outline-none focus:ring-0 focus-visible:outline-none"
                                 >
@@ -287,7 +479,7 @@ new
                                         wire:click="clearSearch"
                                         wire:loading.attr="disabled"
                                         wire:target="clearSearch"
-                                        aria-label="{{ __('Kosongkan carian') }}"
+                                        aria-label="{{ __('Clear speaker search') }}"
                                         class="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-slate-200 bg-white text-slate-400 shadow-sm transition-all duration-200 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 focus:outline-none focus:ring-4 focus:ring-rose-500/10"
                                     >
                                         <svg class="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -297,8 +489,115 @@ new
                                 @endif
                             </div>
                         </div>
+                        <p id="person-search-hint" class="mt-2 px-2 text-xs leading-5 text-slate-500">
+                            {{ __('Search by name, title, or alternate name.') }}
+                        </p>
                     </div>
+
+                    <details data-material="translucent-control" class="living-majlis-veil group mt-5 max-w-xl rounded-2xl p-4" @if($activeFilterCount > 0) open @endif>
+                        <summary class="flex cursor-pointer list-none items-center justify-between gap-4 text-sm font-bold text-emerald-900 marker:hidden focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/10 [&::-webkit-details-marker]:hidden">
+                            <span class="inline-flex items-center gap-2">
+                                <svg class="h-4 w-4 text-emerald-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 5h18M6 12h12m-9 7h6" />
+                                </svg>
+                                {{ __('Filter directory') }}
+                                @if($activeFilterCount > 0)
+                                    <span class="inline-flex min-w-5 items-center justify-center rounded-full bg-emerald-800 px-1.5 py-0.5 text-[11px] font-bold text-white">{{ $activeFilterCount }}</span>
+                                @endif
+                            </span>
+                            <svg class="h-4 w-4 text-emerald-700 transition-transform duration-200 group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6" />
+                            </svg>
+                        </summary>
+
+                        <div class="mt-4 grid gap-3 border-t border-emerald-900/10 pt-4 sm:grid-cols-3" role="group" aria-label="{{ __('Filter directory') }}">
+                            <div>
+                                <label for="person-title-filter" class="mb-1.5 block text-xs font-semibold text-slate-600">{{ __('Speaker title') }}</label>
+                                <flux:select
+                                    id="person-title-filter"
+                                    wire:model.live="title_id"
+                                    size="sm"
+                                    class="w-full rounded-xl border-slate-200 bg-white/80 text-sm text-slate-800 shadow-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"
+                                >
+                                    <flux:select.option value="">{{ __('All titles') }}</flux:select.option>
+                                    @foreach($titles as $id => $label)
+                                        <flux:select.option value="{{ $id }}">{{ $label }}</flux:select.option>
+                                    @endforeach
+                                </flux:select>
+                            </div>
+
+                            <div>
+                                <label for="person-language-filter" class="mb-1.5 block text-xs font-semibold text-slate-600">{{ __('Language') }}</label>
+                                <flux:select
+                                    id="person-language-filter"
+                                    wire:model.live="language_id"
+                                    size="sm"
+                                    class="w-full rounded-xl border-slate-200 bg-white/80 text-sm text-slate-800 shadow-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"
+                                >
+                                    <flux:select.option value="">{{ __('All languages') }}</flux:select.option>
+                                    @foreach($languages as $id => $label)
+                                        <flux:select.option value="{{ $id }}">{{ $label }}</flux:select.option>
+                                    @endforeach
+                                </flux:select>
+                            </div>
+
+                            <div>
+                                <label for="person-state-filter" class="mb-1.5 block text-xs font-semibold text-slate-600">{{ __('State') }}</label>
+                                <flux:select
+                                    id="person-state-filter"
+                                    wire:model.live="state_id"
+                                    size="sm"
+                                    class="w-full rounded-xl border-slate-200 bg-white/80 text-sm text-slate-800 shadow-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"
+                                >
+                                    <flux:select.option value="">{{ __('All states') }}</flux:select.option>
+                                    @foreach($states as $id => $label)
+                                        <flux:select.option value="{{ $id }}">{{ $label }}</flux:select.option>
+                                    @endforeach
+                                </flux:select>
+                            </div>
+                        </div>
+
+                        @if($activeFilterCount > 0)
+                            <button
+                                type="button"
+                                wire:click="clearFilters"
+                                wire:loading.attr="disabled"
+                                class="mt-4 inline-flex items-center gap-1.5 text-xs font-bold text-rose-600 transition hover:text-rose-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-rose-500/10 disabled:cursor-wait disabled:opacity-60"
+                            >
+                                <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                    <path stroke-linecap="round" d="M6 6l8 8M14 6l-8 8" />
+                                </svg>
+                                {{ __('Clear filters') }}
+                            </button>
+                        @endif
+                    </details>
                 </div>
+
+                <aside class="relative hidden min-h-[22rem] lg:block" aria-label="{{ __('About the speaker directory') }}">
+                    <div data-testid="person-directory-folio" data-material="opaque-folio" class="living-majlis-folio absolute inset-x-0 top-1/2 -translate-y-1/2 overflow-hidden rounded-[1.5rem] bg-emerald-950">
+                        <div class="absolute inset-0 opacity-20" style="background-image: radial-gradient(circle at 1.5px 1.5px, rgba(255,255,255,.8) 1px, transparent 0); background-size: 18px 18px;"></div>
+                        <img
+                            src="{{ asset('images/speakers/speaker_avatar.png') }}"
+                            alt=""
+                            class="relative aspect-square w-full object-cover mix-blend-screen opacity-80"
+                            width="1024"
+                            height="1024"
+                            loading="eager"
+                        >
+                        <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-emerald-950 via-emerald-950/90 to-transparent px-6 pb-6 pt-20 text-white">
+                            <p class="font-heading text-[10px] font-bold uppercase tracking-[0.2em] text-gold-300">{{ __('ilmu360° directory') }}</p>
+                            <p class="mt-2 max-w-xs font-heading text-xl font-bold leading-tight">{{ __('Meet teachers. Find majlis.') }}</p>
+                        </div>
+                    </div>
+                    <div class="absolute -bottom-3 -left-4 flex items-center gap-2 rounded-xl border border-emerald-200 bg-white px-3 py-2 text-xs font-bold text-emerald-900 shadow-[0_16px_36px_-22px_rgba(6,78,59,0.55)]">
+                        <span class="grid h-6 w-6 place-items-center rounded-full bg-emerald-100 text-emerald-700" aria-hidden="true">
+                            <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.051l-7.5 9.75a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.897 3.896 6.976-9.07a.75.75 0 0 1 1.051-.142Z" clip-rule="evenodd" />
+                            </svg>
+                        </span>
+                        {{ __('Profile reviewed') }}
+                    </div>
+                </aside>
             </div>
         </div>
 
@@ -308,14 +607,27 @@ new
             @php
                 $persons = $this->persons;
                 $search = $this->search;
-                $personLoadingTarget = 'search,sort,clearSearch,gotoPage,setPage';
+                $personLoadingTarget = 'search,sort,title_id,language_id,state_id,clearSearch,clearFilters,gotoPage,setPage,nextPage,previousPage';
                 $submitPersonUrl = route('contributions.submit-person');
                 $personTotal = $persons->total();
+                $activeFilterCount = collect([$this->title_id, $this->language_id, $this->state_id])
+                    ->filter(static fn (mixed $value): bool => filled($value))
+                    ->count();
             @endphp
 
-            <div class="min-h-[32rem]" wire:transition="person-results">
+            <div
+                id="person-results"
+                class="min-h-[32rem]"
+                wire:transition="person-results"
+                wire:loading.class="opacity-60"
+                wire:loading.attr="aria-busy"
+                wire:target="{{ $personLoadingTarget }}"
+                role="region"
+                aria-label="{{ __('Speaker list') }}"
+            >
                 <!-- Loading Skeleton -->
-                <div wire:loading.delay.short wire:target="{{ $personLoadingTarget }}">
+                <div wire:loading.delay.short wire:target="{{ $personLoadingTarget }}" role="status" aria-live="polite">
+                    <span class="sr-only">{{ __('Loading speaker list…') }}</span>
                     <x-ui.skeleton.person-card-grid />
                 </div>
 
@@ -330,12 +642,14 @@ new
                             </svg>
                         </div>
 
-                        <h2 class="mt-6 font-heading text-2xl font-bold text-emerald-950">{{ __('Penceramah tidak ditemui') }}</h2>
+                        <h2 class="mt-6 font-heading text-2xl font-bold text-emerald-950">{{ __('No speakers found') }}</h2>
                         <p class="mt-3 max-w-sm text-sm leading-6 text-slate-500">
                             @if(filled($search))
-                                {{ __('Tiada profil sepadan dengan “:search”. Cuba ejaan berbeza atau gunakan nama penuh.', ['search' => $search]) }}
+                                {{ __('No profile matches “:search”. Try a different spelling or the full name.', ['search' => $search]) }}
+                            @elseif($activeFilterCount > 0)
+                                {{ __('No speakers match these filters. Try changing or clearing them.') }}
                             @else
-                                {{ __('Direktori penceramah kosong buat masa ini. Sila kembali kemudian.') }}
+                                {{ __('The speaker directory is empty right now. Please check back later.') }}
                             @endif
                         </p>
 
@@ -344,12 +658,24 @@ new
                                 <button
                                     type="button"
                                     wire:click="clearSearch"
-                                    class="inline-flex h-11 items-center justify-center gap-2.5 rounded-xl bg-emerald-800 px-5 text-sm font-bold text-white shadow-lg shadow-emerald-900/15 transition-all duration-200 hover:-translate-y-0.5 hover:bg-emerald-700 hover:shadow-xl hover:shadow-emerald-900/20"
+                                    wire:loading.attr="disabled"
+                                    class="inline-flex h-11 items-center justify-center gap-2.5 rounded-xl bg-emerald-800 px-5 text-sm font-bold text-white shadow-[0_14px_28px_-18px_rgba(6,78,59,0.70)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-emerald-700 hover:shadow-[0_20px_36px_-18px_rgba(6,78,59,0.75)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/15 disabled:cursor-wait disabled:opacity-60"
                                 >
-                                    {{ __('Lihat semua penceramah') }}
+                                    {{ __('View all speakers') }}
                                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-5-5 5 5-5 5" />
                                     </svg>
+                                </button>
+                            @endif
+
+                            @if($activeFilterCount > 0)
+                                <button
+                                    type="button"
+                                    wire:click="clearFilters"
+                                    wire:loading.attr="disabled"
+                                    class="inline-flex h-11 items-center justify-center gap-2.5 rounded-xl border border-emerald-200 bg-white px-5 text-sm font-bold text-emerald-700 transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-300 hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/10 disabled:cursor-wait disabled:opacity-60"
+                                >
+                                    {{ __('Clear filters') }}
                                 </button>
                             @endif
 
@@ -358,7 +684,7 @@ new
                                 wire:navigate
                                 class="inline-flex h-11 items-center justify-center gap-2.5 rounded-xl border-2 border-emerald-200 bg-white px-5 text-sm font-bold text-emerald-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-300 hover:bg-emerald-50 hover:shadow-md"
                             >
-                                {{ __('Cadangkan penceramah') }}
+                                {{ __('Suggest a speaker') }}
                                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14m-7-7h14" />
                                 </svg>
@@ -368,36 +694,45 @@ new
                 </div>
             @else
                 <!-- Results Header -->
-                <div class="mb-8 flex flex-col items-stretch gap-4 border-b border-slate-200/70 pb-6 sm:flex-row sm:items-end sm:justify-between">
+                <div class="mb-8 flex flex-col items-stretch gap-5 border-b border-slate-200/70 pb-6 sm:flex-row sm:items-end sm:justify-between">
                     <div>
                         <h2 class="font-heading text-2xl font-bold tracking-tight text-emerald-950 sm:text-3xl">
                             @if(filled($search))
-                                {{ __('Hasil carian untuk “:search”', ['search' => $search]) }}
+                                {{ __('Search results for “:search”', ['search' => $search]) }}
                             @else
-                                {{ __('Direktori Penceramah') }}
+                                {{ __('Speaker directory') }}
                             @endif
                         </h2>
-                        <p class="mt-2 text-sm text-slate-500">
-                            {{ trans_choice(':count penceramah ditemui|:count penceramah ditemui', $personTotal, ['count' => number_format($personTotal)]) }}
+                        <p id="person-results-summary" class="mt-2 text-sm text-slate-500" aria-live="polite">
+                            {{ trans_choice(':count speaker found|:count speakers found', $personTotal, ['count' => number_format($personTotal)]) }}
+                            @if($activeFilterCount > 0)
+                                <span class="text-slate-400">·</span>
+                                {{ trans_choice(':count active filter|:count active filters', $activeFilterCount, ['count' => $activeFilterCount]) }}
+                            @endif
                         </p>
                     </div>
 
                     @unless(filled($search))
-                        <div class="flex w-fit shrink-0 self-end items-center gap-1 rounded-xl border border-slate-200/80 bg-white p-0.5 shadow-sm sm:self-auto">
-                            <button
-                                type="button"
-                                wire:click="$set('sort', null)"
-                                class="rounded-lg px-3 py-1.5 text-xs font-semibold transition-all duration-150 {{ $sort === null ? 'bg-emerald-800 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800' }}"
-                            >
-                                {{ __('Rawak') }}
-                            </button>
-                            <button
-                                type="button"
-                                wire:click="$set('sort', 'name')"
-                                class="rounded-lg px-3 py-1.5 text-xs font-semibold transition-all duration-150 {{ $sort === 'name' ? 'bg-emerald-800 text-white shadow-sm' : 'text-slate-500 hover:text-slate-800' }}"
-                            >
-                                {{ __('Nama A–Z') }}
-                            </button>
+                        <div class="flex w-fit shrink-0 flex-col gap-1.5 self-end sm:self-auto" role="group" aria-label="{{ __('Sort directory') }}">
+                            <span class="px-1 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">{{ __('Sort') }}</span>
+                            <div data-material="translucent-control" class="living-majlis-veil flex items-center gap-1 rounded-xl p-0.5">
+                                <button
+                                    type="button"
+                                    wire:click="$set('sort', null)"
+                                    aria-pressed="{{ $sort === null ? 'true' : 'false' }}"
+                                    class="rounded-lg px-3 py-1.5 text-xs font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/10 {{ $sort === null ? 'bg-emerald-800 text-white' : 'text-slate-500 hover:text-slate-800' }}"
+                                >
+                                    {{ __('Random') }}
+                                </button>
+                                <button
+                                    type="button"
+                                    wire:click="$set('sort', 'name')"
+                                    aria-pressed="{{ $sort === 'name' ? 'true' : 'false' }}"
+                                    class="rounded-lg px-3 py-1.5 text-xs font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/10 {{ $sort === 'name' ? 'bg-emerald-800 text-white' : 'text-slate-500 hover:text-slate-800' }}"
+                                >
+                                    {{ __('Name A–Z') }}
+                                </button>
+                            </div>
                         </div>
                     @endunless
                 </div>
@@ -409,11 +744,12 @@ new
                             href="{{ route('persons.show', $person) }}"
                             wire:key="person-directory-{{ $person->id }}"
                             wire:navigate
-                            class="group relative flex min-h-[10rem] gap-0 overflow-hidden rounded-[1.5rem] border border-slate-200/80 bg-white transition-all duration-300 hover:-translate-y-1.5 hover:border-emerald-300/80 hover:shadow-[0_22px_50px_-28px_rgba(6,78,59,0.40)] sm:block sm:min-h-0"
+                            data-material="opaque-card"
+                            class="living-majlis-card group relative flex min-h-[10rem] gap-0 overflow-hidden rounded-[1.5rem] transition-[border-color,box-shadow,transform] duration-300 hover:-translate-y-1.5 hover:border-emerald-300/80 hover:shadow-[0_22px_50px_-28px_rgba(6,78,59,0.40)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-600/15 focus-visible:ring-offset-2 sm:block sm:min-h-0"
                         >
                             <!-- Image area -->
-                            <div class="relative w-28 shrink-0 overflow-hidden bg-gradient-to-br from-[#faf5e8] via-[#eff5f1] to-[#dce9e2] sm:w-full sm:aspect-[3/4]">
-                                <!-- Dot pattern overlay -->
+                            <div class="relative w-28 shrink-0 overflow-hidden bg-gradient-to-br from-[#faf5e8] via-[#eff5f1] to-[#dce9e2] sm:w-full sm:aspect-[4/4.6]">
+                                <!-- Dot pattern gives monograms a quiet directory texture. -->
                                 <div class="absolute inset-0 opacity-[0.15]" style="background-image: radial-gradient(circle at 1.5px 1.5px, rgba(7,91,72,.14) 1px, transparent 0); background-size: 16px 16px;"></div>
                                 @php
                                     $initials = str($person->name)->explode(' ')
@@ -421,19 +757,21 @@ new
                                         ->take(2)
                                         ->map(fn(string $w): string => str($w)->substr(0, 1)->upper())
                                         ->implode('');
+                                    $personState = $person->primaryAddress()?->state?->name;
                                 @endphp
 
                                 @if($person->hasMedia('profile'))
                                     <img
                                         src="{{ $person->public_main_url }}"
-                                        alt="{{ $person->formatted_name }}"
-                                        class="relative h-full w-full object-cover object-top transition duration-500 ease-out group-hover:scale-[1.04]"
+                                        alt=""
+                                        aria-hidden="true"
+                                        class="relative h-full w-full object-cover object-top"
                                         width="320"
-                                        height="427"
+                                        height="368"
                                         loading="lazy"
                                     >
                                 @else
-                                    <div class="flex h-full w-full items-center justify-center">
+                                    <div class="relative flex h-full w-full items-center justify-center">
                                         <span class="font-heading text-[clamp(1.5rem,4vw,2.75rem)] font-bold tracking-tight text-emerald-800/30" aria-hidden="true">{{ $initials }}</span>
                                     </div>
                                 @endif
@@ -441,16 +779,17 @@ new
                                 <!-- Gradient fade at bottom -->
                                 <div class="absolute inset-x-0 bottom-0 hidden h-28 bg-gradient-to-t from-emerald-950/80 via-emerald-950/30 to-transparent sm:block"></div>
 
-                                <!-- Verified checkmark -->
-                                <span class="absolute left-2.5 top-2.5 grid h-7 w-7 place-items-center rounded-full border border-white/60 bg-white/90 text-emerald-700 shadow-sm backdrop-blur sm:left-3 sm:top-3" title="{{ __('Disahkan') }}">
-                                    <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                <!-- Verified status -->
+                                <span class="absolute start-2.5 top-2.5 inline-flex items-center gap-1.5 rounded-full border border-white/70 bg-white/92 px-2.5 py-1 text-[10px] font-bold text-emerald-800 shadow-sm backdrop-blur sm:start-3 sm:top-3">
+                                    <svg class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                                         <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.051l-7.5 9.75a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.897 3.896 6.976-9.07a.75.75 0 0 1 1.051-.142Z" clip-rule="evenodd" />
                                     </svg>
+                                    {{ __('Verified') }}
                                 </span>
 
                                 <!-- Arrow affordance -->
                                 <div class="absolute inset-x-3 bottom-3 hidden items-center justify-end gap-2 text-white sm:flex">
-                                    <svg class="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                    <svg class="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1.5 motion-reduce:transition-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-5-5 5 5-5 5" />
                                     </svg>
                                 </div>
@@ -462,22 +801,35 @@ new
                                     {{ $person->formatted_name }}
                                 </h3>
 
-                                <div class="mt-3 flex items-center gap-2.5 text-xs text-slate-500">
-                                    <span class="grid h-7 w-7 shrink-0 place-items-center rounded-xl bg-amber-50 text-amber-700 ring-1 ring-amber-100">
+                                @if(filled($personState))
+                                    <p class="mt-2 flex items-center gap-1.5 truncate text-xs font-medium text-slate-500">
+                                        <svg class="h-3.5 w-3.5 shrink-0 text-gold-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
+                                        </svg>
+                                        {{ $personState }}
+                                    </p>
+                                @endif
+
+                                <div class="mt-4 flex items-center gap-2.5 text-xs text-slate-500" aria-label="{{ trans_choice(':count upcoming majlis|:count upcoming majlis', $person->events_count, ['count' => number_format($person->events_count)]) }}">
+                                    <span class="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-gold-50 text-gold-600 ring-1 ring-gold-100">
                                         <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2Z" />
                                         </svg>
                                     </span>
                                     <span>
                                         <strong class="font-bold text-slate-800">{{ number_format($person->events_count) }}</strong>
-                                        {{ trans_choice('majlis akan datang|majlis akan datang', $person->events_count) }}
+                                        {{ trans_choice('upcoming majlis|upcoming majlis', $person->events_count) }}
                                     </span>
                                 </div>
+                                <p class="mt-2 text-xs font-semibold {{ $person->events_count > 0 ? 'text-emerald-700' : 'text-slate-400' }}">
+                                    {{ $person->events_count > 0 ? __('Upcoming majlis available') : __('No upcoming majlis yet') }}
+                                </p>
 
                                 <div class="mt-auto pt-4">
                                     <span class="inline-flex items-center gap-2 text-xs font-bold text-emerald-700 transition-colors duration-200 group-hover:text-emerald-600 sm:text-sm">
-                                        {{ __('Lihat profil') }}
-                                        <svg class="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                        {{ __('View profile & majlis') }}
+                                        <svg class="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1 motion-reduce:transition-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-5-5 5 5-5 5" />
                                         </svg>
                                     </span>
@@ -489,38 +841,36 @@ new
 
                 <!-- Pagination -->
                 @if($persons->hasPages())
-                    <div class="mt-10 rounded-2xl border border-slate-200/80 bg-white px-5 py-4 shadow-sm">
-                        {{ $persons->links() }}
+                    <div id="person-pagination" class="mt-10 rounded-2xl border border-slate-200/80 bg-white px-5 py-4">
+                        {{ $persons->links(data: ['scrollTo' => '#person-results']) }}
                     </div>
                 @endif
             @endif
 
             <!-- Community Contribution CTA -->
             <section class="mt-14 sm:mt-20">
-                <div class="relative overflow-hidden rounded-[1.5rem] border border-emerald-800/15 bg-emerald-950 px-6 py-10 text-white shadow-[0_28px_80px_-38px_rgba(6,78,59,0.85)] sm:px-8 md:px-10 md:py-12">
-                    <!-- Decorative elements -->
-                    <div class="absolute inset-0 opacity-[0.12]" style="background-image: radial-gradient(circle at 1.5px 1.5px, rgba(255,255,255,.70) 1px, transparent 0); background-size: 22px 22px;"></div>
-                    <div class="absolute -right-20 -top-20 h-56 w-56 rounded-full border border-white/[0.08]"></div>
-                    <div class="absolute -right-8 -top-8 h-32 w-32 rounded-full border border-amber-300/[0.15]"></div>
+                <div data-material="opaque-cta" class="living-majlis-cta relative overflow-hidden rounded-[1.5rem] border border-emerald-800/15 px-6 py-10 text-white sm:px-8 md:px-10 md:py-12">
+                    <!-- One quiet field texture keeps the dark CTA grounded. -->
+                    <div class="absolute inset-0 opacity-[0.08]" style="background-image: radial-gradient(circle at 1.5px 1.5px, rgba(255,255,255,.70) 1px, transparent 0); background-size: 22px 22px;"></div>
                     <div class="absolute -bottom-16 -left-16 h-48 w-48 rounded-full bg-emerald-700/[0.15] blur-3xl"></div>
 
                     <div class="relative flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
                         <div class="max-w-2xl">
                             <h2 class="max-w-xl font-heading text-2xl font-bold leading-snug tracking-tight text-balance sm:text-3xl">
-                                {{ __('Kenal penceramah yang belum tersenarai?') }}
+                                {{ __('Know a speaker who is missing?') }}
                             </h2>
                             <p class="mt-4 max-w-2xl text-sm leading-6 text-emerald-100/75 sm:text-base">
-                                {{ __('Bantu masyarakat menemui lebih banyak guru dan pendakwah. Setiap cadangan akan melalui proses semakan sebelum diterbitkan.') }}
+                                {{ __('Help the community find more teachers and preachers. Every suggestion is reviewed before it is published.') }}
                             </p>
                         </div>
 
                         <a
                             href="{{ $submitPersonUrl }}"
                             wire:navigate
-                            class="group inline-flex min-h-14 w-full items-center justify-between gap-5 rounded-[1.25rem] bg-white px-5 py-3.5 text-left text-emerald-900 shadow-xl shadow-black/15 transition-all duration-200 hover:-translate-y-0.5 hover:bg-amber-50 hover:shadow-2xl hover:shadow-black/20 sm:w-auto sm:min-w-[18rem]"
+                            class="group inline-flex min-h-14 w-full items-center justify-between gap-5 rounded-[1.25rem] bg-white px-5 py-3.5 text-left text-emerald-900 shadow-[0_20px_40px_-20px_rgba(0,25,11,0.55)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-amber-50 hover:shadow-[0_24px_48px_-20px_rgba(0,25,11,0.65)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-gold-400/30 sm:w-auto sm:min-w-[18rem]"
                         >
-                            <span class="text-sm font-bold sm:text-base">{{ __('Cadangkan penceramah') }}</span>
-                            <svg class="h-5 w-5 shrink-0 transition-transform duration-300 group-hover:translate-x-1.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <span class="text-sm font-bold sm:text-base">{{ __('Suggest a speaker') }}</span>
+                            <svg class="h-5 w-5 shrink-0 transition-transform duration-300 group-hover:translate-x-1.5 motion-reduce:transition-none" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M4.167 10h11.666m0 0-4.166-4.167M15.833 10l-4.166 4.167" />
                             </svg>
                         </a>

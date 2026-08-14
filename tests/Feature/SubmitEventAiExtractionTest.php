@@ -27,7 +27,7 @@ it('extracts media data with AI and moves the wizard to review step', function (
                 'prayer_time' => EventPrayerTime::LainWaktu->value,
                 'custom_time' => '20:30',
                 'end_time' => '22:00',
-                'event_category_ids' => [eventCategoryId('kelas_daurah')],
+                'event_category_ids' => [eventCategoryId('kelas_kursus')],
                 'event_format' => EventFormat::Physical->value,
                 'visibility' => EventVisibility::Public->value,
                 'gender' => EventGenderRestriction::All->value,
@@ -49,7 +49,7 @@ it('extracts media data with AI and moves the wizard to review step', function (
         ->assertSet('data.title', 'Daurah Fiqh Keluarga')
         ->assertSet('data.prayer_time', EventPrayerTime::LainWaktu->value)
         ->assertSet('data.custom_time', '20:30')
-        ->assertSet('data.event_category_ids', [eventCategoryId('kelas_daurah')])
+        ->assertSet('data.event_category_ids', [eventCategoryId('kelas_kursus')])
         ->assertSet('data.event_format', EventFormat::Physical->value)
         ->assertSet('data.visibility', EventVisibility::Public->value)
         ->assertSet('data.gender', EventGenderRestriction::All->value)

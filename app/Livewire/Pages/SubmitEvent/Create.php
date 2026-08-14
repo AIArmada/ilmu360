@@ -244,7 +244,7 @@ class Create extends Component implements HasActions, HasForms
 
     protected function submitCacheKey(string $key): string
     {
-        return "{$key}_safe_v1";
+        return "{$key}_safe_v2";
     }
 
     /**
@@ -494,6 +494,7 @@ class Create extends Component implements HasActions, HasForms
                 ->placeholder(__('Pilih kategori…'))
                 ->required()
                 ->multiple()
+                ->maxItems(1)
                 ->closeOnSelect()
                 ->live()
                 ->afterStateUpdated(function (mixed $state, Set $set): void {
@@ -501,8 +502,12 @@ class Create extends Component implements HasActions, HasForms
                         $set('event_format', EventFormat::Physical->value);
                     }
                 })
-                ->options(fn (): array => app(EventCategoryCatalog::class)->options())
-                ->searchable(),
+                ->options(app(EventCategoryCatalog::class)->options())
+                ->searchable()
+                ->preload()
+                ->dynamicOptions(false),
+
+            $this->domainTopicField(),
 
             Select::make('title')
                 ->label(__('Tajuk Majlis'))
@@ -916,9 +921,50 @@ class Create extends Component implements HasActions, HasForms
 
     private function buildCategoriesStep(): Step
     {
-        return Step::make(__('Kategori & Bidang'))
+        return Step::make(__('Topik & Rujukan'))
             ->icon('heroicon-o-tag')
             ->schema($this->getCategoryFields());
+    }
+
+    private function domainTopicField(): Select
+    {
+        return Select::make('domain_tags')
+            ->label(__('Topik / bidang'))
+            ->helperText(__('Pilihan ini optional. Pilih topik yang paling sesuai.'))
+            ->closeOnSelect()
+            ->placeholder(__('Pilih topik…'))
+            ->multiple()
+            ->searchable(false)
+            ->preload()
+            ->native(false)
+            ->dynamicOptions(false)
+            ->getOptionLabelsUsing(function (array $values): array {
+                $labels = [];
+                $uuids = [];
+
+                foreach ($values as $value) {
+                    if (is_string($value) && ! Str::isUuid($value)) {
+                        $labels[$value] = $value;
+                    } else {
+                        $uuids[] = $value;
+                    }
+                }
+
+                if ($uuids !== []) {
+                    $labels = array_merge($labels, EventTerm::whereIn('id', $uuids)->pluck('name', 'id')->all());
+                }
+
+                return $labels;
+            })
+            ->options(fn (): array => $this->cachedSubmitTagOptions(
+                type: EventTaxonomyCode::Domain,
+                cachePrefix: 'submit_tags_domain',
+                statuses: ['verified', 'pending'],
+            ))
+            ->rules(['max:3'])
+            ->validationMessages([
+                'max' => __('Maksimum 3 topik sahaja.'),
+            ]);
     }
 
     /**
@@ -929,46 +975,9 @@ class Create extends Component implements HasActions, HasForms
         return [
             Grid::make(['default' => 1, 'sm' => 2])
                 ->schema([
-                    Select::make('domain_tags')
-                        ->label(__('Kategori'))
-                        ->helperText(__('Pilih kategori ceramah utama. Boleh pilih lebih daripada satu.'))
-                        ->closeOnSelect()
-                        ->placeholder(__('Pilih kategori…'))
-                        ->multiple()
-                        ->searchable(false)
-                        ->preload()
-                        ->native(false)
-                        ->getOptionLabelsUsing(function (array $values): array {
-                            $labels = [];
-                            $uuids = [];
-
-                            foreach ($values as $value) {
-                                if (is_string($value) && ! Str::isUuid($value)) {
-                                    $labels[$value] = $value;
-                                } else {
-                                    $uuids[] = $value;
-                                }
-                            }
-
-                            if ($uuids !== []) {
-                                $labels = array_merge($labels, EventTerm::whereIn('id', $uuids)->pluck('name', 'id')->all());
-                            }
-
-                            return $labels;
-                        })
-                        ->options(fn (): array => $this->cachedSubmitTagOptions(
-                            type: EventTaxonomyCode::Domain,
-                            cachePrefix: 'submit_tags_domain',
-                            statuses: ['verified', 'pending'],
-                        ))
-                        ->rules(['max:3'])
-                        ->validationMessages([
-                            'max' => __('Maksimum 3 kategori sahaja.'),
-                        ]),
-
                     Select::make('discipline_tags')
-                        ->label(__('Bidang Ilmu'))
-                        ->helperText(__('Pilih bidang yang menggambarkan isi ceramah.'))
+                        ->label(__('Topik lebih khusus'))
+                        ->helperText(__('Optional. Contoh: Tafsir, Matematik, atau Machine Learning.'))
                         ->placeholder(__('Pilih atau taip untuk tambah bidang…'))
                         ->multiple()
                         ->searchable()

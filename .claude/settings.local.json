@@ -1,4 +1,17 @@
 {
+  "permissions": {
+    "allow": [
+      "mcp__codebase-memory-mcp__list_projects",
+      "mcp__laravel-boost__application-info",
+      "mcp__laravel-boost__search-docs",
+      "mcp__codebase-memory-mcp__get_architecture",
+      "mcp__codebase-memory-mcp__search_graph",
+      "mcp__codebase-memory-mcp__search_code",
+      "mcp__codebase-memory-mcp__get_code_snippet",
+      "mcp__codebase-memory-mcp__index_status"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "laravel-boost"
   ],
@@ -17,6 +30,5 @@
       }
     ]
   },
-  "description": "Impeccable design detector: runs after Edit/Write/MultiEdit on UI files and surfaces findings as system reminders.",
-  "enableAllProjectMcpServers": true
+  "description": "Impeccable design detector: runs after Edit/Write/MultiEdit on UI files and surfaces findings as system reminders."
 }

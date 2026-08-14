@@ -9,6 +9,7 @@ use App\Enums\ContributionSubjectType;
 use App\Livewire\Pages\Contributions\SubmitPerson;
 use App\Models\ContributionRequest;
 use App\Models\Event;
+use App\Models\Language;
 use App\Models\Person;
 use App\Models\User;
 use App\Services\EventKeyPersonSyncService;
@@ -181,6 +182,209 @@ it('uses a stable random person order instead of alphabetical sorting', function
         ->and($expectedOrder)->not->toBe([$firstAlphabetical->id, $secondAlphabetical->id]);
 });
 
+it('filters the public directory by active speaker title', function () {
+    $title = Title::query()->where('short_form', 'Ustazah')->firstOrFail();
+    $matchingPerson = Person::factory()->create([
+        'name' => 'Title Filter Match',
+        'status' => 'verified',
+    ]);
+    $otherPerson = Person::factory()->create([
+        'name' => 'Title Filter Other',
+        'status' => 'verified',
+    ]);
+
+    $matchingPerson->titleAssignments()->delete();
+    $otherPerson->titleAssignments()->delete();
+
+    TitleAssignment::query()->create([
+        'titleable_type' => $matchingPerson->getMorphClass(),
+        'titleable_id' => $matchingPerson->getKey(),
+        'title_id' => $title->getKey(),
+        'status' => AssignmentStatus::Active,
+    ]);
+
+    Livewire::test('pages.persons.index')
+        ->set('title_id', (string) $title->getKey())
+        ->assertSee('Title Filter Match')
+        ->assertDontSee('Title Filter Other');
+});
+
+it('filters the public directory by speaker language', function () {
+    $language = Language::query()->firstOrFail();
+    $matchingPerson = Person::factory()->create([
+        'name' => 'Language Filter Match',
+        'status' => 'verified',
+    ]);
+    $otherPerson = Person::factory()->create([
+        'name' => 'Language Filter Other',
+        'status' => 'verified',
+    ]);
+
+    $matchingPerson->languages()->sync([$language->getKey()]);
+    $otherPerson->languages()->sync([]);
+
+    Livewire::test('pages.persons.index')
+        ->set('language_id', (string) $language->getKey())
+        ->assertSee('Language Filter Match')
+        ->assertDontSee('Language Filter Other');
+});
+
+it('filters the public directory by Malaysian state', function () {
+    $selangor = createTestPackageGeography('Directory Selangor');
+    $johor = createTestPackageGeography('Directory Johor');
+    $matchingPerson = Person::factory()->create([
+        'name' => 'State Filter Match',
+        'status' => 'verified',
+    ]);
+    $otherPerson = Person::factory()->create([
+        'name' => 'State Filter Other',
+        'status' => 'verified',
+    ]);
+
+    syncPrimaryAddressForTest($matchingPerson, $selangor['address']);
+    syncPrimaryAddressForTest($otherPerson, $johor['address']);
+
+    Livewire::test('pages.persons.index')
+        ->set('state_id', (string) $selangor['state']->getKey())
+        ->assertSee('State Filter Match')
+        ->assertDontSee('State Filter Other');
+});
+
+it('resets pagination when filters change and preserves filter query strings', function () {
+    $title = Title::query()->where('short_form', 'Ustazah')->firstOrFail();
+
+    foreach (range(1, 13) as $index) {
+        $person = Person::factory()->create([
+            'name' => "Pagination Filter Match {$index}",
+            'status' => 'verified',
+        ]);
+
+        $person->titleAssignments()->delete();
+
+        TitleAssignment::query()->create([
+            'titleable_type' => $person->getMorphClass(),
+            'titleable_id' => $person->getKey(),
+            'title_id' => $title->getKey(),
+            'status' => AssignmentStatus::Active,
+        ]);
+    }
+
+    $titleId = (string) $title->getKey();
+
+    $component = Livewire::test('pages.persons.index')
+        ->call('setPage', 2)
+        ->assertSet('paginators.page', 2)
+        ->set('title_id', $titleId)
+        ->assertSet('paginators.page', 1)
+        ->assertSet('title_id', $titleId);
+
+    expect($component->instance()->persons->url(2))
+        ->toContain('title_id='.$titleId);
+
+    get('/penceramah?title_id='.urlencode($titleId))
+        ->assertSuccessful()
+        ->assertSee(trans_choice(':count active filter|:count active filters', 1, ['count' => 1]));
+});
+
+it('preserves direct search service relevance order', function () {
+    $firstPerson = Person::factory()->create([
+        'name' => 'Ranked Search First',
+        'status' => 'verified',
+    ]);
+    $secondPerson = Person::factory()->create([
+        'name' => 'Ranked Search Second',
+        'status' => 'verified',
+    ]);
+
+    $searchService = Mockery::mock(PersonSearchService::class);
+    $searchService->shouldReceive('publicSearchIds')
+        ->once()
+        ->with('ranked')
+        ->andReturn([(string) $secondPerson->getKey(), (string) $firstPerson->getKey()]);
+    app()->instance(PersonSearchService::class, $searchService);
+
+    $component = Livewire::test('pages.persons.index')
+        ->set('search', 'ranked');
+
+    expect(collect($component->instance()->persons->items())
+        ->pluck('id')
+        ->map(static fn (mixed $id): string => (string) $id)
+        ->all())->toBe([
+            (string) $secondPerson->getKey(),
+            (string) $firstPerson->getKey(),
+        ]);
+});
+
+it('preserves fuzzy search service relevance order', function () {
+    $firstPerson = Person::factory()->create([
+        'name' => 'Fuzzy Search First',
+        'status' => 'verified',
+    ]);
+    $secondPerson = Person::factory()->create([
+        'name' => 'Fuzzy Search Second',
+        'status' => 'verified',
+    ]);
+
+    $searchService = Mockery::mock(PersonSearchService::class);
+    $searchService->shouldReceive('publicSearchIds')
+        ->once()
+        ->with('fuzzy')
+        ->andReturn([]);
+    $searchService->shouldReceive('publicFuzzySearchIds')
+        ->once()
+        ->with('fuzzy')
+        ->andReturn([(string) $secondPerson->getKey(), (string) $firstPerson->getKey()]);
+    app()->instance(PersonSearchService::class, $searchService);
+
+    $component = Livewire::test('pages.persons.index')
+        ->set('search', 'fuzzy');
+
+    expect(collect($component->instance()->persons->items())
+        ->pluck('id')
+        ->map(static fn (mixed $id): string => (string) $id)
+        ->all())->toBe([
+            (string) $secondPerson->getKey(),
+            (string) $firstPerson->getKey(),
+        ]);
+});
+
+it('exposes directory status semantics and aligned loading skeleton markup', function () {
+    Person::factory()->create([
+        'name' => 'Accessible Directory Speaker',
+        'status' => 'verified',
+    ]);
+
+    get('/penceramah')
+        ->assertSuccessful()
+        ->assertSee('data-art-direction="living-majlis"', false)
+        ->assertSee('data-testid="person-directory-folio"', false)
+        ->assertSee('data-material="translucent-control"', false)
+        ->assertSee('data-material="opaque-folio"', false)
+        ->assertSee('data-material="opaque-card"', false)
+        ->assertSee('living-majlis-field', false)
+        ->assertSee('living-majlis-folio', false)
+        ->assertSee('id="person-results"', false)
+        ->assertSee('aria-live="polite"', false)
+        ->assertSee('aria-busy', false)
+        ->assertSee('aria-pressed="true"', false)
+        ->assertSee(__('Verified'))
+        ->assertSee(__('No upcoming majlis yet'))
+        ->assertSee('motion-safe:animate-pulse', false)
+        ->assertSee('sm:aspect-[4/4.6]', false);
+});
+
+it('translates the speaker directory heading for supported locales', function (string $locale, string $expectedHeading) {
+    app()->setLocale($locale);
+
+    get('/penceramah')
+        ->assertSuccessful()
+        ->assertSee($expectedHeading);
+})->with([
+    ['ms', 'Direktori Penceramah Islam'],
+    ['en', 'Islamic speaker directory'],
+    ['jv', 'Direktori penceramah Islam'],
+]);
+
 it('renders translated search placeholder on person index', function () {
     app()->setLocale('ms');
 
@@ -258,9 +462,9 @@ it('shows the empty state when person search has no public matches', function ()
 
     get('/penceramah?search=ammar')
         ->assertSuccessful()
-        ->assertSee(__('Penceramah tidak ditemui'))
-        ->assertSee(__('Tiada profil sepadan dengan “:search”. Cuba ejaan berbeza atau gunakan nama penuh.', ['search' => 'ammar']))
-        ->assertDontSee('penceramah ditemui');
+        ->assertSee(__('No speakers found'))
+        ->assertSee(__('No profile matches “:search”. Try a different spelling or the full name.', ['search' => 'ammar']))
+        ->assertDontSee('0 penceramah ditemui');
 });
 
 it('updates search results live when query changes', function () {

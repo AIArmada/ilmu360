@@ -16,7 +16,7 @@ it('returns translated labels for submit-event enums', function () {
     expect(EventFormat::Physical->label())->toBe('Physical')
         ->and(EventPrayerTime::SelepasSubuh->getLabel())->toBe('After Fajr')
         ->and(EventTerm::query()->where('code', 'kuliah_ceramah')->value('name'))->toBe('Kuliah / Ceramah')
-        ->and(EventTerm::query()->where('code', 'talim')->value('name'))->toBe("Ta'lim")
+        ->and(EventTerm::query()->where('code', 'kelas_kursus')->value('name'))->toBe('Kelas / Kursus')
         ->and(ReferenceType::Book->getLabel())->toBe('Book')
         ->and(SocialPlatform::X->label())->toBe('X / Twitter')
         ->and(SocialPlatform::Telegram->label())->toBe('Telegram')

@@ -78,9 +78,9 @@
 
             <header class="mx-auto mb-8 max-w-3xl text-center sm:mb-10">
                 <p class="text-xs font-bold uppercase tracking-[0.24em] text-emerald-700">{{ __('Hantar Majlis') }}</p>
-                <h1 class="mt-3 font-heading text-4xl font-bold leading-tight text-slate-950 sm:text-5xl">{{ __('Hantar Majlis Ilmu') }}</h1>
+                <h1 class="mt-3 font-heading text-4xl font-bold leading-tight text-slate-950 sm:text-5xl">{{ __('Hantar Majlis') }}</h1>
                 <p class="mt-4 text-base leading-7 text-slate-600 sm:text-lg">
-                    {{ __('Kongsi majlis ilmu dengan komuniti. Penghantaran anda akan disemak sebelum diterbitkan.') }}
+                    {{ __('Percuma untuk dihantar') }} · {{ __('Semakan sebelum diterbitkan') }}
                 </p>
                 <div class="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm text-slate-500">
                     <span class="inline-flex items-center gap-2"><span class="size-2 rounded-full bg-emerald-500"></span>{{ __('Percuma untuk dihantar') }}</span>

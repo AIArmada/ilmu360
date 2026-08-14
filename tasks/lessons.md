@@ -363,6 +363,7 @@
 - After a package cutover, remove tests that only exercise package services/models directly; retain tests at the application seam where the app adds routing, authorization, UI state, serialization, orchestration, or side effects.
 - For idempotent writes under PostgreSQL, do not catch a unique-constraint exception and query the same connection: the transaction is aborted. Use an atomic `insertOrIgnore`/`ON CONFLICT DO NOTHING` path and continue only when the insert succeeds.
 - When an edit form derives an end date from stored timestamps, clear that derived date when the user changes the start date; otherwise sparse update merges can compare a new start against the old calendar date and reject valid times.
+- When the product supports knowledge events beyond one religious domain, classify the activity format first (`Kuliah / Ceramah`, `Kelas / Kursus`, and so on) and keep the subject broad or optional; do not make an Islamic-specific topic taxonomy the submission gate.
 # Subagent model preference
 
 - Use Luna high only for audit subagents. Do not assign Luna xhigh unless the user explicitly changes this preference.
@@ -476,3 +477,4 @@
 - When an application overrides a package configuration map, preserve every package-supported enum value; an omitted owner role can make newly created memberships persist successfully but fail authorization on the next request.
 - Seeders must create or attach `VenueSpace` records after their institution or venue owners exist; setting only `institution_id` or `default_venue_id` leaves `event_locations.venue_space_id` empty and hides the specific hall/room from the public event display.
 - When a hard-cut feature is explicitly required to have no backfill or data migration, remove both row-copy migrations and schema/data rename migrations; let the clean target schema become authoritative and do not describe a migration path in the implementation review.
+- In a multi-step submission wizard, place the broadest optional classification immediately after the required activity type; defer detailed topics and references to the next step so the first decision reads as `type → topic → title`.

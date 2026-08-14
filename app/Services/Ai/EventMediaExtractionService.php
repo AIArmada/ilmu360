@@ -175,7 +175,7 @@ class EventMediaExtractionService
             'prayer_time' => $prayerTime,
             'custom_time' => $customTime,
             'end_time' => $this->normalizeTime($payload['end_time'] ?? null),
-            'event_category_ids' => array_slice($eventCategoryIds, 0, 5),
+            'event_category_ids' => array_slice($eventCategoryIds, 0, 1),
             'event_format' => $this->normalizeEnumValue($payload['event_format'] ?? null, EventFormat::class),
             'visibility' => $this->normalizeEnumValue($payload['visibility'] ?? null, EventVisibility::class),
             'event_url' => $this->normalizeUrl($payload['event_url'] ?? null),

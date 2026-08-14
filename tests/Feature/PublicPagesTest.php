@@ -20,6 +20,8 @@ use App\Models\Series;
 use App\Models\User;
 use App\Models\Venue;
 use Database\Seeders\AIArmada\EventTaxonomySeeder;
+use Database\Seeders\AIArmada\EventTopicSeeder;
+use Filament\Forms\Components\Select;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -88,11 +90,50 @@ it('uses homepage-like vertical spacing on the public listing pages', function (
 it('renders accessible labels on the public submit-event form', function () {
     $this->get(route('submit-event.create'))
         ->assertSuccessful()
-        ->assertSee('Hantar Majlis Ilmu')
-        ->assertSee('Kongsi majlis ilmu dengan komuniti. Penghantaran anda akan disemak sebelum diterbitkan.')
+        ->assertSee('Hantar Majlis')
+        ->assertSee('Percuma untuk dihantar')
+        ->assertSee('Semakan sebelum diterbitkan')
         ->assertSee('aria-label="Fizikal"', false)
         ->assertSee('aria-label="Dalam talian"', false)
         ->assertSee('aria-label="Hibrid"', false);
+});
+
+it('preloads event category choices on the initial submit-event form', function () {
+    $component = Livewire::test(Create::class);
+    $field = collect($component->instance()->getForm('form')->getFlatFields())
+        ->first(fn (mixed $field): bool => $field instanceof Select && $field->getName() === 'event_category_ids');
+
+    expect($field)->toBeInstanceOf(Select::class)
+        ->and($field->isPreloaded())->toBeTrue()
+        ->and($field->getMaxItems())->toBe(1);
+});
+
+it('shows broad optional topics separately from the activity type', function () {
+    app(EventTaxonomySeeder::class)->run();
+    app(EventTopicSeeder::class)->run();
+
+    $component = Livewire::test(Create::class);
+    $field = collect($component->instance()->getForm('form')->getFlatFields())
+        ->first(fn (mixed $field): bool => $field instanceof Select && $field->getName() === 'domain_tags');
+
+    expect($field)->toBeInstanceOf(Select::class)
+        ->and($field->getLabel())->toBe('Topik / bidang')
+        ->and($field->getOptions())
+        ->toContain('Agama & Kerohanian', 'Pendidikan', 'Sains & Matematik', 'Teknologi & IT')
+        ->and($field->isRequired())->toBeFalse();
+});
+
+it('places the broad topic directly after the activity type in the submit wizard', function (): void {
+    app(EventTaxonomySeeder::class)->run();
+    app(EventTopicSeeder::class)->run();
+
+    $fieldNames = collect(Livewire::test(Create::class)->instance()->getForm('form')->getFlatFields())
+        ->map(fn (mixed $field): ?string => method_exists($field, 'getName') ? $field->getName() : null)
+        ->filter()
+        ->values();
+
+    expect($fieldNames->search('domain_tags'))
+        ->toBe($fieldNames->search('event_category_ids') + 1);
 });
 
 it('uses the clean submit-event route for the manual entry point', function () {
@@ -103,11 +144,11 @@ it('uses the clean submit-event route for the manual entry point', function () {
         ->assertSee('data-signal-event="submission.poster_extraction_started"', false)
         ->getOriginalContent();
 
-    expect($manualForm)->toContain('Hantar Majlis Ilmu');
+    expect($manualForm)->toContain('Hantar Majlis');
 
     $this->get(route('submit-event.create', ['mode' => 'manual']))
         ->assertSuccessful()
-        ->assertSee('Hantar Majlis Ilmu')
+        ->assertSee('Hantar Majlis')
         ->assertSee('Ada poster? Biar kami bantu isi.');
 });
 
@@ -115,10 +156,12 @@ it('renders the submit-event upload copy in the selected locale', function () {
     $this->withSession(['locale' => 'en'])
         ->get(route('submit-event.create'))
         ->assertSuccessful()
-        ->assertSee('Submit Knowledge Event')
-        ->assertSee('Share your knowledge event with the community. Your submission will be reviewed before it is published.')
-        ->assertDontSee('Hantar Majlis Ilmu')
-        ->assertDontSee('Kongsi majlis ilmu dengan komuniti. Penghantaran anda akan disemak sebelum diterbitkan.');
+        ->assertSee('Submit Event')
+        ->assertSee('Free to submit')
+        ->assertSee('Reviewed before publication')
+        ->assertSee('Have a poster? Let us help fill it in.')
+        ->assertSee('Upload poster')
+        ->assertDontSee('Ada poster? Biar kami bantu isi.');
 });
 
 it('does not expose experimental AI homepage variants', function () {

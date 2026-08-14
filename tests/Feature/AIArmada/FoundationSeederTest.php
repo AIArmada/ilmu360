@@ -26,13 +26,13 @@ it('seeds EventRole rows from EventKeyPersonRole + organizer', function (): void
         ->and($person->name)->toBe(EventKeyPersonRole::Speaker->getLabel());
 });
 
-it('seeds hierarchical EventTaxonomy and EventTerm categories', function (): void {
+it('seeds flat activity-first EventTaxonomy and EventTerm categories', function (): void {
     seed(FoundationSeeder::class);
 
     $taxonomy = EventTaxonomy::query()->where('code', EventCategoryCatalog::TAXONOMY_CODE)->first();
     expect($taxonomy)->not->toBeNull()
         ->and($taxonomy->name)->toBe('Event Category')
-        ->and($taxonomy->is_hierarchical)->toBeTrue()
+        ->and($taxonomy->is_hierarchical)->toBeFalse()
         ->and($taxonomy->is_active)->toBeTrue();
 
     $terms = EventTerm::query()
@@ -40,11 +40,35 @@ it('seeds hierarchical EventTaxonomy and EventTerm categories', function (): voi
         ->orderBy('sort_order')
         ->get();
 
-    expect($terms->whereNull('parent_id')->count())->toBeGreaterThanOrEqual(5)
-        ->and($terms->whereNotNull('parent_id')->count())->toBeGreaterThanOrEqual(24);
+    expect($terms->whereNull('parent_id')->count())->toBe(8)
+        ->and($terms->whereNotNull('parent_id')->count())->toBe(0);
 
-    expect($terms->where('code', 'ilmu')->first())->not->toBeNull();
-    expect($terms->where('code', 'kuliah_ceramah')->first())->not->toBeNull();
+    expect($terms->where('code', 'kuliah_ceramah')->first())->not->toBeNull()
+        ->and($terms->where('code', 'kelas_kursus')->first())->not->toBeNull()
+        ->and($terms->where('code', 'ilmu')->first())->toBeNull();
+});
+
+it('seeds broad optional event topics', function (): void {
+    seed(FoundationSeeder::class);
+
+    $taxonomy = EventTaxonomy::query()->where('code', 'domain')->firstOrFail();
+
+    expect(EventTerm::query()
+        ->where('event_taxonomy_id', $taxonomy->getKey())
+        ->orderBy('sort_order')
+        ->pluck('name', 'code')
+        ->all()
+    )->toBe([
+        'agama_kerohanian' => 'Agama & Kerohanian',
+        'pendidikan' => 'Pendidikan',
+        'sains_matematik' => 'Sains & Matematik',
+        'teknologi_it' => 'Teknologi & IT',
+        'kerjaya_kemahiran' => 'Kerjaya & Kemahiran',
+        'kesihatan' => 'Kesihatan',
+        'keluarga_masyarakat' => 'Keluarga & Masyarakat',
+        'lain_lain' => 'Lain-lain / Tulis sendiri',
+    ])
+        ->and($taxonomy->is_hierarchical)->toBeFalse();
 });
 
 it('is idempotent (safe to run multiple times)', function (): void {

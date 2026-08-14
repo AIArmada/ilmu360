@@ -135,7 +135,7 @@ TXT;
             'prayer_time' => $enumString('prayer_time_values')->nullable(),
             'custom_time' => $schema->string()->pattern('^([01]\d|2[0-3]):[0-5]\d$')->nullable(),
             'end_time' => $schema->string()->pattern('^([01]\d|2[0-3]):[0-5]\d$')->nullable(),
-            'event_category_ids' => $schema->array()->items($schema->string())->max(5)->nullable(),
+            'event_category_ids' => $schema->array()->items($schema->string())->max(1)->nullable(),
             'event_format' => $enumString('event_format_values')->nullable(),
             'visibility' => $enumString('visibility_values')->nullable(),
             'event_url' => $schema->string()->format('url')->nullable(),

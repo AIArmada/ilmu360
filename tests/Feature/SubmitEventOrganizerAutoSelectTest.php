@@ -96,7 +96,7 @@ it('uses the organizer person slug when no explicit persons are selected', funct
         submitEventOrganizerFormData($fixtures, [
             'title' => 'Organizer Fallback Submit Event',
             'event_date' => $eventDate,
-            'event_category_ids' => [eventCategoryId('other')],
+            'event_category_ids' => [eventCategoryId('lain_lain')],
             'persons' => [],
         ]),
     )

@@ -3436,7 +3436,7 @@ it('mirrors the public person page payload for app clients', function () {
         'default_venue_id' => $venue->id,
         'starts_at' => now()->subDays(2)->setTime(20, 0),
         'ends_at' => now()->subDays(2)->setTime(22, 0),
-        'event_category_ids' => [eventCategoryId('forum')],
+        'event_category_ids' => [eventCategoryId('forum_diskusi')],
     ]);
     EventKeyPersonFactory::new()->create([
         'event_id' => $pastEvent->id,
@@ -3453,7 +3453,7 @@ it('mirrors the public person page payload for app clients', function () {
         'default_venue_id' => $venue->id,
         'starts_at' => now()->addWeek()->setTime(20, 0),
         'ends_at' => now()->addWeek()->setTime(22, 0),
-        'event_category_ids' => [eventCategoryId('forum')],
+        'event_category_ids' => [eventCategoryId('forum_diskusi')],
     ]);
 
     EventKeyPerson::factory()->create([

@@ -145,6 +145,117 @@
 
 }
 
+/* ── Living Majlis material language ── */
+@layer components {
+    .living-majlis-field {
+        --living-paper: #fafaf7;
+        --living-sand: #f4f1e8;
+        --living-ink: #00371c;
+        --living-moss: #00572e;
+        --living-gold: #d9a514;
+        --living-veil: rgba(255, 255, 255, 0.80);
+        --living-veil-border: rgba(255, 255, 255, 0.72);
+        --living-rule: rgba(0, 55, 28, 0.12);
+        --living-halo: rgba(6, 78, 59, 0.30);
+
+        background-color: var(--living-paper);
+        background-image:
+            radial-gradient(circle at 18% 20%, rgba(0, 122, 66, 0.08), transparent 34rem),
+            radial-gradient(circle at 84% 14%, rgba(217, 165, 20, 0.06), transparent 28rem),
+            linear-gradient(180deg, var(--living-paper) 0%, var(--living-sand) 100%);
+        background-size: auto, auto, auto;
+    }
+
+    .living-majlis-veil {
+        background: var(--living-veil);
+        border: 1px solid var(--living-veil-border);
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.72),
+            0 20px 60px -38px var(--living-halo);
+        -webkit-backdrop-filter: blur(18px) saturate(1.08);
+        backdrop-filter: blur(18px) saturate(1.08);
+    }
+
+    .living-majlis-folio {
+        isolation: isolate;
+        border: 1px solid rgba(217, 165, 20, 0.32);
+        box-shadow: 0 30px 80px -42px rgba(0, 25, 11, 0.88);
+        transform: rotate(1.5deg);
+    }
+
+    .living-majlis-folio::after {
+        position: absolute;
+        inset: 1rem;
+        z-index: 2;
+        border: 1px solid rgba(217, 165, 20, 0.30);
+        border-radius: 1rem;
+        content: '';
+        pointer-events: none;
+    }
+
+    .living-majlis-card {
+        background: #ffffff;
+        border-color: rgba(224, 229, 235, 0.80);
+        box-shadow: none;
+    }
+
+    .living-majlis-cta {
+        background:
+            linear-gradient(135deg, rgba(0, 87, 46, 0.52), transparent 52%),
+            #00190b;
+        box-shadow: 0 30px 80px -42px color-mix(in oklab, var(--color-emerald-800) 85%, transparent);
+    }
+}
+
+@supports not ((backdrop-filter: blur(1px))) {
+    .living-majlis-veil {
+        background: rgba(255, 255, 255, 0.96);
+    }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+    .living-majlis-veil {
+        background: rgba(255, 255, 255, 0.98);
+        -webkit-backdrop-filter: none;
+        backdrop-filter: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .living-majlis-folio,
+    .living-majlis-card,
+    .living-majlis-card:hover,
+    .living-majlis-field [data-material="translucent-control"],
+    .living-majlis-field [data-material="translucent-control"]:focus-within {
+        transform: none !important;
+        transition: none !important;
+    }
+}
+
+@media (forced-colors: active) {
+    .living-majlis-field {
+        background: Canvas;
+        background-image: none;
+        color: CanvasText;
+    }
+
+    .living-majlis-field [data-material="hero-field"] {
+        background: Canvas !important;
+    }
+
+    .living-majlis-veil,
+    .living-majlis-folio,
+    .living-majlis-card,
+    .living-majlis-cta {
+        background: Canvas;
+        border: 1px solid CanvasText;
+        box-shadow: none;
+        -webkit-backdrop-filter: none;
+        backdrop-filter: none;
+        forced-color-adjust: auto;
+    }
+}
+
 /* Animations */
 @keyframes fade-in-up {
     0% {

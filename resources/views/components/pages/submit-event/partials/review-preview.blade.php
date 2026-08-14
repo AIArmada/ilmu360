@@ -358,7 +358,7 @@
     </div>
 
     <div class="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
-        <h4 class="text-sm font-semibold text-slate-900">{{ __('Kategori & Bidang') }}</h4>
+        <h4 class="text-sm font-semibold text-slate-900">{{ __('Topik & Rujukan') }}</h4>
         <dl class="mt-3 grid gap-3 text-sm md:grid-cols-2">
             <div>
                 <dt class="text-slate-500">{{ __('Kategori') }}</dt>

@@ -30,8 +30,10 @@ use App\Models\Venue;
 use App\Services\EventSearchService;
 use App\Services\TypesenseEventDiscovery;
 use App\Support\Location\PublicGeolocationPermission;
+use Database\Seeders\AIArmada\EventTopicSeeder;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
+use Filament\Forms\Components\Select;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
@@ -368,9 +370,24 @@ describe('Event Search Filters', function () {
     it('renders secondary filters directly in the events index sidebar', function () {
         Livewire::test(Index::class)
             ->assertSee('Penceramah & kandungan')
+            ->assertSee('Topik & rujukan')
             ->assertSee('Lokasi majlis')
             ->assertSee('Event URL')
             ->assertDontSee('Advanced Filters');
+    });
+
+    it('preloads broad topics in the events index filter', function (): void {
+        app(EventTopicSeeder::class)->run();
+
+        $component = Livewire::test(Index::class);
+        $field = collect($component->instance()->getForm('form')->getFlatFields())
+            ->first(fn (mixed $field): bool => $field instanceof Select && $field->getName() === 'domain_tag_ids');
+
+        expect($field)->toBeInstanceOf(Select::class)
+            ->and($field->getLabel())->toBe('Topic / field')
+            ->and($field->isPreloaded())->toBeTrue()
+            ->and($field->getOptions())
+            ->toContain('Agama & Kerohanian', 'Pendidikan', 'Sains & Matematik', 'Teknologi & IT');
     });
 
     it('does not preload unrelated filter option labels into the initial events index response', function () {
@@ -1882,14 +1899,14 @@ describe('Event Search Filters', function () {
 
         createVisibleEventForSearch([
             'title' => 'Forum Event',
-            'event_category_ids' => [eventCategoryId('forum')],
+            'event_category_ids' => [eventCategoryId('forum_diskusi')],
             'status' => 'approved',
             'visibility' => 'public',
             'published_at' => now(),
             'starts_at' => now()->addDays(2),
         ]);
 
-        $response = $this->get(eventsIndexUrl('event_category_ids[]='.eventCategoryId('forum')));
+        $response = $this->get(eventsIndexUrl('event_category_ids[]='.eventCategoryId('forum_diskusi')));
 
         $response->assertOk()
             ->assertSee('Forum Event')

@@ -83,7 +83,7 @@ it('filters events by canonical event category ids', function () {
         'status' => 'approved',
         'visibility' => EventVisibility::Public,
         'published_at' => now(),
-        'event_category_ids' => [eventCategoryId('forum')],
+        'event_category_ids' => [eventCategoryId('forum_diskusi')],
     ]);
 
     $response = $this->getJson('/api/v1/events?filter[event_category_ids]='.eventCategoryId('kuliah_ceramah'));
@@ -120,7 +120,7 @@ it('filters events through canonical package query parameters', function () {
         'delivery_mode' => EventFormat::Physical,
         'institution_id' => $otherInstitution->id,
         'default_venue_id' => $otherVenue->id,
-        'event_category_ids' => [eventCategoryId('forum')],
+        'event_category_ids' => [eventCategoryId('forum_diskusi')],
     ]);
 
     foreach ([

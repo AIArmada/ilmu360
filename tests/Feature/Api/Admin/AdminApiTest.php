@@ -364,7 +364,7 @@ it('filters admin event records by explicit query parameters', function () {
         'status' => 'approved',
         'delivery_mode' => EventFormat::Physical,
         'visibility' => EventVisibility::Private,
-        'event_category_ids' => [eventCategoryId('forum')],
+        'event_category_ids' => [eventCategoryId('forum_diskusi')],
     ]);
 
     $cancelledHybridEvent = Event::factory()->create([
@@ -372,7 +372,7 @@ it('filters admin event records by explicit query parameters', function () {
         'status' => 'cancelled',
         'delivery_mode' => EventFormat::Hybrid,
         'visibility' => EventVisibility::Unlisted,
-        'event_category_ids' => [eventCategoryId('kenduri')],
+        'event_category_ids' => [eventCategoryId('komuniti_kebajikan')],
     ]);
 
     Sanctum::actingAs($admin);
@@ -453,7 +453,7 @@ it('allows admin api event create payload to control initial workflow status', f
         'age_group' => [EventAgeGroup::AllAges->value],
         'children_allowed' => true,
         'is_muslim_only' => false,
-        'event_category_ids' => [eventCategoryId('bacaan_yasin')],
+        'event_category_ids' => [eventCategoryId('aktiviti_keagamaan')],
         'primary_organizer_id' => (string) $institution->getKey(),
         'institution_id' => (string) $institution->getKey(),
         'registration_required' => false,
@@ -3462,7 +3462,7 @@ function adminApiEventPayload(array $fixtures, array $overrides = []): array
         'age_group' => [EventAgeGroup::AllAges->value],
         'children_allowed' => true,
         'is_muslim_only' => true,
-        'event_category_ids' => [eventCategoryId('other')],
+        'event_category_ids' => [eventCategoryId('lain_lain')],
         'domain_tags' => [(string) $fixtures['domain_tag']->getKey()],
         'discipline_tags' => [(string) $fixtures['discipline_tag']->getKey()],
         'source_tags' => [],
