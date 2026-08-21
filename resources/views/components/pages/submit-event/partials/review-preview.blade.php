@@ -113,6 +113,10 @@
         $prayerTimeLabel = EventPrayerTime::tryFrom((string) $prayerTimeState)?->getLabel();
     }
 
+    $showCustomTime = ! $hasReligiousContext || ($prayerTimeState instanceof EventPrayerTime
+        ? $prayerTimeState === EventPrayerTime::LainWaktu
+        : (string) $prayerTimeState === EventPrayerTime::LainWaktu->value);
+
     $eventDate = filled($get('event_date'))
         ? Carbon::parse((string) $get('event_date'))->translatedFormat('d M Y')
         : null;
@@ -302,14 +306,18 @@
                 <dt class="text-slate-500">{{ __('Tarikh') }}</dt>
                 <dd class="font-medium text-slate-900">{{ $toLabel($eventDate) }}</dd>
             </div>
-            <div>
-                <dt class="text-slate-500">{{ __('Waktu') }}</dt>
-                <dd class="font-medium text-slate-900">{{ $toLabel($prayerTimeLabel) }}</dd>
-            </div>
-            <div>
-                <dt class="text-slate-500">{{ __('Masa Mula') }}</dt>
-                <dd class="font-medium text-slate-900">{{ $toTimeLabel($get('custom_time')) }}</dd>
-            </div>
+            @if ($hasReligiousContext)
+                <div>
+                    <dt class="text-slate-500">{{ __('Waktu') }}</dt>
+                    <dd class="font-medium text-slate-900">{{ $toLabel($prayerTimeLabel) }}</dd>
+                </div>
+            @endif
+            @if ($showCustomTime)
+                <div>
+                    <dt class="text-slate-500">{{ __('Masa Mula') }}</dt>
+                    <dd class="font-medium text-slate-900">{{ $toTimeLabel($get('custom_time')) }}</dd>
+                </div>
+            @endif
             <div>
                 <dt class="text-slate-500">{{ __('Masa Akhir') }}</dt>
                 <dd class="font-medium text-slate-900">{{ $toTimeLabel($get('end_time')) }}</dd>
@@ -342,10 +350,12 @@
                 <dt class="text-slate-500">{{ __('Kanak-kanak Dibenarkan') }}</dt>
                 <dd class="font-medium text-slate-900">{{ (bool) $get('children_allowed') ? __('Ya') : __('Tidak') }}</dd>
             </div>
-            <div>
-                <dt class="text-slate-500">{{ __('Terbuka untuk Muslim Sahaja') }}</dt>
-                <dd class="font-medium text-slate-900">{{ (bool) $get('is_muslim_only') ? __('Ya') : __('Tidak') }}</dd>
-            </div>
+            @if ($hasReligiousContext)
+                <div>
+                    <dt class="text-slate-500">{{ __('Terbuka untuk Muslim Sahaja') }}</dt>
+                    <dd class="font-medium text-slate-900">{{ (bool) $get('is_muslim_only') ? __('Ya') : __('Tidak') }}</dd>
+                </div>
+            @endif
             <div class="md:col-span-2">
                 <dt class="text-slate-500">{{ __('Bahasa') }}</dt>
                 <dd class="font-medium text-slate-900">{{ $toJoined($languageLabels) }}</dd>

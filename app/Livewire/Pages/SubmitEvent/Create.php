@@ -26,7 +26,6 @@ use App\Enums\ReferenceType;
 use App\Forms\Components\Select;
 use App\Forms\InstitutionFormSchema;
 use App\Forms\PersonFormSchema;
-use App\Forms\SharedFormSchema;
 use App\Forms\VenueFormSchema;
 use App\Livewire\Concerns\InteractsWithLocationPickerSelection;
 use App\Models\Event;
@@ -102,6 +101,14 @@ class Create extends Component implements HasActions, HasForms
 
     private const string REVIEW_STEP_ID = 'form.semak-sebelum-hantar::data::wizard-step';
 
+    private const string DEFAULT_SUBMISSION_TIME = '20:00';
+
+    /** @var list<string> */
+    private const array RELIGIOUS_CATEGORY_CODES = ['aktiviti_keagamaan'];
+
+    /** @var list<string> */
+    private const array RELIGIOUS_TOPIC_CODES = ['agama_kerohanian'];
+
     public function render(): View
     {
         return view('components.pages.submit-event.create');
@@ -126,6 +133,8 @@ class Create extends Component implements HasActions, HasForms
 
     public ?TemporaryUploadedFile $event_source_attachment = null;
 
+    public bool $customTimeWasEdited = false;
+
     protected ?Institution $resolvedScopedInstitution = null;
 
     protected function eventForm(): Schema
@@ -138,6 +147,10 @@ class Create extends Component implements HasActions, HasForms
         $this->eventId = request()->query('event');
         $this->duplicateEventId = request()->query('duplicate');
         $scopedInstitution = $this->resolveScopedInstitution(request()->query('institution'));
+        $defaultLanguageId = Language::where('code', 'ms')->value('id');
+        $defaultCategoryId = $this->defaultEventTermId(EventCategoryCatalog::TAXONOMY_CODE, 'kuliah_ceramah');
+        $defaultDomainId = $this->defaultEventTermId(EventTaxonomyCode::Domain->value, 'agama_kerohanian');
+        $defaultIsReligious = $defaultCategoryId !== null || $defaultDomainId !== null;
 
         if ($scopedInstitution instanceof Institution) {
             $this->scopedInstitutionId = $scopedInstitution->id;
@@ -147,12 +160,19 @@ class Create extends Component implements HasActions, HasForms
         $state = [
             'submitter_name' => auth()->user()?->name,
             'submitter_email' => auth()->user()?->email,
+            'event_category_ids' => $defaultCategoryId !== null ? [$defaultCategoryId] : [],
+            'domain_tags' => $defaultDomainId !== null ? [$defaultDomainId] : [],
             'children_allowed' => true,
             'gender' => EventGenderRestriction::All->value,
-            'age_group' => [EventAgeGroup::AllAges],
-            'languages' => [Language::where('code', 'ms')->value('id') ?? ''],
-            'event_format' => EventFormat::Physical,
+            'age_group' => [EventAgeGroup::AllAges->value],
+            'languages' => $defaultLanguageId !== null ? [(string) $defaultLanguageId] : [],
+            'prayer_time' => $defaultIsReligious
+                ? EventPrayerTime::SelepasMaghrib->value
+                : EventPrayerTime::LainWaktu->value,
+            'custom_time' => $defaultIsReligious ? null : self::DEFAULT_SUBMISSION_TIME,
+            'event_format' => EventFormat::Physical->value,
             'visibility' => EventVisibility::Public->value,
+            'primary_organizer_kind' => 'institution',
             'location_same_as_institution' => true,
             'location_type' => 'institution',
             'is_muslim_only' => false,
@@ -166,7 +186,9 @@ class Create extends Component implements HasActions, HasForms
         }
 
         if (($duplicateEvent = $this->selectedDuplicateEvent()) instanceof Event) {
-            $state = array_replace($state, $this->duplicateEventDefaults($duplicateEvent));
+            $duplicateDefaults = $this->duplicateEventDefaults($duplicateEvent);
+            $state = array_replace($state, $duplicateDefaults);
+            $this->customTimeWasEdited = array_key_exists('custom_time', $duplicateDefaults);
         }
 
         if ($scopedInstitution instanceof Institution) {
@@ -497,10 +519,13 @@ class Create extends Component implements HasActions, HasForms
                 ->maxItems(1)
                 ->closeOnSelect()
                 ->live()
-                ->afterStateUpdated(function (mixed $state, Set $set): void {
+                ->afterStateUpdatedJs($this->progressUpdateJs())
+                ->afterStateUpdated(function (mixed $state, Set $set, Get $get): void {
                     if ($this->hasCommunityCategorySelection($state)) {
                         $set('event_format', EventFormat::Physical->value);
                     }
+
+                    $this->applyContextualDefaults($get, $set);
                 })
                 ->options(app(EventCategoryCatalog::class)->options())
                 ->searchable()
@@ -515,6 +540,7 @@ class Create extends Component implements HasActions, HasForms
                 ->searchable()
                 ->allowHtml()
                 ->live()
+                ->afterStateUpdatedJs($this->progressUpdateJs())
                 ->getSearchResultsUsing(function (string $search): array {
                     if ($search === '' || $search === '0') {
                         return [];
@@ -542,13 +568,13 @@ class Create extends Component implements HasActions, HasForms
 
                     return $value;
                 })
-                ->afterStateUpdatedJs(<<<'JS'
-                                    if ($state && $state.startsWith('__quick_add__')) {
-                                        $set('title', $state.substring('__quick_add__'.length))
-                                    }
-                                JS)
                 ->afterStateUpdated(function (mixed $state, Set $set): void {
-                    if (! $state || str_starts_with($state, '__quick_add__')) {
+                    if (is_string($state) && str_starts_with($state, '__quick_add__')) {
+                        $state = substr($state, strlen('__quick_add__'));
+                        $set('title', $state);
+                    }
+
+                    if (! is_string($state) || blank($state)) {
                         return;
                     }
 
@@ -620,6 +646,10 @@ class Create extends Component implements HasActions, HasForms
                             $set('custom_time', null)
                             $set('end_time', null)
                         JS)
+                        ->afterStateUpdatedJs($this->progressUpdateJs())
+                        ->afterStateUpdated(function (Get $get, Set $set): void {
+                            $this->applyContextualDefaults($get, $set);
+                        })
                         ->columnSpan(['default' => 1, 'md' => 2]),
 
                     DatePicker::make('event_date')
@@ -631,16 +661,27 @@ class Create extends Component implements HasActions, HasForms
                         ->afterStateUpdatedJs(<<<'JS'
                                                     $set('prayer_time', null)
                                                 JS)
+                        ->afterStateUpdatedJs($this->progressUpdateJs())
+                        ->afterStateUpdated(function (Get $get, Set $set): void {
+                            $this->applyContextualDefaults($get, $set);
+                        })
                         ->columnSpan(['default' => 1, 'md' => 2]),
 
                     Select::make('prayer_time')
                         ->label(__('Waktu'))
                         ->required()
+                        ->live()
+                        ->default(EventPrayerTime::LainWaktu->value)
+                        ->visible(fn (Get $get): bool => $this->isReligiousContext(
+                            $get('event_category_ids'),
+                            $get('domain_tags'),
+                        ))
                         ->afterStateUpdatedJs(<<<'JS'
                                     if ($state !== 'lain_waktu') {
                                         $set('custom_time', null)
                                     }
                                 JS)
+                        ->afterStateUpdatedJs($this->progressUpdateJs())
                         ->options(function (Get $get): array {
                             $eventDate = $get('event_date');
 
@@ -683,6 +724,9 @@ class Create extends Component implements HasActions, HasForms
                         ->native()
                         ->seconds(false)
                         ->minutesStep(5)
+                        ->afterStateUpdated(function (): void {
+                            $this->customTimeWasEdited = true;
+                        })
                         ->afterStateUpdatedJs(<<<'JS'
                                     const customTime = $state;
                                     const endTime = $get('end_time');
@@ -704,10 +748,15 @@ class Create extends Component implements HasActions, HasForms
                                         }
                                     }
                                 JS)
-                        ->visibleJs(<<<'JS'
-                                    $get('prayer_time') === 'lain_waktu'
-                                    JS)
-                        ->requiredIf('prayer_time', EventPrayerTime::LainWaktu)
+                        ->afterStateUpdatedJs($this->progressUpdateJs())
+                        ->visible(fn (Get $get): bool => ! $this->isReligiousContext(
+                            $get('event_category_ids'),
+                            $get('domain_tags'),
+                        ) || $this->isPrayerTime($get('prayer_time'), EventPrayerTime::LainWaktu))
+                        ->required(fn (Get $get): bool => ! $this->isReligiousContext(
+                            $get('event_category_ids'),
+                            $get('domain_tags'),
+                        ) || $this->isPrayerTime($get('prayer_time'), EventPrayerTime::LainWaktu))
                         ->markAsRequired()
                         ->columnSpan(['default' => 1, 'md' => 2])
                         ->rule(fn (Get $get): Closure => function (string $attribute, $value, Closure $fail) use ($get) {
@@ -815,6 +864,7 @@ class Create extends Component implements HasActions, HasForms
                             fn (string $value, Get $get): bool => $this->hasCommunityCategorySelection($get('event_category_ids'))
                             && $value !== EventFormat::Physical->value
                         )
+                        ->afterStateUpdatedJs($this->progressUpdateJs())
                         ->inline(),
 
                     Radio::make('visibility')
@@ -822,6 +872,7 @@ class Create extends Component implements HasActions, HasForms
                         ->required()
                         ->options(EventVisibility::class)
                         ->default(EventVisibility::Public)
+                        ->afterStateUpdatedJs($this->progressUpdateJs())
                         ->inline(),
 
                     TextInput::make('event_url')
@@ -846,7 +897,8 @@ class Create extends Component implements HasActions, HasForms
                         ->label(__('Jantina'))
                         ->required()
                         ->options(EventGenderRestriction::class)
-                        ->default(EventGenderRestriction::All),
+                        ->default(EventGenderRestriction::All)
+                        ->afterStateUpdatedJs($this->progressUpdateJs()),
 
                     Select::make('age_group')
                         ->label(__('Peringkat Umur'))
@@ -866,6 +918,7 @@ class Create extends Component implements HasActions, HasForms
                                                         $set('children_allowed', true)
                                                     }
                                                     JS)
+                        ->afterStateUpdatedJs($this->progressUpdateJs())
                         ->afterStateUpdated(function (mixed $state, Set $set): void {
                             $ageGroups = $this->normalizeAgeGroupState($state);
 
@@ -894,8 +947,8 @@ class Create extends Component implements HasActions, HasForms
                         ->required()
                         ->searchable()
                         ->preload()
-                        ->default([101])
-                        ->options(fn (): array => $this->cachedSubmitLanguageOptions()),
+                        ->options(fn (): array => $this->cachedSubmitLanguageOptions())
+                        ->afterStateUpdatedJs($this->progressUpdateJs()),
 
                     Toggle::make('children_allowed')
                         ->label(__('Kanak-kanak Dibenarkan'))
@@ -912,7 +965,11 @@ class Create extends Component implements HasActions, HasForms
 
                     Toggle::make('is_muslim_only')
                         ->label(__('Terbuka untuk Muslim Sahaja'))
-                        ->helperText(__('Pilih jika majlis ini hanya terbuka untuk penganut agama Islam.'))
+                        ->helperText(__('Jika tidak ditanda, majlis dianggap terbuka kepada Muslim dan bukan Muslim.'))
+                        ->visible(fn (Get $get): bool => $this->isReligiousContext(
+                            $get('event_category_ids'),
+                            $get('domain_tags'),
+                        ))
                         ->inline(false)
                         ->default(false),
                 ]),
@@ -930,10 +987,14 @@ class Create extends Component implements HasActions, HasForms
     {
         return Select::make('domain_tags')
             ->label(__('Topik / bidang'))
-            ->helperText(__('Pilihan ini optional. Pilih topik yang paling sesuai.'))
+            ->helperText(__('Wajib dipilih. Bidang ini menentukan soalan tambahan yang akan dipaparkan.'))
             ->closeOnSelect()
             ->placeholder(__('Pilih topik…'))
             ->multiple()
+            ->maxItems(3)
+            ->required()
+            ->live()
+            ->afterStateUpdatedJs($this->progressUpdateJs())
             ->searchable(false)
             ->preload()
             ->native(false)
@@ -962,6 +1023,9 @@ class Create extends Component implements HasActions, HasForms
                 statuses: ['verified', 'pending'],
             ))
             ->rules(['max:3'])
+            ->afterStateUpdated(function (mixed $state, Set $set, Get $get): void {
+                $this->applyContextualDefaults($get, $set);
+            })
             ->validationMessages([
                 'max' => __('Maksimum 3 topik sahaja.'),
             ]);
@@ -1251,7 +1315,8 @@ class Create extends Component implements HasActions, HasForms
         return [
             Section::make(__('Penganjur'))
                 ->schema([
-                    Hidden::make('primary_organizer_id'),
+                    Hidden::make('primary_organizer_id')
+                        ->afterStateUpdatedJs($this->progressUpdateJs()),
 
                     Radio::make('primary_organizer_kind')
                         ->label(__('Jenis Penganjur'))
@@ -1262,6 +1327,8 @@ class Create extends Component implements HasActions, HasForms
 
                         ])
                         ->default('institution')
+                        ->live()
+                        ->afterStateUpdatedJs($this->progressUpdateJs())
                         ->inline()
                         ->visible(! $hasScopedInstitution)
                         ->afterStateUpdated(function (Set $set, ?string $state): void {
@@ -1283,6 +1350,8 @@ class Create extends Component implements HasActions, HasForms
                         ->disabled($hasScopedInstitution)
                         ->dehydrated()
                         ->visibleJs($hasScopedInstitutionJs." || \$get('primary_organizer_kind') === 'institution'")
+                        ->live()
+                        ->afterStateUpdatedJs($this->progressUpdateJs())
                         ->required(fn (Get $get): bool => $this->selectedPrimaryOrganizerKind($get('primary_organizer_kind'), $get('primary_organizer_id')) === 'institution' && ! filled($get('primary_organizer_id')))
                         ->afterStateUpdated(function (Get $get, Set $set, mixed $state): void {
                             $organizerId = is_scalar($state) && trim((string) $state) !== '' ? trim((string) $state) : null;
@@ -1303,6 +1372,7 @@ class Create extends Component implements HasActions, HasForms
                         ->searchable()
                         ->preload()
                         ->visibleJs("! {$hasScopedInstitutionJs} && \$get('primary_organizer_kind') === 'person'")
+                        ->live()
                         ->required(fn (Get $get): bool => $this->selectedPrimaryOrganizerKind($get('primary_organizer_kind'), $get('primary_organizer_id')) === 'person' && ! filled($get('primary_organizer_id')))
                         ->afterStateUpdated(function (Set $set, mixed $state): void {
                             $set('primary_organizer_id', is_scalar($state) && trim((string) $state) !== '' ? trim((string) $state) : null);
@@ -1315,6 +1385,7 @@ class Create extends Component implements HasActions, HasForms
                                                         }
                                                     }
                                                     JS)
+                        ->afterStateUpdatedJs($this->progressUpdateJs())
                         ->createOptionForm(PersonFormSchema::createOptionForm())
                         ->createOptionUsing(fn (array $data, Schema $schema, Set $set, Get $get): string => PersonFormSchema::createOptionUsing($data, $schema)),
                 ]),
@@ -1329,20 +1400,18 @@ class Create extends Component implements HasActions, HasForms
                         ->default(true)
                         ->inline(false)
                         ->visibleJs($hasScopedInstitutionJs." || \$get('primary_organizer_kind') === 'institution'")
-                        ->afterStateUpdatedJs("if (! {$hasScopedInstitutionJs}) {
-                                        return
-                                    }
-
-                                    if (\$state) {
-                                        \$set('location_type', 'institution')
-                                        \$set('location_institution_id', \$get('primary_organizer_institution_id'))
-                                        \$set('location_venue_id', null)
-                                        return
-                                    }
-
-                                    \$set('location_type', 'venue')
-                                    \$set('location_institution_id', null)
-                                    \$set('space_id', null)"),
+                        ->afterStateUpdatedJs("if ({$hasScopedInstitutionJs}) {
+                                        if (\$state) {
+                                            \$set('location_type', 'institution')
+                                            \$set('location_institution_id', \$get('primary_organizer_institution_id'))
+                                            \$set('location_venue_id', null)
+                                        } else {
+                                            \$set('location_type', 'venue')
+                                            \$set('location_institution_id', null)
+                                            \$set('space_id', null)
+                                        }
+                                    }")
+                        ->afterStateUpdatedJs($this->progressUpdateJs()),
 
                     Radio::make('location_type')
                         ->label(__('Jenis Lokasi'))
@@ -1353,7 +1422,8 @@ class Create extends Component implements HasActions, HasForms
                         ->inline()
                         ->default('institution')
                         ->visibleJs("! {$hasScopedInstitutionJs} && (\$get('primary_organizer_kind') === 'person' || !\$get('location_same_as_institution'))")
-                        ->required(fn (Get $get): bool => ($this->selectedPrimaryOrganizerKind($get('primary_organizer_kind'), $get('primary_organizer_id')) === 'person' || ! $get('location_same_as_institution')) && $get('event_format') !== 'online'),
+                        ->required(fn (Get $get): bool => ($this->selectedPrimaryOrganizerKind($get('primary_organizer_kind'), $get('primary_organizer_id')) === 'person' || ! $get('location_same_as_institution')) && $get('event_format') !== 'online')
+                        ->afterStateUpdatedJs($this->progressUpdateJs()),
 
                     Select::make('location_institution_id')
                         ->label(__('Institusi'))
@@ -1362,6 +1432,7 @@ class Create extends Component implements HasActions, HasForms
                         ->preload()
                         ->visibleJs("! {$hasScopedInstitutionJs} && (\$get('primary_organizer_kind') === 'person' || !\$get('location_same_as_institution')) && \$get('location_type') === 'institution'")
                         ->required(fn (Get $get): bool => ($this->selectedPrimaryOrganizerKind($get('primary_organizer_kind'), $get('primary_organizer_id')) === 'person' || ! $get('location_same_as_institution')) && $get('location_type') === 'institution')
+                        ->afterStateUpdatedJs($this->progressUpdateJs())
                         ->createOptionForm(InstitutionFormSchema::createOptionForm(includeLocationPicker: true))
                         ->createOptionUsing(fn (array $data, Schema $schema): string => InstitutionFormSchema::createOptionUsing($data, $schema)),
 
@@ -1372,6 +1443,7 @@ class Create extends Component implements HasActions, HasForms
                         ->preload()
                         ->visibleJs("({$hasScopedInstitutionJs} && !\$get('location_same_as_institution')) || (! {$hasScopedInstitutionJs} && (\$get('primary_organizer_kind') === 'person' || !\$get('location_same_as_institution')) && \$get('location_type') === 'venue')")
                         ->required(fn (Get $get): bool => ($this->selectedPrimaryOrganizerKind($get('primary_organizer_kind'), $get('primary_organizer_id')) === 'person' || ! $get('location_same_as_institution')) && $get('location_type') === 'venue')
+                        ->afterStateUpdatedJs($this->progressUpdateJs())
                         ->createOptionForm(VenueFormSchema::createOptionForm(includeLocationPicker: true))
                         ->createOptionUsing(fn (array $data, Schema $schema): string => VenueFormSchema::createOptionUsing($data, $schema)),
 
@@ -1444,6 +1516,7 @@ class Create extends Component implements HasActions, HasForms
                         ->helperText(fn (Get $get): string => $this->categoriesRequirePersons($get('event_category_ids'))
                             ? __('Sekurang-kurangnya seorang penceramah diperlukan untuk jenis majlis ini.')
                             : __('Kosongkan jika majlis ini tidak mempunyai penceramah khusus.'))
+                        ->afterStateUpdatedJs($this->progressUpdateJs())
                         ->getOptionLabelUsing(fn (mixed $value): ?string => Person::query()->find($value)?->formatted_name)
                         ->getOptionLabelsUsing(fn (array $values): array => Person::query()
                             ->whereIn('id', $values)
@@ -1494,6 +1567,7 @@ class Create extends Component implements HasActions, HasForms
                                 ->maxLength(500),
                         ])
                         ->default([])
+                        ->afterStateUpdatedJs($this->progressUpdateJs())
                         ->addActionLabel(__('Tambah Peranan'))
                         ->columns(2)
                         ->columnSpanFull(),
@@ -1554,7 +1628,13 @@ class Create extends Component implements HasActions, HasForms
                 Section::make(__('Pratonton Penghantaran'))
                     ->description(__('Semak ringkasan ini sebelum anda menghantar.'))
                     ->schema([
-                        SchemaView::make('components.pages.submit-event.partials.review-preview'),
+                        SchemaView::make('components.pages.submit-event.partials.review-preview')
+                            ->viewData(fn (): array => [
+                                'hasReligiousContext' => $this->isReligiousContext(
+                                    $this->data['event_category_ids'] ?? [],
+                                    $this->data['domain_tags'] ?? [],
+                                ),
+                            ]),
                     ]),
 
                 Section::make(__('Maklumat Anda'))
@@ -1564,18 +1644,23 @@ class Create extends Component implements HasActions, HasForms
                                 TextInput::make('submitter_name')
                                     ->label(__('Nama Anda'))
                                     ->required()
+                                    ->afterStateUpdatedJs($this->progressUpdateJs())
                                     ->maxLength(100),
 
                                 TextInput::make('submitter_email')
                                     ->label(__('Email'))
                                     ->email()
                                     ->maxLength(255)
+                                    ->afterStateUpdatedJs($this->progressUpdateJs())
+                                    ->live(onBlur: true)
                                     ->required(fn (Get $get) => ! auth()->check() && empty($get('submitter_phone'))),
 
                                 TextInput::make('submitter_phone')
                                     ->label(__('Telefon'))
                                     ->tel()
                                     ->maxLength(20)
+                                    ->afterStateUpdatedJs($this->progressUpdateJs())
+                                    ->live(onBlur: true)
                                     ->required(fn (Get $get) => ! auth()->check() && empty($get('submitter_email'))),
                             ]),
                     ])
@@ -1605,6 +1690,10 @@ class Create extends Component implements HasActions, HasForms
     {
         $state = $this->eventForm()->getState();
         $state['captcha_token'] = $this->data['captcha_token'] ?? null;
+        $state['is_muslim_only'] = $this->isReligiousContext(
+            $state['event_category_ids'] ?? [],
+            $state['domain_tags'] ?? [],
+        ) && (bool) ($state['is_muslim_only'] ?? false);
 
         $eventContainer = $this->selectedEventContainer();
         $result = app(SubmitFrontendEventAction::class)->handle(
@@ -2149,6 +2238,298 @@ class Create extends Component implements HasActions, HasForms
         return $user instanceof User ? $user : null;
     }
 
+    public function formProgress(): int
+    {
+        $requiredFields = $this->requiredFieldProgressChecks();
+        $completed = count(array_filter($requiredFields));
+
+        return (int) round(($completed / count($requiredFields)) * 100);
+    }
+
+    private function progressUpdateJs(): string
+    {
+        return "window.dispatchEvent(new CustomEvent('submit-event-progress-updated'))";
+    }
+
+    /**
+     * @return array{
+     *     has_scoped_institution: bool,
+     *     is_authenticated: bool,
+     *     religious_category_ids: list<string>,
+     *     religious_topic_ids: list<string>,
+     *     speaker_required_category_ids: list<string>,
+     * }
+     */
+    public function clientProgressConfiguration(): array
+    {
+        $staticConfiguration = Cache::remember('submit_event_client_progress_configuration', 300, function (): array {
+            $taxonomyIds = EventTaxonomy::query()
+                ->whereIn('code', [EventCategoryCatalog::TAXONOMY_CODE, EventTaxonomyCode::Domain->value])
+                ->pluck('id', 'code');
+
+            $termIds = function (string $taxonomyCode, array $codes) use ($taxonomyIds): array {
+                $taxonomyId = $taxonomyIds->get($taxonomyCode);
+
+                if (! is_string($taxonomyId)) {
+                    return [];
+                }
+
+                return EventTerm::query()
+                    ->where('event_taxonomy_id', $taxonomyId)
+                    ->whereIn('code', $codes)
+                    ->pluck('id')
+                    ->map(strval(...))
+                    ->values()
+                    ->all();
+            };
+
+            $categoryCatalog = app(EventCategoryCatalog::class);
+            $speakerRequiredCategoryIds = collect($categoryCatalog->options())
+                ->keys()
+                ->filter(fn (mixed $id): bool => is_string($id) && Str::isUuid($id))
+                ->map(strval(...))
+                ->filter(fn (string $id): bool => app(EventCategoryPolicyResolver::class)->requiresSpeaker(
+                    $categoryCatalog->validateTermIds([$id]),
+                ))
+                ->values()
+                ->all();
+
+            return [
+                'religious_category_ids' => $termIds(EventCategoryCatalog::TAXONOMY_CODE, self::RELIGIOUS_CATEGORY_CODES),
+                'religious_topic_ids' => $termIds(EventTaxonomyCode::Domain->value, self::RELIGIOUS_TOPIC_CODES),
+                'speaker_required_category_ids' => $speakerRequiredCategoryIds,
+            ];
+        });
+
+        return [
+            ...$staticConfiguration,
+            'has_scoped_institution' => $this->hasScopedInstitution(),
+            'is_authenticated' => auth()->check(),
+        ];
+    }
+
+    /**
+     * Return one completion check for every required field currently relevant
+     * to the form state. Conditional fields are deliberately added only when
+     * their own validation rule is active.
+     *
+     * @return list<bool>
+     */
+    protected function requiredFieldProgressChecks(): array
+    {
+        $state = $this->data ?? [];
+        $categoryIds = $state['event_category_ids'] ?? [];
+        $topicIds = $state['domain_tags'] ?? [];
+        $isReligious = $this->isReligiousContext($categoryIds, $topicIds);
+        $eventFormat = $state['event_format'] ?? null;
+        $isOnline = $eventFormat instanceof EventFormat
+            ? $eventFormat === EventFormat::Online
+            : $eventFormat === EventFormat::Online->value;
+        $prayerTime = $state['prayer_time'] ?? null;
+        $organizerId = $state['primary_organizer_id'] ?? null;
+        $organizerKind = $this->selectedPrimaryOrganizerKind(
+            $state['primary_organizer_kind'] ?? null,
+            $organizerId,
+        );
+        $sameAsInstitution = (bool) ($state['location_same_as_institution'] ?? true);
+        $locationRequired = ! $isOnline && (
+            $organizerKind === 'person' || ! $sameAsInstitution
+        );
+
+        $requiredFields = [
+            $this->hasSelection($categoryIds),
+            $this->hasSelection($topicIds),
+            filled($state['title'] ?? null),
+            filled($state['submission_country_id'] ?? null),
+            filled($state['event_date'] ?? null),
+            filled($state['event_format'] ?? null),
+            filled($state['visibility'] ?? null),
+            filled($state['gender'] ?? null),
+            $this->hasSelection($state['age_group'] ?? []),
+            $this->hasSelection($state['languages'] ?? []),
+        ];
+
+        if ($isReligious) {
+            $requiredFields[] = filled($prayerTime);
+
+            if ($this->isPrayerTime($prayerTime, EventPrayerTime::LainWaktu)) {
+                $requiredFields[] = filled($state['custom_time'] ?? null);
+            }
+        } else {
+            $requiredFields[] = filled($state['custom_time'] ?? null);
+        }
+
+        if (! $this->hasScopedInstitution() && blank($organizerId)) {
+            $requiredFields[] = filled($state['primary_organizer_kind'] ?? null);
+
+            if ($organizerKind === 'institution') {
+                $requiredFields[] = filled($state['primary_organizer_institution_id'] ?? null);
+            }
+
+            if ($organizerKind === 'person') {
+                $requiredFields[] = filled($state['primary_organizer_person_id'] ?? null);
+            }
+        }
+
+        if ($locationRequired) {
+            $requiredFields[] = filled($state['location_type'] ?? null);
+
+            if (($state['location_type'] ?? null) === 'institution') {
+                $requiredFields[] = filled($state['location_institution_id'] ?? null);
+            }
+
+            if (($state['location_type'] ?? null) === 'venue') {
+                $requiredFields[] = filled($state['location_venue_id'] ?? null);
+            }
+        }
+
+        if ($this->hasSelection($categoryIds) && $this->categoriesRequirePersons($categoryIds)) {
+            $requiredFields[] = $this->hasSelection($state['persons'] ?? []);
+        }
+
+        $otherKeyPeople = $state['other_key_people'] ?? [];
+
+        if ($otherKeyPeople instanceof Collection) {
+            $otherKeyPeople = $otherKeyPeople->all();
+        }
+
+        if (! is_array($otherKeyPeople)) {
+            $otherKeyPeople = [];
+        }
+
+        foreach ($otherKeyPeople as $keyPerson) {
+            if (! is_array($keyPerson)) {
+                continue;
+            }
+
+            $requiredFields[] = filled($keyPerson['role_code'] ?? null);
+            $requiredFields[] = filled($keyPerson['involveable_id'] ?? null)
+                || filled($keyPerson['display_name'] ?? null);
+            $requiredFields[] = filled($keyPerson['visibility'] ?? null);
+        }
+
+        if (! auth()->check()) {
+            $requiredFields[] = filled($state['submitter_name'] ?? null);
+            $requiredFields[] = filled($state['submitter_email'] ?? null)
+                || filled($state['submitter_phone'] ?? null);
+        }
+
+        return $requiredFields;
+    }
+
+    protected function applyContextualDefaults(Get $get, Set $set): void
+    {
+        $isReligious = $this->isReligiousContext(
+            $get('event_category_ids'),
+            $get('domain_tags'),
+        );
+
+        if (! $isReligious) {
+            $set('is_muslim_only', false);
+            $set('prayer_time', EventPrayerTime::LainWaktu->value);
+
+            if (blank($get('custom_time'))) {
+                $set('custom_time', self::DEFAULT_SUBMISSION_TIME);
+            }
+
+            return;
+        }
+
+        if (blank($get('prayer_time'))) {
+            $set('prayer_time', EventPrayerTime::SelepasMaghrib->value);
+        }
+
+        if (
+            ! $this->customTimeWasEdited
+            &&
+            $this->isPrayerTime($get('prayer_time'), EventPrayerTime::LainWaktu)
+            && $get('custom_time') === self::DEFAULT_SUBMISSION_TIME
+        ) {
+            $set('prayer_time', EventPrayerTime::SelepasMaghrib->value);
+            $set('custom_time', null);
+        }
+    }
+
+    protected function isReligiousContext(mixed $categoryIds, mixed $topicIds): bool
+    {
+        $categoryIds = $this->selectedIds($categoryIds);
+        $topicIds = $this->selectedIds($topicIds);
+
+        return once(fn (): bool => array_intersect(
+            self::RELIGIOUS_CATEGORY_CODES,
+            $this->selectedTaxonomyCodes($categoryIds, EventCategoryCatalog::TAXONOMY_CODE),
+        ) !== [] || array_intersect(
+            self::RELIGIOUS_TOPIC_CODES,
+            $this->selectedTaxonomyCodes($topicIds, EventTaxonomyCode::Domain->value),
+        ) !== []);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function selectedTaxonomyCodes(mixed $state, string $taxonomyCode): array
+    {
+        $ids = $this->selectedIds($state);
+
+        if ($ids === []) {
+            return [];
+        }
+
+        $taxonomyId = EventTaxonomy::query()->where('code', $taxonomyCode)->value('id');
+
+        if (! is_string($taxonomyId)) {
+            return [];
+        }
+
+        return EventTerm::query()
+            ->where('event_taxonomy_id', $taxonomyId)
+            ->whereIn('id', $ids)
+            ->pluck('code')
+            ->map(strval(...))
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function selectedIds(mixed $state): array
+    {
+        if ($state instanceof Collection) {
+            $state = $state->all();
+        }
+
+        if (! is_array($state)) {
+            $state = [$state];
+        }
+
+        return collect($state)
+            ->filter(fn (mixed $value): bool => is_scalar($value) && Str::isUuid((string) $value))
+            ->map(fn (mixed $value): string => (string) $value)
+            ->values()
+            ->all();
+    }
+
+    protected function isPrayerTime(mixed $value, EventPrayerTime $expected): bool
+    {
+        return $value instanceof EventPrayerTime
+            ? $value === $expected
+            : $value === $expected->value;
+    }
+
+    protected function hasSelection(mixed $value): bool
+    {
+        if ($value instanceof Collection) {
+            $value = $value->all();
+        }
+
+        if (is_array($value)) {
+            return collect($value)->contains(fn (mixed $item): bool => filled($item));
+        }
+
+        return filled($value);
+    }
+
     /**
      * @return array<string, string>
      */
@@ -2484,6 +2865,23 @@ class Create extends Component implements HasActions, HasForms
     protected function defaultSubmissionCountryId(): ?string
     {
         return app(AddressCountryResolver::class)->resolveId('MY');
+    }
+
+    protected function defaultEventTermId(string $taxonomyCode, string $termCode): ?string
+    {
+        $taxonomyId = EventTaxonomy::query()->where('code', $taxonomyCode)->value('id');
+
+        if (! is_string($taxonomyId)) {
+            return null;
+        }
+
+        $termId = EventTerm::query()
+            ->where('event_taxonomy_id', $taxonomyId)
+            ->where('code', $termCode)
+            ->where('is_active', true)
+            ->value('id');
+
+        return is_string($termId) ? $termId : null;
     }
 
     /**

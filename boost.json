@@ -14,7 +14,10 @@
         "spatie/guidelines-skills",
         "livewire/blaze",
         "lorisleiva/laravel-actions",
-        "spatie/laravel-query-builder"
+        "spatie/laravel-query-builder",
+        "spatie/laravel-activitylog",
+        "pestphp/pest-plugin-agent",
+        "spatie/laravel-sluggable"
     ],
     "sail": false,
     "skills": [
@@ -34,7 +37,9 @@
         "blaze-optimize",
         "laravel-actions",
         "laravel-query-builder",
+        "sluggable-development",
         "filament-security-audit",
+        "pest-plugin-agent",
         "spatie-javascript",
         "spatie-laravel-php",
         "spatie-security",

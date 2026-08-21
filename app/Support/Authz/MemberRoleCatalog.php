@@ -93,6 +93,7 @@ final readonly class MemberRoleCatalog
             MemberSubjectType::Person => $this->scopes->person(),
             MemberSubjectType::Event => $this->scopes->event(),
             MemberSubjectType::Reference => $this->scopes->reference(),
+            MemberSubjectType::Organization => $this->scopes->organization(),
         };
     }
 }

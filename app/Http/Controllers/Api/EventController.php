@@ -775,7 +775,7 @@ class EventController extends Controller
     }
 
     /**
-     * @param  Builder<Event>  $query
+     * @param  Builder<Model>  $query
      */
     private function applyPrayerTimeGroupFilter(Builder $query, string $group, Request $request): void
     {
@@ -792,10 +792,7 @@ class EventController extends Controller
     }
 
     /**
-     * @param  list<string>  $terms
-     */
-    /**
-     * @param  Builder<Event>  $query
+     * @param  Builder<Model>  $query
      * @param  list<string>  $terms
      */
     private function applyPrayerReferenceOrLabelFilter(Builder $query, PrayerReference $reference, array $terms): void
@@ -821,7 +818,7 @@ class EventController extends Controller
     }
 
     /**
-     * @param  Builder<Event>  $query
+     * @param  Builder<Model>  $query
      */
     private function applyDhuhaPrayerTimeFilter(Builder $query, Request $request): void
     {
@@ -892,7 +889,7 @@ class EventController extends Controller
      * Apply all location criteria to one package address, allowing either the
      * event venue or its institution to satisfy the complete filter.
      *
-     * @param  Builder<Event>  $query
+     * @param  Builder<Model>  $query
      */
     private function applyEventAddressFilterFromRequest(Builder $query, Request $request): void
     {

@@ -743,3 +743,58 @@ Verification:
 - `php artisan view:cache`, targeted PHPStan for `Create.php`, Pint, translation JSON validation, and `git diff --check` passed.
 - Browser verification confirmed one form and matching poster-assist UI at both `/hantar-majlis` and `/hantar-majlis?mode=manual`; desktop rendering was reviewed visually.
 - The broader public-page and media suites still report unrelated existing failures outside this change: 3 public detail assertions and 1 poster-ratio assertion. They do not touch the updated submit-event view, route entry link, or translation keys.
+
+# Follow-up: adaptive submit-event form flow
+
+## Plan
+
+- [x] Audit the current `/hantar-majlis` Livewire form, field dependencies, defaults, and tests.
+- [x] Make event type and broad topic required driver fields, with dependent sections shown only when relevant.
+- [x] Add sensible defaults for downstream options and a progress indicator that reflects completed/defaulted form state.
+- [x] Ensure Livewire field bindings initialize and the progress indicator advances after the driver selections change.
+- [x] Add regression coverage for validation, defaults, conditional visibility, progress, and at least one representative topic path.
+- [x] Verify the browser flow on desktop/mobile, console/network health, formatting, static analysis, and focused parallel tests.
+
+## Review
+
+`event_category_ids` and `domain_tags` now act as the required driver selections. Broad topics are limited to three and explain that they control the follow-up questions. Religious context is detected from taxonomy codes, so the Muslim-only audience toggle and prayer-relative time choices appear only for religious events; changing away from that context clears stale religious state and restores a direct start-time default. The review preview now follows the same context, explicit custom times are preserved when the category changes, taxonomy lookups are memoized per Livewire request, organization memberships are eager-loaded for admin role management, and Feature/Browser Pest scopes share the test bootstrap correctly.
+
+Downstream choices begin with useful defaults: physical format, public visibility, all genders, all ages, children allowed, Malay, institution organizer, same-as-institution location, and a sensible start-time fallback. The progress card now counts each required field relevant to the current form state, so valid defaults contribute individually while factual inputs such as title/date remain incomplete. Conditional required fields are added or removed from the denominator as the user chooses a religious time, online delivery, a person organizer, or a speaker-dependent category. Guest contact validation is represented as one name check plus one email-or-phone check, matching the form's conditional rules. Guest contact fields are live, and quick-added titles are normalized server-side so their progress updates cannot depend on generated client-side JavaScript.
+
+The blank form now selects Kuliah / Ceramah and Agama & Kerohanian by taxonomy code. Because that topic is religious, the initial prayer-time default is Selepas Maghrib and the custom-time field remains empty until Lain Waktu is chosen.
+
+The standalone CSS block was moved into the layout head stack so the Livewire component has one actual root element. Before that, the style tag became the component root and the form's `wire:model.live` bindings were rendered inert in the browser.
+
+Verification:
+
+- `./pest --parallel --compact tests/Feature/SubmitEventAdaptiveFormTest.php` — 10 passed (59 assertions).
+- `./pest --parallel --compact tests/Feature/RefactorTest.php` — 3 passed (23 assertions).
+- `./pest --parallel --compact tests/Feature/AuthzUserResourceTest.php` — 8 passed (57 assertions).
+- `./pest --parallel --compact tests/Browser/PlaywrightSmokeTest.php` — 1 passed (2 assertions).
+- Targeted PHPStan for the changed Livewire component and adaptive-form test — no errors.
+- Targeted PHPStan, Pint, PHP syntax checks, Blade view cache, and git diff --check passed.
+- Browser verification confirmed the Livewire root is the form container, category + broad-topic selection produced live requests, and Chrome MCP completed a real form path from 53% to 67% to 73% to 80% to 85% and finally 100% after organizer, title, date, and guest contact fields were filled.
+- The quick-add title path previously produced a generated-script syntax error and left the visible value out of Livewire state; server-side normalization removed that error. The final Chrome 100% path reported no console errors and the form was not submitted.
+- A fresh full `./pest --parallel --compact` run emitted failures but was stopped after approximately 27 minutes before a consolidated result; targeted suites above are the completed verification.
+
+## Follow-up: client-side progress research
+
+Context7's Filament 5 documentation confirms that `afterStateUpdatedJs()` runs in the browser with `$state`, `$get()`, and `$set()` without a Livewire request. The current progress section is Blade-rendered from `formProgress()`, so replacing `live()` with `afterStateUpdatedJs()` alone would not update it; the progress markup must also move to Alpine/client-side state (for example, watching the form's client state with `$wire.watch()`). Server-side required validation remains authoritative, while `live()` should remain only for PHP-dependent options or conditional schema.
+
+## Follow-up: client-side progress implementation
+
+- [x] Move progress rendering and recalculation to Alpine/client-side state.
+- [x] Remove `live()` bindings that only existed to refresh the progress counter.
+- [x] Preserve Livewire bindings needed for PHP-dependent options, conditional schema, and server synchronization.
+- [x] Add regression coverage and verify network/console behavior in Chrome.
+
+Implementation review:
+
+The progress card now uses Alpine state inside a `wire:ignore` region. Relevant Filament fields dispatch a native `afterStateUpdatedJs()` progress event without a network request; `$wire.watch()` also covers programmatic/server-synchronised state changes. It mirrors the server-side required-field rules, including religious time, online location, organizer, speaker, repeater, and guest-contact conditions, while taxonomy/policy IDs are cached for five minutes. Independent fields such as format, visibility, gender, language, and speakers no longer use `live()` solely for progress; guest contact fields sync on blur. Server validation and the existing `formProgress()` calculation remain authoritative on submit.
+
+Verification:
+
+- `./pest --parallel --compact tests/Feature/SubmitEventAdaptiveFormTest.php` — 11 passed (69 assertions).
+- `./pest --parallel --compact tests/Browser/PlaywrightSmokeTest.php` — 1 passed (2 assertions).
+- Targeted PHPStan, Pint, Blade view cache, PHP syntax checks, and `git diff --check` passed.
+- Chrome MCP verified that changing the client-side event format state updated the progress value from 61% to 63% without a Livewire network request, and the client calculator reached 100% when all active required values were populated; the form was not submitted and the refreshed page had no JavaScript errors.

@@ -2,6 +2,7 @@
 
 namespace App\Support\Authz;
 
+use AIArmada\Organizations\Models\Organization;
 use App\Models\Event;
 use App\Models\Institution;
 use App\Models\Person;
@@ -27,5 +28,10 @@ final readonly class MemberRoleScopes
     public function reference(): Reference
     {
         return Reference::query()->firstOrFail();
+    }
+
+    public function organization(): Organization
+    {
+        return Organization::query()->firstOrFail();
     }
 }

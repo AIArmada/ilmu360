@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Pest\Rector\Set\PestSetList;
 use Rector\Config\RectorConfig;
 use RectorLaravel\Set\LaravelSetList;
 
@@ -27,6 +28,7 @@ return RectorConfig::configure()
     ->withParallel(timeoutSeconds: 600)
     ->withSets([
         LaravelSetList::LARAVEL_120,
+        PestSetList::CODING_STYLE,
     ])
     ->withPreparedSets(codeQuality: true, deadCode: true)
     ->withPhpSets();

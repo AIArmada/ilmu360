@@ -6,6 +6,7 @@ namespace App\Filament\Resources\Authz\UserResource\Pages;
 
 use AIArmada\Membership\Actions\ChangeMemberRoleAction;
 use AIArmada\Membership\Enums\MemberRole;
+use AIArmada\Organizations\Models\Organization;
 use App\Enums\MemberSubjectType;
 use App\Filament\Resources\Authz\UserResource;
 use App\Models\Event;
@@ -157,6 +158,7 @@ class EditUser extends EditRecord
             MemberSubjectType::Person => $user->persons->map(fn (Person $person): string => $person->name)->values()->all(),
             MemberSubjectType::Event => $user->memberEvents->map(fn (Event $event): string => $event->title)->values()->all(),
             MemberSubjectType::Reference => $user->references->map(fn (Reference $reference): string => $reference->title)->values()->all(),
+            MemberSubjectType::Organization => $user->organizations->map(fn (Organization $organization): string => $organization->name)->values()->all(),
         };
     }
 
@@ -171,6 +173,7 @@ class EditUser extends EditRecord
             'persons' => fn ($query) => $query->orderBy('name'),
             'memberEvents' => fn ($query) => $query->orderBy('title'),
             'references' => fn ($query) => $query->orderBy('title'),
+            'organizations' => fn ($query) => $query->orderBy('name'),
         ]);
 
         $this->record = $freshUser;
@@ -188,6 +191,7 @@ class EditUser extends EditRecord
             MemberSubjectType::Person => $user->persons->first()?->getRelationValue('pivot'),
             MemberSubjectType::Event => $user->memberEvents->first()?->getRelationValue('pivot'),
             MemberSubjectType::Reference => $user->references->first()?->getRelationValue('pivot'),
+            MemberSubjectType::Organization => $user->organizations->first()?->getRelationValue('pivot'),
         };
 
         $role = $pivot?->getAttribute('role');
@@ -195,13 +199,14 @@ class EditUser extends EditRecord
         return is_string($role) && $role !== '' ? $role : null;
     }
 
-    private function firstResolvedSubject(MemberSubjectType $subjectType, User $user): Institution|Person|Event|Reference|null
+    private function firstResolvedSubject(MemberSubjectType $subjectType, User $user): Institution|Person|Event|Reference|Organization|null
     {
         return match ($subjectType) {
             MemberSubjectType::Institution => $user->institutions->first(),
             MemberSubjectType::Person => $user->persons->first(),
             MemberSubjectType::Event => $user->memberEvents->first(),
             MemberSubjectType::Reference => $user->references->first(),
+            MemberSubjectType::Organization => $user->organizations->first(),
         };
     }
 }

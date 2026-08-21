@@ -4,6 +4,7 @@
     'scripts' => ['filament/support', 'filament/schemas', 'filament/forms', 'filament/actions', 'filament/notifications'],
 ])
 
+@push('head')
 <style>
     /* Keep the wizard calm and usable on smaller screens. */
     .fi-sc-wizard-header {
@@ -52,6 +53,7 @@
         display: none;
     }
 </style>
+@endpush
 
 <div class="min-h-screen bg-[#f6f8f6] py-10 pb-32 sm:py-14">
     <div class="container mx-auto px-6 lg:px-12">
@@ -159,6 +161,208 @@
                             @endforeach
                         </ol>
                     </div>
+                </div>
+            </section>
+
+            @php($formProgress = $this->formProgress())
+            @php($progressConfiguration = $this->clientProgressConfiguration())
+            <section
+                wire:ignore
+                x-data="{
+                    progress: @js($formProgress),
+                    config: @js($progressConfiguration),
+                    trackedPaths: [
+                        'event_category_ids',
+                        'domain_tags',
+                        'title',
+                        'submission_country_id',
+                        'event_date',
+                        'prayer_time',
+                        'custom_time',
+                        'event_format',
+                        'visibility',
+                        'gender',
+                        'age_group',
+                        'languages',
+                        'primary_organizer_id',
+                        'primary_organizer_kind',
+                        'primary_organizer_institution_id',
+                        'primary_organizer_person_id',
+                        'location_same_as_institution',
+                        'location_type',
+                        'location_institution_id',
+                        'location_venue_id',
+                        'persons',
+                        'other_key_people',
+                        'submitter_name',
+                        'submitter_email',
+                        'submitter_phone',
+                    ],
+                    progressEventHandler: null,
+                    isFilled(value) {
+                        if (Array.isArray(value)) {
+                            return value.some((item) => this.isFilled(item));
+                        }
+
+                        if (value === null || value === undefined) {
+                            return false;
+                        }
+
+                        return typeof value === 'string' ? value.trim() !== '' : true;
+                    },
+                    selectedIds(value) {
+                        const values = Array.isArray(value) ? value : [value];
+
+                        return values
+                            .filter((item) => item !== null && item !== undefined && item !== '')
+                            .map((item) => typeof item === 'object' && item.value !== undefined ? item.value : item)
+                            .map((item) => String(item));
+                    },
+                    calculate(state) {
+                        const hasSelection = (value) => this.selectedIds(value).length > 0;
+                        const intersects = (left, right) => left.some((value) => right.includes(value));
+                        const currentState = state ?? {};
+                        const categoryIds = this.selectedIds(currentState.event_category_ids);
+                        const topicIds = this.selectedIds(currentState.domain_tags);
+                        const religious = intersects(categoryIds, this.config.religious_category_ids)
+                            || intersects(topicIds, this.config.religious_topic_ids);
+                        const eventFormat = currentState.event_format?.value ?? currentState.event_format;
+                        const isOnline = eventFormat === 'online';
+                        const prayerTime = currentState.prayer_time?.value ?? currentState.prayer_time;
+                        const organizerId = currentState.primary_organizer_id;
+                        const organizerKind = ['institution', 'person'].includes(currentState.primary_organizer_kind)
+                            ? currentState.primary_organizer_kind
+                            : (this.isFilled(organizerId) ? 'institution' : null);
+                        const sameAsInstitution = currentState.location_same_as_institution === undefined
+                            || currentState.location_same_as_institution === null
+                            ? true
+                            : Boolean(currentState.location_same_as_institution);
+                        const locationRequired = ! isOnline && (
+                            organizerKind === 'person' || ! sameAsInstitution
+                        );
+
+                        const requiredFields = [
+                            hasSelection(categoryIds),
+                            hasSelection(topicIds),
+                            this.isFilled(currentState.title),
+                            this.isFilled(currentState.submission_country_id),
+                            this.isFilled(currentState.event_date),
+                            this.isFilled(eventFormat),
+                            this.isFilled(currentState.visibility),
+                            this.isFilled(currentState.gender),
+                            hasSelection(currentState.age_group),
+                            hasSelection(currentState.languages),
+                        ];
+
+                        if (religious) {
+                            requiredFields.push(this.isFilled(prayerTime));
+
+                            if (prayerTime === 'lain_waktu') {
+                                requiredFields.push(this.isFilled(currentState.custom_time));
+                            }
+                        } else {
+                            requiredFields.push(this.isFilled(currentState.custom_time));
+                        }
+
+                        if (! this.config.has_scoped_institution && ! this.isFilled(organizerId)) {
+                            requiredFields.push(this.isFilled(currentState.primary_organizer_kind));
+
+                            if (organizerKind === 'institution') {
+                                requiredFields.push(this.isFilled(currentState.primary_organizer_institution_id));
+                            }
+
+                            if (organizerKind === 'person') {
+                                requiredFields.push(this.isFilled(currentState.primary_organizer_person_id));
+                            }
+                        }
+
+                        if (locationRequired) {
+                            requiredFields.push(this.isFilled(currentState.location_type));
+
+                            if (currentState.location_type === 'institution') {
+                                requiredFields.push(this.isFilled(currentState.location_institution_id));
+                            }
+
+                            if (currentState.location_type === 'venue') {
+                                requiredFields.push(this.isFilled(currentState.location_venue_id));
+                            }
+                        }
+
+                        if (hasSelection(categoryIds) && intersects(categoryIds, this.config.speaker_required_category_ids)) {
+                            requiredFields.push(hasSelection(currentState.persons));
+                        }
+
+                        const otherKeyPeople = Array.isArray(currentState.other_key_people)
+                            ? currentState.other_key_people
+                            : [];
+
+                        otherKeyPeople.forEach((keyPerson) => {
+                            requiredFields.push(this.isFilled(keyPerson?.role_code));
+                            requiredFields.push(this.isFilled(keyPerson?.involveable_id) || this.isFilled(keyPerson?.display_name));
+                            requiredFields.push(this.isFilled(keyPerson?.visibility));
+                        });
+
+                        if (! this.config.is_authenticated) {
+                            requiredFields.push(this.isFilled(currentState.submitter_name));
+                            requiredFields.push(this.isFilled(currentState.submitter_email) || this.isFilled(currentState.submitter_phone));
+                        }
+
+                        return Math.round((requiredFields.filter(Boolean).length / requiredFields.length) * 100);
+                    },
+                    updateScheduled: false,
+                    update() {
+                        if (this.updateScheduled) {
+                            return;
+                        }
+
+                        this.updateScheduled = true;
+                        queueMicrotask(() => {
+                            this.updateScheduled = false;
+                            this.progress = this.calculate(this.$wire.data);
+                        });
+                    },
+                    init() {
+                        this.progressEventHandler = () => this.update();
+                        window.addEventListener('submit-event-progress-updated', this.progressEventHandler);
+
+                        this.trackedPaths.forEach((path) => this.$wire.watch(`data.${path}`, () => this.update()));
+
+                        this.update();
+                    },
+                    destroy() {
+                        if (!this.progressEventHandler) {
+                            return;
+                        }
+
+                        window.removeEventListener('submit-event-progress-updated', this.progressEventHandler);
+                    },
+                }"
+                data-submit-event-progress="{{ $formProgress }}"
+                :data-submit-event-progress="progress"
+                data-progress-client="true"
+                class="mb-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
+                aria-labelledby="submit-event-progress-title"
+            >
+                <div class="flex items-start justify-between gap-4">
+                    <div>
+                        <p class="text-xs font-bold uppercase tracking-[0.18em] text-emerald-700">{{ __('Kemajuan borang') }}</p>
+                        <h2 id="submit-event-progress-title" class="mt-1 text-lg font-semibold text-slate-950" x-text="`{{ __('Anda sudah bermula') }} — ${progress}% {{ __('lengkap') }}`">
+                            {{ __('Anda sudah bermula — :percent% lengkap', ['percent' => $formProgress]) }}
+                        </h2>
+                        <p class="mt-1 text-sm text-slate-600">{{ __('Pilihan asas sudah disediakan. Lengkapkan maklumat majlis yang khusus sahaja.') }}</p>
+                    </div>
+                    <span class="shrink-0 rounded-full bg-emerald-50 px-3 py-1 text-sm font-bold text-emerald-800" x-text="`${progress}%`">{{ $formProgress }}%</span>
+                </div>
+
+                <div
+                    class="mt-4 h-2.5 overflow-hidden rounded-full bg-slate-100"
+                    role="progressbar"
+                    aria-label="{{ __('Kemajuan borang') }}"
+                    aria-valuemin="0"
+                    aria-valuemax="100"
+                    :aria-valuenow="progress"
+                >
+                    <div class="h-full rounded-full bg-emerald-600 transition-[width] duration-500" style="width: {{ $formProgress }}%" :style="`width: ${progress}%`"></div>
                 </div>
             </section>
 

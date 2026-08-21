@@ -34,6 +34,8 @@ use Illuminate\Support\Str;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
+pest()->tia()->locally();
+
 /*
 |--------------------------------------------------------------------------
 | Test Case
@@ -147,7 +149,7 @@ pest()->extend(TestCase::class)
             // parallel process already seeded
         }
     })
-    ->in('Feature');
+    ->in('Feature', 'Browser');
 
 /**
  * Get a language UUID by its ISO 639-1 code for use in tests.

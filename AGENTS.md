@@ -1187,6 +1187,13 @@ This project has domain-specific skills available in `**/skills/**`. You MUST ac
 - The application is served by Laravel Herd at `https?://[kebab-case-project-dir].test`. Use the `get-absolute-url` tool to generate valid URLs. Never run commands to serve the site. It is always available.
 - Use the `herd` CLI to manage services, PHP versions, and sites (e.g. `herd sites`, `herd services:start <service>`, `herd php:list`). Run `herd list` to discover all available commands.
 
+=== tests rules ===
+
+# Test Enforcement
+
+- Every change must be programmatically tested. Write a new test or update an existing test, then run the affected tests to make sure they pass.
+- Run the minimum number of tests needed to ensure code quality and speed. Use `php artisan test --compact` with a specific filename or filter.
+
 === laravel/core rules ===
 
 # Do Things the Laravel Way
@@ -1481,6 +1488,159 @@ livewire(ListUsers::class)
   - `$navigationGroup`: `protected static string | UnitEnum | null` (not `?string`)
   - `$view`: `protected string` (not `protected static string`) on `Page` and `Widget` classes
 
+=== spatie/laravel-activitylog/core rules ===
+
+# spatie/laravel-activitylog
+
+Activity logging package for Laravel. Logs model events and manual activities to a database table.
+
+## Key Concepts
+
+- **Activity**: An Eloquent model (`Spatie\Activitylog\Models\Activity`) storing log entries with subject, causer, event, attribute_changes, and properties.
+- **Subject**: The model being acted upon (polymorphic `subject_type`/`subject_id`).
+- **Causer**: The model that caused the action, typically the authenticated user (polymorphic `causer_type`/`causer_id`).
+- **LogOptions**: Fluent configuration object returned by `getActivitylogOptions()` on models using the `LogsActivity` trait.
+- **ActivityEvent**: Enum with cases `Created`, `Updated`, `Deleted`, `Restored`.
+- **`attribute_changes`** column: stores `{"attributes": {...}, "old": {...}}` for tracked model changes.
+- **`properties`** column: stores custom user data set via `withProperties()`.
+
+## Traits
+
+### `LogsActivity`
+
+Add to models to automatically log create/update/delete events. Optionally implement `getActivitylogOptions()` to configure which attributes to track (defaults to logging events without attribute changes).
+
+```php
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
+use Spatie\Activitylog\Support\LogOptions;
+
+class Article extends Model
+{
+    use LogsActivity;
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logFillable()
+            ->logOnlyDirty()
+            ->dontLogEmptyChanges();
+    }
+}
+```
+
+### `CausesActivity`
+
+Add to user/causer models. Provides `activitiesAsCauser()` relationship.
+
+### `HasActivity`
+
+Combines `LogsActivity` and `CausesActivity`. Provides `activities()`, `activitiesAsSubject()`, and `activitiesAsCauser()`.
+
+## Manual Logging
+
+```php
+activity()
+    ->performedOn($article)
+    ->causedBy($user)
+    ->event(ActivityEvent::Updated)
+    ->withProperties(['key' => 'value'])
+    ->log('Article was updated');
+```
+
+## LogOptions Methods
+
+| Method | Description |
+|--------|-------------|
+| `logFillable()` | Log all fillable attributes |
+| `logAll()` | Log all attributes |
+| `logOnly(array)` | Log specific attributes |
+| `logExcept(array)` | Exclude attributes |
+| `logOnlyDirty()` | Only log changed attributes |
+| `dontLogEmptyChanges()` | Skip logging when no tracked attributes changed |
+| `dontLogIfAttributesChangedOnly(array)` | Ignore updates that only change these attributes |
+| `useLogName(string)` | Set custom log name |
+| `setDescriptionForEvent(Closure)` | Custom description per event |
+| `useAttributeRawValues(array)` | Store raw (uncast) values |
+
+## Querying Activities
+
+```php
+use Spatie\Activitylog\Models\Activity;
+use Spatie\Activitylog\Enums\ActivityEvent;
+
+Activity::forEvent(ActivityEvent::Created)->get();
+Activity::causedBy($user)->get();
+Activity::forSubject($article)->get();
+Activity::inLog('orders')->get();
+```
+
+## Setting the causer
+
+Override the causer for a block of code:
+
+```php
+use Spatie\Activitylog\Facades\Activity;
+
+Activity::defaultCauser($admin, function () {
+    // all activities here are caused by $admin
+});
+
+// or set globally for the rest of the request
+Activity::defaultCauser($admin);
+```
+
+## Disabling Logging
+
+```php
+activity()->withoutLogging(function () {
+    // no activities logged here
+});
+```
+
+## Accessing Changes and Properties
+
+```php
+$activity = Activity::latest()->first();
+
+// Tracked model changes (set automatically by LogsActivity)
+$activity->attribute_changes; // Collection: {"attributes": {...}, "old": {...}}
+
+// Custom user data (set via withProperties)
+$activity->properties; // Collection
+$activity->getProperty('key'); // single value
+```
+
+## Custom Activity Model
+
+Set `activity_model` in `config/activitylog.php` to a class that extends `Model` and implements `Spatie\Activitylog\Contracts\Activity`. Use a custom model for custom table names or database connections.
+
+## Customizing Actions
+
+The package uses action classes (`LogActivityAction`, `CleanActivityLogAction`) that can be extended and swapped via config:
+
+```php
+// config/activitylog.php
+'actions' => [
+    'log_activity' => \App\Actions\CustomLogActivityAction::class,
+    'clean_log' => \App\Actions\CustomCleanAction::class,
+],
+```
+
+Custom action classes must extend the originals. Override protected methods (`save()`, `beforeActivityLogged()`, `resolveDescription()`, etc.) to customize behavior.
+
+## Configuration
+
+Key config options in `config/activitylog.php`:
+- `enabled`: Master on/off switch (env: `ACTIVITYLOG_ENABLED`)
+- `clean_after_days`: Days to keep records for `activitylog:clean` command
+- `default_log_name`: Default log name (string)
+- `default_auth_driver`: Auth driver for causer resolution
+- `include_soft_deleted_subjects`: Include soft-deleted subjects
+- `activity_model`: Custom Activity model class
+- `default_except_attributes`: Globally excluded attributes
+- `actions.log_activity`: Action class for logging activities
+- `actions.clean_log`: Action class for cleaning old activities
+
 === filament/blueprint/core rules ===
 
 ## Filament Blueprint
@@ -1491,6 +1651,52 @@ that an implementing agent can write code without making decisions.
 **Start here**: Read
 `/vendor/filament/blueprint/resources/markdown/planning/overview.md` for plan format,
 required sections, and what to clarify with the user before planning.
+
+=== pestphp/pest-plugin-agent/core rules ===
+
+## Pest Agent Plugin
+
+`vendor/bin/pest --agent="<code>"` runs a one-off Pest assertion without creating a test file — the fastest way to verify that a change actually works (a route response, a model relationship, a rendered page, a form submission, mail firing, a screenshot, JavaScript errors, and so on).
+
+### ALWAYS load the skill first
+
+Whenever the user asks you to check, verify, confirm, or "make sure" something **works** — and it can be exercised on a route, page, form, model, job, mail, notification, or screenshot — you **MUST** load the **`pest-plugin-agent` skill before doing anything else**. Do not reach for a shell command, a throwaway test file, or manual reasoning first. This includes prompts like "verify the login form works", "did my change break X", "screenshot the homepage", "check this route returns 200", "make sure the mail fires", "is the form working", or any behavioral check after a Blade, Livewire, CSS, or JS change. Load the skill, then follow it exactly.
+
+### NEVER fight shell escaping — use SINGLE outer quotes
+
+Inline the snippet, but wrap it in **single** quotes, not double. Single quotes tell the shell to interpret nothing, so `$variables`, `\App\Models\User`, backticks, and `!` all pass through to PHP literally — **there is nothing to escape.** Use double quotes for PHP string literals inside:
+
+```bash
+vendor/bin/pest --agent='$user = \App\Models\User::factory()->create(); visit("/login")->type("email", $user->email)->press("Log in")->assertPathIs("/dashboard");'
+```
+
+Double outer quotes are the trap the shell springs on you — `--agent="…$user…"` makes the shell interpolate `$user` to nothing. Never do that, and never hand-escape `\$`.
+
+The one thing single quotes can't contain is a literal single quote (an apostrophe in the PHP). Only then, fall back to a file: **Write** the snippet to a `.php` file (plain body statements — no `<?php`, no `use`, fully qualified class names) and run `vendor/bin/pest --agent="$(cat /path/to/snippet.php)"`. `"$(cat …)"` passes the contents verbatim without re-parsing. The plugin resolves the test suite's `uses`/namespace itself, so the file's location does not matter (a scratch/temp path is fine — it need not live under `tests/`).
+
+### Browser checks require the browser plugin — ask before installing
+
+Whenever the request can only be answered in a real browser — "does login work", "is the page responsive", "screenshot the homepage", "check the mobile layout", "does the button click through", "are there JS/console errors", or any visual/interaction check — the `visit()` browser API is needed. It comes from a **separate** package, `pestphp/pest-plugin-browser`, which is powered by Playwright.
+
+If `visit()` is undefined (or the package is not installed), **do not install it silently — ask the user for permission first**, since it pulls in Node/Playwright dependencies and downloads browser binaries. Explain that the browser check needs it and confirm before running these commands:
+
+```bash
+composer require pestphp/pest-plugin-browser --dev   # the browser plugin (needs Node.js)
+
+npm install playwright@latest                         # Playwright driver
+
+npx playwright install                                # download the browser binaries
+
+```
+
+Once the user approves and it's installed, add `tests/Browser/Screenshots` to `.gitignore` so captured screenshots aren't committed. Browser assertions then run through the same `vendor/bin/pest --agent='…'` flow:
+
+```bash
+vendor/bin/pest --agent='visit("/login")->type("email", "test@example.com")->type("password", "password")->press("Log in")->assertPathIs("/dashboard");'
+vendor/bin/pest --agent='visit("/")->on()->mobile()->screenshot(fullPage: false, filename: "home-mobile");'
+```
+
+For full usage — backend examples, browser testing, screenshots, responsive checks, combining frontend and backend assertions, RefreshDatabase guidance, and pitfalls — load the **`pest-plugin-agent` skill**.
 
 === spatie/guidelines-skills/core rules ===
 

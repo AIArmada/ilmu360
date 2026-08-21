@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# ponytail: TIA needs xdebug in coverage mode to record its baseline graph.
+# Loaded in Herd php.ini with mode=off; enabled here so `./pest` uses TIA by default.
+XDEBUG_MODE=coverage exec php vendor/bin/pest "$@"
