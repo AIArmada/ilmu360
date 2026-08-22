@@ -8,7 +8,16 @@
       "mcp__codebase-memory-mcp__search_graph",
       "mcp__codebase-memory-mcp__search_code",
       "mcp__codebase-memory-mcp__get_code_snippet",
-      "mcp__codebase-memory-mcp__index_status"
+      "mcp__codebase-memory-mcp__index_status",
+      "mcp__codebase-memory-mcp__trace_path",
+      "WebFetch(domain:ilmu360.test)",
+      "Skill(claude-api)",
+      "mcp__laravel-boost__get-absolute-url",
+      "Bash(curl *)",
+      "Bash(php artisan *)",
+      "Bash(node *)",
+      "Bash(grep --line-number --max-count=6 --context=3 -E 'Semak.{0,30}Hantar')",
+      "mcp__codebase-memory-mcp__get_graph_schema"
     ]
   },
   "enableAllProjectMcpServers": true,
