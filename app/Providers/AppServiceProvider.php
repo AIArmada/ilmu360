@@ -111,7 +111,9 @@ use App\Support\Passport\PassportKeyProvisioner;
 use BezhanSalleh\LanguageSwitch\LanguageSwitch;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Support\Assets\Js;
+use Filament\Support\Colors\Color;
 use Filament\Support\Facades\FilamentAsset;
+use Filament\Support\Facades\FilamentColor;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -146,6 +148,8 @@ class AppServiceProvider extends ServiceProvider
     protected static bool $languageSwitchConfigured = false;
 
     protected static bool $mediaUploadConfigured = false;
+
+    protected static bool $filamentColorsRegistered = false;
 
     protected static bool $publicSlugBindingsRegistered = false;
 
@@ -259,6 +263,16 @@ class AppServiceProvider extends ServiceProvider
             Js::make('close-on-select', __DIR__.'/../../resources/js/filament/close-on-select.js'),
             Js::make('user-timezone', __DIR__.'/../../resources/js/filament/user-timezone.js'),
         ]);
+
+        // Filament rendered outside a panel (public forms) defaults to amber;
+        // match the panel brand so every surface shares one palette.
+        if (! self::$filamentColorsRegistered) {
+            FilamentColor::register([
+                'primary' => Color::Emerald,
+                'gray' => Color::Slate,
+            ]);
+            self::$filamentColorsRegistered = true;
+        }
 
         $this->registerModelObservers();
 

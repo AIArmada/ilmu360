@@ -55,7 +55,7 @@
 </style>
 @endpush
 
-<div class="min-h-screen bg-[#f6f8f6] py-10 pb-32 sm:py-14">
+<div class="min-h-screen bg-gradient-to-b from-emerald-50/80 via-[#f6f8f6] to-[#f6f8f6] py-10 pb-32 sm:py-14">
     <div class="container mx-auto px-6 lg:px-12">
         <div class="mx-auto max-w-6xl xl:max-w-7xl">
             @if(($eventContainer = $this->selectedEventContainer()) instanceof \App\Models\Event)
@@ -79,15 +79,10 @@
             @endif
 
             <header class="mx-auto mb-8 max-w-3xl text-center sm:mb-10">
-                <p class="text-xs font-bold uppercase tracking-[0.24em] text-emerald-700">{{ __('Hantar Majlis') }}</p>
-                <h1 class="mt-3 font-heading text-4xl font-bold leading-tight text-slate-950 sm:text-5xl">{{ __('Hantar Majlis') }}</h1>
+                <h1 class="font-heading text-4xl font-bold leading-tight text-slate-950 sm:text-5xl">{{ __('Hantar Majlis') }}</h1>
                 <p class="mt-4 text-base leading-7 text-slate-600 sm:text-lg">
                     {{ __('Percuma untuk dihantar') }} · {{ __('Semakan sebelum diterbitkan') }}
                 </p>
-                <div class="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm text-slate-500">
-                    <span class="inline-flex items-center gap-2"><span class="size-2 rounded-full bg-emerald-500"></span>{{ __('Percuma untuk dihantar') }}</span>
-                    <span class="inline-flex items-center gap-2"><span class="size-2 rounded-full bg-emerald-500"></span>{{ __('Semakan sebelum diterbitkan') }}</span>
-                </div>
             </header>
 
             <section class="mb-8 overflow-hidden rounded-3xl border border-emerald-100 bg-white shadow-[0_24px_70px_-50px_rgba(6,95,70,0.65)]" aria-labelledby="poster-assist-title">
@@ -108,15 +103,25 @@
                             </div>
                         </div>
 
-                        <div class="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
-                            <label for="submit-event-source-attachment" class="sr-only">
-                                {{ __('Pilih poster, gambar, atau PDF majlis') }}
-                            </label>
+                        <div class="mt-6 flex flex-col gap-4 lg:flex-row lg:items-center">
+                            <div class="flex-1 rounded-2xl border-2 border-dashed border-emerald-200 bg-emerald-50/40 px-5 py-6 text-center transition hover:border-emerald-400 focus-within:border-emerald-500">
+                                <svg class="mx-auto size-8 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0 3 3m-3-3-3 3M6.75 19.5a4.5 4.5 0 0 1-1.41-8.775 5.25 5.25 0 0 1 10.233-2.33 3 3 0 0 1 3.758 3.848A3.752 3.752 0 0 1 18 19.5H6.75Z" />
+                                </svg>
+                                <p class="mt-2 text-sm font-semibold text-slate-700">{{ __('Seret & lepas poster di sini, atau pilih fail') }}</p>
+                                <label for="submit-event-source-attachment" class="sr-only">
+                                    {{ __('Pilih poster, gambar, atau PDF majlis') }}
+                                </label>
 
-                            <input id="submit-event-source-attachment" type="file" wire:model="event_source_attachment"
-                                accept=".pdf,image/jpeg,image/png,image/webp"
-                                aria-describedby="submit-event-source-attachment-help"
-                                class="block min-h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 file:mr-3 file:rounded-lg file:border-0 file:bg-white file:px-3 file:py-2 file:text-sm file:font-semibold file:text-emerald-800 file:shadow-sm hover:file:bg-emerald-50">
+                                <input id="submit-event-source-attachment" type="file" wire:model="event_source_attachment"
+                                    accept=".pdf,image/jpeg,image/png,image/webp"
+                                    aria-describedby="submit-event-source-attachment-help"
+                                    class="mx-auto mt-3 block w-full max-w-sm text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-600 file:px-4 file:py-2.5 file:text-sm file:font-semibold file:text-white hover:file:bg-emerald-700">
+
+                                <p id="submit-event-source-attachment-help" class="mt-3 text-xs leading-5 text-slate-500">
+                                    {{ __('PDF, JPEG, PNG, atau WEBP. Pastikan poster jelas supaya maklumat mudah dibaca.') }}
+                                </p>
+                            </div>
 
                             <x-filament::button type="button" wire:click="extractEventFromMedia" wire:loading.attr="disabled"
                                 wire:target="event_source_attachment,extractEventFromMedia"
@@ -124,7 +129,7 @@
                                 data-signal-category="submission"
                                 data-signal-component="submit_event_form"
                                 data-signal-control="extract_poster"
-                                class="min-h-12 whitespace-nowrap">
+                                class="min-h-12 shrink-0 whitespace-nowrap lg:w-auto">
                                 <span wire:loading.remove wire:target="extractEventFromMedia">{{ __('Ekstrak Dengan AI') }}</span>
                                 <span wire:loading wire:target="extractEventFromMedia">{{ __('Sedang membaca...') }}</span>
                             </x-filament::button>
@@ -133,10 +138,6 @@
                         @error('event_source_attachment')
                             <p class="mt-3 text-sm text-danger-600">{{ $message }}</p>
                         @enderror
-
-                        <p id="submit-event-source-attachment-help" class="mt-3 text-xs leading-5 text-slate-500">
-                            {{ __('PDF, JPEG, PNG, atau WEBP. Pastikan poster jelas supaya maklumat mudah dibaca.') }}
-                        </p>
 
                         <p wire:loading wire:target="event_source_attachment" class="mt-2 text-sm text-emerald-700">
                             {{ __('Fail sedang dimuat naik...') }}
@@ -166,6 +167,7 @@
 
             @php($formProgress = $this->formProgress())
             @php($progressConfiguration = $this->clientProgressConfiguration())
+            <div class="mb-8 overflow-hidden rounded-3xl border border-emerald-100 bg-white shadow-[0_24px_70px_-50px_rgba(6,95,70,0.65)]">
             <section
                 wire:ignore
                 x-data="{
@@ -340,7 +342,7 @@
                 data-submit-event-progress="{{ $formProgress }}"
                 :data-submit-event-progress="progress"
                 data-progress-client="true"
-                class="mb-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
+                class="border-b border-slate-100 bg-white p-5 sm:p-6"
                 aria-labelledby="submit-event-progress-title"
             >
                 <div class="flex items-start justify-between gap-4">
@@ -366,7 +368,7 @@
                 </div>
             </section>
 
-            <form wire:submit="submit" novalidate
+            <form wire:submit="submit" novalidate class="p-4 sm:p-6"
                 data-signal-submit-event="submission.manual_event_submitted"
                 data-signal-category="submission"
                 data-signal-component="submit_event_form"
@@ -374,7 +376,7 @@
                 {{ $this->form }}
 
                 @if(config('services.turnstile.enabled') && filled(config('services.turnstile.site_key')) && filled(config('services.turnstile.secret_key')))
-                    <div class="mt-6 rounded-2xl border border-slate-200 bg-white px-4 py-4">
+                    <div class="mt-6 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
                         <p class="mb-3 text-sm font-semibold text-slate-700">{{ __('Pengesahan Keselamatan') }}</p>
                         <p class="mb-3 text-xs text-slate-500">
                             {{ __('Sila sahkan anda bukan robot sebelum menghantar majlis.') }}
@@ -388,6 +390,7 @@
                     </div>
                 @endif
             </form>
+            </div>
 
             <x-filament-actions::modals />
         </div>
